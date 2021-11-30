@@ -229,3 +229,5 @@ deploy.properties
 
 # avoid ignoring test jars
 !src/test/resources/**/*.jar
+# Ignore Gradle build output directory
+build
