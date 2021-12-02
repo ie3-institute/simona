@@ -119,7 +119,6 @@ dependencies {
 }
 
 group = 'edu.ie3'
-version = '2.1-SNAPSHOT'
 description = 'SIMONA'
 sourceCompatibility = javaVersion
 targetCompatibility = javaVersion
