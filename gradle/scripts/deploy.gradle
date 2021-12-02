@@ -1,0 +1,83 @@
+/* All task to deploy simona on a dedicated server. To use deployment you need to setup a deploy.properties in the
+ * root folder of the project first. sample.deploy.properties can be used as a blueprint.
+ * */
+
+/**
+ * Task to run a simona simulation on a dedicated server
+ */
+task deployAndRun {
+	doFirst {
+		// load deploy properties
+		def props = new Properties()
+		file("deploy.properties").withInputStream { props.load(it) }
+
+		// validate properties file
+		validateProps(props)
+
+		// setup session data
+		def sessionData = [name    : props.get('server.name'),
+			host    : props.get('server.host'),
+			user    : props.get('server.user'),
+			identity: file(props.get('server.idFile'))]
+
+		def tmp_dir_path = "/home/" + props.get('server.user') + "/00_simona_tmp/"
+
+		// upload required shell script into /home/<user>/simona_tmp and run it
+		ssh.run {
+			session(sessionData) {
+				println "Preparing dirs ..."
+				// remove dir first
+				execute("rm -rf " + tmp_dir_path)
+				// create dir
+				execute("mkdir " + tmp_dir_path)
+
+				println "Uploading script ..."
+				// upload scripts
+				put from: project.file('sh/init-run.sh'),
+				into: tmp_dir_path
+
+				println "Adjusting script permissions ..."
+				execute("chmod +x " + tmp_dir_path + "init-run.sh")
+
+				println "Executing script ..."
+				execute("tmux new-session -d " + tmp_dir_path + "init-run.sh -b " + props.get('git.branch') + " -c " +
+						props.get('git.commit') + " -s " + props.get('simona.config'))
+				// remove tmp dir
+				execute("rm -rf " + tmp_dir_path)
+			}
+		}
+	}
+}
+
+/**
+ * Validate deploy.properties structure, does not check for valid configuration parameter values
+ */
+static def validateProps(Properties props) {
+
+	// server config keys
+	[
+		"server.name",
+		"server.host",
+		"server.user",
+		"server.idFile"
+	].each {
+		if (!props.containsKey(it))
+			validateException(it)
+	}
+
+	// git config keys
+	["git.branch", "git.commit"].each {
+		if (!props.containsKey(it))
+			validateException(it)
+	}
+
+	// simona run config keys
+	["simona.config"].each {
+		if (!props.containsKey(it))
+			validateException(it)
+	}
+}
+
+private static def validateException(String key) {
+	throw new RuntimeException("Missing server deploment property key '" + key + "'")
+}

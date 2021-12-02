@@ -1,0 +1,60 @@
+def docBaseDirPath = project.projectDir.toString() + File.separator + project.docsDirName.toString()
+
+/*
+ * Additional tasks, that are defined by default:
+ *   - sphinx -> Generate HTML output of *.rst files in <projectDir>/docs/readthedocs
+ */
+
+/**
+ * Configuring the sphinx plugin
+ */
+sphinx {
+	description 'Generate high level HTML documentation output.'
+	group 'Documentation'
+
+	sourceDirectory = "${docBaseDirPath}/readthedocs"
+	outputDirectory = (project.hasProperty('sphinxOutput')) ? project.getProperty('sphinxOutput') : "${project.buildDir}/docs/readthedocs"
+}
+
+/**
+ * Task to generate the JavaDoc
+ */
+javadoc() {
+	description 'Generates java API doc at the correct place.'
+	group 'Documentation'
+
+	source = sourceSets.main.allJava
+	destinationDir = file(docBaseDirPath + 'javadoc')
+	classpath = project.sourceSets.main.compileClasspath
+}
+
+/**
+ * Converts the PlantUML diagrams to a png file, so that those can be used in sphinx documentation
+ *
+ * Important Note: you have to install GraphViz Manually before being able to execute this task! -> https://graphviz.org
+ */
+task puml2png() {
+	description 'Converts plantUML diagrams to png files.'
+	group 'Documentation'
+
+	doLast {
+		/* Get the PlantUML-jar or download it, if it is not available */
+		def pumlJarFile = project.file("${project.buildDir}/plantuml.jar")
+		if (!pumlJarFile.exists() || !pumlJarFile.isFile()) {
+			download {
+				src 'https://downloads.sourceforge.net/project/plantuml/plantuml.jar'
+				dest buildDir
+			}
+		}
+		javaexec {
+			main = "-jar"
+			args = [
+				"build/plantuml.jar",
+				"-psvg",
+				"-o",
+				"${docBaseDirPath}/readthedocs/_static/figures/uml/",
+				"${docBaseDirPath}/uml/**/*.puml"
+			]
+		}
+	}
+}
