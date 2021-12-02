@@ -41,6 +41,7 @@ apply from: scriptsLocation + 'tests.gradle' // tasks for tests
 apply from: scriptsLocation + 'sonarqube.gradle' // sonarqube config
 apply from: scriptsLocation + 'scoverage.gradle' // scoverage scala code coverage
 apply from: scriptsLocation + 'deploy.gradle' // scoverage scala code coverage
+apply from: scriptsLocation + 'semVer.gradle' // scoverage scala code coverage
 
 
 configurations {
