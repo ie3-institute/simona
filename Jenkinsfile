@@ -112,8 +112,8 @@ node {
 
         sh 'java -version'
 
-        gradle('--refresh-dependencies clean spotlessCheck pmdMain pmdTest spotbugsMain ' +
-            'spotbugsTest test jacocoTestReport jacocoTestCoverageVerification', projectName)
+        gradle('--refresh-dependencies clean spotlessCheck pmdMain pmdTest ' +
+            'test jacocoTestReport jacocoTestCoverageVerification', projectName)
 
         // due to an issue with openjdk-8 we use openjdk-11 for javadocs generation
         sh(script: """set +x && cd $projectName""" + ''' set +x; ./gradlew clean javadoc -Dorg.gradle.java.home=/opt/java/openjdk''', returnStdout: true)
@@ -464,8 +464,6 @@ def publishReports(String relativeProjectDir) {
   // publish pmd report for main project only
   publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: relativeProjectDir + '/build/reports/pmd', reportFiles: 'main.html', reportName: "${relativeProjectDir}_pmd_report", reportTitles: ''])
 
-  // publish spotbugs report for main project only
-  publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: relativeProjectDir + '/build/reports/spotbugs', reportFiles: 'main.html', reportName: "${relativeProjectDir}_spotbugs_report", reportTitles: ''])
 }
 
 /* Rocket.Chat */
