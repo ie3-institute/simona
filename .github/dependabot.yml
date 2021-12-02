@@ -1,0 +1,14 @@
+version: 2
+updates:
+- package-ecosystem: gradle
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "04:00"
+  open-pull-requests-limit: 10
+  target-branch: dev
+  reviewers:
+  - ckittl
+  - johanneshiry
+  - t-ober
+  - sensarmad
