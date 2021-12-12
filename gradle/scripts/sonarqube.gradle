@@ -2,6 +2,7 @@ sonarqube {
   properties {
     // general stuff
     property 'sonar.projectName', 'simona' // project name
+    property 'sonar.projectKey', 'edu.ie3:simona'
     property 'sonar.verbose', 'true' // verbose mode
     property 'sonar.sourceEncoding', 'UTF-8' // encoding
     property 'sonar.sources', [
