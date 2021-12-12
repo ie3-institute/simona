@@ -112,8 +112,7 @@ node {
 
         sh 'java -version'
 
-        gradle('--refresh-dependencies clean spotlessCheck pmdMain pmdTest ' +
-            'test jacocoTestReport jacocoTestCoverageVerification', projectName)
+        gradle('--refresh-dependencies clean spotlessCheck pmdMain pmdTest reportScoverage checkScoverage', projectName)
 
         // due to an issue with openjdk-8 we use openjdk-11 for javadocs generation
         sh(script: """set +x && cd $projectName""" + ''' set +x; ./gradlew clean javadoc -Dorg.gradle.java.home=/opt/java/openjdk''', returnStdout: true)
@@ -458,12 +457,20 @@ def publishReports(String relativeProjectDir) {
   // publish test reports
   publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: relativeProjectDir + '/build/reports/tests/allTests', reportFiles: 'index.html', reportName: "${relativeProjectDir}_java_tests_report", reportTitles: ''])
 
-  // publish jacoco report for main project only
-  publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: relativeProjectDir + '/build/reports/jacoco', reportFiles: 'index.html', reportName: "${relativeProjectDir}_jacoco_report", reportTitles: ''])
-
-  // publish pmd report for main project only
+   // publish pmd report for main project only
   publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: relativeProjectDir + '/build/reports/pmd', reportFiles: 'main.html', reportName: "${relativeProjectDir}_pmd_report", reportTitles: ''])
 
+ // publish scalatest reports for main project only (currently the only one with scala sources!)
+  publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: projectName + '/build/reports/tests/scalatest', reportFiles: 'index.html', reportName: "${relativeProjectDir}_scala_tests_report", reportTitles: ''])
+
+    // publish scapegoat src report for main project only
+    publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: projectName + '/build/reports/scapegoat/src', reportFiles: 'scapegoat.html', reportName: "${relativeProjectDir}_scapegoat_src_report", reportTitles: ''])
+
+    // publish scapegoat testsrc report for main project only
+    publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: projectName + '/build/reports/scapegoat/testsrc', reportFiles: 'scapegoat.html', reportName: "${relativeProjectDir}_scapegoat_testsrc_report", reportTitles: ''])
+
+    // scoverage report dir
+    publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: projectName + '/build/reports/scoverageTest', reportFiles: 'scoverage.xml', reportName: "${relativeProjectDir}_scoverage_report", reportTitles: ''])
 }
 
 /* Rocket.Chat */
