@@ -1,24 +1,24 @@
 test {
-	useJUnitPlatform()
-	testLogging {
-		events "skipped", "failed"
-	}
+  useJUnitPlatform()
+  testLogging {
+    events "skipped", "failed"
+  }
 }
 /* Register scala test with the overall test task */
 test.dependsOn(scalatest)
 
 // test task performance improvements, see -> https://docs.gradle.org/current/userguide/performance.html
 tasks.withType(Test).configureEach {
-	maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
-	forkEvery = 100
+  maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+  forkEvery = 100
 }
 
 tasks.withType(JavaCompile).configureEach {
-	options.fork = true
-	options.incremental = true
+  options.fork = true
+  options.incremental = true
 }
 
 tasks.withType(ScalaCompile).configureEach {
-	options.fork = true
-	options.incremental = true
+  options.fork = true
+  options.incremental = true
 }
