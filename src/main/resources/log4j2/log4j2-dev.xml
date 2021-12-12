@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2019. TU Dortmund University,
+  ~ Institute of Energy Systems, Energy Efficiency and Energy Economics,
+  ~ Research group Distribution grid planning and operation
+  -->
+
+<Configuration>
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </Console>
+
+    </Appenders>
+
+    <Loggers>
+
+        <Root level="error">
+            <AppenderRef ref="Console"/>
+        </Root>
+    </Loggers>
+
+</Configuration>
+
+        <!--<Configuration>-->
+        <!--<Appenders>-->
+        <!--&lt;!&ndash; Console Output &ndash;&gt;-->
+        <!--<Console name="STDOUT" target="SYSTEM_OUT">-->
+        <!--<PatternLayout pattern="[%t] %-5p (%F:%L) - %m%n"/>-->
+        <!--</Console>-->
+        <!--<Console name="ANNS" target="SYSTEM_OUT">-->
+        <!--<PatternLayout pattern="[%t] %-5p (%F:%L) - %m%n"/>-->
+        <!--</Console>-->
+        <!--<Console name="TS" target="SYSTEM_OUT">-->
+        <!--<PatternLayout pattern="[%t] %-5p - %m%n"/>-->
+        <!--</Console>-->
+
+        <!--&lt;!&ndash; Log Files &ndash;&gt;-->
+        <!--<File name="Log" fileName="log/SIMONA/Log.log" append="false"-->
+        <!--immediateFlush="false">-->
+        <!--<PatternLayout pattern="[%t] %-5p - %m%n"/>-->
+        <!--</File>-->
+        <!--<File name="SQLLog" fileName="log/SIMONA/SQL.log" append="false"-->
+        <!--immediateFlush="false">-->
+        <!--<PatternLayout pattern="[%t] %-5p - %m%n"/>-->
+        <!--</File>-->
+        <!--<File name="JDBCLog" fileName="log/SIMONA/JDBC.log" append="false" immediateFlush="false">-->
+        <!--<PatternLayout pattern="[%t] %-5p - %m%n"/>-->
+        <!--</File>-->
+
+        <!--<File name="HibernateLog" fileName="log/SIMONA/Hibernate.log" append="false"-->
+        <!--immediateFlush="false">-->
+        <!--<PatternLayout pattern="[%t] %-5p - %m%n"/>-->
+        <!--</File>-->
+        <!--<File name="CacheLog" fileName="log/SIMONA/CacheLog.log">-->
+        <!--<PatternLayout pattern="[%t] %-5p - %m%n"/>-->
+        <!--</File>-->
+
+        <!--<File name="WebControllerLog" filename="log/SIMONA/WebController.log">-->
+        <!--<PatternLayout pattern="%d [%t] %-5p - %m%n"/>-->
+        <!--</File>-->
+
+        <!--<File name="fullLog" fileName="log/SIMONA/fullLog.log" append="false" immediateFlush="true">-->
+        <!--<PatternLayout pattern="[%t] %-5p - %m%n"/>-->
+        <!--</File>-->
+
+        <!--<File name="integralLog" fileName="log/SIMONA/integralLog.log" append="false">-->
+        <!--<PatternLayout pattern="[%t] %-5p - %m%n"/>-->
+        <!--</File>-->
+
+        <!--<File name="neplanLog" fileName="log/SIMONA/neplanLog.log" append="false">-->
+        <!--<PatternLayout pattern="[%t] %-5p - %m%n"/>-->
+        <!--</File>-->
+
+        <!--<File name="Log" fileName="log/MissionControl/Log.log" append="false"-->
+        <!--immediateFlush="false">-->
+        <!--<PatternLayout pattern="[%t] %-5p - %m%n"/>-->
+        <!--</File>-->
+
+        <!--</Appenders>-->
+
+        <!--<Loggers>-->
+        <!--&lt;!&ndash; Console Output &ndash;&gt;-->
+        <!--<logger name="edu.ie3.missioncontrol" level="all">-->
+        <!--<AppenderRef ref="STDOUT"/>-->
+        <!--</logger>-->
+
+        <!--<Logger name="edu.ie3.simona.edu.ie3.missioncontrol.main.WebController" level="debug" additivity="false">-->
+        <!--<AppenderRef ref="WebControllerLog"/>-->
+        <!--<AppenderRef ref="TS"/>-->
+        <!--</Logger>-->
+
+        <!--<logger name="org.jboss">-->
+        <!--<AppenderRef ref="TS"/>-->
+        <!--</logger>-->
+
+        <!--<logger name="com.mchange" level="info" additivity="false">-->
+        <!--<AppenderRef ref="TS"/>-->
+        <!--</logger>-->
+
+        <!--<logger name="c3p0" level="info" additivity="false">-->
+        <!--<AppenderRef ref="TS"/>-->
+        <!--</logger>-->
+        <!--<logger name="edu.ie3" level="debug">-->
+        <!--<AppenderRef ref="TS"/>-->
+        <!--</logger>-->
+        <!--<logger name="edu.ie3.simona.agent" level="debug">-->
+        <!--<AppenderRef ref="TS"/>-->
+        <!--</logger>-->
+        <!--<logger name="edu.ie3.simona.main" level="info" additivity="false">-->
+        <!--<AppenderRef ref="TS"/>-->
+        <!--</logger>-->
+
+        <!--<logger name="edu.ie3.simona.util.converter" level="debug" additivity="false">-->
+        <!--<AppenderRef ref="STDOUT"/>-->
+        <!--</logger>-->
+
+        <!--<logger name="edu.ie3.simona.main" level="info" additivity="false">-->
+        <!--<AppenderRef ref="TS"/>-->
+        <!--</logger>-->
+
+        <!--&lt;!&ndash; Log Files &ndash;&gt;-->
+
+        <!--<Logger name="Log" level="debug" additivity="false">-->
+        <!--<AppenderRef ref="Log"/>-->
+        <!--</Logger>-->
+
+        <!--<Logger name="org.hibernate.SQL" level="debug" additivity="false">-->
+        <!--<AppenderRef ref="SQLLog"/>-->
+        <!--</Logger>-->
+
+        <!--<Logger name="org.hibernate.type" level="trace" additivity="false">-->
+        <!--<AppenderRef ref="JDBCLog"/>-->
+        <!--</Logger>-->
+
+        <!--<Logger name="org.hibernate.cache" level="debug" additivity="false">-->
+        <!--<AppenderRef ref="CacheLog"/>-->
+        <!--</Logger>-->
+
+        <!--<Logger name="org.hibernate" level="debug" additivity="false">-->
+        <!--<AppenderRef ref="HibernateLog"/>-->
+        <!--</Logger>-->
+
+        <!--<logger name="edu" level="debug" additivity="false">-->
+        <!--<AppenderRef ref="fullLog"/>-->
+        <!--</logger>-->
+
+        <!--&lt;!&ndash; Console and File Output &ndash;&gt;-->
+        <!--<logger name="edu.ie3.simona.util.integralimport" level="debug" additivity="false">-->
+        <!--<AppenderRef ref="TS"/>-->
+        <!--<AppenderRef ref="integralLog"/>-->
+        <!--</logger>-->
+
+        <!--<logger name="edu.ie3.simona.util.neplanimport" level="debug" additivity="false">-->
+        <!--<AppenderRef ref="TS"/>-->
+        <!--<AppenderRef ref="neplanLog"/>-->
+        <!--</logger>-->
+
+        <!--&lt;!&ndash; Root Logger is File Logger &ndash;&gt;-->
+        <!--<Root level="ALL">-->
+        <!--<AppenderRef ref="Log"/>-->
+        <!--</Root>-->
+        <!--</Loggers>-->
+        <!--</Configuration>-->
+		
