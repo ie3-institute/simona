@@ -133,14 +133,6 @@ tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
 
-jar {
-    manifest {
-        attributes(
-                'Main-Class': mainClass
-        )
-    }
-}
-
 //////////////////////////////////////////////////////////////////////
 // Build akka'able fat jar using the gradle shadow plugin
 // see http://www.sureshpw.com/2015/10/building-akka-bundle-with-all.html
