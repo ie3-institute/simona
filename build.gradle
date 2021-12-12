@@ -4,6 +4,7 @@ plugins {
     id 'groovy' // groovy support
     id 'java' // java support
     id 'scala' // scala support
+    id 'signing'
     id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
     id 'pmd' // code check, working on source code
     id 'com.diffplug.spotless' version '6.0.0'// code format
@@ -29,8 +30,12 @@ ext {
     tscfgVersion = '0.9.996'
 
     scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
-    mainClass = 'edu.ie3.missioncontrol.StartMissionControl'
 }
+
+group = 'com.github.ie3-institute'
+description = 'simona'
+sourceCompatibility = javaVersion
+targetCompatibility = javaVersion
 
 apply from: scriptsLocation + 'pmd.gradle'
 apply from: scriptsLocation + 'spotless.gradle'
@@ -40,9 +45,9 @@ apply from: scriptsLocation + 'documentation.gradle' // documentation tasks + co
 apply from: scriptsLocation + 'tests.gradle' // tasks for tests
 apply from: scriptsLocation + 'sonarqube.gradle' // sonarqube config
 apply from: scriptsLocation + 'scoverage.gradle' // scoverage scala code coverage
-apply from: scriptsLocation + 'deploy.gradle' // scoverage scala code coverage
-apply from: scriptsLocation + 'semVer.gradle' // scoverage scala code coverage
-
+apply from: scriptsLocation + 'deploy.gradle'
+apply from: scriptsLocation + 'semVer.gradle'
+apply from: scriptsLocation + 'mavenCentralPublish.gradle'
 
 configurations {
     scalaCompilerPlugin
@@ -75,6 +80,12 @@ dependencies {
         exclude group: 'edu.ie3'
     }
 
+    implementation('com.github.ie3-institute:simonaAPI:0.1.0-SNAPSHOT') {
+        exclude group: 'org.apache.logging.log4j'
+        exclude group: 'org.slf4j'
+        /* Exclude our own nested dependencies */
+        exclude group: 'edu.ie3'
+    }
 
     /* logging */
     implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.3" // akka scala logging
@@ -117,11 +128,6 @@ dependencies {
     implementation 'de.lmu.ifi.dbs.elki:elki:0.7.5' // Statistics (for random load model)
     implementation 'com.google.guava:guava:31.0.1-jre' // Building threads
 }
-
-group = 'edu.ie3'
-description = 'SIMONA'
-sourceCompatibility = javaVersion
-targetCompatibility = javaVersion
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
@@ -167,4 +173,10 @@ compileTestScala {
             "-P:scapegoat:dataDir:" + buildDir + "/reports/scapegoat/testsrc/",
             "-P:scapegoat:disabledInspections:VariableShadowing"
     ]
+}
+
+task printVersion {
+    doLast {
+        println project.version
+    }
 }

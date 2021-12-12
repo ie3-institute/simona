@@ -1,0 +1,124 @@
+/* Maven publish - start */
+task sourcesJar(type: Jar) {
+  classifier "sources"
+  from sourceSets.main.allJava
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+  classifier "javadoc"
+  from javadoc.destinationDir
+}
+
+
+if (project.hasProperty('user') && project.hasProperty('password') && project.hasProperty('deployVersion')) {
+
+  // snapshot version differs from normal version
+  String versionString = project.getProperty('deployVersion')
+
+  signing {
+    required { !versionString.endsWith('SNAPSHOT') }
+    if (required)
+      sign(publishing.publications)
+  }
+
+  publishing {
+    publications {
+      mavenJava(MavenPublication) {
+
+        versionMapping {
+          // resolves dynamic versioning to current version number
+          usage('java-api') {
+            fromResolutionOf('runtimeClasspath')
+          }
+          usage('java-runtime') {
+            fromResolutionResult()
+          }
+        }
+        pom {
+          description = 'simona - an agent-based power system simulation'
+          name = 'simona'
+          url = 'https:github.com/ie3-institute/simona'
+          organization {
+            name = 'Institute of Energy Systems, Energy Efficiency and Energy Economics (ie3)/TU Dortmund University'
+            url = 'http:www.ie3.tu-dortmund.de/'
+          }
+          issueManagement {
+            system = 'GitHub'
+            url = 'https:github.com/ie3-institute/simona/issues'
+          }
+          licenses {
+            license {
+              name = 'BSD 3-Clause License'
+              url = 'https:github.com/ie3-institute/simona/blob/master/LICENSE'
+            }
+            scm {
+              connection = 'scm:git:git:github.com/ie3-institute/simona.git'
+              developerConnection = 'scm:git:ssh:github.com:ie3-institute/simona.git'
+              url = 'https:github.com/ie3-institute/simona'
+            }
+            developers {
+              [
+                developer {
+                  id = 'johanneshiry'
+                  name = 'Johannes Hiry'
+                  email = 'johannes.hiry@tu-dortmund.de'
+                },
+                developer {
+                  id = 'ckittl'
+                  name = 'Chris Kittl'
+                  email = 'chris.kittl@tu-dortmund.de'
+                },
+                developer {
+                  id = 'sensarmad'
+                  name = 'Debopama Sen Sarma'
+                  email = 'debopama-sen.sarma@tu-dortmund.de'
+                }
+              ]
+            }
+          }
+        }
+
+        removeTestDependenciesFromPom(pom)
+        groupId group
+        artifactId 'simona'
+        version versionString
+
+        from components.java
+        artifact sourcesJar
+        artifact javadocJar
+
+      }
+    }
+    repositories {
+      maven {
+        def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+        def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
+        url = versionString.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+        credentials {
+          username project.getProperty('user')
+          password project.getProperty('password')
+        }
+      }
+    }
+  }
+
+
+  model {
+    tasks.generatePomFileForMavenJavaPublication {
+      destination = file("$buildDir/generated-pom.xml")
+    }
+  }
+}
+
+def removeTestDependenciesFromPom(pom) {
+
+  pom.withXml {
+    def root = asNode()
+    // eliminate test-scoped dependencies (no need in maven central POMs)
+    root.dependencies.removeAll { dep ->
+      dep.scope == "test"
+    }
+  }
+}
+
+/* Maven publish - end */
