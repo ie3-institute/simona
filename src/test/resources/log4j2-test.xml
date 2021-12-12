@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2019. TU Dortmund University,
+  ~ Institute of Energy Systems, Energy Efficiency and Energy Economics,
+  ~ Research group Distribution grid planning and operation
+  -->
+
+<Configuration>
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout
+                    pattern="%highlight{%d{HH:mm:ss.SSS} %-5level - %msg%n}{FATAL=red blink, ERROR=red, WARN=yellow bright, INFO=black, DEBUG=cyan, TRACE=blue}"/>
+        </Console>
+        <RollingRandomAccessFile name="RF" fileName="test/logs/simona/simona.log"
+                                 filePattern="test/logs/simona/archive/simona-%d{yyyyMMdd-HHmmss}.log">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+            <Policies>
+                <OnStartupTriggeringPolicy minSize="2 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy>
+                <Delete basePath="test/logs/simona/archive" maxDepth="1">
+                    <IfAccumulatedFileCount exceeds="10"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingRandomAccessFile>
+    </Appenders>
+    <Loggers>
+        <asyncRoot level="debug">
+            <!--            don't enable console log, take a look in the file log instead (under workspace @ CI)-->
+            <AppenderRef ref="Console" level="off"/>
+            <AppenderRef ref="RF" level="debug"/>
+        </asyncRoot>
+        <AsyncLogger name="edu.ie3.powerflow" additivity="false">
+            <AppenderRef ref="Console" level="off"/>
+        </AsyncLogger>
+        <AsyncLogger name="edu.ie3.simona.agent">
+            <AppenderRef ref="Console" level="off"/>
+        </AsyncLogger>
+        <AsyncLogger name="edu.ie3.simona.event">
+            <AppenderRef ref="Console" level="off"/>
+        </AsyncLogger>
+        <AsyncLogger name="edu.ie3.simona.analysis.plots">
+            <AppenderRef ref="Console" level="off"/>
+        </AsyncLogger>
+    </Loggers>
+
+</Configuration>
