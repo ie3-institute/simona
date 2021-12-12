@@ -80,7 +80,7 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
-  implementation('com.github.ie3-institute:simonaAPI:0.1.0-SNAPSHOT') {
+  implementation('com.github.ie3-institute:simonaAPI:0.1-SNAPSHOT') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */

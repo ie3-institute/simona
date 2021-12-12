@@ -1,4 +1,4 @@
-# Contributing to PowerSystemDatamodel
+# Contributing to simona
 Welcome dear fellow of SIMONA! :wave:
 And thank you for considering your contribution to this project!
 With this document we would like to give you some orientation on how you can contribute.
