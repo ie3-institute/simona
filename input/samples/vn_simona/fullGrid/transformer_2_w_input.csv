@@ -1,0 +1,10 @@
+"uuid","auto_tap","id","node_a","node_b","operates_from","operates_until","operator","parallel_devices","tap_pos","type"
+1132dbf4-e8a1-44ae-8415-f42d4497aa1d,true,S3_MS-Trafo,33f29587-f63e-45b7-960b-037bda37a3cb,bb59ca46-1f2e-41c9-9723-90b306f043cd,,,,1,0,cf7b1102-8dbd-4da2-a469-90800b3394b6
+4ac7f0bd-2ea9-4510-9e71-0da40886d9d3,false,TRA_MS3_06-NS_NET136,39dbc5ed-d874-48a8-9128-e970436a94b4,d29f66a1-dee9-4e3e-9f41-c4bc8d375bbe,,,,1,10,a7a3d9b8-da90-4670-b865-4a527df542bd
+2cbbd48e-e6d8-40b4-80cc-010157dfbf3e,false,TRA_MS1_06-NS_NET116,b22c9299-5fb4-46a7-b566-fc17e0d51d60,31a2b9bf-e785-4475-aa44-1c34646e8c79,,,,1,10,4984f493-d6e5-4201-a040-c10722b30362
+18d6ef15-962a-480d-a96a-9ba19ba4b3b3,false,TRA_MS2_06-NS_NET126_ONS,df97c0d1-379b-417a-a473-8e7fe37da99d,2d4beb13-8e6c-46de-9b1c-409c7ca7573a,,,,1,10,f88989c7-9812-4b3e-9bc0-3df29f1e5ae1
+bfa702b1-d4d4-44ff-8c3d-a79c2418b5d3,true,S1_MS-Trafo,00d03670-7833-47ee-ad52-04d18d1c64fd,f5839ade-5968-4879-a824-90b5fb3552cd,,,,1,0,1214c366-826e-4aeb-88f5-af8f40acaa04
+d2a3736d-d10b-4f38-88cf-871df43e3665,true,HöS-Trafo_S1,34cd8ee0-e607-4c47-89a7-121c3e32768a,00d03670-7833-47ee-ad52-04d18d1c64fd,,,,1,0,97735722-05cc-4ca8-8a8d-c08ac3ded19a
+aa5d6bf2-2a88-4cac-9e1f-2a5c19dd2c18,false,TRA_MS4_06-NS_NET146_ONS,fa6d5184-b205-4b1b-839f-7b21ac956c29,3da4fd3d-ac5e-409d-91fa-36516673cf57,,,,1,10,49cfe484-0183-4a23-a922-d72909dba673
+e62b6f82-9a37-49e6-af51-93008df6ea53,true,S2_MS-Trafo,dfae9806-9b44-4995-ba27-d66d8e4a43e0,1a8ba1a5-3cee-4791-b21b-f17b08526873,,,,1,0,5901c24c-0c64-4be7-82df-21d4335abdb7
+253a0e3a-c7e0-415e-bdbd-5152aa8f9e27,true,S4_MS-Trafo,401f37f8-6f2c-4564-bc78-6736cb9cbf8d,77fc154f-f41c-4e75-bbb1-b7fca68b2f4e,,,,1,0,14b1798a-6903-49d6-8578-ad2a7d399341
