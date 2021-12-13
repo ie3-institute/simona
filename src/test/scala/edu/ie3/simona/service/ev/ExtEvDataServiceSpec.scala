@@ -634,7 +634,7 @@ class ExtEvDataServiceSpec
         new RequestEvcsFreeLots()
       )
 
-      // ev service should receive movements msg at this moment
+      // ev service should receive request at this moment
       // scheduler receives schedule msg
       extSimAdapter.expectMsg(new ScheduleDataServiceMessage(evService))
 
@@ -654,34 +654,17 @@ class ExtEvDataServiceSpec
       )
 
       evcs1.expectMsg(
-        ProvideEvDataMessage(
-          tick,
-          EvFreeLotsRequest
-        )
+        EvFreeLotsRequest(tick)
       )
 
       evcs2.expectMsg(
-        ProvideEvDataMessage(
-          tick,
-          EvFreeLotsRequest
-        )
+        EvFreeLotsRequest(tick)
       )
 
       scheduler.expectMsg(
         CompletionMessage(
           triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(tick),
-                evcs1.ref
-              ),
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(tick),
-                evcs2.ref
-              )
-            )
-          )
+          None
         )
       )
 

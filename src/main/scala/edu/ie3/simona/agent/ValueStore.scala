@@ -48,6 +48,15 @@ final case class ValueStore[+D](
       .filter(entry => entry._1 <= requestedTick)
       .maxByOption(entry => entry._1)
 
+  /** Get the last known entry (with the highest tick)
+    *
+    * @return
+    *   An Option to the last entry
+    */
+  def last(): Option[(Long, D)] =
+    store
+      .maxByOption(entry => entry._1)
+
   /** Acquires the stored information within the specified tick window
     *
     * @param requestStart
