@@ -29,6 +29,10 @@ class ValueStoreSpec extends UnitSpec with PrivateMethodTester {
       emptyValueStore.last(100L) shouldBe None
     }
 
+    "return None on request of the overall last known entry" in {
+      emptyValueStore.last() shouldBe None
+    }
+
     "return an empty map on request of tick window" in {
       emptyValueStore.get(50L, 100L) shouldBe Map
         .empty[Long, String]
@@ -59,6 +63,10 @@ class ValueStoreSpec extends UnitSpec with PrivateMethodTester {
 
     "return (4L, \"Four\") on request of the last known entry" in {
       filledValueStore.last(100L) shouldBe Some((4L, "Four"))
+    }
+
+    "return (4L, \"Four\") on request of the overall last known entry" in {
+      filledValueStore.last() shouldBe Some((4L, "Four"))
     }
 
     "return an empty map on request of tick window" in {
