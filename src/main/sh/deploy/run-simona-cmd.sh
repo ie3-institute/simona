@@ -7,7 +7,7 @@ java -Xmx80g \
   -XX:+UseParallelOldGC \
   -XX:MetaspaceSize=150M \
   -Djava.awt.headless=true \
-  -cp build/libs/simona-2.1-SNAPSHOT-all.jar \
+  -cp build/libs/simona-2.1.0-SNAPSHOT-all.jar \
   edu.ie3.simona.main.RunSimonaStandalone \
   "$@"
 

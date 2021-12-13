@@ -15,39 +15,39 @@ import scala.util.{Failure, Success, Using}
 
 // this is secure functionality spec to ensure that the deployment script is altered if required in order to maintain
 // its functionality
-// IF THIS SPEC FAILS IT'S VERY LIKELY THAT YOU HAVE TO ALTER sh/run-simona-cmd.sh
+// IF THIS SPEC FAILS IT'S VERY LIKELY THAT YOU HAVE TO ALTER src/main/sh/deploy/run-simona-cmd.sh
 class DeploySpec extends UnitSpec {
 
   private val runSimonaCmdSh = Using(
     Source.fromFile(
-      System.getProperty("user.dir") + File.separator + "sh/run-simona-cmd.sh"
+      System.getProperty(
+        "user.dir"
+      ) + File.separator + "src/main/sh/deploy/run-simona-cmd.sh"
     )
   )(_.getLines().mkString) match {
-    case Failure(exception) => fail("Cannot read run-simona-cmd.sh!", exception)
+    case Failure(exception) =>
+      fail("Cannot read src/main/sh/deploy/run-simona-cmd.sh!", exception)
     case Success(runCmdLines) => runCmdLines
   }
 
   "The sh/run-simona-cmd.sh" should {
 
-    "contain the current gradle version number" in {
+    "contain the current build version number" in {
 
       // find substring in build.gradle
-      val buildGradle = Using(
+      val versionProps = Using(
         Source.fromFile(
-          System.getProperty("user.dir") + File.separator + "build.gradle"
+          System.getProperty("user.dir") + File.separator + "version.properties"
         )(Codec.UTF8)
       )(_.getLines().mkString) match {
         case Failure(exception)   => fail(exception)
         case Success(buildGradle) => buildGradle
       }
 
-      val gradleVersionStringStart = buildGradle.indexOf("version = ") + 11
-      val gradleVersionStringEnd =
-        buildGradle.substring(gradleVersionStringStart).indexOf("'")
-      val gradleVersionString = buildGradle
-        .substring(gradleVersionStringStart)
-        .substring(0, gradleVersionStringEnd)
-        .trim
+      val gradleVersionString =
+        versionProps
+          .substring(versionProps.indexOf("version.semver=") + 15)
+          .trim
 
       // find substring of -cp <SIMONA.jar>
       val subStringStart = runSimonaCmdSh.indexOf("-cp ") + 4

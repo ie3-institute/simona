@@ -144,7 +144,10 @@ shadowJar {
     resource = 'reference.conf'
   }
   zip64 = true
+  archiveBaseName.set('simona')
 }
+
+
 
 // scapegoat hook configuration
 // https://github.com/sksamuel/scapegoat
