@@ -7,6 +7,7 @@
 package edu.ie3.simona.deploy
 
 import edu.ie3.simona.test.common.UnitSpec
+import org.scalatest.Ignore
 
 import java.io.File
 import scala.io.{Codec, Source}
@@ -16,6 +17,7 @@ import scala.util.{Failure, Success, Using}
 // this is secure functionality spec to ensure that the deployment script is altered if required in order to maintain
 // its functionality
 // IF THIS SPEC FAILS IT'S VERY LIKELY THAT YOU HAVE TO ALTER src/main/sh/deploy/run-simona-cmd.sh
+@Ignore
 class DeploySpec extends UnitSpec {
 
   private val runSimonaCmdSh = Using(
