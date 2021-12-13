@@ -1,0 +1,26 @@
+@startuml
+start
+:Initialize **WecModel** with **WecInput**
+(extract //rotor area A// and betz curve);
+
+:Feed in **WecData** with //wind velocity v//,
+//temperature// and //pressure// for calculation;
+
+:Find corresponding //performance coefficient c_p//
+in betz curve using //wind velocity v//;
+
+:Calculate //air density ρ// using current
+//temperature// and //air pressure//;
+
+:Use determined values to calculate the
+active power output as follows:
+        P = 0.5 * ρ * c_p * A * v³ * -1;
+
+if(Turbine output smaller than\nrated apparent power:
+        P < sMax * cos(φ)) then (yes)
+:Set P = sMax * cos(φ) * -1;
+else (no)
+endif
+:Return value of P;
+stop
+@enduml

@@ -1,0 +1,90 @@
+@startuml
+interface ParticipantStateData
+
+interface InitializeStateData
+ParticipantStateData <|-- InitializeStateData
+
+interface UninitializedStateData
+ParticipantStateData <|-- UninitializedStateData
+
+Class TrivialInitializeStateData
+InitializeStateData <|.. TrivialInitializeStateData
+
+Class DummyParticipantStateData
+ParticipantStateData <|.. DummyParticipantStateData
+
+Class ParticipantUninitializedStateData
+UninitializedStateData <|.. ParticipantUninitializedStateData
+
+
+Class ParticipantInitializeStateData {
+    + String: systemId
+    + DataSourceDefinition: simulationMode
+    + ZonedDateTime: simulationStartDate
+    + ZonedDateTime: simulationEndDate
+    + Long: resolution
+    + Double: requestVoltageDeviationThreshold
+}
+InitializeStateData <|.. ParticipantInitializeStateData
+
+interface BaseStateData {
+    + Array[Long]: dataTicks
+    + Long: maxTickSpan
+    + ValueStore[P]: resultValueStore
+    + ValueStore[P]: requestValueStore
+    + ValueStore[ComparableQuantity[Dimensionless]]: voltageValueStore
+    + Option[Long]: mostRecentDataTick()
+      + ZonedDateTime: startDate
+      + BaseStateData: updateBaseStateData()
+}
+ParticipantStateData <|-- BaseStateData
+
+interface FromOutsideBaseStateData {
+    + PrimaryDataSource: externalDataSource
+}
+interface ModelBaseStateData {
+    + M: model
+    + Option[Vector[SecondaryDataSource]]: services
+}
+BaseStateData <|-- FromOutsideBaseStateData
+BaseStateData <|-- ModelBaseStateData
+
+
+Class FromOutsideBaseStateData {
+    + ZonedDateTime: startDate
+    + PrimaryDataSource[ApparentPower]: externalDataSource
+    + Array[Long]: dataTicks
+    + Long: maxTickSpan
+    + ValueStore[ComparableQuantity[Dimensionless]]: voltageValueStore
+    + ValueStore[P]: resultValueStore
+    + ValueStore[P]: requestValueStore
+}
+FromOutsideBaseStateData <|.. FromOutsideBaseStateData
+
+Class ParticipantModelBaseStateData {
+    + ZonedDateTime: startDate
+    + SystemParticipant: model
+    + Option[Vector[SecondaryDataSource]]: services
+    + PrimaryDataSource[ApparentPower]: externalDataSource
+    + Array[Long]: dataTicks
+    + Long: maxTickSpan
+    + ValueStore[ComparableQuantity[Dimensionless]]: voltageValueStore
+    + ValueStore[P]: resultValueStore
+    + ValueStore[P]: requestValueStore
+    + ValueStore[CalcRelevantData]: calcRelevantDataStore
+}
+ModelBaseStateData <|.. ParticipantModelBaseStateData
+
+interface ServiceCollectionStateData {
+    + ParticipantBaseStateData: baseStateData
+    + Map[SecondaryDataSource, Option[SecondaryData]]: secondaryData
+    + Option[SecondaryData]: extract()
+}
+ParticipantStateData <|-- ServiceCollectionStateData
+
+Class ParticipantServiceCollectionStateData {
+    + ParticipantBaseStateData: baseStateData
+    + Map[SecondaryDataSource, Option[SecondaryData]]: secondaryData
+}
+ServiceCollectionStateData <|.. ParticipantServiceCollectionStateData
+@enduml

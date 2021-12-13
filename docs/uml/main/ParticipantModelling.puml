@@ -1,0 +1,131 @@
+@startuml
+
+' Data structures
+
+package edu.ie3.edu.ie3.simona {
+    package agent.participant {
+        package data {
+            Interface Data
+
+            Interface PrimaryData {
+              # p: ComparableQuantity[Power]
+            }
+            PrimaryData --|> Data
+
+            Interface Heat
+
+            Class ActivePower
+            ActivePower ..> PrimaryData
+
+            Class ActivePowerAndHeat
+            ActivePowerAndHeat --|> ActivePower
+            ActivePowerAndHeat ..> Heat
+
+            Interface PrimaryDataWithApparentPower {
+              # q: ComparableQuantity[Power]
+            }
+            PrimaryDataWithApparentPower --|> PrimaryData
+
+            Class ApparentPower
+            ApparentPower ..> PrimaryDataWithApparentPower
+
+            Class ApparentPowerAndHeat
+            ApparentPowerAndHeat --|> ApparentPower
+            ApparentPowerAndHeat ..> Heat
+
+            Interface SecondaryData
+            SecondaryData --|> Data
+
+            Class DateTime{
+              + dateTime: ZonedDateTime
+            }
+            DateTime --|> SecondaryData
+
+            Class Weather{
+              + diffRad: Quantity[Irradiation]
+              + dirRad: Quantity[Irradiation]
+              + temp: Quantity[Temperature]
+              + windVel: Quantity[Speed]
+            }
+            Weather --|> SecondaryData
+
+            Class WholesalePrice{
+              + price: Quantity[EnergyPrice]
+            }
+            WholesalePrice --|> SecondaryData
+
+            Interface DataSource
+            Interface SimpleSource<D extends Data> {
+              # resolution: Long
+              # offset: Long
+              + allDataTicks(Long): Array[Long]
+              + lastKnownTick(SimpleSource[_], Long): Long
+              + get(Long, Long): D
+            }
+            SimpleSource --|> DataSource
+
+            Interface ActorSource<D extends Data> {
+              # ActorRef actorRef
+            }
+            ActorSource --|> DataSource
+
+            package primary {
+                Interface PrimaryDataSource<D extends PrimaryData>
+                PrimaryDataSource --|> DataSource
+
+                Interface SimplePrimarySource<D extends SecondaryData>
+                SimplePrimarySource --|> SimpleSource
+                SimplePrimarySource --|> PrimaryDataSource
+
+                Interface ActorPrimarySource<D extends SecondaryData>
+                ActorPrimarySource --|> ActorSource
+                ActorPrimarySource --|> PrimaryDataSource
+            }
+
+            package secondary {
+                Interface SecondaryDataSource<D extends SecondaryData>
+                SecondaryDataSource --|> DataSource
+
+                Interface SimpleSecondarySource<D extends SecondaryData>
+                SimpleSecondarySource --|> SimpleSource
+                SimpleSecondarySource --|> SecondaryDataSource
+
+                Interface ActorSecondarySource<D extends SecondaryData>
+                ActorSecondarySource --|> ActorSource
+                ActorSecondarySource --|> SecondaryDataSource
+
+                Class ActorPriceSource
+                ActorPriceSource --|> ActorSecondarySource: <<bind>>D::WholesalePrice
+                Class ActorWeatherSource
+                ActorWeatherSource --|> ActorSecondarySource: <<bind>>D::WeatherData
+            }
+        }
+
+        Interface DataSourceDefinition<I extends SystemParticipantInput, P extends PrimaryData>
+
+        Class DataFromOutside<I extends SystemParticipantInput, P extends PrimaryData> {
+          + PrimaryDataSource<P> source
+        }
+        DataFromOutside --|> DataSourceDefinition
+
+        Abstract Class ModelCalculation<I extends SystemParticipantInput, P extends PrimaryData> {
+          + inputModel: I
+          + sources: Option<Vector<SecondaryDataSource>>
+        }
+        ModelCalculation --|> DataSourceDefinition
+    }
+
+    package model.participant.load.profile {
+        Class LoadModelCalculation {
+            modelConfigOpt: Option<SimonaConfig.LoadModelConfig>
+        }
+        LoadModelCalculation --|> ModelCalculation: <<bind>>I::LoadInput,D::ApparentPower
+    }
+
+    package io.participant.data.primary {
+        Class DummySimpleSource
+        DummySimpleSource --|> SimplePrimarySource: <<bind>>D::ApparentPower
+    }
+}
+
+@enduml

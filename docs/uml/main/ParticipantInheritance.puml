@@ -1,0 +1,92 @@
+@startuml
+ interface Notifier
+ interface LoggingFSM<S, D>
+ interface Stash
+
+ interface SimonaAgent<D> {
+    - _currentTriggerId: Option[Long]
+    - _currentTick: Option[Long]
+    + supervisorStrategy: SupervisorStrategy
+    + myUnhandled(): StateFunction
+    + holdTickAndTriggerId(Long, Long): void
+    + releaseTickAndTriggerId(): (Long, Long)
+    + currentTick(): Long
+    + currentTriggerId(): Long
+    + currentTickDefined(): Boolean
+    + currentTriggerIdDefined(): Boolean
+ }
+
+ Stash <|-- SimonaAgent
+ LoggingFSM <|-- SimonaAgent: <<bind>>S::AgentState
+ Notifier <|-- SimonaAgent
+
+ interface ParticipantAgentFundamentals<D extends ParticipantStateData> {
+    + getAndCheckDateTime(...): ParticipantServiceCollectionStateData
+    + getSecondaryDataTicks(...): Array[Long]
+    + getAndCheckNodalVoltage(...): ComparableQuantity[Dimensionless]
+    + initializeParticipant(...): FSM.State[AgentState, ParticipantStateData]
+    + {abstract} determineBaseStateData(...): BaseStateData[ApparentPower]
+    + determineTriggersThroughoutSimulation(...): Option[List[ScheduleTriggerMessage]]
+    + baseStateDataForExternalDataProvision(...): FromOutsideBaseStateData
+    + queryPrimaryDataAndChangeState(...): FSM.State[AgentState, ParticipantStateData]
+    + querySecondaryDataAndChangeState(...): FSM.State[AgentState, ParticipantStateData]
+    + answerPowerRequestAndStayWithUpdatedStateData(...): FSM.State[AgentState, ParticipantStateData]
+    + determineFastReply(...): Option[FSM.State[AgentState, ParticipantStateData]]
+    + getRelevantResultData(...): Option[RelevantResultValues[R]]
+    + determineTickWindow(...): (Long, Long)
+    + determineFirstRelevantTick(...): Long
+    + getAndCheckRelevantData(...): Option[Map[Long, R]]
+    + averagePowerAndStay(...): FSM.State[AgentState, ParticipantStateData]
+    + averagePowerAndStay(...): FSM.State[AgentState, ParticipantStateData]
+    + determineAveragePower(...): (ComparableQuantity[Power], ComparableQuantity[Power])
+    + power(...): ApparentPower
+    + energy(...): (ComparableQuantity[Energy], ComparableQuantity[Energy])
+    + stayWithUpdatedRequestValueStore(...): FSM.State[AgentState, ParticipantStateData]
+    + handlePrimaryDataAndGoToIdle(...): FSM.State[AgentState, ParticipantStateData]
+    + handleSecondaryDataAndChangeState(...): FSM.State[AgentState, ParticipantStateData]
+    + calculatePowerWithoutSecondaryDataAndGoToIdle(...): FSM.State[AgentState, ParticipantStateData]
+    class RelevantResultValues<R extends PrimaryData>
+        + windowStart: Long
+        + windowEnd: Long
+        + relevantData: Map[Long, R]
+ }
+
+ interface LoadAgentFundamentals {
+    - calculateModelPowerFunc(...): (ComparableQuantity[Power], ComparableQuantity[Power])
+    + determineBaseStateData(...): BaseStateData[ApparentPower]
+    + baseStateDataForModelCalculation(...): ParticipantModelBaseStateData
+    + calculatePowerWithProvidedSecondaryDataAndGoToIdle(...): FSM.State[AgentState, ParticipantStateData]
+ }
+
+ interface FixedFeedInAgentFundamentals {
+    - calculateModelPowerFunc(...): (ComparableQuantity[Power], ComparableQuantity[Power])
+    + determineBaseStateData(...): BaseStateData[ApparentPower]
+    + baseStateDataForModelCalculation(...): ParticipantModelBaseStateData
+    + calculatePowerWithProvidedSecondaryDataAndGoToIdle(...): FSM.State[AgentState, ParticipantStateData]
+ }
+
+ abstract class ParticipantAgent<D extends ParticipantStateData> {
+    + scheduler: ActorRef
+    + {abstract} calculateModelPowerFunc
+    + {abstract} initializeParticipant(...): FSM.State[AgentState, ParticipantStateData]
+    + {abstract} queryPrimaryDataAndChangeState(...): FSM.State[AgentState, ParticipantStateData]
+    + {abstract} querySecondaryDataAndChangeState(...): FSM.State[AgentState, ParticipantStateData]
+    + {abstract} answerPowerRequestAndStayWithUpdatedStateData(...): FSM.State[AgentState, ParticipantStateData]
+    + {abstract} handlePrimaryDataAndGoToIdle(...): FSM.State[AgentState, ParticipantStateData]
+    + {abstract} handleSecondaryDataAndChangeState(): FSM.State[AgentState, ParticipantStateData]
+    + {abstract} getAndCheckNodalVoltage(...): ComparableQuantity[Dimensionless]
+    + {abstract} calculatePowerWithoutSecondaryDataAndGoToIdle(...): FSM.State[AgentState, ParticipantStateData]
+    + {abstract} calculatePowerWithProvidedSecondaryDataAndGoToIdle(...): FSM.State[AgentState, ParticipantStateData]
+ }
+ SimonaAgent <|.. ParticipantAgent
+
+ Class LoadAgent
+ ParticipantAgent <|-- LoadAgent: <<bind>>: D:ParticipantStateData
+ LoadAgentFundamentals <|.. LoadAgent
+
+ Class FixedFeedInAgent
+ ParticipantAgent <|-- FixedFeedInAgent
+ ParticipantAgentFundamentals <|-- LoadAgentFundamentals
+ ParticipantAgentFundamentals <|-- FixedFeedInAgentFundamentals
+ FixedFeedInAgentFundamentals <|.. FixedFeedInAgent
+@enduml

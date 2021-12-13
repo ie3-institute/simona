@@ -1,0 +1,37 @@
+@startuml
+(*)  --> "Receive heat demand for a given time interval"
+if "Is heat demand\n greater zero" then
+    --> [yes] "Check if stored thermal
+    energy can cover demand"
+    if "Is demand covered\nby stored thermal energy" then
+        --> [yes] Check if CHP unit is running
+    else
+        --> [no] "Turn on CHP unit"
+        --> "Check if stored energy plus generated
+         energy can cover demand"
+        if "Is demand covered\nby total energy" then
+            --> [yes] "Add generated thermal
+             energy to storage"
+        else
+            --> [no] "Return active power"
+        Endif
+
+    Endif
+else
+    --> [no] "Check if CHP unit is running"
+    if "Is CHP unit\n turned on" then
+        --> [on] "Add generated thermal
+         energy to storage"
+        if "Is storage full" then
+            --> [yes] "Turn CHP unit off"
+            --> "Return active power"
+        else
+            --> [no] "Return active power"
+        Endif
+    else
+        --> [off] "Return active power"
+    Endif
+Endif
+--> (*)
+
+@enduml

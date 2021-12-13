@@ -1,0 +1,19 @@
+@startuml
+MainController -> Listener: create()
+MainController -> SimScheduler: create()
+MainController -> Services: create()
+MainController -> SimScheduler: <font color=red>!</font> ScheduleTriggerMessage(\n\tInitializeServiceTrigger(0),\n\tweatherActorRef)
+MainController -> GridAgents: create()
+MainController -> SimScheduler: <font color=red>!</font> ScheduleTriggerMessage(\n\tInitializeGridAgentTrigger(0),\n\tgridAgentInitData,\n\tgridAgentRef)
+MainController -> SimScheduler: <font color=red>?</font> StartScheduleMessage()
+SimScheduler -> Services: <font color=red>!</font> TriggerWithIdMessage(\n\tInitializeServiceTrigger(_),\n\ttriggerId,\n\t_)
+Services --> SimScheduler: <font color=red>!</font> CompletionMessage(\n\ttriggerId,\n\tScheduleTriggerMessage[...])
+SimScheduler -> GridAgents: <font color=red>!</font> TriggerWithIdMessage(\n\tInitializeGridAgentTrigger(_),\n\ttriggerId,\n\t_)
+GridAgents -> SimScheduler: <font color=red>!</font> ScheduleTriggerMessage(\n\tInitializeSystemComponentsTrigger(0),\n\tassetAgentRef)
+GridAgents --> SimScheduler: <font color=red>!</font> CompletionMessage(triggerId, ScheduleTriggerMessage[...])
+SimScheduler -> ParticipantAgents: <font color=red>!</font> TriggerWithIdMessage(\n\tIInitializeSystemComponentsTrigger(_),\n\ttriggerId,\n\t_)
+ParticipantAgents -> Services: <font color=red>!</font> RegisterForWeatherMessage(lat, lon)
+ParticipantAgents -> Services: <font color=red>!</font> RegisterFor...
+Services --> ParticipantAgents: <font color=red>!</font> RegistrationResponseMessages
+ParticipantAgents --> SimScheduler: <font color=red>!</font> CompletionMessage(\n\ttriggerId,\n\tScheduleTriggerMessage[\n\t\tActivityStartTrigger(tick)\n\t])
+@enduml

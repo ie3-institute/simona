@@ -1,0 +1,39 @@
+@startuml
+
+start
+
+:Receive local ambient temperature for time step;
+
+fork
+    :Calculate temperature deviation between\ninner and ambient temperature;
+
+    :Calculate thermal energy losses\nduring time step;
+
+  fork again
+    if (inner temperature is higher\nthan upper boundary) then (yes)
+      :isRunning = false
+      activePower = 0;
+    else (no)
+      if (inner temperature is lower\nthan lower boundary) then (yes)
+            :isRunning = true
+            activePower = pRated;
+          else (no)
+            if (isRunning = true) then (yes)
+                      :isRunning = true
+                      activePower = pRated;
+                    else (no)
+                      :isRunning = false
+                      activePower = 0;
+                      endif
+            endif
+  endif
+  :Calculate thermal energy gain during time step;
+end fork
+
+:Calculate thermal energy change during time step;
+
+:Calculate inner temperature change and\nupdate inner temperature for next time step;
+
+stop
+
+@enduml

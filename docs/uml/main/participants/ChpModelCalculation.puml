@@ -1,0 +1,26 @@
+@startuml
+start
+:Receive heat demand\nfor a given time interval;
+if (Heat demand is zero
+    and CHP unit off) then (yes)
+elseif (Heat demand covered by
+ storage and CHP unit off) then (yes)
+    :Take thermal energy\nfrom storage;
+elseif (Heat demand covered
+    and CHP unit on) then (yes)
+    :Exchange difference with storage;
+    if (Storage is full) then (yes)
+        :Turn CHP unit off;
+        :Set storage level\nto maximum;
+    else (no)
+        :Leave CHP unit on;
+    endif
+else (Heat demand
+ cannot be\n  covered)
+    :Set storage level
+     to minimum;
+endif
+:Update time tick;
+:Return active power and thermal output energy;
+stop
+@enduml
