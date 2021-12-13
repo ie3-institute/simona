@@ -7,6 +7,7 @@
 <p align="center">
 <img src="docs/logo/logo_tightcrop_transparent.png" width="200px" alt="simona logo" align="center"/>
 </p>
+
 # SIMONA
 The agent-based simulation environment SIMONA provides a simulation toolbox to run and implement large-scale agent-based
 electricity grid simulations with focus on distribution grids. As a result, close-to-reality time series are
