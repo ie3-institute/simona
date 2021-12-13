@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.pv
 
-import akka.actor.{ActorRef, FSM}
+import akka.actor.FSM
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.result.system.{
   PvResult,
@@ -29,6 +29,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 }
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.{
@@ -120,6 +121,7 @@ protected trait PVAgentFundamentals
       simulationStartDate,
       simulationEndDate,
       model,
+      inputModel.getNode.getSubnet,
       services,
       outputConfig,
       Array.emptyLongArray, // Additional activation of the pv agent is not needed
@@ -178,14 +180,14 @@ protected trait PVAgentFundamentals
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
-    *   [[ActorRef]] to the scheduler in the simulation
+    *   [[SimonaActorRef]] to the scheduler in the simulation
     * @return
     *   [[Idle]] with updated result values
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
       collectionStateData: DataCollectionStateData[ApparentPower],
       currentTick: Long,
-      scheduler: ActorRef
+      scheduler: SimonaActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
     implicit val startDateTime: ZonedDateTime =
       collectionStateData.baseStateData.startDate

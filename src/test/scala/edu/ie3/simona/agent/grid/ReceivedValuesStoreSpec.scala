@@ -7,11 +7,12 @@
 package edu.ie3.simona.agent.grid
 
 import java.util.UUID
-
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.{TestKit, TestProbe}
+import akka.actor.ActorSystem
+import akka.testkit.TestProbe
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.test.common.{TestKitWithShutdown, UnitSpec}
 import edu.ie3.simona.test.common.model.grid.SubGridGateMokka
 
@@ -36,23 +37,23 @@ class ReceivedValuesStoreSpec
 
   // test data used by almost all tests
   // / node to asset agents mapping
-  val nodeToAssetAgentsMap: Map[UUID, Set[ActorRef]] = Map(
+  val nodeToAssetAgentsMap: Map[UUID, Set[SimonaActorRef]] = Map(
     UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546") -> Set(
-      actorProbe1.ref
+      actorProbe1.ref.asLocal
     ),
     UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97") -> Set(
-      actorProbe2.ref
+      actorProbe2.ref.asLocal
     )
   )
 
   // / subnet gate mapping for inferior grids
-  val inferiorSubGridGateToActorRefMap: Map[SubGridGate, ActorRef] = Map(
+  val inferiorSubGridGateToActorRefMap: Map[SubGridGate, SimonaActorRef] = Map(
     build2wSubGridGate(
       UUID.fromString("5cd55ab5-a7d2-499f-a25f-6dbc3845c5e8"),
       1,
       UUID.fromString("1676360a-c7c4-43a9-a667-90ddfe8a18e6"),
       2
-    ) -> actorProbe3.ref
+    ) -> actorProbe3.ref.asLocal
   )
 
   // / superior grid nodeUuid vector
@@ -64,8 +65,9 @@ class ReceivedValuesStoreSpec
 
     "initialize an empty store correctly when everything is empty" in {
 
-      val nodeToAssetAgentsMap = Map.empty[UUID, Set[ActorRef]]
-      val inferiorSubGridGateToActorRefMap = Map.empty[SubGridGate, ActorRef]
+      val nodeToAssetAgentsMap = Map.empty[UUID, Set[SimonaActorRef]]
+      val inferiorSubGridGateToActorRefMap =
+        Map.empty[SubGridGate, SimonaActorRef]
       val superiorGridNodeUuids = Vector.empty[UUID]
 
       val receivedValuesStore =
@@ -93,17 +95,17 @@ class ReceivedValuesStoreSpec
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546")
       ) shouldBe Vector(
-        (actorProbe1.ref, None)
+        (actorProbe1.ref.asLocal, None)
       )
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97")
       ) shouldBe Vector(
-        (actorProbe2.ref, None)
+        (actorProbe2.ref.asLocal, None)
       )
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("5cd55ab5-a7d2-499f-a25f-6dbc3845c5e8")
       ) shouldBe Vector(
-        (actorProbe3.ref, None)
+        (actorProbe3.ref.asLocal, None)
       )
 
       receivedValuesStore.nodeToReceivedSlackVoltage.size shouldBe 1
@@ -115,18 +117,19 @@ class ReceivedValuesStoreSpec
 
     "initialize an empty store correctly when only a valid mapping for asset agents is provided" in {
 
-      val nodeToAssetAgentsMap =
+      val nodeToAssetAgentsMap: Map[UUID, Set[SimonaActorRef]] =
         Map(
           UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546") -> Set(
-            actorProbe1.ref
+            actorProbe1.ref.asLocal
           ),
           UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97") -> Set(
-            actorProbe2.ref,
-            actorProbe3.ref
+            actorProbe2.ref.asLocal,
+            actorProbe3.ref.asLocal
           )
         )
 
-      val inferiorSubGridGateToActorRefMap = Map.empty[SubGridGate, ActorRef]
+      val inferiorSubGridGateToActorRefMap =
+        Map.empty[SubGridGate, SimonaActorRef]
       val superiorGridNodeUuids = Vector.empty[UUID]
 
       val receivedValuesStore =
@@ -142,13 +145,13 @@ class ReceivedValuesStoreSpec
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546")
       ) shouldBe Vector(
-        (actorProbe1.ref, None)
+        (actorProbe1.ref.asLocal, None)
       )
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97")
       ) shouldBe Vector(
-        (actorProbe2.ref, None),
-        (actorProbe3.ref, None)
+        (actorProbe2.ref.asLocal, None),
+        (actorProbe3.ref.asLocal, None)
       )
 
     }
@@ -170,25 +173,26 @@ class ReceivedValuesStoreSpec
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546")
       ) shouldBe Vector(
-        (actorProbe1.ref, None)
+        (actorProbe1.ref.asLocal, None)
       )
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97")
       ) shouldBe Vector(
-        (actorProbe2.ref, None)
+        (actorProbe2.ref.asLocal, None)
       )
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("5cd55ab5-a7d2-499f-a25f-6dbc3845c5e8")
       ) shouldBe Vector(
-        (actorProbe3.ref, None)
+        (actorProbe3.ref.asLocal, None)
       )
 
     }
 
     "initialize an empty store correctly when only information on the superior grid slack nodes are provided" in {
 
-      val nodeToAssetAgentsMap = Map.empty[UUID, Set[ActorRef]]
-      val inferiorSubGridGateToActorRefMap = Map.empty[SubGridGate, ActorRef]
+      val nodeToAssetAgentsMap = Map.empty[UUID, Set[SimonaActorRef]]
+      val inferiorSubGridGateToActorRefMap =
+        Map.empty[SubGridGate, SimonaActorRef]
 
       val superiorGridNodeUuids = Vector(
         UUID.fromString("baded8c4-b703-4316-b62f-75ffe09c9843"),
@@ -216,7 +220,8 @@ class ReceivedValuesStoreSpec
 
     "initialize an empty store correctly when only an invalid mapping for asset agents with duplicates is provided" in {
 
-      val inferiorSubGridGateToActorRefMap = Map.empty[SubGridGate, ActorRef]
+      val inferiorSubGridGateToActorRefMap =
+        Map.empty[SubGridGate, SimonaActorRef]
       val superiorGridNodeUuids = Vector.empty[UUID]
 
       val receivedValuesStore =
@@ -232,12 +237,12 @@ class ReceivedValuesStoreSpec
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546")
       ) shouldBe Vector(
-        (actorProbe1.ref, None)
+        (actorProbe1.ref.asLocal, None)
       )
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97")
       ) shouldBe Vector(
-        (actorProbe2.ref, None)
+        (actorProbe2.ref.asLocal, None)
       )
 
     }

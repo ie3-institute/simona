@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.ActorRef
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeExtSimAdapterTrigger,
   InitializeServiceTrigger,
@@ -15,14 +15,14 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 
 final case class ExtSimSetupData(
-    extSimAdapters: Iterable[(ActorRef, InitializeExtSimAdapterTrigger)],
-    extDataServices: Iterable[(ActorRef, InitializeServiceTrigger[_])]
+    extSimAdapters: Iterable[(SimonaActorRef, InitializeExtSimAdapterTrigger)],
+    extDataServices: Iterable[(SimonaActorRef, InitializeServiceTrigger[_])]
 ) {
 
-  def allActorsAndInitTriggers: Iterable[(ActorRef, InitializeTrigger)] =
+  def allActorsAndInitTriggers: Iterable[(SimonaActorRef, InitializeTrigger)] =
     extSimAdapters ++ extDataServices
 
-  def evDataService: Option[ActorRef] =
+  def evDataService: Option[SimonaActorRef] =
     extDataServices.collectFirst {
       case (actorRef, InitializeServiceTrigger(InitExtEvData(_))) =>
         actorRef

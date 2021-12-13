@@ -8,6 +8,7 @@ package edu.ie3.simona.service
 
 import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.service.ServiceStateData.ServiceActivationBaseStateData
@@ -32,19 +33,19 @@ class ServiceBaseStateDataSpec
     "convert an undefined optional tick to None on attempt to convert it to a trigger message" in {
       ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
         None,
-        self
+        self.asLocal
       ) shouldBe None
     }
 
     "convert an given tick to correct sequence of scheduler messages" in {
       ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
         Some(5L),
-        self
+        self.asLocal
       ) shouldBe Some(
         Seq(
           ScheduleTriggerMessage(
             ActivityStartTrigger(5L),
-            self
+            self.asLocal
           )
         )
       )

@@ -6,15 +6,15 @@
 
 package edu.ie3.simona.ontology.trigger
 
-import java.util.Comparator
+import edu.ie3.simona.akka.SimonaActorRef
 
-import akka.actor.ActorRef
+import java.util.Comparator
 import edu.ie3.simona.ontology.messages.SchedulerMessage.TriggerWithIdMessage
 import edu.ie3.simona.ontology.trigger.ScheduledTrigger.ScheduledTriggerComparator
 
 /** Wrapper class for trigger, that are already scheduled for execution @
   * [[TriggerWithIdMessage.trigger.tick]] in the
-  * [[edu.ie3.simona.scheduler.SimScheduler]]
+  * [[edu.ie3.simona.scheduler.main.SimScheduler]]
   *
   * @param triggerWithIdMessage
   *   the trigger that has to be scheduled
@@ -23,7 +23,7 @@ import edu.ie3.simona.ontology.trigger.ScheduledTrigger.ScheduledTriggerComparat
   */
 final case class ScheduledTrigger(
     triggerWithIdMessage: TriggerWithIdMessage,
-    agent: ActorRef
+    agent: SimonaActorRef
 ) extends Ordered[ScheduledTrigger] {
 
   def compare(that: ScheduledTrigger): Int = {

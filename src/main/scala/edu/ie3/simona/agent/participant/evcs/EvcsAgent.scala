@@ -6,12 +6,8 @@
 
 package edu.ie3.simona.agent.participant.evcs
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.Props
 import edu.ie3.datamodel.models.input.system.EvcsInput
-import edu.ie3.simona.agent.participant.{
-  ParticipantAgent,
-  ParticipantAgentFundamentals
-}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
@@ -19,6 +15,11 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.participant.{
+  ParticipantAgent,
+  ParticipantAgentFundamentals
+}
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.EvcsModel
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
@@ -28,8 +29,8 @@ import javax.measure.quantity.Power
 
 object EvcsAgent {
   def props(
-      scheduler: ActorRef,
-      listener: Iterable[ActorRef]
+      scheduler: SimonaActorRef,
+      listener: Iterable[SimonaActorRef]
   ): Props =
     Props(
       new EvcsAgent(
@@ -44,8 +45,8 @@ object EvcsAgent {
 }
 
 class EvcsAgent(
-    scheduler: ActorRef,
-    override val listener: Iterable[ActorRef]
+    scheduler: SimonaActorRef,
+    override val listener: Iterable[SimonaActorRef]
 ) extends ParticipantAgent[
       ApparentPower,
       EvcsRelevantData,

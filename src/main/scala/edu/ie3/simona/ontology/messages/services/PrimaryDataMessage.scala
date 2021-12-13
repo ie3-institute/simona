@@ -7,6 +7,7 @@
 package edu.ie3.simona.ontology.messages.services
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ProvisionMessage
 
 sealed trait PrimaryDataMessage
@@ -26,7 +27,8 @@ case object PrimaryDataMessage {
   final case class ApparentPowerProvisionMessage(
       override val tick: Long,
       override val data: ApparentPower,
-      override val nextDataTick: Option[Long]
+      override val nextDataTick: Option[Long],
+      override val serviceRef: SimonaActorRef
   ) extends ProvisionMessage[ApparentPower]
       with PrimaryDataMessage
 }

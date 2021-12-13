@@ -9,6 +9,7 @@ package edu.ie3.simona.service.ev
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
 import edu.ie3.simona.api.data.ev.ExtEvData
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology.EvMovementsMessage.EvcsMovements
@@ -82,7 +83,7 @@ class ExtEvDataServiceSpec
     "send correct completion message after initialisation" in {
       val evService = TestActorRef(
         new ExtEvDataService(
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
 
@@ -97,13 +98,14 @@ class ExtEvDataServiceSpec
             )
           ),
           triggerId,
-          evService
+          evService.asLocal
         )
       )
 
       scheduler.expectMsg(
         CompletionMessage(
           triggerId,
+          evService.asLocal,
           None
         )
       )
@@ -112,7 +114,7 @@ class ExtEvDataServiceSpec
     "stash registration request and handle it correctly once initialized" in {
       val evService = TestActorRef(
         new ExtEvDataService(
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
 
@@ -121,7 +123,7 @@ class ExtEvDataServiceSpec
       // this one should be stashed
       evcs1.send(
         evService,
-        RegisterForEvDataMessage(evcs1UUID)
+        RegisterForEvDataMessage(evcs1UUID, evcs1.ref.asLocal)
       )
 
       evcs1.expectNoMessage()
@@ -136,12 +138,12 @@ class ExtEvDataServiceSpec
             )
           ),
           1L,
-          evService
+          evService.asLocal
         )
       )
 
       scheduler.expectMsgType[CompletionMessage]
-      evcs1.expectMsg(RegistrationSuccessfulMessage(None))
+      evcs1.expectMsg(RegistrationSuccessfulMessage(None, evService.asLocal))
     }
   }
 
@@ -149,7 +151,7 @@ class ExtEvDataServiceSpec
     "handle duplicate registrations correctly" in {
       val evService = TestActorRef(
         new ExtEvDataService(
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
 
@@ -162,7 +164,7 @@ class ExtEvDataServiceSpec
             )
           ),
           1L,
-          evService
+          evService.asLocal
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -172,20 +174,20 @@ class ExtEvDataServiceSpec
 
       evcs1.send(
         evService,
-        RegisterForEvDataMessage(evcs1UUID)
+        RegisterForEvDataMessage(evcs1UUID, evcs1.ref.asLocal)
       )
-      evcs1.expectMsg(RegistrationSuccessfulMessage(None))
+      evcs1.expectMsg(RegistrationSuccessfulMessage(None, evService.asLocal))
 
       evcs2.send(
         evService,
-        RegisterForEvDataMessage(evcs2UUID)
+        RegisterForEvDataMessage(evcs2UUID, evcs2.ref.asLocal)
       )
-      evcs2.expectMsg(RegistrationSuccessfulMessage(None))
+      evcs2.expectMsg(RegistrationSuccessfulMessage(None, evService.asLocal))
 
       // register first one again
       evcs1.send(
         evService,
-        RegisterForEvDataMessage(evcs1UUID)
+        RegisterForEvDataMessage(evcs1UUID, evcs1.ref.asLocal)
       )
       evcs1.expectNoMessage()
       evcs2.expectNoMessage()
@@ -194,7 +196,7 @@ class ExtEvDataServiceSpec
     "handle ev movements provisions correctly and forward them to the correct evcs" in {
       val evService = TestActorRef(
         new ExtEvDataService(
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
 
@@ -209,7 +211,7 @@ class ExtEvDataServiceSpec
             )
           ),
           1L,
-          evService
+          evService.asLocal
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -219,13 +221,13 @@ class ExtEvDataServiceSpec
 
       evcs1.send(
         evService,
-        RegisterForEvDataMessage(evcs1UUID)
+        RegisterForEvDataMessage(evcs1UUID, evcs1.ref.asLocal)
       )
       evcs1.expectMsgType[RegistrationSuccessfulMessage]
 
       evcs2.send(
         evService,
-        RegisterForEvDataMessage(evcs2UUID)
+        RegisterForEvDataMessage(evcs2UUID, evcs2.ref.asLocal)
       )
       evcs2.expectMsgType[RegistrationSuccessfulMessage]
 
@@ -251,7 +253,7 @@ class ExtEvDataServiceSpec
             tick
           ),
           triggerId,
-          evService
+          evService.asLocal
         )
       )
 
@@ -260,7 +262,8 @@ class ExtEvDataServiceSpec
           tick,
           EvMovementData(
             new EvcsMovementsBuilder().addArrival(evA).build()
-          )
+          ),
+          serviceRef = evService.asLocal
         )
       )
 
@@ -269,22 +272,24 @@ class ExtEvDataServiceSpec
           tick,
           EvMovementData(
             new EvcsMovementsBuilder().addArrival(evB).build()
-          )
+          ),
+          serviceRef = evService.asLocal
         )
       )
 
       scheduler.expectMsg(
         CompletionMessage(
           triggerId,
+          evService.asLocal,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(tick),
-                evcs1.ref
+                evcs1.ref.asLocal
               ),
               ScheduleTriggerMessage(
                 ActivityStartTrigger(tick),
-                evcs2.ref
+                evcs2.ref.asLocal
               )
             )
           )
@@ -304,7 +309,7 @@ class ExtEvDataServiceSpec
     "handle ev movements provisions correctly and return departed evs" in {
       val evService = TestActorRef(
         new ExtEvDataService(
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
 
@@ -319,7 +324,7 @@ class ExtEvDataServiceSpec
             )
           ),
           1L,
-          evService
+          evService.asLocal
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -329,13 +334,13 @@ class ExtEvDataServiceSpec
 
       evcs1.send(
         evService,
-        RegisterForEvDataMessage(evcs1UUID)
+        RegisterForEvDataMessage(evcs1UUID, evcs1.ref.asLocal)
       )
       evcs1.expectMsgType[RegistrationSuccessfulMessage]
 
       evcs2.send(
         evService,
-        RegisterForEvDataMessage(evcs2UUID)
+        RegisterForEvDataMessage(evcs2UUID, evcs2.ref.asLocal)
       )
       evcs2.expectMsgType[RegistrationSuccessfulMessage]
 
@@ -362,7 +367,7 @@ class ExtEvDataServiceSpec
             tick
           ),
           triggerId,
-          evService
+          evService.asLocal
         )
       )
 
@@ -374,7 +379,8 @@ class ExtEvDataServiceSpec
               List.empty[UUID].asJava,
               List[EvModel](evA).asJava
             )
-          )
+          ),
+          serviceRef = evService.asLocal
         )
       )
       evcs2.expectMsg(
@@ -382,22 +388,24 @@ class ExtEvDataServiceSpec
           tick,
           EvMovementData(
             new EvcsMovementsBuilder().addArrival(evB).build()
-          )
+          ),
+          serviceRef = evService.asLocal
         )
       )
 
       scheduler.expectMsg(
         CompletionMessage(
           triggerId,
+          evService.asLocal,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(tick),
-                evcs1.ref
+                evcs1.ref.asLocal
               ),
               ScheduleTriggerMessage(
                 ActivityStartTrigger(tick),
-                evcs2.ref
+                evcs2.ref.asLocal
               )
             )
           )
@@ -436,7 +444,7 @@ class ExtEvDataServiceSpec
             tick2
           ),
           triggerId2,
-          evService
+          evService.asLocal
         )
       )
 
@@ -445,7 +453,8 @@ class ExtEvDataServiceSpec
           tick2,
           EvMovementData(
             new EvcsMovementsBuilder().addDeparture(evA.getUuid).build()
-          )
+          ),
+          serviceRef = evService.asLocal
         )
       )
       evcs2.expectMsg(
@@ -453,7 +462,8 @@ class ExtEvDataServiceSpec
           tick2,
           EvMovementData(
             new EvcsMovementsBuilder().addDeparture(evB.getUuid).build()
-          )
+          ),
+          serviceRef = evService.asLocal
         )
       )
 
@@ -505,7 +515,7 @@ class ExtEvDataServiceSpec
     "skip a movements provision from an evcs that is not registered" in {
       val evService = TestActorRef(
         new ExtEvDataService(
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
 
@@ -520,7 +530,7 @@ class ExtEvDataServiceSpec
             )
           ),
           1L,
-          evService
+          evService.asLocal
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -529,7 +539,7 @@ class ExtEvDataServiceSpec
 
       evcs1.send(
         evService,
-        RegisterForEvDataMessage(evcs1UUID)
+        RegisterForEvDataMessage(evcs1UUID, evcs1.ref.asLocal)
       )
       evcs1.expectMsgType[RegistrationSuccessfulMessage]
 
@@ -555,7 +565,7 @@ class ExtEvDataServiceSpec
             tick
           ),
           triggerId,
-          evService
+          evService.asLocal
         )
       )
 
@@ -564,18 +574,20 @@ class ExtEvDataServiceSpec
           tick,
           EvMovementData(
             new EvcsMovementsBuilder().addArrival(evA).build()
-          )
+          ),
+          serviceRef = evService.asLocal
         )
       )
 
       scheduler.expectMsg(
         CompletionMessage(
           triggerId,
+          evService.asLocal,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(tick),
-                evcs1.ref
+                evcs1.ref.asLocal
               )
             )
           )
@@ -595,7 +607,7 @@ class ExtEvDataServiceSpec
     "handle free lots requests correctly and forward them to the correct evcs" in {
       val evService = TestActorRef(
         new ExtEvDataService(
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
 
@@ -610,7 +622,7 @@ class ExtEvDataServiceSpec
             )
           ),
           1L,
-          evService
+          evService.asLocal
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -620,13 +632,13 @@ class ExtEvDataServiceSpec
 
       evcs1.send(
         evService,
-        RegisterForEvDataMessage(evcs1UUID)
+        RegisterForEvDataMessage(evcs1UUID, evcs1.ref.asLocal)
       )
       evcs1.expectMsgType[RegistrationSuccessfulMessage]
 
       evcs2.send(
         evService,
-        RegisterForEvDataMessage(evcs2UUID)
+        RegisterForEvDataMessage(evcs2UUID, evcs2.ref.asLocal)
       )
       evcs2.expectMsgType[RegistrationSuccessfulMessage]
 
@@ -649,36 +661,39 @@ class ExtEvDataServiceSpec
             tick
           ),
           triggerId,
-          evService
+          evService.asLocal
         )
       )
 
       evcs1.expectMsg(
         ProvideEvDataMessage(
           tick,
-          EvFreeLotsRequest
+          EvFreeLotsRequest,
+          serviceRef = evService.asLocal
         )
       )
 
       evcs2.expectMsg(
         ProvideEvDataMessage(
           tick,
-          EvFreeLotsRequest
+          EvFreeLotsRequest,
+          serviceRef = evService.asLocal
         )
       )
 
       scheduler.expectMsg(
         CompletionMessage(
           triggerId,
+          evService.asLocal,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(tick),
-                evcs1.ref
+                evcs1.ref.asLocal
               ),
               ScheduleTriggerMessage(
                 ActivityStartTrigger(tick),
-                evcs2.ref
+                evcs2.ref.asLocal
               )
             )
           )
@@ -724,7 +739,7 @@ class ExtEvDataServiceSpec
     "return free lots requests right away if there are no evcs registered" in {
       val evService = TestActorRef(
         new ExtEvDataService(
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
 
@@ -739,7 +754,7 @@ class ExtEvDataServiceSpec
             )
           ),
           1L,
-          evService
+          evService.asLocal
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -763,13 +778,14 @@ class ExtEvDataServiceSpec
             tick
           ),
           triggerId,
-          evService
+          evService.asLocal
         )
       )
 
       scheduler.expectMsg(
         CompletionMessage(
           triggerId,
+          evService.asLocal,
           None
         )
       )

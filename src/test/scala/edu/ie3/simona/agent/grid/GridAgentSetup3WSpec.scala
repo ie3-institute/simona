@@ -13,6 +13,9 @@ import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
 import edu.ie3.simona.test.common.{
@@ -55,14 +58,14 @@ class GridAgentSetup3WSpec
         system.actorOf(Props(new Actor {
           override def receive: Receive = { case "setup" =>
             val environmentRefs = EnvironmentRefs(
-              scheduler = self,
-              primaryServiceProxy = self,
-              weather = ActorRef.noSender,
+              scheduler = self.asLocal,
+              primaryServiceProxy = self.asLocal,
+              weather = ActorRef.noSender.asLocal,
               evDataService = None
             )
 
             SimonaStandaloneSetup(
-              typesafeConfig,
+              SimonaConfig(typesafeConfig),
               ResultFileHierarchy(
                 "test/tmp",
                 "GridAgentSetup3WSpec",
@@ -78,7 +81,7 @@ class GridAgentSetup3WSpec
               threeWindingTestGrid.getSubGridTopologyGraph,
               context,
               environmentRefs,
-              Seq.empty[ActorRef]
+              Seq.empty[SimonaActorRef]
             )
             sender() ! "done"
           }

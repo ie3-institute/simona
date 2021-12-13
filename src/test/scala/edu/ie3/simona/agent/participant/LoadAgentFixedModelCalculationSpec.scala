@@ -23,6 +23,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
@@ -97,7 +98,7 @@ class LoadAgentFixedModelCalculationSpec
     "be instantiated correctly" in {
       val loadAgent = TestFSMRef(
         new FixedLoadAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -116,7 +117,7 @@ class LoadAgentFixedModelCalculationSpec
     "end in correct state with correct state data after initialisation" in {
       val loadAgent = TestFSMRef(
         new FixedLoadAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -143,17 +144,20 @@ class LoadAgentFixedModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           triggerId,
-          loadAgent
+          loadAgent.asLocal
         )
       )
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(voltageSensitiveInput.getUuid)
+        PrimaryServiceRegistrationMessage(
+          voltageSensitiveInput.getUuid,
+          loadAgent.asLocal
+        )
       )
       /* State should be information handling and having correct state data */
       loadAgent.stateName shouldBe HandleInformation
@@ -181,15 +185,22 @@ class LoadAgentFixedModelCalculationSpec
       }
 
       /* Refuse registration */
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* Expect a completion notification */
       scheduler.expectMsg(
         CompletionMessage(
           triggerId,
+          loadAgent.asLocal,
           Some(
             List(
-              ScheduleTriggerMessage(ActivityStartTrigger(0L), loadAgent)
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(0L),
+                loadAgent.asLocal
+              )
             )
           )
         )
@@ -202,6 +213,7 @@ class LoadAgentFixedModelCalculationSpec
               startDate,
               endDate,
               _,
+              subnetNo,
               services,
               outputConfig,
               additionalActivationTicks,
@@ -215,6 +227,7 @@ class LoadAgentFixedModelCalculationSpec
           /* Base state data */
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
+          subnetNo shouldBe voltageSensitiveInput.getNode.getSubnet
           services shouldBe None
           outputConfig shouldBe defaultOutputConfig
           additionalActivationTicks shouldBe Array.emptyLongArray
@@ -240,7 +253,7 @@ class LoadAgentFixedModelCalculationSpec
     "answer with zero power, if asked directly after initialisation" in {
       val loadAgent = TestFSMRef(
         new FixedLoadAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -267,17 +280,20 @@ class LoadAgentFixedModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           triggerId,
-          loadAgent
+          loadAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
@@ -288,7 +304,8 @@ class LoadAgentFixedModelCalculationSpec
       loadAgent ! RequestAssetPowerMessage(
         0L,
         Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
       expectMsg(
         AssetPowerChangedMessage(
@@ -320,7 +337,7 @@ class LoadAgentFixedModelCalculationSpec
     "do correct transitions when triggered in Idle" in {
       val loadAgent = TestFSMRef(
         new FixedLoadAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -347,17 +364,20 @@ class LoadAgentFixedModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           initialiseTriggerId,
-          loadAgent
+          loadAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* I am not interested in the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
@@ -370,12 +390,14 @@ class LoadAgentFixedModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
           activityStartTriggerId,
-          loadAgent
+          loadAgent.asLocal
         )
       )
 
       /* Expect confirmation */
-      scheduler.expectMsg(CompletionMessage(activityStartTriggerId, None))
+      scheduler.expectMsg(
+        CompletionMessage(activityStartTriggerId, loadAgent.asLocal, None)
+      )
 
       /* Intermediate transitions and states cannot be tested, as the agents triggers itself
        * too fast */
@@ -413,7 +435,7 @@ class LoadAgentFixedModelCalculationSpec
     "provide the correct average power after one data tick is available" in {
       val loadAgent = TestFSMRef(
         new FixedLoadAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -440,22 +462,29 @@ class LoadAgentFixedModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           0L,
-          loadAgent
+          loadAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* Trigger the data generation in tick 0 */
       scheduler.send(
         loadAgent,
-        TriggerWithIdMessage(ActivityStartTrigger(0L), 1L, loadAgent)
+        TriggerWithIdMessage(
+          ActivityStartTrigger(0L),
+          1L,
+          loadAgent.asLocal
+        )
       )
 
       /* Appreciate the existence of two CompletionMessages */
@@ -471,7 +500,8 @@ class LoadAgentFixedModelCalculationSpec
       loadAgent ! RequestAssetPowerMessage(
         3000L,
         Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -489,7 +519,7 @@ class LoadAgentFixedModelCalculationSpec
 
     val loadAgent = TestFSMRef(
       new FixedLoadAgent(
-        scheduler = scheduler.ref,
+        scheduler = scheduler.ref.asLocal,
         listener = systemListener
       )
     )
@@ -518,22 +548,29 @@ class LoadAgentFixedModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           0L,
-          loadAgent
+          loadAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* Trigger the data generation in tick 0 */
       scheduler.send(
         loadAgent,
-        TriggerWithIdMessage(ActivityStartTrigger(0L), 1, loadAgent)
+        TriggerWithIdMessage(
+          ActivityStartTrigger(0L),
+          1,
+          loadAgent.asLocal
+        )
       )
 
       /* Appreciate the existence of two CompletionMessages */
@@ -548,7 +585,8 @@ class LoadAgentFixedModelCalculationSpec
       loadAgent ! RequestAssetPowerMessage(
         3000L,
         Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -571,7 +609,8 @@ class LoadAgentFixedModelCalculationSpec
       loadAgent ! RequestAssetPowerMessage(
         3000L,
         Quantities.getQuantity(1.000000000000001d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
 
       /* Expect, that nothing has changed */
@@ -593,7 +632,8 @@ class LoadAgentFixedModelCalculationSpec
       loadAgent ! RequestAssetPowerMessage(
         3000L,
         Quantities.getQuantity(0.98, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
 
       /* Expect, the correct values (this model has fixed power factor) */

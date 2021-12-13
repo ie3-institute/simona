@@ -19,6 +19,7 @@ trait ConfigTestData {
   protected val typesafeConfig: Config = ConfigFactory.parseString(
     """
       |simona.simulationName = "ConfigTestDataSimulation"
+      |simona.execution.computationMode = Local
       |simona.input.grid.datasource.id = "csv"
       |simona.input.grid.datasource.csvParams = {
       |  folderPath: "input/samples/vn_simona/fullGrid"

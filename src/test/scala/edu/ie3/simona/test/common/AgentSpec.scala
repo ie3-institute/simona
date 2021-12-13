@@ -6,9 +6,10 @@
 
 package edu.ie3.simona.test.common
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.ActorSystem
 import akka.testkit.ImplicitSender
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.simona.akka.SimonaActorRef
 import org.scalatest.PrivateMethodTester
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -27,5 +28,5 @@ class AgentSpec(actorSystem: ActorSystem)
     with PrivateMethodTester
     with LazyLogging {
 
-  val systemListener: Iterable[ActorRef] = Iterable.empty
+  val systemListener: Iterable[SimonaActorRef] = Iterable.empty
 }

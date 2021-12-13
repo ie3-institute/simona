@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.ActorRef
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.ontology.messages.PowerMessage.PowerResponseMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 
@@ -18,9 +18,9 @@ sealed trait ReceivedValues
 case object ReceivedValues {
 
   type ActorPowerRequestResponse =
-    (ActorRef, Option[PowerResponseMessage])
+    (SimonaActorRef, Option[PowerResponseMessage])
   type ActorSlackVoltageRequestResponse =
-    (ActorRef, Option[ProvideSlackVoltageMessage])
+    (SimonaActorRef, Option[ProvideSlackVoltageMessage])
 
   sealed trait ReceivedPowerValues extends ReceivedValues {
     def values: Vector[ActorPowerRequestResponse]

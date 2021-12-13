@@ -33,7 +33,10 @@ import scala.util.{Failure, Success, Try}
 object ConfigUtil {
 
   final case class ParticipantConfigUtil private (
-      private val configs: Map[UUID, SimonaConfig.BaseRuntimeConfig],
+      private val configs: Map[
+        UUID,
+        BaseRuntimeConfig
+      ],
       private val defaultLoadConfig: LoadRuntimeConfig,
       private val defaultFixedFeedInConfig: FixedFeedInRuntimeConfig,
       private val defaultPvConfig: PvRuntimeConfig,
@@ -69,14 +72,16 @@ object ConfigUtil {
       */
     def getPvConfigOrDefault(uuid: UUID): PvRuntimeConfig =
       configs.get(uuid) match {
-        case Some(pvRuntimeConfig: PvRuntimeConfig) => pvRuntimeConfig
-        case _                                      => defaultPvConfig
+        case Some(pvRuntimeConfig: PvRuntimeConfig) =>
+          pvRuntimeConfig
+        case _ => defaultPvConfig
       }
 
     def getWecConfigOrDefault(uuid: UUID): WecRuntimeConfig =
       configs.get(uuid) match {
-        case Some(wecRuntimeConfig: WecRuntimeConfig) => wecRuntimeConfig
-        case _                                        => defaultWecConfig
+        case Some(wecRuntimeConfig: WecRuntimeConfig) =>
+          wecRuntimeConfig
+        case _ => defaultWecConfig
       }
 
     /** Queries for a [[FixedFeedInRuntimeConfig]], that applies for the given
@@ -90,9 +95,12 @@ object ConfigUtil {
       * @return
       *   the requested [[FixedFeedInRuntimeConfig]] or a default value
       */
-    def getFixedFeedConfigOrDefault(uuid: UUID): FixedFeedInRuntimeConfig =
+    def getFixedFeedConfigOrDefault(
+        uuid: UUID
+    ): FixedFeedInRuntimeConfig =
       configs.get(uuid) match {
-        case Some(ffinConfig: FixedFeedInRuntimeConfig) => ffinConfig
+        case Some(ffinConfig: FixedFeedInRuntimeConfig) =>
+          ffinConfig
         case _ => defaultFixedFeedInConfig
       }
 

@@ -6,13 +6,16 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.{ActorContext, ActorRef, ActorSystem}
-import com.typesafe.config.Config
-import com.typesafe.scalalogging.LazyLogging
+import akka.actor.ActorRefFactory
 import edu.ie3.datamodel.graph.SubGridTopologyGraph
-import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.{GridAgent, GridAgentData}
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.{
+  LocalActorRef,
+  RichActorRefFactory,
+  SingletonRef
+}
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.ExtSimAdapter.InitExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
@@ -27,7 +30,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeExtSimAdapterTrigger,
   InitializeServiceTrigger
 }
-import edu.ie3.simona.scheduler.SimScheduler
+import edu.ie3.simona.scheduler.main.SimScheduler
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
@@ -46,19 +49,18 @@ import scala.jdk.CollectionConverters._
   * @version 0.1
   * @since 01.07.20
   */
-class SimonaStandaloneSetup(
-    override val buildActorSystem: () => ActorSystem,
+final case class SimonaStandaloneSetup(
     simonaConfig: SimonaConfig,
     resultFileHierarchy: ResultFileHierarchy,
     runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
-    override val args: Array[String]
+    override val args: Array[String] = Array.empty
 ) extends SimonaSetup {
 
   override def gridAgents(
-      context: ActorContext,
+      refFactory: ActorRefFactory,
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ActorRef]
-  ): Map[ActorRef, GridAgentData.GridAgentInitData] = {
+      systemParticipantListener: Seq[SimonaActorRef]
+  ): Map[SimonaActorRef, GridAgentData.GridAgentInitData] = {
 
     /* get the grid */
     val subGridTopologyGraph = GridProvider
@@ -75,7 +77,7 @@ class SimonaStandaloneSetup(
     /* Create all agents and map the sub grid id to their actor references */
     val subGridToActorRefMap = buildSubGridToActorRefMap(
       subGridTopologyGraph,
-      context,
+      refFactory,
       environmentRefs,
       systemParticipantListener
     )
@@ -93,11 +95,11 @@ class SimonaStandaloneSetup(
               .asScala
               .map(modifySubGridGateForThreeWindingSupport)
           )
-        val currentSubGrid = subGridContainer.getSubnet
-        val currentActorRef = subGridToActorRefMap.getOrElse(
-          currentSubGrid,
+        val subnet = subGridContainer.getSubnet
+        val gridAgentActorRef = subGridToActorRefMap.getOrElse(
+          subnet,
           throw new GridAgentInitializationException(
-            "Was asked to setup agent for sub grid " + currentSubGrid + ", but did not found it's actor reference."
+            s"Was asked to setup agent for sub grid $subnet, but did not found it's actor reference."
           )
         )
 
@@ -109,20 +111,20 @@ class SimonaStandaloneSetup(
           configRefSystems
         )
 
-        currentActorRef -> gridAgentInitData
+        gridAgentActorRef -> gridAgentInitData
       })
       .toMap
   }
 
   override def primaryServiceProxy(
-      context: ActorContext,
-      scheduler: ActorRef
-  ): (ActorRef, PrimaryServiceProxy.InitPrimaryServiceProxyStateData) = {
+      refFactory: ActorRefFactory,
+      scheduler: SimonaActorRef
+  ): (SimonaActorRef, PrimaryServiceProxy.InitPrimaryServiceProxyStateData) = {
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
     (
-      context.simonaActorOf(
+      refFactory.createSingletonOf(
         PrimaryServiceProxy.props(
           scheduler,
           simulationStart
@@ -136,11 +138,11 @@ class SimonaStandaloneSetup(
   }
 
   override def weatherService(
-      context: ActorContext,
-      scheduler: ActorRef
-  ): (ActorRef, InitWeatherServiceStateData) =
+      refFactory: ActorRefFactory,
+      scheduler: SimonaActorRef
+  ): (SimonaActorRef, InitWeatherServiceStateData) =
     (
-      context.simonaActorOf(
+      refFactory.createSingletonOf(
         WeatherService.props(
           scheduler,
           TimeUtil.withDefaults
@@ -155,8 +157,8 @@ class SimonaStandaloneSetup(
     )
 
   override def extSimulations(
-      context: ActorContext,
-      scheduler: ActorRef
+      refFactory: ActorRefFactory,
+      scheduler: SimonaActorRef
   ): ExtSimSetupData = {
     val jars = ExtSimLoader.scanInputFolder()
 
@@ -167,11 +169,17 @@ class SimonaStandaloneSetup(
     val (extSimAdapters, extDataServices) =
       extLinks.zipWithIndex.map { case (extLink, index) =>
         // external simulation always needs at least an ExtSimAdapter
-        val extSimAdapter = context.simonaActorOf(
+        val extSimAdapter = refFactory.createSingletonWithIdOf(
           ExtSimAdapter.props(scheduler),
           s"$index"
         )
-        val extSimAdapterData = new ExtSimAdapterData(extSimAdapter, args)
+
+        val actorRef = extSimAdapter match {
+          case LocalActorRef(ref)   => ref
+          case SingletonRef(ref, _) => ref
+        }
+
+        val extSimAdapterData = new ExtSimAdapterData(actorRef, args)
         val initExtSimAdapter = InitializeExtSimAdapterTrigger(
           InitExtSimAdapter(extSimAdapterData)
         )
@@ -179,15 +187,20 @@ class SimonaStandaloneSetup(
         // setup data services that belong to this external simulation
         val (extData, extDataInit): (
             Iterable[ExtData],
-            Iterable[(ActorRef, InitializeServiceTrigger[_])]
+            Iterable[(SimonaActorRef, InitializeServiceTrigger[_])]
         ) =
           extLink.getExtDataSimulations.asScala.zipWithIndex.map {
             case (_: ExtEvSimulation, dIndex) =>
-              val extEvDataService = context.simonaActorOf(
+              val extEvDataService = refFactory.createSingletonWithIdOf(
                 ExtEvDataService.props(scheduler),
                 s"$index-$dIndex"
               )
-              val extEvData = new ExtEvData(extEvDataService, extSimAdapter)
+
+              val actorRef = extEvDataService match {
+                case LocalActorRef(actorRef)   => actorRef
+                case SingletonRef(actorRef, _) => actorRef
+              }
+              val extEvData = new ExtEvData(actorRef, actorRef)
 
               val initExtEvData = InitializeServiceTrigger(
                 InitExtEvData(extEvData)
@@ -212,19 +225,22 @@ class SimonaStandaloneSetup(
   }
 
   override def scheduler(
-      context: ActorContext,
-      runtimeEventListener: Seq[ActorRef]
-  ): ActorRef = context.simonaActorOf(
-    SimScheduler.props(
-      simonaConfig.simona.time,
-      runtimeEventListener,
-      simonaConfig.simona.time.stopOnFailedPowerFlow
+      refFactory: ActorRefFactory,
+      runtimeEventListener: Seq[SimonaActorRef]
+  ): SimonaActorRef =
+    refFactory.createSingletonOf(
+      SimScheduler.props(
+        simonaConfig.simona.time,
+        runtimeEventListener,
+        simonaConfig.simona.time.stopOnFailedPowerFlow
+      )
     )
-  )
 
-  override def runtimeEventListener(context: ActorContext): Vector[ActorRef] =
-    Vector(
-      context.simonaActorOf(
+  override def runtimeEventListener(
+      refFactory: ActorRefFactory
+  ): Seq[SimonaActorRef] =
+    Seq(
+      refFactory.createSingletonOf(
         RuntimeEventListener.props(
           None,
           runtimeEventQueue,
@@ -234,21 +250,21 @@ class SimonaStandaloneSetup(
     )
 
   override def systemParticipantsListener(
-      context: ActorContext,
-      simonaSim: ActorRef
-  ): Vector[ActorRef] = {
+      refFactory: ActorRefFactory,
+      simonaSim: SimonaActorRef
+  ): Seq[SimonaActorRef] = {
     // append ResultEventListener as well to write raw output files
     ArgsParser
       .parseListenerConfigOption(simonaConfig.simona.event.listener)
       .zipWithIndex
       .map { case ((listenerCompanion, events), index) =>
-        context.simonaActorOf(
-          listenerCompanion.props(events),
-          index.toString
+        refFactory.createSingletonWithIdOf(
+          props = listenerCompanion.props(events),
+          actorId = index.toString
         )
       }
-      .toVector :+
-      context.simonaActorOf(
+      .toSeq :+
+      refFactory.createSingletonOf(
         ResultEventListener.props(
           SetupHelper.allResultEntitiesToWrite(simonaConfig.simona.output),
           resultFileHierarchy,
@@ -259,24 +275,26 @@ class SimonaStandaloneSetup(
 
   def buildSubGridToActorRefMap(
       subGridTopologyGraph: SubGridTopologyGraph,
-      context: ActorContext,
+      refFactory: ActorRefFactory,
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ActorRef]
-  ): Map[Int, ActorRef] = {
+      systemParticipantListener: Seq[SimonaActorRef]
+  ): Map[Int, SimonaActorRef] = {
     subGridTopologyGraph
       .vertexSet()
       .asScala
       .map(subGridContainer => {
+        val subnetNo = subGridContainer.getSubnet
+
         val gridAgentRef =
-          context.simonaActorOf(
+          refFactory.createShardedEntityOf(
             GridAgent.props(
               environmentRefs,
               simonaConfig,
               systemParticipantListener
             ),
-            subGridContainer.getSubnet.toString
+            subnetNo
           )
-        subGridContainer.getSubnet -> gridAgentRef
+        subnetNo -> gridAgentRef
       })
       .toMap
   }
@@ -285,19 +303,4 @@ class SimonaStandaloneSetup(
 /** Companion object to provide [[SetupHelper]] methods for
   * [[SimonaStandaloneSetup]]
   */
-object SimonaStandaloneSetup extends LazyLogging with SetupHelper {
-
-  def apply(
-      typeSafeConfig: Config,
-      resultFileHierarchy: ResultFileHierarchy,
-      runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
-      mainArgs: Array[String] = Array.empty[String]
-  ): SimonaStandaloneSetup =
-    new SimonaStandaloneSetup(
-      () => ActorSystem("simona", typeSafeConfig),
-      SimonaConfig(typeSafeConfig),
-      resultFileHierarchy,
-      runtimeEventQueue,
-      mainArgs
-    )
-}
+object SimonaStandaloneSetup extends SetupHelper

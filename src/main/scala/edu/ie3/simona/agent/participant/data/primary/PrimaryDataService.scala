@@ -6,10 +6,10 @@
 
 package edu.ie3.simona.agent.participant.data.primary
 
-import akka.actor.ActorRef
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.DataService
+import edu.ie3.simona.akka.SimonaActorRef
 
 /** Enum-like trait to denote possible external data sources for systems
   */
@@ -22,6 +22,6 @@ object PrimaryDataService {
     * @param actorRef
     *   actor reference of the actual source
     */
-  final case class DummyPrimaryService(override val actorRef: ActorRef)
+  final case class DummyPrimaryService(override val actorRef: SimonaActorRef)
       extends PrimaryDataService[ApparentPower]
 }

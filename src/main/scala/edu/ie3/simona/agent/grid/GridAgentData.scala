@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.grid
 
 import java.util.UUID
-import akka.actor.ActorRef
 import akka.event.LoggingAdapter
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.SubGridContainer
@@ -18,6 +17,7 @@ import edu.ie3.simona.agent.grid.ReceivedValues.{
   ReceivedPowerValues,
   ReceivedSlackValues
 }
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.model.grid.{GridModel, RefSystem}
 import edu.ie3.simona.ontology.messages.PowerMessage
 import edu.ie3.simona.ontology.messages.PowerMessage.{
@@ -43,12 +43,12 @@ object GridAgentData {
     * @param subGridContainer
     *   raw grid information in the input data format
     * @param subGridGateToActorRef
-    *   information on inferior and superior grid connections [[SubGridGate]] s
-    *   and [[ActorRef]] s of the corresponding [[GridAgent]] s
+    *   information on inferior and superior grid connections [[SubGridGate]]s
+    *   and [[SimonaActorRef]]s of the corresponding [[GridAgent]]s
     */
   final case class GridAgentInitData(
       subGridContainer: SubGridContainer,
-      subGridGateToActorRef: Map[SubGridGate, ActorRef],
+      subGridGateToActorRef: Map[SubGridGate, SimonaActorRef],
       refSystem: RefSystem
   ) extends GridAgentData
       with GridAgentDataHelper {
@@ -77,8 +77,8 @@ object GridAgentData {
 
     def apply(
         gridModel: GridModel,
-        subnetGateToActorRef: Map[SubGridGate, ActorRef],
-        nodeToAssetAgents: Map[UUID, Set[ActorRef]],
+        subnetGateToActorRef: Map[SubGridGate, SimonaActorRef],
+        nodeToAssetAgents: Map[UUID, Set[SimonaActorRef]],
         superiorGridNodeUuids: Vector[UUID],
         inferiorGridGates: Vector[SubGridGate],
         powerFlowParams: PowerFlowParams,
@@ -294,10 +294,13 @@ object GridAgentData {
       */
     private def uuid(
         nodeToReceivedPower: Map[UUID, Vector[ActorPowerRequestResponse]],
-        senderRef: ActorRef,
+        senderRef: SimonaActorRef,
         replace: Boolean
     ): Option[
-      (UUID, Vector[(ActorRef, Option[PowerMessage.PowerResponseMessage])])
+      (
+          UUID,
+          Vector[(SimonaActorRef, Option[PowerMessage.PowerResponseMessage])]
+      )
     ] = {
       nodeToReceivedPower
         .find(

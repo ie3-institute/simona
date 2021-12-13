@@ -10,8 +10,8 @@ import akka.actor.SupervisorStrategy.Stop
 import akka.actor.{
   Actor,
   ActorRef,
+  ActorSystem,
   AllForOneStrategy,
-  PoisonPill,
   Props,
   Stash,
   SupervisorStrategy,
@@ -22,6 +22,9 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.AgentState.Finish
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.selfSingleton
+import edu.ie3.simona.akka.SimonaActorRefUtils.RichActorContext
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
 import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeGridAgentTrigger,
@@ -37,8 +40,8 @@ import edu.ie3.simona.sim.SimonaSim.{
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
 /** Main entrance point to a simona simulation as top level actor. This actors
@@ -59,6 +62,8 @@ class SimonaSim(simonaSetup: SimonaSetup)
     with LazyLogging
     with Stash {
 
+  protected implicit val system: ActorSystem = context.system
+
   override val supervisorStrategy: SupervisorStrategy =
     AllForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1 minute) {
       case ex: Exception =>
@@ -71,27 +76,31 @@ class SimonaSim(simonaSetup: SimonaSetup)
         Stop
     }
 
-  /* start listener */
+  /* create listeners */
   // output listener
-  val systemParticipantsListener: Seq[ActorRef] =
-    simonaSetup.systemParticipantsListener(context, self)
+  val systemParticipantsListener: Seq[SimonaActorRef] =
+    simonaSetup.systemParticipantsListener(context, selfSingleton)
 
   // runtime event listener
-  val runtimeEventListener: Seq[ActorRef] =
+  val runtimeEventListener: Seq[SimonaActorRef] =
     simonaSetup.runtimeEventListener(context)
 
-  /* start scheduler */
-  val scheduler: ActorRef = simonaSetup.scheduler(context, runtimeEventListener)
+  // start scheduler
+  val scheduler: SimonaActorRef =
+    simonaSetup.scheduler(context, runtimeEventListener)
 
   /* start services */
   // primary service proxy
   val (
-    primaryServiceProxy: ActorRef,
+    primaryServiceProxy: SimonaActorRef,
     primaryProxyInitData: InitPrimaryServiceProxyStateData
   ) = simonaSetup.primaryServiceProxy(context, scheduler)
 
   // weather service
-  val (weatherService: ActorRef, weatherInitData: InitWeatherServiceStateData) =
+  val (
+    weatherService: SimonaActorRef,
+    weatherInitData: InitWeatherServiceStateData
+  ) =
     simonaSetup.weatherService(context, scheduler)
 
   val extSimulationData: ExtSimSetupData =
@@ -118,24 +127,25 @@ class SimonaSim(simonaSetup: SimonaSetup)
   }
 
   /* start grid agents  */
-  val gridAgents: Map[ActorRef, GridAgentInitData] = simonaSetup.gridAgents(
-    context,
-    EnvironmentRefs(
-      scheduler,
-      primaryServiceProxy,
-      weatherService,
-      extSimulationData.evDataService
-    ),
-    systemParticipantsListener
-  )
+  val gridAgents: Map[SimonaActorRef, GridAgentInitData] =
+    simonaSetup.gridAgents(
+      context,
+      EnvironmentRefs(
+        scheduler,
+        primaryServiceProxy,
+        weatherService,
+        extSimulationData.evDataService
+      ),
+      systemParticipantsListener
+    )
 
   /* watch all actors */
-  systemParticipantsListener.foreach(context.watch)
-  runtimeEventListener.foreach(context.watch)
+  systemParticipantsListener.foreach(ref => context.watch(ref))
+  runtimeEventListener.foreach(ref => context.watch(ref))
   context.watch(scheduler)
   context.watch(primaryServiceProxy)
   context.watch(weatherService)
-  gridAgents.keySet.foreach(context.watch)
+  gridAgents.keySet.foreach(ref => context.watch(ref))
 
   /* watch for the following services until their initialization is finished */
   private val actorInitWaitingList = systemParticipantsListener
@@ -148,11 +158,11 @@ class SimonaSim(simonaSetup: SimonaSetup)
 
   def setup(
       data: SimonaSim.SimonaSimStateData,
-      actorInitWaitingList: Seq[ActorRef]
+      actorInitWaitingList: Seq[SimonaActorRef]
   ): Receive = {
-    case ServiceInitComplete =>
+    case ServiceInitComplete(serviceRef) =>
       val updatedWaitingList =
-        actorInitWaitingList.filterNot(_.equals(sender()))
+        actorInitWaitingList.filterNot(_.equals(serviceRef))
       if (updatedWaitingList.isEmpty) {
         unstashAll()
         context become simonaSimReceive(data)
@@ -238,10 +248,8 @@ class SimonaSim(simonaSetup: SimonaSetup)
   def stopAllChildrenGracefully(
       listenerDelay: FiniteDuration = 500.millis
   ): Unit = {
-    gridAgents.foreach { case (gridAgentRef, _) =>
-      context.unwatch(gridAgentRef)
-    }
-    gridAgents.foreach(_._1 ! Finish)
+    gridAgents.keySet.foreach(ref => context.unwatch(ref))
+    gridAgents.keySet.foreach(_ ! Finish)
 
     context.unwatch(scheduler)
     context.stop(scheduler)
@@ -253,11 +261,11 @@ class SimonaSim(simonaSetup: SimonaSetup)
     logger.debug("Waiting for {} to stop the listeners.", listenerDelay)
     Await.ready(
       after(listenerDelay, using = context.system.scheduler)(Future {
-        systemParticipantsListener.foreach(context.unwatch)
-        systemParticipantsListener.foreach(context.stop)
+        systemParticipantsListener.foreach(ref => context.unwatch(ref))
+        systemParticipantsListener.foreach(ref => context.stop(ref))
 
-        runtimeEventListener.foreach(context.unwatch)
-        runtimeEventListener.foreach(context.stop)
+        runtimeEventListener.foreach(ref => context.unwatch(ref))
+        runtimeEventListener.foreach(ref => context.stop(ref))
       }),
       listenerDelay + 500.millis
     )
@@ -275,7 +283,9 @@ object SimonaSim {
   /** Message to be used by a service to indicate that its initialization is
     * complete
     */
-  final case object ServiceInitComplete
+  final case class ServiceInitComplete(
+      serviceRef: SimonaActorRef
+  )
 
   private[SimonaSim] final case class SimonaSimStateData(
       initSimSender: ActorRef = ActorRef.noSender

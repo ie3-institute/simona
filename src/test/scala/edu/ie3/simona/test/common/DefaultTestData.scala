@@ -81,6 +81,8 @@ trait DefaultTestData {
       s"""
          |simona.simulationName = "ParticipantAgentTest"
          |
+         |simona.execution.computationMode = Local
+         |
          |simona.time.startDateTime = "01/01/2020 00:00:00"
          |simona.time.endDateTime = "01/01/2020 01:00:00"
          |

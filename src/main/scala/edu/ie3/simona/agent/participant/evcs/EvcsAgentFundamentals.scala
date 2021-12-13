@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.evcs
 
-import akka.actor.{ActorRef, FSM}
+import akka.actor.FSM
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.result.system.{
   EvcsResult,
@@ -27,6 +27,7 @@ import edu.ie3.simona.agent.participant.statedata.{
 }
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology.EvMovementsMessage.EvcsMovements
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
@@ -115,55 +116,6 @@ protected trait EvcsAgentFundamentals
         s"EvcsAgent cannot be initialized without an ev data service!"
       )
 
-    baseStateDataForModelCalculation(
-      inputModel,
-      modelConfig,
-      services,
-      simulationStartDate,
-      simulationEndDate,
-      timeBin,
-      requestVoltageDeviationThreshold,
-      outputConfig
-    )
-  }
-
-  /** Determine needed base state data for model calculation simulation mode.
-    *
-    * @param inputModel
-    *   Input model
-    * @param modelConfig
-    *   Configuration for the model
-    * @param servicesOpt
-    *   [[Option]] on a vector of [[SecondaryDataService]] s
-    * @param simulationStartDate
-    *   Real world time date time, when the simulation starts
-    * @param simulationEndDate
-    *   Real world time date time, when the simulation ends
-    * @param timeBin
-    *   Agents regular time bin it wants to be triggered e.g one hour
-    * @param requestVoltageDeviationThreshold
-    *   Threshold, after which two nodal voltage magnitudes from participant
-    *   power requests for the same tick are considered to be different
-    * @param outputConfig
-    *   Config of the output behaviour for simulation results
-    * @return
-    *   Needed base state data for model calculation
-    */
-  def baseStateDataForModelCalculation(
-      inputModel: EvcsInput,
-      modelConfig: EvcsRuntimeConfig,
-      servicesOpt: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      timeBin: Long,
-      requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
-  ): ParticipantModelBaseStateData[
-    ApparentPower,
-    EvcsRelevantData,
-    EvcsModel
-  ] = {
-
     /* Build the calculation model */
     val model =
       buildModel(
@@ -177,7 +129,8 @@ protected trait EvcsAgentFundamentals
       simulationStartDate,
       simulationEndDate,
       model,
-      servicesOpt,
+      inputModel.getNode.getSubnet,
+      services,
       outputConfig,
       Array.emptyLongArray, // Additional activation of the evcs agent is not needed
       Map.empty,
@@ -235,14 +188,14 @@ protected trait EvcsAgentFundamentals
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
-    *   [[ActorRef]] to the scheduler in the simulation
+    *   [[SimonaActorRef]] to the scheduler in the simulation
     * @return
     *   [[Idle]] with updated result values
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
       collectionStateData: DataCollectionStateData[ApparentPower],
       currentTick: Long,
-      scheduler: ActorRef
+      scheduler: SimonaActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
     implicit val startDateTime: ZonedDateTime =
       collectionStateData.baseStateData.startDate
@@ -298,7 +251,7 @@ protected trait EvcsAgentFundamentals
     */
   private def handleFreeLotsRequestAndGoIdle(
       currentTick: Long,
-      scheduler: ActorRef,
+      scheduler: SimonaActorRef,
       modelBaseStateData: ParticipantModelBaseStateData[
         _ <: ApparentPower,
         _,
@@ -342,7 +295,7 @@ protected trait EvcsAgentFundamentals
     */
   private def handleEvMovementsAndGoIdle(
       currentTick: Long,
-      scheduler: ActorRef,
+      scheduler: SimonaActorRef,
       modelBaseStateData: ParticipantModelBaseStateData[
         _ <: ApparentPower,
         _,

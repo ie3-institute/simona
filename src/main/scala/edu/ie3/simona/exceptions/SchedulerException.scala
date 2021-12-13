@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.exceptions
 
-/** Exception that is thrown whenever something invalid happend in
-  * [[edu.ie3.simona.scheduler.SimScheduler]]
+/** Exception that is thrown whenever something invalid happened in
+  * [[edu.ie3.simona.scheduler.main.SimScheduler]]
   *
   * @param message
   *   specific error message

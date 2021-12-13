@@ -4,20 +4,21 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.scheduler
+package edu.ie3.simona.scheduler.main
 
-import akka.actor.{Actor, ActorRef, Props, Terminated}
+import akka.actor.{Actor, ActorSystem, Props, Terminated}
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent.{Error, Initializing, Simulating}
 import edu.ie3.simona.event.notifier.Notifier
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
-import edu.ie3.simona.scheduler.SimSchedulerStateData.SchedulerStateData
+import edu.ie3.simona.scheduler.main.SimSchedulerStateData.SchedulerStateData
 
 object SimScheduler {
 
   def props(
       simonaTimeConfig: SimonaConfig.Simona.Time,
-      listener: Iterable[ActorRef],
+      listener: Iterable[SimonaActorRef],
       stopOnFailedPowerFlow: Boolean,
       autoStart: Boolean =
         true // note: this can become simona config dependant in the future
@@ -47,14 +48,16 @@ object SimScheduler {
   */
 class SimScheduler(
     val simonaTimeConfig: SimonaConfig.Simona.Time,
-    override val listener: Iterable[ActorRef],
+    override val listener: Iterable[SimonaActorRef],
     val stopOnFailedPowerFlow: Boolean,
     val autoStart: Boolean =
       true // note: this can become simona config dependant in the future
 ) extends Actor
     with Notifier
-    with SchedulerHelper
+    with SimSchedulerHelper
     with SimSchedulerStateData {
+
+  protected implicit val system: ActorSystem = context.system
 
   override def receive: Receive = schedulerReceive(SchedulerStateData())
 

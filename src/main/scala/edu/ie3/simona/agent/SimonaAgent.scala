@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent
 
 import akka.actor.FSM.CurrentState
-import akka.actor.{LoggingFSM, PoisonPill, Stash, Status}
+import akka.actor.{ActorSystem, LoggingFSM, PoisonPill, Stash, Status}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.event.notifier.Notifier
 import edu.ie3.simona.logging.SimonaFSMActorLogging
@@ -25,6 +25,8 @@ trait SimonaAgent[D]
     with LoggingFSM[AgentState, D]
     with Stash
     with SimonaFSMActorLogging {
+
+  protected implicit val system: ActorSystem = context.system
 
   private var _currentTriggerId: Option[Long] = None
   private var _currentTick: Option[Long] = None

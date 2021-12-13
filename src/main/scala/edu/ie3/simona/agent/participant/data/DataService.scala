@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.data
 
-import akka.actor.ActorRef
+import edu.ie3.simona.akka.SimonaActorRef
 
 /** Common properties to all data sources providing data from the outside of a
   * SystemParticipant model but not necessarily from the outside of the
@@ -16,5 +16,5 @@ trait DataService[+D <: Data] {
 
   /** A reference to the actor
     */
-  val actorRef: ActorRef
+  val actorRef: SimonaActorRef
 }

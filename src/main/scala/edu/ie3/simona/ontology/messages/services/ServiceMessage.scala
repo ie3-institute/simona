@@ -6,10 +6,9 @@
 
 package edu.ie3.simona.ontology.messages.services
 
-import akka.actor.ActorRef
-
 import java.util.UUID
 import edu.ie3.simona.agent.participant.data.Data
+import edu.ie3.simona.akka.SimonaActorRef
 
 /** Collections of all messages, that are send to and from the different
   * services
@@ -26,9 +25,13 @@ case object ServiceMessage {
     *
     * @param inputModelUuid
     *   Identifier of the input model
+    * @param requestingActor
+    *   Reference to the requesting actor
     */
-  final case class PrimaryServiceRegistrationMessage(inputModelUuid: UUID)
-      extends ServiceRegistrationMessage
+  final case class PrimaryServiceRegistrationMessage(
+      inputModelUuid: UUID,
+      requestingActor: SimonaActorRef
+  ) extends ServiceRegistrationMessage
 
   /** This message can be sent from a proxy to a subordinate worker in order to
     * forward the original registration request. This message may only be used,
@@ -37,21 +40,27 @@ case object ServiceMessage {
     * @param requestingActor
     *   Reference to the requesting actor
     */
-  final case class WorkerRegistrationMessage(requestingActor: ActorRef)
+  final case class WorkerRegistrationMessage(requestingActor: SimonaActorRef)
       extends ServiceRegistrationMessage
 
-  sealed trait RegistrationResponseMessage extends ServiceMessage
+  sealed trait RegistrationResponseMessage extends ServiceMessage {
+    val serviceRef: SimonaActorRef
+  }
 
   case object RegistrationResponseMessage {
 
     /** Message, that is used to confirm a successful registration
       */
-    final case class RegistrationSuccessfulMessage(nextDataTick: Option[Long])
-        extends RegistrationResponseMessage
+    final case class RegistrationSuccessfulMessage(
+        nextDataTick: Option[Long],
+        override val serviceRef: SimonaActorRef
+    ) extends RegistrationResponseMessage
 
     /** Message, that is used to announce a failed registration
       */
-    case object RegistrationFailedMessage extends RegistrationResponseMessage
+    case class RegistrationFailedMessage(
+        override val serviceRef: SimonaActorRef
+    ) extends RegistrationResponseMessage
   }
 
   /** Actual provision of data
@@ -63,5 +72,6 @@ case object ServiceMessage {
     val tick: Long
     val data: D
     val nextDataTick: Option[Long]
+    val serviceRef: SimonaActorRef
   }
 }

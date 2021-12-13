@@ -7,8 +7,10 @@
 package edu.ie3.simona.service.weather
 
 import akka.actor.{ActorRef, Props}
-import edu.ie3.simona.exceptions.InitializationException
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.selfSingleton
 import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
@@ -17,11 +19,11 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResp
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage._
-import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceActivationBaseStateData
 }
+import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.weather.WeatherService.{
   InitWeatherServiceStateData,
   WeatherInitializedStateData
@@ -44,7 +46,7 @@ import scala.util.{Failure, Success, Try}
 object WeatherService {
 
   def props(
-      scheduler: ActorRef,
+      scheduler: SimonaActorRef,
       startDateTime: ZonedDateTime,
       simulationEnd: ZonedDateTime,
       amountOfInterpolationCoordinates: Int = 4,
@@ -104,7 +106,7 @@ object WeatherService {
   * @since 2019-07-28
   */
 final case class WeatherService(
-    override val scheduler: ActorRef,
+    override val scheduler: SimonaActorRef,
     private implicit val simulationStart: ZonedDateTime,
     simulationEnd: ZonedDateTime,
     private val amountOfInterpolationCoords: Int,
@@ -117,9 +119,9 @@ final case class WeatherService(
     * initialization data. This method should perform all heavyweight tasks
     * before the actor becomes ready. The return values are a) the state data of
     * the initialized service and b) optional triggers that should be send to
-    * the [[edu.ie3.simona.scheduler.SimScheduler]] together with the completion
-    * message that is send in response to the trigger that is send to start the
-    * initialization process
+    * the [[edu.ie3.simona.scheduler.main.SimScheduler]] together with the
+    * completion message that is send in response to the trigger that is send to
+    * start the initialization process
     *
     * @param initServiceData
     *   the data that should be used for initialization
@@ -154,7 +156,7 @@ final case class WeatherService(
         Success(
           weatherInitializedStateData,
           ServiceActivationBaseStateData
-            .tickToScheduleTriggerMessages(maybeNextTick, self)
+            .tickToScheduleTriggerMessages(maybeNextTick, selfSingleton)
         )
 
       case invalidData =>
@@ -237,7 +239,8 @@ final case class WeatherService(
         ) match {
           case Success(weightedCoordinates) =>
             agentToBeRegistered ! RegistrationSuccessfulMessage(
-              serviceStateData.maybeNextActivationTick
+              serviceStateData.maybeNextActivationTick,
+              selfSingleton
             )
 
             /* Enhance the mapping from agent coordinate to requesting actor's ActorRef as well as the necessary
@@ -255,14 +258,15 @@ final case class WeatherService(
               exception,
               s"Unable to obtain necessary information to register for coordinate $agentCoord."
             )
-            sender() ! RegistrationFailedMessage
+            agentToBeRegistered ! RegistrationFailedMessage(selfSingleton)
             serviceStateData
         }
 
       case Some(actorRefs) if !actorRefs.contains(agentToBeRegistered) =>
         // coordinate is already known (= we have data for it), but this actor is not registered yet
         agentToBeRegistered ! RegistrationSuccessfulMessage(
-          serviceStateData.maybeNextActivationTick
+          serviceStateData.maybeNextActivationTick,
+          selfSingleton
         )
 
         serviceStateData.copy(
@@ -281,7 +285,7 @@ final case class WeatherService(
       case _ =>
         // actor is not registered and we don't have data for it
         // inform the agentToBeRegistered that the registration failed as we don't have data for it
-        agentToBeRegistered ! RegistrationFailedMessage
+        agentToBeRegistered ! RegistrationFailedMessage(selfSingleton)
         serviceStateData
     }
   }
@@ -320,7 +324,12 @@ final case class WeatherService(
           .get(coordinate)
           .foreach(recipients =>
             recipients.foreach(
-              _ ! ProvideWeatherMessage(tick, weatherResult, maybeNextTick)
+              _ ! ProvideWeatherMessage(
+                tick,
+                weatherResult,
+                maybeNextTick,
+                selfSingleton
+              )
             )
           )
       }
@@ -329,7 +338,7 @@ final case class WeatherService(
       updatedStateData,
       ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
         maybeNextTick,
-        self
+        selfSingleton
       )
     )
   }

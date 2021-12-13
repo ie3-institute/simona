@@ -4,11 +4,11 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.scheduler
+package edu.ie3.simona.scheduler.main
 
-import java.util.PriorityQueue
-import akka.actor.ActorRef
 import com.google.common.collect.TreeMultimap
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRefUtils.RichActorContext
 import edu.ie3.simona.event.RuntimeEvent.{
   CheckWindowPassed,
   Done,
@@ -19,13 +19,14 @@ import edu.ie3.simona.exceptions.SchedulerException
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
-import edu.ie3.simona.ontology.trigger.{ScheduledTrigger, Trigger}
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeTrigger
-import edu.ie3.simona.scheduler.SimSchedulerStateData.SchedulerStateData
+import edu.ie3.simona.ontology.trigger.{ScheduledTrigger, Trigger}
+import edu.ie3.simona.scheduler.main.SimSchedulerStateData.SchedulerStateData
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.TimeUtil
 
+import java.util.PriorityQueue
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.jdk.Accumulator
@@ -40,7 +41,7 @@ import scala.jdk.StreamConverters._
   * @version 0.1
   * @since 04.05.20
   */
-trait SchedulerHelper extends SimonaActorLogging {
+trait SimSchedulerHelper extends SimonaActorLogging {
   this: SimScheduler =>
 
   // user config parameters
@@ -522,9 +523,9 @@ trait SchedulerHelper extends SimonaActorLogging {
       .getOrElse(0)
 
     /* unwatch all agents that have triggered themselves as the simulation will shutdown now */
-    stateData.trigger.triggerQueue.asScala.foreach(scheduledTrigger => {
-      context.unwatch(scheduledTrigger.agent)
-    })
+    stateData.trigger.triggerQueue.asScala.foreach(trig =>
+      context.unwatch(trig.agent)
+    )
 
     /* notify listeners */
     notifyListener(
@@ -624,7 +625,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     * Depending on nowInTicks, the method behaves differently. If nowInTicks ==
     * 0, the method checks if the last completion message received leads to a
     * fully initialized simulation and if yes, it sets
-    * [[SchedulerStateData.runtime.initComplete]] to true. Futhermore, if
+    * [[SchedulerStateData.runtime.initComplete]] to true. Furthermore, if
     * [[this.autoStart]] is enabled, the simulation schedule is executed
     * afterwards. Otherwise, it just returned the modified state data.
     *
@@ -678,7 +679,7 @@ trait SchedulerHelper extends SimonaActorLogging {
           triggerData.triggerIdToTickMap - completionMessage.triggerId
 
         /* unwatch sender */
-        context.unwatch(sender())
+        context.unwatch(completionMessage.actor)
 
         /* if we are in the init tick, check if initialization is completed, otherwise just return state data with
          * updated trigger information */
@@ -891,7 +892,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     */
   protected final def scheduleTrigger(
       trigger: Trigger,
-      actorToBeScheduled: ActorRef,
+      actorToBeScheduled: SimonaActorRef,
       stateData: SchedulerStateData
   ): SchedulerStateData = {
 

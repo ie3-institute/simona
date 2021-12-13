@@ -10,8 +10,41 @@ import akka.actor.{ActorRef, ActorRefFactory, Props}
 
 import java.util.UUID
 
+/** In general, actor names in SIMONA consist of type name and actor id:
+  *
+  * `actorName = typeName + "_" + actorId`
+  *
+  * Or, in case of singletons, the actor name can consist of the type name only.
+  *
+  * Actor ref paths are structured depending on the type of reference.
+  *
+  * '''Local actors'''
+  *
+  * `akka://simona/user/-parent-/-name-`
+  *
+  * For example:
+  * `akka://simona/user/SimonaSim/GridAgent_136/FixedLoadAgent_33cd1941-51f2-425a-8f4d-67e00d0b1876`
+  *
+  * '''Singletons'''
+  *
+  * The self-reference: `akka://simona/user/-name-/singleton`
+  *
+  * The actor when created: `akka://simona/user/-name-`
+  *
+  * A proxy ref: `akka://simona/user/$a` (does not follow pattern)
+  *
+  * '''Sharded actors'''
+  *
+  * `akka://simona/system/sharding/-typename-/-shardHash-/-name-`
+  *
+  * For example:
+  * `akka://simona/system/sharding/FixedLoadAgent/5/FixedLoadAgent_0211454c-9be4-470f-9cf5-cef9b87cb640`
+  *
+  * This has been verified with Akka version 2.6.17.
+  */
 object SimonaActorNaming {
 
+  @Deprecated
   implicit class RichActorRefFactory(private val refFactory: ActorRefFactory)
       extends AnyVal {
 
@@ -103,6 +136,14 @@ object SimonaActorNaming {
     */
   def typeName(clz: Class[_]): String =
     clz.getSimpleName.replace("$", "")
+
+  def typeName(actorRef: ActorRef): String = {
+    val name = actorName(actorRef)
+    if (name.contains('_'))
+      name.split("_", 2)(0) // most actorNames match TypeName_ActorId
+    else
+      name // Some Singleton actorNames match TypeName
+  }
 
   /** Akka prevents the usage of specific special characters as names. This
     * method cleans a given string and makes it usable as actor name

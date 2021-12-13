@@ -6,9 +6,10 @@
 
 package edu.ie3.simona.agent.participant.fixedfeedin
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.Props
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.config.SimonaConfig.FixedFeedInRuntimeConfig
@@ -17,8 +18,8 @@ import edu.ie3.simona.model.participant.FixedFeedInModel
 
 object FixedFeedInAgent {
   def props(
-      scheduler: ActorRef,
-      listener: Iterable[ActorRef]
+      scheduler: SimonaActorRef,
+      listener: Iterable[SimonaActorRef]
   ): Props =
     Props(new FixedFeedInAgent(scheduler, listener))
 }
@@ -31,8 +32,8 @@ object FixedFeedInAgent {
   *   List of listeners interested in results
   */
 class FixedFeedInAgent(
-    scheduler: ActorRef,
-    override val listener: Iterable[ActorRef]
+    scheduler: SimonaActorRef,
+    override val listener: Iterable[SimonaActorRef]
 ) extends ParticipantAgent[
       ApparentPower,
       FixedRelevantData.type,

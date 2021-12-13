@@ -6,12 +6,14 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.{ActorRef, FSM}
+import akka.actor.FSM
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.simona.agent.SimonaAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
+import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FromOutsideBaseStateData,
   ParticipantModelBaseStateData
@@ -33,8 +35,8 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   Calculate,
   HandleInformation
 }
-import edu.ie3.simona.agent.SimonaAgent
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.selfSharded
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
@@ -85,7 +87,7 @@ abstract class ParticipantAgent[
     I <: SystemParticipantInput,
     MC <: SimonaConfig.BaseRuntimeConfig,
     M <: SystemParticipant[CD]
-](scheduler: ActorRef)
+](scheduler: SimonaActorRef)
     extends SimonaAgent[ParticipantStateData[PD]] {
 
   val alternativeResult: PD
@@ -100,8 +102,8 @@ abstract class ParticipantAgent[
           TriggerWithIdMessage(
             initTrigger @ InitializeParticipantAgentTrigger(
               ParticipantInitializeStateData(
-                inputModel,
-                modelConfig,
+                inputModel: I,
+                modelConfig: MC,
                 primaryServiceProxy,
                 services,
                 simulationStartDate,
@@ -120,7 +122,8 @@ abstract class ParticipantAgent[
        * that will confirm, otherwise, a failed registration is announced. */
       holdTickAndTriggerId(initTrigger.tick, triggerId)
       primaryServiceProxy ! PrimaryServiceRegistrationMessage(
-        inputModel.getUuid
+        inputModel.getUuid,
+        selfSharded(inputModel.getNode.getSubnet)
       )
       goto(HandleInformation) using ParticipantInitializingStateData(
         inputModel,
@@ -199,7 +202,7 @@ abstract class ParticipantAgent[
       handleDataProvisionAndGoToHandleInformation(msg, baseStateData)
 
     case Event(
-          RequestAssetPowerMessage(requestTick, eInPu, fInPu),
+          RequestAssetPowerMessage(requestTick, eInPu, fInPu, gridRef),
           baseStateData: BaseStateData[PD]
         ) =>
       /* Determine the reply and stay in this state (or stash the message if the request cannot yet be answered) */
@@ -208,7 +211,8 @@ abstract class ParticipantAgent[
         requestTick,
         eInPu,
         fInPu,
-        alternativeResult
+        alternativeResult,
+        gridRef
       )
 
     case Event(
@@ -222,7 +226,7 @@ abstract class ParticipantAgent[
   when(HandleInformation) {
     /* Receive registration confirm from primary data service -> Set up actor for replay of data */
     case Event(
-          RegistrationSuccessfulMessage(maybeNextDataTick),
+          RegistrationSuccessfulMessage(maybeNextDataTick, serviceRef),
           ParticipantInitializingStateData(
             inputModel: I,
             modelConfig: MC,
@@ -244,13 +248,13 @@ abstract class ParticipantAgent[
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        sender() -> maybeNextDataTick,
+        serviceRef -> maybeNextDataTick,
         scheduler
       )
 
     /* Receive registration refuse from primary data service -> Set up actor for model calculation */
     case Event(
-          RegistrationResponseMessage.RegistrationFailedMessage,
+          RegistrationResponseMessage.RegistrationFailedMessage(_),
           ParticipantInitializingStateData(
             inputModel: I,
             modelConfig: MC,
@@ -311,19 +315,19 @@ abstract class ParticipantAgent[
       /* We yet have received at least one data provision message. Handle all messages, that follow up for this tick, by
        * adding the received data to the collection state data and checking, if everything is at its place */
       if (
-        data.contains(sender()) ||
+        data.contains(msg.serviceRef) ||
         baseStateData.foreseenDataTicks.exists {
-          case (ref, None) => sender() == ref
+          case (ref, None) => msg.serviceRef == ref
           case _           => false
         }
       ) {
         /* Update the yet received information */
-        val updatedData = data + (sender() -> Some(msg.data))
+        val updatedData = data + (msg.serviceRef -> Some(msg.data))
 
         /* Depending on if a next data tick can be foreseen, either update the entry in the base state data or remove
          * it */
         val foreSeenDataTicks =
-          baseStateData.foreseenDataTicks + (sender() -> msg.nextDataTick)
+          baseStateData.foreseenDataTicks + (msg.serviceRef -> msg.nextDataTick)
         val updatedBaseStateData = BaseStateData.updateBaseStateData(
           baseStateData,
           baseStateData.resultValueStore,
@@ -345,11 +349,11 @@ abstract class ParticipantAgent[
         )(updatedBaseStateData.outputConfig)
       } else
         throw new IllegalStateException(
-          s"Did not expect message from ${sender()} at tick $currentTick"
+          s"Did not expect message from ${msg.serviceRef} at tick $currentTick"
         )
 
     case Event(
-          RequestAssetPowerMessage(currentTick, _, _),
+          RequestAssetPowerMessage(currentTick, _, _, gridRef),
           DataCollectionStateData(_, data, yetTriggered)
         ) =>
       if (log.isDebugEnabled) {
@@ -361,7 +365,7 @@ abstract class ParticipantAgent[
           s"Got asset power request for tick {}'. Will answer it later. " +
             s"I'm waiting for senders: '{}', already got from '{}'. " +
             s"The actor has {} been triggered yet.",
-          s"$currentTick from ${sender()}",
+          s"$currentTick from $gridRef",
           awaitedSenders,
           yetReceivedSenders,
           if (yetTriggered) "" else "NOT"
@@ -399,11 +403,11 @@ abstract class ParticipantAgent[
         scheduler
       )
 
-    case Event(RequestAssetPowerMessage(currentTick, _, _), _) =>
+    case Event(RequestAssetPowerMessage(currentTick, _, _, gridRef), _) =>
       log.debug(
         s"Got asset power request for tick {} from '{}'. Will answer it later.",
         currentTick,
-        sender()
+        gridRef
       )
       stash()
       stay()
@@ -457,8 +461,8 @@ abstract class ParticipantAgent[
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
-      senderToMaybeTick: (ActorRef, Option[Long]),
-      scheduler: ActorRef
+      senderToMaybeTick: (SimonaActorRef, Option[Long]),
+      scheduler: SimonaActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Abstract definition of initialization method, implementation in
@@ -495,7 +499,7 @@ abstract class ParticipantAgent[
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
-      scheduler: ActorRef
+      scheduler: SimonaActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Handles the responses from service providers, this actor has registered
@@ -510,7 +514,7 @@ abstract class ParticipantAgent[
     *   What happens next
     */
   def handleRegistrationResponse(
-      scheduler: ActorRef,
+      scheduler: SimonaActorRef,
       registrationResponse: RegistrationResponseMessage,
       stateData: CollectRegistrationConfirmMessages[PD]
   ): FSM.State[AgentState, ParticipantStateData[PD]]
@@ -606,7 +610,7 @@ abstract class ParticipantAgent[
       stateData: DataCollectionStateData[PD],
       isYetTriggered: Boolean,
       tick: Long,
-      scheduler: ActorRef
+      scheduler: SimonaActorRef
   )(implicit
       outputConfig: ParticipantNotifierConfig
   ): FSM.State[AgentState, ParticipantStateData[PD]]
@@ -632,7 +636,7 @@ abstract class ParticipantAgent[
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
-    *   [[ActorRef]] to the scheduler in the simulation
+    *   [[SimonaActorRef]] to the scheduler in the simulation
     * @param nodalVoltage
     *   Current nodal voltage
     * @param calculateModelPowerFunc
@@ -644,7 +648,7 @@ abstract class ParticipantAgent[
   def calculatePowerWithoutSecondaryDataAndGoToIdle(
       baseStateData: ParticipantModelBaseStateData[PD, CD, M],
       currentTick: Long,
-      scheduler: ActorRef,
+      scheduler: SimonaActorRef,
       nodalVoltage: ComparableQuantity[Dimensionless],
       calculateModelPowerFunc: (
           Long,
@@ -669,14 +673,14 @@ abstract class ParticipantAgent[
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
-    *   [[ActorRef]] to the scheduler in the simulation
+    *   [[SimonaActorRef]] to the scheduler in the simulation
     * @return
     *   [[Idle]] with updated result values
     */
   def calculatePowerWithSecondaryDataAndGoToIdle(
       collectionStateData: DataCollectionStateData[PD],
       currentTick: Long,
-      scheduler: ActorRef
+      scheduler: SimonaActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Determining the reply to an
@@ -711,7 +715,8 @@ abstract class ParticipantAgent[
       requestTick: Long,
       eInPu: ComparableQuantity[Dimensionless],
       fInPu: ComparableQuantity[Dimensionless],
-      alternativeResult: PD
+      alternativeResult: PD,
+      gridRef: SimonaActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Abstract definition to notify result listeners from every participant

@@ -6,16 +6,15 @@
 
 package edu.ie3.simona.ontology.messages
 
-import akka.actor.ActorRef
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.ontology.trigger.Trigger
-import edu.ie3.simona.scheduler.SimScheduler
 
 sealed trait SchedulerMessage
 
 /** Messages that should be send and received to and from [[SimScheduler]].
   * Every message that is NOT a one way message (e.g. is only received by the
-  * [[SimScheduler]] should include the [[ActorRef]] of the agent that should
-  * receive the message. This is necessary for routing in cluster mode.
+  * [[SimScheduler]] should include the [[SimonaActorRef]] of the agent that
+  * should receive the message. This is necessary for routing in cluster mode.
   */
 object SchedulerMessage {
 
@@ -40,7 +39,7 @@ object SchedulerMessage {
     */
   final case class ScheduleTriggerMessage(
       trigger: Trigger,
-      actorToBeScheduled: ActorRef
+      actorToBeScheduled: SimonaActorRef
   ) extends SchedulerMessage
 
   /** Confirm the end of an action e.g. fsm state transitions for one tick to
@@ -48,11 +47,14 @@ object SchedulerMessage {
     *
     * @param triggerId
     *   the triggerId we want to confirm the completion
+    * @param actor
+    *   actor that completed a tick
     * @param newTriggers
     *   optional new triggers to schedule
     */
   final case class CompletionMessage(
       triggerId: Long,
+      actor: SimonaActorRef,
       newTriggers: Option[Seq[ScheduleTriggerMessage]] = None
   ) extends SchedulerMessage
 
@@ -62,14 +64,14 @@ object SchedulerMessage {
   final case class TriggerWithIdMessage(
       trigger: Trigger,
       triggerId: Long,
-      receiverActor: ActorRef
+      receiverActor: SimonaActorRef
   ) extends SchedulerMessage
 
   /** respond to agent that the send trigger is illegal
     */
   final case class IllegalTriggerMessage(
       reason: String,
-      receiverActor: ActorRef
+      receiverActor: SimonaActorRef
   ) extends SchedulerMessage
 
   /** Reported back from the scheduler if an error occurred during the

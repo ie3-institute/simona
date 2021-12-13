@@ -26,6 +26,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
 import edu.ie3.simona.api.data.ev.ontology.builder.EvcsMovementsBuilder
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
@@ -96,7 +97,7 @@ class EvcsAgentModelCalculationSpec
   private val noServices = None
   private val withServices = Some(
     Vector(
-      ActorEvMovementsService(evService.ref)
+      ActorEvMovementsService(evService.ref.asLocal)
     )
   )
 
@@ -106,7 +107,7 @@ class EvcsAgentModelCalculationSpec
     "be instantiated correctly" in {
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -124,7 +125,7 @@ class EvcsAgentModelCalculationSpec
     "fail initialisation and stay in uninitialized state" in {
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -151,17 +152,20 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           triggerId,
-          evcsAgent
+          evcsAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       scheduler.receiveOne(receiveTimeout) match {
         case IllegalTriggerMessage(_, _) => logger.debug("Got correct message")
@@ -184,7 +188,7 @@ class EvcsAgentModelCalculationSpec
     "be instantiated correctly" in {
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -203,7 +207,7 @@ class EvcsAgentModelCalculationSpec
     "end in correct state with correct state data after initialisation" in {
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -230,17 +234,20 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           triggerId,
-          evcsAgent
+          evcsAgent.asLocal
         )
       )
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(evcsInputModel.getUuid)
+        PrimaryServiceRegistrationMessage(
+          evcsInputModel.getUuid,
+          evcsAgent.asLocal
+        )
       )
       /* State should be information handling and having correct state data */
       evcsAgent.stateName shouldBe HandleInformation
@@ -268,11 +275,14 @@ class EvcsAgentModelCalculationSpec
       }
 
       /* Refuse registration */
-      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* Expect a registration message */
       evService.expectMsg(
-        RegisterForEvDataMessage(evcsInputModel.getUuid)
+        RegisterForEvDataMessage(evcsInputModel.getUuid, evcsAgent.asLocal)
       )
 
       /* ... as well as corresponding state and state data */
@@ -283,6 +293,7 @@ class EvcsAgentModelCalculationSpec
                 startDate,
                 endDate,
                 _,
+                subnetNo,
                 services,
                 outputConfig,
                 additionalActivationTicks,
@@ -299,9 +310,10 @@ class EvcsAgentModelCalculationSpec
           /* Base state data */
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
+          subnetNo shouldBe evcsInputModel.getNode.getSubnet
           services shouldBe Some(
             Vector(
-              ActorEvMovementsService(evService.ref)
+              ActorEvMovementsService(evService.ref.asLocal)
             )
           )
           outputConfig shouldBe ParticipantNotifierConfig(
@@ -318,7 +330,7 @@ class EvcsAgentModelCalculationSpec
           requestValueStore shouldBe ValueStore[ApparentPower](resolution * 10)
 
           /* Additional information */
-          awaitRegistrationResponsesFrom shouldBe Vector(evService.ref)
+          awaitRegistrationResponsesFrom shouldBe Vector(evService.ref.asLocal)
           foreseenNextDataTicks shouldBe Map.empty
         case _ =>
           fail(
@@ -327,11 +339,14 @@ class EvcsAgentModelCalculationSpec
       }
 
       /* Reply, that registration was successful */
-      evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(None, evService.ref.asLocal)
+      )
 
       /* Expect a completion message */
       scheduler.expectMsg(
-        CompletionMessage(triggerId, None)
+        CompletionMessage(triggerId, evcsAgent.asLocal, None)
       )
 
       /* ... as well as corresponding state and state data */
@@ -339,7 +354,9 @@ class EvcsAgentModelCalculationSpec
       evcsAgent.stateData match {
         case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
-          baseStateData.foreseenDataTicks shouldBe Map(evService.ref -> None)
+          baseStateData.foreseenDataTicks shouldBe Map(
+            evService.ref.asLocal -> None
+          )
         case _ =>
           fail(
             s"Did not find expected state data $ParticipantModelBaseStateData, but ${evcsAgent.stateData}"
@@ -350,7 +367,7 @@ class EvcsAgentModelCalculationSpec
     "answer with zero power, if asked directly after initialisation" in {
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -377,23 +394,29 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           triggerId,
-          evcsAgent
+          evcsAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* Expect a registration message */
       evService.expectMsg(
-        RegisterForEvDataMessage(evcsInputModel.getUuid)
+        RegisterForEvDataMessage(evcsInputModel.getUuid, evcsAgent.asLocal)
       )
-      evService.send(evcsAgent, RegistrationSuccessfulMessage(Some(900L)))
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(Some(900L), evService.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
@@ -404,7 +427,8 @@ class EvcsAgentModelCalculationSpec
       evcsAgent ! RequestAssetPowerMessage(
         0L,
         Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
       expectMsg(
         AssetPowerChangedMessage(
@@ -436,7 +460,7 @@ class EvcsAgentModelCalculationSpec
     "do correct transitions faced to new data in Idle" in {
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -463,21 +487,27 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           initialiseTriggerId,
-          evcsAgent
+          evcsAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       evService.expectMsgType[RegisterForEvDataMessage]
-      evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(None, evService.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
@@ -491,7 +521,11 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(0L, evMovementData)
+        ProvideEvDataMessage(
+          0L,
+          evMovementData,
+          serviceRef = evService.ref.asLocal
+        )
       )
 
       /* Find yourself in corresponding state and state data */
@@ -503,11 +537,13 @@ class EvcsAgentModelCalculationSpec
               isYetTriggered
             ) =>
           /* The next data tick is already registered */
-          baseStateData.foreseenDataTicks shouldBe Map(evService.ref -> None)
+          baseStateData.foreseenDataTicks shouldBe Map(
+            evService.ref.asLocal -> None
+          )
 
           /* The yet sent data is also registered */
           expectedSenders shouldBe Map(
-            evService.ref -> Some(evMovementData)
+            evService.ref.asLocal -> Some(evMovementData)
           )
 
           /* It is not yet triggered */
@@ -524,14 +560,14 @@ class EvcsAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
           1L,
-          evcsAgent
+          evcsAgent.asLocal
         )
       )
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
        * for starting the calculation */
       scheduler.expectMsg(
-        CompletionMessage(1L, None)
+        CompletionMessage(1L, evcsAgent.asLocal, None)
       )
       evcsAgent.stateName shouldBe Idle
       evcsAgent.stateData match {
@@ -578,7 +614,7 @@ class EvcsAgentModelCalculationSpec
     "do correct transitions triggered for activation in idle" in {
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -605,21 +641,27 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           initialiseTriggerId,
-          evcsAgent
+          evcsAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       evService.expectMsgType[RegisterForEvDataMessage]
-      evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(None, evService.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
@@ -632,7 +674,7 @@ class EvcsAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
           1L,
-          evcsAgent
+          evcsAgent.asLocal
         )
       )
 
@@ -645,7 +687,9 @@ class EvcsAgentModelCalculationSpec
               isYetTriggered
             ) =>
           /* The next data tick is already registered */
-          baseStateData.foreseenDataTicks shouldBe Map(evService.ref -> None)
+          baseStateData.foreseenDataTicks shouldBe Map(
+            evService.ref.asLocal -> None
+          )
 
           /* The yet sent data is also registered */
           expectedSenders shouldBe Map.empty
@@ -665,13 +709,17 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(0L, evMovementData)
+        ProvideEvDataMessage(
+          0L,
+          evMovementData,
+          serviceRef = evService.ref.asLocal
+        )
       )
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
        * for starting the calculation */
       scheduler.expectMsg(
-        CompletionMessage(1L, None)
+        CompletionMessage(1L, evcsAgent.asLocal, None)
       )
       evcsAgent.stateName shouldBe Idle
       evcsAgent.stateData match {
@@ -718,7 +766,7 @@ class EvcsAgentModelCalculationSpec
     "provide power right away because no data is awaited" in {
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -745,21 +793,27 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           initialiseTriggerId,
-          evcsAgent
+          evcsAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       evService.expectMsgType[RegisterForEvDataMessage]
-      evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(None, evService.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
@@ -768,7 +822,8 @@ class EvcsAgentModelCalculationSpec
       evcsAgent ! RequestAssetPowerMessage(
         7200L,
         Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -787,7 +842,7 @@ class EvcsAgentModelCalculationSpec
     "provide number of free lots when asked to" in {
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -814,21 +869,27 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           initialiseTriggerId,
-          evcsAgent
+          evcsAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       evService.expectMsgType[RegisterForEvDataMessage]
-      evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(None, evService.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
@@ -839,7 +900,8 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           0L,
-          EvFreeLotsRequest
+          EvFreeLotsRequest,
+          serviceRef = evService.ref.asLocal
         )
       )
       scheduler.send(
@@ -847,7 +909,7 @@ class EvcsAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
           3L,
-          evcsAgent
+          evcsAgent.asLocal
         )
       )
 
@@ -857,7 +919,7 @@ class EvcsAgentModelCalculationSpec
           2
         )
       )
-      scheduler.expectMsg(CompletionMessage(3L))
+      scheduler.expectMsg(CompletionMessage(3L, evcsAgent.asLocal))
 
       /* Send ev for this tick */
       evService.send(
@@ -866,7 +928,8 @@ class EvcsAgentModelCalculationSpec
           0L,
           EvMovementData(
             new EvcsMovementsBuilder().addArrival(evA).build()
-          )
+          ),
+          serviceRef = evService.ref.asLocal
         )
       )
 
@@ -875,17 +938,18 @@ class EvcsAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
           4L,
-          evcsAgent
+          evcsAgent.asLocal
         )
       )
-      scheduler.expectMsg(CompletionMessage(4L))
+      scheduler.expectMsg(CompletionMessage(4L, evcsAgent.asLocal))
 
       /* Ask for public evcs count again */
       evService.send(
         evcsAgent,
         ProvideEvDataMessage(
           3600L,
-          EvFreeLotsRequest
+          EvFreeLotsRequest,
+          serviceRef = evService.ref.asLocal
         )
       )
       scheduler.send(
@@ -893,7 +957,7 @@ class EvcsAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(3600L),
           5L,
-          evcsAgent
+          evcsAgent.asLocal
         )
       )
 
@@ -904,12 +968,12 @@ class EvcsAgentModelCalculationSpec
           1
         )
       )
-      scheduler.expectMsg(CompletionMessage(5L))
+      scheduler.expectMsg(CompletionMessage(5L, evcsAgent.asLocal))
     }
 
     val evcsAgent = TestFSMRef(
       new EvcsAgent(
-        scheduler = scheduler.ref,
+        scheduler = scheduler.ref.asLocal,
         listener = systemListener
       )
     )
@@ -937,21 +1001,27 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           initialiseTriggerId,
-          evcsAgent
+          evcsAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       evService.expectMsgType[RegisterForEvDataMessage]
-      evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(None, evService.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
@@ -965,7 +1035,8 @@ class EvcsAgentModelCalculationSpec
           0L,
           EvMovementData(
             new EvcsMovementsBuilder().addArrival(evA).build()
-          )
+          ),
+          serviceRef = evService.ref.asLocal
         )
       )
       scheduler.send(
@@ -973,10 +1044,10 @@ class EvcsAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
           3L,
-          evcsAgent
+          evcsAgent.asLocal
         )
       )
-      scheduler.expectMsg(CompletionMessage(3L))
+      scheduler.expectMsg(CompletionMessage(3L, evcsAgent.asLocal))
 
       /* ... for tick 3600 */
       evService.send(
@@ -988,7 +1059,8 @@ class EvcsAgentModelCalculationSpec
               .addDeparture(evA.getUuid)
               .addArrival(evB)
               .build()
-          )
+          ),
+          serviceRef = evService.ref.asLocal
         )
       )
       scheduler.send(
@@ -996,7 +1068,7 @@ class EvcsAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(3600L),
           4L,
-          evcsAgent
+          evcsAgent.asLocal
         )
       )
       evService.expectMsg(
@@ -1009,7 +1081,7 @@ class EvcsAgentModelCalculationSpec
           )
         )
       )
-      scheduler.expectMsg(CompletionMessage(4L))
+      scheduler.expectMsg(CompletionMessage(4L, evcsAgent.asLocal))
 
       /* ... for tick 7200 */
       evService.send(
@@ -1021,7 +1093,8 @@ class EvcsAgentModelCalculationSpec
               .addDeparture(evB.getUuid)
               .addArrival(evA)
               .build()
-          )
+          ),
+          serviceRef = evService.ref.asLocal
         )
       )
       scheduler.send(
@@ -1029,7 +1102,7 @@ class EvcsAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(7200L),
           5L,
-          evcsAgent
+          evcsAgent.asLocal
         )
       )
       evService.expectMsg(
@@ -1042,13 +1115,14 @@ class EvcsAgentModelCalculationSpec
           )
         )
       )
-      scheduler.expectMsg(CompletionMessage(5L))
+      scheduler.expectMsg(CompletionMessage(5L, evcsAgent.asLocal))
 
       /* Ask the agent for average power in tick 7500 */
       evcsAgent ! RequestAssetPowerMessage(
         7500L,
         Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -1071,7 +1145,8 @@ class EvcsAgentModelCalculationSpec
       evcsAgent ! RequestAssetPowerMessage(
         7500L,
         Quantities.getQuantity(1.000000000000001d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
 
       /* Expect, that nothing has changed */
@@ -1093,7 +1168,8 @@ class EvcsAgentModelCalculationSpec
       evcsAgent ! RequestAssetPowerMessage(
         7500L,
         Quantities.getQuantity(0.98, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
 
       /* Expect, the correct values (this model has fixed power factor) */

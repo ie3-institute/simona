@@ -7,10 +7,9 @@
 package edu.ie3.simona.agent.grid
 
 import java.util.UUID
-
-import akka.actor.ActorRef
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.grid.ReceivedValues.ActorPowerRequestResponse
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvidePowerMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 
@@ -41,7 +40,7 @@ final case class ReceivedValuesStore private (
 case object ReceivedValuesStore {
 
   type NodeToReceivedPower =
-    Map[UUID, Vector[(ActorRef, Option[ProvidePowerMessage])]]
+    Map[UUID, Vector[(SimonaActorRef, Option[ProvidePowerMessage])]]
   type NodeToReceivedSlackVoltage =
     Map[UUID, Option[ProvideSlackVoltageMessage]]
 
@@ -51,19 +50,19 @@ case object ReceivedValuesStore {
     * [[ReceivedValuesStore]] for details)
     *
     * @param nodeToAssetAgents
-    *   mapping of node uuids to [[ActorRef]] s of the asset agents that are
-    *   located at the specific node
+    *   mapping of node uuids to [[SimonaActorRef]] s of the asset agents that
+    *   are located at the specific node
     * @param inferiorSubGridGateToActorRef
-    *   mapping of all inferior [[SubGridGate]] s to the [[ActorRef]] of the
-    *   grid agent that is located there
+    *   mapping of all inferior [[SubGridGate]] s to the [[SimonaActorRef]] of
+    *   the grid agent that is located there
     * @param superiorGridNodeUuids
     *   node uuids of the superior [[GridAgent]] s
     * @return
     *   `empty` [[ReceivedValuesStore]] with pre-initialized options as `None`
     */
   def empty(
-      nodeToAssetAgents: Map[UUID, Set[ActorRef]],
-      inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef],
+      nodeToAssetAgents: Map[UUID, Set[SimonaActorRef]],
+      inferiorSubGridGateToActorRef: Map[SubGridGate, SimonaActorRef],
       superiorGridNodeUuids: Vector[UUID]
   ): ReceivedValuesStore = {
     val (nodeToReceivedPower, nodeToReceivedSlackVoltage) =
@@ -79,21 +78,21 @@ case object ReceivedValuesStore {
     * to `None`
     *
     * @param nodeToAssetAgents
-    *   mapping of node uuids to [[ActorRef]] s of the asset agents that are
-    *   located at the specific node
+    *   mapping of node uuids to [[SimonaActorRef]] s of the asset agents that
+    *   are located at the specific node
     * @param inferiorSubGridGateToActorRef
-    *   mapping of all inferior [[SubGridGate]] s to the [[ActorRef]] of the
-    *   grid agent that is located there
+    *   mapping of all inferior [[SubGridGate]] s to the [[SimonaActorRef]] of
+    *   the grid agent that is located there
     * @return
     *   `empty` [[NodeToReceivedPower]] with pre-initialized options as `None`
     */
   private def buildEmptyNodeToReceivedPowerMap(
-      nodeToAssetAgents: Map[UUID, Set[ActorRef]],
-      inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef]
+      nodeToAssetAgents: Map[UUID, Set[SimonaActorRef]],
+      inferiorSubGridGateToActorRef: Map[SubGridGate, SimonaActorRef]
   ): NodeToReceivedPower = {
     /* Collect everything, that I expect from my asset agents */
     val assetsToReceivedPower: NodeToReceivedPower = nodeToAssetAgents.collect {
-      case (uuid: UUID, actorRefs: Set[ActorRef]) =>
+      case (uuid: UUID, actorRefs: Set[SimonaActorRef]) =>
         (uuid, actorRefs.toVector.map(actorRef => actorRef -> None))
     }
 
@@ -107,7 +106,7 @@ case object ReceivedValuesStore {
         val actorRefToMessage = subOrdinateToReceivedPower
           .getOrElse(
             couplingNodeUuid,
-            Vector.empty[(ActorRef, Option[ProvidePowerMessage])]
+            Vector.empty[(SimonaActorRef, Option[ProvidePowerMessage])]
           ) :+ (inferiorSubGridRef -> None)
 
         /* Update the existing map */
@@ -134,19 +133,19 @@ case object ReceivedValuesStore {
     * [[buildEmptyNodeToReceivedSlackVoltageValuesMap()]]
     *
     * @param nodeToAssetAgents
-    *   mapping of node uuids to [[ActorRef]] s of the asset agents that are
-    *   located at the specific node
+    *   mapping of node uuids to [[SimonaActorRef]] s of the asset agents that
+    *   are located at the specific node
     * @param inferiorSubGridGateToActorRef
-    *   mapping of all inferior [[SubGridGate]] s to the [[ActorRef]] of the
-    *   grid agent that is located there
+    *   mapping of all inferior [[SubGridGate]] s to the [[SimonaActorRef]] of
+    *   the grid agent that is located there
     * @param superiorGridNodeUuids
     *   node uuids of the superior [[GridAgent]] s
     * @return
     *   `empty` [[NodeToReceivedSlackVoltage]] and [[NodeToReceivedPower]]
     */
   private def buildEmptyReceiveMaps(
-      nodeToAssetAgents: Map[UUID, Set[ActorRef]],
-      inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef],
+      nodeToAssetAgents: Map[UUID, Set[SimonaActorRef]],
+      inferiorSubGridGateToActorRef: Map[SubGridGate, SimonaActorRef],
       superiorGridNodeUuids: Vector[UUID]
   ): (NodeToReceivedPower, NodeToReceivedSlackVoltage) = {
     (

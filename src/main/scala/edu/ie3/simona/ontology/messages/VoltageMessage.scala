@@ -13,7 +13,7 @@ import javax.measure.quantity.ElectricPotential
 
 sealed trait VoltageMessage
 
-/** Message that is send between [[edu.ie3.simona.agent.grid.GridAgent]] s to
+/** Message that is send between [[edu.ie3.simona.agent.grid.GridAgent]]s to
   * provide voltage information for nodes
   */
 object VoltageMessage {

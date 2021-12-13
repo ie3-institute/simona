@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.model.grid
 
-import java.util.UUID
-
 import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.simona.test.common.UnitSpec
@@ -15,10 +13,12 @@ import edu.ie3.simona.test.common.input.LineInputTestData
 import edu.ie3.simona.test.common.model.grid.FiveLinesWithNodes
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
-import javax.measure.quantity.ElectricCurrent
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
+
+import java.util.UUID
+import javax.measure.quantity.ElectricCurrent
 
 /** Test class for [[LineModel]]
   */

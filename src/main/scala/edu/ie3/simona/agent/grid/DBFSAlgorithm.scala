@@ -6,8 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.{ActorRef, FSM}
-import akka.pattern.{ask, pipe}
+import akka.actor.FSM
 import akka.util.{Timeout => AkkaTimeout}
 import breeze.linalg.{DenseMatrix, DenseVector}
 import breeze.math.Complex
@@ -29,6 +28,9 @@ import edu.ie3.simona.agent.state.GridAgentState.{
   HandlePowerFlowCalculations,
   SimulateGrid
 }
+import edu.ie3.simona.akka.PipeToSupportSimona.pipe
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.selfSharded
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
 import edu.ie3.simona.ontology.messages.PowerMessage._
@@ -83,6 +85,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       // 1. assets p/q values
       askForAssetPowers(
         currentTick,
+        gridAgentBaseData.gridEnv.gridModel.subnetNo,
         gridAgentBaseData.sweepValueStores
           .get(gridAgentBaseData.currentSweepNo),
         gridAgentBaseData.gridEnv.nodeToAssetAgents,
@@ -93,6 +96,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       // 2. inferior grids p/q values
       askInferiorGridsForPowers(
         gridAgentBaseData.currentSweepNo,
+        gridAgentBaseData.gridEnv.gridModel.subnetNo,
         gridAgentBaseData.gridEnv.subnetGateToActorRef,
         gridAgentBaseData.inferiorGridGates,
         gridAgentBaseData.powerFlowParams.sweepTimeout
@@ -101,6 +105,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       // 3. superior grids slack voltage
       askSuperiorGridsForSlackVoltages(
         gridAgentBaseData.currentSweepNo,
+        gridAgentBaseData.gridEnv.gridModel.subnetNo,
         gridAgentBaseData.gridEnv.subnetGateToActorRef,
         gridAgentBaseData.superiorGridGates,
         gridAgentBaseData.powerFlowParams.sweepTimeout
@@ -349,6 +354,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       // request the updated slack voltages from the superior grid
       askSuperiorGridsForSlackVoltages(
         gridAgentBaseData.currentSweepNo,
+        gridAgentBaseData.gridEnv.gridModel.subnetNo,
         gridAgentBaseData.gridEnv.subnetGateToActorRef,
         gridAgentBaseData.superiorGridGates,
         gridAgentBaseData.powerFlowParams.sweepTimeout
@@ -404,11 +410,12 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
       environmentRefs.scheduler ! CompletionMessage(
         simTriggerId,
+        selfSharded(gridAgentBaseData.gridEnv.gridModel.subnetNo),
         Some(
           Vector(
             ScheduleTriggerMessage(
               ActivityStartTrigger(currentTick + resolution),
-              self
+              selfSharded(gridAgentBaseData.gridEnv.gridModel.subnetNo)
             )
           )
         )
@@ -472,6 +479,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           )
           askForAssetPowers(
             currentTick,
+            gridAgentBaseData.gridEnv.gridModel.subnetNo,
             sweepValueStoreOpt,
             gridAgentBaseData.gridEnv.nodeToAssetAgents,
             gridModel.mainRefSystem,
@@ -622,6 +630,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           val askForAssetPowersOpt =
             askForAssetPowers(
               currentTick,
+              gridAgentBaseData.gridEnv.gridModel.subnetNo,
               Some(sweepValueStore),
               gridAgentBaseData.gridEnv.nodeToAssetAgents,
               gridModel.mainRefSystem,
@@ -632,6 +641,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           val askForInferiorGridPowersOpt =
             askInferiorGridsForPowers(
               gridAgentBaseData.currentSweepNo,
+              gridAgentBaseData.gridEnv.gridModel.subnetNo,
               gridAgentBaseData.gridEnv.subnetGateToActorRef,
               gridAgentBaseData.inferiorGridGates,
               gridAgentBaseData.powerFlowParams.sweepTimeout
@@ -959,9 +969,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   /** Normally only reached by the superior (dummy) agent!
     *
     * Triggers a state transition to [[SimulateGrid]], informs the
-    * [[edu.ie3.simona.scheduler.SimScheduler]] about the finish of this sweep
-    * and requests a new trigger for itself for a new sweep (which means a new
-    * [[StartGridSimulationTrigger]])
+    * [[edu.ie3.simona.scheduler.main.SimScheduler]] about the finish of this
+    * sweep and requests a new trigger for itself for a new sweep (which means a
+    * new [[StartGridSimulationTrigger]])
     *
     * @param gridAgentBaseData
     *   the [[GridAgentBaseData]] that should be used in the next sweep in
@@ -975,13 +985,18 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long
   ): FSM.State[AgentState, GridAgentData] = {
+    val selfRef = selfSharded(gridAgentBaseData.gridEnv.gridModel.subnetNo)
 
     val (_, oldTrigger) = releaseTickAndTriggerId()
     environmentRefs.scheduler ! CompletionMessage(
       oldTrigger,
+      selfRef,
       Some(
         Vector(
-          ScheduleTriggerMessage(StartGridSimulationTrigger(currentTick), self)
+          ScheduleTriggerMessage(
+            StartGridSimulationTrigger(currentTick),
+            selfRef
+          )
         )
       )
     )
@@ -995,12 +1010,14 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     *
     * @param currentTick
     *   the current tick a data request is send for
+    * @param currentSubnet
+    *   the subnet number of this grid
     * @param sweepValueStore
     *   the current sweep value store containing the current node voltage for
     *   the assets
     * @param nodeToAssetAgents
-    *   a map contains a mapping between nodes and the [[ActorRef]] s located @
-    *   those nodes
+    *   a map contains a mapping between nodes and the [[SimonaActorRef]] s
+    *   located @ those nodes
     * @param refSystem
     *   the reference system of the [[GridModel]] of this [[GridAgent]]
     * @param askTimeout
@@ -1011,8 +1028,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     */
   private def askForAssetPowers(
       currentTick: Long,
+      currentSubnet: Int,
       sweepValueStore: Option[SweepValueStore],
-      nodeToAssetAgents: Map[UUID, Set[ActorRef]],
+      nodeToAssetAgents: Map[UUID, Set[SimonaActorRef]],
       refSystem: RefSystem,
       askTimeout: Duration
   ): Option[Future[ReceivedPowerValues]] = {
@@ -1062,7 +1080,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                   (assetAgent ? RequestAssetPowerMessage(
                     currentTick,
                     QuantityUtil.asComparable(eInPu),
-                    QuantityUtil.asComparable(fInPU)
+                    QuantityUtil.asComparable(fInPU),
+                    selfSharded(currentSubnet)
                   )).map {
                     case providedPowerValuesMessage: AssetPowerChangedMessage =>
                       (assetAgent, Some(providedPowerValuesMessage))
@@ -1074,7 +1093,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               .toVector
           )
           .map(ReceivedAssetPowerValues)
-          .pipeTo(self)
+          .pipeTo(selfSharded(currentSubnet))
       )
     else
       None
@@ -1085,9 +1104,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     *
     * @param currentSweepNo
     *   the current sweep number the DBFS is in
+    * @param currentSubnet
+    *   the subnet number of this grid
     * @param subGridGateToActorRef
-    *   a map containing a mapping from [[SubGridGate]] s to corresponding
-    *   [[ActorRef]] s of [[GridAgent]] s @ these nodes
+    *   a map containing a mapping from [[SubGridGate]]s to corresponding
+    *   [[SimonaActorRef]]s of [[GridAgent]]s @ these nodes
     * @param askTimeout
     *   a timeout for the request
     * @return
@@ -1096,7 +1117,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     */
   private def askInferiorGridsForPowers(
       currentSweepNo: Int,
-      subGridGateToActorRef: Map[SubGridGate, ActorRef],
+      currentSubnet: Int,
+      subGridGateToActorRef: Map[SubGridGate, SimonaActorRef],
       inferiorGridGates: Vector[SubGridGate],
       askTimeout: Duration
   ): Option[Future[ReceivedPowerValues]] = {
@@ -1124,7 +1146,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             })
           )
           .map(ReceivedGridPowerValues)
-          .pipeTo(self)
+          .pipeTo(selfSharded(currentSubnet))
       )
     else
       None
@@ -1135,9 +1157,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     *
     * @param currentSweepNo
     *   the current sweep number the DBFS is in
+    * @param currentSubnet
+    *   the subnet number of this grid
     * @param subGridGateToActorRef
-    *   a map containing a mapping from [[SubGridGate]] s to corresponding
-    *   [[ActorRef]] s of [[GridAgent]] s @ these nodes
+    *   a map containing a mapping from [[SubGridGate]]s to corresponding
+    *   [[SimonaActorRef]]s of [[GridAgent]]s @ these nodes
     * @param askTimeout
     *   a timeout for the request
     * @return
@@ -1146,7 +1170,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     */
   private def askSuperiorGridsForSlackVoltages(
       currentSweepNo: Int,
-      subGridGateToActorRef: Map[SubGridGate, ActorRef],
+      currentSubnet: Int,
+      subGridGateToActorRef: Map[SubGridGate, SimonaActorRef],
       superiorGridGates: Vector[SubGridGate],
       askTimeout: Duration
   ): Option[Future[ReceivedSlackValues]] = {
@@ -1166,21 +1191,22 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                 superiorGridGate.getSuperiorNode.getUuid
               )).map(providedSlackValues =>
                 (superiorGridAgent, Option(providedSlackValues))
-              ).mapTo[(ActorRef, Option[ProvideSlackVoltageMessage])]
+              ).mapTo[(SimonaActorRef, Option[ProvideSlackVoltageMessage])]
             })
           )
           .map(ReceivedSlackValues)
-          .pipeTo(self)
+          .pipeTo(selfSharded(currentSubnet))
       )
     else
       None
   }
 
-  /** Create an instance of [[PowerFlowResults]] and send it to all listener
-    * Note: in the future this one could become a bottleneck for power flow
-    * calculation timesteps. For performance improvements one might consider
-    * putting this into a future with pipeTo. One has to consider how to deal
-    * with unfinished futures in shutdown phase then
+  /** Create an instance of
+    * [[edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent]] and send it to
+    * all listener Note: in the future this one could become a bottleneck for
+    * power flow calculation timesteps. For performance improvements one might
+    * consider putting this into a future with pipeTo. One has to consider how
+    * to deal with unfinished futures in shutdown phase then
     *
     * @param gridAgentBaseData
     *   the grid agent base data

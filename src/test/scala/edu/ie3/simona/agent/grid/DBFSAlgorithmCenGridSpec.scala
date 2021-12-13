@@ -6,19 +6,20 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.ActorSystem
 import akka.pattern.ask
 import akka.testkit.{ImplicitSender, TestFSMRef}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.GridAgentState.{
   HandlePowerFlowCalculations,
   SimulateGrid
 }
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvideGridPowerMessage,
@@ -41,6 +42,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{
   ConfigTestData,
+  StateTransitionTester,
   TestKitWithShutdown,
   UnitSpec
 }
@@ -79,9 +81,9 @@ class DBFSAlgorithmCenGridSpec
   private val floatPrecision: Double = 0.00000000001
 
   private val environmentRefs = EnvironmentRefs(
-    scheduler = self,
-    primaryServiceProxy = self,
-    weather = self,
+    scheduler = self.asLocal,
+    primaryServiceProxy = self.asLocal,
+    weather = self.asLocal,
     evDataService = None
   )
 
@@ -91,7 +93,7 @@ class DBFSAlgorithmCenGridSpec
       new GridAgent(
         environmentRefs,
         simonaConfig,
-        listener = Iterable.empty[ActorRef]
+        listener = Iterable.empty[SimonaActorRef]
       )
     )
 
@@ -103,7 +105,8 @@ class DBFSAlgorithmCenGridSpec
       val triggerId = 0
 
       // this subnet has 1 superior grid (HöS) and 4 inferior grids (MS)
-      val subGridGateToActorRef = hvSubGridGates.map(gate => gate -> self).toMap
+      val subGridGateToActorRef =
+        hvSubGridGates.map(gate => gate -> self.asLocal).toMap
 
       val gridAgentInitData =
         GridAgentInitData(
@@ -119,18 +122,19 @@ class DBFSAlgorithmCenGridSpec
           centerGridAgent ? TriggerWithIdMessage(
             InitializeGridAgentTrigger(gridAgentInitData),
             triggerId,
-            centerGridAgent
+            centerGridAgent.asLocal
           ),
           timeout.duration
         )
 
       expectedCompletionMessage shouldBe CompletionMessage(
         0,
+        centerGridAgent.asLocal,
         Some(
           Vector(
             ScheduleTriggerMessage(
               ActivityStartTrigger(3600),
-              centerGridAgent
+              centerGridAgent.asLocal
             )
           )
         )
@@ -148,15 +152,17 @@ class DBFSAlgorithmCenGridSpec
       centerGridAgent ! TriggerWithIdMessage(
         ActivityStartTrigger(3600),
         activityStartTriggerId,
-        centerGridAgent
+        centerGridAgent.asLocal
       )
 
       expectMsgPF() {
         case CompletionMessage(
               triggerId,
+              actor,
               Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
             ) =>
           triggerId shouldBe 1
+          actor shouldBe centerGridAgent.asLocal
           triggerToBeScheduled shouldBe StartGridSimulationTrigger(3600)
         case x =>
           fail(
@@ -186,8 +192,9 @@ class DBFSAlgorithmCenGridSpec
       centerGridAgent ! TriggerWithIdMessage(
         StartGridSimulationTrigger(3600),
         startGridSimulationTriggerId,
-        centerGridAgent
+        centerGridAgent.asLocal
       )
+      centerGridAgent.stateName shouldBe SimulateGrid
 
       // we expect 4 requests for grid power values as we have 4 inferior grids
       val firstGridPowerRequests = receiveWhile() {
@@ -275,6 +282,8 @@ class DBFSAlgorithmCenGridSpec
         )
       )
 
+      centerGridAgent.stateName shouldBe SimulateGrid
+
       // we now answer the request of our centerGridAgent
       // with 4 fake grid power messages and 1 fake slack voltage message
       firstGridPowerRequests.foreach { requestSender =>
@@ -287,6 +296,10 @@ class DBFSAlgorithmCenGridSpec
         )
       }
 
+      val transitionTester =
+        StateTransitionTester(centerGridAgent, ignoreSameState = true)
+      transitionTester.startListening(SimulateGrid)
+
       val slackAskSender = firstSlackVoltageRequest._2
       val slackRequestNodeUuid = firstSlackVoltageRequest._1.nodeUuid
       val slackRequestSweepNo = firstSlackVoltageRequest._1.currentSweepNo
@@ -298,11 +311,13 @@ class DBFSAlgorithmCenGridSpec
       )
 
       // we expect to end up in SimulateGrid but we have to pass HandlePowerFlowCalculations beforehand
-      // hence we wait until we reached this condition
-      val statesPassed = scala.collection.mutable.Set.empty[AgentState]
-      while (statesPassed.size < 2) statesPassed.add(centerGridAgent.stateName)
+      transitionTester.expectStateChange(
+        HandlePowerFlowCalculations,
+        max = 1.minute
+      )
+      transitionTester.expectStateChange(SimulateGrid, max = 1.minute)
 
-      statesPassed should contain allOf (HandlePowerFlowCalculations, SimulateGrid)
+      transitionTester.stopListening()
 
       // our test agent should now be ready to provide the grid power values, hence we ask for them and expect a
       // corresponding response
@@ -462,6 +477,8 @@ class DBFSAlgorithmCenGridSpec
 
       })
 
+      transitionTester.startListening(SimulateGrid)
+
       // we now answer the request of our centerGridAgent
       // with 4 fake grid power messages
       secondGridPowerRequests.foreach { requestSender =>
@@ -475,14 +492,13 @@ class DBFSAlgorithmCenGridSpec
       }
 
       // we expect to end up in SimulateGrid but we have to pass HandlePowerFlowCalculations beforehand
-      // hence we wait until we reached this condition
-      val statesPassed1 = scala.collection.mutable.Set.empty[AgentState]
-      while (statesPassed1.size < 2)
-        statesPassed1.add(
-          centerGridAgent.stateName
-        )
+      transitionTester.expectStateChange(
+        HandlePowerFlowCalculations,
+        max = 1.minute
+      )
+      transitionTester.expectStateChange(SimulateGrid, max = 1.minute)
 
-      statesPassed1 should contain allOf (HandlePowerFlowCalculations, SimulateGrid)
+      transitionTester.stopListening()
 
       // as the akka testkit does the unstash handling incorrectly, we need to send a second request for grid power messages
       centerGridAgent ! RequestGridPowerMessage(secondSweepNo, slackNodeUuid)
@@ -514,7 +530,7 @@ class DBFSAlgorithmCenGridSpec
         GridAgent.props(
           environmentRefs,
           simonaConfig,
-          listener = Iterable.empty[ActorRef]
+          listener = Iterable.empty[SimonaActorRef]
         )
       )
 
@@ -522,7 +538,8 @@ class DBFSAlgorithmCenGridSpec
       val triggerId = 0
 
       // this subnet has 1 superior grid (HöS) and 4 inferior grids (MS)
-      val subGridGateToActorRef = hvSubGridGates.map(gate => gate -> self).toMap
+      val subGridGateToActorRef =
+        hvSubGridGates.map(gate => gate -> self.asLocal).toMap
 
       val gridAgentInitData =
         GridAgentInitData(
@@ -538,18 +555,19 @@ class DBFSAlgorithmCenGridSpec
           centerGridAgent ? TriggerWithIdMessage(
             InitializeGridAgentTrigger(gridAgentInitData),
             triggerId,
-            centerGridAgent
+            centerGridAgent.asLocal
           ),
           timeout.duration
         )
 
       expectedCompletionMessage shouldBe CompletionMessage(
         0,
+        centerGridAgent.asLocal,
         Some(
           Vector(
             ScheduleTriggerMessage(
               ActivityStartTrigger(3600),
-              centerGridAgent
+              centerGridAgent.asLocal
             )
           )
         )
@@ -564,15 +582,17 @@ class DBFSAlgorithmCenGridSpec
       centerGridAgent ! TriggerWithIdMessage(
         ActivityStartTrigger(3600),
         activityStartTriggerId,
-        centerGridAgent
+        centerGridAgent.asLocal
       )
 
       expectMsgPF() {
         case CompletionMessage(
               triggerId,
+              actor,
               Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
             ) =>
           triggerId shouldBe 1
+          actor shouldBe centerGridAgent.asLocal
           triggerToBeScheduled shouldBe StartGridSimulationTrigger(3600)
         case x =>
           fail(
@@ -598,7 +618,7 @@ class DBFSAlgorithmCenGridSpec
       centerGridAgent ! TriggerWithIdMessage(
         StartGridSimulationTrigger(3600),
         startGridSimulationTriggerId,
-        centerGridAgent
+        centerGridAgent.asLocal
       )
 
       // we expect 4 requests for grid power values as we have 4 inferior grids

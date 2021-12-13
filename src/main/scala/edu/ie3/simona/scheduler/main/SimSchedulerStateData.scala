@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.scheduler
+package edu.ie3.simona.scheduler.main
 
 import akka.actor.{Actor, ActorRef}
 import com.google.common.collect.TreeMultimap

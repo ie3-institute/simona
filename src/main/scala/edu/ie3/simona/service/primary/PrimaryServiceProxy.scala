@@ -6,19 +6,15 @@
 
 package edu.ie3.simona.service.primary
 
-import akka.actor.{Actor, ActorRef, PoisonPill, Props}
+import akka.actor.{Actor, ActorSystem, PoisonPill, Props}
 import edu.ie3.datamodel.io.connectors.CsvFileConnector.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.csv.timeseries.ColumnScheme
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
-import edu.ie3.datamodel.models.value.{
-  HeatAndPValue,
-  HeatAndSValue,
-  PValue,
-  SValue,
-  Value
-}
+import edu.ie3.datamodel.models.value._
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.{RichActorRefFactory, selfSingleton}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.CsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
@@ -34,22 +30,22 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   WorkerRegistrationMessage
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
-  CsvInitPrimaryServiceStateData,
-  InitPrimaryServiceStateData
-}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
   PrimaryServiceStateData,
   SourceRef
+}
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
+  CsvInitPrimaryServiceStateData,
+  InitPrimaryServiceStateData
 }
 
 import java.text.SimpleDateFormat
@@ -72,10 +68,12 @@ import scala.util.{Failure, Success, Try}
   *   Wall clock time of the first instant in simulation
   */
 case class PrimaryServiceProxy(
-    scheduler: ActorRef,
+    scheduler: SimonaActorRef,
     private implicit val startDateTime: ZonedDateTime
 ) extends Actor
     with SimonaActorLogging {
+
+  private implicit val system: ActorSystem = context.system
 
   /** Start receiving without knowing specifics about myself
     *
@@ -104,7 +102,11 @@ case class PrimaryServiceProxy(
        * messages */
       prepareStateData(primaryConfig, simulationStart) match {
         case Success(stateData) =>
-          sender() ! CompletionMessage(triggerId, newTriggers = None)
+          sender() ! CompletionMessage(
+            triggerId,
+            selfSingleton,
+            newTriggers = None
+          )
           context become onMessage(stateData)
         case Failure(exception) =>
           log.error(
@@ -209,7 +211,7 @@ case class PrimaryServiceProxy(
     *   Message handling routine
     */
   private def onMessage(stateData: PrimaryServiceStateData): Receive = {
-    case PrimaryServiceRegistrationMessage(modelUuid) =>
+    case PrimaryServiceRegistrationMessage(modelUuid, requestingActor) =>
       /* Try to register for this model */
       stateData.modelToTimeSeries.get(modelUuid) match {
         case Some(timeSeriesUuid) =>
@@ -218,14 +220,14 @@ case class PrimaryServiceProxy(
             modelUuid,
             timeSeriesUuid,
             stateData,
-            sender()
+            requestingActor
           )
         case None =>
           log.debug(
             s"There is no time series apparent for the model with uuid '{}'.",
             modelUuid
           )
-          sender() ! RegistrationFailedMessage
+          sender() ! RegistrationFailedMessage(selfSingleton)
       }
     case x =>
       log.error(
@@ -249,7 +251,7 @@ case class PrimaryServiceProxy(
       modelUuid: UUID,
       timeSeriesUuid: UUID,
       stateData: PrimaryServiceStateData,
-      requestingActor: ActorRef
+      requestingActor: SimonaActorRef
   ): Unit = {
     val timeSeriesToSourceRef = stateData.timeSeriesToSourceRef
     timeSeriesToSourceRef.get(timeSeriesUuid) match {
@@ -280,7 +282,7 @@ case class PrimaryServiceProxy(
                 s"Will inform the requesting actor, that registration is not possible.",
               exception
             )
-            requestingActor ! RegistrationFailedMessage
+            requestingActor ! RegistrationFailedMessage(selfSingleton)
         }
 
       case None =>
@@ -288,7 +290,7 @@ case class PrimaryServiceProxy(
           s"There is no source information for time series '$timeSeriesUuid' (requested for model " +
             s"'$modelUuid'), although the mapping contains information about it."
         )
-        requestingActor ! RegistrationFailedMessage
+        requestingActor ! RegistrationFailedMessage(selfSingleton)
     }
   }
 
@@ -303,7 +305,7 @@ case class PrimaryServiceProxy(
     *   Source for time series mapping, that might deliver additional
     *   information for the source initialization
     * @return
-    *   The [[ActorRef]] to the worker
+    *   The [[SimonaActorRef]] to the worker
     */
   private[primary] def initializeWorker(
       columnScheme: ColumnScheme,
@@ -311,7 +313,7 @@ case class PrimaryServiceProxy(
       simulationStart: ZonedDateTime,
       primaryConfig: PrimaryConfig,
       mappingSource: TimeSeriesMappingSource
-  ): Try[ActorRef] =
+  ): Try[SimonaActorRef] =
     (
       columnSchemeToActor(
         columnScheme,
@@ -358,13 +360,13 @@ case class PrimaryServiceProxy(
     * @param simulationStart
     *   Wall clock time of first instant in simulation
     * @return
-    *   A trial on an [[ActorRef]] for the worker
+    *   A trial on an [[SimonaActorRef]] for the worker
     */
   private[primary] def columnSchemeToActor(
       columnScheme: ColumnScheme,
       timeSeriesUuid: String,
       simulationStart: ZonedDateTime
-  ): Try[ActorRef] =
+  ): Try[SimonaActorRef] =
     columnScheme match {
       case ColumnScheme.ACTIVE_POWER =>
         Success(
@@ -410,15 +412,14 @@ case class PrimaryServiceProxy(
     * @tparam V
     *   Type of the class to provide
     * @return
-    *   The [[ActorRef]] to the spun off actor
+    *   The [[SimonaActorRef]] to the spun off actor
     */
   private def classToWorkerRef[V <: Value](
       valueClass: Class[V],
       timeSeriesUuid: String,
       simulationStart: ZonedDateTime
-  ): ActorRef = {
-    import edu.ie3.simona.actor.SimonaActorNaming._
-    context.system.simonaActorOf(
+  ): SimonaActorRef = {
+    context.system.createSingletonWithIdOf(
       PrimaryServiceWorker.props(scheduler, valueClass, simulationStart),
       timeSeriesUuid
     )
@@ -487,14 +488,14 @@ case class PrimaryServiceProxy(
     * @param timeSeriesUuid
     *   Unique identifier of the time series, the worker takes care of
     * @param workerRef
-    *   [[ActorRef]] to the new worker actor
+    *   [[SimonaActorRef]] to the new worker actor
     * @return
     *   The updated state data, that holds reference to the worker
     */
   private def updateStateData(
       stateData: PrimaryServiceStateData,
       timeSeriesUuid: UUID,
-      workerRef: ActorRef
+      workerRef: SimonaActorRef
   ): PrimaryServiceStateData = {
     val timeSeriesToSourceRef = stateData.timeSeriesToSourceRef
     val sourceRef = timeSeriesToSourceRef.getOrElse(
@@ -513,9 +514,10 @@ case class PrimaryServiceProxy(
 
 object PrimaryServiceProxy {
 
-  def props(scheduler: ActorRef, startDateTime: ZonedDateTime): Props = Props(
-    new PrimaryServiceProxy(scheduler, startDateTime)
-  )
+  def props(scheduler: SimonaActorRef, startDateTime: ZonedDateTime): Props =
+    Props(
+      new PrimaryServiceProxy(scheduler, startDateTime)
+    )
 
   /** State data with needed information to initialize this primary service
     * provider proxy
@@ -561,7 +563,7 @@ object PrimaryServiceProxy {
     */
   final case class SourceRef(
       columnScheme: ColumnScheme,
-      worker: Option[ActorRef]
+      worker: Option[SimonaActorRef]
   )
 
   /** Check if the config holds correct information to instantiate a mapping
