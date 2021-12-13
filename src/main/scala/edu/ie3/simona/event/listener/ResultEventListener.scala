@@ -9,7 +9,7 @@ package edu.ie3.simona.event.listener
 import akka.actor.{ActorRef, FSM, PoisonPill, Props, Stash}
 import akka.stream.Materializer
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
-import edu.ie3.datamodel.models.result.ResultEntity
+import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
@@ -31,12 +31,7 @@ import edu.ie3.simona.exceptions.{
   InitializationException,
   ProcessResultEventException
 }
-import edu.ie3.simona.io.result.{
-  ResultEntityCsvSink,
-  ResultEntityInfluxDbSink,
-  ResultEntitySink,
-  ResultSinkType
-}
+import edu.ie3.simona.io.result._
 import edu.ie3.simona.logging.SimonaFSMActorLogging
 import edu.ie3.simona.sim.SimonaSim.ServiceInitComplete
 import edu.ie3.simona.util.ResultFileHierarchy
@@ -137,6 +132,31 @@ object ResultEventListener extends Transformer3wResultSupport {
               (resultClass, _)
             )
           )
+
+      case ResultSinkType.Kafka(
+            topicNodeRes,
+            runId,
+            bootstrapServers,
+            schemaRegistryUrl,
+            linger
+          ) =>
+        val clzs: Iterable[Class[_ <: ResultEntity]] = Set(
+          classOf[NodeResult]
+        ) // TODO add classOf[LineResult]
+        clzs.map(clz =>
+          Future.successful(
+            (
+              clz,
+              ResultEntityKafkaSink[NodeResult](
+                topicNodeRes,
+                runId,
+                bootstrapServers,
+                schemaRegistryUrl,
+                linger
+              )
+            )
+          )
+        )
     }
   }
 }

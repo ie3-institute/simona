@@ -709,15 +709,15 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "throw an exception if no sink is provided" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast invokePrivate checkDataSinks(Sink(None, None))
+            ConfigFailFast invokePrivate checkDataSinks(Sink(None, None, None))
           }.getLocalizedMessage shouldBe "No sink configuration found! Please ensure that at least " +
-            "one sink is configured! You can choose from: influxdb1x, csv."
+            "one sink is configured! You can choose from: influxdb1x, csv, kafka."
         }
 
         "throw an exception if more than one sink is provided" in {
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkDataSinks(
-              Sink(Some(Csv("", "", "")), Some(InfluxDb1x("", 0, "")))
+              Sink(Some(Csv("", "", "")), Some(InfluxDb1x("", 0, "")), None)
             )
           }.getLocalizedMessage shouldBe "Multiple sink configurations are not supported! Please ensure that only " +
             "one sink is configured!"
@@ -726,7 +726,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "throw an exception if an influxDb1x is configured, but not accessible" ignore {
           intercept[java.lang.IllegalArgumentException] {
             ConfigFailFast invokePrivate checkDataSinks(
-              Sink(None, Some(InfluxDb1x("", 0, "")))
+              Sink(None, Some(InfluxDb1x("", 0, "")), None)
             )
           }.getLocalizedMessage shouldBe "Unable to reach configured influxDb1x with url ':0' for 'Sink' configuration and database ''. " +
             "Exception: java.lang.IllegalArgumentException: Unable to parse url: :0"

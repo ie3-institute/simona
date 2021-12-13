@@ -21,7 +21,8 @@ class ResultSinkTypeSpec extends UnitSpec {
             fileSuffix = ""
           )
         ),
-        influxDb1x = None
+        influxDb1x = None,
+        kafka = None
       )
 
       inside(ResultSinkType(conf, "testRun")) {
@@ -43,7 +44,8 @@ class ResultSinkTypeSpec extends UnitSpec {
             port = 1,
             url = "localhost/"
           )
-        )
+        ),
+        kafka = None
       )
       val runName = "testRun"
 
@@ -56,6 +58,8 @@ class ResultSinkTypeSpec extends UnitSpec {
           fail("Wrong ResultSinkType got instantiated.")
       }
     }
+
+    // TODO kafka sink
 
     "fail when more than one sink is supplied" in {
       val conf = SimonaConfig.Simona.Output.Sink(
@@ -72,7 +76,8 @@ class ResultSinkTypeSpec extends UnitSpec {
             port = 1,
             url = "localhost"
           )
-        )
+        ),
+        kafka = None
       )
 
       assertThrows[IllegalArgumentException](ResultSinkType(conf, "testRun"))
@@ -81,7 +86,8 @@ class ResultSinkTypeSpec extends UnitSpec {
     "fail when no sink is supplied" in {
       val conf = SimonaConfig.Simona.Output.Sink(
         csv = None,
-        influxDb1x = None
+        influxDb1x = None,
+        kafka = None
       )
 
       assertThrows[IllegalArgumentException](ResultSinkType(conf, "testRun"))

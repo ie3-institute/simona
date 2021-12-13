@@ -1539,7 +1539,8 @@ object SimonaConfig {
 
       final case class Sink(
           csv: scala.Option[SimonaConfig.Simona.Output.Sink.Csv],
-          influxDb1x: scala.Option[SimonaConfig.Simona.Output.Sink.InfluxDb1x]
+          influxDb1x: scala.Option[SimonaConfig.Simona.Output.Sink.InfluxDb1x],
+          kafka: scala.Option[SimonaConfig.Simona.Output.Sink.Kafka]
       )
       object Sink {
         final case class Csv(
@@ -1618,6 +1619,64 @@ object SimonaConfig {
 
         }
 
+        final case class Kafka(
+            bootstrapServers: java.lang.String,
+            linger: scala.Int,
+            runId: java.lang.String,
+            schemaRegistryUrl: java.lang.String,
+            topicNodeRes: java.lang.String
+        )
+        object Kafka {
+          def apply(
+              c: com.typesafe.config.Config,
+              parentPath: java.lang.String,
+              $tsCfgValidator: $TsCfgValidator
+          ): SimonaConfig.Simona.Output.Sink.Kafka = {
+            SimonaConfig.Simona.Output.Sink.Kafka(
+              bootstrapServers =
+                $_reqStr(parentPath, c, "bootstrapServers", $tsCfgValidator),
+              linger = $_reqInt(parentPath, c, "linger", $tsCfgValidator),
+              runId = $_reqStr(parentPath, c, "runId", $tsCfgValidator),
+              schemaRegistryUrl =
+                $_reqStr(parentPath, c, "schemaRegistryUrl", $tsCfgValidator),
+              topicNodeRes =
+                $_reqStr(parentPath, c, "topicNodeRes", $tsCfgValidator)
+            )
+          }
+          private def $_reqInt(
+              parentPath: java.lang.String,
+              c: com.typesafe.config.Config,
+              path: java.lang.String,
+              $tsCfgValidator: $TsCfgValidator
+          ): scala.Int = {
+            if (c == null) 0
+            else
+              try c.getInt(path)
+              catch {
+                case e: com.typesafe.config.ConfigException =>
+                  $tsCfgValidator.addBadPath(parentPath + path, e)
+                  0
+              }
+          }
+
+          private def $_reqStr(
+              parentPath: java.lang.String,
+              c: com.typesafe.config.Config,
+              path: java.lang.String,
+              $tsCfgValidator: $TsCfgValidator
+          ): java.lang.String = {
+            if (c == null) null
+            else
+              try c.getString(path)
+              catch {
+                case e: com.typesafe.config.ConfigException =>
+                  $tsCfgValidator.addBadPath(parentPath + path, e)
+                  null
+              }
+          }
+
+        }
+
         def apply(
             c: com.typesafe.config.Config,
             parentPath: java.lang.String,
@@ -1643,6 +1702,17 @@ object SimonaConfig {
                     parentPath + "influxDb1x.",
                     $tsCfgValidator
                   )
+                )
+              else None,
+            kafka =
+              if (c.hasPathOrNull("kafka"))
+                scala.Some(
+                  SimonaConfig.Simona.Output.Sink
+                    .Kafka(
+                      c.getConfig("kafka"),
+                      parentPath + "kafka.",
+                      $tsCfgValidator
+                    )
                 )
               else None
           )

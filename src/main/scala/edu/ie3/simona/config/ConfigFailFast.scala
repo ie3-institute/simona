@@ -8,7 +8,7 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
+import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.{InfluxDb1x, Kafka}
 import edu.ie3.simona.config.SimonaConfig.{BaseOutputConfig, RefSystemConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
@@ -137,7 +137,7 @@ case object ConfigFailFast extends LazyLogging {
     */
   private def checkDataSink(sink: SimonaConfig.Simona.Output.Sink): Unit = {
     // ensures failure if new output sinks are added to enforce adaptions of the check sink method as well
-    val supportedSinks = Set("influxdb1x", "csv")
+    val supportedSinks = Set("influxdb1x", "csv", "kafka")
     if (
       !sink.productElementNames
         .map(_.trim.toLowerCase)
@@ -146,7 +146,7 @@ case object ConfigFailFast extends LazyLogging {
     )
       throw new InvalidConfigParameterException(
         s"Newly added sink(s) " +
-          s"'${sink.productElementNames.toSet.removedAll(supportedSinks)}' detected! " +
+          s"'${sink.productElementNames.map(_.toLowerCase).toSet.removedAll(supportedSinks)}' detected! " +
           s"Please adapt 'ConfigFailFast' accordingly! Currently supported sinks: ${supportedSinks.mkString(", ")}."
       )
 
@@ -171,15 +171,25 @@ case object ConfigFailFast extends LazyLogging {
           "one sink is configured!"
       )
 
-    // if this is db sink, check the connection
     sinkConfigs.find(_.isDefined) match {
       case Some(Some(influxDb1x: InfluxDb1x)) =>
+        // if this is db sink, check the connection
         checkInfluxDb1xParams(
           "Sink",
           ResultSinkType.buildInfluxDb1xUrl(influxDb1x),
           influxDb1x.database
         )
-      case _ => // no db connection, do nothing
+      case Some(Some(kafka: Kafka)) =>
+        try {
+          UUID.fromString(kafka.runId)
+        } catch {
+          case e: IllegalArgumentException =>
+            throw new InvalidConfigParameterException(
+              s"The UUID '${kafka.runId}' cannot be parsed as it is invalid.",
+              e
+            )
+        }
+      case _ => // do nothing
     }
 
   }

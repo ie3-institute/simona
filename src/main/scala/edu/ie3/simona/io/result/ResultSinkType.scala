@@ -8,6 +8,8 @@ package edu.ie3.simona.io.result
 
 import edu.ie3.simona.config.SimonaConfig
 
+import java.util.UUID
+
 /** Enumeration to describe all eligible types of
   * [[edu.ie3.datamodel.models.result.ResultEntity]] sink
   */
@@ -23,6 +25,14 @@ object ResultSinkType {
 
   final case class InfluxDb1x(url: String, database: String, scenario: String)
       extends ResultSinkType
+
+  final case class Kafka(
+      topicNodeRes: String,
+      runId: UUID,
+      bootstrapServers: String,
+      schemaRegistryUrl: String,
+      linger: Int
+  ) extends ResultSinkType
 
   def apply(
       sinkConfig: SimonaConfig.Simona.Output.Sink,
@@ -40,6 +50,14 @@ object ResultSinkType {
         Csv(params.fileFormat, params.filePrefix, params.fileSuffix)
       case Some(params: SimonaConfig.Simona.Output.Sink.InfluxDb1x) =>
         InfluxDb1x(buildInfluxDb1xUrl(params), params.database, runName)
+      case Some(params: SimonaConfig.Simona.Output.Sink.Kafka) =>
+        Kafka(
+          params.topicNodeRes,
+          UUID.fromString(params.runId),
+          params.bootstrapServers,
+          params.schemaRegistryUrl,
+          params.linger
+        )
       case None =>
         throw new IllegalArgumentException(
           s"No sinks defined! Cannot determine the sink type!"
