@@ -99,6 +99,7 @@ dependencies {
   testRuntimeClasspath 'com.vladsch.flexmark:flexmark-all:0.62.2'
   testImplementation group: 'org.pegdown', name: 'pegdown', version: '1.6.0'
   testImplementation "com.typesafe.akka:akka-testkit_${scalaVersion}:${akkaVersion}" // akka testkit
+
   /* --- Scala libs --- */
   /* CORE Scala */
   implementation "org.scala-lang:scala-library:${scalaBinaryVersion}"
@@ -116,6 +117,7 @@ dependencies {
   implementation 'com.typesafe:config:1.4.1'
   implementation "com.github.carueda:tscfg_2.13:$tscfgVersion"
   implementation "com.github.scopt:scopt_${scalaVersion}:4.0.0" // cmd args parser
+
   /* Scala compiler plugin for static code analysis */
   implementation "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:1.4.8"
   scalaCompilerPlugin "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:1.4.8"

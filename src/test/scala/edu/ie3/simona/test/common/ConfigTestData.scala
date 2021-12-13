@@ -21,11 +21,11 @@ trait ConfigTestData {
       |simona.simulationName = "ConfigTestDataSimulation"
       |simona.input.grid.datasource.id = "csv"
       |simona.input.grid.datasource.csvParams = {
-      |  folderPath: "inputData/vn_simona/fullGrid"
+      |  folderPath: "input/samples/vn_simona/fullGrid"
       |  csvSep: ","
       |}
       |simona.input.primary.csvParams = {
-      |  folderPath: "inputData/two_winding"
+      |  folderPath: "input/samples/two_winding"
       |  csvSep: ","
       |}
       |simona.input.weather.datasource = {

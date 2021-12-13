@@ -723,7 +723,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             "one sink is configured!"
         }
 
-        "throw an exception if an influxDb1x is configured, but not accessible" in {
+        "throw an exception if an influxDb1x is configured, but not accessible" ignore {
           intercept[java.lang.IllegalArgumentException] {
             ConfigFailFast invokePrivate checkDataSinks(
               Sink(None, Some(InfluxDb1x("", 0, "")))
@@ -783,7 +783,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         }
 
         "let valid csv parameters pass" in {
-          val csvParams = GridCsvParams(",", "inputData/vn_simona")
+          val csvParams = GridCsvParams(",", "input/samples/vn_simona")
           noException shouldBe thrownBy {
             CsvConfigUtil.checkCsvParams(
               "CsvGridData",
@@ -832,7 +832,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "let valid csv grid data source definition pass" in {
           val gridDataSource = SimonaConfig.Simona.Input.Grid.Datasource(
-            Some(GridCsvParams(",", "inputData/vn_simona")),
+            Some(GridCsvParams(",", "input/samples/vn_simona")),
             id = "csv"
           )
 
