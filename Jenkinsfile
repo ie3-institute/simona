@@ -115,7 +115,7 @@ node {
         gradle('--refresh-dependencies clean spotlessCheck pmdMain pmdTest reportScoverage checkScoverage', projectName)
 
         // due to an issue with openjdk-8 we use openjdk-11 for javadocs generation
-        sh(script: """set +x && cd $projectName""" + ''' set +x; ./gradlew clean javadoc -Dorg.gradle.java.home=/opt/java/openjdk''', returnStdout: true)
+        sh(script: """set +x && cd $projectName""" + ''' set +x; ./gradlew javadoc -Dorg.gradle.java.home=/opt/java/openjdk''', returnStdout: true)
       }
 
       // sonarqube analysis
@@ -158,7 +158,7 @@ node {
              */
             sh(
                 script: """set +x && cd $projectName""" +
-                ''' set +x; ./gradlew clean javadoc -Dorg.gradle.java.home=/opt/java/openjdk''',
+                ''' set +x; ./gradlew javadoc -Dorg.gradle.java.home=/opt/java/openjdk''',
                 returnStdout: true
                 )
 
@@ -381,14 +381,14 @@ def deployJavaDocs(String projectName, String sshCredentialsId, String gitChecko
 
       // create a temporary repo in the javadocs folder and push the updated javadocs to api-docs branch
       sh(script: "set +x && cd $projectName && " +
-      "./gradlew clean && rm -rf tmp-api-docs && mkdir tmp-api-docs && cd tmp-api-docs && " +
+      "rm -rf tmp-api-docs && mkdir tmp-api-docs && cd tmp-api-docs && " +
       "ssh-agent bash -c \"set +x && ssh-add $sshKey; " +
       "git init && git remote add origin $gitCheckoutUrl && " +
       "git config user.email 'johannes.hiry@tu-dortmund.de' && " +
       "git config user.name 'Johannes Hiry' && " +
       "git fetch --depth=1 origin api-docs && " +
       "git checkout api-docs && " +
-      "cd .. && ./gradlew clean javadoc -Dorg.gradle.java.home=/opt/java/openjdk && " +
+      "cd .. && ./gradlew javadoc -Dorg.gradle.java.home=/opt/java/openjdk && " +
       "cp -R build/docs/javadoc/* tmp-api-docs && " +
       "cd tmp-api-docs &&" +
       "git add --all && git commit -m 'updated api-docs' && git push origin api-docs:api-docs" +
