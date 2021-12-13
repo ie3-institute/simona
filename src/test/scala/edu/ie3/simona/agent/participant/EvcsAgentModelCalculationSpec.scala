@@ -847,6 +847,8 @@ class EvcsAgentModelCalculationSpec
         )
       )
 
+      scheduler.expectNoMessage()
+
       /* Send ev for this tick */
       evService.send(
         evcsAgent,
@@ -881,6 +883,7 @@ class EvcsAgentModelCalculationSpec
           1
         )
       )
+
       scheduler.expectNoMessage()
     }
 
