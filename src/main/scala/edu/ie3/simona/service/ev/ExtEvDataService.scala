@@ -18,7 +18,7 @@ import edu.ie3.simona.api.data.ev.ontology.{
   RequestEvcsFreeLots
 }
 import edu.ie3.simona.api.data.ontology.ExtDataMessage
-import edu.ie3.simona.exceptions.InitializationException
+import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
@@ -186,7 +186,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
   ) = {
     serviceStateData.extEvMessage.getOrElse(
-      throw new RuntimeException(
+      throw ServiceException(
         "ExtEvDataActor was triggered without ExtEvMessage available"
       )
     ) match {

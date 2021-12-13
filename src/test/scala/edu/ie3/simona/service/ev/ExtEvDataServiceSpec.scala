@@ -22,6 +22,7 @@ import edu.ie3.simona.api.data.ev.ontology.{
   RequestEvcsFreeLots
 }
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
+import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   ScheduleTriggerMessage,
@@ -189,6 +190,46 @@ class ExtEvDataServiceSpec
       )
       evcs1.expectNoMessage()
       evcs2.expectNoMessage()
+    }
+
+    "fail when activated without having received ExtEvMessage" in {
+      val evService = TestActorRef(
+        new ExtEvDataService(
+          scheduler.ref
+        )
+      )
+
+      val extData = extEvData(evService)
+
+      scheduler.send(
+        evService,
+        TriggerWithIdMessage(
+          InitializeServiceTrigger(
+            InitExtEvData(
+              extData
+            )
+          ),
+          1L,
+          evService
+        )
+      )
+      scheduler.expectMsgType[CompletionMessage]
+
+      // we trigger ev service and expect an exception
+      assertThrows[ServiceException] {
+        evService.receive(
+          TriggerWithIdMessage(
+            ActivityStartTrigger(
+              0L
+            ),
+            2L,
+            evService
+          ),
+          scheduler.ref
+        )
+      }
+
+      scheduler.expectNoMessage()
     }
 
     "handle ev movements provisions correctly and forward them to the correct evcs" in {
