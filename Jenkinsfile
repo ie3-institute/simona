@@ -162,7 +162,7 @@ node {
                 returnStdout: true
                 )
 
-            String deployGradleTasks = "--refresh-dependencies test " +
+            String deployGradleTasks = "--refresh-dependencies " +
                 "publish -Puser=${env.mavencentral_username} " +
                 "-Ppassword=${env.mavencentral_password} " +
                 "-Psigning.keyId=${env.signingKeyId} " +
