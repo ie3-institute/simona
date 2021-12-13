@@ -200,19 +200,9 @@ class ExtEvDataService(override val scheduler: ActorRef)
   private def requestFreeLots(tick: Long)(implicit
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Seq[ScheduleTriggerMessage]]) = {
-    val scheduleTriggerMsgs =
-      serviceStateData.uuidToActorRef.map { case (_, evcsActor) =>
-        evcsActor ! ProvideEvDataMessage(
-          tick,
-          EvFreeLotsRequest
-        )
-
-        // schedule activation of participant
-        ScheduleTriggerMessage(
-          ActivityStartTrigger(tick),
-          evcsActor
-        )
-      }
+    serviceStateData.uuidToActorRef.foreach { case (_, evcsActor) =>
+      evcsActor ! EvFreeLotsRequest(tick)
+    }
 
     val freeLots: Map[UUID, Option[Int]] =
       serviceStateData.uuidToActorRef.map { case (evcs, _) =>
@@ -228,7 +218,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
         extEvMessage = None,
         freeLots = freeLots
       ),
-      Option.when(scheduleTriggerMsgs.nonEmpty)(scheduleTriggerMsgs.toSeq)
+      None
     )
   }
 
