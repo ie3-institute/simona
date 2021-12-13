@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.grid
 
 import java.util.UUID
-
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestFSMRef}
 import com.typesafe.config.ConfigFactory
@@ -17,6 +16,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
 import edu.ie3.simona.model.grid.RefSystem
+import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvideGridPowerMessage,
   RequestGridPowerMessage
@@ -159,8 +159,8 @@ class DBFSAlgorithmSupGridSpec
         for (sweepNo <- 0 to 1) {
 
           val startGridSimulationTriggerId = sweepNo + 2
-          val requestedConnectionNodeUuid =
-            UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e")
+          val requestedConnectionNodeUuids =
+            Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
 
           // send the start grid simulation trigger
           superiorGridAgentFSM ! TriggerWithIdMessage(
@@ -173,7 +173,7 @@ class DBFSAlgorithmSupGridSpec
           expectMsgPF() {
             case requestGridPowerMessage: RequestGridPowerMessage =>
               requestGridPowerMessage.currentSweepNo shouldBe sweepNo
-              requestGridPowerMessage.nodeUuid shouldBe requestedConnectionNodeUuid
+              requestGridPowerMessage.nodeUuids should contain allElementsOf requestedConnectionNodeUuids
             case x =>
               fail(
                 s"Invalid message received when expecting a request for grid power values! Message was $x"
@@ -186,9 +186,13 @@ class DBFSAlgorithmSupGridSpec
           // / ask sender
           val askSender = lastSender
           askSender ! ProvideGridPowerMessage(
-            requestedConnectionNodeUuid,
-            Quantities.getQuantity(0, KILOWATT),
-            Quantities.getQuantity(0, KILOVAR)
+            requestedConnectionNodeUuids.map { uuid =>
+              ExchangePower(
+                uuid,
+                Quantities.getQuantity(0, KILOWATT),
+                Quantities.getQuantity(0, KILOVAR)
+              )
+            }
           )
 
           // we expect a completion message here (sweepNo == 0) and that the agent goes back to simulate grid
@@ -309,8 +313,8 @@ class DBFSAlgorithmSupGridSpec
         for (sweepNo <- 0 to maxNumberOfTestSweeps) {
 
           val startGridSimulationTriggerId = sweepNo + 4
-          val requestedConnectionNodeUuid =
-            UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e")
+          val requestedConnectionNodeUuids =
+            Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
 
           // send the start grid simulation trigger
           superiorGridAgentFSM ! TriggerWithIdMessage(
@@ -323,7 +327,7 @@ class DBFSAlgorithmSupGridSpec
           expectMsgPF() {
             case requestGridPowerMessage: RequestGridPowerMessage =>
               requestGridPowerMessage.currentSweepNo shouldBe sweepNo
-              requestGridPowerMessage.nodeUuid shouldBe requestedConnectionNodeUuid
+              requestGridPowerMessage.nodeUuids should contain allElementsOf requestedConnectionNodeUuids
             case x =>
               fail(
                 s"Invalid message received when expecting a request for grid power values! Message was $x"
@@ -335,9 +339,13 @@ class DBFSAlgorithmSupGridSpec
           // / ask sender
           val askSender = lastSender
           askSender ! ProvideGridPowerMessage(
-            requestedConnectionNodeUuid,
-            deviations(sweepNo)._1,
-            deviations(sweepNo)._2
+            requestedConnectionNodeUuids.map { uuid =>
+              ExchangePower(
+                uuid,
+                deviations(sweepNo)._1,
+                deviations(sweepNo)._2
+              )
+            }
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid
@@ -461,8 +469,8 @@ class DBFSAlgorithmSupGridSpec
         for (sweepNo <- 0 to 1) {
 
           val startGridSimulationTriggerId = sweepNo + 2
-          val requestedConnectionNodeUuid =
-            UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e")
+          val requestedConnectionNodeUuids =
+            Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
 
           // send the start grid simulation trigger
           superiorGridAgentFSM ! TriggerWithIdMessage(
@@ -475,7 +483,7 @@ class DBFSAlgorithmSupGridSpec
           expectMsgPF() {
             case requestGridPowerMessage: RequestGridPowerMessage =>
               requestGridPowerMessage.currentSweepNo shouldBe sweepNo
-              requestGridPowerMessage.nodeUuid shouldBe requestedConnectionNodeUuid
+              requestGridPowerMessage.nodeUuids should contain allElementsOf requestedConnectionNodeUuids
             case x =>
               fail(
                 s"Invalid message received when expecting a request for grid power values! Message was $x"
@@ -488,9 +496,13 @@ class DBFSAlgorithmSupGridSpec
           // / ask sender
           val askSender = lastSender
           askSender ! ProvideGridPowerMessage(
-            requestedConnectionNodeUuid,
-            Quantities.getQuantity(0, KILOWATT),
-            Quantities.getQuantity(0, KILOVAR)
+            requestedConnectionNodeUuids.map { uuid =>
+              ExchangePower(
+                uuid,
+                Quantities.getQuantity(0, KILOWATT),
+                Quantities.getQuantity(0, KILOVAR)
+              )
+            }
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid
@@ -592,8 +604,8 @@ class DBFSAlgorithmSupGridSpec
         for (sweepNo <- 0 to maxNumberOfTestSweeps) {
 
           val startGridSimulationTriggerId = sweepNo + 4
-          val requestedConnectionNodeUuid =
-            UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e")
+          val requestedConnectionNodeUuids =
+            Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
 
           // send the start grid simulation trigger
           superiorGridAgentFSM ! TriggerWithIdMessage(
@@ -606,7 +618,7 @@ class DBFSAlgorithmSupGridSpec
           expectMsgPF() {
             case requestGridPowerMessage: RequestGridPowerMessage =>
               requestGridPowerMessage.currentSweepNo shouldBe sweepNo
-              requestGridPowerMessage.nodeUuid shouldBe requestedConnectionNodeUuid
+              requestGridPowerMessage.nodeUuids should contain allElementsOf requestedConnectionNodeUuids
             case x =>
               fail(
                 s"Invalid message received when expecting a request for grid power values! Message was $x"
@@ -618,9 +630,13 @@ class DBFSAlgorithmSupGridSpec
           // / ask sender
           val askSender = lastSender
           askSender ! ProvideGridPowerMessage(
-            requestedConnectionNodeUuid,
-            deviations(sweepNo)._1,
-            deviations(sweepNo)._2
+            requestedConnectionNodeUuids.map { uuid =>
+              ExchangePower(
+                uuid,
+                deviations(sweepNo)._1,
+                deviations(sweepNo)._2
+              )
+            }
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid

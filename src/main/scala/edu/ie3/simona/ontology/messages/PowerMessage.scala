@@ -6,8 +6,9 @@
 
 package edu.ie3.simona.ontology.messages
 
-import java.util.UUID
+import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 
+import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
 import tech.units.indriya.ComparableQuantity
 
@@ -63,14 +64,29 @@ object PowerMessage {
 
   final case class RequestGridPowerMessage(
       currentSweepNo: Int,
-      nodeUuid: UUID
+      nodeUuids: Vector[UUID]
   ) extends PowerRequestMessage
 
   final case class ProvideGridPowerMessage(
-      nodeUuid: UUID,
-      override val p: ComparableQuantity[Power],
-      override val q: ComparableQuantity[Power]
-  ) extends ProvidePowerMessage
+      nodalResidualPower: Vector[ExchangePower]
+  ) extends PowerResponseMessage
+  object ProvideGridPowerMessage {
+
+    /** Defining the exchanged power at one interconnection point
+      *
+      * @param nodeUuid
+      *   Unique identifier of the node, at which this residual power did appear
+      * @param p
+      *   active power from the previous request
+      * @param q
+      *   reactive power from the previous request
+      */
+    final case class ExchangePower(
+        nodeUuid: UUID,
+        override val p: ComparableQuantity[Power],
+        override val q: ComparableQuantity[Power]
+    ) extends ProvidePowerMessage
+  }
 
   final case object FailedPowerFlow extends PowerResponseMessage
 

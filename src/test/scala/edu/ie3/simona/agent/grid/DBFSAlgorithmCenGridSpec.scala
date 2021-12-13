@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.grid
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.pattern.ask
-import akka.testkit.{ImplicitSender, TestFSMRef}
+import akka.testkit.{ImplicitSender, TestFSMRef, TestProbe}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -20,6 +20,7 @@ import edu.ie3.simona.agent.state.GridAgentState.{
   SimulateGrid
 }
 import edu.ie3.simona.model.grid.RefSystem
+import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvideGridPowerMessage,
   RequestGridPowerMessage
@@ -78,10 +79,17 @@ class DBFSAlgorithmCenGridSpec
 
   private val floatPrecision: Double = 0.00000000001
 
+  private val scheduler = TestProbe("scheduler")
+  private val primaryService = TestProbe("primaryService")
+  private val weatherService = TestProbe("weatherService")
+
+  private val superiorGridAgent = TestProbe("superiorGridAgent")
+  private val inferiorGridAgent = TestProbe("inferiorGridAgent")
+
   private val environmentRefs = EnvironmentRefs(
-    scheduler = self,
-    primaryServiceProxy = self,
-    weather = self,
+    scheduler = scheduler.ref,
+    primaryServiceProxy = primaryService.ref,
+    weather = weatherService.ref,
     evDataService = None
   )
 
@@ -102,8 +110,13 @@ class DBFSAlgorithmCenGridSpec
     s"initialize itself when it receives a $InitializeGridAgentTrigger with corresponding data" in {
       val triggerId = 0
 
-      // this subnet has 1 superior grid (HöS) and 4 inferior grids (MS)
-      val subGridGateToActorRef = hvSubGridGates.map(gate => gate -> self).toMap
+      // this subnet has 1 superior grid (HöS) and 4 inferior grids (MS). Map the gates to test probes accordingly
+      val subGridGateToActorRef = hvSubGridGates.map {
+        case gate
+            if gate.getInferiorNode.getSubnet == hvGridContainer.getSubnet =>
+          gate -> superiorGridAgent.ref
+        case gate => gate -> inferiorGridAgent.ref
+      }.toMap
 
       val gridAgentInitData =
         GridAgentInitData(
@@ -145,13 +158,16 @@ class DBFSAlgorithmCenGridSpec
 
       val activityStartTriggerId = 1
 
-      centerGridAgent ! TriggerWithIdMessage(
-        ActivityStartTrigger(3600),
-        activityStartTriggerId,
-        centerGridAgent
+      scheduler.send(
+        centerGridAgent,
+        TriggerWithIdMessage(
+          ActivityStartTrigger(3600),
+          activityStartTriggerId,
+          centerGridAgent
+        )
       )
 
-      expectMsgPF() {
+      scheduler.expectMsgPF() {
         case CompletionMessage(
               triggerId,
               Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
@@ -183,46 +199,41 @@ class DBFSAlgorithmCenGridSpec
       )
 
       // send the start grid simulation trigger
-      centerGridAgent ! TriggerWithIdMessage(
-        StartGridSimulationTrigger(3600),
-        startGridSimulationTriggerId,
-        centerGridAgent
-      )
-
-      // we expect 4 requests for grid power values as we have 4 inferior grids
-      val firstGridPowerRequests = receiveWhile() {
-        case msg @ RequestGridPowerMessage(_, _) => msg -> lastSender
-      }.toMap
-
-      firstGridPowerRequests.size shouldBe 4
-      firstGridPowerRequests.keys should contain allOf (
-        RequestGridPowerMessage(
-          firstSweepNo,
-          UUID.fromString("d44ba8ed-81db-4a22-a40d-f7c0d0808a75")
-        ),
-        RequestGridPowerMessage(
-          firstSweepNo,
-          UUID.fromString("e364ef00-e6ca-46b1-ba2b-bb73c0c6fee0")
-        ),
-        RequestGridPowerMessage(
-          firstSweepNo,
-          UUID.fromString("78c5d473-e01b-44c4-afd2-e4ff3c4a5d7c")
-        ),
-        RequestGridPowerMessage(
-          firstSweepNo,
-          UUID.fromString("47ef9983-8fcf-4713-be90-093fc27864ae")
+      scheduler.send(
+        centerGridAgent,
+        TriggerWithIdMessage(
+          StartGridSimulationTrigger(3600),
+          startGridSimulationTriggerId,
+          centerGridAgent
         )
       )
 
+      /* We expect one grid power request message, as all four sub grids are mapped onto one actor reference */
+      val firstGridPowerRequests = inferiorGridAgent
+        .receiveWhile() { case msg @ RequestGridPowerMessage(_, _) =>
+          msg -> inferiorGridAgent.lastSender
+        }
+        .toMap
+
+      /* We receive one message with all requests for all inferior grid agents. This is, because the requests are
+       * grouped by the actor, they are sent to. Here, the test itself serves as the dummy for all inferior grid
+       * agents */
+      firstGridPowerRequests.size shouldBe 1
+      firstGridPowerRequests.keys.headOption match {
+        case Some(RequestGridPowerMessage(_, nodeUuids)) =>
+          nodeUuids should contain theSameElementsAs inferiorGridNodeUuids
+        case None => fail("Did expect to receive something")
+      }
+
       // we expect 1 request for slack voltage values
       // (slack values are requested by our agent under test from the superior grid)
-      val firstSlackVoltageRequest = expectMsgPF() {
+      val firstSlackVoltageRequest = superiorGridAgent.expectMsgPF() {
         case request @ RequestSlackVoltageMessage(sweepNo, nodeId) =>
           sweepNo shouldBe firstSweepNo
           nodeId shouldBe UUID.fromString(
             "9fe5fa33-6d3b-4153-a829-a16f4347bc4e"
           )
-          (request, lastSender)
+          (request, superiorGridAgent.lastSender)
         case x =>
           fail(
             s"Invalid message received when expecting slack voltage request message. Message was $x"
@@ -232,13 +243,16 @@ class DBFSAlgorithmCenGridSpec
       // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculations
       // we simulate this behaviour now by doing the same for our 4 inferior grid agents
       inferiorGridNodeUuids.foreach { nodeUuid =>
-        centerGridAgent ! RequestSlackVoltageMessage(firstSweepNo, nodeUuid)
+        inferiorGridAgent.send(
+          centerGridAgent,
+          RequestSlackVoltageMessage(firstSweepNo, nodeUuid)
+        )
       }
 
       // as we are in the first sweep, all provided slack voltages should be equal
       // to 1 p.u. (in physical values, here: 110kV) from the superior grid agent perspective
       // (here: centerGridAgent perspective)
-      val providedSlackVoltages = receiveWhile() {
+      val providedSlackVoltages = inferiorGridAgent.receiveWhile() {
         case provideSlackVoltageMessage: ProvideSlackVoltageMessage =>
           provideSlackVoltageMessage
         case x =>
@@ -276,26 +290,39 @@ class DBFSAlgorithmCenGridSpec
       )
 
       // we now answer the request of our centerGridAgent
-      // with 4 fake grid power messages and 1 fake slack voltage message
-      firstGridPowerRequests.foreach { requestSender =>
-        val askSender = requestSender._2
-        val requestNodeUuid = requestSender._1.nodeUuid
-        askSender ! ProvideGridPowerMessage(
-          requestNodeUuid,
-          Quantities.getQuantity(0, KILOWATT),
-          Quantities.getQuantity(0, KILOVAR)
+      // with 1 fake grid power message and 1 fake slack voltage message
+      firstGridPowerRequests.foreach { case (requestMessage, askSender) =>
+        val requestNodeUuids = requestMessage.nodeUuids
+        val exchangePowers = requestNodeUuids.map { uuid =>
+          ExchangePower(
+            uuid,
+            Quantities.getQuantity(0, KILOWATT),
+            Quantities.getQuantity(0, KILOVAR)
+          )
+        }
+        inferiorGridAgent.send(
+          askSender,
+          ProvideGridPowerMessage(
+            exchangePowers
+          )
         )
       }
 
-      val slackAskSender = firstSlackVoltageRequest._2
-      val slackRequestNodeUuid = firstSlackVoltageRequest._1.nodeUuid
-      val slackRequestSweepNo = firstSlackVoltageRequest._1.currentSweepNo
-      slackAskSender ! ProvideSlackVoltageMessage(
-        slackRequestSweepNo,
-        slackRequestNodeUuid,
-        Quantities.getQuantity(380, KILOVOLT),
-        Quantities.getQuantity(0, KILOVOLT)
-      )
+      val slackRequestNodeUuid = firstSlackVoltageRequest match {
+        case (requestMessage, slackAskSender) =>
+          val slackRequestNodeUuid = requestMessage.nodeUuid
+          val slackRequestSweepNo = requestMessage.currentSweepNo
+          superiorGridAgent.send(
+            slackAskSender,
+            ProvideSlackVoltageMessage(
+              slackRequestSweepNo,
+              slackRequestNodeUuid,
+              Quantities.getQuantity(380, KILOVOLT),
+              Quantities.getQuantity(0, KILOVOLT)
+            )
+          )
+          slackRequestNodeUuid
+      }
 
       // we expect to end up in SimulateGrid but we have to pass HandlePowerFlowCalculations beforehand
       // hence we wait until we reached this condition
@@ -306,19 +333,31 @@ class DBFSAlgorithmCenGridSpec
 
       // our test agent should now be ready to provide the grid power values, hence we ask for them and expect a
       // corresponding response
-      centerGridAgent ! RequestGridPowerMessage(firstSweepNo, slackNodeUuid)
+      superiorGridAgent.send(
+        centerGridAgent,
+        RequestGridPowerMessage(
+          firstSweepNo,
+          Vector(slackNodeUuid)
+        )
+      )
 
-      expectMsgPF(Duration(15, TimeUnit.SECONDS)) {
-        case ProvideGridPowerMessage(nodeUuid, p, q) =>
-          nodeUuid shouldBe slackNodeUuid
-          p should equalWithTolerance(
-            Quantities.getQuantity(0.080423711881702500000, MEGAVOLTAMPERE),
-            floatPrecision
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(-1.45357503915666260000, MEGAVOLTAMPERE),
-            floatPrecision
-          )
+      superiorGridAgent.expectMsgPF(Duration(15, TimeUnit.SECONDS)) {
+        case ProvideGridPowerMessage(exchangedPowers) =>
+          exchangedPowers.size shouldBe 1
+          exchangedPowers.headOption match {
+            case Some(ExchangePower(nodeUuid, p, q)) =>
+              nodeUuid shouldBe slackNodeUuid
+              p should equalWithTolerance(
+                Quantities.getQuantity(0.080423711881702500000, MEGAVOLTAMPERE),
+                floatPrecision
+              )
+              q should equalWithTolerance(
+                Quantities.getQuantity(-1.45357503915666260000, MEGAVOLTAMPERE),
+                floatPrecision
+              )
+            case None =>
+              fail("Did not expect to get nothing")
+          }
         case x =>
           fail(
             s"Invalid message received when expecting grid power values message. Message was $x"
@@ -327,16 +366,22 @@ class DBFSAlgorithmCenGridSpec
 
       // we start a second sweep by asking for next sweep values which should trigger the whole procedure again
       val secondSweepNo = firstSweepNo + 1
-      centerGridAgent ! RequestGridPowerMessage(secondSweepNo, slackNodeUuid)
+      superiorGridAgent.send(
+        centerGridAgent,
+        RequestGridPowerMessage(
+          secondSweepNo,
+          Vector(slackNodeUuid)
+        )
+      )
 
       // the agent now should ask for updated slack voltages from the superior grid
-      val secondSlackVoltageRequest = expectMsgPF() {
+      val secondSlackVoltageRequest = superiorGridAgent.expectMsgPF() {
         case request @ RequestSlackVoltageMessage(sweepNo, nodeId) =>
           sweepNo shouldBe secondSweepNo
           nodeId shouldBe UUID.fromString(
             "9fe5fa33-6d3b-4153-a829-a16f4347bc4e"
           )
-          (request, lastSender)
+          (request, superiorGridAgent.lastSender)
         case x =>
           fail(
             s"Invalid message received when expecting slack voltage request message. Message was $x"
@@ -348,38 +393,33 @@ class DBFSAlgorithmCenGridSpec
 
       // the superior grid would answer with updated slack voltage values
       val secondSlackAskSender = secondSlackVoltageRequest._2
-      secondSlackAskSender ! ProvideSlackVoltageMessage(
-        secondSweepNo,
-        slackRequestNodeUuid,
-        Quantities.getQuantity(380, KILOVOLT),
-        Quantities.getQuantity(0, KILOVOLT)
+      superiorGridAgent.send(
+        secondSlackAskSender,
+        ProvideSlackVoltageMessage(
+          secondSweepNo,
+          slackRequestNodeUuid,
+          Quantities.getQuantity(380, KILOVOLT),
+          Quantities.getQuantity(0, KILOVOLT)
+        )
       )
 
       // after the intermediate power flow calculation
       // we expect 4 requests for grid power values as we have 4 inferior grids
-      val secondGridPowerRequests = receiveWhile() {
-        case msg @ RequestGridPowerMessage(_, _) => msg -> lastSender
-      }.toMap
+      val secondGridPowerRequests = inferiorGridAgent
+        .receiveWhile() { case msg @ RequestGridPowerMessage(_, _) =>
+          msg -> inferiorGridAgent.lastSender
+        }
+        .toMap
 
-      secondGridPowerRequests.size shouldBe 4
-      secondGridPowerRequests.keys should contain allOf (
-        RequestGridPowerMessage(
-          secondSweepNo,
-          UUID.fromString("d44ba8ed-81db-4a22-a40d-f7c0d0808a75")
-        ),
-        RequestGridPowerMessage(
-          secondSweepNo,
-          UUID.fromString("e364ef00-e6ca-46b1-ba2b-bb73c0c6fee0")
-        ),
-        RequestGridPowerMessage(
-          secondSweepNo,
-          UUID.fromString("78c5d473-e01b-44c4-afd2-e4ff3c4a5d7c")
-        ),
-        RequestGridPowerMessage(
-          secondSweepNo,
-          UUID.fromString("47ef9983-8fcf-4713-be90-093fc27864ae")
-        )
-      )
+      /* We receive one message with all requests for all inferior grid agents. This is, because the requests are
+       * grouped by the actor, they are sent to. Here, the test itself serves as the dummy for all inferior grid
+       * agents */
+      secondGridPowerRequests.size shouldBe 1
+      secondGridPowerRequests.keys.headOption match {
+        case Some(RequestGridPowerMessage(_, nodeUuids)) =>
+          nodeUuids should contain theSameElementsAs inferiorGridNodeUuids
+        case None => fail("Did expect to receive something")
+      }
 
       // the agent should then go back to SimulateGrid and wait for the powers of the inferior grid
       awaitAssert(centerGridAgent.stateName shouldBe SimulateGrid)
@@ -387,13 +427,16 @@ class DBFSAlgorithmCenGridSpec
       // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculations
       // we simulate this behaviour now by doing the same for our 4 inferior grid agents
       inferiorGridNodeUuids.foreach { nodeUuid =>
-        centerGridAgent ! RequestSlackVoltageMessage(firstSweepNo, nodeUuid)
+        inferiorGridAgent.send(
+          centerGridAgent,
+          RequestSlackVoltageMessage(firstSweepNo, nodeUuid)
+        )
       }
 
       // as we are in the second sweep, all provided slack voltages should be unequal
       // to 1 p.u. (in physical values, here: 110kV) from the superior grid agent perspective
       // (here: centerGridAgent perspective)
-      val secondProvidedSlackVoltages = receiveWhile() {
+      val secondProvidedSlackVoltages = inferiorGridAgent.receiveWhile() {
         case provideSlackVoltageMessage: ProvideSlackVoltageMessage =>
           provideSlackVoltageMessage
         case x =>
@@ -463,14 +506,20 @@ class DBFSAlgorithmCenGridSpec
       })
 
       // we now answer the request of our centerGridAgent
-      // with 4 fake grid power messages
-      secondGridPowerRequests.foreach { requestSender =>
-        val askSender = requestSender._2
-        val requestNodeUuid = requestSender._1.nodeUuid
-        askSender ! ProvideGridPowerMessage(
-          requestNodeUuid,
-          Quantities.getQuantity(0, KILOWATT),
-          Quantities.getQuantity(0, KILOVAR)
+      // with 1 fake grid power messages
+      secondGridPowerRequests.foreach { case (requestMessage, askSender) =>
+        val requestNodeUuid = requestMessage.nodeUuids
+        inferiorGridAgent.send(
+          askSender,
+          ProvideGridPowerMessage(
+            requestNodeUuid.map { uuid =>
+              ExchangePower(
+                uuid,
+                Quantities.getQuantity(0, KILOWATT),
+                Quantities.getQuantity(0, KILOVAR)
+              )
+            }
+          )
         )
       }
 
@@ -485,19 +534,31 @@ class DBFSAlgorithmCenGridSpec
       statesPassed1 should contain allOf (HandlePowerFlowCalculations, SimulateGrid)
 
       // as the akka testkit does the unstash handling incorrectly, we need to send a second request for grid power messages
-      centerGridAgent ! RequestGridPowerMessage(secondSweepNo, slackNodeUuid)
+      superiorGridAgent.send(
+        centerGridAgent,
+        RequestGridPowerMessage(
+          secondSweepNo,
+          Vector(slackNodeUuid)
+        )
+      )
 
-      expectMsgPF() {
-        case ProvideGridPowerMessage(nodeUuid, p, q) =>
-          nodeUuid shouldBe slackNodeUuid
-          p should equalWithTolerance(
-            Quantities.getQuantity(0.080423711881452700000, MEGAVOLTAMPERE),
-            floatPrecision
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(-1.45357503915621860000, MEGAVOLTAMPERE),
-            floatPrecision
-          )
+      superiorGridAgent.expectMsgPF() {
+        case ProvideGridPowerMessage(exchangedPower) =>
+          exchangedPower.size shouldBe 1
+          exchangedPower.headOption match {
+            case Some(ExchangePower(nodeUuid, p, q)) =>
+              nodeUuid shouldBe slackNodeUuid
+              p should equalWithTolerance(
+                Quantities.getQuantity(0.080423711881452700000, MEGAVOLTAMPERE),
+                floatPrecision
+              )
+              q should equalWithTolerance(
+                Quantities.getQuantity(-1.45357503915621860000, MEGAVOLTAMPERE),
+                floatPrecision
+              )
+            case None =>
+              fail("I did not expect to get nothing.")
+          }
         case x =>
           fail(
             s"Invalid message received when expecting grid power message. Message was $x"
@@ -522,7 +583,12 @@ class DBFSAlgorithmCenGridSpec
       val triggerId = 0
 
       // this subnet has 1 superior grid (HöS) and 4 inferior grids (MS)
-      val subGridGateToActorRef = hvSubGridGates.map(gate => gate -> self).toMap
+      val subGridGateToActorRef = hvSubGridGates.map {
+        case gate
+            if gate.getInferiorNode.getSubnet == hvGridContainer.getSubnet =>
+          gate -> superiorGridAgent.ref
+        case gate => gate -> inferiorGridAgent.ref
+      }.toMap
 
       val gridAgentInitData =
         GridAgentInitData(
@@ -561,13 +627,16 @@ class DBFSAlgorithmCenGridSpec
 
       val activityStartTriggerId = 1
 
-      centerGridAgent ! TriggerWithIdMessage(
-        ActivityStartTrigger(3600),
-        activityStartTriggerId,
-        centerGridAgent
+      scheduler.send(
+        centerGridAgent,
+        TriggerWithIdMessage(
+          ActivityStartTrigger(3600),
+          activityStartTriggerId,
+          centerGridAgent
+        )
       )
 
-      expectMsgPF() {
+      scheduler.expectMsgPF() {
         case CompletionMessage(
               triggerId,
               Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
@@ -595,46 +664,41 @@ class DBFSAlgorithmCenGridSpec
       )
 
       // send the start grid simulation trigger
-      centerGridAgent ! TriggerWithIdMessage(
-        StartGridSimulationTrigger(3600),
-        startGridSimulationTriggerId,
-        centerGridAgent
-      )
-
-      // we expect 4 requests for grid power values as we have 4 inferior grids
-      val firstGridPowerRequests = receiveWhile() {
-        case msg @ RequestGridPowerMessage(_, _) => msg -> lastSender
-      }.toMap
-
-      firstGridPowerRequests.size shouldBe 4
-      firstGridPowerRequests.keys should contain allOf (
-        RequestGridPowerMessage(
-          firstSweepNo,
-          UUID.fromString("d44ba8ed-81db-4a22-a40d-f7c0d0808a75")
-        ),
-        RequestGridPowerMessage(
-          firstSweepNo,
-          UUID.fromString("e364ef00-e6ca-46b1-ba2b-bb73c0c6fee0")
-        ),
-        RequestGridPowerMessage(
-          firstSweepNo,
-          UUID.fromString("78c5d473-e01b-44c4-afd2-e4ff3c4a5d7c")
-        ),
-        RequestGridPowerMessage(
-          firstSweepNo,
-          UUID.fromString("47ef9983-8fcf-4713-be90-093fc27864ae")
+      scheduler.send(
+        centerGridAgent,
+        TriggerWithIdMessage(
+          StartGridSimulationTrigger(3600),
+          startGridSimulationTriggerId,
+          centerGridAgent
         )
       )
 
+      /* We expect one grid power request message, as all four sub grids are mapped onto one actor reference */
+      val firstGridPowerRequests = inferiorGridAgent
+        .receiveWhile() { case msg: RequestGridPowerMessage =>
+          msg -> inferiorGridAgent.lastSender
+        }
+        .toMap
+
+      /* We receive one message with all requests for all inferior grid agents. This is, because the requests are
+       * grouped by the actor, they are sent to. Here, the test itself serves as the dummy for all inferior grid
+       * agents */
+      firstGridPowerRequests.size shouldBe 1
+      firstGridPowerRequests.keys.headOption match {
+        case Some(RequestGridPowerMessage(_, nodeUuids)) =>
+          nodeUuids should contain theSameElementsAs inferiorGridNodeUuids
+        case None => fail("Did expect to receive something")
+      }
+
       // we expect 1 request for slack voltage values
       // (slack values are requested by our agent under test from the superior grid)
-      val firstSlackVoltageRequest = expectMsgPF() {
+      val firstSlackVoltageRequest = superiorGridAgent.expectMsgPF() {
         case request @ RequestSlackVoltageMessage(sweepNo, nodeId) =>
           sweepNo shouldBe firstSweepNo
           nodeId shouldBe UUID.fromString(
             "9fe5fa33-6d3b-4153-a829-a16f4347bc4e"
           )
-          (request, lastSender)
+          (request, superiorGridAgent.lastSender)
         case x =>
           fail(
             s"Invalid message received when expecting slack voltage request message. Message was $x"
@@ -644,13 +708,16 @@ class DBFSAlgorithmCenGridSpec
       // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculations
       // we simulate this behaviour now by doing the same for our 4 inferior grid agents
       inferiorGridNodeUuids.foreach { nodeUuid =>
-        centerGridAgent ! RequestSlackVoltageMessage(firstSweepNo, nodeUuid)
+        inferiorGridAgent.send(
+          centerGridAgent,
+          RequestSlackVoltageMessage(firstSweepNo, nodeUuid)
+        )
       }
 
       // as we are in the first sweep, all provided slack voltages should be equal
       // to 1 p.u. (in physical values, here: 110kV) from the superior grid agent perspective
       // (here: centerGridAgent perspective)
-      val providedSlackVoltages = receiveWhile() {
+      val providedSlackVoltages = inferiorGridAgent.receiveWhile() {
         case provideSlackVoltageMessage: ProvideSlackVoltageMessage =>
           provideSlackVoltageMessage
         case x =>
@@ -688,41 +755,59 @@ class DBFSAlgorithmCenGridSpec
       )
       // we now answer the request of our centerGridAgent
       // with 4 fake grid power messages and 1 fake slack voltage message
-      firstGridPowerRequests.foreach { requestSender =>
-        val askSender = requestSender._2
-        val requestNodeUuid = requestSender._1.nodeUuid
+      firstGridPowerRequests.foreach { case (requestMessage, askSender) =>
+        val requestNodeUuid = requestMessage.nodeUuids
         askSender ! ProvideGridPowerMessage(
-          requestNodeUuid,
-          Quantities.getQuantity(0, KILOWATT),
-          Quantities.getQuantity(0, KILOVAR)
+          requestNodeUuid.map { uuid =>
+            ExchangePower(
+              uuid,
+              Quantities.getQuantity(0, KILOWATT),
+              Quantities.getQuantity(0, KILOVAR)
+            )
+          }
         )
       }
 
-      val slackAskSender = firstSlackVoltageRequest._2
-      val slackRequestNodeUuid = firstSlackVoltageRequest._1.nodeUuid
-      val slackRequestSweepNo = firstSlackVoltageRequest._1.currentSweepNo
-      slackAskSender ! ProvideSlackVoltageMessage(
-        slackRequestSweepNo,
-        slackRequestNodeUuid,
-        Quantities.getQuantity(380, KILOVOLT),
-        Quantities.getQuantity(0, KILOVOLT)
-      )
+      val slackRequestNodeUuid = firstSlackVoltageRequest match {
+        case (voltageRequest, slackAskSender) =>
+          val slackRequestNodeUuid = voltageRequest.nodeUuid
+          val slackRequestSweepNo = voltageRequest.currentSweepNo
+          slackAskSender ! ProvideSlackVoltageMessage(
+            slackRequestSweepNo,
+            slackRequestNodeUuid,
+            Quantities.getQuantity(380, KILOVOLT),
+            Quantities.getQuantity(0, KILOVOLT)
+          )
+          slackRequestNodeUuid
+      }
 
       // our test agent should now be ready to provide the grid power values, hence we ask for them and expect a
       // corresponding response
-      centerGridAgent ! RequestGridPowerMessage(firstSweepNo, slackNodeUuid)
+      superiorGridAgent.send(
+        centerGridAgent,
+        RequestGridPowerMessage(
+          firstSweepNo,
+          Vector(slackNodeUuid)
+        )
+      )
 
-      expectMsgPF() {
-        case ProvideGridPowerMessage(nodeUuid, p, q) =>
-          nodeUuid shouldBe slackNodeUuid
-          p should equalWithTolerance(
-            Quantities.getQuantity(0.080423711881452700000, MEGAVOLTAMPERE),
-            floatPrecision
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(-1.45357503915666260000, MEGAVOLTAMPERE),
-            floatPrecision
-          )
+      superiorGridAgent.expectMsgPF() {
+        case ProvideGridPowerMessage(exchangedPower) =>
+          exchangedPower.size shouldBe 1
+          exchangedPower.headOption match {
+            case Some(ExchangePower(nodeUuid, p, q)) =>
+              nodeUuid shouldBe slackNodeUuid
+              p should equalWithTolerance(
+                Quantities.getQuantity(0.080423711881452700000, MEGAVOLTAMPERE),
+                floatPrecision
+              )
+              q should equalWithTolerance(
+                Quantities.getQuantity(-1.45357503915666260000, MEGAVOLTAMPERE),
+                floatPrecision
+              )
+            case None =>
+              fail("Did not expect to get nothing.")
+          }
         case x =>
           fail(
             s"Invalid message received when expecting grid power values message. Message was $x"
@@ -731,16 +816,22 @@ class DBFSAlgorithmCenGridSpec
 
       // we start a second sweep by asking for next sweep values which should trigger the whole procedure again
       val secondSweepNo = firstSweepNo + 1
-      centerGridAgent ! RequestGridPowerMessage(secondSweepNo, slackNodeUuid)
+      superiorGridAgent.send(
+        centerGridAgent,
+        RequestGridPowerMessage(
+          secondSweepNo,
+          Vector(slackNodeUuid)
+        )
+      )
 
       // the agent now should ask for updated slack voltages from the superior grid
-      val secondSlackVoltageRequest = expectMsgPF() {
+      val secondSlackVoltageRequest = superiorGridAgent.expectMsgPF() {
         case request @ RequestSlackVoltageMessage(sweepNo, nodeId) =>
           sweepNo shouldBe secondSweepNo
           nodeId shouldBe UUID.fromString(
             "9fe5fa33-6d3b-4153-a829-a16f4347bc4e"
           )
-          (request, lastSender)
+          (request, superiorGridAgent.lastSender)
         case x =>
           fail(
             s"Invalid message received when expecting slack voltage request message. Message was $x"
@@ -749,38 +840,33 @@ class DBFSAlgorithmCenGridSpec
 
       // the superior grid would answer with updated slack voltage values
       val secondSlackAskSender = secondSlackVoltageRequest._2
-      secondSlackAskSender ! ProvideSlackVoltageMessage(
-        secondSweepNo,
-        slackRequestNodeUuid,
-        Quantities.getQuantity(380, KILOVOLT),
-        Quantities.getQuantity(0, KILOVOLT)
+      superiorGridAgent.send(
+        secondSlackAskSender,
+        ProvideSlackVoltageMessage(
+          secondSweepNo,
+          slackRequestNodeUuid,
+          Quantities.getQuantity(380, KILOVOLT),
+          Quantities.getQuantity(0, KILOVOLT)
+        )
       )
 
       // after the intermediate power flow calculation
-      // we expect 4 requests for grid power values as we have 4 inferior grids
-      val secondGridPowerRequests = receiveWhile() {
-        case msg @ RequestGridPowerMessage(_, _) => msg -> lastSender
-      }.toMap
+      // We expect one grid power request message, as all four sub grids are mapped onto one actor reference
+      val secondGridPowerRequests = inferiorGridAgent
+        .receiveWhile() { case msg: RequestGridPowerMessage =>
+          msg -> inferiorGridAgent.lastSender
+        }
+        .toMap
 
-      secondGridPowerRequests.size shouldBe 4
-      secondGridPowerRequests.keys should contain allOf (
-        RequestGridPowerMessage(
-          secondSweepNo,
-          UUID.fromString("d44ba8ed-81db-4a22-a40d-f7c0d0808a75")
-        ),
-        RequestGridPowerMessage(
-          secondSweepNo,
-          UUID.fromString("e364ef00-e6ca-46b1-ba2b-bb73c0c6fee0")
-        ),
-        RequestGridPowerMessage(
-          secondSweepNo,
-          UUID.fromString("78c5d473-e01b-44c4-afd2-e4ff3c4a5d7c")
-        ),
-        RequestGridPowerMessage(
-          secondSweepNo,
-          UUID.fromString("47ef9983-8fcf-4713-be90-093fc27864ae")
-        )
-      )
+      /* We receive one message with all requests for all inferior grid agents. This is, because the requests are
+       * grouped by the actor, they are sent to. Here, the test itself serves as the dummy for all inferior grid
+       * agents */
+      secondGridPowerRequests.size shouldBe 1
+      secondGridPowerRequests.keys.headOption match {
+        case Some(RequestGridPowerMessage(_, nodeUuids)) =>
+          nodeUuids should contain theSameElementsAs inferiorGridNodeUuids
+        case None => fail("Did expect to receive something")
+      }
 
       // the agent should then go back to SimulateGrid and wait for the powers of the inferior grid
       // awaitAssert(centerGridAgent.stateName shouldBe SimulateGrid)
@@ -788,13 +874,16 @@ class DBFSAlgorithmCenGridSpec
       // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculations
       // we simulate this behaviour now by doing the same for our 4 inferior grid agents
       inferiorGridNodeUuids.foreach { nodeUuid =>
-        centerGridAgent ! RequestSlackVoltageMessage(firstSweepNo, nodeUuid)
+        inferiorGridAgent.send(
+          centerGridAgent,
+          RequestSlackVoltageMessage(firstSweepNo, nodeUuid)
+        )
       }
 
       // as we are in the second sweep, all provided slack voltages should be unequal
       // to 1 p.u. (in physical values, here: 110kV) from the superior grid agent perspective
       // (here: centerGridAgent perspective)
-      val secondProvidedSlackVoltages = receiveWhile() {
+      val secondProvidedSlackVoltages = inferiorGridAgent.receiveWhile() {
         case provideSlackVoltageMessage: ProvideSlackVoltageMessage =>
           provideSlackVoltageMessage
         case x =>
@@ -862,29 +951,42 @@ class DBFSAlgorithmCenGridSpec
       })
 
       // we now answer the request of our centerGridAgent
-      // with 4 fake grid power messages
-      secondGridPowerRequests.foreach { requestSender =>
-        val askSender = requestSender._2
-        val requestNodeUuid = requestSender._1.nodeUuid
-        askSender ! ProvideGridPowerMessage(
-          requestNodeUuid,
-          Quantities.getQuantity(0, KILOWATT),
-          Quantities.getQuantity(0, KILOVAR)
+      // with 1 fake grid power message
+      secondGridPowerRequests.foreach { case (request, askSender) =>
+        val requestNodeUuid = request.nodeUuids
+        inferiorGridAgent.send(
+          askSender,
+          ProvideGridPowerMessage(
+            requestNodeUuid.map { uuid =>
+              ExchangePower(
+                uuid,
+                Quantities.getQuantity(0, KILOWATT),
+                Quantities.getQuantity(0, KILOVAR)
+              )
+            }
+          )
         )
       }
 
       // we expect that the GridAgent unstashes the messages and return a value for our power request
-      expectMsgPF() {
-        case ProvideGridPowerMessage(nodeUuid, p, q) =>
-          nodeUuid shouldBe slackNodeUuid
-          p should equalWithTolerance(
-            Quantities.getQuantity(0.080423711881702500000, MEGAVOLTAMPERE),
-            floatPrecision
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(-1.45357503915621860000, MEGAVOLTAMPERE),
-            floatPrecision
-          )
+      superiorGridAgent.expectMsgPF() {
+        case ProvideGridPowerMessage(exchangedPower) =>
+          exchangedPower.size shouldBe 1
+          exchangedPower.headOption match {
+            case Some(ExchangePower(nodeUuid, p, q)) =>
+              nodeUuid shouldBe slackNodeUuid
+              p should equalWithTolerance(
+                Quantities.getQuantity(0.080423711881702500000, MEGAVOLTAMPERE),
+                floatPrecision
+              )
+              q should equalWithTolerance(
+                Quantities.getQuantity(-1.45357503915621860000, MEGAVOLTAMPERE),
+                floatPrecision
+              )
+            case None =>
+              fail("I did not expect to get nothing.")
+          }
+
         case x =>
           fail(
             s"Invalid message received when expecting grid power message. Message was $x"

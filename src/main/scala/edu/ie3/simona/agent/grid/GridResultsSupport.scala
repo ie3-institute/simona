@@ -520,12 +520,12 @@ private[grid] trait GridResultsSupport {
     (iMag, iAng)
   }
 
-  /** Calculate the voltage magnitude and the voltage angle in physical units
+  /** Calculate the current magnitude and the current angle in physical units
     * based on a provided electric current in p.u. and the nominal referenced
     * electric current. The arctangent "only" calculates the angle between the
     * complex current and it's real part. This means, that i = (i_real, i_imag)
     * and i' = (-i_real, -i_imag) will lead to the same angle. However, for
-    * power system simulation, the absolute orientation in the complex plain
+    * power system simulation, the absolute orientation in the complex plane
     * with regard to the positive real axis is of interest. Therefore,
     * additional 180° are added, if the real part of the current is negative.
     *
@@ -542,14 +542,51 @@ private[grid] trait GridResultsSupport {
   ): (ComparableQuantity[ElectricCurrent], ComparableQuantity[Angle]) =
     (
       iNominal.multiply(iPu.abs).asComparable,
-      Quantities.getQuantity(
-        atan(iPu.imag / iPu.real).toDegrees + max(
-          0.0,
-          -signum(iPu.real)
-        ) * 180.0,
-        PowerSystemUnits.DEGREE_GEOM
-      )
+      angle(iPu)
     )
+
+  /** Correct the offset of an angle dependent on the direction. If the
+    * direction is negative, 180° are added
+    */
+  private val offSetCorrection
+      : (ComparableQuantity[Angle], Double) => ComparableQuantity[Angle] =
+    (angle: ComparableQuantity[Angle], dir: Double) =>
+      if (dir < 0) {
+        angle.add(Quantities.getQuantity(180d, PowerSystemUnits.DEGREE_GEOM))
+      } else {
+        angle
+      }
+
+  /** Calculate the angle of the complex value given. The angle has the full
+    * orientation on the complex plane.
+    *
+    * @param cplx
+    *   The complex value
+    * @return
+    *   The angle of the complex value
+    */
+  private def angle(cplx: Complex): ComparableQuantity[Angle] = cplx match {
+    case _ if cplx.abs == 0 =>
+      /* The complex value has no magnitude, therefore define the angle to zero */
+      Quantities.getQuantity(0d, PowerSystemUnits.DEGREE_GEOM)
+    case Complex(real, imag) =>
+      /* Calculate the angle between real and imaginary part */
+      val baseAngle = atan(imag / real).toDegrees
+
+      if (baseAngle.isNaN) {
+        /* There is only an imaginary part */
+        offSetCorrection(
+          Quantities.getQuantity(90d, PowerSystemUnits.DEGREE_GEOM),
+          imag
+        )
+      } else {
+        /* Correct the angle for full orientation in the complex plane */
+        offSetCorrection(
+          Quantities.getQuantity(baseAngle, PowerSystemUnits.DEGREE_GEOM),
+          real
+        )
+      }
+  }
 
   /** Calculates the electric current of a two-port element @ port i (=A) and j
     * (=B) based on the provided voltages @ each port and the corresponding

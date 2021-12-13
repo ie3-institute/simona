@@ -97,22 +97,29 @@ case object ReceivedValuesStore {
         (uuid, actorRefs.toVector.map(actorRef => actorRef -> None))
     }
 
-    /* Add everything, that I expect from my sub ordinate grid agents */
-    inferiorSubGridGateToActorRef.foldLeft(assetsToReceivedPower) {
-      case (subOrdinateToReceivedPower, (gate, inferiorSubGridRef)) =>
-        val couplingNodeUuid = gate.getSuperiorNode.getUuid
+    /* Add everything, that I expect from my sub ordinate grid agents. Build distinct pairs of sending actor reference
+     * and target node */
+    inferiorSubGridGateToActorRef.toVector
+      .map { case (gate, reference) =>
+        reference -> gate.getSuperiorNode.getUuid
+      }
+      .distinct
+      .foldLeft(assetsToReceivedPower) {
+        case (
+              subOrdinateToReceivedPower,
+              (inferiorSubGridRef, couplingNodeUuid)
+            ) =>
+          /* Check, if there is yet something expected for the given coupling node and add reference to the subordinate
+           * grid agent */
+          val actorRefToMessage = subOrdinateToReceivedPower
+            .getOrElse(
+              couplingNodeUuid,
+              Vector.empty[(ActorRef, Option[ProvidePowerMessage])]
+            ) :+ (inferiorSubGridRef -> None)
 
-        /* Check, if there is yet something expected for the given coupling node and add reference to the subordinate
-         * grid agent */
-        val actorRefToMessage = subOrdinateToReceivedPower
-          .getOrElse(
-            couplingNodeUuid,
-            Vector.empty[(ActorRef, Option[ProvidePowerMessage])]
-          ) :+ (inferiorSubGridRef -> None)
-
-        /* Update the existing map */
-        subOrdinateToReceivedPower + (couplingNodeUuid -> actorRefToMessage)
-    }
+          /* Update the existing map */
+          subOrdinateToReceivedPower + (couplingNodeUuid -> actorRefToMessage)
+      }
   }
 
   /** Composes an empty [[NodeToReceivedSlackVoltage]] with all options
