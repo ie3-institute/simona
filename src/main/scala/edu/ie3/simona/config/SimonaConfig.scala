@@ -649,7 +649,8 @@ object SimonaConfig {
     final case class Input(
         grid: SimonaConfig.Simona.Input.Grid,
         primary: SimonaConfig.Simona.Input.Primary,
-        weather: SimonaConfig.Simona.Input.Weather
+        weather: SimonaConfig.Simona.Input.Weather,
+        mobilitySimulator: SimonaConfig.Simona.Input.MobilitySimulator
     )
     object Input {
       final case class Grid(
@@ -1421,6 +1422,51 @@ object SimonaConfig {
         }
       }
 
+      final case class MobilitySimulator(
+          numberOfEvs: java.lang.String,
+          folderPath: java.lang.String,
+          gridName: java.lang.String,
+          shareOfEvsWithHomeCharging: java.lang.String
+      )
+
+      object MobilitySimulator {
+
+        def apply(
+            c: com.typesafe.config.Config,
+            parentPath: java.lang.String,
+            $tsCfgValidator: $TsCfgValidator
+        ): SimonaConfig.Simona.Input.MobilitySimulator = {
+          SimonaConfig.Simona.Input.MobilitySimulator(
+            numberOfEvs =
+              $_reqStr(parentPath, c, "numberOfEvs", $tsCfgValidator),
+            folderPath = $_reqStr(parentPath, c, "folderPath", $tsCfgValidator),
+            gridName = $_reqStr(parentPath, c, "gridName", $tsCfgValidator),
+            shareOfEvsWithHomeCharging = $_reqStr(
+              parentPath,
+              c,
+              "shareOfEvsWithHomeCharging",
+              $tsCfgValidator
+            )
+          )
+        }
+
+        private def $_reqStr(
+            parentPath: java.lang.String,
+            c: com.typesafe.config.Config,
+            path: java.lang.String,
+            $tsCfgValidator: $TsCfgValidator
+        ): java.lang.String = {
+          if (c == null) null
+          else
+            try c.getString(path)
+            catch {
+              case e: com.typesafe.config.ConfigException =>
+                $tsCfgValidator.addBadPath(parentPath + path, e)
+                null
+            }
+        }
+      }
+
       def apply(
           c: com.typesafe.config.Config,
           parentPath: java.lang.String,
@@ -1443,6 +1489,15 @@ object SimonaConfig {
             if (c.hasPathOrNull("weather")) c.getConfig("weather")
             else com.typesafe.config.ConfigFactory.parseString("weather{}"),
             parentPath + "weather.",
+            $tsCfgValidator
+          ),
+          mobilitySimulator = SimonaConfig.Simona.Input.MobilitySimulator(
+            if (c.hasPathOrNull("mobilitySimulator"))
+              c.getConfig("mobilitySimulator")
+            else
+              com.typesafe.config.ConfigFactory
+                .parseString("mobilitySimulator{}"),
+            parentPath + "mobilitySimulator.",
             $tsCfgValidator
           )
         )
