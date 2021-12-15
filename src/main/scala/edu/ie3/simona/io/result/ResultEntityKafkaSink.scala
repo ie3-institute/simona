@@ -115,6 +115,7 @@ object ResultEntityKafkaSink {
         runId,
         full.getTime.toString,
         full.getUuid,
+        full.getInputModel,
         full.getvMag().getValue.doubleValue(),
         full.getvAng().getValue.doubleValue()
       )

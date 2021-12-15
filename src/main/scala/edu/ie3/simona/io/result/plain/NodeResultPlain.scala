@@ -12,6 +12,7 @@ case class NodeResultPlain(
     simRunId: UUID,
     time: String,
     uuid: UUID,
+    inputModel: UUID,
     vMag: Double,
     vAng: Double
 ) extends ResultPlain
