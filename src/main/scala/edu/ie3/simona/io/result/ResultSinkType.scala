@@ -38,7 +38,7 @@ object ResultSinkType {
       sinkConfig: SimonaConfig.Simona.Output.Sink,
       runName: String
   ): ResultSinkType = {
-    val sink: Seq[Any] = Seq(sinkConfig.csv, sinkConfig.influxDb1x).flatten
+    val sink: Seq[Any] = Seq(sinkConfig.csv, sinkConfig.influxDb1x, sinkConfig.kafka).flatten
 
     if (sink.size > 1)
       throw new IllegalArgumentException(
