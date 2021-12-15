@@ -89,7 +89,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.4" // akka scala logging
-  implementation "ch.qos.logback:logback-classic:1.2.7"
+  implementation "ch.qos.logback:logback-classic:1.2.8"
 
   /* testing */
   testImplementation 'org.spockframework:spock-core:2.0-groovy-3.0'
