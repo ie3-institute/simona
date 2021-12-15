@@ -8,7 +8,7 @@ package edu.ie3.simona.io.result
 
 import com.sksamuel.avro4s.RecordFormat
 import edu.ie3.datamodel.models.result.NodeResult
-import edu.ie3.simona.io.result.plain.NodeResultPlain
+import edu.ie3.simona.io.result.plain.PlainNodeResult
 import edu.ie3.simona.test.KafkaFlatSpec
 import edu.ie3.simona.test.KafkaFlatSpec.Topic
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -32,12 +32,12 @@ import scala.language.postfixOps
   */
 class ResultEntityKafkaSpec extends KafkaFlatSpec {
 
-  var testConsumer: KafkaConsumer[Bytes, NodeResultPlain] = _
+  var testConsumer: KafkaConsumer[Bytes, PlainNodeResult] = _
 
-  private implicit lazy val resultFormat: RecordFormat[NodeResultPlain] =
-    RecordFormat[NodeResultPlain]
-  val deserializer: Deserializer[NodeResultPlain] =
-    ScalaReflectionSerde.reflectionDeserializer4S[NodeResultPlain]
+  private implicit lazy val resultFormat: RecordFormat[PlainNodeResult] =
+    RecordFormat[PlainNodeResult]
+  val deserializer: Deserializer[PlainNodeResult] =
+    ScalaReflectionSerde.reflectionDeserializer4S[PlainNodeResult]
 
   private val topic = "testtopic"
 
@@ -56,7 +56,7 @@ class ResultEntityKafkaSpec extends KafkaFlatSpec {
       "group.id" -> "test",
       "bootstrap.servers" -> kafka.getBootstrapServers
     )
-    testConsumer = new KafkaConsumer[Bytes, NodeResultPlain](
+    testConsumer = new KafkaConsumer[Bytes, PlainNodeResult](
       config.asJava,
       Serdes.Bytes().deserializer(),
       deserializer
@@ -113,7 +113,7 @@ class ResultEntityKafkaSpec extends KafkaFlatSpec {
     Then("records can be fetched from Kafka")
     eventually(timeout(5 second), interval(1 second)) {
       testConsumer.seekToBeginning(topicPartitions.asJava)
-      val records: List[NodeResultPlain] =
+      val records: List[PlainNodeResult] =
         testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
 
       records should have length 3

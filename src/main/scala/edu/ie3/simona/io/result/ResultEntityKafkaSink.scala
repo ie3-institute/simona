@@ -8,24 +8,21 @@ package edu.ie3.simona.io.result
 
 import com.sksamuel.avro4s.RecordFormat
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
-import edu.ie3.simona.io.result.ResultEntityKafkaSink.PlainWriter
-import edu.ie3.simona.io.result.plain.{NodeResultPlain, ResultPlain}
-import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.simona.io.result.plain.PlainResult.PlainNodeResult
+import edu.ie3.simona.io.result.plain.PlainWriter.NodeResultWriter
+import edu.ie3.simona.io.result.plain.{PlainResult, PlainWriter}
 import edu.ie3.util.scala.io.ScalaReflectionSerde.reflectionSerializer4S
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
 import org.apache.kafka.common.serialization.{Serdes, Serializer}
-import tech.units.indriya.quantity.Quantities
 
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import java.util.{Properties, UUID}
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
 final case class ResultEntityKafkaSink[
     V <: ResultEntity,
-    P <: ResultPlain
+    P <: PlainResult
 ] private (
     producer: KafkaProducer[String, P],
     plainWriter: PlainWriter[V, P],
@@ -55,7 +52,7 @@ object ResultEntityKafkaSink {
       linger: Int
   )(implicit
       tag: ClassTag[R]
-  ): ResultEntityKafkaSink[_ <: ResultEntity, _ <: ResultPlain] = {
+  ): ResultEntityKafkaSink[_ <: ResultEntity, _ <: PlainResult] = {
     val props = new Properties()
     props.put(ProducerConfig.LINGER_MS_CONFIG, linger)
     props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
@@ -68,13 +65,13 @@ object ResultEntityKafkaSink {
 
     tag.runtimeClass match {
       case NodeResClass =>
-        implicit val recordFormat: RecordFormat[NodeResultPlain] =
-          RecordFormat[NodeResultPlain]
+        implicit val recordFormat: RecordFormat[PlainNodeResult] =
+          RecordFormat[PlainNodeResult]
         createSink(schemaRegistryUrl, props, topic, NodeResultWriter(runId))
     }
   }
 
-  private def createSink[F <: ResultEntity, P <: ResultPlain: RecordFormat](
+  private def createSink[F <: ResultEntity, P <: PlainResult: RecordFormat](
       schemaRegistryUrl: String,
       props: Properties,
       topic: String,
@@ -97,40 +94,5 @@ object ResultEntityKafkaSink {
       writer,
       topic
     )
-  }
-
-  trait PlainWriter[F <: ResultEntity, P <: ResultPlain] {
-    def writePlain(full: F): P
-
-    def createFull(plain: P): F
-
-    def createSimpleTimeStamp(dateTime: ZonedDateTime): String = {
-      val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-      dateTime.format(formatter)
-    }
-  }
-
-  case class NodeResultWriter(runId: UUID)
-      extends PlainWriter[NodeResult, NodeResultPlain] {
-    override def writePlain(full: NodeResult): NodeResultPlain = {
-
-      NodeResultPlain(
-        runId,
-        createSimpleTimeStamp(full.getTime),
-        full.getUuid,
-        full.getInputModel,
-        full.getvMag.getValue.doubleValue(),
-        full.getvAng.getValue.doubleValue()
-      )
-    }
-
-    override def createFull(plain: NodeResultPlain): NodeResult = {
-      new NodeResult(
-        ZonedDateTime.parse(plain.time),
-        plain.uuid,
-        Quantities.getQuantity(plain.vMag, PowerSystemUnits.PU),
-        Quantities.getQuantity(plain.vAng, PowerSystemUnits.DEGREE_GEOM)
-      )
-    }
   }
 }
