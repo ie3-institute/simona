@@ -1,3 +1,9 @@
+/*
+ * © 2021. TU Dortmund University,
+ * Institute of Energy Systems, Energy Efficiency and Energy Economics,
+ * Research group Distribution grid planning and operation
+ */
+
 package edu.ie3.simona.io.result.plain
 
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
@@ -20,10 +26,10 @@ sealed trait PlainWriter[F <: ResultEntity, P <: PlainResult] {
   }
 }
 
-object PlainWriter{
+object PlainWriter {
 
   case class NodeResultWriter(runId: UUID)
-    extends PlainWriter[NodeResult, PlainNodeResult] {
+      extends PlainWriter[NodeResult, PlainNodeResult] {
 
     override def writePlain(full: NodeResult): PlainNodeResult = {
       PlainNodeResult(

@@ -11,14 +11,12 @@ import java.util.UUID
 sealed trait PlainResult
 
 object PlainResult {
-    case class PlainNodeResult(
-        simRunId: UUID,
-        time: String,
-        uuid: UUID,
-        inputModel: UUID,
-        vMag: Double,
-        vAng: Double
-    ) extends PlainResult
+  case class PlainNodeResult(
+      simRunId: UUID,
+      time: String,
+      uuid: UUID,
+      inputModel: UUID,
+      vMag: Double,
+      vAng: Double
+  ) extends PlainResult
 }
-
-
