@@ -8,7 +8,7 @@ package edu.ie3.simona.io.result
 
 import com.sksamuel.avro4s.RecordFormat
 import edu.ie3.datamodel.models.result.NodeResult
-import edu.ie3.simona.io.result.plain.PlainNodeResult
+import edu.ie3.simona.io.result.plain.PlainResult.PlainNodeResult
 import edu.ie3.simona.test.KafkaFlatSpec
 import edu.ie3.simona.test.KafkaFlatSpec.Topic
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -118,28 +118,31 @@ class ResultEntityKafkaSpec extends KafkaFlatSpec {
 
       records should have length 3
       records should contain(
-        NodeResultPlain(
+        PlainNodeResult(
           runId,
           nodeRes1.getTime.toString,
           nodeRes1.getUuid,
+          nodeRes1.getInputModel,
           nodeRes1.getvMag().getValue.doubleValue(),
           nodeRes1.getvAng().getValue.doubleValue()
         )
       )
       records should contain(
-        NodeResultPlain(
+        PlainNodeResult(
           runId,
           nodeRes2.getTime.toString,
           nodeRes2.getUuid,
+          nodeRes2.getInputModel,
           nodeRes2.getvMag().getValue.doubleValue(),
           nodeRes2.getvAng().getValue.doubleValue()
         )
       )
       records should contain(
-        NodeResultPlain(
+        PlainNodeResult(
           runId,
           nodeRes3.getTime.toString,
           nodeRes3.getUuid,
+          nodeRes3.getInputModel,
           nodeRes3.getvMag().getValue.doubleValue(),
           nodeRes3.getvAng().getValue.doubleValue()
         )
