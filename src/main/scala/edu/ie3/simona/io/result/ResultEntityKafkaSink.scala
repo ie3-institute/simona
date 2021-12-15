@@ -121,10 +121,10 @@ object ResultEntityKafkaSink {
 
     override def createFull(plain: NodeResultPlain): NodeResult = {
       new NodeResult(
-        ZonedDateTime.parse(plain.dateTime),
+        ZonedDateTime.parse(plain.time),
         plain.uuid,
-        Quantities.getQuantity(plain.vMagPU, PowerSystemUnits.PU),
-        Quantities.getQuantity(plain.vAngDeg, PowerSystemUnits.DEGREE_GEOM)
+        Quantities.getQuantity(plain.vMag, PowerSystemUnits.PU),
+        Quantities.getQuantity(plain.vAng, PowerSystemUnits.DEGREE_GEOM)
       )
     }
   }

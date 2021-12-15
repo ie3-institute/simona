@@ -9,9 +9,9 @@ package edu.ie3.simona.io.result.plain
 import java.util.UUID
 
 case class NodeResultPlain(
-    runId: UUID,
-    dateTime: String,
+    simRunId: UUID,
+    time: String,
     uuid: UUID,
-    vMagPU: Double,
-    vAngDeg: Double
+    vMag: Double,
+    vAng: Double
 ) extends ResultPlain
