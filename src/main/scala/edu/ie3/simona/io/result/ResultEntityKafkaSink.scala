@@ -50,7 +50,7 @@ object ResultEntityKafkaSink {
 
   def apply[R](
       topic: String,
-      runId: UUID,
+      simRunId: UUID,
       bootstrapServers: String,
       schemaRegistryUrl: String,
       linger: Int
@@ -71,7 +71,7 @@ object ResultEntityKafkaSink {
       case NodeResClass =>
         implicit val recordFormat: RecordFormat[PlainNodeResult] =
           RecordFormat[PlainNodeResult]
-        createSink(schemaRegistryUrl, props, topic, NodeResultWriter(runId))
+        createSink(schemaRegistryUrl, props, topic, NodeResultWriter(simRunId))
     }
   }
 

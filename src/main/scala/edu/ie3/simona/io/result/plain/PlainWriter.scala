@@ -28,12 +28,12 @@ sealed trait PlainWriter[F <: ResultEntity, P <: PlainResult] {
 
 object PlainWriter {
 
-  case class NodeResultWriter(runId: UUID)
+  case class NodeResultWriter(simRunId: UUID)
       extends PlainWriter[NodeResult, PlainNodeResult] {
 
     override def writePlain(full: NodeResult): PlainNodeResult = {
       PlainNodeResult(
-        runId,
+        simRunId,
         createSimpleTimeStamp(full.getTime),
         full.getUuid,
         full.getInputModel,
