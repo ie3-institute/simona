@@ -13,15 +13,12 @@ import edu.ie3.simona.io.result.plain.{NodeResultPlain, ResultPlain}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.io.ScalaReflectionSerde.reflectionSerializer4S
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG
-import org.apache.kafka.clients.producer.{
-  KafkaProducer,
-  ProducerConfig,
-  ProducerRecord
-}
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
 import org.apache.kafka.common.serialization.{Serdes, Serializer}
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.{Properties, UUID}
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
@@ -106,19 +103,26 @@ object ResultEntityKafkaSink {
     def writePlain(full: F): P
 
     def createFull(plain: P): F
+
+    def createSimpleTimeStamp(dateTime: ZonedDateTime): String = {
+      val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+      dateTime.format(formatter)
+    }
   }
 
   case class NodeResultWriter(runId: UUID)
       extends PlainWriter[NodeResult, NodeResultPlain] {
-    override def writePlain(full: NodeResult): NodeResultPlain =
+    override def writePlain(full: NodeResult): NodeResultPlain = {
+
       NodeResultPlain(
         runId,
-        full.getTime.toString,
+        createSimpleTimeStamp(full.getTime),
         full.getUuid,
         full.getInputModel,
-        full.getvMag().getValue.doubleValue(),
-        full.getvAng().getValue.doubleValue()
+        full.getvMag.getValue.doubleValue(),
+        full.getvAng.getValue.doubleValue()
       )
+    }
 
     override def createFull(plain: NodeResultPlain): NodeResult = {
       new NodeResult(
