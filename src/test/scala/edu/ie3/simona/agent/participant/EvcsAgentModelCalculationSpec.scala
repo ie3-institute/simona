@@ -29,7 +29,7 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.api.data.ev.ontology.builder.EvcsMovementsBuilder
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
+import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsRelevantData
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
@@ -57,7 +57,6 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
   InitializeParticipantAgentTrigger
 }
-import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DISTANCE
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.EvTestData
 import edu.ie3.simona.test.common.input.EvcsInputTestData
@@ -541,8 +540,9 @@ class EvcsAgentModelCalculationSpec
             case ValueStore(_, store) =>
               store shouldBe Map(
                 0L -> EvcsRelevantData(
-                  FALLBACK_EV_MOVEMENTS_STEM_DISTANCE,
-                  Set(evA, evB)
+                  Set(evA, evB),
+                  Set.empty,
+                  Map.empty // TODO: NSteffan: Adapted tests just to make them work for master thesis
                 )
               )
           }
@@ -681,8 +681,9 @@ class EvcsAgentModelCalculationSpec
             case ValueStore(_, store) =>
               store shouldBe Map(
                 0L -> EvcsRelevantData(
-                  FALLBACK_EV_MOVEMENTS_STEM_DISTANCE,
-                  Set(evA, evB)
+                  Set(evA, evB),
+                  Set.empty,
+                  Map.empty // TODO: NSteffan: Adapted tests just to make them work for master thesis
                 )
               )
           }

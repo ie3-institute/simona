@@ -20,8 +20,8 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
-import edu.ie3.simona.model.participant.EvcsModel
-import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
+import edu.ie3.simona.model.participant.evcs.EvcsModel
+import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsRelevantData
 import tech.units.indriya.ComparableQuantity
 
 import javax.measure.quantity.Power
