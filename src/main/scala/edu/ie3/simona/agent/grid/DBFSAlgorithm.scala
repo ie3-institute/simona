@@ -17,6 +17,7 @@ import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
+import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   PowerFlowDoneData
@@ -116,6 +117,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       // we just received either all provided slack voltage values or all provided power values
       val updatedGridAgentBaseData: GridAgentBaseData = receivedValues match {
         case receivedPowers: ReceivedPowerValues =>
+          /* Can be a message from an asset or a message from an inferior grid */
           gridAgentBaseData.updateWithReceivedPowerValues(receivedPowers)
         case receivedSlacks: ReceivedSlackValues =>
           gridAgentBaseData.updateWithReceivedSlackVoltages(receivedSlacks)
@@ -151,7 +153,6 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           allValuesReceived,
           updatedGridAgentBaseData
         )
-
       }
 
     // if we receive a request for slack voltages from our inferior grids we want to answer it
@@ -256,14 +257,31 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     // / before power flow calc for this sweep we either have to stash() the message to answer it later (in current sweep)
     // / or trigger a new run for the next sweepNo
     case Event(
-          RequestGridPowerMessage(requestSweepNo, _),
+          RequestGridPowerMessage(requestSweepNo, requestedNodeUuids),
           gridAgentBaseData: GridAgentBaseData
         ) =>
+      val firstRequestedNodeUuid = requestedNodeUuids.headOption match {
+        case Some(uuid) => uuid
+        case None =>
+          throw new RuntimeException(
+            "Did receive a grid power request but without specified nodes"
+          )
+      }
+      val queryingSubnet = gridAgentBaseData.gridEnv.subnetGateToActorRef
+        .find(_._1.getSuperiorNode.getUuid == firstRequestedNodeUuid)
+        .map(_._1.getSuperiorNode.getSubnet)
+        .getOrElse(-1000)
+
       if (gridAgentBaseData.currentSweepNo == requestSweepNo) {
         log.debug(
           s"Received request for grid power values for sweepNo {} before my first power flow calc. Stashing away.",
           requestSweepNo
         )
+        if (gridAgentBaseData.gridEnv.gridModel.subnetNo == 3000) {
+          log.info(
+            s"GridAgent 3000 received a grid power request from subnet $queryingSubnet, before power flow has been calculated. Stash it away."
+          )
+        }
         stash()
         stay()
       } else {
@@ -272,6 +290,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           requestSweepNo,
           gridAgentBaseData.currentSweepNo
         )
+        if (gridAgentBaseData.gridEnv.gridModel.subnetNo == 3000) {
+          log.info(
+            s"GridAgent 3000 received a grid power request from subnet $queryingSubnet, before power flow has been calculated. Initiate new sweep."
+          )
+        }
         self ! PrepareNextSweepTrigger(currentTick)
 
         stash()
@@ -280,61 +303,114 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
     // / after power flow calc for this sweepNo
     case Event(
-          RequestGridPowerMessage(_, requestedNodeUuid),
-          PowerFlowDoneData(gridAgentBaseData, powerFlowResult)
+          RequestGridPowerMessage(_, requestedNodeUuids),
+          powerFlowDoneData @ PowerFlowDoneData(
+            gridAgentBaseData,
+            powerFlowResult,
+            pendingRequestAnswers
+          )
         ) =>
-      log.debug(
-        "Received request for grid power values and im READY to provide."
-      )
-
-      // get the index from the power flow data of the requested node
-      val requestedNodeIdxOpt =
-        gridAgentBaseData.gridEnv.gridModel.nodeUuidToIndexMap
-          .get(requestedNodeUuid)
-
-      powerFlowResult match {
-        case validNewtonRaphsonPFResult: ValidNewtonRaphsonPFResult =>
-          val (p, q) = validNewtonRaphsonPFResult.nodeData.find(stateData =>
-            requestedNodeIdxOpt.contains(stateData.index)
-          ) match {
-            case Some(apparentPowerS) =>
-              val refSystem = gridAgentBaseData.gridEnv.gridModel.mainRefSystem
-              val (pInPu, qInPu) =
-                (apparentPowerS.power.real, apparentPowerS.power.imag)
-              // The power flow result data provides the nodal residual power at the slack node.
-              // A feed-in case from the inferior grid TO the superior grid leads to positive residual power at the
-              // inferior grid's *slack node* (superior grid seems to be a load to the inferior grid).
-              // To model the exchanged power from the superior grid's point of view, -1 has to be multiplied.
-              // (Inferior grid is a feed in facility to superior grid, which is negative then). Analogously for load case.
-              (
-                refSystem.pInSi(pInPu).multiply(-1),
-                refSystem.qInSi(qInPu).multiply(-1)
-              )
-            case None =>
-              throw new DBFSAlgorithmException(
-                s"Got a request for power @ node with uuid $requestedNodeUuid but cannot find it in my result data!"
-              )
-          }
-
-          // update the sweep value store and clear all received maps
-          // note: normally it is expected that this has to be done after power flow calculations but for the sake
-          // of having it only once in the code we put this here. Otherwise it would have to been putted before EVERY
-          // return with a valid power flow result (currently happens already in two situations)
-          val updatedGridAgentBaseData =
-            gridAgentBaseData.storeSweepDataAndClearReceiveMaps(
-              validNewtonRaphsonPFResult,
-              gridAgentBaseData.superiorGridNodeUuids,
-              gridAgentBaseData.inferiorGridGates
+      /* Determine the subnet number of the grid agent, that has sent the request */
+      val firstRequestedNodeUuid = requestedNodeUuids.headOption match {
+        case Some(uuid) => uuid
+        case None =>
+          throw new RuntimeException(
+            "Did receive a grid power request but without specified nodes"
+          )
+      }
+      gridAgentBaseData.gridEnv.subnetGateToActorRef
+        .find(_._1.getSuperiorNode.getUuid == firstRequestedNodeUuid)
+        .map(_._1.getSuperiorNode.getSubnet) match {
+        case Some(requestingSubnetNumber) =>
+          if (gridAgentBaseData.gridEnv.gridModel.subnetNo == 3000) {
+            log.info(
+              s"GridAgent 3000 received a grid power request from subnet $requestingSubnetNumber, after power flow has been calculated."
             )
+          }
+          log.debug(
+            "Received request for grid power values and im READY to provide."
+          )
 
-          stay() replying
-            ProvideGridPowerMessage(
-              requestedNodeUuid,
-              p,
-              q
-            ) using updatedGridAgentBaseData
+          powerFlowResult match {
+            case validNewtonRaphsonPFResult: ValidNewtonRaphsonPFResult =>
+              val exchangePowers = requestedNodeUuids
+                .map { nodeUuid =>
+                  /* Figure out the node index for each requested node */
+                  nodeUuid -> gridAgentBaseData.gridEnv.gridModel.nodeUuidToIndexMap
+                    .get(nodeUuid)
+                    .flatMap { nodeIndex =>
+                      /* Find matching node result */
+                      validNewtonRaphsonPFResult.nodeData.find(stateData =>
+                        stateData.index == nodeIndex
+                      )
+                    }
+                    .map {
+                      case StateData(_, nodeType, _, power)
+                          if nodeType == NodeType.SL =>
+                        val refSystem =
+                          gridAgentBaseData.gridEnv.gridModel.mainRefSystem
+                        val (pInPu, qInPu) =
+                          (power.real, power.imag)
+                        // The power flow result data provides the nodal residual power at the slack node.
+                        // A feed-in case from the inferior grid TO the superior grid leads to positive residual power at the
+                        // inferior grid's *slack node* (superior grid seems to be a load to the inferior grid).
+                        // To model the exchanged power from the superior grid's point of view, -1 has to be multiplied.
+                        // (Inferior grid is a feed in facility to superior grid, which is negative then). Analogously for load case.
+                        (
+                          refSystem.pInSi(pInPu).multiply(-1),
+                          refSystem.qInSi(qInPu).multiply(-1)
+                        )
+                      case _ =>
+                        /* TODO: As long as there are no multiple slack nodes, provide "real" power only for the slack node */
+                        (
+                          Quantities.getQuantity(0d, PowerSystemUnits.MEGAWATT),
+                          Quantities.getQuantity(0d, PowerSystemUnits.MEGAVAR)
+                        )
+                    }
+                    .getOrElse {
+                      throw new DBFSAlgorithmException(
+                        s"Got a request for power @ node with uuid $requestedNodeUuids but cannot find it in my result data!"
+                      )
+                    }
+                }
+                .map { case (nodeUuid, (p, q)) =>
+                  ProvideGridPowerMessage.ExchangePower(nodeUuid, p, q)
+                }
 
-        case _: FailedNewtonRaphsonPFResult =>
+              /* Determine the remaining replies */
+              val stillPendingRequestAnswers =
+                pendingRequestAnswers.filterNot(_ == requestingSubnetNumber)
+
+              // update the sweep value store and clear all received maps
+              // note: normally it is expected that this has to be done after power flow calculations but for the sake
+              // of having it only once in the code we put this here. Otherwise it would have to been putted before EVERY
+              // return with a valid power flow result (currently happens already in two situations)
+              val updatedGridAgentBaseData =
+                if (stillPendingRequestAnswers.isEmpty) {
+                  gridAgentBaseData.storeSweepDataAndClearReceiveMaps(
+                    validNewtonRaphsonPFResult,
+                    gridAgentBaseData.superiorGridNodeUuids,
+                    gridAgentBaseData.inferiorGridGates
+                  )
+                } else {
+                  powerFlowDoneData.copy(pendingRequestAnswers =
+                    stillPendingRequestAnswers
+                  )
+                }
+
+              stay() replying
+                ProvideGridPowerMessage(
+                  exchangePowers
+                ) using updatedGridAgentBaseData
+
+            case _: FailedNewtonRaphsonPFResult =>
+              stay() replying FailedPowerFlow using gridAgentBaseData
+          }
+        case None =>
+          /* It is not possible to determine, who has asked */
+          log.error(
+            "I got a grid power request from a subnet I don't know. Can't answer it properly."
+          )
           stay() replying FailedPowerFlow using gridAgentBaseData
       }
 
@@ -1105,29 +1181,30 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       s"asking inferior grids for power values: {}",
       inferiorGridGates
     )
-    if (inferiorGridGates.nonEmpty)
-      Some(
-        Future
-          .sequence(
-            inferiorGridGates.map(inferiorGridGate => {
-              val inferiorGridAgent =
-                subGridGateToActorRef(inferiorGridGate)
-              (inferiorGridAgent ? RequestGridPowerMessage(
+    Option.when(inferiorGridGates.nonEmpty) {
+      Future
+        .sequence(
+          inferiorGridGates
+            .map { subGridGate =>
+              subGridGateToActorRef(subGridGate) -> subGridGate
+            }
+            .groupBy(_._1) // Group the gates by target actor, so that only one request is sent per grid agent
+            .map { case (inferiorGridAgentRef, inferiorGridGates) =>
+              (inferiorGridAgentRef ? RequestGridPowerMessage(
                 currentSweepNo,
-                inferiorGridGate.getSuperiorNode.getUuid
+                inferiorGridGates.map(_._2.getSuperiorNode.getUuid).distinct
               )).map {
                 case provideGridPowerMessage: ProvideGridPowerMessage =>
-                  (inferiorGridAgent, Option(provideGridPowerMessage))
+                  (inferiorGridAgentRef, Option(provideGridPowerMessage))
                 case FailedPowerFlow =>
-                  (inferiorGridAgent, Some(FailedPowerFlow))
+                  (inferiorGridAgentRef, Some(FailedPowerFlow))
               }.mapTo[ActorPowerRequestResponse]
-            })
-          )
-          .map(ReceivedGridPowerValues)
-          .pipeTo(self)
-      )
-    else
-      None
+            }
+            .toVector
+        )
+        .map(ReceivedGridPowerValues)
+        .pipeTo(self)
+    }
   }
 
   /** Triggers an execution of the akka `ask` pattern for all slack voltages of

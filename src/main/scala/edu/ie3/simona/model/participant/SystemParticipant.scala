@@ -154,10 +154,10 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
         KILOVOLTAMPERE
       )
 
-      if (apparentPower.isGreaterThan(sMax)) {
+      if (apparentPower.isGreaterThan(sMax.multiply(1.05))) {
         logger.warn(
           s"The var characteristics \'$qControl\' of model \'$id\' ($uuid) imposes an apparent " +
-            s"power (= $apparentPower) that exceeds " +
+            s"power (= $apparentPower) that exceeds 105 % of " +
             s"rated apparent power specifications (= $sMax). " +
             s"Therefore, setting reactive power output to the to the upper limit " +
             s"in correspondence to the existing active power $activePower."

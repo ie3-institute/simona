@@ -32,7 +32,7 @@ import javax.measure.Quantity
 import javax.measure.quantity.{Dimensionless, ElectricPotential}
 import tech.units.indriya.quantity.Quantities
 
-import scala.annotation.tailrec
+import scala.util.{Failure, Success, Try}
 
 /** Support and helper methods for power flow calculations provided by
   * [[edu.ie3.powerflow]]
@@ -417,7 +417,6 @@ trait PowerFlowSupport {
     * @return
     *   The result of newton raphson power flow calculation
     */
-  @tailrec
   protected final def newtonRaphsonPF(
       gridModel: GridModel,
       maxIterations: Int,
@@ -445,10 +444,30 @@ trait PowerFlowSupport {
         // / execute
         val powerFlow =
           NewtonRaphsonPF(epsilon, maxIterations, admittanceMatrix)
-        powerFlow.calculate(
-          operatingPoint,
-          Some(forcedSlackNodeVoltage)
-        ) match {
+
+        /* Currently, only one slack node per sub net is allowed. In case a model has more than one, set all others to
+         * PQ nodes. ATTENTION: This does not cover the power flow situation correctly! */
+        val adaptedOperatingPoint = operatingPoint
+          .foldLeft((Array.empty[PresetData], true)) {
+            case ((adaptedOperatingPoint, firstSlack), nodePreset)
+                if nodePreset.nodeType == NodeType.SL =>
+              /* If this is the first slack node see, leave it as a slack node. If it is not the first one. Make it a
+               * PQ node. */
+              val adaptedNodePreset =
+                if (firstSlack) nodePreset
+                else nodePreset.copy(nodeType = NodeType.PQ)
+              (adaptedOperatingPoint.appended(adaptedNodePreset), false)
+            case ((adaptedOperatingPoint, firstSlack), nodePreset) =>
+              (adaptedOperatingPoint.appended(nodePreset), firstSlack)
+          }
+          ._1
+
+        Try {
+          powerFlow.calculate(
+            adaptedOperatingPoint,
+            Some(forcedSlackNodeVoltage)
+          )
+        }.map {
           case _: PowerFlowResult.FailedPowerFlowResult if epsilons.size > 1 =>
             // if we can relax, we relax
             val epsilonsLeft = epsilons.drop(1)
@@ -462,6 +481,13 @@ trait PowerFlowSupport {
             )
           case result =>
             result
+        } match {
+          case Success(result) => result
+          case Failure(exception) =>
+            throw new DBFSAlgorithmException(
+              s"Power flow calculation in subnet ${gridModel.subnetNo} failed.",
+              exception
+            )
         }
       case None =>
         throw new DBFSAlgorithmException(
