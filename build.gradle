@@ -126,7 +126,7 @@ dependencies {
   implementation 'javax.measure:unit-api:2.1.3'
   implementation 'tech.units:indriya:2.1.2' // quantities
   implementation 'org.apache.commons:commons-csv:1.9.0'
-  implementation 'org.scalanlp:breeze_2.13:1.3' // scientific calculations (http://www.scalanlp.org/)
+  implementation 'org.scalanlp:breeze_2.13:2.0' // scientific calculations (http://www.scalanlp.org/)
   implementation 'de.lmu.ifi.dbs.elki:elki:0.7.5' // Statistics (for random load model)
   implementation 'com.google.guava:guava:31.0.1-jre' // Building threads
   implementation 'org.jgrapht:jgrapht-core:1.4.0'
