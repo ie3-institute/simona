@@ -26,7 +26,7 @@ ext {
 
   scalaVersion = '2.13'
   scalaBinaryVersion = '2.13.5'
-  akkaVersion = '2.6.17'
+  akkaVersion = '2.6.18'
   tscfgVersion = '0.9.996'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
