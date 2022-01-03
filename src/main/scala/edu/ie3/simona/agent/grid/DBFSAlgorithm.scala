@@ -803,8 +803,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             val allowedDeviation =
               gridAgentBaseData.powerFlowParams.maxSweepPowerDeviation
 
-            (previousSweepNodePower - currentSweepNodePower)
-              .toScalaVector()
+            (previousSweepNodePower - currentSweepNodePower).toScalaVector
               .find(complex => {
                 Math.abs(complex.real) >= allowedDeviation |
                   Math.abs(complex.imag) >= allowedDeviation
@@ -823,8 +822,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
                 log.debug(
                   "Final deviation: {}",
-                  (previousSweepNodePower - currentSweepNodePower)
-                    .toScalaVector()
+                  (previousSweepNodePower - currentSweepNodePower).toScalaVector
                 )
 
                 // go back to SimulateGrid and trigger a finish
