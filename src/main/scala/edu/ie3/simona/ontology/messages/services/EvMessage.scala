@@ -52,6 +52,8 @@ object EvMessage {
 
   final case object EvFreeLotsRequest extends EvData
 
+  final case object CurrentPriceRequest extends EvData
+
   /** Hold EV movements for one Evcs
     *
     * @param movements
@@ -71,5 +73,10 @@ object EvMessage {
   final case class DepartedEvsResponse(
       evcs: UUID,
       evModels: Set[EvModel]
+  ) extends EvResponseMessage
+
+  final case class CurrentPriceResponse(
+      evcs: UUID,
+      currentPrice: Double
   ) extends EvResponseMessage
 }
