@@ -7,7 +7,7 @@ plugins {
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
   id 'pmd' // code check, working on source code
-  id 'com.diffplug.spotless' version '6.1.0'// code format
+  id 'com.diffplug.spotless' version '6.1.2'// code format
   id 'com.github.onslip.gradle-one-jar' version '1.0.6' // pack a self contained jar
   id "com.github.ben-manes.versions" version '0.40.0'
   id "de.undercouch.download" version "4.1.2" // downloads plugin
