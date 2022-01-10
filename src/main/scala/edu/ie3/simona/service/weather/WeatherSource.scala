@@ -18,6 +18,12 @@ import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
+import edu.ie3.simona.config.util.CsvConfigUtil.checkCsvParams
+import edu.ie3.simona.config.util.DatabaseConfigUtil.{
+  checkCouchbaseParams,
+  checkInfluxDb1xParams,
+  checkSqlParams
+}
 import edu.ie3.simona.exceptions.{
   InvalidConfigParameterException,
   ServiceException
@@ -26,12 +32,6 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates
-}
-import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkCsvParams
-import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
-  checkCouchbaseParams,
-  checkInfluxDb1xParams,
-  checkSqlParams
 }
 import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}

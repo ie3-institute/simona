@@ -37,7 +37,8 @@ final case class ResultFileHierarchy(
     private val outputDir: String,
     private val simulationName: String,
     private val resultEntityPathConfig: ResultEntityPathConfig,
-    private val configureLogger: String => Unit = LogbackConfiguration.default,
+    private val loggerConfig: String => LogbackConfiguration =
+      LogbackConfiguration.Default,
     private val addTimeStampToOutputDir: Boolean = true,
     private val createDirs: Boolean = false
 ) extends LazyLogging {
@@ -106,7 +107,8 @@ final case class ResultFileHierarchy(
     ResultFileHierarchy.createOutputDirectories(this)
 
   // needs to be done after dir creation
-  configureLogger(logOutputDir)
+  private val loggerCfg = loggerConfig(logOutputDir)
+  loggerCfg.configure
 
   /** Builds the base output directory string
     *
@@ -303,5 +305,8 @@ object ResultFileHierarchy extends LazyLogging {
   def deleteTmpDir(outputFileHierarchy: ResultFileHierarchy): Unit = {
     FileIOUtils.deleteRecursively(outputFileHierarchy.tmpDir)
   }
+
+  def stopCustomLogging(outputFileHierarchy: ResultFileHierarchy): Unit =
+    outputFileHierarchy.loggerCfg.cleanup
 
 }

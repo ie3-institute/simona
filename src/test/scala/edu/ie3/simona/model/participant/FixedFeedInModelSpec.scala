@@ -7,11 +7,11 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.util.ParticipantConfigUtil
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
-import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT, MEGAVOLTAMPERE}
 import edu.ie3.util.quantities.QuantityUtil
 import org.scalatest.PrivateMethodTester
@@ -35,10 +35,9 @@ class FixedFeedInModelSpec
           LoadModelBehaviour.FIX,
           LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
         )
-      val modelConfig = ConfigUtil
-        .ParticipantConfigUtil(
-          simonaConfig.simona.runtime.participant
-        )
+      val modelConfig = ParticipantConfigUtil(
+        simonaConfig.simona.runtime.participant
+      )
         .getFixedFeedConfigOrDefault(fixedFeedInput.getUuid)
 
       val actualModel = FixedFeedInModel.apply(

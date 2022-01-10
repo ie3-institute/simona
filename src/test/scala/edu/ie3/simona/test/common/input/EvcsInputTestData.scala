@@ -13,10 +13,10 @@ import edu.ie3.datamodel.models.input.system.`type`.chargingpoint.ChargingPointT
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.util.ParticipantConfigUtil
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.test.common.DefaultTestData
-import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
 import tech.units.indriya.quantity.Quantities
@@ -45,7 +45,7 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
       LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
     )
 
-  private val configUtil = ConfigUtil.ParticipantConfigUtil(
+  private val configUtil = ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
   )
 

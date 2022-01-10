@@ -29,6 +29,7 @@ import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.WecRuntimeConfig
+import edu.ie3.simona.config.util.ParticipantConfigUtil
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.WecModel
 import edu.ie3.simona.model.participant.WecModel.WecRelevantData
@@ -60,7 +61,6 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 }
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.WecInputTestData
-import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits.{
   KILOWATT,
@@ -113,7 +113,7 @@ class WecAgentModelCalculationSpec
       LoadModelBehaviour.FIX,
       LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
     )
-  private val configUtil = ConfigUtil.ParticipantConfigUtil(
+  private val configUtil = ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
   )
   private val modelConfig =

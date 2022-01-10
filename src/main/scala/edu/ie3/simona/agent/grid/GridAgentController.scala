@@ -11,8 +11,10 @@ import akka.event.LoggingAdapter
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.datamodel.models.input.system._
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.actor.SimonaActorNaming._
+import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorEvMovementsService,
   ActorWeatherService
@@ -25,21 +27,16 @@ import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.{
-  EvcsRuntimeConfig,
-  FixedFeedInRuntimeConfig,
-  LoadRuntimeConfig,
-  PvRuntimeConfig,
-  WecRuntimeConfig
+import edu.ie3.simona.config.SimonaConfig._
+import edu.ie3.simona.config.util.{
+  BaseOutputConfigUtil,
+  NotifierIdentifier,
+  ParticipantConfigUtil
 }
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeParticipantAgentTrigger
-import edu.ie3.simona.util.ConfigUtil
-import edu.ie3.simona.util.ConfigUtil._
-import edu.ie3.simona.actor.SimonaActorNaming._
-import edu.ie3.simona.agent.EnvironmentRefs
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -176,8 +173,8 @@ class GridAgentController(
     /* Prepare the config util for the participant models, which (possibly) utilizes as map to speed up the initialization
      * phase */
     val participantConfigUtil =
-      ConfigUtil.ParticipantConfigUtil(participantsConfig)
-    val outputConfigUtil = ConfigUtil.BaseOutputConfigUtil(outputConfig)
+      ParticipantConfigUtil(participantsConfig)
+    val outputConfigUtil = BaseOutputConfigUtil(outputConfig)
 
     participants
       .map(participant => {
@@ -206,7 +203,7 @@ class GridAgentController(
 
   private def buildParticipantActor(
       requestVoltageDeviationThreshold: Double,
-      participantConfigUtil: ConfigUtil.ParticipantConfigUtil,
+      participantConfigUtil: ParticipantConfigUtil,
       outputConfigUtil: BaseOutputConfigUtil,
       participantInputModel: SystemParticipantInput,
       environmentRefs: EnvironmentRefs

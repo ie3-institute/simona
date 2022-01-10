@@ -90,6 +90,8 @@ dependencies {
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.4" // akka scala logging
   implementation "ch.qos.logback:logback-classic:1.2.10"
+  // pipe java.util.logging -> slf4j, see http://www.slf4j.org/legacy.html#jul-to-slf4j for performance impact
+  implementation 'org.slf4j:jul-to-slf4j:1.7.32'
 
   /* testing */
   testImplementation 'org.spockframework:spock-core:2.1-M2-groovy-3.0'
