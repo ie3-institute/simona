@@ -1720,8 +1720,8 @@ object SimonaConfig {
     final case class Powerflow(
         maxSweepPowerDeviation: scala.Double,
         newtonraphson: SimonaConfig.Simona.Powerflow.Newtonraphson,
-        sweepTimeout: java.time.Duration,
-        resolution: java.time.Duration
+        resolution: java.time.Duration,
+        sweepTimeout: java.time.Duration
     )
     object Powerflow {
       final case class Newtonraphson(
