@@ -130,8 +130,6 @@ object SimonaSharding {
     (numberOfShards: Int) => {
       case ShardMessage(shardId, _, _) =>
         computeShardId(shardId, numberOfShards)
-      case ShardRegion.StartEntity(id) =>
-        id // TODO put shard id into entity id and extract
       case x =>
         throw new RuntimeException(
           s"Unexpected message $x for shardId extraction!"

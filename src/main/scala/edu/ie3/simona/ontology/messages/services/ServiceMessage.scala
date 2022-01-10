@@ -58,7 +58,7 @@ case object ServiceMessage {
 
     /** Message, that is used to announce a failed registration
       */
-    case class RegistrationFailedMessage(
+    final case class RegistrationFailedMessage(
         override val serviceRef: SimonaActorRef
     ) extends RegistrationResponseMessage
   }
