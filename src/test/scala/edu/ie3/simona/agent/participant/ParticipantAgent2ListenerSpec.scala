@@ -347,7 +347,7 @@ class ParticipantAgent2ListenerSpec
             1e-6
           )
           reply.getQ should equalWithTolerance(
-            Quantities.getQuantity(1d, PowerSystemUnits.MEGAVAR),
+            Quantities.getQuantity(0.6573682, PowerSystemUnits.MEGAVAR),
             1e-6
           )
       }
