@@ -6,11 +6,9 @@
 
 package edu.ie3.simona.event.listener
 
-import java.io.{File, FileInputStream}
-import java.util.zip.GZIPInputStream
 import akka.actor.ActorSystem
 import akka.stream.Materializer
-import akka.testkit.{ImplicitSender, TestFSMRef, TestKit, TestProbe}
+import akka.testkit.TestFSMRef
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
@@ -21,15 +19,12 @@ import edu.ie3.datamodel.models.result.connector.{
 import edu.ie3.datamodel.models.result.system.PvResult
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
 import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
   PowerFlowResultEvent
 }
-import edu.ie3.simona.io.result.{
-  ResultEntityCsvSink,
-  ResultEntitySink,
-  ResultSinkType
-}
+import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
 import edu.ie3.simona.test.common.result.PowerFlowResultData
 import edu.ie3.simona.test.common.{AgentSpec, IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
@@ -37,10 +32,12 @@ import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.util.io.FileIOUtils
 import org.scalatest.BeforeAndAfterEach
 
+import java.io.{File, FileInputStream}
+import java.util.zip.GZIPInputStream
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 import scala.io.Source
 import scala.language.postfixOps
 
@@ -152,7 +149,7 @@ class ResultEventListenerSpec
             .props(
               resultEntitiesToBeWritten,
               specificOutputFileHierarchy,
-              testActor
+              testActor.asLocal
             )
         )
 
@@ -200,7 +197,7 @@ class ResultEventListenerSpec
             .props(
               resultEntitiesToBeWritten,
               specificOutputFileHierarchy,
-              testActor
+              testActor.asLocal
             )
         )
 
@@ -288,7 +285,7 @@ class ResultEventListenerSpec
         new ResultEventListener(
           Set(classOf[Transformer3WResult]),
           fileHierarchy,
-          testActor
+          testActor.asLocal
         )
       )
 
@@ -520,7 +517,7 @@ class ResultEventListenerSpec
             .props(
               resultEntitiesToBeWritten,
               specificOutputFileHierarchy,
-              testActor
+              testActor.asLocal
             )
         )
         ResultSinkType.Csv(fileFormat = ".csv.gz")
@@ -553,6 +550,19 @@ class ResultEventListenerSpec
 
         // shutdown the actor system
         Await.ready(system.terminate(), 1.minute)
+
+        // wait until file exists
+        awaitCond(
+          new File(
+            specificOutputFileHierarchy.rawOutputDataFilePaths.getOrElse(
+              classOf[PvResult],
+              fail(
+                s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
+              )
+            )
+          ).exists,
+          10.seconds
+        )
 
         // wait until file exists
         awaitCond(

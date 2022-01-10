@@ -6,16 +6,14 @@
 
 package edu.ie3.simona.agent.participant.statedata
 
-import akka.actor.ActorRef
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -43,6 +41,10 @@ trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
     */
   val modelUuid: UUID
 
+  /** Subnet of the simulation model
+    */
+  val subnetNo: Int
+
   /** By default the agent should be triggered in the same tick, where data is
     * incoming from primary or secondary sources. However, if there is no other
     * information needed, we might have the need to schedule ourselves for
@@ -53,7 +55,7 @@ trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
   /** A mapping from service reference to it's foreseen next availability of
     * data
     */
-  val foreseenDataTicks: Map[ActorRef, Option[Long]]
+  val foreseenDataTicks: Map[SimonaActorRef, Option[Long]]
 
   /** A store, holding a map from tick to active / reactive power
     */
@@ -138,11 +140,12 @@ object BaseStateData {
     _ <: CalcRelevantData
   ], +P <: PrimaryDataWithApparentPower[P]](
       model: M,
+      override val subnetNo: Int,
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
       override val outputConfig: ParticipantNotifierConfig,
       override val additionalActivationTicks: Array[Long],
-      override val foreseenDataTicks: Map[ActorRef, Option[Long]],
+      override val foreseenDataTicks: Map[SimonaActorRef, Option[Long]],
       fillUpReactivePowerWithModelFunc: Boolean = false,
       requestVoltageDeviationThreshold: Double,
       override val voltageValueStore: ValueStore[
@@ -194,12 +197,13 @@ object BaseStateData {
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
       override val model: M,
+      override val subnetNo: Int,
       override val services: Option[
         Vector[SecondaryDataService[_ <: SecondaryData]]
       ],
       override val outputConfig: ParticipantNotifierConfig,
       override val additionalActivationTicks: Array[Long],
-      override val foreseenDataTicks: Map[ActorRef, Option[Long]],
+      override val foreseenDataTicks: Map[SimonaActorRef, Option[Long]],
       requestVoltageDeviationThreshold: Double,
       override val voltageValueStore: ValueStore[
         ComparableQuantity[Dimensionless]
@@ -227,7 +231,7 @@ object BaseStateData {
     * @param updatedAdditionalActivationTicks
     *   An array of additional activation ticks
     * @param updatedForeseenTicks
-    *   Mapping from [[ActorRef]] to foreseen ticks
+    *   Mapping from [[SimonaActorRef]] to foreseen ticks
     * @tparam PD
     *   Type of primary data, that is result of model calculation
     * @return
@@ -239,7 +243,7 @@ object BaseStateData {
       updatedRequestValueStore: ValueStore[PD],
       updatedVoltageValueStore: ValueStore[ComparableQuantity[Dimensionless]],
       updatedAdditionalActivationTicks: Array[Long],
-      updatedForeseenTicks: Map[ActorRef, Option[Long]]
+      updatedForeseenTicks: Map[SimonaActorRef, Option[Long]]
   ): BaseStateData[PD] = {
     baseStateData match {
       case external: FromOutsideBaseStateData[_, _] =>

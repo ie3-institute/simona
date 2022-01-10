@@ -6,7 +6,9 @@
 
 package edu.ie3.simona.service
 
-import akka.actor.{Actor, ActorRef, Stash}
+import akka.actor.{Actor, ActorSystem, Stash}
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.{RichActorRef, selfSingleton}
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
@@ -35,10 +37,12 @@ import scala.util.{Failure, Success, Try}
   */
 abstract class SimonaService[
     S <: ServiceBaseStateData
-](protected val scheduler: ActorRef)
+](protected val scheduler: SimonaActorRef)
     extends Actor
     with Stash
     with SimonaActorLogging {
+
+  protected implicit val system: ActorSystem = context.system
 
   override def receive: Receive = uninitialized
 
@@ -46,7 +50,7 @@ abstract class SimonaService[
     * the state "Uninitialized".
     *
     * @return
-    *   idleInternal methods for the uninitialized state
+    *   receive methods for the uninitialized state
     */
   private def uninitialized: Receive = {
 
@@ -64,7 +68,11 @@ abstract class SimonaService[
         initializeStateData
       ) match {
         case Success((serviceStateData, maybeTriggersToBeScheduled)) =>
-          scheduler ! CompletionMessage(triggerId, maybeTriggersToBeScheduled)
+          scheduler ! CompletionMessage(
+            triggerId,
+            selfSingleton,
+            maybeTriggersToBeScheduled
+          )
           unstashAll()
           context become idle(serviceStateData)
         case Failure(exception) =>
@@ -123,7 +131,7 @@ abstract class SimonaService[
       /* The scheduler sends out an activity start trigger. Announce new data to all registered recipients. */
       val (updatedStateData, maybeNewTriggers) =
         announceInformation(tick)(stateData)
-      scheduler ! CompletionMessage(triggerId, maybeNewTriggers)
+      scheduler ! CompletionMessage(triggerId, selfSingleton, maybeNewTriggers)
       context become idle(updatedStateData)
 
     // unhandled message
@@ -147,9 +155,9 @@ abstract class SimonaService[
     * initialization data. This method should perform all heavyweight tasks
     * before the actor becomes ready. The return values are a) the state data of
     * the initialized service and b) optional triggers that should be send to
-    * the [[edu.ie3.simona.scheduler.SimScheduler]] together with the completion
-    * message that is send in response to the trigger that is send to start the
-    * initialization process
+    * the [[edu.ie3.simona.scheduler.main.SimScheduler]] together with the
+    * completion message that is send in response to the trigger that is send to
+    * start the initialization process
     *
     * @param initServiceData
     *   the data that should be used for initialization

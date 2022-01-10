@@ -19,8 +19,8 @@ object RuntimeEvent {
   /** Indicates that the scheduler has finished a pre-defined advancement in
     * ticks and is ready to carry out the next task. In contrast to the
     * [[CheckWindowPassed]] event, whenever a [[Ready]] event is scheduled, the
-    * scheduled of [[edu.ie3.simona.scheduler.SimScheduler]] will be stopped and
-    * further commands are necessary to continue the schedule.
+    * scheduled of [[edu.ie3.simona.scheduler.main.SimScheduler]] will be
+    * stopped and further commands are necessary to continue the schedule.
     *
     * @param tick
     *   the last tick that has been processed
@@ -44,9 +44,9 @@ object RuntimeEvent {
     * [[edu.ie3.simona.event.listener.RuntimeEventListener]] to print status
     * information about the current simulation run. In contrast to the [[Ready]]
     * event, when this event is thrown, the
-    * [[edu.ie3.simona.scheduler.SimScheduler]] does not necessarily hold the
-    * schedule. Hence, this event only indicates, that the defined check window
-    * has passed and the schedule will move on afterwards without a stop.
+    * [[edu.ie3.simona.scheduler.main.SimScheduler]] does not necessarily hold
+    * the schedule. Hence, this event only indicates, that the defined check
+    * window has passed and the schedule will move on afterwards without a stop.
     *
     * @param tick
     *   the tick of the simulation that has been passed

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.ActorSystem
 import akka.testkit.TestFSMRef
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
@@ -27,6 +27,8 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
@@ -99,7 +101,9 @@ class PVAgentModelCalculationSpec
   private val testingTolerance = 1e-6 // Equality on the basis of 1 W
 
   /* Assign this test to receive the result events from agent */
-  override val systemListener: Iterable[ActorRef] = Vector(self)
+  override val systemListener: Iterable[SimonaActorRef] = Vector(
+    self.asLocal
+  )
 
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
@@ -119,7 +123,7 @@ class PVAgentModelCalculationSpec
   private val noServices = None
   private val withServices = Some(
     Vector(
-      ActorWeatherService(weatherService.ref)
+      ActorWeatherService(weatherService.ref.asLocal)
     )
   )
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
@@ -128,7 +132,7 @@ class PVAgentModelCalculationSpec
     "be instantiated correctly" in {
       val pvAgent = TestFSMRef(
         new PVAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -147,7 +151,7 @@ class PVAgentModelCalculationSpec
     "fail initialisation and stay in uninitialized state" in {
       val pvAgent = TestFSMRef(
         new PVAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -174,17 +178,20 @@ class PVAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           triggerId,
-          pvAgent
+          pvAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        pvAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       scheduler.receiveOne(receiveTimeOut.duration) match {
         case IllegalTriggerMessage(_, _) => logger.debug("Got correct message")
@@ -207,7 +214,7 @@ class PVAgentModelCalculationSpec
     "be instantiated correctly" in {
       val pvAgent = TestFSMRef(
         new PVAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -226,7 +233,7 @@ class PVAgentModelCalculationSpec
     "end in correct state with correct state data after initialisation" in {
       val pvAgent = TestFSMRef(
         new PVAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -253,17 +260,20 @@ class PVAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           triggerId,
-          pvAgent
+          pvAgent.asLocal
         )
       )
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(voltageSensitiveInput.getUuid)
+        PrimaryServiceRegistrationMessage(
+          voltageSensitiveInput.getUuid,
+          pvAgent.asLocal
+        )
       )
       /* State should be information handling and having correct state data */
       pvAgent.stateName shouldBe HandleInformation
@@ -291,7 +301,10 @@ class PVAgentModelCalculationSpec
       }
 
       /* Refuse registration */
-      primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        pvAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* Expect a registration message */
       weatherService.expectMsg(
@@ -306,6 +319,7 @@ class PVAgentModelCalculationSpec
                 startDate,
                 endDate,
                 _,
+                subnetNo,
                 services,
                 outputConfig,
                 additionalActivationTicks,
@@ -322,9 +336,10 @@ class PVAgentModelCalculationSpec
           /* Base state data */
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
+          subnetNo shouldBe voltageSensitiveInput.getNode.getSubnet
           services shouldBe Some(
             Vector(
-              ActorWeatherService(weatherService.ref)
+              ActorWeatherService(weatherService.ref.asLocal)
             )
           )
           outputConfig shouldBe ParticipantNotifierConfig(
@@ -341,7 +356,9 @@ class PVAgentModelCalculationSpec
           requestValueStore shouldBe ValueStore[ApparentPower](resolution * 10)
 
           /* Additional information */
-          awaitRegistrationResponsesFrom shouldBe Vector(weatherService.ref)
+          awaitRegistrationResponsesFrom shouldBe Vector(
+            weatherService.ref.asLocal
+          )
           foreseenNextDataTicks shouldBe Map.empty
         case _ =>
           fail(
@@ -350,15 +367,22 @@ class PVAgentModelCalculationSpec
       }
 
       /* Reply, that registration was successful */
-      weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(4711L)))
+      weatherService.send(
+        pvAgent,
+        RegistrationSuccessfulMessage(Some(4711L), weatherService.ref.asLocal)
+      )
 
       /* Expect a completion message */
       scheduler.expectMsg(
         CompletionMessage(
           triggerId,
+          pvAgent.asLocal,
           Some(
             Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(4711), pvAgent)
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(4711),
+                pvAgent.asLocal
+              )
             )
           )
         )
@@ -370,7 +394,7 @@ class PVAgentModelCalculationSpec
         case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
-            weatherService.ref -> Some(4711L)
+            weatherService.ref.asLocal -> Some(4711L)
           )
         case _ =>
           fail(
@@ -382,7 +406,7 @@ class PVAgentModelCalculationSpec
     "answer with zero power, if asked directly after initialisation" in {
       val pvAgent = TestFSMRef(
         new PVAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -409,23 +433,29 @@ class PVAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           triggerId,
-          pvAgent
+          pvAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        pvAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* Expect a registration message */
       weatherService.expectMsg(
         RegisterForWeatherMessage(52.02083574, 7.40110716)
       )
-      weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        pvAgent,
+        RegistrationSuccessfulMessage(Some(900L), weatherService.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
@@ -436,7 +466,8 @@ class PVAgentModelCalculationSpec
       pvAgent ! RequestAssetPowerMessage(
         0L,
         Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
       expectMsg(
         AssetPowerChangedMessage(
@@ -468,7 +499,7 @@ class PVAgentModelCalculationSpec
     "do correct transitions faced to new data in Idle" in {
       val pvAgent = TestFSMRef(
         new PVAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -495,21 +526,27 @@ class PVAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           initialiseTriggerId,
-          pvAgent
+          pvAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        pvAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(0L)))
+      weatherService.send(
+        pvAgent,
+        RegistrationSuccessfulMessage(Some(0L), weatherService.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
@@ -526,7 +563,12 @@ class PVAgentModelCalculationSpec
 
       weatherService.send(
         pvAgent,
-        ProvideWeatherMessage(0L, weatherData, Some(3600L))
+        ProvideWeatherMessage(
+          0L,
+          weatherData,
+          Some(3600L),
+          weatherService.ref.asLocal
+        )
       )
 
       /* Find yourself in corresponding state and state data */
@@ -539,12 +581,12 @@ class PVAgentModelCalculationSpec
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
-            weatherService.ref -> Some(3600L)
+            weatherService.ref.asLocal -> Some(3600L)
           )
 
           /* The yet sent data is also registered */
           expectedSenders shouldBe Map(
-            weatherService.ref -> Some(weatherData)
+            weatherService.ref.asLocal -> Some(weatherData)
           )
 
           /* It is not yet triggered */
@@ -561,7 +603,7 @@ class PVAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
           1L,
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
 
@@ -570,8 +612,14 @@ class PVAgentModelCalculationSpec
       scheduler.expectMsg(
         CompletionMessage(
           1L,
+          pvAgent.asLocal,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent))
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(3600L),
+                pvAgent.asLocal
+              )
+            )
           )
         )
       )
@@ -622,7 +670,7 @@ class PVAgentModelCalculationSpec
     "do correct transitions triggered for activation in idle" in {
       val pvAgent = TestFSMRef(
         new PVAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -649,21 +697,27 @@ class PVAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           initialiseTriggerId,
-          pvAgent
+          pvAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        pvAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(0L)))
+      weatherService.send(
+        pvAgent,
+        RegistrationSuccessfulMessage(Some(0L), weatherService.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
@@ -675,7 +729,7 @@ class PVAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
           1L,
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
 
@@ -689,11 +743,11 @@ class PVAgentModelCalculationSpec
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
-            weatherService.ref -> Some(0L)
+            weatherService.ref.asLocal -> Some(0L)
           )
 
           /* The yet sent data is also registered */
-          expectedSenders shouldBe Map(weatherService.ref -> None)
+          expectedSenders shouldBe Map(weatherService.ref.asLocal -> None)
 
           /* It is yet triggered */
           isYetTriggered shouldBe true
@@ -713,15 +767,26 @@ class PVAgentModelCalculationSpec
 
       weatherService.send(
         pvAgent,
-        ProvideWeatherMessage(0L, weatherData, Some(3600L))
+        ProvideWeatherMessage(
+          0L,
+          weatherData,
+          Some(3600L),
+          weatherService.ref.asLocal
+        )
       )
 
       /* Expect confirmation */
       scheduler.expectMsg(
         CompletionMessage(
           1L,
+          pvAgent.asLocal,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent))
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(3600L),
+                pvAgent.asLocal
+              )
+            )
           )
         )
       )
@@ -774,7 +839,7 @@ class PVAgentModelCalculationSpec
     "does not provide power if data is awaited in an earlier tick, but answers it, if all expected data is there" in {
       val pvAgent = TestFSMRef(
         new PVAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -801,21 +866,27 @@ class PVAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           0L,
-          pvAgent
+          pvAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        pvAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(3600L)))
+      weatherService.send(
+        pvAgent,
+        RegistrationSuccessfulMessage(Some(3600L), weatherService.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
@@ -825,7 +896,8 @@ class PVAgentModelCalculationSpec
       pvAgent ! RequestAssetPowerMessage(
         7200L,
         Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        weatherService.ref.asLocal
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(pvAgent.stateName == Idle)
@@ -839,7 +911,12 @@ class PVAgentModelCalculationSpec
       )
       weatherService.send(
         pvAgent,
-        ProvideWeatherMessage(3600L, weatherData, Some(7200L))
+        ProvideWeatherMessage(
+          3600L,
+          weatherData,
+          Some(7200L),
+          weatherService.ref.asLocal
+        )
       )
 
       /* Trigger the agent */
@@ -848,7 +925,7 @@ class PVAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(3600L),
           1L,
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
 
@@ -857,8 +934,14 @@ class PVAgentModelCalculationSpec
       scheduler.expectMsg(
         CompletionMessage(
           1L,
+          pvAgent.asLocal,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent))
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(7200L),
+                pvAgent.asLocal
+              )
+            )
           )
         )
       )
@@ -879,7 +962,7 @@ class PVAgentModelCalculationSpec
 
     val pvAgent = TestFSMRef(
       new PVAgent(
-        scheduler = scheduler.ref,
+        scheduler = scheduler.ref.asLocal,
         listener = systemListener
       )
     )
@@ -907,21 +990,27 @@ class PVAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           0L,
-          pvAgent
+          pvAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        pvAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(0L)))
+      weatherService.send(
+        pvAgent,
+        RegistrationSuccessfulMessage(Some(0L), weatherService.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
@@ -939,7 +1028,8 @@ class PVAgentModelCalculationSpec
             Quantities.getQuantity(1.815, CELSIUS),
             Quantities.getQuantity(7.726576, METRE_PER_SECOND)
           ),
-          Some(3600L)
+          Some(3600L),
+          weatherService.ref.asLocal
         )
       )
       scheduler.send(
@@ -947,14 +1037,20 @@ class PVAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
           1L,
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           1L,
+          pvAgent.asLocal,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent))
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(3600L),
+                pvAgent.asLocal
+              )
+            )
           )
         )
       )
@@ -970,7 +1066,8 @@ class PVAgentModelCalculationSpec
             Quantities.getQuantity(1.815, CELSIUS),
             Quantities.getQuantity(7.726576, METRE_PER_SECOND)
           ),
-          Some(7200L)
+          Some(7200L),
+          weatherService.ref.asLocal
         )
       )
       scheduler.send(
@@ -978,14 +1075,20 @@ class PVAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(3600L),
           3L,
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           3L,
+          pvAgent.asLocal,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent))
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(7200L),
+                pvAgent.asLocal
+              )
+            )
           )
         )
       )
@@ -1001,7 +1104,8 @@ class PVAgentModelCalculationSpec
             Quantities.getQuantity(1.815, CELSIUS),
             Quantities.getQuantity(7.726576, METRE_PER_SECOND)
           ),
-          None
+          None,
+          weatherService.ref.asLocal
         )
       )
       scheduler.send(
@@ -1009,16 +1113,17 @@ class PVAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(7200L),
           5L,
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
-      scheduler.expectMsg(CompletionMessage(5L))
+      scheduler.expectMsg(CompletionMessage(5L, pvAgent.asLocal))
 
       /* Ask the agent for average power in tick 7500 */
       pvAgent ! RequestAssetPowerMessage(
         7500L,
         Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -1041,7 +1146,8 @@ class PVAgentModelCalculationSpec
       pvAgent ! RequestAssetPowerMessage(
         7500L,
         Quantities.getQuantity(1.000000000000001d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
 
       /* Expect, that nothing has changed */
@@ -1063,7 +1169,8 @@ class PVAgentModelCalculationSpec
       pvAgent ! RequestAssetPowerMessage(
         7500L,
         Quantities.getQuantity(0.98, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
 
       /* Expect, the correct values (this model has fixed power factor) */

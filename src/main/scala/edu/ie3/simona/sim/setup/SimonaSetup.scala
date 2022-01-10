@@ -6,11 +6,12 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.{ActorContext, ActorRef, ActorSystem}
+import akka.actor.ActorRefFactory
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 
@@ -31,38 +32,34 @@ trait SimonaSetup {
     */
   val args: Array[String]
 
-  /** A function, that constructs the [[ActorSystem]], the simulation shall live
-    * in
-    */
-  val buildActorSystem: () => ActorSystem
-
   /** Creates a sequence of runtime event listeners
     *
-    * @param context
-    *   Actor context to use
+    * @param refFactory
+    *   ActorContext or ActorSystem to use
     * @return
     *   A sequence of actor references to runtime event listeners
     */
-  def runtimeEventListener(context: ActorContext): Seq[ActorRef]
+  def runtimeEventListener(refFactory: ActorRefFactory): Seq[SimonaActorRef]
 
   /** Creates a sequence of system participant event listeners
     *
-    * @param context
-    *   Actor context to use
+    * @param refFactory
+    *   ActorContext or ActorSystem to use
     * @return
-    *   A sequence of actor references to runtime event listeners
+    *   A mapping from actor reference to its according initialization data to
+    *   be used when setting up the listeners
     */
   def systemParticipantsListener(
-      context: ActorContext,
-      simonaSim: ActorRef
-  ): Seq[ActorRef]
+      refFactory: ActorRefFactory,
+      simonaSim: SimonaActorRef
+  ): Seq[SimonaActorRef]
 
   /** Creates a primary service proxy. The proxy is the first instance to ask
     * for primary data. If necessary, it delegates the registration request to
     * it's subordinate workers.
     *
-    * @param context
-    *   Actor context to use
+    * @param refFactory
+    *   ActorContext or ActorSystem to use
     * @param scheduler
     *   Actor reference to it's according scheduler to use
     * @return
@@ -70,14 +67,14 @@ trait SimonaSetup {
     *   the service
     */
   def primaryServiceProxy(
-      context: ActorContext,
-      scheduler: ActorRef
-  ): (ActorRef, InitPrimaryServiceProxyStateData)
+      refFactory: ActorRefFactory,
+      scheduler: SimonaActorRef
+  ): (SimonaActorRef, InitPrimaryServiceProxyStateData)
 
   /** Creates a weather service
     *
-    * @param context
-    *   Actor context to use
+    * @param refFactory
+    *   ActorContext or ActorSystem to use
     * @param scheduler
     *   Actor reference to it's according scheduler to use
     * @return
@@ -85,53 +82,53 @@ trait SimonaSetup {
     *   the service
     */
   def weatherService(
-      context: ActorContext,
-      scheduler: ActorRef
-  ): (ActorRef, InitWeatherServiceStateData)
+      refFactory: ActorRefFactory,
+      scheduler: SimonaActorRef
+  ): (SimonaActorRef, InitWeatherServiceStateData)
 
   /** Loads external simulations and provides corresponding actors and init data
     *
-    * @param context
-    *   Actor context to use
+    * @param refFactory
+    *   ActorContext or ActorSystem to use
     * @param scheduler
     *   Actor reference to it's according scheduler to use
     * @return
     *   External simulations and their init data
     */
   def extSimulations(
-      context: ActorContext,
-      scheduler: ActorRef
+      refFactory: ActorRefFactory,
+      scheduler: SimonaActorRef
   ): ExtSimSetupData
 
   /** Creates a scheduler service
     *
-    * @param context
-    *   Actor context to use
+    * @param refFactory
+    *   ActorContext or ActorSystem to use
     * @return
     *   An actor reference to the scheduler
     */
   def scheduler(
-      context: ActorContext,
-      runtimeEventListener: Seq[ActorRef]
-  ): ActorRef
+      refFactory: ActorRefFactory,
+      runtimeEventListener: Seq[SimonaActorRef]
+  ): SimonaActorRef
 
   /** Creates all the needed grid agents
     *
-    * @param context
-    *   Actor context to use
+    * @param refFactory
+    *   ActorContext or ActorSystem to use
     * @param environmentRefs
     *   EnvironmentRefs to use
     * @param systemParticipantListener
     *   Listeners that await events from system participants
     * @return
-    *   A mapping from actor reference to it's according initialization data to
+    *   A mapping from actor reference to its according initialization data to
     *   be used when setting up the agents
     */
   def gridAgents(
-      context: ActorContext,
+      refFactory: ActorRefFactory,
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ActorRef]
-  ): Map[ActorRef, GridAgentInitData]
+      systemParticipantListener: Seq[SimonaActorRef]
+  ): Map[SimonaActorRef, GridAgentInitData]
 
   /** SIMONA links sub grids connected by a three winding transformer a bit
     * different. Therefore, the internal node has to be set as superior node.

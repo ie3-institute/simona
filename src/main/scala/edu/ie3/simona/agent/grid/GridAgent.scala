@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.{ActorRef, Props, Stash}
+import akka.actor.{Props, Stash}
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
@@ -16,6 +16,9 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
 import edu.ie3.simona.agent.state.AgentState.{Finish, Idle, Uninitialized}
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
 import edu.ie3.simona.agent.{EnvironmentRefs, SimonaAgent}
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.selfSharded
+import edu.ie3.simona.akka.SimonaActorRefUtils.RichActorContext
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.GridModel
@@ -25,6 +28,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
+import edu.ie3.simona.ontology.messages.VoltageMessage.RequestSlackVoltageMessage
 import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
   InitializeGridAgentTrigger,
@@ -44,7 +48,7 @@ object GridAgent {
   def props(
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
-      listener: Iterable[ActorRef]
+      listener: Iterable[SimonaActorRef]
   ): Props =
     Props(
       new GridAgent(
@@ -58,7 +62,7 @@ object GridAgent {
 class GridAgent(
     val environmentRefs: EnvironmentRefs,
     simonaConfig: SimonaConfig,
-    val listener: Iterable[ActorRef]
+    val listener: Iterable[SimonaActorRef]
 ) extends SimonaAgent[GridAgentData]
     with DBFSAlgorithm
     with Stash {
@@ -171,11 +175,11 @@ class GridAgent(
       // we have to wait until the assets are ready
       // and add the inferiorGridNodeIds -> ActorRef to the nodeToAgentMap
       // this is the map with all agents that contribute to p/q value provision
-      val nodeInputToParticipantRefMap: Map[UUID, Set[ActorRef]] =
+      val nodeInputToParticipantRefMap: Map[UUID, Set[SimonaActorRef]] =
         Await.result(nodeToAssetAgentMapFuture, 60 seconds)
 
       /* Reassure, that there are also calculation models for the given uuids */
-      val nodeToAssetAgentsMap: Map[UUID, Set[ActorRef]] =
+      val nodeToAssetAgentsMap: Map[UUID, Set[SimonaActorRef]] =
         nodeInputToParticipantRefMap.map { case (uuid: UUID, actorSet) =>
           val nodeUuid = gridModel.gridComponents.nodes
             .find(_.uuid == uuid)
@@ -209,8 +213,14 @@ class GridAgent(
 
       goto(Idle) using gridAgentBaseData replying CompletionMessage(
         triggerId,
+        selfSharded(gridModel.subnetNo),
         Some(
-          Vector(ScheduleTriggerMessage(ActivityStartTrigger(resolution), self))
+          Vector(
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(resolution),
+              selfSharded(gridModel.subnetNo)
+            )
+          )
         )
       )
   }
@@ -219,7 +229,8 @@ class GridAgent(
 
     // needs to be set here to handle if the messages arrive too early
     // before a transition to GridAgentBehaviour took place
-    case Event(RequestGridPowerMessage(_, _), _: GridAgentBaseData) =>
+    case Event(RequestGridPowerMessage(_, _), _: GridAgentBaseData) |
+        Event(RequestSlackVoltageMessage(_, _), _: GridAgentBaseData) =>
       stash()
       stay()
 
@@ -229,15 +240,19 @@ class GridAgent(
         ) =>
       log.debug("received activity start trigger {}", triggerId)
 
+      // unstashing RequestGridPowerMessages and RequestSlackVoltageMessages, which can be handled now
       unstashAll()
+
+      val selfRef = selfSharded(gridAgentBaseData.gridEnv.gridModel.subnetNo)
 
       goto(SimulateGrid) using gridAgentBaseData replying CompletionMessage(
         triggerId,
+        selfRef,
         Some(
           Vector(
             ScheduleTriggerMessage(
               StartGridSimulationTrigger(currentTick),
-              self
+              selfRef
             )
           )
         )
@@ -246,7 +261,7 @@ class GridAgent(
     case Event(Finish, data: GridAgentBaseData) =>
       // shutdown children
       data.gridEnv.nodeToAssetAgents.foreach { case (_, actors) =>
-        actors.foreach(context.stop)
+        actors.foreach(ref => context.stop(ref))
       }
 
       // we are done

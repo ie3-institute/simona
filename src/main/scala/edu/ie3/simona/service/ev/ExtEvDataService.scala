@@ -6,17 +6,13 @@
 
 package edu.ie3.simona.service.ev
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.Props
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.selfSingleton
 import edu.ie3.simona.api.data.ev.ExtEvData
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology.EvMovementsMessage.EvcsMovements
-import edu.ie3.simona.api.data.ev.ontology.{
-  AllDepartedEvsResponse,
-  EvMovementsMessage,
-  ExtEvMessage,
-  ProvideEvcsFreeLots,
-  RequestEvcsFreeLots
-}
+import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.ExtDataMessage
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
@@ -46,14 +42,15 @@ import scala.util.{Failure, Success, Try}
 
 object ExtEvDataService {
 
-  def props(scheduler: ActorRef): Props =
+  def props(scheduler: SimonaActorRef): Props =
     Props(
-      new ExtEvDataService(scheduler: ActorRef)
+      new ExtEvDataService(scheduler: SimonaActorRef)
     )
 
   final case class ExtEvStateData(
       extEvData: ExtEvData,
-      uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
+      uuidToActorRef: Map[UUID, SimonaActorRef] =
+        Map.empty[UUID, SimonaActorRef],
       extEvMessage: Option[ExtEvMessage] = None,
       freeLots: Map[UUID, Option[Int]] = Map.empty,
       evModelResponses: Map[UUID, Option[List[EvModel]]] = Map.empty
@@ -66,7 +63,7 @@ object ExtEvDataService {
   val FALLBACK_EV_MOVEMENTS_STEM_DISTANCE: Long = 3600L
 }
 
-class ExtEvDataService(override val scheduler: ActorRef)
+class ExtEvDataService(override val scheduler: SimonaActorRef)
     extends SimonaService[ExtEvStateData](scheduler)
     with ExtDataSupport[ExtEvStateData] {
 
@@ -113,8 +110,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
       serviceStateData: ExtEvStateData
   ): Try[ExtEvStateData] =
     registrationMessage match {
-      case RegisterForEvDataMessage(evcs) =>
-        Success(handleRegistrationRequest(sender(), evcs))
+      case RegisterForEvDataMessage(evcs, evcsRef) =>
+        Success(handleRegistrationRequest(evcsRef, evcs))
       case invalidMessage =>
         Failure(
           InvalidRegistrationRequestException(
@@ -138,21 +135,21 @@ class ExtEvDataService(override val scheduler: ActorRef)
     *   information if the registration has been carried out successfully
     */
   private def handleRegistrationRequest(
-      agentToBeRegistered: ActorRef,
+      agentToBeRegistered: SimonaActorRef,
       evcs: UUID
   )(implicit
       serviceStateData: ExtEvStateData
   ): ExtEvStateData = {
     log.debug(
       "Received ev movement service registration from {} for [Evcs:{}]",
-      agentToBeRegistered.path.name,
+      agentToBeRegistered.toString,
       evcs
     )
 
     serviceStateData.uuidToActorRef.get(evcs) match {
       case None =>
         // Actor is not registered yet
-        agentToBeRegistered ! RegistrationSuccessfulMessage(None)
+        agentToBeRegistered ! RegistrationSuccessfulMessage(None, selfSingleton)
 
         serviceStateData.copy(
           uuidToActorRef =
@@ -204,7 +201,9 @@ class ExtEvDataService(override val scheduler: ActorRef)
       serviceStateData.uuidToActorRef.map { case (_, evcsActor) =>
         evcsActor ! ProvideEvDataMessage(
           tick,
-          EvFreeLotsRequest
+          EvFreeLotsRequest,
+          None,
+          selfSingleton
         )
 
         // schedule activation of participant
@@ -256,7 +255,9 @@ class ExtEvDataService(override val scheduler: ActorRef)
       filteredPositionData.map { case (_, evcsActor, movements) =>
         evcsActor ! ProvideEvDataMessage(
           tick,
-          EvMovementData(movements)
+          EvMovementData(movements),
+          None,
+          selfSingleton
         )
 
         // schedule activation of participant

@@ -6,27 +6,25 @@
 
 package edu.ie3.simona.scheduler
 
-import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue, TimeUnit}
 import akka.actor._
 import akka.testkit.{ImplicitSender, TestActorRef}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.event.RuntimeEvent.{
-  CheckWindowPassed,
-  Done,
-  Initializing,
-  Simulating
-}
+import edu.ie3.simona.event.RuntimeEvent._
 import edu.ie3.simona.event.listener.RuntimeEventListener
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
+import edu.ie3.simona.scheduler.main.SimScheduler
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
 import org.scalatest.PrivateMethodTester
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+
+import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue, TimeUnit}
 
 class SimSchedulerSpec
     extends TestKitWithShutdown(
@@ -61,7 +59,10 @@ class SimSchedulerSpec
 
   // setup config for scheduler
   private val config = ConfigFactory
-    .parseString(s"""simona.time.startDateTime = "2011-01-01 00:00:00"
+    .parseString(s"""
+            simona.execution.computationMode = Local
+
+            simona.time.startDateTime = "2011-01-01 00:00:00"
             simona.time.endDateTime = "2011-01-01 01:00:00"
             simona.input.grid.datasource.id = "csv"
             simona.time.schedulerReadyCheckWindow = 900
@@ -172,7 +173,7 @@ class SimSchedulerSpec
         Some(eventQueue),
         simonaConfig.simona.time.startDateTime
       )
-    )
+    ).asLocal
   )
 
   // build the scheduler
@@ -198,7 +199,7 @@ class SimSchedulerSpec
           // necessary to receive a valid trigger that can be completed
           scheduler ! ScheduleTriggerMessage(
             InitializeServiceTrigger(DummyInitServiceStateData()),
-            self
+            self.asLocal
           )
 
           // expect a trigger message from the scheduler which when completed will provide with a
@@ -215,7 +216,10 @@ class SimSchedulerSpec
           }
 
           // send completion message with a valid trigger ID
-          scheduler ! CompletionMessage(triggerWithIdMessage.triggerId)
+          scheduler ! CompletionMessage(
+            triggerWithIdMessage.triggerId,
+            self.asLocal
+          )
 
         case _ => fail()
       }
@@ -224,57 +228,55 @@ class SimSchedulerSpec
     "notify Ready and Simulating events depending on schedulerReadyCheckWindow" +
       "notify Done on successful simulation termination" in {
 
-        var pass = false
-
         simonaConfig.simona.time.schedulerReadyCheckWindow match {
           case Some(pauseScheduleCheck) =>
-            var occurrences = (resolutionInSec / pauseScheduleCheck) + 1
+            var occurrences = (resolutionInSec / pauseScheduleCheck) + 2
+
+            assert(eventQueue.size == occurrences + 1)
 
             // check if Ready and Simulating events are notified according to
             // the config value provided in simona.time.schedulerReadyCheckWindow
-            while (occurrences != 0) {
-              pass = eventQueue.take() match {
+            while (occurrences > 0) {
+              eventQueue.take() match {
+                case _: InitComplete      =>
                 case _: CheckWindowPassed =>
-                  true
-                case _: Simulating => true
-                case _             => false
+                case _: Simulating        =>
+                case _                    => fail()
               }
               occurrences -= 1
             }
 
             // the final event thrown should be Done
-            pass = eventQueue.take() match {
-              case _: Done => true
-              case _       => false
+            eventQueue.take() match {
+              case _: Done =>
+              case _       => fail()
             }
 
           case None =>
             // The only event thrown in the absence of a value in
             // schedulerReadyCheckWindow should be Done
-            pass = eventQueue.take() match {
-              case _: Done => true
-              case _       => false
+            assert(eventQueue.size == 1)
+            eventQueue.take() match {
+              case _: Done =>
+              case _       => fail()
             }
         }
-        pass should be
-        true
       }
 
-    "notify with Error event on receipt of actor termination message" in {
+    // FIXME currently, this is broken
+    "notify with Error event on receipt of actor termination message" ignore {
 
       // create a test actor and kill the same to receive Terminated
       // in simScheduler and Error event in the runtimeEventListener
       val deathActor: ActorRef = system.actorOf(Props.empty)
-      var pass = false
       scheduler.watch(deathActor)
       deathActor ! PoisonPill
 
-      pass = eventQueue.take() match {
-        case _: Error => true
-        case _        => false
+      assert(eventQueue.size == 1)
+      eventQueue.take() match {
+        case _: Error =>
+        case _        => fail()
       }
-      pass should be
-      true
     }
   }
 

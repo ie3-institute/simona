@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.agent.participant.statedata
 
-import akka.actor.ActorRef
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
+import edu.ie3.simona.akka.SimonaActorRef
 
 import scala.reflect.{ClassTag, classTag}
 
@@ -18,8 +18,8 @@ import scala.reflect.{ClassTag, classTag}
   * @param baseStateData
   *   The basic state data
   * @param data
-  *   A mapping from senders' [[ActorRef]] s to [[Option]] s on the provided
-  *   data (None if not yet received)
+  *   A mapping from senders' [[SimonaActorRef]] s to [[Option]] s on the
+  *   provided data (None if not yet received)
   * @param yetTriggered
   *   Boolean, if an
   *   [[edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger]] has yet
@@ -32,7 +32,7 @@ final case class DataCollectionStateData[+PD <: PrimaryDataWithApparentPower[
   PD
 ]](
     baseStateData: BaseStateData[PD],
-    data: Map[ActorRef, Option[_ <: Data]],
+    data: Map[SimonaActorRef, Option[_ <: Data]],
     yetTriggered: Boolean
 ) extends ParticipantStateData[PD] {
 

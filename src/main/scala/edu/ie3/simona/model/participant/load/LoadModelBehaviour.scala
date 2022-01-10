@@ -10,7 +10,7 @@ import edu.ie3.simona.util.ParsableEnumeration
 
 /** Enumeration to describe all eligible load model behaviours
   */
-case object LoadModelBehaviour extends ParsableEnumeration {
+object LoadModelBehaviour extends ParsableEnumeration {
   val FIX: Value = Value("fix")
   val PROFILE: Value = Value("profile")
   val RANDOM: Value = Value("random")

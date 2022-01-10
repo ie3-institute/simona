@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent
 
-import akka.actor.ActorRef
+import edu.ie3.simona.akka.SimonaActorRef
 
 /** Container class, that gather together reference to relevant entities, that
   * represent the environment in the simulation
@@ -21,8 +21,8 @@ import akka.actor.ActorRef
   *   Reference to the EV data service, if existing
   */
 final case class EnvironmentRefs(
-    scheduler: ActorRef,
-    primaryServiceProxy: ActorRef,
-    weather: ActorRef,
-    evDataService: Option[ActorRef]
+    scheduler: SimonaActorRef,
+    primaryServiceProxy: SimonaActorRef,
+    weather: SimonaActorRef,
+    evDataService: Option[SimonaActorRef]
 )

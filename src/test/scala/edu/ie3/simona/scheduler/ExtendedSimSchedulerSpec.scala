@@ -6,10 +6,11 @@
 
 package edu.ie3.simona.scheduler
 
-import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue, TimeUnit}
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestActorRef}
 import com.typesafe.config.ConfigFactory
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent._
@@ -19,13 +20,16 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
   InitializeServiceTrigger
 }
+import edu.ie3.simona.scheduler.main.SimScheduler
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
 import org.scalatest._
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue, TimeUnit}
 import scala.collection.mutable
+import scala.concurrent.duration.DurationInt
 
 class ExtendedSimSchedulerSpec
     extends TestKitWithShutdown(
@@ -54,15 +58,24 @@ class ExtendedSimSchedulerSpec
 
     def expectReturnComplete(
         scheduler: ActorRef,
+        actor: SimonaActorRef,
         triggerToBeScheduled: Option[Vector[ScheduleTriggerMessage]] = None
     ): Unit = {
       expectMsgPF() {
         case msg: TriggerWithIdMessage =>
           msg.trigger match {
             case InitializeServiceTrigger(_) =>
-              scheduler ! CompletionMessage(msg.triggerId, triggerToBeScheduled)
+              scheduler ! CompletionMessage(
+                msg.triggerId,
+                actor,
+                triggerToBeScheduled
+              )
             case ActivityStartTrigger(_) =>
-              scheduler ! CompletionMessage(msg.triggerId, triggerToBeScheduled)
+              scheduler ! CompletionMessage(
+                msg.triggerId,
+                actor,
+                triggerToBeScheduled
+              )
             case _ =>
               fail(s"Unexpected trigger received: $msg")
           }
@@ -83,7 +96,7 @@ class ExtendedSimSchedulerSpec
             Some(eventQueue),
             simonaConfig.simona.time.startDateTime
           )
-        )
+        ).asLocal
       )
 
       // build scheduler
@@ -102,9 +115,7 @@ class ExtendedSimSchedulerSpec
         receivedEvent: Simulating,
         expectedElements: mutable.ArrayBuffer[RuntimeEvent]
     ): Assertion = {
-      val expectedHead = expectedElements.headOption.getOrElse(
-        fail("ExpectedElements is empty!")
-      ) match {
+      val expectedHead = expectedElements.headOption.value match {
         case expectedHead: Simulating =>
           expectedHead
         case unexpectedEvent =>
@@ -121,9 +132,7 @@ class ExtendedSimSchedulerSpec
         receivedEvent: Done,
         expectedElements: mutable.ArrayBuffer[RuntimeEvent]
     ): Boolean = {
-      val expectedHead = expectedElements.headOption.getOrElse(
-        fail("ExpectedElements is empty!")
-      ) match {
+      val expectedHead = expectedElements.headOption.value match {
         case expectedHead: Done =>
           expectedHead
         case unexpectedEvent =>
@@ -152,11 +161,11 @@ class ExtendedSimSchedulerSpec
       // send to init triggers to scheduler
       scheduler ! ScheduleTriggerMessage(
         InitializeServiceTrigger(DummyInitServiceStateData()),
-        testActor
+        testActor.asLocal
       )
       scheduler ! ScheduleTriggerMessage(
         InitializeServiceTrigger(DummyInitServiceStateData()),
-        testActor
+        testActor.asLocal
       )
 
       // tell scheduler to init
@@ -165,26 +174,37 @@ class ExtendedSimSchedulerSpec
       // we expect two init triggers we need to answer with completion, otherwise scheduler won't go on
       expectReturnComplete(
         scheduler,
+        testActor.asLocal,
         Some(
-          Vector(ScheduleTriggerMessage(ActivityStartTrigger(3600), testActor))
+          Vector(
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(3600),
+              testActor.asLocal
+            )
+          )
         )
       )
       expectReturnComplete(
         scheduler,
+        testActor.asLocal,
         Some(
-          Vector(ScheduleTriggerMessage(ActivityStartTrigger(3600), testActor))
+          Vector(
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(3600),
+              testActor.asLocal
+            )
+          )
         )
       )
 
       // wait until init is done
-      var initDone = false
-      while (!initDone) {
+      awaitCond(
         eventQueue.poll(2, TimeUnit.SECONDS) match {
-          case InitComplete(_) =>
-            initDone = true
-          case _ => false
-        }
-      }
+          case InitComplete(_) => true
+          case _               => false
+        },
+        max = 3.seconds
+      )
 
       // tell scheduler we want to run until tick 3600
       scheduler ! StartScheduleMessage(Some(3600L))
@@ -202,11 +222,10 @@ class ExtendedSimSchedulerSpec
         )
       var runDone = false
       while (!runDone) {
+        // returns null after timeout and then fails
         eventQueue.poll(2, TimeUnit.SECONDS) match {
           case event: CheckWindowPassed =>
-            val expectedHead = expectedElements.headOption.getOrElse(
-              fail("ExpectedElements is empty!")
-            ) match {
+            val expectedHead = expectedElements.headOption.value match {
               case expectedHead: CheckWindowPassed =>
                 expectedHead
               case unexpectedEvent =>
@@ -219,25 +238,17 @@ class ExtendedSimSchedulerSpec
 
             if (event.tick == 2700) {
               // when we passed tick 2700 we also expect that two message arrive at tick 3600 we need to answer with complete
-              expectReturnComplete(scheduler)
-              expectReturnComplete(scheduler)
+              expectReturnComplete(scheduler, testActor.asLocal)
+              expectReturnComplete(scheduler, testActor.asLocal)
 
-              // we also expect that the scheduler answers with a SimulationSuccessfullMessage to the sender of the run request (this test)
-              expectMsgPF() {
-                case SimulationSuccessfulMessage =>
-                case msg =>
-                  fail(
-                    s"Unexpected message received when SimulationSuccessfulMessage was expected: $msg"
-                  )
-              }
+              // we also expect that the scheduler answers with a SimulationSuccessfulMessage to the sender of the run request (this test)
+              expectMsg(SimulationSuccessfulMessage)
             }
           case event: Simulating =>
             expectSimulatingEvent(event, expectedElements)
 
           case event: Ready =>
-            val expectedHead = expectedElements.headOption.getOrElse(
-              fail("ExpectedElements is empty!")
-            ) match {
+            val expectedHead = expectedElements.headOption.value match {
               case expectedHead: Ready =>
                 expectedHead
               case unexpectedEvent =>
@@ -274,11 +285,11 @@ class ExtendedSimSchedulerSpec
       // send to init triggers to scheduler
       scheduler ! ScheduleTriggerMessage(
         InitializeServiceTrigger(DummyInitServiceStateData()),
-        testActor
+        testActor.asLocal
       )
       scheduler ! ScheduleTriggerMessage(
         InitializeServiceTrigger(DummyInitServiceStateData()),
-        testActor
+        testActor.asLocal
       )
 
       // tell scheduler to init
@@ -287,30 +298,37 @@ class ExtendedSimSchedulerSpec
       // we expect two init triggers we need to answer with completion, otherwise scheduler won't go on
       expectReturnComplete(
         scheduler,
+        testActor.asLocal,
         Some(
           Vector(
-            ScheduleTriggerMessage(ActivityStartTrigger(resolution), testActor)
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(resolution),
+              testActor.asLocal
+            )
           )
         )
       )
       expectReturnComplete(
         scheduler,
+        testActor.asLocal,
         Some(
           Vector(
-            ScheduleTriggerMessage(ActivityStartTrigger(resolution), testActor)
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(resolution),
+              testActor.asLocal
+            )
           )
         )
       )
 
       // wait until init is done
-      var initDone = false
-      while (!initDone) {
+      awaitCond(
         eventQueue.poll(2, TimeUnit.SECONDS) match {
-          case InitComplete(_) =>
-            initDone = true
-          case _ => false
-        }
-      }
+          case InitComplete(_) => true
+          case _               => false
+        },
+        max = 3.seconds
+      )
 
       // tell scheduler we want to run until tick 3600
       scheduler ! StartScheduleMessage()
@@ -336,22 +354,24 @@ class ExtendedSimSchedulerSpec
       // return with completion incl. new trigger for resolution*2
       expectReturnComplete(
         scheduler,
+        testActor.asLocal,
         Some(
           Vector(
             ScheduleTriggerMessage(
               ActivityStartTrigger(resolution * 2),
-              testActor
+              testActor.asLocal
             )
           )
         )
       )
       expectReturnComplete(
         scheduler,
+        testActor.asLocal,
         Some(
           Vector(
             ScheduleTriggerMessage(
               ActivityStartTrigger(resolution * 2),
-              testActor
+              testActor.asLocal
             )
           )
         )
@@ -360,9 +380,7 @@ class ExtendedSimSchedulerSpec
       // expect a checkWindowPassed event
       eventQueue.poll(2, TimeUnit.SECONDS) match {
         case event: CheckWindowPassed =>
-          val expectedHead = expectedElements.headOption.getOrElse(
-            fail("ExpectedElements is empty!")
-          ) match {
+          val expectedHead = expectedElements.headOption.value match {
             case expectedHead: CheckWindowPassed =>
               expectedHead
             case unexpectedEvent =>
@@ -379,22 +397,24 @@ class ExtendedSimSchedulerSpec
       // return with completion incl. new trigger for resolution*3
       expectReturnComplete(
         scheduler,
+        testActor.asLocal,
         Some(
           Vector(
             ScheduleTriggerMessage(
               ActivityStartTrigger(resolution * 3),
-              testActor
+              testActor.asLocal
             )
           )
         )
       )
       expectReturnComplete(
         scheduler,
+        testActor.asLocal,
         Some(
           Vector(
             ScheduleTriggerMessage(
               ActivityStartTrigger(resolution * 3),
-              testActor
+              testActor.asLocal
             )
           )
         )
@@ -422,22 +442,24 @@ class ExtendedSimSchedulerSpec
       // return with completion incl. new trigger for resolution*4
       expectReturnComplete(
         scheduler,
+        testActor.asLocal,
         Some(
           Vector(
             ScheduleTriggerMessage(
               ActivityStartTrigger(resolution * 4),
-              testActor
+              testActor.asLocal
             )
           )
         )
       )
       expectReturnComplete(
         scheduler,
+        testActor.asLocal,
         Some(
           Vector(
             ScheduleTriggerMessage(
               ActivityStartTrigger(resolution * 4),
-              testActor
+              testActor.asLocal
             )
           )
         )
@@ -446,11 +468,10 @@ class ExtendedSimSchedulerSpec
       // expect a checkWindowPassed for tick 2700, 3600 and a Done event
       var runDone = false
       while (!runDone) {
+        // returns null after timeout and then fails
         eventQueue.poll(2, TimeUnit.SECONDS) match {
           case event: CheckWindowPassed =>
-            val expectedHead = expectedElements.headOption.getOrElse(
-              fail("ExpectedElements is empty!")
-            ) match {
+            val expectedHead = expectedElements.headOption.value match {
               case expectedHead: CheckWindowPassed =>
                 expectedHead
               case unexpectedEvent =>
@@ -463,17 +484,11 @@ class ExtendedSimSchedulerSpec
 
             if (event.tick == 2700) {
               // when we passed tick 2700 we also expect that two message arrive at tick 3600 we need to answer with complete
-              expectReturnComplete(scheduler)
-              expectReturnComplete(scheduler)
+              expectReturnComplete(scheduler, testActor.asLocal)
+              expectReturnComplete(scheduler, testActor.asLocal)
 
-              // we also expect that the scheduler answers with a SimulationSuccessfullMessage to the sender of the run request (this test)
-              expectMsgPF() {
-                case SimulationSuccessfulMessage =>
-                case msg =>
-                  fail(
-                    s"Unexpected message received when SimulationSuccessfulMessage was expected: $msg"
-                  )
-              }
+              // we also expect that the scheduler answers with a SimulationSuccessfulMessage to the sender of the run request (this test)
+              expectMsg(SimulationSuccessfulMessage)
             }
 
           case event: Done =>
@@ -504,11 +519,11 @@ class ExtendedSimSchedulerSpec
       // send to init triggers to scheduler
       scheduler ! ScheduleTriggerMessage(
         InitializeServiceTrigger(DummyInitServiceStateData()),
-        testActor
+        testActor.asLocal
       )
       scheduler ! ScheduleTriggerMessage(
         InitializeServiceTrigger(DummyInitServiceStateData()),
-        testActor
+        testActor.asLocal
       )
 
       // tell scheduler to init
@@ -517,26 +532,37 @@ class ExtendedSimSchedulerSpec
       // we expect two init triggers we need to answer with completion, otherwise scheduler won't go on
       expectReturnComplete(
         scheduler,
+        testActor.asLocal,
         Some(
-          Vector(ScheduleTriggerMessage(ActivityStartTrigger(3600), testActor))
+          Vector(
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(3600),
+              testActor.asLocal
+            )
+          )
         )
       )
       expectReturnComplete(
         scheduler,
+        testActor.asLocal,
         Some(
-          Vector(ScheduleTriggerMessage(ActivityStartTrigger(3600), testActor))
+          Vector(
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(3600),
+              testActor.asLocal
+            )
+          )
         )
       )
 
       // wait until init is done
-      var initDone = false
-      while (!initDone) {
+      awaitCond(
         eventQueue.poll(2, TimeUnit.SECONDS) match {
-          case InitComplete(_) =>
-            initDone = true
-          case _ => false
-        }
-      }
+          case InitComplete(_) => true
+          case _               => false
+        },
+        max = 3.seconds
+      )
 
       // tell scheduler we want to run until tick 7200 (endTick == 3600)
       scheduler ! StartScheduleMessage(Some(7200L))
@@ -553,11 +579,10 @@ class ExtendedSimSchedulerSpec
 
       var runDone = false
       while (!runDone) {
+        // returns null after timeout and then fails
         eventQueue.poll(2, TimeUnit.SECONDS) match {
           case event: CheckWindowPassed =>
-            val expectedHead = expectedElements.headOption.getOrElse(
-              fail("ExpectedElements is empty!")
-            ) match {
+            val expectedHead = expectedElements.headOption.value match {
               case expectedHead: CheckWindowPassed =>
                 expectedHead
               case unexpectedEvent =>
@@ -570,17 +595,11 @@ class ExtendedSimSchedulerSpec
 
             if (event.tick == 2700) {
               // when we passed tick 2700 we also expect that two message arrive at tick 3600 we need to answer with complete
-              expectReturnComplete(scheduler)
-              expectReturnComplete(scheduler)
+              expectReturnComplete(scheduler, testActor.asLocal)
+              expectReturnComplete(scheduler, testActor.asLocal)
 
-              // we also expect that the scheduler answers with a SimulationSuccessfullMessage to the sender of the run request (this test)
-              expectMsgPF() {
-                case SimulationSuccessfulMessage =>
-                case msg =>
-                  fail(
-                    s"Unexpected message received when SimulationSuccessfulMessage was expected: $msg"
-                  )
-              }
+              // we also expect that the scheduler answers with a SimulationSuccessfulMessage to the sender of the run request (this test)
+              expectMsg(SimulationSuccessfulMessage)
             }
           case event: Simulating =>
             expectSimulatingEvent(event, expectedElements)
@@ -610,11 +629,11 @@ class ExtendedSimSchedulerSpec
       // send to init triggers to scheduler
       scheduler ! ScheduleTriggerMessage(
         InitializeServiceTrigger(DummyInitServiceStateData()),
-        testActor
+        testActor.asLocal
       )
       scheduler ! ScheduleTriggerMessage(
         InitializeServiceTrigger(DummyInitServiceStateData()),
-        testActor
+        testActor.asLocal
       )
 
       // tell scheduler to init
@@ -623,26 +642,37 @@ class ExtendedSimSchedulerSpec
       // we expect two init triggers we need to answer with completion, otherwise scheduler won't go on
       expectReturnComplete(
         scheduler,
+        testActor.asLocal,
         Some(
-          Vector(ScheduleTriggerMessage(ActivityStartTrigger(3600), testActor))
+          Vector(
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(3600),
+              testActor.asLocal
+            )
+          )
         )
       )
       expectReturnComplete(
         scheduler,
+        testActor.asLocal,
         Some(
-          Vector(ScheduleTriggerMessage(ActivityStartTrigger(3600), testActor))
+          Vector(
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(3600),
+              testActor.asLocal
+            )
+          )
         )
       )
 
       // wait until init is done
-      var initDone = false
-      while (!initDone) {
+      awaitCond(
         eventQueue.poll(2, TimeUnit.SECONDS) match {
-          case InitComplete(_) =>
-            initDone = true
-          case _ => false
-        }
-      }
+          case InitComplete(_) => true
+          case _               => false
+        },
+        max = 3.seconds
+      )
 
       // tell scheduler we want to run until tick 7200 (endTick == 3600)
       scheduler ! StartScheduleMessage(Some(3600L))
@@ -666,11 +696,10 @@ class ExtendedSimSchedulerSpec
 
       var runDone = false
       while (!runDone) {
+        // returns null after timeout and then fails
         eventQueue.poll(2, TimeUnit.SECONDS) match {
           case event: CheckWindowPassed =>
-            val expectedHead = expectedElements.headOption.getOrElse(
-              fail("ExpectedElements is empty!")
-            ) match {
+            val expectedHead = expectedElements.headOption.value match {
               case expectedHead: CheckWindowPassed =>
                 expectedHead
               case unexpectedEvent =>
@@ -685,22 +714,24 @@ class ExtendedSimSchedulerSpec
               // when we passed tick 2700 or 6300 we also expect that two message arrive at tick 3600 we need to answer with complete
               expectReturnComplete(
                 scheduler,
+                testActor.asLocal,
                 Some(
                   Vector(
                     ScheduleTriggerMessage(
                       ActivityStartTrigger(7200),
-                      testActor
+                      testActor.asLocal
                     )
                   )
                 )
               )
               expectReturnComplete(
                 scheduler,
+                testActor.asLocal,
                 Some(
                   Vector(
                     ScheduleTriggerMessage(
                       ActivityStartTrigger(7200),
-                      testActor
+                      testActor.asLocal
                     )
                   )
                 )
@@ -708,25 +739,16 @@ class ExtendedSimSchedulerSpec
             }
 
             if (event.tick == 6300) {
-              expectReturnComplete(scheduler)
-              expectReturnComplete(scheduler)
+              expectReturnComplete(scheduler, testActor.asLocal)
+              expectReturnComplete(scheduler, testActor.asLocal)
               // we also expect that the scheduler answers with a SimulationSuccessfulMessage @ tick 6300 to the sender of the run request (this test)
-              expectMsgPF() {
-                case SimulationSuccessfulMessage =>
-                case msg =>
-                  fail(
-                    s"Unexpected message received when SimulationSuccessfulMessage was expected: $msg"
-                  )
-
-              }
+              expectMsg(SimulationSuccessfulMessage)
             }
 
           case event: Simulating =>
             expectSimulatingEvent(event, expectedElements)
           case event: Ready =>
-            val expectedHead = expectedElements.headOption.getOrElse(
-              fail("ExpectedElements is empty!")
-            ) match {
+            val expectedHead = expectedElements.headOption.value match {
               case expectedHead: Ready =>
                 expectedHead
               case unexpectedEvent =>
@@ -767,11 +789,11 @@ class ExtendedSimSchedulerSpec
       // send to init triggers to scheduler
       scheduler ! ScheduleTriggerMessage(
         InitializeServiceTrigger(DummyInitServiceStateData()),
-        testActor
+        testActor.asLocal
       )
       scheduler ! ScheduleTriggerMessage(
         InitializeServiceTrigger(DummyInitServiceStateData()),
-        testActor
+        testActor.asLocal
       )
 
       // tell scheduler to init
@@ -780,26 +802,37 @@ class ExtendedSimSchedulerSpec
       // we expect two init triggers we need to answer with completion, otherwise scheduler won't go on
       expectReturnComplete(
         scheduler,
+        testActor.asLocal,
         Some(
-          Vector(ScheduleTriggerMessage(ActivityStartTrigger(3600), testActor))
+          Vector(
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(3600),
+              testActor.asLocal
+            )
+          )
         )
       )
       expectReturnComplete(
         scheduler,
+        testActor.asLocal,
         Some(
-          Vector(ScheduleTriggerMessage(ActivityStartTrigger(3600), testActor))
+          Vector(
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(3600),
+              testActor.asLocal
+            )
+          )
         )
       )
 
       // wait until init is done
-      var initDone = false
-      while (!initDone) {
+      awaitCond(
         eventQueue.poll(2, TimeUnit.SECONDS) match {
-          case InitComplete(_) =>
-            initDone = true
-          case _ => false
-        }
-      }
+          case InitComplete(_) => true
+          case _               => false
+        },
+        max = 3.seconds
+      )
 
       // tell scheduler we want to run until tick 7200 (endTick == 3600)
       scheduler ! StartScheduleMessage(Some(3599L))
@@ -819,11 +852,10 @@ class ExtendedSimSchedulerSpec
 
       var runDone = false
       while (!runDone) {
+        // returns null after timeout and then fails
         eventQueue.poll(2, TimeUnit.SECONDS) match {
           case event: CheckWindowPassed =>
-            val expectedHead = expectedElements.headOption.getOrElse(
-              fail("ExpectedElements is empty!")
-            ) match {
+            val expectedHead = expectedElements.headOption.value match {
               case expectedHead: CheckWindowPassed =>
                 expectedHead
               case unexpectedEvent =>
@@ -837,9 +869,7 @@ class ExtendedSimSchedulerSpec
           case event: Simulating =>
             expectSimulatingEvent(event, expectedElements)
           case event: Ready =>
-            val expectedHead = expectedElements.headOption.getOrElse(
-              fail("ExpectedElements is empty!")
-            ) match {
+            val expectedHead = expectedElements.headOption.value match {
               case expectedHead: Ready =>
                 expectedHead
               case unexpectedEvent =>
@@ -857,22 +887,24 @@ class ExtendedSimSchedulerSpec
               // when continue the sim we also expect that two message arrive at tick 3600 we need to answer with complete
               expectReturnComplete(
                 scheduler,
+                testActor.asLocal,
                 Some(
                   Vector(
                     ScheduleTriggerMessage(
                       ActivityStartTrigger(7200),
-                      testActor
+                      testActor.asLocal
                     )
                   )
                 )
               )
               expectReturnComplete(
                 scheduler,
+                testActor.asLocal,
                 Some(
                   Vector(
                     ScheduleTriggerMessage(
                       ActivityStartTrigger(7200),
-                      testActor
+                      testActor.asLocal
                     )
                   )
                 )
@@ -961,7 +993,7 @@ class ExtendedSimSchedulerSpec
         // send to init trigger to scheduler
         scheduler ! ScheduleTriggerMessage(
           InitializeServiceTrigger(DummyInitServiceStateData()),
-          testActor
+          testActor.asLocal
         )
       )
 
@@ -971,8 +1003,11 @@ class ExtendedSimSchedulerSpec
       // we expect one init trigger we need to answer with completion, otherwise scheduler won't go on
       expectReturnComplete(
         scheduler,
+        testActor.asLocal,
         Some(
-          Vector(ScheduleTriggerMessage(ActivityStartTrigger(1), testActor))
+          Vector(
+            ScheduleTriggerMessage(ActivityStartTrigger(1), testActor.asLocal)
+          )
         )
       )
 
@@ -1002,11 +1037,12 @@ class ExtendedSimSchedulerSpec
         noOfTestActors.foreach(_ =>
           expectReturnComplete(
             scheduler,
+            testActor.asLocal,
             Some(
               Vector(
                 ScheduleTriggerMessage(
                   ActivityStartTrigger(tick),
-                  testActor
+                  testActor.asLocal
                 )
               )
             )
@@ -1023,11 +1059,12 @@ class ExtendedSimSchedulerSpec
       noOfTestActors.foreach(_ =>
         expectReturnComplete(
           scheduler,
+          testActor.asLocal,
           Some(
             Vector(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(11),
-                testActor
+                testActor.asLocal
               )
             )
           )

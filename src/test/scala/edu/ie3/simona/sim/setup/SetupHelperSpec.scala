@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.sim.setup
 
-import java.util.UUID
+import akka.actor.ActorRef.noSender
 
-import akka.actor.ActorRef
+import java.util.UUID
 import akka.testkit.TestException
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.input.connector.{
@@ -17,9 +17,9 @@ import edu.ie3.datamodel.models.input.connector.{
 }
 import edu.ie3.datamodel.models.input.container.{
   JointGridContainer,
-  RawGridElements,
-  SubGridContainer
+  RawGridElements
 }
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.GridInputTestData
 
@@ -84,7 +84,10 @@ class SetupHelperSpec extends UnitSpec with GridInputTestData {
         )
 
       val subGridToActorRefMap =
-        Map(1 -> ActorRef.noSender, 100 -> ActorRef.noSender)
+        Map(
+          1 -> noSender.asLocal,
+          100 -> noSender.asLocal
+        )
 
       // subGrid gates should be the same for this case
       gridModel.getSubGridTopologyGraph.edgesOf(

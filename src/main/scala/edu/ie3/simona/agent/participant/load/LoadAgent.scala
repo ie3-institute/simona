@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.load
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.Props
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
@@ -16,6 +16,7 @@ import edu.ie3.simona.agent.participant.load.LoadAgentFundamentals.{
   RandomLoadAgentFundamentals
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
@@ -30,11 +31,11 @@ import edu.ie3.simona.model.participant.load.{
 
 object LoadAgent {
   def props(
-      scheduler: ActorRef,
-      listener: Iterable[ActorRef],
-      modelConfig: LoadRuntimeConfig
+      scheduler: SimonaActorRef,
+      listener: Iterable[SimonaActorRef],
+      modelBehaviour: LoadModelBehaviour.Value
   ): Props =
-    LoadModelBehaviour(modelConfig.modelBehaviour) match {
+    modelBehaviour match {
       case LoadModelBehaviour.FIX =>
         Props(new FixedLoadAgent(scheduler, listener))
       case LoadModelBehaviour.PROFILE =>
@@ -48,8 +49,8 @@ object LoadAgent {
     }
 
   final class FixedLoadAgent(
-      scheduler: ActorRef,
-      override val listener: Iterable[ActorRef]
+      scheduler: SimonaActorRef,
+      override val listener: Iterable[SimonaActorRef]
   ) extends LoadAgent[
         FixedLoadModel.FixedLoadRelevantData.type,
         FixedLoadModel
@@ -57,8 +58,8 @@ object LoadAgent {
       with FixedLoadAgentFundamentals
 
   final class ProfileLoadAgent(
-      scheduler: ActorRef,
-      override val listener: Iterable[ActorRef]
+      scheduler: SimonaActorRef,
+      override val listener: Iterable[SimonaActorRef]
   ) extends LoadAgent[
         ProfileRelevantData,
         ProfileLoadModel
@@ -66,8 +67,8 @@ object LoadAgent {
       with ProfileLoadAgentFundamentals
 
   final class RandomLoadAgent(
-      scheduler: ActorRef,
-      override val listener: Iterable[ActorRef]
+      scheduler: SimonaActorRef,
+      override val listener: Iterable[SimonaActorRef]
   ) extends LoadAgent[
         RandomRelevantData,
         RandomLoadModel
@@ -83,8 +84,8 @@ object LoadAgent {
   *   List of listeners interested in results
   */
 abstract class LoadAgent[LD <: LoadRelevantData, LM <: LoadModel[LD]](
-    scheduler: ActorRef,
-    override val listener: Iterable[ActorRef]
+    scheduler: SimonaActorRef,
+    override val listener: Iterable[SimonaActorRef]
 ) extends ParticipantAgent[
       ApparentPower,
       LD,

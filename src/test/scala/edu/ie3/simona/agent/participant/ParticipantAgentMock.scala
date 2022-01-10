@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.{ActorRef, FSM, Props}
+import akka.actor.{FSM, Props}
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
@@ -25,6 +25,7 @@ import edu.ie3.simona.agent.participant.statedata.{
 }
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
@@ -59,8 +60,9 @@ import scala.util.{Failure, Success}
   *   Actor reference of the scheduler
   */
 class ParticipantAgentMock(
-    scheduler: ActorRef,
-    override val listener: Iterable[ActorRef] = Vector.empty[ActorRef]
+    scheduler: SimonaActorRef,
+    override val listener: Iterable[SimonaActorRef] =
+      Vector.empty[SimonaActorRef]
 ) extends ParticipantAgent[
       ApparentPower,
       FixedRelevantData.type,
@@ -112,14 +114,14 @@ class ParticipantAgentMock(
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
-    *   [[ActorRef]] to the scheduler in the simulation
+    *   [[SimonaActorRef]] to the scheduler in the simulation
     * @return
     *   [[Idle]] with updated result values
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
       collectionStateData: DataCollectionStateData[ApparentPower],
       currentTick: Long,
-      scheduler: ActorRef
+      scheduler: SimonaActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
     throw new InvalidRequestException(
       "Request to calculate power with secondary data cannot be processed for this mock agent."
@@ -171,11 +173,15 @@ class ParticipantAgentMock(
     val participant: SystemParticipant[FixedRelevantData.type] =
       mock[SystemParticipant[FixedRelevantData.type]]
     doReturn(func).when(participant).activeToReactivePowerFunc(any())
+    doReturn(UUID.fromString("00000000-0000-0000-0000-000000000000"))
+      .when(participant)
+      .getUuid
 
     ParticipantModelBaseStateData(
       simulationStartDate,
       simulationEndDate,
       participant,
+      subnetNo = 0,
       None,
       outputConfig,
       Array.emptyLongArray,
@@ -285,7 +291,7 @@ class ParticipantAgentMock(
 
 case object ParticipantAgentMock {
   def props(
-      scheduler: ActorRef
+      scheduler: SimonaActorRef
   ): Props =
     Props(
       new ParticipantAgentMock(

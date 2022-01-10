@@ -20,10 +20,10 @@ trait SchedulerMessageFunctions extends TestKit with AnyWordSpecLike {
 
   def expectCompletionMessage(): CompletionMessage = {
     expectMsgPF() {
-      case msg @ CompletionMessage(_, _) => msg
+      case msg @ CompletionMessage(_, _, _) => msg
       case x =>
         fail(
-          s"Unexpected message ${x} received when expecting CompletionMessage!"
+          s"Unexpected message $x received when expecting CompletionMessage!"
         )
     }
   }
@@ -32,7 +32,7 @@ trait SchedulerMessageFunctions extends TestKit with AnyWordSpecLike {
       msg: CompletionMessage
   ): Vector[Trigger] = {
     msg match {
-      case CompletionMessage(_, newTriggers) =>
+      case CompletionMessage(_, _, newTriggers) =>
         newTriggers
           .map(schedulerTriggerMessageSeq =>
             schedulerTriggerMessageSeq.foldLeft(Vector.empty[Trigger])(

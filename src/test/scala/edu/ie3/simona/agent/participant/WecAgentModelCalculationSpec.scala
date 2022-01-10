@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.ActorSystem
 import akka.testkit.TestFSMRef
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
@@ -27,6 +27,8 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.WecRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
@@ -106,7 +108,7 @@ class WecAgentModelCalculationSpec
   private val testingTolerance = 1e-6 // Equality on the basis of 1 W
 
   /* Assign this test to receive the result events from agent */
-  override val systemListener: Iterable[ActorRef] = Vector(self)
+  override val systemListener: Iterable[SimonaActorRef] = Iterable(self.asLocal)
 
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
@@ -120,7 +122,7 @@ class WecAgentModelCalculationSpec
     configUtil.getWecConfigOrDefault(voltageSensitiveInput.getUuid)
 
   private val withServices = Some(
-    Vector(ActorWeatherService(weatherService.ref))
+    Vector(ActorWeatherService(weatherService.ref.asLocal))
   )
 
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
@@ -129,7 +131,7 @@ class WecAgentModelCalculationSpec
     "be instantiated correctly" in {
       val wecAgent = TestFSMRef(
         new WecAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -148,7 +150,7 @@ class WecAgentModelCalculationSpec
     "fail initialisation and stay in uninitialized state" in {
       val wecAgent = TestFSMRef(
         new WecAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -173,7 +175,7 @@ class WecAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               modelConfig = modelConfig,
-              primaryServiceProxy = primaryServiceProxy.ref,
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal,
               secondaryDataServices = None,
               outputConfig = ParticipantNotifierConfig(
                 simulationResultInfo = false,
@@ -182,13 +184,16 @@ class WecAgentModelCalculationSpec
             )
           ),
           triggerId,
-          wecAgent
+          wecAgent.asLocal
         )
       )
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* Agent announces, that it has received an illegal trigger */
       scheduler.receiveOne(receiveTimeOut.duration) match {
@@ -217,7 +222,7 @@ class WecAgentModelCalculationSpec
     "be instantiated correctly" in {
       val wecAgent = TestFSMRef(
         new WecAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -236,7 +241,7 @@ class WecAgentModelCalculationSpec
     "end in correct state with correct state data after initialisation" in {
       val wecAgent = TestFSMRef(
         new WecAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -261,7 +266,7 @@ class WecAgentModelCalculationSpec
               resolution = resolution,
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              primaryServiceProxy = primaryServiceProxy.ref,
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal,
               secondaryDataServices = withServices,
               outputConfig = ParticipantNotifierConfig(
                 simulationResultInfo = false,
@@ -270,13 +275,16 @@ class WecAgentModelCalculationSpec
             )
           ),
           triggerId,
-          wecAgent
+          wecAgent.asLocal
         )
       )
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* Expect a registration message */
       weatherService.expectMsg(RegisterForWeatherMessage(51.4843281, 7.4116482))
@@ -289,6 +297,7 @@ class WecAgentModelCalculationSpec
                 startDate,
                 endDate,
                 _,
+                subnetNo,
                 services,
                 outputConfig,
                 additionalActivationTicks,
@@ -305,6 +314,7 @@ class WecAgentModelCalculationSpec
           /* Base state data */
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
+          subnetNo shouldBe voltageSensitiveInput.getNode.getSubnet
           services shouldBe withServices
           outputConfig shouldBe ParticipantNotifierConfig(
             simulationResultInfo = false,
@@ -320,7 +330,9 @@ class WecAgentModelCalculationSpec
           requestValueStore shouldBe ValueStore[ApparentPower](resolution * 10)
 
           /* Additional information */
-          awaitRegistrationResponsesFrom shouldBe Vector(weatherService.ref)
+          awaitRegistrationResponsesFrom shouldBe Vector(
+            weatherService.ref.asLocal
+          )
           foreseenNextDataTicks shouldBe Map.empty
         case _ =>
           fail(
@@ -329,15 +341,22 @@ class WecAgentModelCalculationSpec
       }
 
       /* Reply, that registration was successful */
-      weatherService.send(wecAgent, RegistrationSuccessfulMessage(Some(4711L)))
+      weatherService.send(
+        wecAgent,
+        RegistrationSuccessfulMessage(Some(4711L), weatherService.ref.asLocal)
+      )
 
       /* Expect a completion message */
       scheduler.expectMsg(
         CompletionMessage(
           triggerId,
+          wecAgent.asLocal,
           Some(
             Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(4711), wecAgent)
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(4711),
+                wecAgent.asLocal
+              )
             )
           )
         )
@@ -353,7 +372,7 @@ class WecAgentModelCalculationSpec
             ] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
-            weatherService.ref -> Some(4711L)
+            weatherService.ref.asLocal -> Some(4711L)
           )
         case _ =>
           fail(
@@ -365,7 +384,7 @@ class WecAgentModelCalculationSpec
     "answer with zero power, if asked directly after initialisation" in {
       val wecAgent = TestFSMRef(
         new WecAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -390,7 +409,7 @@ class WecAgentModelCalculationSpec
               resolution = resolution,
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              primaryServiceProxy = primaryServiceProxy.ref,
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal,
               secondaryDataServices = withServices,
               outputConfig = ParticipantNotifierConfig(
                 simulationResultInfo = false,
@@ -399,17 +418,23 @@ class WecAgentModelCalculationSpec
             )
           ),
           triggerId,
-          wecAgent
+          wecAgent.asLocal
         )
       )
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* Expect a registration message */
       weatherService.expectMsg(RegisterForWeatherMessage(51.4843281, 7.4116482))
-      weatherService.send(wecAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        wecAgent,
+        RegistrationSuccessfulMessage(Some(900L), weatherService.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
@@ -420,7 +445,8 @@ class WecAgentModelCalculationSpec
       wecAgent ! RequestAssetPowerMessage(
         0L,
         Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
       expectMsg(
         AssetPowerChangedMessage(
@@ -456,7 +482,7 @@ class WecAgentModelCalculationSpec
     "do correct transitions faced to new data in Idle" in {
       val wecAgent = TestFSMRef(
         new WecAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -481,7 +507,7 @@ class WecAgentModelCalculationSpec
               resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              primaryServiceProxy = primaryServiceProxy.ref,
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal,
               secondaryDataServices = withServices,
               outputConfig = ParticipantNotifierConfig(
                 simulationResultInfo = false,
@@ -490,17 +516,23 @@ class WecAgentModelCalculationSpec
             )
           ),
           initialiseTriggerId,
-          wecAgent
+          wecAgent.asLocal
         )
       )
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(wecAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        wecAgent,
+        RegistrationSuccessfulMessage(Some(900L), weatherService.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
@@ -517,7 +549,12 @@ class WecAgentModelCalculationSpec
 
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(900L, weatherData, Some(1800L))
+        ProvideWeatherMessage(
+          900L,
+          weatherData,
+          Some(1800L),
+          weatherService.ref.asLocal
+        )
       )
 
       /* Find yourself in corresponding state and state data */
@@ -534,12 +571,12 @@ class WecAgentModelCalculationSpec
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
-            weatherService.ref -> Some(1800L)
+            weatherService.ref.asLocal -> Some(1800L)
           )
 
           /* The yet sent data is also registered */
           expectedSenders shouldBe Map(
-            weatherService.ref -> Some(weatherData)
+            weatherService.ref.asLocal -> Some(weatherData)
           )
 
           /* It is not yet triggered */
@@ -556,7 +593,7 @@ class WecAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
           1L,
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
 
@@ -565,8 +602,14 @@ class WecAgentModelCalculationSpec
       scheduler.expectMsg(
         CompletionMessage(
           1L,
+          wecAgent.asLocal,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(1800L),
+                wecAgent.asLocal
+              )
+            )
           )
         )
       )
@@ -620,7 +663,7 @@ class WecAgentModelCalculationSpec
     "do correct transitions triggered for activation in idle" in {
       val wecAgent = TestFSMRef(
         new WecAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -645,7 +688,7 @@ class WecAgentModelCalculationSpec
               resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              primaryServiceProxy = primaryServiceProxy.ref,
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal,
               secondaryDataServices = withServices,
               outputConfig = ParticipantNotifierConfig(
                 simulationResultInfo = false,
@@ -654,17 +697,23 @@ class WecAgentModelCalculationSpec
             )
           ),
           initialiseTriggerId,
-          wecAgent
+          wecAgent.asLocal
         )
       )
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(wecAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        wecAgent,
+        RegistrationSuccessfulMessage(Some(900L), weatherService.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
@@ -676,7 +725,7 @@ class WecAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
           1L,
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
 
@@ -694,11 +743,11 @@ class WecAgentModelCalculationSpec
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
-            weatherService.ref -> Some(900L)
+            weatherService.ref.asLocal -> Some(900L)
           )
 
           /* The yet sent data is also registered */
-          expectedSenders shouldBe Map(weatherService.ref -> None)
+          expectedSenders shouldBe Map(weatherService.ref.asLocal -> None)
 
           /* It is yet triggered */
           isYetTriggered shouldBe true
@@ -718,15 +767,26 @@ class WecAgentModelCalculationSpec
 
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(900L, weatherData, Some(1800L))
+        ProvideWeatherMessage(
+          900L,
+          weatherData,
+          Some(1800L),
+          weatherService.ref.asLocal
+        )
       )
 
       /* Expect confirmation */
       scheduler.expectMsg(
         CompletionMessage(
           1L,
+          wecAgent.asLocal,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(1800L),
+                wecAgent.asLocal
+              )
+            )
           )
         )
       )
@@ -782,7 +842,7 @@ class WecAgentModelCalculationSpec
     "does not provide power if data is awaited in an earlier tick, but answers it, if all expected data is there" in {
       val wecAgent = TestFSMRef(
         new WecAgent(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -807,7 +867,7 @@ class WecAgentModelCalculationSpec
               resolution = resolution,
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              primaryServiceProxy = primaryServiceProxy.ref,
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal,
               secondaryDataServices = withServices,
               outputConfig = ParticipantNotifierConfig(
                 simulationResultInfo = false,
@@ -816,17 +876,23 @@ class WecAgentModelCalculationSpec
             )
           ),
           0L,
-          wecAgent
+          wecAgent.asLocal
         )
       )
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(wecAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        wecAgent,
+        RegistrationSuccessfulMessage(Some(900L), weatherService.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
@@ -836,7 +902,8 @@ class WecAgentModelCalculationSpec
       wecAgent ! RequestAssetPowerMessage(
         1800L,
         Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(wecAgent.stateName == Idle)
@@ -850,7 +917,12 @@ class WecAgentModelCalculationSpec
       )
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(900L, weatherData, Some(1800L))
+        ProvideWeatherMessage(
+          900L,
+          weatherData,
+          Some(1800L),
+          weatherService.ref.asLocal
+        )
       )
 
       /* Trigger the agent */
@@ -859,7 +931,7 @@ class WecAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
           1L,
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
 
@@ -868,8 +940,14 @@ class WecAgentModelCalculationSpec
       scheduler.expectMsg(
         CompletionMessage(
           1L,
+          wecAgent.asLocal,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(1800L),
+                wecAgent.asLocal
+              )
+            )
           )
         )
       )
@@ -890,7 +968,7 @@ class WecAgentModelCalculationSpec
 
     val wecAgent = TestFSMRef(
       new WecAgent(
-        scheduler = scheduler.ref,
+        scheduler = scheduler.ref.asLocal,
         listener = systemListener
       )
     )
@@ -916,7 +994,7 @@ class WecAgentModelCalculationSpec
               resolution = resolution,
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              primaryServiceProxy = primaryServiceProxy.ref,
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal,
               secondaryDataServices = withServices,
               outputConfig = ParticipantNotifierConfig(
                 simulationResultInfo = false,
@@ -925,17 +1003,23 @@ class WecAgentModelCalculationSpec
             )
           ),
           0L,
-          wecAgent
+          wecAgent.asLocal
         )
       )
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(wecAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        wecAgent,
+        RegistrationSuccessfulMessage(Some(900L), weatherService.ref.asLocal)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
@@ -953,7 +1037,8 @@ class WecAgentModelCalculationSpec
             Quantities.getQuantity(0, CELSIUS),
             Quantities.getQuantity(0, METRE_PER_SECOND)
           ),
-          Some(1800L)
+          Some(1800L),
+          weatherService.ref.asLocal
         )
       )
       scheduler.send(
@@ -961,14 +1046,20 @@ class WecAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
           1L,
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           1L,
+          wecAgent.asLocal,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(1800L),
+                wecAgent.asLocal
+              )
+            )
           )
         )
       )
@@ -984,7 +1075,8 @@ class WecAgentModelCalculationSpec
             Quantities.getQuantity(0, CELSIUS),
             Quantities.getQuantity(0, METRE_PER_SECOND)
           ),
-          Some(2700L)
+          Some(2700L),
+          weatherService.ref.asLocal
         )
       )
       scheduler.send(
@@ -992,14 +1084,20 @@ class WecAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(1800L),
           3L,
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           3L,
+          wecAgent.asLocal,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(2700L), wecAgent))
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(2700L),
+                wecAgent.asLocal
+              )
+            )
           )
         )
       )
@@ -1015,7 +1113,8 @@ class WecAgentModelCalculationSpec
             Quantities.getQuantity(0, CELSIUS),
             Quantities.getQuantity(0, METRE_PER_SECOND)
           ),
-          None
+          None,
+          weatherService.ref.asLocal
         )
       )
       scheduler.send(
@@ -1023,16 +1122,17 @@ class WecAgentModelCalculationSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(2700L),
           5L,
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
-      scheduler.expectMsg(CompletionMessage(5L))
+      scheduler.expectMsg(CompletionMessage(5L, wecAgent.asLocal))
 
       /* Ask the agent for average power in tick 3000 */
       wecAgent ! RequestAssetPowerMessage(
         3000L,
         Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -1055,7 +1155,8 @@ class WecAgentModelCalculationSpec
       wecAgent ! RequestAssetPowerMessage(
         3000L,
         Quantities.getQuantity(1.000000000000001d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        weatherService.ref.asLocal
       )
 
       /* Expect, that nothing has changed */
@@ -1077,7 +1178,8 @@ class WecAgentModelCalculationSpec
       wecAgent ! RequestAssetPowerMessage(
         3000L,
         Quantities.getQuantity(0.98, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        weatherService.ref.asLocal
       )
 
       /* Expect, the correct values (this model has fixed power factor) */

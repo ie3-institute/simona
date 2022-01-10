@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.wec
 
-import akka.actor.{ActorRef, FSM}
+import akka.actor.FSM
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult,
@@ -14,6 +14,7 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent._
+import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
@@ -21,7 +22,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData._
-import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.statedata.{
   DataCollectionStateData,
   ParticipantStateData
@@ -29,6 +29,7 @@ import edu.ie3.simona.agent.participant.statedata.{
 import edu.ie3.simona.agent.participant.wec.WecAgent.neededServices
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.config.SimonaConfig.WecRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.{
@@ -41,17 +42,13 @@ import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.util.quantities.EmptyQuantity
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.scala.quantities.QuantityUtil
-
-import javax.measure.quantity.{Dimensionless, Energy, Power}
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.PASCAL
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.{ClassTag, classTag}
-import scala.util.{Failure, Success}
 
 protected trait WecAgentFundamentals
     extends ParticipantAgentFundamentals[
@@ -124,6 +121,7 @@ protected trait WecAgentFundamentals
       simulationStartDate,
       simulationEndDate,
       model,
+      inputModel.getNode.getSubnet,
       services,
       outputConfig,
       Array.emptyLongArray, // Additional activation of the wec agent is not needed
@@ -190,14 +188,14 @@ protected trait WecAgentFundamentals
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
-    *   [[ActorRef]] to the scheduler in the simulation
+    *   [[SimonaActorRef]] to the scheduler in the simulation
     * @return
     *   [[Idle]] with updated result values
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
       collectionStateData: DataCollectionStateData[ApparentPower],
       currentTick: Long,
-      scheduler: ActorRef
+      scheduler: SimonaActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
     implicit val startDateTime: ZonedDateTime =
       collectionStateData.baseStateData.startDate

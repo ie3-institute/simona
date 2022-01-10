@@ -16,6 +16,8 @@ import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.SValue
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{
   CouchbaseParams,
   CsvParams,
@@ -34,11 +36,11 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   WorkerRegistrationMessage
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   CsvInitPrimaryServiceStateData,
@@ -57,9 +59,9 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 import java.util.{Objects, UUID}
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.reflect.io.File
 import scala.util.{Failure, Success, Try}
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class PrimaryServiceProxySpec
     extends AgentSpec(
@@ -127,7 +129,7 @@ class PrimaryServiceProxySpec
     mappingSource
   )
 
-  val scheduler = TestProbe("scheduler")
+  private val scheduler = TestProbe("scheduler")
 
   "Testing a primary service config" should {
     "lead to complaining about too much source definitions" in {
@@ -243,7 +245,7 @@ class PrimaryServiceProxySpec
   }
 
   val proxyRef: TestActorRef[PrimaryServiceProxy] = TestActorRef(
-    new PrimaryServiceProxy(self, simulationStart)
+    new PrimaryServiceProxy(self.asLocal, simulationStart)
   )
   val proxy: PrimaryServiceProxy = proxyRef.underlyingActor
 
@@ -346,15 +348,16 @@ class PrimaryServiceProxySpec
       proxyRef ! TriggerWithIdMessage(
         InitializeServiceTrigger(initStateData),
         0L,
-        self
+        self.asLocal
       )
-      expectMsg(CompletionMessage(0L, None))
+      expectMsg(CompletionMessage(0L, proxyRef.asLocal, None))
     }
   }
 
   "Spinning off a worker" should {
     "successfully instantiate an actor within the actor system" in {
-      val classToWorkerRef = PrivateMethod[ActorRef](Symbol("classToWorkerRef"))
+      val classToWorkerRef =
+        PrivateMethod[SimonaActorRef](Symbol("classToWorkerRef"))
 
       val testClass =
         classOf[
@@ -385,7 +388,7 @@ class PrimaryServiceProxySpec
       )
 
       val columnSchemeToActor =
-        PrivateMethod[Try[ActorRef]](Symbol("columnSchemeToActor"))
+        PrivateMethod[Try[SimonaActorRef]](Symbol("columnSchemeToActor"))
 
       forAll(testData) {
         case (columnScheme: ColumnScheme, successFul: Boolean) =>
@@ -516,13 +519,15 @@ class PrimaryServiceProxySpec
        * message is sent to the worker */
       val testProbe = TestProbe("workerTestProbe")
       val fakeProxyRef =
-        TestActorRef(new PrimaryServiceProxy(scheduler.ref, simulationStart) {
-          override def columnSchemeToActor(
-              columnScheme: ColumnScheme,
-              actorId: String,
-              simulationStart: ZonedDateTime
-          ): Try[ActorRef] = Success(testProbe.ref)
-        })
+        TestActorRef(
+          new PrimaryServiceProxy(scheduler.ref.asLocal, simulationStart) {
+            override def columnSchemeToActor(
+                columnScheme: ColumnScheme,
+                actorId: String,
+                simulationStart: ZonedDateTime
+            ): Try[SimonaActorRef] = Success(testProbe.ref.asLocal)
+          }
+        )
       val fakeProxy: PrimaryServiceProxy = fakeProxyRef.underlyingActor
 
       fakeProxy.initializeWorker(
@@ -581,7 +586,7 @@ class PrimaryServiceProxySpec
         proxy invokePrivate updateStateData(
           proxyStateData,
           UUID.fromString("394fd072-832c-4c36-869b-c574ee37afe1"),
-          self
+          self.asLocal
         )
       }
       exception.getMessage shouldBe "Cannot update entry for time series '394fd072-832c-4c36-869b-c574ee37afe1', as it hasn't been part of it before."
@@ -591,7 +596,7 @@ class PrimaryServiceProxySpec
       proxy invokePrivate updateStateData(
         proxyStateData,
         timeSeriesUuid,
-        self
+        self.asLocal
       ) match {
         case PrimaryServiceStateData(
               modelToTimeSeries,
@@ -610,7 +615,7 @@ class PrimaryServiceProxySpec
             UUID
               .fromString("3fbfaa97-cff4-46d4-95ba-a95665e87c26") -> SourceRef(
               ColumnScheme.APPARENT_POWER,
-              Some(self)
+              Some(self.asLocal)
             )
           )
           simulationStart shouldBe proxyStateData.simulationStart
@@ -629,15 +634,18 @@ class PrimaryServiceProxySpec
         modelUuid,
         timeSeriesUuid,
         maliciousStateData,
-        self
+        self.asLocal
       )
-      expectMsg(RegistrationFailedMessage)
+      expectMsg(RegistrationFailedMessage(proxyRef.asLocal))
     }
 
     "forward the registration request, if worker is already known" in {
       val adaptedStateData = proxyStateData.copy(
         timeSeriesToSourceRef = Map(
-          timeSeriesUuid -> SourceRef(ColumnScheme.APPARENT_POWER, Some(self))
+          timeSeriesUuid -> SourceRef(
+            ColumnScheme.APPARENT_POWER,
+            Some(self.asLocal)
+          )
         )
       )
 
@@ -645,9 +653,9 @@ class PrimaryServiceProxySpec
         modelUuid,
         timeSeriesUuid,
         adaptedStateData,
-        self
+        self.asLocal
       )
-      expectMsg(WorkerRegistrationMessage(self))
+      expectMsg(WorkerRegistrationMessage(self.asLocal))
     }
 
     "fail, if worker cannot be spun off" in {
@@ -664,23 +672,23 @@ class PrimaryServiceProxySpec
         modelUuid,
         timeSeriesUuid,
         maliciousStateData,
-        self
+        self.asLocal
       )
-      expectMsg(RegistrationFailedMessage)
+      expectMsg(RegistrationFailedMessage(proxyRef.asLocal))
     }
 
     "spin off a worker, if needed and forward the registration request" in {
       /* We once again fake the class, so that we can infiltrate a probe */
       val probe = TestProbe("workerTestProbe")
       val fakeProxyRef =
-        TestActorRef(new PrimaryServiceProxy(self, simulationStart) {
+        TestActorRef(new PrimaryServiceProxy(self.asLocal, simulationStart) {
           override def initializeWorker(
               columnScheme: ColumnScheme,
               timeSeriesUuid: UUID,
               simulationStart: ZonedDateTime,
               primaryConfig: PrimaryConfig,
               mappingSource: TimeSeriesMappingSource
-          ): Try[ActorRef] = Success(probe.ref)
+          ): Try[SimonaActorRef] = Success(probe.ref.asLocal)
         })
       val fakeProxy = fakeProxyRef.underlyingActor
 
@@ -688,34 +696,35 @@ class PrimaryServiceProxySpec
         modelUuid,
         timeSeriesUuid,
         proxyStateData,
-        self
+        self.asLocal
       )
-      probe.expectMsg(WorkerRegistrationMessage(self))
+      probe.expectMsg(WorkerRegistrationMessage(self.asLocal))
     }
   }
 
   "Trying to register with a proxy" should {
     "fail, if there is no information for the requested model" in {
       val request = PrimaryServiceRegistrationMessage(
-        UUID.fromString("2850a2d6-4b70-43c9-b5cc-cd823a72d860")
+        UUID.fromString("2850a2d6-4b70-43c9-b5cc-cd823a72d860"),
+        ActorRef.noSender.asLocal
       )
 
       proxyRef ! request
-      expectMsg(RegistrationFailedMessage)
+      expectMsg(RegistrationFailedMessage(proxyRef.asLocal))
     }
 
     "succeed, if model is handled" in {
       /* We once again fake the class, so that we can infiltrate a probe */
       val probe = TestProbe("workerTestProbe")
       val fakeProxyRef =
-        TestActorRef(new PrimaryServiceProxy(self, simulationStart) {
+        TestActorRef(new PrimaryServiceProxy(self.asLocal, simulationStart) {
           override def initializeWorker(
               columnScheme: ColumnScheme,
               timeSeriesUuid: UUID,
               simulationStart: ZonedDateTime,
               primaryConfig: PrimaryConfig,
               mappingSource: TimeSeriesMappingSource
-          ): Try[ActorRef] = Success(probe.ref)
+          ): Try[SimonaActorRef] = Success(probe.ref.asLocal)
         })
 
       /* Initialize the fake proxy */
@@ -726,13 +735,16 @@ class PrimaryServiceProxySpec
       fakeProxyRef ! TriggerWithIdMessage(
         InitializeServiceTrigger(initStateData),
         0L,
-        self
+        self.asLocal
       )
-      expectMsg(CompletionMessage(0L, None))
+      expectMsg(CompletionMessage(0L, fakeProxyRef.asLocal, None))
 
       /* Try to register with fake proxy */
-      fakeProxyRef ! PrimaryServiceRegistrationMessage(modelUuid)
-      probe.expectMsg(WorkerRegistrationMessage(self))
+      fakeProxyRef ! PrimaryServiceRegistrationMessage(
+        modelUuid,
+        probe.ref.asLocal
+      )
+      probe.expectMsg(WorkerRegistrationMessage(probe.ref.asLocal))
     }
   }
 }

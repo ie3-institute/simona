@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.{ActorContext, ActorRef, ActorSystem}
+import akka.actor.ActorRefFactory
 import edu.ie3.datamodel.exceptions.NotImplementedException
 import edu.ie3.datamodel.models.input.connector.{
   ConnectorPort,
@@ -14,6 +14,7 @@ import edu.ie3.datamodel.models.input.connector.{
 }
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.UnitSpec
@@ -25,45 +26,45 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
 
   override val args: Array[String] = Array.empty[String]
 
-  override val buildActorSystem: () => ActorSystem = () =>
-    throw new NotImplementedException("This is a dummy setup")
-
-  override def runtimeEventListener(context: ActorContext): Seq[ActorRef] =
+  override def runtimeEventListener(
+      refFactory: ActorRefFactory
+  ): Seq[SimonaActorRef] =
     throw new NotImplementedException("This is a dummy setup")
 
   override def systemParticipantsListener(
-      context: ActorContext,
-      supervisor: ActorRef
-  ): Seq[ActorRef] = throw new NotImplementedException("This is a dummy setup")
+      refFactory: ActorRefFactory,
+      supervisor: SimonaActorRef
+  ): Seq[SimonaActorRef] =
+    throw new NotImplementedException("This is a dummy setup")
 
   override def primaryServiceProxy(
-      context: ActorContext,
-      scheduler: ActorRef
-  ): (ActorRef, PrimaryServiceProxy.InitPrimaryServiceProxyStateData) =
+      refFactory: ActorRefFactory,
+      scheduler: SimonaActorRef
+  ): (SimonaActorRef, PrimaryServiceProxy.InitPrimaryServiceProxyStateData) =
     throw new NotImplementedException("This is a dummy setup")
 
   override def weatherService(
-      context: ActorContext,
-      scheduler: ActorRef
-  ): (ActorRef, WeatherService.InitWeatherServiceStateData) =
+      refFactory: ActorRefFactory,
+      scheduler: SimonaActorRef
+  ): (SimonaActorRef, WeatherService.InitWeatherServiceStateData) =
     throw new NotImplementedException("This is a dummy setup")
 
   override def extSimulations(
-      context: ActorContext,
-      scheduler: ActorRef
+      refFactory: ActorRefFactory,
+      scheduler: SimonaActorRef
   ): ExtSimSetupData =
     throw new NotImplementedException("This is a dummy setup")
 
   override def scheduler(
-      context: ActorContext,
-      runtimeEventListener: Seq[ActorRef]
-  ): ActorRef = throw new NotImplementedException("This is a dummy setup")
+      refFactory: ActorRefFactory,
+      runtimeEventListener: Seq[SimonaActorRef]
+  ): SimonaActorRef = throw new NotImplementedException("This is a dummy setup")
 
   override def gridAgents(
-      context: ActorContext,
+      refFactory: ActorRefFactory,
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ActorRef]
-  ): Map[ActorRef, GridAgentData.GridAgentInitData] =
+      systemParticipantListener: Seq[SimonaActorRef]
+  ): Map[SimonaActorRef, GridAgentData.GridAgentInitData] =
     throw new NotImplementedException("This is a dummy setup")
 
   "Attempting to modify a sub grid gate" should {

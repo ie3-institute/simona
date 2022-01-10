@@ -6,6 +6,8 @@
 
 package edu.ie3.simona.ontology.messages
 
+import edu.ie3.simona.akka.SimonaActorRef
+
 import java.util.UUID
 
 import javax.measure.quantity.{Dimensionless, Power}
@@ -34,7 +36,8 @@ object PowerMessage {
   final case class RequestAssetPowerMessage(
       currentTick: Long,
       eInPu: ComparableQuantity[Dimensionless],
-      fInPu: ComparableQuantity[Dimensionless]
+      fInPu: ComparableQuantity[Dimensionless],
+      gridRef: SimonaActorRef
   ) extends PowerRequestMessage
 
   /** Provide power values as a reply on an [[RequestAssetPowerMessage]]

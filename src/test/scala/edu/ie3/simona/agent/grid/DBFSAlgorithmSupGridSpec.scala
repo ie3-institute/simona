@@ -7,8 +7,7 @@
 package edu.ie3.simona.agent.grid
 
 import java.util.UUID
-
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestFSMRef}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
@@ -16,6 +15,8 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvideGridPowerMessage,
@@ -63,9 +64,9 @@ class DBFSAlgorithmSupGridSpec
     with DbfsTestGrid {
 
   private val environmentRefs = EnvironmentRefs(
-    scheduler = self,
-    primaryServiceProxy = self,
-    weather = self,
+    scheduler = self.asLocal,
+    primaryServiceProxy = self.asLocal,
+    weather = self.asLocal,
     evDataService = None
   )
 
@@ -75,7 +76,7 @@ class DBFSAlgorithmSupGridSpec
       new GridAgent(
         environmentRefs,
         simonaConfig,
-        listener = Iterable.empty[ActorRef]
+        listener = Iterable.empty[SimonaActorRef]
       )
     )
 
@@ -87,9 +88,9 @@ class DBFSAlgorithmSupGridSpec
       val triggerId = 0
 
       // hs test actor (below ehv/sup actor)
-      val hsActorRef = this.testActor
+      val hsActorRef = testActor.asLocal
 
-      val subGridGateToActorRef: Map[SubGridGate, ActorRef] =
+      val subGridGateToActorRef: Map[SubGridGate, SimonaActorRef] =
         ehvSubGridGates.map(gate => gate -> hsActorRef).toMap
 
       val gridAgentInitData =
@@ -103,7 +104,7 @@ class DBFSAlgorithmSupGridSpec
       superiorGridAgentFSM ! TriggerWithIdMessage(
         InitializeGridAgentTrigger(gridAgentInitData),
         triggerId,
-        superiorGridAgentFSM
+        superiorGridAgentFSM.asLocal
       )
 
       // grid agent state should be idle afterwards
@@ -112,9 +113,11 @@ class DBFSAlgorithmSupGridSpec
       expectMsgPF() {
         case CompletionMessage(
               triggerId,
+              actor,
               Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
             ) =>
           triggerId shouldBe 0
+          actor shouldBe superiorGridAgentFSM.asLocal
           triggerToBeScheduled shouldBe ActivityStartTrigger(3600)
         case x =>
           fail(
@@ -131,7 +134,7 @@ class DBFSAlgorithmSupGridSpec
       superiorGridAgentFSM ! TriggerWithIdMessage(
         ActivityStartTrigger(3600),
         activityStartTriggerId,
-        superiorGridAgentFSM
+        superiorGridAgentFSM.asLocal
       )
 
       // grid agent stat should be simulate grid afterwards
@@ -141,9 +144,11 @@ class DBFSAlgorithmSupGridSpec
       expectMsgPF() {
         case CompletionMessage(
               triggerId,
+              actor,
               Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
             ) =>
           triggerId shouldBe 1
+          actor shouldBe superiorGridAgentFSM.asLocal
           triggerToBeScheduled shouldBe StartGridSimulationTrigger(3600)
         case x =>
           fail(
@@ -166,7 +171,7 @@ class DBFSAlgorithmSupGridSpec
           superiorGridAgentFSM ! TriggerWithIdMessage(
             StartGridSimulationTrigger(3600),
             startGridSimulationTriggerId,
-            superiorGridAgentFSM
+            superiorGridAgentFSM.asLocal
           )
 
           // we expect a request for grid power values here for sweepNo $sweepNo
@@ -197,6 +202,7 @@ class DBFSAlgorithmSupGridSpec
             /* should happen for sweepNo == 0, receiver is scheduler */
             case CompletionMessage(
                   2,
+                  _,
                   Some(
                     Vector(
                       ScheduleTriggerMessage(
@@ -225,6 +231,7 @@ class DBFSAlgorithmSupGridSpec
               expectMsgPF() {
                 case CompletionMessage(
                       3,
+                      _,
                       Some(
                         Vector(
                           ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
@@ -285,16 +292,18 @@ class DBFSAlgorithmSupGridSpec
         superiorGridAgentFSM ! TriggerWithIdMessage(
           ActivityStartTrigger(3600),
           activityStartTriggerId,
-          superiorGridAgentFSM
+          superiorGridAgentFSM.asLocal
         )
 
         // we expect a completion message
         expectMsgPF() {
           case CompletionMessage(
                 triggerId,
+                actor,
                 Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
               ) =>
             triggerId shouldBe 1
+            actor shouldBe superiorGridAgentFSM.asLocal
             triggerToBeScheduled shouldBe StartGridSimulationTrigger(3600)
           case x =>
             fail(
@@ -316,7 +325,7 @@ class DBFSAlgorithmSupGridSpec
           superiorGridAgentFSM ! TriggerWithIdMessage(
             StartGridSimulationTrigger(3600),
             startGridSimulationTriggerId,
-            superiorGridAgentFSM
+            superiorGridAgentFSM.asLocal
           )
 
           // we expect a request for grid power values here for sweepNo $sweepNo
@@ -345,6 +354,7 @@ class DBFSAlgorithmSupGridSpec
           expectMsgPF() {
             case CompletionMessage(
                   _,
+                  _,
                   Some(
                     Vector(
                       ScheduleTriggerMessage(
@@ -359,6 +369,7 @@ class DBFSAlgorithmSupGridSpec
               // we expect another completion message then as well (scheduler view)
               expectMsgPF() {
                 case CompletionMessage(
+                      _,
                       _,
                       Some(
                         Vector(
@@ -388,16 +399,16 @@ class DBFSAlgorithmSupGridSpec
       GridAgent.props(
         environmentRefs,
         simonaConfig,
-        listener = Iterable.empty[ActorRef]
+        listener = Iterable.empty[SimonaActorRef]
       )
     )
 
     s"initialize itself when it receives a $InitializeGridAgentTrigger with corresponding data" in {
       val triggerId = 0
 
-      val hsActorRef = this.testActor
+      val hsActorRef = testActor.asLocal
 
-      val subnetGatesToActorRef: Map[SubGridGate, ActorRef] =
+      val subnetGatesToActorRef: Map[SubGridGate, SimonaActorRef] =
         ehvSubGridGates.map(gate => gate -> hsActorRef).toMap
 
       val gridAgentInitData =
@@ -411,15 +422,17 @@ class DBFSAlgorithmSupGridSpec
       superiorGridAgentFSM ! TriggerWithIdMessage(
         InitializeGridAgentTrigger(gridAgentInitData),
         triggerId,
-        superiorGridAgentFSM
+        superiorGridAgentFSM.asLocal
       )
 
       expectMsgPF() {
         case CompletionMessage(
               triggerId,
+              actor,
               Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
             ) =>
           triggerId shouldBe 0
+          actor shouldBe superiorGridAgentFSM.asLocal
           triggerToBeScheduled shouldBe ActivityStartTrigger(3600)
         case x =>
           fail(
@@ -436,16 +449,18 @@ class DBFSAlgorithmSupGridSpec
       superiorGridAgentFSM ! TriggerWithIdMessage(
         ActivityStartTrigger(3600),
         activityStartTriggerId,
-        superiorGridAgentFSM
+        superiorGridAgentFSM.asLocal
       )
 
       // we expect a completion message
       expectMsgPF() {
         case CompletionMessage(
               triggerId,
+              actor,
               Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
             ) =>
           triggerId shouldBe 1
+          actor shouldBe superiorGridAgentFSM.asLocal
           triggerToBeScheduled shouldBe StartGridSimulationTrigger(3600)
         case x =>
           fail(
@@ -468,7 +483,7 @@ class DBFSAlgorithmSupGridSpec
           superiorGridAgentFSM ! TriggerWithIdMessage(
             StartGridSimulationTrigger(3600),
             startGridSimulationTriggerId,
-            superiorGridAgentFSM
+            superiorGridAgentFSM.asLocal
           )
 
           // we expect a request for grid power values here for sweepNo $sweepNo
@@ -498,6 +513,7 @@ class DBFSAlgorithmSupGridSpec
           expectMsgPF() {
             case CompletionMessage(
                   2,
+                  _,
                   Some(
                     Vector(
                       ScheduleTriggerMessage(
@@ -512,6 +528,7 @@ class DBFSAlgorithmSupGridSpec
               expectMsgPF() {
                 case CompletionMessage(
                       3,
+                      _,
                       Some(
                         Vector(
                           ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
@@ -571,16 +588,18 @@ class DBFSAlgorithmSupGridSpec
         superiorGridAgentFSM ! TriggerWithIdMessage(
           ActivityStartTrigger(3600),
           activityStartTriggerId,
-          superiorGridAgentFSM
+          superiorGridAgentFSM.asLocal
         )
 
         // we expect a completion message
         expectMsgPF() {
           case CompletionMessage(
                 triggerId,
+                actor,
                 Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
               ) =>
             triggerId shouldBe 1
+            actor shouldBe superiorGridAgentFSM.asLocal
             triggerToBeScheduled shouldBe StartGridSimulationTrigger(3600)
           case x =>
             fail(
@@ -599,7 +618,7 @@ class DBFSAlgorithmSupGridSpec
           superiorGridAgentFSM ! TriggerWithIdMessage(
             StartGridSimulationTrigger(3600),
             startGridSimulationTriggerId,
-            superiorGridAgentFSM
+            superiorGridAgentFSM.asLocal
           )
 
           // we expect a request for grid power values here for sweepNo $sweepNo
@@ -630,6 +649,7 @@ class DBFSAlgorithmSupGridSpec
           expectMsgPF() {
             case CompletionMessage(
                   _,
+                  _,
                   Some(
                     Vector(
                       ScheduleTriggerMessage(
@@ -644,6 +664,7 @@ class DBFSAlgorithmSupGridSpec
               // we expect another completion message then as well (scheduler view)
               expectMsgPF() {
                 case CompletionMessage(
+                      _,
                       _,
                       Some(
                         Vector(

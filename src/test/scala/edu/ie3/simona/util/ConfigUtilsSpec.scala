@@ -7,7 +7,6 @@
 package edu.ie3.simona.util
 
 import java.util.UUID
-
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
@@ -22,12 +21,7 @@ import edu.ie3.simona.config.SimonaConfig.{apply => _, _}
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
-import edu.ie3.simona.util.ConfigUtil.{
-  BaseOutputConfigUtil,
-  GridOutputConfigUtil,
-  NotifierIdentifier,
-  ParticipantConfigUtil
-}
+import edu.ie3.simona.util.ConfigUtil._
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 
 class ConfigUtilsSpec
@@ -57,7 +51,7 @@ class ConfigUtilsSpec
 
       inside(actual) {
         case ParticipantConfigUtil(configs, defaultLoadConfig, _, _, _, _) =>
-          configs shouldBe Map.empty[UUID, SimonaConfig.LoadRuntimeConfig]
+          configs shouldBe Map.empty[UUID, BaseRuntimeConfig]
           inside(defaultLoadConfig) {
             case LoadRuntimeConfig(
                   calculateMissingReactivePowerWithModel,
@@ -71,6 +65,8 @@ class ConfigUtilsSpec
               reference shouldBe "power"
               scaling shouldBe 1.0
               uuids shouldBe List("default")
+              modelBehaviour shouldBe "fix"
+              reference shouldBe "power"
           }
         case unexpected =>
           fail(

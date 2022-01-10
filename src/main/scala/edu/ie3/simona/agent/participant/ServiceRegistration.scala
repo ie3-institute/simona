@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.ActorRef
 import edu.ie3.datamodel.models.input.system.{EvcsInput, SystemParticipantInput}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
@@ -17,6 +16,8 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorWeatherService
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.selfSharded
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
@@ -46,14 +47,14 @@ trait ServiceRegistration[
   def registerForServices(
       inputModel: I,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]]
-  ): Vector[ActorRef] =
+  ): Vector[SimonaActorRef] =
     services
       .map(sources =>
         sources.flatMap(service =>
           registerForSecondaryService(service, inputModel)
         )
       )
-      .getOrElse(Vector.empty[ActorRef])
+      .getOrElse(Vector.empty[SimonaActorRef])
 
   /** Register for the distinct secondary service
     *
@@ -64,7 +65,7 @@ trait ServiceRegistration[
     * @tparam S
     *   Type of the secondary data, that is awaited
     * @return
-    *   An [[Option]] to the service's [[ActorRef]], if registration is
+    *   An [[Option]] to the service's [[SimonaActorRef]], if registration is
     *   supported at the moment
     */
   private def registerForSecondaryService[
@@ -72,7 +73,7 @@ trait ServiceRegistration[
   ](
       serviceDefinition: SecondaryDataService[S],
       inputModel: I
-  ): Option[ActorRef] = serviceDefinition match {
+  ): Option[SimonaActorRef] = serviceDefinition match {
     case SecondaryDataService.ActorPriceService(_) =>
       log.debug(
         s"Attempt to register for {}. This is currently not supported.",
@@ -96,7 +97,7 @@ trait ServiceRegistration[
     * @return
     */
   private def registerForWeather(
-      actorRef: ActorRef,
+      actorRef: SimonaActorRef,
       inputModel: I
   ): Unit = {
     /* If we are asked to register for weather, determine the proper geo position */
@@ -124,12 +125,15 @@ trait ServiceRegistration[
     * @return
     */
   private def registerForEvMovements(
-      actorRef: ActorRef,
+      actorRef: SimonaActorRef,
       inputModel: I
   ): Unit = {
     inputModel match {
       case evcsInput: EvcsInput =>
-        actorRef ! RegisterForEvDataMessage(evcsInput.getUuid)
+        actorRef ! RegisterForEvDataMessage(
+          evcsInput.getUuid,
+          selfSharded(inputModel.getNode.getSubnet)
+        )
       case _ =>
         throw new ServiceRegistrationException(
           s"Cannot register for EV movements information at node ${inputModel.getNode.getId} " +

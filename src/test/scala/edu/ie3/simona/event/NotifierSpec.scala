@@ -6,20 +6,21 @@
 
 package edu.ie3.simona.event
 
-import java.util.{Calendar, Date}
 import akka.actor.{ActorLogging, ActorRef, ActorSystem, Props}
 import akka.testkit.ImplicitSender
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.result.system._
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
 import edu.ie3.simona.event.NotifierSpec.{TestEvent, TestEventEnvelope}
 import edu.ie3.simona.event.notifier.Notifier
 import edu.ie3.simona.test.common.TestKitWithShutdown
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
 import edu.ie3.simona.util.EntityMapperUtil
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
 
+import java.util.{Calendar, Date}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
@@ -38,7 +39,7 @@ class NotifierSpec
     with ImplicitSender {
 
   // test listenerActor
-  class NotifierActor(override val listener: Iterable[ActorRef])
+  class NotifierActor(override val listener: Iterable[SimonaActorRef])
       extends Notifier
       with ActorLogging {
     override def preStart(): Unit = {
@@ -56,7 +57,7 @@ class NotifierSpec
   // global vals
   // Publisher Actor has 'self' as listener, which is possible through the mix in of 'ImplicitSender'
   val notifier: ActorRef =
-    system.actorOf(Props(new NotifierActor(Iterable(self))))
+    system.actorOf(Props(new NotifierActor(Iterable(self.asLocal))))
 
   "A simple Notifier" should {
     "be able to notify his listeners of an event" in {

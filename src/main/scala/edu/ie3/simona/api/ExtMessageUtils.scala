@@ -6,7 +6,8 @@
 
 package edu.ie3.simona.api
 
-import akka.actor.ActorRef
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ontology.{
   CompletionMessage => ExtCompletionMessage
@@ -23,7 +24,10 @@ object ExtMessageUtils {
   implicit class RichExtCompletion(
       private val extCompl: ExtCompletionMessage
   ) {
-    def toSimona(triggerId: Long, triggerActor: ActorRef): CompletionMessage = {
+    def toSimona(
+        triggerId: Long,
+        triggerActor: SimonaActorRef
+    ): CompletionMessage = {
       val newTriggers =
         Option.when(!extCompl.getNewTriggers.isEmpty) {
           extCompl.getNewTriggers.asScala.map { tick =>
@@ -33,6 +37,7 @@ object ExtMessageUtils {
 
       CompletionMessage(
         triggerId,
+        triggerActor,
         newTriggers
       )
     }
@@ -44,7 +49,7 @@ object ExtMessageUtils {
     def toSimona(tick: Long): ScheduleTriggerMessage =
       ScheduleTriggerMessage(
         ActivityStartTrigger(tick),
-        sched.getDataService
+        sched.getDataService.asLocal // TODO all ActorRefs have to be removed from SimonaAPI
       )
   }
 }

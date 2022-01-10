@@ -7,6 +7,7 @@
 package edu.ie3.simona.ontology.messages.services
 
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology.EvMovementsMessage.EvcsMovements
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
@@ -27,7 +28,8 @@ object EvMessage {
     *   the charging station
     */
   final case class RegisterForEvDataMessage(
-      evcs: UUID
+      evcs: UUID,
+      evcsRef: SimonaActorRef
   ) extends EvMessage
       with ServiceRegistrationMessage
 
@@ -46,7 +48,8 @@ object EvMessage {
   final case class ProvideEvDataMessage(
       override val tick: Long,
       override val data: EvData,
-      override val nextDataTick: Option[Long] = None
+      override val nextDataTick: Option[Long] = None,
+      override val serviceRef: SimonaActorRef
   ) extends EvMessage
       with ProvisionMessage[EvData]
 

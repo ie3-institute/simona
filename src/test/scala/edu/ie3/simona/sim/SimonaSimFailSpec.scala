@@ -6,18 +6,13 @@
 
 package edu.ie3.simona.sim
 
-import akka.actor.{
-  Actor,
-  ActorContext,
-  ActorRef,
-  ActorSystem,
-  Props,
-  actorRef2Scala
-}
+import akka.actor.{Actor, ActorRef, ActorRefFactory, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -49,13 +44,13 @@ class SimonaSimFailSpec
   "A SimonaSim" should {
     "properly fail on uncaught exception" in {
       val scheduler = TestProbe("scheduler")
-      val primaryService = TestProbe("primaryService").ref
-      val weatherService = TestProbe("weatherService").ref
+      val primaryService = TestProbe("primaryService").ref.asLocal
+      val weatherService = TestProbe("weatherService").ref.asLocal
 
       val failSim = TestActorRef.create[FailSim](
         system,
         Props(
-          new FailSim(system, primaryService, weatherService, scheduler.ref)
+          new FailSim(primaryService, weatherService, scheduler.ref.asLocal)
         )
       )
       /*Expect the initialization triggers for weather and the primary service */
@@ -78,17 +73,16 @@ class SimonaSimFailSpec
 
 object SimonaSimFailSpec {
   class FailSim(
-      actorSystem: ActorSystem,
-      primaryService: ActorRef,
-      weatherService: ActorRef,
-      scheduler: ActorRef
+      primaryService: SimonaActorRef,
+      weatherService: SimonaActorRef,
+      scheduler: SimonaActorRef
   ) extends SimonaSim(
-        new DummySetup(actorSystem, primaryService, weatherService, scheduler)
+        new DummySetup(primaryService, weatherService, scheduler)
       ) {
     val child: ActorRef = context.actorOf(Props(new Loser))
     context.watch(child)
 
-    def getChild: ActorRef = child
+    def getChild: SimonaActorRef = child.asLocal
   }
 
   class Loser extends Actor {
@@ -98,46 +92,42 @@ object SimonaSimFailSpec {
   }
 
   class DummySetup(
-      actorSystem: ActorSystem,
-      primaryService: ActorRef,
-      weatherService: ActorRef,
-      scheduler: ActorRef,
+      primaryService: SimonaActorRef,
+      weatherService: SimonaActorRef,
+      scheduler: SimonaActorRef,
       override val args: Array[String] = Array.empty[String]
   ) extends SimonaSetup {
 
-    /** A function, that constructs the [[ActorSystem]], the simulation shall
-      * live in
-      */
-    override val buildActorSystem: () => ActorSystem = () => actorSystem
-
     /** Creates a sequence of runtime event listeners
       *
-      * @param context
-      *   Actor context to use
+      * @param refFactory
+      *   ActorContext or ActorSystem to use
       * @return
       *   A sequence of actor references to runtime event listeners
       */
-    override def runtimeEventListener(context: ActorContext): Seq[ActorRef] =
-      Seq.empty[ActorRef]
+    override def runtimeEventListener(
+        refFactory: ActorRefFactory
+    ): Seq[SimonaActorRef] =
+      Seq.empty[SimonaActorRef]
 
     /** Creates a sequence of system participant event listeners
       *
-      * @param context
-      *   Actor context to use
+      * @param refFactory
+      *   ActorContext or ActorSystem to use
       * @return
       *   A sequence of actor references to runtime event listeners
       */
     override def systemParticipantsListener(
-        context: ActorContext,
-        supervisor: ActorRef
-    ): Seq[ActorRef] = Seq.empty[ActorRef]
+        refFactory: ActorRefFactory,
+        supervisor: SimonaActorRef
+    ): Seq[SimonaActorRef] = Seq.empty[SimonaActorRef]
 
     /** Creates a primary service proxy. The proxy is the first instance to ask
       * for primary data. If necessary, it delegates the registration request to
       * it's subordinate workers.
       *
-      * @param context
-      *   Actor context to use
+      * @param refFactory
+      *   ActorContext or ActorSystem to use
       * @param scheduler
       *   Actor reference to it's according scheduler to use
       * @return
@@ -145,9 +135,9 @@ object SimonaSimFailSpec {
       *   initialize the service
       */
     override def primaryServiceProxy(
-        context: ActorContext,
-        scheduler: ActorRef
-    ): (ActorRef, PrimaryServiceProxy.InitPrimaryServiceProxyStateData) =
+        refFactory: ActorRefFactory,
+        scheduler: SimonaActorRef
+    ): (SimonaActorRef, PrimaryServiceProxy.InitPrimaryServiceProxyStateData) =
       (
         primaryService,
         InitPrimaryServiceProxyStateData(
@@ -158,8 +148,8 @@ object SimonaSimFailSpec {
 
     /** Creates a weather service
       *
-      * @param context
-      *   Actor context to use
+      * @param refFactory
+      *   ActorContext or ActorSystem to use
       * @param scheduler
       *   Actor reference to it's according scheduler to use
       * @return
@@ -167,9 +157,9 @@ object SimonaSimFailSpec {
       *   initialize the service
       */
     override def weatherService(
-        context: ActorContext,
-        scheduler: ActorRef
-    ): (ActorRef, WeatherService.InitWeatherServiceStateData) =
+        refFactory: ActorRefFactory,
+        scheduler: SimonaActorRef
+    ): (SimonaActorRef, WeatherService.InitWeatherServiceStateData) =
       (
         weatherService,
         InitWeatherServiceStateData(
@@ -191,21 +181,37 @@ object SimonaSimFailSpec {
         )
       )
 
+    /** Loads external simulations and provides corresponding actors and init
+      * data
+      *
+      * @param refFactory
+      *   ActorContext or ActorSystem to use
+      * @param scheduler
+      *   Actor reference to it's according scheduler to use
+      * @return
+      *   External simulations and their init data
+      */
+    override def extSimulations(
+        refFactory: ActorRefFactory,
+        scheduler: SimonaActorRef
+    ): ExtSimSetupData =
+      ExtSimSetupData(Iterable.empty, Iterable.empty)
+
     /** Creates a scheduler service
       *
-      * @param context
-      *   Actor context to use
+      * @param refFactory
+      *   ActorContext or ActorSystem to use
       * @return
       *   An actor reference to the scheduler
       */
     override def scheduler(
-        context: ActorContext,
-        runtimeEventListener: Seq[ActorRef]
-    ): ActorRef = scheduler
+        refFactory: ActorRefFactory,
+        runtimeEventListener: Seq[SimonaActorRef]
+    ): SimonaActorRef = scheduler
 
     /** Creates all the needed grid agents
       *
-      * @param context
+      * @param refFactory
       *   Actor context to use
       * @param environmentRefs
       *   EnvironmentRefs to use
@@ -216,15 +222,11 @@ object SimonaSimFailSpec {
       *   to be used when setting up the agents
       */
     override def gridAgents(
-        context: ActorContext,
+        refFactory: ActorRefFactory,
         environmentRefs: EnvironmentRefs,
-        systemParticipantListener: Seq[ActorRef]
-    ): Map[ActorRef, GridAgentInitData] = Map.empty[ActorRef, GridAgentInitData]
+        systemParticipantListener: Seq[SimonaActorRef]
+    ): Map[SimonaActorRef, GridAgentInitData] =
+      Map.empty[SimonaActorRef, GridAgentInitData]
 
-    override def extSimulations(
-        context: ActorContext,
-        scheduler: ActorRef
-    ): ExtSimSetupData =
-      ExtSimSetupData(Iterable.empty, Iterable.empty)
   }
 }

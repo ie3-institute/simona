@@ -6,18 +6,14 @@
 
 package edu.ie3.simona.main
 
-import java.util.Locale
-
-import akka.actor.{ActorRef, ActorSystem}
-import akka.pattern.gracefulStop
+import akka.actor.ActorSystem
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.simona.main.start.SimonaStarter
 import edu.ie3.simona.sim.setup.SimonaSetup
 import edu.ie3.util.scala.quantities.QuantityUtil
 
-import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
-import scala.util.Random
+import java.util.Locale
 
 /** Trait to be mixed in all implementations that should be used to run a simona
   * simulation. For a sample implemenation see [[RunSimonaStandalone]].
@@ -28,8 +24,7 @@ import scala.util.Random
 trait RunSimona[T <: SimonaSetup] extends LazyLogging {
 
   // timeout parameter
-  implicit val timeout: Timeout
-  implicit lazy val timeoutDuration: FiniteDuration = timeout.duration
+  protected implicit val timeout: Timeout
 
   def main(args: Array[String]): Unit = {
     Locale.setDefault(Locale.ENGLISH)
@@ -37,47 +32,14 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
     /* The quantity library cannot handle scala's BigDecimal by default. Therefore, adjust the number system to use */
     QuantityUtil.adjustNumberSystem()
 
-    printOpener()
+    RunPrinting.printOpener()
     logger.info(
       s"Starting SIMONA with interface '${getClass.getSimpleName.replaceAll("\\$", "")}'."
     )
 
-    setup(args).foreach(run)
-
-    printGoodbye()
-
-    Thread.sleep(
-      1000
-    ) // prevents cutting of the log when having a fast simulation
-    System.exit(0)
-  }
-
-  def shutdownGracefully(
-      simonaSim: ActorRef
-  )(implicit timeout: FiniteDuration): Future[Boolean] = {
-    gracefulStop(simonaSim, timeout)
-  }
-
-  // a fancy opener
-  protected def printOpener(): Unit = {
-    println(
-      "   _____ ______  _______  _   _____       ___    ____ \n  / ___//  _/  |/  / __ \\/ | / /   |     |__ \\  / __ \\\n  \\__ \\ / // /|_/ / / / /  |/ / /| |     __/ / / / / /\n ___/ // // /  / / /_/ / /|  / ___ |    / __/_/ /_/ / \n/____/___/_/  /_/\\____/_/ |_/_/  |_|   /____(_)____/  \n                                                      "
-    )
-  }
-
-  def printGoodbye(): Unit = {
-    val myWords = Array(
-      "\"Vielleicht ist heute ein besonders guter Tag zum Sterben.\" - Worf (in Star Trek: Der erste Kontakt)",
-      "\"Assimiliert das!\" - Worf (in Star Trek: Der erste Kontakt)",
-      "\"Lebe lang und erfolgreich.\" - Gruppe von Vulkanier (in Star Trek: Der erste Kontakt)",
-      "\"Ich bin der Anfang, das Ende, die Eine, die Viele ist. Ich bin die Borg.\" - Borg-Königin (in Star Trek: Der erste Kontakt)",
-      "\"A horse! A horse! My kingdom for a horse!\" - King Richard III (in Shakespeare's Richard III, 1594)"
-    )
-
-    val rand = new Random
-    val randIdx = rand.nextInt(myWords.length)
-    logger.info(myWords(randIdx))
-    logger.info("Goodbye!")
+    setup(args).foreach { case (simonaSetup, starter) =>
+      starter.start(runAndExit(simonaSetup))
+    }
   }
 
   /** Method to be implemented to setup everything that is necessary for a
@@ -87,15 +49,44 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
     * @param args
     *   arguments provided by the command line
     * @return
-    *   the setup instances
+    *   pairs of setup instance and a starter
     */
-  def setup(args: Array[String]): Seq[T]
+  protected def setup(args: Array[String]): Seq[(T, SimonaStarter)]
+
+  /** Actually run the simona simulation using the provided [[SimonaSetup]] and
+    * exit the program once done.
+    *
+    * @param simonaSetup
+    *   the setup data that should be used
+    * @param actorSystem
+    *   the actor system to run SIMONA in
+    */
+  private[main] def runAndExit(
+      simonaSetup: T
+  )(actorSystem: ActorSystem): Unit = {
+    run(simonaSetup, actorSystem)
+    exit()
+  }
 
   /** Actually run the simona simulation using the provided [[SimonaSetup]]
     *
     * @param simonaSetup
     *   the setup data that should be used
+    * @param actorSystem
+    *   the actor system to run SIMONA in
     */
-  def run(simonaSetup: T): Unit
+  def run(simonaSetup: T, actorSystem: ActorSystem)(implicit
+      timeout: Timeout
+  ): Unit
 
+  /** Printing goodbye message and exiting program
+    */
+  private def exit(): Unit = {
+    RunPrinting.printGoodbye()
+
+    Thread.sleep(
+      1000
+    ) // prevents cutting of the log when having a fast simulation
+    System.exit(0)
+  }
 }

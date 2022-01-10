@@ -12,6 +12,7 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.StandardUnits
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
@@ -37,7 +38,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue, TimeUnit}
 
 class WeatherServiceSpec
     extends TestKitWithShutdown(
@@ -100,7 +101,7 @@ class WeatherServiceSpec
   // build the weather service
   private val weatherActor: TestActorRef[WeatherService] = TestActorRef(
     new WeatherService(
-      self,
+      self.asLocal,
       TimeUtil.withDefaults.toZonedDateTime(
         simonaConfig.simona.time.startDateTime
       ),
@@ -113,7 +114,7 @@ class WeatherServiceSpec
   )
 
   "A weather service" must {
-    "receive correct completion message after initialisation" in {
+    "send correct completion message after initialisation" in {
       weatherActor ! TriggerWithIdMessage(
         InitializeServiceTrigger(
           InitWeatherServiceStateData(
@@ -121,12 +122,13 @@ class WeatherServiceSpec
           )
         ),
         triggerId,
-        weatherActor
+        weatherActor.asLocal
       )
 
       expectMsgType[CompletionMessage] match {
-        case CompletionMessage(triggerId, newTriggers) =>
+        case CompletionMessage(triggerId, actor, newTriggers) =>
           triggerId shouldBe 0
+          actor shouldBe weatherActor.asLocal
           newTriggers match {
             case Some(seq) =>
               seq.size shouldBe 1
@@ -138,7 +140,7 @@ class WeatherServiceSpec
                       )
                     ) =>
                   nextTick shouldBe 0
-                  actorRef shouldBe weatherActor
+                  actorRef shouldBe weatherActor.asLocal
                 case x =>
                   fail(
                     s"The sequence of next triggers contains the wrong element '$x'."
@@ -163,7 +165,7 @@ class WeatherServiceSpec
           )
         }
 
-      expectMsg(RegistrationFailedMessage)
+      expectMsg(RegistrationFailedMessage(weatherActor.asLocal))
     }
 
     "announce, that a valid coordinate is registered" in {
@@ -173,7 +175,7 @@ class WeatherServiceSpec
         validCoordinate.longitude
       )
 
-      expectMsg(RegistrationSuccessfulMessage(Some(0L)))
+      expectMsg(RegistrationSuccessfulMessage(Some(0L), weatherActor.asLocal))
     }
 
     "recognize, that a valid coordinate yet is registered" in {
@@ -194,7 +196,11 @@ class WeatherServiceSpec
 
     "sends out correct weather information upon activity start trigger and request the triggering for the next tick" in {
       /* Send out an activity start trigger as the scheduler */
-      weatherActor ! TriggerWithIdMessage(ActivityStartTrigger(0L), 1L, self)
+      weatherActor ! TriggerWithIdMessage(
+        ActivityStartTrigger(0L),
+        1L,
+        self.asLocal
+      )
 
       /* Expect a weather provision (as this test is registered via the test actor) and a completion message (as the
        * test is also the scheduler) */
@@ -202,7 +208,12 @@ class WeatherServiceSpec
         classOf[ProvideWeatherMessage],
         classOf[CompletionMessage]
       ).foreach {
-        case ProvideWeatherMessage(tick, weatherValue, nextDataTick) =>
+        case ProvideWeatherMessage(
+              tick,
+              weatherValue,
+              nextDataTick,
+              serviceRef
+            ) =>
           tick shouldBe 0L
           weatherValue shouldBe WeatherData(
             Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
@@ -211,8 +222,10 @@ class WeatherServiceSpec
             Quantities.getQuantity(4.16474, StandardUnits.WIND_VELOCITY)
           )
           nextDataTick shouldBe Some(3600L)
-        case CompletionMessage(triggerId, nextTriggers) =>
+          serviceRef shouldBe weatherActor.asLocal
+        case CompletionMessage(triggerId, actor, nextTriggers) =>
           triggerId shouldBe 1L
+          actor shouldBe weatherActor.asLocal
           nextTriggers match {
             case Some(triggerSeq) =>
               triggerSeq.size shouldBe 1
@@ -220,7 +233,7 @@ class WeatherServiceSpec
                 case Some(msg) =>
                   msg shouldBe ScheduleTriggerMessage(
                     ActivityStartTrigger(3600L),
-                    weatherActor
+                    weatherActor.asLocal
                   )
                 case None =>
                   fail("Did expect an ActivityStartTrigger for 3600 L.")
@@ -232,7 +245,11 @@ class WeatherServiceSpec
 
     "sends out correct weather information when triggered again and does not as for triggering, if the end is reached" in {
       /* Send out an activity start trigger as the scheduler */
-      weatherActor ! TriggerWithIdMessage(ActivityStartTrigger(3600L), 2L, self)
+      weatherActor ! TriggerWithIdMessage(
+        ActivityStartTrigger(3600L),
+        2L,
+        self.asLocal
+      )
 
       /* Expect a weather provision (as this test is registered via the test actor) and a completion message (as the
        * test is also the scheduler) */
@@ -240,7 +257,12 @@ class WeatherServiceSpec
         classOf[ProvideWeatherMessage],
         classOf[CompletionMessage]
       ).foreach {
-        case ProvideWeatherMessage(tick, weatherValue, nextDataTick) =>
+        case ProvideWeatherMessage(
+              tick,
+              weatherValue,
+              nextDataTick,
+              serviceRef
+            ) =>
           tick shouldBe 3600L
           weatherValue shouldBe WeatherData(
             Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
@@ -249,8 +271,10 @@ class WeatherServiceSpec
             Quantities.getQuantity(4.918092, StandardUnits.WIND_VELOCITY)
           )
           nextDataTick shouldBe None
-        case CompletionMessage(triggerId, nextTriggers) =>
+          serviceRef shouldBe weatherActor.asLocal
+        case CompletionMessage(triggerId, actor, nextTriggers) =>
           triggerId shouldBe 2L
+          actor shouldBe weatherActor.asLocal
           nextTriggers match {
             case Some(triggers) =>
               fail(s"Did not expect to get new triggers: $triggers")

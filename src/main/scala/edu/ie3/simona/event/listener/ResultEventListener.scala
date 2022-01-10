@@ -6,13 +6,15 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.{ActorRef, FSM, PoisonPill, Props, Stash}
+import akka.actor.{ActorSystem, FSM, PoisonPill, Props, Stash}
 import akka.stream.Materializer
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.selfSingleton
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
@@ -77,7 +79,7 @@ object ResultEventListener extends Transformer3wResultSupport {
   def props(
       eventClassesToConsider: Set[Class[_ <: ResultEntity]],
       resultFileHierarchy: ResultFileHierarchy,
-      supervisor: ActorRef
+      supervisor: SimonaActorRef
   ): Props =
     Props(
       new ResultEventListener(
@@ -144,13 +146,15 @@ object ResultEventListener extends Transformer3wResultSupport {
 class ResultEventListener(
     eventClassesToConsider: Set[Class[_ <: ResultEntity]],
     resultFileHierarchy: ResultFileHierarchy,
-    supervisor: ActorRef
+    supervisor: SimonaActorRef
 ) extends SimonaListener
     with FSM[AgentState, ResultEventListenerData]
     with SimonaFSMActorLogging
     with Stash {
 
   implicit private val materializer: Materializer = Materializer(context)
+
+  implicit private val actorSystem: ActorSystem = context.system
 
   override def preStart(): Unit = {
     log.debug("Starting initialization!")
@@ -307,7 +311,7 @@ class ResultEventListener(
             self ! PoisonPill
           case Success(classToSink) =>
             log.debug("Initialization complete!")
-            supervisor ! ServiceInitComplete
+            supervisor ! ServiceInitComplete(selfSingleton)
             self ! BaseData(classToSink.toMap)
         }
       stay()

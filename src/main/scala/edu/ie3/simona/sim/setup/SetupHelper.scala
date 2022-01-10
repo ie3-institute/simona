@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.ActorRef
 import com.typesafe.config.{Config => TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridGate
@@ -14,6 +13,7 @@ import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.utils.ContainerUtils
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.config.RefSystemParser.ConfigRefSystems
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.InitializationException
@@ -35,7 +35,7 @@ import edu.ie3.simona.util.{EntityMapperUtil, ResultFileHierarchy}
 trait SetupHelper extends LazyLogging {
 
   /** Build the [[GridAgentInitData]]. This also includes the determination of a
-    * mapping from [[SubGridGate]] to [[ActorRef]] of the representing
+    * mapping from [[SubGridGate]] to [[SimonaActorRef]] of the representing
     * [[edu.ie3.simona.agent.grid.GridAgent]] as well as the look up of the
     * [[RefSystem]] to use being defined in the config.
     *
@@ -43,7 +43,7 @@ trait SetupHelper extends LazyLogging {
     *   Container of all models for this sub grid
     * @param subGridToActorRef
     *   Mapping from sub grid number to [[edu.ie3.simona.agent.grid.GridAgent]]
-    *   's [[ActorRef]]
+    *   's [[SimonaActorRef]]
     * @param gridGates
     *   [[Set]] of all [[SubGridGate]] s connecting this sub grid with it's
     *   ancestors and children
@@ -55,7 +55,7 @@ trait SetupHelper extends LazyLogging {
     */
   def buildGridAgentInitData(
       subGridContainer: SubGridContainer,
-      subGridToActorRef: Map[Int, ActorRef],
+      subGridToActorRef: Map[Int, SimonaActorRef],
       gridGates: Set[SubGridGate],
       configRefSystems: ConfigRefSystems
   ): GridAgentInitData = {
@@ -90,10 +90,10 @@ trait SetupHelper extends LazyLogging {
     *   A mapping from [[SubGridGate]] to corresponding actor reference
     */
   def buildGateToActorRef(
-      subGridToActorRefMap: Map[Int, ActorRef],
+      subGridToActorRefMap: Map[Int, SimonaActorRef],
       subGridGates: Set[SubGridGate],
       currentSubGrid: Int
-  ): Map[SubGridGate, ActorRef] =
+  ): Map[SubGridGate, SimonaActorRef] =
     subGridGates
       .groupBy(gate => (gate.getSuperiorNode, gate.getInferiorNode))
       .map(_._2.head)
@@ -135,10 +135,10 @@ trait SetupHelper extends LazyLogging {
     *   The actor reference of the sub grid to look for
     */
   def getActorRef(
-      subGridToActorRefMap: Map[Int, ActorRef],
+      subGridToActorRefMap: Map[Int, SimonaActorRef],
       currentSubGrid: Int,
       queriedSubGrid: Int
-  ): ActorRef = {
+  ): SimonaActorRef = {
     subGridToActorRefMap.get(queriedSubGrid) match {
       case Some(hit) => hit
       case _ =>

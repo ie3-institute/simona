@@ -69,6 +69,26 @@ object SimonaConfig {
       val uuids: scala.List[java.lang.String]
   ) extends java.io.Serializable
 
+  sealed trait ComputationMode
+  object ComputationMode {
+    object Local extends ComputationMode
+    object ClusterSingleJVM extends ComputationMode
+    object ClusterStartWorker extends ComputationMode
+    object ClusterWorker extends ComputationMode
+    def $resEnum(
+        name: java.lang.String,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): ComputationMode = name match {
+      case "Local"              => ComputationMode.Local
+      case "ClusterSingleJVM"   => ComputationMode.ClusterSingleJVM
+      case "ClusterStartWorker" => ComputationMode.ClusterStartWorker
+      case "ClusterWorker"      => ComputationMode.ClusterWorker
+      case v =>
+        $tsCfgValidator.addInvalidEnumValue(path, v, "ComputationMode")
+        null
+    }
+  }
   final case class EvcsRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: scala.Boolean,
       override val scaling: scala.Double,
@@ -515,6 +535,7 @@ object SimonaConfig {
 
   final case class Simona(
       event: SimonaConfig.Simona.Event,
+      execution: SimonaConfig.Simona.Execution,
       gridConfig: SimonaConfig.Simona.GridConfig,
       input: SimonaConfig.Simona.Input,
       output: SimonaConfig.Simona.Output,
@@ -606,6 +627,25 @@ object SimonaConfig {
             )
           )
           .toList
+      }
+    }
+
+    final case class Execution(
+        computationMode: SimonaConfig.ComputationMode
+    )
+    object Execution {
+      def apply(
+          c: com.typesafe.config.Config,
+          parentPath: java.lang.String,
+          $tsCfgValidator: $TsCfgValidator
+      ): SimonaConfig.Simona.Execution = {
+        SimonaConfig.Simona.Execution(
+          computationMode = SimonaConfig.ComputationMode.$resEnum(
+            c.getString("computationMode"),
+            parentPath + "computationMode",
+            $tsCfgValidator
+          )
+        )
       }
     }
 
@@ -2137,6 +2177,12 @@ object SimonaConfig {
           if (c.hasPathOrNull("event")) c.getConfig("event")
           else com.typesafe.config.ConfigFactory.parseString("event{}"),
           parentPath + "event.",
+          $tsCfgValidator
+        ),
+        execution = SimonaConfig.Simona.Execution(
+          if (c.hasPathOrNull("execution")) c.getConfig("execution")
+          else com.typesafe.config.ConfigFactory.parseString("execution{}"),
+          parentPath + "execution.",
           $tsCfgValidator
         ),
         gridConfig = SimonaConfig.Simona.GridConfig(

@@ -6,7 +6,9 @@
 
 package edu.ie3.simona.api
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorSystem, Props}
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.selfSingleton
 import edu.ie3.simona.api.ExtMessageUtils.{
   RichExtCompletion,
   RichExtScheduleTrigger
@@ -35,7 +37,7 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
 object ExtSimAdapter {
 
-  def props(scheduler: ActorRef): Props =
+  def props(scheduler: SimonaActorRef): Props =
     Props(
       new ExtSimAdapter(scheduler)
     )
@@ -50,9 +52,12 @@ object ExtSimAdapter {
   )
 }
 
-final case class ExtSimAdapter(scheduler: ActorRef)
+final case class ExtSimAdapter(scheduler: SimonaActorRef)
     extends Actor
     with SimonaActorLogging {
+
+  protected implicit val system: ActorSystem = context.system
+
   override def receive: Receive = {
     case TriggerWithIdMessage(
           InitializeExtSimAdapterTrigger(
@@ -64,11 +69,12 @@ final case class ExtSimAdapter(scheduler: ActorRef)
       // triggering first time at init tick
       sender() ! CompletionMessage(
         triggerId,
+        selfSingleton,
         Some(
           Seq(
             ScheduleTriggerMessage(
               ActivityStartTrigger(INIT_SIM_TICK),
-              self
+              selfSingleton
             )
           )
         )
@@ -104,7 +110,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
 
       scheduler ! extCompl.toSimona(
         oldestTriggerId,
-        self
+        selfSingleton
       )
       log.debug(
         "Tick {} (trigger id {}) has been completed in external simulation",

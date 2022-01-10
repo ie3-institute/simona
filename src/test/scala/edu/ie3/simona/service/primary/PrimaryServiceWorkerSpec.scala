@@ -16,6 +16,7 @@ import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesSource
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.value.{HeatDemandValue, PValue}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ActivePower
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
@@ -85,7 +86,7 @@ class PrimaryServiceWorkerSpec
     val serviceRef =
       TestActorRef(
         new PrimaryServiceWorker[PValue](
-          self,
+          self.asLocal,
           classOf[PValue],
           simulationStart
         )
@@ -153,7 +154,10 @@ class PrimaryServiceWorkerSpec
           /* We expect a request to be triggered in tick 0 */
           maybeTriggerMessages shouldBe Some(
             Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(0L), serviceRef)
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(0L),
+                serviceRef.asLocal
+              )
             )
           )
         case Failure(_) =>
@@ -165,7 +169,7 @@ class PrimaryServiceWorkerSpec
     serviceRef ! TriggerWithIdMessage(
       InitializeServiceTrigger(validInitData),
       0L,
-      self
+      self.asLocal
     )
     expectCompletionMessage()
 
@@ -176,14 +180,20 @@ class PrimaryServiceWorkerSpec
 
     val systemParticipant: TestProbe = TestProbe("dummySystemParticipant")
     "correctly register a forwarded request" in {
-      serviceRef ! WorkerRegistrationMessage(systemParticipant.ref)
+      serviceRef ! WorkerRegistrationMessage(systemParticipant.ref.asLocal)
 
       /* Wait for request approval */
-      systemParticipant.expectMsg(RegistrationSuccessfulMessage(Some(0L)))
+      systemParticipant.expectMsg(
+        RegistrationSuccessfulMessage(Some(0L), serviceRef.asLocal)
+      )
 
       /* We cannot directly check, if the requesting actor is among the subscribers, therefore we ask the actor to
        * provide data to all subscribed actors and check, if the subscribed probe gets one */
-      serviceRef ! TriggerWithIdMessage(ActivityStartTrigger(0L), 1L, self)
+      serviceRef ! TriggerWithIdMessage(
+        ActivityStartTrigger(0L),
+        1L,
+        self.asLocal
+      )
       expectCompletionMessage()
       systemParticipant.expectMsgAllClassOf(classOf[ProvidePrimaryDataMessage])
     }
@@ -203,7 +213,7 @@ class PrimaryServiceWorkerSpec
         classOf[PValue],
         new TimeBasedSimpleValueFactory[PValue](classOf[PValue])
       ),
-      Vector(self)
+      Vector(self.asLocal)
     )
 
     "correctly distribute proper primary data" in {
@@ -248,7 +258,7 @@ class PrimaryServiceWorkerSpec
                       )
                     ) =>
                   triggerTick shouldBe 900L
-                  actorToBeScheduled shouldBe serviceRef
+                  actorToBeScheduled shouldBe serviceRef.asLocal
                 case Some(value) =>
                   fail(s"Got wrong trigger messages: '$value'.")
                 case None => fail("Did expect to get at least on trigger.")
@@ -261,11 +271,13 @@ class PrimaryServiceWorkerSpec
         case ProvidePrimaryDataMessage(
               actualTick,
               actualData,
-              actualNextDataTick
+              actualNextDataTick,
+              ref
             ) =>
           actualTick shouldBe 0L
           actualData shouldBe primaryData
           actualNextDataTick shouldBe Some(900L)
+          ref shouldBe serviceRef.asLocal
       }
     }
 
@@ -341,7 +353,8 @@ class PrimaryServiceWorkerSpec
         ProvidePrimaryDataMessage(
           tick,
           ActivePower(Quantities.getQuantity(50d, PowerSystemUnits.KILOWATT)),
-          Some(900L)
+          Some(900L),
+          serviceRef.asLocal
         )
       )
     }
@@ -351,10 +364,10 @@ class PrimaryServiceWorkerSpec
       serviceRef ! TriggerWithIdMessage(
         ActivityStartTrigger(200L),
         triggerId,
-        self
+        self.asLocal
       )
       inside(expectMsgClass(classOf[CompletionMessage])) {
-        case CompletionMessage(actualTriggerId, newTriggers) =>
+        case CompletionMessage(actualTriggerId, _, newTriggers) =>
           actualTriggerId shouldBe triggerId
           newTriggers match {
             case Some(triggerSeq) => triggerSeq.size shouldBe 1
@@ -369,16 +382,16 @@ class PrimaryServiceWorkerSpec
       serviceRef ! TriggerWithIdMessage(
         ActivityStartTrigger(900L),
         triggerId,
-        self
+        self.asLocal
       )
       inside(expectMsgClass(classOf[CompletionMessage])) {
-        case CompletionMessage(actualTriggerId, newTriggers) =>
+        case CompletionMessage(actualTriggerId, _, newTriggers) =>
           actualTriggerId shouldBe triggerId
           newTriggers shouldBe None
       }
       inside(
         systemParticipant.expectMsgClass(classOf[ProvidePrimaryDataMessage])
-      ) { case ProvidePrimaryDataMessage(tick, data, nextDataTick) =>
+      ) { case ProvidePrimaryDataMessage(tick, data, nextDataTick, ref) =>
         tick shouldBe 900L
         inside(data) {
           case ActivePower(p) =>
@@ -388,6 +401,7 @@ class PrimaryServiceWorkerSpec
           case _ => fail("Expected to get active power only.")
         }
         nextDataTick shouldBe None
+        ref shouldBe serviceRef.asLocal
       }
     }
   }

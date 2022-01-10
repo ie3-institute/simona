@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service
 
-import akka.actor.ActorRef
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
@@ -42,8 +42,9 @@ object ServiceStateData {
     /** Build an optional [[Seq]] of [[ScheduleTriggerMessage]] s based on the
       * given optional next tick and the sender
       */
-    val tickToScheduleTriggerMessages
-        : (Option[Long], ActorRef) => Option[Seq[ScheduleTriggerMessage]] =
+    val tickToScheduleTriggerMessages: (Option[Long], SimonaActorRef) => Option[
+      Seq[ScheduleTriggerMessage]
+    ] =
       (maybeTick, sender) =>
         maybeTick.map(tick =>
           Seq(ScheduleTriggerMessage(ActivityStartTrigger(tick), sender))

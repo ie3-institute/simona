@@ -6,11 +6,11 @@
 
 package edu.ie3.simona.agent.participant.statedata
 
-import akka.actor.ActorRef
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 
@@ -109,7 +109,7 @@ object ParticipantStateData {
   ](
       inputModel: I,
       modelConfig: C,
-      primaryServiceProxy: ActorRef,
+      primaryServiceProxy: SimonaActorRef,
       secondaryDataServices: Option[
         Vector[SecondaryDataService[_ <: SecondaryData]]
       ],
@@ -137,7 +137,7 @@ object ParticipantStateData {
       +PD <: PrimaryDataWithApparentPower[PD]
   ](
       baseStateData: BaseStateData[PD],
-      pendingResponses: Vector[ActorRef],
-      foreseenNextDataTicks: Map[ActorRef, Long] = Map.empty
+      pendingResponses: Vector[SimonaActorRef],
+      foreseenNextDataTicks: Map[SimonaActorRef, Long] = Map.empty
   ) extends ParticipantStateData[PD]
 }

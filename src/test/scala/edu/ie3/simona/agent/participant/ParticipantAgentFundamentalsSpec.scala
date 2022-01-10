@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.participant
 
 import akka.actor.ActorRef.noSender
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.ActorSystem
 import akka.testkit.TestFSMRef
 import akka.util.Timeout
 import breeze.numerics.pow
@@ -18,6 +18,8 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.state.AgentState
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
+import edu.ie3.simona.akka.SimonaActorRef
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
@@ -75,7 +77,7 @@ class ParticipantAgentFundamentalsSpec
   ], ParticipantAgentMock] =
     TestFSMRef(
       new ParticipantAgentMock(
-        scheduler = self
+        scheduler = self.asLocal
       )
     )
   val mockAgent: ParticipantAgentMock = mockAgentTestRef.underlyingActor
@@ -145,6 +147,8 @@ class ParticipantAgentFundamentalsSpec
           )
       }
     )
+
+  private val subnet = 0
 
   "Determining the activation ticks within operation time" should {
     "throw an exception, if an integer multiple of the resolution does not meet an hour" in {
@@ -254,8 +258,8 @@ class ParticipantAgentFundamentalsSpec
       val baseStateData = ParticipantAgentFundamentalsSpec.mockBaseStateData(
         Array(100L, 200L, 300L),
         Map(
-          self -> Some(10L),
-          noSender -> Some(0L)
+          self.asLocal -> Some(10L),
+          noSender.asLocal -> Some(0L)
         )
       )
 
@@ -271,7 +275,7 @@ class ParticipantAgentFundamentalsSpec
                   )
                 ) =>
               tick shouldBe 0L
-              actorToBeScheduled shouldBe mockAgentTestRef
+              actorToBeScheduled shouldBe mockAgentTestRef.asLocal
             case _ => fail("Sequence of activation triggers has wrong content.")
           }
           /* Base state data haven't changed */
@@ -285,8 +289,8 @@ class ParticipantAgentFundamentalsSpec
       val baseStateData = ParticipantAgentFundamentalsSpec.mockBaseStateData(
         Array(0L, 10L, 20L),
         Map(
-          self -> Some(200L),
-          noSender -> Some(100L)
+          self.asLocal -> Some(200L),
+          noSender.asLocal -> Some(100L)
         )
       )
 
@@ -302,7 +306,7 @@ class ParticipantAgentFundamentalsSpec
                   )
                 ) =>
               tick shouldBe 0L
-              actorToBeScheduled shouldBe mockAgentTestRef
+              actorToBeScheduled shouldBe mockAgentTestRef.asLocal
             case _ => fail("Sequence of activation triggers has wrong content.")
           }
           /* Additional activation tick has been popped from base state data */
@@ -319,8 +323,8 @@ class ParticipantAgentFundamentalsSpec
       val baseStateData = ParticipantAgentFundamentalsSpec.mockBaseStateData(
         Array(0L, 10L, 20L),
         Map(
-          self -> Some(20L),
-          noSender -> Some(0L)
+          self.asLocal -> Some(20L),
+          noSender.asLocal -> Some(0L)
         )
       )
 
@@ -336,7 +340,7 @@ class ParticipantAgentFundamentalsSpec
                   )
                 ) =>
               tick shouldBe 0L
-              actorToBeScheduled shouldBe mockAgentTestRef
+              actorToBeScheduled shouldBe mockAgentTestRef.asLocal
             case _ => fail("Sequence of activation triggers has wrong content.")
           }
           /* Additional activation tick has been popped from base state data */
@@ -600,6 +604,7 @@ class ParticipantAgentFundamentalsSpec
           0.95,
           LoadReference.ActivePower(Quantities.getQuantity(95d, KILOWATT))
         ),
+        subnet,
         None,
         outputConfig,
         Array(0L, 900L, 1800L),
@@ -633,6 +638,7 @@ class ParticipantAgentFundamentalsSpec
           0.95,
           LoadReference.ActivePower(Quantities.getQuantity(95d, KILOWATT))
         ),
+        subnet,
         None,
         outputConfig,
         Array(0L, 900L, 1800L),
@@ -665,7 +671,7 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
     */
   def mockBaseStateData(
       additionalActivationTicks: Array[Long],
-      foreseenDataTicks: Map[ActorRef, Option[Long]]
+      foreseenDataTicks: Map[SimonaActorRef, Option[Long]]
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,
@@ -678,6 +684,7 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
       TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
       TimeUtil.withDefaults.toZonedDateTime("2020-01-01 23:59:00"),
       modelMock,
+      0,
       None,
       ParticipantNotifierConfig(
         simulationResultInfo = false,

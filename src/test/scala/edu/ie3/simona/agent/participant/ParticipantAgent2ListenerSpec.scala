@@ -6,19 +6,21 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.ActorSystem
 import akka.testkit.TestFSMRef
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
+import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -37,7 +39,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeParticipantAgentTrigger
 }
 import edu.ie3.simona.test.ParticipantAgentSpec
-import edu.ie3.simona.test.common.{AgentSpec, DefaultTestData}
+import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits.{
   KILOWATT,
   MEGAVAR,
@@ -71,7 +73,9 @@ class ParticipantAgent2ListenerSpec
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
 
   /* Assign this test to receive the result events from agent */
-  override val systemListener: Iterable[ActorRef] = Vector(self)
+  override val systemListener: Iterable[SimonaActorRef] = Vector(
+    self.asLocal
+  )
 
   private val testUUID = UUID.randomUUID
   private val testID = "PartAgentExternalMock"
@@ -86,6 +90,9 @@ class ParticipantAgent2ListenerSpec
   private val mockInputModel = mock[SystemParticipantInput]
   when(mockInputModel.getUuid).thenReturn(testUUID)
   when(mockInputModel.getId).thenReturn(testID)
+  private val mockNode = mock[NodeInput]
+  when(mockNode.getSubnet).thenReturn(0)
+  when(mockInputModel.getNode).thenReturn(mockNode)
 
   private val sources = None
 
@@ -93,7 +100,7 @@ class ParticipantAgent2ListenerSpec
     "inform listeners about new simulation results, when asked to do" in {
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -126,17 +133,20 @@ class ParticipantAgent2ListenerSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           0,
-          mockAgent
+          mockAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       scheduler.receiveOne(receiveTimeOut.duration) match {
         case _: CompletionMessage =>
@@ -149,7 +159,7 @@ class ParticipantAgent2ListenerSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
           1,
-          mockAgent
+          mockAgent.asLocal
         )
       )
 
@@ -177,7 +187,7 @@ class ParticipantAgent2ListenerSpec
     "not inform listeners about new simulation results, when not asked to do" in {
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -210,17 +220,20 @@ class ParticipantAgent2ListenerSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           0,
-          mockAgent
+          mockAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       scheduler.receiveOne(receiveTimeOut.duration) match {
         case _: CompletionMessage =>
@@ -233,7 +246,7 @@ class ParticipantAgent2ListenerSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
           1,
-          mockAgent
+          mockAgent.asLocal
         )
       )
 
@@ -248,7 +261,7 @@ class ParticipantAgent2ListenerSpec
     "not inform listeners about request reply, when asked to do (currently not implemented)" in {
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -281,17 +294,20 @@ class ParticipantAgent2ListenerSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           0,
-          mockAgent
+          mockAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* Trigger the data generation in tick 0 */
       scheduler.send(
@@ -299,7 +315,7 @@ class ParticipantAgent2ListenerSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
           1,
-          mockAgent
+          mockAgent.asLocal
         )
       )
 
@@ -315,7 +331,8 @@ class ParticipantAgent2ListenerSpec
       mockAgent ! RequestAssetPowerMessage(
         3000L,
         Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
 
       /* Wait for original reply (this is the querying agent) */
@@ -340,7 +357,7 @@ class ParticipantAgent2ListenerSpec
     "not inform listeners about request reply, when not asked to do" in {
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
-          scheduler = scheduler.ref,
+          scheduler = scheduler.ref.asLocal,
           listener = systemListener
         )
       )
@@ -373,17 +390,20 @@ class ParticipantAgent2ListenerSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           0,
-          mockAgent
+          mockAgent.asLocal
         )
       )
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref.asLocal)
+      )
 
       /* Trigger the data generation in tick 0 */
       scheduler.send(
@@ -391,7 +411,7 @@ class ParticipantAgent2ListenerSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
           1,
-          mockAgent
+          mockAgent.asLocal
         )
       )
 
@@ -407,7 +427,8 @@ class ParticipantAgent2ListenerSpec
       mockAgent ! RequestAssetPowerMessage(
         3000L,
         Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
 
       /* Wait for original reply (this is the querying agent) */

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.ActorSystem
 import akka.testkit.TestFSMRef
 import akka.util.Timeout
 import breeze.numerics.{acos, tan}
@@ -15,6 +15,7 @@ import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.ValueStore
+import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePower,
   ActivePowerAndHeat,
@@ -30,6 +31,8 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
+import edu.ie3.simona.akka.SimonaActorRef
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
@@ -126,7 +129,7 @@ class ParticipantAgentExternalSourceSpec
     "be instantiated correctly" in {
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
-          scheduler = scheduler.ref
+          scheduler = scheduler.ref.asLocal
         )
       )
 
@@ -144,7 +147,7 @@ class ParticipantAgentExternalSourceSpec
     "end in correct state with correct state data after initialisation" in {
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
-          scheduler = scheduler.ref
+          scheduler = scheduler.ref.asLocal
         )
       )
 
@@ -170,17 +173,17 @@ class ParticipantAgentExternalSourceSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           triggerId,
-          mockAgent
+          mockAgent.asLocal
         )
       )
 
       /* Expect a registration message */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(testUUID)
+        PrimaryServiceRegistrationMessage(testUUID, mockAgent.asLocal)
       )
 
       /* ... as well as corresponding state and state data */
@@ -211,12 +214,16 @@ class ParticipantAgentExternalSourceSpec
       /* Reply, that registration was successful */
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(Some(4711L))
+        RegistrationSuccessfulMessage(
+          Some(4711L),
+          primaryServiceProxy.ref.asLocal
+        )
       )
 
       scheduler.expectMsgClass(classOf[CompletionMessage]) match {
-        case CompletionMessage(actualTriggerId, newTriggers) =>
+        case CompletionMessage(actualTriggerId, actor, newTriggers) =>
           actualTriggerId shouldBe triggerId
+          actor shouldBe mockAgent.asLocal
           newTriggers match {
             case Some(triggers) =>
               triggers.size shouldBe 1
@@ -225,7 +232,7 @@ class ParticipantAgentExternalSourceSpec
                       ActivityStartTrigger(tick),
                       actorToBeScheduled
                     ) =>
-                  tick == 4711L && actorToBeScheduled == mockAgent
+                  tick == 4711L && actorToBeScheduled == mockAgent.asLocal
               } shouldBe true
             case None => fail("Expected to get a trigger for tick 4711.")
           }
@@ -239,7 +246,7 @@ class ParticipantAgentExternalSourceSpec
             ], ApparentPower] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
-            primaryServiceProxy.ref -> Some(4711L)
+            primaryServiceProxy.ref.asLocal -> Some(4711L)
           )
         case _ =>
           fail(
@@ -251,7 +258,7 @@ class ParticipantAgentExternalSourceSpec
     "answer with zero power, if asked directly after initialisation" in {
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
-          scheduler = scheduler.ref
+          scheduler = scheduler.ref.asLocal
         )
       )
 
@@ -277,11 +284,11 @@ class ParticipantAgentExternalSourceSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           triggerId,
-          mockAgent
+          mockAgent.asLocal
         )
       )
 
@@ -289,7 +296,10 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(Some(900L))
+        RegistrationSuccessfulMessage(
+          Some(900L),
+          primaryServiceProxy.ref.asLocal
+        )
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -301,7 +311,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent ! RequestAssetPowerMessage(
         0L,
         Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
       expectMsg(
         AssetPowerChangedMessage(
@@ -312,6 +323,7 @@ class ParticipantAgentExternalSourceSpec
 
       inside(mockAgent.stateData) {
         case FromOutsideBaseStateData(
+              _,
               _,
               _,
               _,
@@ -343,7 +355,7 @@ class ParticipantAgentExternalSourceSpec
     "do correct transitions faced to new data in Idle" in {
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
-          scheduler = scheduler.ref
+          scheduler = scheduler.ref.asLocal
         )
       )
 
@@ -369,11 +381,11 @@ class ParticipantAgentExternalSourceSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           initialiseTriggerId,
-          mockAgent
+          mockAgent.asLocal
         )
       )
 
@@ -381,7 +393,10 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(Some(900L))
+        RegistrationSuccessfulMessage(
+          Some(900L),
+          primaryServiceProxy.ref.asLocal
+        )
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -397,7 +412,8 @@ class ParticipantAgentExternalSourceSpec
             Quantities.getQuantity(0, KILOWATT),
             Quantities.getQuantity(900, KILOVAR)
           ),
-          Some(1800L)
+          Some(1800L),
+          primaryServiceProxy.ref.asLocal
         )
       )
 
@@ -413,12 +429,12 @@ class ParticipantAgentExternalSourceSpec
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
-            primaryServiceProxy.ref -> Some(1800L)
+            primaryServiceProxy.ref.asLocal -> Some(1800L)
           )
 
           /* The yet sent data is also registered */
           expectedSenders shouldBe Map(
-            primaryServiceProxy.ref -> Some(
+            primaryServiceProxy.ref.asLocal -> Some(
               ApparentPower(
                 Quantities.getQuantity(0, KILOWATT),
                 Quantities.getQuantity(900, KILOVAR)
@@ -440,7 +456,7 @@ class ParticipantAgentExternalSourceSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
           1L,
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
 
@@ -448,11 +464,12 @@ class ParticipantAgentExternalSourceSpec
       scheduler.expectMsg(
         CompletionMessage(
           1L,
+          mockAgent.asLocal,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(1800L),
-                mockAgent
+                mockAgent.asLocal
               )
             )
           )
@@ -485,7 +502,7 @@ class ParticipantAgentExternalSourceSpec
     "do correct transitions triggered for activation in idle" in {
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
-          scheduler = scheduler.ref
+          scheduler = scheduler.ref.asLocal
         )
       )
 
@@ -511,11 +528,11 @@ class ParticipantAgentExternalSourceSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           initialiseTriggerId,
-          mockAgent
+          mockAgent.asLocal
         )
       )
 
@@ -523,7 +540,10 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(Some(900L))
+        RegistrationSuccessfulMessage(
+          Some(900L),
+          primaryServiceProxy.ref.asLocal
+        )
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -536,7 +556,7 @@ class ParticipantAgentExternalSourceSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
           1L,
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
 
@@ -552,11 +572,11 @@ class ParticipantAgentExternalSourceSpec
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
-            primaryServiceProxy.ref -> Some(900L)
+            primaryServiceProxy.ref.asLocal -> Some(900L)
           )
 
           /* The yet sent data is also registered */
-          expectedSenders shouldBe Map(primaryServiceProxy.ref -> None)
+          expectedSenders shouldBe Map(primaryServiceProxy.ref.asLocal -> None)
 
           /* It is yet triggered */
           isYetTriggered shouldBe true
@@ -575,7 +595,8 @@ class ParticipantAgentExternalSourceSpec
             Quantities.getQuantity(0, KILOWATT),
             Quantities.getQuantity(900, KILOVAR)
           ),
-          Some(1800L)
+          Some(1800L),
+          primaryServiceProxy.ref.asLocal
         )
       )
 
@@ -583,11 +604,12 @@ class ParticipantAgentExternalSourceSpec
       scheduler.expectMsg(
         CompletionMessage(
           1L,
+          mockAgent.asLocal,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(1800L),
-                mockAgent
+                mockAgent.asLocal
               )
             )
           )
@@ -620,7 +642,7 @@ class ParticipantAgentExternalSourceSpec
     "does not provide power if data is awaited in an earlier tick, but answers it, if all expected data is there" in {
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
-          scheduler = scheduler.ref
+          scheduler = scheduler.ref.asLocal
         )
       )
 
@@ -646,11 +668,11 @@ class ParticipantAgentExternalSourceSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           0L,
-          mockAgent
+          mockAgent.asLocal
         )
       )
 
@@ -658,7 +680,10 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(Some(900L))
+        RegistrationSuccessfulMessage(
+          Some(900L),
+          primaryServiceProxy.ref.asLocal
+        )
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -669,7 +694,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent ! RequestAssetPowerMessage(
         1800L,
         Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(mockAgent.stateName == Idle)
@@ -683,7 +709,8 @@ class ParticipantAgentExternalSourceSpec
             Quantities.getQuantity(0, KILOWATT),
             Quantities.getQuantity(900, KILOVAR)
           ),
-          Some(1800L)
+          Some(1800L),
+          primaryServiceProxy.ref.asLocal
         )
       )
 
@@ -693,18 +720,19 @@ class ParticipantAgentExternalSourceSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
           1L,
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
 
       scheduler.expectMsg(
         CompletionMessage(
           1L,
+          mockAgent.asLocal,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(1800L),
-                mockAgent
+                mockAgent.asLocal
               )
             )
           )
@@ -717,7 +745,7 @@ class ParticipantAgentExternalSourceSpec
 
     val mockAgent = TestFSMRef(
       new ParticipantAgentMock(
-        scheduler = scheduler.ref
+        scheduler = scheduler.ref.asLocal
       )
     )
 
@@ -726,11 +754,12 @@ class ParticipantAgentExternalSourceSpec
         CalcRelevantData.FixedRelevantData.type
       ], ApparentPower] = FromOutsideBaseStateData(
         mockModel,
+        0,
         defaultSimulationStart,
         defaultSimulationEnd,
         defaultOutputConfig,
         Array.emptyLongArray,
-        Map.empty[ActorRef, Option[Long]],
+        Map.empty[SimonaActorRef, Option[Long]],
         fillUpReactivePowerWithModelFunc = false,
         1e-4,
         ValueStore.forVoltage(
@@ -756,11 +785,12 @@ class ParticipantAgentExternalSourceSpec
         CalcRelevantData.FixedRelevantData.type
       ], ApparentPower] = FromOutsideBaseStateData(
         mockModel,
+        0,
         defaultSimulationStart,
         defaultSimulationEnd,
         defaultOutputConfig,
         Array.emptyLongArray,
-        Map.empty[ActorRef, Option[Long]],
+        Map.empty[SimonaActorRef, Option[Long]],
         fillUpReactivePowerWithModelFunc = true,
         1e-4,
         ValueStore.forVoltage(
@@ -804,11 +834,11 @@ class ParticipantAgentExternalSourceSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref.asLocal
             )
           ),
           0,
-          mockAgent
+          mockAgent.asLocal
         )
       )
 
@@ -816,7 +846,10 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(Some(900L))
+        RegistrationSuccessfulMessage(
+          Some(900L),
+          primaryServiceProxy.ref.asLocal
+        )
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -833,7 +866,8 @@ class ParticipantAgentExternalSourceSpec
             Quantities.getQuantity(100d, KILOWATT),
             Quantities.getQuantity(33d, KILOVAR)
           ),
-          Some(1800L)
+          Some(1800L),
+          primaryServiceProxy.ref.asLocal
         )
       )
       scheduler.send(
@@ -841,17 +875,18 @@ class ParticipantAgentExternalSourceSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
           1L,
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           1L,
+          mockAgent.asLocal,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(1800L),
-                mockAgent
+                mockAgent.asLocal
               )
             )
           )
@@ -867,7 +902,8 @@ class ParticipantAgentExternalSourceSpec
             Quantities.getQuantity(150d, KILOWATT),
             Quantities.getQuantity(49d, KILOVAR)
           ),
-          Some(2700L)
+          Some(2700L),
+          primaryServiceProxy.ref.asLocal
         )
       )
       scheduler.send(
@@ -875,17 +911,18 @@ class ParticipantAgentExternalSourceSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(1800L),
           2L,
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           2L,
+          mockAgent.asLocal,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(2700L),
-                mockAgent
+                mockAgent.asLocal
               )
             )
           )
@@ -901,7 +938,8 @@ class ParticipantAgentExternalSourceSpec
             Quantities.getQuantity(200d, KILOWATT),
             Quantities.getQuantity(66d, KILOVAR)
           ),
-          None
+          None,
+          primaryServiceProxy.ref.asLocal
         )
       )
       scheduler.send(
@@ -909,10 +947,10 @@ class ParticipantAgentExternalSourceSpec
         TriggerWithIdMessage(
           ActivityStartTrigger(2700L),
           3L,
-          scheduler.ref
+          scheduler.ref.asLocal
         )
       )
-      scheduler.expectMsg(CompletionMessage(3L, None))
+      scheduler.expectMsg(CompletionMessage(3L, mockAgent.asLocal, None))
 
       awaitAssert(mockAgent.stateName == Idle)
 
@@ -920,7 +958,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent ! RequestAssetPowerMessage(
         3000L,
         Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -942,7 +981,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent ! RequestAssetPowerMessage(
         3000L,
         Quantities.getQuantity(1.000000000000001d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
 
       /* Expect, that nothing has changed */
@@ -965,7 +1005,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent ! RequestAssetPowerMessage(
         3000L,
         Quantities.getQuantity(0.98d, PU),
-        Quantities.getQuantity(0d, PU)
+        Quantities.getQuantity(0d, PU),
+        self.asLocal
       )
 
       /* Expect, that nothing has changed, as this model is meant to forward information from outside */
@@ -984,14 +1025,16 @@ class ParticipantAgentExternalSourceSpec
 
     "preparing incoming primary data" when {
       val participantAgent =
-        TestFSMRef(new ParticipantAgentMock(scheduler.ref)).underlyingActor
+        TestFSMRef(
+          new ParticipantAgentMock(scheduler.ref.asLocal)
+        ).underlyingActor
       val reactivePowerFunction = (_: ComparableQuantity[Power]) =>
         Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_IN)
 
       "sending unsupported data" should {
         "fail" in {
-          val data = Map(
-            primaryServiceProxy.ref -> Some(
+          val data: Map[SimonaActorRef, Option[_ <: Data]] = Map(
+            primaryServiceProxy.ref.asLocal -> Some(
               ApparentPowerAndHeat(
                 Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN),
                 Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_IN),
@@ -1012,8 +1055,8 @@ class ParticipantAgentExternalSourceSpec
 
       "sending enhanceable data" should {
         "fail, if enhanced data are not supported" in {
-          val data = Map(
-            primaryServiceProxy.ref -> Some(
+          val data: Map[SimonaActorRef, Option[_ <: Data]] = Map(
+            primaryServiceProxy.ref.asLocal -> Some(
               ActivePowerAndHeat(
                 Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN),
                 Quantities.getQuantity(0d, StandardUnits.HEAT_DEMAND)
@@ -1031,8 +1074,8 @@ class ParticipantAgentExternalSourceSpec
         }
 
         "lead to proper enriched data, if supported" in {
-          val data = Map(
-            primaryServiceProxy.ref -> Some(
+          val data: Map[SimonaActorRef, Option[_ <: Data]] = Map(
+            primaryServiceProxy.ref.asLocal -> Some(
               ActivePower(
                 Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
               )
@@ -1058,8 +1101,8 @@ class ParticipantAgentExternalSourceSpec
         }
 
         "lead to proper enriched data, if supported and utilizing a active to reactive power function" in {
-          val data = Map(
-            primaryServiceProxy.ref -> Some(
+          val data: Map[SimonaActorRef, Option[_ <: Data]] = Map(
+            primaryServiceProxy.ref.asLocal -> Some(
               ActivePower(
                 Quantities.getQuantity(100d, StandardUnits.ACTIVE_POWER_IN)
               )

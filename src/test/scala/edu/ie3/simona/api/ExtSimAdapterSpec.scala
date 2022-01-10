@@ -9,6 +9,7 @@ package edu.ie3.simona.api
 import akka.actor.ActorSystem
 import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
+import edu.ie3.simona.akka.SimonaActorRef.RichActorRef
 import edu.ie3.simona.api.ExtSimAdapter.InitExtSimAdapter
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
@@ -51,7 +52,7 @@ class ExtSimAdapterSpec
   "An uninitialized ExtSimScheduler" must {
     "send correct completion message after initialisation" in {
       val extSimAdapter = TestActorRef(
-        new ExtSimAdapter(scheduler.ref)
+        new ExtSimAdapter(scheduler.ref.asLocal)
       )
 
       val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
@@ -67,18 +68,19 @@ class ExtSimAdapterSpec
             )
           ),
           triggerId,
-          extSimAdapter
+          extSimAdapter.asLocal
         )
       )
 
       scheduler.expectMsg(
         CompletionMessage(
           triggerId,
+          extSimAdapter.asLocal,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(INIT_SIM_TICK),
-                extSimAdapter
+                extSimAdapter.asLocal
               )
             )
           )
@@ -90,7 +92,7 @@ class ExtSimAdapterSpec
   "An initialized ExtSimScheduler" must {
     "forward an activation trigger and a corresponding completion message properly" in {
       val extSimAdapter = TestActorRef(
-        new ExtSimAdapter(scheduler.ref)
+        new ExtSimAdapter(scheduler.ref.asLocal)
       )
 
       val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
@@ -104,7 +106,7 @@ class ExtSimAdapterSpec
             )
           ),
           1L,
-          extSimAdapter
+          extSimAdapter.asLocal
         )
       )
 
@@ -119,7 +121,7 @@ class ExtSimAdapterSpec
             INIT_SIM_TICK
           ),
           triggerId,
-          extSimAdapter
+          extSimAdapter.asLocal
         )
       )
 
@@ -145,11 +147,12 @@ class ExtSimAdapterSpec
       scheduler.expectMsg(
         CompletionMessage(
           triggerId,
+          extSimAdapter.asLocal,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(nextTick),
-                extSimAdapter
+                extSimAdapter.asLocal
               )
             )
           )
@@ -159,7 +162,7 @@ class ExtSimAdapterSpec
 
     "schedule the data service when it is told to" in {
       val extSimAdapter = TestActorRef(
-        new ExtSimAdapter(scheduler.ref)
+        new ExtSimAdapter(scheduler.ref.asLocal)
       )
 
       val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
@@ -174,7 +177,7 @@ class ExtSimAdapterSpec
             )
           ),
           1L,
-          extSimAdapter
+          extSimAdapter.asLocal
         )
       )
 
@@ -190,7 +193,7 @@ class ExtSimAdapterSpec
             tick
           ),
           triggerId,
-          extSimAdapter
+          extSimAdapter.asLocal
         )
       )
 
@@ -210,7 +213,7 @@ class ExtSimAdapterSpec
       scheduler.expectMsg(
         ScheduleTriggerMessage(
           ActivityStartTrigger(tick),
-          dataService.ref
+          dataService.ref.asLocal
         )
       )
       dataService.expectNoMessage()
