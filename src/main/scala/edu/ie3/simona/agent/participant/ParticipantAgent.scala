@@ -56,7 +56,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
-import javax.measure.quantity.{Dimensionless, Power}
+import javax.measure.quantity.Dimensionless
 
 /** Common properties to participant agents
   *
@@ -721,12 +721,13 @@ abstract class ParticipantAgent[
     *   Basic state data
     * @param currentTick
     *   Tick, the trigger belongs to
+    * @param result
+    *   Result to send
     */
   def announceAssetPowerRequestReply(
       baseStateData: BaseStateData[_],
       currentTick: Long,
-      activePower: ComparableQuantity[Power],
-      reactivePower: ComparableQuantity[Power]
+      result: PD
   )(implicit outputConfig: ParticipantNotifierConfig): Unit
 
   /** Abstract definition to clean up agent value stores after power flow

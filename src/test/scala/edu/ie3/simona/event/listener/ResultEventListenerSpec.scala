@@ -10,7 +10,7 @@ import java.io.{File, FileInputStream}
 import java.util.zip.GZIPInputStream
 import akka.actor.ActorSystem
 import akka.stream.Materializer
-import akka.testkit.{ImplicitSender, TestFSMRef, TestKit, TestProbe}
+import akka.testkit.TestFSMRef
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
@@ -25,11 +25,8 @@ import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
   PowerFlowResultEvent
 }
-import edu.ie3.simona.io.result.{
-  ResultEntityCsvSink,
-  ResultEntitySink,
-  ResultSinkType
-}
+import edu.ie3.simona.event.listener.ResultEventListener.SinkContainer
+import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
 import edu.ie3.simona.test.common.result.PowerFlowResultData
 import edu.ie3.simona.test.common.{AgentSpec, IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
@@ -380,7 +377,7 @@ class ResultEventListenerSpec
       }
       val sink = DummySink()
       val sinks = Map(
-        classOf[Transformer3WResult] -> sink
+        classOf[Transformer3WResult] -> SinkContainer(sink, sink)
       )
       "not flush anything, if nothing is ready to be flushed" in {
         val results = Map(

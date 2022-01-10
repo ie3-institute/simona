@@ -492,14 +492,6 @@ case object ConfigFailFast extends LazyLogging {
   private def checkParticipantsOutputConfig(
       subConfig: SimonaConfig.Simona.Output.Participant
   ): Unit = {
-
-    (subConfig.defaultConfig :: subConfig.individualConfigs).foreach(c =>
-      if (c.powerRequestReply)
-        throw new NotImplementedError(
-          "PowerRequestReply output handling is not supported yet!"
-        )
-    )
-
     checkDefaultBaseOutputConfig(
       subConfig.defaultConfig,
       defaultString = "default"

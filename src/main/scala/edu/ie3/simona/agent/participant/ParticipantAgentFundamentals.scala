@@ -42,7 +42,10 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   HandleInformation
 }
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
+import edu.ie3.simona.event.ResultEvent.{
+  ParticipantResultEvent,
+  RequestReplyEvent
+}
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   ActorNotRegisteredException,
@@ -1529,22 +1532,23 @@ protected trait ParticipantAgentFundamentals[
     *   Agent's base state data
     * @param tick
     *   Tick, the result belongs to
-    * @param activePower
-    *   Active power
-    * @param reactivePower
-    *   Reactive power
+    * @param result
+    *   The result to send
     * @param outputConfig
     *   Configuration of the output behaviour
     */
   override def announceAssetPowerRequestReply(
       baseStateData: BaseStateData[_],
       tick: Long,
-      activePower: ComparableQuantity[Power],
-      reactivePower: ComparableQuantity[Power]
+      result: PD
   )(implicit outputConfig: ParticipantNotifierConfig): Unit =
     if (outputConfig.powerRequestReply) {
-      log.warning(
-        "Writing out power request replies is currently not supported!"
+      val uuid = baseStateData.modelUuid
+      val dateTime = tick.toDateTime(baseStateData.startDate)
+      notifyListener(
+        RequestReplyEvent(
+          buildResult(uuid, dateTime, result)
+        )
       )
     }
 
@@ -1568,8 +1572,7 @@ protected trait ParticipantAgentFundamentals[
         announceAssetPowerRequestReply(
           baseStateData,
           currentTick,
-          data.p,
-          data.q
+          data
         )(baseStateData.outputConfig)
     }
     goto(Idle) using baseStateData

@@ -171,6 +171,7 @@ class ParticipantAgentMock(
     val participant: SystemParticipant[FixedRelevantData.type] =
       mock[SystemParticipant[FixedRelevantData.type]]
     doReturn(func).when(participant).activeToReactivePowerFunc(any())
+    doReturn(inputModel.getUuid).when(participant).getUuid
 
     ParticipantModelBaseStateData(
       simulationStartDate,
@@ -214,21 +215,6 @@ class ParticipantAgentMock(
     Mockito.when(mockModel.getUuid).thenReturn(uuid)
     mockModel
   }
-
-  /** To clean up agent value stores after power flow convergence. This is
-    * necessary for agents whose results are time dependent e.g. storage agents
-    * @param baseStateData
-    *   Basic state data
-    * @param currentTick
-    *   Tick, the trigger belongs to
-    * @return
-    *   [[Idle]] with updated result values
-    */
-  override def finalizeTickAfterPF(
-      baseStateData: BaseStateData[ApparentPower],
-      currentTick: Long
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
-    goto(Idle) using baseStateData
 
   /** Determine the average result within the given tick window
     *

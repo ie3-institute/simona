@@ -16,13 +16,15 @@ import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
-  PowerFlowResultEvent
+  PowerFlowResultEvent,
+  RequestReplyEvent
 }
 import edu.ie3.simona.event.listener.ResultEventListener.{
   AggregatedTransformer3wResult,
   BaseData,
   Init,
   ResultEventListenerData,
+  SinkContainer,
   Transformer3wKey,
   UninitializedData
 }
@@ -46,6 +48,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
+import scala.util.matching.Regex
 
 object ResultEventListener extends Transformer3wResultSupport {
 
@@ -67,12 +70,24 @@ object ResultEventListener extends Transformer3wResultSupport {
     *   listener
     */
   private final case class BaseData(
-      classToSink: Map[Class[_], ResultEntitySink],
+      classToSink: Map[Class[_], SinkContainer],
       threeWindingResults: Map[
         Transformer3wKey,
         AggregatedTransformer3wResult
       ] = Map.empty
   ) extends ResultEventListenerData
+
+  /** Grouping together sinks for different purposes
+    *
+    * @param participantResultSink
+    *   Sink to write actual participant simulation results to
+    * @param requestReplySink
+    *   Sink to write reply on grid's power request to
+    */
+  private[listener] final case class SinkContainer(
+      participantResultSink: ResultEntitySink,
+      requestReplySink: ResultEntitySink
+  )
 
   def props(
       eventClassesToConsider: Set[Class[_ <: ResultEntity]],
@@ -101,7 +116,8 @@ object ResultEventListener extends Transformer3wResultSupport {
       resultFileHierarchy: ResultFileHierarchy
   )(implicit
       materializer: Materializer
-  ): Iterable[Future[(Class[_], ResultEntitySink)]] = {
+  ): Iterable[Future[(Class[_], SinkContainer)]] = {
+    val powerFlowSuffix = "_powerflow"
     resultFileHierarchy.resultSinkType match {
       case _: ResultSinkType.Csv =>
         eventClassesToConsider
@@ -115,13 +131,30 @@ object ResultEventListener extends Transformer3wResultSupport {
                 )
               )
             if (fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")) {
-              val sink =
+              val resultSinkFuture =
                 ResultEntityCsvSink(
                   fileName.replace(".gz", ""),
                   new ResultEntityProcessor(resultClass),
                   fileName.endsWith(".gz")
                 )
-              sink.map((resultClass, _))
+              /* Add power flow suffix to file name */
+              val filenameWithSuffix =
+                "(?<fileEnding>(?:\\.[\\w\\d]+){1,2})$".r.replaceAllIn(
+                  fileName,
+                  (found: Regex.Match) =>
+                    powerFlowSuffix + found.group("fileEnding")
+                )
+              val requestSinkFuture = ResultEntityCsvSink(
+                filenameWithSuffix.replace(".gz", ""),
+                new ResultEntityProcessor(resultClass),
+                filenameWithSuffix.endsWith(".gz")
+              )
+
+              /* Zip both sink futures and map them to a sink container */
+              resultSinkFuture.zip(requestSinkFuture).map {
+                case (resultSink, requestSink) =>
+                  resultClass -> SinkContainer(resultSink, requestSink)
+              }
             } else {
               throw new ProcessResultEventException(
                 s"Invalid output file format for file $fileName provided. Currently only '.csv' or '.csv.gz' is supported!"
@@ -132,13 +165,44 @@ object ResultEventListener extends Transformer3wResultSupport {
       case ResultSinkType.InfluxDb1x(url, database, scenario) =>
         // creates one connection per result entity that should be processed
         eventClassesToConsider
-          .map(resultClass =>
-            ResultEntityInfluxDbSink(url, database, scenario).map(
-              (resultClass, _)
+          .map(resultClass => {
+            val resultSinkFuture: Future[ResultEntityInfluxDbSink] =
+              ResultEntityInfluxDbSink(url, database, scenario)
+            val requestSinkFuture = ResultEntityInfluxDbSink(
+              url,
+              database,
+              scenario + powerFlowSuffix
             )
-          )
+            /* Zip both sink futures and map them to a sink container */
+            resultClassToSinkContainer(
+              resultClass,
+              resultSinkFuture,
+              requestSinkFuture
+            )
+          })
     }
   }
+
+  /** Maps a result class to a relevant [[SinkContainer]]
+    *
+    * @param resultClass
+    *   Result class to handle
+    * @param resultSinkFuture
+    *   Future onto the sink for result events
+    * @param requestSinkFuture
+    *   Future onto the sink for request reply events
+    * @return
+    *   Mapping from class to container
+    */
+  private def resultClassToSinkContainer(
+      resultClass: Class[_],
+      resultSinkFuture: Future[ResultEntitySink],
+      requestSinkFuture: Future[ResultEntitySink]
+  ): Future[(Class[_], SinkContainer)] =
+    resultSinkFuture.zip(requestSinkFuture).map {
+      case (resultSink, requestSink) =>
+        resultClass -> SinkContainer(resultSink, requestSink)
+    }
 }
 
 class ResultEventListener(
@@ -167,14 +231,17 @@ class ResultEventListener(
     *   Result entity to handle
     * @param baseData
     *   Base data
+    * @param getSink
+    *   Function, which sink to choose
     * @return
     *   The possibly update base data
     */
   private def handleResult(
       resultEntity: ResultEntity,
-      baseData: BaseData
+      baseData: BaseData,
+      getSink: SinkContainer => ResultEntitySink
   ): BaseData = {
-    handOverToSink(resultEntity, baseData.classToSink)
+    handOverToSink(resultEntity, baseData.classToSink, getSink)
     baseData
   }
 
@@ -246,11 +313,16 @@ class ResultEventListener(
     */
   private def flushComprehensiveResults(
       results: Map[Transformer3wKey, AggregatedTransformer3wResult],
-      classToSink: Map[Class[_], ResultEntitySink]
+      classToSink: Map[Class[_], SinkContainer]
   ): Map[Transformer3wKey, AggregatedTransformer3wResult] = {
     val comprehensiveResults = results.filter(_._2.ready)
     comprehensiveResults.map(_._2.consolidate).foreach {
-      case Success(result) => handOverToSink(result, classToSink)
+      case Success(result) =>
+        handOverToSink(
+          result,
+          classToSink,
+          (sinkContainer: SinkContainer) => sinkContainer.participantResultSink
+        )
       case Failure(exception) =>
         log.warning("Cannot consolidate / write result.\n\t{}", exception)
     }
@@ -263,16 +335,19 @@ class ResultEventListener(
     * @param resultEntity
     *   entity to handle
     * @param classToSink
-    *   mapping from entity class to sink
+    *   mapping from entity class to sink container
+    * @param getSink
+    *   Function, which sink to choose
     */
   private def handOverToSink(
       resultEntity: ResultEntity,
-      classToSink: Map[Class[_], ResultEntitySink]
+      classToSink: Map[Class[_], SinkContainer],
+      getSink: SinkContainer => ResultEntitySink
   ): Unit =
     Try {
       classToSink
         .get(resultEntity.getClass)
-        .foreach(_.handleResultEntity(resultEntity))
+        .foreach(getSink(_).handleResultEntity(resultEntity))
     } match {
       case Failure(exception) =>
         log.error(exception, "Error while writing result event: ")
@@ -318,7 +393,11 @@ class ResultEventListener(
           ParticipantResultEvent(systemParticipantResult),
           baseData: BaseData
         ) =>
-      val updateBaseData = handleResult(systemParticipantResult, baseData)
+      val updateBaseData = handleResult(
+        systemParticipantResult,
+        baseData,
+        (container: SinkContainer) => container.participantResultSink
+      )
       stay() using updateBaseData
 
     case Event(
@@ -335,7 +414,11 @@ class ResultEventListener(
         (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults)
           .foldLeft(baseData) {
             case (currentBaseData, resultEntity: ResultEntity) =>
-              handleResult(resultEntity, currentBaseData)
+              handleResult(
+                resultEntity,
+                currentBaseData,
+                (container: SinkContainer) => container.participantResultSink
+              )
             case (
                   currentBaseData,
                   partialTransformerResult: PartialTransformer3wResult
@@ -345,6 +428,14 @@ class ResultEventListener(
                 currentBaseData
               )
           }
+      stay() using updatedBaseData
+
+    case Event(RequestReplyEvent(reply), baseData: BaseData) =>
+      val updatedBaseData = handleResult(
+        reply,
+        baseData,
+        (container: SinkContainer) => container.requestReplySink
+      )
       stay() using updatedBaseData
   }
 
@@ -363,11 +454,15 @@ class ResultEventListener(
     // close sinks concurrently to speed up closing (closing calls might be blocking)
     Await.ready(
       Future.sequence(
-        baseData.classToSink.valuesIterator.map(sink =>
-          Future {
-            sink.close()
-          }
-        )
+        baseData.classToSink.valuesIterator.map {
+          case SinkContainer(participantResultSink, requestReplySink) =>
+            Future.sequence {
+              Seq(
+                Future(participantResultSink.close()),
+                Future(requestReplySink.close())
+              )
+            }
+        }
       ),
       Duration(100, TimeUnit.MINUTES)
     )

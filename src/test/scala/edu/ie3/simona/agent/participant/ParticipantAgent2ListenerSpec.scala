@@ -16,9 +16,11 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
-import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
+import edu.ie3.simona.event.ResultEvent.{
+  ParticipantResultEvent,
+  RequestReplyEvent
+}
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -37,7 +39,10 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeParticipantAgentTrigger
 }
 import edu.ie3.simona.test.ParticipantAgentSpec
-import edu.ie3.simona.test.common.{AgentSpec, DefaultTestData}
+import edu.ie3.simona.test.common.DefaultTestData
+import edu.ie3.simona.test.matchers.QuantityMatchers
+import edu.ie3.util.TimeUtil
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.{
   KILOWATT,
   MEGAVAR,
@@ -65,7 +70,8 @@ class ParticipantAgent2ListenerSpec
     )
     with DefaultTestData
     with PrivateMethodTester
-    with MockitoSugar {
+    with MockitoSugar
+    with QuantityMatchers {
 
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
@@ -245,7 +251,7 @@ class ParticipantAgent2ListenerSpec
       expectNoMessage(noReceiveTimeOut.duration)
     }
 
-    "not inform listeners about request reply, when asked to do (currently not implemented)" in {
+    "inform listeners about request reply, when asked to do" in {
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
           scheduler = scheduler.ref,
@@ -330,11 +336,21 @@ class ParticipantAgent2ListenerSpec
       scheduler.send(mockAgent, FinishGridSimulationTrigger(3000L))
 
       /* Wait for the result event (this is the event listener) */
-      logger.warn(
-        "Writing out power request replies is currently not implemented. Reimplement this test, as soon as" +
-          "the function is available!"
-      )
-      expectNoMessage(noReceiveTimeOut.duration)
+      expectMsgType[RequestReplyEvent] match {
+        case RequestReplyEvent(reply) =>
+          reply.getInputModel shouldBe mockInputModel.getUuid
+          reply.getTime shouldBe TimeUtil.withDefaults.toZonedDateTime(
+            "2019-01-01 00:50:00"
+          )
+          reply.getP should equalWithTolerance(
+            Quantities.getQuantity(2d, PowerSystemUnits.MEGAWATT),
+            1e-6
+          )
+          reply.getQ should equalWithTolerance(
+            Quantities.getQuantity(1d, PowerSystemUnits.MEGAVAR),
+            1e-6
+          )
+      }
     }
 
     "not inform listeners about request reply, when not asked to do" in {
