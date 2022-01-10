@@ -118,6 +118,12 @@ dependencies {
   implementation "com.github.carueda:tscfg_2.13:$tscfgVersion"
   implementation "com.github.scopt:scopt_${scalaVersion}:4.0.1" // cmd args parser
 
+  // JTS
+  implementation ('org.locationtech.jts:jts-core:1.18.2'){
+    exclude group: 'junit', module: 'junit'
+  }
+  implementation 'org.locationtech.jts.io:jts-io-common:1.18.2'
+
   /* Scala compiler plugin for static code analysis */
   implementation "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:1.4.11"
   scalaCompilerPlugin "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:1.4.11"
