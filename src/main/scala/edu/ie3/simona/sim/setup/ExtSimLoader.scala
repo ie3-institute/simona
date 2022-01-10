@@ -31,8 +31,9 @@ object ExtSimLoader extends LazyLogging {
   def scanInputFolder(
       extSimDir: File = getStandardDirectory
   ): Iterable[File] = {
+    logger.info("Checking for external simulations ...")
     if (!extSimDir.isDirectory) {
-      logger.warn(
+      logger.info(
         s"External simulation directory ${extSimDir.getPath} does not exist or is not a directory, no external simulation loaded."
       )
       return Iterable.empty
@@ -40,7 +41,7 @@ object ExtSimLoader extends LazyLogging {
 
     val allowedExtensions = Seq("jar")
 
-    extSimDir
+    val extSims = extSimDir
       .listFiles()
       .filter { file =>
         val name = file.getName
@@ -51,6 +52,10 @@ object ExtSimLoader extends LazyLogging {
         )
       }
       .toIterable
+    logger.info(
+      s"Found ${extSims.size} external simulations: ${extSims.map(_.getName).mkString(",")}"
+    )
+    extSims
   }
 
   def loadExtLink(myJar: File): ExtLinkInterface = {

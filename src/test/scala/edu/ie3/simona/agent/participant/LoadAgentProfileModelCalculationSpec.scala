@@ -25,6 +25,7 @@ import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
+import edu.ie3.simona.config.util.ParticipantConfigUtil
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
@@ -45,7 +46,6 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 }
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.model.participant.LoadTestData
-import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
 import org.scalatest.PrivateMethodTester
 import tech.units.indriya.quantity.Quantities
@@ -84,7 +84,7 @@ class LoadAgentProfileModelCalculationSpec
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
     simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
   )
-  private val loadConfigUtil = ConfigUtil.ParticipantConfigUtil(
+  private val loadConfigUtil = ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
   )
   private val modelConfig = loadConfigUtil.getLoadConfigOrDefault(

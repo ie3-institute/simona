@@ -12,13 +12,12 @@ import akka.testkit.ImplicitSender
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.result.system._
+import edu.ie3.simona.config.util.NotifierIdentifier._
 import edu.ie3.simona.event.NotifierSpec.{TestEvent, TestEventEnvelope}
 import edu.ie3.simona.event.notifier.Notifier
 import edu.ie3.simona.test.common.TestKitWithShutdown
-import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
 import edu.ie3.simona.util.EntityMapperUtil
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.duration._
 import scala.language.postfixOps

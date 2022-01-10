@@ -8,10 +8,11 @@ package edu.ie3.simona.util
 
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system._
-import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier
-import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
+import edu.ie3.simona.config.util.NotifierIdentifier
+import edu.ie3.simona.config.util.NotifierIdentifier._
 
 case object EntityMapperUtil {
+
   private val entityMapping
       : Map[NotifierIdentifier.Value, Class[_ <: ResultEntity]] = Map(
     PvPlant -> classOf[PvResult],

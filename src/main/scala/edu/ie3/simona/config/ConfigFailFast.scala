@@ -10,18 +10,17 @@ import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
 import edu.ie3.simona.config.SimonaConfig.{BaseOutputConfig, RefSystemConfig}
+import edu.ie3.simona.config.util.{CsvConfigUtil, NotifierIdentifier}
+import edu.ie3.simona.config.util.DatabaseConfigUtil.checkInfluxDb1xParams
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherSource
 import edu.ie3.simona.util.CollectionUtils
-import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.checkInfluxDb1xParams
-import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.scala.ReflectionTools
 import edu.ie3.util.{StringUtils, TimeUtil}
 
-import java.security.InvalidParameterException
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import scala.util.{Failure, Success, Try}

@@ -7,7 +7,6 @@
 package edu.ie3.simona.util
 
 import java.util.UUID
-
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
@@ -21,8 +20,8 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.{apply => _, _}
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
-import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
-import edu.ie3.simona.util.ConfigUtil.{
+import edu.ie3.simona.config.util.NotifierIdentifier._
+import edu.ie3.simona.config.util.{
   BaseOutputConfigUtil,
   GridOutputConfigUtil,
   NotifierIdentifier,
@@ -51,7 +50,7 @@ class ConfigUtilsSpec
         loadRuntimeConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
+      val actual = ParticipantConfigUtil(
         simonaConfig.simona.runtime.participant
       )
 
@@ -104,7 +103,7 @@ class ConfigUtilsSpec
         loadRuntimeConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
+      val actual = ParticipantConfigUtil(
         simonaConfig.simona.runtime.participant
       )
 
@@ -146,7 +145,7 @@ class ConfigUtilsSpec
         loadRuntimeConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
+      val actual = ParticipantConfigUtil(
         simonaConfig.simona.runtime.participant
       )
 
@@ -203,7 +202,7 @@ class ConfigUtilsSpec
         loadRuntimeConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
+      val actual = ParticipantConfigUtil(
         simonaConfig.simona.runtime.participant
       )
 
@@ -260,7 +259,7 @@ class ConfigUtilsSpec
         fixedFeedInModelConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
+      val actual = ParticipantConfigUtil(
         simonaConfig.simona.runtime.participant
       )
 
@@ -313,7 +312,7 @@ class ConfigUtilsSpec
         fixedFeedInModelConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
+      val actual = ParticipantConfigUtil(
         simonaConfig.simona.runtime.participant
       )
 
@@ -351,7 +350,7 @@ class ConfigUtilsSpec
         fixedFeedInModelConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
+      val actual = ParticipantConfigUtil(
         simonaConfig.simona.runtime.participant
       )
 
@@ -402,7 +401,7 @@ class ConfigUtilsSpec
         fixedFeedInModelConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
+      val actual = ParticipantConfigUtil(
         simonaConfig.simona.runtime.participant
       )
 
@@ -510,7 +509,7 @@ class ConfigUtilsSpec
         combinedParticipantConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
+      val actual = ParticipantConfigUtil(
         simonaConfig.simona.runtime.participant
       )
 

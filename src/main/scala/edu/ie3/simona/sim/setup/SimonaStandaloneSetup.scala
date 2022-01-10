@@ -280,6 +280,11 @@ class SimonaStandaloneSetup(
       })
       .toMap
   }
+
+  /** All cleanup operations that should be executed after a simulation run.
+    */
+  override def cleanup(): Unit =
+    ResultFileHierarchy.stopCustomLogging(resultFileHierarchy)
 }
 
 /** Companion object to provide [[SetupHelper]] methods for
@@ -300,4 +305,5 @@ object SimonaStandaloneSetup extends LazyLogging with SetupHelper {
       runtimeEventQueue,
       mainArgs
     )
+
 }

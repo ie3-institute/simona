@@ -141,7 +141,7 @@ object ArgsParser extends LazyLogging {
     parseTypesafeConfig(file)
   }
 
-  private def parseTypesafeConfig(file: File): TypesafeConfig = {
+  private[config] def parseTypesafeConfig(file: File): TypesafeConfig = {
     ConfigFactory
       .parseFile(file)
       .withFallback(

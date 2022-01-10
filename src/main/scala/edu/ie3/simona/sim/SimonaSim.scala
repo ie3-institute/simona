@@ -263,6 +263,9 @@ class SimonaSim(simonaSetup: SimonaSetup)
     )
     logger.debug("Stopping all listeners requested.")
   }
+
+  override def postStop(): Unit = simonaSetup.cleanup()
+
 }
 
 object SimonaSim {

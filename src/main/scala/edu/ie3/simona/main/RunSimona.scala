@@ -6,15 +6,16 @@
 
 package edu.ie3.simona.main
 
-import java.util.Locale
-
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.ActorRef
 import akka.pattern.gracefulStop
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.simona.config.ConfigProvider
+import edu.ie3.simona.config.util.ExperimentsConfigUtil
 import edu.ie3.simona.sim.setup.SimonaSetup
 import edu.ie3.util.scala.quantities.QuantityUtil
 
+import java.util.Locale
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Random
@@ -42,9 +43,23 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
       s"Starting SIMONA with interface '${getClass.getSimpleName.replaceAll("\\$", "")}'."
     )
 
-    setup(args).foreach(run)
+    // if we have an experiments config we do some additional configuration steps
+    ConfigProvider
+      .deriveExperimentsConfig(args)
+      .foreach(experimentsCfg => {
+        logger.info(
+          "Experiments configuration detected. Applying global configuration ..."
+        )
+        ExperimentsConfigUtil.configureSimulation(experimentsCfg)
+      })
 
-    printGoodbye()
+    setup(args).foreach(setup => {
+      logger.info(
+        "-------------------- Starting simulation ... --------------------"
+      )
+      run(setup.apply())
+      printGoodbye()
+    })
 
     Thread.sleep(
       1000
@@ -89,7 +104,7 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
     * @return
     *   the setup instances
     */
-  def setup(args: Array[String]): Seq[T]
+  def setup(args: Array[String]): Seq[() => T]
 
   /** Actually run the simona simulation using the provided [[SimonaSetup]]
     *

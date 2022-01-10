@@ -15,9 +15,9 @@ import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.{Csv, InfluxDb1x}
 import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow.Newtonraphson
 import edu.ie3.simona.config.SimonaConfig.Simona.{Powerflow, Time}
+import edu.ie3.simona.config.util.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
-import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 
 import java.time.Duration
 import java.time.temporal.ChronoUnit

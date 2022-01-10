@@ -16,14 +16,11 @@ import edu.ie3.datamodel.utils.ContainerUtils
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.config.RefSystemParser.ConfigRefSystems
 import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.util.{BaseOutputConfigUtil, GridOutputConfigUtil}
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.model.grid.RefSystem
-import edu.ie3.simona.util.ConfigUtil.{
-  BaseOutputConfigUtil,
-  GridOutputConfigUtil
-}
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.simona.util.{EntityMapperUtil, ResultFileHierarchy}
 

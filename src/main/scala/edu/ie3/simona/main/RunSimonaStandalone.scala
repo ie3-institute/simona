@@ -7,11 +7,9 @@
 package edu.ie3.simona.main
 
 import akka.actor.ActorSystem
-
-import java.util.concurrent.TimeUnit
 import akka.pattern.ask
 import akka.util.Timeout
-import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, SimonaConfig}
+import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, ConfigProvider}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   InitSimMessage,
   SimulationFailureMessage,
@@ -20,6 +18,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.Await
 
 /** Run a standalone simulation of simona
@@ -33,21 +32,24 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
 
   override def setup(
       args: Array[String]
-  ): Seq[SimonaStandaloneSetup] = {
+  ): Seq[() => SimonaStandaloneSetup] = {
     // get the config and prepare it with the provided args
     val (arguments, parsedConfig) = ArgsParser.prepareConfig(args)
 
     // config fail fast check
-    val simonaConfig = SimonaConfig(parsedConfig)
-    ConfigFailFast.check(parsedConfig, simonaConfig)
+    ConfigProvider
+      .deriveConfigs(parsedConfig)
+      .map { case (simonaCfg, typesafeCfg) =>
+        ConfigFailFast.check(typesafeCfg, simonaCfg)
+        () =>
+          SimonaStandaloneSetup(
+            typesafeCfg,
+            SimonaStandaloneSetup.buildResultFileHierarchy(typesafeCfg),
+            mainArgs = arguments.mainArgs
+          )
 
-    Seq(
-      SimonaStandaloneSetup(
-        parsedConfig,
-        SimonaStandaloneSetup.buildResultFileHierarchy(parsedConfig),
-        mainArgs = arguments.mainArgs
-      )
-    )
+      }
+      .toSeq
   }
 
   override def run(
@@ -72,7 +74,6 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
           s"Unexpected message from SimonaSim $unknown"
         )
     }
-
   }
 
 }

@@ -149,4 +149,8 @@ trait SimonaSetup {
           )
         case _ => gate
       }
+
+  /** All cleanup operations that should be executed after a simulation run.
+    */
+  def cleanup(): Unit = {}
 }
