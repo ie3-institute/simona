@@ -422,9 +422,8 @@ private[grid] trait GridResultsSupport {
     }
   }
 
-  /** NOT IMPLEMENTED YET AS NO TEST DATA IS AVAILABLE! Creates an instance of
-    * [[Transformer3WResult]] based on the provided grid and power flow result
-    * data
+  /** Creates an instance of [[Transformer3WResult]] based on the provided grid
+    * and power flow result data
     *
     * @param trafo3w
     *   the instance of the 3 winding transformer that should be processed
@@ -447,12 +446,16 @@ private[grid] trait GridResultsSupport {
       iNominal: ComparableQuantity[ElectricCurrent],
       timestamp: ZonedDateTime
   ): PartialTransformer3wResult = {
-    val (iMag, iAng) = calcPortCurrent(
-      trafo3w,
-      nodeStateData.voltage,
+    val (_, iComplexPu) = iIJComplexPu(
       internalNodeStateData.voltage,
-      iNominal
+      nodeStateData.voltage,
+      yij(trafo3w),
+      Complex.zero,
+      None
     )
+
+    val (iMag, iAng) = iMagAndAngle(iComplexPu, iNominal)
+
     trafo3w.powerFlowCase match {
       case Transformer3wPowerFlowCase.PowerFlowCaseA =>
         PartialTransformer3wResult.PortA(
@@ -477,47 +480,6 @@ private[grid] trait GridResultsSupport {
           iAng
         )
     }
-  }
-
-  /** Calculate the port current of the transformer
-    *
-    * @param transformer
-    *   The transformer model
-    * @param v1
-    *   Nodal voltage at the port
-    * @param v2
-    *   Nodal voltage at internal node
-    * @param iNominal
-    *   Nominal current
-    * @return
-    *   Magnitude and angle of the current
-    */
-  def calcPortCurrent(
-      transformer: Transformer3wModel,
-      v1: Complex,
-      v2: Complex,
-      iNominal: ComparableQuantity[ElectricCurrent]
-  ): (ComparableQuantity[ElectricCurrent], ComparableQuantity[Angle]) = {
-    val y = yij(transformer)
-    val (de, df) = (v1, v2) match {
-      case (Complex(e1, f1), Complex(e2, f2)) =>
-        (e1 - e2, f1 - f2)
-    }
-    val iReal = (de * y.real - df * y.imag) / (pow(y.real, 2) + pow(y.imag, 2))
-    val iImag = (de * y.imag + df * y.real) / (pow(y.real, 2) + pow(y.imag, 2))
-
-    val iMag = iNominal.multiply(sqrt(pow(iReal, 2) + pow(iImag, 2)))
-    val iAng = atan(iImag / iReal) match {
-      case angle if angle.isNaN =>
-        Quantities
-          .getQuantity(copySign(90d, iImag), PowerSystemUnits.DEGREE_GEOM)
-          .to(StandardUnits.ELECTRIC_CURRENT_ANGLE)
-      case angle =>
-        Quantities
-          .getQuantity(angle, Units.RADIAN)
-          .to(StandardUnits.ELECTRIC_CURRENT_ANGLE)
-    }
-    (iMag, iAng)
   }
 
   /** Calculate the voltage magnitude and the voltage angle in physical units
