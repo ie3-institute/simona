@@ -11,7 +11,6 @@ import akka.actor.{
   Actor,
   ActorRef,
   AllForOneStrategy,
-  PoisonPill,
   Props,
   Stash,
   SupervisorStrategy,
@@ -21,7 +20,7 @@ import akka.pattern.after
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.state.AgentState.Finish
+import edu.ie3.simona.ontology.StopMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
 import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeGridAgentTrigger,
@@ -241,13 +240,23 @@ class SimonaSim(simonaSetup: SimonaSetup)
     gridAgents.foreach { case (gridAgentRef, _) =>
       context.unwatch(gridAgentRef)
     }
-    gridAgents.foreach(_._1 ! Finish)
+    gridAgents.foreach(_._1 ! StopMessage)
 
     context.unwatch(scheduler)
     context.stop(scheduler)
 
     context.unwatch(weatherService)
     context.stop(weatherService)
+
+    extSimulationData.allActorsAndInitTriggers.foreach { case (ref, _) =>
+      context.unwatch(ref)
+    }
+    extSimulationData.extSimAdapters.foreach { case (ref, _) =>
+      ref ! StopMessage
+    }
+    extSimulationData.extDataServices.foreach { case (ref, _) =>
+      context.stop(ref)
+    }
 
     /* Stop listeners with a delay */
     logger.debug("Waiting for {} to stop the listeners.", listenerDelay)
