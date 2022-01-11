@@ -12,3 +12,7 @@ updates:
   - johanneshiry
   - t-ober
   - sensarmad
+  ignore:
+    - dependency-name: org.spockframework:spock-core
+      versions:
+        - 2.1-groovy-3.0-+
