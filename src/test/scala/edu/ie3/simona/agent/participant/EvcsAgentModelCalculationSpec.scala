@@ -433,7 +433,7 @@ class EvcsAgentModelCalculationSpec
       }
     }
 
-    "do correct transitions faced to new data in Idle" in {
+    "do correct transitions faced with new data in Idle" in {
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = scheduler.ref,
@@ -837,18 +837,7 @@ class EvcsAgentModelCalculationSpec
       /* Send out public evcs request */
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
-          0L,
-          EvFreeLotsRequest
-        )
-      )
-      scheduler.send(
-        evcsAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(0L),
-          3L,
-          evcsAgent
-        )
+        EvFreeLotsRequest(0L)
       )
 
       evService.expectMsg(
@@ -857,7 +846,8 @@ class EvcsAgentModelCalculationSpec
           2
         )
       )
-      scheduler.expectMsg(CompletionMessage(3L))
+
+      scheduler.expectNoMessage()
 
       /* Send ev for this tick */
       evService.send(
@@ -880,21 +870,10 @@ class EvcsAgentModelCalculationSpec
       )
       scheduler.expectMsg(CompletionMessage(4L))
 
-      /* Ask for public evcs count again */
+      /* Ask for public evcs lot count again with a later tick */
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
-          3600L,
-          EvFreeLotsRequest
-        )
-      )
-      scheduler.send(
-        evcsAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(3600L),
-          5L,
-          evcsAgent
-        )
+        EvFreeLotsRequest(3600L)
       )
 
       // this time, only one is still free
@@ -904,7 +883,8 @@ class EvcsAgentModelCalculationSpec
           1
         )
       )
-      scheduler.expectMsg(CompletionMessage(5L))
+
+      scheduler.expectNoMessage()
     }
 
     val evcsAgent = TestFSMRef(
