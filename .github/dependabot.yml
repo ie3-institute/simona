@@ -15,4 +15,10 @@ updates:
   ignore:
     - dependency-name: org.spockframework:spock-core
       versions:
-        - 2.1-groovy-3.0-+
+        - 2.1-groovy-3.0-SNAPSHOT
+    - dependency-name: org.scalatest:scalatest_2.13
+      versions:
+        - 3.3.0-SNAP+
+    - dependency-name: org.scalatestplus:mockito-3-4_2.13
+      versions:
+        - 3.3.0.0-SNAP3
