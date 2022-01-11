@@ -8,4 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Improving code readability in EvcsAgent by moving FreeLotsRequest to separate methods
 
-[Unreleased]: https://github.com/ie3-institute/simona
+### Fixed
+- Respect for voltage angle in DBFS slack voltage exchange protocol
+
+[Unreleased]: https://github.com/ie3-institute/simona/compare/a14a093239f58fca9b2b974712686b33e5e5f939...HEAD
