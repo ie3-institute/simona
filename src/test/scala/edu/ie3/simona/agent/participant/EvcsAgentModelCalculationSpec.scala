@@ -1084,7 +1084,7 @@ class EvcsAgentModelCalculationSpec
             testingTolerance
           )
           q should equalWithTolerance(
-            Quantities.getQuantity(-0.01065446385, MEGAVAR),
+            Quantities.getQuantity(-3.35669e-3, MEGAVAR),
             testingTolerance
           )
       }
