@@ -8,4 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Improving code readability in EvcsAgent by moving FreeLotsRequest to separate methods
 
+### Fixed
+- Let `ParticipantAgent` die after failed registration with secondary services (prevents stuck simulation)
+
 [Unreleased]: https://github.com/ie3-institute/simona
