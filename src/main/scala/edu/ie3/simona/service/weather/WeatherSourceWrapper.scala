@@ -227,7 +227,7 @@ private[weather] final case class WeatherSourceWrapper private (
 }
 
 private[weather] object WeatherSourceWrapper extends LazyLogging {
-  private val DEFAULT_RESOLUTION = 360L
+  private val DEFAULT_RESOLUTION = 3600L
 
   def apply(
       csvSep: String,
@@ -401,7 +401,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       )
   }
   case object WeightSum {
-    val EMPTY_WEIGHT_SUM: WeightSum = WeightSum(0d, 0d, 0d, 0d)
+    val EMPTY_WEIGHT_SUM: WeightSum = WeightSum(1d, 1d, 1d, 1d)
   }
 
 }
