@@ -8,6 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Runner class implementation to run several consecutive experiments
-- -   Run a simulation repeatedly with the same parameters (provide the amount of repetitions with `--repetitions=x` to the jvm)
+- Run a simulation repeatedly with the same parameters (provide the amount of repetitions with `--repetitions=x` to the jvm)
 
 [Unreleased/Snapshot]: https://github.com/ie3-institute/simona/compare/a14a093239f58fca9b2b974712686b33e5e5f939...HEAD
