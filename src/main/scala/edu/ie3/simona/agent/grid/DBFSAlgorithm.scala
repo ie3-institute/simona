@@ -29,6 +29,7 @@ import edu.ie3.simona.agent.state.GridAgentState.{
   HandlePowerFlowCalculations,
   SimulateGrid
 }
+import edu.ie3.simona.event.listener.DBFSListener.DBFSResults
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
 import edu.ie3.simona.ontology.messages.PowerMessage._
@@ -1199,6 +1200,13 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           gridAgentBaseData.sweepValueStores.last._2
         )(
           currentTimestamp
+        )
+      )
+      notifyListener(
+        DBFSResults(
+          gridAgentBaseData.actorName,
+          currentTick,
+          gridAgentBaseData.sweepValueStores
         )
       )
     }
