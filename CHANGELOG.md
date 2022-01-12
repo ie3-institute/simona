@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Config possibility for transformer control groups
+- Models for measurements within the grid structure
 
 ### Changed
 - Improving code readability in EvcsAgent by moving FreeLotsRequest to separate methods

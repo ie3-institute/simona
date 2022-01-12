@@ -165,7 +165,8 @@ class GridAgent(
           .toZonedDateTime(simonaConfig.simona.time.startDateTime),
         TimeUtil.withDefaults.toZonedDateTime(
           simonaConfig.simona.time.endDateTime
-        )
+        ),
+        simonaConfig.simona.control
       )
 
       // we have to wait until the assets are ready
