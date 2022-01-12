@@ -69,7 +69,6 @@ final case class FixedFeedInModel(
     sRated
       .multiply(-1)
       .multiply(cosPhiRated)
-      .multiply(scalingFactor)
       .to(MEGAWATT)
 }
 

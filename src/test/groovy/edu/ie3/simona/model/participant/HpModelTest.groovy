@@ -16,8 +16,8 @@ import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
 import edu.ie3.simona.model.participant.HpModel.HpData
 import edu.ie3.simona.model.participant.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalHouse
+import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtil
-import edu.ie3.util.scala.OperationInterval
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -153,10 +153,14 @@ class HpModelTest extends Specification {
 		when:
 		def thermalHouse = buildThermalHouse(18, 22)
 		def hpModelCaseClass = buildStandardModel(thermalHouse)
+		def startDate = TimeUtil.withDefaults.toZonedDateTime("2021-01-01 00:00:00")
+		def endDate = startDate.plusSeconds(86400L)
 		def hpModelCaseObject = HpModel.apply(
 				hpInput,
-				OperationInterval.apply(0L, 86400L),
+				startDate,
+				endDate,
 				null,
+				1.0,
 				thermalHouse)
 
 		then:

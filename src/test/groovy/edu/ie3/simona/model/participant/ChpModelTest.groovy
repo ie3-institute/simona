@@ -15,8 +15,7 @@ import edu.ie3.datamodel.models.input.system.type.ChpTypeInput
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.simona.model.participant.ChpModel.ChpState
 import edu.ie3.simona.model.thermal.CylindricalThermalStorage
-import edu.ie3.simona.model.thermal.CylindricalThermalStorage$
-import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.TimeUtil
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -214,10 +213,14 @@ class ChpModelTest extends Specification {
 		when:
 		def thermalStorage = buildThermalStorage(storageInput, 90)
 		def chpModelCaseClass = buildChpModel(thermalStorage)
+		def startDate = TimeUtil.withDefaults.toZonedDateTime("2021-01-01 00:00:00")
+		def endDate = startDate.plusSeconds(86400L)
 		def chpModelCaseObject = ChpModel.apply(
 				chpInput,
-				OperationInterval.apply(0L, 86400L),
+				startDate,
+				endDate,
 				null,
+				1.0,
 				thermalStorage)
 
 		then:

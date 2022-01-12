@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Changed
-- Improving code readability in EvcsAgent by moving FreeLotsRequest to separate methods
+- Improving code readability in `EvcsAgent` by moving FreeLotsRequest to separate methods
+- Respect for scaling factor when simulating the system participants
+- Harmonize participant model instantiation
 
-[Unreleased]: https://github.com/ie3-institute/simona
+[Unreleased]: https://github.com/ie3-institute/simona/compare/a14a093239f58fca9b2b974712686b33e5e5f939...HEAD
