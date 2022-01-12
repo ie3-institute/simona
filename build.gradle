@@ -7,26 +7,26 @@ plugins {
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
   id 'pmd' // code check, working on source code
-  id 'com.diffplug.spotless' version '6.0.4'// code format
+  id 'com.diffplug.spotless' version '6.1.2'// code format
   id 'com.github.onslip.gradle-one-jar' version '1.0.6' // pack a self contained jar
-  id "com.github.ben-manes.versions" version '0.39.0'
+  id "com.github.ben-manes.versions" version '0.41.0'
   id "de.undercouch.download" version "4.1.2" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
-  id "com.github.johnrengelman.shadow" version "7.1.0" // fat jar
+  id "com.github.johnrengelman.shadow" version "7.1.2" // fat jar
   id "org.sonarqube" version "3.3" // sonarqube
   id "org.scoverage" version "7.0.0" // scala code coverage scoverage
-  id "com.github.maiflai.scalatest" version "0.31" // run scalatest without specific spec task
+  id "com.github.maiflai.scalatest" version "0.32" // run scalatest without specific spec task
   id 'org.hidetake.ssh' version '2.10.1'
   id 'net.thauvin.erik.gradle.semver' version '1.0.4' // semantic versioning
 }
 
 ext {
   //version (changing these should be considered thoroughly!)
-  javaVersion = JavaVersion.VERSION_1_8
+  javaVersion = JavaVersion.VERSION_17
 
   scalaVersion = '2.13'
-  scalaBinaryVersion = '2.13.5'
-  akkaVersion = '2.6.17'
+  scalaBinaryVersion = '2.13.7'
+  akkaVersion = '2.6.18'
   tscfgVersion = '0.9.996'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
@@ -61,13 +61,13 @@ repositories {
 
 dependencies {
   // ie³ internal repository
-  implementation('com.github.ie3-institute:PowerSystemUtils:1.5.3') {
+  implementation('com.github.ie3-institute:PowerSystemUtils:1.6') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:PowerSystemDataModel:2.1-SNAPSHOT') {
+  implementation('com.github.ie3-institute:PowerSystemDataModel:2.1.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -89,12 +89,12 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.4" // akka scala logging
-  implementation "ch.qos.logback:logback-classic:1.2.7"
+  implementation "ch.qos.logback:logback-classic:1.2.10"
 
   /* testing */
-  testImplementation 'org.spockframework:spock-core:2.0-groovy-3.0'
-  testImplementation 'org.scalatestplus:mockito-3-4_2.13:3.2.9.0'
-  implementation 'org.mockito:mockito-core:4.1.0' // mocking framework
+  testImplementation 'org.spockframework:spock-core:2.1-M2-groovy-3.0'
+  testImplementation 'org.scalatestplus:mockito-3-4_2.13:3.2.10.0'
+  implementation 'org.mockito:mockito-core:4.2.0' // mocking framework
   testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.10"
   testRuntimeClasspath 'com.vladsch.flexmark:flexmark-all:0.62.2'
   testImplementation group: 'org.pegdown', name: 'pegdown', version: '1.6.0'
@@ -108,7 +108,7 @@ dependencies {
   implementation "com.typesafe.akka:akka-actor_${scalaVersion}:${akkaVersion}"
   implementation "com.typesafe.akka:akka-slf4j_${scalaVersion}:${akkaVersion}"
   implementation "com.typesafe.akka:akka-cluster_${scalaVersion}:${akkaVersion}"
-  implementation "com.lightbend.akka:akka-stream-alpakka-csv_${scalaVersion}:1.1.2"
+  implementation "com.lightbend.akka:akka-stream-alpakka-csv_${scalaVersion}:3.0.4"
   implementation "com.typesafe.akka:akka-actor_${scalaVersion}:${akkaVersion}"
   implementation "com.typesafe.akka:akka-cluster-sharding_${scalaVersion}:${akkaVersion}"
   implementation "com.typesafe.akka:akka-cluster-tools_${scalaVersion}:${akkaVersion}"
@@ -118,11 +118,18 @@ dependencies {
   implementation "com.github.carueda:tscfg_2.13:$tscfgVersion"
   implementation "com.github.scopt:scopt_${scalaVersion}:4.0.1" // cmd args parser
 
+  // JTS
+  implementation ('org.locationtech.jts:jts-core:1.18.2'){
+    exclude group: 'junit', module: 'junit'
+  }
+  implementation 'org.locationtech.jts.io:jts-io-common:1.18.2'
+
   /* Scala compiler plugin for static code analysis */
-  implementation "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:1.4.10"
-  scalaCompilerPlugin "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:1.4.8"
+  implementation "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:1.4.11"
+  scalaCompilerPlugin "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:1.4.11"
 
   implementation 'org.apache.commons:commons-math3:3.6.1' // apache commons math3
+  implementation 'org.apache.poi:poi-ooxml:5.1.0' // used for FilenameUtils
   implementation 'javax.measure:unit-api:2.1.3'
   implementation 'tech.units:indriya:2.1.2' // quantities
   implementation 'org.apache.commons:commons-csv:1.9.0'
