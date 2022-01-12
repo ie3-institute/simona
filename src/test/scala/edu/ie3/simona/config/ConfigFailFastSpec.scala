@@ -15,6 +15,7 @@ import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.{Csv, InfluxDb1x}
 import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow.Newtonraphson
 import edu.ie3.simona.config.SimonaConfig.Simona.{Powerflow, Time}
+import edu.ie3.simona.config.SimonaConfig.TransformerControlGroup
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
@@ -69,8 +70,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                   List(10, 30),
                   100
                 ),
-                Duration.of(3600, ChronoUnit.SECONDS),
-                Duration.of(3600, ChronoUnit.SECONDS)
+                resolution = Duration.of(3600, ChronoUnit.SECONDS),
+                sweepTimeout = Duration.of(3600, ChronoUnit.SECONDS)
               )
             )
           }
@@ -109,31 +110,6 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           }.getMessage shouldBe "The provided values for voltLvls and gridIds are empty! " +
             "At least one of these optional parameters has to be provided for a valid refSystem! " +
             "Provided refSystem is: RefSystemConfig(None,100 MVA,0.4 kV,None)."
-
-        }
-
-        "throw an InvalidConfigParametersException when the voltLevel is malformed (e.g. a number)" in {
-          val refSystemConfigAllEmpty =
-            ConfigFactory.parseString("""simona.gridConfig.refSystems = [
-                                        |  {
-                                        |   sNom="100 MVA",
-                                        |   vNom="0.4 kV",
-                                        |   voltLvls = ["1"]
-                                        |   }
-                                        |]""".stripMargin)
-          val faultyConfig =
-            refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
-          val faultySimonaConfig = SimonaConfig(faultyConfig)
-
-          // get the private method for validation
-          val checkRefSystem =
-            PrivateMethod[Unit](Symbol("checkRefSystem"))
-
-          intercept[InvalidConfigParameterException] {
-            faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
-              ConfigFailFast invokePrivate checkRefSystem(refSystem)
-            )
-          }.getMessage shouldBe "The definition string for voltLvl '1' does not comply with the definition {<id>, <rated voltage>}!"
 
         }
 
@@ -176,7 +152,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                                         |  {
                                         |   sNom="100",
                                         |   vNom="0.4 kV",
-                                        |   voltLvls = ["{MS, 10 kV}","{HS, 110 kV}"]
+                                        |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
                                         |   }
                                         |]""".stripMargin
             )
@@ -192,7 +168,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
               ConfigFailFast invokePrivate checkRefSystem(refSystem)
             )
-          }.getMessage shouldBe "Invalid value for sNom from provided refSystem RefSystemConfig(None,100,0.4 kV,Some(List({MS, 10 kV}, {HS, 110 kV}))). Is a valid unit provided?"
+          }.getMessage shouldBe "Invalid value for sNom from provided refSystem RefSystemConfig(None,100,0.4 kV,Some(List(VoltLvlConfig(MS,10 kV), VoltLvlConfig(HS,110 kV)))). Is a valid unit provided?"
 
         }
 
@@ -204,7 +180,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                                         |  {
                                         |   sNom="100 MVA",
                                         |   vNom="0.4",
-                                        |   voltLvls = ["{MS, 10 kV}","{HS, 110 kV}"]
+                                        |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
                                         |   }
                                         |]""".stripMargin
             )
@@ -220,7 +196,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
               ConfigFailFast invokePrivate checkRefSystem(refSystem)
             )
-          }.getMessage shouldBe "Invalid value for vNom from provided refSystem RefSystemConfig(None,100 MVA,0.4,Some(List({MS, 10 kV}, {HS, 110 kV}))). Is a valid unit provided?"
+          }.getMessage shouldBe "Invalid value for vNom from provided refSystem RefSystemConfig(None,100 MVA,0.4,Some(List(VoltLvlConfig(MS,10 kV), VoltLvlConfig(HS,110 kV)))). Is a valid unit provided?"
 
         }
 
@@ -231,13 +207,13 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 |  {
                 |   sNom="100 MVA",
                 |   vNom="0.4 kV",
-                |   voltLvls = ["{MS, 10 kV}","{HS, 110 kV}"]
+                |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
                 |   gridIds = ["1","1-10","10...100"]
                 |   },
                 |   {
                 |   sNom="1000 MVA",
                 |   vNom="10kV",
-                |   voltLvls = ["{HS, 110 kV}","{HoeS, 380 kV}"]
+                |   voltLvls = [{id = "HS", vNom = "110 kV"},{id = "HoeS", vNom = "380 kV"}]
                 |   gridIds = ["1-3","3...6","10...100"]
                 |   }
                 |]""".stripMargin
@@ -877,7 +853,76 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             )
           }.getMessage shouldBe "The weather data scheme 'this won't work' is not supported. Supported schemes:\n\ticon\n\tpsdm"
         }
+      }
 
+      "checking the transformer control groups" should {
+        val checkTransformerControl =
+          PrivateMethod[Unit](Symbol("checkTransformerControl"))
+
+        "throw an exception, if the measurements are empty" in {
+          val dut = TransformerControlGroup(
+            List.empty[String],
+            List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
+            1.02,
+            0.98
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe "A transformer control group cannot have no measurements assigned."
+        }
+
+        "throw an exception, if the transformers are empty" in {
+          val dut = TransformerControlGroup(
+            List("6888c53a-7629-4563-ac8e-840f80b03106"),
+            List.empty[String],
+            1.02,
+            0.98
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe "A transformer control group cannot have no transformers assigned."
+        }
+
+        "throw an exception, if vMax is smaller than vMin" in {
+          val dut = TransformerControlGroup(
+            List("6888c53a-7629-4563-ac8e-840f80b03106"),
+            List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
+            0.98,
+            1.02
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe "The minimum permissible voltage magnitude of a transformer control group must be smaller than the maximum permissible voltage magnitude."
+        }
+
+        "throw an exception, if vMin is negative" in {
+          val dut = TransformerControlGroup(
+            List("6888c53a-7629-4563-ac8e-840f80b03106"),
+            List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
+            1.02,
+            -0.98
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe "The minimum permissible voltage magnitude of a transformer control group has to be positive."
+        }
+
+        "throw an exception, if vMax is negative" in {
+          val dut = TransformerControlGroup(
+            List("6888c53a-7629-4563-ac8e-840f80b03106"),
+            List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
+            -1.02,
+            0.98
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe "The maximum permissible voltage magnitude of a transformer control group has to be positive."
+        }
       }
     }
 
