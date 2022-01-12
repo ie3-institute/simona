@@ -31,7 +31,8 @@ object ArgsParser extends LazyLogging {
       nodePort: Option[String] = None,
       seedAddress: Option[String] = None,
       useLocalWorker: Option[Boolean] = None,
-      tArgs: Map[String, String] = Map.empty
+      tArgs: Map[String, String] = Map.empty,
+      repetitions: Int = 1
   ) {
     val useCluster: Boolean = clusterType.isDefined
   }
@@ -107,6 +108,13 @@ object ArgsParser extends LazyLogging {
             "If cluster is NOT enabled this defaults to true and cannot be false. " +
             "If cluster is specified then this defaults to false and must be explicitly set to true. " +
             "NOTE: For cluster, this will ONLY be checked if cluster-type=master"
+        )
+      opt[Int](name = "repetitions")
+        .action((value, args) => args.copy(repetitions = value))
+        .text("Amount of runs to perform")
+        .validate(value =>
+          if (value > 0) success
+          else failure("The amount of runs needs to be at least 1.")
         )
 
       checkConfig(args =>
