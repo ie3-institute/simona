@@ -6,4 +6,4 @@
 
 package edu.ie3.simona.ontology
 
-case object StopMessage
+case class StopMessage(simulationSuccessful: Boolean)

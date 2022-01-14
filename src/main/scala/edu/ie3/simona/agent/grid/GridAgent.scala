@@ -244,7 +244,7 @@ class GridAgent(
         )
       )
 
-    case Event(StopMessage, data: GridAgentBaseData) =>
+    case Event(StopMessage(_), data: GridAgentBaseData) =>
       // shutdown children
       data.gridEnv.nodeToAssetAgents.foreach { case (_, actors) =>
         actors.foreach(context.stop)

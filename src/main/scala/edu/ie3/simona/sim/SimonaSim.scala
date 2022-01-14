@@ -181,19 +181,21 @@ class SimonaSim(simonaSetup: SimonaSetup)
       scheduler ! StartScheduleMessage(pauseScheduleAtTick)
 
     case msg @ (SimulationSuccessfulMessage | SimulationFailureMessage) =>
-      msg match {
+      val simulationSuccessful = msg match {
         case SimulationSuccessfulMessage =>
           logger.info(
             "Simulation terminated successfully. Stopping children ..."
           )
+          true
         case SimulationFailureMessage =>
           logger.error(
             "An error occurred during the simulation. See stacktrace for details."
           )
+          false
       }
 
       // stop all children
-      stopAllChildrenGracefully()
+      stopAllChildrenGracefully(simulationSuccessful)
 
       // inform initSimMessage Sender
       data.initSimSender ! msg
@@ -213,7 +215,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
       )
 
       // stop all children
-      stopAllChildrenGracefully()
+      stopAllChildrenGracefully(simulationSuccessful = false)
 
       // inform initSimMessage Sender
       data.initSimSender ! SimulationFailureMessage
@@ -235,12 +237,13 @@ class SimonaSim(simonaSetup: SimonaSetup)
   }
 
   def stopAllChildrenGracefully(
+      simulationSuccessful: Boolean,
       listenerDelay: FiniteDuration = 500.millis
   ): Unit = {
     gridAgents.foreach { case (gridAgentRef, _) =>
       context.unwatch(gridAgentRef)
     }
-    gridAgents.foreach(_._1 ! StopMessage)
+    gridAgents.foreach(_._1 ! StopMessage(simulationSuccessful))
 
     context.unwatch(scheduler)
     context.stop(scheduler)
@@ -252,7 +255,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
       context.unwatch(ref)
     }
     extSimulationData.extSimAdapters.foreach { case (ref, _) =>
-      ref ! StopMessage
+      ref ! StopMessage(simulationSuccessful)
     }
     extSimulationData.extDataServices.foreach { case (ref, _) =>
       context.stop(ref)
