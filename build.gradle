@@ -125,7 +125,7 @@ dependencies {
   implementation 'org.locationtech.jts.io:jts-io-common:1.18.2'
 
   /* Scala compiler plugin for static code analysis */
-  implementation "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:1.4.11"
+  implementation "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:1.4.12"
   scalaCompilerPlugin "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:1.4.11"
 
   implementation 'org.apache.commons:commons-math3:3.6.1' // apache commons math3
