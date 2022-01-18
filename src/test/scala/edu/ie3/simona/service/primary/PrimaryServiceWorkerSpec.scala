@@ -42,9 +42,9 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import tech.units.indriya.quantity.Quantities
 
+import java.nio.file.Paths
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.reflect.io.File
 import scala.util.{Failure, Success}
 
 class PrimaryServiceWorkerSpec
@@ -57,14 +57,15 @@ class PrimaryServiceWorkerSpec
           """.stripMargin)
       )
     ) {
-  val baseDirectoryPath: String = "^file:".r.replaceFirstIn(
-    this.getClass
-      .getResource(
-        File.separator + "it-data" + File.separator + "primaryService"
-      )
-      .toString,
-    ""
-  )
+  val baseDirectoryPath: String = Paths
+    .get(
+      this.getClass
+        .getResource(
+          "/it-data/primaryService"
+        )
+        .toURI
+    )
+    .toString
 
   private val simulationStart =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")

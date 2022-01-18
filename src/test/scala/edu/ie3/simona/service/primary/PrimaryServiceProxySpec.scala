@@ -54,10 +54,10 @@ import edu.ie3.util.TimeUtil
 import org.scalatest.PartialFunctionValues
 import org.scalatest.prop.TableDrivenPropertyChecks
 
+import java.nio.file.Paths
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 import java.util.{Objects, UUID}
-import scala.reflect.io.File
 import scala.util.{Failure, Success, Try}
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -74,9 +74,15 @@ class PrimaryServiceProxySpec
     )
     with TableDrivenPropertyChecks
     with PartialFunctionValues {
-  val baseDirectoryPath: String = this.getClass
-    .getResource(File.separator + "it-data" + File.separator + "primaryService")
-    .getPath
+  val baseDirectoryPath: String = Paths
+    .get(
+      this.getClass
+        .getResource(
+          "/it-data/primaryService"
+        )
+        .toURI
+    )
+    .toString
   val csvSep = ";"
   val fileNamingStrategy = new FileNamingStrategy()
   val validPrimaryConfig: PrimaryConfig =
