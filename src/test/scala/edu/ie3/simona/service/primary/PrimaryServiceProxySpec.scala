@@ -210,7 +210,7 @@ class PrimaryServiceProxySpec
       val exception = intercept[InvalidConfigParameterException](
         PrimaryServiceProxy.checkConfig(maliciousConfig)
       )
-      exception.getMessage shouldBe "Invalid configuration 'SqlParams(,,,,,,)' for a time series source.\nAvailable types:\n\tcsv"
+      exception.getMessage shouldBe "Invalid configuration 'SqlParams(,,,,,)' for a time series source.\nAvailable types:\n\tcsv"
     }
 
     "fails on invalid time pattern" in {
@@ -287,7 +287,7 @@ class PrimaryServiceProxySpec
           fail("Building state data with missing config should fail")
         case Failure(exception) =>
           exception.getClass shouldBe classOf[IllegalArgumentException]
-          exception.getMessage shouldBe "Unsupported config for mapping source: 'SqlParams(,,,,,,)'"
+          exception.getMessage shouldBe "Unsupported config for mapping source: 'SqlParams(,,,,,)'"
       }
     }
 
