@@ -127,7 +127,7 @@ class PrimaryServiceProxySpec
     mappingSource
   )
 
-  val scheduler = TestProbe("scheduler")
+  private val scheduler = TestProbe("scheduler")
 
   "Testing a primary service config" should {
     "lead to complaining about too much source definitions" in {
@@ -204,7 +204,7 @@ class PrimaryServiceProxySpec
         None,
         None,
         None,
-        Some(SqlParams("", "", "", "", "", "", ""))
+        Some(SqlParams("", "", "", "", "", ""))
       )
 
       val exception = intercept[InvalidConfigParameterException](
@@ -276,7 +276,7 @@ class PrimaryServiceProxySpec
         None,
         None,
         None,
-        Some(SqlParams("", "", "", "", "", "", ""))
+        Some(SqlParams("", "", "", "", "", ""))
       )
 
       proxy invokePrivate prepareStateData(
