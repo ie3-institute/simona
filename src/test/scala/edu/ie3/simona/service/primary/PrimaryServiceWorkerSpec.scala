@@ -57,6 +57,7 @@ class PrimaryServiceWorkerSpec
           """.stripMargin)
       )
     ) {
+  // this works both on Windows and Unix systems
   val baseDirectoryPath: String = Paths
     .get(
       this.getClass
