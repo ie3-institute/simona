@@ -107,7 +107,7 @@ final case class EvcsModel(
       data: EvcsRelevantData
   ): Set[EvcsChargingScheduleEntry] = {
 
-    val chargingStrategy = "marketOrientedScheduling"
+    val chargingStrategy = "maxPower"
 
     this.locationType match {
 
