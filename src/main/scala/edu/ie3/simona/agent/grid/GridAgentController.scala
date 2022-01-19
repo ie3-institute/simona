@@ -533,7 +533,8 @@ class GridAgentController(
         EvcsAgent.props(
           environmentRefs.scheduler,
           listener
-        )
+        ),
+        s"EvcsAgent_${evcsInput.getUuid}"
       ),
       ParticipantInitializeStateData(
         evcsInput,
