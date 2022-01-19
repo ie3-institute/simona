@@ -11,7 +11,7 @@
 ////////////////////////////////
 
 /* project configuration */
-String javaVersionId = 'jdk-8' // id that matches the java tool with the java version that should be used set as jenkins property
+String javaVersionId = 'jdk-17' // id that matches the java tool with the java version that should be used set as jenkins property
 
 /* git configuration */
 String projectName = 'simona' // name of the repository, is case insensitive
@@ -114,8 +114,7 @@ node {
 
         gradle('--refresh-dependencies clean spotlessCheck pmdMain pmdTest reportScoverage checkScoverage', projectName)
 
-        // due to an issue with openjdk-8 we use openjdk-11 for javadocs generation
-        sh(script: """set +x && cd $projectName""" + ''' set +x; ./gradlew javadoc -Dorg.gradle.java.home=/opt/java/openjdk''', returnStdout: true)
+        sh(script: """set +x && cd $projectName""" + ''' set +x; ./gradlew javadoc''', returnStdout: true)
       }
 
       // sonarqube analysis
@@ -158,7 +157,7 @@ node {
              */
             sh(
                 script: """set +x && cd $projectName""" +
-                ''' set +x; ./gradlew javadoc -Dorg.gradle.java.home=/opt/java/openjdk''',
+                ''' set +x; ./gradlew javadoc''',
                 returnStdout: true
                 )
 
@@ -388,7 +387,7 @@ def deployJavaDocs(String projectName, String sshCredentialsId, String gitChecko
       "git config user.name 'Johannes Hiry' && " +
       "git fetch --depth=1 origin api-docs && " +
       "git checkout api-docs && " +
-      "cd .. && ./gradlew javadoc -Dorg.gradle.java.home=/opt/java/openjdk && " +
+      "cd .. && ./gradlew javadoc && " +
       "cp -R build/docs/javadoc/* tmp-api-docs && " +
       "cd tmp-api-docs &&" +
       "git add --all && git commit -m 'updated api-docs' && git push origin api-docs:api-docs" +

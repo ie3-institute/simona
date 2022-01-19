@@ -10,4 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Consolidate request replies for different sub grid gates in one message
   - Await and send responses for distinct pairs of sender reference and target node
 
+### Changed
+- Improving code readability in EvcsAgent by moving FreeLotsRequest to separate methods
+
 [Unreleased]: https://github.com/ie3-institute/simona

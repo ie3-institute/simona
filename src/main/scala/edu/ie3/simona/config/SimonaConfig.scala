@@ -67,7 +67,7 @@ object SimonaConfig {
       val calculateMissingReactivePowerWithModel: scala.Boolean,
       val scaling: scala.Double,
       val uuids: scala.List[java.lang.String]
-  )
+  ) extends java.io.Serializable
 
   final case class EvcsRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: scala.Boolean,
@@ -208,12 +208,10 @@ object SimonaConfig {
         nodes = c.hasPathOrNull("nodes") && c.getBoolean("nodes"),
         notifier = $_reqStr(parentPath, c, "notifier", $tsCfgValidator),
         switches = c.hasPathOrNull("switches") && c.getBoolean("switches"),
-        transformers2w = c.hasPathOrNull("transformers2w") && c.getBoolean(
-          "transformers2w"
-        ),
-        transformers3w = c.hasPathOrNull("transformers3w") && c.getBoolean(
-          "transformers3w"
-        )
+        transformers2w =
+          c.hasPathOrNull("transformers2w") && c.getBoolean("transformers2w"),
+        transformers3w =
+          c.hasPathOrNull("transformers3w") && c.getBoolean("transformers3w")
       )
     }
     private def $_reqStr(
@@ -975,12 +973,11 @@ object SimonaConfig {
             csvParams =
               if (c.hasPathOrNull("csvParams"))
                 scala.Some(
-                  SimonaConfig.Simona.Input.Primary
-                    .CsvParams(
-                      c.getConfig("csvParams"),
-                      parentPath + "csvParams.",
-                      $tsCfgValidator
-                    )
+                  SimonaConfig.Simona.Input.Primary.CsvParams(
+                    c.getConfig("csvParams"),
+                    parentPath + "csvParams.",
+                    $tsCfgValidator
+                  )
                 )
               else None,
             influxDb1xParams =
@@ -996,12 +993,11 @@ object SimonaConfig {
             sqlParams =
               if (c.hasPathOrNull("sqlParams"))
                 scala.Some(
-                  SimonaConfig.Simona.Input.Primary
-                    .SqlParams(
-                      c.getConfig("sqlParams"),
-                      parentPath + "sqlParams.",
-                      $tsCfgValidator
-                    )
+                  SimonaConfig.Simona.Input.Primary.SqlParams(
+                    c.getConfig("sqlParams"),
+                    parentPath + "sqlParams.",
+                    $tsCfgValidator
+                  )
                 )
               else None
           )
@@ -1372,7 +1368,8 @@ object SimonaConfig {
                   )
                 else None,
               resolution =
-                if (c.hasPathOrNull("resolution")) Some(c.getLong("resolution"))
+                if (c.hasPathOrNull("resolution"))
+                  Some(c.getLong("resolution").longValue())
                 else None,
               sampleParams =
                 if (c.hasPathOrNull("sampleParams"))
@@ -1524,9 +1521,7 @@ object SimonaConfig {
           SimonaConfig.Simona.Output.Base(
             addTimestampToOutputDir = !c.hasPathOrNull(
               "addTimestampToOutputDir"
-            ) || c.getBoolean(
-              "addTimestampToOutputDir"
-            ),
+            ) || c.getBoolean("addTimestampToOutputDir"),
             dir = $_reqStr(parentPath, c, "dir", $tsCfgValidator)
           )
         }
@@ -1682,12 +1677,11 @@ object SimonaConfig {
             csv =
               if (c.hasPathOrNull("csv"))
                 scala.Some(
-                  SimonaConfig.Simona.Output.Sink
-                    .Csv(
-                      c.getConfig("csv"),
-                      parentPath + "csv.",
-                      $tsCfgValidator
-                    )
+                  SimonaConfig.Simona.Output.Sink.Csv(
+                    c.getConfig("csv"),
+                    parentPath + "csv.",
+                    $tsCfgValidator
+                  )
                 )
               else None,
             influxDb1x =
@@ -1741,8 +1735,8 @@ object SimonaConfig {
     final case class Powerflow(
         maxSweepPowerDeviation: scala.Double,
         newtonraphson: SimonaConfig.Simona.Powerflow.Newtonraphson,
-        sweepTimeout: java.time.Duration,
-        resolution: java.time.Duration
+        resolution: java.time.Duration,
+        sweepTimeout: java.time.Duration
     )
     object Powerflow {
       final case class Newtonraphson(
@@ -2331,7 +2325,7 @@ object SimonaConfig {
     java.lang.String.valueOf(cv.unwrapped())
   }
 
-  private final class $TsCfgValidator {
+  final class $TsCfgValidator {
     private val badPaths =
       scala.collection.mutable.ArrayBuffer[java.lang.String]()
 

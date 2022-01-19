@@ -50,7 +50,13 @@ object EvMessage {
   ) extends EvMessage
       with ProvisionMessage[EvData]
 
-  final case object EvFreeLotsRequest extends EvData
+  /** Requests number of free lots from evcs
+    * @param tick
+    *   The latest tick that the data is requested for
+    */
+  final case class EvFreeLotsRequest(
+      tick: Long
+  )
 
   final case object CurrentPriceRequest extends EvData
 

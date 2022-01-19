@@ -49,7 +49,6 @@ import edu.ie3.simona.ontology.messages.services.EvMessage.{
   CurrentPriceRequest,
   CurrentPriceResponse,
   DepartedEvsResponse,
-  EvFreeLotsRequest,
   EvMovementData,
   FreeLotsResponse
 }
@@ -275,12 +274,6 @@ protected trait EvcsAgentFundamentals
                 modelBaseStateData,
                 evcsData
               )
-            case (_, Some(EvFreeLotsRequest)) =>
-              handleFreeLotsRequestAndGoIdle(
-                currentTick,
-                scheduler,
-                modelBaseStateData
-              )
             case (_, Some(CurrentPriceRequest)) =>
               handleCurrentPriceRequestAndGoIdle(
                 currentTick,
@@ -302,26 +295,20 @@ protected trait EvcsAgentFundamentals
   }
 
   /** Returns the number of free parking lots based on the last available state
-    * data. Sends completion message to scheduler without scheduling new
-    * activations.
-    * @param currentTick
-    *   The current tick that has been triggered
-    * @param scheduler
-    *   The scheduler ref
+    * data.
+    * @param tick
+    *   The tick that free lots have been requested for
     * @param modelBaseStateData
     *   The state data
-    * @return
-    *   [[Idle]] state
     */
-  private def handleFreeLotsRequestAndGoIdle(
-      currentTick: Long,
-      scheduler: ActorRef,
+  protected def handleFreeLotsRequest(
+      tick: Long,
       modelBaseStateData: ParticipantModelBaseStateData[
         _ <: ApparentPower,
         _,
         _
       ]
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
+  ): Unit = {
     val evServiceRef = getService[ActorEvMovementsService](
       modelBaseStateData.services
     )
@@ -334,11 +321,6 @@ protected trait EvcsAgentFundamentals
     evServiceRef ! FreeLotsResponse(
       evcsModel.uuid,
       evcsModel.chargingPoints - lastEvs.size
-    )
-
-    goToIdleReplyCompletionAndScheduleTriggerForNextAction(
-      modelBaseStateData,
-      scheduler
     )
   }
 
