@@ -19,13 +19,13 @@ import edu.ie3.simona.agent.{EnvironmentRefs, SimonaAgent}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.GridModel
-import edu.ie3.simona.ontology.StopMessage
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestGridPowerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
+import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
   InitializeGridAgentTrigger,

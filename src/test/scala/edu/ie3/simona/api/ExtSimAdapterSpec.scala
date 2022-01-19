@@ -18,12 +18,12 @@ import edu.ie3.simona.api.simulation.ontology.{
   ActivityStartTrigger => ExtActivityStartTrigger,
   CompletionMessage => ExtCompletionMessage
 }
-import edu.ie3.simona.ontology.StopMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
+import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
   InitializeExtSimAdapterTrigger

@@ -4,6 +4,6 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.ontology
+package edu.ie3.simona.ontology.messages
 
 final case class StopMessage(simulationSuccessful: Boolean)

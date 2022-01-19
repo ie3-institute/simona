@@ -20,8 +20,8 @@ import akka.pattern.after
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.ontology.StopMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
+import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeGridAgentTrigger,
   InitializeServiceTrigger
@@ -242,8 +242,8 @@ class SimonaSim(simonaSetup: SimonaSetup)
   ): Unit = {
     gridAgents.foreach { case (gridAgentRef, _) =>
       context.unwatch(gridAgentRef)
+      gridAgentRef ! StopMessage(simulationSuccessful)
     }
-    gridAgents.foreach(_._1 ! StopMessage(simulationSuccessful))
 
     context.unwatch(scheduler)
     context.stop(scheduler)
@@ -251,13 +251,12 @@ class SimonaSim(simonaSetup: SimonaSetup)
     context.unwatch(weatherService)
     context.stop(weatherService)
 
-    extSimulationData.allActorsAndInitTriggers.foreach { case (ref, _) =>
-      context.unwatch(ref)
-    }
     extSimulationData.extSimAdapters.foreach { case (ref, _) =>
+      context.unwatch(ref)
       ref ! StopMessage(simulationSuccessful)
     }
     extSimulationData.extDataServices.foreach { case (ref, _) =>
+      context.unwatch(ref)
       context.stop(ref)
     }
 
