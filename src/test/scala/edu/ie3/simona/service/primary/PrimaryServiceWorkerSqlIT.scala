@@ -205,6 +205,8 @@ class PrimaryServiceWorkerSqlIT
             )
           )
 
+          scheduler.expectMsgType[CompletionMessage]
+
           val dataMsg = participant.expectMsgType[ProvidePrimaryDataMessage]
           dataMsg.tick shouldBe firstTick
           dataMsg.data.getClass shouldBe dataValueClass

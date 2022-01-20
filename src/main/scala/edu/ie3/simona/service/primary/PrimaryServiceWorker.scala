@@ -377,10 +377,10 @@ case object PrimaryServiceWorker {
   ) extends InitPrimaryServiceStateData
 
   /** Specific implementation of [[InitPrimaryServiceStateData]], if the source
-    * to use utilizes csv files.
+    * to use utilizes an SQL database.
     *
-    * TODO
-    *
+    * @param sqlParams
+    *   Parameters regarding SQL connection and table selection
     * @param timeSeriesUuid
     *   Unique identifier of the time series to read
     * @param simulationStart
