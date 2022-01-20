@@ -29,6 +29,8 @@ ext {
   akkaVersion = '2.6.18'
   tscfgVersion = '0.9.996'
 
+  testContainerVersion = '0.39.12'
+
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
 }
 
@@ -99,6 +101,10 @@ dependencies {
   testRuntimeClasspath 'com.vladsch.flexmark:flexmark-all:0.62.2'
   testImplementation group: 'org.pegdown', name: 'pegdown', version: '1.6.0'
   testImplementation "com.typesafe.akka:akka-testkit_${scalaVersion}:${akkaVersion}" // akka testkit
+
+  // testcontainers
+  testImplementation "com.dimafeng:testcontainers-scala-scalatest_${scalaVersion}:${testContainerVersion}"
+  testImplementation "com.dimafeng:testcontainers-scala-postgresql_${scalaVersion}:${testContainerVersion}"
 
   /* --- Scala libs --- */
   /* CORE Scala */

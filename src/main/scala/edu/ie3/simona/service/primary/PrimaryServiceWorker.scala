@@ -65,7 +65,7 @@ final case class PrimaryServiceWorker[V <: Value](
         Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
     )
   ] = {
-    val trySource = initServiceData match {
+    (initServiceData match {
       case PrimaryServiceWorker.CsvInitPrimaryServiceStateData(
             timeSeriesUuid,
             simulationStart,
@@ -95,7 +95,7 @@ final case class PrimaryServiceWorker[V <: Value](
             simulationStart: ZonedDateTime
           ) =>
         Try {
-          val valueFactory =
+          val factory =
             new TimeBasedSimpleValueFactory(valueClass, sqlParams.timePattern)
 
           val sqlConnector = new SqlConnector(
@@ -110,7 +110,7 @@ final case class PrimaryServiceWorker[V <: Value](
             sqlParams.tableName,
             timeSeriesUuid,
             valueClass,
-            valueFactory
+            factory
           )
 
           (source, simulationStart)
@@ -122,8 +122,7 @@ final case class PrimaryServiceWorker[V <: Value](
             s"Provided init data '${unsupported.getClass.getSimpleName}' for primary service are invalid!"
           )
         )
-    }
-    trySource.map { case (source, simulationStart) =>
+    }).map { case (source, simulationStart) =>
       val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(
         source.getTimeSeries.getEntries.asScala
           .filter { timeBasedValue =>
