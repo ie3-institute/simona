@@ -314,7 +314,7 @@ protected trait EvcsAgentFundamentals
     )
 
     val (_, lastEvs, _, _) =
-      getLastCalcRelevantData(currentTick, modelBaseStateData)
+      getLastCalcRelevantData(tick, modelBaseStateData)
 
     val evcsModel = getEvcsModel(modelBaseStateData)
 
