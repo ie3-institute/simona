@@ -1,10 +1,46 @@
 @startuml
-SimScheduler -> ExtSimAdapter: <font color=red>!</font> <font color=green>ActivityStartTrigger</font>
+
+!theme plain
+
+==Init==
+SimScheduler -> ExtSimAdapter: <font color=red>!</font> <font color=green>ActivityStartTrigger(-1L)</font>
 activate ExtSimAdapter
 
 ExtSimAdapter -> ExtSimulation: queue(ActivityStartTrigger)
 deactivate ExtSimAdapter
 activate ExtSimulation
+note right: Initialize external\nmobility simulation
+
+ExtSimulation -> ExtSimAdapter: <font color=red>!</font> CompletionMessage(newTriggers)
+deactivate ExtSimulation
+activate ExtSimAdapter
+
+ExtSimAdapter -> SimScheduler: <font color=red>!</font> <font color=green>CompletionMessage(newTriggers)</font>
+deactivate ExtSimAdapter
+
+==Sim==
+SimScheduler -> ExtSimAdapter: <font color=red>!</font> <font color=green>ActivityStartTrigger(tick)</font>
+activate ExtSimAdapter
+
+ExtSimAdapter -> ExtSimulation: queue(ActivityStartTrigger)
+deactivate ExtSimAdapter
+activate ExtSimulation
+
+ExtSimulation -> ExtEvDataService: <font color=red>!</font> RequestEvcsFreeLots
+activate ExtEvDataService
+ExtEvDataService -> EvcsAgent1: <font color=red>!</font> EvFreeLotsRequest(tick)
+activate EvcsAgent1
+ExtEvDataService -> EvcsAgent2: <font color=red>!</font> EvFreeLotsRequest(tick)
+activate EvcsAgent2
+EvcsAgent2 -> ExtEvDataService: <font color=red>!</font> FreeLotsResponse(_, _)
+deactivate EvcsAgent2
+EvcsAgent1 -> ExtEvDataService: <font color=red>!</font> FreeLotsResponse(_, _)
+deactivate EvcsAgent1
+ExtEvDataService -> ExtSimulation: <font color=red>!</font> ProvideEvcsFreeLots(_)
+deactivate ExtEvDataService
+
+'TODO Refactor from here
+
 ExtSimulation -> ExtEvDataService: <font color=red>!</font> EvMovementsMessage
 ExtSimulation -> ExtSimAdapter: <font color=red>!</font> ScheduleDataServiceMessage
 deactivate ExtSimulation
