@@ -124,6 +124,7 @@ final case class PrimaryServiceWorker[V <: Value](
         )
     }).map { case (source, simulationStart) =>
       val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(
+        // Note: The whole data set is used here, which might be inefficient depending on the source implementation.
         source.getTimeSeries.getEntries.asScala
           .filter { timeBasedValue =>
             val dateTime = timeBasedValue.getTime

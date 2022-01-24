@@ -92,6 +92,8 @@ class PrimaryServiceWorkerSqlIT
     container.close()
   }
 
+  // asInstanceOf throws ClassCastException if cast fails, thus this is safe here
+  @SuppressWarnings(Array("AsInstanceOf"))
   private def getServiceActor[T <: Value](
       scheduler: ActorRef
   )(implicit tag: ClassTag[T]): PrimaryServiceWorker[T] = {
