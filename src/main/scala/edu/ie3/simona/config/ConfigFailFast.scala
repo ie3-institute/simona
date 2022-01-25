@@ -395,15 +395,6 @@ case object ConfigFailFast extends LazyLogging {
           s"Provided refSystem is: $refSystem."
       )
 
-    voltLvls.foreach { voltLvl =>
-      {
-        if (!ConfigConventions.voltLvlRegex.matches(voltLvl))
-          throw new InvalidConfigParameterException(
-            s"The definition string for voltLvl '$voltLvl' does not comply with the definition {<id>, <rated voltage>}!"
-          )
-      }
-    }
-
     gridIds.foreach {
       case gridIdRange @ ConfigConventions.gridIdDotRange(from, to) =>
         rangeCheck(from.toInt, to.toInt, gridIdRange)
