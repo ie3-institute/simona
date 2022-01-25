@@ -61,6 +61,12 @@ repositories {
 }
 
 dependencies {
+  constraints {
+    implementation( 'junit:junit:4.13.2+' ){
+      because "CVE-2020-15250 - Temporary folder vulnerability - https://github.com/advisories/GHSA-269g-pwp5-87pp"
+    }
+  }
+
   // ie³ internal repository
   implementation('com.github.ie3-institute:PowerSystemUtils:1.6') {
     exclude group: 'org.apache.logging.log4j'
