@@ -1191,16 +1191,16 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       gridAgentBaseData: GridAgentBaseData,
       currentTimestamp: ZonedDateTime
   ): Unit = {
-    // otherwise .last will throw an exception
-    if (gridAgentBaseData.sweepValueStores.nonEmpty) {
-      notifyListener(
-        this.createResultModels(
-          gridAgentBaseData.gridEnv.gridModel,
-          gridAgentBaseData.sweepValueStores.last._2
-        )(
-          currentTimestamp
+    gridAgentBaseData.sweepValueStores.lastOption match {
+      case Some((_, valueStore)) =>
+        notifyListener(
+          this.createResultModels(
+            gridAgentBaseData.gridEnv.gridModel,
+            valueStore
+          )(
+            currentTimestamp
+          )
         )
-      )
     }
   }
 

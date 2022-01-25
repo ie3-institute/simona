@@ -8,7 +8,6 @@ package edu.ie3.simona.model.participant.load.profile
 
 import java.io.{InputStreamReader, Reader}
 import java.time.{Duration, ZonedDateTime}
-import java.time.temporal.ChronoUnit
 import java.util
 
 import breeze.numerics.round
@@ -164,7 +163,12 @@ object LoadProfileStore extends LazyLogging {
   def initializeTypeDayValues(
       reader: Reader = getDefaultReader
   ): Map[LoadProfileKey, TypeDayProfile] = {
-    val parser = CSVFormat.DEFAULT.withFirstRecordAsHeader.parse(reader)
+    val parser = CSVFormat.Builder
+      .create()
+      .setHeader()
+      .setSkipHeaderRecord(true)
+      .build()
+      .parse(reader)
     // records list is an ArrayList
     val records = parser.getRecords
 
@@ -215,7 +219,13 @@ object LoadProfileStore extends LazyLogging {
                   .map(typeDay => dynamization(typeDay.getMaxValue, 366))
                   .getOrElse(0d)
               })
-              .max
+              .maxOption
+              .getOrElse(
+                // this should not happen - there's more than one DayType
+                throw new RuntimeException(
+                  "Maximum load not found."
+                )
+              )
           case _ =>
             (for (season <- Season.values; dayType <- DayType.values) yield {
               val key = profile.LoadProfileKey(loadProfile, season, dayType)
@@ -223,7 +233,12 @@ object LoadProfileStore extends LazyLogging {
                 case Some(value) => Option(value.getMaxValue)
                 case None        => None
               }
-            }).flatten.max
+            }).flatten.maxOption.getOrElse(
+              // this should not happen - there's more than one Season and DayType
+              throw new RuntimeException(
+                "Maximum load not found."
+              )
+            )
         }
 
         loadProfile -> maxConsumption
