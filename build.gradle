@@ -28,6 +28,7 @@ ext {
   scalaBinaryVersion = '2.13.7'
   akkaVersion = '2.6.18'
   tscfgVersion = '0.9.997'
+  scapegoatVersion = '1.4.12'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
 }
@@ -125,8 +126,8 @@ dependencies {
   implementation 'org.locationtech.jts.io:jts-io-common:1.18.2'
 
   /* Scala compiler plugin for static code analysis */
-  implementation "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:1.4.12"
-  scalaCompilerPlugin "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:1.4.11"
+  implementation "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:${scapegoatVersion}"
+  scalaCompilerPlugin "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:${scapegoatVersion}"
 
   implementation 'org.apache.commons:commons-math3:3.6.1' // apache commons math3
   implementation 'org.apache.poi:poi-ooxml:5.2.0' // used for FilenameUtils
