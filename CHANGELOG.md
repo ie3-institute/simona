@@ -10,5 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund)
+- Take log file event filters from `logback.xml` when defining the run log appender
 
 [Unreleased]: https://github.com/ie3-institute/simona/compare/a14a093239f58fca9b2b974712686b33e5e5f939...HEAD
