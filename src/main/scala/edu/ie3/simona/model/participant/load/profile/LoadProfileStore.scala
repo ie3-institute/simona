@@ -203,8 +203,8 @@ object LoadProfileStore extends LazyLogging {
       profileMap.keySet.map(key => key.standardLoadProfile)
 
     knownLoadProfiles
-      .map(loadProfile => {
-        val maxConsumption = loadProfile match {
+      .flatMap(loadProfile => {
+        (loadProfile match {
           case BdewLoadProfile.H0 =>
             // max load for h0 is expected to be exclusively found in winter,
             // thus we only search there.
@@ -220,12 +220,6 @@ object LoadProfileStore extends LazyLogging {
                   .getOrElse(0d)
               })
               .maxOption
-              .getOrElse(
-                // this should not happen - there's more than one DayType
-                throw new RuntimeException(
-                  "Maximum load not found."
-                )
-              )
           case _ =>
             (for (season <- Season.values; dayType <- DayType.values) yield {
               val key = profile.LoadProfileKey(loadProfile, season, dayType)
@@ -233,15 +227,8 @@ object LoadProfileStore extends LazyLogging {
                 case Some(value) => Option(value.getMaxValue)
                 case None        => None
               }
-            }).flatten.maxOption.getOrElse(
-              // this should not happen - there's more than one Season and DayType
-              throw new RuntimeException(
-                "Maximum load not found."
-              )
-            )
-        }
-
-        loadProfile -> maxConsumption
+            }).flatten.maxOption
+        }).map(maxConsumption => loadProfile -> maxConsumption)
       })
       .toMap
   }

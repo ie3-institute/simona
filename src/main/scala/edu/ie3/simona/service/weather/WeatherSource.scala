@@ -181,7 +181,7 @@ trait WeatherSource {
           WeightedCoordinates(Map(dist.getCoordinateB -> 1d))
         )
       case _ =>
-        /* There is more than one coordinate existent */
+        /* There is more than one coordinate or none existent */
         val totalDistanceToSurroundingCoordinates =
           nearestCoordinates.foldLeft(Quantities.getQuantity(0d, Units.METRE)) {
             case (cumulativeDistance, coordinateDistance) =>
