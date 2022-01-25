@@ -263,25 +263,16 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       val firstRequestedNodeUuid = requestedNodeUuids.headOption match {
         case Some(uuid) => uuid
         case None =>
-          throw new RuntimeException(
+          throw new DBFSAlgorithmException(
             "Did receive a grid power request but without specified nodes"
           )
       }
-      val queryingSubnet = gridAgentBaseData.gridEnv.subnetGateToActorRef
-        .find(_._1.getSuperiorNode.getUuid == firstRequestedNodeUuid)
-        .map(_._1.getSuperiorNode.getSubnet)
-        .getOrElse(-1000)
 
       if (gridAgentBaseData.currentSweepNo == requestSweepNo) {
         log.debug(
           s"Received request for grid power values for sweepNo {} before my first power flow calc. Stashing away.",
           requestSweepNo
         )
-        if (gridAgentBaseData.gridEnv.gridModel.subnetNo == 3000) {
-          log.info(
-            s"GridAgent 3000 received a grid power request from subnet $queryingSubnet, before power flow has been calculated. Stash it away."
-          )
-        }
         stash()
         stay()
       } else {
@@ -290,11 +281,6 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           requestSweepNo,
           gridAgentBaseData.currentSweepNo
         )
-        if (gridAgentBaseData.gridEnv.gridModel.subnetNo == 3000) {
-          log.info(
-            s"GridAgent 3000 received a grid power request from subnet $queryingSubnet, before power flow has been calculated. Initiate new sweep."
-          )
-        }
         self ! PrepareNextSweepTrigger(currentTick)
 
         stash()
@@ -314,7 +300,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       val firstRequestedNodeUuid = requestedNodeUuids.headOption match {
         case Some(uuid) => uuid
         case None =>
-          throw new RuntimeException(
+          throw new DBFSAlgorithmException(
             "Did receive a grid power request but without specified nodes"
           )
       }
@@ -322,11 +308,6 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         .find(_._1.getSuperiorNode.getUuid == firstRequestedNodeUuid)
         .map(_._1.getSuperiorNode.getSubnet) match {
         case Some(requestingSubnetNumber) =>
-          if (gridAgentBaseData.gridEnv.gridModel.subnetNo == 3000) {
-            log.info(
-              s"GridAgent 3000 received a grid power request from subnet $requestingSubnetNumber, after power flow has been calculated."
-            )
-          }
           log.debug(
             "Received request for grid power values and im READY to provide."
           )

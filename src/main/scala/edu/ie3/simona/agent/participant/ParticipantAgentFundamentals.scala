@@ -832,8 +832,6 @@ protected trait ParticipantAgentFundamentals[
       fInPu: ComparableQuantity[Dimensionless],
       alternativeResult: PD
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
-    log.debug(s"Received asset power request for tick {}", requestTick)
-
     /* Check, if there is any calculation foreseen for this tick. If so, wait with the response. */
     val activationExpected =
       baseStateData.additionalActivationTicks.exists(_ < requestTick)
@@ -841,15 +839,18 @@ protected trait ParticipantAgentFundamentals[
       baseStateData.foreseenDataTicks.values.flatten.exists(_ < requestTick)
     if (activationExpected || dataExpected) {
       log.debug(
-        s"I got a request for power from '{}' for tick '{}', but I'm still waiting for new" +
-          s" results before this tick. Waiting with the response.",
+        s"Received power request from '{}' for tick '{}', but I'm still waiting for new results before " +
+          s"this tick. Waiting with the response.",
         sender(),
         requestTick
       )
       stash()
       stay() using baseStateData
     } else {
-
+      log.debug(
+        s"Received power request for tick '{}' and I'm able to answer it.",
+        requestTick
+      )
       /* Update the voltage value store */
       val nodalVoltage = Quantities.getQuantity(
         sqrt(
@@ -873,6 +874,7 @@ protected trait ParticipantAgentFundamentals[
         baseStateData.requestValueStore.last(requestTick)
 
       /* === Check if this request has already been answered with same tick and nodal voltage === */
+      log.debug("Answering the power request for tick {}.", requestTick)
       determineFastReply(
         baseStateData,
         mostRecentRequest,
