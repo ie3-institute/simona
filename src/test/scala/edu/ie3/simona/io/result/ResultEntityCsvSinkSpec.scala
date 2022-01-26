@@ -173,7 +173,7 @@ class ResultEntityCsvSinkSpec
 
       val resultFileLines = resultFileSource.getLines().toVector
       resultFileLines.size shouldBe 2
-      resultFileLines.tail.headOption.getOrElse(
+      resultFileLines.lastOption.getOrElse(
         fail(
           "Cannot get line that should have been written out by the listener!"
         )

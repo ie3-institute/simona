@@ -96,7 +96,7 @@ trait SetupHelper extends LazyLogging {
   ): Map[SubGridGate, ActorRef] =
     subGridGates
       .groupBy(gate => (gate.getSuperiorNode, gate.getInferiorNode))
-      .map(_._2.head)
+      .flatMap(_._2.headOption)
       .map(gate => {
         val superiorSubGrid = gate.getSuperiorSubGrid
         val inferiorSubGrid = gate.getInferiorSubGrid

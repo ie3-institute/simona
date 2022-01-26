@@ -124,12 +124,12 @@ class ExtSimAdapterSpec
       )
 
       awaitCond(
-        !extData.receiveTriggerQueue.isEmpty,
+        !extData.receiveMessageQueue.isEmpty,
         max = 3.seconds,
         message = "No message received"
       )
-      extData.receiveTriggerQueue.size() shouldBe 1
-      extData.receiveTriggerQueue.take() shouldBe new ExtActivityStartTrigger(
+      extData.receiveMessageQueue.size() shouldBe 1
+      extData.receiveMessageQueue.take() shouldBe new ExtActivityStartTrigger(
         INIT_SIM_TICK
       )
       scheduler.expectNoMessage()
@@ -195,12 +195,12 @@ class ExtSimAdapterSpec
       )
 
       awaitCond(
-        !extData.receiveTriggerQueue.isEmpty,
+        !extData.receiveMessageQueue.isEmpty,
         max = 3.seconds,
         message = "No message received"
       )
-      extData.receiveTriggerQueue.size() shouldBe 1
-      extData.receiveTriggerQueue.take()
+      extData.receiveMessageQueue.size() shouldBe 1
+      extData.receiveMessageQueue.take()
       scheduler.expectNoMessage()
 
       extSimAdapter ! new ScheduleDataServiceMessage(
