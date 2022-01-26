@@ -102,7 +102,7 @@ dependencies {
   testImplementation 'org.spockframework:spock-core:2.1-M2-groovy-3.0'
   testImplementation 'org.scalatestplus:mockito-3-4_2.13:3.2.10.0'
   implementation 'org.mockito:mockito-core:4.3.1' // mocking framework
-  testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.10"
+  testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.11"
   testRuntimeClasspath 'com.vladsch.flexmark:flexmark-all:0.62.2'
   testImplementation group: 'org.pegdown', name: 'pegdown', version: '1.6.0'
   testImplementation "com.typesafe.akka:akka-testkit_${scalaVersion}:${akkaVersion}" // akka testkit
