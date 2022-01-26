@@ -45,11 +45,11 @@ import edu.ie3.simona.test.common.{
   UnitSpec
 }
 import edu.ie3.util.quantities.PowerSystemUnits._
+import org.scalatest.Ignore
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
 import java.util.concurrent.{TimeUnit, TimeoutException}
-import scala.collection.mutable
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
@@ -171,7 +171,11 @@ class DBFSAlgorithmCenGridSpec
 
     }
 
-    s"start the simulation when a $StartGridSimulationTrigger is send" in {
+    /* Test is currently ignored. Reason: The TestFSMRef set up above explicitly sets the dispatcher of the actor
+     * context to `CurrentThreadDispatcher`, which runs on the single, calling thread and thereby may also lead to
+     * dead locks in certain circumstances (obviously we found one). As the refactoring to akka typed is foreseen and
+     * refactoring of the test is needed as well, we will ignore this test until then */
+    s"start the simulation when a $StartGridSimulationTrigger is send" ignore {
 
       val startGridSimulationTriggerId = 2
       val firstSweepNo = 0
