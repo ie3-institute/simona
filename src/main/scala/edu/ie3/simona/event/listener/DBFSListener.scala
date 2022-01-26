@@ -47,7 +47,6 @@ final class DBFSListener(
   // unblock supervisor to go on with simulation
   supervisor ! ServiceInitComplete
 
-  //  private val outputFile = resultFileHierarchy.rawOutputDataDir + File.separator + "dbfs_kpi.csv"
   private val outputWriter =
     scala.collection.mutable.Map.empty[String, PrintWriter]
   private val outputHeadline =
