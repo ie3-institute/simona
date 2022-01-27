@@ -9,13 +9,12 @@ package edu.ie3.simona.service.primary
 import akka.actor.{ActorRef, ActorSystem, PoisonPill}
 import akka.testkit.{TestActorRef, TestProbe}
 import akka.util.Timeout
-import breeze.stats.distributions.Rand
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.io.csv.timeseries.ColumnScheme
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
-import edu.ie3.datamodel.models.value.SValue
+import edu.ie3.datamodel.models.value.{SValue, Value}
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{
   CouchbaseParams,
   CsvParams,
@@ -372,45 +371,6 @@ class PrimaryServiceProxySpec
       workerRef ! PoisonPill
     }
 
-    "successfully spin off an actor from supported ColumnScheme and refuse unsupported ones" in {
-      val testData = Table(
-        ("columnScheme", "successful"),
-        (ColumnScheme.ACTIVE_POWER, true),
-        (ColumnScheme.ACTIVE_POWER_AND_HEAT_DEMAND, true),
-        (ColumnScheme.APPARENT_POWER, true),
-        (ColumnScheme.APPARENT_POWER_AND_HEAT_DEMAND, true),
-        (ColumnScheme.ENERGY_PRICE, false),
-        (ColumnScheme.HEAT_DEMAND, false),
-        (ColumnScheme.WEATHER, false)
-      )
-
-      val columnSchemeToActor =
-        PrivateMethod[Try[ActorRef]](Symbol("columnSchemeToActor"))
-
-      forAll(testData) {
-        case (columnScheme: ColumnScheme, successFul: Boolean) =>
-          proxy invokePrivate columnSchemeToActor(
-            columnScheme,
-            workerId + Rand.randInt.draw(),
-            simulationStart
-          ) match {
-            case Success(workerRef) =>
-              if (!successFul)
-                fail(
-                  s"Spinning off an worker for column scheme '$columnScheme' was meant to fail, but succeeded."
-                )
-              /* Kill the worker, as we do not need it */
-              workerRef ! PoisonPill
-            case Failure(exception) =>
-              if (successFul)
-                fail(
-                  s"Spinning off an worker for column scheme '$columnScheme' was meant to succeed, but with message '${exception.getMessage}'."
-                )
-              exception.getMessage shouldBe s"Cannot build a primary source for unsupported column scheme '$columnScheme'."
-          }
-      }
-    }
-
     "successfully build initialization data for the worker" in {
       val toInitData = PrivateMethod[Try[InitPrimaryServiceStateData]](
         Symbol("toInitData")
@@ -448,27 +408,6 @@ class PrimaryServiceProxySpec
           fail(
             "Creation of init data failed, although it was meant to succeed.",
             exception
-          )
-      }
-    }
-
-    "fail, if no worker actor can be initialized" in {
-      val maliciousColumnScheme = ColumnScheme.WEATHER
-
-      proxy.initializeWorker(
-        maliciousColumnScheme,
-        timeSeriesUuid,
-        simulationStart,
-        validPrimaryConfig,
-        mappingSource
-      ) match {
-        case Failure(exception) =>
-          exception.getClass shouldBe classOf[InitializationException]
-          exception.getMessage shouldBe "Unable to establish a typed worker for primary data provision."
-          exception.getCause.getMessage shouldBe s"Cannot build a primary source for unsupported column scheme '$maliciousColumnScheme'."
-        case Success(_) =>
-          fail(
-            "Instantiating a worker with malicious column scheme should fail."
           )
       }
     }
@@ -517,11 +456,11 @@ class PrimaryServiceProxySpec
       val testProbe = TestProbe("workerTestProbe")
       val fakeProxyRef =
         TestActorRef(new PrimaryServiceProxy(scheduler.ref, simulationStart) {
-          override def columnSchemeToActor(
-              columnScheme: ColumnScheme,
-              actorId: String,
+          override def classToWorkerRef[V <: Value](
+              valueClass: Class[V],
+              timeSeriesUuid: String,
               simulationStart: ZonedDateTime
-          ): Try[ActorRef] = Success(testProbe.ref)
+          ): ActorRef = testProbe.ref
         })
       val fakeProxy: PrimaryServiceProxy = fakeProxyRef.underlyingActor
 
