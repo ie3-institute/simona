@@ -14,7 +14,6 @@ import edu.ie3.datamodel.models.result.system.EvResult
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.exceptions.InvalidParameterException
-import edu.ie3.simona.marketprice.StaticMarketSource.getPrice
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsRelevantData
@@ -24,7 +23,9 @@ import edu.ie3.simona.model.participant.evcs.marketoriented.MarketOrientedCurren
 import edu.ie3.simona.model.participant.evcs.uncontrolled.SchedulingWithConstantPower.calculateNewSchedulingWithConstantPower
 import edu.ie3.simona.model.participant.evcs.uncontrolled.SchedulingWithMaximumPower.calculateNewSchedulingWithMaximumChargingPower
 import edu.ie3.simona.model.participant.evcs.marketoriented.MarketOrientedScheduling.calculateNewMarketOrientedScheduling
+import edu.ie3.simona.model.participant.evcs.marketoriented.MarketPricePrediction
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
+import edu.ie3.simona.service.market.StaticMarketSource
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.{
   EURO,
@@ -475,7 +476,9 @@ final case class EvcsModel(
           .multiply(power)
           .asType(classOf[Energy])
           .to(KILOWATTHOUR)
-          .multiply(getPrice(startTime).to(EURO_PER_KILOWATTHOUR))
+          .multiply(
+            StaticMarketSource.price(startTime).to(EURO_PER_KILOWATTHOUR)
+          )
           .asType(classOf[Currency])
           .to(EURO)
       )
@@ -494,7 +497,9 @@ final case class EvcsModel(
           .multiply(power)
           .asType(classOf[Energy])
           .to(KILOWATTHOUR)
-          .multiply(getPrice(startTime).to(EURO_PER_KILOWATTHOUR))
+          .multiply(
+            StaticMarketSource.price(startTime).to(EURO_PER_KILOWATTHOUR)
+          )
           .asType(classOf[Currency])
           .to(EURO)
       )

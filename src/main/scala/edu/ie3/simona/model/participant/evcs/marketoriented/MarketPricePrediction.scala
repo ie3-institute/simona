@@ -7,8 +7,9 @@
 package edu.ie3.simona.model.participant.evcs.marketoriented
 
 import edu.ie3.simona.exceptions.InvalidParameterException
-import edu.ie3.simona.marketprice.StaticMarketSource.getMarketPrices
 import edu.ie3.simona.model.participant.evcs.PredictionAndSchedulingUtils.TimeStamp
+import edu.ie3.simona.service.market.StaticMarketSource
+import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.quantities.interfaces.EnergyPrice
 import tech.units.indriya.ComparableQuantity
 
@@ -17,7 +18,7 @@ import java.time.{DayOfWeek, ZonedDateTime}
 object MarketPricePrediction {
 
   val priceTimeTable: Vector[PriceTimeTableEntry] =
-    calculateReferencePriceTimeTable(getMarketPrices)
+    calculateReferencePriceTimeTable(StaticMarketSource.prices)
 
   /** Entry in the price time table, which includes the history of price values
     * for a whole week.
