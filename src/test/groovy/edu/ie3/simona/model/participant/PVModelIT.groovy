@@ -113,7 +113,7 @@ class PVModelIT extends Specification implements PVModelITHelper {
 }
 
 trait PVModelITHelper {
-	private static final csvFormat = CSVFormat.DEFAULT.builder().setHeader().build()
+	private static final CSV_FORMAT = CSVFormat.DEFAULT.builder().setHeader().build()
 
 	Iterable<CSVRecord> getCsvRecords(String fileName) {
 		def resultsInputData = new File(this.getClass().getResource(fileName).file)
@@ -121,7 +121,7 @@ trait PVModelITHelper {
 		def gzipStream = new GZIPInputStream(fileStream)
 		def decoder = new InputStreamReader(gzipStream, "UTF-8")
 		def br = new BufferedReader(decoder)
-		return csvFormat.parse(br)
+		return CSV_FORMAT.parse(br)
 	}
 
 	HashMap<String, PVModel> getPVModels() {
