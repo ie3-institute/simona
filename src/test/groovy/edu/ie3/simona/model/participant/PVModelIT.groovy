@@ -113,10 +113,10 @@ class PVModelIT extends Specification implements PVModelITHelper {
 }
 
 trait PVModelITHelper {
-	private static def csvFormat = CSVFormat.DEFAULT.builder().setHeader().build()
+	private static final csvFormat = CSVFormat.DEFAULT.builder().setHeader().build()
 
 	Iterable<CSVRecord> getCsvRecords(String fileName) {
-		def resultsInputData = new File(this.getClass().getResource(fileName).getFile())
+		def resultsInputData = new File(this.getClass().getResource(fileName).file)
 		def fileStream = new FileInputStream(resultsInputData)
 		def gzipStream = new GZIPInputStream(fileStream)
 		def decoder = new InputStreamReader(gzipStream, "UTF-8")
@@ -128,7 +128,7 @@ trait PVModelITHelper {
 		"load the grid input data from the corresponding resources folder"
 
 		def csvGridSource = CsvGridSource.apply("it_grid", ";",
-				this.getClass().getResource("pv/it/grid_data").getFile(),
+				this.getClass().getResource("pv/it/grid_data").file,
 				new FileNamingStrategy())
 
 		def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2011-01-01 00:00:00")
