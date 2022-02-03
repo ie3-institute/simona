@@ -39,7 +39,7 @@ class LoadProfileStoreSpec
   // This file, in contrast to the working system load
   // profile file, should not be altered.
   val reader = new InputStreamReader(
-    this.getClass.getResourceAsStream("/load/standard_load_profiles_test.csv")
+    this.getClass.getResourceAsStream("standard_load_profiles_test.csv")
   )
 
   val customStore: LoadProfileStore = LoadProfileStore(reader)

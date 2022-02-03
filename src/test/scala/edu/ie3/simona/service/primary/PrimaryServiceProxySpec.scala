@@ -54,10 +54,10 @@ import edu.ie3.util.TimeUtil
 import org.scalatest.PartialFunctionValues
 import org.scalatest.prop.TableDrivenPropertyChecks
 
+import java.nio.file.Paths
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 import java.util.{Objects, UUID}
-import scala.reflect.io.File
 import scala.util.{Failure, Success, Try}
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -74,9 +74,16 @@ class PrimaryServiceProxySpec
     )
     with TableDrivenPropertyChecks
     with PartialFunctionValues {
-  val baseDirectoryPath: String = this.getClass
-    .getResource(File.separator + "it-data" + File.separator + "primaryService")
-    .getPath
+  // this works both on Windows and Unix systems
+  val baseDirectoryPath: String = Paths
+    .get(
+      this.getClass
+        .getResource(
+          "it"
+        )
+        .toURI
+    )
+    .toString
   val csvSep = ";"
   val fileNamingStrategy = new FileNamingStrategy()
   val validPrimaryConfig: PrimaryConfig =
@@ -127,7 +134,7 @@ class PrimaryServiceProxySpec
     mappingSource
   )
 
-  val scheduler = TestProbe("scheduler")
+  private val scheduler = TestProbe("scheduler")
 
   "Testing a primary service config" should {
     "lead to complaining about too much source definitions" in {
