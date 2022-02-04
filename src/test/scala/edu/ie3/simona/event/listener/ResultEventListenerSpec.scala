@@ -179,15 +179,13 @@ class ResultEventListenerSpec
         val resultFileLines = resultFileSource.getLines().toVector
 
         resultFileLines.size shouldBe 2
-        resultFileLines.tail.size shouldBe 1
-        resultFileLines.tail.headOption.getOrElse(
+        resultFileLines.lastOption.getOrElse(
           fail(
             "Cannot get csv row that should have been written out by the listener!"
           )
         ) shouldBe dummyPvResultDataString
 
         resultFileSource.close()
-
       }
 
       "process a valid power flow result correctly" in {
@@ -263,8 +261,7 @@ class ResultEventListenerSpec
           val resultFileLines = resultFileSource.getLines().toVector
 
           resultFileLines.size shouldBe 2
-          resultFileLines.tail.size shouldBe 1
-          resultFileLines.tail.headOption.getOrElse(
+          resultFileLines.lastOption.getOrElse(
             fail(
               "Cannot get csv row that should have been written out by the listener!"
             )
@@ -492,8 +489,7 @@ class ResultEventListenerSpec
         val resultFileLines = resultFileSource.getLines().toVector
 
         resultFileLines.size shouldBe 2
-        resultFileLines.tail.size shouldBe 1
-        val resultLine = resultFileLines.tail.headOption.getOrElse(
+        val resultLine = resultFileLines.lastOption.getOrElse(
           fail(
             "Cannot get csv row that should have been written out by the listener!"
           )
@@ -579,8 +575,7 @@ class ResultEventListenerSpec
 
         val resultFileLines = resultFileSource.getLines().toVector
         resultFileLines.size shouldBe 2
-        resultFileLines.tail.size shouldBe 1
-        resultFileLines.tail.headOption.getOrElse(
+        resultFileLines.lastOption.getOrElse(
           fail(
             "Cannot get line that should have been written out by the listener!"
           )

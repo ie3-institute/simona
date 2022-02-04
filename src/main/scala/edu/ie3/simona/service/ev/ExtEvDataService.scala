@@ -18,7 +18,7 @@ import edu.ie3.simona.api.data.ev.ontology.{
   RequestEvcsFreeLots
 }
 import edu.ie3.simona.api.data.ontology.ExtDataMessage
-import edu.ie3.simona.exceptions.InitializationException
+import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
@@ -186,7 +186,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
   ) = {
     serviceStateData.extEvMessage.getOrElse(
-      throw new RuntimeException(
+      throw ServiceException(
         "ExtEvDataActor was triggered without ExtEvMessage available"
       )
     ) match {
@@ -200,19 +200,9 @@ class ExtEvDataService(override val scheduler: ActorRef)
   private def requestFreeLots(tick: Long)(implicit
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Seq[ScheduleTriggerMessage]]) = {
-    val scheduleTriggerMsgs =
-      serviceStateData.uuidToActorRef.map { case (_, evcsActor) =>
-        evcsActor ! ProvideEvDataMessage(
-          tick,
-          EvFreeLotsRequest
-        )
-
-        // schedule activation of participant
-        ScheduleTriggerMessage(
-          ActivityStartTrigger(tick),
-          evcsActor
-        )
-      }
+    serviceStateData.uuidToActorRef.foreach { case (_, evcsActor) =>
+      evcsActor ! EvFreeLotsRequest(tick)
+    }
 
     val freeLots: Map[UUID, Option[Int]] =
       serviceStateData.uuidToActorRef.map { case (evcs, _) =>
@@ -228,7 +218,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
         extEvMessage = None,
         freeLots = freeLots
       ),
-      Option.when(scheduleTriggerMsgs.nonEmpty)(scheduleTriggerMsgs.toSeq)
+      None
     )
   }
 
