@@ -456,7 +456,7 @@ class PrimaryServiceProxySpec
       val testProbe = TestProbe("workerTestProbe")
       val fakeProxyRef =
         TestActorRef(new PrimaryServiceProxy(scheduler.ref, simulationStart) {
-          override def classToWorkerRef[V <: Value](
+          override protected def classToWorkerRef[V <: Value](
               valueClass: Class[V],
               timeSeriesUuid: String,
               simulationStart: ZonedDateTime

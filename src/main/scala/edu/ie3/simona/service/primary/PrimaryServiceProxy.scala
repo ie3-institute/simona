@@ -348,7 +348,7 @@ case class PrimaryServiceProxy(
     * @return
     *   The [[ActorRef]] to the spun off actor
     */
-  private[primary] def classToWorkerRef[V <: Value](
+  protected def classToWorkerRef[V <: Value](
       valueClass: Class[V],
       timeSeriesUuid: String,
       simulationStart: ZonedDateTime
