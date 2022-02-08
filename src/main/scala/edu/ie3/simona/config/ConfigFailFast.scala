@@ -20,10 +20,13 @@ import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.checkInfluxDb1xParams
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.scala.ReflectionTools
 import edu.ie3.util.{StringUtils, TimeUtil}
+import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
 import java.security.InvalidParameterException
 import java.time.temporal.ChronoUnit
 import java.util.UUID
+import javax.measure.quantity.ElectricPotential
 import scala.util.{Failure, Success, Try}
 
 /** Sanity checks for [[SimonaConfig]] that should lead to a fast failure during
@@ -385,7 +388,8 @@ case object ConfigFailFast extends LazyLogging {
     */
   private def checkRefSystem(refSystem: RefSystemConfig): Unit = {
 
-    val voltLvls = refSystem.voltLvls.getOrElse(List.empty[String])
+    val voltLvls =
+      refSystem.voltLvls.getOrElse(List.empty[SimonaConfig.VoltLvlConfig])
     val gridIds = refSystem.gridIds.getOrElse(List.empty[String])
 
     if (voltLvls.isEmpty && gridIds.isEmpty)
@@ -394,6 +398,21 @@ case object ConfigFailFast extends LazyLogging {
           s"At least one of these optional parameters has to be provided for a valid refSystem! " +
           s"Provided refSystem is: $refSystem."
       )
+
+    voltLvls.foreach { voltLvl =>
+      Try(Quantities.getQuantity(voltLvl.vNom)) match {
+        case Success(quantity) =>
+          if (!quantity.getUnit.isCompatible(Units.VOLT))
+            throw new InvalidConfigParameterException(
+              s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to electrical potential!"
+            )
+        case Failure(exception) =>
+          throw new InvalidConfigParameterException(
+            s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to Quantity.",
+            exception
+          )
+      }
+    }
 
     gridIds.foreach {
       case gridIdRange @ ConfigConventions.gridIdDotRange(from, to) =>

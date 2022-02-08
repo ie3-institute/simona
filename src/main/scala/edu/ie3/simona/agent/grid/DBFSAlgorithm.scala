@@ -425,12 +425,12 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           gridAgentBaseData: GridAgentBaseData
         ) =>
       // inform my child grids about the end of this grid simulation
-      gridAgentBaseData.inferiorGridGates.foreach(inferiorGridGate => {
-        gridAgentBaseData.gridEnv
-          .subnetGateToActorRef(inferiorGridGate) ! FinishGridSimulationTrigger(
-          currentTick
-        )
-      })
+      gridAgentBaseData.inferiorGridGates
+        .map { inferiorGridGate =>
+          gridAgentBaseData.gridEnv.subnetGateToActorRef(inferiorGridGate)
+        }
+        .distinct
+        .foreach(_ ! FinishGridSimulationTrigger(currentTick))
 
       // inform every system participant about the end of this grid simulation
       gridAgentBaseData.gridEnv.nodeToAssetAgents.foreach { case (_, actors) =>
@@ -1252,16 +1252,16 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       gridAgentBaseData: GridAgentBaseData,
       currentTimestamp: ZonedDateTime
   ): Unit = {
-    // otherwise .last will throw an exception
-    if (gridAgentBaseData.sweepValueStores.nonEmpty) {
-      notifyListener(
-        this.createResultModels(
-          gridAgentBaseData.gridEnv.gridModel,
-          gridAgentBaseData.sweepValueStores.last._2
-        )(
-          currentTimestamp
+    gridAgentBaseData.sweepValueStores.lastOption.foreach {
+      case (_, valueStore) =>
+        notifyListener(
+          this.createResultModels(
+            gridAgentBaseData.gridEnv.gridModel,
+            valueStore
+          )(
+            currentTimestamp
+          )
         )
-      )
     }
   }
 

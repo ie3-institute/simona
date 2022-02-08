@@ -6,11 +6,15 @@
 
 package edu.ie3.simona.config
 
-import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
+import edu.ie3.datamodel.models.voltagelevels.{
+  CommonVoltageLevel,
+  GermanVoltageLevelUtils
+}
 import edu.ie3.simona.config.SimonaConfig.{RefSystemConfig, VoltLvlConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.test.common.UnitSpec
+import tech.units.indriya.quantity.Quantities
 
 class RefSystemParserSpec extends UnitSpec {
 
@@ -155,7 +159,7 @@ class RefSystemParserSpec extends UnitSpec {
         )
       intercept[InvalidConfigParameterException] {
         RefSystemParser.parse(validRefSystems)
-      }.getMessage shouldBe "Unknown gridId format asd provided for refSystem RefSystemConfig(Some(List(asd)),100 MVA,10 kV,Some(List(VoltLvlConfig(MS,10 kV), VoltLvlConfig(MS,20 kV))))"
+      }.getMessage shouldBe "Unknown gridId format asd provided for refSystem RefSystemConfig(Some(List(asd)),100 MVA,10 kV,Some(List({MS, 10 kV}, {MS, 20 kV})))"
 
     }
 

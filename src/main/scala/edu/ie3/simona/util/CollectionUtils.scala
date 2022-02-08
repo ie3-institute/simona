@@ -85,9 +85,9 @@ case object CollectionUtils {
     list match {
       case Nil      => true // an empty list is sorted
       case _ :: Nil => true // a single-element list is sorted
-      case x :: xs =>
-        ord.lteq(x, xs.head) && isSorted(
-          xs
+      case x :: xs :: tail =>
+        ord.lteq(x, xs) && isSorted(
+          xs :: tail
         ) // if the first two elements are ordered and the rest are sorted, the full list is sorted too
     }
 
