@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.grid
 
 import akka.actor.{ActorRef, Props, Stash}
-import com.google.common.util.concurrent.ThreadFactoryBuilder
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentInitData,
@@ -35,9 +34,8 @@ import edu.ie3.util.TimeUtil
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import java.util.concurrent.{ExecutorService, Executors}
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.language.postfixOps
 
 object GridAgent {
@@ -62,24 +60,6 @@ class GridAgent(
 ) extends SimonaAgent[GridAgentData]
     with DBFSAlgorithm
     with Stash {
-
-  // setup future & concurrency stuff
-  // details see
-  // https://stackoverflow.com/questions/48963300/which-executioncontext-to-choose-for-future-in-akka-applications
-  private val numOfAvailableProcessors =
-    Runtime.getRuntime.availableProcessors()
-  protected val numOfThreads: Int =
-    if (numOfAvailableProcessors <= 2) 1
-    else numOfAvailableProcessors - 2
-  protected val execSvc: ExecutorService = Executors.newFixedThreadPool(
-    numOfThreads,
-    new ThreadFactoryBuilder()
-      .setDaemon(true)
-      .setNameFormat(actorName)
-      .build()
-  )
-  protected implicit val executionContext: ExecutionContext =
-    ExecutionContext.fromExecutorService(execSvc)
 
   // val initialization
   protected val resolution: Long = simonaConfig.simona.powerflow.resolution.get(
@@ -130,12 +110,6 @@ class GridAgent(
       // fail fast sanity checks
       failFast(gridAgentInitData)
 
-      log.info(
-        s"Found {} available processors. Will use {}.",
-        numOfThreads + 2,
-        numOfThreads
-      )
-
       log.debug(
         s"Inferior Subnets: {}; Inferior Subnet Nodes: {}",
         gridAgentInitData.inferiorGridIds,
@@ -153,9 +127,6 @@ class GridAgent(
       // build the assets concurrently
       val subGridContainer = gridAgentInitData.subGridContainer
       val refSystem = gridAgentInitData.refSystem
-      val nodeToAssetAgentMapFuture = Future {
-        gridAgentController.buildSystemParticipants(subGridContainer)
-      }
 
       // get the [[GridModel]]
       val gridModel = GridModel(
@@ -168,24 +139,19 @@ class GridAgent(
         )
       )
 
-      // we have to wait until the assets are ready
-      // and add the inferiorGridNodeIds -> ActorRef to the nodeToAgentMap
-      // this is the map with all agents that contribute to p/q value provision
-      val nodeInputToParticipantRefMap: Map[UUID, Set[ActorRef]] =
-        Await.result(nodeToAssetAgentMapFuture, 60 seconds)
-
       /* Reassure, that there are also calculation models for the given uuids */
       val nodeToAssetAgentsMap: Map[UUID, Set[ActorRef]] =
-        nodeInputToParticipantRefMap.map { case (uuid: UUID, actorSet) =>
-          val nodeUuid = gridModel.gridComponents.nodes
-            .find(_.uuid == uuid)
-            .getOrElse(
-              throw new RuntimeException(
-                s"Unable to find node with uuid $uuid"
+        gridAgentController.buildSystemParticipants(subGridContainer).map {
+          case (uuid: UUID, actorSet) =>
+            val nodeUuid = gridModel.gridComponents.nodes
+              .find(_.uuid == uuid)
+              .getOrElse(
+                throw new RuntimeException(
+                  s"Unable to find node with uuid $uuid"
+                )
               )
-            )
-            .uuid
-          nodeUuid -> actorSet
+              .uuid
+            nodeUuid -> actorSet
         }
 
       // create the GridAgentBaseData
