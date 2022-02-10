@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.service.market
 
+import edu.ie3.simona.exceptions.PriceServiceException.PriceNotFoundException
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.quantities.PowerSystemUnits.{
@@ -84,20 +85,21 @@ object StaticMarketSource extends MarketSource {
   ): Map[ZonedDateTime, ComparableQuantity[EnergyPrice]] =
     marketPrices
 
-  override def price(time: ZonedDateTime): ComparableQuantity[EnergyPrice] = {
+  override def price(
+      time: ZonedDateTime
+  ): Try[ComparableQuantity[EnergyPrice]] = {
     val roundedTime =
       time
         .minusMinutes(time.getMinute)
         .minusSeconds(time.getSecond)
-        .plusYears(
-          9
-        ) // to get prices for 2025 when simulating in 2016 (SimBench time series are for 2016)
-    marketPrices.getOrElse(
-      roundedTime,
-      throw new RuntimeException(
-        s"Error, no price for this time found: $roundedTime"
-      )
-    )
+    marketPrices.get(roundedTime) match {
+      case Some(price) => Success(price)
+      case None =>
+        Failure(
+          PriceNotFoundException(
+            s"No price for this time: $roundedTime"
+          )
+        )
+    }
   }
-
 }

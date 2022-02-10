@@ -11,9 +11,10 @@ import edu.ie3.util.quantities.interfaces.EnergyPrice
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
+import scala.util.Try
 
 trait MarketSource {
-  def price(time: ZonedDateTime): ComparableQuantity[EnergyPrice]
+  def price(time: ZonedDateTime): Try[ComparableQuantity[EnergyPrice]]
 
   def prices(
       interval: ClosedInterval[ZonedDateTime]

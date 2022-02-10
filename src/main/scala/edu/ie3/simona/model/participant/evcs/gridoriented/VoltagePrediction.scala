@@ -6,11 +6,16 @@
 
 package edu.ie3.simona.model.participant.evcs.gridoriented
 
-import edu.ie3.simona.exceptions.InvalidParameterException
+import edu.ie3.simona.exceptions.{
+  InvalidParameterException,
+  PredictionException
+}
 import edu.ie3.simona.model.participant.evcs.PredictionAndSchedulingUtils.TimeStamp
 import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.quantity.Quantities
 
 import java.time.{DayOfWeek, ZonedDateTime}
+import javax.measure.Quantity
 import javax.measure.quantity.Dimensionless
 
 object VoltagePrediction {
@@ -49,6 +54,9 @@ object VoltagePrediction {
       end: ZonedDateTime,
       voltage: ComparableQuantity[Dimensionless]
   )
+
+  private type VoltageReference =
+    (TimeStamp, (ComparableQuantity[Dimensionless], Int))
 
   /** Calculate a time table for a reference week based on the known voltages
     * from memory. The reference voltages are calculated on a defined minute
@@ -115,116 +123,95 @@ object VoltagePrediction {
     )
 
     /* Order voltage entries based on time stamp */
-    val orderedVoltageReferenceMap = voltageReferenceMap.toVector.sortBy {
-      case (TimeStamp(d, h, m), (_, _)) => (d, h, m)
-    }
+    val orderedVoltageReferenceMap = voltageReferenceMap.toVector.sortBy(_._1)
+    blurVoltages(orderedVoltageReferenceMap, 3).toVector
+  }
 
-    /* Blurred voltages by averaging the value for a time stamp with the previous
-     * and consecutive values equally weighted. */
-    val blurredVoltageTimeTable: Vector[VoltageTimeTableEntry] =
-      /* prepend first element (not included due to sliding window) */
-      VoltageTimeTableEntry(
-        TimeStamp(
-          orderedVoltageReferenceMap(0)._1.dayOfWeek,
-          orderedVoltageReferenceMap(0)._1.hour,
-          orderedVoltageReferenceMap(0)._1.minute
-        ),
-        TimeStamp(
-          orderedVoltageReferenceMap(1)._1.dayOfWeek,
-          orderedVoltageReferenceMap(1)._1.hour,
-          orderedVoltageReferenceMap(1)._1.minute
-        ),
-        orderedVoltageReferenceMap.last._2._1
-          .add(orderedVoltageReferenceMap(0)._2._1)
-          .add(orderedVoltageReferenceMap(1)._2._1)
-          .divide(3)
-      ) +:
-        orderedVoltageReferenceMap
-          .sliding(3)
-          .map { consecutiveEntries =>
-            {
-              VoltageTimeTableEntry(
-                TimeStamp(
-                  consecutiveEntries(1)._1.dayOfWeek,
-                  consecutiveEntries(1)._1.hour,
-                  consecutiveEntries(1)._1.minute
-                ),
-                TimeStamp(
-                  consecutiveEntries(2)._1.dayOfWeek,
-                  consecutiveEntries(2)._1.hour,
-                  consecutiveEntries(2)._1.minute
-                ),
-                consecutiveEntries(0)._2._1
-                  .add(consecutiveEntries(1)._2._1)
-                  .add(consecutiveEntries(2)._2._1)
-                  .divide(3)
-              )
-            }
+  /** Blur voltages and build equivalent [[VoltageTimeTableEntry]]s
+    *
+    * @param orderedVoltageReferences
+    *   Ordered voltage references
+    * @param windowLength
+    *   Length of the blurring window
+    * @return
+    *   A sequence of [[VoltageTimeTableEntry]]s
+    */
+  private def blurVoltages(
+      orderedVoltageReferences: Seq[VoltageReference],
+      windowLength: Int
+  ): Seq[VoltageTimeTableEntry] =
+    enhanceVoltageReferences(orderedVoltageReferences, windowLength)
+      .sliding(windowLength)
+      .map { slidingWindow =>
+        val lastTwo = slidingWindow.slice(windowLength - 2, windowLength)
+        lastTwo.headOption
+          .flatMap(head => lastTwo.lastOption.map((head, _)))
+          .map { case ((startTime, _), (endTime, _)) =>
+            (startTime, endTime)
           }
-          .toVector :+
-        /* add last element (not included due to sliding window) */
-        VoltageTimeTableEntry(
-          TimeStamp(
-            orderedVoltageReferenceMap.last._1.dayOfWeek,
-            orderedVoltageReferenceMap.last._1.hour,
-            orderedVoltageReferenceMap.last._1.minute
-          ),
-          TimeStamp(
-            orderedVoltageReferenceMap(0)._1.dayOfWeek,
-            orderedVoltageReferenceMap(0)._1.hour,
-            orderedVoltageReferenceMap(0)._1.minute
-          ),
-          orderedVoltageReferenceMap.last._2._1
-            .add(
-              orderedVoltageReferenceMap(
-                orderedVoltageReferenceMap.size - 2
-              )._2._1
+          .zip(mean(slidingWindow.map { case (_, (quantity, _)) =>
+            quantity
+          })) match {
+          case Some(((startTime, endTime), mean)) =>
+            VoltageTimeTableEntry(startTime, endTime, mean)
+          case None =>
+            throw PredictionException(
+              s"Unable to build blurred values for sliding window '$slidingWindow'."
             )
-            .add(orderedVoltageReferenceMap(0)._2._1)
-            .divide(3)
-        )
-
-    blurredVoltageTimeTable
-
-    /* not blurred version:
-    val voltageTimeTable: Vector[VoltageTimeTableEntry] =
-      orderedVoltageReferenceMap
-        .sliding(2)
-        .map { consecutiveEntries =>
-          {
-            VoltageTimeTableEntry(
-              TimeStamp(
-                consecutiveEntries(0)._1._1,
-                consecutiveEntries(0)._1._2,
-                consecutiveEntries(0)._1._3
-              ),
-              TimeStamp(
-                consecutiveEntries(1)._1._1,
-                consecutiveEntries(1)._1._2,
-                consecutiveEntries(1)._1._3
-              ),
-              consecutiveEntries(0)._2._1
-            )
-          }
         }
-        .toVector :+
-        VoltageTimeTableEntry(
-          TimeStamp(
-            orderedVoltageReferenceMap.last._1._1,
-            orderedVoltageReferenceMap.last._1._2,
-            orderedVoltageReferenceMap.last._1._3
-          ),
-          TimeStamp(
-            orderedVoltageReferenceMap(0)._1._1,
-            orderedVoltageReferenceMap(0)._1._2,
-            orderedVoltageReferenceMap(0)._1._3
-          ),
-          orderedVoltageReferenceMap.last._2._1
-        )
-    voltageTimeTable
+      }
+      .toSeq
+
+  /** Pre- and append entries to the voltage references to ensure proper
+    * blurring afterwards
+    *
+    * @param orderedVoltageReferences
+    *   Ordered sequence of voltage references
+    * @param windowLength
+    *   Length of the blurring window
+    * @return
+    *   Voltage references with pre- and appended values
+    */
+  private def enhanceVoltageReferences(
+      orderedVoltageReferences: Seq[VoltageReference],
+      windowLength: Int
+  ): Seq[VoltageReference] = {
+    val neededAmount =
+      windowLength - 2 // The value always apply for the time stamp and the successor (2 time stamps)
+    val tail = orderedVoltageReferences.slice(
+      orderedVoltageReferences.length - neededAmount,
+      orderedVoltageReferences.length
+    )
+    if (tail.length < neededAmount)
+      throw PredictionException(
+        "Unable to determine sliding window. Window length too long."
+      )
+    val head = orderedVoltageReferences.slice(0, neededAmount)
+    if (head.length < neededAmount)
+      throw PredictionException(
+        "Unable to determine sliding window. Window length too long."
+      )
+    tail ++ orderedVoltageReferences ++ head
   }
-     */
-  }
+
+  /** Determine the mean of a given sequence of quantities
+    *
+    * @param quantities
+    *   The quantities to average
+    * @tparam Q
+    *   The type of quantity
+    * @return
+    *   The mean of all quantities
+    */
+  private def mean[Q <: Quantity[Q]](
+      quantities: Seq[ComparableQuantity[Q]]
+  ): Option[ComparableQuantity[Q]] =
+    quantities.headOption.map { head =>
+      quantities
+        .slice(1, quantities.length)
+        .foldLeft(head)((sum, summand) => sum.add(summand))
+        .divide(quantities.length)
+    }
 
   /** Get time windows with predicted voltage values for the relevant time until
     * departure of the last EV based on the reference voltages in the voltage

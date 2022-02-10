@@ -9,7 +9,6 @@ package edu.ie3.simona.model.participant.evcs.marketoriented
 import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.simona.model.participant.evcs.PredictionAndSchedulingUtils.TimeStamp
 import edu.ie3.simona.service.market.StaticMarketSource
-import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.quantities.interfaces.EnergyPrice
 import tech.units.indriya.ComparableQuantity
 
@@ -112,46 +111,37 @@ object MarketPricePrediction {
     )
 
     /* Order price entries based on time stamp */
-    val orderedPriceReferenceMap = priceReferenceMap.toVector.sortBy {
-      case (TimeStamp(d, h, m), (_, _)) => (d, h, m)
-    }
+    type OrderedPriceEntry = (TimeStamp, (ComparableQuantity[EnergyPrice], Int))
+    val orderedPriceReferenceMap = priceReferenceMap.toVector.sortBy(_._1)
 
-    val priceTimeTable: Vector[PriceTimeTableEntry] =
-      orderedPriceReferenceMap
-        .sliding(2)
-        .map { consecutiveEntries =>
-          {
+    buildPriceTimeTable(orderedPriceReferenceMap).toVector
+  }
+
+  private def buildPriceTimeTable(
+      orderedPriceReferenceMap: Seq[
+        (TimeStamp, (ComparableQuantity[EnergyPrice], Int))
+      ]
+  ): Seq[PriceTimeTableEntry] = {
+    orderedPriceReferenceMap.headOption
+      .map { head =>
+        /* Replicate the first element of the price map at the end */
+        orderedPriceReferenceMap :+ head
+      }
+      .map { priceMap =>
+        /* Build a sequence of sliding windows of the current and the next entry */
+        val slidingWindows = priceMap
+          .slice(0, priceMap.length)
+          .zip(priceMap.slice(1, priceMap.length - 1))
+        slidingWindows.map {
+          case ((firstTimeStamp, (price, _)), (secondTimeStamp, _)) =>
             PriceTimeTableEntry(
-              TimeStamp(
-                consecutiveEntries(0)._1.dayOfWeek,
-                consecutiveEntries(0)._1.hour,
-                consecutiveEntries(0)._1.minute
-              ),
-              TimeStamp(
-                consecutiveEntries(1)._1.dayOfWeek,
-                consecutiveEntries(1)._1.hour,
-                consecutiveEntries(1)._1.minute
-              ),
-              consecutiveEntries(0)._2._1
+              firstTimeStamp,
+              secondTimeStamp,
+              price
             )
-          }
         }
-        .toVector :+
-        PriceTimeTableEntry(
-          TimeStamp(
-            orderedPriceReferenceMap.last._1.dayOfWeek,
-            orderedPriceReferenceMap.last._1.hour,
-            orderedPriceReferenceMap.last._1.minute
-          ),
-          TimeStamp(
-            orderedPriceReferenceMap(0)._1.dayOfWeek,
-            orderedPriceReferenceMap(0)._1.hour,
-            orderedPriceReferenceMap(0)._1.minute
-          ),
-          orderedPriceReferenceMap.last._2._1
-        )
-    priceTimeTable
-
+      }
+      .getOrElse(Seq.empty[PriceTimeTableEntry])
   }
 
   /** Get time windows with predicted price values for the relevant time until

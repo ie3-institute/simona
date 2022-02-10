@@ -34,7 +34,7 @@ object PredictionAndSchedulingUtils {
       dayOfWeek: DayOfWeek,
       hour: Int,
       minute: Int
-  ) {
+  ) extends Ordered[TimeStamp] {
     def getMinuteOfWeek: Int = {
       this.dayOfWeek.getValue * 24 * 60 + this.hour * 60 + this.minute
     }
@@ -57,6 +57,18 @@ object PredictionAndSchedulingUtils {
         val timeInMinutes =
           7 * 24 * 60 - (this.getMinuteOfWeek - timeStamp.getMinuteOfWeek)
         timeInMinutes
+      }
+    }
+
+    override def compare(that: TimeStamp): Int = {
+      val dayCompare = dayOfWeek.compareTo(that.dayOfWeek)
+      if (dayCompare != 0)
+        dayCompare
+      else {
+        val hourCompare = hour.compare(that.hour)
+        if (hourCompare != 0)
+          hourCompare
+        else minute.compare(that.minute)
       }
     }
   }
