@@ -536,16 +536,19 @@ final case class EvcsModel(
       costs: ComparableQuantity[Currency]
   ): ComparableQuantity[Currency] = {
 
-    val nextFullHour = startTime.plusSeconds(
-      3600 - startTime.getMinute * 60 - startTime.getSecond
-    )
+    // FIXME: This is super hacky! The price table only has entries for 2025!!!
+    val marketTimeStart = startTime.withYear(2025)
+    val marketTimeEnd = stopTime.withYear(2025)
 
-    if (nextFullHour.isBefore(stopTime)) {
+    val nextFullHour =
+      startTime.withMinute(0).withSecond(0).withNano(0).plusHours(1L)
+
+    if (nextFullHour.isBefore(marketTimeEnd)) {
 
       val updatedCosts = costs.add(
         Quantities
           .getQuantity(
-            startTime.until(nextFullHour, ChronoUnit.SECONDS),
+            marketTimeStart.until(nextFullHour, ChronoUnit.SECONDS),
             SECOND
           )
           .multiply(power)
@@ -553,7 +556,7 @@ final case class EvcsModel(
           .to(KILOWATTHOUR)
           .multiply(
             StaticMarketSource
-              .price(startTime)
+              .price(marketTimeStart)
               .map(_.to(EURO_PER_KILOWATTHOUR)) match {
               case Success(value)     => value
               case Failure(exception) => throw exception
@@ -565,19 +568,22 @@ final case class EvcsModel(
 
       getChargingCostsForScheduleEntry(
         nextFullHour,
-        stopTime,
+        marketTimeEnd,
         power,
         updatedCosts
       )
 
     } else {
       val duration = Quantities
-        .getQuantity(startTime.until(stopTime, ChronoUnit.SECONDS), SECOND)
+        .getQuantity(
+          marketTimeStart.until(marketTimeEnd, ChronoUnit.SECONDS),
+          SECOND
+        )
       val chargedEnergy =
         duration.multiply(power).asType(classOf[Energy]).to(KILOWATTHOUR)
       val marketPrice =
         StaticMarketSource
-          .price(startTime)
+          .price(marketTimeStart)
           .map(_.to(EURO_PER_KILOWATTHOUR)) match {
           case Success(value)     => value
           case Failure(exception) => throw exception
