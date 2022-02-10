@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Changed
+- Harmonized active power output of `WecInput` and `PvInput` [#135](https://github.com/ie3-institute/simona/issues/135)
 - Improving code readability in EvcsAgent by moving FreeLotsRequest to separate methods
 
 ### Fixed
