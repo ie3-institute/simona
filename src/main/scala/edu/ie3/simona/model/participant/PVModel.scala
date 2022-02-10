@@ -740,7 +740,7 @@ final case class PVModel private (
       .multiply(genCorr * tempCorr)
 
     /* Calculate the foreseen active power output without boundary condition adaptions */
-    val proposal = sRated
+    val activePower = sRated
       .multiply(-1)
       .multiply(
         `yield`
@@ -753,18 +753,19 @@ final case class PVModel private (
       .to(MEGAWATT) // MW.
 
     /* Do sanity check, if the proposed feed in is above the estimated maximum to be apparent active power of the plant */
-    if (proposal.isLessThan(pMax))
+    if (activePower.isGreaterThan(pMax))
       logger.warn(
-        "The fed in active power is higher than the estimated maximum active power of this plant ({} < {}). " +
+        "The fed in active power of plant {} is higher than its estimated maximum active power ({} > {}). " +
           "Did you provide wrong weather input data?",
-        proposal,
+        uuid,
+        activePower,
         pMax
       )
 
-    /* If the output is marginally small, suppress the output, as we are likely to be in night and then only produce incorrect output */
-    if (proposal.compareTo(activationThreshold) > 0)
+    /* If the output is marginally small, suppress the output, as it's likely nighttime where there shouldn't be any output */
+    if (activePower.compareTo(activationThreshold) > 0)
       Quantities.getQuantity(0d, MEGAWATT)
-    else proposal
+    else activePower
   }
 }
 

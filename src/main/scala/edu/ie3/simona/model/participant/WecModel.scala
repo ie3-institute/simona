@@ -114,8 +114,9 @@ final case class WecModel(
 
     (if (activePower.isGreaterThan(pMax)) {
        logger.warn(
-         "The fed in active power is higher than the estimated maximum active power of this plant ({} > {}). " +
+         "The fed in active power of plant {} is higher than its estimated maximum active power ({} > {}). " +
            "Did you provide wrong weather input data?",
+         uuid,
          activePower,
          pMax
        )
