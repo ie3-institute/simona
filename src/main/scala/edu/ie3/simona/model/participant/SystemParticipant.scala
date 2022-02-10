@@ -203,7 +203,7 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
   ): ComparableQuantity[Power] = {
     if (p.isGreaterThan(pMax)) {
       logger.warn(
-        "The fed in active power of plant {} is higher than its estimated maximum active power ({} > {}).",
+        "The calculated active power of plant {} is higher than its estimated maximum active power ({} > {}). Will be limited to the maximum permissible output.",
         uuid,
         p,
         pMax
