@@ -287,4 +287,37 @@ class SystemParticipantTest extends Specification {
 		1.07               || 44.440972086578
 		1.1                || 44.440972086578
 	}
+
+	def "Limits active power to the maximum permissible power specified"() {
+		given: "a calculated power value and the maximum permissible power"
+
+		Quantity<Power> pQuant = Quantities.getQuantity(p, KILOWATT)
+		Quantity<Power> pMaxQuant = Quantities.getQuantity(pMax, KILOWATT)
+
+		def loadMock = new SystemParticipant<CalcRelevantData>(
+				UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
+				"System participant calculateQ Test",
+				OperationInterval.apply(0L, 86400L),
+				1d,
+				QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
+				Quantities.getQuantity(200, KILOWATT),
+				1d) {
+			@Override
+			ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
+				return Quantities.getQuantity(0, MEGAWATT)
+			}
+		}
+
+		when:
+		Quantity<Power> limited = loadMock.limitActivePower(pQuant, pMaxQuant)
+
+		then:
+		if (p <= pMax) limited.isEquivalentTo(pQuant) else limited.isEquivalentTo(pMaxQuant)
+
+		where:
+		p   || pMax
+		10  || 100
+		100 || 10
+		10  || 10
+	}
 }
