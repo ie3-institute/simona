@@ -752,7 +752,7 @@ final case class PVModel private (
       .asType(classOf[Power])
       .to(MEGAWATT) // MW.
 
-    /* Do sanity check, if the proposed feed in is above the estimated maximum to be apparent active power of the plant */
+    /* Do sanity check, if the proposed feed in is above the estimated maximum active power of the plant */
     if (activePower.isGreaterThan(pMax))
       logger.warn(
         "The fed in active power of plant {} is higher than its estimated maximum active power ({} > {}). " +
