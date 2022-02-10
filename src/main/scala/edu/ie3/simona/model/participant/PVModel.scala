@@ -741,7 +741,6 @@ final case class PVModel private (
 
     /* Calculate the foreseen active power output without boundary condition adaptions */
     val activePower = sRated
-      .multiply(-1)
       .multiply(
         `yield`
           .divide(irraditionSTC)
@@ -752,20 +751,12 @@ final case class PVModel private (
       .asType(classOf[Power])
       .to(MEGAWATT) // MW.
 
-    /* Do sanity check, if the proposed feed in is above the estimated maximum active power of the plant */
-    if (activePower.isGreaterThan(pMax))
-      logger.warn(
-        "The fed in active power of plant {} is higher than its estimated maximum active power ({} > {}). " +
-          "Did you provide wrong weather input data?",
-        uuid,
-        activePower,
-        pMax
-      )
-
     /* If the output is marginally small, suppress the output, as it's likely nighttime where there shouldn't be any output */
     if (activePower.compareTo(activationThreshold) > 0)
-      Quantities.getQuantity(0d, MEGAWATT)
-    else activePower
+      return Quantities.getQuantity(0d, MEGAWATT)
+
+    /* Do sanity check, if the proposed feed in is above the estimated maximum active power of the plant */
+    limitActivePower(activePower, pMax).multiply(-1)
   }
 }
 
