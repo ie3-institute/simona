@@ -23,7 +23,6 @@ import edu.ie3.simona.model.participant.evcs.marketoriented.MarketOrientedCurren
 import edu.ie3.simona.model.participant.evcs.uncontrolled.SchedulingWithConstantPower.calculateNewSchedulingWithConstantPower
 import edu.ie3.simona.model.participant.evcs.uncontrolled.SchedulingWithMaximumPower.calculateNewSchedulingWithMaximumChargingPower
 import edu.ie3.simona.model.participant.evcs.marketoriented.MarketOrientedScheduling.calculateNewMarketOrientedScheduling
-import edu.ie3.simona.model.participant.evcs.marketoriented.MarketPricePrediction
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.service.market.StaticMarketSource
 import edu.ie3.simona.util.TickUtil.TickLong
