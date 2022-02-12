@@ -36,7 +36,7 @@ EvcsAgent2 -> ExtEvDataService: <font color=red>!</font> FreeLotsResponse(_, _)
 deactivate EvcsAgent2
 EvcsAgent1 -> ExtEvDataService: <font color=red>!</font> FreeLotsResponse(_, _)
 deactivate EvcsAgent1
-ExtEvDataService -> ExtSimulation: <font color=red>!</font> ProvideEvcsFreeLots(_)
+ExtEvDataService -> ExtSimulation: queue(ProvideEvcsFreeLots(_))
 deactivate ExtEvDataService
 
 'TODO Refactor from here
