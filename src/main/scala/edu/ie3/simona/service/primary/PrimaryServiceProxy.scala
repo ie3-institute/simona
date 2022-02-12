@@ -239,7 +239,7 @@ case class PrimaryServiceProxy(
     * @param stateData
     *   Current state data of the actor
     */
-  private[primary] def handleCoveredModel(
+  protected def handleCoveredModel(
       modelUuid: UUID,
       timeSeriesUuid: UUID,
       stateData: PrimaryServiceStateData,
@@ -299,7 +299,7 @@ case class PrimaryServiceProxy(
     * @return
     *   The [[ActorRef]] to the worker
     */
-  private[primary] def initializeWorker(
+  protected def initializeWorker(
       columnScheme: ColumnScheme,
       timeSeriesUuid: UUID,
       simulationStart: ZonedDateTime,

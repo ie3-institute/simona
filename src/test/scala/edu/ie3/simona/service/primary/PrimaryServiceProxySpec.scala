@@ -53,10 +53,10 @@ import edu.ie3.util.TimeUtil
 import org.scalatest.PartialFunctionValues
 import org.scalatest.prop.TableDrivenPropertyChecks
 
+import java.nio.file.Paths
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 import java.util.{Objects, UUID}
-import scala.reflect.io.File
 import scala.util.{Failure, Success, Try}
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -73,9 +73,16 @@ class PrimaryServiceProxySpec
     )
     with TableDrivenPropertyChecks
     with PartialFunctionValues {
-  val baseDirectoryPath: String = this.getClass
-    .getResource(File.separator + "it-data" + File.separator + "primaryService")
-    .getPath
+  // this works both on Windows and Unix systems
+  val baseDirectoryPath: String = Paths
+    .get(
+      this.getClass
+        .getResource(
+          "/it-data/primaryService"
+        )
+        .toURI
+    )
+    .toString
   val csvSep = ";"
   val fileNamingStrategy = new FileNamingStrategy()
   val validPrimaryConfig: PrimaryConfig =
@@ -126,7 +133,7 @@ class PrimaryServiceProxySpec
     mappingSource
   )
 
-  val scheduler = TestProbe("scheduler")
+  val scheduler: TestProbe = TestProbe("scheduler")
 
   "Testing a primary service config" should {
     "lead to complaining about too much source definitions" in {
@@ -352,6 +359,9 @@ class PrimaryServiceProxySpec
   }
 
   "Spinning off a worker" should {
+    val initializeWorker =
+      PrivateMethod[Try[ActorRef]](Symbol("initializeWorker"))
+
     "successfully instantiate an actor within the actor system" in {
       val classToWorkerRef = PrivateMethod[ActorRef](Symbol("classToWorkerRef"))
 
@@ -420,7 +430,7 @@ class PrimaryServiceProxySpec
         None
       )
 
-      proxy.initializeWorker(
+      proxy invokePrivate initializeWorker(
         ColumnScheme.APPARENT_POWER,
         timeSeriesUuid,
         simulationStart,
@@ -461,10 +471,26 @@ class PrimaryServiceProxySpec
               timeSeriesUuid: String,
               simulationStart: ZonedDateTime
           ): ActorRef = testProbe.ref
+
+          // needs to be overwritten as to make it available to the private method tester
+          override protected def initializeWorker(
+              columnScheme: ColumnScheme,
+              timeSeriesUuid: UUID,
+              simulationStart: ZonedDateTime,
+              primaryConfig: PrimaryConfig,
+              mappingSource: TimeSeriesMappingSource
+          ): Try[ActorRef] =
+            super.initializeWorker(
+              columnScheme,
+              timeSeriesUuid,
+              simulationStart,
+              primaryConfig,
+              mappingSource
+            )
         })
       val fakeProxy: PrimaryServiceProxy = fakeProxyRef.underlyingActor
 
-      fakeProxy.initializeWorker(
+      fakeProxy invokePrivate initializeWorker(
         ColumnScheme.APPARENT_POWER,
         timeSeriesUuid,
         simulationStart,
@@ -560,11 +586,13 @@ class PrimaryServiceProxySpec
   }
 
   "Handling of a covered model" should {
+    val handleCoveredModel = PrivateMethod(Symbol("handleCoveredModel"))
+
     "fail, if no information can be obtained from state data" in {
       val maliciousStateData =
         proxyStateData.copy(timeSeriesToSourceRef = Map.empty[UUID, SourceRef])
 
-      proxy.handleCoveredModel(
+      proxy invokePrivate handleCoveredModel(
         modelUuid,
         timeSeriesUuid,
         maliciousStateData,
@@ -580,7 +608,7 @@ class PrimaryServiceProxySpec
         )
       )
 
-      proxy.handleCoveredModel(
+      proxy invokePrivate handleCoveredModel(
         modelUuid,
         timeSeriesUuid,
         adaptedStateData,
@@ -599,7 +627,7 @@ class PrimaryServiceProxySpec
         )
       )
 
-      proxy.handleCoveredModel(
+      proxy invokePrivate handleCoveredModel(
         modelUuid,
         timeSeriesUuid,
         maliciousStateData,
@@ -613,17 +641,31 @@ class PrimaryServiceProxySpec
       val probe = TestProbe("workerTestProbe")
       val fakeProxyRef =
         TestActorRef(new PrimaryServiceProxy(self, simulationStart) {
-          override def initializeWorker(
+          override protected def initializeWorker(
               columnScheme: ColumnScheme,
               timeSeriesUuid: UUID,
               simulationStart: ZonedDateTime,
               primaryConfig: PrimaryConfig,
               mappingSource: TimeSeriesMappingSource
           ): Try[ActorRef] = Success(probe.ref)
+
+          // needs to be overwritten as to make it available to the private method tester
+          override protected def handleCoveredModel(
+              modelUuid: UUID,
+              timeSeriesUuid: UUID,
+              stateData: PrimaryServiceStateData,
+              requestingActor: ActorRef
+          ): Unit =
+            super.handleCoveredModel(
+              modelUuid,
+              timeSeriesUuid,
+              stateData,
+              requestingActor
+            )
         })
       val fakeProxy = fakeProxyRef.underlyingActor
 
-      fakeProxy.handleCoveredModel(
+      fakeProxy invokePrivate handleCoveredModel(
         modelUuid,
         timeSeriesUuid,
         proxyStateData,
@@ -648,7 +690,7 @@ class PrimaryServiceProxySpec
       val probe = TestProbe("workerTestProbe")
       val fakeProxyRef =
         TestActorRef(new PrimaryServiceProxy(self, simulationStart) {
-          override def initializeWorker(
+          override protected def initializeWorker(
               columnScheme: ColumnScheme,
               timeSeriesUuid: UUID,
               simulationStart: ZonedDateTime,
