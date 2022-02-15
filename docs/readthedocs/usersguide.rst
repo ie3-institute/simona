@@ -17,11 +17,11 @@ To run and customize the project you need a Java Development Kit (JDK) installat
 Installation
 ============
 
-You can find and download the source code of the latest stable SIMONA version `here <https://git.ie3.e-technik.tu-dortmund.de/SIMONACrew/SIMONA>`_. Go ahead and clone the repository using git:
+You can find and download the source code of the latest stable SIMONA version `here <https://github.com/ie3-institute/simona>`_. Go ahead and clone the repository using git:
 
 .. code-block:: none
 
-   $ git clone https://git.ie3.e-technik.tu-dortmund.de/SIMONACrew/SIMONA.git
+   $ git clone https://github.com/ie3-institute/simona.git
 
 
 Running a Standalone Simulation
