@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Changed
 - Improving code readability in EvcsAgent by moving FreeLotsRequest to separate methods
+- Re-organizing test resources into their respective packages [#105](https://github.com/ie3-institute/simona/issues/105)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund)
