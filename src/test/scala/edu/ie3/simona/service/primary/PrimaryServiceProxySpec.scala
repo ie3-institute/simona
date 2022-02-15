@@ -78,7 +78,7 @@ class PrimaryServiceProxySpec
     .get(
       this.getClass
         .getResource(
-          "/it-data/primaryService"
+          "it"
         )
         .toURI
     )
@@ -133,7 +133,7 @@ class PrimaryServiceProxySpec
     mappingSource
   )
 
-  val scheduler: TestProbe = TestProbe("scheduler")
+  private val scheduler: TestProbe = TestProbe("scheduler")
 
   "Testing a primary service config" should {
     "lead to complaining about too much source definitions" in {

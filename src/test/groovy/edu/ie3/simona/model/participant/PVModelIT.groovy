@@ -4,13 +4,12 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.test.integration
+package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.simona.io.grid.CsvGridSource
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.PVModel
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.util.TimeUtil
@@ -114,20 +113,22 @@ class PVModelIT extends Specification implements PVModelITHelper {
 }
 
 trait PVModelITHelper {
+	private static final CSV_FORMAT = CSVFormat.DEFAULT.builder().setHeader().build()
+
 	Iterable<CSVRecord> getCsvRecords(String fileName) {
-		def resultsInputData = new File(this.getClass().getClassLoader().getResource(fileName).getFile())
+		def resultsInputData = new File(this.getClass().getResource(fileName).file)
 		def fileStream = new FileInputStream(resultsInputData)
 		def gzipStream = new GZIPInputStream(fileStream)
 		def decoder = new InputStreamReader(gzipStream, "UTF-8")
 		def br = new BufferedReader(decoder)
-		return CSVFormat.DEFAULT.withHeader().parse(br)
+		return CSV_FORMAT.parse(br)
 	}
 
 	HashMap<String, PVModel> getPVModels() {
 		"load the grid input data from the corresponding resources folder"
 
 		def csvGridSource = CsvGridSource.apply("it_grid", ";",
-				this.getClass().getClassLoader().getResource("it-data").getFile() + File.separator + "pvModelITData" + File.separator + "grid_data",
+				this.getClass().getResource("pv/it/grid_data").file,
 				new FileNamingStrategy())
 
 		def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2011-01-01 00:00:00")
@@ -164,7 +165,7 @@ trait PVModelITHelper {
 
 	HashMap<ZonedDateTime, HashMap<String, WeatherMessage.WeatherData>> getWeatherData() {
 		"read the weather data from the provided weather data file"
-		final String fileName = "it-data/pvModelITData/weather.tar.gz"
+		final String fileName = "pv/it/weather.tar.gz"
 		final def csvRecords = getCsvRecords(fileName)
 
 		HashMap<ZonedDateTime, HashMap<String, WeatherMessage.WeatherData>> weatherMap = new HashMap<>()
@@ -202,7 +203,7 @@ trait PVModelITHelper {
 
 	HashMap<ZonedDateTime, HashMap<String, Quantity<Power>>> getResultsData() {
 		"read the results data from the provided file"
-		final String fileName = "it-data/pvModelITData/results2.tar.gz"
+		final String fileName = "pv/it/results2.tar.gz"
 		def csvRecords = getCsvRecords(fileName)
 
 		// we skip the first line and use hardcoded headers, because the first line is garbled
