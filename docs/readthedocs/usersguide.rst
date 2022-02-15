@@ -170,7 +170,7 @@ SIMONA is capable of running an external sub-simulation by integration within th
 The information flow between SIMONA and the external simulation is partitioned into a control stream (see ``edu.ie3.simona.api.ExtSimAdapter``) and a number of optional data streams.
 Currently, only a data stream transporting electric vehicle movement information is implemented (see ``edu.ie3.simona.service.ev.ExtEvDataService``).
 
-An external simulation has to depend on `SimonaAPI <https://git.ie3.e-technik.tu-dortmund.de/SIMONACrew/SimonaAPI>`_ and make use of some of its interfaces (see below).
+An external simulation has to depend on `SimonaAPI <https://github.com/ie3-institute/simonaAPI>`_ and make use of some of its interfaces (see below).
 In order to run an external simulation, several requirements have to be fulfilled and a bunch of preparation steps have to be followed.
 
 .. note::
