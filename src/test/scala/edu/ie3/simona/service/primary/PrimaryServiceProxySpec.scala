@@ -473,6 +473,7 @@ class PrimaryServiceProxySpec
           ): ActorRef = testProbe.ref
 
           // needs to be overwritten as to make it available to the private method tester
+          @SuppressWarnings(Array("NoOpOverride"))
           override protected def initializeWorker(
               columnScheme: ColumnScheme,
               timeSeriesUuid: UUID,
@@ -650,6 +651,7 @@ class PrimaryServiceProxySpec
           ): Try[ActorRef] = Success(probe.ref)
 
           // needs to be overwritten as to make it available to the private method tester
+          @SuppressWarnings(Array("NoOpOverride"))
           override protected def handleCoveredModel(
               modelUuid: UUID,
               timeSeriesUuid: UUID,
