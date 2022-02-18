@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from recommonmark.parser import CommonMarkParser
+"""from recommonmark.parser import CommonMarkParser"""
 
 project = u'simona'
 copyright = u'2020. TU Dortmund University, Institute of Energy Systems, Energy Efficiency and Energy Economics, Research group Distribution grid planning and operation '
@@ -14,15 +14,16 @@ add_function_parentheses = True
 
 extensions = ['sphinx.ext.autodoc',
               'sphinxcontrib.plantuml',
-              "myst_parser"]
+              'sphinx.ext.myst_parser']
 templates_path = ['_templates']
 exclude_trees = ['.build']
 source_suffix = ['.rst', '.md']
 source_encoding = 'utf-8-sig'
-source_parsers = {
-    '.md': CommonMarkParser
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.txt': 'markdown',
+    '.md': 'markdown',
 }
-
 # HTML options
 html_theme = 'sphinx_rtd_theme'
 html_short_title = "simona"
