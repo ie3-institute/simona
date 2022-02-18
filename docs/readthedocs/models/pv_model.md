@@ -1,0 +1,406 @@
+
+  -------- ------------------------------------------------------------------------------
+*with*   **n** = number of the day in the year (e.g. 1 January = 1, 20 February = 51)
+  -------- ------------------------------------------------------------------------------
+
+Based on J the declination angle $$\delta$$ (in radian!)
+can be calculated as follows:\
+$$ \delta = 0.006918 - 0.399912 \cdot cos(J) + 0.070257 \cdot
+sin(J) - 0.006758 \cdot cos(2\cdot J) + 0.000907 \cdot sin(2 \cdot
+J) - 0.002697 \cdot cos(3 \cdot J) + 0.00148 \cdot sin(3 \cdot J)
+$$
+
+**References:**\
+[Maleki, S.A., Hizam, H., & Gomes, C. (2017). Estimation of Hourly,
+Daily and Monthly Global Solar Radiation on Inclined Surfaces: Models
+Re-Visited.](https://res.mdpi.com/d_attachment/energies/energies-10-00134/article_deploy/energies-10-00134-v2.pdf)
+p. 2\
+Original reference of declination angle is: [Spencer, J.W. Fourier
+series representation of the position of the sun. Appl. Opt. 1971, 10,
+2569--2571](https://www.mail-archive.com/sundial@uni-koeln.de/msg01050.html)
+
+### Hour Angle
+
+The hour angle is a conceptual description of the rotation of the earth
+around its polar axis. It starts with a negative value in the morning,
+arrives at 0° at noon (solar time) and ends with a positive value in the
+evening. The hour angle (in radian!) is calculated as follows\
+![hour-angle.png](/model/hour-angle.png){.align-right width="600"}
+
+$$ \omega = ((12 - ST) \cdot 15) \* (\frac{\pi}{180})
+$$
+
+Since outside German literature the hour angle is defined as negative in
+the morning, we use the following adaption:
+
+$$ \omega = ((ST - 12) \cdot 15) \* (\frac{\pi}{180})
+$$
+
+$$ST = LMT + ET$$ \|*with*\|**LMT** = local mean time (in
+minutes)\| \| \|**ET** = equation of time (in minutes)\|\
+$$LMT = CET - 4 \cdot (15 - \lambda)$$
+\|*with*\|**CET** = central eastern time\| \| \|**λ** = longitude of the
+location of the PV panel \|\
+
+$$ET = 0.0066 + 7.3525 \cdot cos(J + 1.4992378274631293) +
+9.9359 \cdot cos(2 \cdot J + 1.9006635554218247) + 0.3387 \cdot cos(3
+\cdot J + 1.8360863730980346)$$ \|*with*\|**J** = day angle (in
+radian!)\|\
+
+**Note:** The used formulas are based on *\"DIN 5034-2: Tageslicht in
+Innenräumen, Grundlagen.\"* and therefore valid especially for Germany
+and Europe. For international calculations a more general formulation
+that can be found in [Maleki, S.A., Hizam, H., & Gomes, C. (2017).
+Estimation of Hourly, Daily and Monthly Global Solar Radiation on
+Inclined Surfaces: Models
+Re-Visited.](https://res.mdpi.com/d_attachment/energies/energies-10-00134/article_deploy/energies-10-00134-v2.pdf)
+might be used.\
+**References:**\
+![Watter, Holger. (2013). Regenerative Energiesysteme: Grundlagen,
+Systemtechnik und Analysen ausgeführter Beispiele nachhaltiger
+Energiesysteme.
+10.1007/978-3-658-23488-1.](/model/watter2015_chapter_photovoltaik.pdf){.align-center}\
+Regarding pos/neg direction of $$\omega$$: [Science
+Direct: Solar Hour
+Angle](https://www.sciencedirect.com/topics/engineering/solar-hour-angle)\
+Primary source: [Wang, Zhifeng. (2019). Design of Solar Thermal Power
+Plants.](https://www.sciencedirect.com/science/article/pii/B978012815613100002X)
+
+### Sunrise Angle
+
+The hour angles at sunrise and sunset are very useful quantities to
+know. These two values have the same absolute value, however the sunrise
+angle ($$\omega\_{SR}$$) is positive and the sunset
+angle ($$\omega\_{SS}$$) is negative. Both can be
+calculated from:
+
+$$ \omega\_{SR}=\cos\^{-1}(-tan \phi \cdot tan \delta)\
+\omega\_{SS}=-\omega\_{SR} $$
+
+  -------- -------------------------------
+*with*   **δ** = the declination angle
+  -------- -------------------------------
+
+**References:**\
+[Maleki, S.A., Hizam, H., & Gomes, C. (2017). Estimation of Hourly,
+Daily and Monthly Global Solar Radiation on Inclined Surfaces: Models
+Re-Visited.](https://res.mdpi.com/d_attachment/energies/energies-10-00134/article_deploy/energies-10-00134-v2.pdf)
+p. 20\
+[The Sun As A Source Of Energy Part 3: Calculating Solar
+Angles](https://www.itacanet.org/the-sun-as-a-source-of-energy/part-3-calculating-solar-angles/)
+
+### Solar Altitude Angle
+
+Represents the angle between the horizontal and the line to the sun,
+that is, the complement of the zenith angle.
+
+$$ sin(\alpha\_{s}) = sin \phi \cdot sin \delta + cos \delta
+\cdot cos \omega \cdot cos \phi $$
+
+  -------- ------------------------------- --- -- --------------------
+*with*   **δ** = the declination angle
+
+           **φ** = observer's latitude     \      **ω** = hour angle
+  -------- ------------------------------- --- -- --------------------
+
+**References:**\
+[Maleki, S.A., Hizam, H., & Gomes, C. (2017). Estimation of Hourly,
+Daily and Monthly Global Solar Radiation on Inclined Surfaces: Models
+Re-Visited.](https://res.mdpi.com/d_attachment/energies/energies-10-00134/article_deploy/energies-10-00134-v2.pdf)
+p. 5 (Zenith angle $$\theta_z$$ is an adjacent angle of
+$$\alpha_s$$)\
+[The Sun As A Source Of Energy Part 3: Calculating Solar
+Angles](https://www.itacanet.org/the-sun-as-a-source-of-energy/part-3-calculating-solar-angles/)
+
+![solar-altitude.jpg](/model/solar-altitude.jpg){.align-right
+width="400"}
+
+[![sun_angles_overview.png](/model/sun_angles_overview.png){.align-right
+width="400"}](https://www.itacanet.org/the-sun-as-a-source-of-energy/part-1-solar-astronomy/)
+
+### Zenith Angle
+
+Represents the angle between the vertical and the line to the sun, that
+is, the angle of incidence of beam radiation on a horizontal surface.
+
+$$ \theta\_{z} = (\frac{\pi}{2}) - \alpha\_{s} $$
+
+  -------- ---------------------------------
+*with*   **α~s~** = solar altitude angle
+  -------- ---------------------------------
+
+**References:**\
+See Solar Altitude Angle
+
+### Incidence Angle
+
+The angle of incidence is the angle between the Sun\'s rays and the PV
+panel. It can be calculated as follows:\
+$$ \theta\_{g} = arccos(sin(\delta) \cdot sin(\phi) \cdot
+cos(\gamma\_{e}) - sin(\delta) \cdot cos(\phi) \cdot
+sin(\gamma\_{e}) \cdot cos(\alpha\_{e}) $$ $$ +
+cos(\delta) \cdot cos(\phi) \cdot cos(\gamma\_{e}) \cdot
+cos(\omega) + cos(\delta) \cdot sin(\phi) \cdot sin(\gamma\_{e})
+\cdot cos(\alpha\_{e}) \cdot cos(\omega)$$ $$ +
+cos(\delta) \cdot sin(\gamma\_{e}) \cdot sin(\alpha\_{e}) \cdot
+sin(\omega)) $$
+
+  -------- ----------------------------- --- -- --------------------------------- --- -- --------------------------------------- --- -- -------------------------------
+*with*   **α~e~** = sun azimuth        \      **α~s~** = solar altitude angle   \      **γ~e~** = slope angle of the surface   \      **δ** = the declination angle
+
+           **φ** = observer's latitude   \      **ω** = hour angle                                                                      
+  -------- ----------------------------- --- -- --------------------------------- --- -- --------------------------------------- --- -- -------------------------------
+
+**References:**\
+Quaschning, Volker. (2013). Regenerative Energiesysteme.\
+[Maleki, S.A., Hizam, H., & Gomes, C. (2017). Estimation of Hourly,
+Daily and Monthly Global Solar Radiation on Inclined Surfaces: Models
+Re-Visited.](https://res.mdpi.com/d_attachment/energies/energies-10-00134/article_deploy/energies-10-00134-v2.pdf)
+p. 18
+
+### Air Mass
+
+Calculating the air mass ratio by dividing the radius of the earth with
+approx. effective height of the atmosphere (each in kilometer)
+
+$$ airmassratio = (\frac{6371 km}{9 km}) = 707.8\overline{8}
+$$
+
+$$ airmass = \sqrt{[^1]\^2 +2 \cdot 707.8\overline{8} +1)} -
+707.8\overline{8} \cdot cos(\theta\_{z}) $$
+
+**References:**\
+[Schoenberg, E. (1929). Theoretische Photometrie, g) Über die Extinktion
+des Lichtes in der Erdatmosphäre. In Handbuch der Astrophysik. Band II,
+erste Hälfte. Berlin:
+Springer.](https://link.springer.com/chapter/10.1007/3-540-30669-2_3)\
+[Wikipedia: Air
+Mass](https://en.wikipedia.org/wiki/Air_mass_(solar_energy)#Calculation)
+
+### Extraterrestrial Radiation
+
+The extraterrestrial radiation I~0~ is calculated by multiplying the
+eccentricity correction factor
+
+$$ e = 1.00011 + 0.034221 \cdot cos(J) + 0.001280 \cdot
+sin(J) + 0.000719 \cdot cos(2J) + 0.000077 \cdot sin(2J) $$
+
+with the solar constant
+
+$$ G\_{SC} = 1367 \frac{W}{m\^2} $$
+
+  -------- -------------------
+*with*   **J** = day angle
+  -------- -------------------
+
+**References:**\
+![Zheng, H. (2017). Solar Energy Utilization and Its Collection
+Devices.](/model/zheng2017_solarenergyutilizationanditscollectiondevices.pdf){.align-center}
+p. 53, formula 2.3b\
+Iqbal, M. (1983). An introduction to solar radiation.
+
+### Beam Radiation on Sloped Surface
+
+For our use case, $$\omega_2$$ is normally set to the
+hour angle one hour after $$\omega_1$$. Within one hour
+distance to sunrise/sunset, we adjust $$\omega_1$$ and
+$$\omega_2$$ accordingly:
+
+$$ (\omega_1, \omega_2) = \left\{\begin{array}{ll}
+
+          (\omega_{SR}, \omega_{SR} + \Delta\omega), & \text{for } (\omega_{SR} - \frac{\Delta\omega}{2}) < \omega < \omega_{SR} \
+          (\omega, \omega + \Delta\omega), & \text{for } \omega_{SR} \leq \omega \leq (\omega_{SS} - \Delta\omega) \
+          (\omega_{SS} - \Delta\omega, \omega_{SS}), & \text{for } (\omega_{SS} - \Delta\omega) < \omega < (\omega_{SS} - \frac{\Delta\omega}{2})
+          \end{array}
+          \right
+
+$$\
+
+  -------- ------------------------------------ --- -- ------------------------------------- --- -- ---------------------- ---------------------------- ----------------------------
+*with*   **ω** = hour angle
+
+           **ω~SS~** = hour angle ω at sunset   \      **ω~SR~** = hour angle ω at sunrise   \      **​Δ​ω** = $$15   \circ \cdot (\frac {180   \circ} {\pi})$$\
+                                                                                                                                                        (one hour worth of ​ω)
+  -------- ------------------------------------ --- -- ------------------------------------- --- -- ---------------------- ---------------------------- ----------------------------
+
+From here on, formulas from given reference below are used:
+
+$$ a = (sin(\delta) \cdot sin(\phi) \cdot cos(\gamma\_{e}) -
+sin(\delta) \cdot cos(\phi) \cdot sin(\gamma\_{e}) \cdot
+cos(\alpha\_{e})) \cdot (\omega\_{2} - \omega\_{1}) $$
+$$ + (cos(\delta) \cdot cos(\phi) \cdot cos(\gamma\_{e}) +
+cos(\delta) \cdot sin(\phi) \cdot sin(\gamma\_{e}) \cdot
+cos(\alpha\_{e})) \cdot (sin(\omega\_{2}) -
+sin(\omega\_{1}))$$ $$ - (cos(\delta) \cdot
+sin(\gamma\_{e}) \cdot sin(\alpha\_{e})) \cdot (cos(\omega\_{2}) -
+cos(\omega\_{1})) $$
+
+$$ b = (cos(\phi) \cdot cos(\delta)) \cdot
+(sin(\omega\_{2}) - sin(\omega\_{1})) + (sin(\phi) \cdot
+sin(\delta)) \cdot (\omega\_{2} - \omega\_{1}) $$
+
+$$ E\_{dir,S} = E\_{dir,H} \cdot \frac{a}{b} $$
+
+**Please note:** $$\frac{1}{180}\pi$$ is omitted from
+these formulas, as we are already working with data in *radians*.
+
+  -------- ----------------------------------------------------
+*with*   **δ** = the declination angle
+**φ** = observer's latitude
+**γ~e~** = slope angle of the surface
+**ω~1~** = hour angle ω
+**ω~2~** = hour angle ω + 1 hour
+**α~e~** = sun azimuth
+**E~dir,H~** = beam radiation (horizontal surface)
+  -------- ----------------------------------------------------
+
+\*\* Reference: \*\*\
+[Duffie, J.A., & Beckman, W.A. (2013). Solar Engineering of Thermal
+Processes: Duffie/Solar Engineering
+4e.](https://www.sku.ac.ir/Datafiles/BookLibrary/45/John%20A.%20Duffie,%20William%20A.%20Beckman(auth.)-Solar%20Engineering%20of%20Thermal%20Processes,%20Fourth%20Edition%20(2013).pdf)
+p. 88
+
+### Diffuse Radiation on Sloped Surface
+
+The diffuse radiation is computed using the Perez model, which divides
+the radiation in three parts. First, there is an intensified radiation
+from the direct vicinity of the sun. Furthermore, there is Rayleigh
+scattering, backscatter (which lead to increased in intensity on the
+horizon) and isotropic radiation considered.
+
+A cloud index is defined by
+
+$$ \epsilon = \frac{\frac{E\_{dif,H} +
+E\_{dir,H}}{E\_{dif,H}} + 5.535 \cdot 10\^{-6} \cdot
+\theta\_{z}\^3}{1 + 5.535 \cdot 10\^{-6} \cdot \theta\_{z}\^3}
+$$
+
+Calculating an brightness index
+
+$$ \Delta = m \cdot \frac{E\_{dif,H}}{I\_{0}} $$
+
+**Perez Fij coefficients (Myers 2017):**\
+$$\epsilon$$ is sorted into one of eight bins according
+to its value:
+
+$$\epsilon$$ low   $$\epsilon$$ high   Bin number // x //
+  ---------------------------------- ----------------------------------- --------------------
+1                                  1.065                               1
+1.065                              1.230                               2
+1.230                              1.500                               3
+1.500                              1.950                               4
+1.950                              2.800                               5
+2.800                              4.500                               6
+4.500                              6.200                               7
+6.200                              $$\infty$$          8
+
+In order to calculate indexes representing the horizon brightness and
+the brightness in the vicinity of the sun, the following factors are
+computed.
+
+$$ F\_{11}(x) = -0.0161 \cdot x\^3 + 0.1840 \cdot x\^2 - 0.3806
+\cdot x + 0.2324 $$
+
+$$ F\_{12}(x) = 0.0134 \cdot x\^4 - 0.1938 \cdot x\^3 + 0.8410
+\cdot x\^2 - 1.4018 \cdot x + 1.3579 $$
+
+$$ F\_{13}(x) = 0.0032 \cdot x\^3 - 0.028 \cdot x\^2 - 0.0056
+\cdot x - 0.0385 $$
+
+$$ F\_{21}(x) = -0.0048 \cdot x\^3 + 0.0536 \cdot x\^2 - 0.1049
+\cdot x + 0.0034 $$
+
+$$ F\_{22}(x) = 0.0012 \cdot x\^3 - 0.0067 \cdot x\^2 + 0.0091
+\cdot x - 0.0269 $$
+
+$$ F\_{23}(x) = 0.0052 \cdot x\^3 - 0.0971 \cdot x\^2 + 0.2856
+\cdot x - 0.1389 $$
+
+Horizon brightness index:
+
+$$ F\_{1} = F\_{11}(x) + F\_{12}(x) \cdot \Delta + F\_{13}(x)
+\cdot \theta\_{z} $$
+
+Sun ambient brightness index:
+
+$$ F\_{2} = F\_{21}(x) + F\_{22}(x) \cdot \Delta + F\_{23}(x)
+\cdot \theta\_{z} $$
+
+Using the factors
+
+$$ a = max(0, cos(\theta\_{g})) $$
+
+and
+
+$$ b = max(0.087, sin(\alpha\_{s})) $$
+
+the diffuse radiation can be calculated:
+
+$$ E\_{dif,S} = E\_{dif,H} \cdot (\frac{1}{2} \cdot (1 +
+cos(\gamma\_{e})) \cdot (1- F\_{1}) + \frac{a}{b} \cdot F\_{1} +
+F\_{2} \cdot sin(\gamma\_{e})) $$
+
+  -------- -------------------------------------------------------
+*with*   **θ~z~** = zenith angle
+**θ~g~** = angle of incidence
+**α~s~** = solar altitude angle
+**α~e~** = sun azimuth
+**γ~e~** = slope angle of the surface
+**I~0~** = Extraterrestrial Radiation
+**m** = air mass
+**E~dir,H~** = direct radiation (horizontal surface)
+**E~dif,H~** = diffuse radiation (horizontal surface)
+  -------- -------------------------------------------------------
+
+**References:** [Perez, R.L., Seals, R., Ineichen, P., Stewart, R., &
+Menicucci, D.F. (1987). A NEW SIMPLIFIED VERSION OF THE PEREZ DIFFUSE
+IRRADIANCE MODEL FOR TILTED
+SURFACES.](http://www.physics.arizona.edu/~cronin/Solar/References/Shade%20effects/sdarticle%20(24).pdf)
+[Perez, R., Ineichen, P., Seals, R., Michalsky, J.J., & Stewart, R.
+(1990). Modeling daylight availability and irradiance components from
+direct and global
+irradiance.](http://www.cuepe.ch/html/biblio/pdf/perez-ineichen%201990%20-%20modelling%20daylight%20(se).pdf)
+Estimation of F-values: [Myers, D.R. (2017). Solar Radiation : Practical
+Modeling for Renewable Energy
+Applications.](https://www.semanticscholar.org/paper/Solar-Radiation-%3A-Practical-Modeling-for-Renewable-Myers/dc5f81a73058a6d96e697d562e51bbd7a83f0e85)
+p. 96f
+
+### Reflected Radiation on Sloped Surface
+
+$$ E\_{ref,S} = E\_{Ges,H} \cdot \frac{\rho}{2} \cdot (1-
+cos(\gamma\_{e})) $$
+
+  -------- -----------------------------------------------------------------
+*with*   **E~Ges,H~** = total horizontal radiation (E~dir,H~ + E~dif,H~)
+**γ~e~** = slope angle of the surface
+**ρ** = albedo
+  -------- -----------------------------------------------------------------
+
+**Reference:**\
+[Maleki, S.A., Hizam, H., & Gomes, C. (2017). Estimation of Hourly,
+Daily and Monthly Global Solar Radiation on Inclined Surfaces: Models
+Re-Visited.](https://res.mdpi.com/d_attachment/energies/energies-10-00134/article_deploy/energies-10-00134-v2.pdf)
+p. 19
+
+### Output
+
+Received energy is calculated as the sum of all three types of
+irradiation.
+
+$$ E\_{total} = E\_{dir,S} + E\_{dif,S} + E\_{ref,S} $$
+
+  -------- ------------------------------------
+*with*   **E~dir,S~** = Beam radiation
+**E~dif,S~** = Diffuse radiation
+**E~ref,S~** = Reflected radiation
+  -------- ------------------------------------
+
+A generator correction factor (depending on month surface slope γ~e~)
+and a temperature correction factor (depending on month) multiplied on
+top.
+
+It is checked whether proposed output exceeds maximum (*p~Max~*), in
+which case a warning is logged. If output falls below activation
+threshold, it is set to 0.
+
+[^1]: 707.8\overline{8} \cdot cos(\theta\_{z}

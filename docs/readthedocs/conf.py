@@ -13,7 +13,8 @@ pygments_style = 'tango'
 add_function_parentheses = True
 
 extensions = ['sphinx.ext.autodoc',
-              'sphinxcontrib.plantuml']
+              'sphinxcontrib.plantuml',
+              "myst_parser"]
 templates_path = ['_templates']
 exclude_trees = ['.build']
 source_suffix = ['.rst', '.md']
