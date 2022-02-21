@@ -13,9 +13,12 @@ master_doc = 'index'
 pygments_style = 'tango'
 add_function_parentheses = True
 
-extensions = ['sphinx.ext.autodoc',
-              'sphinxcontrib.plantuml',
-              'sphinx.ext.myst_parser',]
+extensions = [
+    'myst_parser',
+    'sphinx.ext.autosectionlabel',
+    'sphinx.ext.autodoc',
+    'sphinxcontrib.plantuml',
+             ]
 templates_path = ['_templates']
 exclude_trees = ['.build']
 source_suffix = ['.rst', '.md']
