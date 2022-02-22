@@ -32,7 +32,7 @@ The implemented behaviour is shown in the program sequence plan below. In genera
 
 ## Implementation:
 
-<img src="../images/models/chp_model/ChpModelCalculation.png" alt="ChpModel Implementation" align="center"/>
+![](../images/models/chp_model/ChpModelCalculation.png)
 
 ## Mathematical concept
 
@@ -57,4 +57,4 @@ The implementation of the CHP unit's behavior is based on the following mathemat
 
 Given a time interval I, the heat demand WD(t-1), the running status c(t-1) and the storage energy level Wst(t-1) the CHP model calculates if the heat demand can be covered and if the CHP unit has to be turned off/on.
 
-<img src="../images/models/chp_model/ChpModelMathematicalNotations.png" alt="ChpModel Mathematical Notations" height=400px width=650px align="center"/>
+![](../images/models/chp_model/ChpModelMathematicalNotations.png)

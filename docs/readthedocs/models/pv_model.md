@@ -41,8 +41,7 @@ flowchart
 ![](../images/models/pv_model/pv_it_test_wholeyear.png)
 
 ## Calculations
-
-<img src="../images/models/pv_model/pvradiation.png" alt="pvradiation" width=600px align="right"/>
+![](../images/models/pv_model/pvradiation.png)
 
 The energy produced by a photovoltaic (pv) unit in a specific time step is based on the diffuse and direct radiation provided by the used weather data. The following steps are done to calculate (= estimate) the power feed by the pv.
 
@@ -53,8 +52,8 @@ To calculate the overall feed in of the pv unit, the sum of the direct radiation
 The azimuth angle $\alpha_E$ starts at negative values in the East and moves over 0° (South) towards positive values in the West. [Source](https://www.photovoltaik.org/wissen/azimutwinkel)
 
 ### Declination Angle
+![](../images/models/pv_model/declination_angle.png)
 
-<img src="../images/models/pv_model/declination_angle.png" alt="Declination Angle"/>
 
 The declination angle $\delta$ (in radian!) is the day angle that represents the position of the earth in relation to the sun. To calculate this angle, we need to calculate the day angle $J$. The day angle in radian is represented by:
 
@@ -82,7 +81,7 @@ $$
 
 The hour angle is a conceptual description of the rotation of the earth around its polar axis. It starts with a negative value in the morning, arrives at 0° at noon (solar time) and ends with a positive value in the evening. The hour angle (in radian!) is calculated as follows
 
-<img src="../images/models/pv_model/hour-angle.png" alt="Hour Angle" width=600px/>
+![](../images/models/pv_model/hour-angle.png)
 
 $$
 \omega = ((12 - ST) \cdot 15) \cdot (\frac{\pi}{180})
@@ -172,9 +171,9 @@ $\omega$= hour angle
 - [Maleki, S.A., Hizam, H., & Gomes, C. (2017). Estimation of Hourly, Daily and Monthly Global Solar Radiation on Inclined Surfaces: Models Re-Visited.](https://res.mdpi.com/d_attachment/energies/energies-10-00134/article_deploy/energies-10-00134-v2.pdf) p. 5  (Zenith angle $\theta_z$ is an adjacent angle of $\alpha_s$)
 - [The Sun As A Source Of Energy Part 3: Calculating Solar Angles](https://www.itacanet.org/the-sun-as-a-source-of-energy/part-3-calculating-solar-angles/)
 
-<img src="../images/models/pv_model/solar-altitude.jpg" alt="Solar Altitude" width=400px/>
+![](../images/models/pv_model/solar-altitude.jpg)
 
-<img src="../images/models/pv_model/sun_angles_overview.png" alt="Sun Angles overview" width=400px/>
+![](../images/models/pv_model/sun_angles_overview.png)
 
 ### Zenith Angle
 
