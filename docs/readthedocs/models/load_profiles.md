@@ -7,13 +7,11 @@ Load profiles model the annual power consumption of various consumer types in qu
 Load profiles are determined by three factors: consumer type, day type and season.
 
 
-| Factor | Possible values |
-| -------- | -------- | 
-| Consumer type (Kundengruppe)      | H0 (**H**ousehold),**H**aushalt),<br>*G0* (Industry/**G**ewerbe),<br> *L0* (Agriculture/**L**andwirtschaft)|
-|Season (Zeitzone) |*W* (Winter/**W**inter),<br> *U* (Transition/**Ü**bergangszeit),<br> *S* (Summer/**S**ommer)
-| Day type (Charakteristischer Tag)| *We* (Weekday/**We**rktag),<br> *Sa* (Saturday/**S**amstag),<br> *So* (Sunday/**S**onntag) |
-
-
+| Factor                            | Possible values                                                                                             |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Consumer type (Kundengruppe)      | H0 (**H**ousehold),**H**aushalt),<br>*G0* (Industry/**G**ewerbe),<br> *L0* (Agriculture/**L**andwirtschaft) |
+| Season (Zeitzone)                 | *W* (Winter/**W**inter),<br> *U* (Transition/**Ü**bergangszeit),<br> *S* (Summer/**S**ommer)               |
+| Day type (Charakteristischer Tag) | *We* (Weekday/**We**rktag),<br> *Sa* (Saturday/**S**amstag),<br> *So* (Sunday/**S**onntag)                  |
 
 In total, 27 combinations have to be considered. A load profile type is represented as a *LoadProfileKey* in SIMONA, consisting of specific types for all three factors.
 
@@ -29,9 +27,12 @@ Assignment of season and day type are described at page 4 of the source PDF.
 
 Household type *H0* requires special treatment by multiplying a dynamization factor, which is dependent on the day of year *t*.
 
-$$ F_t = -3.92 \cdot 10^{-10} \cdot t^4 + 3.2 \cdot 10^{-7}
+$$
+F_t = -3.92 \cdot 10^{-10} \cdot t^4 + 3.2 \cdot 10^{-7}
 \cdot t^3 - 7.2 \cdot 10^{-5} \cdot t^2 + 2.1 \cdot 10^{-3}
-\cdot t + 1.24 $$
+\cdot t + 1.24
+
+$$
 
 The factor $F_t$, after calculation, shall be rounded to four decimal places. After multiplication with the profile value for given quarter hour, the result should again be rounded to one decimal place.
 
@@ -52,6 +53,5 @@ Load profile values are normalized for an annual consumption of 1000 kWh/a. For 
 Both model and data stem from [BDEW](https://www.bdew.de/energie/standardlastprofile-strom/).
 
 The model in its entirety is described here: [Hyperlink](https://www.bdew.de/media/documents/2000131_Anwendung-repraesentativen_Lastprofile-Step-by-step.pdf)
-
 
 The data sources are taken from [Profile.zip](https://www.bdew.de/media/documents/Profile.zip), which includes file *Repräsentative Profile VDEW.xls*. The tabs H0, G0 and L0 contain the values that make up Lastprofile.csv in the SIMONA project.
