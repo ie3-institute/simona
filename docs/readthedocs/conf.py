@@ -18,6 +18,7 @@ extensions = [
     'sphinx.ext.autosectionlabel',
     'sphinx.ext.autodoc',
     'sphinxcontrib.plantuml',
+    'sphinxcontrib.mermaid',
              ]
 templates_path = ['_templates']
 exclude_trees = ['.build']
