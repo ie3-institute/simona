@@ -1,6 +1,6 @@
 (chp_model)=
 
-## ChpModel
+# ChpModel
 
 This page documents the functionality of the CHP Model (combined heat and power plant model) available in SIMONA. This model is part of the SIMONA simulation framework and represented by an agent. The current model is feasible to simulate nano- and micro-CHP units. As it is a cross-sector agent heat/electricity) the usage of a house-heat-model is mandatory.
 
