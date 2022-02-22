@@ -12,19 +12,21 @@ The PV Model is part of the SIMONA Simulation framework and represented by an ag
 
 ## Implemented Behaviour
 
-http://flowchart.js.org/
-```flow
-st=>start: Start
-op=>operation: Your Operation
-cond=>condition: Yes or No?
-e=>end
+```{mermaid}
+flowchart
+    A[Setup] 
+    --> B[Receive new time step] 
+    --> C[Receive weather data]
+    --> D[Calculation of sun position]
+    --> E[Calculation of direct radiation]
+    --> F[Calculation of diffuse radiation]
+    --> G[Calculation of reflected radiation]
+    --> H[Estimation of correction factors]
+    --> I[Calculation of output power P]
+    --> J[Calculation of reactive power Q]
+    --> K[Return p and Q to node agent] --> B
 
-st->op->cond
-cond(yes)->e
-cond(no)->op
 ```
-
-![pv2.png](/model/pv2.png)
 
 ## Output visualization
 
