@@ -13,6 +13,9 @@ This page gives an overview of the available models in *SIMONA*.
 | [Thermal Storage](cts_model.md)           | Cylindrical Thermal Storage    |
 | [WEC Model](wec_model.md)                 | Wind energy converter          |
 
-
-``` {include} load.rst
+```{eval-rst}
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+   pv_model.md
 ```
