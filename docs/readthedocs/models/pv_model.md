@@ -6,12 +6,20 @@ The initial parts of the model are presented in the paper [Agent based approach 
 
 The PV Model is part of the SIMONA Simulation framework and represented by an agent.
 
-## Parameters
 
-![pv.png](/model/pv.png)
+## Parameters
+```{mermaid}
+graph
+    A[(Setup-database)] 
+    B([PV Agent])
+    C{{imulation environment}}
+
+    A -- "α<SUB>E</SUB> γ<SUB>E</SUB> <br> η<SUB>conv</SUB> cos(φ)<br> lon lat <br>  albedo<br> NodeID S<SUB>N</SUB><br> " --> B
+    B -- "P<SUB>el</SUB>(t)<br> Q<SUB>el</SUB>(t)"--> C
+    C -- "t <br> E<SUB>Dir, H</SUB> <br> E<SUB>Dif,H</SUB>" --> B
+```
 
 ## Implemented Behaviour
-
 ```{mermaid}
 flowchart
     A[Setup] 
@@ -25,8 +33,8 @@ flowchart
     --> I[Calculation of output power P]
     --> J[Calculation of reactive power Q]
     --> K[Return p and Q to node agent] --> B
-
 ```
+
 
 ## Output visualization
 
