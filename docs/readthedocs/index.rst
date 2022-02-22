@@ -19,6 +19,10 @@ Institute of Energy Systems, Energy Efficiency and Energy Economics at TU Dortmu
    models/models.md
    protocols
 
+   :includehidden:
+    models/bm_model.md
+    models/chp_model.md
+
 Indices and tables
 ==================
 
