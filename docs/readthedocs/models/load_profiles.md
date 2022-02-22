@@ -1,3 +1,4 @@
+(load_profiles)=
 # Load Profiles
 
 Load profiles model the annual power consumption of various consumer types in quarter-hour steps.
