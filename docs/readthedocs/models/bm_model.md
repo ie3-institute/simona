@@ -79,3 +79,4 @@ $$
 \Delta P_{el,max}=S_{rated} \cdot \cos{\phi} \cdot loadgradient \cdot \tau
 $$
 
+End of Model Documentation
