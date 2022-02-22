@@ -278,6 +278,34 @@ object ConfigUtil {
   }
 
   case object CsvConfigUtil {
+
+    /** Check basic csv parameter information
+      *
+      * @param params
+      *   Parameters to check
+      * @param csvParamsName
+      *   Description for what the parameters are intended to be used (for more
+      *   descriptive exception messages)
+      */
+    def checkBaseCsvParams(
+        params: SimonaConfig.BaseCsvParams,
+        csvParamsName: String
+    ): Unit = params match {
+      case BaseCsvParams(csvSep, directoryPath, _) =>
+        if (!(csvSep.equals(";") || csvSep.equals(",")))
+          throw new InvalidConfigParameterException(
+            s"The csvSep parameter '$csvSep' for '$csvParamsName' configuration is invalid! Please choose between ';' or ','!"
+          )
+        if (
+          directoryPath.isEmpty || !new File(directoryPath)
+            .exists() || new File(directoryPath).isFile
+        )
+          throw new InvalidConfigParameterException(
+            s"The provided directoryPath for .csv-files '$directoryPath' for '$csvParamsName' configuration is invalid! Please correct the path!"
+          )
+    }
+
+    @deprecated
     def checkCsvParams(
         csvParamsName: String,
         csvSep: String,

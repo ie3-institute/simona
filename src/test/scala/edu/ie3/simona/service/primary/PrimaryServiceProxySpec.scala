@@ -15,39 +15,16 @@ import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.{SValue, Value}
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{
-  CouchbaseParams,
-  CsvParams,
-  InfluxDb1xParams,
-  SqlParams
-}
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
-  Primary => PrimaryConfig
-}
-import edu.ie3.simona.exceptions.{
-  InitializationException,
-  InvalidConfigParameterException
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  PrimaryServiceRegistrationMessage,
-  WorkerRegistrationMessage
-}
+import edu.ie3.simona.config.SimonaConfig.PrimaryCsvParams
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{CouchbaseParams, InfluxDb1xParams, SqlParams}
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.{Primary => PrimaryConfig}
+import edu.ie3.simona.exceptions.{InitializationException, InvalidConfigParameterException}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{PrimaryServiceRegistrationMessage, WorkerRegistrationMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
-  CsvInitPrimaryServiceStateData,
-  InitPrimaryServiceStateData
-}
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
-  InitPrimaryServiceProxyStateData,
-  PrimaryServiceStateData,
-  SourceRef
-}
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.{CsvInitPrimaryServiceStateData, InitPrimaryServiceStateData}
+import edu.ie3.simona.service.primary.PrimaryServiceProxy.{InitPrimaryServiceProxyStateData, PrimaryServiceStateData, SourceRef}
 import edu.ie3.simona.test.common.AgentSpec
 import edu.ie3.util.TimeUtil
 import org.scalatest.PartialFunctionValues
@@ -89,9 +66,10 @@ class PrimaryServiceProxySpec
     PrimaryConfig(
       None,
       Some(
-        CsvParams(
+        PrimaryCsvParams(
           csvSep,
           baseDirectoryPath,
+          isHierarchic = false,
           TimeUtil.withDefaults.getDtfPattern
         )
       ),
@@ -139,7 +117,7 @@ class PrimaryServiceProxySpec
     "lead to complaining about too much source definitions" in {
       val maliciousConfig = PrimaryConfig(
         Some(CouchbaseParams("", "", "", "", "", "", "")),
-        Some(CsvParams("", "", "")),
+        Some(PrimaryCsvParams("", "", isHierarchic = false, "")),
         None,
         None
       )
@@ -181,7 +159,7 @@ class PrimaryServiceProxySpec
     "let csv parameters pass for mapping configuration" in {
       val mappingConfig = PrimaryConfig(
         None,
-        Some(CsvParams("", "", "")),
+        Some(PrimaryCsvParams("", "", isHierarchic = false, "")),
         None,
         None
       )
@@ -222,7 +200,7 @@ class PrimaryServiceProxySpec
     "fails on invalid time pattern" in {
       val invalidTimePatternConfig = PrimaryConfig(
         None,
-        Some(CsvParams("", "", "xYz")),
+        Some(PrimaryCsvParams("", "", isHierarchic = false, "xYz")),
         None,
         None
       )
@@ -237,7 +215,7 @@ class PrimaryServiceProxySpec
     "succeeds on valid time pattern" in {
       val validTimePatternConfig = PrimaryConfig(
         None,
-        Some(CsvParams("", "", "yyyy-MM-dd'T'HH:mm'Z[UTC]'")),
+        Some(PrimaryCsvParams("", "", isHierarchic = false, "yyyy-MM-dd'T'HH:mm'Z[UTC]'")),
         None,
         None
       )
