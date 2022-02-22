@@ -8,7 +8,9 @@ This storage model operates on volumes, although the functions it provides for o
 ### Maximal storage capacity
 As the name suggests this storage has a cylindric form, hence its maximum storage capacity $V_{st, max}$ can be given by:
 
-$$ V_{st, max} = \pi \cdot r^2 \cdot h $$
+$$ 
+V_{st, max} = \pi \cdot r^2 \cdot h 
+$$
 
 
 ### Conversions of energy and volume
@@ -42,8 +44,10 @@ That is the mathematical description of loading and unloading processes concerni
 
 The same relationship is used to determine the quantity of heat which is stored in the storage by converting the equation to:
 
-$$ W = V \cdot c \cdot (tE - tA) $$
+$$ 
+W = V \cdot c \cdot (tE - tA) 
+$$
 
-### Store/Take energy
+### Store or Take energy
 
 This calculation is performed as follows: An amount of energy is specified for storing or taking. The model then changes the storage level and returns if it exceeded the maximum (when storing energy) or fell below the minimum (when taking energy).
