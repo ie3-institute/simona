@@ -49,7 +49,7 @@ task genConfigSample {
         "--spec",
         "src/main/resources/config/config-template.conf",
         "--tpl",
-        "configs/simona/simonaSample.conf"
+        "input/samples/configSample.conf"
       ]
     }
   }
