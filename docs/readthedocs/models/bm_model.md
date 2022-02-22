@@ -1,4 +1,4 @@
-
+(bm_model)=
 # Biomass Model (bm_model)
 
 This page documents the functionality of the BM model available in SIMONA.
