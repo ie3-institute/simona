@@ -15,7 +15,7 @@ This page gives an overview of the available models in *SIMONA*.
 
 ```{eval-rst}
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
-   pv_model.md
+   load.rst
 ```
