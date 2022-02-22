@@ -4,10 +4,22 @@ This page gives an overview of the available models in *SIMONA*.
 
 | Model                                     | Description                    |
 |-------------------------------------------|--------------------------------|
-| [CHP Model](chp_model.md)                 | Combined heat and power plant  |
-| [WEC Model](wec_model.md)                 | Wind energy converter          |
-| [PV Model](pv_model.md)                   | Photovoltaic                   |
+| [Load Model Configuration](load.rst)      | Load Model Configuration       |
 | [BM Model](bm_model.md)                   | Biomass plant                  |
-| [BM Model](load_profiles.md)              | Load profiles                  |
+| [CHP Model](chp_model.md)                 | Combined heat and power plant  |
+| [Load Profiles](load_profiles.md)         | Load profiles                  |
+| [PV Model](pv_model.md)                   | Photovoltaic                   |
 | [Transformer Model](transformer_model.md) | Transformer Models (2W and 3W) |
 | [Thermal Storage](cts_model.md)           | Cylindrical Thermal Storage    |
+| [WEC Model](wec_model.md)                 | Wind energy converter          |
+
+
+``` {include} load.rst
+    {include} bm_model.md
+    {include} chp_model.md
+    {include} load_profiles.md
+    {include} pv_model.md
+    {include} transformer_model.md
+    {include} cts_model.md
+    {include} wec_model.md
+```

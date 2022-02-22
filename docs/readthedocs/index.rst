@@ -15,8 +15,8 @@ Institute of Energy Systems, Energy Efficiency and Energy Economics at TU Dortmu
    about
    usersguide
    config/config
+   Configuration
    models/models.md
-   models/load
    protocols
 
 Indices and tables
