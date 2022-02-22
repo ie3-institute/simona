@@ -38,7 +38,7 @@ flowchart
 
 ## Output visualization
 
-<img src="../images/models/pv_model/pv_it_test_wholeyear.png" alt="pv_it_test_wholeyear" width=800px/>
+![](../images/models/pv_model/pv_it_test_wholeyear.png)
 
 ## Calculations
 
