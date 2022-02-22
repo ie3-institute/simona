@@ -16,3 +16,6 @@ This page gives an overview of the available models in *SIMONA*.
 
 ```{include} bm_model.md
 ```
+
+```{include} chp_model.md
+```
