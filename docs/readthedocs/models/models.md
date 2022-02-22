@@ -1,5 +1,3 @@
-(models)=
-
 # Models
 
 This page gives an overview of the available models in *SIMONA*.
@@ -13,3 +11,4 @@ This page gives an overview of the available models in *SIMONA*.
 | [BM Model](bm_model.md)                                 | Biomass plant                  |
 | [BM Model](load_profiles.md)                            | Load profiles                  |
 | [Transformer Model](transformer_model.md)               | Transformer Models (2W and 3W) |
+
