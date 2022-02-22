@@ -15,11 +15,4 @@ This page gives an overview of the available models in *SIMONA*.
 
 
 ``` {include} load.rst
-    {include} bm_model.md
-    {include} chp_model.md
-    {include} load_profiles.md
-    {include} pv_model.md
-    {include} transformer_model.md
-    {include} cts_model.md
-    {include} wec_model.md
 ```
