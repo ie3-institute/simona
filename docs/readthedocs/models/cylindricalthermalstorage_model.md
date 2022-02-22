@@ -1,4 +1,4 @@
-# CylindricalThermalStorage
+# Cylindrical Thermal Storage
 This page documents the functionality of the cylindrical thermal storage available in SIMONA.
 
 ## Behaviour
@@ -12,7 +12,6 @@ $$
 V_{st, max} = \pi \cdot r^2 \cdot h 
 $$
 
-
 ### Conversions of energy and volume
 
 In this model the change of stored energy (heat) is represented by the change of the volume of the storage medium. This relation between stored heat and volume change is given by:
@@ -20,7 +19,6 @@ In this model the change of stored energy (heat) is represented by the change of
 $$
 V = (\frac{W}{c \cdot (tE - tA)})
 $$
-
 
 with
 ~ W = energy to be converted to volume
@@ -48,6 +46,6 @@ $$
 W = V \cdot c \cdot (tE - tA) 
 $$
 
-### Store or Take energy
+### Store/Take energy
 
 This calculation is performed as follows: An amount of energy is specified for storing or taking. The model then changes the storage level and returns if it exceeded the maximum (when storing energy) or fell below the minimum (when taking energy).
