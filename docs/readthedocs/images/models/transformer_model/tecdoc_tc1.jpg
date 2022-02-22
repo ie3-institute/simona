@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" class="no-js">
+<head>
+    <meta charset="utf-8" />
+    <title>
+        tecdoc:tc1.jpg        [simona]
+    </title>
+    <script>(function(H){H.className=H.className.replace(/\bno-js\b/,'js')})(document.documentElement)</script>
+    <meta name="generator" content="DokuWiki"/>
+<meta name="theme-color" content="#008800"/>
+<meta name="robots" content="index,follow"/>
+<link rel="search" type="application/opensearchdescription+xml" href="/!simona/lib/exe/opensearch.php" title="simona"/>
+<link rel="start" href="/!simona/"/>
+<link rel="contents" href="/!simona/tecdoc:transformer_calculations?do=index" title="Sitemap"/>
+<link rel="manifest" href="/!simona/lib/exe/manifest.php"/>
+<link rel="alternate" type="application/rss+xml" title="Recent Changes" href="/!simona/feed.php"/>
+<link rel="alternate" type="application/rss+xml" title="Current namespace" href="/!simona/feed.php?mode=list&amp;ns="/>
+<link rel="alternate" type="text/html" title="Plain HTML" href="/!simona/_export/xhtml/tecdoc:transformer_calculations"/>
+<link rel="alternate" type="text/plain" title="Wiki Markup" href="/!simona/_export/raw/tecdoc:transformer_calculations"/>
+<link rel="stylesheet" href="/!simona/lib/exe/css.php?t=dokuwiki&amp;tseed=e391f7058a53fb85fd67e5bf1a8a33f5"/>
+<!--[if gte IE 9]><!-->
+<script >/*<![CDATA[*/var NS='';var SIG=" --- \/\/[[Daniel.Feismann@tu-dortmund.de|Daniel Feismann]] 2022\/02\/22 08:55\/\/";var JSINFO = {"id":"tecdoc:transformer_calculations","namespace":"","ACT":"show","useHeadingNavigation":0,"useHeadingContent":0};
+/*!]]>*/</script>
+<script charset="utf-8" src="/!simona/lib/exe/jquery.php?tseed=34a552433bc33cc9c3bc32527289a0b2" defer="defer"></script>
+<script charset="utf-8" src="/!simona/lib/exe/js.php?t=dokuwiki&amp;tseed=e391f7058a53fb85fd67e5bf1a8a33f5" defer="defer"></script>
+<!--<![endif]-->
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="shortcut icon" href="/!simona/lib/tpl/dokuwiki/images/favicon.ico" />
+<link rel="apple-touch-icon" href="/!simona/lib/tpl/dokuwiki/images/apple-touch-icon.png" />
+    </head>
+
+<body>
+    <div id="dokuwiki__site"><div id="dokuwiki__top" class="site dokuwiki mode_ tpl_dokuwiki loggedIn  ">
+
+        
+<!-- ********** HEADER ********** -->
+<div id="dokuwiki__header"><div class="pad group">
+
+    
+    <div class="headings group">
+        <ul class="a11y skip">
+            <li><a href="#dokuwiki__content">skip to content</a></li>
+        </ul>
+
+        <h1><a href="/!simona/start"  accesskey="h" title="[H]"><img src="/!simona/lib/tpl/dokuwiki/images/logo.png" width="64" height="64" alt="" /> <span>simona</span></a></h1>
+            </div>
+
+    <div class="tools group">
+        <!-- USER TOOLS -->
+                    <div id="dokuwiki__usertools">
+                <h3 class="a11y">User Tools</h3>
+                <ul>
+                    <li class="user">Logged in as: <bdi>Daniel Feismann</bdi> (<bdi>smdafeis</bdi>)</li><li class="action profile"><a href="/!simona/tecdoc:transformer_calculations?do=profile" title="Update Profile" rel="nofollow"><span>Update Profile</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M2 3h20c1.05 0 2 .95 2 2v14c0 1.05-.95 2-2 2H2c-1.05 0-2-.95-2-2V5c0-1.05.95-2 2-2m12 3v1h8V6h-8m0 2v1h8V8h-8m0 2v1h7v-1h-7m-6 3.91C6 13.91 2 15 2 17v1h12v-1c0-2-4-3.09-6-3.09M8 6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/></svg></a></li><li class="action logout"><a href="/!simona/tecdoc:transformer_calculations?do=logout&amp;sectok=9eea18ffc62092d3b563680ac067415f" title="Log Out" rel="nofollow"><span>Log Out</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M17 17.25V14h-7v-4h7V6.75L22.25 12 17 17.25M13 2a2 2 0 0 1 2 2v4h-2V4H4v16h9v-4h2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9z"/></svg></a></li>                </ul>
+            </div>
+        
+        <!-- SITE TOOLS -->
+        <div id="dokuwiki__sitetools">
+            <h3 class="a11y">Site Tools</h3>
+            <form action="/!simona/start" method="get" role="search" class="search doku_form" id="dw__search" accept-charset="utf-8"><input type="hidden" name="do" value="search" /><input type="hidden" name="id" value="tecdoc:transformer_calculations" /><div class="no"><input name="q" type="text" class="edit" title="[F]" accesskey="f" placeholder="Search" autocomplete="on" id="qsearch__in" value="" /><button value="1" type="submit" title="Search">Search</button><div id="qsearch__out" class="ajax_qsearch JSpopup"></div></div></form>            <div class="mobileTools">
+                <form action="/!simona/doku.php" method="get" accept-charset="utf-8"><div class="no"><input type="hidden" name="id" value="tecdoc:transformer_calculations" /><input type="hidden" name="sectok" value="9eea18ffc62092d3b563680ac067415f" /><select name="do" class="edit quickselect" title="Tools"><option value="">Tools</option><optgroup label="Page Tools"><option value="">Show page</option><option value="revisions">Old revisions</option><option value="export_pdf">Export to PDF</option><option value="backlink">Backlinks</option></optgroup><optgroup label="Site Tools"><option value="recent">Recent Changes</option><option value="media">Media Manager</option><option value="index">Sitemap</option></optgroup><optgroup label="User Tools"><option value="profile">Update Profile</option><option value="logout">Log Out</option></optgroup></select><button type="submit">&gt;</button></div></form>            </div>
+            <ul>
+                <li class="action recent"><a href="/!simona/tecdoc:transformer_calculations?do=recent" title="Recent Changes [r]" rel="nofollow" accesskey="r">Recent Changes</a></li><li class="action media"><a href="/!simona/tecdoc:transformer_calculations?do=media&amp;ns=tecdoc" title="Media Manager" rel="nofollow">Media Manager</a></li><li class="action index"><a href="/!simona/tecdoc:transformer_calculations?do=index" title="Sitemap [x]" rel="nofollow" accesskey="x">Sitemap</a></li>            </ul>
+        </div>
+
+    </div>
+
+    <!-- BREADCRUMBS -->
+            <div class="breadcrumbs">
+                                        <div class="trace"><span class="bchead">Trace:</span> <span class="bcsep">•</span> <bdi><a href="/!simona/conceptual:start"  class="breadcrumbs" title="conceptual:start">conceptual</a></bdi> <span class="bcsep">•</span> <bdi><a href="/!simona/model:transformer_model"  class="breadcrumbs" title="model:transformer_model">transformer_model</a></bdi> <span class="bcsep">•</span> <bdi><a href="/!simona/tecdoc:transformer_calculations"  class="breadcrumbs" title="tecdoc:transformer_calculations">transformer_calculations</a></bdi> <span class="bcsep">•</span> <bdi><a href="/!simona/tecdoc:data_model"  class="breadcrumbs" title="tecdoc:data_model">data_model</a></bdi> <span class="bcsep">•</span> <span class="curid"><bdi><a href="/!simona/model:three_winding_transformer"  class="breadcrumbs" title="model:three_winding_transformer">three_winding_transformer</a></bdi></span></div>
+                    </div>
+    
+
+
+    <hr class="a11y" />
+</div></div><!-- /header -->
+
+        <div class="wrapper group" id="dokuwiki__detail">
+
+            <!-- ********** CONTENT ********** -->
+            <div id="dokuwiki__content"><div class="pad group">
+                
+                                    <div class="pageId"><span>tecdoc:tc1.jpg</span></div>
+                
+                <div class="page group">
+                                                            <!-- detail start -->
+                                                                    <h1>tc1.jpg</h1>
+
+                        <a href="/!simona/_media/tecdoc:tc1.jpg?cache=" title="View original file"><img width="800" height="321" class="img_detail" alt="tc1.jpg" title="tc1.jpg" src="/!simona/_media/tecdoc:tc1.jpg?cache=&amp;w=800&amp;h=321&amp;tok=fe9875"/></a>
+                        <div class="img_detail">
+                            <dl><dt>Date:</dt><dd>2018/12/12 11:42</dd><dt>Filename:</dt><dd>tc1.jpg</dd><dt>Format:</dt><dd>JPEG</dd><dt>Size:</dt><dd>19KB</dd><dt>Width:</dt><dd>800</dd><dt>Height:</dt><dd>321</dd></dl>                            <dl>
+                            <dt>References for:</dt><dd><a href="/!simona/tecdoc:transformer_calculations" class="wikilink1" title="tecdoc:transformer_calculations" data-wiki-id="tecdoc:transformer_calculations">transformer_calculations</a></dd>                            </dl>
+                            <p>This list might not be complete due to ACL restrictions and hidden pages.</p>
+                        </div>
+                                                            </div>
+                <!-- detail stop -->
+                                
+                
+            </div></div><!-- /content -->
+
+            <hr class="a11y" />
+
+            <!-- PAGE ACTIONS -->
+                            <div id="dokuwiki__pagetools">
+                    <h3 class="a11y">Page Tools</h3>
+                    <div class="tools">
+                        <ul>
+                            <li class="mediaManager"><a href="/!simona/tecdoc:transformer_calculations?ns=tecdoc&amp;image=tecdoc%3Atc1.jpg&amp;do=media" title="View in media manager" rel="nofollow"><span>View in media manager</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M5 17l4.5-6 3.5 4.5 2.5-3L19 17m1-11h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2z"/></svg></a></li><li class="img_backto"><a href="/!simona/tecdoc:transformer_calculations" title="Back to tecdoc:transformer_calculations [b]" rel="nofollow" accesskey="b"><span>Back to tecdoc:transformer_calculations</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg></a></li><li class="top"><a href="#dokuwiki__top" title="Back to top [t]" rel="nofollow" accesskey="t"><span>Back to top</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"/></svg></a></li>                        </ul>
+                    </div>
+                </div>
+                    </div><!-- /wrapper -->
+
+        
+<!-- ********** FOOTER ********** -->
+<div id="dokuwiki__footer"><div class="pad">
+    
+    <div class="buttons">
+                <a href="https://www.dokuwiki.org/donate" title="Donate" ><img
+            src="/!simona/lib/tpl/dokuwiki/images/button-donate.gif" width="80" height="15" alt="Donate" /></a>
+        <a href="https://php.net" title="Powered by PHP" ><img
+            src="/!simona/lib/tpl/dokuwiki/images/button-php.gif" width="80" height="15" alt="Powered by PHP" /></a>
+        <a href="//validator.w3.org/check/referer" title="Valid HTML5" ><img
+            src="/!simona/lib/tpl/dokuwiki/images/button-html5.png" width="80" height="15" alt="Valid HTML5" /></a>
+        <a href="//jigsaw.w3.org/css-validator/check/referer?profile=css3" title="Valid CSS" ><img
+            src="/!simona/lib/tpl/dokuwiki/images/button-css.png" width="80" height="15" alt="Valid CSS" /></a>
+        <a href="https://dokuwiki.org/" title="Driven by DokuWiki" ><img
+            src="/!simona/lib/tpl/dokuwiki/images/button-dw.png" width="80" height="15"
+            alt="Driven by DokuWiki" /></a>
+    </div>
+</div></div><!-- /footer -->
+
+    </div></div><!-- /site -->
+</body>
+</html>
