@@ -75,4 +75,6 @@ P_{el}, & \text{otherwise}
 
 with
 
-$$\Delta P_{el,max}=S_{rated} \cdot \cos{\phi} \cdot loadgradient \cdot \tau$$
+$$
+\Delta P_{el,max}=S_{rated} \cdot \cos{\phi} \cdot loadgradient \cdot \tau
+$$
