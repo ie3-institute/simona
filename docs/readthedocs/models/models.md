@@ -19,3 +19,6 @@ This page gives an overview of the available models in *SIMONA*.
 
 ```{include} chp_model.md
 ```
+
+```{include} load_profiles.md
+```
