@@ -12,7 +12,7 @@ The PV Model is part of the SIMONA Simulation framework and represented by an ag
 graph
     A[(Setup-database)] 
     B([PV Agent])
-    C{{imulation environment}}
+    C{{Simulation environment}}
 
     A -- "α<SUB>E</SUB> γ<SUB>E</SUB> <br> η<SUB>conv</SUB> cos(φ)<br> lon lat <br>  albedo<br> NodeID S<SUB>N</SUB><br> " --> B
     B -- "P<SUB>el</SUB>(t)<br> Q<SUB>el</SUB>(t)"--> C
