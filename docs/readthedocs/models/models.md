@@ -4,7 +4,7 @@ This page gives an overview of the available models in *SIMONA*.
 
 | Model                                     | Description                    |
 |-------------------------------------------|--------------------------------|
-| [Load Model Configuration](load.rst)      | Load Model Configuration       |
+| [Load Model Configuration](load_model.md) | Load Model Configuration       |
 | [BM Model](bm_model)                      | Biomass plant                  |
 | [CHP Model](chp_model)                    | Combined heat and power plant  |
 | [Load Profiles](load_profiles.md)         | Load profiles                  |
@@ -13,8 +13,8 @@ This page gives an overview of the available models in *SIMONA*.
 | [Thermal Storage](cts_model.md)           | Cylindrical Thermal Storage    |
 | [WEC Model](wec_model.md)                 | Wind energy converter          |
 
-
-.. include:: /models/load.rst
+```{include} load_model.md
+```
 
 ```{include} bm_model.md
 ```
