@@ -22,9 +22,9 @@ The main objective of the BM agent is to cover the heat demand of the connected 
 ###### Calculate Heat Demand
 The heat demand is calculated in relation to the temperature using the results of a linear regression. Furthermore, correction factors, which take different heat demands on the weekend and outside the heating season into account are used.
 
-$$ P_{th}(T,t) = \begin{cases}
-    (\num{-1.076} \cdot T \si\frac{MW}{°C} + \SI{26.36}{MW}) \cdot k_1(t) \cdot k_2(t), & T<\SI{19.28}{°C} \\
-    \SI{5.62}{MW} \cdot k_1(t) \cdot k_2 (t) & T \ge \SI{19.28}{°C}
+$$P_{th}(T,t) = \begin{cases}
+(-1.076 \cdot T \:\frac{MW}{°C} + 26.36 \:{MW}) \cdot k_1(t) \cdot k_2(t), & T<19.28{°C} \\
+5.62 \: {MW} \cdot k_1(t) \cdot k_2 (t) & T \ge 19.28 {°C}
 \end{cases}$$
 
 With the factor $k_1(t)$ respecting the different load-demand on the weekend by multiplying demands of each hour with values between 0.95 and 1.02.
@@ -32,8 +32,8 @@ With the factor $k_1(t)$ respecting the different load-demand on the weekend by 
 And $k_2(t)$:
 
 $$k_2(t)=\begin{cases}
-\num{1.03}, & \text{t inside heating season} \\
-\num{0.61} & \text{t outside heating season}
+1.03, & \text{t inside heating season} \\
+0.61 & \text{t outside heating season}
 \end{cases}$$
 
 ###### Usage and Peak Load Boiler
