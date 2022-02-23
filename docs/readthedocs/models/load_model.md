@@ -1,3 +1,4 @@
+(load_model)=
 ## Load Model Configuration
 
 ### General Information
@@ -52,41 +53,44 @@ Two examples of proper load model configuration is given beneath.
 
 The first example applies the same configuration to all available load models:
 
-simona.runtime.participant.load = {
-defaultConfig = {
-uuid = ["default"]
-scaling = 1.3
-modelBehaviour = "profile"
-reference = "power"
-}
-individualConfigs = []
-}
+```    simona.runtime.participant.load = {
+        defaultConfig = {
+            uuid = ["default"]
+            scaling = 1.3
+            modelBehaviour = "profile"
+            reference = "power"
+        }
+        individualConfigs = []
+    }
+```
+
 If you want to have specific behaviour for only a sub set of the models, you may have something like:
 
-simona.runtime.participant.load = {
-defaultConfig = {
-uuid = ["default"]
-scaling = 1.3
-modelBehaviour = "profile"
-reference = "power"
-}
-individualConfigs = [
-{
-uuid = [
-"49f250fa-41ff-4434-a083-79c98d260a76",
-"9f90aa5f-409f-4214-9336-faede4ace939",
-"db2cf9bb-0ba3-405a-9f39-e386d097b39e"
-]
-scaling = 1.3
-modelBehaviour = "fix"
-reference = "power"
-},
-{
-uuid = ["fb8f1443-1843-4ecd-a94a-59be8148397f"]
-scaling = 1.5
-modelBehaviour = "random"
-reference = "energy"
-}
-]
-}
+ ```   simona.runtime.participant.load = {
+        defaultConfig = {
+            uuid = ["default"]
+            scaling = 1.3
+            modelBehaviour = "profile"
+            reference = "power"
+        }
+        individualConfigs = [
+            {
+                uuid = [
+                    "49f250fa-41ff-4434-a083-79c98d260a76",
+                    "9f90aa5f-409f-4214-9336-faede4ace939",
+                    "db2cf9bb-0ba3-405a-9f39-e386d097b39e"
+                ]
+                scaling = 1.3
+                modelBehaviour = "fix"
+                reference = "power"
+            },
+            {
+                uuid = ["fb8f1443-1843-4ecd-a94a-59be8148397f"]
+                scaling = 1.5
+                modelBehaviour = "random"
+                reference = "energy"
+            }
+        ]
+    }
+```
 All models behave the same, except for those with the given uuids.
