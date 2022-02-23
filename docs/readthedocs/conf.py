@@ -15,6 +15,7 @@ add_function_parentheses = True
 
 extensions = [
     'myst_parser',
+    'sphinx.ext.mathjax'
     'sphinx.ext.autosectionlabel',
     'sphinx.ext.autodoc',
     'sphinxcontrib.plantuml',
