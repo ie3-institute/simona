@@ -1,3 +1,4 @@
+(cts_model)=
 # Cylindrical Thermal Storage
 This page documents the functionality of the cylindrical thermal storage available in SIMONA.
 

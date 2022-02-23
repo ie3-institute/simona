@@ -17,10 +17,19 @@ This page gives an overview of the available models in *SIMONA*.
 .. toctree::
    :maxdepth: 1
 
+   load
    bm_model
    chp_model
+   evcs_model
    load_profiles
+   pv_model
+   transformer_model
+   cts_model
+   wec_model
 ```
+
+
+.. include:: /models/load.rst
 
 ```{include} bm_model.md
 ```
@@ -28,5 +37,20 @@ This page gives an overview of the available models in *SIMONA*.
 ```{include} chp_model.md
 ```
 
+```{include} evcs_model.md
+```
+
 ```{include} load_profiles.md
+```
+
+```{include} pv_model.md
+```
+
+```{include} transformer_model.md
+```
+
+```{include} cts_model.md
+```
+
+```{include} wec_model.md
 ```
