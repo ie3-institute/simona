@@ -3,7 +3,7 @@
 
 Load profiles model the annual power consumption of various consumer types in quarter-hour steps.
 
-#### Model
+### Model
 
 Load profiles are determined by three factors: consumer type, day type and season.
 
@@ -24,7 +24,7 @@ Assignment of season and day type are described at page 4 of the source PDF.
 
 **Holidays** should normally be treated as Sundays, Christmas Eve and New Year\'s Eve as Saturdays. Holidays are currently not implemented for profile types in SIMONA.
 
-##### Dynamization factor
+#### Dynamization factor
 
 Household type *H0* requires special treatment by multiplying a dynamization factor, which is dependent on the day of year *t*.
 
@@ -37,19 +37,19 @@ $$
 
 The factor $F_t$, after calculation, shall be rounded to four decimal places. After multiplication with the profile value for given quarter hour, the result should again be rounded to one decimal place.
 
-##### Maximum value
+#### Maximum value
 
 For each consumer type, a maximum value can be retrieved by calling LoadProfileStore.getMaxParam. The maximum value of consumer type *H0* has to be calculated considering dynamization function. For sake of simplicity, in SIMONA it is searched for only in winter profiles of *H0*, as we assume the maximum value to be exclusively found there.
 
-##### Units
+#### Units
 
 Although the primary source declares the profile values to be power in W (p. 14 and 19), we consider them to represent energy in Wh.
 
-##### Considering annual consumption
+#### Considering annual consumption
 
 Load profile values are normalized for an annual consumption of 1000 kWh/a. For a realistic prediction, the actual annual consumption has to be considered. Given an annual consumption of 4711 kWh/a, each load profile output has to be multiplied with 4.711.
 
-#### Sources
+### Sources
 
 Both model and data stem from [BDEW](https://www.bdew.de/energie/standardlastprofile-strom/).
 

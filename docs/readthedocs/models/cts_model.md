@@ -22,7 +22,7 @@ V = (\frac{W}{c \cdot (tE - tA)})
 $$
 
 with
-~ W = energy to be converted to volume
+W = energy to be converted to volume
 V = resulting volume
 tE = return temperature
 tA = inlet temperature

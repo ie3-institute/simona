@@ -4,7 +4,7 @@
 
 This page describes the wind energy converter model (WecModel). Given the current wind velocity, temperature and air pressure the model can calculate the wind turbines active power output.
 
-#### Attributes, Units and Remarks
+### Attributes, Units and Remarks
 
 
 | Attribute         | Unit | Remarks                                         |
@@ -19,7 +19,7 @@ This page describes the wind energy converter model (WecModel). Given the curren
 | rotorArea         | m²  | the swept area of the turbines rotor            |
 | betzCurve         | --   | see example below (Enercon E-82)                |
 
-#### Calculation
+### Calculation
 
 The figure below depicts the calculation steps as implemented.
 
@@ -53,3 +53,5 @@ The betz curve (or betz characteristic) is a mapping of wind velocities to cP va
 ![](../images/models/wec_model/EnerconE82cpPlot.png)
 
 The cut-in wind velocity is $2\frac{m}{s}$, meaning that the turbine requires wind speed of at least $2\frac{m}{s}$ to produce energy. The cut-off wind velocity is $34\frac{m}{s}$, meaning that the Enercon E-82 won't produce energy for velocities that are higher.
+
+

@@ -3,7 +3,7 @@
 
 The currently connected EvModels are saved within the state data of EvCsAgent and passed to EvCsModel with each trigger. The model then calculates the active load of the charging station.
 
-#### Attributes, Units and Remarks
+### Attributes, Units and Remarks
 
 | Attribute          | Unit | Remarks                                         |
 |--------------------|------|-------------------------------------------------|
@@ -17,7 +17,7 @@ The currently connected EvModels are saved within the state data of EvCsAgent an
 | chargingPoints     |  --  | number of charging points available             |
 | locationType       |  --  | the charging station location type              |
 
-#### Calculation
+### Calculation
 
 
 The following arguments need to be provided for power calculation:

@@ -46,8 +46,7 @@ Gives information, to what input information the model output will be scaled. Ev
 - *"power"*: The maximum active power consumption throughout a year will meet the rated active power of the model. In the case of ``modelBehaviour = "random"``, the 95 % quantile will meet the rated apparent power.
 - *"energy"*: The annual energy consumption of the model will meet ``eConsAnnual`` of the input model
 
-Applying configuration
-----------------------
+### Applying configuration
 
 Two examples of proper load model configuration is given beneath.
 
