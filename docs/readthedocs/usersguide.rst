@@ -200,3 +200,4 @@ These steps have to be performed each time updates to the external simulation ne
 - Copy the resulting *jar* (usually placed inside <external project>/build/libs) to SIMONA/inputData/ext_sim.
 
 Now, when a simulation with SIMONA is started (see `above <#running-a-standalone-simulation>`_), the external simulation is triggered at each tick that it requested.
+
