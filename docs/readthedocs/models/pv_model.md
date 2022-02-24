@@ -245,7 +245,7 @@ $$
 
 #### Extraterrestrial Radiation
 
-The extraterrestrial radiation I~0~ is calculated by multiplying the eccentricity correction factor
+The extraterrestrial radiation $I_0$ is calculated by multiplying the eccentricity correction factor
 
 $$
 e = 1.00011 + 0.034221 \cdot \cos(J) + 0.001280 \cdot \sin(J) \\ + 0.000719 \cdot \cos(2 \cdot J) + 0.000077 \cdot \sin(2 \cdot J)
@@ -260,7 +260,7 @@ G_{SC} = 1367 {\frac{W}{m^2}}
 $$
 
 *with*\
-~ **J** = day angle
+**J** = day angle
 
 **References:**
 
@@ -282,7 +282,7 @@ $$
 **$\omega$** = hour angle\
 **$\omega_{SS}$** = hour angle $\omega$ at sunset\
 **$\omega_{SR}$** = hour angle $\omega$ at sunrise\
-**$\Delta\omega$** = $15 \circ \cdot (\frac {\pi}{180^\circ})$ (one hour worth of $\omega$)
+**$\Delta\omega$** = $15^\circ \cdot (\frac {\pi}{180^\circ})$ (one hour worth of $\omega$)
 
 From here on, formulas from given reference below are used:
 
@@ -321,7 +321,7 @@ $$
 
 - [Duffie, J.A., & Beckman, W.A. (2013). Solar Engineering of Thermal Processes: Duffie/Solar Engineering 4e.](https://www.sku.ac.ir/Datafiles/BookLibrary/45/John%20A.%20Duffie,%20William%20A.%20Beckman(auth.)-Solar%20Engineering%20of%20Thermal%20Processes,%20Fourth%20Edition%20(2013).pdf) p. 88
 
-#### Diffuse Radiation on Sloped Surface
+  #### Diffuse Radiation on Sloped Surface
 
 The diffuse radiation is computed using the Perez model, which divides the radiation in three parts. First, there is an intensified radiation from the direct vicinity of the sun. Furthermore, there is Rayleigh scattering, backscatter (which lead to increased in intensity on the horizon) and isotropic radiation considered.
 
