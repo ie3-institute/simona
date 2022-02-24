@@ -107,8 +107,8 @@ ST = LMT + ET
 
 $$
 
-*with*
-**LMT** = local mean time (in minutes)
+*with*\
+**LMT** = local mean time (in minutes)\
 **ET** = equation of time (in minutes)
 
 $$
