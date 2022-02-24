@@ -53,5 +53,3 @@ The betz curve (or betz characteristic) is a mapping of wind velocities to cP va
 ![](../images/models/wec_model/EnerconE82cpPlot.png)
 
 The cut-in wind velocity is $2\frac{m}{s}$, meaning that the turbine requires wind speed of at least $2\frac{m}{s}$ to produce energy. The cut-off wind velocity is $34\frac{m}{s}$, meaning that the Enercon E-82 won't produce energy for velocities that are higher.
-
-
