@@ -65,7 +65,7 @@ J = 2 \pi(\frac{n-1}{365})
 
 $$
 
-*with*
+*with*\
 **n** = number of the day in the year (e.g. 1 January = 1, 20 February = 51)
 
 Based on $J$ the declination angle $\delta$ (in radian!) can be calculated as follows:
@@ -99,7 +99,7 @@ $$
 
 $$
 
-*with*
+*with*\
 **ST** = local solar time (standard time, in hours)
 
 $$
@@ -116,8 +116,8 @@ LMT = CET - 4 \cdot (15 - \lambda)
 
 $$
 
-*with*
-**CET** = central eastern time
+*with*\
+**CET** = central eastern time\
 **λ** = longitude of the location of the PV panel
 
 $$
@@ -126,7 +126,7 @@ ET = 0.0066 + 7.3525 \cdot cos(J + 1.4992378274631293) \\ +
 
 $$
 
-*with*
+*with*\
 **J** = day angle (in radian!)
 
 **Note:** The used formulas are based on *\"DIN 5034-2: Tageslicht in Innenräumen, Grundlagen.\"* and therefore valid especially for Germany and Europe. For international calculations a more general formulation that can be found in [Maleki, S.A., Hizam, H., & Gomes, C. (2017). Estimation of Hourly, Daily and Monthly Global Solar Radiation on Inclined Surfaces: Models Re-Visited.](https://res.mdpi.com/d_attachment/energies/energies-10-00134/article_deploy/energies-10-00134-v2.pdf) might be used.
@@ -150,8 +150,8 @@ $$
 
 $$
 
-*with*
-$\delta$ = the declination angle
+*with*\
+**$\delta$** = the declination angle
 
 **References:**
 
@@ -167,10 +167,10 @@ sin(\alpha_{s}) = sin (\phi) \cdot sin (\delta) + cos (\delta) \cdot cos (\omega
 
 $$
 
-*with*
-$\delta$ = the declination angle
-$\phi$ = observer's latitude
-$\omega$= hour angle
+*with*\
+**$\delta$** = the declination angle\
+**$\phi$** = observer's latitude\
+**$\omega$**= hour angle
 
 **References:**
 
@@ -190,7 +190,7 @@ $$
 
 $$
 
-*with*
+*with*\
 **$\alpha_s$** = solar altitude angle
 
 **References:**
@@ -212,13 +212,13 @@ sin(\omega))
 
 $$
 
-*with*
-$\alpha_e$ = sun azimuth
-$\alpha_s$ = solar altitude angle
-$\gamma_e$ = slope angle of the surface
-$\delta$ = the declination angle
-$\phi$ = observer's latitude
-$\omega$ = hour angle
+*with*\
+**$\alpha_e$** = sun azimuth\
+**$\alpha_s$** = solar altitude angle\
+**$\gamma_e$** = slope angle of the surface\
+**$\delta$** = the declination angle\
+**$\phi$** = observer's latitude\
+**$\omega$** = hour angle
 
 **References:**
 
@@ -259,7 +259,7 @@ G_{SC} = 1367 {\frac{W}{m^2}}
 
 $$
 
-*with*
+*with*\
 ~ **J** = day angle
 
 **References:**
@@ -278,11 +278,11 @@ $$
 
 $$
 
-*with*
-~ $\omega$ = hour angle
-$\omega_{SS}$ = hour angle $\omega$ at sunset
-$\omega_{SR}$ = hour angle $\omega$ at sunrise
-$\Delta\omega$ = $15 \circ \cdot (\frac {\pi}{180^\circ})$ (one hour worth of $\omega$)
+*with*\
+**$\omega$** = hour angle\
+**$\omega_{SS}$** = hour angle $\omega$ at sunset\
+**$\omega_{SR}$** = hour angle $\omega$ at sunrise\
+**$\Delta\omega$** = $15 \circ \cdot (\frac {\pi}{180^\circ})$ (one hour worth of $\omega$)
 
 From here on, formulas from given reference below are used:
 
@@ -308,14 +308,14 @@ $$
 
 **Please note:** $\frac{1}{180}\pi$ is omitted from these formulas, as we are already working with data in *radians*.
 
-*with*
-~ $\delta$ = the declination angle
-$\phi$ = observer's latitude
-$\gamma$ = slope angle of the surface
-$\omega_1$ = hour angle $\omega$
-$\omega_2$ = hour angle $\omega$ + 1 hour
-$\alpha_e$ = sun azimuth
-$E_{dir,H}$ = beam radiation (horizontal surface)
+*with*\
+**$\delta$** = the declination angle\
+**$\phi$** = observer's latitude\
+**$\gamma$** = slope angle of the surface\
+**$\omega_1$** = hour angle $\omega$\
+**$\omega_2$** = hour angle $\omega$ + 1 hour\
+**$\alpha_e$** = sun azimuth\
+**$E_{dir,H}$** = beam radiation (horizontal surface)
 
 **Reference:**
 
@@ -430,16 +430,16 @@ F_{2} \cdot \sin(\gamma_{e}))
 
 $$
 
-*with*
-$\theta_z$ = zenith angle
-$\theta_g$ = angle of incidence
-$\alpha_s$ = solar altitude angle
-$\alpha_z$ = sun azimuth
-$\gamma_e$ = slope angle of the surface
-$I_0$ = Extraterrestrial Radiation
-$m$ = air mass
-$E_{dir,H}$ = direct radiation (horizontal surface)
-$E_{dif,H}$ = diffuse radiation (horizontal surface)
+*with*\
+**$\theta_z$** = zenith angle\
+**$\theta_g$** = angle of incidence\
+**$\alpha_s$** = solar altitude angle\
+**$\alpha_z$** = sun azimuth\
+**$\gamma_e$** = slope angle of the surface\
+**$I_0$** = Extraterrestrial Radiation\
+**$m$** = air mass\
+**$E_{dir,H}$** = direct radiation (horizontal surface)\
+**$E_{dif,H}$** = diffuse radiation (horizontal surface)
 
 **References:**
 
@@ -455,10 +455,10 @@ E_{ref,S} = E_{Ges,H} \cdot \frac{\rho}{2} \cdot (1-
 
 $$
 
-*with*
-$E_{Ges,H}$ = total horizontal radiation ($E_{dir,H} + E_{dif,H})$
-$\gamma_e$ = slope angle of the surface
-$\rho$ = albedo
+*with*\
+**$E_{Ges,H}$** = total horizontal radiation ($E_{dir,H} + E_{dif,H})$\
+**$\gamma_e$** = slope angle of the surface\
+**$\rho$** = albedo
 
 **Reference:**
 
@@ -473,10 +473,10 @@ E_{total} = E_{dir,S} + E_{dif,S} + E_{ref,S}
 
 $$
 
-*with*
-$E_{dir,S}$ = Beam radiation
-$E_{dif,S}$ = Diffuse radiation
-$E_{ref,S}$ = Reflected radiation
+*with*\
+**$E_{dir,S}$** = Beam radiation\
+**$E_{dif,S}$** = Diffuse radiation\
+**$E_{ref,S}$** = Reflected radiation
 
 A generator correction factor (depending on month surface slope $\gamma_e$) and a temperature correction factor (depending on month) multiplied on top.
 
