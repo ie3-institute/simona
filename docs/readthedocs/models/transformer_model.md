@@ -1,9 +1,9 @@
 (transformer_model)=
 ## Transformer Model
 
-#### Transformer Calculations
+### Transformer Calculations
 
-###### Two winding transformer
+#### Two winding transformer
 
 ![](../images/models/transformer_model/tecdoc_tc1.jpg)
 
@@ -49,14 +49,14 @@ If there is a tap changer, this has to be taken into account as well:
   3. Phase to ground conductance:$g_{0} = \frac{Z_{Ref}}{2 \cdot R_{M}}$
   4. Phase to ground susceptance:$b_{0} = \frac{Z_{Ref}}{2 \cdot X_{M} \cdot \tau^{2}}$
 
-###### Three winding transformer
+### Three winding transformer
 This page describes the simulative treatment of three winding transformers. For mathematical treatment refer to this page.
 
 Equivalent circuit of the three winding transformer
 
 ![](../images/models/transformer_model/model_twt.png)
 
-######## General Informations
+#### General Informations
 
 - In the data set, there is no need anymore to duplicate one of the nodes into subnets. Simply add all three nodes in their respective subnets
 - The temporary node is created automatically. The input model is responsible for repeatable naming

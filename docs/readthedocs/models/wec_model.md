@@ -1,4 +1,5 @@
 (wec_model)=
+
 ## WecModel
 
 This page describes the wind energy converter model (WecModel). Given the current wind velocity, temperature and air pressure the model can calculate the wind turbines active power output.
@@ -7,7 +8,7 @@ This page describes the wind energy converter model (WecModel). Given the curren
 
 
 | Attribute         | Unit | Remarks                                         |
-| ---------- -------- | ------ | ------------------------------------------------- |
+| ------------------- | ------ | ------------------------------------------------- |
 | uuid              | --   | universally unique identifier                   |
 | id                | --   | human readable identifier                       |
 | operationInterval | --   | time interval, in which the system is operating |
@@ -28,12 +29,12 @@ The figure below depicts the calculation steps as implemented.
 The air density is calculated using the temperature and the air pressure, as stated in the diagram above. For this calculation the formula $\rho = \frac{(P \cdot M)}{R \cdot T}$ is used. The arguments for this formula are listed in the table below. In case no air pressure is given, the default value $1.2401 \frac{kg}{m^3}$ is returned, which corresponds to the air density at sea level at 20° Celsius.
 
 
-| Argument | Unit      | Remarks                                 |
-| -------- | --------- |------------------------------------    -|
-| P        | Pa        | air pressure                            |
-| M        | kg/mol    | molar mass of air (0.0289647)               |
-| R        | J/(mol*K) | universal gas constant (8.3144626181532)   |
-| T        | K         | temperature                             |
+| Argument | Unit      | Remarks                                  |
+| ---------- | ----------- | ------------------------------------------ |
+| P        | Pa        | air pressure                             |
+| M        | kg/mol    | molar mass of air (0.0289647)            |
+| R        | J/(mol*K) | universal gas constant (8.3144626181532) |
+| T        | K         | temperature                              |
 
 Note, that the arguments M and R are constants. Their values are contained in the column "Remarks". After inserting the constant values the formula looks as follows: $\rho = \frac{p}{287.058 \cdot T}$
 
