@@ -52,7 +52,7 @@ import java.time.{Duration, ZonedDateTime}
 import java.util.UUID
 import javax.measure.Quantity
 import javax.measure.quantity.{Dimensionless, ElectricPotential}
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 /** Trait that is normally mixed into every [[GridAgent]] to enable distributed
   * forward backward sweep (DBFS) algorithm execution. It is considered to be
@@ -60,6 +60,9 @@ import scala.concurrent.Future
   */
 trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   this: GridAgent =>
+  // implicit ExecutionContext should be in scope
+  // see https://doc.akka.io/docs/akka/2.5/futures.html
+  implicit val ec: ExecutionContext = context.dispatcher
 
   when(SimulateGrid) {
 
@@ -1189,16 +1192,16 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       gridAgentBaseData: GridAgentBaseData,
       currentTimestamp: ZonedDateTime
   ): Unit = {
-    // otherwise .last will throw an exception
-    if (gridAgentBaseData.sweepValueStores.nonEmpty) {
-      notifyListener(
-        this.createResultModels(
-          gridAgentBaseData.gridEnv.gridModel,
-          gridAgentBaseData.sweepValueStores.last._2
-        )(
-          currentTimestamp
+    gridAgentBaseData.sweepValueStores.lastOption.foreach {
+      case (_, valueStore) =>
+        notifyListener(
+          this.createResultModels(
+            gridAgentBaseData.gridEnv.gridModel,
+            valueStore
+          )(
+            currentTimestamp
+          )
         )
-      )
     }
   }
 
