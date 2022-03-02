@@ -5,7 +5,7 @@
 
 #### Two winding transformer
 
-![](../images/models/transformer_model/tecdoc_tc1.jpg)
+![](../_static/figures/models/transformer_model/tecdoc_tc1.jpg)
 
 **Calculation of basic equivalent circuit elements**
 
@@ -54,7 +54,7 @@ This page describes the simulative treatment of three winding transformers. For 
 
 Equivalent circuit of the three winding transformer
 
-![](../images/models/transformer_model/model_twt.png)
+![](../_static/figures/models/transformer_model/model_twt.png)
 
 #### General Informations
 

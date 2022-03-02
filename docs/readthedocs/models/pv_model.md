@@ -40,11 +40,11 @@ flowchart
 
 ### Output visualization
 
-![](../images/models/pv_model/pv_it_test_wholeyear.png)
+![](../_static/figures/models/pv_model/pv_it_test_wholeyear.png)
 
 ### Calculations
 
-![](../images/models/pv_model/pvradiation.png)
+![](../_static/figures/models/pv_model/pvradiation.png)
 
 The energy produced by a photovoltaic (pv) unit in a specific time step is based on the diffuse and direct radiation provided by the used weather data. The following steps are done to calculate (= estimate) the power feed by the pv.
 
@@ -56,7 +56,7 @@ The azimuth angle $\alpha_E$ starts at negative values in the East and moves ove
 
 #### Declination Angle
 
-![](../images/models/pv_model/declination_angle.png)
+![](../_static/figures/models/pv_model/declination_angle.png)
 
 The declination angle $\delta$ (in radian!) is the day angle that represents the position of the earth in relation to the sun. To calculate this angle, we need to calculate the day angle $J$. The day angle in radian is represented by:
 
@@ -85,7 +85,7 @@ $$
 
 The hour angle is a conceptual description of the rotation of the earth around its polar axis. It starts with a negative value in the morning, arrives at 0° at noon (solar time) and ends with a positive value in the evening. The hour angle (in radian!) is calculated as follows
 
-![](../images/models/pv_model/hour-angle.png)
+![](../_static/figures/models/pv_model/hour-angle.png)
 
 $$
 \omega = ((12 - ST) \cdot 15) \cdot (\frac{\pi}{180})
@@ -177,9 +177,9 @@ $$
 - [Maleki, S.A., Hizam, H., & Gomes, C. (2017). Estimation of Hourly, Daily and Monthly Global Solar Radiation on Inclined Surfaces: Models Re-Visited.](https://res.mdpi.com/d_attachment/energies/energies-10-00134/article_deploy/energies-10-00134-v2.pdf) p. 5  (Zenith angle $\theta_z$ is an adjacent angle of $\alpha_s$)
 - [The Sun As A Source Of Energy Part 3: Calculating Solar Angles](https://www.itacanet.org/the-sun-as-a-source-of-energy/part-3-calculating-solar-angles/)
 
-![](../images/models/pv_model/solar-altitude.jpg)
+![](../_static/figures/models/pv_model/solar-altitude.jpg)
 
-![](../images/models/pv_model/sun_angles_overview.png)
+![](../_static/figures/models/pv_model/sun_angles_overview.png)
 
 #### Zenith Angle
 

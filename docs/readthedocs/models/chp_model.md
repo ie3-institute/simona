@@ -32,7 +32,7 @@ The implemented behaviour is shown in the program sequence plan below. In genera
 
 ### Implementation:
 
-![](../images/models/chp_model/ChpModelCalculation.png)
+![](../_static/figures/models/chp_model/ChpModelCalculation.png)
 
 ### Mathematical concept
 

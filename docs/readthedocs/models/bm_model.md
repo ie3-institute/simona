@@ -7,7 +7,7 @@ The BM Model is part of the SIMONA Simulation framework and represented by an ag
 
 ### Parameters
 
-![](../images/models/bm_model/bm_parameters.png)
+![](../_static/figures/models/bm_model/bm_parameters.png)
 
 ### Assumptions
 The biomass is used in a cogeneration process. The thermal output is used for heating purposes and therefore weather-dependent.
@@ -17,7 +17,7 @@ The main objective of the BM agent is to cover the heat demand of the connected 
 
 ### Implemented Behaviour
 
-![](../images/models/bm_model/bm_behaviour.png)
+![](../_static/figures/models/bm_model/bm_behaviour.png)
 
 #### Calculate Heat Demand
 The heat demand is calculated in relation to the temperature using the results of a linear regression. Furthermore, correction factors, which take different heat demands on the weekend and outside the heating season into account are used.
@@ -62,7 +62,7 @@ $$OPEX_{current} = \frac{OPEX}{efficiency}$$
 
 For a given usage (example: $20\,%$), the average of the current $OPEX$ and $OPEX$ at full usage is calculated (orange line) and compared with the granted feed in tariff. If the feed in tariff exceeds the average costs, the usage will be set to $100\,%$.
 
-![](../images/models/bm_model/mc.png)
+![](../_static/figures/models/bm_model/mc.png)
 
 #### Load Gradient
 Owing to the inertia of the cogeneration process, the BM plant may not be able to change its output power to the calculated optimal value. In order to account for this, the change in power since the last time step (t-τ) is compared to the load gradient, which describes the maximum rate of change of the electrical power. The output power is set to:
