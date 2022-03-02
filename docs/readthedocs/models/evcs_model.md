@@ -5,17 +5,7 @@ The currently connected EvModels are saved within the state data of EvCsAgent an
 
 ### Attributes, Units and Remarks
 
-| Attribute          | Unit | Remarks                                         |
-|--------------------|------|-------------------------------------------------|
-| uuid               |  --  | universally unique identifier                   |
-| id                 |  --  | human readable identifier                       |
-| operationInterval  |  --  | time interval, in which the system is operating |
-| scalingFactor      |  --  | scaling the output of the system                |
-| qControl           |  --  | type of reactive power control                  |
-| sRated             |  kVA | rated apparent power                            |
-| cosPhiRated        |  --  | rated power factor                              |
-| chargingPoints     |  --  | number of charging points available             |
-| locationType       |  --  | the charging station location type              |
+Attributes and Units are defined at {doc}`PowerSystemDataModel - EvCs Model <psdm:models/input/participant/evcs>` please have a look.
 
 ### Calculation
 
