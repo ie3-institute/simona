@@ -15,15 +15,10 @@ Default Configuration
 Set of Individual Configurations
 ~ This part holds a set of configurations, that will apply to specific load models, denoted by their uuid. To simplify config generation, you are able to assign the same config to a list of uuids in batch. If one load has no individual configuration assigned, it will default to the above given config.
 
-The following parameters are available (as well for default as for individual assignment):
+### Attributes, Units and Remarks
 
+Attributes and Units are defined at {doc}`PowerSystemDataModel - Load Model <psdm:models/input/participant/load>` please have a look.
 
-| Parameter      | Type         | Permissible input            |
-| ---------------- | -------------- | ------------------------------ |
-| uuid           | List[String] | List of valid UUIDs          |
-| scaling        | Double       | All positive Doubles         |
-| modelBehaviour | String       | 'fix', 'profile' or 'random' |
-| reference      | String       | 'power' or 'energy'          |
 
 ##### Configuration parameter ``uuid``
 
