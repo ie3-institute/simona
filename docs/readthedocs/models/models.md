@@ -1,38 +1,18 @@
 # Models
 
-This page gives an overview of the available models in *SIMONA*.
+This page gives an overview of the available models in *SIMONA*. 
 
-| Model                                                       | Description                                |
-|-------------------------------------------------------------|--------------------------------------------|
-| [Load Model Configuration and Load Profiles](load_model.md) | Load Model Configuration and Load Profiles |
-| [BM Model](bm_model)                                        | Biomass plant                              |
-| [CHP Model](chp_model)                                      | Combined heat and power plant              |
-| [EvCs Model](evcs_model)                                    | Electric Vehicle Charging Station Model    |
-| [PV Model](pv_model.md)                                     | Photovoltaic                               |
-| [Transformer Model](transformer_model.md)                   | Transformer Models (2W and 3W)             |
-| [Thermal Storage](cts_model.md)                             | Cylindrical Thermal Storage                |
-| [WEC Model](wec_model.md)                                   | Wind energy converter                      |
+```{eval-rst}
+.. toctree::
+   :maxdepth: 2
 
-```{include} load_model.md
+   load_model
+   bm_model
+   chp_model
+   evcs_mode
+   pv_model
+   transformer_model
+   cts_model
+   wec_model
 ```
 
-```{include} bm_model.md
-```
-
-```{include} chp_model.md
-```
-
-```{include} evcs_model.md
-```
-
-```{include} pv_model.md
-```
-
-```{include} transformer_model.md
-```
-
-```{include} cts_model.md
-```
-
-```{include} wec_model.md
-```
