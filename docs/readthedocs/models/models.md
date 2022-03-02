@@ -2,17 +2,16 @@
 
 This page gives an overview of the available models in *SIMONA*.
 
-| Model                                     | Description                              |
-|-------------------------------------------|------------------------------------------|
-| [Load Model Configuration](load_model.md) | Load Model Configuration                 |
-| [BM Model](bm_model)                      | Biomass plant                            |
-| [CHP Model](chp_model)                    | Combined heat and power plant            |
-| [EvCs Model](evcs_model)                  | Electric Vehicle Charging Station Model  |
-| [Load Profiles](load_profiles.md)         | Load profiles                            |
-| [PV Model](pv_model.md)                   | Photovoltaic                             |
-| [Transformer Model](transformer_model.md) | Transformer Models (2W and 3W)           |
-| [Thermal Storage](cts_model.md)           | Cylindrical Thermal Storage              |
-| [WEC Model](wec_model.md)                 | Wind energy converter                    |
+| Model                                                       | Description                                |
+|-------------------------------------------------------------|--------------------------------------------|
+| [Load Model Configuration and Load Profiles](load_model.md) | Load Model Configuration and Load Profiles |
+| [BM Model](bm_model)                                        | Biomass plant                              |
+| [CHP Model](chp_model)                                      | Combined heat and power plant              |
+| [EvCs Model](evcs_model)                                    | Electric Vehicle Charging Station Model    |
+| [PV Model](pv_model.md)                                     | Photovoltaic                               |
+| [Transformer Model](transformer_model.md)                   | Transformer Models (2W and 3W)             |
+| [Thermal Storage](cts_model.md)                             | Cylindrical Thermal Storage                |
+| [WEC Model](wec_model.md)                                   | Wind energy converter                      |
 
 ```{include} load_model.md
 ```
@@ -24,9 +23,6 @@ This page gives an overview of the available models in *SIMONA*.
 ```
 
 ```{include} evcs_model.md
-```
-
-```{include} load_profiles.md
 ```
 
 ```{include} pv_model.md
