@@ -1,5 +1,5 @@
 (evcs_model)=
-## EvCs Model
+## Electric Vehicle Charging Station Model (EvCs Model)
 
 The currently connected EvModels are saved within the state data of EvCsAgent and passed to EvCsModel with each trigger. The model then calculates the active load of the charging station.
 
