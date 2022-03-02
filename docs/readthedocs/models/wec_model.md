@@ -6,18 +6,8 @@ This page describes the wind energy converter model (WecModel). Given the curren
 
 ### Attributes, Units and Remarks
 
+Attributes and Units are defined at {doc}`PowerSystemDataModel - Wec Model <psdm:models/input/participant/wec>` please have a look.
 
-| Attribute         | Unit | Remarks                                         |
-| ------------------- | ------ | ------------------------------------------------- |
-| uuid              | --   | universally unique identifier                   |
-| id                | --   | human readable identifier                       |
-| operationInterval | --   | time interval, in which the system is operating |
-| scalingFactor     | --   | scaling the output of the system                |
-| qControl          | --   | type of reactive power control                  |
-| sRated            | kVA  | rated apparent power                            |
-| cosPhiRated       | --   | rated power factor                              |
-| rotorArea         | m²  | the swept area of the turbines rotor            |
-| betzCurve         | --   | see example below (Enercon E-82)                |
 
 ### Calculation
 
