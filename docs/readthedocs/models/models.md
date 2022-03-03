@@ -4,15 +4,15 @@ This page gives an overview of the available models in *SIMONA*.
 
 ```{eval-rst}
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
-   load_model
    bm_model
    chp_model
+   cts_model
    evcs_mode
+   load_model
    pv_model
    transformer_model
-   cts_model
    wec_model
 ```
 
