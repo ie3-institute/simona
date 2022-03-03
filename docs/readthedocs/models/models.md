@@ -15,4 +15,3 @@ This page gives an overview of the available models in *SIMONA*.
    transformer_model
    wec_model
 ```
-
