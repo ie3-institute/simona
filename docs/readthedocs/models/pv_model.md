@@ -10,16 +10,11 @@ The PV Model is part of the SIMONA Simulation framework and represented by an ag
 
 ### Parameters
 
-```{mermaid}
-graph
-    A[(Setup-database)] 
-    B([PV Agent])
-    C{{Simulation environment}}
+![](../_static/figures/models/pv_model/model pv.png)
 
-    A -- "α<SUB>E</SUB> γ<SUB>E</SUB> <br> η<SUB>conv</SUB> cos(φ)<br> lon lat <br>  albedo<br> NodeID S<SUB>N</SUB><br> " --> B
-    B -- "P<SUB>el</SUB>(t)<br> Q<SUB>el</SUB>(t)"--> C
-    C -- "t <br> E<SUB>Dir, H</SUB> <br> E<SUB>Dif,H</SUB>" --> B
-```
+### Attributes, Units and Remarks
+
+Attributes and Units are defined at {doc}`PowerSystemDataModel - PV Model <psdm:models/input/participant/pv>` please have a look.
 
 ### Implemented Behaviour
 

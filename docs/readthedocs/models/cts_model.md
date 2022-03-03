@@ -5,6 +5,10 @@ This page documents the functionality of the cylindrical thermal storage availab
 ### Behaviour
 This storage model operates on volumes, although the functions it provides for other models all operate with energy. Internally the storage model converts energy to volume and vice versa with formulas specified below. Furthermore it is assumed that the storage medium is water. Also the model holds a variable for the current storage level.
 
+### Attributes, Units and Remarks
+
+Attributes and Units are defined at {doc}`PowerSystemDataModel - CTS Model <psdm:models/input/participant/cylindricalstorage>` please have a look.
+
 ### Calculations
 #### Maximal storage capacity
 As the name suggests this storage has a cylindric form, hence its maximum storage capacity $V_{st, max}$ can be given by:

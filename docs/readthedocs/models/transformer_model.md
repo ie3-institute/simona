@@ -5,6 +5,11 @@
 
 #### Two winding transformer
 
+#### Attributes, Units and Remarks
+
+Attributes and Units are defined at {doc}`PowerSystemDataModel - Two Winding Transformer Model <psdm:models/input/participant/transformer2w>` please have a look.
+
+
 ![](../_static/figures/models/transformer_model/tecdoc_tc1.jpg)
 
 **Calculation of basic equivalent circuit elements**
@@ -51,6 +56,10 @@ If there is a tap changer, this has to be taken into account as well:
 
 ### Three winding transformer
 This page describes the simulative treatment of three winding transformers. For mathematical treatment refer to this page.
+
+#### Attributes, Units and Remarks
+
+Attributes and Units are defined at {doc}`PowerSystemDataModel - Three Winding Transformer Model <psdm:models/input/participant/transformer3w>` please have a look.
 
 Equivalent circuit of the three winding transformer
 
