@@ -357,7 +357,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
             .mkString("\n\t")}'"
         )
       case Success(WeatherScheme.ICON) => new IconTimeBasedWeatherValueFactory()
-      case Success(WeatherScheme.Cosmo) =>
+      case Success(WeatherScheme.COSMO) =>
         new CosmoTimeBasedWeatherValueFactory()
       case Success(unknownScheme) =>
         throw new InitializationException(
@@ -374,7 +374,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
         )
       case Success(WeatherScheme.ICON) =>
         new IconTimeBasedWeatherValueFactory(timeStampPattern)
-      case Success(WeatherScheme.Cosmo) =>
+      case Success(WeatherScheme.COSMO) =>
         new CosmoTimeBasedWeatherValueFactory(timeStampPattern)
       case Success(unknownScheme) =>
         throw new InitializationException(
