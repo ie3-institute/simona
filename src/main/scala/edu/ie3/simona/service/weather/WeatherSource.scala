@@ -559,7 +559,7 @@ object WeatherSource {
     */
   object WeatherScheme extends ParsableEnumeration {
     val ICON: Value = Value("icon")
-    val Cosmo: Value = Value("psdm")
+    val COSMO: Value = Value("cosmo")
   }
 
 }
