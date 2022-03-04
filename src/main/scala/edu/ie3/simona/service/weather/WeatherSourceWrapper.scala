@@ -14,7 +14,7 @@ import edu.ie3.datamodel.io.connectors.{
 }
 import edu.ie3.datamodel.io.factory.timeseries.{
   IconTimeBasedWeatherValueFactory,
-  PsdmTimeBasedWeatherValueFactory
+  CosmoTimeBasedWeatherValueFactory
 }
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.couchbase.CouchbaseWeatherSource
@@ -357,7 +357,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
             .mkString("\n\t")}'"
         )
       case Success(WeatherScheme.ICON) => new IconTimeBasedWeatherValueFactory()
-      case Success(WeatherScheme.PSDM) => new PsdmTimeBasedWeatherValueFactory()
+      case Success(WeatherScheme.Cosmo) => new CosmoTimeBasedWeatherValueFactory()
       case Success(unknownScheme) =>
         throw new InitializationException(
           s"Error while initializing WeatherFactory for weather source wrapper: weather scheme '$unknownScheme' is not an expected input."
@@ -373,8 +373,8 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
         )
       case Success(WeatherScheme.ICON) =>
         new IconTimeBasedWeatherValueFactory(timeStampPattern)
-      case Success(WeatherScheme.PSDM) =>
-        new PsdmTimeBasedWeatherValueFactory(timeStampPattern)
+      case Success(WeatherScheme.Cosmo) =>
+        new CosmoTimeBasedWeatherValueFactory(timeStampPattern)
       case Success(unknownScheme) =>
         throw new InitializationException(
           s"Error while initializing WeatherFactory for weather source wrapper: weather scheme '$unknownScheme' is not an expected input."
