@@ -99,7 +99,7 @@ dependencies {
   implementation "ch.qos.logback:logback-classic:1.2.11"
 
   /* testing */
-  testImplementation 'org.spockframework:spock-core:2.1-M2-groovy-3.0'
+  testImplementation 'org.spockframework:spock-core:2.2-groovy-4.0-SNAPSHOT'
   testImplementation 'org.scalatestplus:mockito-3-4_2.13:3.2.10.0'
   implementation 'org.mockito:mockito-core:4.3.1' // mocking framework
   testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.11"
