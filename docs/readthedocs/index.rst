@@ -16,6 +16,7 @@ Institute of Energy Systems, Energy Efficiency and Energy Economics at TU Dortmu
    config/config
    models/models.md
    protocols
+   bibliography/references
 
 Indices and tables
 ==================

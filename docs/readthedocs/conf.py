@@ -20,6 +20,7 @@ extensions = [
     'sphinxcontrib.mermaid',
     'sphinx.ext.intersphinx',
     'hoverxref.extension',
+    'sphinxcontrib.bibtex',
 ]
 
 templates_path = ['_templates']
@@ -48,3 +49,6 @@ intersphinx_mapping = {
 hoverxref_intersphinx = [
     "psdm",
 ]
+
+#Bibtex
+bibtex_bibfiles = ['bibliography/bibfile.bib']
