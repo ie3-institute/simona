@@ -159,7 +159,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
               ConfigFailFast invokePrivate checkRefSystem(refSystem)
             )
-          }.getMessage shouldBe "The given nominal voltage 'foo' cannot be parsed to Quantity."
+          }.getMessage shouldBe "The given nominal voltage 'foo' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?"
 
         }
 
