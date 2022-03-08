@@ -67,7 +67,7 @@ class RandomLoadParamStoreSpec
     "be instantiated correctly" in {
       val reader: InputStreamReader = new InputStreamReader(
         this.getClass
-          .getResourceAsStream("/load/random_load_parameters_test.csv")
+          .getResourceAsStream("random_load_parameters_test.csv")
       )
       val parameterMap =
         RandomLoadParamStore(reader) invokePrivate PrivateMethod[
@@ -79,7 +79,7 @@ class RandomLoadParamStoreSpec
     "return the correct parameters" in {
       val reader: InputStreamReader = new InputStreamReader(
         this.getClass
-          .getResourceAsStream("/load/random_load_parameters_test.csv")
+          .getResourceAsStream("random_load_parameters_test.csv")
       )
       val randomParameterStore = RandomLoadParamStore(reader)
 

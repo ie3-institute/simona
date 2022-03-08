@@ -7,10 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Changed
 - Improving code readability in EvcsAgent by moving FreeLotsRequest to separate methods
+- Re-organizing test resources into their respective packages [#105](https://github.com/ie3-institute/simona/issues/105)
+- BREAKING: Using snapshot version of PSDM
+- Simplified PrimaryServiceProxy due to changes in PSDM [#120](https://github.com/ie3-institute/simona/issues/120)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund)
-- Fix power exchange between grids
+- Let `ParticipantAgent` die after failed registration with secondary services (prevents stuck simulation) [#76](https://github.com/ie3-institute/simona/issues/76)
+- Fix power exchange between grids [#22](https://github.com/ie3-institute/simona/issues/22)
   - Consolidate request replies for different sub grid gates in one message
   - Await and send responses for distinct pairs of sender reference and target node
 
