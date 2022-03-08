@@ -408,7 +408,7 @@ case object ConfigFailFast extends LazyLogging {
             )
         case Failure(exception) =>
           throw new InvalidConfigParameterException(
-            s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to Quantity.",
+            s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?",
             exception
           )
       }
