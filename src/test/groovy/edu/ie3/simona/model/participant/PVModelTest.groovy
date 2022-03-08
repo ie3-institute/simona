@@ -108,7 +108,7 @@ class PVModelTest extends Specification {
 				pvInput.getAlbedo(),
 				pvInput.getEtaConv() as ComparableQuantity<Dimensionless>,
 				getQuantity(Math.toRadians(pvInput.getAzimuth().getValue().doubleValue()), RADIAN),
-				getQuantity(Math.toRadians(pvInput.getHeight().getValue().doubleValue()), RADIAN),
+				getQuantity(Math.toRadians(pvInput.getElevationAngle().getValue().doubleValue()), RADIAN),
 				getQuantity(1d, SQUARE_METRE)
 				)
 	}

@@ -7,9 +7,9 @@
 package edu.ie3.simona.service.primary
 
 import akka.actor.{ActorRef, Props}
-import edu.ie3.datamodel.io.csv.timeseries.ColumnScheme
 import edu.ie3.datamodel.io.factory.timeseries.TimeBasedSimpleValueFactory
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
+import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
 import edu.ie3.datamodel.io.source.TimeSeriesSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesSource
 import edu.ie3.datamodel.models.value.Value
