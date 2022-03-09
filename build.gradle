@@ -10,7 +10,7 @@ plugins {
   id 'com.diffplug.spotless' version '6.3.0'// code format
   id 'com.github.onslip.gradle-one-jar' version '1.0.6' // pack a self contained jar
   id "com.github.ben-manes.versions" version '0.42.0'
-  id "de.undercouch.download" version "5.0.1" // downloads plugin
+  id "de.undercouch.download" version "5.0.2" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id "com.github.johnrengelman.shadow" version "7.1.2" // fat jar
   id "org.sonarqube" version "3.3" // sonarqube
