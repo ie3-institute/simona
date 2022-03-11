@@ -6,11 +6,9 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.SupervisorStrategy.Stop
-
 import java.io.{File, FileInputStream}
 import java.util.zip.GZIPInputStream
-import akka.actor.{ActorSystem, AllForOneStrategy}
+import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.testkit.{TestFSMRef, TestProbe}
 import com.typesafe.config.ConfigFactory
