@@ -112,31 +112,33 @@ object ResultEventListener extends Transformer3wResultSupport {
       case _: ResultSinkType.Csv =>
         eventClassesToConsider
           .map(resultClass => {
-            val fileName =
-              resultFileHierarchy.rawOutputDataFilePaths.getOrElse(
-                resultClass,
-                throw new FileHierarchyException(
-                  s"Unable to get file path for result class '${resultClass.getSimpleName}' from output file hierarchy! " +
-                    s"Available file result file paths: ${resultFileHierarchy.rawOutputDataFilePaths}"
+            resultFileHierarchy.rawOutputDataFilePaths
+              .get(resultClass)
+              .map(Future.successful)
+              .getOrElse(
+                Future.failed(
+                  new FileHierarchyException(
+                    s"Unable to get file path for result class '${resultClass.getSimpleName}' from output file hierarchy! " +
+                      s"Available file result file paths: ${resultFileHierarchy.rawOutputDataFilePaths}"
+                  )
                 )
               )
-            if (fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")) {
-              val sink =
-                ResultEntityCsvSink(
-                  fileName.replace(".gz", ""),
-                  new ResultEntityProcessor(resultClass),
-                  fileName.endsWith(".gz")
-                )
-              sink.map((resultClass, _))
-            } else {
-              Future(
-                throw new ProcessResultEventException(
-                  s"Invalid output file format for file $fileName provided. Currently only '.csv' or '.csv.gz' is supported!"
-                )
-              )
-            }
+              .flatMap { fileName =>
+                if (fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")) {
+                  ResultEntityCsvSink(
+                    fileName.replace(".gz", ""),
+                    new ResultEntityProcessor(resultClass),
+                    fileName.endsWith(".gz")
+                  ).map((resultClass, _))
+                } else {
+                  Future(
+                    throw new ProcessResultEventException(
+                      s"Invalid output file format for file $fileName provided. Currently only '.csv' or '.csv.gz' is supported!"
+                    )
+                  )
+                }
+              }
           })
-
       case ResultSinkType.InfluxDb1x(url, database, scenario) =>
         // creates one connection per result entity that should be processed
         eventClassesToConsider
