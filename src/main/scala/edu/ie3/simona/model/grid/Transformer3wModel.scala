@@ -331,7 +331,7 @@ case object Transformer3wModel extends LazyLogging {
           transformerType.getrScA,
           transformerType.getxScA,
           transformerType.getgM,
-          transformerType.getbM.multiply(-1)
+          transformerType.getbM
         )
       case PowerFlowCaseB =>
         val nominalRatio = transformerType
