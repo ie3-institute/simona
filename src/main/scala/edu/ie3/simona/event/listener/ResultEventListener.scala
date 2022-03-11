@@ -14,13 +14,36 @@ import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.{ParticipantResultEvent, PowerFlowResultEvent}
-import edu.ie3.simona.event.listener.ResultEventListener.{AggregatedTransformer3wResult, BaseData, Init, ResultEventListenerData, Transformer3wKey, UninitializedData}
-import edu.ie3.simona.exceptions.{FileHierarchyException, InitializationException, ProcessResultEventException}
-import edu.ie3.simona.io.result.{ResultEntityCsvSink, ResultEntityInfluxDbSink, ResultEntitySink, ResultSinkType}
+import edu.ie3.simona.event.ResultEvent.{
+  ParticipantResultEvent,
+  PowerFlowResultEvent
+}
+import edu.ie3.simona.event.listener.ResultEventListener.{
+  AggregatedTransformer3wResult,
+  BaseData,
+  Init,
+  ResultEventListenerData,
+  Transformer3wKey,
+  UninitializedData
+}
+import edu.ie3.simona.exceptions.{
+  FileHierarchyException,
+  InitializationException,
+  ProcessResultEventException
+}
+import edu.ie3.simona.io.result.{
+  ResultEntityCsvSink,
+  ResultEntityInfluxDbSink,
+  ResultEntitySink,
+  ResultSinkType
+}
 import edu.ie3.simona.logging.SimonaFSMActorLogging
 import edu.ie3.simona.sim.SimonaSim
-import edu.ie3.simona.sim.SimonaSim.{ServiceInitComplete, ServiceInitFailed, ServiceInitResponse}
+import edu.ie3.simona.sim.SimonaSim.{
+  ServiceInitComplete,
+  ServiceInitFailed,
+  ServiceInitResponse
+}
 import edu.ie3.simona.util.ResultFileHierarchy
 
 import java.util.concurrent.TimeUnit
@@ -105,9 +128,11 @@ object ResultEventListener extends Transformer3wResultSupport {
                 )
               sink.map((resultClass, _))
             } else {
-             Future(throw new ProcessResultEventException(
-                s"Invalid output file format for file $fileName provided. Currently only '.csv' or '.csv.gz' is supported!"
-              ))
+              Future(
+                throw new ProcessResultEventException(
+                  s"Invalid output file format for file $fileName provided. Currently only '.csv' or '.csv.gz' is supported!"
+                )
+              )
             }
           })
 
@@ -283,19 +308,20 @@ class ResultEventListener(
         )
         .onComplete {
           case Failure(exception) =>
-            self ! ServiceInitFailed (
-            new InitializationException(
-              "Cannot initialize result sinks!"
-            ).initCause(exception))
+            self ! ServiceInitFailed(
+              new InitializationException(
+                "Cannot initialize result sinks!"
+              ).initCause(exception)
+            )
           case Success(classToSink) =>
             log.debug("Initialization complete!")
             supervisor ! ServiceInitComplete
             self ! BaseData(classToSink.toMap)
         }
       stay()
-    case Event(SimonaSim.ServiceInitFailed(ex), _ ) =>
-        throw new InitializationException("Unable to setup SimonaSim.", ex)
-      }
+    case Event(SimonaSim.ServiceInitFailed(ex), _) =>
+      throw new InitializationException("Unable to setup SimonaSim.", ex)
+  }
 
   when(Idle) {
     case Event(

@@ -7,7 +7,16 @@
 package edu.ie3.simona.sim
 
 import akka.actor.SupervisorStrategy.Stop
-import akka.actor.{Actor, ActorRef, AllForOneStrategy, PoisonPill, Props, Stash, SupervisorStrategy, Terminated}
+import akka.actor.{
+  Actor,
+  ActorRef,
+  AllForOneStrategy,
+  PoisonPill,
+  Props,
+  Stash,
+  SupervisorStrategy,
+  Terminated
+}
 import akka.pattern.after
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -15,10 +24,18 @@ import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.AgentState.Finish
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
-import edu.ie3.simona.ontology.trigger.Trigger.{InitializeGridAgentTrigger, InitializeServiceTrigger}
+import edu.ie3.simona.ontology.trigger.Trigger.{
+  InitializeGridAgentTrigger,
+  InitializeServiceTrigger
+}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
-import edu.ie3.simona.sim.SimonaSim.{EmergencyShutdownInitiated, ServiceInitComplete, ServiceInitResponse, SimonaSimStateData}
+import edu.ie3.simona.sim.SimonaSim.{
+  EmergencyShutdownInitiated,
+  ServiceInitComplete,
+  ServiceInitResponse,
+  SimonaSimStateData
+}
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -264,7 +281,7 @@ object SimonaSim {
     */
   final case object ServiceInitComplete extends ServiceInitResponse
 
-  final case class ServiceInitFailed (ex: Throwable) extends ServiceInitResponse
+  final case class ServiceInitFailed(ex: Throwable) extends ServiceInitResponse
 
   private[SimonaSim] final case class SimonaSimStateData(
       initSimSender: ActorRef = ActorRef.noSender
