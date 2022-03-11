@@ -115,7 +115,7 @@ trait Transformer3wTestData extends DefaultTestData {
     Quantities.getQuantity(60.15d, OHM),
     Quantities.getQuantity(200.75d, OHM),
     Quantities.getQuantity(12.98d, MetricPrefix.NANO(SIEMENS)),
-    Quantities.getQuantity(519.48d, MetricPrefix.NANO(SIEMENS)),
+    Quantities.getQuantity(-519.48d, MetricPrefix.NANO(SIEMENS)),
     Quantities.getQuantity(1.5, PERCENT),
     Quantities.getQuantity(0d, DEGREE_GEOM),
     0,
