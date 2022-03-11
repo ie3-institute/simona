@@ -52,7 +52,7 @@ trait PvInputTestData
     1,
     Quantities.getQuantity(12, StandardUnits.AZIMUTH),
     Quantities.getQuantity(10, StandardUnits.EFFICIENCY),
-    Quantities.getQuantity(100, StandardUnits.SOLAR_HEIGHT),
+    Quantities.getQuantity(100, StandardUnits.SOLAR_ELEVATION_ANGLE),
     12,
     11,
     false,
