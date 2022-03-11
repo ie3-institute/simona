@@ -10,17 +10,16 @@ import akka.actor.SupervisorStrategy.Stop
 
 import java.io.{File, FileInputStream}
 import java.util.zip.GZIPInputStream
-import akka.actor.{ActorSystem, AllForOneStrategy, PoisonPill, Props}
+import akka.actor.{ActorSystem, AllForOneStrategy}
 import akka.stream.Materializer
-import akka.testkit.{ImplicitSender, TestActorRef, TestFSMRef, TestKit, TestProbe}
+import akka.testkit.{TestFSMRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult, Transformer3WResult}
 import edu.ie3.datamodel.models.result.system.PvResult
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.ResultEvent.{ParticipantResultEvent, PowerFlowResultEvent}
-import edu.ie3.simona.exceptions.{InitializationException, ProcessResultEventException}
-import edu.ie3.simona.io.result.{ResultEntityCsvSink, ResultEntitySink, ResultSinkType}
+import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
 import edu.ie3.simona.test.common.result.PowerFlowResultData
 import edu.ie3.simona.test.common.{AgentSpec, IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
@@ -139,14 +138,8 @@ class ResultEventListenerSpec
         val listener = testProbe.childActorOf(ResultEventListener.props(
           Set(classOf[Transformer3WResult]),
           fileHierarchy,
-          testProbe.ref),
-          AllForOneStrategy(
-            maxNrOfRetries = 1,
-            withinTimeRange = 1 second) {
-            case ex: Exception =>
-              logger.error("Child failed with the following exception", ex)
-              Stop
-          })
+          testProbe.ref)
+        )
 
         testProbe watch listener
         testProbe expectTerminated(listener, 2 seconds)
