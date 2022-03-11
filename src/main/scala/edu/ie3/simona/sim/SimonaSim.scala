@@ -11,7 +11,6 @@ import akka.actor.{
   Actor,
   ActorRef,
   AllForOneStrategy,
-  PoisonPill,
   Props,
   Stash,
   SupervisorStrategy,
@@ -22,7 +21,6 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.AgentState.Finish
-import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
 import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeGridAgentTrigger,
@@ -33,14 +31,13 @@ import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim.{
   EmergencyShutdownInitiated,
   ServiceInitComplete,
-  ServiceInitResponse,
   SimonaSimStateData
 }
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
 /** Main entrance point to a simona simulation as top level actor. This actors
@@ -274,14 +271,10 @@ object SimonaSim {
     */
   case object EmergencyShutdownInitiated
 
-  sealed trait ServiceInitResponse
-
   /** Message to be used by a service to indicate that its initialization is
     * complete
     */
-  final case object ServiceInitComplete extends ServiceInitResponse
-
-  final case class ServiceInitFailed(ex: Throwable) extends ServiceInitResponse
+  final case object ServiceInitComplete
 
   private[SimonaSim] final case class SimonaSimStateData(
       initSimSender: ActorRef = ActorRef.noSender

@@ -6,7 +6,8 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.{ActorRef, FSM, PoisonPill, Props, Stash}
+import akka.actor.{ActorRef, FSM, Props, Stash, Status}
+import akka.pattern.pipe
 import akka.stream.Materializer
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.ResultEntity
@@ -23,6 +24,7 @@ import edu.ie3.simona.event.listener.ResultEventListener.{
   BaseData,
   Init,
   ResultEventListenerData,
+  SinkResponse,
   Transformer3wKey,
   UninitializedData
 }
@@ -38,12 +40,7 @@ import edu.ie3.simona.io.result.{
   ResultSinkType
 }
 import edu.ie3.simona.logging.SimonaFSMActorLogging
-import edu.ie3.simona.sim.SimonaSim
-import edu.ie3.simona.sim.SimonaSim.{
-  ServiceInitComplete,
-  ServiceInitFailed,
-  ServiceInitResponse
-}
+import edu.ie3.simona.sim.SimonaSim.ServiceInitComplete
 import edu.ie3.simona.util.ResultFileHierarchy
 
 import java.util.concurrent.TimeUnit
@@ -63,6 +60,10 @@ object ResultEventListener extends Transformer3wResultSupport {
   private final case object UninitializedData extends ResultEventListenerData
 
   private final case object Init
+
+  private final case class SinkResponse(
+      response: Map[Class[_], ResultEntitySink]
+  )
 
   /** [[ResultEventListener]] base data containing all information the listener
     * needs
@@ -294,10 +295,6 @@ class ResultEventListener(
       stash()
       stay()
 
-    case Event(baseData: BaseData, UninitializedData) =>
-      unstashAll()
-      goto(Idle) using baseData
-
     case Event(Init, _) =>
       Future
         .sequence(
@@ -306,20 +303,19 @@ class ResultEventListener(
             resultFileHierarchy
           )
         )
-        .onComplete {
-          case Failure(exception) =>
-            self ! ServiceInitFailed(
-              new InitializationException(
-                "Cannot initialize result sinks!"
-              ).initCause(exception)
-            )
-          case Success(classToSink) =>
-            log.debug("Initialization complete!")
-            supervisor ! ServiceInitComplete
-            self ! BaseData(classToSink.toMap)
-        }
+        .map(result => SinkResponse(result.toMap))
+        .pipeTo(self)
       stay()
-    case Event(SimonaSim.ServiceInitFailed(ex), _) =>
+
+    case Event(SinkResponse(classToSink), _) =>
+      // Sink Initialization succeeded
+      log.debug("Initialization complete!")
+      supervisor ! ServiceInitComplete
+
+      unstashAll()
+      goto(Idle) using BaseData(classToSink)
+
+    case Event(Status.Failure(ex), _) =>
       throw new InitializationException("Unable to setup SimonaSim.", ex)
   }
 
