@@ -139,7 +139,7 @@ class ResultEventListenerSpec
       }
 
       "check if actor dies when it should die" in {
-        val fileHierarchy = resultFileHierarchy(1, ".ttt")
+        val fileHierarchy = resultFileHierarchy(2, ".ttt")
         val testProbe = TestProbe()
         val listener = testProbe.childActorOf(
           ResultEventListener.props(
@@ -157,7 +157,7 @@ class ResultEventListenerSpec
 
     "handling ordinary results" should {
       "process a valid participants result correctly" in {
-        val specificOutputFileHierarchy = resultFileHierarchy(2, ".csv")
+        val specificOutputFileHierarchy = resultFileHierarchy(3, ".csv")
 
         val listenerRef = system.actorOf(
           ResultEventListener
@@ -204,7 +204,7 @@ class ResultEventListenerSpec
       }
 
       "process a valid power flow result correctly" in {
-        val specificOutputFileHierarchy = resultFileHierarchy(3, ".csv")
+        val specificOutputFileHierarchy = resultFileHierarchy(4, ".csv")
         val listenerRef = system.actorOf(
           ResultEventListener
             .props(
@@ -292,7 +292,7 @@ class ResultEventListenerSpec
         PrivateMethod[Map[Transformer3wKey, AggregatedTransformer3wResult]](
           Symbol("registerPartialTransformer3wResult")
         )
-      val fileHierarchy = resultFileHierarchy(4, ".csv")
+      val fileHierarchy = resultFileHierarchy(5, ".csv")
       val listener = TestFSMRef(
         new ResultEventListener(
           Set(classOf[Transformer3WResult]),
@@ -522,7 +522,7 @@ class ResultEventListenerSpec
 
     "shutting down" should {
       "shutdown and compress the data when requested to do so without any errors" in {
-        val specificOutputFileHierarchy = resultFileHierarchy(5, ".csv.gz")
+        val specificOutputFileHierarchy = resultFileHierarchy(6, ".csv.gz")
         val listenerRef = system.actorOf(
           ResultEventListener
             .props(
