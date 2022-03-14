@@ -423,7 +423,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       case WeatherData(diffRad, dirRad, temp, windVel) =>
         implicit val precision: Double = 1e-3
         WeatherData(
-          if (this.diffIrr !~= 0d) diffRad.multiply(this.diffIrr)
+          if (this.diffIrr !~= 0d) diffRad.divide(this.diffIrr)
           else EMPTY_WEATHER_DATA.diffRad,
           if (this.dirIrr !~= 0d) dirRad.divide(this.dirIrr)
           else EMPTY_WEATHER_DATA.dirRad,
