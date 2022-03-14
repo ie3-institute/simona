@@ -17,11 +17,11 @@ To run and customize the project you need a Java Development Kit (JDK) installat
 Installation
 ============
 
-You can find and download the source code of the latest stable SIMONA version `here <https://git.ie3.e-technik.tu-dortmund.de/SIMONACrew/SIMONA>`_. Go ahead and clone the repository using git:
+You can find and download the source code of the latest stable SIMONA version `here <https://github.com/ie3-institute/simona>`_. Go ahead and clone the repository using git:
 
 .. code-block:: none
 
-   $ git clone https://git.ie3.e-technik.tu-dortmund.de/SIMONACrew/SIMONA.git
+   $ git clone https://github.com/ie3-institute/simona.git
 
 
 Running a Standalone Simulation
@@ -170,7 +170,7 @@ SIMONA is capable of running an external sub-simulation by integration within th
 The information flow between SIMONA and the external simulation is partitioned into a control stream (see ``edu.ie3.simona.api.ExtSimAdapter``) and a number of optional data streams.
 Currently, only a data stream transporting electric vehicle movement information is implemented (see ``edu.ie3.simona.service.ev.ExtEvDataService``).
 
-An external simulation has to depend on `SimonaAPI <https://git.ie3.e-technik.tu-dortmund.de/SIMONACrew/SimonaAPI>`_ and make use of some of its interfaces (see below).
+An external simulation has to depend on `SimonaAPI <https://github.com/ie3-institute/simonaAPI>`_ and make use of some of its interfaces (see below).
 In order to run an external simulation, several requirements have to be fulfilled and a bunch of preparation steps have to be followed.
 
 .. note::
@@ -200,3 +200,4 @@ These steps have to be performed each time updates to the external simulation ne
 - Copy the resulting *jar* (usually placed inside <external project>/build/libs) to SIMONA/inputData/ext_sim.
 
 Now, when a simulation with SIMONA is started (see `above <#running-a-standalone-simulation>`_), the external simulation is triggered at each tick that it requested.
+

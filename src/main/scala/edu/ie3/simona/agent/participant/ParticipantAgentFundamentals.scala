@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.{ActorRef, FSM}
+import akka.actor.{ActorRef, FSM, PoisonPill}
 import akka.event.LoggingAdapter
 import akka.util
 import akka.util.Timeout
@@ -455,6 +455,7 @@ protected trait ParticipantAgentFundamentals[
           )
         }
       case RegistrationResponseMessage.RegistrationFailedMessage =>
+        self ! PoisonPill
         throw new ActorNotRegisteredException(
           s"Registration of actor $actorName for ${sender()} failed."
         )
