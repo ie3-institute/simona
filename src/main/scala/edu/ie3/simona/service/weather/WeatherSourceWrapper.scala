@@ -198,15 +198,13 @@ private[weather] final case class WeatherSourceWrapper private (
         )
     } match {
       case (weatherData: WeatherData, weightSum: WeightSum) =>
-        /* Divide by weight sum to correctly account for missing data. Change temperature scale back to absolute*/
         WeatherData(
-          weatherData.diffRad.divide(weightSum.diffRad),
-          weatherData.dirRad.divide(weightSum.dirRad),
+          weatherData.diffRad.divide(weightSum.diffIrr),
+          weatherData.dirRad.divide(weightSum.dirIrr),
           weatherData.temp.divide(weightSum.temp),
           weatherData.windVel.divide(weightSum.windVel)
         )
     }
-
   }
 
   /** Determine an Array with all ticks between the request frame's start and
@@ -382,9 +380,22 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
         )
     }
 
+  /** Simple container class to allow for accumulating determination of the sum
+    * of weights for different weather properties for different locations
+    * surrounding a given coordinate of interest
+    *
+    * @param diffIrr
+    *   Sum of weight for diffuse irradiance
+    * @param dirIrr
+    *   Sum of weight for direct irradiance
+    * @param temp
+    *   Sum of weight for temperature
+    * @param windVel
+    *   Sum of weight for wind velocity
+    */
   final case class WeightSum(
-      diffRad: Double,
-      dirRad: Double,
+      diffIrr: Double,
+      dirIrr: Double,
       temp: Double,
       windVel: Double
   ) {
@@ -395,13 +406,13 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
         windVel: Double
     ): WeightSum =
       WeightSum(
-        this.diffRad + diffRad,
-        this.dirRad + dirRad,
+        this.diffIrr + diffRad,
+        this.dirIrr + dirRad,
         this.temp + temp,
         this.windVel + windVel
       )
   }
-  case object WeightSum {
+  object WeightSum {
     val EMPTY_WEIGHT_SUM: WeightSum = WeightSum(1d, 1d, 1d, 1d)
   }
 
