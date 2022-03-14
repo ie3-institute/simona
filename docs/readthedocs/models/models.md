@@ -9,7 +9,7 @@ This page gives an overview of the available models in *SIMONA*.
    bm_model
    chp_model
    cts_model
-   evcs_mode
+   evcs_model
    load_model
    pv_model
    transformer_model

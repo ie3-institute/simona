@@ -63,7 +63,7 @@ Attributes and Units are defined at {doc}`PowerSystemDataModel - Three Winding T
 
 Equivalent circuit of the three winding transformer
 
-![](../_static/figures/models/transformer_model/model_twt.png)
+![](../_static/figures/models/transformer_model/ModelTwt.png)
 
 #### General Informations
 
