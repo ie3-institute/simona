@@ -164,7 +164,8 @@ trait WeatherSource {
     }
   }
 
-  /** Determine the weights of each coordinate
+  /** Determine the weights of each coordinate. It is ensured, that the entirety
+    * of weights sum up to 1.0
     *
     * @param nearestCoordinates
     *   Collection of nearest coordinates with their distances

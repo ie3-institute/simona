@@ -13,8 +13,8 @@ import edu.ie3.datamodel.io.connectors.{
   SqlConnector
 }
 import edu.ie3.datamodel.io.factory.timeseries.{
-  IconTimeBasedWeatherValueFactory,
-  CosmoTimeBasedWeatherValueFactory
+  CosmoTimeBasedWeatherValueFactory,
+  IconTimeBasedWeatherValueFactory
 }
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.couchbase.CouchbaseWeatherSource
@@ -45,7 +45,9 @@ import edu.ie3.simona.util.TickUtil
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.exceptions.EmptyQuantityException
 import edu.ie3.util.interval.ClosedInterval
+import edu.ie3.util.scala.DoubleUtils.ImplicitDouble
 import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import javax.measure.Quantity
@@ -164,7 +166,7 @@ private[weather] final case class WeatherSourceWrapper private (
           case EMPTY_WEATHER_DATA.temp => (EMPTY_WEATHER_DATA.temp, 0d)
           case nonEmptyTemp =>
             calculateContrib(
-              nonEmptyTemp,
+              nonEmptyTemp.to(Units.KELVIN),
               weight,
               StandardUnits.TEMPERATURE,
               s"Temperature not available at $point."
@@ -198,12 +200,7 @@ private[weather] final case class WeatherSourceWrapper private (
         )
     } match {
       case (weatherData: WeatherData, weightSum: WeightSum) =>
-        WeatherData(
-          weatherData.diffRad.divide(weightSum.diffIrr),
-          weatherData.dirRad.divide(weightSum.dirIrr),
-          weatherData.temp.divide(weightSum.temp),
-          weatherData.windVel.divide(weightSum.windVel)
-        )
+        weightSum.scale(weatherData)
     }
   }
 
@@ -411,9 +408,34 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
         this.temp + temp,
         this.windVel + windVel
       )
+
+    /** Scale the given [[WeatherData]] by dividing by the sum of weights per
+      * attribute of the weather data. If one of the weight sums is empty (and
+      * thus a division by zero would happen) the defined "empty" information
+      * for this attribute a returned.
+      *
+      * @param weatherData
+      *   Weighted and accumulated weather information
+      * @return
+      *   Weighted weather information, which are divided by the sum of weights
+      */
+    def scale(weatherData: WeatherData): WeatherData = weatherData match {
+      case WeatherData(diffRad, dirRad, temp, windVel) =>
+        implicit val precision: Double = 1e-3
+        WeatherData(
+          if (this.diffIrr !~= 0d) diffRad.multiply(this.diffIrr)
+          else EMPTY_WEATHER_DATA.diffRad,
+          if (this.dirIrr !~= 0d) dirRad.divide(this.dirIrr)
+          else EMPTY_WEATHER_DATA.dirRad,
+          if (this.temp !~= 0d) temp.divide(this.temp)
+          else EMPTY_WEATHER_DATA.temp,
+          if (this.windVel !~= 0d) windVel.divide(this.windVel)
+          else EMPTY_WEATHER_DATA.windVel
+        )
+    }
   }
   object WeightSum {
-    val EMPTY_WEIGHT_SUM: WeightSum = WeightSum(1d, 1d, 1d, 1d)
+    val EMPTY_WEIGHT_SUM: WeightSum = WeightSum(0d, 0d, 0d, 0d)
   }
 
 }
