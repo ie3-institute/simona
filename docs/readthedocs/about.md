@@ -12,4 +12,3 @@ Please visit SIMONA Website under [https://simona.ie3.e-technik.tu-dortmund.de](
 ## Reports and Papers
 
 ## References
-
