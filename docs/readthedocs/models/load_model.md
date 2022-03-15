@@ -1,6 +1,8 @@
 (load_model)=
 ## Load Model Configuration and Load Profiles
 
+SIMONA includes a polymorph approach for load model configuration. Based on parameterization the load model can be a profile model or a random model.
+
 ### Load Model
 
 #### General Information
@@ -10,7 +12,7 @@ SIMONA supports different load model behaviours, which need some parameterizatio
 This sub configuration is two-fold:
 
 Default Configuration
-~ This is one configuration, that applies to all load models, except of those, that have a individual config assigned. To simplify code, no distinct model class is introduced for the single config. In order to highlight the fact, that this config is a default config, you may write ```uuids = ["default"]```. If you put anything else than this, you will get a warning, that those references are neglected, although the rest will work just fine.
+~ This is one configuration, that applies to all load models, except of those, that have an individual config assigned. To simplify code, no distinct model class is introduced for the single config. In order to highlight the fact, that this config is a default config, you may write ```uuids = ["default"]```. If you put anything else than this, you will get a warning, that those references are neglected, although the rest will work just fine.
 
 Set of Individual Configurations
 ~ This part holds a set of configurations, that will apply to specific load models, denoted by their uuid. To simplify config generation, you are able to assign the same config to a list of uuids in batch. If one load has no individual configuration assigned, it will default to the above given config.
@@ -26,7 +28,7 @@ A list of valid UUIDs of load models, the following configuration should be appl
 
 ##### Configuration parameter ``scaling``
 
-Universal multiplication factor, that is applied to the models calculation results. It may be a positive real number.
+Universal multiplication factor, that is applied to the models' calculation results. It may be a positive real number.
 
 ##### Configuration parameter ``modelBehaviour``
 
@@ -109,7 +111,7 @@ Load profiles are determined by three factors: consumer type, day type and seaso
 
 In total, 27 combinations have to be considered. A load profile type is represented as a *LoadProfileKey* in SIMONA, consisting of specific types for all three factors.
 
-Each load profile type is assigned 96 values (one for each quarter hour of the day).
+Each load profile type is assigned 96 values (one for each quarter-hour of the day).
 
 Assignment of season and day type are described at page 4 of the source PDF.
 
@@ -140,7 +142,7 @@ Although the primary source declares the profile values to be power in W (p. 14 
 
 ##### Considering annual consumption
 
-Load profile values are normalized for an annual consumption of 1000 kWh/a. For a realistic prediction, the actual annual consumption has to be considered. Given an annual consumption of 4711 kWh/a, each load profile output has to be multiplied with 4.711.
+Load profile values are normalized for an annual consumption of $1000 \frac{kWh}{a}$. For a realistic prediction, the actual annual consumption has to be considered. Given an annual consumption of 4711 kWh/a, each load profile output has to be multiplied with 4.711.
 
 #### Sources
 
