@@ -151,10 +151,11 @@ object ResultEventListener extends Transformer3wResultSupport {
               )
 
               /* Zip both sink futures and map them to a sink container */
-              resultSinkFuture.zip(requestSinkFuture).map {
-                case (resultSink, requestSink) =>
-                  resultClass -> SinkContainer(resultSink, requestSink)
-              }
+              resultClassToSinkContainer(
+                resultClass,
+                resultSinkFuture,
+                requestSinkFuture
+              )
             } else {
               throw new ProcessResultEventException(
                 s"Invalid output file format for file $fileName provided. Currently only '.csv' or '.csv.gz' is supported!"
