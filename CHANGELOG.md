@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Re-organizing test resources into their respective packages [#105](https://github.com/ie3-institute/simona/issues/105)
 - BREAKING: Using snapshot version of PSDM
 - Simplified PrimaryServiceProxy due to changes in PSDM [#120](https://github.com/ie3-institute/simona/issues/120)
+- Harmonized configuration of csv parameters [#149](https://github.com/ie3-institute/simona/issues/149)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund)
