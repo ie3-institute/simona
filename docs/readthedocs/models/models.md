@@ -2,6 +2,21 @@
 
 This page gives an overview of the available models in *SIMONA*. 
 
+## Grid Related Models
+
+```{eval-rst}
+.. toctree::
+   :maxdepth: 1
+
+   line_model
+   switch_model
+   two_winding_transformer_model
+   three_winding_transformer_model
+```
+
+## System Participant Related Models
+
+
 ```{eval-rst}
 .. toctree::
    :maxdepth: 1
@@ -12,6 +27,5 @@ This page gives an overview of the available models in *SIMONA*.
    evcs_model
    load_model
    pv_model
-   transformer_model
    wec_model
 ```
