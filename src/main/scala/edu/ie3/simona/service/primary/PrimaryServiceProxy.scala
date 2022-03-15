@@ -7,18 +7,12 @@
 package edu.ie3.simona.service.primary
 
 import akka.actor.{Actor, ActorRef, PoisonPill, Props}
-import edu.ie3.datamodel.io.connectors.CsvFileConnector.CsvIndividualTimeSeriesMetaInformation
-import edu.ie3.datamodel.io.csv.timeseries.ColumnScheme
+import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
+import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
-import edu.ie3.datamodel.models.value.{
-  HeatAndPValue,
-  HeatAndSValue,
-  PValue,
-  SValue,
-  Value
-}
+import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.CsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
@@ -34,22 +28,22 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   WorkerRegistrationMessage
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
-  CsvInitPrimaryServiceStateData,
-  InitPrimaryServiceStateData
-}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
   PrimaryServiceStateData,
   SourceRef
+}
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
+  CsvInitPrimaryServiceStateData,
+  InitPrimaryServiceStateData
 }
 
 import java.text.SimpleDateFormat
@@ -154,7 +148,7 @@ case class PrimaryServiceProxy(
           .distinct
           .flatMap { timeSeriesUuid =>
             mappingSource
-              .getTimeSeriesMetaInformation(timeSeriesUuid)
+              .timeSeriesMetaInformation(timeSeriesUuid)
               .toScala match {
               case Some(metaInformation) =>
                 val columnScheme = metaInformation.getColumnScheme
@@ -245,7 +239,7 @@ case class PrimaryServiceProxy(
     * @param stateData
     *   Current state data of the actor
     */
-  private[primary] def handleCoveredModel(
+  protected def handleCoveredModel(
       modelUuid: UUID,
       timeSeriesUuid: UUID,
       stateData: PrimaryServiceStateData,
@@ -305,41 +299,31 @@ case class PrimaryServiceProxy(
     * @return
     *   The [[ActorRef]] to the worker
     */
-  private[primary] def initializeWorker(
+  protected def initializeWorker(
       columnScheme: ColumnScheme,
       timeSeriesUuid: UUID,
       simulationStart: ZonedDateTime,
       primaryConfig: PrimaryConfig,
       mappingSource: TimeSeriesMappingSource
-  ): Try[ActorRef] =
-    (
-      columnSchemeToActor(
-        columnScheme,
-        timeSeriesUuid.toString,
-        simulationStart
-      ),
-      toInitData(
-        primaryConfig,
-        mappingSource,
-        timeSeriesUuid,
-        simulationStart
-      )
+  ): Try[ActorRef] = {
+    val workerRef = classToWorkerRef(
+      columnScheme.getValueClass,
+      timeSeriesUuid.toString,
+      simulationStart
+    )
+    toInitData(
+      primaryConfig,
+      mappingSource,
+      timeSeriesUuid,
+      simulationStart
     ) match {
-      case (Success(workerRef), Success(initData)) =>
-        /* Puh... Everything went through... */
+      case Success(initData) =>
         scheduler ! ScheduleTriggerMessage(
           InitializeServiceTrigger(initData),
           workerRef
         )
         Success(workerRef)
-      case (Failure(cause), _) =>
-        Failure(
-          new InitializationException(
-            "Unable to establish a typed worker for primary data provision.",
-            cause
-          )
-        )
-      case (Success(workerRef), Failure(cause)) =>
+      case Failure(cause) =>
         workerRef ! PoisonPill
         Failure(
           new InitializationException(
@@ -348,55 +332,7 @@ case class PrimaryServiceProxy(
           )
         )
     }
-
-  /** Build a typed actor based on the foreseen class of value to distribute
-    *
-    * @param columnScheme
-    *   Column scheme of foreseen primary data
-    * @param timeSeriesUuid
-    *   uuid of the time series the actor processes
-    * @param simulationStart
-    *   Wall clock time of first instant in simulation
-    * @return
-    *   A trial on an [[ActorRef]] for the worker
-    */
-  private[primary] def columnSchemeToActor(
-      columnScheme: ColumnScheme,
-      timeSeriesUuid: String,
-      simulationStart: ZonedDateTime
-  ): Try[ActorRef] =
-    columnScheme match {
-      case ColumnScheme.ACTIVE_POWER =>
-        Success(
-          classToWorkerRef(classOf[PValue], timeSeriesUuid, simulationStart)
-        )
-      case ColumnScheme.APPARENT_POWER =>
-        Success(
-          classToWorkerRef(classOf[SValue], timeSeriesUuid, simulationStart)
-        )
-      case ColumnScheme.ACTIVE_POWER_AND_HEAT_DEMAND =>
-        Success(
-          classToWorkerRef(
-            classOf[HeatAndPValue],
-            timeSeriesUuid,
-            simulationStart
-          )
-        )
-      case ColumnScheme.APPARENT_POWER_AND_HEAT_DEMAND =>
-        Success(
-          classToWorkerRef(
-            classOf[HeatAndSValue],
-            timeSeriesUuid,
-            simulationStart
-          )
-        )
-      case unsupported =>
-        Failure(
-          new InitializationException(
-            s"Cannot build a primary source for unsupported column scheme '$unsupported'."
-          )
-        )
-    }
+  }
 
   /** Build a primary source worker and type it to the foreseen value class to
     * come
@@ -412,7 +348,7 @@ case class PrimaryServiceProxy(
     * @return
     *   The [[ActorRef]] to the spun off actor
     */
-  private def classToWorkerRef[V <: Value](
+  protected def classToWorkerRef[V <: Value](
       valueClass: Class[V],
       timeSeriesUuid: String,
       simulationStart: ZonedDateTime
@@ -450,7 +386,7 @@ case class PrimaryServiceProxy(
             None
           ) =>
         /* The mapping and actual data sources are from csv. At first, get the file name of the file to read. */
-        Try(mappingSource.getTimeSeriesMetaInformation(timeSeriesUuid).get)
+        Try(mappingSource.timeSeriesMetaInformation(timeSeriesUuid).get)
           .flatMap {
             /* Time series meta information could be successfully obtained */
             case csvMetaData: CsvIndividualTimeSeriesMetaInformation =>

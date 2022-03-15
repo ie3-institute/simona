@@ -1,4 +1,4 @@
-"uuid","albedo","azimuth","cos_phi_rated","eta_conv","height","id","k_g","k_t","market_reaction","node","operates_from","operates_until","operator","q_characteristics","s_rated"
+"uuid","albedo","azimuth","cos_phi_rated","eta_conv","elevation_angle","id","k_g","k_t","market_reaction","node","operates_from","operates_until","operator","q_characteristics","s_rated"
 5b38af42-1ee4-4a41-b666-ea141187df37,0.20000000298023224,-11.463644027709961,0.8999999761581421,96.0,33.62879943847656,NS_NET146_F2_(3)_PV,0.8999999761581421,1.0,false,0170837a-1876-45f9-a613-666f9991964d,,,,cosPhiFixed:{(0.00,0.90)},10.0
 e447506e-3d43-4bce-8aab-a7ca8b7fbc45,0.20000000298023224,3.8914573192596436,0.8999999761581421,98.0,42.77021408081055,NS_NET146_F4_(9)_PV,0.8999999761581421,1.0,false,9b889b73-c108-4b38-b6eb-3377841e0c83,,,,cosPhiFixed:{(0.00,0.90)},10.0
 6cac0624-6336-4418-bcf0-990abcdb824b,0.20000000298023224,-8.097375869750977,0.8999999761581421,98.0,44.90728759765625,NS_NET146_F4_(16)_PV,0.8999999761581421,1.0,false,9f7599de-c488-46c5-b053-1279a511f7b9,,,,cosPhiFixed:{(0.00,0.90)},30.0

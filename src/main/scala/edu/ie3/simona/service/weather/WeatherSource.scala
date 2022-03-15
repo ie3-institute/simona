@@ -174,62 +174,63 @@ trait WeatherSource {
   def determineWeights(
       nearestCoordinates: Iterable[CoordinateDistance]
   ): Try[WeightedCoordinates] = {
-    if (nearestCoordinates.size == 1) {
-      /* There is only one coordinate -> weight this with 1 */
-      Success(
-        WeightedCoordinates(Map(nearestCoordinates.head.getCoordinateB -> 1d))
-      )
-    } else {
-      /* There is more than one coordinate existent */
-      val totalDistanceToSurroundingCoordinates =
-        nearestCoordinates.foldLeft(Quantities.getQuantity(0d, Units.METRE)) {
-          case (cumulativeDistance, coordinateDistance) =>
-            cumulativeDistance.add(coordinateDistance.getDistance)
-        }
-
-      /* Partial function, that transfers a distance to proximity */
-      val toProximity = (coordinateDistance: CoordinateDistance) =>
-        1 - coordinateDistance.getDistance
-          .divide(totalDistanceToSurroundingCoordinates)
-          .asType(classOf[Dimensionless])
-          .to(PowerSystemUnits.PU)
-          .getValue
-          .doubleValue()
-
-      if (
-        totalDistanceToSurroundingCoordinates.isGreaterThan(
-          Quantities.getQuantity(0d, Units.METRE)
+    nearestCoordinates.headOption match {
+      case Some(dist) if nearestCoordinates.size == 1 =>
+        /* There is only one coordinate -> weight this with 1 */
+        Success(
+          WeightedCoordinates(Map(dist.getCoordinateB -> 1d))
         )
-      ) {
-        val weightMap = nearestCoordinates
-          .map(coordinateDistance => {
-            /* Maybe some words on the calculus of the weight here: We intend to have a weight, that linear increases
-             * from zero to one, the closer the coordinate is to the coordinate in question. Therefore we calculate the
-             * proximity of each node as a linear function between 1 at 0m distance to the questioned coordinate to zero
-             * at the sum of all coordinates' distances (1 - d / d_sum). However, summing up this proximity over all
-             * n coordinates brings n*1 from the left part of the sum and -1 as the sum of all distances shares.
-             * Thereby all weights sum up to n-1. Therefore, we divide by this to scale the sum of weights to one. */
-            val weight =
-              toProximity(coordinateDistance) / (nearestCoordinates.size - 1)
-            coordinateDistance.getCoordinateB -> weight
-          })
-          .toMap
+      case _ =>
+        /* There is more than one coordinate or none existent */
+        val totalDistanceToSurroundingCoordinates =
+          nearestCoordinates.foldLeft(Quantities.getQuantity(0d, Units.METRE)) {
+            case (cumulativeDistance, coordinateDistance) =>
+              cumulativeDistance.add(coordinateDistance.getDistance)
+          }
 
-        val weightSum = weightMap.values.sum
-        if (weightSum > 0.99 && weightSum < 1.01)
-          Success(WeightedCoordinates(weightMap))
-        else
+        /* Partial function, that transfers a distance to proximity */
+        val toProximity = (coordinateDistance: CoordinateDistance) =>
+          1 - coordinateDistance.getDistance
+            .divide(totalDistanceToSurroundingCoordinates)
+            .asType(classOf[Dimensionless])
+            .to(PowerSystemUnits.PU)
+            .getValue
+            .doubleValue()
+
+        if (
+          totalDistanceToSurroundingCoordinates.isGreaterThan(
+            Quantities.getQuantity(0d, Units.METRE)
+          )
+        ) {
+          val weightMap = nearestCoordinates
+            .map(coordinateDistance => {
+              /* Maybe some words on the calculus of the weight here: We intend to have a weight, that linear increases
+               * from zero to one, the closer the coordinate is to the coordinate in question. Therefore we calculate the
+               * proximity of each node as a linear function between 1 at 0m distance to the questioned coordinate to zero
+               * at the sum of all coordinates' distances (1 - d / d_sum). However, summing up this proximity over all
+               * n coordinates brings n*1 from the left part of the sum and -1 as the sum of all distances shares.
+               * Thereby all weights sum up to n-1. Therefore, we divide by this to scale the sum of weights to one. */
+              val weight =
+                toProximity(coordinateDistance) / (nearestCoordinates.size - 1)
+              coordinateDistance.getCoordinateB -> weight
+            })
+            .toMap
+
+          val weightSum = weightMap.values.sum
+          if (weightSum > 0.99 && weightSum < 1.01)
+            Success(WeightedCoordinates(weightMap))
+          else
+            Failure(
+              ServiceException(
+                "The sum of weights differs more than 1 % from 100 %."
+              )
+            )
+        } else
           Failure(
             ServiceException(
-              "The sum of weights differs more than 1 % from 100 %."
+              "The total sum of distances to surrounding coordinates is 0 m or less. Therefore averaging would lead to numeric errors."
             )
           )
-      } else
-        Failure(
-          ServiceException(
-            "The total sum of distances to surrounding coordinates is 0 m or less. Therefore averaging would lead to numeric errors."
-          )
-        )
     }
   }
 
@@ -558,7 +559,7 @@ object WeatherSource {
     */
   object WeatherScheme extends ParsableEnumeration {
     val ICON: Value = Value("icon")
-    val PSDM: Value = Value("psdm")
+    val COSMO: Value = Value("cosmo")
   }
 
 }

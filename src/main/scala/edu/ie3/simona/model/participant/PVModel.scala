@@ -817,7 +817,7 @@ case object PVModel {
       inputModel.getAlbedo,
       inputModel.getEtaConv,
       inputModel.getAzimuth,
-      inputModel.getHeight
+      inputModel.getElevationAngle
     )
 
     model.enable()
