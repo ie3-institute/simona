@@ -1,6 +1,3 @@
-Protocols
-=========
-
 Initialization phase
 --------------------
 
