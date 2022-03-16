@@ -17,5 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund)
+- Let `ParticipantAgent` die after failed registration with secondary services (prevents stuck simulation)
 
 [Unreleased]: https://github.com/ie3-institute/simona/compare/a14a093239f58fca9b2b974712686b33e5e5f939...HEAD

@@ -1,4 +1,4 @@
-"uuid";"albedo";"azimuth";"cosphi_rated";"eta_conv";"height";"id";"k_g";"k_t";"market_reaction";"operates_from";"operates_until";"s_rated";"q_characteristics";"node";"operator"
+"uuid";"albedo";"azimuth";"cosphi_rated";"eta_conv";"elevation_angle";"id";"k_g";"k_t";"market_reaction";"operates_from";"operates_until";"s_rated";"q_characteristics";"node";"operator"
 7ac5bb15-36ee-42b0-902b-9cd520e241b3;0.2;16.09490984119475;0.95;91.23978812713176;51.75144341774285;pv_south_1;0.9;1;false;;;100;cosPhiFixed:{(0.00,1.0)};022a94c6-2d60-4400-875c-ab9db1ae2736;
 939d254a-98b9-43d9-939d-dac9d91e7d73;0.2;-11.883286549709737;0.95;93.55452200165019;50.710754711180925;pv_south_2;0.9;1;false;;;100;cosPhiFixed:{(0.00,1.0)};9a2524f1-3639-4e90-a547-81a259712f8c;
 e3b34366-9a4b-4e8f-b46d-fccdd3c318b3;0.2;-3.6445723846554756;0.95;90.07983175106347;50.727743320167065;pv_south_3;0.9;1;false;;;100;cosPhiFixed:{(0.00,1.0)};9354b02c-a4a9-4e9d-905a-e48110b04d88;

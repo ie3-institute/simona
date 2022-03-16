@@ -7,9 +7,9 @@
 package edu.ie3.simona.service.primary
 
 import akka.actor.{Actor, ActorRef, PoisonPill, Props}
-import edu.ie3.datamodel.io.connectors.CsvFileConnector.CsvIndividualTimeSeriesMetaInformation
-import edu.ie3.datamodel.io.csv.timeseries.ColumnScheme
+import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
+import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.Value
@@ -148,7 +148,7 @@ case class PrimaryServiceProxy(
           .distinct
           .flatMap { timeSeriesUuid =>
             mappingSource
-              .getTimeSeriesMetaInformation(timeSeriesUuid)
+              .timeSeriesMetaInformation(timeSeriesUuid)
               .toScala match {
               case Some(metaInformation) =>
                 val columnScheme = metaInformation.getColumnScheme
@@ -386,7 +386,7 @@ case class PrimaryServiceProxy(
             None
           ) =>
         /* The mapping and actual data sources are from csv. At first, get the file name of the file to read. */
-        Try(mappingSource.getTimeSeriesMetaInformation(timeSeriesUuid).get)
+        Try(mappingSource.timeSeriesMetaInformation(timeSeriesUuid).get)
           .flatMap {
             /* Time series meta information could be successfully obtained */
             case csvMetaData: CsvIndividualTimeSeriesMetaInformation =>
