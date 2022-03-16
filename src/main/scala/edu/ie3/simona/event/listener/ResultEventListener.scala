@@ -318,7 +318,6 @@ class ResultEventListener(
       goto(Idle) using BaseData(classToSink)
 
     case Event(Status.Failure(ex), _) =>
-      log.error(ex, "Unable to setup SimonaSim.")
       throw new InitializationException("Unable to setup SimonaSim.", ex)
   }
 
