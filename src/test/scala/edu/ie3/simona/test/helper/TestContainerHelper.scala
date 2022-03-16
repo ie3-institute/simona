@@ -23,14 +23,13 @@ trait TestContainerHelper {
     *   a MountableFile to use with test containers
     */
   def getMountableFile(resource: String): MountableFile = {
-    def url = getClass.getResource(resource)
-    if (url == null) {
-      throw TestException(
-        "Resource '" + resource + "' was not found from " + getClass.toString
+    Option(getClass.getResource(resource))
+      .map(url => Paths.get(url.toURI))
+      .map(MountableFile.forHostPath)
+      .getOrElse(
+        throw TestException(
+          "Resource '" + resource + "' was not found from " + getClass.toString
+        )
       )
-    }
-    def path = Paths.get(url.toURI)
-
-    MountableFile.forHostPath(path)
   }
 }
