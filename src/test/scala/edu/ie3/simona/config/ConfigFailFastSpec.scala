@@ -857,7 +857,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkWeatherDataSource(
               weatherDataSource
             )
-          }.getMessage shouldBe "The weather data scheme 'this won't work' is not supported. Supported schemes:\n\ticon\n\tpsdm"
+          }.getMessage shouldBe "The weather data scheme 'this won't work' is not supported. Supported schemes:\n\ticon\n\tcosmo"
         }
 
       }
