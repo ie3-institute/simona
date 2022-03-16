@@ -9,8 +9,8 @@ package edu.ie3.simona.service.primary
 import akka.actor.{ActorRef, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.factory.timeseries.TimeBasedSimpleValueFactory
-import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
+import edu.ie3.datamodel.io.naming.{DatabaseNamingStrategy, FileNamingStrategy}
 import edu.ie3.datamodel.io.source.TimeSeriesSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesSource
 import edu.ie3.datamodel.io.source.sql.SqlTimeSeriesSource
@@ -43,8 +43,7 @@ import scala.util.{Failure, Success, Try}
 
 final case class PrimaryServiceWorker[V <: Value](
     override protected val scheduler: ActorRef,
-    valueClass: Class[V],
-    private implicit val startDateTime: ZonedDateTime
+    valueClass: Class[V]
 ) extends SimonaService[PrimaryServiceInitializedStateData[V]](scheduler) {
 
   /** Initialize the actor with the given information. Try to figure out the
@@ -89,10 +88,12 @@ final case class PrimaryServiceWorker[V <: Value](
           )
           (source, simulationStart)
         }
+
       case PrimaryServiceWorker.SqlInitPrimaryServiceStateData(
-            sqlParams: SqlParams,
             timeSeriesUuid: UUID,
-            simulationStart: ZonedDateTime
+            simulationStart: ZonedDateTime,
+            sqlParams: SqlParams,
+            namingStrategy: DatabaseNamingStrategy
           ) =>
         Try {
           val factory =
@@ -107,7 +108,7 @@ final case class PrimaryServiceWorker[V <: Value](
           val source = new SqlTimeSeriesSource(
             sqlConnector,
             sqlParams.schemaName,
-            sqlParams.tableName,
+            namingStrategy,
             timeSeriesUuid,
             valueClass,
             factory
@@ -115,6 +116,7 @@ final case class PrimaryServiceWorker[V <: Value](
 
           (source, simulationStart)
         }
+
       case unsupported =>
         /* Got the wrong init data */
         Failure(
@@ -123,6 +125,8 @@ final case class PrimaryServiceWorker[V <: Value](
           )
         )
     }).map { case (source, simulationStart) =>
+      implicit val startDateTime: ZonedDateTime = simulationStart
+
       val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(
         // Note: The whole data set is used here, which might be inefficient depending on the source implementation.
         source.getTimeSeries.getEntries.asScala
@@ -318,7 +322,7 @@ final case class PrimaryServiceWorker[V <: Value](
   }
 }
 
-case object PrimaryServiceWorker {
+object PrimaryServiceWorker {
 
   /** List of supported column schemes aka. column schemes, that belong to
     * primary data
@@ -332,10 +336,9 @@ case object PrimaryServiceWorker {
 
   def props[V <: Value](
       scheduler: ActorRef,
-      valueClass: Class[V],
-      simulationStart: ZonedDateTime
+      valueClass: Class[V]
   ): Props =
-    Props(new PrimaryServiceWorker(scheduler, valueClass, simulationStart))
+    Props(new PrimaryServiceWorker(scheduler, valueClass))
 
   /** Abstract class pattern for specific [[InitializeServiceStateData]].
     * Different implementations are needed, because the [[PrimaryServiceProxy]]
@@ -380,17 +383,20 @@ case object PrimaryServiceWorker {
   /** Specific implementation of [[InitPrimaryServiceStateData]], if the source
     * to use utilizes an SQL database.
     *
-    * @param sqlParams
-    *   Parameters regarding SQL connection and table selection
     * @param timeSeriesUuid
     *   Unique identifier of the time series to read
     * @param simulationStart
     *   Wall clock time of the beginning of simulation time
+    * @param sqlParams
+    *   Parameters regarding SQL connection and table selection
+    * @param databaseNamingStrategy
+    *   Strategy of naming database entities, such as tables
     */
   final case class SqlInitPrimaryServiceStateData(
-      sqlParams: SqlParams,
       override val timeSeriesUuid: UUID,
-      override val simulationStart: ZonedDateTime
+      override val simulationStart: ZonedDateTime,
+      sqlParams: SqlParams,
+      databaseNamingStrategy: DatabaseNamingStrategy
   ) extends InitPrimaryServiceStateData
 
   /** Class carrying the state of a fully initialized [[PrimaryServiceWorker]]

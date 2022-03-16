@@ -6,11 +6,12 @@
 
 package edu.ie3.simona.service.primary
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.ActorSystem
 import akka.testkit.{TestActorRef, TestProbe}
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.models.value.{HeatAndSValue, PValue, Value}
+import edu.ie3.datamodel.io.naming.DatabaseNamingStrategy
+import edu.ie3.datamodel.models.value.{HeatAndSValue, PValue}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePower,
   ApparentPowerAndHeat
@@ -32,15 +33,11 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   SqlInitPrimaryServiceStateData
 }
 import edu.ie3.simona.test.common.AgentSpec
+import edu.ie3.simona.test.common.input.TimeSeriesTestData
+import edu.ie3.simona.test.helper.TestContainerHelper
 import edu.ie3.util.TimeUtil
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.prop.TableDrivenPropertyChecks
-import org.testcontainers.utility.MountableFile
-
-import java.nio.file.Paths
-import java.util.UUID
-import scala.language.postfixOps
-import scala.reflect.ClassTag
 
 class PrimaryServiceWorkerSqlIT
     extends AgentSpec(
@@ -54,7 +51,9 @@ class PrimaryServiceWorkerSqlIT
     )
     with ForAllTestContainer
     with BeforeAndAfterAll
-    with TableDrivenPropertyChecks {
+    with TableDrivenPropertyChecks
+    with TimeSeriesTestData
+    with TestContainerHelper {
 
   override val container: PostgreSQLContainer = PostgreSQLContainer(
     "postgres:11.14"
@@ -65,22 +64,12 @@ class PrimaryServiceWorkerSqlIT
 
   private val schemaName = "public"
 
-  private val uuidP = UUID.fromString("9185b8c1-86ba-4a16-8dea-5ac898e8caa5")
-  private val uuidPhq = UUID.fromString("46be1e57-e4ed-4ef7-95f1-b2b321cb2047")
-
-  private val tableNameP = s"its_p_$uuidP"
-  private val tableNamePhq = s"its_pqh_$uuidPhq"
-
   override protected def beforeAll(): Unit = {
-    val url = getClass.getResource("timeseries/")
-    url shouldNot be(null)
-    val path = Paths.get(url.toURI)
-
     // Copy sql import scripts into docker
-    val sqlImportFile = MountableFile.forHostPath(path)
+    val sqlImportFile = getMountableFile("timeseries/")
     container.copyFileToContainer(sqlImportFile, "/home/")
 
-    Iterable(s"$tableNameP.sql", s"$tableNamePhq.sql")
+    Iterable("time_series_p.sql", "time_series_pqh.sql")
       .foreach { file =>
         val res = container.execInContainer("psql", "-Utest", "-f/home/" + file)
         res.getStderr shouldBe empty
@@ -92,42 +81,34 @@ class PrimaryServiceWorkerSqlIT
     container.close()
   }
 
-  // asInstanceOf throws ClassCastException if cast fails, thus this is safe here
-  @SuppressWarnings(Array("AsInstanceOf"))
-  private def getServiceActor[T <: Value](
-      scheduler: ActorRef
-  )(implicit tag: ClassTag[T]): PrimaryServiceWorker[T] = {
-    new PrimaryServiceWorker[T](
-      scheduler,
-      tag.runtimeClass.asInstanceOf[Class[T]],
-      simulationStart
-    )
-  }
-
   "A primary service actor with SQL source" should {
     "initialize and send out data when activated" in {
+      val scheduler = TestProbe("scheduler")
 
       val cases = Table(
         (
-          "getService",
+          "service",
           "uuid",
-          "tableName",
           "firstTick",
           "dataValueClass",
           "maybeNextTick"
         ),
         (
-          getServiceActor[HeatAndSValue](_),
-          uuidPhq,
-          tableNamePhq,
+          PrimaryServiceWorker.props(
+            scheduler.ref,
+            classOf[HeatAndSValue]
+          ),
+          uuidPqh,
           0L,
           classOf[ApparentPowerAndHeat],
           Some(900L)
         ),
         (
-          getServiceActor[PValue](_),
+          PrimaryServiceWorker.props(
+            scheduler.ref,
+            classOf[PValue]
+          ),
           uuidP,
-          tableNameP,
           0L,
           classOf[ActivePower],
           Some(900L)
@@ -136,31 +117,25 @@ class PrimaryServiceWorkerSqlIT
 
       forAll(cases) {
         (
-            getService,
+            service,
             uuid,
-            tableName,
             firstTick,
             dataValueClass,
             maybeNextTick
         ) =>
-          val scheduler = TestProbe("scheduler")
-
-          val serviceRef =
-            TestActorRef(
-              getService(scheduler.ref)
-            )
+          val serviceRef = TestActorRef(service)
 
           val initData = SqlInitPrimaryServiceStateData(
+            uuid,
+            simulationStart,
             SqlParams(
               jdbcUrl = container.jdbcUrl,
               userName = container.username,
               password = container.password,
               schemaName = schemaName,
-              tableName = tableName,
               timePattern = "yyyy-MM-dd HH:mm:ss"
             ),
-            uuid,
-            simulationStart
+            new DatabaseNamingStrategy()
           )
 
           val triggerId1 = 1L
@@ -213,6 +188,8 @@ class PrimaryServiceWorkerSqlIT
           dataMsg.tick shouldBe firstTick
           dataMsg.data.getClass shouldBe dataValueClass
           dataMsg.nextDataTick shouldBe maybeNextTick
+
+          scheduler.expectNoMessage()
       }
     }
   }

@@ -908,7 +908,6 @@ object SimonaConfig {
             jdbcUrl: java.lang.String,
             password: java.lang.String,
             schemaName: java.lang.String,
-            tableName: java.lang.String,
             timePattern: java.lang.String,
             userName: java.lang.String
         )
@@ -924,7 +923,6 @@ object SimonaConfig {
               schemaName =
                 if (c.hasPathOrNull("schemaName")) c.getString("schemaName")
                 else "public",
-              tableName = $_reqStr(parentPath, c, "tableName", $tsCfgValidator),
               timePattern =
                 if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
                 else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
