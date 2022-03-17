@@ -105,11 +105,7 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
   def activeToReactivePowerFunc(
       nodalVoltage: ComparableQuantity[Dimensionless]
   ): ComparableQuantity[Power] => ComparableQuantity[Power] =
-    qControl.activeToReactivePowerFunc(
-      sRated.multiply(scalingFactor),
-      cosPhiRated,
-      nodalVoltage
-    )
+    qControl.activeToReactivePowerFunc(sRated, cosPhiRated, nodalVoltage)
 
   /** Calculate the reactive power of the model
     *

@@ -21,7 +21,8 @@ import edu.ie3.simona.model.grid.NodeModel
   *   a collection of [[SweepValueStoreData]]
   */
 final case class SweepValueStore private (
-    sweepData: Vector[SweepValueStoreData]
+    sweepData: Vector[SweepValueStoreData],
+    localIterationCounter: Int
 )
 
 case object SweepValueStore {
@@ -77,6 +78,6 @@ case object SweepValueStore {
       }
     )
 
-    new SweepValueStore(sweepDataValues)
+    new SweepValueStore(sweepDataValues, validResult.iteration)
   }
 }
