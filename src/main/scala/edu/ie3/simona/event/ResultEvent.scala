@@ -31,6 +31,15 @@ object ResultEvent {
       systemParticipantResult: SystemParticipantResult
   ) extends ResultEvent
 
+  /** Event, that is sent, when a participant finally has answered a power
+    * request
+    *
+    * @param reply
+    *   The replied information
+    */
+  final case class RequestReplyEvent(reply: SystemParticipantResult)
+      extends ResultEvent
+
   /** Event that holds all grid calculation results of a power flow calculation.
     * The usage of a type is necessary here, to avoid passing in other instances
     * of [[edu.ie3.datamodel.models.result.ResultEntity]] except of the wanted
