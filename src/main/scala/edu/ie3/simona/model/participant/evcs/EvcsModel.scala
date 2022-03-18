@@ -13,10 +13,12 @@ import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationTyp
 import edu.ie3.datamodel.models.result.system.EvResult
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.api.data.ev.model.EvModel
-import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsRelevantData
+import edu.ie3.simona.model.participant.evcs.EvcsModel.{
+  ChargingStrategy,
+  EvcsRelevantData
+}
 import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedCurrentPrice.calculateCurrentPriceGridOriented
 import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedScheduling.calculateNewGridOrientedScheduling
 import edu.ie3.simona.model.participant.evcs.marketoriented.MarketOrientedCurrentPrice.calculateCurrentPriceMarketOriented
@@ -108,7 +110,8 @@ final case class EvcsModel(
       data: EvcsRelevantData
   ): Set[EvcsChargingScheduleEntry] = {
 
-    val chargingStrategy = "maxPower"
+    // TODO: Make this configurable!
+    val chargingStrategy = ChargingStrategy.MAX_POWER
 
     this.locationType match {
 
@@ -122,19 +125,19 @@ final case class EvcsModel(
 
       case _ =>
         chargingStrategy match {
-          case "maxPower" =>
+          case ChargingStrategy.MAX_POWER =>
             calculateNewSchedulingWithMaximumChargingPower(
               this,
               currentTick,
               data.currentEvs
             )
-          case "constantPower" =>
+          case ChargingStrategy.CONSTANT_POWER =>
             calculateNewSchedulingWithConstantPower(
               this,
               currentTick,
               data.currentEvs
             )
-          case "gridOrientedScheduling" =>
+          case ChargingStrategy.GRID_ORIENTED =>
             calculateNewGridOrientedScheduling(
               this,
               currentTick,
@@ -142,15 +145,13 @@ final case class EvcsModel(
               data.currentEvs,
               data.voltages
             )
-          case "marketOrientedScheduling" =>
+          case ChargingStrategy.MARKET_ORIENTED =>
             calculateNewMarketOrientedScheduling(
               this,
               currentTick,
               startTime,
               data.currentEvs
             )
-          case _ =>
-            throw new InvalidParameterException("Charging Strategy unknown.")
         }
 
     }
@@ -623,45 +624,40 @@ final case class EvcsModel(
       currentTick: Long,
       startTime: ZonedDateTime,
       data: EvcsRelevantData
-  ): Option[Double] = {
-
+  ): Option[Double] =
     // Only EvcsLocationType != Home and Work have prices
     this.locationType match {
-
       case EvcsLocationType.HOME | EvcsLocationType.WORK =>
         /* only public charging stations have dynamic charging prices */
         None
 
       case publicLocationType =>
-        val strategy = "none"
+        // TODO: Make this configurable!
+        val strategy: Option[ChargingStrategy.Value] = None
         val lengthOfRelevantIntervalInSeconds: Int =
-          publicLocationType match {
-            case EvcsLocationType.CUSTOMER_PARKING | EvcsLocationType.STREET =>
-              7200 // 2 hours
-            case _ => 1800 // 30 minutes
-          }
+          if (
+            publicLocationType == EvcsLocationType.CUSTOMER_PARKING || publicLocationType == EvcsLocationType.STREET
+          )
+            7200 // 2 hours
+          else 1800 // 30 minutes
 
-        strategy match {
-          case "gridOriented" =>
+        strategy.flatMap {
+          case ChargingStrategy.GRID_ORIENTED =>
             calculateCurrentPriceGridOriented(
               this,
               currentTick,
               lengthOfRelevantIntervalInSeconds,
               data
             )
-          case "marketOriented" =>
+          case ChargingStrategy.MARKET_ORIENTED =>
             calculateCurrentPriceMarketOriented(
               currentTick,
               startTime,
               lengthOfRelevantIntervalInSeconds
             )
-          case _ =>
-            None
-
+          case _ => None
         }
-
     }
-  }
 
   /** Return all ticks included in a schedule
     * @param schedule
@@ -712,6 +708,22 @@ final case class EvcsModel(
 }
 
 object EvcsModel {
+
+  object ChargingStrategy extends Enumeration {
+    val MAX_POWER, CONSTANT_POWER, GRID_ORIENTED, MARKET_ORIENTED = Value
+
+    def apply(token: String): ChargingStrategy.Value =
+      "[-_]".r.replaceAllIn(token.trim.toLowerCase, "") match {
+        case "maxpower"                 => MAX_POWER
+        case "constantpower"            => CONSTANT_POWER
+        case "gridorientedscheduling"   => GRID_ORIENTED
+        case "marketorientedscheduling" => MARKET_ORIENTED
+        case malformed =>
+          throw new RuntimeException(
+            s"The token '$malformed' cannot be parsed to charging strategy."
+          )
+      }
+  }
 
   /** Class that holds all relevant data for an Evcs model calculation
     *
