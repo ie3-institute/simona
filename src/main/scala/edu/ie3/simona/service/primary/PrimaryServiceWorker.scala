@@ -7,14 +7,17 @@
 package edu.ie3.simona.service.primary
 
 import akka.actor.{ActorRef, Props}
+import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.factory.timeseries.TimeBasedSimpleValueFactory
-import edu.ie3.datamodel.io.naming.FileNamingStrategy
+import edu.ie3.datamodel.io.naming.{DatabaseNamingStrategy, FileNamingStrategy}
 import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
 import edu.ie3.datamodel.io.source.TimeSeriesSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesSource
+import edu.ie3.datamodel.io.source.sql.SqlTimeSeriesSource
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.RichValue
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.SchedulerMessage
@@ -40,8 +43,7 @@ import scala.util.{Failure, Success, Try}
 
 final case class PrimaryServiceWorker[V <: Value](
     override protected val scheduler: ActorRef,
-    valueClass: Class[V],
-    private implicit val startDateTime: ZonedDateTime
+    valueClass: Class[V]
 ) extends SimonaService[PrimaryServiceInitializedStateData[V]](scheduler) {
 
   /** Initialize the actor with the given information. Try to figure out the
@@ -61,68 +63,99 @@ final case class PrimaryServiceWorker[V <: Value](
         PrimaryServiceInitializedStateData[V],
         Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
     )
-  ] = initServiceData match {
-    case PrimaryServiceWorker.CsvInitPrimaryServiceStateData(
-          timeSeriesUuid,
-          simulationStart,
-          csvSep,
-          directoryPath,
-          filePath,
-          fileNamingStrategy,
-          timePattern
-        ) =>
-      /* Got the right data. Attempt to set up a source and acquire information */
+  ] = {
+    (initServiceData match {
+      case PrimaryServiceWorker.CsvInitPrimaryServiceStateData(
+            timeSeriesUuid,
+            simulationStart,
+            csvSep,
+            directoryPath,
+            filePath,
+            fileNamingStrategy,
+            timePattern
+          ) =>
+        Try {
+          /* Set up source and acquire information */
+          val factory = new TimeBasedSimpleValueFactory(valueClass, timePattern)
+          val source = new CsvTimeSeriesSource(
+            csvSep,
+            directoryPath,
+            fileNamingStrategy,
+            timeSeriesUuid,
+            filePath,
+            valueClass,
+            factory
+          )
+          (source, simulationStart)
+        }
+
+      case PrimaryServiceWorker.SqlInitPrimaryServiceStateData(
+            timeSeriesUuid: UUID,
+            simulationStart: ZonedDateTime,
+            sqlParams: SqlParams,
+            namingStrategy: DatabaseNamingStrategy
+          ) =>
+        Try {
+          val factory =
+            new TimeBasedSimpleValueFactory(valueClass, sqlParams.timePattern)
+
+          val sqlConnector = new SqlConnector(
+            sqlParams.jdbcUrl,
+            sqlParams.userName,
+            sqlParams.password
+          )
+
+          val source = new SqlTimeSeriesSource(
+            sqlConnector,
+            sqlParams.schemaName,
+            namingStrategy,
+            timeSeriesUuid,
+            valueClass,
+            factory
+          )
+
+          (source, simulationStart)
+        }
+
+      case unsupported =>
+        /* Got the wrong init data */
+        Failure(
+          new InitializationException(
+            s"Provided init data '${unsupported.getClass.getSimpleName}' for primary service are invalid!"
+          )
+        )
+    }).map { case (source, simulationStart) =>
       implicit val startDateTime: ZonedDateTime = simulationStart
 
-      Try {
-        /* Set up source and acquire information */
-        val factory = new TimeBasedSimpleValueFactory(valueClass, timePattern)
-        val source = new CsvTimeSeriesSource(
-          csvSep,
-          directoryPath,
-          fileNamingStrategy,
-          timeSeriesUuid,
-          filePath,
-          valueClass,
-          factory
-        )
-        /* This seems not to be very efficient, but it is as efficient as possible. The getter method points to a
-         * final attribute within the source implementation. */
-        val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(
-          source.getTimeSeries.getEntries.asScala
-            .filter { timeBasedValue =>
-              val dateTime = timeBasedValue.getTime
-              dateTime.isEqual(simulationStart) || dateTime.isAfter(
-                simulationStart
-              )
-            }
-            .map(timeBasedValue => timeBasedValue.getTime.toTick)
-            .toSeq
-            .sorted
-        ).pop
+      val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(
+        // Note: The whole data set is used here, which might be inefficient depending on the source implementation.
+        source.getTimeSeries.getEntries.asScala
+          .filter { timeBasedValue =>
+            val dateTime = timeBasedValue.getTime
+            dateTime.isEqual(simulationStart) || dateTime.isAfter(
+              simulationStart
+            )
+          }
+          .map(timeBasedValue => timeBasedValue.getTime.toTick)
+          .toSeq
+          .sorted
+      ).pop
 
-        /* Set up the state data and determine the next activation tick. */
-        val initializedStateData =
-          PrimaryServiceInitializedStateData(
-            maybeNextTick,
-            furtherActivationTicks,
-            simulationStart,
-            source
-          )
-        val triggerMessage =
-          ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
-            maybeNextTick,
-            self
-          )
-        (initializedStateData, triggerMessage)
-      }
-    case unsupported =>
-      /* Got the wrong init data */
-      Failure(
-        new InitializationException(
-          s"Provided init data '${unsupported.getClass.getSimpleName}' for primary service are invalid!"
+      /* Set up the state data and determine the next activation tick. */
+      val initializedStateData =
+        PrimaryServiceInitializedStateData(
+          maybeNextTick,
+          furtherActivationTicks,
+          simulationStart,
+          source
         )
-      )
+      val triggerMessage =
+        ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
+          maybeNextTick,
+          self
+        )
+      (initializedStateData, triggerMessage)
+    }
   }
 
   /** Handle a request to register for information from this service
@@ -289,7 +322,7 @@ final case class PrimaryServiceWorker[V <: Value](
   }
 }
 
-case object PrimaryServiceWorker {
+object PrimaryServiceWorker {
 
   /** List of supported column schemes aka. column schemes, that belong to
     * primary data
@@ -303,10 +336,9 @@ case object PrimaryServiceWorker {
 
   def props[V <: Value](
       scheduler: ActorRef,
-      valueClass: Class[V],
-      simulationStart: ZonedDateTime
+      valueClass: Class[V]
   ): Props =
-    Props(new PrimaryServiceWorker(scheduler, valueClass, simulationStart))
+    Props(new PrimaryServiceWorker(scheduler, valueClass))
 
   /** Abstract class pattern for specific [[InitializeServiceStateData]].
     * Different implementations are needed, because the [[PrimaryServiceProxy]]
@@ -346,6 +378,25 @@ case object PrimaryServiceWorker {
       filePath: String,
       fileNamingStrategy: FileNamingStrategy,
       timePattern: String
+  ) extends InitPrimaryServiceStateData
+
+  /** Specific implementation of [[InitPrimaryServiceStateData]], if the source
+    * to use utilizes an SQL database.
+    *
+    * @param timeSeriesUuid
+    *   Unique identifier of the time series to read
+    * @param simulationStart
+    *   Wall clock time of the beginning of simulation time
+    * @param sqlParams
+    *   Parameters regarding SQL connection and table selection
+    * @param databaseNamingStrategy
+    *   Strategy of naming database entities, such as tables
+    */
+  final case class SqlInitPrimaryServiceStateData(
+      override val timeSeriesUuid: UUID,
+      override val simulationStart: ZonedDateTime,
+      sqlParams: SqlParams,
+      databaseNamingStrategy: DatabaseNamingStrategy
   ) extends InitPrimaryServiceStateData
 
   /** Class carrying the state of a fully initialized [[PrimaryServiceWorker]]
