@@ -85,31 +85,25 @@ object PredictionAndSchedulingUtils {
     * @param startTime
     *   start time of simulation
     * @return
-    *   set of evs that need ot be charged with maximum power until departure
+    *   Sets of non-dispatchable and dispatchable cars
     */
-  def findEvsThatNeedToBeChargedWithMaximumPower(
+  def findDispatchableEvs(
       evcsModel: EvcsModel,
       evs: Set[EvModel],
       currentTime: ZonedDateTime,
       startTime: ZonedDateTime
-  ): Set[EvModel] = {
-    evs.foldLeft(Set.empty[EvModel])((evs: Set[EvModel], ev) => {
-      val remainingParkingTime = currentTime.until(
-        ev.getDepartureTick.toLong.toDateTime(startTime),
-        ChronoUnit.SECONDS
-      )
-      if (
-        ev.getEStorage
-          .subtract(ev.getStoredEnergy)
-          .to(KILOWATTHOUR)
-          .divide(Quantities.getQuantity(remainingParkingTime, SECOND))
-          .asType(classOf[Power])
-          .to(KILOWATT)
-          .isGreaterThanOrEqualTo(evcsModel.getMaxAvailableChargingPower(ev))
-      ) {
-        evs + ev
-      } else evs
-    })
+  ): (Set[EvModel], Set[EvModel]) = evs.partition { ev =>
+    val remainingParkingTime = currentTime.until(
+      ev.getDepartureTick.toLong.toDateTime(startTime),
+      ChronoUnit.SECONDS
+    )
+    val energyNeed = ev.getEStorage.subtract(ev.getStoredEnergy)
+    val powerNeed = energyNeed
+      .divide(Quantities.getQuantity(remainingParkingTime, SECOND))
+      .asType(classOf[Power])
+    /* If the car would need to charge with the maximum power or more to be full at the end of parking, don't consider
+     * it as dispatchable */
+    powerNeed.isGreaterThanOrEqualTo(evcsModel.getMaxAvailableChargingPower(ev))
   }
 
   /** Collect and return all departure times and required energies of the

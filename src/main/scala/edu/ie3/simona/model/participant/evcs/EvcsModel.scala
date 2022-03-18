@@ -118,7 +118,7 @@ final case class EvcsModel(
       currentTick: Long,
       startTime: ZonedDateTime,
       data: EvcsRelevantData
-  ): Set[EvcsChargingScheduleEntry] = {
+  ): Map[EvModel, Option[ChargingSchedule]] = {
     if (
       locationType == EvcsLocationType.CHARGING_HUB_TOWN || locationType == EvcsLocationType.CHARGING_HUB_HIGHWAY
     ) {
@@ -137,15 +137,20 @@ final case class EvcsModel(
       )
   }
 
-  /**
-    * Determine the schedule by defined charging strategy
+  /** Determine the schedule by defined charging strategy
     *
-    * @param strategy Chosen charging strategy
-    * @param currentTick Current simulation time
-    * @param simulationStart Wall clock time of simulation start
-    * @param evs Collection of currently apparent evs
-    * @param voltages Mapping from wall-clock time to nodal voltage
-    * @return A set of [[EvcsChargingScheduleEntry]]s
+    * @param strategy
+    *   Chosen charging strategy
+    * @param currentTick
+    *   Current simulation time
+    * @param simulationStart
+    *   Wall clock time of simulation start
+    * @param evs
+    *   Collection of currently apparent evs
+    * @param voltages
+    *   Mapping from wall-clock time to nodal voltage
+    * @return
+    *   A set of [[EvcsChargingScheduleEntry]]s
     */
   private def scheduleByStrategy(
       strategy: ChargingStrategy.Value,
@@ -153,7 +158,7 @@ final case class EvcsModel(
       simulationStart: ZonedDateTime,
       evs: Set[EvModel],
       voltages: Map[ZonedDateTime, ComparableQuantity[Dimensionless]]
-  ): Set[EvcsChargingScheduleEntry] = strategy match {
+  ): Map[EvModel, Option[ChargingSchedule]] = strategy match {
     case ChargingStrategy.MAX_POWER =>
       chargeWithMaximumPower(
         currentTick,

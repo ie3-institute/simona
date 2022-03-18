@@ -23,6 +23,7 @@ import javax.measure.quantity.Power
   * @param chargingPower
   *   charging power for the charging interval
   */
+@deprecated("Use ChargingSchedule instead")
 case class EvcsChargingScheduleEntry(
     tickStart: Long,
     tickStop: Long,

@@ -8,7 +8,9 @@ package edu.ie3.simona.model.participant.evcs.uncontrolled
 
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.participant.evcs
+import edu.ie3.simona.model.participant.evcs.ChargingSchedule.Entry
 import edu.ie3.simona.model.participant.evcs.{
+  ChargingSchedule,
   EvcsChargingScheduleEntry,
   EvcsModel
 }
@@ -37,58 +39,35 @@ trait MaximumPowerCharging {
   def chargeWithMaximumPower(
       currentTick: Long,
       evs: Set[EvModel]
-  ): Set[EvcsChargingScheduleEntry] = {
+  ): Map[EvModel, Option[ChargingSchedule]] = evs.map { ev =>
+    ev -> Option.when(ev.getStoredEnergy.isLessThan(ev.getEStorage)) {
+      val chargingPower = getMaxAvailableChargingPower(ev)
+      val remainingParkingTime = ev.getDepartureTick - currentTick
 
-    evs.foldLeft(Set.empty: Set[EvcsChargingScheduleEntry])((schedule, ev) => {
+      val possibleChargeableEnergyUntilDeparture = chargingPower
+        .multiply(Quantities.getQuantity(remainingParkingTime.toDouble, SECOND))
+        .asType(classOf[Energy])
+        .to(KILOWATTHOUR)
 
-      val newSchedule =
-        if (ev.getStoredEnergy.isLessThan(ev.getEStorage)) {
-
-          val chargingPower: ComparableQuantity[Power] =
-            getMaxAvailableChargingPower(ev)
-          val remainingParkingTime: Long = ev.getDepartureTick - currentTick
-
-          val possibleChargeableEnergyUntilDeparture
-              : ComparableQuantity[Energy] =
-            chargingPower
-              .multiply(
-                Quantities.getQuantity(remainingParkingTime.toDouble, SECOND)
-              )
-              .asType(classOf[Energy])
-              .to(KILOWATTHOUR)
-
-          if (
-            ev.getStoredEnergy
-              .add(possibleChargeableEnergyUntilDeparture)
-              .isLessThanOrEqualTo(ev.getEStorage)
-          ) {
-            schedule + evcs.EvcsChargingScheduleEntry(
-              currentTick,
-              ev.getDepartureTick,
-              ev,
-              chargingPower
-            )
-          } else {
-            val chargingTimeUntilFullSoC: Long = (ev.getEStorage
-              .subtract(ev.getStoredEnergy)
-              .to(KILOWATTHOUR)
-              .divide(chargingPower.to(KILOWATT))
-              .getValue
-              .doubleValue() * 3600).toLong
-            schedule + evcs.EvcsChargingScheduleEntry(
-              currentTick,
-              currentTick + chargingTimeUntilFullSoC,
-              ev,
-              chargingPower
-            )
-          }
-
+      val endTick: Long =
+        if (
+          ev.getStoredEnergy
+            .add(possibleChargeableEnergyUntilDeparture)
+            .isLessThanOrEqualTo(ev.getEStorage)
+        ) {
+          /* Charge with full power, if battery can accommodate the energy */
+          ev.getDepartureTick
         } else {
-          // if SoC is 100%, no schedule is required
-          schedule
+          /* Charge only until the car is full */
+          (ev.getEStorage
+            .subtract(ev.getStoredEnergy)
+            .to(KILOWATTHOUR)
+            .divide(chargingPower.to(KILOWATT))
+            .getValue
+            .doubleValue() * 3600).toLong
         }
-      newSchedule
 
-    })
-  }
+      ChargingSchedule(ev, Seq(Entry(currentTick, endTick, chargingPower)))
+    }
+  }.toMap
 }

@@ -8,25 +8,20 @@ package edu.ie3.simona.model.participant.evcs.gridoriented
 
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.exceptions.InvalidParameterException
-import edu.ie3.simona.model.participant.evcs
 import edu.ie3.simona.model.participant.evcs.SchedulingTimeWindows.SchedulingTimeWindowWithVoltage
 import edu.ie3.simona.model.participant.evcs.PredictionAndSchedulingUtils.{
   calculateRemainingEnergyToBeChargedAfterThisUpdate,
   calculateSumOfEnergies,
-  findEvsThatNeedToBeChargedWithMaximumPower,
+  findDispatchableEvs,
   getDepartureTimesAndRequiredEnergyOfAllEvs,
   getEvsStillParkedAtThisTime
 }
 import edu.ie3.simona.model.participant.evcs.gridoriented.VoltagePrediction.{
   PredictedVoltage,
-  VoltageTimeTableEntry,
   calculateReferenceVoltageTimeTable,
   getPredictedVoltagesForRelevantTimeWindowBasedOnReferenceVoltages
 }
-import edu.ie3.simona.model.participant.evcs.{
-  EvcsChargingScheduleEntry,
-  EvcsModel
-}
+import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvcsModel}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT, PU}
 import edu.ie3.util.scala.quantities.DefaultQuantities
@@ -69,70 +64,38 @@ trait GridOrientedCharging {
       startTime: ZonedDateTime,
       evs: Set[EvModel],
       voltages: Map[ZonedDateTime, ComparableQuantity[Dimensionless]]
-  ): Set[EvcsChargingScheduleEntry] = {
-
+  ): Map[EvModel, Option[ChargingSchedule]] = {
     val currentTime = currentTick.toDateTime(startTime)
 
-    // logger.info(s"Current time: $currentTime")
-
-    // logger.info(s"All currently parked and EVs:")
-    // evs.foreach(ev => {
-    //  logger.info(s"$ev")
-    // })
-
-    /* Find evs that cannot be scheduled an exclude those from scheduling, charge with max power */
-    val evsThatNeedToChargeWithMaxPower: Set[EvModel] =
-      findEvsThatNeedToBeChargedWithMaximumPower(
+    /* Find evs that cannot be scheduled and exclude those from scheduling, charge with max power */
+    val (nonDispatchableEvs, dispatchableEvs) =
+      findDispatchableEvs(
         this,
         evs,
         currentTime,
         startTime
       )
 
-    // logger.info(s"Currently parked and NOT schedulable EVs:")
-    // evsThatNeedToChargeWithMaxPower.toVector
-    //  .sortBy(ev => ev.getDepartureTick)
-    //  .foreach(ev => {
-    //    logger.info(s"$ev")
-    //  })
-
     /* Create scheduling for evs that need ot charge with maximum power */
-    val scheduleForEvsThatChargeWithMaxPower: Set[EvcsChargingScheduleEntry] =
+    val scheduleForNonDispatchableEvs =
       chargeWithMaximumPower(
         currentTick,
-        evsThatNeedToChargeWithMaxPower
+        nonDispatchableEvs
       )
 
-    /* Determine set of schedulable evs */
-    val schedulableEvs: Set[EvModel] = evs -- evsThatNeedToChargeWithMaxPower
-
-    // logger.info(s"Currently parked and schedulable EVs:")
-    // schedulableEvs.toVector
-    //  .sortBy(ev => ev.getDepartureTick)
-    //  .foreach(ev => {
-    //    logger.info(s"$ev")
-    //  })
-
-    /* For tests
-    val alteredEvsWithHighChargingDemand =
-      evs.map(ev => ev.copyWith(Quantities.getQuantity(0, KILOWATTHOUR)))
-     */
-
     /* Create scheduling for evs that can be scheduled */
-    val scheduleForSchedulableEvs: Set[EvcsChargingScheduleEntry] =
-      if (schedulableEvs.nonEmpty) {
-        determineSchedulingForSchedulableEvs(
-          this,
-          currentTick: Long,
+    val scheduleForDispatchableEvs =
+      if (dispatchableEvs.nonEmpty) {
+        scheduleDispatchableEvs(
+          currentTick,
           currentTime,
-          startTime: ZonedDateTime,
-          schedulableEvs: Set[EvModel],
-          // alteredEvsWithHighChargingDemand: Set[EvModel],
-          voltages: Map[ZonedDateTime, ComparableQuantity[Dimensionless]]
+          startTime,
+          dispatchableEvs,
+          voltages
         )
-      } else Set.empty
+      } else Map.empty[EvModel, Option[ChargingSchedule]]
 
-    scheduleForEvsThatChargeWithMaxPower ++ scheduleForSchedulableEvs
+    scheduleForNonDispatchableEvs ++ scheduleForDispatchableEvs
   }
 
   /** Determine a grid conducive scheduling for evs that don't need to be
@@ -140,8 +103,6 @@ trait GridOrientedCharging {
     * charging of these evs is based on predicted grid utilization based on
     * historic node voltages.
     *
-    * @param evcsModel
-    *   evcs model to calculate for / with
     * @param currentTick
     *   current tick
     * @param currentTime
@@ -153,16 +114,15 @@ trait GridOrientedCharging {
     * @param voltages
     *   voltage memory of the charging station
     * @return
-    *   scheduling for charging the schedulable evs
+    *   scheduling for charging the dispatchable evs
     */
-  private def determineSchedulingForSchedulableEvs(
-      evcsModel: EvcsModel,
+  private def scheduleDispatchableEvs(
       currentTick: Long,
       currentTime: ZonedDateTime,
       startTime: ZonedDateTime,
       evs: Set[EvModel],
       voltages: Map[ZonedDateTime, ComparableQuantity[Dimensionless]]
-  ): Set[EvcsChargingScheduleEntry] = {
+  ): Map[EvModel, Option[ChargingSchedule]] = {
 
     /* Get all departure times and required energies of the currently parked and schedulable evs in separate lists */
     val (departureTimes, requiredEnergies) =
@@ -177,33 +137,28 @@ trait GridOrientedCharging {
         )
     }
 
-    /* Calculate total energy to be charged by schedulable evs */
-    val totalEnergyToBeChargedBySchedulableEvs: ComparableQuantity[Energy] =
-      calculateSumOfEnergies(requiredEnergies)
-    // logger.info(
-    //  s"Total energy to be charged by schedulable evs: $totalEnergyToBeChargedBySchedulableEvs"
-    // )
+    /* Calculate total energy to be charged by dispatchable evs */
+    val totalEnergyToBeChargedBySchedulableEvs = calculateSumOfEnergies(
+      requiredEnergies
+    )
 
     /* Get reference voltage time table based on voltage memory */
-    val voltageTimeTable: Vector[VoltageTimeTableEntry] =
-      calculateReferenceVoltageTimeTable(voltages)
+    val voltageTimeTable = calculateReferenceVoltageTimeTable(voltages)
 
     /* Get time windows with predicted voltage values for the relevant time until departure of the last EV */
-    val predictedVoltages: Vector[PredictedVoltage] =
+    val predictedVoltages =
       getPredictedVoltagesForRelevantTimeWindowBasedOnReferenceVoltages(
         currentTime,
         lastDepartureTime,
         voltageTimeTable
       )
 
-    val minVoltageInTimeWindow: ComparableQuantity[Dimensionless] =
-      getMinimumVoltageInPredictedVoltages(predictedVoltages)
-    // logger.info(
-    //  s"Minimum voltage in relevant time window: $minVoltageInTimeWindow"
-    // )
+    val minVoltageInTimeWindow = getMinimumVoltageInPredictedVoltages(
+      predictedVoltages
+    )
 
     /* Get scheduling time windows. The time windows are separated by voltage changes and departing evs */
-    val schedulingTimeWindows: Vector[SchedulingTimeWindowWithVoltage] =
+    val schedulingTimeWindows =
       getSchedulingTimeWindows(
         predictedVoltages,
         departureTimes,
@@ -214,16 +169,12 @@ trait GridOrientedCharging {
         evs
       )
 
-    // logger.info(s"Scheduling time windows with timeframe, voltage, voltage deviation, time window size, and parked EVs:")
-    // schedulingTimeWindows.foreach(x => logger.info(s"$x"))
-
     /* Calculate sum of box sizes (voltage deviation * length) and length of all time windows */
     val (totalTimeWindowLength, totalTimeWindowSize) =
       calculateTotalTimeWindowLengthAndSize(schedulingTimeWindows)
-    // logger.info(s"Total length: $totalTimeWindowLength\nTotal size: $totalTimeWindowSize")
 
     /* Calculate power per voltage deviation */
-    val powerPerVoltageDeviation: ComparableQuantity[Power] =
+    val powerPerVoltageDeviation =
       calculatePowerPerVoltageDeviation(
         totalTimeWindowSize,
         totalTimeWindowLength,
@@ -231,52 +182,36 @@ trait GridOrientedCharging {
       )
 
     /* Start with ev departing first and distribute charging energy */
-    val results = evs.toVector
-      .sortBy(ev => ev.getDepartureTick)
+    evs.toVector
+      .sortBy(_.getDepartureTick)
       .foldLeft(
         (
-          Set.empty[EvcsChargingScheduleEntry],
-          schedulingTimeWindows: Vector[SchedulingTimeWindowWithVoltage]
+          Map.empty[EvModel, Option[ChargingSchedule]],
+          schedulingTimeWindows
         )
-      )(
+      ) { case ((evToSchedule, schedulingTimeWindows), ev) =>
+        val (updatedWindowsForEv, scheduleForEv) =
+          createScheduleForThisEvAndUpdateSchedulingTimeWindows(
+            schedulingTimeWindows,
+            ev,
+            this,
+            startTime,
+            powerPerVoltageDeviation
+          )
+
+        val updatedSchedulingTimeWindows =
+          updateSchedulingTimeWindows(
+            schedulingTimeWindows,
+            updatedWindowsForEv
+          )
+
+        /* Update the overall scheduling of the evcs with the schedule for this ev and the updated time windows. */
         (
-            schedule: (
-                Set[EvcsChargingScheduleEntry],
-                Vector[SchedulingTimeWindowWithVoltage]
-            ),
-            ev: EvModel
-        ) => {
-
-          // logger
-          //  .info(s"---------- Start scheduling for ${ev.getId} -----------")
-
-          val (updatedWindowsForEv, scheduleForEv): (
-              Vector[SchedulingTimeWindowWithVoltage],
-              Set[EvcsChargingScheduleEntry]
-          ) =
-            createScheduleForThisEvAndUpdateSchedulingTimeWindows(
-              schedule._2,
-              ev,
-              evcsModel,
-              startTime,
-              powerPerVoltageDeviation
-            )
-
-          val updatedSchedulingTimeWindows
-              : Vector[SchedulingTimeWindowWithVoltage] =
-            updateSchedulingTimeWindows(schedule._2, updatedWindowsForEv)
-
-          /* Update the overall scheduling of the evcs with the schedule for this ev and the updated time windows. */
-          (schedule._1 ++ scheduleForEv, updatedSchedulingTimeWindows)
-        }
-      )
-
-    // logger.warn(
-    // "----------- Final results for scheduling of this evcs ------------"
-    // )
-    // results._1.foreach(x => logger.warn(s"$x"))
-
-    results._1
+          evToSchedule ++ Map(ev -> Some(ChargingSchedule(ev, scheduleForEv))),
+          updatedSchedulingTimeWindows
+        )
+      }
+      ._1
   }
 
   /** Calculate the charging schedule for this ev based on the current
@@ -303,29 +238,21 @@ trait GridOrientedCharging {
       powerPerVoltageDeviation: ComparableQuantity[Power]
   ): (
       Vector[SchedulingTimeWindowWithVoltage],
-      Set[EvcsChargingScheduleEntry]
+      Seq[ChargingSchedule.Entry]
   ) = {
-
-    /* Charging schedule for this ev */
-    val scheduleForEv: Set[EvcsChargingScheduleEntry] = Set.empty
-
     /* Energy that needs to be distributed on the time windows to charge the ev to full SoC */
-    val energyToChargeForEv: ComparableQuantity[Energy] =
-      ev.getEStorage.subtract(ev.getStoredEnergy)
+    val energyToChargeForEv = ev.getEStorage.subtract(ev.getStoredEnergy)
 
     /* Filter relevant time windows for this ev and add information if already used with max power */
-    val windowsForEv: Vector[(SchedulingTimeWindowWithVoltage, Boolean)] =
+    val windowsForEv =
       getRelevantScheduleWindowsForThisEvWithBlockedInformation(
         ev,
         currentSchedulingTimeWindows
       )
 
-    val (finalUpdatedWindowsForEv, finalScheduleForEv): (
-        Vector[(SchedulingTimeWindowWithVoltage, Boolean)],
-        Set[EvcsChargingScheduleEntry]
-    ) =
+    val (finalUpdatedWindowsForEv, finalScheduleForEv) =
       recursiveCalculationOfSchedulingForThisEv(
-        scheduleForEv,
+        Seq.empty[ChargingSchedule.Entry],
         energyToChargeForEv,
         windowsForEv,
         ev,
@@ -334,8 +261,7 @@ trait GridOrientedCharging {
         powerPerVoltageDeviation
       )
 
-    (finalUpdatedWindowsForEv.map(x => x._1), finalScheduleForEv)
-
+    (finalUpdatedWindowsForEv.map(_._1), finalScheduleForEv)
   }
 
   /** Calculate the charging schedule for an ev. The energy to charge is
@@ -367,7 +293,7 @@ trait GridOrientedCharging {
     */
   @tailrec
   private def recursiveCalculationOfSchedulingForThisEv(
-      currentScheduleForEv: Set[EvcsChargingScheduleEntry],
+      currentScheduleForEv: Seq[ChargingSchedule.Entry],
       currentRemainingEnergyToChargeForEv: ComparableQuantity[Energy],
       currentWindowsForEv: Vector[
         (SchedulingTimeWindowWithVoltage, Boolean)
@@ -378,17 +304,14 @@ trait GridOrientedCharging {
       powerPerVoltageDeviation: ComparableQuantity[Power]
   ): (
       Vector[(SchedulingTimeWindowWithVoltage, Boolean)],
-      Set[EvcsChargingScheduleEntry]
+      Seq[ChargingSchedule.Entry]
   ) = {
-
-    // logger.info(s"NEXT ROUND for ${ev.getId}")
-
     /* Filter for time windows not already used with max power */
-    val availableWindows: Vector[SchedulingTimeWindowWithVoltage] =
-      currentWindowsForEv.filter(_._2 == false).map(x => x._1)
-
-    // logger.warn("Still available windows for this ev:")
-    // availableWindows.foreach(x => logger.warn(s"$x"))
+    val availableWindows = currentWindowsForEv
+      .filterNot { case (_, alreadyUsedWithMaxPower) =>
+        alreadyUsedWithMaxPower
+      }
+      .map(_._1)
 
     val (
       updatedScheduleForEv,
@@ -397,12 +320,7 @@ trait GridOrientedCharging {
     ) =
       /* Find time window of still available time windows with max voltage deviation */
       availableWindows.maxByOption(_.voltageDeviation) match {
-
         case Some(window) =>
-          // logger.info(
-          //  s"Window with max voltage deviation: $window"
-          // )
-
           /* See if the best remaining time windows has already negative or zero voltage deviation.
            * If this is the case, look if there are multiple with the same value
            * to distribute the remaining energy equally on them.
@@ -412,23 +330,17 @@ trait GridOrientedCharging {
             window.voltageDeviation
               .isGreaterThan(Quantities.getQuantity(0, PU))
           ) {
-
             /* Check for existing schedule entry and power to charge this ev with in this time window.
              * If such entry exists, it needs to be replaced.
              */
-            val (maybeReducedScheduleForEv, powerForEvForWindowBeforeUpdate)
-                : (Set[EvcsChargingScheduleEntry], ComparableQuantity[Power]) =
+            val (maybeReducedScheduleForEv, powerForEvForWindowBeforeUpdate) =
               checkForEarlierScheduleEntryForEvInThisWindowAndReturnPreviousPowerAndScheduleWithoutThisEntry(
                 currentScheduleForEv,
                 startTime,
                 window
               )
 
-            // logger.info(
-            //  s"Power to charge ev in this window before schedule update: $powerForEvForWindowBeforeUpdate"
-            // )
-
-            val additionalPowerForEvForWindow: ComparableQuantity[Power] =
+            val additionalPowerForEvForWindow =
               calculateAdditionalPowerForEvForWindow(
                 ev,
                 evcsModel,
@@ -438,10 +350,6 @@ trait GridOrientedCharging {
                 powerForEvForWindowBeforeUpdate,
                 availableWindows
               )
-
-            // logger.info(
-            //  s"Additional power to charge ev: $additionalPowerForEvForWindow"
-            // )
 
             calculateUpdatedScheduleAndUpdatedRemainingEnergyToChargeAndUpdatedWindowsForEv(
               ev,
@@ -455,13 +363,11 @@ trait GridOrientedCharging {
               maybeReducedScheduleForEv,
               startTime
             )
-
           } else {
             /* -> The best time window has negative or zero voltage deviation. */
 
             /* Collect all windows with the same voltage deviation to distribute the remaining energy equally on them. */
-            val allWindowsWithEqualVoltageDeviation
-                : Vector[SchedulingTimeWindowWithVoltage] =
+            val allWindowsWithEqualVoltageDeviation =
               availableWindows.filter(x =>
                 edu.ie3.util.quantities.QuantityUtil.isEquivalentAbs(
                   x.voltageDeviation,
@@ -470,8 +376,7 @@ trait GridOrientedCharging {
                 )
               )
 
-            val maxPossibleAdditionalChargingPowerForWindows
-                : ComparableQuantity[Power] =
+            val maxPossibleAdditionalChargingPowerForWindows =
               getMaxPossibleEqualAdditionalChargingPowerForTimeWindows(
                 allWindowsWithEqualVoltageDeviation,
                 currentScheduleForEv,
@@ -480,7 +385,7 @@ trait GridOrientedCharging {
                 evcsModel
               )
 
-            val additionalPowerForEvForEachWindow: ComparableQuantity[Power] =
+            val additionalPowerForEvForEachWindow =
               calculateAdditionalPowerForEvForEachWindow(
                 allWindowsWithEqualVoltageDeviation,
                 availableWindows,
@@ -490,53 +395,33 @@ trait GridOrientedCharging {
                 currentRemainingEnergyToChargeForEv
               )
 
-            // logger.info(
-            // s"---- Additional power to charge ev per window: $additionalPowerForEvForEachWindow"
-            // )
-
             allWindowsWithEqualVoltageDeviation.foldLeft(
               (
                 currentScheduleForEv,
                 currentRemainingEnergyToChargeForEv,
                 currentWindowsForEv
               )
-            )(
-              (
-                  updates: (
-                      Set[EvcsChargingScheduleEntry],
-                      ComparableQuantity[Energy],
-                      Vector[
-                        (SchedulingTimeWindowWithVoltage, Boolean)
-                      ]
-                  ),
-                  window: SchedulingTimeWindowWithVoltage
-              ) => {
-
-                val currentScheduleForEv: Set[EvcsChargingScheduleEntry] =
-                  updates._1
-                val currentRemainingEnergyToChargeForEv
-                    : ComparableQuantity[Energy] = updates._2
-                val currentWindowsForEv
-                    : Vector[(SchedulingTimeWindowWithVoltage, Boolean)] =
-                  updates._3
-
+            ) {
+              case (
+                    (
+                      currentScheduleForEv,
+                      currentRemainingEnergyToChargeForEv,
+                      currentWindowsForEv
+                    ),
+                    window
+                  ) =>
                 /* Check for existing schedule entry and power to charge this ev with in this time window.
                  * If such entry exists, it needs to be replaced.
                  */
-                val (maybeReducedScheduleForEv, powerForEvForWindowBeforeUpdate)
-                    : (
-                        Set[EvcsChargingScheduleEntry],
-                        ComparableQuantity[Power]
-                    ) =
+                val (
+                  maybeReducedScheduleForEv,
+                  powerForEvForWindowBeforeUpdate
+                ) =
                   checkForEarlierScheduleEntryForEvInThisWindowAndReturnPreviousPowerAndScheduleWithoutThisEntry(
                     currentScheduleForEv,
                     startTime,
                     window
                   )
-
-                // logger.info(
-                // s"Power to charge ev in this window before schedule update: $powerForEvForWindowBeforeUpdate"
-                // )
 
                 calculateUpdatedScheduleAndUpdatedRemainingEnergyToChargeAndUpdatedWindowsForEv(
                   ev,
@@ -550,10 +435,7 @@ trait GridOrientedCharging {
                   maybeReducedScheduleForEv,
                   startTime
                 )
-
-              }
-            )
-
+            }
           }
 
         case None =>
@@ -604,10 +486,10 @@ trait GridOrientedCharging {
     *   power
     */
   private def checkForEarlierScheduleEntryForEvInThisWindowAndReturnPreviousPowerAndScheduleWithoutThisEntry(
-      schedule: Set[EvcsChargingScheduleEntry],
+      schedule: Seq[ChargingSchedule.Entry],
       startTime: ZonedDateTime,
       window: SchedulingTimeWindowWithVoltage
-  ): (Set[EvcsChargingScheduleEntry], ComparableQuantity[Power]) = {
+  ): (Seq[ChargingSchedule.Entry], ComparableQuantity[Power]) = {
 
     schedule.find(
       _.tickStart
@@ -768,7 +650,7 @@ trait GridOrientedCharging {
       allWindowsWithEqualVoltageDeviation: Vector[
         SchedulingTimeWindowWithVoltage
       ],
-      currentScheduleForEv: Set[EvcsChargingScheduleEntry],
+      currentScheduleForEv: Seq[ChargingSchedule.Entry],
       startTime: ZonedDateTime,
       ev: EvModel,
       evcsModel: EvcsModel
@@ -954,12 +836,8 @@ trait GridOrientedCharging {
         (SchedulingTimeWindowWithVoltage, Boolean)
       ],
       currentRemainingEnergyToChargeForEv: ComparableQuantity[Energy],
-      maybeReducedScheduleForEv: Set[EvcsChargingScheduleEntry],
+      maybeReducedScheduleForEv: Seq[ChargingSchedule.Entry],
       startTime: ZonedDateTime
-  ): (
-      Set[EvcsChargingScheduleEntry],
-      ComparableQuantity[Energy],
-      Vector[(SchedulingTimeWindowWithVoltage, Boolean)]
   ) = {
 
     /* Calculate new total power to charge this ev with in this time window */
@@ -967,42 +845,28 @@ trait GridOrientedCharging {
       powerForEvForWindowBeforeUpdate
         .add(additionalPowerForEvForWindow)
 
-    // logger.info(
-    // s"Total power to charge ev after schedule update: $updatedPowerForEvForWindow"
-    // )
-
-    val remainingVoltageDeviation: ComparableQuantity[Dimensionless] =
+    val remainingVoltageDeviation =
       calculateRemainingVoltageDeviation(
         window,
         additionalPowerForEvForWindow,
         powerPerVoltageDeviation
       )
 
-    // logger.info(
-    //  s"Remaining voltage deviation: $remainingVoltageDeviation"
-    // )
-
     /* Update this window with updated remaining voltage deviation */
     val updatedWindow = window.copy(
       voltageDeviation = remainingVoltageDeviation
     )
-    // logger.info(s"Updated window: $updatedWindow")
 
     /* Block window if EV charges with max possible power in this window */
     val windowBlockedForEv =
       updatedPowerForEvForWindow.isGreaterThanOrEqualTo(
         evcsModel.getMaxAvailableChargingPower(ev)
       )
-    // logger.info(
-    // s"Is window blocked for ev now? -> $windowBlockedForEv"
-    // )
 
     /* Replace the time window with the updated version */
     val updatedWindowsForEv = currentWindowsForEv.filterNot(
       _._1 == window
     ) :+ (updatedWindow, windowBlockedForEv)
-    // logger.info("Updated relevant windows for this ev:")
-    // updatedWindowsForEv.foreach(x => logger.info(s"$x"))
 
     val updatedRemainingEnergyToChargeForEv: ComparableQuantity[Energy] =
       calculateRemainingEnergyToBeChargedAfterThisUpdate(
@@ -1011,13 +875,9 @@ trait GridOrientedCharging {
         currentRemainingEnergyToChargeForEv
       )
 
-    // logger.info(
-    //  s"Remaining energy this ev needs to charge (rounded): $updatedRemainingEnergyToChargeForEv"
-    // )
-
     /* Add schedule entry for ev and this time window */
     val updatedScheduleForEv =
-      maybeReducedScheduleForEv + evcs.EvcsChargingScheduleEntry(
+      maybeReducedScheduleForEv :+ ChargingSchedule.Entry(
         startTime
           .until(
             window.start,
@@ -1025,11 +885,8 @@ trait GridOrientedCharging {
           ),
         startTime
           .until(window.end, ChronoUnit.SECONDS),
-        ev,
         updatedPowerForEvForWindow
       )
-    // logger.info("Updated scheduling for this ev:")
-    // updatedScheduleForEv.foreach(x => logger.info(s"$x"))
 
     (
       updatedScheduleForEv,
@@ -1284,18 +1141,13 @@ trait GridOrientedCharging {
 
     val averageVoltageDeviation: Double =
       totalTimeWindowSize / totalTimeWindowLength
-    // logger.info(s"Average voltage deviation: $averageVoltageDeviation")
     val averageChargingPower: ComparableQuantity[Power] =
       totalEnergyToBeChargedBySchedulableEvs
         .divide(Quantities.getQuantity(totalTimeWindowLength, SECOND))
         .asType(classOf[Power])
         .to(KILOWATT)
-    // logger.info(s"Average charging power: $averageChargingPower")
     val powerPerVoltageDeviation: ComparableQuantity[Power] =
       averageChargingPower.divide(averageVoltageDeviation)
-    // logger.info(
-    //  s"Power per voltage deviation: $powerPerVoltageDeviation"
-    // )
     powerPerVoltageDeviation
   }
 

@@ -12,7 +12,7 @@ import edu.ie3.simona.model.participant.evcs
 import edu.ie3.simona.model.participant.evcs.SchedulingTimeWindows.SchedulingTimeWindowWithPrice
 import edu.ie3.simona.model.participant.evcs.PredictionAndSchedulingUtils.{
   calculateRemainingEnergyToBeChargedAfterThisUpdate,
-  findEvsThatNeedToBeChargedWithMaximumPower,
+  findDispatchableEvs,
   getDepartureTimesAndRequiredEnergyOfAllEvs,
   getEvsStillParkedAtThisTime
 }
@@ -22,6 +22,7 @@ import edu.ie3.simona.model.participant.evcs.marketoriented.MarketPricePredictio
   priceTimeTable
 }
 import edu.ie3.simona.model.participant.evcs.{
+  ChargingSchedule,
   EvcsChargingScheduleEntry,
   EvcsModel
 }
@@ -59,69 +60,36 @@ trait MarketOrientedCharging {
       currentTick: Long,
       startTime: ZonedDateTime,
       evs: Set[EvModel]
-  ): Set[EvcsChargingScheduleEntry] = {
-
+  ): Map[EvModel, Option[ChargingSchedule]] = {
     val currentTime = currentTick.toDateTime(startTime)
 
-    // logger.info(s"Current time: $currentTime")
-
-    // logger.info(s"All currently parked and EVs:")
-    // evs.foreach(ev => {
-    //  logger.info(s"$ev")
-    // })
-
     /* Find evs that cannot be scheduled an exclude those from scheduling, charge with max power */
-    val evsThatNeedToChargeWithMaxPower: Set[EvModel] =
-      findEvsThatNeedToBeChargedWithMaximumPower(
+    val (nonDispatchableEvs, dispatchableEvs) =
+      findDispatchableEvs(
         this,
         evs,
         currentTime,
         startTime
       )
 
-    // logger.info(s"Currently parked and NOT schedulable EVs:")
-    // evsThatNeedToChargeWithMaxPower.toVector
-    //  .sortBy(ev => ev.getDepartureTick)
-    //  .foreach(ev => {
-    //    logger.info(s"$ev")
-    //  })
-
     /* Create scheduling for evs that need ot charge with maximum power */
-    val scheduleForEvsThatChargeWithMaxPower: Set[EvcsChargingScheduleEntry] =
+    val scheduleForEvsThatChargeWithMaxPower =
       chargeWithMaximumPower(
         currentTick,
-        evsThatNeedToChargeWithMaxPower
+        nonDispatchableEvs
       )
 
-    /* Determine set of schedulable evs */
-    val schedulableEvs: Set[EvModel] = evs -- evsThatNeedToChargeWithMaxPower
-
-    // logger.info(s"Currently parked and schedulable EVs:")
-    // schedulableEvs.toVector
-    //  .sortBy(ev => ev.getDepartureTick)
-    //  .foreach(ev => {
-    //    logger.info(s"$ev")
-    //  })
-
-    /* For tests
-    val alteredEvsWithHighChargingDemand =
-      evs.map(ev => ev.copyWith(Quantities.getQuantity(0, KILOWATTHOUR)))
-     */
-
     /* Create scheduling for evs that can be scheduled */
-    val scheduleForSchedulableEvs: Set[EvcsChargingScheduleEntry] =
-      if (schedulableEvs.nonEmpty) {
-        determineSchedulingForSchedulableEvs(
+    val scheduleForSchedulableEvs =
+      if (dispatchableEvs.nonEmpty) {
+        scheduleDispatchableEvs(
           this,
           currentTick,
           currentTime,
           startTime,
-          schedulableEvs
+          dispatchableEvs
         )
-      } else Set.empty
-
-    // scheduleForSchedulableEvs.foreach(x => logger.info(s"$x"))
-    // scheduleForEvsThatChargeWithMaxPower.foreach(x => logger.info(s"$x"))
+      } else Map.empty[EvModel, Option[ChargingSchedule]]
 
     scheduleForEvsThatChargeWithMaxPower ++ scheduleForSchedulableEvs
   }
@@ -144,16 +112,15 @@ trait MarketOrientedCharging {
     * @return
     *   scheduling for charging the schedulable evs
     */
-  private def determineSchedulingForSchedulableEvs(
+  private def scheduleDispatchableEvs(
       evcsModel: EvcsModel,
       currentTick: Long,
       currentTime: ZonedDateTime,
       startTime: ZonedDateTime,
       evs: Set[EvModel]
-  ): Set[EvcsChargingScheduleEntry] = {
-
+  ): Map[EvModel, Option[ChargingSchedule]] = {
     /* Get all departure times and required energies of the currently parked and schedulable evs in separate lists */
-    val (departureTimes, requiredEnergies) =
+    val (departureTimes, _) =
       getDepartureTimesAndRequiredEnergyOfAllEvs(evs, startTime)
 
     /* Find latest departure time for filtering later */
@@ -166,7 +133,7 @@ trait MarketOrientedCharging {
     }
 
     /* Get time windows with predicted energy prices for the relevant time until departure of the last EV */
-    val predictedPrices: Vector[PredictedPrice] =
+    val predictedPrices =
       getPredictedPricesForRelevantTimeWindowBasedOnReferencePrices(
         currentTime,
         lastDepartureTime,
@@ -174,7 +141,7 @@ trait MarketOrientedCharging {
       )
 
     /* Get scheduling time windows. The time windows are separated by price changes and departing evs */
-    val schedulingTimeWindows: Vector[SchedulingTimeWindowWithPrice] =
+    val schedulingTimeWindows =
       getSchedulingTimeWindows(
         predictedPrices,
         departureTimes,
@@ -182,24 +149,12 @@ trait MarketOrientedCharging {
         evs
       )
 
-    // logger.info(s"Scheduling time windows with timeframe, price, length, and parked EVs:")
-    // schedulingTimeWindows.foreach(x => logger.info(s"$x"))
-
     /* Start with ev departing first and distribute charging energy */
-    val results = evs.toVector
+    evs.toVector
       .sortBy(ev => ev.getDepartureTick)
-      .foldLeft(
-        Set.empty[EvcsChargingScheduleEntry]
-      )(
-        (
-            schedule: Set[EvcsChargingScheduleEntry],
-            ev: EvModel
-        ) => {
-
-          // logger
-          //  .info(s"---------- Start scheduling for ${ev.getId} -----------")
-
-          val scheduleForEv: Set[EvcsChargingScheduleEntry] =
+      .map { ev =>
+        {
+          val scheduleForEv =
             createScheduleForThisEv(
               schedulingTimeWindows,
               ev,
@@ -207,16 +162,10 @@ trait MarketOrientedCharging {
               startTime
             )
 
-          schedule ++ scheduleForEv
+          ev -> Some(ChargingSchedule(ev, scheduleForEv))
         }
-      )
-
-    // logger.info(
-    //  "----------- Final results for scheduling of this evcs ------------"
-    // )
-    // results.foreach(x => logger.info(s"$x"))
-
-    results
+      }
+      .toMap
   }
 
   /** Calculate the charging schedule for this ev based on the current
@@ -238,34 +187,25 @@ trait MarketOrientedCharging {
       ev: EvModel,
       evcsModel: EvcsModel,
       startTime: ZonedDateTime
-  ): Set[EvcsChargingScheduleEntry] = {
-
-    /* Charging schedule for this ev */
-    val scheduleForEv: Set[EvcsChargingScheduleEntry] = Set.empty
-
+  ): Seq[ChargingSchedule.Entry] = {
     /* Energy that needs to be distributed on the time windows to charge the ev to full SoC */
-    val energyToChargeForEv: ComparableQuantity[Energy] =
-      ev.getEStorage.subtract(ev.getStoredEnergy)
+    val energyToChargeForEv = ev.getEStorage.subtract(ev.getStoredEnergy)
 
     /* Filter relevant time windows for this ev and add information if already used with max power */
-    val windowsForEv: Vector[(SchedulingTimeWindowWithPrice, Boolean)] =
+    val windowsForEv =
       getRelevantScheduleWindowsForThisEvWithBlockedInformation(
         ev,
         schedulingTimeWindows
       )
 
-    val finalScheduleForEv: Set[EvcsChargingScheduleEntry] =
-      recursiveCalculationOfSchedulingForThisEv(
-        scheduleForEv,
-        energyToChargeForEv,
-        windowsForEv,
-        ev,
-        evcsModel,
-        startTime
-      )
-
-    finalScheduleForEv
-
+    recursiveCalculationOfSchedulingForThisEv(
+      Seq.empty[ChargingSchedule.Entry],
+      energyToChargeForEv,
+      windowsForEv,
+      ev,
+      evcsModel,
+      startTime
+    )
   }
 
   /** Calculate the charging schedule for an ev. The energy to charge is
@@ -293,7 +233,7 @@ trait MarketOrientedCharging {
     */
   @tailrec
   private def recursiveCalculationOfSchedulingForThisEv(
-      currentScheduleForEv: Set[EvcsChargingScheduleEntry],
+      currentScheduleForEv: Seq[ChargingSchedule.Entry],
       currentRemainingEnergyToChargeForEv: ComparableQuantity[Energy],
       currentWindowsForEv: Vector[
         (SchedulingTimeWindowWithPrice, Boolean)
@@ -301,15 +241,10 @@ trait MarketOrientedCharging {
       ev: EvModel,
       evcsModel: EvcsModel,
       startTime: ZonedDateTime
-  ): Set[EvcsChargingScheduleEntry] = {
-
-    // logger.info(s"NEXT ROUND for ${ev.getId}")
-
+  ): Seq[ChargingSchedule.Entry] = {
     /* Filter for time windows not already used with max power */
     val availableWindows: Vector[SchedulingTimeWindowWithPrice] =
       currentWindowsForEv.filter(_._2 == false).map(x => x._1)
-    // logger.info("Still available windows for this ev:")
-    // availableWindows.foreach(x => logger.info(s"$x"))
 
     val (
       updatedScheduleForEv,
@@ -320,8 +255,6 @@ trait MarketOrientedCharging {
       availableWindows.minByOption(_.price) match {
 
         case Some(window) =>
-          // logger.info(s"Window with min price: $window")
-
           val powerForEvForWindow =
             currentRemainingEnergyToChargeForEv
               .divide(
@@ -334,17 +267,11 @@ trait MarketOrientedCharging {
               .min(evcsModel.getMaxAvailableChargingPower(ev))
               .to(KILOWATT)
 
-          // logger.info(s"Power to charge ev in this window: $powerForEvForWindow")
-
           /* Block window if EV charges with max possible power in this window */
           val windowBlockedForEv =
             powerForEvForWindow.isGreaterThanOrEqualTo(
               evcsModel.getMaxAvailableChargingPower(ev)
             )
-
-          // logger.info(
-          //  s"Is window blocked for ev now? -> $windowBlockedForEv"
-          // )
 
           /* Replace the time window with the updated, blocked version */
           val updatedWindowsForEv = currentWindowsForEv.filterNot(
@@ -359,11 +286,9 @@ trait MarketOrientedCharging {
               currentRemainingEnergyToChargeForEv
             )
 
-          // logger.info(s"Remaining energy this ev needs to charge (rounded): $updatedRemainingEnergyToChargeForEv")
-
           /* Add schedule entry for ev and this time window */
           val updatedScheduleForEv =
-            currentScheduleForEv + evcs.EvcsChargingScheduleEntry(
+            currentScheduleForEv :+ ChargingSchedule.Entry(
               startTime
                 .until(
                   window.start,
@@ -371,12 +296,8 @@ trait MarketOrientedCharging {
                 ),
               startTime
                 .until(window.end, ChronoUnit.SECONDS),
-              ev,
               powerForEvForWindow
             )
-
-          // logger.info("Updated scheduling for this ev:")
-          // updatedScheduleForEv.foreach(x => logger.info(s"$x"))
 
           (
             updatedScheduleForEv,
