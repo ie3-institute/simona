@@ -71,6 +71,8 @@ import scala.util.{Failure, Success}
   *   Number of charging points available at this charging station
   * @param locationType
   *   The location type
+  * @param strategy
+  *   Strategy to follow in oder to determine the charging habits
   */
 final case class EvcsModel(
     uuid: UUID,
@@ -82,7 +84,8 @@ final case class EvcsModel(
     currentType: ElectricCurrentType,
     cosPhiRated: Double,
     chargingPoints: Int,
-    locationType: EvcsLocationType
+    locationType: EvcsLocationType,
+    strategy: ChargingStrategy.Value = ChargingStrategy.MAX_POWER
 ) extends SystemParticipant[EvcsRelevantData](
       uuid,
       id,
@@ -109,53 +112,44 @@ final case class EvcsModel(
       startTime: ZonedDateTime,
       data: EvcsRelevantData
   ): Set[EvcsChargingScheduleEntry] = {
-
-    // TODO: Make this configurable!
-    val chargingStrategy = ChargingStrategy.MAX_POWER
-
-    this.locationType match {
-
-      case EvcsLocationType.CHARGING_HUB_TOWN |
-          EvcsLocationType.CHARGING_HUB_HIGHWAY =>
-        calculateNewSchedulingWithMaximumChargingPower(
-          this,
-          currentTick,
-          data.currentEvs
-        )
-
-      case _ =>
-        chargingStrategy match {
-          case ChargingStrategy.MAX_POWER =>
-            calculateNewSchedulingWithMaximumChargingPower(
-              this,
-              currentTick,
-              data.currentEvs
-            )
-          case ChargingStrategy.CONSTANT_POWER =>
-            calculateNewSchedulingWithConstantPower(
-              this,
-              currentTick,
-              data.currentEvs
-            )
-          case ChargingStrategy.GRID_ORIENTED =>
-            calculateNewGridOrientedScheduling(
-              this,
-              currentTick,
-              startTime,
-              data.currentEvs,
-              data.voltages
-            )
-          case ChargingStrategy.MARKET_ORIENTED =>
-            calculateNewMarketOrientedScheduling(
-              this,
-              currentTick,
-              startTime,
-              data.currentEvs
-            )
-        }
-
-    }
-
+    if (
+      locationType == EvcsLocationType.CHARGING_HUB_TOWN || locationType == EvcsLocationType.CHARGING_HUB_HIGHWAY
+    )
+      calculateNewSchedulingWithMaximumChargingPower(
+        this,
+        currentTick,
+        data.currentEvs
+      )
+    else
+      strategy match {
+        case ChargingStrategy.MAX_POWER =>
+          calculateNewSchedulingWithMaximumChargingPower(
+            this,
+            currentTick,
+            data.currentEvs
+          )
+        case ChargingStrategy.CONSTANT_POWER =>
+          calculateNewSchedulingWithConstantPower(
+            this,
+            currentTick,
+            data.currentEvs
+          )
+        case ChargingStrategy.GRID_ORIENTED =>
+          calculateNewGridOrientedScheduling(
+            this,
+            currentTick,
+            startTime,
+            data.currentEvs,
+            data.voltages
+          )
+        case ChargingStrategy.MARKET_ORIENTED =>
+          calculateNewMarketOrientedScheduling(
+            this,
+            currentTick,
+            startTime,
+            data.currentEvs
+          )
+      }
   }
 
   /** Calculate the apparent power changes in the given time interval.
@@ -632,8 +626,6 @@ final case class EvcsModel(
         None
 
       case publicLocationType =>
-        // TODO: Make this configurable!
-        val strategy: Option[ChargingStrategy.Value] = None
         val lengthOfRelevantIntervalInSeconds: Int =
           if (
             publicLocationType == EvcsLocationType.CUSTOMER_PARKING || publicLocationType == EvcsLocationType.STREET
@@ -641,7 +633,7 @@ final case class EvcsModel(
             7200 // 2 hours
           else 1800 // 30 minutes
 
-        strategy.flatMap {
+        strategy match {
           case ChargingStrategy.GRID_ORIENTED =>
             calculateCurrentPriceGridOriented(
               this,
