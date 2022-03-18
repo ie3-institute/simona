@@ -1,0 +1,15 @@
+@startuml
+
+start
+:Determine last relevant data (schedule);
+:Validate movements;
+:Apply schedule to apparent cars;
+note left: is it really all cars?
+:Calculate departed evs;
+:Update result value store;
+:Announce arrived evs to listener;
+:Update relevant calculation data;
+
+stop
+
+@enduml
