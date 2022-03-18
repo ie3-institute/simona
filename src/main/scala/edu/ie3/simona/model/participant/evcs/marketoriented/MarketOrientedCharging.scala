@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant.evcs.marketoriented
 
-import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.simona.model.participant.evcs
@@ -22,7 +21,6 @@ import edu.ie3.simona.model.participant.evcs.marketoriented.MarketPricePredictio
   getPredictedPricesForRelevantTimeWindowBasedOnReferencePrices,
   priceTimeTable
 }
-import edu.ie3.simona.model.participant.evcs.uncontrolled.SchedulingWithMaximumPower.calculateNewSchedulingWithMaximumChargingPower
 import edu.ie3.simona.model.participant.evcs.{
   EvcsChargingScheduleEntry,
   EvcsModel
@@ -40,15 +38,14 @@ import java.time.temporal.ChronoUnit
 import javax.measure.quantity.{Energy, Power}
 import scala.annotation.tailrec
 
-object MarketOrientedScheduling extends LazyLogging {
+trait MarketOrientedCharging {
+  this: EvcsModel =>
 
   /** Determine scheduling for charging the EVs currently parked at the charging
     * station until their departure. In this case, the scheduling is supposed to
     * be grid conducive, trying to minimize the charging costs based on energy
     * price predictions.
     *
-    * @param evcsModel
-    *   evcs model to calculate for / with
     * @param currentTick
     *   current tick
     * @param startTime
@@ -59,7 +56,6 @@ object MarketOrientedScheduling extends LazyLogging {
     *   scheduling for charging the EVs
     */
   def calculateNewMarketOrientedScheduling(
-      evcsModel: EvcsModel,
       currentTick: Long,
       startTime: ZonedDateTime,
       evs: Set[EvModel]
@@ -77,10 +73,10 @@ object MarketOrientedScheduling extends LazyLogging {
     /* Find evs that cannot be scheduled an exclude those from scheduling, charge with max power */
     val evsThatNeedToChargeWithMaxPower: Set[EvModel] =
       findEvsThatNeedToBeChargedWithMaximumPower(
-        evcsModel: EvcsModel,
-        evs: Set[EvModel],
-        currentTime: ZonedDateTime,
-        startTime: ZonedDateTime
+        this,
+        evs,
+        currentTime,
+        startTime
       )
 
     // logger.info(s"Currently parked and NOT schedulable EVs:")
@@ -93,7 +89,6 @@ object MarketOrientedScheduling extends LazyLogging {
     /* Create scheduling for evs that need ot charge with maximum power */
     val scheduleForEvsThatChargeWithMaxPower: Set[EvcsChargingScheduleEntry] =
       calculateNewSchedulingWithMaximumChargingPower(
-        evcsModel,
         currentTick,
         evsThatNeedToChargeWithMaxPower
       )
@@ -117,11 +112,11 @@ object MarketOrientedScheduling extends LazyLogging {
     val scheduleForSchedulableEvs: Set[EvcsChargingScheduleEntry] =
       if (schedulableEvs.nonEmpty) {
         determineSchedulingForSchedulableEvs(
-          evcsModel: EvcsModel,
-          currentTick: Long,
+          this,
+          currentTick,
           currentTime,
-          startTime: ZonedDateTime,
-          schedulableEvs: Set[EvModel]
+          startTime,
+          schedulableEvs
         )
       } else Set.empty
 

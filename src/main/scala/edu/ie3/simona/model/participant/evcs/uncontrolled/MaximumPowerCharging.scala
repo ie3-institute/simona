@@ -19,15 +19,14 @@ import tech.units.indriya.unit.Units.SECOND
 
 import javax.measure.quantity.{Energy, Power}
 
-object SchedulingWithMaximumPower {
+trait MaximumPowerCharging {
+  this: EvcsModel =>
 
   /** Determine scheduling for charging the EVs currently parked at the charging
     * station until their departure. In this case, each EV is charged with
     * maximum power from current time until it reaches either 100% SoC or its
     * departure time.
     *
-    * @param evcsModel
-    *   evcs model to calculate for / with
     * @param currentTick
     *   current tick
     * @param evs
@@ -36,7 +35,6 @@ object SchedulingWithMaximumPower {
     *   scheduling for charging the EVs
     */
   def calculateNewSchedulingWithMaximumChargingPower(
-      evcsModel: EvcsModel,
       currentTick: Long,
       evs: Set[EvModel]
   ): Set[EvcsChargingScheduleEntry] = {
@@ -47,7 +45,7 @@ object SchedulingWithMaximumPower {
         if (ev.getStoredEnergy.isLessThan(ev.getEStorage)) {
 
           val chargingPower: ComparableQuantity[Power] =
-            evcsModel.getMaxAvailableChargingPower(ev)
+            getMaxAvailableChargingPower(ev)
           val remainingParkingTime: Long = ev.getDepartureTick - currentTick
 
           val possibleChargeableEnergyUntilDeparture
@@ -92,7 +90,5 @@ object SchedulingWithMaximumPower {
       newSchedule
 
     })
-
   }
-
 }

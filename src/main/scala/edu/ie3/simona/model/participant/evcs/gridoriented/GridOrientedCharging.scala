@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant.evcs.gridoriented
 
-import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.simona.model.participant.evcs
@@ -24,7 +23,6 @@ import edu.ie3.simona.model.participant.evcs.gridoriented.VoltagePrediction.{
   calculateReferenceVoltageTimeTable,
   getPredictedVoltagesForRelevantTimeWindowBasedOnReferenceVoltages
 }
-import edu.ie3.simona.model.participant.evcs.uncontrolled.SchedulingWithMaximumPower.calculateNewSchedulingWithMaximumChargingPower
 import edu.ie3.simona.model.participant.evcs.{
   EvcsChargingScheduleEntry,
   EvcsModel
@@ -42,7 +40,8 @@ import java.time.ZonedDateTime
 import javax.measure.quantity.{Dimensionless, Energy, Power}
 import scala.annotation.tailrec
 
-object GridOrientedScheduling extends LazyLogging {
+trait GridOrientedCharging {
+  this: EvcsModel =>
 
   /* Dispersion factor to increasingly avoid that single EVs fully occupy one time slot but charge more evenly
    * distributed over the time windows */
@@ -54,8 +53,6 @@ object GridOrientedScheduling extends LazyLogging {
     * be grid conducive, trying to minimize grid impact based on node voltage
     * predictions.
     *
-    * @param evcsModel
-    *   evcs model to calculate for / with
     * @param currentTick
     *   current tick
     * @param startTime
@@ -68,7 +65,6 @@ object GridOrientedScheduling extends LazyLogging {
     *   scheduling for charging the EVs
     */
   def calculateNewGridOrientedScheduling(
-      evcsModel: EvcsModel,
       currentTick: Long,
       startTime: ZonedDateTime,
       evs: Set[EvModel],
@@ -87,10 +83,10 @@ object GridOrientedScheduling extends LazyLogging {
     /* Find evs that cannot be scheduled an exclude those from scheduling, charge with max power */
     val evsThatNeedToChargeWithMaxPower: Set[EvModel] =
       findEvsThatNeedToBeChargedWithMaximumPower(
-        evcsModel: EvcsModel,
-        evs: Set[EvModel],
-        currentTime: ZonedDateTime,
-        startTime: ZonedDateTime
+        this,
+        evs,
+        currentTime,
+        startTime
       )
 
     // logger.info(s"Currently parked and NOT schedulable EVs:")
@@ -103,7 +99,6 @@ object GridOrientedScheduling extends LazyLogging {
     /* Create scheduling for evs that need ot charge with maximum power */
     val scheduleForEvsThatChargeWithMaxPower: Set[EvcsChargingScheduleEntry] =
       calculateNewSchedulingWithMaximumChargingPower(
-        evcsModel,
         currentTick,
         evsThatNeedToChargeWithMaxPower
       )
@@ -127,7 +122,7 @@ object GridOrientedScheduling extends LazyLogging {
     val scheduleForSchedulableEvs: Set[EvcsChargingScheduleEntry] =
       if (schedulableEvs.nonEmpty) {
         determineSchedulingForSchedulableEvs(
-          evcsModel: EvcsModel,
+          this,
           currentTick: Long,
           currentTime,
           startTime: ZonedDateTime,

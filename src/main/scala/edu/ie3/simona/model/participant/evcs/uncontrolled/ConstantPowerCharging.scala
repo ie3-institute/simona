@@ -20,15 +20,14 @@ import tech.units.indriya.unit.Units.SECOND
 
 import javax.measure.quantity.{Energy, Power}
 
-object SchedulingWithConstantPower {
+trait ConstantPowerCharging {
+  this: EvcsModel =>
 
   /** Determine scheduling for charging the EVs currently parked at the charging
     * station until their departure. In this case, each EV is charged with
     * constant power from current time until departure. If less than the maximum
     * power is required to reach 100% SoC, the power is reduced accordingly.
     *
-    * @param evcsModel
-    *   evcs model to calculate for / with
     * @param currentTick
     *   current tick
     * @param evs
@@ -37,7 +36,6 @@ object SchedulingWithConstantPower {
     *   scheduling for charging the EVs
     */
   def calculateNewSchedulingWithConstantPower(
-      evcsModel: EvcsModel,
       currentTick: Long,
       evs: Set[EvModel]
   ): Set[EvcsChargingScheduleEntry] = {
@@ -48,7 +46,7 @@ object SchedulingWithConstantPower {
         if (ev.getStoredEnergy.isLessThan(ev.getEStorage)) {
 
           val maxChargingPower: ComparableQuantity[Power] =
-            evcsModel.getMaxAvailableChargingPower(ev)
+            getMaxAvailableChargingPower(ev)
           val remainingParkingTime: Long = ev.getDepartureTick - currentTick
 
           val requiredEnergyUntilFull =
@@ -78,9 +76,6 @@ object SchedulingWithConstantPower {
           schedule
         }
       newSchedule
-
     })
-
   }
-
 }

@@ -20,11 +20,13 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData
 }
 import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedCurrentPrice.calculateCurrentPriceGridOriented
-import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedScheduling.calculateNewGridOrientedScheduling
+import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedCharging
 import edu.ie3.simona.model.participant.evcs.marketoriented.MarketOrientedCurrentPrice.calculateCurrentPriceMarketOriented
-import edu.ie3.simona.model.participant.evcs.uncontrolled.SchedulingWithConstantPower.calculateNewSchedulingWithConstantPower
-import edu.ie3.simona.model.participant.evcs.uncontrolled.SchedulingWithMaximumPower.calculateNewSchedulingWithMaximumChargingPower
-import edu.ie3.simona.model.participant.evcs.marketoriented.MarketOrientedScheduling.calculateNewMarketOrientedScheduling
+import edu.ie3.simona.model.participant.evcs.marketoriented.MarketOrientedCharging
+import edu.ie3.simona.model.participant.evcs.uncontrolled.{
+  ConstantPowerCharging,
+  MaximumPowerCharging
+}
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.service.market.StaticMarketSource
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -95,7 +97,11 @@ final case class EvcsModel(
       sRated,
       cosPhiRated
     )
-    with LazyLogging {
+    with LazyLogging
+    with MaximumPowerCharging
+    with ConstantPowerCharging
+    with GridOrientedCharging
+    with MarketOrientedCharging {
 
   /** Determine scheduling for charging the EVs currently parked at the charging
     * station until their departure. The scheduling depends on the chosen
@@ -116,7 +122,6 @@ final case class EvcsModel(
       locationType == EvcsLocationType.CHARGING_HUB_TOWN || locationType == EvcsLocationType.CHARGING_HUB_HIGHWAY
     )
       calculateNewSchedulingWithMaximumChargingPower(
-        this,
         currentTick,
         data.currentEvs
       )
@@ -124,19 +129,16 @@ final case class EvcsModel(
       strategy match {
         case ChargingStrategy.MAX_POWER =>
           calculateNewSchedulingWithMaximumChargingPower(
-            this,
             currentTick,
             data.currentEvs
           )
         case ChargingStrategy.CONSTANT_POWER =>
           calculateNewSchedulingWithConstantPower(
-            this,
             currentTick,
             data.currentEvs
           )
         case ChargingStrategy.GRID_ORIENTED =>
           calculateNewGridOrientedScheduling(
-            this,
             currentTick,
             startTime,
             data.currentEvs,
@@ -144,7 +146,6 @@ final case class EvcsModel(
           )
         case ChargingStrategy.MARKET_ORIENTED =>
           calculateNewMarketOrientedScheduling(
-            this,
             currentTick,
             startTime,
             data.currentEvs
