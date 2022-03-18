@@ -106,6 +106,7 @@ final case class EvcsModel(
   /** Determine scheduling for charging the EVs currently parked at the charging
     * station until their departure. The scheduling depends on the chosen
     * strategy.
+    *
     * @param currentTick
     *   current tick
     * @param data
@@ -120,37 +121,62 @@ final case class EvcsModel(
   ): Set[EvcsChargingScheduleEntry] = {
     if (
       locationType == EvcsLocationType.CHARGING_HUB_TOWN || locationType == EvcsLocationType.CHARGING_HUB_HIGHWAY
-    )
-      calculateNewSchedulingWithMaximumChargingPower(
+    ) {
+      /* Cars at charging hubs always charge eagerly */
+      chargeWithMaximumPower(
         currentTick,
         data.currentEvs
       )
-    else
-      strategy match {
-        case ChargingStrategy.MAX_POWER =>
-          calculateNewSchedulingWithMaximumChargingPower(
-            currentTick,
-            data.currentEvs
-          )
-        case ChargingStrategy.CONSTANT_POWER =>
-          calculateNewSchedulingWithConstantPower(
-            currentTick,
-            data.currentEvs
-          )
-        case ChargingStrategy.GRID_ORIENTED =>
-          calculateNewGridOrientedScheduling(
-            currentTick,
-            startTime,
-            data.currentEvs,
-            data.voltages
-          )
-        case ChargingStrategy.MARKET_ORIENTED =>
-          calculateNewMarketOrientedScheduling(
-            currentTick,
-            startTime,
-            data.currentEvs
-          )
-      }
+    } else
+      scheduleByStrategy(
+        strategy,
+        currentTick,
+        startTime,
+        data.currentEvs,
+        data.voltages
+      )
+  }
+
+  /**
+    * Determine the schedule by defined charging strategy
+    *
+    * @param strategy Chosen charging strategy
+    * @param currentTick Current simulation time
+    * @param simulationStart Wall clock time of simulation start
+    * @param evs Collection of currently apparent evs
+    * @param voltages Mapping from wall-clock time to nodal voltage
+    * @return A set of [[EvcsChargingScheduleEntry]]s
+    */
+  private def scheduleByStrategy(
+      strategy: ChargingStrategy.Value,
+      currentTick: Long,
+      simulationStart: ZonedDateTime,
+      evs: Set[EvModel],
+      voltages: Map[ZonedDateTime, ComparableQuantity[Dimensionless]]
+  ): Set[EvcsChargingScheduleEntry] = strategy match {
+    case ChargingStrategy.MAX_POWER =>
+      chargeWithMaximumPower(
+        currentTick,
+        evs
+      )
+    case ChargingStrategy.CONSTANT_POWER =>
+      chargeWithConstantPower(
+        currentTick,
+        evs
+      )
+    case ChargingStrategy.GRID_ORIENTED =>
+      chargeGridOriented(
+        currentTick,
+        simulationStart,
+        evs,
+        voltages
+      )
+    case ChargingStrategy.MARKET_ORIENTED =>
+      chargeMarketOriented(
+        currentTick,
+        simulationStart,
+        evs
+      )
   }
 
   /** Calculate the apparent power changes in the given time interval.
@@ -290,6 +316,7 @@ final case class EvcsModel(
   /** Update EVs for the timeframe since the last scheduling and calculate the
     * charging prices. !!!!!!!!!!!!!! NO PERMANENT SOLUTION !!!!!!!!!!!!!!!
     * (just for master thesis)
+    *
     * @param currentTick
     *   current tick
     * @param data
@@ -297,14 +324,14 @@ final case class EvcsModel(
     * @return
     *   updated EVs and EvResults including charging prices
     */
-  def updateEvsAccordingToSchedulingAndCalculateChargingPricesAsEvResults(
+  def applySchedule(
       currentTick: Long,
       startTime: ZonedDateTime,
       lastSchedulingTick: Long,
       data: EvcsRelevantData
   ): Set[(EvModel, Vector[EvResult])] = if (data.schedule.nonEmpty)
-    data.currentEvs.map(ev =>
-      chargeEv(ev, data.schedule, lastSchedulingTick, currentTick, startTime)
+    data.currentEvs.map(
+      chargeEv(_, data.schedule, lastSchedulingTick, currentTick, startTime)
     )
   else {
     logger.debug(

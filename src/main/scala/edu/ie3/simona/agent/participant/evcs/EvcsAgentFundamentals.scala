@@ -159,7 +159,7 @@ protected trait EvcsAgentFundamentals
     * @return
     *   Needed base state data for model calculation
     */
-  def baseStateDataForModelCalculation(
+  private def baseStateDataForModelCalculation(
       inputModel: EvcsInput,
       modelConfig: EvcsRuntimeConfig,
       servicesOpt: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
@@ -324,6 +324,19 @@ protected trait EvcsAgentFundamentals
     )
   }
 
+  /** Handle a charging price request. Based on the given type of charging
+    * station and the current "state" of the charging station, a price is
+    * calculated and send back to the requesting entity.
+    *
+    * @param currentTick
+    *   Current simulation time
+    * @param scheduler
+    *   Reference to the scheduler
+    * @param modelBaseStateData
+    *   Base state orientation
+    * @return
+    *   The next state (idle)
+    */
   private def handleCurrentPriceRequestAndGoIdle(
       currentTick: Long,
       scheduler: ActorRef,
@@ -349,14 +362,11 @@ protected trait EvcsAgentFundamentals
         voltages
       )
 
-    val currentPriceSignal: Option[Double] =
-      evcsModel.calculateCurrentPriceSignalToCommunicateToEvs(
-        currentTick,
-        modelBaseStateData.startDate,
-        relevantDataForCalculationOfCurrentPrice
-      )
-
-    currentPriceSignal match {
+    evcsModel.calculateCurrentPriceSignalToCommunicateToEvs(
+      currentTick,
+      modelBaseStateData.startDate,
+      relevantDataForCalculationOfCurrentPrice
+    ) match {
       case Some(price) =>
         evServiceRef ! CurrentPriceResponse(
           evcsModel.uuid,
@@ -384,6 +394,7 @@ protected trait EvcsAgentFundamentals
     * departing vehicles. After applying the movements to the last known set of
     * parked evs, returns departing evs and calculates new scheduling. Sends
     * completion message to scheduler without scheduling new activations.
+    *
     * @param currentTick
     *   The current tick that has been triggered
     * @param scheduler
@@ -405,16 +416,12 @@ protected trait EvcsAgentFundamentals
       ],
       evcsMovementsData: EvMovementData
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
-
+    /* Prepare needed data */
     val evServiceRef = getService[ActorEvMovementsService](
       modelBaseStateData.services
     )
-
-    /* Get calcRelevantData from last EvMovement update, including the EVs and scheduling */
     val (lastSchedulingTick, lastEvs, lastSchedule, voltages) =
       getLastCalcRelevantData(currentTick, modelBaseStateData)
-
-    /* Get EvcsModel */
     val evcsModel = getEvcsModel(modelBaseStateData)
 
     /* Validate EV movements */
@@ -432,41 +439,27 @@ protected trait EvcsAgentFundamentals
         Map.empty
       )
 
-    /*
-    /* Update EV models according to the scheduling determined at last EvMovements Event */
-    val updatedEvs: Set[EvModel] = evcsModel
-      .updateEvsAccordingToScheduling(
-        currentTick,
-        lastSchedulingTick,
-        relevantDataForEvUpdates
-      )
-     */
-
     /* Update EV models according to the scheduling determined at last EvMovements Event and get EvResults
      * including charging costs */
-    val updatedEvsAndEvResults: Set[(EvModel, Vector[EvResult])] = evcsModel
-      .updateEvsAccordingToSchedulingAndCalculateChargingPricesAsEvResults(
+    val (updatedEvs, evResults) = evcsModel
+      .applySchedule(
         currentTick,
         modelBaseStateData.startDate,
         lastSchedulingTick,
         relevantDataForEvUpdates
       )
-
-    val updatedEvs: Set[EvModel] = updatedEvsAndEvResults.map(x => x._1)
-    val evResults: Set[Vector[EvResult]] = updatedEvsAndEvResults.map(x => x._2)
+      .unzip
 
     /* Write ev results after charging to csv */
     announceEvResultsToListeners(evResults)
 
+    val (arrivingEvs, stayingEvs, departingEvs) =
+      evsByMovementType(updatedEvs, evcsMovementsData.movements)
     /* Return EVs which parking time has ended */
-    val departedEvs = calculateDepartedEvs(
-      updatedEvs,
-      evcsMovementsData.movements
-    )
-    if (departedEvs.nonEmpty) {
+    if (departingEvs.nonEmpty) {
       evServiceRef ! DepartedEvsResponse(
         evcsModel.uuid,
-        departedEvs
+        departingEvs
       )
     }
 
@@ -486,12 +479,6 @@ protected trait EvcsAgentFundamentals
           "Wrong base state data"
         )
     }
-
-    /* Calculate set of staying and arriving EVs */
-    val (stayingEvs, arrivingEvs) = calculateStayingAndArrivingEvs(
-      lastEvs,
-      evcsMovementsData.movements
-    )
 
     /* Write arriving evs to csv */
     announceNewArrivingEvsToListeners(
@@ -997,28 +984,53 @@ protected trait EvcsAgentFundamentals
         )
     }
 
+  /** Determine, which cars arrive, stay or depart
+    *
+    * @param evs
+    *   Collection of all apparent evs
+    * @param movements
+    *   Collection of all movements to be applied
+    * @return
+    *   Sets of arriving, staying and departing cars
+    */
+  private def evsByMovementType(
+      evs: Set[EvModel],
+      movements: EvcsMovements
+  ): (Set[EvModel], Set[EvModel], Set[EvModel]) = {
+    val (departing, staying) = evs.partition { ev =>
+      movements.getDepartures.contains(ev.getUuid)
+    }
+    val arriving =
+      movements.getArrivals.asScala.filter { ev =>
+        !evs.exists(_.getUuid == ev.getUuid)
+      }.toSet
+    (arriving, staying, departing)
+  }
+
+  @deprecated
   private def calculateDepartedEvs(
-      calculatedEvs: Set[EvModel],
-      evcsMovements: EvcsMovements
+      evs: Set[EvModel],
+      movements: EvcsMovements
   ): Set[EvModel] =
-    calculatedEvs.filter { ev =>
+    evs.filter { ev =>
       // EV has been parked up until now and has now departed
-      evcsMovements.getDepartures.contains(ev.getUuid)
+      movements.getDepartures.contains(ev.getUuid)
     }
 
+  @deprecated
   private def calculateStayingAndArrivingEvs(
-      lastEvs: Set[EvModel],
-      evcsMovements: EvcsMovements
+      evs: Set[EvModel],
+      movements: EvcsMovements
   ): (Set[EvModel], Set[EvModel]) = {
     // If we say that a car departs at t, it means that it stays parked up to and including t.
     // Evs that have been parked here and have not departed
-    val stayingEvs = lastEvs.filter { ev =>
-      !evcsMovements.getDepartures.contains(ev.getUuid)
+    val stayingEvs = evs.filter { ev =>
+      !movements.getDepartures.contains(ev.getUuid)
     }
     // New arriving evs
     val arrivingEvs =
-      evcsMovements.getArrivals.asScala.filter { ev =>
-        !lastEvs.exists(_.getUuid == ev.getUuid)
+      movements.getArrivals.asScala.filter { ev =>
+        !evs.exists(_.getUuid == ev.getUuid)
       }.toSet
     (stayingEvs, arrivingEvs)
   }

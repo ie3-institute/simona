@@ -34,7 +34,7 @@ trait MaximumPowerCharging {
     * @return
     *   scheduling for charging the EVs
     */
-  def calculateNewSchedulingWithMaximumChargingPower(
+  def chargeWithMaximumPower(
       currentTick: Long,
       evs: Set[EvModel]
   ): Set[EvcsChargingScheduleEntry] = {

@@ -35,7 +35,7 @@ trait ConstantPowerCharging {
     * @return
     *   scheduling for charging the EVs
     */
-  def calculateNewSchedulingWithConstantPower(
+  def chargeWithConstantPower(
       currentTick: Long,
       evs: Set[EvModel]
   ): Set[EvcsChargingScheduleEntry] = {

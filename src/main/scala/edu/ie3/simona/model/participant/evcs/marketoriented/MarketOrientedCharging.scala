@@ -55,7 +55,7 @@ trait MarketOrientedCharging {
     * @return
     *   scheduling for charging the EVs
     */
-  def calculateNewMarketOrientedScheduling(
+  def chargeMarketOriented(
       currentTick: Long,
       startTime: ZonedDateTime,
       evs: Set[EvModel]
@@ -88,7 +88,7 @@ trait MarketOrientedCharging {
 
     /* Create scheduling for evs that need ot charge with maximum power */
     val scheduleForEvsThatChargeWithMaxPower: Set[EvcsChargingScheduleEntry] =
-      calculateNewSchedulingWithMaximumChargingPower(
+      chargeWithMaximumPower(
         currentTick,
         evsThatNeedToChargeWithMaxPower
       )

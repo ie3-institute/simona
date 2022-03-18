@@ -4,7 +4,7 @@ start
 :Determine last relevant data (schedule);
 :Validate movements;
 :Apply schedule to apparent cars;
-note left: is it really all cars?
+note left: Each schedule is applied to\neach car apparent in that\ninstant for the time frame\nsince last movement.
 :Calculate departed evs;
 :Update result value store;
 :Announce arrived evs to listener;
