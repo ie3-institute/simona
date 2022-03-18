@@ -172,32 +172,13 @@ class SimonaStandaloneSetup(
           ExtSimAdapter.props(scheduler),
           s"$index"
         )
-        val mainArgs
-            : Array[String] = // TODO: ergänzt; stattdessen args nutzen? wie?
-          // simonaConfig.simona.mainArgs.getOrElse(List.empty).toArray
-          simonaConfig.simona.input.mobilitySimulator
-            .map { mobilityConfig =>
-              Array(
-                simonaConfig.simona.time.startDateTime,
-                mobilityConfig.numberOfEvs.toString,
-                mobilityConfig.folderPath,
-                mobilityConfig.gridName,
-                simonaConfig.simona.input.grid.datasource.csvParams.get.folderPath,
-                simonaConfig.simona.input.grid.datasource.csvParams.get.csvSep,
-                simonaConfig.simona.simulationName,
-                mobilityConfig.shareOfEvsWithHomeCharging.toString
-              )
-            }
-            .getOrElse(
-              throw new InvalidConfigParameterException(
-                "Unable to initialize mobility simulator with missing config."
-              )
-            )
+
         val extSimAdapterData =
           new ExtSimAdapterData(
             extSimAdapter,
-            mainArgs
-          ) // TODO: mainArgs war vorher args
+            args
+          )
+
         val initExtSimAdapter = InitializeExtSimAdapterTrigger(
           InitExtSimAdapter(extSimAdapterData)
         )

@@ -666,9 +666,6 @@ object SimonaConfig {
 
     final case class Input(
         grid: SimonaConfig.Simona.Input.Grid,
-        mobilitySimulator: scala.Option[
-          SimonaConfig.Simona.Input.MobilitySimulator
-        ],
         primary: SimonaConfig.Simona.Input.Primary,
         weather: SimonaConfig.Simona.Input.Weather
     )
@@ -770,81 +767,6 @@ object SimonaConfig {
             )
           )
         }
-      }
-
-      final case class MobilitySimulator(
-          folderPath: java.lang.String,
-          gridName: java.lang.String,
-          numberOfEvs: scala.Int,
-          shareOfEvsWithHomeCharging: scala.Double
-      )
-      object MobilitySimulator {
-        def apply(
-            c: com.typesafe.config.Config,
-            parentPath: java.lang.String,
-            $tsCfgValidator: $TsCfgValidator
-        ): SimonaConfig.Simona.Input.MobilitySimulator = {
-          SimonaConfig.Simona.Input.MobilitySimulator(
-            folderPath = $_reqStr(parentPath, c, "folderPath", $tsCfgValidator),
-            gridName = $_reqStr(parentPath, c, "gridName", $tsCfgValidator),
-            numberOfEvs =
-              $_reqInt(parentPath, c, "numberOfEvs", $tsCfgValidator),
-            shareOfEvsWithHomeCharging = $_reqDbl(
-              parentPath,
-              c,
-              "shareOfEvsWithHomeCharging",
-              $tsCfgValidator
-            )
-          )
-        }
-        private def $_reqDbl(
-            parentPath: java.lang.String,
-            c: com.typesafe.config.Config,
-            path: java.lang.String,
-            $tsCfgValidator: $TsCfgValidator
-        ): scala.Double = {
-          if (c == null) 0
-          else
-            try c.getDouble(path)
-            catch {
-              case e: com.typesafe.config.ConfigException =>
-                $tsCfgValidator.addBadPath(parentPath + path, e)
-                0
-            }
-        }
-
-        private def $_reqInt(
-            parentPath: java.lang.String,
-            c: com.typesafe.config.Config,
-            path: java.lang.String,
-            $tsCfgValidator: $TsCfgValidator
-        ): scala.Int = {
-          if (c == null) 0
-          else
-            try c.getInt(path)
-            catch {
-              case e: com.typesafe.config.ConfigException =>
-                $tsCfgValidator.addBadPath(parentPath + path, e)
-                0
-            }
-        }
-
-        private def $_reqStr(
-            parentPath: java.lang.String,
-            c: com.typesafe.config.Config,
-            path: java.lang.String,
-            $tsCfgValidator: $TsCfgValidator
-        ): java.lang.String = {
-          if (c == null) null
-          else
-            try c.getString(path)
-            catch {
-              case e: com.typesafe.config.ConfigException =>
-                $tsCfgValidator.addBadPath(parentPath + path, e)
-                null
-            }
-        }
-
       }
 
       final case class Primary(
@@ -1523,16 +1445,6 @@ object SimonaConfig {
             parentPath + "grid.",
             $tsCfgValidator
           ),
-          mobilitySimulator =
-            if (c.hasPathOrNull("mobilitySimulator"))
-              scala.Some(
-                SimonaConfig.Simona.Input.MobilitySimulator(
-                  c.getConfig("mobilitySimulator"),
-                  parentPath + "mobilitySimulator.",
-                  $tsCfgValidator
-                )
-              )
-            else None,
           primary = SimonaConfig.Simona.Input.Primary(
             if (c.hasPathOrNull("primary")) c.getConfig("primary")
             else com.typesafe.config.ConfigFactory.parseString("primary{}"),
