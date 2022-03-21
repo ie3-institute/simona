@@ -7,15 +7,12 @@
 package edu.ie3.simona.model.participant.evcs.gridoriented
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.simona.model.participant.evcs.{
-  EvcsChargingScheduleEntry,
-  EvcsModel
-}
+import edu.ie3.simona.model.participant.evcs.EvcsModel
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT, KILOWATTHOUR}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWH
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{PERCENT, SECOND}
+import tech.units.indriya.unit.Units.SECOND
 
 import javax.measure.quantity.{Dimensionless, Energy, Power}
 import scala.annotation.tailrec
@@ -51,17 +48,18 @@ object GridOrientedCurrentPrice extends LazyLogging {
     if (data.currentEvs.isEmpty) {
       Some(0d)
     } else {
+      val scheduleEntries =
+        data.schedule.flatMap(_._2).flatMap(_.schedule).toSet
 
       /* Filter schedule for relevant interval */
-      val filteredSchedule: Set[EvcsChargingScheduleEntry] = data.schedule
+      val filteredSchedule = scheduleEntries
         .filter(_.tickStop > currentTick)
         .filter(_.tickStart < currentTick + timeLength)
 
-      val allTicks: Set[Long] =
-        evcsModel.getAllTicksOfSchedule(filteredSchedule)
+      val allTicks = evcsModel.getAllTicksOfSchedule(filteredSchedule)
 
       /* Filter for relevant ticks, including the last tick before the interval and all ticks in the interval */
-      val relevantTicksForInterval: Set[Long] = {
+      val relevantTicksForInterval = {
         allTicks
           .filter(_ < currentTick)
           .maxOption match {

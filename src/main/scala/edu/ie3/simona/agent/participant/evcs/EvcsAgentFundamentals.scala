@@ -41,6 +41,7 @@ import edu.ie3.simona.exceptions.agent.{
 }
 import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsRelevantData
 import edu.ie3.simona.model.participant.evcs.{
+  ChargingSchedule,
   EvcsChargingScheduleEntry,
   EvcsModel
 }
@@ -494,11 +495,11 @@ protected trait EvcsAgentFundamentals
         val relevantDataForScheduling =
           EvcsRelevantData(
             stayingEvs ++ arrivingEvs,
-            Set.empty,
+            Map.empty[EvModel, Option[ChargingSchedule]],
             voltages
           )
         /* Determine new schedule for charging the EVs */
-        val newSchedule: Set[EvcsChargingScheduleEntry] = evcsModel
+        val newSchedule = evcsModel
           .calculateNewScheduling(
             currentTick,
             modelBaseStateData.startDate,
@@ -509,12 +510,20 @@ protected trait EvcsAgentFundamentals
           schedule = newSchedule
         )
       }
-
       /* if no new EVs arrived, the previous scheduling is kept but filtered, only the current EVs are updated. */
       else {
+        /* Filter out the single schedule entries, which do lay in the past and are already applied */
+        val updatedSchedules = lastSchedule.map { case (ev, maybeSchedule) =>
+          ev -> maybeSchedule.map(scheduleContainer =>
+            scheduleContainer.copy(schedule =
+              scheduleContainer.schedule.filter(_.tickStop >= currentTick)
+            )
+          )
+        }
+
         relevantDataForEvUpdates.copy(
           currentEvs = stayingEvs,
-          schedule = lastSchedule.filter(_.tickStop >= currentTick),
+          schedule = updatedSchedules,
           // filter(_.tickStop > currentTick)
           // is it possible to remove also the schedules that ended at currentTick? -> probably yes, test required
           voltages = voltages
@@ -847,7 +856,7 @@ protected trait EvcsAgentFundamentals
     val results: Set[(Long, ApparentPower)] = if (lastSchedule.nonEmpty) {
       /* There is a schedule, which might include charging power changes. Calculate powers. */
       evcsModel.calculatePowerForLastInterval(
-        lastSchedule,
+        lastSchedule.flatMap(_._2).toSet,
         voltage,
         requestTick,
         lastUpdateTick
@@ -954,7 +963,7 @@ protected trait EvcsAgentFundamentals
   ): (
       Long,
       Set[EvModel],
-      Set[EvcsChargingScheduleEntry],
+      Map[EvModel, Option[ChargingSchedule]],
       Map[ZonedDateTime, ComparableQuantity[Dimensionless]]
   ) = {
     modelBaseStateData.calcRelevantDateStore
@@ -964,7 +973,12 @@ protected trait EvcsAgentFundamentals
       case _ =>
         /* At the first tick, we are not able to determine the data for the previous tick
          * (since there is none). */
-        (0, Set.empty[EvModel], Set.empty[EvcsChargingScheduleEntry], Map.empty)
+        (
+          0,
+          Set.empty[EvModel],
+          Map.empty[EvModel, Option[ChargingSchedule]],
+          Map.empty
+        )
     }
   }
 

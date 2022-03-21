@@ -184,7 +184,9 @@ final case class EvcsModel(
       )
   }
 
-  /** Calculate the apparent power changes in the given time interval.
+  /** Calculate the apparent power changes in the given time interval for all
+    * apparent EVs.
+    *
     * @param schedule
     *   The charging schedule realized in the given time interval
     * @param voltage
@@ -197,21 +199,22 @@ final case class EvcsModel(
     *   Set of tuples of tick and apparent power
     */
   def calculatePowerForLastInterval(
-      schedule: Set[EvcsChargingScheduleEntry],
+      schedule: Set[ChargingSchedule],
       voltage: ComparableQuantity[Dimensionless],
       requestTick: Long,
       lastUpdateTick: Long
   ): Set[(Long, ApparentPower)] = {
+    val scheduleEntries = schedule.flatMap(_.schedule)
 
     /* Filter schedule for updates relevant for this interval */
-    val filteredSchedule: Set[EvcsChargingScheduleEntry] = schedule
+    val filteredSchedule = scheduleEntries
       .filter(_.tickStop >= lastUpdateTick)
       .filter(_.tickStart <= requestTick)
 
     /* Get all ticks with changes in a sorted vector */
-    val allTicks: Set[Long] = getAllTicksOfSchedule(filteredSchedule)
+    val allTicks = getAllTicksOfSchedule(filteredSchedule)
 
-    val results: Set[(Long, ApparentPower)] = allTicks.map { tick =>
+    val results = allTicks.map { tick =>
       val activePower = filteredSchedule
         .foldLeft(
           Quantities.getQuantity(0, KILOWATT)
@@ -255,9 +258,10 @@ final case class EvcsModel(
 
       if (data.schedule.nonEmpty) {
         data.currentEvs.map { ev =>
-          val schedulingForThisEv = data.schedule.filter(
-            _.ev == ev
-          )
+          val schedulingForThisEv = data.schedule
+            .getOrElse(ev, None)
+            .map(_.schedule)
+            .getOrElse(Set.empty[ChargingSchedule.Entry])
 
           /* Determine charged energy in the charging interval */
           val chargedEnergySinceLastScheduling: ComparableQuantity[Energy] =
@@ -265,8 +269,8 @@ final case class EvcsModel(
               Quantities.getQuantity(0, KILOWATTHOUR)
             )(
               (
-                  chargedEnergy: ComparableQuantity[Energy],
-                  scheduleEntry: EvcsChargingScheduleEntry
+                  chargedEnergy,
+                  scheduleEntry
               ) => {
                 /* FIXME: Duplicate to this#updateEvsAccordingToSchedulingAndCalculateChargingPricesAsEvResults */
                 /* Only the timeframe from the start of last scheduling update and current tick must be considered */
@@ -335,9 +339,13 @@ final case class EvcsModel(
       lastSchedulingTick: Long,
       data: EvcsRelevantData
   ): Set[(EvModel, Vector[EvResult])] = if (data.schedule.nonEmpty)
-    data.currentEvs.map(
-      chargeEv(_, data.schedule, lastSchedulingTick, currentTick, startTime)
-    )
+    data.currentEvs.map { ev =>
+      /* If there is a schedule apparent, apply it, otherwise hand back no results */
+      data
+        .getSchedule(ev)
+        .map(chargeEv(ev, _, lastSchedulingTick, currentTick, startTime))
+        .getOrElse(ev -> Vector.empty)
+    }
   else {
     logger.debug(
       "There are EVs parked at this charging station, but there was no scheduling since the last" +
@@ -350,8 +358,8 @@ final case class EvcsModel(
     *
     * @param ev
     *   Electric vehicle to charge
-    * @param schedules
-    *   Entirety of all schedules
+    * @param schedule
+    *   Schedule for this car
     * @param lastSchedulingTick
     *   Last tick, that a schedule has been processed
     * @param currentTick
@@ -364,15 +372,11 @@ final case class EvcsModel(
     */
   private def chargeEv(
       ev: EvModel,
-      schedules: Set[EvcsChargingScheduleEntry],
+      schedule: ChargingSchedule,
       lastSchedulingTick: Long,
       currentTick: Long,
       simulationStart: ZonedDateTime
   ): (EvModel, Vector[EvResult]) = {
-    val schedule = schedules.filter(
-      _.ev == ev
-    )
-
     /* Determine charged energy in the charging interval */
     val (chargedEnergySinceLastScheduling, evResults) =
       determineChargedEnergySinceLastCalculation(
@@ -410,11 +414,11 @@ final case class EvcsModel(
     */
   private def determineChargedEnergySinceLastCalculation(
       ev: EvModel,
-      schedule: Set[EvcsChargingScheduleEntry],
+      schedule: ChargingSchedule,
       lastSchedulingTick: Long,
       currentTick: Long,
       simulationStart: ZonedDateTime
-  ): (ComparableQuantity[Energy], Vector[EvResult]) = schedule.toSeq
+  ): (ComparableQuantity[Energy], Vector[EvResult]) = schedule.schedule.toSeq
     .sortBy(x => x.tickStart)
     .foldLeft(
       (
@@ -504,7 +508,7 @@ final case class EvcsModel(
     *   The actual start and end of the charging window
     */
   private def actualChargingWindow(
-      scheduleEntry: EvcsChargingScheduleEntry,
+      scheduleEntry: ChargingSchedule.Entry,
       lastSchedulingTick: Long,
       currentTick: Long
   ): (Long, Long) = {
@@ -527,7 +531,7 @@ final case class EvcsModel(
     *   The energy charged during this slice
     */
   private def chargedEnergyInScheduleSlice(
-      scheduleEntry: EvcsChargingScheduleEntry,
+      scheduleEntry: ChargingSchedule.Entry,
       chargingWindowStart: Long,
       chargingWindowEnd: Long
   ): ComparableQuantity[Energy] =
@@ -691,15 +695,8 @@ final case class EvcsModel(
     *   all ticks in the schedule
     */
   def getAllTicksOfSchedule(
-      schedule: Set[EvcsChargingScheduleEntry]
-  ): Set[Long] = {
-
-    schedule.foldLeft(Set.empty[Long])((setOfTicks, entry) => {
-      val updateSet: Set[Long] =
-        setOfTicks ++ Set(entry.tickStart, entry.tickStop)
-      updateSet
-    })
-  }
+      schedule: Set[ChargingSchedule.Entry]
+  ): Set[Long] = schedule.flatMap(entry => Seq(entry.tickStart, entry.tickStop))
 
   /** Returns the maximum available charging power for an EV, which depends on
     * ev and charging station limits for AC and DC current
@@ -757,12 +754,17 @@ object EvcsModel {
     *   departing
     * @param schedule
     *   the schedule determining when to load which EVs with which power
+    * @param voltages
+    *   Nodal voltage per known time instant
     */
   final case class EvcsRelevantData(
       currentEvs: Set[EvModel],
-      schedule: Set[EvcsChargingScheduleEntry],
+      schedule: Map[EvModel, Option[ChargingSchedule]],
       voltages: Map[ZonedDateTime, ComparableQuantity[Dimensionless]]
-  ) extends CalcRelevantData
+  ) extends CalcRelevantData {
+    def getSchedule(ev: EvModel): Option[ChargingSchedule] =
+      schedule.getOrElse(ev, None)
+  }
 
   def apply(
       inputModel: EvcsInput,
