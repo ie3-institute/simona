@@ -6,11 +6,16 @@
 
 package edu.ie3.simona.model.participant.evcs.marketoriented
 
-import edu.ie3.simona.exceptions.InvalidParameterException
+import edu.ie3.datamodel.models.StandardUnits
+import edu.ie3.simona.exceptions.{
+  InitializationException,
+  InvalidParameterException
+}
 import edu.ie3.simona.model.participant.evcs.PredictionAndSchedulingUtils.TimeStamp
 import edu.ie3.simona.service.market.StaticMarketSource
 import edu.ie3.util.quantities.interfaces.EnergyPrice
 import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.quantity.Quantities
 
 import java.time.temporal.ChronoUnit
 import java.time.{DayOfWeek, ZonedDateTime}
@@ -62,78 +67,55 @@ object MarketPricePrediction {
   private def calculateReferencePriceTimeTable(
       prices: Map[ZonedDateTime, ComparableQuantity[EnergyPrice]]
   ): Vector[PriceTimeTableEntry] = {
-    val priceReferenceMap: Map[
-      TimeStamp,
-      (ComparableQuantity[EnergyPrice], Int)
-    ] = prices.foldLeft(
-      Map.empty: Map[
-        TimeStamp,
-        (ComparableQuantity[EnergyPrice], Int)
-      ]
-    )(
-      (
-          referencePrices: Map[
-            TimeStamp,
-            (ComparableQuantity[EnergyPrice], Int)
-          ],
-          price
-      ) => {
+    val orderedPriceReferences = prices
+      .map { case (zdt, price) =>
+        val day = zdt.getDayOfWeek
+        val hour = zdt.getHour
 
-        val day: DayOfWeek = price._1.getDayOfWeek
-        val hour: Int = price._1.getHour
-        val minute: Int = 0 // -> round to hour
-
-        referencePrices.get(TimeStamp(day, hour, minute)) match {
-
-          case Some(entry) =>
-            /* There already is an entry. Update the entry with equal weighting */
-            val updatedNumberOfValues = entry._2 + 1
-            val updatedPrediction = entry._1
-              .multiply(entry._2)
-              .add(price._2)
-              .divide(updatedNumberOfValues)
-
-            referencePrices + (TimeStamp(
-              day,
-              hour,
-              minute
-            ) -> (updatedPrediction, updatedNumberOfValues))
-
-          case None =>
-            /* There is no entry yet. Add new entry */
-            referencePrices + (TimeStamp(
-              day,
-              hour,
-              minute
-            ) -> (price._2, 1))
-        }
+        TimeStamp(day, hour, 0) -> price
       }
-    )
+      .groupBy(_._1)
+      .map { case (timestamp, timeStampToPrice) =>
+        val prices = timeStampToPrice.values
+        val averagePrice =
+          if (prices.isEmpty)
+            throw new InitializationException(
+              s"Unable to build reference prices for time stamp '$timestamp', as no prices are available."
+            )
+          else
+            prices
+              .foldLeft(
+                Quantities.getQuantity(0d, StandardUnits.ENERGY_PRICE)
+              ) { case (priceSum, price) =>
+                priceSum.add(price)
+              }
+              .divide(prices.size)
 
-    /* Order price entries based on time stamp */
-    type OrderedPriceEntry = (TimeStamp, (ComparableQuantity[EnergyPrice], Int))
-    val orderedPriceReferenceMap = priceReferenceMap.toVector.sortBy(_._1)
+        timestamp -> averagePrice
+      }
+      .toVector
+      .sortBy(_._1)
 
-    buildPriceTimeTable(orderedPriceReferenceMap).toVector
+    buildPriceTimeTable(orderedPriceReferences).toVector
   }
 
   private def buildPriceTimeTable(
       orderedPriceReferenceMap: Seq[
-        (TimeStamp, (ComparableQuantity[EnergyPrice], Int))
+        (TimeStamp, ComparableQuantity[EnergyPrice])
       ]
   ): Seq[PriceTimeTableEntry] = {
-    orderedPriceReferenceMap.headOption
+    val priceTimeTable = orderedPriceReferenceMap.headOption
       .map { head =>
         /* Replicate the first element of the price map at the end */
-        orderedPriceReferenceMap :+ head
+        (orderedPriceReferenceMap :+ head).slice(
+          1,
+          orderedPriceReferenceMap.size + 1
+        )
       }
-      .map { priceMap =>
+      .map { rhs =>
         /* Build a sequence of sliding windows of the current and the next entry */
-        val slidingWindows = priceMap
-          .slice(0, priceMap.length)
-          .zip(priceMap.slice(1, priceMap.length - 1))
-        slidingWindows.map {
-          case ((firstTimeStamp, (price, _)), (secondTimeStamp, _)) =>
+        orderedPriceReferenceMap.zip(rhs).map {
+          case ((firstTimeStamp, price), (secondTimeStamp, _)) =>
             PriceTimeTableEntry(
               firstTimeStamp,
               secondTimeStamp,
@@ -142,6 +124,14 @@ object MarketPricePrediction {
         }
       }
       .getOrElse(Seq.empty[PriceTimeTableEntry])
+
+    if (priceTimeTable.size != orderedPriceReferenceMap.size) {
+      throw new InitializationException(
+        "Error during building of price time table for prediction. Some values got lost."
+      )
+    } else {
+      priceTimeTable
+    }
   }
 
   /** Get time windows with predicted price values for the relevant time until
@@ -245,8 +235,8 @@ object MarketPricePrediction {
       timeStamp: TimeStamp,
       priceTimeTable: Vector[PriceTimeTableEntry]
   ): PriceTimeTableEntry = priceTimeTable
-    .find {
-      case PriceTimeTableEntry(from, until, _) => timeStamp.isBetween(from, until)
+    .find { case PriceTimeTableEntry(from, until, _) =>
+      timeStamp.isBetween(from, until)
     }
     .getOrElse {
       throw new InvalidParameterException(
