@@ -17,7 +17,7 @@ Equivalent circuit of the three winding transformer
 
 ![](../_static/figures/models/transformer_model/ModelTwt.png)
 
-#### General Informations
+#### General Information
 
 - In the data set, there is no need anymore to duplicate one of the nodes into subnets. Simply add all three nodes in their respective subnets
 - The temporary node is created automatically. The input model is responsible for repeatable naming
