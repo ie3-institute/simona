@@ -197,20 +197,6 @@ class PrimaryServiceProxySpec
       exception.getMessage shouldBe "Invalid configuration 'InfluxDb1xParams(,0,,)' for a time series source.\nAvailable types:\n\tcsv\n\tsql"
     }
 
-    "not let sql parameters pass for mapping configuration" in {
-      val maliciousConfig = PrimaryConfig(
-        None,
-        None,
-        None,
-        Some(SqlParams("", "", "", "", ""))
-      )
-
-      val exception = intercept[InvalidConfigParameterException](
-        PrimaryServiceProxy.checkConfig(maliciousConfig)
-      )
-      exception.getMessage shouldBe "Invalid configuration 'SqlParams(,,,,)' for a time series source.\nAvailable types:\n\tcsv"
-    }
-
     "fails on invalid time pattern with csv" in {
       val invalidTimePatternConfig = PrimaryConfig(
         None,
