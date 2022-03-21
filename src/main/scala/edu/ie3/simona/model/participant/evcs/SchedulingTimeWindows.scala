@@ -10,21 +10,19 @@ import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.util.quantities.interfaces.EnergyPrice
 import tech.units.indriya.ComparableQuantity
 
-import java.time.ZonedDateTime
-import java.time.temporal.ChronoUnit
 import javax.measure.quantity.Dimensionless
 
 object SchedulingTimeWindows {
 
   /** Time window used for the scheduling of ev charging. */
   trait SchedulingTimeWindow {
-    val start: ZonedDateTime
-    val end: ZonedDateTime
+    val start: Long
+    val end: Long
 
     /** @return
       *   Length of the window in seconds
       */
-    def length: Long = start.until(end, ChronoUnit.SECONDS)
+    def length: Long = start - end + 1
   }
 
   /** Time window used for the scheduling of ev charging. Additional information
@@ -44,8 +42,8 @@ object SchedulingTimeWindows {
     *   still parked ev in this time window
     */
   case class SchedulingTimeWindowWithVoltage(
-      override val start: ZonedDateTime,
-      override val end: ZonedDateTime,
+      override val start: Long,
+      override val end: Long,
       voltage: ComparableQuantity[Dimensionless],
       voltageDeviation: ComparableQuantity[Dimensionless],
       size: Double,
@@ -70,8 +68,8 @@ object SchedulingTimeWindows {
     *   predicted price in this time window
     */
   case class SchedulingSliceWithPrice(
-      start: ZonedDateTime,
-      end: ZonedDateTime,
+      start: Long,
+      end: Long,
       price: ComparableQuantity[EnergyPrice]
   ) extends SchedulingTimeWindow {
     override def toString: String =

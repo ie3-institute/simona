@@ -492,9 +492,7 @@ trait GridOrientedCharging {
   ): (Seq[ChargingSchedule.Entry], ComparableQuantity[Power]) = {
 
     schedule.find(
-      _.tickStart
-        .toDateTime(startTime)
-        .isEqual(window.start)
+      _.tickStart == window.start
     ) match {
       case Some(existingSchedule) =>
         /* We need to update this schedule entry with higher power. Delete the entry to add it again later. */
@@ -667,9 +665,7 @@ trait GridOrientedCharging {
               window: SchedulingTimeWindowWithVoltage
           ) => {
             currentScheduleForEv.find(
-              _.tickStart
-                .toDateTime(startTime)
-                .isEqual(window.start)
+              _.tickStart == window.start
             ) match {
               case Some(existingSchedule) =>
                 if (existingSchedule.chargingPower.isGreaterThan(maxPower)) {
@@ -878,13 +874,8 @@ trait GridOrientedCharging {
     /* Add schedule entry for ev and this time window */
     val updatedScheduleForEv =
       maybeReducedScheduleForEv :+ ChargingSchedule.Entry(
-        startTime
-          .until(
-            window.start,
-            ChronoUnit.SECONDS
-          ),
-        startTime
-          .until(window.end, ChronoUnit.SECONDS),
+        window.start,
+        window.end,
         updatedPowerForEvForWindow
       )
 
@@ -996,8 +987,9 @@ trait GridOrientedCharging {
             val size: Int = departureTimesInThisTimeWindow.size
 
             x = x :+ SchedulingTimeWindowWithVoltage(
-              entry.start,
-              departureTimesInThisTimeWindow(0),
+              startTime.until(entry.start, ChronoUnit.SECONDS),
+              startTime
+                .until(departureTimesInThisTimeWindow(0), ChronoUnit.SECONDS),
               entry.voltage,
               entry.voltage.subtract(minVoltageOfAllTimeWindows),
               entry.start.until(
@@ -1012,8 +1004,14 @@ trait GridOrientedCharging {
             for (i <- 0 until size) {
               if (i < size - 1) {
                 x = x :+ SchedulingTimeWindowWithVoltage(
-                  departureTimesInThisTimeWindow(i),
-                  departureTimesInThisTimeWindow(i + 1),
+                  startTime.until(
+                    departureTimesInThisTimeWindow(i),
+                    ChronoUnit.SECONDS
+                  ),
+                  startTime.until(
+                    departureTimesInThisTimeWindow(i + 1),
+                    ChronoUnit.SECONDS
+                  ),
                   entry.voltage,
                   entry.voltage.subtract(minVoltageOfAllTimeWindows),
                   departureTimesInThisTimeWindow(i).until(
@@ -1031,8 +1029,11 @@ trait GridOrientedCharging {
                 )
               } else {
                 x = x :+ SchedulingTimeWindowWithVoltage(
-                  departureTimesInThisTimeWindow(i),
-                  entry.end,
+                  startTime.until(
+                    departureTimesInThisTimeWindow(i),
+                    ChronoUnit.SECONDS
+                  ),
+                  startTime.until(entry.end, ChronoUnit.SECONDS),
                   entry.voltage,
                   entry.voltage.subtract(minVoltageOfAllTimeWindows),
                   departureTimesInThisTimeWindow(i).until(
@@ -1056,8 +1057,8 @@ trait GridOrientedCharging {
           } else {
 
             timeWindows :+ SchedulingTimeWindowWithVoltage(
-              entry.start,
-              entry.end,
+              startTime.until(entry.start, ChronoUnit.SECONDS),
+              startTime.until(entry.end, ChronoUnit.SECONDS),
               entry.voltage,
               entry.voltage.subtract(minVoltageOfAllTimeWindows),
               entry.start.until(entry.end, ChronoUnit.SECONDS) * entry.voltage
@@ -1072,7 +1073,7 @@ trait GridOrientedCharging {
         }
       )
       .filter(_.parkedEvs.nonEmpty)
-      .filterNot(x => x.start.isEqual(x.end))
+      .filterNot(x => x.start == x.end)
       .sortBy { case SchedulingTimeWindowWithVoltage(start, _, _, _, _, _) =>
         start
       }
@@ -1161,7 +1162,7 @@ trait GridOrientedCharging {
           entry: SchedulingTimeWindowWithVoltage
       ) => {
         subSetOfUpdatedSchedulingTimeWindows
-          .find(_.start.isEqual(entry.start)) match {
+          .find(_.start == entry.start) match {
           case Some(_) => filteredWindows.filterNot(_ == entry)
           case None    => filteredWindows
         }
