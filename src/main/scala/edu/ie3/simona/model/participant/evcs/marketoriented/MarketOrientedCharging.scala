@@ -7,8 +7,9 @@
 package edu.ie3.simona.model.participant.evcs.marketoriented
 
 import edu.ie3.simona.api.data.ev.model.EvModel
+import edu.ie3.simona.exceptions.EvcsException.SchedulingException
 import edu.ie3.simona.exceptions.InvalidParameterException
-import edu.ie3.simona.model.participant.evcs.SchedulingTimeWindows.SchedulingTimeWindowWithPrice
+import edu.ie3.simona.model.participant.evcs.SchedulingTimeWindows.SchedulingSliceWithPrice
 import edu.ie3.simona.model.participant.evcs.PredictionAndSchedulingUtils.{
   calculateRemainingEnergyToBeChargedAfterThisUpdate,
   findDispatchableEvs,
@@ -23,6 +24,7 @@ import edu.ie3.simona.model.participant.evcs.marketoriented.MarketPricePredictio
 import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvcsModel}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
+import edu.ie3.util.scala.ZonedDateTimeTools.RichZonedDateTime
 import edu.ie3.util.scala.quantities.DefaultQuantities
 import edu.ie3.util.scala.quantities.QuantityUtil.RichQuantity
 import tech.units.indriya.ComparableQuantity
@@ -164,27 +166,26 @@ trait MarketOrientedCharging {
           priceTimeTable
         )
 
-      /* Get scheduling time windows. The time windows are separated by price changes and departing evs */
-      val schedulingTimeWindows =
-        getSchedulingTimeWindows(
-          predictedPrices,
-          departureTimes,
-          startTime,
-          evs
-        )
-
       /* Start with ev departing first and distribute charging energy */
       Future
         .sequence {
           evs.toVector
             .sortBy(ev => ev.getDepartureTick)
             .map { ev =>
-              createScheduleForThisEv(
-                schedulingTimeWindows,
-                ev,
-                evcsModel,
-                startTime
-              ).map(ev -> Some(_))
+              Future {
+                getSchedulingSlices(
+                  predictedPrices,
+                  currentTime,
+                  ev.getDepartureTick.toLong.toDateTime(startTime)
+                )
+              }.flatMap { schedulingTimeWindows =>
+                createScheduleForThisEv(
+                  schedulingTimeWindows,
+                  ev,
+                  evcsModel,
+                  startTime
+                )
+              }.map(ev -> Some(_))
             }
         }
         .map(_.toMap)
@@ -205,7 +206,7 @@ trait MarketOrientedCharging {
     *   Future onto charging schedule for this ev
     */
   private def createScheduleForThisEv(
-      schedulingTimeWindows: Vector[SchedulingTimeWindowWithPrice],
+      schedulingTimeWindows: Vector[SchedulingSliceWithPrice],
       ev: EvModel,
       evcsModel: EvcsModel,
       startTime: ZonedDateTime
@@ -213,17 +214,10 @@ trait MarketOrientedCharging {
     /* Energy that needs to be distributed on the time windows to charge the ev to full SoC */
     val energyToChargeForEv = ev.getEStorage.subtract(ev.getStoredEnergy)
 
-    /* Filter relevant time windows for this ev. If the available power already is assigned to a slice, neglect it. */
-    val windowsForEv =
-      getRelevantScheduleWindowsForThisEvWithBlockedInformation(
-        ev,
-        schedulingTimeWindows
-      ).filterNot(_._2).map(_._1)
-
     val entries = recursiveCalculationOfSchedulingForThisEv(
       Seq.empty[ChargingSchedule.Entry],
       energyToChargeForEv,
-      windowsForEv,
+      schedulingTimeWindows,
       ev,
       evcsModel,
       startTime
@@ -259,7 +253,7 @@ trait MarketOrientedCharging {
   private def recursiveCalculationOfSchedulingForThisEv(
       currentScheduleForEv: Seq[ChargingSchedule.Entry],
       currentRemainingEnergyToChargeForEv: ComparableQuantity[Energy],
-      availableWindows: Vector[SchedulingTimeWindowWithPrice],
+      availableWindows: Vector[SchedulingSliceWithPrice],
       ev: EvModel,
       evcsModel: EvcsModel,
       startTime: ZonedDateTime
@@ -361,134 +355,41 @@ trait MarketOrientedCharging {
     * @return
     *   the relevant schedule time windows
     */
+  @deprecated("The scheduling time windows already apply for this ev")
   private def getRelevantScheduleWindowsForThisEvWithBlockedInformation(
       ev: EvModel,
-      schedulingTimeWindows: Vector[SchedulingTimeWindowWithPrice]
-  ): Vector[(SchedulingTimeWindowWithPrice, Boolean)] = {
+      schedulingTimeWindows: Vector[SchedulingSliceWithPrice]
+  ): Vector[(SchedulingSliceWithPrice, Boolean)] =
+    schedulingTimeWindows.map(_ -> false)
 
-    schedulingTimeWindows
-      .foldLeft(Vector.empty[SchedulingTimeWindowWithPrice])(
-        (
-            relevantWindows: Vector[SchedulingTimeWindowWithPrice],
-            window: SchedulingTimeWindowWithPrice
-        ) => {
-          if (window.parkedEvs.contains(ev)) {
-            relevantWindows :+ window
-          } else {
-            relevantWindows
-          }
-        }
-      )
-      .map(x => (x, false))
-
-  }
-
-  /** Create the scheduling time windows required for the scheduling of the evs.
-    * The list of scheduling time windows is created based on the predicted
-    * prices and their time windows and the departure times of the evs. For each
-    * time window, a SchedulingTimeWindow is created with according information.
+  /** Get relevant scheduling slices. A slice is determined by a price change
+    * and limited to the start and end of ev's parking time.
     *
     * @param predictedPrices
-    *   the predicted price time windows
-    * @param departureTimes
-    *   the departure times of all evs to schedule
+    *   Collection of predicted prices
     * @param startTime
-    *   the start time of the simulation to obtain real times from ticks
-    * @param evs
-    *   the evs to schedule
+    *   Start of parking time
+    * @param departureTime
+    *   End of parking time
     * @return
-    *   list of scheduling time windows
+    *   Slices to use for scheduling of a specific car within it's parking time
     */
-  private def getSchedulingTimeWindows(
+  private def getSchedulingSlices(
       predictedPrices: Vector[PredictedPrice],
-      departureTimes: Vector[ZonedDateTime],
       startTime: ZonedDateTime,
-      evs: Set[EvModel]
-  ): Vector[SchedulingTimeWindowWithPrice] = {
-    predictedPrices
-      .foldLeft(
-        Vector.empty[SchedulingTimeWindowWithPrice]
-      )(
-        (
-            timeWindows: Vector[SchedulingTimeWindowWithPrice],
-            entry: PredictedPrice
-        ) => {
-          val departureTimesInThisTimeWindow =
-            departureTimes
-              .filter(_.isAfter(entry.start))
-              .filter(_.isBefore(entry.end))
-              .sorted
-
-          if (departureTimesInThisTimeWindow.nonEmpty) {
-            var slicesInThisWindow = Vector.empty[SchedulingTimeWindowWithPrice]
-            val size: Int = departureTimesInThisTimeWindow.size
-
-            slicesInThisWindow =
-              slicesInThisWindow :+ SchedulingTimeWindowWithPrice(
-                entry.start,
-                departureTimesInThisTimeWindow(0),
-                entry.price,
-                entry.start.until(
-                  departureTimesInThisTimeWindow(0),
-                  ChronoUnit.SECONDS
-                ),
-                getEvsStillParkedAtThisTime(evs, entry.start, startTime)
-              )
-            for (i <- 0 until size) {
-              if (i < size - 1) {
-                slicesInThisWindow =
-                  slicesInThisWindow :+ SchedulingTimeWindowWithPrice(
-                    departureTimesInThisTimeWindow(i),
-                    departureTimesInThisTimeWindow(i + 1),
-                    entry.price,
-                    departureTimesInThisTimeWindow(i).until(
-                      departureTimesInThisTimeWindow(i + 1),
-                      ChronoUnit.SECONDS
-                    ),
-                    getEvsStillParkedAtThisTime(
-                      evs,
-                      departureTimesInThisTimeWindow(i),
-                      startTime
-                    )
-                  )
-              } else {
-                slicesInThisWindow =
-                  slicesInThisWindow :+ SchedulingTimeWindowWithPrice(
-                    departureTimesInThisTimeWindow(i),
-                    entry.end,
-                    entry.price,
-                    departureTimesInThisTimeWindow(i).until(
-                      entry.end,
-                      ChronoUnit.SECONDS
-                    ),
-                    getEvsStillParkedAtThisTime(
-                      evs,
-                      departureTimesInThisTimeWindow(i),
-                      startTime
-                    )
-                  )
-              }
-            }
-
-            timeWindows :++ slicesInThisWindow
-
-          } else {
-            /* There is no departure in this window */
-            timeWindows :+ SchedulingTimeWindowWithPrice(
-              entry.start,
-              entry.end,
-              entry.price,
-              entry.start.until(entry.end, ChronoUnit.SECONDS),
-              getEvsStillParkedAtThisTime(evs, entry.start, startTime)
-            )
-          }
-        }
+      departureTime: ZonedDateTime
+  ): Vector[SchedulingSliceWithPrice] = predictedPrices
+    .filter { pricePeriod =>
+      (pricePeriod.end.isEqual(startTime) || pricePeriod.end.isAfter(
+        startTime
+      )) && pricePeriod.start.isBefore(departureTime)
+    }
+    .sortBy(_.start)
+    .map { case PredictedPrice(start, end, price) =>
+      SchedulingSliceWithPrice(
+        startTime.max(start),
+        departureTime.min(end),
+        price
       )
-      .filter(_.parkedEvs.nonEmpty)
-      .filterNot(x => x.start.isEqual(x.end))
-      .sortBy { case SchedulingTimeWindowWithPrice(start, _, _, _, _) =>
-        start
-      }
-  }
-
+    }
 }

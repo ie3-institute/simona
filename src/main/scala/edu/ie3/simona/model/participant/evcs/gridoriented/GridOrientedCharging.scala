@@ -1003,10 +1003,6 @@ trait GridOrientedCharging {
               entry.start.until(
                 departureTimesInThisTimeWindow(0),
                 ChronoUnit.SECONDS
-              ),
-              entry.start.until(
-                departureTimesInThisTimeWindow(0),
-                ChronoUnit.SECONDS
               ) * entry.voltage
                 .subtract(minVoltageOfAllTimeWindows)
                 .getValue
@@ -1020,10 +1016,6 @@ trait GridOrientedCharging {
                   departureTimesInThisTimeWindow(i + 1),
                   entry.voltage,
                   entry.voltage.subtract(minVoltageOfAllTimeWindows),
-                  departureTimesInThisTimeWindow(i).until(
-                    departureTimesInThisTimeWindow(i + 1),
-                    ChronoUnit.SECONDS
-                  ),
                   departureTimesInThisTimeWindow(i).until(
                     departureTimesInThisTimeWindow(i + 1),
                     ChronoUnit.SECONDS
@@ -1043,10 +1035,6 @@ trait GridOrientedCharging {
                   entry.end,
                   entry.voltage,
                   entry.voltage.subtract(minVoltageOfAllTimeWindows),
-                  departureTimesInThisTimeWindow(i).until(
-                    entry.end,
-                    ChronoUnit.SECONDS
-                  ),
                   departureTimesInThisTimeWindow(i).until(
                     entry.end,
                     ChronoUnit.SECONDS
@@ -1072,7 +1060,6 @@ trait GridOrientedCharging {
               entry.end,
               entry.voltage,
               entry.voltage.subtract(minVoltageOfAllTimeWindows),
-              entry.start.until(entry.end, ChronoUnit.SECONDS),
               entry.start.until(entry.end, ChronoUnit.SECONDS) * entry.voltage
                 .subtract(minVoltageOfAllTimeWindows)
                 .getValue
@@ -1086,7 +1073,7 @@ trait GridOrientedCharging {
       )
       .filter(_.parkedEvs.nonEmpty)
       .filterNot(x => x.start.isEqual(x.end))
-      .sortBy { case SchedulingTimeWindowWithVoltage(start, _, _, _, _, _, _) =>
+      .sortBy { case SchedulingTimeWindowWithVoltage(start, _, _, _, _, _) =>
         start
       }
   }
@@ -1180,7 +1167,7 @@ trait GridOrientedCharging {
         }
       }
     ) ++ subSetOfUpdatedSchedulingTimeWindows).sortBy {
-      case SchedulingTimeWindowWithVoltage(start, _, _, _, _, _, _) => start
+      case SchedulingTimeWindowWithVoltage(start, _, _, _, _, _) => start
     }
   }
 

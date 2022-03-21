@@ -11,6 +11,7 @@ import edu.ie3.util.quantities.interfaces.EnergyPrice
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 import javax.measure.quantity.Dimensionless
 
 object SchedulingTimeWindows {
@@ -19,8 +20,11 @@ object SchedulingTimeWindows {
   trait SchedulingTimeWindow {
     val start: ZonedDateTime
     val end: ZonedDateTime
-    val length: Long
-    val parkedEvs: Set[EvModel]
+
+    /** @return
+      *   Length of the window in seconds
+      */
+    def length: Long = start.until(end, ChronoUnit.SECONDS)
   }
 
   /** Time window used for the scheduling of ev charging. Additional information
@@ -34,19 +38,16 @@ object SchedulingTimeWindows {
     *   predicted voltage in this time window
     * @param voltageDeviation
     *   deviation from reference voltage in the schedule time
-    * @param length
-    *   length of the time window in seconds
     * @param size
     *   size of the time window expressed as voltage deviation * length
     * @param parkedEvs
     *   still parked ev in this time window
     */
   case class SchedulingTimeWindowWithVoltage(
-      start: ZonedDateTime,
-      end: ZonedDateTime,
+      override val start: ZonedDateTime,
+      override val end: ZonedDateTime,
       voltage: ComparableQuantity[Dimensionless],
       voltageDeviation: ComparableQuantity[Dimensionless],
-      length: Long,
       size: Double,
       parkedEvs: Set[EvModel]
   ) extends SchedulingTimeWindow {
@@ -67,23 +68,14 @@ object SchedulingTimeWindows {
     *   end of time window
     * @param price
     *   predicted price in this time window
-    * @param length
-    *   length of the time window in seconds
-    * @param parkedEvs
-    *   still parked ev in this time window
     */
-  case class SchedulingTimeWindowWithPrice(
+  case class SchedulingSliceWithPrice(
       start: ZonedDateTime,
       end: ZonedDateTime,
-      price: ComparableQuantity[EnergyPrice],
-      length: Long,
-      parkedEvs: Set[EvModel]
+      price: ComparableQuantity[EnergyPrice]
   ) extends SchedulingTimeWindow {
     override def toString: String =
-      s"SchedulingTimeWindow(start=$start, end=$end, price=$price, timeBoxLength=$length, parkedEvs=${parkedEvs
-        .foldLeft(Set.empty[String])((names: Set[String], ev: EvModel) => {
-          names + ev.getId
-        })})"
+      s"SchedulingTimeWindow(start=$start, end=$end, price=$price, timeBoxLength=$length)"
   }
 
 }
