@@ -382,9 +382,8 @@ case class PrimaryServiceProxy(
             None,
             None
           ) =>
-        /* The mapping and actual data sources are from csv. At first, get the file name of the file to read. */
+        /* The actual data sources are from csv. Meta information have to match */
         metaInformation match {
-          /* Time series meta information could be successfully obtained */
           case csvMetaData: CsvIndividualTimeSeriesMetaInformation =>
             Success(
               CsvInitPrimaryServiceStateData(
