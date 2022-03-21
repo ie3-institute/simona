@@ -45,5 +45,9 @@ This page gives an overview of the available models in *SIMONA*.
 ## Protocols
 
 ```{eval-rst}
-.. include:: /protocols.rst
+.. toctree::
+   :maxdepth: 1
+
+   protocols
+   protocolsTriggerParticipantAgent
 ```
