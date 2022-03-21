@@ -8,7 +8,6 @@ package edu.ie3.simona.model.participant.evcs.marketoriented
 
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.exceptions.InvalidParameterException
-import edu.ie3.simona.model.participant.evcs
 import edu.ie3.simona.model.participant.evcs.SchedulingTimeWindows.SchedulingTimeWindowWithPrice
 import edu.ie3.simona.model.participant.evcs.PredictionAndSchedulingUtils.{
   calculateRemainingEnergyToBeChargedAfterThisUpdate,
@@ -21,11 +20,7 @@ import edu.ie3.simona.model.participant.evcs.marketoriented.MarketPricePredictio
   getPredictedPricesForRelevantTimeWindowBasedOnReferencePrices,
   priceTimeTable
 }
-import edu.ie3.simona.model.participant.evcs.{
-  ChargingSchedule,
-  EvcsChargingScheduleEntry,
-  EvcsModel
-}
+import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvcsModel}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
 import edu.ie3.util.scala.quantities.DefaultQuantities
@@ -191,12 +186,12 @@ trait MarketOrientedCharging {
     /* Energy that needs to be distributed on the time windows to charge the ev to full SoC */
     val energyToChargeForEv = ev.getEStorage.subtract(ev.getStoredEnergy)
 
-    /* Filter relevant time windows for this ev and add information if already used with max power */
+    /* Filter relevant time windows for this ev. If the available power already is assigned to a slice, neglect it. */
     val windowsForEv =
       getRelevantScheduleWindowsForThisEvWithBlockedInformation(
         ev,
         schedulingTimeWindows
-      )
+      ).filterNot(_._2).map(_._1)
 
     recursiveCalculationOfSchedulingForThisEv(
       Seq.empty[ChargingSchedule.Entry],
@@ -220,7 +215,7 @@ trait MarketOrientedCharging {
     *   the current schedule for the ev. At start, this is empty.
     * @param currentRemainingEnergyToChargeForEv
     *   the remaining energy the ev needs to charge to reach 100% SoC
-    * @param currentWindowsForEv
+    * @param availableWindows
     *   the current time windows relevant for the ev with price information
     * @param ev
     *   the ev to schedule
@@ -235,17 +230,11 @@ trait MarketOrientedCharging {
   private def recursiveCalculationOfSchedulingForThisEv(
       currentScheduleForEv: Seq[ChargingSchedule.Entry],
       currentRemainingEnergyToChargeForEv: ComparableQuantity[Energy],
-      currentWindowsForEv: Vector[
-        (SchedulingTimeWindowWithPrice, Boolean)
-      ],
+      availableWindows: Vector[SchedulingTimeWindowWithPrice],
       ev: EvModel,
       evcsModel: EvcsModel,
       startTime: ZonedDateTime
   ): Seq[ChargingSchedule.Entry] = {
-    /* Filter for time windows not already used with max power */
-    val availableWindows: Vector[SchedulingTimeWindowWithPrice] =
-      currentWindowsForEv.filter(_._2 == false).map(x => x._1)
-
     val (
       updatedScheduleForEv,
       updatedRemainingEnergyToChargeForEv,
@@ -253,7 +242,6 @@ trait MarketOrientedCharging {
     ) =
       /* Find time window of still available time windows with minimum price */
       availableWindows.minByOption(_.price) match {
-
         case Some(window) =>
           val powerForEvForWindow =
             currentRemainingEnergyToChargeForEv
@@ -267,19 +255,19 @@ trait MarketOrientedCharging {
               .min(evcsModel.getMaxAvailableChargingPower(ev))
               .to(KILOWATT)
 
-          /* Block window if EV charges with max possible power in this window */
-          val windowBlockedForEv =
-            powerForEvForWindow.isGreaterThanOrEqualTo(
-              evcsModel.getMaxAvailableChargingPower(ev)
+          /* If within this slice the full available charging power of the charging station is already assigned to evs,
+           * remove it from the list of possible slices */
+          val updatedWindowsForEv =
+            if (
+              powerForEvForWindow.isGreaterThanOrEqualTo(
+                evcsModel.getMaxAvailableChargingPower(ev)
+              )
             )
-
-          /* Replace the time window with the updated, blocked version */
-          val updatedWindowsForEv = currentWindowsForEv.filterNot(
-            _._1 == window
-          ) :+ (window, windowBlockedForEv)
+              availableWindows.filterNot(_ == window)
+            else availableWindows
 
           /* Calculate remaining energy the ev needs to charge */
-          val updatedRemainingEnergyToChargeForEv: ComparableQuantity[Energy] =
+          val updatedRemainingEnergyToChargeForEv =
             calculateRemainingEnergyToBeChargedAfterThisUpdate(
               powerForEvForWindow,
               window,
@@ -318,9 +306,9 @@ trait MarketOrientedCharging {
      * distribute more energy on the time windows. If all energy is distributed, return the results.
      */
     if (
-      updatedRemainingEnergyToChargeForEv
-        .isGreaterThan(DefaultQuantities.zeroKWH)
-      && !updatedWindowsForEv.forall(x => x._2)
+      updatedRemainingEnergyToChargeForEv.isGreaterThan(
+        DefaultQuantities.zeroKWH
+      ) && updatedWindowsForEv.nonEmpty
     ) {
       recursiveCalculationOfSchedulingForThisEv(
         updatedScheduleForEv,
