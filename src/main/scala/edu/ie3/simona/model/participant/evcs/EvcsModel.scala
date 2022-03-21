@@ -30,6 +30,7 @@ import edu.ie3.simona.model.participant.evcs.uncontrolled.{
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.service.market.StaticMarketSource
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.{
   EURO,
   EURO_PER_KILOWATTHOUR,
@@ -51,6 +52,8 @@ import java.time.temporal.ChronoUnit
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Energy, Power}
 import scala.annotation.tailrec
+import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContext.Implicits
 import scala.util.{Failure, Success}
 
 /** EV charging station model
@@ -66,7 +69,7 @@ import scala.util.{Failure, Success}
   * @param qControl
   *   Type of reactive power control
   * @param sRated
-  *   Rated apparent power
+  *   Rated apparent power per charging point
   * @param cosPhiRated
   *   Rated power factor
   * @param chargingPoints
@@ -102,6 +105,8 @@ final case class EvcsModel(
     with ConstantPowerCharging
     with GridOrientedCharging
     with MarketOrientedCharging {
+
+  protected implicit val executionContext: ExecutionContext = Implicits.global
 
   /** Determine scheduling for charging the EVs currently parked at the charging
     * station until their departure. The scheduling depends on the chosen
@@ -700,20 +705,23 @@ final case class EvcsModel(
 
   /** Returns the maximum available charging power for an EV, which depends on
     * ev and charging station limits for AC and DC current
+    *
     * @param ev
     *   ev for which the max charging power should be returned
     * @return
     *   maximum charging power for the EV at this charging station
     */
-  def getMaxAvailableChargingPower(
+  protected def getMaxAvailableChargingPower(
       ev: EvModel
   ): ComparableQuantity[Power] = {
-    currentType match {
+    val evPower = currentType match {
       case ElectricCurrentType.AC =>
-        sRated.min(ev.getSRatedAC).to(KILOWATT)
+        ev.getSRatedAC
       case ElectricCurrentType.DC =>
-        sRated.min(ev.getSRatedDC).to(KILOWATT)
+        ev.getSRatedDC
     }
+    /* Limit the charging power to the minimum of ev's and evcs' permissible power */
+    evPower.min(sRated).to(PowerSystemUnits.KILOWATT)
   }
 
   /** Calculate the active power behaviour of the model

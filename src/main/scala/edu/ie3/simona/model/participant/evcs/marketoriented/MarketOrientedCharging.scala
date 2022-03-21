@@ -33,14 +33,27 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import javax.measure.quantity.{Energy, Power}
 import scala.annotation.tailrec
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 
 trait MarketOrientedCharging {
   this: EvcsModel =>
 
-  /** Determine scheduling for charging the EVs currently parked at the charging
-    * station until their departure. In this case, the scheduling is supposed to
-    * be grid conducive, trying to minimize the charging costs based on energy
-    * price predictions.
+  /** Schedule charging of connected evs. The aim is to minimize the charging
+    * costs based on energy price predictions. First priority is to reach the
+    * maximum achievable SoC at departure. Therefore the cars are grouped to
+    * (non-)dispatchable cars.
+    *
+    * If a car needs to charge with maximum power to reach the maximum SoC at
+    * the end of parking time, it is charged with maximum power. It is
+    * considered to be non-dispatchable. If it can charge with less power, it is
+    * charged in the times, where there is a low energy price. The highest power
+    * is scheduled in the cheapest time slices as long as no power limits are
+    * reached by the car or the charging point. Those cars are considered to be
+    * dispatchable.
+    *
+    * As the charging happens per charging point, each car can be treated
+    * independently.
     *
     * @param currentTick
     *   current tick
@@ -67,26 +80,41 @@ trait MarketOrientedCharging {
         startTime
       )
 
-    /* Create scheduling for evs that need ot charge with maximum power */
-    val scheduleForEvsThatChargeWithMaxPower =
-      chargeWithMaximumPower(
-        currentTick,
-        nonDispatchableEvs
-      )
-
-    /* Create scheduling for evs that can be scheduled */
-    val scheduleForSchedulableEvs =
-      if (dispatchableEvs.nonEmpty) {
-        scheduleDispatchableEvs(
-          this,
-          currentTick,
-          currentTime,
-          startTime,
-          dispatchableEvs
+    Await.result(
+      scheduleNonDispatchableEvs(nonDispatchableEvs, currentTick)
+        .zip(
+          scheduleDispatchableEvs(
+            this,
+            currentTick,
+            currentTime,
+            startTime,
+            dispatchableEvs
+          )
         )
-      } else Map.empty[EvModel, Option[ChargingSchedule]]
+        .map { case (nonDispatchableSchedules, dispatchableSchedules) =>
+          nonDispatchableSchedules ++ dispatchableSchedules
+        },
+      Duration("1h")
+    )
+  }
 
-    scheduleForEvsThatChargeWithMaxPower ++ scheduleForSchedulableEvs
+  /** Determine the schedule for all non-dispatchable EVs.
+    *
+    * @param evs
+    *   Evs to be scheduled
+    * @param currentTick
+    *   Current simulation time
+    * @return
+    *   Mapping from ev to it's schedule
+    */
+  private def scheduleNonDispatchableEvs(
+      evs: Set[EvModel],
+      currentTick: Long
+  ): Future[Map[EvModel, Option[ChargingSchedule]]] = Future {
+    chargeWithMaximumPower(
+      currentTick,
+      evs
+    )
   }
 
   /** Determine a market oriented scheduling for evs that don't need to be
@@ -113,55 +141,54 @@ trait MarketOrientedCharging {
       currentTime: ZonedDateTime,
       startTime: ZonedDateTime,
       evs: Set[EvModel]
-  ): Map[EvModel, Option[ChargingSchedule]] = {
-    /* Get all departure times and required energies of the currently parked and schedulable evs in separate lists */
-    val (departureTimes, _) =
-      getDepartureTimesAndRequiredEnergyOfAllEvs(evs, startTime)
+  ): Future[Map[EvModel, Option[ChargingSchedule]]] =
+    if (evs.nonEmpty) {
+      /* Get all departure times and required energies of the currently parked and dispatchable evs in separate lists */
+      val (departureTimes, _) =
+        getDepartureTimesAndRequiredEnergyOfAllEvs(evs, startTime)
 
-    /* Find latest departure time for filtering later */
-    val lastDepartureTime = departureTimes.maxOption match {
-      case Some(time) => time
-      case None =>
-        throw new InvalidParameterException(
-          "This shouldn't happen, there must be at least one EV here."
-        )
-    }
-
-    /* Get time windows with predicted energy prices for the relevant time until departure of the last EV */
-    val predictedPrices =
-      getPredictedPricesForRelevantTimeWindowBasedOnReferencePrices(
-        currentTime,
-        lastDepartureTime,
-        priceTimeTable
-      )
-
-    /* Get scheduling time windows. The time windows are separated by price changes and departing evs */
-    val schedulingTimeWindows =
-      getSchedulingTimeWindows(
-        predictedPrices,
-        departureTimes,
-        startTime,
-        evs
-      )
-
-    /* Start with ev departing first and distribute charging energy */
-    evs.toVector
-      .sortBy(ev => ev.getDepartureTick)
-      .map { ev =>
-        {
-          val scheduleForEv =
-            createScheduleForThisEv(
-              schedulingTimeWindows,
-              ev,
-              evcsModel,
-              startTime
-            )
-
-          ev -> Some(ChargingSchedule(ev, scheduleForEv))
-        }
+      /* Find latest departure time for filtering later */
+      val lastDepartureTime = departureTimes.maxOption match {
+        case Some(time) => time
+        case None =>
+          throw new InvalidParameterException(
+            "This shouldn't happen, there must be at least one EV here."
+          )
       }
-      .toMap
-  }
+
+      /* Get time windows with predicted energy prices for the relevant time until departure of the last EV */
+      val predictedPrices =
+        getPredictedPricesForRelevantTimeWindowBasedOnReferencePrices(
+          currentTime,
+          lastDepartureTime,
+          priceTimeTable
+        )
+
+      /* Get scheduling time windows. The time windows are separated by price changes and departing evs */
+      val schedulingTimeWindows =
+        getSchedulingTimeWindows(
+          predictedPrices,
+          departureTimes,
+          startTime,
+          evs
+        )
+
+      /* Start with ev departing first and distribute charging energy */
+      Future
+        .sequence {
+          evs.toVector
+            .sortBy(ev => ev.getDepartureTick)
+            .map { ev =>
+              createScheduleForThisEv(
+                schedulingTimeWindows,
+                ev,
+                evcsModel,
+                startTime
+              ).map(ev -> Some(_))
+            }
+        }
+        .map(_.toMap)
+    } else Future { Map.empty }
 
   /** Calculate the charging schedule for this ev based on the current
     * scheduling time window information.
@@ -175,14 +202,14 @@ trait MarketOrientedCharging {
     * @param startTime
     *   the start time of the simulation to convert ticks to real times
     * @return
-    *   charging schedule for this ev
+    *   Future onto charging schedule for this ev
     */
   private def createScheduleForThisEv(
       schedulingTimeWindows: Vector[SchedulingTimeWindowWithPrice],
       ev: EvModel,
       evcsModel: EvcsModel,
       startTime: ZonedDateTime
-  ): Seq[ChargingSchedule.Entry] = {
+  ): Future[ChargingSchedule] = Future {
     /* Energy that needs to be distributed on the time windows to charge the ev to full SoC */
     val energyToChargeForEv = ev.getEStorage.subtract(ev.getStoredEnergy)
 
@@ -193,7 +220,7 @@ trait MarketOrientedCharging {
         schedulingTimeWindows
       ).filterNot(_._2).map(_._1)
 
-    recursiveCalculationOfSchedulingForThisEv(
+    val entries = recursiveCalculationOfSchedulingForThisEv(
       Seq.empty[ChargingSchedule.Entry],
       energyToChargeForEv,
       windowsForEv,
@@ -201,6 +228,8 @@ trait MarketOrientedCharging {
       evcsModel,
       startTime
     )
+
+    ChargingSchedule(ev, entries)
   }
 
   /** Calculate the charging schedule for an ev. The energy to charge is
