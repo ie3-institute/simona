@@ -3,7 +3,7 @@
 
 This page documents the functionality of the BM model available in SIMONA.
 
-The BM Model is part of the SIMONA Simulation framework and represented by an agent.
+The BM model is part of the SIMONA Simulation framework and represented by an agent.
 
 ### Parameters
 
