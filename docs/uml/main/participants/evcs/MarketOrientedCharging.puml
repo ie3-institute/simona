@@ -13,13 +13,12 @@ partition "Schedule non-dispatchable evs" {
 }
 
 partition "Schedule dispatchable evs" {
-    :Determine all departure times;
     :Determine last departure;
     :Predict charging prices;
-    :Subdivide the window based on\nprice changes and planned departures;
     :Sort evs by departure tick;
     while (evs available?)
         partition "Determine schedule for ev" {
+            :Subdivide the window based on\nprice changes and planned departures;
             :Determine free capacity of battery;
             :Determine slices, where there is still power left;
             repeat :Filter slices where there is still power left;
