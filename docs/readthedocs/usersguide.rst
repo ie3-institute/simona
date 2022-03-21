@@ -201,3 +201,24 @@ These steps have to be performed each time updates to the external simulation ne
 
 Now, when a simulation with SIMONA is started (see `above <#running-a-standalone-simulation>`_), the external simulation is triggered at each tick that it requested.
 
+Troubleshooting
+===============
+
+My power flow calculation isn't converging - why is that?
+---------------------------------------------------------
+
+When your power flow is not converging it means that the load situation in the grid during the time of the power flow calculation is not physically feasible.
+
+This can have basically one of the following two reasons:
+
+#.
+    There is more load in the grid than it can physically handle.
+
+#.
+    There is more generation in the grid than it can physically handle.
+
+One of the main reasons is a misconfiguration of the grid and its assets.
+Assess the power of the load and generation units and check if the values make sense.
+Keep in mind the metric prefixes that are assumed for the models, which are listed in the `PSDM docs <https://powersystemdatamodel.readthedocs.io/en/latest/index.html>`_.
+If everything seems to be configured correctly it could also be the case that the grid itself is incorrectly configured.
+Do a similar sanity check for the grids assets.
