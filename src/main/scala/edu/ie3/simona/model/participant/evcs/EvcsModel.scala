@@ -711,7 +711,7 @@ final case class EvcsModel(
     * @return
     *   maximum charging power for the EV at this charging station
     */
-  protected def getMaxAvailableChargingPower(
+  def getMaxAvailableChargingPower(
       ev: EvModel
   ): ComparableQuantity[Power] = {
     val evPower = currentType match {

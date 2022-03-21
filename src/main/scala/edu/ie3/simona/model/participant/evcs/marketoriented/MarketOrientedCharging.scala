@@ -144,8 +144,8 @@ trait MarketOrientedCharging {
   ): Future[Map[EvModel, Option[ChargingSchedule]]] =
     if (evs.nonEmpty) {
       /* Get all departure times and required energies of the currently parked and dispatchable evs in separate lists */
-      val (departureTimes, _) =
-        getDepartureTimesAndRequiredEnergyOfAllEvs(evs, startTime)
+      val departureTimes =
+        getDepartureTimesAndRequiredEnergyOfAllEvs(evs, startTime)._1
 
       /* Find latest departure time for filtering later */
       val lastDepartureTime = departureTimes.maxOption match {
@@ -413,66 +413,67 @@ trait MarketOrientedCharging {
             timeWindows: Vector[SchedulingTimeWindowWithPrice],
             entry: PredictedPrice
         ) => {
-
-          val departureTimesInThisTimeWindow: Vector[ZonedDateTime] =
+          val departureTimesInThisTimeWindow =
             departureTimes
               .filter(_.isAfter(entry.start))
               .filter(_.isBefore(entry.end))
               .sorted
 
           if (departureTimesInThisTimeWindow.nonEmpty) {
-
-            var x = Vector.empty[SchedulingTimeWindowWithPrice]
+            var slicesInThisWindow = Vector.empty[SchedulingTimeWindowWithPrice]
             val size: Int = departureTimesInThisTimeWindow.size
 
-            x = x :+ SchedulingTimeWindowWithPrice(
-              entry.start,
-              departureTimesInThisTimeWindow(0),
-              entry.price,
-              entry.start.until(
+            slicesInThisWindow =
+              slicesInThisWindow :+ SchedulingTimeWindowWithPrice(
+                entry.start,
                 departureTimesInThisTimeWindow(0),
-                ChronoUnit.SECONDS
-              ),
-              getEvsStillParkedAtThisTime(evs, entry.start, startTime)
-            )
+                entry.price,
+                entry.start.until(
+                  departureTimesInThisTimeWindow(0),
+                  ChronoUnit.SECONDS
+                ),
+                getEvsStillParkedAtThisTime(evs, entry.start, startTime)
+              )
             for (i <- 0 until size) {
               if (i < size - 1) {
-                x = x :+ SchedulingTimeWindowWithPrice(
-                  departureTimesInThisTimeWindow(i),
-                  departureTimesInThisTimeWindow(i + 1),
-                  entry.price,
-                  departureTimesInThisTimeWindow(i).until(
+                slicesInThisWindow =
+                  slicesInThisWindow :+ SchedulingTimeWindowWithPrice(
+                    departureTimesInThisTimeWindow(i),
                     departureTimesInThisTimeWindow(i + 1),
-                    ChronoUnit.SECONDS
-                  ),
-                  getEvsStillParkedAtThisTime(
-                    evs,
-                    departureTimesInThisTimeWindow(i),
-                    startTime
+                    entry.price,
+                    departureTimesInThisTimeWindow(i).until(
+                      departureTimesInThisTimeWindow(i + 1),
+                      ChronoUnit.SECONDS
+                    ),
+                    getEvsStillParkedAtThisTime(
+                      evs,
+                      departureTimesInThisTimeWindow(i),
+                      startTime
+                    )
                   )
-                )
               } else {
-                x = x :+ SchedulingTimeWindowWithPrice(
-                  departureTimesInThisTimeWindow(i),
-                  entry.end,
-                  entry.price,
-                  departureTimesInThisTimeWindow(i).until(
-                    entry.end,
-                    ChronoUnit.SECONDS
-                  ),
-                  getEvsStillParkedAtThisTime(
-                    evs,
+                slicesInThisWindow =
+                  slicesInThisWindow :+ SchedulingTimeWindowWithPrice(
                     departureTimesInThisTimeWindow(i),
-                    startTime
+                    entry.end,
+                    entry.price,
+                    departureTimesInThisTimeWindow(i).until(
+                      entry.end,
+                      ChronoUnit.SECONDS
+                    ),
+                    getEvsStillParkedAtThisTime(
+                      evs,
+                      departureTimesInThisTimeWindow(i),
+                      startTime
+                    )
                   )
-                )
               }
             }
 
-            timeWindows :++ x
+            timeWindows :++ slicesInThisWindow
 
           } else {
-
+            /* There is no departure in this window */
             timeWindows :+ SchedulingTimeWindowWithPrice(
               entry.start,
               entry.end,
@@ -480,9 +481,7 @@ trait MarketOrientedCharging {
               entry.start.until(entry.end, ChronoUnit.SECONDS),
               getEvsStillParkedAtThisTime(evs, entry.start, startTime)
             )
-
           }
-
         }
       )
       .filter(_.parkedEvs.nonEmpty)

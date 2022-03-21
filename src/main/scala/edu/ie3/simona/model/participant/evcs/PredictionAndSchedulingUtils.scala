@@ -119,28 +119,20 @@ object PredictionAndSchedulingUtils {
   def getDepartureTimesAndRequiredEnergyOfAllEvs(
       evs: Set[EvModel],
       startTime: ZonedDateTime
-  ): (Vector[ZonedDateTime], Vector[ComparableQuantity[Energy]]) = {
-    val departureTimesAndRequiredEnergies = evs
-      .map { ev =>
-        {
-          (
-            ev.getDepartureTick.toLong.toDateTime(startTime),
-            ev.getEStorage.subtract(ev.getStoredEnergy)
-          )
-        }
+  ): (Vector[ZonedDateTime], Vector[ComparableQuantity[Energy]]) = evs
+    .map { ev =>
+      {
+        (
+          ev.getDepartureTick.toLong.toDateTime(startTime),
+          ev.getEStorage.subtract(ev.getStoredEnergy)
+        )
       }
-      .toVector
-      .sortBy { case (time, _) =>
-        time
-      }
-
-    val departureTimes: Vector[ZonedDateTime] =
-      departureTimesAndRequiredEnergies.map(x => x._1)
-    val requiredEnergies: Vector[ComparableQuantity[Energy]] =
-      departureTimesAndRequiredEnergies.map(x => x._2)
-
-    (departureTimes, requiredEnergies)
-  }
+    }
+    .toVector
+    .sortBy { case (time, _) =>
+      time
+    }
+    .unzip
 
   /** Collect and return all evs that are still parked to charge at a specific
     * time.
