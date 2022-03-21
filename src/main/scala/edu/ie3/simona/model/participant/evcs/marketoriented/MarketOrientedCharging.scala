@@ -161,7 +161,8 @@ trait MarketOrientedCharging {
         getPredictedPricesForRelevantTimeWindowBasedOnReferencePrices(
           currentTime,
           lastDepartureTime,
-          priceTimeTable
+          priceTimeTable,
+          startTime
         )
 
       /* Start with ev departing first and distribute charging energy */
@@ -176,8 +177,7 @@ trait MarketOrientedCharging {
                 getSchedulingSlices(
                   predictedPrices,
                   scheduleStart,
-                  ev.getDepartureTick,
-                  startTime
+                  ev.getDepartureTick
                 )
               }.flatMap { schedulingTimeWindows =>
                 createScheduleForThisEv(
@@ -354,29 +354,22 @@ object MarketOrientedCharging {
     *   Start of parking time
     * @param parkingEnd
     *   End of parking time
-    * @param startTime
-    *   Wall-clock time of simulation start
     * @return
     *   Slices to use for scheduling of a specific car within it's parking time
     */
   private def getSchedulingSlices(
       predictedPrices: Vector[PredictedPrice],
       parkingStart: Long,
-      parkingEnd: Long,
-      startTime: ZonedDateTime
+      parkingEnd: Long
   ): Vector[SchedulingSliceWithPrice] = predictedPrices
     .filter { pricePeriod =>
-      (pricePeriod.end.isEqual(
-        startTime.plusSeconds(parkingStart)
-      ) || pricePeriod.end.isAfter(
-        startTime.plusSeconds(parkingStart)
-      )) && pricePeriod.start.isBefore(startTime.plusSeconds(parkingEnd))
+      (pricePeriod.end >= parkingStart) && pricePeriod.start < parkingEnd
     }
     .sortBy(_.start)
     .map { case PredictedPrice(start, end, price) =>
       SchedulingSliceWithPrice(
-        parkingStart.max(startTime.until(start, ChronoUnit.SECONDS)),
-        parkingEnd.min(startTime.until(end, ChronoUnit.SECONDS)),
+        parkingStart.max(start),
+        parkingEnd.min(end),
         price
       )
     }

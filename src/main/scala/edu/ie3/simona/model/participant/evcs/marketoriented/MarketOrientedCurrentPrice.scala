@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.participant.evcs.marketoriented
 
+import breeze.linalg.min
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.model.participant.evcs.marketoriented.MarketPricePrediction.{
   PredictedPrice,
@@ -50,7 +51,8 @@ object MarketOrientedCurrentPrice extends LazyLogging {
       getPredictedPricesForRelevantTimeWindowBasedOnReferencePrices(
         currentTime,
         currentTime.plusSeconds(timeLengthInSeconds),
-        priceTimeTable
+        priceTimeTable,
+        startTime
       )
 
     /* Get time windows with predicted energy prices for next days as reference value */
@@ -58,7 +60,8 @@ object MarketOrientedCurrentPrice extends LazyLogging {
       getPredictedPricesForRelevantTimeWindowBasedOnReferencePrices(
         currentTime,
         currentTime.plusDays(1), // must be <(=?) 7 days
-        priceTimeTable
+        priceTimeTable,
+        startTime
       )
 
     val maxPriceOfReferenceTimeFrame: Option[PredictedPrice] =
@@ -79,9 +82,10 @@ object MarketOrientedCurrentPrice extends LazyLogging {
             {
               priceSum.add(
                 entry.price.multiply(
-                  entry.start
-                    .until(entry.end.min(endTime), ChronoUnit.SECONDS)
-                    .longValue()
+                  entry.start - min(
+                    entry.end,
+                    startTime.until(endTime, ChronoUnit.SECONDS)
+                  )
                 )
               )
             }

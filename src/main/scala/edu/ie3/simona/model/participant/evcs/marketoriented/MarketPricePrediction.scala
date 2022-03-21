@@ -12,6 +12,7 @@ import edu.ie3.simona.service.market.StaticMarketSource
 import edu.ie3.util.quantities.interfaces.EnergyPrice
 import tech.units.indriya.ComparableQuantity
 
+import java.time.temporal.ChronoUnit
 import java.time.{DayOfWeek, ZonedDateTime}
 
 object MarketPricePrediction {
@@ -45,8 +46,8 @@ object MarketPricePrediction {
     *   predicted price in this time window
     */
   case class PredictedPrice(
-      start: ZonedDateTime,
-      end: ZonedDateTime,
+      start: Long,
+      end: Long,
       price: ComparableQuantity[EnergyPrice]
   )
 
@@ -161,7 +162,8 @@ object MarketPricePrediction {
   def getPredictedPricesForRelevantTimeWindowBasedOnReferencePrices(
       currentTime: ZonedDateTime,
       endTime: ZonedDateTime,
-      priceTimeTable: Vector[PriceTimeTableEntry]
+      priceTimeTable: Vector[PriceTimeTableEntry],
+      startTime: ZonedDateTime
   ): Vector[PredictedPrice] = {
 
     if (endTime.isAfter(currentTime.plusDays(7)))
@@ -186,34 +188,44 @@ object MarketPricePrediction {
      */
 
     PredictedPrice(
-      currentTime, // .plusMinutes(currentTimeStamp.minutesUntil(currentPrice.fromTimeStamp)),
-      currentTime
-        .plusMinutes(
-          currentTimeStamp.minutesUntil(currentPrice.untilTimeStamp)
-        )
-        .minusSeconds(currentTime.getSecond),
+      startTime.until(
+        currentTime,
+        ChronoUnit.SECONDS
+      ), // .plusMinutes(currentTimeStamp.minutesUntil(currentPrice.fromTimeStamp)),
+      startTime.until(
+        currentTime
+          .plusMinutes(
+            currentTimeStamp.minutesUntil(currentPrice.untilTimeStamp)
+          )
+          .minusSeconds(currentTime.getSecond),
+        ChronoUnit.SECONDS
+      ),
       currentPrice.price
     ) +: priceTimeTable
       /* entry that belongs to current time is added manually before, must be excluded here */
       .filter(currentPrice.fromTimeStamp != _.fromTimeStamp)
-      .foldLeft(Vector.empty[PredictedPrice])(
-        (timeTable: Vector[PredictedPrice], entry: PriceTimeTableEntry) => {
-          timeTable :+ PredictedPrice(
+      .map(entry => {
+        PredictedPrice(
+          startTime.until(
             currentTime
               .plusMinutes(
                 currentTimeStamp.minutesUntil(entry.fromTimeStamp)
               )
               .minusSeconds(currentTime.getSecond),
+            ChronoUnit.SECONDS
+          ),
+          startTime.until(
             currentTime
               .plusMinutes(
                 currentTimeStamp.minutesUntil(entry.untilTimeStamp)
               )
               .minusSeconds(currentTime.getSecond),
-            entry.price
-          )
-        }
-      )
-      .filter(_.start.isBefore(endTime))
+            ChronoUnit.SECONDS
+          ),
+          entry.price
+        )
+      })
+      .filter(_.start < startTime.until(endTime, ChronoUnit.SECONDS))
       .sortBy { case PredictedPrice(start, _, _) =>
         start
       }
