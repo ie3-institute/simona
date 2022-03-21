@@ -11,6 +11,7 @@ import akka.testkit.{TestActorRef, TestProbe}
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.io.naming.DatabaseNamingStrategy
+import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.value.{HeatAndSValue, PValue}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePower,
@@ -38,6 +39,7 @@ import edu.ie3.simona.test.helper.TestContainerHelper
 import edu.ie3.util.TimeUtil
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.prop.TableDrivenPropertyChecks
+import tech.units.indriya.quantity.Quantities
 
 class PrimaryServiceWorkerSqlIT
     extends AgentSpec(
@@ -56,7 +58,7 @@ class PrimaryServiceWorkerSqlIT
     with TestContainerHelper {
 
   override val container: PostgreSQLContainer = PostgreSQLContainer(
-    "postgres:11.14"
+    "postgres:14.2"
   )
 
   private val simulationStart =
@@ -90,7 +92,7 @@ class PrimaryServiceWorkerSqlIT
           "service",
           "uuid",
           "firstTick",
-          "dataValueClass",
+          "firstData",
           "maybeNextTick"
         ),
         (
@@ -100,7 +102,11 @@ class PrimaryServiceWorkerSqlIT
           ),
           uuidPqh,
           0L,
-          classOf[ApparentPowerAndHeat],
+          ApparentPowerAndHeat(
+            Quantities.getQuantity(1000.0d, StandardUnits.ACTIVE_POWER_IN),
+            Quantities.getQuantity(329.0d, StandardUnits.REACTIVE_POWER_IN),
+            Quantities.getQuantity(8000.0, StandardUnits.HEAT_DEMAND_PROFILE)
+          ),
           Some(900L)
         ),
         (
@@ -110,7 +116,9 @@ class PrimaryServiceWorkerSqlIT
           ),
           uuidP,
           0L,
-          classOf[ActivePower],
+          ActivePower(
+            Quantities.getQuantity(1000.0d, StandardUnits.ACTIVE_POWER_IN)
+          ),
           Some(900L)
         )
       )
@@ -120,7 +128,7 @@ class PrimaryServiceWorkerSqlIT
             service,
             uuid,
             firstTick,
-            dataValueClass,
+            firstData,
             maybeNextTick
         ) =>
           val serviceRef = TestActorRef(service)
@@ -186,7 +194,7 @@ class PrimaryServiceWorkerSqlIT
 
           val dataMsg = participant.expectMsgType[ProvidePrimaryDataMessage]
           dataMsg.tick shouldBe firstTick
-          dataMsg.data.getClass shouldBe dataValueClass
+          dataMsg.data shouldBe firstData
           dataMsg.nextDataTick shouldBe maybeNextTick
 
           scheduler.expectNoMessage()
