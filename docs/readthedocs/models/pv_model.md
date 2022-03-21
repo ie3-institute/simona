@@ -14,7 +14,7 @@ The PV Model is part of the SIMONA Simulation framework and represented by an ag
 
 ### Attributes, Units and Remarks
 
-Attributes and Units are defined at {doc}`PowerSystemDataModel - PV Model <psdm:models/input/participant/pv>` please have a look.
+Please refer to {doc}`PowerSystemDataModel - PV Model <psdm:models/input/participant/pv>` for Attributes and Units used in this Model.
 
 ### Implemented Behaviour
 

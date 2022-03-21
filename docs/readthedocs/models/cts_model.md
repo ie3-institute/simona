@@ -7,7 +7,7 @@ This storage model operates on volumes, although the functions it provides for o
 
 ### Attributes, Units and Remarks
 
-Attributes and Units are defined at {doc}`PowerSystemDataModel - CTS Model <psdm:models/input/participant/cylindricalstorage>` please have a look.
+Please refer to  {doc}`PowerSystemDataModel - CTS Model <psdm:models/input/participant/cylindricalstorage>` for Attributes and Units used in this Model.
 
 ### Calculations
 #### Maximal storage capacity

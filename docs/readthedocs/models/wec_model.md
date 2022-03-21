@@ -6,7 +6,7 @@ This page describes the wind energy converter model (WecModel). Given the curren
 
 ### Attributes, Units and Remarks
 
-Attributes and Units are defined at {doc}`PowerSystemDataModel - Wec Model <psdm:models/input/participant/wec>` please have a look.
+Please refer to {doc}`PowerSystemDataModel - Wec Model <psdm:models/input/participant/wec>` or Attributes and Units used in this Model.
 
 ### Calculation
 

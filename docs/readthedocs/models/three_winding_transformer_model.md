@@ -5,13 +5,10 @@
 
 #### Attributes, Units and Remarks
 
-Input and Result Attributes and Units are defined at
+Input and Result Attributes and Units are defined at PowerSystemDataModel. Please refer to:
 
 - Input: {doc}`PowerSystemDataModel - Three Winding Transformer Model <psdm:models/input/grid/transformer3w>`
 - Result: {doc}`PowerSystemDataModel - Three Winding Transformer Model <psdm:models/result/grid/transformer3w>`
-
-Please have a look.
-
 
 Equivalent circuit of the three winding transformer
 

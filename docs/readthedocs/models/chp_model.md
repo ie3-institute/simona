@@ -14,7 +14,7 @@ The CHP unit is able to operate either at full load or not at all. Uncovered hea
 
 ### Attributes, Units and Remarks
 
-Attributes and Units are defined at {doc}`PowerSystemDataModel - CHP Model <psdm:models/input/participant/chp>` please have a look.
+Please refer to {doc}`PowerSystemDataModel - CHP Model <psdm:models/input/participant/chp>` for Attributes and Units used in this Model.
 
 ### Implemented Behaviour
 

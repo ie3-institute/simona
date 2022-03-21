@@ -5,12 +5,10 @@
 
 #### Attributes, Units and Remarks
 
-Input and Result Attributes and Units are defined at 
+Input and Result Attributes and Units are defined at PowerSystemDataModel. Please refer to:
 
 - Input: {doc}`PowerSystemDataModel - Two Winding Transformer Model <psdm:models/input/grid/transformer2w>`
 - Result: {doc}`PowerSystemDataModel - Two Winding Transformer Model <psdm:models/result/grid/transformer2w>`
- 
-Please have a look.
 
 
 ![](../_static/figures/models/transformer_model/tecdoc_tc1.jpg)

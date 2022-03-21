@@ -19,7 +19,7 @@ Set of Individual Configurations
 
 ### Attributes, Units and Remarks
 
-Attributes and Units are defined at {doc}`PowerSystemDataModel - Load Model <psdm:models/input/participant/load>` please have a look.
+Please refer to {doc}`PowerSystemDataModel - Load Model <psdm:models/input/participant/load>` for Attributes and Units used in this Model.
 
 
 ##### Configuration parameter ``uuid``

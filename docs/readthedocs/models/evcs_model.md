@@ -5,7 +5,7 @@ The currently connected EvModels are saved within the state data of EvCsAgent an
 
 ### Attributes, Units and Remarks
 
-Attributes and Units are defined at {doc}`PowerSystemDataModel - EvCs Model <psdm:models/input/participant/evcs>` please have a look.
+Please refer to {doc}`PowerSystemDataModel - EvCs Model <psdm:models/input/participant/evcs>` for Attributes and Units used in this Model.
 
 ### Calculation
 
