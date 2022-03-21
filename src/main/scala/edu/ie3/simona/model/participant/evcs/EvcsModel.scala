@@ -90,7 +90,7 @@ final case class EvcsModel(
     cosPhiRated: Double,
     chargingPoints: Int,
     locationType: EvcsLocationType,
-    strategy: ChargingStrategy.Value = ChargingStrategy.MAX_POWER
+    strategy: ChargingStrategy.Value = ChargingStrategy.MARKET_ORIENTED
 ) extends SystemParticipant[EvcsRelevantData](
       uuid,
       id,

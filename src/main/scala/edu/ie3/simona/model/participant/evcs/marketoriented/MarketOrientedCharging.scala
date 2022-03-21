@@ -144,26 +144,29 @@ trait MarketOrientedCharging {
   ): Future[Map[EvModel, Option[ChargingSchedule]]] =
     if (evs.nonEmpty) {
       /* Get all departure times and required energies of the currently parked and dispatchable evs in separate lists */
-      val departureTimes =
-        getDepartureTimesAndRequiredEnergyOfAllEvs(evs, startTime)._1
-
-      /* Find latest departure time for filtering later */
-      val lastDepartureTime = departureTimes.maxOption match {
-        case Some(time) => time
-        case None =>
-          throw new InvalidParameterException(
-            "This shouldn't happen, there must be at least one EV here."
-          )
-      }
+      val lastDeparture =
+        getDepartureTimesAndRequiredEnergyOfAllEvs(
+          evs,
+          startTime
+        )._1.maxOption match {
+          case Some(time) => time
+          case None =>
+            throw new InvalidParameterException(
+              "This shouldn't happen, there must be at least one EV here."
+            )
+        }
 
       /* Get time windows with predicted energy prices for the relevant time until departure of the last EV */
       val predictedPrices =
         getPredictedPricesForRelevantTimeWindowBasedOnReferencePrices(
           currentTime,
-          lastDepartureTime,
+          lastDeparture,
           priceTimeTable,
           startTime
         )
+
+      val scheduleStart =
+        startTime.until(currentTime, ChronoUnit.SECONDS)
 
       /* Start with ev departing first and distribute charging energy */
       Future
@@ -172,8 +175,6 @@ trait MarketOrientedCharging {
             .sortBy(ev => ev.getDepartureTick)
             .map { ev =>
               Future {
-                val scheduleStart =
-                  startTime.until(currentTime, ChronoUnit.SECONDS)
                 getSchedulingSlices(
                   predictedPrices,
                   scheduleStart,

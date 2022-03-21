@@ -62,7 +62,6 @@ object MarketPricePrediction {
   private def calculateReferencePriceTimeTable(
       prices: Map[ZonedDateTime, ComparableQuantity[EnergyPrice]]
   ): Vector[PriceTimeTableEntry] = {
-
     val priceReferenceMap: Map[
       TimeStamp,
       (ComparableQuantity[EnergyPrice], Int)
@@ -245,19 +244,13 @@ object MarketPricePrediction {
   private def getPriceTimeTableEntryThisTimeStampBelongsTo(
       timeStamp: TimeStamp,
       priceTimeTable: Vector[PriceTimeTableEntry]
-  ): PriceTimeTableEntry = {
-
-    val it = priceTimeTable.iterator
-    while (it.hasNext) {
-      val entry: PriceTimeTableEntry = it.next()
-      if (timeStamp.isBetween(entry.fromTimeStamp, entry.untilTimeStamp))
-        return entry
+  ): PriceTimeTableEntry = priceTimeTable
+    .find {
+      case PriceTimeTableEntry(from, until, _) => timeStamp.isBetween(from, until)
     }
-    throw new InvalidParameterException(
-      "This shouldn't happen, the price time table must " +
-        "cover all possible time stamps."
-    )
-
-  }
-
+    .getOrElse {
+      throw new InvalidParameterException(
+        s"Unable to get price for time stamp '$timeStamp'"
+      )
+    }
 }
