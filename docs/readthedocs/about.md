@@ -7,7 +7,7 @@ SIMONA is an agent-based discrete-event power system simulation model developed 
 
 ## Further information and Contact Details
 
-Please visit SIMONA Website under [https://simona.ie3.e-technik.tu-dortmund.de](https://simona.ie3.e-technik.tu-dortmund.de) for further Information. There you also find actual contact details. 
+Please visit SIMONA Website at [https://simona.ie3.e-technik.tu-dortmund.de](https://simona.ie3.e-technik.tu-dortmund.de) for further Information. There you also find contact details of current developers. 
 
 ## Reports and Papers
 
