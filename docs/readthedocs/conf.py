@@ -17,7 +17,6 @@ extensions = [
     'sphinx.ext.autosectionlabel',
     'sphinx.ext.autodoc',
     'sphinxcontrib.plantuml',
-    'sphinxcontrib.mermaid',
     'sphinx.ext.intersphinx',
     'hoverxref.extension',
 ]

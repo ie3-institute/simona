@@ -18,20 +18,7 @@ Please refer to {doc}`PowerSystemDataModel - PV Model <psdm:models/input/partici
 
 ### Implemented Behaviour
 
-```{mermaid}
-flowchart
-    A[Setup] 
-    --> B[Receive new time step] 
-    --> C[Receive weather data]
-    --> D[Calculation of sun position]
-    --> E[Calculation of direct radiation]
-    --> F[Calculation of diffuse radiation]
-    --> G[Calculation of reflected radiation]
-    --> H[Estimation of correction factors]
-    --> I[Calculation of output power P]
-    --> J[Calculation of reactive power Q]
-    --> K[Return p and Q to node agent] --> B
-```
+![Sequence Diagram Behaviour PV Model](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/uml/main/models/pv_model/BehaviourPvModel.puml)
 
 ### Output visualization
 
