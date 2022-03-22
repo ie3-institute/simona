@@ -12,7 +12,9 @@ CREATE TABLE public.time_series_pqh
 
 CREATE INDEX time_series_pqh_series_id ON time_series_pqh USING hash (time_series);
 
-CREATE UNIQUE INDEX time_series_pqh_series_time ON time_series_pqh USING  btree (time_series, time);
+-- Order of columns is important when using btree: https://www.postgresql.org/docs/14/indexes-multicolumn.html
+-- time_series at first since we at most use an equality constraint on time_series and a range query on time
+CREATE UNIQUE INDEX time_series_pqh_series_time ON time_series_pqh USING btree (time_series, time);
 
 INSERT INTO
     public.time_series_pqh (uuid, time_series, time, p, q, heat_demand)
