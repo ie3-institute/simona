@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant.evcs
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.ElectricCurrentType
+import edu.ie3.datamodel.models.{ElectricCurrentType, StandardUnits}
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.result.system.EvResult
@@ -52,8 +52,9 @@ import java.time.temporal.ChronoUnit
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Energy, Power}
 import scala.annotation.tailrec
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits
+import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success}
 
 /** EV charging station model
@@ -343,21 +344,76 @@ final case class EvcsModel(
       startTime: ZonedDateTime,
       lastSchedulingTick: Long,
       data: EvcsRelevantData
-  ): Set[(EvModel, Vector[EvResult])] = if (data.schedule.nonEmpty)
-    data.currentEvs.map { ev =>
-      /* If there is a schedule apparent, apply it, otherwise hand back no results */
-      data
-        .getSchedule(ev)
-        .map(chargeEv(ev, _, lastSchedulingTick, currentTick, startTime))
-        .getOrElse(ev -> Vector.empty)
-    }
-  else {
+  ): Set[(EvModel, Vector[EvResult])] = if (data.schedule.nonEmpty) {
+    val currentTime = startTime.plusSeconds(currentTick)
+    val voltage = data.voltages
+      .filter { case (time, _) =>
+        time.isBefore(currentTime) || time.isEqual(currentTime)
+      }
+      .values
+      .maxOption
+      .getOrElse(Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE))
+    Await.result(
+      Future.sequence {
+        data.currentEvs.map {
+          /* If there is a schedule apparent, apply it, otherwise hand back no results */
+          applyScheduleToEv(
+            _,
+            data,
+            lastSchedulingTick,
+            currentTick,
+            startTime,
+            voltage
+          )
+        }
+      },
+      Duration("1h")
+    )
+  } else {
     logger.debug(
       "There are EVs parked at this charging station, but there was no scheduling since the last" +
         "update. Probably the EVs already finished charging."
     )
     data.currentEvs.map { ev => (ev, Vector.empty) }
   }
+
+  /** Fish for the schedule, that applies for the concrete ev and apply it.
+    *
+    * @param ev
+    *   Car model
+    * @param relevantData
+    *   Data, that is relevant for calculation
+    * @param lastSchedulingTick
+    *   Simulation time, when the last schedule has been applied
+    * @param currentTick
+    *   Current simulation time
+    * @param startTime
+    *   Wall-clock time of the simulation start
+    * @param voltage
+    *   Voltage magnitude of the connection node
+    * @return
+    *   A future onto the combination of updated ev model and achieved results
+    */
+  private def applyScheduleToEv(
+      ev: EvModel,
+      relevantData: EvcsRelevantData,
+      lastSchedulingTick: Long,
+      currentTick: Long,
+      startTime: ZonedDateTime,
+      voltage: ComparableQuantity[Dimensionless]
+  ): Future[(EvModel, Vector[EvResult])] = relevantData
+    .getSchedule(ev)
+    .map { schedule =>
+      chargeEv(
+        ev,
+        schedule,
+        lastSchedulingTick,
+        currentTick,
+        startTime,
+        voltage
+      )
+    }
+    .getOrElse(Future(ev -> Vector.empty))
 
   /** Charge the given EV under consideration a applicable schedule
     *
@@ -371,6 +427,8 @@ final case class EvcsModel(
     *   Current time in Simulation
     * @param simulationStart
     *   Wall clock time of the simulation start
+    * @param voltageMagnitude
+    *   Current voltage magnitude at the connection node
     * @return
     *   The charged energy and intermediate charging results for a given
     *   electric vehicle
@@ -380,8 +438,9 @@ final case class EvcsModel(
       schedule: ChargingSchedule,
       lastSchedulingTick: Long,
       currentTick: Long,
-      simulationStart: ZonedDateTime
-  ): (EvModel, Vector[EvResult]) = {
+      simulationStart: ZonedDateTime,
+      voltageMagnitude: ComparableQuantity[Dimensionless]
+  ): Future[(EvModel, Vector[EvResult])] = Future {
     /* Determine charged energy in the charging interval */
     val (chargedEnergySinceLastScheduling, evResults) =
       determineChargedEnergySinceLastCalculation(
@@ -389,7 +448,8 @@ final case class EvcsModel(
         schedule,
         lastSchedulingTick,
         currentTick,
-        simulationStart
+        simulationStart,
+        voltageMagnitude
       )
 
     /* Update EV with the charged energy during the charging interval */
@@ -414,6 +474,8 @@ final case class EvcsModel(
     *   Current time in simulation
     * @param simulationStart
     *   Start date time of the overall simulation
+    * @param voltageMagnitude
+    *   Current nodal voltage magnitude
     * @return
     *   The charged energy and the intermediate charging results
     */
@@ -422,81 +484,70 @@ final case class EvcsModel(
       schedule: ChargingSchedule,
       lastSchedulingTick: Long,
       currentTick: Long,
-      simulationStart: ZonedDateTime
-  ): (ComparableQuantity[Energy], Vector[EvResult]) = schedule.schedule.toSeq
-    .sortBy(x => x.tickStart)
-    .foldLeft(
-      (
-        Quantities.getQuantity(0, KILOWATTHOUR),
-        Vector.empty[EvResult]
-      )
-    ) { case ((accumulatedEnergy, results), scheduleEntry) =>
-      /* Only the timeframe from the start of last scheduling update and current tick must be considered */
-      val (chargingWindowStart, chargingWindowEnd) =
-        actualChargingWindow(
-          scheduleEntry,
-          lastSchedulingTick,
-          currentTick
+      simulationStart: ZonedDateTime,
+      voltageMagnitude: ComparableQuantity[Dimensionless]
+  ): (ComparableQuantity[Energy], Vector[EvResult]) =
+    schedule.schedule.toSeq
+      .sortBy(_.tickStart)
+      .foldLeft(
+        (
+          Quantities.getQuantity(0, KILOWATTHOUR),
+          Vector.empty[EvResult]
         )
-
-      if (
-        scheduleEntry.tickStart < currentTick && scheduleEntry.tickStop >= lastSchedulingTick
-      ) {
-        /* There is actual charging happening */
-
-        /* Determine the energy charged within this slice of the schedule and accumulate it */
-        val chargedEnergyInThisScheduleEntry =
-          chargedEnergyInScheduleSlice(
+      ) { case ((accumulatedEnergy, results), scheduleEntry) =>
+        /* Only the timeframe from the start of last scheduling update and current tick must be considered */
+        val (chargingWindowStart, chargingWindowEnd) =
+          actualChargingWindow(
             scheduleEntry,
-            chargingWindowStart,
-            chargingWindowEnd
+            lastSchedulingTick,
+            currentTick
           )
-        val totalChargedEnergy = accumulatedEnergy.add(
-          chargedEnergyInThisScheduleEntry
-        )
 
-        val chargingCosts =
-          getChargingCostsForScheduleEntry(
-            chargingWindowStart.toDateTime(simulationStart),
-            chargingWindowEnd.toDateTime(simulationStart),
+        if (
+          scheduleEntry.tickStart < currentTick && scheduleEntry.tickStop >= lastSchedulingTick
+        ) {
+          /* There is actual charging happening */
+
+          /* Determine the energy charged within this slice of the schedule and accumulate it */
+          val chargedEnergyInThisScheduleEntry =
+            chargedEnergyInScheduleSlice(
+              scheduleEntry,
+              chargingWindowStart,
+              chargingWindowEnd
+            )
+          val totalChargedEnergy = accumulatedEnergy.add(
+            chargedEnergyInThisScheduleEntry
+          )
+
+          val p = scheduleEntry.chargingPower
+          val q = calculateReactivePower(
             scheduleEntry.chargingPower,
-            Quantities.getQuantity(0, EURO)
+            voltageMagnitude
           )
 
-        /* TODO: NSteffan: This is a non-permanent solution to write out SoC and charging prices for EVs for
-                verification purposes in my master thesis.
-         */
-        val result = new EvResult(
-          this.getUuid,
-          chargingWindowEnd.toDateTime(simulationStart),
-          ev.getUuid,
-          Quantities.getQuantity(
-            chargingCosts.getValue.doubleValue(),
-            MEGAWATT
-          ), // TODO: from EURO to MEGAWATT for correct type -> actually p should be written in EvResult
-          Quantities.getQuantity(
-            chargedEnergyInThisScheduleEntry.getValue
-              .doubleValue(),
-            MEGAWATT
-          ), // TODO: from KILOWATTHOUR to MEGAWATT for correct type -> actually q should be written in EvResult
-          ev.getStoredEnergy
-            .add(totalChargedEnergy)
-            .divide(ev.getEStorage)
-            .asType(classOf[Dimensionless])
-            .to(PERCENT)
-        )
-        (
-          totalChargedEnergy,
-          results :+ result
-        )
-      } else {
-        /* There is no charging happening -> Provide dummy values */
-        (
-          zeroKWH,
-          results
-        )
+          val result = new EvResult(
+            chargingWindowEnd.toDateTime(simulationStart),
+            ev.getUuid,
+            p,
+            q,
+            ev.getStoredEnergy
+              .add(totalChargedEnergy)
+              .divide(ev.getEStorage)
+              .asType(classOf[Dimensionless])
+              .to(PERCENT)
+          )
+          (
+            totalChargedEnergy,
+            results :+ result
+          )
+        } else {
+          /* There is no charging happening -> Provide dummy values */
+          (
+            zeroKWH,
+            results
+          )
+        }
       }
-    }
 
   /** Limit the actual charging window. The beginning is determined by the
     * latest tick of either the schedule start or the last scheduled tick. The
