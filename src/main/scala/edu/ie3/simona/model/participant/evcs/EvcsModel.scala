@@ -328,7 +328,8 @@ final case class EvcsModel(
     }
   }
 
-  /** Update EVs for the timeframe since the last scheduling and calculate equivalent results
+  /** Update EVs for the timeframe since the last scheduling and calculate
+    * equivalent results
     *
     * @param currentTick
     *   current tick
