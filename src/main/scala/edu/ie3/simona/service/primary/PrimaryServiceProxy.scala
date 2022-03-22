@@ -61,7 +61,8 @@ import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   CsvInitPrimaryServiceStateData,
-  InitPrimaryServiceStateData
+  InitPrimaryServiceStateData,
+  SqlInitPrimaryServiceStateData
 }
 
 import java.text.SimpleDateFormat
@@ -195,7 +196,6 @@ case class PrimaryServiceProxy(
       primaryConfig.couchbaseParams
     ).filter(_.isDefined).flatten.headOption match {
       case Some(CsvParams(csvSep, folderPath, _)) =>
-        // TODO: Configurable file naming strategy
         val fileNamingStrategy = new FileNamingStrategy()
         Success(
           new CsvTimeSeriesMappingSource(
@@ -443,6 +443,22 @@ case class PrimaryServiceProxy(
               )
             )
         }
+
+      case PrimaryConfig(
+            None,
+            None,
+            None,
+            Some(sqlParams: SqlParams)
+          ) =>
+        Success(
+          SqlInitPrimaryServiceStateData(
+            metaInformation.getUuid,
+            simulationStart,
+            sqlParams,
+            new DatabaseNamingStrategy()
+          )
+        )
+
       case unsupported =>
         Failure(
           new InitializationException(
