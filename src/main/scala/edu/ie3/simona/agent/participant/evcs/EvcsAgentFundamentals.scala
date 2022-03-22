@@ -481,13 +481,6 @@ protected trait EvcsAgentFundamentals
         )
     }
 
-    /* Write arriving evs to csv */
-    announceNewArrivingEvsToListeners(
-      currentTick,
-      arrivingEvs,
-      modelBaseStateData
-    )
-
     val updatedRelevantData = {
       /* if new EVs arrived, a new scheduling must be calculated. */
       if (arrivingEvs.nonEmpty) {
@@ -901,47 +894,6 @@ protected trait EvcsAgentFundamentals
           listener.foreach(_ ! ParticipantResultEvent(result))
         })
       })
-  }
-
-  /** Announce the new arriving evs to listeners. Currently, the p and q values
-    * are used to output the charged energy and charging costs.
-    * @param tick
-    *   tick of the ev arrival
-    * @param evs
-    *   the evs for which the updates are announced
-    * @param modelBaseStateData
-    *   the model base state data
-    */
-  private def announceNewArrivingEvsToListeners(
-      tick: Long,
-      evs: Set[EvModel],
-      modelBaseStateData: ParticipantModelBaseStateData[
-        _ <: ApparentPower,
-        _,
-        _
-      ]
-  ): Unit = {
-
-    evs.foreach(ev => {
-      listener.foreach(
-        _ ! ParticipantResultEvent(
-          new EvResult(
-            modelBaseStateData.modelUuid,
-            tick.toDateTime(modelBaseStateData.startDate),
-            ev.getUuid,
-            Quantities
-              .getQuantity(0, KILOWATT), // charging powers not used currently
-            Quantities
-              .getQuantity(0, KILOWATT), // charging powers not used currently
-            ev.getStoredEnergy
-              .divide(ev.getEStorage)
-              .asType(classOf[Dimensionless])
-              .to(PERCENT)
-          )
-        )
-      )
-    })
-
   }
 
   /** Get the last entry in the calc relevant data store BEFORE OR AT the
