@@ -328,9 +328,7 @@ final case class EvcsModel(
     }
   }
 
-  /** Update EVs for the timeframe since the last scheduling and calculate the
-    * charging prices. !!!!!!!!!!!!!! NO PERMANENT SOLUTION !!!!!!!!!!!!!!!
-    * (just for master thesis)
+  /** Update EVs for the timeframe since the last scheduling and calculate equivalent results
     *
     * @param currentTick
     *   current tick
@@ -403,10 +401,10 @@ final case class EvcsModel(
       voltage: ComparableQuantity[Dimensionless]
   ): Future[(EvModel, Vector[EvResult])] = relevantData
     .getSchedule(ev)
-    .map { schedule =>
+    .map {
       chargeEv(
         ev,
-        schedule,
+        _,
         lastSchedulingTick,
         currentTick,
         startTime,
@@ -443,7 +441,7 @@ final case class EvcsModel(
   ): Future[(EvModel, Vector[EvResult])] = Future {
     /* Determine charged energy in the charging interval */
     val (chargedEnergySinceLastScheduling, evResults) =
-      determineChargedEnergySinceLastCalculation(
+      chargedEnergy(
         ev,
         schedule,
         lastSchedulingTick,
@@ -479,7 +477,7 @@ final case class EvcsModel(
     * @return
     *   The charged energy and the intermediate charging results
     */
-  private def determineChargedEnergySinceLastCalculation(
+  private def chargedEnergy(
       ev: EvModel,
       schedule: ChargingSchedule,
       lastSchedulingTick: Long,
@@ -488,6 +486,11 @@ final case class EvcsModel(
       voltageMagnitude: ComparableQuantity[Dimensionless]
   ): (ComparableQuantity[Energy], Vector[EvResult]) =
     schedule.schedule.toSeq
+      .filter { case ChargingSchedule.Entry(tickStart, tickStop, _) =>
+        /* Filter for entries, that end after the last schedule application (that slice is not yet fully applied)
+         * and that start before the current tick */
+        tickStop >= lastSchedulingTick && tickStart < currentTick
+      }
       .sortBy(_.tickStart)
       .foldLeft(
         (
@@ -503,50 +506,39 @@ final case class EvcsModel(
             currentTick
           )
 
-        if (
-          scheduleEntry.tickStart < currentTick && scheduleEntry.tickStop >= lastSchedulingTick
-        ) {
-          /* There is actual charging happening */
+        /* Determine the energy charged within this slice of the schedule and accumulate it */
+        val chargedEnergyInThisScheduleEntry =
+          chargedEnergyInScheduleSlice(
+            scheduleEntry,
+            chargingWindowStart,
+            chargingWindowEnd
+          )
+        val totalChargedEnergy = accumulatedEnergy.add(
+          chargedEnergyInThisScheduleEntry
+        )
 
-          /* Determine the energy charged within this slice of the schedule and accumulate it */
-          val chargedEnergyInThisScheduleEntry =
-            chargedEnergyInScheduleSlice(
-              scheduleEntry,
-              chargingWindowStart,
-              chargingWindowEnd
-            )
-          val totalChargedEnergy = accumulatedEnergy.add(
-            chargedEnergyInThisScheduleEntry
-          )
+        val p = scheduleEntry.chargingPower
+        val q = calculateReactivePower(
+          scheduleEntry.chargingPower,
+          voltageMagnitude
+        )
+        val soc = ev.getStoredEnergy
+          .add(totalChargedEnergy)
+          .divide(ev.getEStorage)
+          .asType(classOf[Dimensionless])
+          .to(PERCENT)
 
-          val p = scheduleEntry.chargingPower
-          val q = calculateReactivePower(
-            scheduleEntry.chargingPower,
-            voltageMagnitude
-          )
-
-          val result = new EvResult(
-            chargingWindowEnd.toDateTime(simulationStart),
-            ev.getUuid,
-            p,
-            q,
-            ev.getStoredEnergy
-              .add(totalChargedEnergy)
-              .divide(ev.getEStorage)
-              .asType(classOf[Dimensionless])
-              .to(PERCENT)
-          )
-          (
-            totalChargedEnergy,
-            results :+ result
-          )
-        } else {
-          /* There is no charging happening -> Provide dummy values */
-          (
-            zeroKWH,
-            results
-          )
-        }
+        val result = new EvResult(
+          chargingWindowStart.toDateTime(simulationStart),
+          ev.getUuid,
+          p,
+          q,
+          soc
+        )
+        (
+          totalChargedEnergy,
+          results :+ result
+        )
       }
 
   /** Limit the actual charging window. The beginning is determined by the
