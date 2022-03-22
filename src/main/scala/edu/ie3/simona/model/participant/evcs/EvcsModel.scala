@@ -98,7 +98,7 @@ final case class EvcsModel(
       operationInterval,
       scalingFactor,
       qControl,
-      sRated,
+      sRated.multiply(chargingPoints),
       cosPhiRated
     )
     with LazyLogging
