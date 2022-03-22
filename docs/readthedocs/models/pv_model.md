@@ -1,6 +1,6 @@
 (pv_model)=
 
-## PV Model
+## Photovoltaic Model
 
 This page documents the functionality of the PV model available in SIMONA.
 

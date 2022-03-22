@@ -1,6 +1,6 @@
 (wec_model)=
 
-## WecModel
+## Wind Energy Converter Model
 
 This page describes the wind energy converter model (WecModel). Given the current wind velocity, temperature and air pressure the model can calculate the wind turbines active power output.
 
