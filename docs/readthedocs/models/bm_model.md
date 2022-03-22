@@ -9,6 +9,10 @@ The BM model is part of the SIMONA Simulation framework and represented by an ag
 
 ![](../_static/figures/models/bm_model/bm_parameters.png)
 
+### Attributes, Units and Remarks
+
+Please refer to {doc}`PowerSystemDataModel - BM Model <psdm:models/input/participant/bm>` for Attributes and Units used in this Model.
+
 ### Assumptions
 The biomass is used in a cogeneration process. The thermal output is used for heating purposes and therefore weather-dependent.
 
