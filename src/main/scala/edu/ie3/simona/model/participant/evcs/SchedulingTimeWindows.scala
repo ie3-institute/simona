@@ -22,7 +22,7 @@ object SchedulingTimeWindows {
     /** @return
       *   Length of the window in seconds
       */
-    def length: Long = start - end + 1
+    def length: Long = end - start + 1
   }
 
   /** Time window used for the scheduling of ev charging. Additional information

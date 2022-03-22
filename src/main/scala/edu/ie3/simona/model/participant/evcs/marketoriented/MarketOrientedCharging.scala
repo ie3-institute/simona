@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.participant.evcs.marketoriented
 
+import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.simona.model.participant.evcs.SchedulingTimeWindows.SchedulingSliceWithPrice
@@ -278,7 +279,22 @@ trait MarketOrientedCharging {
               )
               .asType(classOf[Power])
               .min(evcsModel.getMaxAvailableChargingPower(ev))
-              .to(KILOWATT)
+              .to(KILOWATT) match {
+              case proposal =>
+                if (
+                  proposal.isLessThan(
+                    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+                  )
+                ) {
+                  logger.warn(
+                    s"Determined negative charging energy. Do not charge here."
+                  )
+                  Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
+                } else
+                  proposal
+            }
+
+          /* Add schedule entry for ev and this time window */
 
           /* If within this slice the full available charging power of the charging station is already assigned to evs,
            * remove it from the list of possible slices */
@@ -299,7 +315,6 @@ trait MarketOrientedCharging {
               currentRemainingEnergyToChargeForEv
             )
 
-          /* Add schedule entry for ev and this time window */
           val updatedScheduleForEv =
             currentScheduleForEv :+ ChargingSchedule.Entry(
               window.start,
@@ -316,7 +331,7 @@ trait MarketOrientedCharging {
         case None =>
           throw new InvalidParameterException(
             "This shouldn't happen. There must be at least one time window still available, because EVs that " +
-              "need to charge with full power and aren't schedulable were excluded earlier."
+              "need to charge with full power and aren't dispatchable were excluded earlier."
           )
 
       }
