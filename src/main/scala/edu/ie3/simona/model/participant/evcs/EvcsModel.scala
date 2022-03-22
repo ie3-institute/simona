@@ -523,7 +523,7 @@ final case class EvcsModel(
           voltageMagnitude
         )
         val soc = ev.getStoredEnergy
-          .add(totalChargedEnergy)
+          .add(accumulatedEnergy)
           .divide(ev.getEStorage)
           .asType(classOf[Dimensionless])
           .to(PERCENT)
