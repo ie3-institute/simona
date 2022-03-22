@@ -12,10 +12,10 @@ SIMONA supports different load model behaviours, which need some parameterizatio
 This sub configuration is two-fold:
 
 Default Configuration
-~ This is one configuration, that applies to all load models, except of those, that have an individual config assigned. To simplify code, no distinct model class is introduced for the single config. In order to highlight the fact, that this config is a default config, you may write ```uuids = ["default"]```. If you put anything else than this, you will get a warning, that those references are neglected, although the rest will work just fine.
+This is one configuration, that applies to all load models, except of those, that have an individual config assigned. To simplify code, no distinct model class is introduced for the single config. In order to highlight the fact, that this config is a default config, you may write ```uuids = ["default"]```. If you put anything else than this, you will get a warning, that those references are neglected, although the rest will work just fine.
 
 Set of Individual Configurations
-~ This part holds a set of configurations, that will apply to specific load models, denoted by their uuid. To simplify config generation, you are able to assign the same config to a list of uuids in batch. If one load has no individual configuration assigned, it will default to the above given config.
+This part holds a set of configurations, that will apply to specific load models, denoted by their uuid. To simplify config generation, you are able to assign the same config to a list of uuids in batch. If one load has no individual configuration assigned, it will default to the above given config.
 
 ### Attributes, Units and Remarks
 
@@ -148,6 +148,6 @@ Load profile values are normalized for an annual consumption of $1000 \frac{kWh}
 
 Both model and data stem from [BDEW](https://www.bdew.de/energie/standardlastprofile-strom/).
 
-The model in its entirety is described here: [Hyperlink](https://www.bdew.de/media/documents/2000131_Anwendung-repraesentativen_Lastprofile-Step-by-step.pdf)
+The model in its entirety is described here: [Application Remarks](https://www.bdew.de/media/documents/2000131_Anwendung-repraesentativen_Lastprofile-Step-by-step.pdf)
 
 The data sources are taken from [Profile.zip](https://www.bdew.de/media/documents/Profile.zip), which includes file *Repräsentative Profile VDEW.xls*. The tabs H0, G0 and L0 contain the values that make up Lastprofile.csv in the SIMONA project.
