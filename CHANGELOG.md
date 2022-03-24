@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+- Implement SQL source for primary data [#34](https://github.com/ie3-institute/simona/issues/34)
+
 ### Changed
 - Improving code readability in EvcsAgent by moving FreeLotsRequest to separate methods
 - Re-organizing test resources into their respective packages [#105](https://github.com/ie3-institute/simona/issues/105)

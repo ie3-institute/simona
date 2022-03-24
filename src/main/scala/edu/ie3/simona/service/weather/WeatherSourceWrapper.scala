@@ -323,7 +323,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       sqlConnector,
       idCoordinateSource,
       sqlParams.schemaName,
-      sqlParams.weatherTableName,
+      sqlParams.tableName,
       buildFactory(timestampPattern, scheme)
     )
     logger.info(
