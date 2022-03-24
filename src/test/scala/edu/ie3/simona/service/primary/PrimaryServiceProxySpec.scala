@@ -17,20 +17,38 @@ import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.{SValue, Value}
 import edu.ie3.simona.config.SimonaConfig.PrimaryCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{CouchbaseParams, InfluxDb1xParams, SqlParams}
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.{Primary => PrimaryConfig}
-import edu.ie3.simona.exceptions.{InitializationException, InvalidConfigParameterException}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{
+  CouchbaseParams,
+  InfluxDb1xParams,
+  SqlParams
+}
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
+  Primary => PrimaryConfig
+}
+import edu.ie3.simona.exceptions.{
+  InitializationException,
+  InvalidConfigParameterException
+}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  CompletionMessage,
+  ScheduleTriggerMessage,
+  TriggerWithIdMessage
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   WorkerRegistrationMessage
 }
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.{InitPrimaryServiceProxyStateData, PrimaryServiceStateData,
-  SourceRef}
+import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
+  InitPrimaryServiceProxyStateData,
+  PrimaryServiceStateData,
+  SourceRef
+}
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
-  CsvInitPrimaryServiceStateData, InitPrimaryServiceStateData}
+  CsvInitPrimaryServiceStateData,
+  InitPrimaryServiceStateData
+}
 import edu.ie3.simona.test.common.AgentSpec
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.util.TimeUtil
@@ -212,7 +230,14 @@ class PrimaryServiceProxySpec
     "succeeds on valid time pattern" in {
       val validTimePatternConfig = PrimaryConfig(
         None,
-        Some(PrimaryCsvParams("", "", isHierarchic = false, "yyyy-MM-dd'T'HH:mm'Z[UTC]'")),
+        Some(
+          PrimaryCsvParams(
+            "",
+            "",
+            isHierarchic = false,
+            "yyyy-MM-dd'T'HH:mm'Z[UTC]'"
+          )
+        ),
         None,
         None
       )

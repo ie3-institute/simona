@@ -697,7 +697,10 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "throw an exception if more than one sink is provided" in {
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkDataSinks(
-              Sink(Some(Csv("", "", "", isHierarchic = false)), Some(InfluxDb1x("", 0, "")))
+              Sink(
+                Some(Csv("", "", "", isHierarchic = false)),
+                Some(InfluxDb1x("", 0, ""))
+              )
             )
           }.getLocalizedMessage shouldBe "Multiple sink configurations are not supported! Please ensure that only " +
             "one sink is configured!"
@@ -716,7 +719,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
       "Checking grid data sources" should {
         "identify a faulty csv separator" in {
-          val csvParams = BaseCsvParams("\t", "inputData/test", isHierarchic = false)
+          val csvParams =
+            BaseCsvParams("\t", "inputData/test", isHierarchic = false)
 
           intercept[InvalidConfigParameterException] {
             CsvConfigUtil.checkBaseCsvParams(
@@ -737,7 +741,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         }
 
         "identify a non-existing path" in {
-          val csvParams = BaseCsvParams(",", "somewhere/else", isHierarchic = false)
+          val csvParams =
+            BaseCsvParams(",", "somewhere/else", isHierarchic = false)
 
           intercept[InvalidConfigParameterException] {
             CsvConfigUtil.checkBaseCsvParams(
@@ -748,7 +753,11 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         }
 
         "identify a path pointing to a file" in {
-          val csvParams = BaseCsvParams(",", "inputData/common/akka.conf", isHierarchic = false)
+          val csvParams = BaseCsvParams(
+            ",",
+            "inputData/common/akka.conf",
+            isHierarchic = false
+          )
 
           intercept[InvalidConfigParameterException] {
             CsvConfigUtil.checkBaseCsvParams(
@@ -759,7 +768,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         }
 
         "let valid csv parameters pass" in {
-          val csvParams = BaseCsvParams(",", "input/samples/vn_simona", isHierarchic = false)
+          val csvParams =
+            BaseCsvParams(",", "input/samples/vn_simona", isHierarchic = false)
           noException shouldBe thrownBy {
             CsvConfigUtil.checkBaseCsvParams(
               csvParams,
@@ -773,7 +783,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "identify grid data source with empty id" in {
           val gridDataSource = SimonaConfig.Simona.Input.Grid.Datasource(
-            Some(BaseCsvParams(",", "inputData/vn_simona", isHierarchic = false)),
+            Some(
+              BaseCsvParams(",", "inputData/vn_simona", isHierarchic = false)
+            ),
             id = ""
           )
 
@@ -807,7 +819,13 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "let valid csv grid data source definition pass" in {
           val gridDataSource = SimonaConfig.Simona.Input.Grid.Datasource(
-            Some(BaseCsvParams(",", "input/samples/vn_simona", isHierarchic = false)),
+            Some(
+              BaseCsvParams(
+                ",",
+                "input/samples/vn_simona",
+                isHierarchic = false
+              )
+            ),
             id = "csv"
           )
 
