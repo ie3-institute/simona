@@ -83,16 +83,16 @@ class SampleWeatherSourceSpec
       val actual = source invokePrivate getWeatherPrivate(tick)
 
       /* Units meet expectation */
-      actual.diffRad.getUnit shouldBe StandardUnits.SOLAR_IRRADIANCE
-      actual.dirRad.getUnit shouldBe StandardUnits.SOLAR_IRRADIANCE
+      actual.diffIrr.getUnit shouldBe StandardUnits.SOLAR_IRRADIANCE
+      actual.dirIrr.getUnit shouldBe StandardUnits.SOLAR_IRRADIANCE
       actual.temp.getUnit shouldBe StandardUnits.TEMPERATURE
       actual.windVel.getUnit shouldBe StandardUnits.WIND_VELOCITY
 
       /* Values meet expectations */
-      actual.diffRad should equalWithTolerance(
+      actual.diffIrr should equalWithTolerance(
         Quantities.getQuantity(72.7656, StandardUnits.SOLAR_IRRADIANCE)
       )
-      actual.dirRad should equalWithTolerance(
+      actual.dirIrr should equalWithTolerance(
         Quantities.getQuantity(80.1172, StandardUnits.SOLAR_IRRADIANCE)
       )
       actual.windVel should equalWithTolerance(

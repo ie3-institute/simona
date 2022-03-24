@@ -523,9 +523,9 @@ object WeatherSource {
   ): WeatherData = {
     WeatherData(
       weatherValue.getSolarIrradiance.getDiffuseIrradiance
-        .orElse(EMPTY_WEATHER_DATA.diffRad),
+        .orElse(EMPTY_WEATHER_DATA.diffIrr),
       weatherValue.getSolarIrradiance.getDirectIrradiance
-        .orElse(EMPTY_WEATHER_DATA.dirRad),
+        .orElse(EMPTY_WEATHER_DATA.dirIrr),
       weatherValue.getTemperature.getTemperature
         .orElse(EMPTY_WEATHER_DATA.temp),
       weatherValue.getWind.getVelocity.orElse(EMPTY_WEATHER_DATA.windVel)

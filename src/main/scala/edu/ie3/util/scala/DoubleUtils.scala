@@ -6,10 +6,12 @@
 
 package edu.ie3.util.scala
 
+@deprecated("Use implementation in power system utils package")
 object DoubleUtils {
   implicit class ImplicitDouble(d: Double) {
     def ~=(other: Double)(implicit precision: Double): Boolean =
-      (d - other).abs < precision
-    def !~=(other: Double)(implicit precision: Double): Boolean = ! ~=(other)
+      (d - other).abs <= precision
+    def !~=(other: Double)(implicit precision: Double): Boolean =
+      (d - other).abs > precision
   }
 }

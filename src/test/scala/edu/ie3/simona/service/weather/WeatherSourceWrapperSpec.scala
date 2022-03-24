@@ -66,10 +66,10 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       )
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
       val sumOfAll = 1 + 1 + 1 + 13
-      result.dirRad should equalWithTolerance(
+      result.dirIrr should equalWithTolerance(
         Quantities.getQuantity(sumOfAll / 4, StandardUnits.SOLAR_IRRADIANCE)
       )
-      result.diffRad should equalWithTolerance(
+      result.diffIrr should equalWithTolerance(
         Quantities.getQuantity(sumOfAll / 4, StandardUnits.SOLAR_IRRADIANCE)
       )
       result.temp should equalWithTolerance(
@@ -91,10 +91,10 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       )
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
       val sumOfAll = 1 + 1 + 1 + 13
-      result.dirRad should equalWithTolerance(
+      result.dirIrr should equalWithTolerance(
         Quantities.getQuantity(sumOfAll / 4, StandardUnits.SOLAR_IRRADIANCE)
       )
-      result.diffRad should equalWithTolerance(
+      result.diffIrr should equalWithTolerance(
         Quantities.getQuantity(sumOfAll / 4, StandardUnits.SOLAR_IRRADIANCE)
       )
       result.temp should equalWithTolerance(
@@ -116,10 +116,10 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       )
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
       val sumOfAll = 1 + 1 + 1
-      result.dirRad should equalWithTolerance(
+      result.dirIrr should equalWithTolerance(
         Quantities.getQuantity(sumOfAll / 3, StandardUnits.SOLAR_IRRADIANCE)
       )
-      result.diffRad should equalWithTolerance(
+      result.diffIrr should equalWithTolerance(
         Quantities.getQuantity(sumOfAll / 3, StandardUnits.SOLAR_IRRADIANCE)
       )
       result.temp should equalWithTolerance(
@@ -133,10 +133,10 @@ class WeatherSourceWrapperSpec extends UnitSpec {
     "calculate the correct weighted value for 1 coordinate with a weight of 1" in {
       val weightedCoordinates = WeightedCoordinates(Map(coordinate13 -> 1d))
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
-      result.dirRad should equalWithTolerance(
+      result.dirIrr should equalWithTolerance(
         Quantities.getQuantity(13, StandardUnits.SOLAR_IRRADIANCE)
       )
-      result.diffRad should equalWithTolerance(
+      result.diffIrr should equalWithTolerance(
         Quantities.getQuantity(13, StandardUnits.SOLAR_IRRADIANCE)
       )
       result.temp should equalWithTolerance(
@@ -249,7 +249,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
   }
 }
 
-case object WeatherSourceWrapperSpec {
+object WeatherSourceWrapperSpec {
   // lat/lon are irrelevant, we will manually create weights later on
   private val coordinate1a = GeoUtils.xyToPoint(6, 51)
   private val coordinate1b = GeoUtils.xyToPoint(7, 51)
@@ -394,8 +394,8 @@ case object WeatherSourceWrapperSpec {
               )
             ) =>
           currentSum.copy(
-            diffRad = currentSum.diffRad.add(diffRad.multiply(diffWeight)),
-            dirRad = currentSum.dirRad.add(dirRad.multiply(dirWeight)),
+            diffIrr = currentSum.diffIrr.add(diffRad.multiply(diffWeight)),
+            dirIrr = currentSum.dirIrr.add(dirRad.multiply(dirWeight)),
             temp = currentSum.temp.add(temp.multiply(tempWeight)),
             windVel = currentSum.windVel.add(windVel.multiply(wVelWeight))
           )
@@ -406,7 +406,7 @@ case object WeatherSourceWrapperSpec {
           currentWeight._1,
           currentWeight._2,
           currentWeight._3,
-          currentWeight._1
+          currentWeight._4
         )
     }
 

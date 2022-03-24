@@ -142,8 +142,8 @@ private[weather] final case class WeatherSourceWrapper private (
         )
 
         /* Determine actual weights and contributions */
-        val (diffRadContrib, diffRadWeight) = currentWeather.diffRad match {
-          case EMPTY_WEATHER_DATA.diffRad => (EMPTY_WEATHER_DATA.diffRad, 0d)
+        val (diffRadContrib, diffRadWeight) = currentWeather.diffIrr match {
+          case EMPTY_WEATHER_DATA.`diffIrr` => (EMPTY_WEATHER_DATA.diffIrr, 0d)
           case nonEmptyDiffRad =>
             calculateContrib(
               nonEmptyDiffRad,
@@ -152,8 +152,8 @@ private[weather] final case class WeatherSourceWrapper private (
               s"Diffuse solar irradiance not available at $point."
             )
         }
-        val (dirRadContrib, dirRadWeight) = currentWeather.dirRad match {
-          case EMPTY_WEATHER_DATA.dirRad => (EMPTY_WEATHER_DATA.dirRad, 0d)
+        val (dirRadContrib, dirRadWeight) = currentWeather.dirIrr match {
+          case EMPTY_WEATHER_DATA.`dirIrr` => (EMPTY_WEATHER_DATA.dirIrr, 0d)
           case nonEmptyDirRad =>
             calculateContrib(
               nonEmptyDirRad,
@@ -186,8 +186,8 @@ private[weather] final case class WeatherSourceWrapper private (
         /* Sum up weight and contributions */
         (
           WeatherData(
-            averagedWeather.diffRad.add(diffRadContrib),
-            averagedWeather.dirRad.add(dirRadContrib),
+            averagedWeather.diffIrr.add(diffRadContrib),
+            averagedWeather.dirIrr.add(dirRadContrib),
             averagedWeather.temp.add(tempContrib),
             averagedWeather.windVel.add(windVelContrib)
           ),
@@ -397,14 +397,14 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       windVel: Double
   ) {
     def add(
-        diffRad: Double,
-        dirRad: Double,
+        diffIrr: Double,
+        dirIrr: Double,
         temp: Double,
         windVel: Double
     ): WeightSum =
       WeightSum(
-        this.diffIrr + diffRad,
-        this.dirIrr + dirRad,
+        this.diffIrr + diffIrr,
+        this.dirIrr + dirIrr,
         this.temp + temp,
         this.windVel + windVel
       )
@@ -412,7 +412,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
     /** Scale the given [[WeatherData]] by dividing by the sum of weights per
       * attribute of the weather data. If one of the weight sums is empty (and
       * thus a division by zero would happen) the defined "empty" information
-      * for this attribute a returned.
+      * for this attribute is returned.
       *
       * @param weatherData
       *   Weighted and accumulated weather information
@@ -424,9 +424,9 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
         implicit val precision: Double = 1e-3
         WeatherData(
           if (this.diffIrr !~= 0d) diffRad.divide(this.diffIrr)
-          else EMPTY_WEATHER_DATA.diffRad,
+          else EMPTY_WEATHER_DATA.diffIrr,
           if (this.dirIrr !~= 0d) dirRad.divide(this.dirIrr)
-          else EMPTY_WEATHER_DATA.dirRad,
+          else EMPTY_WEATHER_DATA.dirIrr,
           if (this.temp !~= 0d) temp.divide(this.temp)
           else EMPTY_WEATHER_DATA.temp,
           if (this.windVel !~= 0d) windVel.divide(this.windVel)
