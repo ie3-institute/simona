@@ -10,7 +10,7 @@ import java.io.{File, FileInputStream}
 import java.util.zip.GZIPInputStream
 import akka.actor.ActorSystem
 import akka.stream.Materializer
-import akka.testkit.{ImplicitSender, TestFSMRef, TestKit, TestProbe}
+import akka.testkit.{TestFSMRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
@@ -25,11 +25,7 @@ import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
   PowerFlowResultEvent
 }
-import edu.ie3.simona.io.result.{
-  ResultEntityCsvSink,
-  ResultEntitySink,
-  ResultSinkType
-}
+import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
 import edu.ie3.simona.test.common.result.PowerFlowResultData
 import edu.ie3.simona.test.common.{AgentSpec, IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
@@ -141,11 +137,27 @@ class ResultEventListenerSpec
         assert(outputFile.exists)
         assert(outputFile.isFile)
       }
+
+      "check if actor dies when it should die" in {
+        val fileHierarchy = resultFileHierarchy(2, ".ttt")
+        val testProbe = TestProbe()
+        val listener = testProbe.childActorOf(
+          ResultEventListener.props(
+            Set(classOf[Transformer3WResult]),
+            fileHierarchy,
+            testProbe.ref
+          )
+        )
+
+        testProbe watch listener
+        testProbe expectTerminated (listener, 2 seconds)
+
+      }
     }
 
     "handling ordinary results" should {
       "process a valid participants result correctly" in {
-        val specificOutputFileHierarchy = resultFileHierarchy(2, ".csv")
+        val specificOutputFileHierarchy = resultFileHierarchy(3, ".csv")
 
         val listenerRef = system.actorOf(
           ResultEventListener
@@ -182,19 +194,17 @@ class ResultEventListenerSpec
         val resultFileLines = resultFileSource.getLines().toVector
 
         resultFileLines.size shouldBe 2
-        resultFileLines.tail.size shouldBe 1
-        resultFileLines.tail.headOption.getOrElse(
+        resultFileLines.lastOption.getOrElse(
           fail(
             "Cannot get csv row that should have been written out by the listener!"
           )
         ) shouldBe dummyPvResultDataString
 
         resultFileSource.close()
-
       }
 
       "process a valid power flow result correctly" in {
-        val specificOutputFileHierarchy = resultFileHierarchy(3, ".csv")
+        val specificOutputFileHierarchy = resultFileHierarchy(4, ".csv")
         val listenerRef = system.actorOf(
           ResultEventListener
             .props(
@@ -266,8 +276,7 @@ class ResultEventListenerSpec
           val resultFileLines = resultFileSource.getLines().toVector
 
           resultFileLines.size shouldBe 2
-          resultFileLines.tail.size shouldBe 1
-          resultFileLines.tail.headOption.getOrElse(
+          resultFileLines.lastOption.getOrElse(
             fail(
               "Cannot get csv row that should have been written out by the listener!"
             )
@@ -283,7 +292,7 @@ class ResultEventListenerSpec
         PrivateMethod[Map[Transformer3wKey, AggregatedTransformer3wResult]](
           Symbol("registerPartialTransformer3wResult")
         )
-      val fileHierarchy = resultFileHierarchy(4, ".csv")
+      val fileHierarchy = resultFileHierarchy(5, ".csv")
       val listener = TestFSMRef(
         new ResultEventListener(
           Set(classOf[Transformer3WResult]),
@@ -495,8 +504,7 @@ class ResultEventListenerSpec
         val resultFileLines = resultFileSource.getLines().toVector
 
         resultFileLines.size shouldBe 2
-        resultFileLines.tail.size shouldBe 1
-        val resultLine = resultFileLines.tail.headOption.getOrElse(
+        val resultLine = resultFileLines.lastOption.getOrElse(
           fail(
             "Cannot get csv row that should have been written out by the listener!"
           )
@@ -514,7 +522,7 @@ class ResultEventListenerSpec
 
     "shutting down" should {
       "shutdown and compress the data when requested to do so without any errors" in {
-        val specificOutputFileHierarchy = resultFileHierarchy(5, ".csv.gz")
+        val specificOutputFileHierarchy = resultFileHierarchy(6, ".csv.gz")
         val listenerRef = system.actorOf(
           ResultEventListener
             .props(
@@ -582,8 +590,7 @@ class ResultEventListenerSpec
 
         val resultFileLines = resultFileSource.getLines().toVector
         resultFileLines.size shouldBe 2
-        resultFileLines.tail.size shouldBe 1
-        resultFileLines.tail.headOption.getOrElse(
+        resultFileLines.lastOption.getOrElse(
           fail(
             "Cannot get line that should have been written out by the listener!"
           )

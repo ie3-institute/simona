@@ -6,7 +6,8 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.{ActorRef, FSM, PoisonPill, Props, Stash}
+import akka.actor.{ActorRef, FSM, Props, Stash, Status}
+import akka.pattern.pipe
 import akka.stream.Materializer
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
@@ -23,6 +24,7 @@ import edu.ie3.simona.event.listener.ResultEventListener.{
   BaseData,
   Init,
   ResultEventListenerData,
+  SinkResponse,
   Transformer3wKey,
   UninitializedData
 }
@@ -53,6 +55,10 @@ object ResultEventListener extends Transformer3wResultSupport {
   private final case object UninitializedData extends ResultEventListenerData
 
   private final case object Init
+
+  private final case class SinkResponse(
+      response: Map[Class[_], ResultEntitySink]
+  )
 
   /** [[ResultEventListener]] base data containing all information the listener
     * needs
@@ -101,29 +107,33 @@ object ResultEventListener extends Transformer3wResultSupport {
       case _: ResultSinkType.Csv =>
         eventClassesToConsider
           .map(resultClass => {
-            val fileName =
-              resultFileHierarchy.rawOutputDataFilePaths.getOrElse(
-                resultClass,
-                throw new FileHierarchyException(
-                  s"Unable to get file path for result class '${resultClass.getSimpleName}' from output file hierarchy! " +
-                    s"Available file result file paths: ${resultFileHierarchy.rawOutputDataFilePaths}"
+            resultFileHierarchy.rawOutputDataFilePaths
+              .get(resultClass)
+              .map(Future.successful)
+              .getOrElse(
+                Future.failed(
+                  new FileHierarchyException(
+                    s"Unable to get file path for result class '${resultClass.getSimpleName}' from output file hierarchy! " +
+                      s"Available file result file paths: ${resultFileHierarchy.rawOutputDataFilePaths}"
+                  )
                 )
               )
-            if (fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")) {
-              val sink =
-                ResultEntityCsvSink(
-                  fileName.replace(".gz", ""),
-                  new ResultEntityProcessor(resultClass),
-                  fileName.endsWith(".gz")
-                )
-              sink.map((resultClass, _))
-            } else {
-              throw new ProcessResultEventException(
-                s"Invalid output file format for file $fileName provided. Currently only '.csv' or '.csv.gz' is supported!"
-              )
-            }
+              .flatMap { fileName =>
+                if (fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")) {
+                  ResultEntityCsvSink(
+                    fileName.replace(".gz", ""),
+                    new ResultEntityProcessor(resultClass),
+                    fileName.endsWith(".gz")
+                  ).map((resultClass, _))
+                } else {
+                  Future(
+                    throw new ProcessResultEventException(
+                      s"Invalid output file format for file $fileName provided. Currently only '.csv' or '.csv.gz' is supported!"
+                    )
+                  )
+                }
+              }
           })
-
       case ResultSinkType.InfluxDb1x(url, database, scenario) =>
         // creates one connection per result entity that should be processed
         eventClassesToConsider
@@ -307,10 +317,6 @@ class ResultEventListener(
       stash()
       stay()
 
-    case Event(baseData: BaseData, UninitializedData) =>
-      unstashAll()
-      goto(Idle) using baseData
-
     case Event(Init, _) =>
       Future
         .sequence(
@@ -319,18 +325,20 @@ class ResultEventListener(
             resultFileHierarchy
           )
         )
-        .onComplete {
-          case Failure(exception) =>
-            throw new InitializationException(
-              "Cannot initialize result sinks!"
-            ).initCause(exception)
-            self ! PoisonPill
-          case Success(classToSink) =>
-            log.debug("Initialization complete!")
-            supervisor ! ServiceInitComplete
-            self ! BaseData(classToSink.toMap)
-        }
+        .map(result => SinkResponse(result.toMap))
+        .pipeTo(self)
       stay()
+
+    case Event(SinkResponse(classToSink), _) =>
+      // Sink Initialization succeeded
+      log.debug("Initialization complete!")
+      supervisor ! ServiceInitComplete
+
+      unstashAll()
+      goto(Idle) using BaseData(classToSink)
+
+    case Event(Status.Failure(ex), _) =>
+      throw new InitializationException("Unable to setup SimonaSim.", ex)
   }
 
   when(Idle) {
