@@ -174,12 +174,12 @@ class WeatherSourceWrapperSpec extends UnitSpec {
           prepareWeightTestData(weatherSeq, weights)
 
         weightSum.scale(weightedWeather) match {
-          case WeatherData(diffRad, dirRad, temp, windVel) =>
-            diffRad should equalWithTolerance(
+          case WeatherData(diffIrr, dirIrr, temp, windVel) =>
+            diffIrr should equalWithTolerance(
               Quantities.getQuantity(19.83, StandardUnits.SOLAR_IRRADIANCE),
               1e-6
             )
-            dirRad should equalWithTolerance(
+            dirIrr should equalWithTolerance(
               Quantities.getQuantity(3.01, StandardUnits.SOLAR_IRRADIANCE),
               1e-6
             )
@@ -389,13 +389,13 @@ object WeatherSourceWrapperSpec {
         case (
               currentSum,
               (
-                WeatherData(diffRad, dirRad, temp, windVel),
+                WeatherData(diffIrr, dirIrr, temp, windVel),
                 (diffWeight, dirWeight, tempWeight, wVelWeight)
               )
             ) =>
           currentSum.copy(
-            diffIrr = currentSum.diffIrr.add(diffRad.multiply(diffWeight)),
-            dirIrr = currentSum.dirIrr.add(dirRad.multiply(dirWeight)),
+            diffIrr = currentSum.diffIrr.add(diffIrr.multiply(diffWeight)),
+            dirIrr = currentSum.dirIrr.add(dirIrr.multiply(dirWeight)),
             temp = currentSum.temp.add(temp.multiply(tempWeight)),
             windVel = currentSum.windVel.add(windVel.multiply(wVelWeight))
           )

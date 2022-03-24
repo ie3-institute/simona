@@ -108,14 +108,14 @@ class SampleWeatherSourceSpec
         WeightedCoordinates(Map(NodeInput.DEFAULT_GEO_POSITION -> 1d))
 
       source.getWeather(tick, weightedCoordinates) match {
-        case WeatherData(diffRad, dirRad, temp, windVel) =>
-          diffRad.getUnit shouldBe StandardUnits.SOLAR_IRRADIANCE
-          diffRad should equalWithTolerance(
+        case WeatherData(diffIrr, dirIrr, temp, windVel) =>
+          diffIrr.getUnit shouldBe StandardUnits.SOLAR_IRRADIANCE
+          diffIrr should equalWithTolerance(
             Quantities.getQuantity(72.7656, StandardUnits.SOLAR_IRRADIANCE)
           )
 
-          dirRad.getUnit shouldBe StandardUnits.SOLAR_IRRADIANCE
-          dirRad should equalWithTolerance(
+          dirIrr.getUnit shouldBe StandardUnits.SOLAR_IRRADIANCE
+          dirIrr should equalWithTolerance(
             Quantities.getQuantity(80.1172, StandardUnits.SOLAR_IRRADIANCE)
           )
 

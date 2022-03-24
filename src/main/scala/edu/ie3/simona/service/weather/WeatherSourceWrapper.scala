@@ -142,21 +142,21 @@ private[weather] final case class WeatherSourceWrapper private (
         )
 
         /* Determine actual weights and contributions */
-        val (diffRadContrib, diffRadWeight) = currentWeather.diffIrr match {
-          case EMPTY_WEATHER_DATA.`diffIrr` => (EMPTY_WEATHER_DATA.diffIrr, 0d)
-          case nonEmptyDiffRad =>
+        val (diffIrrContrib, diffIrrWeight) = currentWeather.diffIrr match {
+          case EMPTY_WEATHER_DATA.diffIrr => (EMPTY_WEATHER_DATA.diffIrr, 0d)
+          case nonEmptyDiffIrr =>
             calculateContrib(
-              nonEmptyDiffRad,
+              nonEmptyDiffIrr,
               weight,
               StandardUnits.SOLAR_IRRADIANCE,
               s"Diffuse solar irradiance not available at $point."
             )
         }
-        val (dirRadContrib, dirRadWeight) = currentWeather.dirIrr match {
+        val (dirIrrContrib, dirIrrWeight) = currentWeather.dirIrr match {
           case EMPTY_WEATHER_DATA.`dirIrr` => (EMPTY_WEATHER_DATA.dirIrr, 0d)
-          case nonEmptyDirRad =>
+          case nonEmptyDirIrr =>
             calculateContrib(
-              nonEmptyDirRad,
+              nonEmptyDirIrr,
               weight,
               StandardUnits.SOLAR_IRRADIANCE,
               s"Direct solar irradiance not available at $point."
@@ -186,14 +186,14 @@ private[weather] final case class WeatherSourceWrapper private (
         /* Sum up weight and contributions */
         (
           WeatherData(
-            averagedWeather.diffIrr.add(diffRadContrib),
-            averagedWeather.dirIrr.add(dirRadContrib),
+            averagedWeather.diffIrr.add(diffIrrContrib),
+            averagedWeather.dirIrr.add(dirIrrContrib),
             averagedWeather.temp.add(tempContrib),
             averagedWeather.windVel.add(windVelContrib)
           ),
           currentWeightSum.add(
-            diffRadWeight,
-            dirRadWeight,
+            diffIrrWeight,
+            dirIrrWeight,
             tempWeight,
             windVelWeight
           )
@@ -420,12 +420,12 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       *   Weighted weather information, which are divided by the sum of weights
       */
     def scale(weatherData: WeatherData): WeatherData = weatherData match {
-      case WeatherData(diffRad, dirRad, temp, windVel) =>
+      case WeatherData(diffIrr, dirIrr, temp, windVel) =>
         implicit val precision: Double = 1e-3
         WeatherData(
-          if (this.diffIrr !~= 0d) diffRad.divide(this.diffIrr)
+          if (this.diffIrr !~= 0d) diffIrr.divide(this.diffIrr)
           else EMPTY_WEATHER_DATA.diffIrr,
-          if (this.dirIrr !~= 0d) dirRad.divide(this.dirIrr)
+          if (this.dirIrr !~= 0d) dirIrr.divide(this.dirIrr)
           else EMPTY_WEATHER_DATA.dirIrr,
           if (this.temp !~= 0d) temp.divide(this.temp)
           else EMPTY_WEATHER_DATA.temp,
