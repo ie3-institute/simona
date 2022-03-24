@@ -349,11 +349,7 @@ object ConfigUtil {
         logger.info(
           "Password for SQL weather source is empty. This is allowed, but not common. Please check if this an intended setting."
         )
-      if (sql.timeColumnName.isEmpty)
-        throw new InvalidConfigParameterException(
-          "Time column for SQL weather source cannot be empty"
-        )
-      if (sql.weatherTableName.isEmpty)
+      if (sql.tableName.isEmpty)
         throw new InvalidConfigParameterException(
           "Weather table name for SQL weather source cannot be empty"
         )
