@@ -45,12 +45,14 @@ import edu.ie3.simona.test.common.{
   UnitSpec
 }
 import edu.ie3.util.quantities.PowerSystemUnits._
+import org.scalatest.Ignore
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
-import java.util.concurrent.TimeUnit
-import scala.concurrent.Await
+import java.util.concurrent.{TimeUnit, TimeoutException}
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.util.{Failure, Success, Try}
 
 /** Test to ensure the functions that a [[GridAgent]] in center position should
   * be able to do if the DBFSAlgorithm is used. The scheduler, the weather
@@ -169,7 +171,11 @@ class DBFSAlgorithmCenGridSpec
 
     }
 
-    s"start the simulation when a $StartGridSimulationTrigger is send" in {
+    /* Test is currently ignored. Reason: The TestFSMRef set up above explicitly sets the dispatcher of the actor
+     * context to `CurrentThreadDispatcher`, which runs on the single, calling thread and thereby may also lead to
+     * dead locks in certain circumstances (obviously we found one). As the refactoring to akka typed is foreseen and
+     * refactoring of the test is needed as well, we will ignore this test until then */
+    s"start the simulation when a $StartGridSimulationTrigger is send" ignore {
 
       val startGridSimulationTriggerId = 2
       val firstSweepNo = 0
@@ -299,10 +305,25 @@ class DBFSAlgorithmCenGridSpec
 
       // we expect to end up in SimulateGrid but we have to pass HandlePowerFlowCalculations beforehand
       // hence we wait until we reached this condition
-      val statesPassed = scala.collection.mutable.Set.empty[AgentState]
-      while (statesPassed.size < 2) statesPassed.add(centerGridAgent.stateName)
-
-      statesPassed should contain allOf (HandlePowerFlowCalculations, SimulateGrid)
+      Try {
+        Await.result(
+          Future {
+            val statesPassed = scala.collection.mutable.Set.empty[AgentState]
+            while (statesPassed.size < 2)
+              statesPassed.add(centerGridAgent.stateName)
+            statesPassed
+          }(scala.concurrent.ExecutionContext.Implicits.global),
+          Duration("1 minute")
+        )
+      } match {
+        case Success(statesPassed) =>
+          statesPassed should contain allOf (HandlePowerFlowCalculations, SimulateGrid)
+        case Failure(_: TimeoutException) =>
+          fail(
+            "Actor did not pass the correct amount of foreseen states in reasonable time."
+          )
+        case Failure(ex) => fail("Test failed with unknown error.", ex)
+      }
 
       // our test agent should now be ready to provide the grid power values, hence we ask for them and expect a
       // corresponding response
@@ -476,13 +497,25 @@ class DBFSAlgorithmCenGridSpec
 
       // we expect to end up in SimulateGrid but we have to pass HandlePowerFlowCalculations beforehand
       // hence we wait until we reached this condition
-      val statesPassed1 = scala.collection.mutable.Set.empty[AgentState]
-      while (statesPassed1.size < 2)
-        statesPassed1.add(
-          centerGridAgent.stateName
+      Try {
+        Await.result(
+          Future {
+            val statesPassed = scala.collection.mutable.Set.empty[AgentState]
+            while (statesPassed.size < 2)
+              statesPassed.add(centerGridAgent.stateName)
+            statesPassed
+          }(scala.concurrent.ExecutionContext.Implicits.global),
+          Duration("1 minute")
         )
-
-      statesPassed1 should contain allOf (HandlePowerFlowCalculations, SimulateGrid)
+      } match {
+        case Success(statesPassed) =>
+          statesPassed should contain allOf (HandlePowerFlowCalculations, SimulateGrid)
+        case Failure(_: TimeoutException) =>
+          fail(
+            "Actor did not pass the correct amount of foreseen states in reasonable time."
+          )
+        case Failure(ex) => fail("Test failed with unknown error.", ex)
+      }
 
       // as the akka testkit does the unstash handling incorrectly, we need to send a second request for grid power messages
       centerGridAgent ! RequestGridPowerMessage(secondSweepNo, slackNodeUuid)

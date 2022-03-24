@@ -25,8 +25,8 @@ object ExtMessageUtils {
   ) {
     def toSimona(triggerId: Long, triggerActor: ActorRef): CompletionMessage = {
       val newTriggers =
-        Option.when(!extCompl.getNewTriggers.isEmpty) {
-          extCompl.getNewTriggers.asScala.map { tick =>
+        Option.when(!extCompl.newTriggers.isEmpty) {
+          extCompl.newTriggers.asScala.map { tick =>
             ScheduleTriggerMessage(ActivityStartTrigger(tick), triggerActor)
           }.toSeq
         }

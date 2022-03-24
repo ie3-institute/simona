@@ -17,8 +17,7 @@ import edu.ie3.datamodel.models.input.connector.{
 }
 import edu.ie3.datamodel.models.input.container.{
   JointGridContainer,
-  RawGridElements,
-  SubGridContainer
+  RawGridElements
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.GridInputTestData
@@ -67,7 +66,7 @@ class SetupHelperSpec extends UnitSpec with GridInputTestData {
         .vertexSet()
         .asScala
         .groupBy(_.getSubnet)
-        .map(_._2.head)
+        .flatMap(_._2.headOption)
         .map(grid => grid.getSubnet -> grid)
         .toMap
 
