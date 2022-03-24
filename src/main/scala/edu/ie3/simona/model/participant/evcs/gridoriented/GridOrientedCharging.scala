@@ -18,7 +18,6 @@ import edu.ie3.simona.model.participant.evcs.PredictionAndSchedulingUtils.{
 }
 import edu.ie3.simona.model.participant.evcs.gridoriented.VoltagePrediction.{
   PredictedVoltage,
-  calculateReferenceVoltageTimeTable,
   getPredictedVoltagesForRelevantTimeWindowBasedOnReferenceVoltages
 }
 import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvcsModel}

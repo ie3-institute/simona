@@ -40,11 +40,7 @@ import edu.ie3.simona.exceptions.agent.{
   InvalidRequestException
 }
 import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsRelevantData
-import edu.ie3.simona.model.participant.evcs.{
-  ChargingSchedule,
-  EvcsChargingScheduleEntry,
-  EvcsModel
-}
+import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvcsModel}
 import edu.ie3.simona.ontology.messages.PowerMessage.AssetPowerChangedMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage.{
   CurrentPriceRequest,
@@ -54,10 +50,8 @@ import edu.ie3.simona.ontology.messages.services.EvMessage.{
   FreeLotsResponse
 }
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT, PU}
+import edu.ie3.util.quantities.PowerSystemUnits.PU
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.PERCENT
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -214,7 +208,8 @@ protected trait EvcsAgentFundamentals
     inputModel,
     modelConfig.scaling,
     simulationStartDate,
-    simulationEndDate
+    simulationEndDate,
+    context.dispatcher
   )
 
   /** Partial function, that is able to transfer
@@ -971,34 +966,6 @@ protected trait EvcsAgentFundamentals
         !evs.exists(_.getUuid == ev.getUuid)
       }.toSet
     (arriving, staying, departing)
-  }
-
-  @deprecated
-  private def calculateDepartedEvs(
-      evs: Set[EvModel],
-      movements: EvcsMovements
-  ): Set[EvModel] =
-    evs.filter { ev =>
-      // EV has been parked up until now and has now departed
-      movements.getDepartures.contains(ev.getUuid)
-    }
-
-  @deprecated
-  private def calculateStayingAndArrivingEvs(
-      evs: Set[EvModel],
-      movements: EvcsMovements
-  ): (Set[EvModel], Set[EvModel]) = {
-    // If we say that a car departs at t, it means that it stays parked up to and including t.
-    // Evs that have been parked here and have not departed
-    val stayingEvs = evs.filter { ev =>
-      !movements.getDepartures.contains(ev.getUuid)
-    }
-    // New arriving evs
-    val arrivingEvs =
-      movements.getArrivals.asScala.filter { ev =>
-        !evs.exists(_.getUuid == ev.getUuid)
-      }.toSet
-    (stayingEvs, arrivingEvs)
   }
 
   /** Checks whether received EV movement data is consistent with charging

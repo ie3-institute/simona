@@ -53,7 +53,6 @@ import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Energy, Power}
 import scala.annotation.tailrec
 import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.concurrent.ExecutionContext.Implicits
 import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success}
 
@@ -91,6 +90,7 @@ final case class EvcsModel(
     cosPhiRated: Double,
     chargingPoints: Int,
     locationType: EvcsLocationType,
+    execCtx: ExecutionContext,
     strategy: ChargingStrategy.Value = ChargingStrategy.GRID_ORIENTED
 ) extends SystemParticipant[EvcsRelevantData](
       uuid,
@@ -107,7 +107,7 @@ final case class EvcsModel(
     with GridOrientedCharging
     with MarketOrientedCharging {
 
-  protected implicit val executionContext: ExecutionContext = Implicits.global
+  protected implicit val executionContext: ExecutionContext = execCtx
 
   /** Determine scheduling for charging the EVs currently parked at the charging
     * station until their departure. The scheduling depends on the chosen
@@ -822,7 +822,8 @@ object EvcsModel {
       inputModel: EvcsInput,
       scalingFactor: Double,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
+      executionContext: ExecutionContext
   ): EvcsModel = {
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
@@ -842,7 +843,8 @@ object EvcsModel {
       inputModel.getType.getElectricCurrentType,
       inputModel.getCosPhiRated,
       inputModel.getChargingPoints,
-      inputModel.getLocationType
+      inputModel.getLocationType,
+      executionContext
     )
   }
 
@@ -879,7 +881,8 @@ object EvcsModel {
       currentType: ElectricCurrentType,
       cosPhiRated: Double,
       chargingPoints: Int,
-      locationType: EvcsLocationType
+      locationType: EvcsLocationType,
+      executionContext: ExecutionContext
   ): EvcsModel = {
     val model = new EvcsModel(
       uuid,
@@ -891,7 +894,8 @@ object EvcsModel {
       currentType,
       cosPhiRated,
       chargingPoints,
-      locationType
+      locationType,
+      executionContext
     )
 
     model.enable()
