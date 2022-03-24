@@ -16,7 +16,6 @@ import edu.ie3.datamodel.io.source.csv.{
   CsvTimeSeriesTypeSource
 }
 import edu.ie3.datamodel.models.value.Value
-import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.{BaseCsvParams, PrimaryCsvParams}
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
   Primary => PrimaryConfig
@@ -137,7 +136,7 @@ case class PrimaryServiceProxy(
       primaryConfig.csvParams,
       primaryConfig.couchbaseParams
     ).filter(_.isDefined).flatten.headOption match {
-      case Some(BaseCsvParams(csvSep, folderPath, _)) =>
+      case Some(PrimaryCsvParams(csvSep, folderPath, _, _)) =>
         // TODO: Configurable file naming strategy
         val fileNamingStrategy = new FileNamingStrategy()
         val mappingSource = new CsvTimeSeriesMappingSource(

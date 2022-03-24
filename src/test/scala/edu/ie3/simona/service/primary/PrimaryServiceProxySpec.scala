@@ -325,8 +325,11 @@ class PrimaryServiceProxySpec
           classOf[TimeSeriesMappingSource].isAssignableFrom(
             mappingSource.getClass
           ) shouldBe true
-        case Failure(_) =>
-          fail("Building state data with correct config should not fail")
+        case Failure(failure) =>
+          fail(
+            "Building state data with correct config should not fail, but failed with:",
+            failure
+          )
       }
     }
   }
