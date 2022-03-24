@@ -19,6 +19,7 @@ extensions = [
     'sphinxcontrib.plantuml',
     'sphinx.ext.intersphinx',
     'hoverxref.extension',
+    'sphinxcontrib.bibtex'
 ]
 
 templates_path = ['_templates']
@@ -47,3 +48,6 @@ intersphinx_mapping = {
 hoverxref_intersphinx = [
     "psdm",
 ]
+
+# BibTex options
+bibtex_bibfiles = ['_static/bib/references.bib']

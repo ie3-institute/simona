@@ -4,3 +4,4 @@ sphinxcontrib-plantuml==0.22
 myst-parser==0.15.2
 markdown-it-py==1.1.0
 sphinx-hoverxref==1.0.1
+sphinxcontrib-bibtex==2.4.1
