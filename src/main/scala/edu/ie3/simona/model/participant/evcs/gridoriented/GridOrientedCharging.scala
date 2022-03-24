@@ -34,6 +34,9 @@ import java.time.temporal.ChronoUnit
 import java.time.ZonedDateTime
 import javax.measure.quantity.{Dimensionless, Energy, Power}
 import scala.annotation.tailrec
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.Duration
+import scala.util.{Failure, Success}
 
 trait GridOrientedCharging {
   this: EvcsModel =>
@@ -76,26 +79,42 @@ trait GridOrientedCharging {
         startTime
       )
 
-    /* Create scheduling for evs that need ot charge with maximum power */
-    val scheduleForNonDispatchableEvs =
-      chargeWithMaximumPower(
-        currentTick,
-        nonDispatchableEvs
-      )
-
-    /* Create scheduling for evs that can be scheduled */
-    val scheduleForDispatchableEvs =
-      if (dispatchableEvs.nonEmpty) {
-        scheduleDispatchableEvs(
-          currentTick,
-          currentTime,
-          startTime,
-          dispatchableEvs,
-          voltages
+    Await.result(
+      scheduleNonDispatchableEvs(currentTick, nonDispatchableEvs)
+        .zip(
+          scheduleDispatchableEvs(
+            currentTick,
+            currentTime,
+            startTime,
+            dispatchableEvs,
+            voltages
+          )
         )
-      } else Map.empty[EvModel, Option[ChargingSchedule]]
+        .map {
+          case (scheduleForNonDispatchableEvs, scheduleForDispatchableEvs) =>
+            scheduleForNonDispatchableEvs ++ scheduleForDispatchableEvs
+        },
+      Duration("1h")
+    )
+  }
 
-    scheduleForNonDispatchableEvs ++ scheduleForDispatchableEvs
+  /** Determine the schedule for all non-dispatchable evs
+    *
+    * @param tick
+    *   Current simulation time
+    * @param evs
+    *   Collection of non-dispatchable evs
+    * @return
+    *   Future onto mapping from ev to it's schedule
+    */
+  private def scheduleNonDispatchableEvs(
+      tick: Long,
+      evs: Set[EvModel]
+  ): Future[Map[EvModel, Option[ChargingSchedule]]] = Future {
+    chargeWithMaximumPower(
+      tick,
+      evs
+    )
   }
 
   /** Determine a grid conducive scheduling for evs that don't need to be
@@ -122,96 +141,103 @@ trait GridOrientedCharging {
       startTime: ZonedDateTime,
       evs: Set[EvModel],
       voltages: Map[ZonedDateTime, ComparableQuantity[Dimensionless]]
-  ): Map[EvModel, Option[ChargingSchedule]] = {
+  ): Future[Map[EvModel, Option[ChargingSchedule]]] = Future {
+    if (evs.nonEmpty) {
 
-    /* Get all departure times and required energies of the currently parked and schedulable evs in separate lists */
-    val (departureTimes, requiredEnergies) =
-      getDepartureTimesAndRequiredEnergyOfAllEvs(evs, startTime)
+      /* Get all departure times and required energies of the currently parked and dispatchable evs in separate lists */
+      val (departureTimes, requiredEnergies) =
+        getDepartureTimesAndRequiredEnergyOfAllEvs(evs, startTime)
 
-    /* Find latest departure time for filtering later */
-    val lastDepartureTime = departureTimes.maxOption match {
-      case Some(time) => time
-      case None =>
-        throw new InvalidParameterException(
-          "This shouldn't happen, there must be at least one EV here."
-        )
-    }
+      /* Find latest departure time for filtering later */
+      val lastDepartureTime = departureTimes.maxOption match {
+        case Some(time) => time
+        case None =>
+          throw new InvalidParameterException(
+            "This shouldn't happen, there must be at least one EV here."
+          )
+      }
 
-    /* Calculate total energy to be charged by dispatchable evs */
-    val totalEnergyToBeChargedBySchedulableEvs = calculateSumOfEnergies(
-      requiredEnergies
-    )
+      /* Calculate total energy to be charged by dispatchable evs */
+      val totalEnergyToBeChargedBySchedulableEvs = calculateSumOfEnergies(
+        requiredEnergies
+      )
 
-    /* Get reference voltage time table based on voltage memory */
-    val voltageTimeTable = calculateReferenceVoltageTimeTable(voltages)
-
-    /* Get time windows with predicted voltage values for the relevant time until departure of the last EV */
-    val predictedVoltages =
+      /* Get time windows with predicted voltage values for the relevant time until departure of the last EV */
       getPredictedVoltagesForRelevantTimeWindowBasedOnReferenceVoltages(
         currentTime,
         lastDepartureTime,
-        voltageTimeTable
-      )
-
-    val minVoltageInTimeWindow = getMinimumVoltageInPredictedVoltages(
-      predictedVoltages
-    )
-
-    /* Get scheduling time windows. The time windows are separated by voltage changes and departing evs */
-    val schedulingTimeWindows =
-      getSchedulingTimeWindows(
-        predictedVoltages,
-        departureTimes,
-        minVoltageInTimeWindow.subtract(
-          Quantities.getQuantity(0.0000001, PU)
-        ), // To avoid dividing by zero
-        startTime,
-        evs
-      )
-
-    /* Calculate sum of box sizes (voltage deviation * length) and length of all time windows */
-    val (totalTimeWindowLength, totalTimeWindowSize) =
-      calculateTotalTimeWindowLengthAndSize(schedulingTimeWindows)
-
-    /* Calculate power per voltage deviation */
-    val powerPerVoltageDeviation =
-      calculatePowerPerVoltageDeviation(
-        totalTimeWindowSize,
-        totalTimeWindowLength,
-        totalEnergyToBeChargedBySchedulableEvs
-      )
-
-    /* Start with ev departing first and distribute charging energy */
-    evs.toVector
-      .sortBy(_.getDepartureTick)
-      .foldLeft(
-        (
-          Map.empty[EvModel, Option[ChargingSchedule]],
-          schedulingTimeWindows
+        voltages
+      ).map { predictedVoltages =>
+        val minVoltageInTimeWindow = getMinimumVoltageInPredictedVoltages(
+          predictedVoltages
         )
-      ) { case ((evToSchedule, schedulingTimeWindows), ev) =>
-        val (updatedWindowsForEv, scheduleForEv) =
-          createScheduleForThisEvAndUpdateSchedulingTimeWindows(
-            schedulingTimeWindows,
-            ev,
-            this,
+
+        /* Get scheduling time windows. The time windows are separated by voltage changes and departing evs */
+        val schedulingTimeWindows =
+          getSchedulingTimeWindows(
+            predictedVoltages,
+            departureTimes,
+            minVoltageInTimeWindow.subtract(
+              Quantities.getQuantity(0.0000001, PU)
+            ), // To avoid dividing by zero
             startTime,
-            powerPerVoltageDeviation
+            evs
           )
 
-        val updatedSchedulingTimeWindows =
-          updateSchedulingTimeWindows(
-            schedulingTimeWindows,
-            updatedWindowsForEv
+        /* Calculate sum of box sizes (voltage deviation * length) and length of all time windows */
+        val (totalTimeWindowLength, totalTimeWindowSize) =
+          calculateTotalTimeWindowLengthAndSize(schedulingTimeWindows)
+
+        /* Calculate power per voltage deviation */
+        val powerPerVoltageDeviation =
+          calculatePowerPerVoltageDeviation(
+            totalTimeWindowSize,
+            totalTimeWindowLength,
+            totalEnergyToBeChargedBySchedulableEvs
           )
 
-        /* Update the overall scheduling of the evcs with the schedule for this ev and the updated time windows. */
-        (
-          evToSchedule ++ Map(ev -> Some(ChargingSchedule(ev, scheduleForEv))),
-          updatedSchedulingTimeWindows
-        )
+        /* Start with ev departing first and distribute charging energy */
+        evs.toVector
+          .sortBy(_.getDepartureTick)
+          .foldLeft(
+            (
+              Map.empty[EvModel, Option[ChargingSchedule]],
+              schedulingTimeWindows
+            )
+          ) { case ((evToSchedule, schedulingTimeWindows), ev) =>
+            val (updatedWindowsForEv, scheduleForEv) =
+              createScheduleForThisEvAndUpdateSchedulingTimeWindows(
+                schedulingTimeWindows,
+                ev,
+                this,
+                startTime,
+                powerPerVoltageDeviation
+              )
+
+            val updatedSchedulingTimeWindows =
+              updateSchedulingTimeWindows(
+                schedulingTimeWindows,
+                updatedWindowsForEv
+              )
+
+            /* Update the overall scheduling of the evcs with the schedule for this ev and the updated time windows. */
+            (
+              evToSchedule ++ Map(
+                ev -> Some(ChargingSchedule(ev, scheduleForEv))
+              ),
+              updatedSchedulingTimeWindows
+            )
+          }
+          ._1
+      } match {
+        case Failure(exception) =>
+          logger.warn(
+            s"Voltage prediction for tick $currentTick failed. Charge evs with maximum power. Reason: '${exception.getMessage}'"
+          )
+          chargeWithMaximumPower(currentTick, evs)
+        case Success(evToSchedule) => evToSchedule
       }
-      ._1
+    } else Map.empty[EvModel, Option[ChargingSchedule]]
   }
 
   /** Calculate the charging schedule for this ev based on the current
@@ -969,109 +995,110 @@ trait GridOrientedCharging {
     predictedVoltages
       .foldLeft(
         Vector.empty[SchedulingTimeWindowWithVoltage]
-      )(
+      ) {
         (
             timeWindows: Vector[SchedulingTimeWindowWithVoltage],
             entry: PredictedVoltage
-        ) => {
+        ) =>
+          {
 
-          val departureTimesInThisTimeWindow: Vector[ZonedDateTime] =
-            departureTimes
-              .filter(_.isAfter(entry.start))
-              .filter(_.isBefore(entry.end))
-              .sorted
+            val departureTimesInThisTimeWindow: Vector[ZonedDateTime] =
+              departureTimes
+                .filter(_.isAfter(entry.start))
+                .filter(_.isBefore(entry.end))
+                .sorted
 
-          if (departureTimesInThisTimeWindow.nonEmpty) {
+            if (departureTimesInThisTimeWindow.nonEmpty) {
 
-            var x = Vector.empty[SchedulingTimeWindowWithVoltage]
-            val size: Int = departureTimesInThisTimeWindow.size
+              var x = Vector.empty[SchedulingTimeWindowWithVoltage]
+              val size: Int = departureTimesInThisTimeWindow.size
 
-            x = x :+ SchedulingTimeWindowWithVoltage(
-              startTime.until(entry.start, ChronoUnit.SECONDS),
-              startTime
-                .until(departureTimesInThisTimeWindow(0), ChronoUnit.SECONDS),
-              entry.voltage,
-              entry.voltage.subtract(minVoltageOfAllTimeWindows),
-              entry.start.until(
-                departureTimesInThisTimeWindow(0),
-                ChronoUnit.SECONDS
-              ) * entry.voltage
-                .subtract(minVoltageOfAllTimeWindows)
-                .getValue
-                .doubleValue(),
-              getEvsStillParkedAtThisTime(evs, entry.start, startTime)
-            )
-            for (i <- 0 until size) {
-              if (i < size - 1) {
-                x = x :+ SchedulingTimeWindowWithVoltage(
-                  startTime.until(
-                    departureTimesInThisTimeWindow(i),
-                    ChronoUnit.SECONDS
-                  ),
-                  startTime.until(
-                    departureTimesInThisTimeWindow(i + 1),
-                    ChronoUnit.SECONDS
-                  ),
-                  entry.voltage,
-                  entry.voltage.subtract(minVoltageOfAllTimeWindows),
-                  departureTimesInThisTimeWindow(i).until(
-                    departureTimesInThisTimeWindow(i + 1),
-                    ChronoUnit.SECONDS
-                  ) * entry.voltage
-                    .subtract(minVoltageOfAllTimeWindows)
-                    .getValue
-                    .doubleValue(),
-                  getEvsStillParkedAtThisTime(
-                    evs,
-                    departureTimesInThisTimeWindow(i),
-                    startTime
+              x = x :+ SchedulingTimeWindowWithVoltage(
+                startTime.until(entry.start, ChronoUnit.SECONDS),
+                startTime
+                  .until(departureTimesInThisTimeWindow(0), ChronoUnit.SECONDS),
+                entry.voltage,
+                entry.voltage.subtract(minVoltageOfAllTimeWindows),
+                entry.start.until(
+                  departureTimesInThisTimeWindow(0),
+                  ChronoUnit.SECONDS
+                ) * entry.voltage
+                  .subtract(minVoltageOfAllTimeWindows)
+                  .getValue
+                  .doubleValue(),
+                getEvsStillParkedAtThisTime(evs, entry.start, startTime)
+              )
+              for (i <- 0 until size) {
+                if (i < size - 1) {
+                  x = x :+ SchedulingTimeWindowWithVoltage(
+                    startTime.until(
+                      departureTimesInThisTimeWindow(i),
+                      ChronoUnit.SECONDS
+                    ),
+                    startTime.until(
+                      departureTimesInThisTimeWindow(i + 1),
+                      ChronoUnit.SECONDS
+                    ),
+                    entry.voltage,
+                    entry.voltage.subtract(minVoltageOfAllTimeWindows),
+                    departureTimesInThisTimeWindow(i).until(
+                      departureTimesInThisTimeWindow(i + 1),
+                      ChronoUnit.SECONDS
+                    ) * entry.voltage
+                      .subtract(minVoltageOfAllTimeWindows)
+                      .getValue
+                      .doubleValue(),
+                    getEvsStillParkedAtThisTime(
+                      evs,
+                      departureTimesInThisTimeWindow(i),
+                      startTime
+                    )
                   )
-                )
-              } else {
-                x = x :+ SchedulingTimeWindowWithVoltage(
-                  startTime.until(
-                    departureTimesInThisTimeWindow(i),
-                    ChronoUnit.SECONDS
-                  ),
-                  startTime.until(entry.end, ChronoUnit.SECONDS),
-                  entry.voltage,
-                  entry.voltage.subtract(minVoltageOfAllTimeWindows),
-                  departureTimesInThisTimeWindow(i).until(
-                    entry.end,
-                    ChronoUnit.SECONDS
-                  ) * entry.voltage
-                    .subtract(minVoltageOfAllTimeWindows)
-                    .getValue
-                    .doubleValue(),
-                  getEvsStillParkedAtThisTime(
-                    evs,
-                    departureTimesInThisTimeWindow(i),
-                    startTime
+                } else {
+                  x = x :+ SchedulingTimeWindowWithVoltage(
+                    startTime.until(
+                      departureTimesInThisTimeWindow(i),
+                      ChronoUnit.SECONDS
+                    ),
+                    startTime.until(entry.end, ChronoUnit.SECONDS),
+                    entry.voltage,
+                    entry.voltage.subtract(minVoltageOfAllTimeWindows),
+                    departureTimesInThisTimeWindow(i).until(
+                      entry.end,
+                      ChronoUnit.SECONDS
+                    ) * entry.voltage
+                      .subtract(minVoltageOfAllTimeWindows)
+                      .getValue
+                      .doubleValue(),
+                    getEvsStillParkedAtThisTime(
+                      evs,
+                      departureTimesInThisTimeWindow(i),
+                      startTime
+                    )
                   )
-                )
+                }
               }
+
+              timeWindows :++ x
+
+            } else {
+
+              timeWindows :+ SchedulingTimeWindowWithVoltage(
+                startTime.until(entry.start, ChronoUnit.SECONDS),
+                startTime.until(entry.end, ChronoUnit.SECONDS),
+                entry.voltage,
+                entry.voltage.subtract(minVoltageOfAllTimeWindows),
+                entry.start.until(entry.end, ChronoUnit.SECONDS) * entry.voltage
+                  .subtract(minVoltageOfAllTimeWindows)
+                  .getValue
+                  .doubleValue(),
+                getEvsStillParkedAtThisTime(evs, entry.start, startTime)
+              )
+
             }
 
-            timeWindows :++ x
-
-          } else {
-
-            timeWindows :+ SchedulingTimeWindowWithVoltage(
-              startTime.until(entry.start, ChronoUnit.SECONDS),
-              startTime.until(entry.end, ChronoUnit.SECONDS),
-              entry.voltage,
-              entry.voltage.subtract(minVoltageOfAllTimeWindows),
-              entry.start.until(entry.end, ChronoUnit.SECONDS) * entry.voltage
-                .subtract(minVoltageOfAllTimeWindows)
-                .getValue
-                .doubleValue(),
-              getEvsStillParkedAtThisTime(evs, entry.start, startTime)
-            )
-
           }
-
-        }
-      )
+      }
       .filter(_.parkedEvs.nonEmpty)
       .filterNot(x => x.start == x.end)
       .sortBy { case SchedulingTimeWindowWithVoltage(start, _, _, _, _, _) =>

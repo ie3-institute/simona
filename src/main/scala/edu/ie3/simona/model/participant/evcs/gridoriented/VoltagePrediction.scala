@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.participant.evcs.gridoriented
 
+import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.exceptions.{
   InvalidParameterException,
   PredictionException
@@ -14,9 +15,10 @@ import edu.ie3.simona.model.participant.evcs.PredictionAndSchedulingUtils.TimeSt
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
-import java.time.{DayOfWeek, ZonedDateTime}
+import java.time.ZonedDateTime
 import javax.measure.Quantity
 import javax.measure.quantity.Dimensionless
+import scala.util.{Failure, Success, Try}
 
 object VoltagePrediction {
 
@@ -34,7 +36,7 @@ object VoltagePrediction {
     * @param voltage
     *   voltage for this time frame
     */
-  case class VoltageTimeTableEntry(
+  final case class VoltageTimeTableEntry(
       fromTimeStamp: TimeStamp,
       untilTimeStamp: TimeStamp,
       voltage: ComparableQuantity[Dimensionless]
@@ -49,14 +51,102 @@ object VoltagePrediction {
     * @param voltage
     *   predicted voltage in this time window
     */
-  case class PredictedVoltage(
+  final case class PredictedVoltage(
       start: ZonedDateTime,
       end: ZonedDateTime,
       voltage: ComparableQuantity[Dimensionless]
   )
 
-  private type VoltageReference =
-    (TimeStamp, (ComparableQuantity[Dimensionless], Int))
+  private type VoltageReference = (TimeStamp, ComparableQuantity[Dimensionless])
+
+  /** Get time windows with predicted voltage values for the relevant time until
+    * departure of the last EV based on the reference voltages in the voltage
+    * time table.
+    *
+    * @param currentTime
+    *   current time to know where to start in the voltage time table
+    * @param endTime
+    *   the end time (e.g. departure time of the last ev) until which time the
+    *   voltages are required (can be max 7 days ahead of current time)
+    * @param voltages
+    *   Map from wall-clock time to known voltages
+    * @param blurringTimeWindowLength
+    *   Length of the sliding window to use for blurring voltages
+    * @param voltageTimeBinResolution
+    *   Resolution to determine voltages per time bin in minutes
+    * @return
+    *   vector of predicted voltages with value and timeframe, ordered in time
+    */
+  def getPredictedVoltagesForRelevantTimeWindowBasedOnReferenceVoltages(
+      currentTime: ZonedDateTime,
+      endTime: ZonedDateTime,
+      voltages: Map[ZonedDateTime, ComparableQuantity[Dimensionless]],
+      blurringTimeWindowLength: Int = 3,
+      voltageTimeBinResolution: Int = voltageResolution
+  ): Try[Vector[PredictedVoltage]] = {
+    if (endTime.isAfter(currentTime.plusDays(7)))
+      throw new InvalidParameterException(
+        "Predicted voltages can currently only be created up to one week ahead of the current time"
+      )
+
+    calculateReferenceVoltageTimeTable(
+      voltages,
+      blurringTimeWindowLength,
+      voltageTimeBinResolution
+    ).map { voltageTimeTable =>
+      val currentTimeStamp =
+        TimeStamp(
+          currentTime.getDayOfWeek,
+          currentTime.getHour,
+          currentTime.getMinute
+        )
+
+      val currentVoltage = getVoltageTimeTableEntryThisTimeStampBelongsTo(
+        currentTimeStamp,
+        voltageTimeTable
+      )
+
+      /* The voltage prediction for the current time frame the current time belongs to has to be added first,
+       * afterwards the predictions until one week form current time are created based on the voltage time table.
+       */
+
+      PredictedVoltage(
+        currentTime, // .plusMinutes(currentTimeStamp.minutesUntil(currentVoltage.fromTimeStamp)),
+        currentTime
+          .plusMinutes(
+            currentTimeStamp.minutesUntil(currentVoltage.untilTimeStamp)
+          )
+          .minusSeconds(currentTime.getSecond),
+        currentVoltage.voltage
+      ) +: voltageTimeTable
+        /* entry that belongs to current time is added manually before, must be excluded here */
+        .filter(currentVoltage.fromTimeStamp != _.fromTimeStamp)
+        .foldLeft(Vector.empty[PredictedVoltage])(
+          (
+              timeTable: Vector[PredictedVoltage],
+              entry: VoltageTimeTableEntry
+          ) => {
+            timeTable :+ PredictedVoltage(
+              currentTime
+                .plusMinutes(
+                  currentTimeStamp.minutesUntil(entry.fromTimeStamp)
+                )
+                .minusSeconds(currentTime.getSecond),
+              currentTime
+                .plusMinutes(
+                  currentTimeStamp.minutesUntil(entry.untilTimeStamp)
+                )
+                .minusSeconds(currentTime.getSecond),
+              entry.voltage
+            )
+          }
+        )
+        .filter(_.start.isBefore(endTime))
+        .sortBy { case PredictedVoltage(start, _, _) =>
+          start
+        }
+    }
+  }
 
   /** Calculate a time table for a reference week based on the known voltages
     * from memory. The reference voltages are calculated on a defined minute
@@ -65,67 +155,56 @@ object VoltagePrediction {
     *
     * @param voltages
     *   known voltages from history
+    * @param blurringWindowLength
+    *   Length of the sliding window to use for blurring voltages
+    * @param voltageTimeBinResolution
+    *   Resolution to determine voltages per time bin in minutes
     * @return
     *   vector of time table entries including the voltage value and the
     *   timeframe
     */
-  def calculateReferenceVoltageTimeTable(
-      voltages: Map[ZonedDateTime, ComparableQuantity[Dimensionless]]
-  ): Vector[VoltageTimeTableEntry] = {
-
-    val voltageReferenceMap: Map[
-      TimeStamp,
-      (ComparableQuantity[Dimensionless], Int)
-    ] = voltages.foldLeft(
-      Map.empty: Map[
-        TimeStamp,
-        (ComparableQuantity[Dimensionless], Int)
-      ]
-    )(
-      (
-          referenceVoltages: Map[
-            TimeStamp,
-            (ComparableQuantity[Dimensionless], Int)
-          ],
-          voltage
-      ) => {
-
-        val day: DayOfWeek = voltage._1.getDayOfWeek
-        val hour: Int = voltage._1.getHour
-        val minute: Int =
-          voltage._1.getMinute - (voltage._1.getMinute % voltageResolution)
-
-        referenceVoltages.get(TimeStamp(day, hour, minute)) match {
-
-          case Some(entry) =>
-            /* There already is an entry. Update the entry with equal weighting */
-            val updatedNumberOfValues = entry._2 + 1
-            val updatedPrediction = entry._1
-              .multiply(entry._2)
-              .add(voltage._2)
-              .divide(updatedNumberOfValues)
-
-            referenceVoltages + (TimeStamp(
-              day,
-              hour,
-              minute
-            ) -> (updatedPrediction, updatedNumberOfValues))
-
-          case None =>
-            /* There is no entry yet. Add new entry */
-            referenceVoltages + (TimeStamp(
-              day,
-              hour,
-              minute
-            ) -> (voltage._2, 1))
-        }
-      }
-    )
+  private def calculateReferenceVoltageTimeTable(
+      voltages: Map[ZonedDateTime, ComparableQuantity[Dimensionless]],
+      blurringWindowLength: Int = 3,
+      voltageTimeBinResolution: Int = voltageResolution
+  ): Try[Vector[VoltageTimeTableEntry]] = {
+    val voltageReferenceMap =
+      averageVoltagesPerTimeStamp(voltages, voltageTimeBinResolution)
 
     /* Order voltage entries based on time stamp */
     val orderedVoltageReferenceMap = voltageReferenceMap.toVector.sortBy(_._1)
-    blurVoltages(orderedVoltageReferenceMap, 3).toVector
+    blurVoltages(orderedVoltageReferenceMap, blurringWindowLength).map(
+      _.toVector
+    )
   }
+
+  /** Determine the average voltage per time stamp / time bin. The time stamp,
+    * the voltages are averaged for, is determined by the voltage resolution in
+    * minutes.
+    *
+    * @param voltages
+    *   Mapping from zoned date time to voltage value
+    * @param timeBinResolution
+    *   Resolution of averaging time bin
+    * @return
+    *   A mapping from time bin to average voltage magnitude
+    */
+  private def averageVoltagesPerTimeStamp(
+      voltages: Map[ZonedDateTime, ComparableQuantity[Dimensionless]],
+      timeBinResolution: Int
+  ): Map[TimeStamp, ComparableQuantity[Dimensionless]] = voltages
+    .groupBy { case (zdt, _) =>
+      val day = zdt.getDayOfWeek
+      val hour = zdt.getHour
+      val minute =
+        zdt.getMinute - (zdt.getMinute % timeBinResolution)
+      TimeStamp(day, hour, minute)
+    }
+    .map { case (timeStamp, zdtToVoltage) =>
+      /* Determine the average per time stamp */
+      timeStamp -> mean(zdtToVoltage.values.toSeq)
+        .getOrElse(Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE))
+    }
 
   /** Blur voltages and build equivalent [[VoltageTimeTableEntry]]s
     *
@@ -139,17 +218,16 @@ object VoltagePrediction {
   private def blurVoltages(
       orderedVoltageReferences: Seq[VoltageReference],
       windowLength: Int
-  ): Seq[VoltageTimeTableEntry] =
-    enhanceVoltageReferences(orderedVoltageReferences, windowLength)
-      .sliding(windowLength)
-      .map { slidingWindow =>
+  ): Try[Seq[VoltageTimeTableEntry]] =
+    enhanceVoltageReferences(orderedVoltageReferences, windowLength).map {
+      _.sliding(windowLength).map { slidingWindow =>
         val lastTwo = slidingWindow.slice(windowLength - 2, windowLength)
         lastTwo.headOption
           .flatMap(head => lastTwo.lastOption.map((head, _)))
           .map { case ((startTime, _), (endTime, _)) =>
             (startTime, endTime)
           }
-          .zip(mean(slidingWindow.map { case (_, (quantity, _)) =>
+          .zip(mean(slidingWindow.map { case (_, quantity) =>
             quantity
           })) match {
           case Some(((startTime, endTime), mean)) =>
@@ -159,8 +237,8 @@ object VoltagePrediction {
               s"Unable to build blurred values for sliding window '$slidingWindow'."
             )
         }
-      }
-      .toSeq
+      }.toSeq
+    }
 
   /** Pre- and append entries to the voltage references to ensure proper
     * blurring afterwards
@@ -175,23 +253,24 @@ object VoltagePrediction {
   private def enhanceVoltageReferences(
       orderedVoltageReferences: Seq[VoltageReference],
       windowLength: Int
-  ): Seq[VoltageReference] = {
+  ): Try[Seq[VoltageReference]] = {
     val neededAmount =
       windowLength - 2 // The value always apply for the time stamp and the successor (2 time stamps)
-    val tail = orderedVoltageReferences.slice(
-      orderedVoltageReferences.length - neededAmount,
-      orderedVoltageReferences.length
-    )
-    if (tail.length < neededAmount)
-      throw PredictionException(
-        "Unable to determine sliding window. Window length too long."
+    if (orderedVoltageReferences.length < neededAmount) {
+      Failure(
+        PredictionException(
+          s"Cannot enhance the voltage references, as they are too short in general. Needed length: $neededAmount, actual length: ${orderedVoltageReferences.size}"
+        )
       )
-    val head = orderedVoltageReferences.slice(0, neededAmount)
-    if (head.length < neededAmount)
-      throw PredictionException(
-        "Unable to determine sliding window. Window length too long."
-      )
-    tail ++ orderedVoltageReferences ++ head
+    } else
+      Try {
+        val tail = orderedVoltageReferences.slice(
+          orderedVoltageReferences.length - neededAmount,
+          orderedVoltageReferences.length
+        )
+        val head = orderedVoltageReferences.slice(0, neededAmount)
+        tail ++ orderedVoltageReferences ++ head
+      }
   }
 
   /** Determine the mean of a given sequence of quantities
@@ -213,81 +292,6 @@ object VoltagePrediction {
         .divide(quantities.length)
     }
 
-  /** Get time windows with predicted voltage values for the relevant time until
-    * departure of the last EV based on the reference voltages in the voltage
-    * time table.
-    *
-    * @param currentTime
-    *   current time to know where to start in the voltage time table
-    * @param endTime
-    *   the end time (e.g. departure time of the last ev) until which time the
-    *   voltages are required (can be max 7 days ahead of current time)
-    * @param voltageTimeTable
-    *   the voltage time table with reference values for a whole week
-    * @return
-    *   vector of predicted voltages with value and timeframe, ordered in time
-    */
-  def getPredictedVoltagesForRelevantTimeWindowBasedOnReferenceVoltages(
-      currentTime: ZonedDateTime,
-      endTime: ZonedDateTime,
-      voltageTimeTable: Vector[VoltageTimeTableEntry]
-  ): Vector[PredictedVoltage] = {
-
-    if (endTime.isAfter(currentTime.plusDays(7)))
-      throw new InvalidParameterException(
-        "Predicted voltages can currently only be created up to one week ahead of the current time"
-      )
-
-    val currentTimeStamp =
-      TimeStamp(
-        currentTime.getDayOfWeek,
-        currentTime.getHour,
-        currentTime.getMinute
-      )
-
-    val currentVoltage = getVoltageTimeTableEntryThisTimeStampBelongsTo(
-      currentTimeStamp,
-      voltageTimeTable
-    )
-
-    /* The voltage prediction for the current time frame the current time belongs to has to be added first,
-     * afterwards the predictions until one week form current time are created based on the voltage time table.
-     */
-
-    PredictedVoltage(
-      currentTime, // .plusMinutes(currentTimeStamp.minutesUntil(currentVoltage.fromTimeStamp)),
-      currentTime
-        .plusMinutes(
-          currentTimeStamp.minutesUntil(currentVoltage.untilTimeStamp)
-        )
-        .minusSeconds(currentTime.getSecond),
-      currentVoltage.voltage
-    ) +: voltageTimeTable
-      /* entry that belongs to current time is added manually before, must be excluded here */
-      .filter(currentVoltage.fromTimeStamp != _.fromTimeStamp)
-      .foldLeft(Vector.empty[PredictedVoltage])(
-        (timeTable: Vector[PredictedVoltage], entry: VoltageTimeTableEntry) => {
-          timeTable :+ PredictedVoltage(
-            currentTime
-              .plusMinutes(
-                currentTimeStamp.minutesUntil(entry.fromTimeStamp)
-              )
-              .minusSeconds(currentTime.getSecond),
-            currentTime
-              .plusMinutes(
-                currentTimeStamp.minutesUntil(entry.untilTimeStamp)
-              )
-              .minusSeconds(currentTime.getSecond),
-            entry.voltage
-          )
-        }
-      )
-      .filter(_.start.isBefore(endTime))
-      .sortBy { case PredictedVoltage(start, _, _) =>
-        start
-      }
-  }
-
   /** Find and return the voltage time table entry that belongs to a specific
     * time stamp. The time stamp must therefore be between the start and end
     * time stamp of the voltage time table entry.
@@ -302,28 +306,13 @@ object VoltagePrediction {
   private def getVoltageTimeTableEntryThisTimeStampBelongsTo(
       timeStamp: TimeStamp,
       voltageTimeTable: Vector[VoltageTimeTableEntry]
-  ): VoltageTimeTableEntry = {
-
-    val it = voltageTimeTable.iterator
-    while (it.hasNext) {
-      val entry: VoltageTimeTableEntry = it.next()
-      if (timeStamp.isBetween(entry.fromTimeStamp, entry.untilTimeStamp))
-        return entry
+  ): VoltageTimeTableEntry = voltageTimeTable
+    .find { case VoltageTimeTableEntry(fromTimeStamp, untilTimeStamp, _) =>
+      timeStamp.isBetween(fromTimeStamp, untilTimeStamp)
     }
-    throw new InvalidParameterException(
-      "This shouldn't happen, the voltage time table must " +
-        "cover all possible time stamps."
-    )
-
-    /*
-    voltageTimeTable.foldLeft(None: Option[VoltageTimeTableEntry])(
-      (result: Option[VoltageTimeTableEntry], entry: VoltageTimeTableEntry) => {
-        if (timeStamp.isBetween(entry.fromTimeStamp, entry.toTimeStamp)) {
-          Some(entry)
-        } else result
-      }
-    )
-     */
-  }
-
+    .getOrElse {
+      throw new InvalidParameterException(
+        "This shouldn't happen, the voltage time table must cover all possible time stamps."
+      )
+    }
 }
