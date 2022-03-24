@@ -153,7 +153,7 @@ trait PVModelITHelper {
 					inputModel.getAlbedo(),
 					inputModel.getEtaConv(),
 					inputModel.getAzimuth(),
-					inputModel.getHeight(),
+					inputModel.getElevationAngle(),
 					getQuantity(1d, SQUARE_METRE)
 					)
 
