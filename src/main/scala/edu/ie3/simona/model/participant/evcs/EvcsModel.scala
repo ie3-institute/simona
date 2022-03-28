@@ -352,28 +352,73 @@ final case class EvcsModel(
       .values
       .maxOption
       .getOrElse(Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE))
-    Await.result(
-      Future.sequence {
-        data.currentEvs.map {
-          /* If there is a schedule apparent, apply it, otherwise hand back no results */
-          applyScheduleToEv(
-            _,
-            data,
-            lastSchedulingTick,
-            currentTick,
-            startTime,
-            voltage
-          )
-        }
-      },
-      Duration("1h")
-    )
+
+    /* Prepare grouping for parallel handling */
+    val degreeOfParallelism = Runtime.getRuntime.availableProcessors()
+    val groupSize = math.max(data.currentEvs.size / degreeOfParallelism, 1)
+    Await
+      .result(
+        Future.sequence {
+          data.currentEvs
+            .grouped(groupSize)
+            .map(
+              applyScheduleToEvs(
+                _,
+                data,
+                lastSchedulingTick,
+                currentTick,
+                startTime,
+                voltage
+              )
+            )
+        },
+        Duration("1h")
+      )
+      .flatten
+      .toSet
   } else {
     logger.debug(
       "There are EVs parked at this charging station, but there was no scheduling since the last" +
         "update. Probably the EVs already finished charging."
     )
     data.currentEvs.map { ev => (ev, Vector.empty) }
+  }
+
+  /** Apply given schedules to a group of electric vehicles
+    *
+    * @param evs
+    *   Collection of vehicles
+    * @param relevantData
+    *   Data, that is relevant for calculation
+    * @param lastSchedulingTick
+    *   Simulation time, when the last schedule has been applied
+    * @param currentTick
+    *   Current simulation time
+    * @param startTime
+    *   Wall-clock time of the simulation start
+    * @param voltage
+    *   Voltage magnitude of the connection node
+    * @return
+    *   Future onto a set of updated ev and ev results
+    */
+  private def applyScheduleToEvs(
+      evs: Set[EvModel],
+      relevantData: EvcsRelevantData,
+      lastSchedulingTick: Long,
+      currentTick: Long,
+      startTime: ZonedDateTime,
+      voltage: ComparableQuantity[Dimensionless]
+  ): Future[Set[(EvModel, Vector[EvResult])]] = Future {
+    evs.map {
+      applyScheduleToEv(
+        _,
+        relevantData,
+        lastSchedulingTick,
+        currentTick,
+        startTime,
+        voltage
+      )
+    }
   }
 
   /** Fish for the schedule, that applies for the concrete ev and apply it.
@@ -400,7 +445,7 @@ final case class EvcsModel(
       currentTick: Long,
       startTime: ZonedDateTime,
       voltage: ComparableQuantity[Dimensionless]
-  ): Future[(EvModel, Vector[EvResult])] = relevantData
+  ): (EvModel, Vector[EvResult]) = relevantData
     .getSchedule(ev)
     .map {
       chargeEv(
@@ -412,7 +457,7 @@ final case class EvcsModel(
         voltage
       )
     }
-    .getOrElse(Future(ev -> Vector.empty))
+    .getOrElse(ev -> Vector.empty)
 
   /** Charge the given EV under consideration a applicable schedule
     *
@@ -439,7 +484,7 @@ final case class EvcsModel(
       currentTick: Long,
       simulationStart: ZonedDateTime,
       voltageMagnitude: ComparableQuantity[Dimensionless]
-  ): Future[(EvModel, Vector[EvResult])] = Future {
+  ): (EvModel, Vector[EvResult]) = {
     /* Determine charged energy in the charging interval */
     val (chargedEnergySinceLastScheduling, evResults) =
       chargedEnergy(
