@@ -737,7 +737,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               csvParams,
               "CsvGridData"
             )
-          }.getMessage shouldBe "The provided folderPath for .csv-files '' for 'CsvGridData' configuration is invalid! Please correct the path!"
+          }.getMessage shouldBe "The provided directoryPath for .csv-files '' for 'CsvGridData' configuration is invalid! Please correct the path!"
         }
 
         "identify a non-existing path" in {
@@ -749,7 +749,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               csvParams,
               "CsvGridData"
             )
-          }.getMessage shouldBe "The provided folderPath for .csv-files 'somewhere/else' for 'CsvGridData' configuration is invalid! Please correct the path!"
+          }.getMessage shouldBe "The provided directoryPath for .csv-files 'somewhere/else' for 'CsvGridData' configuration is invalid! Please correct the path!"
         }
 
         "identify a path pointing to a file" in {
@@ -764,7 +764,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               csvParams,
               "CsvGridData"
             )
-          }.getMessage shouldBe "The provided folderPath for .csv-files 'inputData/common/akka.conf' for 'CsvGridData' configuration is invalid! Please correct the path!"
+          }.getMessage shouldBe "The provided directoryPath for .csv-files 'inputData/common/akka.conf' for 'CsvGridData' configuration is invalid! Please correct the path!"
         }
 
         "let valid csv parameters pass" in {
