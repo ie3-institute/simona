@@ -52,9 +52,9 @@ import java.time.temporal.ChronoUnit
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Energy, Power}
 import scala.annotation.tailrec
-import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.concurrent.duration.Duration
+import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
+import scala.collection.parallel.CollectionConverters._
 
 /** EV charging station model
   *
@@ -244,90 +244,6 @@ final case class EvcsModel(
     results.filter(_._1 >= lastUpdateTick).filter(_._1 < requestTick)
   }
 
-  /** Update EVs for the timeframe since the last scheduling.
-    * @param currentTick
-    *   current tick
-    * @param data
-    *   data containing the scheduling
-    * @return
-    *   updated EVs
-    */
-  def updateEvsAccordingToScheduling(
-      currentTick: Long,
-      lastSchedulingTick: Long,
-      data: EvcsRelevantData
-  ): Set[EvModel] = {
-
-    if (data.currentEvs.isEmpty) {
-      Set.empty
-    } else {
-
-      if (data.schedule.nonEmpty) {
-        data.currentEvs.map { ev =>
-          val schedulingForThisEv = data.schedule
-            .getOrElse(ev, None)
-            .map(_.schedule)
-            .getOrElse(Set.empty[ChargingSchedule.Entry])
-
-          /* Determine charged energy in the charging interval */
-          val chargedEnergySinceLastScheduling: ComparableQuantity[Energy] =
-            schedulingForThisEv.foldLeft(
-              Quantities.getQuantity(0, KILOWATTHOUR)
-            )(
-              (
-                  chargedEnergy,
-                  scheduleEntry
-              ) => {
-                /* FIXME: Duplicate to this#updateEvsAccordingToSchedulingAndCalculateChargingPricesAsEvResults */
-                /* Only the timeframe from the start of last scheduling update and current tick must be considered */
-                val limitedScheduleEntryStart = {
-                  math.max(scheduleEntry.tickStart, lastSchedulingTick)
-                }
-                val limitedScheduleEntryStop =
-                  math.min(scheduleEntry.tickStop, currentTick)
-
-                val chargedEnergyInThisScheduleEntry
-                    : ComparableQuantity[Energy] = {
-                  /* if schedule entry is not in the future and not in the past (past shouldn't happen anyway) */
-                  if (
-                    scheduleEntry.tickStart < currentTick
-                    && scheduleEntry.tickStop >= lastSchedulingTick
-                  ) {
-                    scheduleEntry.chargingPower
-                      .multiply(
-                        Quantities.getQuantity(
-                          (limitedScheduleEntryStop - limitedScheduleEntryStart).toDouble,
-                          SECOND
-                        )
-                      )
-                      .asType(classOf[Energy])
-                      .to(KILOWATTHOUR)
-                  } else {
-                    zeroKWH
-                  }
-                }
-
-                chargedEnergy.add(
-                  chargedEnergyInThisScheduleEntry
-                )
-              }
-            )
-
-          /* Update EV with the charged energy during the charging interval */
-          ev.copyWith(
-            ev.getStoredEnergy.add(chargedEnergySinceLastScheduling)
-          )
-        }
-      } else {
-        logger.info(
-          "There are EVs parked at this charging station, but there was no scheduling since the last" +
-            "update. Probably the EVs already finished charging."
-        )
-        data.currentEvs
-      }
-    }
-  }
-
   /** Update EVs for the timeframe since the last scheduling and calculate
     * equivalent results
     *
@@ -353,72 +269,25 @@ final case class EvcsModel(
       .maxOption
       .getOrElse(Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE))
 
-    /* Prepare grouping for parallel handling */
-    val degreeOfParallelism = Runtime.getRuntime.availableProcessors()
-    val groupSize = math.max(data.currentEvs.size / degreeOfParallelism, 1)
-    Await
-      .result(
-        Future.sequence {
-          data.currentEvs
-            .grouped(groupSize)
-            .map(
-              applyScheduleToEvs(
-                _,
-                data,
-                lastSchedulingTick,
-                currentTick,
-                startTime,
-                voltage
-              )
-            )
-        },
-        Duration("1h")
+    /* Apply schedules asynchronously */
+    data.currentEvs.par
+      .map(
+        applyScheduleToEv(
+          _,
+          data,
+          lastSchedulingTick,
+          currentTick,
+          startTime,
+          voltage
+        )
       )
-      .flatten
-      .toSet
+      .seq
   } else {
     logger.debug(
       "There are EVs parked at this charging station, but there was no scheduling since the last" +
         "update. Probably the EVs already finished charging."
     )
     data.currentEvs.map { ev => (ev, Vector.empty) }
-  }
-
-  /** Apply given schedules to a group of electric vehicles
-    *
-    * @param evs
-    *   Collection of vehicles
-    * @param relevantData
-    *   Data, that is relevant for calculation
-    * @param lastSchedulingTick
-    *   Simulation time, when the last schedule has been applied
-    * @param currentTick
-    *   Current simulation time
-    * @param startTime
-    *   Wall-clock time of the simulation start
-    * @param voltage
-    *   Voltage magnitude of the connection node
-    * @return
-    *   Future onto a set of updated ev and ev results
-    */
-  private def applyScheduleToEvs(
-      evs: Set[EvModel],
-      relevantData: EvcsRelevantData,
-      lastSchedulingTick: Long,
-      currentTick: Long,
-      startTime: ZonedDateTime,
-      voltage: ComparableQuantity[Dimensionless]
-  ): Future[Set[(EvModel, Vector[EvResult])]] = Future {
-    evs.map {
-      applyScheduleToEv(
-        _,
-        relevantData,
-        lastSchedulingTick,
-        currentTick,
-        startTime,
-        voltage
-      )
-    }
   }
 
   /** Fish for the schedule, that applies for the concrete ev and apply it.
