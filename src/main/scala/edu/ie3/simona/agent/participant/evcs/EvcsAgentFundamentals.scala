@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant.evcs
 
 import akka.actor.{ActorRef, FSM}
+import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.result.system.{
   EvResult,
@@ -39,7 +40,10 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException
 }
-import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsRelevantData
+import edu.ie3.simona.model.participant.evcs.EvcsModel.{
+  EvcsRelevantData,
+  PowerEntry
+}
 import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvcsModel}
 import edu.ie3.simona.ontology.messages.PowerMessage.AssetPowerChangedMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage.{
@@ -52,10 +56,11 @@ import edu.ie3.simona.ontology.messages.services.EvMessage.{
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.Dimensionless
+import javax.measure.quantity.{Dimensionless, Power}
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.reflect.{ClassTag, classTag}
 
@@ -437,14 +442,14 @@ protected trait EvcsAgentFundamentals
 
     /* Update EV models according to the scheduling determined at last EvMovements Event and get EvResults
      * including charging costs */
-    val (updatedEvs, evResults) = evcsModel
+    val (updatedEvs, evResults, powerEntries) = evcsModel
       .applySchedule(
         currentTick,
         modelBaseStateData.startDate,
         lastSchedulingTick,
         relevantDataForEvUpdates
       )
-      .unzip
+      .unzip3
 
     /* Write ev results after charging to csv */
     announceEvResultsToListeners(evResults)
@@ -466,8 +471,10 @@ protected trait EvcsAgentFundamentals
             EvcsRelevantData,
             EvcsModel
           ] =>
-        calculatePowerSinceLastEventUpdateResultValueStoreAndInformListeners(
+        determineResultsAnnounceUpdateValueStore(
+          powerEntries.flatten,
           currentTick,
+          lastSchedulingTick,
           modelBaseStateData
         )
       case _ =>
@@ -796,6 +803,89 @@ protected trait EvcsAgentFundamentals
 
   }
 
+  /** Determine evcs results according to DEVS logic (in each tick, where
+    * something relevant happens), announce them to listeners and update the
+    * result value store.
+    *
+    * @param powerEntries
+    *   Set of [[PowerEntry]]s determined, while applying the schedule to each
+    *   ev
+    * @param requestTick
+    *   Tick, where the result is requested
+    * @param lastSchedulingTick
+    *   Last tick, when a schedule has been applied
+    * @param modelBaseStateData
+    *   Model base state data
+    * @return
+    *   The updated result value store
+    */
+  private def determineResultsAnnounceUpdateValueStore(
+      powerEntries: Set[PowerEntry],
+      requestTick: Long,
+      lastSchedulingTick: Long,
+      modelBaseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsModel
+      ]
+  ): ValueStore[ApparentPower] = {
+    val start = System.currentTimeMillis()
+    /* Power updates are already in the resultValueStore until the tick of the last event. Determine this tick to
+     * know from where on new updates need to be written into the value store. This tick is either from the last update
+     * of the calcRelevantDataStore (= EvMovements Event) or requestValueStore (= Power Request).
+     */
+    val lastUpdateTick = math.max(
+      lastSchedulingTick,
+      modelBaseStateData.requestValueStore
+        .lastKnownTick(requestTick - 1)
+        .getOrElse(0L)
+    )
+
+    /* Get applicable power values */
+    val filteredPowerEntries = powerEntries.filter {
+      case PowerEntry(start, end, _) =>
+        end >= lastUpdateTick && start <= requestTick
+    }
+
+    val tickToApparentPower =
+      filteredPowerEntries.map(_.start).toSeq.distinct.sorted.map { tick =>
+        /* An power entry might start before the actual time frame of interest, thereby correct this */
+        val powerTick = math.max(tick, lastUpdateTick)
+        val power = filteredPowerEntries
+          .filter { case PowerEntry(start, end, _) =>
+            tick >= start && tick < end
+          }
+          .map { case PowerEntry(_, _, power) =>
+            (power.p, power.q)
+          }
+          .foldLeft(
+            Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
+            Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT)
+          ) { case ((p, q), (currentP, currentQ)) =>
+            (p.add(currentP), q.add(currentQ))
+          } match {
+          case (p, q) => ApparentPower(p, q)
+        }
+        powerTick -> power
+      }
+
+    tickToApparentPower.foldLeft(modelBaseStateData.resultValueStore) {
+      case (resultValueStore, (tick, apparentPower)) =>
+        /* Inform the listeners about new result */
+        announceSimulationResult(
+          modelBaseStateData,
+          tick,
+          apparentPower
+        )(modelBaseStateData.outputConfig)
+        /* Update resultValueStore with result */
+        ValueStore.updateValueStore(
+          resultValueStore,
+          tick,
+          apparentPower
+        )
+    }
+  }
+
   /** Calculate the power changes since the last update, which either happened
     * at a power request or at EV movements update.
     * @param requestTick
@@ -806,6 +896,9 @@ protected trait EvcsAgentFundamentals
     *   updated result value store with added power changes since the last
     *   request
     */
+  @deprecated(
+    "Seems to be inefficient. Use 'determineResultsAnnounceUpdateValueStore' instead, if applicable."
+  )
   private def calculatePowerSinceLastEventUpdateResultValueStoreAndInformListeners(
       requestTick: Long,
       modelBaseStateData: ParticipantModelBaseStateData[

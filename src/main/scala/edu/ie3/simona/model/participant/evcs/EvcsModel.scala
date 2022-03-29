@@ -17,7 +17,8 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   ChargingStrategy,
-  EvcsRelevantData
+  EvcsRelevantData,
+  PowerEntry
 }
 import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedCurrentPrice.calculateCurrentPriceGridOriented
 import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedCharging
@@ -259,7 +260,9 @@ final case class EvcsModel(
       startTime: ZonedDateTime,
       lastSchedulingTick: Long,
       data: EvcsRelevantData
-  ): Set[(EvModel, Vector[EvResult])] = if (data.schedule.nonEmpty) {
+  ): Set[(EvModel, Vector[EvResult], Vector[PowerEntry])] = if (
+    data.schedule.nonEmpty
+  ) {
     val currentTime = startTime.plusSeconds(currentTick)
     val voltage = data.voltages
       .filter { case (time, _) =>
@@ -287,7 +290,7 @@ final case class EvcsModel(
       "There are EVs parked at this charging station, but there was no scheduling since the last" +
         "update. Probably the EVs already finished charging."
     )
-    data.currentEvs.map { ev => (ev, Vector.empty) }
+    data.currentEvs.map { ev => (ev, Vector.empty, Vector.empty) }
   }
 
   /** Fish for the schedule, that applies for the concrete ev and apply it.
@@ -314,7 +317,7 @@ final case class EvcsModel(
       currentTick: Long,
       startTime: ZonedDateTime,
       voltage: ComparableQuantity[Dimensionless]
-  ): (EvModel, Vector[EvResult]) = relevantData
+  ): (EvModel, Vector[EvResult], Vector[PowerEntry]) = relevantData
     .getSchedule(ev)
     .map {
       chargeEv(
@@ -326,7 +329,7 @@ final case class EvcsModel(
         voltage
       )
     }
-    .getOrElse(ev -> Vector.empty)
+    .getOrElse(ev, Vector.empty, Vector.empty)
 
   /** Charge the given EV under consideration a applicable schedule
     *
@@ -353,9 +356,9 @@ final case class EvcsModel(
       currentTick: Long,
       simulationStart: ZonedDateTime,
       voltageMagnitude: ComparableQuantity[Dimensionless]
-  ): (EvModel, Vector[EvResult]) = {
+  ): (EvModel, Vector[EvResult], Vector[PowerEntry]) = {
     /* Determine charged energy in the charging interval */
-    val (chargedEnergySinceLastScheduling, evResults) =
+    val (chargedEnergySinceLastScheduling, evResults, powerEntries) =
       chargedEnergy(
         ev,
         schedule,
@@ -370,7 +373,8 @@ final case class EvcsModel(
       ev.copyWith(
         ev.getStoredEnergy.add(chargedEnergySinceLastScheduling)
       ),
-      evResults
+      evResults,
+      powerEntries
     )
   }
 
@@ -399,7 +403,7 @@ final case class EvcsModel(
       currentTick: Long,
       simulationStart: ZonedDateTime,
       voltageMagnitude: ComparableQuantity[Dimensionless]
-  ): (ComparableQuantity[Energy], Vector[EvResult]) =
+  ): (ComparableQuantity[Energy], Vector[EvResult], Vector[PowerEntry]) =
     schedule.schedule.toSeq
       .filter { case ChargingSchedule.Entry(tickStart, tickStop, _) =>
         /* Filter for entries, that end after the last schedule application (that slice is not yet fully applied)
@@ -410,9 +414,10 @@ final case class EvcsModel(
       .foldLeft(
         (
           Quantities.getQuantity(0, KILOWATTHOUR),
-          Vector.empty[EvResult]
+          Vector.empty[EvResult],
+          Vector.empty[PowerEntry]
         )
-      ) { case ((accumulatedEnergy, results), scheduleEntry) =>
+      ) { case ((accumulatedEnergy, results, powerEntries), scheduleEntry) =>
         /* Only the timeframe from the start of last scheduling update and current tick must be considered */
         val (chargingWindowStart, chargingWindowEnd) =
           actualChargingWindow(
@@ -437,6 +442,11 @@ final case class EvcsModel(
           scheduleEntry.chargingPower,
           voltageMagnitude
         )
+        val power = PowerEntry(
+          chargingWindowStart,
+          chargingWindowEnd,
+          ApparentPower(p, q)
+        )
         val soc = ev.getStoredEnergy
           .add(accumulatedEnergy)
           .divide(ev.getEStorage)
@@ -452,7 +462,8 @@ final case class EvcsModel(
         )
         (
           totalChargedEnergy,
-          results :+ result
+          results :+ result,
+          powerEntries :+ power
         )
       }
 
@@ -731,6 +742,17 @@ object EvcsModel {
     def getSchedule(ev: EvModel): Option[ChargingSchedule] =
       schedule.getOrElse(ev, None)
   }
+
+  /** Container class for apparent power
+    *
+    * @param start
+    *   Begin of the entry
+    * @param end
+    *   End of the entry
+    * @param power
+    *   apparent power
+    */
+  final case class PowerEntry(start: Long, end: Long, power: ApparentPower)
 
   def apply(
       inputModel: EvcsInput,
