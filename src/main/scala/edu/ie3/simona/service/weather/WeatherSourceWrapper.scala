@@ -238,7 +238,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       folderPath,
       new FileNamingStrategy(),
       idCoordinateSource,
-      buildFactory(timestampPattern, scheme)
+      buildFactory(scheme, timestampPattern)
     )
     logger.info(
       "Successfully initiated CsvWeatherSource as source for WeatherSourceWrapper."
@@ -269,7 +269,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       idCoordinateSourceFunction(),
       couchbaseParams.coordinateColumnName,
       couchbaseParams.keyPrefix,
-      buildFactory(timestampPattern, scheme)
+      buildFactory(scheme, timestampPattern)
     )
     logger.info(
       "Successfully initiated CouchbaseWeatherSource as source for WeatherSourceWrapper."
@@ -294,7 +294,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
     val source = new InfluxDbWeatherSource(
       influxDb1xConnector,
       idCoordinateSource,
-      buildFactory(timestampPattern, scheme)
+      buildFactory(scheme, timestampPattern)
     )
     logger.info(
       "Successfully initiated InfluxDbWeatherSource as source for WeatherSourceWrapper."
@@ -324,7 +324,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       idCoordinateSource,
       sqlParams.schemaName,
       sqlParams.tableName,
-      buildFactory(timestampPattern, scheme)
+      buildFactory(scheme, timestampPattern)
     )
     logger.info(
       "Successfully initiated SqlWeatherSource as source for WeatherSourceWrapper."
@@ -336,41 +336,22 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
     )
   }
 
-  private def buildFactory(timestampPattern: Option[String], scheme: String) = {
-    timestampPattern match {
-      case None => initWeatherFactory(scheme)
-      case Some(timeStampPattern) =>
-        initWeatherFactory(scheme, timeStampPattern)
-    }
-  }
-
-  private def initWeatherFactory(scheme: String) =
+  private def buildFactory(scheme: String, timestampPattern: Option[String]) =
     Try(WeatherScheme(scheme)) match {
-      case Failure(_) =>
+      case Failure(exception) =>
         throw new InitializationException(
           s"Error while initializing WeatherFactory for weather source wrapper: '$scheme' is not a weather scheme. Supported schemes:\n\t${WeatherScheme.values
-            .mkString("\n\t")}'"
-        )
-      case Success(WeatherScheme.ICON) => new IconTimeBasedWeatherValueFactory()
-      case Success(WeatherScheme.COSMO) =>
-        new CosmoTimeBasedWeatherValueFactory()
-      case Success(unknownScheme) =>
-        throw new InitializationException(
-          s"Error while initializing WeatherFactory for weather source wrapper: weather scheme '$unknownScheme' is not an expected input."
-        )
-    }
-
-  private def initWeatherFactory(scheme: String, timeStampPattern: String) =
-    Try(WeatherScheme(scheme)) match {
-      case Failure(_) =>
-        throw new InitializationException(
-          s"Error while initializing WeatherFactory for weather source wrapper: '$scheme' is not a weather scheme. Supported schemes:\n\t${WeatherScheme.values
-            .mkString("\n\t")}'"
+            .mkString("\n\t")}'",
+          exception
         )
       case Success(WeatherScheme.ICON) =>
-        new IconTimeBasedWeatherValueFactory(timeStampPattern)
+        timestampPattern
+          .map(new IconTimeBasedWeatherValueFactory(_))
+          .getOrElse(new IconTimeBasedWeatherValueFactory())
       case Success(WeatherScheme.COSMO) =>
-        new CosmoTimeBasedWeatherValueFactory(timeStampPattern)
+        timestampPattern
+          .map(new CosmoTimeBasedWeatherValueFactory(_))
+          .getOrElse(new CosmoTimeBasedWeatherValueFactory())
       case Success(unknownScheme) =>
         throw new InitializationException(
           s"Error while initializing WeatherFactory for weather source wrapper: weather scheme '$unknownScheme' is not an expected input."

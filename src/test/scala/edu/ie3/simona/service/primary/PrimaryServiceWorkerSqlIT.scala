@@ -85,7 +85,7 @@ class PrimaryServiceWorkerSqlIT
 
   "A primary service actor with SQL source" should {
     "initialize and send out data when activated" in {
-      val scheduler = TestProbe("scheduler")
+      val scheduler = TestProbe("Scheduler")
 
       val cases = Table(
         (
@@ -161,7 +161,7 @@ class PrimaryServiceWorkerSqlIT
             CompletionMessage(
               triggerId1,
               Some(
-                List(
+                Seq(
                   ScheduleTriggerMessage(
                     ActivityStartTrigger(firstTick),
                     serviceRef
