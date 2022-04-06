@@ -1,0 +1,68 @@
+@startuml
+title Use Case Optimize Self Consumption \n Existing: LoadAgent, PV \n Missing: HomeStorage, EV
+participant HEMS
+group init
+LoadAgent -> HEMS: Demand
+PVAgent -> HEMS: PVInput
+end
+alt#Gold #LightBlue Load <= Production
+    HEMS -> GridAgent: Feed-in into grid
+else #Pink Load > Production
+    HEMS -> GridAgent: Power demand from grid
+end
+
+newpage Use Case Optimize Self Consumption \n Existing: LoadAgent, HomeStorage, PV \n Missing: EV
+group init
+LoadAgent -> HEMS: Demand
+PVAgent -> HEMS: PVInput
+HomeStorage -> HEMS: SoC
+end
+group#Gold #LightBlue Load <= Production
+    alt#Gold #LightBlue HomeStorage < 1
+    HEMS -> HomeStorage: Charge HomeStorage
+    else #Pink HomeStorage Soc = 1
+    HEMS -> GridAgent: Feed-in into grid
+    end
+else #Pink Load > Production
+    alt#Gold #LightBlue HomeStorage > 0
+    HEMS -> HomeStorage: Uncharge HomeStorage
+    else #Pink HomeStorage = 0
+    HEMS -> GridAgent: Power demand
+end
+end
+
+newpage Use Case Optimize Self Consumption \n Existing: LoadAgent, HomeStorage, PV, EV \n Missing: -
+group init
+LoadAgent -> HEMS: Demand
+PVAgent -> HEMS: PVInput
+EvcsAgent1 -> HEMS: SoC, Demand, FlexibilityOffer
+HomeStorage -> HEMS: SoC
+end
+group#Gold #LightBlue Load <= Production
+    group to be discussed
+    HEMS -> HEMS: a. Charge EV before HomeStorage \n b. first HomeStorage then EV \n c. both at same time?
+        end
+    alt#Gold #LightBlue EV Soc< 1
+    HEMS -> EvcsAgent1: Charge EV
+    else #Pink EV SoC = 1
+        alt#Gold #LightBlue HomeStorage SoC < 1
+            HEMS -> HomeStorage: Charge HomeStorage
+        else #Pink HomeStorage Soc = 1
+            HEMS -> GridAgent: Feed in to grid
+        end
+    end
+
+else #Pink Load > Production
+    group to be discussed
+    HEMS -> HEMS: General approach:\n Uncharge HEMS before Uncharge EV
+    HEMS -> HEMS: Charge Car?\n 1. Simple: no. \n 2. Fullfill charging demand of car as normal \n 3. Check weather forecast for charging car?
+    HEMS -> HEMS: Uncharge Car?\n 1. Simple: no \n 2. Check driving demand or level and uncharge still SoC X \n 3. Weather forecast and optimal solution
+    end
+    alt#Gold #LightBlue HomeStorage SoC > 0
+    HEMS -> HomeStorage: Uncharge HomeStorage
+    else #Pink HomeStorage SoC = 0
+    HEMS-> GridAgent: Power demand
+    end
+end
+
+@enduml
