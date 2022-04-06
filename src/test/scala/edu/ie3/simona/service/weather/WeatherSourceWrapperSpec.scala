@@ -155,6 +155,18 @@ class WeatherSourceWrapperSpec extends UnitSpec {
   }
 
   "Handling the weighted weather" when {
+    "adding to the weight sum" should {
+      "produce correct results" in {
+        val weightSum = WeightSum(0.1d, 0.2d, 0.3d, 0.4d)
+        val weightSumAdded = weightSum.add(0.2d, 0.3d, 0.4d, 0.5d)
+
+        weightSumAdded.diffIrr should ===(0.3d +- 1e-10)
+        weightSumAdded.dirIrr should ===(0.5d +- 1e-10)
+        weightSumAdded.temp should ===(0.7d +- 1e-10)
+        weightSumAdded.windVel should ===(0.9d +- 1e-10)
+      }
+    }
+
     "scaling the weighted attributes with the sum of weights" should {
       "calculate proper information on proper input" in {
         val weatherSeq = Seq(
@@ -170,7 +182,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
           (0.35, 0.2, 0.3, 0.45)
         )
 
-        val (_, weightedWeather, weightSum) =
+        val (weightedWeather, weightSum) =
           prepareWeightTestData(weatherSeq, weights)
 
         weightSum.scale(weightedWeather) match {
@@ -211,7 +223,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
         (0.35, 0.2, 0d, 0.45)
       )
 
-      val (_, weightedWeather, weightSum) =
+      val (weightedWeather, weightSum) =
         prepareWeightTestData(weatherSeq, weights)
 
       weightSum.scale(weightedWeather) match {
@@ -234,7 +246,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
         (0.35, 0.2, 0.3, 0.45)
       )
 
-      val (_, weightedWeather, weightSum) =
+      val (weightedWeather, weightSum) =
         prepareWeightTestData(weatherSeq, weights)
 
       weightSum.scale(weightedWeather) match {
@@ -243,6 +255,33 @@ class WeatherSourceWrapperSpec extends UnitSpec {
             Quantities
               .getQuantity(290d, Units.KELVIN)
               .to(StandardUnits.TEMPERATURE)
+          )
+      }
+    }
+
+    "correctly calculate scaled properties if provided with varying weight components" in {
+      val weatherData = WeatherData(
+        Quantities.getQuantity(1.0, StandardUnits.SOLAR_IRRADIANCE),
+        Quantities.getQuantity(1.0, StandardUnits.SOLAR_IRRADIANCE),
+        Quantities.getQuantity(1.0, Units.KELVIN),
+        Quantities.getQuantity(1.0, StandardUnits.WIND_VELOCITY)
+      )
+      val weightSum = WeightSum(0.25, 0.5, 0.8, 1.0)
+
+      weightSum.scale(weatherData) match {
+        case WeatherData(diffIrr, dirIrr, temp, windVel) =>
+          diffIrr should equalWithTolerance(
+            Quantities.getQuantity(4.0, StandardUnits.SOLAR_IRRADIANCE)
+          )
+          dirIrr should equalWithTolerance(
+            Quantities.getQuantity(2.0, StandardUnits.SOLAR_IRRADIANCE)
+          )
+          temp should equalWithTolerance(
+            Quantities
+              .getQuantity(1.25, Units.KELVIN)
+          )
+          windVel should equalWithTolerance(
+            Quantities.getQuantity(1.0, StandardUnits.WIND_VELOCITY)
           )
       }
     }
@@ -371,10 +410,20 @@ object WeatherSourceWrapperSpec {
     }
   }
 
-  def prepareWeightTestData(
+  /** Prepare test data for WeightSum-related tests
+    *
+    * @param weatherSeq
+    *   sequence of raw weather data
+    * @param weights
+    *   the weights to use for averaging the weather data, with rows equivalent
+    *   to the rows in weatherSeq
+    * @return
+    *   A tuple of 1. the weighted average weather data and 2. the weight sum
+    */
+  private def prepareWeightTestData(
       weatherSeq: Seq[(Double, Double, Double, Double)],
       weights: Seq[(Double, Double, Double, Double)]
-  ): (Seq[WeatherData], WeatherData, WeightSum) = {
+  ): (WeatherData, WeightSum) = {
     val weatherData = weatherSeq.map { case (diff, dir, temp, wVel) =>
       WeatherData(
         Quantities.getQuantity(diff, StandardUnits.SOLAR_IRRADIANCE),
@@ -410,7 +459,7 @@ object WeatherSourceWrapperSpec {
         )
     }
 
-    (weatherData, weightedWeather, weightSum)
+    (weightedWeather, weightSum)
   }
 
 }
