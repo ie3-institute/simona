@@ -88,7 +88,7 @@ class PVModelIT extends Specification implements PVModelITHelper {
 
 				"build the needed data"
 				WeatherMessage.WeatherData weather = modelToWeatherMap.get(modelId)
-				PVModel.PVRelevantData neededData = new PVModel.PVRelevantData(dateTime,3600L, weather.diffRad() as ComparableQuantity<Irradiance>, weather.dirRad() as ComparableQuantity<Irradiance>)
+				PVModel.PVRelevantData neededData = new PVModel.PVRelevantData(dateTime,3600L, weather.diffIrr() as ComparableQuantity<Irradiance>, weather.dirIrr() as ComparableQuantity<Irradiance>)
 				ComparableQuantity<Dimensionless> voltage = getQuantity(1.414213562, PU)
 
 				"collect the results and calculate the difference between the provided results and the calculated ones"
