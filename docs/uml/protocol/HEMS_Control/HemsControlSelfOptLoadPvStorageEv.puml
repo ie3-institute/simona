@@ -1,37 +1,5 @@
 @startuml
-title Use Case Optimize Self Consumption \n Existing: LoadAgent, PV \n Missing: HomeStorage, EV
-participant HEMS
-group init
-LoadAgent -> HEMS: Demand
-PVAgent -> HEMS: PVInput
-end
-alt#Gold #LightBlue Load <= Production
-    HEMS -> GridAgent: Feed-in into grid
-else #Pink Load > Production
-    HEMS -> GridAgent: Power demand from grid
-end
-
-newpage Use Case Optimize Self Consumption \n Existing: LoadAgent, HomeStorage, PV \n Missing: EV
-group init
-LoadAgent -> HEMS: Demand
-PVAgent -> HEMS: PVInput
-HomeStorage -> HEMS: SoC
-end
-group#Gold #LightBlue Load <= Production
-    alt#Gold #LightBlue HomeStorage < 1
-    HEMS -> HomeStorage: Charge HomeStorage
-    else #Pink HomeStorage Soc = 1
-    HEMS -> GridAgent: Feed-in into grid
-    end
-else #Pink Load > Production
-    alt#Gold #LightBlue HomeStorage > 0
-    HEMS -> HomeStorage: Uncharge HomeStorage
-    else #Pink HomeStorage = 0
-    HEMS -> GridAgent: Power demand
-end
-end
-
-newpage Use Case Optimize Self Consumption \n Existing: LoadAgent, HomeStorage, PV, EV \n Missing: -
+title Use Case Optimize Self Consumption \n Existing: LoadAgent, HomeStorage, PV, EV \n Missing: -
 group to be discussed
     HEMS -> HEMS: a. Charge EV before HomeStorage \n b. first HomeStorage then EV \n c. both at same time?
         end
@@ -39,13 +7,13 @@ group init
 LoadAgent -> HEMS: Demand
 PVAgent -> HEMS: PVInput
 EvcsAgent1 -> HEMS: SoC, Demand, (FlexibilityOffer)
-HomeStorage -> HEMS: SoC
+HomeStorageAgent -> HEMS: SoC
 end
-alt#Gold #LightBlue Load < Production
+alt#Gold #LightBlue Load <= Production
 group#Gold #LightBlue Increase Load until Production
     HEMS -> HEMS: while: Load <= Production \n do increase load stepwise \n 1. while SoC EV < 1: addPower max [(PowerPVInput - LoadAgent) || PowerRatedEV] \n 2. while SoC HomeStorage < 1: max [(PowerPVInput - LoadAgent - PowerRatedEV) || PowerRatedHomeStorage])
     HEMS -> EvcsAgent1: increasePower
-    HEMS -> HomeStorage: increasePower
+    HEMS -> HomeStorageAgent: increasePower
     alt#Gold if ResidualLoad > 0
     HEMS -> GridAgent: Feed-in =  PVInput - PowerDemandLoadAgent - ChargePowerEvcsAgent1 - ChargePowerHomeStorage
     end
@@ -60,11 +28,12 @@ else #Pink Load > Production
     group#Gold #LightBlue Fulfill all demands, do not uncharge EV
     HEMS -> LoadAgent: No curtailment of PowerDemandLoadAgent
     HEMS -> EvcsAgent1: Fullfil PowerDemandEvcsAgent1
-    HEMS -> HomeStorage: while SoC HomeStorage > 0: Uncharge HomeStorage with UnchargePowerHomestorage = min [PowerDemandLoadAgent + PowerDemandEvcsAgent1 - PVInput || RatedPowerHomestorage]
+    HEMS -> HomeStorageAgent: while SoC HomeStorage > 0: Uncharge HomeStorage with UnchargePowerHomestorage = min [PowerDemandLoadAgent + PowerDemandEvcsAgent1 - PVInput || RatedPowerHomestorage]
     alt#Gold if ResidualLoad > 0
     HEMS -> GridAgent: PowerDemand = PowerDemandLoadAgent + PowerDemandEvcsAgent1 - UnchargePowerHomestorage - PVInput
     end
 end
-
-
 @enduml
+
+
+

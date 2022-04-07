@@ -1,0 +1,14 @@
+@startuml
+title Use Case Optimize Self Consumption \n Existing: LoadAgent, PV \n Missing: HomeStorage, EV
+       group init
+            LoadAgent -> HEMS: PowerDemandLoadAgent
+            PVAgent -> HEMS: PVInput
+        end
+        alt#Gold #LightBlue Load <= Production
+            HEMS -> GridAgent: Feed-in = PVInput - PowerDemandLoadAgent
+        else #Pink Load > Production
+            HEMS -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PVInput
+        end
+
+
+@enduml
