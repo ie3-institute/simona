@@ -36,8 +36,8 @@ import edu.ie3.simona.sim.SimonaSim.{
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
 /** Main entrance point to a simona simulation as top level actor. This actors
