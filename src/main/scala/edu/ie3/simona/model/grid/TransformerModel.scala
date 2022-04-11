@@ -147,7 +147,7 @@ case object TransformerModel {
       trafoType.getrSc.divide(squaredNominalVoltRatio),
       trafoType.getxSc.divide(squaredNominalVoltRatio),
       trafoType.getgM.multiply(squaredNominalVoltRatio),
-      trafoType.getbM.multiply(-1).multiply(squaredNominalVoltRatio)
+      trafoType.getbM.multiply(squaredNominalVoltRatio)
     )
 
     /* Transfer the dimensionless parameters into the grid reference system */
