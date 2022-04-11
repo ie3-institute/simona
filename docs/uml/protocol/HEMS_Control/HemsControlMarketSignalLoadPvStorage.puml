@@ -1,5 +1,11 @@
 @startuml
 title Use Case Markte Signal Optimization \n Existing: LoadAgent, HomeStorage, PV \n Missing: EV
+participant GridAgent
+participant HEMS
+participant LoadAgent
+participant PVAgent
+participant HomeStorageAgent
+
 group init
 LoadAgent -> HEMS: PowerDemandLoadAgentTotal,\nPowerDemandLoadAgentCurtailable
 PVAgent -> HEMS: PVInput

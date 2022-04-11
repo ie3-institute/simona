@@ -1,14 +1,41 @@
 @startuml
 title Use Case Optimize Self Consumption \n Existing: LoadAgent, PV \n Missing: HomeStorage, EV
-       group init
-            LoadAgent -> HEMS: PowerDemandLoadAgent
-            PVAgent -> HEMS: PVInput
-        end
-        alt#Gold #LightBlue Load <= Production
-            HEMS -> GridAgent: Feed-in = PVInput - PowerDemandLoadAgent
-        else #Pink Load > Production
-            HEMS -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PVInput
-        end
+participant GridAgent
+participant HEMSAgent
+participant PVAgent
+participant LoadAgent
 
+group init
+    GridAgent -> HEMSAgent: create()
+    HEMSAgent -> LoadAgent: create()
+    HEMSAgent -> PVAgent: create()
+    end
 
+group #LightGrey firstTick
+    GridAgent -> HEMSAgent: request PowerDemand
+    HEMSAgent -> LoadAgent: get PowerDemand
+    LoadAgent -> HEMSAgent: PowerDemand
+    HEMSAgent -> PVAgent: get PVInput
+    PVAgent -> HEMSAgent: PVInput
+    HEMSAgent -> GridAgent: PowerDemand = PVInput - PowerDemandLoadAgent
+    end
+alt#Gold #LightBlue Trigger regular or by Changes at Load / Feed-in
+group #LightGreen Regular request
+    GridAgent -> HEMSAgent: request PowerDemand
+    HEMSAgent -> LoadAgent: get PowerDemand
+    LoadAgent -> HEMSAgent: PowerDemand
+    HEMSAgent -> PVAgent: get PVInput
+    PVAgent -> HEMSAgent: PVInput
+    HEMSAgent -> GridAgent: PowerDemand = PVInput - PowerDemandLoadAgent
+    end
+group #LightGreen Update ValueStore through trigger of Child of HEMSAgent
+    alt Trigger by LoadAgent or PVAgent
+    LoadAgent -> HEMSAgent: new PowerDemand
+    else
+    PVAgent -> HEMSAgent: new PVInput
+    end
+
+    HEMSAgent -> GridAgent: PowerDemand = PVInput - PowerDemandLoadAgent
+    end
+end
 @enduml

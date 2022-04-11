@@ -1,30 +1,48 @@
 @startuml
 title Use Case Optimize Self Consumption \n Existing: LoadAgent, HomeStorage, PV \n Missing: EV
+participant GridAgent
+participant HEMSAgent
+participant LoadAgent
+participant PVAgent
+participant HomeStorageAgent
 group init
-LoadAgent -> HEMS: PowerDemandLoadAgent
-PVAgent -> HEMS: PVInput
-HomeStorageAgent -> HEMS: SoC HomeStorage
-end
-alt#Gold #LightBlue Load <= Production
-group#Gold #LightBlue Increase Load until Production
-    HEMS -> HEMS: while: Load <= Production \n do increase load stepwise \n 1. while SoC HomeStorage < 1: max [(PowerPVInput - LoadAgent - PowerRatedEV) || PowerRatedHomeStorage])
-    HEMS -> HomeStorageAgent: increasePower
-    alt#Gold if ResidualLoad > 0
-        HEMS -> GridAgent: Feed-in =  PVInput - PowerDemandLoadAgent - ChargePowerEvcsAgent1 - ChargePowerHomeStorage
-        end
+    GridAgent -> HEMSAgent: create()
+    HEMSAgent -> LoadAgent: create()
+    HEMSAgent -> PVAgent: create()
+    HEMSAgent -> HomeStorageAgent: create(Volume, RatedPower, SoC)
     end
-else #Pink Load > Production
-     group#Gold #LightBlue Fulfill all demands
-        HEMS -> LoadAgent: No curtailment of PowerDemandLoadAgent
-        HEMS -> HomeStorageAgent: while SoC HomeStorage > 0: Uncharge HomeStorage with UnchargePowerHomestorage = min [PowerDemandLoadAgent - PVInput || RatedPowerHomestorage]
-        alt#Gold if ResidualLoad > 0
-           HEMS -> GridAgent: PowerDemand = PowerDemandLoadAgent - UnchargePowerHomestorage - PVInput
-           end
+group #LightGrey firstTick
+    GridAgent -> HEMSAgent: request PowerDemand
+    HEMSAgent -> LoadAgent: get PowerDemand
+    LoadAgent -> HEMSAgent: PowerDemand
+    HEMSAgent -> PVAgent: get PVInput
+    PVAgent -> HEMSAgent: PVInput
+    HEMSAgent -> HomeStorageAgent: get SoC, get RatedPowerHomeStorage
+    HomeStorageAgent -> HEMSAgent:  SoC, RatedPowerHomeStorage
+    HEMSAgent -> HomeStorageAgent: PowerDemandHomeStorage = min [PVInput - PowerDemandLoadAgent | RatedPowerHomeStorage ]
+    HEMSAgent -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PVInput + PowerDemandHomeStorage
+    end
+alt#Gold #LightBlue Trigger regular or by Changes at Load / Feed-in
+group #LightGreen Regular request
+    GridAgent -> HEMSAgent: request PowerDemand
+    HEMSAgent -> LoadAgent: get PowerDemand
+    LoadAgent -> HEMSAgent: PowerDemand
+    HEMSAgent -> PVAgent: get PVInput
+    PVAgent -> HEMSAgent: PVInput
+    HEMSAgent -> HomeStorageAgent: PowerDemandHomeStorage = min [PVInput - PowerDemandLoadAgent | RatedPowerHomeStorage ]
+    HEMSAgent -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PVInput + PowerDemandHomeStorage
+    end
+group #LightGreen Update ValueStore through trigger of Child of HEMSAgent
+    alt Trigger by LoadAgent or PVAgent
+    LoadAgent -> HEMSAgent: new PowerDemand
+    else
+    PVAgent -> HEMSAgent: new PVInput
+    else
+    HomeStorageAgent -> HEMSAgent: Soc = 1 | SoC = 0
+    end
+    HEMSAgent -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PVInput + PowerDemandHomeStorage
+    end
 end
-end
-
-
-
 @enduml
 
 

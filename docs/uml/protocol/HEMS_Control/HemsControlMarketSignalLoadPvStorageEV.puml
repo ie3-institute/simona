@@ -1,5 +1,11 @@
 @startuml
 title Use Case Market Signal Optimization \n Existing: LoadAgent, HomeStorage, PV, EV \n Missing: -
+participant GridAgent
+participant HEMS
+participant LoadAgent
+participant PVAgent
+participant HomeStorageAgent
+participant EvcsAgent1
 group to be discussed
     HEMS -> HEMS: a. Charge EV before HomeStorage \n b. first HomeStorage then EV \n c. both at same time?
         end
