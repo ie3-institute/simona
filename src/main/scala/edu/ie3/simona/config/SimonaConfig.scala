@@ -377,7 +377,7 @@ object SimonaConfig {
       gridIds: scala.Option[scala.List[java.lang.String]],
       sNom: java.lang.String,
       vNom: java.lang.String,
-      voltLvls: scala.Option[scala.List[java.lang.String]]
+      voltLvls: scala.Option[scala.List[SimonaConfig.VoltLvlConfig]]
   )
   object RefSystemConfig {
     def apply(
@@ -397,10 +397,30 @@ object SimonaConfig {
         voltLvls =
           if (c.hasPathOrNull("voltLvls"))
             scala.Some(
-              $_L$_str(c.getList("voltLvls"), parentPath, $tsCfgValidator)
+              $_LSimonaConfig_VoltLvlConfig(
+                c.getList("voltLvls"),
+                parentPath,
+                $tsCfgValidator
+              )
             )
           else None
       )
+    }
+    private def $_LSimonaConfig_VoltLvlConfig(
+        cl: com.typesafe.config.ConfigList,
+        parentPath: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): scala.List[SimonaConfig.VoltLvlConfig] = {
+      import scala.jdk.CollectionConverters._
+      cl.asScala
+        .map(cv =>
+          SimonaConfig.VoltLvlConfig(
+            cv.asInstanceOf[com.typesafe.config.ConfigObject].toConfig,
+            parentPath,
+            $tsCfgValidator
+          )
+        )
+        .toList
     }
     private def $_reqStr(
         parentPath: java.lang.String,
@@ -1272,7 +1292,6 @@ object SimonaConfig {
               password: java.lang.String,
               schemaName: java.lang.String,
               tableName: java.lang.String,
-              timePattern: java.lang.String,
               userName: java.lang.String
           )
           object SqlParams {
@@ -1289,9 +1308,6 @@ object SimonaConfig {
                   else "public",
                 tableName =
                   $_reqStr(parentPath, c, "tableName", $tsCfgValidator),
-                timePattern =
-                  if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
-                  else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
                 userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
               )
             }
