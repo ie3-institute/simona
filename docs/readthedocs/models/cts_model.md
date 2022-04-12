@@ -53,4 +53,4 @@ $$
 
 ### Store/Take energy
 
-This calculation is performed as follows: An amount of energy is specified for storing or taking. The model then changes the storage level and returns if it exceeded the maximum (when storing energy) or fell below the minimum (when taking energy).
+This calculation is performed as follows: An amount of energy is specified for storing or taking. The model then changes the storage level and returns if it exceeded the maximum (when storing energy) or the minimum (when taking energy).

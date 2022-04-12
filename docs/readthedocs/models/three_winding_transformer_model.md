@@ -24,11 +24,11 @@ The following basic principles lead us to the implemented solution:
 - Transformer tap control actions are issued based on decisions taken in the underlying grid
 - The power flow across the highest voltage branch shall be as precise as possible
 
-This is, why we divide up the physical three-winding transformer model (which is an T-equivalent circuit with an additional branch) as shown in the figure below.
+This is why we divide the physical three-winding transformer model (which is a T-equivalent circuit with an additional branch) as shown in the figure below.
 
 ![](../_static/figures/models/transformer_model/ModelTwt.png)
 
-Being scissored at the artificial central node, allows for the model in subgrid A remaining in one single voltage level.
+Being scissored at the artificial central node, allows for the model in subgrid A to remain in one single voltage level.
 The transformation between voltage level A and B or C, respectively, happens during the message exchange between the `GridAgent`s for subgrid A and B as well as C.
 Moreover, the power flow across branch B and C are properly accumulated and thus accounted for in branch A.
 More details on the physical model transformation can be found in the Ph.D. thesis linked at the bottom of the page.

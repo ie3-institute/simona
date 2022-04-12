@@ -60,7 +60,7 @@ $$ P_{el} = S_{rated} \cdot usage \cdot efficiency \cdot \cos(\phi) $$
 
 
 #### Marginal Costs
-If the plant is operating in cost controlled mode, the electrical output may be altered due to revenues, which exceed the marginal costs. As a result of the load-dependent efficiency, the marginal costs will rise at lower usages. Therefore, the agent calculates the average of the MC at the current usage and the MC at 100% usage. In the example below, MC at 100% usage is assumed to be $5\,ct/kWh$, which rises at lower output (blue line) based on
+If the plant is operating in cost controlled mode, the electrical output may be altered due to revenues, which exceed the marginal costs. As a result of the load-dependent efficiency, the marginal costs will rise at lower usages. Therefore, the agent calculates the average MC at the current usage and the MC at 100% usage. In the example below, MC at 100% usage is assumed to be $5\,ct/kWh$, which rises at lower output (blue line) based on
 
 $$OPEX_{current} = \frac{OPEX}{efficiency}$$
 

@@ -9,7 +9,7 @@
 
 #### Participant triggered by primary data
 
-This activation protocol is used, if the agent is foreseen to only play back externally given, precalculated model
+This activation protocol is used, if the agent receives and is required to playback externally given, precalculated model
 results.
 
 ![Participant triggered by primary data Sequence Diagram](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/uml/protocol/ParticipantTriggeredByPrimaryData.puml)

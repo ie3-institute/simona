@@ -12,7 +12,7 @@ SIMONA supports different load model behaviours, which need some parameterizatio
 This sub configuration is two-fold:
 
 Default Configuration
-This is one configuration, that applies to all load models, except of those, that have an individual config assigned. To simplify code, no distinct model class is introduced for the single config. In order to highlight the fact, that this config is a default config, you may write ```uuids = ["default"]```. If you put anything else than this, you will get a warning, that those references are neglected, although the rest will work just fine.
+This applies to all load models, except for those, which already have an individual config assigned. To simplify code, no distinct model class is introduced for the single config. In order to highlight the fact, that this config is a default config, you may write ```uuids = ["default"]```. If you put anything else than this, you will get a warning, that those references are neglected, although the rest will work just fine.
 
 Set of Individual Configurations
 This part holds a set of configurations, that will apply to specific load models, denoted by their uuid. To simplify config generation, you are able to assign the same config to a list of uuids in batch. If one load has no individual configuration assigned, it will default to the above given config.
@@ -115,7 +115,7 @@ Each load profile type is assigned 96 values (one for each quarter-hour of the d
 
 Assignment of season and day type are described at page 4 of the source PDF.
 
-**Leap years** do not have any significant influence on load profiles and thus do not receive and special treatment.
+**Leap years** do not have any significant influence on load profiles and thus do not receive any special treatment.
 
 **Holidays** should normally be treated as Sundays, Christmas Eve and New Year\'s Eve as Saturdays. Holidays are currently not implemented for profile types in SIMONA.
 
