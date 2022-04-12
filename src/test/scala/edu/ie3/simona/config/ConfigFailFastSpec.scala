@@ -94,6 +94,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
       }
 
       "A configuration with faulty refSystem parameters" should {
+        val checkRefSystem = PrivateMethod[Unit](Symbol("checkRefSystem"))
 
         "throw an InvalidConfigParametersException when gridIds and voltLvls are empty" in {
 
@@ -109,31 +110,6 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           }.getMessage shouldBe "The provided values for voltLvls and gridIds are empty! " +
             "At least one of these optional parameters has to be provided for a valid refSystem! " +
             "Provided refSystem is: RefSystemConfig(None,100 MVA,0.4 kV,None)."
-
-        }
-
-        "throw an InvalidConfigParametersException when the voltLevel is malformed (e.g. a number)" in {
-          val refSystemConfigAllEmpty =
-            ConfigFactory.parseString("""simona.gridConfig.refSystems = [
-                                        |  {
-                                        |   sNom="100 MVA",
-                                        |   vNom="0.4 kV",
-                                        |   voltLvls = ["1"]
-                                        |   }
-                                        |]""".stripMargin)
-          val faultyConfig =
-            refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
-          val faultySimonaConfig = SimonaConfig(faultyConfig)
-
-          // get the private method for validation
-          val checkRefSystem =
-            PrivateMethod[Unit](Symbol("checkRefSystem"))
-
-          intercept[InvalidConfigParameterException] {
-            faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
-              ConfigFailFast invokePrivate checkRefSystem(refSystem)
-            )
-          }.getMessage shouldBe "The definition string for voltLvl '1' does not comply with the definition {<id>, <rated voltage>}!"
 
         }
 
@@ -155,10 +131,6 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
             val faultySimonaConfig = SimonaConfig(faultyConfig)
 
-            // get the private method for validation
-            val checkRefSystem =
-              PrivateMethod[Unit](Symbol("checkRefSystem"))
-
             intercept[InvalidConfigParameterException] {
               faultySimonaConfig.simona.gridConfig.refSystems.foreach(
                 refSystem =>
@@ -169,6 +141,28 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           })
         }
 
+        "throw an InvalidConfigParameterException if the nominal voltage of the voltage level is malformed" in {
+
+          val refSystemConfigAllEmpty =
+            ConfigFactory.parseString("""simona.gridConfig.refSystems = [
+                                          |  {
+                                          |   sNom="100 MVA",
+                                          |   vNom="0.4 kV",
+                                          |   voltLvls = [{id = "1", vNom = "foo"}]
+                                          |   }
+                                          |]""".stripMargin)
+          val faultyConfig =
+            refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
+          val faultySimonaConfig = SimonaConfig(faultyConfig)
+
+          intercept[InvalidConfigParameterException] {
+            faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
+              ConfigFailFast invokePrivate checkRefSystem(refSystem)
+            )
+          }.getMessage shouldBe "The given nominal voltage 'foo' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?"
+
+        }
+
         "throw an InvalidConfigParametersException when sNom is invalid" in {
           val refSystemConfigAllEmpty =
             ConfigFactory.parseString(
@@ -176,7 +170,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                                         |  {
                                         |   sNom="100",
                                         |   vNom="0.4 kV",
-                                        |   voltLvls = ["{MS, 10 kV}","{HS, 110 kV}"]
+                                        |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
                                         |   }
                                         |]""".stripMargin
             )
@@ -184,15 +178,11 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
           val faultySimonaConfig = SimonaConfig(faultyConfig)
 
-          // get the private method for validation
-          val checkRefSystem =
-            PrivateMethod[Unit](Symbol("checkRefSystem"))
-
           intercept[InvalidConfigParameterException] {
             faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
               ConfigFailFast invokePrivate checkRefSystem(refSystem)
             )
-          }.getMessage shouldBe "Invalid value for sNom from provided refSystem RefSystemConfig(None,100,0.4 kV,Some(List({MS, 10 kV}, {HS, 110 kV}))). Is a valid unit provided?"
+          }.getMessage shouldBe "Invalid value for sNom from provided refSystem RefSystemConfig(None,100,0.4 kV,Some(List(VoltLvlConfig(MS,10 kV), VoltLvlConfig(HS,110 kV)))). Is a valid unit provided?"
 
         }
 
@@ -204,7 +194,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                                         |  {
                                         |   sNom="100 MVA",
                                         |   vNom="0.4",
-                                        |   voltLvls = ["{MS, 10 kV}","{HS, 110 kV}"]
+                                        |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
                                         |   }
                                         |]""".stripMargin
             )
@@ -212,15 +202,11 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
           val faultySimonaConfig = SimonaConfig(faultyConfig)
 
-          // get the private method for validation
-          val checkRefSystem =
-            PrivateMethod[Unit](Symbol("checkRefSystem"))
-
           intercept[InvalidConfigParameterException] {
             faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
               ConfigFailFast invokePrivate checkRefSystem(refSystem)
             )
-          }.getMessage shouldBe "Invalid value for vNom from provided refSystem RefSystemConfig(None,100 MVA,0.4,Some(List({MS, 10 kV}, {HS, 110 kV}))). Is a valid unit provided?"
+          }.getMessage shouldBe "Invalid value for vNom from provided refSystem RefSystemConfig(None,100 MVA,0.4,Some(List(VoltLvlConfig(MS,10 kV), VoltLvlConfig(HS,110 kV)))). Is a valid unit provided?"
 
         }
 
@@ -231,13 +217,13 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 |  {
                 |   sNom="100 MVA",
                 |   vNom="0.4 kV",
-                |   voltLvls = ["{MS, 10 kV}","{HS, 110 kV}"]
+                |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
                 |   gridIds = ["1","1-10","10...100"]
                 |   },
                 |   {
                 |   sNom="1000 MVA",
                 |   vNom="10kV",
-                |   voltLvls = ["{HS, 110 kV}","{HoeS, 380 kV}"]
+                |   voltLvls = [{id = "HS", vNom = "110 kV"},{id = "HoeS", vNom = "380 kV"}]
                 |   gridIds = ["1-3","3...6","10...100"]
                 |   }
                 |]""".stripMargin
@@ -245,10 +231,6 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val config =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
           val simonaConfig = SimonaConfig(config)
-
-          // get the private method for validation
-          val checkRefSystem =
-            PrivateMethod[Unit](Symbol("checkRefSystem"))
 
           simonaConfig.simona.gridConfig.refSystems.foreach(refSystem => {
             ConfigFailFast invokePrivate checkRefSystem(refSystem)

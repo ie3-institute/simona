@@ -5,7 +5,7 @@ task genConfigClass {
   doLast {
     def tscfgJarFile = project.file('build/tscfg-' + tscfgVersion + '.jar')
     if (!tscfgJarFile.exists() || !tscfgJarFile.isFile()) {
-      download {
+      download.run {
         src 'https://github.com/carueda/tscfg/releases/download/v' + tscfgVersion + '/tscfg-' + tscfgVersion + '.jar'
         dest buildDir
       }
@@ -15,7 +15,7 @@ task genConfigClass {
       args = [
         "build/tscfg-${tscfgVersion}.jar",
         "--spec",
-        "src/main/resources/config/simona-config-template.conf",
+        "src/main/resources/config/config-template.conf",
         "--scala",
         "--durations",
         "--pn",
@@ -29,35 +29,6 @@ task genConfigClass {
   }
 }
 
-task genExperimentsConfigClass {
-  doLast {
-    def tscfgJarFile = project.file('build/tscfg-' + tscfgVersion + '.jar')
-    if (!tscfgJarFile.exists() || !tscfgJarFile.isFile()) {
-      download {
-        src 'https://github.com/carueda/tscfg/releases/download/v' + tscfgVersion + '/tscfg-' + tscfgVersion + '.jar'
-        dest buildDir
-      }
-    }
-    javaexec {
-      main = "-jar"
-      args = [
-        "build/tscfg-${tscfgVersion}.jar",
-        "--spec",
-        "src/main/resources/config/experiments-config-template.conf",
-        "--scala",
-        "--durations",
-        "--pn",
-        "edu.ie3.simona.config",
-        "--cn",
-        "ExperimentsConfig",
-        "--dd",
-        "src/main/scala/edu/ie3/simona/config/"
-      ]
-    }
-  }
-}
-
-
 ////////////////////////////////////////////////////////////////////////////
 // Generate sample config file reflecting the application.conf template file
 // This can be used to setup a new simulation configuration
@@ -66,7 +37,7 @@ task genConfigSample {
   doLast {
     def tscfgJarFile = project.file('build/tscfg-' + tscfgVersion + '.jar')
     if (!tscfgJarFile.exists() || !tscfgJarFile.isFile()) {
-      download {
+      download.run {
         src 'https://github.com/carueda/tscfg/releases/download/v' + tscfgVersion + '/tscfg-' + tscfgVersion + '.jar'
         dest buildDir
       }
@@ -75,10 +46,12 @@ task genConfigSample {
       main = "-jar"
       args = [
         "build/tscfg-${tscfgVersion}.jar",
+        "--dd",
+        System.properties['java.io.tmpdir'],
         "--spec",
         "src/main/resources/config/config-template.conf",
         "--tpl",
-        "configs/simona/simonaSample.conf"
+        "input/samples/configSample.conf"
       ]
     }
   }

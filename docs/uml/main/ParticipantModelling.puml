@@ -41,9 +41,9 @@ package edu.ie3.edu.ie3.simona {
             }
             DateTime --|> SecondaryData
 
-            Class Weather{
-              + diffRad: Quantity[Irradiation]
-              + dirRad: Quantity[Irradiation]
+            Class WeatherData{
+              + diffIrr: Quantity[Irradiation]
+              + dirIrr: Quantity[Irradiation]
               + temp: Quantity[Temperature]
               + windVel: Quantity[Speed]
             }

@@ -44,8 +44,7 @@ import tech.units.indriya.unit.Units.{OHM, PERCENT, SIEMENS}
 
 import scala.jdk.CollectionConverters._
 
-/** Test data for a [[Transformer3WInput]]
-  */
+/** Test data for a [[Transformer3WInput]] */
 trait Transformer3wTestData extends DefaultTestData {
   val mainRefSystemEhv: RefSystem = {
     val nominalPower = Quantities.getQuantity(1000, MEGAVOLTAMPERE)
