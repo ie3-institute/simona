@@ -29,10 +29,8 @@ import edu.ie3.datamodel.io.source.sql.{
 }
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{
-  CsvParams,
-  SqlParams
-}
+import edu.ie3.simona.config.SimonaConfig.PrimaryCsvParams
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
   Primary => PrimaryConfig
 }
@@ -195,7 +193,7 @@ case class PrimaryServiceProxy(
       primaryConfig.csvParams,
       primaryConfig.couchbaseParams
     ).filter(_.isDefined).flatten.headOption match {
-      case Some(CsvParams(csvSep, folderPath, _)) =>
+      case Some(PrimaryCsvParams(csvSep, folderPath, _, _)) =>
         val fileNamingStrategy = new FileNamingStrategy()
         Success(
           new CsvTimeSeriesMappingSource(
