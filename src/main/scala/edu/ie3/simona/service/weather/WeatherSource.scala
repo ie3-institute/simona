@@ -168,7 +168,8 @@ trait WeatherSource {
     }
   }
 
-  /** Determine the weights of each coordinate
+  /** Determine the weights of each coordinate. It is ensured, that the entirety
+    * of weights sum up to 1.0
     *
     * @param nearestCoordinates
     *   Collection of nearest coordinates with their distances
@@ -521,9 +522,9 @@ object WeatherSource {
   ): WeatherData = {
     WeatherData(
       weatherValue.getSolarIrradiance.getDiffuseIrradiance
-        .orElse(EMPTY_WEATHER_DATA.diffRad),
+        .orElse(EMPTY_WEATHER_DATA.diffIrr),
       weatherValue.getSolarIrradiance.getDirectIrradiance
-        .orElse(EMPTY_WEATHER_DATA.dirRad),
+        .orElse(EMPTY_WEATHER_DATA.dirIrr),
       weatherValue.getTemperature.getTemperature
         .orElse(EMPTY_WEATHER_DATA.temp),
       weatherValue.getWind.getVelocity.orElse(EMPTY_WEATHER_DATA.windVel)
