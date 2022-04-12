@@ -107,15 +107,7 @@ object RefSystemParser {
           case Some(voltLvls) =>
             voltLvls.foldLeft(Vector.empty[(VoltageLevel, RefSystem)])(
               (voltLvlRefSystems, voltLvlDef) => {
-                val voltLvl = voltLvlDef match {
-                  case ConfigConventions.voltLvlRegex(id, vNom) =>
-                    VoltLvlParser.parse(id, vNom)
-                  case invalid =>
-                    throw new InvalidConfigParameterException(
-                      s"Got invalid voltage level string $invalid. Has to look like this: {MV, 10 kV}"
-                    )
-                }
-                voltLvlRefSystems :+ (voltLvl, refSystem)
+                voltLvlRefSystems :+ (VoltLvlParser.from(voltLvlDef), refSystem)
               }
             )
           case None => List.empty[(VoltageLevel, RefSystem)]

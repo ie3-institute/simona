@@ -23,31 +23,16 @@ import tech.units.indriya.quantity.Quantities
   */
 object VoltLvlParser {
 
-  /** Parses the voltage level from given config element
+  /** Create a voltage level definition from config entry
     *
-    * @param configElement
-    *   Config element to parse
+    * @param config
+    *   Config entry to parse
     * @return
-    *   Common voltage level
+    *   A suitable [[VoltageLevel]]
     */
-  def parse(configElement: VoltLvlConfig): VoltageLevel = {
-    val id = configElement.id
-    val vNominal = parseNominalVoltage(configElement.vNom)
-    parse(id, vNominal)
-  }
-
-  /** Parses a common voltage level from Strings denoting id and nominal voltage
-    *
-    * @param id
-    *   Identifier
-    * @param vNom
-    *   Nominal voltage
-    * @return
-    *   Common voltage level
-    */
-  def parse(id: String, vNom: String): VoltageLevel = {
-    val vNominal = parseNominalVoltage(vNom)
-    parse(id, vNominal)
+  def from(config: SimonaConfig.VoltLvlConfig): VoltageLevel = {
+    val vNom = parseNominalVoltage(config.vNom)
+    parse(config.id, vNom)
   }
 
   /** Looks up a common voltage level with the given parameters
