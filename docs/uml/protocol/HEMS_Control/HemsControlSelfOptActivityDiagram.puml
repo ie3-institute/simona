@@ -32,10 +32,44 @@ endif
 
 else
 --> [no] "Init Agents direct"
---> ===B4===
 endif
-===B4=== --> "Init Completed"
+--> "Init Completed"
 }
-"Init Completed" -->"Next step"
+
+===B4=== --> "Init Completed"
+
+partition firstTick {
+--> "first Tick"
+"GridAgent" -->[Request Data for New Power Flow] "HEMSAgent ValueStore"
+--> [Answers Request] "GridAgent"
+}
+partition nextTick {
+"first Tick" --> "next Tick"
+"Trigger by Childs of HEMSAgent" -->[create newTick] "SimScheduler"
+"SimScheduler" --> [updateValueStore()] "HEMSAgent_nextTick"
+--> [getUpdate] "HEMSParticipants"
+--> [update] "HEMSAgent_nextTick"
+"GridAgent_nextTick" -->[request Data] "HEMSAgent_nextTick"
+"HEMSAgent_nextTick" --> [sends Data] "GridAgent_nextTick"
+}
+"next Tick" --> (*)
+
+
+/'-->[Update] "HEMSAgent ValueStore"
+--> "next tick"
+--> [PowerFlow] "GridAgent"
+--> "Update all Particpants"
+
+'/
+
+
+
+
+
+
+
+
+
+
 
 @enduml
