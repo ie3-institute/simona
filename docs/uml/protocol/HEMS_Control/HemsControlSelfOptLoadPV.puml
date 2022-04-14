@@ -2,40 +2,43 @@
 title Use Case Optimize Self Consumption \n Existing: LoadAgent, PV \n Missing: HomeStorage, EV
 participant GridAgent
 participant HEMSAgent
-participant PVAgent
 participant LoadAgent
+participant PVAgent
 
 group init
-    GridAgent -> HEMSAgent: create()
-    HEMSAgent -> LoadAgent: create()
-    HEMSAgent -> PVAgent: create()
+        activate GridAgent
+        GridAgent -> HEMSAgent: create()
+            activate HEMSAgent
+
+        HEMSAgent -> LoadAgent: create()
+            activate LoadAgent
+            LoadAgent --> HEMSAgent: active
+
+        HEMSAgent -> PVAgent: create()
+            activate PVAgent
+            PVAgent --> HEMSAgent: active
     end
 
-group #LightGrey firstTick
-    GridAgent -> HEMSAgent: request PowerDemand
+group #LightGrey InitialUpdateFirstTick
     HEMSAgent -> LoadAgent: get PowerDemand
     LoadAgent -> HEMSAgent: PowerDemand
-    HEMSAgent -> PVAgent: get PVInput
-    PVAgent -> HEMSAgent: PVInput
-    HEMSAgent -> GridAgent: PowerDemand = PVInput - PowerDemandLoadAgent
+    HEMSAgent -> PVAgent: get PvPower
+    PVAgent -> HEMSAgent: PvPower
     end
-alt#Gold #LightBlue Trigger regular or by Changes at Load / Feed-in
-group #LightGreen Regular request
+
+group #LightGrey Requests from GridAgent
     GridAgent -> HEMSAgent: request PowerDemand
-    HEMSAgent -> LoadAgent: get PowerDemand
-    LoadAgent -> HEMSAgent: PowerDemand
-    HEMSAgent -> PVAgent: get PVInput
-    PVAgent -> HEMSAgent: PVInput
-    HEMSAgent -> GridAgent: PowerDemand = PVInput - PowerDemandLoadAgent
+    HEMSAgent -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PvPower
     end
+
 group #LightGreen Update ValueStore through trigger of Child of HEMSAgent
     alt Trigger by LoadAgent or PVAgent
     LoadAgent -> HEMSAgent: new PowerDemand
     else
-    PVAgent -> HEMSAgent: new PVInput
+    PVAgent -> HEMSAgent: new PvPower
     end
 
-    HEMSAgent -> GridAgent: PowerDemand = PVInput - PowerDemandLoadAgent
+    HEMSAgent -> GridAgent: PowerDemand = PvPower - PowerDemandLoadAgent
     end
-end
+
 @enduml
