@@ -34,9 +34,11 @@ else
 --> [no] "Init Agents direct"
 endif
 --> "Init Completed"
+
+}
+partition InitialUpdateFirstTick {
 --> "Update ValueStore for \n all Childs of all HEMSAgents"
 }
-
 ===B4=== --> "Init Completed"
 partition Scheduling {
 --> "SimScheduler" as SimScheduler
