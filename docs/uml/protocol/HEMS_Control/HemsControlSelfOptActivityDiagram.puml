@@ -1,0 +1,41 @@
+@startuml
+title HEMSAgent Control Scheme Self Power Optimization
+partition InitPhase {
+(*) --> "Init GridAgent"
+
+
+if "Is there a HEMS?"
+--> [yes] "Init HEMSAgent"
+--> ===B1===
+
+===B1=== --> if "Is there a PV?"
+--> [yes] "Init PVAgent"
+--> ===B2===
+else
+--> [no] ===B2===
+endif
+
+===B2=== --> if "Is there a HomeStorage"
+--> [yes] "Init HomeStorageAgent"
+--> ===B3===
+else
+--> ===B3===
+endif
+
+===B3=== --> if "Is there an Evcs"
+--> [yes] "Init EvcsAgent"
+--> ===B4===
+
+else
+--> ===B4===
+endif
+
+else
+--> [no] "Init Agents direct"
+--> ===B4===
+endif
+===B4=== --> "Init Completed"
+}
+"Init Completed" -->"Next step"
+
+@enduml
