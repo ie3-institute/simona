@@ -34,42 +34,31 @@ else
 --> [no] "Init Agents direct"
 endif
 --> "Init Completed"
+--> "Update ValueStore for \n all Childs of all HEMSAgents"
 }
 
 ===B4=== --> "Init Completed"
+partition Scheduling {
+--> "SimScheduler" as SimScheduler
 
-partition firstTick {
---> "first Tick"
-"GridAgent" -->[Request Data for New Power Flow] "HEMSAgent ValueStore"
---> [Answers Request] "GridAgent"
+partition atTriggerByChildOfHEMS {
+"Trigger by Childs of HEMSAgent" -->[create newTick \n relavant for Agent321] "SimScheduler"
 }
-partition nextTick {
-"first Tick" --> "next Tick"
-"Trigger by Childs of HEMSAgent" -->[create newTick] "SimScheduler"
-"SimScheduler" --> [updateValueStore()] "HEMSAgent_nextTick"
---> [getUpdate] "HEMSParticipants"
---> [update] "HEMSAgent_nextTick"
-"GridAgent_nextTick" -->[request Data] "HEMSAgent_nextTick"
-"HEMSAgent_nextTick" --> [sends Data] "GridAgent_nextTick"
+
+partition atEachTick {
+"Trigger by Childs of HEMSAgent" --> "Update ValueStore for \n all Childs of HEMSAgent" as updateValueStore
+SimScheduler --> if "next Tick relevant for Agent?"
+--> [yes] updateValueStore
+--> [update]"HEMSAgent ValueStore" as HEMSValueStore
+endif
 }
-"next Tick" --> (*)
 
+partition atTriggerLoadFlow {
+SimScheduler -->[trigger] "GridAgent" as GridAgent
+"GridAgent" -->[Request Data for New Power Flow] HEMSValueStore
+--> [Answers Request] GridAgent
+}
+}
 
-/'-->[Update] "HEMSAgent ValueStore"
---> "next tick"
---> [PowerFlow] "GridAgent"
---> "Update all Particpants"
-
-'/
-
-
-
-
-
-
-
-
-
-
-
+SimScheduler --> (*)
 @enduml
