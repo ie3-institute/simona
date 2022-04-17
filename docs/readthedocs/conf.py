@@ -51,4 +51,6 @@ hoverxref_intersphinx = [
 ]
 
 #Bibtex
-bibtex_bibfiles = ['bibliography/bibfile.bib']
+bibtex_bibfiles = ['_static/bibliography/bibAboutSimona.bib',
+                   '_static/bibliography/bibSimonaDirect.bib',
+                   ]
