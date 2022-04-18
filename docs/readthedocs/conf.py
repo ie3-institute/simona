@@ -52,5 +52,5 @@ hoverxref_intersphinx = [
 
 #Bibtex
 bibtex_bibfiles = ['_static/bibliography/bibAboutSimona.bib',
-                   '_static/bibliography/bibSimonaDirect.bib',
+                   '_static/bibliography/bibtexAll.bib',
                    ]

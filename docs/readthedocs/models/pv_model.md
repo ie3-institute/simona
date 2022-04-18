@@ -67,8 +67,10 @@ $$
 
 **References:**
 
-- [Maleki, S.A., Hizam, H., & Gomes, C. (2017). Estimation of Hourly, Daily and Monthly Global Solar Radiation on Inclined Surfaces: Models Re-Visited.](https://res.mdpi.com/d_attachment/energies/energies-10-00134/article_deploy/energies-10-00134-v2.pdf) p. 2
-  Original reference of declination angle is: [Spencer, J.W. Fourier series representation of the position of the sun. Appl. Opt. 1971, 10, 2569--2571](https://www.mail-archive.com/sundial@uni-koeln.de/msg01050.html)
+```{eval-rst}
+* :cite:cts:`2017:maleki` 
+* :cite:ts:`Spencer1971Fourier`
+```
 
 #### Hour Angle
 
@@ -120,8 +122,11 @@ $$
 
 **References:**
 
-- Watter, Holger. (2013). Regenerative Energiesysteme: Grundlagen, Systemtechnik und Analysen ausgeführter Beispiele nachhaltiger Energiesysteme. 10.1007/978-3-658-23488-1.
-- Regarding pos/neg direction of $\omega$: [Science Direct: Solar Hour Angle](https://www.sciencedirect.com/topics/engineering/solar-hour-angle). Primary source: [Wang, Zhifeng. (2019). Design of Solar Thermal Power Plants.](https://www.sciencedirect.com/science/article/pii/B978012815613100002X)
+```{eval-rst}
+* :cite:cts:`Watter.2013` 
+* :cite:ts:`2017:maleki`
+* :cite:ts:`WANG201947`
+```
 
 #### Sunrise Angle
 
@@ -141,9 +146,10 @@ $$
 **$\delta$** = the declination angle
 
 **References:**
-
-- [Maleki, S.A., Hizam, H., & Gomes, C. (2017). Estimation of Hourly, Daily and Monthly Global Solar Radiation on Inclined Surfaces: Models Re-Visited.](https://res.mdpi.com/d_attachment/energies/energies-10-00134/article_deploy/energies-10-00134-v2.pdf) p. 20
-- [The Sun As A Source Of Energy Part 3: Calculating Solar Angles](https://www.itacanet.org/the-sun-as-a-source-of-energy/part-3-calculating-solar-angles/)
+```{eval-rst}
+* :cite:cts:`2017:maleki` 
+* :cite:ts:`Itaca_Sun`
+```
 
 #### Solar Altitude Angle
 
@@ -161,8 +167,10 @@ $$
 
 **References:**
 
-- [Maleki, S.A., Hizam, H., & Gomes, C. (2017). Estimation of Hourly, Daily and Monthly Global Solar Radiation on Inclined Surfaces: Models Re-Visited.](https://res.mdpi.com/d_attachment/energies/energies-10-00134/article_deploy/energies-10-00134-v2.pdf) p. 5  (Zenith angle $\theta_z$ is an adjacent angle of $\alpha_s$)
-- [The Sun As A Source Of Energy Part 3: Calculating Solar Angles](https://www.itacanet.org/the-sun-as-a-source-of-energy/part-3-calculating-solar-angles/)
+```{eval-rst} 
+* :cite:ts:`2017:maleki` p. 5
+* :cite:ts:`Itaca_Sun`
+```
 
 #### Zenith Angle
 
@@ -205,7 +213,10 @@ $$
 
 **References:**
 
-- Quaschning, Volker. (2013). Regenerative Energiesysteme. [Maleki, S.A., Hizam, H., & Gomes, C. (2017). Estimation of Hourly, Daily and Monthly Global Solar Radiation on Inclined Surfaces: Models Re-Visited.](https://res.mdpi.com/d_attachment/energies/energies-10-00134/article_deploy/energies-10-00134-v2.pdf) p. 18
+```{eval-rst} 
+* :cite:ts:`Quaschning.2013`
+* :cite:ts:`2017:maleki` p. 18
+```
 
 #### Air Mass
 
@@ -223,8 +234,10 @@ $$
 
 **References:**
 
-- [Schoenberg, E. (1929). Theoretische Photometrie, g) Über die Extinktion des Lichtes in der Erdatmosphäre. In Handbuch der Astrophysik. Band II, erste Hälfte. Berlin: Springer.](https://link.springer.com/chapter/10.1007/3-540-30669-2_3)
-  [Wikipedia: Air Mass](https://en.wikipedia.org/wiki/Air_mass_(solar_energy)##Calculation)
+```{eval-rst} 
+* :cite:ts:`Schoenberg1929`
+* :cite:ts:`WikiAirMass`
+```
 
 #### Extraterrestrial Radiation
 
@@ -247,8 +260,10 @@ $$
 
 **References:**
 
-- Zheng, H. (2017). Solar Energy Utilization and Its Collection Devices. p. 53, formula 2.3b
-- Iqbal, M. (1983). An introduction to solar radiation.
+```{eval-rst} 
+* :cite:ts:`ZHENG201747` p. 53, formula 2.3b
+* :cite:ts:`Iqbal.1983`
+```
 
 #### Beam Radiation on Sloped Surface
 
@@ -302,7 +317,9 @@ $$
 
 **Reference:**
 
-- [Duffie, J.A., & Beckman, W.A. (2013). Solar Engineering of Thermal Processes: Duffie/Solar Engineering 4e.](https://www.sku.ac.ir/Datafiles/BookLibrary/45/John%20A.%20Duffie,%20William%20A.%20Beckman(auth.)-Solar%20Engineering%20of%20Thermal%20Processes,%20Fourth%20Edition%20(2013).pdf) p. 88
+```{eval-rst} 
+* :cite:ts:`Duffie.2013` p. 88
+```
 
   #### Diffuse Radiation on Sloped Surface
 
@@ -426,9 +443,11 @@ $$
 
 **References:**
 
-- [Perez, R.L., Seals, R., Ineichen, P., Stewart, R., & Menicucci, D.F. (1987). A NEW SIMPLIFIED VERSION OF THE PEREZ DIFFUSE IRRADIANCE MODEL FOR TILTED SURFACES.](http://www.physics.arizona.edu/~cronin/Solar/References/Shade%20effects/sdarticle%20(24).pdf)
-- [Perez, R., Ineichen, P., Seals, R., Michalsky, J.J., & Stewart, R. (1990). Modeling daylight availability and irradiance components from direct and global irradiance.](http://www.cuepe.ch/html/biblio/pdf/perez-ineichen%201990%20-%20modelling%20daylight%20(se).pdf)
-- Estimation of F-values: [Myers, D.R. (2017). Solar Radiation : Practical Modeling for Renewable Energy Applications.](https://www.semanticscholar.org/paper/Solar-Radiation-%3A-Practical-Modeling-for-Renewable-Myers/dc5f81a73058a6d96e697d562e51bbd7a83f0e85) p. 96f
+```{eval-rst} 
+* :cite:ts:`Perez.1987`
+* :cite:ts:`PEREZ1990271`
+* :cite:ts:`myers2017solar` p. 96f
+```
 
 #### Reflected Radiation on Sloped Surface
 
@@ -444,8 +463,10 @@ $$
 **$\rho$** = albedo
 
 **Reference:**
+```{eval-rst} 
+* :cite:ts:`2017:maleki` p. 19
+```
 
-- [Maleki, S.A., Hizam, H., & Gomes, C. (2017). Estimation of Hourly, Daily and Monthly Global Solar Radiation on Inclined Surfaces: Models Re-Visited.](https://res.mdpi.com/d_attachment/energies/energies-10-00134/article_deploy/energies-10-00134-v2.pdf) p. 19
 
 #### Output
 

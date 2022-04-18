@@ -15,9 +15,7 @@ The following publications discuss SIMONA and implementation details as well as 
 
 
 .. rubric:: References
-.. bibliography:: _static/bibliography/bibSimonaDirect.bib
-   :list: enumerated
+.. bibliography:: _static/bibliography/bibtexAll.bib
    :all:
-
 
 
