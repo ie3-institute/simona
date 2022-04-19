@@ -11,14 +11,15 @@ import edu.ie3.simona.api.ExtLinkInterface
 
 import java.io.{File, IOException}
 import java.net.URLClassLoader
+import java.util.ServiceLoader
 
 /** Finds and loads jars containing external simulations.
   */
 object ExtSimLoader extends LazyLogging {
 
-  private val extSimPath = "inputData" + java.io.File.separator + "ext_sim"
+  private val extSimPath = "input" + java.io.File.separator + "ext_sim"
 
-  private val extLinkClassPath = "edu.ie3.simona.api.ExtLink"
+  // private val extLinkClassPath = "edu.ie3.simona.api.ExtLink"
 
   def getStandardDirectory: File = {
     val workingDir = new File(System.getProperty("user.dir"))
@@ -52,19 +53,12 @@ object ExtSimLoader extends LazyLogging {
       }
   }
 
-  def loadExtLink(myJar: File): ExtLinkInterface = {
-    val classLoader = new URLClassLoader(
-      Array(myJar.toURI.toURL),
-      this.getClass.getClassLoader
-    )
-    val classToLoad = Class.forName(extLinkClassPath, true, classLoader)
-    classToLoad.getDeclaredConstructor().newInstance() match {
-      case extSim: ExtLinkInterface =>
-        extSim
-      case other =>
-        throw new ClassCastException(
-          s"$extLinkClassPath in loaded jar ${myJar.getPath} is of wrong type ${other.getClass.getSimpleName}"
-        )
-    }
+  def loadExtLink(myJar: Iterable[File]): ServiceLoader[ExtLinkInterface] = {
+    val urls: Array[java.net.URL] = Array(myJar.iterator.next().toURI.toURL)
+
+    val classLoader = new URLClassLoader(urls, this.getClass.getClassLoader)
+
+    val services = ServiceLoader.load(classOf[ExtLinkInterface], classLoader)
+    services
   }
 }
