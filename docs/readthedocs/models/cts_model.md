@@ -7,7 +7,7 @@ This storage model operates on volumes, although the functions it provides for o
 
 ### Attributes, Units and Remarks
 
-Attributes and Units are defined at {doc}`PowerSystemDataModel - CTS Model <psdm:models/input/participant/cylindricalstorage>` please have a look.
+Please refer to  {doc}`PowerSystemDataModel - CTS Model <psdm:models/input/participant/cylindricalstorage>` for Attributes and Units used in this Model.
 
 ### Calculations
 #### Maximal storage capacity
@@ -53,4 +53,4 @@ $$
 
 ### Store/Take energy
 
-This calculation is performed as follows: An amount of energy is specified for storing or taking. The model then changes the storage level and returns if it exceeded the maximum (when storing energy) or fell below the minimum (when taking energy).
+This calculation is performed as follows: An amount of energy is specified for storing or taking. The model then changes the storage level and returns if it exceeded the maximum (when storing energy) or the minimum (when taking energy).

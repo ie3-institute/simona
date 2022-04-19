@@ -91,7 +91,7 @@ trait TransformerInputTestData extends DefaultTestData {
     Quantities.getQuantity(110d, KILOVOLT),
     Quantities.getQuantity(10d, KILOVOLT),
     Quantities.getQuantity(0d, MetricPrefix.NANO(SIEMENS)),
-    Quantities.getQuantity(1.1, MetricPrefix.NANO(SIEMENS)),
+    Quantities.getQuantity(-1.1, MetricPrefix.NANO(SIEMENS)),
     Quantities.getQuantity(1.5, PERCENT),
     Quantities.getQuantity(0d, DEGREE_GEOM),
     false,

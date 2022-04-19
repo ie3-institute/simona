@@ -17,7 +17,6 @@ extensions = [
     'sphinx.ext.autosectionlabel',
     'sphinx.ext.autodoc',
     'sphinxcontrib.plantuml',
-    'sphinxcontrib.mermaid',
     'sphinx.ext.intersphinx',
     'hoverxref.extension',
     'sphinxcontrib.bibtex',
@@ -50,7 +49,8 @@ hoverxref_intersphinx = [
     "psdm",
 ]
 
-#Bibtex
-bibtex_bibfiles = ['_static/bibliography/bibAboutSimona.bib',
+# BibTex options
+bibtex_bibfiles = ['_static/bibliography/references.bib',
+                   '_static/bibliography/bibAboutSimona.bib',
                    '_static/bibliography/bibtexAll.bib',
                    ]

@@ -230,8 +230,8 @@ protected trait PVAgentFundamentals
                 PVRelevantData(
                   dateTime,
                   tickInterval,
-                  weatherData.diffRad,
-                  weatherData.dirRad
+                  weatherData.diffIrr,
+                  weatherData.dirIrr
                 )
 
               val power = pvModel.calculatePower(

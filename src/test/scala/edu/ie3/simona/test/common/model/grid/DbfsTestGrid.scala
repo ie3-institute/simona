@@ -235,7 +235,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     Quantities.getQuantity(380.0, KILOVOLT),
     Quantities.getQuantity(110.0, KILOVOLT),
     Quantities.getQuantity(555.5, MetricPrefix.NANO(SIEMENS)),
-    Quantities.getQuantity(1.27, MetricPrefix.NANO(SIEMENS)),
+    Quantities.getQuantity(-1.27, MetricPrefix.NANO(SIEMENS)),
     Quantities.getQuantity(1.5, PERCENT),
     Quantities.getQuantity(0, RADIAN),
     false,

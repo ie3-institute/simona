@@ -2,7 +2,7 @@
 
 ## Combined Heat and Power Plant Model
 
-This page documents the functionality of the CHP Model (combined heat and power plant model) available in SIMONA. This model is part of the SIMONA simulation framework and represented by an agent. The current model is feasible to simulate nano- and micro-CHP units. As it is a cross-sector agent heat/electricity) the usage of a house-heat-model is mandatory.  In the following, the CHP unit model and its controller unit is described. The controller unit is necessary to ensure, that different kinds of heat models can be applied.
+This page documents the functionality of the CHP Model (combined heat and power plant model) available in SIMONA. This model is part of the SIMONA simulation framework and represented by an agent. In the current model, it is feasible to simulate nano- and micro-CHP units. As it is a cross-sector agent heat/electricity) the usage of a house-heat-model is mandatory.  In the following, the CHP unit model and its controller unit is described. The controller unit is necessary to ensure, that different kinds of heat models can be applied.
 
 ### Assumptions
 
@@ -14,12 +14,10 @@ The CHP unit is able to operate either at full load or not at all. Uncovered hea
 
 ### Attributes, Units and Remarks
 
-Attributes and Units are defined at {doc}`PowerSystemDataModel - CHP Model <psdm:models/input/participant/chp>` please have a look.
+Please refer to {doc}`PowerSystemDataModel - CHP Model <psdm:models/input/participant/chp>` for Attributes and Units used in this Model.
 
 ### Implemented Behaviour
 
-- Assumptions
-  The CHP unit is able to operate either at full load or not at all. Uncovered heat demand of former time steps is not considered in the following steps, as the CHP unit does not posses a memory.
 - Agent Objectives
   The objective of the CHP agent is to cover the given heat demand in each time-step.
 - Storage medium
@@ -30,7 +28,7 @@ The implemented behaviour is shown in the program sequence plan below. In genera
 ### Implementation:
 
 ![](../_static/figures/models/chp_model/ChpModelCalculation.png)
-![](../_static/figures/models/chp_model/model chpmodelcalculationconcept.png)
+![](../_static/figures/models/chp_model/ModelChpModelCalculationConcept.png)
 
 ### Mathematical concept
 

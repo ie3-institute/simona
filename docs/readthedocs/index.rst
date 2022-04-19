@@ -12,10 +12,9 @@ Institute of Energy Systems, Energy Efficiency and Energy Economics at TU Dortmu
 .. toctree::
    :maxdepth: 2
 
+   about
    usersguide
-   config/config
-   models/models.md
-   protocols
+   developersguide
    references
 
 Indices and tables

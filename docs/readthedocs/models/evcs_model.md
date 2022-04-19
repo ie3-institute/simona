@@ -1,11 +1,11 @@
 (evcs_model)=
-## Electric Vehicle Charging Station Model (EvCs Model)
+## Electric Vehicle Charging Station Model
 
-The currently connected EvModels are saved within the state data of EvCsAgent and passed to EvCsModel with each trigger. The model then calculates the active load of the charging station.
+The currently connected EvModels are saved within the state data of EvcsAgent and passed to EvcsModel with each trigger. The model then calculates the active load of the charging station.
 
 ### Attributes, Units and Remarks
 
-Attributes and Units are defined at {doc}`PowerSystemDataModel - EvCs Model <psdm:models/input/participant/evcs>` please have a look.
+Please refer to {doc}`PowerSystemDataModel - Evcs Model <psdm:models/input/participant/evcs>` for Attributes and Units used in this Model.
 
 ### Calculation
 

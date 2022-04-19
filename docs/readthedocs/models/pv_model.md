@@ -1,6 +1,6 @@
 (pv_model)=
 
-## PV Model
+## Photovoltaic Model
 
 This page documents the functionality of the PV model available in SIMONA.
 
@@ -14,24 +14,11 @@ The PV Model is part of the SIMONA Simulation framework and represented by an ag
 
 ### Attributes, Units and Remarks
 
-Attributes and Units are defined at {doc}`PowerSystemDataModel - PV Model <psdm:models/input/participant/pv>` please have a look.
+Please refer to {doc}`PowerSystemDataModel - PV Model <psdm:models/input/participant/pv>` for Attributes and Units used in this Model.
 
 ### Implemented Behaviour
 
-```{mermaid}
-flowchart
-    A[Setup] 
-    --> B[Receive new time step] 
-    --> C[Receive weather data]
-    --> D[Calculation of sun position]
-    --> E[Calculation of direct radiation]
-    --> F[Calculation of diffuse radiation]
-    --> G[Calculation of reflected radiation]
-    --> H[Estimation of correction factors]
-    --> I[Calculation of output power P]
-    --> J[Calculation of reactive power Q]
-    --> K[Return p and Q to node agent] --> B
-```
+![Sequence Diagram Behaviour PV Model](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/uml/main/models/pv_model/BehaviourPvModel.puml)
 
 ### Output visualization
 
@@ -271,7 +258,7 @@ For our use case, $\omega_2$ is normally set to the hour angle one hour after $\
 
 $$
 (\omega_1, \omega_2) = \begin{cases}
-\omega_{SR}, \omega_{SR} + \Delta\omega), & \text{for } (\omega_{SR}-\frac{\Delta \omega}{2}) < \omega < \omega_{SR} \\ (\omega, \omega+ \Delta\omega), & \text{for } \omega_{SR} \le \omega \le (\omega_{SS}- \Delta\omega) \\ (\omega_{SS}-\Delta\omega,\omega_{SS}), & \text{for }(\omega_{SR}-\Delta\omega) < \omega < (\omega_{SS}-\frac{\Delta\omega}{2})
+(\omega_{SR}, \omega_{SR} + \Delta\omega), & \text{for } (\omega_{SR}-\frac{\Delta \omega}{2}) < \omega < \omega_{SR} \\ (\omega, \omega+ \Delta\omega), & \text{for } \omega_{SR} \le \omega \le (\omega_{SS}- \Delta\omega) \\ (\omega_{SS}-\Delta\omega,\omega_{SS}), & \text{for }(\omega_{SR}-\Delta\omega) < \omega < (\omega_{SS}-\frac{\Delta\omega}{2})
 \end{cases}
 
 $$
