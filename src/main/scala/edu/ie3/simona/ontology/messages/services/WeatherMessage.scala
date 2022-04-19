@@ -56,11 +56,21 @@ object WeatherMessage {
   ) extends WeatherMessage
       with ProvisionMessage[WeatherData]
 
-  /** Hold entire weather result together
+  /** Container class for the entirety of weather information at a certain point
+    * in time and at a certain coordinate
+    *
+    * @param diffIrr
+    *   Diffuse irradiance on the horizontal pane
+    * @param dirIrr
+    *   Direct irradiance on the horizontal pane
+    * @param temp
+    *   Temperature
+    * @param windVel
+    *   Wind velocity
     */
   final case class WeatherData(
-      diffRad: ComparableQuantity[Irradiance],
-      dirRad: ComparableQuantity[Irradiance],
+      diffIrr: ComparableQuantity[Irradiance],
+      dirIrr: ComparableQuantity[Irradiance],
       temp: ComparableQuantity[Temperature],
       windVel: ComparableQuantity[Speed]
   ) extends SecondaryData

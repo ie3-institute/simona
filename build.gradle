@@ -7,10 +7,10 @@ plugins {
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
   id 'pmd' // code check, working on source code
-  id 'com.diffplug.spotless' version '6.2.1'// code format
+  id 'com.diffplug.spotless' version '6.4.2'// code format
   id 'com.github.onslip.gradle-one-jar' version '1.0.6' // pack a self contained jar
   id "com.github.ben-manes.versions" version '0.42.0'
-  id "de.undercouch.download" version "5.0.1" // downloads plugin
+  id "de.undercouch.download" version "5.0.5" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id "com.github.johnrengelman.shadow" version "7.1.2" // fat jar
   id "org.sonarqube" version "3.3" // sonarqube
@@ -26,9 +26,11 @@ ext {
 
   scalaVersion = '2.13'
   scalaBinaryVersion = '2.13.8'
-  akkaVersion = '2.6.18'
-  tscfgVersion = '0.9.997'
+  akkaVersion = '2.6.19'
+  tscfgVersion = '0.9.998'
   scapegoatVersion = '1.4.12'
+
+  testContainerVersion = '0.40.5'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
 }
@@ -74,7 +76,7 @@ dependencies {
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:PowerSystemDataModel:2.1.0') {
+  implementation('com.github.ie3-institute:PowerSystemDataModel:3.0-SNAPSHOT') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -96,16 +98,20 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.4" // akka scala logging
-  implementation "ch.qos.logback:logback-classic:1.2.10"
+  implementation "ch.qos.logback:logback-classic:1.2.11"
 
   /* testing */
-  testImplementation 'org.spockframework:spock-core:2.1-M2-groovy-3.0'
+  testImplementation 'org.spockframework:spock-core:2.1-groovy-3.0'
   testImplementation 'org.scalatestplus:mockito-3-4_2.13:3.2.10.0'
-  implementation 'org.mockito:mockito-core:4.3.1' // mocking framework
+  implementation 'org.mockito:mockito-core:4.4.0' // mocking framework
   testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.11"
-  testRuntimeClasspath 'com.vladsch.flexmark:flexmark-all:0.62.2'
+  testRuntimeClasspath 'com.vladsch.flexmark:flexmark-all:0.64.0'
   testImplementation group: 'org.pegdown', name: 'pegdown', version: '1.6.0'
   testImplementation "com.typesafe.akka:akka-testkit_${scalaVersion}:${akkaVersion}" // akka testkit
+
+  // testcontainers
+  testImplementation "com.dimafeng:testcontainers-scala-scalatest_${scalaVersion}:${testContainerVersion}"
+  testImplementation "com.dimafeng:testcontainers-scala-postgresql_${scalaVersion}:${testContainerVersion}"
 
   /* --- Scala libs --- */
   /* CORE Scala */
@@ -136,13 +142,13 @@ dependencies {
   scalaCompilerPlugin "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:${scapegoatVersion}"
 
   implementation 'org.apache.commons:commons-math3:3.6.1' // apache commons math3
-  implementation 'org.apache.poi:poi-ooxml:5.2.0' // used for FilenameUtils
+  implementation 'org.apache.poi:poi-ooxml:5.2.2' // used for FilenameUtils
   implementation 'javax.measure:unit-api:2.1.3'
-  implementation 'tech.units:indriya:2.1.2' // quantities
+  implementation 'tech.units:indriya:2.1.3' // quantities
   implementation 'org.apache.commons:commons-csv:1.9.0'
   implementation 'org.scalanlp:breeze_2.13:1.3' // scientific calculations (http://www.scalanlp.org/)
   implementation 'de.lmu.ifi.dbs.elki:elki:0.7.5' // Statistics (for random load model)
-  implementation 'com.google.guava:guava:31.0.1-jre' // Building threads
+  implementation 'com.google.guava:guava:31.1-jre' // Building threads
   implementation 'org.jgrapht:jgrapht-core:1.5.1'
 }
 

@@ -1,5 +1,5 @@
 /*
- * © 2021. TU Dortmund University,
+ * © 2022. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
@@ -377,7 +377,7 @@ object SimonaConfig {
       gridIds: scala.Option[scala.List[java.lang.String]],
       sNom: java.lang.String,
       vNom: java.lang.String,
-      voltLvls: scala.Option[scala.List[java.lang.String]]
+      voltLvls: scala.Option[scala.List[SimonaConfig.VoltLvlConfig]]
   )
   object RefSystemConfig {
     def apply(
@@ -397,10 +397,30 @@ object SimonaConfig {
         voltLvls =
           if (c.hasPathOrNull("voltLvls"))
             scala.Some(
-              $_L$_str(c.getList("voltLvls"), parentPath, $tsCfgValidator)
+              $_LSimonaConfig_VoltLvlConfig(
+                c.getList("voltLvls"),
+                parentPath,
+                $tsCfgValidator
+              )
             )
           else None
       )
+    }
+    private def $_LSimonaConfig_VoltLvlConfig(
+        cl: com.typesafe.config.ConfigList,
+        parentPath: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): scala.List[SimonaConfig.VoltLvlConfig] = {
+      import scala.jdk.CollectionConverters._
+      cl.asScala
+        .map(cv =>
+          SimonaConfig.VoltLvlConfig(
+            cv.asInstanceOf[com.typesafe.config.ConfigObject].toConfig,
+            parentPath,
+            $tsCfgValidator
+          )
+        )
+        .toList
     }
     private def $_reqStr(
         parentPath: java.lang.String,
@@ -908,10 +928,8 @@ object SimonaConfig {
             jdbcUrl: java.lang.String,
             password: java.lang.String,
             schemaName: java.lang.String,
-            timeColumnName: java.lang.String,
             timePattern: java.lang.String,
-            userName: java.lang.String,
-            weatherTableName: java.lang.String
+            userName: java.lang.String
         )
         object SqlParams {
           def apply(
@@ -925,14 +943,10 @@ object SimonaConfig {
               schemaName =
                 if (c.hasPathOrNull("schemaName")) c.getString("schemaName")
                 else "public",
-              timeColumnName =
-                $_reqStr(parentPath, c, "timeColumnName", $tsCfgValidator),
               timePattern =
                 if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
                 else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
-              userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator),
-              weatherTableName =
-                $_reqStr(parentPath, c, "weatherTableName", $tsCfgValidator)
+              userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
             )
           }
           private def $_reqStr(
@@ -1277,9 +1291,8 @@ object SimonaConfig {
               jdbcUrl: java.lang.String,
               password: java.lang.String,
               schemaName: java.lang.String,
-              timeColumnName: java.lang.String,
-              userName: java.lang.String,
-              weatherTableName: java.lang.String
+              tableName: java.lang.String,
+              userName: java.lang.String
           )
           object SqlParams {
             def apply(
@@ -1293,11 +1306,9 @@ object SimonaConfig {
                 schemaName =
                   if (c.hasPathOrNull("schemaName")) c.getString("schemaName")
                   else "public",
-                timeColumnName =
-                  $_reqStr(parentPath, c, "timeColumnName", $tsCfgValidator),
-                userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator),
-                weatherTableName =
-                  $_reqStr(parentPath, c, "weatherTableName", $tsCfgValidator)
+                tableName =
+                  $_reqStr(parentPath, c, "tableName", $tsCfgValidator),
+                userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
               )
             }
             private def $_reqStr(
