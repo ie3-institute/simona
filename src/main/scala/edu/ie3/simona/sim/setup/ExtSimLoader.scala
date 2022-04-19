@@ -54,7 +54,15 @@ object ExtSimLoader extends LazyLogging {
   }
 
   def loadExtLink(myJar: Iterable[File]): ServiceLoader[ExtLinkInterface] = {
-    val urls: Array[java.net.URL] = Array(myJar.iterator.next().toURI.toURL)
+    val JarIterator = myJar.iterator
+    val length = JarIterator.length
+    val urls = Array.ofDim[java.net.URL](length)
+
+    while(JarIterator.hasNext){
+      var index : Int = 0
+      urls.update(index, JarIterator.next().toURI.toURL)
+      index += 1
+    }
 
     val classLoader = new URLClassLoader(urls, this.getClass.getClassLoader)
 

@@ -19,8 +19,10 @@ class ExtSimLoaderSpec extends UnitSpec {
   private val jarsDir = s"$resourceDir/jars"
 
   private val workingJar = s"$jarsDir/mock_ext_sim.jar"
-  private val wrongExtLinkJar = s"$jarsDir/mock_ext_sim-wrong_extlink.jar"
-  private val missingExtLinkJar = s"$jarsDir/mock_ext_sim-missing_extlink.jar"
+  private val workingJar2 = s"$jarsDir/mock_ext_sim_2.jar"
+  private val wrongImplementationJar = s"$jarsDir/mock_ext_sim-wrong_implementation.jar"
+  private val emptyFileJar = s"$jarsDir/mock_ext_sim-empty_file.jar"
+  private val missingServiceFileJar = s"$jarsDir/mock_ext_sim-missing_service_file.jar"
 
   // testing whether this test is complete
   "An ExtSimLoaderSpec " should {
@@ -46,9 +48,9 @@ class ExtSimLoaderSpec extends UnitSpec {
       assert(dir.isDirectory, "Directory with jars does not exist")
 
       val files = dir.listFiles().toVector
-      files.size shouldBe 4
+      files.size shouldBe 6
 
-      files.count(file => fileSuffix(file.getName) == "jar") shouldBe 3
+      files.count(file => fileSuffix(file.getName) == "jar") shouldBe 5
 
       files.count(file => fileSuffix(file.getName) == "txt") shouldBe 1
     }
@@ -74,23 +76,43 @@ class ExtSimLoaderSpec extends UnitSpec {
       }
     }
 
-    "throw exception when ExtLink is missing" in {
-      val jar = getResource(missingExtLinkJar)
+    "throw exception when the META-INF/service file is missing" in {
+      val jar = getResource(missingServiceFileJar)
       assertThrows[ClassNotFoundException] {
-        ExtSimLoader.loadExtLink(jar)
+        val file = Iterable[File](jar)
+        ExtSimLoader.loadExtLink(file)
       }
     }
 
-    "throw exception when ExtLink does not inherit from ExtLinkInterface" in {
-      val jar = getResource(wrongExtLinkJar)
+    "throw exception when service file is empty" in {
+      val jar = getResource(emptyFileJar)
       assertThrows[ClassCastException] {
-        ExtSimLoader.loadExtLink(jar)
+        val file = Iterable[File](jar)
+        ExtSimLoader.loadExtLink(file)
+      }
+    }
+
+    "throw exception when ExtLinkInterface is not implemented" in {
+      val jar = getResource(wrongImplementationJar)
+      assertThrows[ClassCastException] {
+        val file = Iterable[File](jar)
+        ExtSimLoader.loadExtLink(file)
       }
     }
 
     "load a proper jar correctly" in {
       val jar = getResource(workingJar)
-      val extSim = ExtSimLoader.loadExtLink(jar)
+      val file = Iterable[File](jar)
+      val extSim = ExtSimLoader.loadExtLink(file)
+
+      extSim should not be null
+      extSim shouldBe an[ExtLinkInterface]
+    }
+
+    "load a multiple jars correctly" in {
+      val jarOne = getResource(workingJar)
+      val jarTwo = getResource(workingJar2)
+      val extSim = ExtSimLoader.loadExtLink(Iterable(jarOne, jarTwo))
 
       extSim should not be null
       extSim shouldBe an[ExtLinkInterface]
