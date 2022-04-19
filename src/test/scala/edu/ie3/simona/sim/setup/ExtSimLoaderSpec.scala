@@ -20,9 +20,11 @@ class ExtSimLoaderSpec extends UnitSpec {
 
   private val workingJar = s"$jarsDir/mock_ext_sim.jar"
   private val workingJar2 = s"$jarsDir/mock_ext_sim_2.jar"
-  private val wrongImplementationJar = s"$jarsDir/mock_ext_sim-wrong_implementation.jar"
+  private val wrongImplementationJar =
+    s"$jarsDir/mock_ext_sim-wrong_implementation.jar"
   private val emptyFileJar = s"$jarsDir/mock_ext_sim-empty_file.jar"
-  private val missingServiceFileJar = s"$jarsDir/mock_ext_sim-missing_service_file.jar"
+  private val missingServiceFileJar =
+    s"$jarsDir/mock_ext_sim-missing_service_file.jar"
 
   // testing whether this test is complete
   "An ExtSimLoaderSpec " should {

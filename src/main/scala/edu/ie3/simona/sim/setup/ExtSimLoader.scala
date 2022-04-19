@@ -58,8 +58,8 @@ object ExtSimLoader extends LazyLogging {
     val length = JarIterator.length
     val urls = Array.ofDim[java.net.URL](length)
 
-    while(JarIterator.hasNext){
-      var index : Int = 0
+    while (JarIterator.hasNext) {
+      var index: Int = 0
       urls.update(index, JarIterator.next().toURI.toURL)
       index += 1
     }
