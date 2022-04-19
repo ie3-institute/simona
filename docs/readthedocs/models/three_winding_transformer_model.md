@@ -42,5 +42,5 @@ More details on the physical model transformation can be found in the Ph.D. thes
 ```{eval-rst}
 :cite:empty:`Kittl.2021`
 
-.. bibliography::
+.. bibliography:: references.bib
 ```
