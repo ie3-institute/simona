@@ -84,13 +84,16 @@ group #LightGrey InitialUpdateFirstTick
     end
     end
 group #LightGreen Regular request
-    group Same as firstTick
+    group Request Data for new power flow
+        GridAgent -> HEMSAgent: request PowerDemand
+        HEMSAgent -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PvPower + PowerDemandHomeStorage + PowerDemandEvcsAgent1
     end
     end
 group #LightGreen Update ValueStore through trigger of Child of HEMSAgent
-/'TODO needs to be filled'/
+    group For all triggers of Childof HEMSAgent: Run InitialUpdateFirstTick
+    end
 end
-GridAgent -> HEMSAgent: request PowerDemand
+
 @enduml
 
 
