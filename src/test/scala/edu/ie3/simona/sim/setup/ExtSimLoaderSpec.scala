@@ -85,7 +85,7 @@ class ExtSimLoaderSpec extends UnitSpec {
       val file = Iterable(jar)
       val extSim = ExtSimLoader.loadExtLink(file)
 
-      extSim.iterator().hasNext shouldBe false
+      extSim.iterator.hasNext shouldBe false
     }
 
     "throw exception when service file is empty" in {
@@ -93,7 +93,7 @@ class ExtSimLoaderSpec extends UnitSpec {
       val file = Iterable(jar)
       val extSim = ExtSimLoader.loadExtLink(file)
 
-      extSim.iterator().hasNext shouldBe false
+      extSim.iterator.hasNext shouldBe false
     }
 
     "throw exception when ExtLinkInterface is not implemented" in {
@@ -102,14 +102,14 @@ class ExtSimLoaderSpec extends UnitSpec {
         val file = Iterable(jar)
         val extSim = ExtSimLoader.loadExtLink(file)
 
-        extSim.iterator().next().getExtSimulation shouldBe false
+        extSim.iterator.next().getExtSimulation shouldBe false
       }
     }
 
     "load a proper jar correctly" in {
       val jar = getResource(workingJar)
       val file = Iterable(jar)
-      val extSim = ExtSimLoader.loadExtLink(file).iterator().next()
+      val extSim = ExtSimLoader.loadExtLink(file).iterator.next()
 
       extSim should not be null
       extSim shouldBe an[ExtLinkInterface]
@@ -120,7 +120,7 @@ class ExtSimLoaderSpec extends UnitSpec {
       val jarTwo = getResource(workingJar2)
       val extSims = ExtSimLoader.loadExtLink(Iterable(jarOne, jarTwo))
 
-      val extSimIterator = extSims.iterator()
+      val extSimIterator = extSims.iterator
 
       while (extSimIterator.hasNext) {
         val extSim = extSimIterator.next()

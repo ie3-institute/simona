@@ -13,7 +13,7 @@ import edu.ie3.datamodel.graph.SubGridTopologyGraph
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.{GridAgent, GridAgentData}
-import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
+import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.ExtSimAdapter.InitExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
@@ -37,7 +37,6 @@ import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.util.TimeUtil
 
-import java.util.ServiceLoader
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters._
 
@@ -161,9 +160,7 @@ class SimonaStandaloneSetup(
   ): ExtSimSetupData = {
     val jars = ExtSimLoader.scanInputFolder()
 
-    val loadedJars = ExtSimLoader.loadExtLink(jars)
-
-    val extLinks = loadedJars.asScala
+    val extLinks = ExtSimLoader.loadExtLink(jars)
 
     val (extSimAdapters, extDataServices) =
       extLinks.zipWithIndex.map { case (extLink, index) =>

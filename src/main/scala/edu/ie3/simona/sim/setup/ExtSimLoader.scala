@@ -12,14 +12,13 @@ import edu.ie3.simona.api.ExtLinkInterface
 import java.io.{File, IOException}
 import java.net.URLClassLoader
 import java.util.ServiceLoader
+import scala.jdk.CollectionConverters._
 
 /** Finds and loads jars containing external simulations.
   */
 object ExtSimLoader extends LazyLogging {
 
   private val extSimPath = "input" + java.io.File.separator + "ext_sim"
-
-  // private val extLinkClassPath = "edu.ie3.simona.api.ExtLink"
 
   def getStandardDirectory: File = {
     val workingDir = new File(System.getProperty("user.dir"))
@@ -53,7 +52,7 @@ object ExtSimLoader extends LazyLogging {
       }
   }
 
-  def loadExtLink(myJar: Iterable[File]): ServiceLoader[ExtLinkInterface] = {
+  def loadExtLink(myJar: Iterable[File]): Iterable[ExtLinkInterface] = {
     val jarArray = myJar.iterator.toArray
     val length = jarArray.length
     val urls = Array.ofDim[java.net.URL](length)
@@ -65,6 +64,6 @@ object ExtSimLoader extends LazyLogging {
     val classLoader = new URLClassLoader(urls)
 
     val services = ServiceLoader.load(classOf[ExtLinkInterface], classLoader)
-    services
+    services.asScala
   }
 }
