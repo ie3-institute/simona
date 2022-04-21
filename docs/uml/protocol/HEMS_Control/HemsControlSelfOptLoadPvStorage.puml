@@ -43,14 +43,14 @@ group #LightGreen Update ValueStore through trigger of Child of HEMSAgent
     LoadAgent -> HEMSAgent: new PowerDemand
     HEMSAgent -> HEMSAgent: Update ValueStore
     HEMSAgent -> HomeStorageAgent: PowerDemandHomeStorage = min [PvPower - PowerDemandLoadAgent | RatedPowerHomeStorage]
-    alt#Gold If change ov Load could not compensate by HomeStorage
+    alt#Gold If change of Load could not compensate by HomeStorage
         HEMSAgent -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PvPower + PowerDemandHomeStorage
     end
     else
     PVAgent -> HEMSAgent: new PvPower
     HEMSAgent -> HEMSAgent: Update ValueStore
     HEMSAgent -> HomeStorageAgent: PowerDemandHomeStorage = min [PvPower - PowerDemandLoadAgent | RatedPowerHomeStorage]
-    alt#Gold If change ov PvPower could not compensate by HomeStorage
+    alt#Gold If change of PvPower could not compensate by HomeStorage
     HEMSAgent -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PvPower + PowerDemandHomeStorage
     end
     else
