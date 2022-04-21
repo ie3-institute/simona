@@ -80,7 +80,7 @@ class ExtSimLoaderSpec extends UnitSpec {
       }
     }
 
-    "throw exception when the META-INF/service file is missing" in {
+    "no service loaded when the META-INF/service file is missing" in {
       val jar = getResource(missingServiceFileJar)
       val file = Iterable(jar)
       val extSim = ExtSimLoader.loadExtLink(file)
@@ -88,7 +88,7 @@ class ExtSimLoaderSpec extends UnitSpec {
       extSim.iterator.hasNext shouldBe false
     }
 
-    "throw exception when service file is empty" in {
+    "no service loaded when service file is empty" in {
       val jar = getResource(emptyFileJar)
       val file = Iterable(jar)
       val extSim = ExtSimLoader.loadExtLink(file)
@@ -115,7 +115,7 @@ class ExtSimLoaderSpec extends UnitSpec {
       extSim shouldBe an[ExtLinkInterface]
     }
 
-    "load a multiple jars correctly" in {
+    "load multiple proper jars correctly" in {
       val jarOne = getResource(workingJar)
       val jarTwo = getResource(workingJar2)
       val extSims = ExtSimLoader.loadExtLink(Iterable(jarOne, jarTwo))
