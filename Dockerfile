@@ -1,10 +1,10 @@
-FROM openjdk:8-jre-slim
+FROM openjdk:17-slim
 
 # USAGE:
 # build with ARG version and if applicable with ARG snapshot suffix
-    # e.g.: docker build --build-arg version=1.0 --build-arg snapshotSuffix=-SNAPSHOT -t simona .
+    # e.g.: docker build --build-arg version=2.1.0 --build-arg snapshotSuffix=-SNAPSHOT -t simona .
 # run by mounting directory
-    # e.g. docker run -v `realpath inputData`:/inputData --rm simona
+    # e.g. docker run -v `realpath input`:/input --rm simona
         # note: this does not work for windows so you have to enter the absolute path manually and escape the \'s
 
 ARG version
