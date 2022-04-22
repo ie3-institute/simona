@@ -9,6 +9,7 @@ package edu.ie3.simona.io.result
 import com.sksamuel.avro4s.RecordFormat
 import edu.ie3.datamodel.models.result.NodeResult
 import edu.ie3.simona.io.result.plain.PlainResult.PlainNodeResult
+import edu.ie3.simona.io.result.plain.PlainWriter
 import edu.ie3.simona.test.KafkaFlatSpec
 import edu.ie3.simona.test.KafkaFlatSpec.Topic
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -18,6 +19,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.{Deserializer, Serdes}
 import org.apache.kafka.common.utils.Bytes
+import org.scalatest.OptionValues
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
@@ -30,7 +32,7 @@ import scala.language.postfixOps
 /** Adapted from
   * https://kafka-tutorials.confluent.io/produce-consume-lang/scala.html
   */
-class ResultEntityKafkaSpec extends KafkaFlatSpec {
+class ResultEntityKafkaSpec extends KafkaFlatSpec with OptionValues {
 
   var testConsumer: KafkaConsumer[Bytes, PlainNodeResult] = _
 
@@ -104,9 +106,9 @@ class ResultEntityKafkaSpec extends KafkaFlatSpec {
     resultEntitySink.handleResultEntity(nodeRes2)
     resultEntitySink.handleResultEntity(nodeRes3)
 
+    val testTopic = testTopics.headOption.value
     val topicPartitions: Seq[TopicPartition] =
-      (0 until testTopics.head.partitions)
-        .map(new TopicPartition(testTopics.head.name, _))
+      (0 until testTopic.partitions).map(new TopicPartition(testTopic.name, _))
 
     testConsumer.assign(topicPartitions.asJava)
 
@@ -120,7 +122,7 @@ class ResultEntityKafkaSpec extends KafkaFlatSpec {
       records should contain(
         PlainNodeResult(
           runId,
-          nodeRes1.getTime.toString,
+          PlainWriter.createSimpleTimeStamp(nodeRes1.getTime),
           nodeRes1.getUuid,
           nodeRes1.getInputModel,
           nodeRes1.getvMag().getValue.doubleValue(),
@@ -130,7 +132,7 @@ class ResultEntityKafkaSpec extends KafkaFlatSpec {
       records should contain(
         PlainNodeResult(
           runId,
-          nodeRes2.getTime.toString,
+          PlainWriter.createSimpleTimeStamp(nodeRes2.getTime),
           nodeRes2.getUuid,
           nodeRes2.getInputModel,
           nodeRes2.getvMag().getValue.doubleValue(),
@@ -140,7 +142,7 @@ class ResultEntityKafkaSpec extends KafkaFlatSpec {
       records should contain(
         PlainNodeResult(
           runId,
-          nodeRes3.getTime.toString,
+          PlainWriter.createSimpleTimeStamp(nodeRes3.getTime),
           nodeRes3.getUuid,
           nodeRes3.getInputModel,
           nodeRes3.getvMag().getValue.doubleValue(),

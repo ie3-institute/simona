@@ -19,14 +19,11 @@ sealed trait PlainWriter[F <: ResultEntity, P <: PlainResult] {
   def writePlain(full: F): P
 
   def createFull(plain: P): F
-
-  def createSimpleTimeStamp(dateTime: ZonedDateTime): String = {
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-    dateTime.format(formatter)
-  }
 }
 
 object PlainWriter {
+  private lazy val timeFormatter =
+    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
   case class NodeResultWriter(simRunId: UUID)
       extends PlainWriter[NodeResult, PlainNodeResult] {
@@ -51,4 +48,7 @@ object PlainWriter {
       )
     }
   }
+
+  def createSimpleTimeStamp(dateTime: ZonedDateTime): String =
+    dateTime.format(timeFormatter)
 }
