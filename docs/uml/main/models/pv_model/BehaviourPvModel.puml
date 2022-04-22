@@ -1,0 +1,25 @@
+@startuml
+ rectangle "Setup" as s01
+ rectangle "Receive new time step" as s02
+ rectangle "Receive weather data" as s03
+ rectangle "Calculation of sun position" as s04
+ rectangle "Calculation of direct radiation" as s05
+ rectangle "Calculation of diffuse radiation" as s06
+ rectangle "Calculation of reflected radiation" as s07
+ rectangle "Estimation of correction factors" as s08
+ rectangle "Calculation of output power P" as s09
+ rectangle "Calculation of reactive power Q" as s10
+ rectangle "Return p and Q to node agent" as s11
+
+ s01 -down-> s02
+ s02 -down-> s03
+ s03 -down-> s04
+ s04 -down-> s05
+ s05 -down-> s06
+ s06 -down-> s07
+ s07 -down-> s08
+ s08 -down-> s09
+ s09 -down-> s10
+ s10 -down-> s11
+ s11 -up-> s02
+ @enduml
