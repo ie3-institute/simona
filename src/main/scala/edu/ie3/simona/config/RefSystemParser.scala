@@ -47,7 +47,7 @@ object RefSystemParser {
     * @param configRefSystems
     *   the refSystems provided via configuration
     * @return
-    *   object that holds two maps with mappings of allGridIds and voltLvls to
+    *   object that holds two maps with mappings of gridIds and voltLvls to
     *   RefSystems
     */
   def parse(
