@@ -34,17 +34,10 @@ object RefSystemParser {
     def find(
         gridId: Int,
         voltLvl: Option[VoltageLevel] = None
-    ): Option[RefSystem] = {
-
-      gridIdRefSystems.get(gridId) match {
-        case None =>
-          voltLvl match {
-            case Some(voltLvl) => voltLvLRefSystems.get(voltLvl)
-            case None          => None
-          }
-        case refSystemOpt @ Some(_) => refSystemOpt
-      }
-    }
+    ): Option[RefSystem] =
+      gridIdRefSystems
+        .get(gridId)
+        .orElse(voltLvl.flatMap(voltLvLRefSystems.get))
 
   }
 
@@ -54,7 +47,7 @@ object RefSystemParser {
     * @param configRefSystems
     *   the refSystems provided via configuration
     * @return
-    *   object that holds two maps with mappings of gridIds and voltLvls to
+    *   object that holds two maps with mappings of allGridIds and voltLvls to
     *   RefSystems
     */
   def parse(
@@ -65,60 +58,51 @@ object RefSystemParser {
     // hence we call them manually
     new PowerSystemUnits
 
-    val gridIdRefSystems: Vector[(Int, RefSystem)] = configRefSystems.foldLeft(
-      Vector.empty[(Int, RefSystem)]
-    )((gridIdRefSystemsAccumulator, configRefSystem) => {
-      val refSystem = RefSystem(configRefSystem.sNom, configRefSystem.vNom)
+    val refSystems = configRefSystems.map { configRefSystem =>
+      (configRefSystem, RefSystem(configRefSystem.sNom, configRefSystem.vNom))
+    }
 
-      val gridIdRefSystems = configRefSystem.gridIds match {
-        case Some(gridIds) =>
-          gridIds.foldLeft(Vector.empty[(Int, RefSystem)])(
-            (gridIdRefSystems, gridId) => {
+    val gridIdRefSystems = refSystems.flatMap {
+      case (configRefSystem, parsedRefSystem) =>
+        configRefSystem.gridIds
+          .map {
+            _.flatMap { gridId =>
+              {
+                val allGridIds = gridId match {
+                  case ConfigConventions.gridIdDotRange(from, to) =>
+                    from.toInt to to.toInt
+                  case ConfigConventions.gridIdMinusRange(from, to) =>
+                    from.toInt to to.toInt
+                  case ConfigConventions.singleGridId(singleGridId) =>
+                    Seq(singleGridId.toInt)
+                  case unknownGridIdFormat =>
+                    throw new InvalidConfigParameterException(
+                      s"Unknown gridId format $unknownGridIdFormat provided for refSystem $configRefSystem"
+                    )
+                }
 
-              val gridIds: Vector[Int] = gridId match {
-                case ConfigConventions.gridIdDotRange(from, to) =>
-                  (from.toInt to to.toInt).toVector
-                case ConfigConventions.gridIdMinusRange(from, to) =>
-                  (from.toInt to to.toInt).toVector
-                case ConfigConventions.singleGridId(singleGridId) =>
-                  Vector(singleGridId.toInt)
-                case unknownGridIdFormat =>
-                  throw new InvalidConfigParameterException(
-                    s"Unknown gridId format $unknownGridIdFormat provided for refSystem $configRefSystem"
-                  )
+                allGridIds.map(gridId => (gridId, parsedRefSystem))
               }
-
-              gridIdRefSystems ++ gridIds.map(gridId => (gridId, refSystem))
             }
-          )
-        case None => List.empty[(Int, RefSystem)]
-      }
+          }
+          .getOrElse(Seq.empty[(Int, RefSystem)])
+    }
 
-      gridIdRefSystemsAccumulator ++ gridIdRefSystems
-    })
-
-    val voltLvlRefSystems: Vector[(VoltageLevel, RefSystem)] =
-      configRefSystems.foldLeft(
-        Vector.empty[(VoltageLevel, RefSystem)]
-      )((voltLvlRefSystemsAccumulator, configRefSystem) => {
-        val refSystem = RefSystem(configRefSystem.sNom, configRefSystem.vNom)
-
-        val voltLvlRefSystems = configRefSystem.voltLvls match {
-          case Some(voltLvls) =>
-            voltLvls.foldLeft(Vector.empty[(VoltageLevel, RefSystem)])(
-              (voltLvlRefSystems, voltLvlDef) => {
-                voltLvlRefSystems :+ (VoltLvlParser.from(voltLvlDef), refSystem)
-              }
-            )
-          case None => List.empty[(VoltageLevel, RefSystem)]
-        }
-        voltLvlRefSystemsAccumulator ++ voltLvlRefSystems
-      })
+    val voltLvlRefSystems = refSystems.flatMap {
+      case (configRefSystem, parsedRefSystem) =>
+        configRefSystem.voltLvls
+          .map {
+            _.map { voltLvlDef =>
+              (VoltLvlParser.from(voltLvlDef), parsedRefSystem)
+            }
+          }
+          .getOrElse(Seq.empty[(VoltageLevel, RefSystem)])
+    }
 
     // check for duplicates on each list tuple_.1 which will be the key for the following map conversion
     if (
       CollectionUtils.listHasDuplicates(
-        gridIdRefSystems.map(gridIdRefSystem => gridIdRefSystem._1).toList
+        gridIdRefSystems.map(gridIdRefSystem => gridIdRefSystem._1)
       )
     )
       throw new InvalidConfigParameterException(
@@ -127,7 +111,7 @@ object RefSystemParser {
       )
     if (
       CollectionUtils.listHasDuplicates(
-        voltLvlRefSystems.map(gridIdRefSystem => gridIdRefSystem._1).toList
+        voltLvlRefSystems.map(gridIdRefSystem => gridIdRefSystem._1)
       )
     )
       throw new InvalidConfigParameterException(
