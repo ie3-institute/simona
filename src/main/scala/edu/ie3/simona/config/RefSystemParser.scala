@@ -99,10 +99,10 @@ object RefSystemParser {
           .getOrElse(Seq.empty[(VoltageLevel, RefSystem)])
     }
 
-    // check for duplicates on each list tuple_.1 which will be the key for the following map conversion
+    // check for duplicates of gridIds and voltLevels which will be the key for the following map conversion
     if (
       CollectionUtils.listHasDuplicates(
-        gridIdRefSystems.map(gridIdRefSystem => gridIdRefSystem._1)
+        gridIdRefSystems.map { case (gridId, _) => gridId }
       )
     )
       throw new InvalidConfigParameterException(
@@ -111,7 +111,7 @@ object RefSystemParser {
       )
     if (
       CollectionUtils.listHasDuplicates(
-        voltLvlRefSystems.map(gridIdRefSystem => gridIdRefSystem._1)
+        voltLvlRefSystems.map { case (voltLvl, _) => voltLvl }
       )
     )
       throw new InvalidConfigParameterException(
