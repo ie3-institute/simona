@@ -46,8 +46,6 @@ task genConfigSample {
       main = "-jar"
       args = [
         "build/tscfg-${tscfgVersion}.jar",
-        "--dd",
-        System.properties['java.io.tmpdir'],
         "--spec",
         "src/main/resources/config/config-template.conf",
         "--tpl",
