@@ -160,7 +160,7 @@ class SimonaStandaloneSetup(
   ): ExtSimSetupData = {
     val jars = ExtSimLoader.scanInputFolder()
 
-    val extLinks = ExtSimLoader.loadExtLink(jars)
+    val extLinks = jars.flatMap(ExtSimLoader.loadExtLink)
 
     val (extSimAdapters, extDataServices) =
       extLinks.zipWithIndex.map { case (extLink, index) =>
