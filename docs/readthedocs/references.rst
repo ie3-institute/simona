@@ -10,12 +10,13 @@ The following publications discuss SIMONA and implementation details as well as 
 .. rubric:: References about SIMONA
 
 .. bibliography:: _static/bibliography/bibAboutSimona.bib
-   :list: enumerated
+   :style: custom
    :all:
 
 
 .. rubric:: References
 .. bibliography:: _static/bibliography/bibtexAll.bib
+   :style: custom
    :all:
 
 
