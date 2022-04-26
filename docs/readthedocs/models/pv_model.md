@@ -55,8 +55,8 @@ $$
 **References:**
 
 ```{eval-rst}
-* :cite:cts:`2017:maleki` 
-* :cite:ts:`Spencer1971Fourier`
+* :cite:cts:`Maleki.2017` 
+* :cite:ts:`Spencer.1971`
 ```
 
 #### Hour Angle
@@ -111,8 +111,8 @@ $$
 
 ```{eval-rst}
 * :cite:cts:`Watter.2013` 
-* :cite:ts:`2017:maleki`
-* :cite:ts:`WANG201947`
+* :cite:ts:`Maleki.2017`
+* :cite:ts:`Wang.2019`
 ```
 
 #### Sunrise Angle
@@ -134,7 +134,7 @@ $$
 
 **References:**
 ```{eval-rst}
-* :cite:cts:`2017:maleki` 
+* :cite:cts:`Maleki.2017` 
 * :cite:ts:`Itaca_Sun`
 ```
 
@@ -155,7 +155,7 @@ $$
 **References:**
 
 ```{eval-rst} 
-* :cite:ts:`2017:maleki` p. 5
+* :cite:ts:`Maleki.2017` p. 5
 * :cite:ts:`Itaca_Sun`
 ```
 
@@ -202,7 +202,7 @@ $$
 
 ```{eval-rst} 
 * :cite:ts:`Quaschning.2013`
-* :cite:ts:`2017:maleki` p. 18
+* :cite:ts:`Maleki.2017` p. 18
 ```
 
 #### Air Mass
@@ -222,7 +222,7 @@ $$
 **References:**
 
 ```{eval-rst} 
-* :cite:ts:`Schoenberg1929`
+* :cite:ts:`Schoenberg.1929`
 * :cite:ts:`WikiAirMass`
 ```
 
@@ -248,7 +248,7 @@ $$
 **References:**
 
 ```{eval-rst} 
-* :cite:ts:`ZHENG201747` p. 53, formula 2.3b
+* :cite:ts:`Zheng.2017` p. 53, formula 2.3b
 * :cite:ts:`Iqbal.1983`
 ```
 
@@ -432,8 +432,8 @@ $$
 
 ```{eval-rst} 
 * :cite:ts:`Perez.1987`
-* :cite:ts:`PEREZ1990271`
-* :cite:ts:`myers2017solar` p. 96f
+* :cite:ts:`Perez.1990`
+* :cite:ts:`Myers.2017` p. 96f
 ```
 
 #### Reflected Radiation on Sloped Surface
@@ -451,7 +451,7 @@ $$
 
 **Reference:**
 ```{eval-rst} 
-* :cite:ts:`2017:maleki` p. 19
+* :cite:ts:`Maleki.2017` p. 19
 ```
 
 
