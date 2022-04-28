@@ -60,8 +60,14 @@ object ExtSimLoader extends LazyLogging {
       .headOption
 
     service.knownSize match {
-      case 1 => logger.info(s"External simulation ${myJar.getName} was loaded with one service.")
-      case _ => logger.warn(s"External simulation ${myJar.getName} was loaded with ${service.knownSize} services.")
+      case 1 =>
+        logger.info(
+          s"External simulation ${myJar.getName} was loaded with one service."
+        )
+      case _ =>
+        logger.warn(
+          s"External simulation ${myJar.getName} was loaded with ${service.knownSize} services."
+        )
     }
 
     service
