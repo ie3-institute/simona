@@ -83,18 +83,18 @@ If you are using IntelliJ IDEA as your IDE, this is how setting the command line
 <ol>
 <li>Find the ``vn_simona.conf`` file in your project directory and copy its path from the content root</li>
 
-![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/images/usersguide/copy-path.png)
+![copy-path](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/images/usersguide/copy-path.png)
 
 <li>Go to the window "Select Run/Debug Configuration" and select "Edit Configurations"</li>
 
-![](http://www.plantuml.com/plantuml/proxy?cache=no&src=hhttps://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/images/usersguide/edit-conf.png)
+![edit-conf](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/images/usersguide/edit-conf.png)
 
 <li>Enter ``--config={path from the content root of config file}``</li>
 
 > **_NOTE:_**
 For our example that would be ``--config=inputData/vn_simona/vn_simona.conf``
 
-![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/images/usersguide/edit-conf2.png)
+![edit-conf2](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/images/usersguide/edit-conf2.png)
 
 <li>Click Apply on the bottom right</li>
 </ol>
@@ -103,7 +103,7 @@ For our example that would be ``--config=inputData/vn_simona/vn_simona.conf``
 
 
 If you want to change specific parameters of the simulation, you can create a custom configuration file.
-For a detailed description on how to do that and all the various configuration parameters you can adjust, see `/config/config`.
+For a detailed description on how to do that and all the various configuration parameters you can adjust, see /config/config.
 
 
 ### Model and Grid Data
@@ -114,7 +114,7 @@ Within SIMONA we use the PowerSystemDataModel (PSDM) for modeling the system com
 Before the data can be utilized for a simulation run, make sure to convert them to the PSDM.
 For more information on the PSDM visit the [docs](https://powersystemdatamodel.readthedocs.io/en/latest/index.html) and for an example of how the converted data looks like you can take a look at an example grid at ``./inputData/vn_simona/fullGrid``.
 The example grids are provided as csv files. You can choose to use a different data source for your own grid.
-For more information on supported sources, check out the `/config/config` section.
+For more information on supported sources, check out the /config/config section.
 Include your grid and its specification by referencing the folder path, where all the converted grid data is located, within your custom configuration file.
 
 
@@ -123,14 +123,14 @@ Include your grid and its specification by referencing the folder path, where al
 
 Besides a configuration and the actual grid and grid participants, SIMONA also expects weather data.
 There is an option to use sample weather data, but if you want sensible results, definitely consider supplying suitable data.
-Find information on the expected data format and different supported sources at `/config/config`.
+Find information on the expected data format and different supported sources at /config/config.
 
 
 ## Simulation Outputs
 
 
 The raw simulation outputs get written according to the settings, specified in the simulation configuration.
-There are different types of output formats. More in depth information can be found at the :doc:`/config/config` section.
+There are different types of output formats. More in depth information can be found at the /config/config section.
 As for the example configuration, the results will be written as csv files into the specified output folder.
 Within the folder you can find the following subfolders:
 
@@ -188,7 +188,7 @@ These steps have to be performed each time updates to the external simulation ne
 - Execute ``gradle shadowJar`` inside the external simulation project.
 - Copy the resulting *jar* (usually placed inside <external project>/build/libs) to SIMONA/inputData/ext_sim.
 
-Now, when a simulation with SIMONA is started (see `above <#running-a-standalone-simulation>`_), the external simulation is triggered at each tick that it requested.
+Now, when a simulation with SIMONA is started (see [above](#running-a-standalone-simulation), the external simulation is triggered at each tick that it requested.
 
 ## Troubleshooting
 

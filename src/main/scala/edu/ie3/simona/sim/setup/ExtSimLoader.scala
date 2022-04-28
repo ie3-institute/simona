@@ -54,9 +54,16 @@ object ExtSimLoader extends LazyLogging {
 
   def loadExtLink(myJar: File): Option[ExtLinkInterface] = {
     val classLoader = new URLClassLoader(Array(myJar.toURI.toURL))
-    ServiceLoader
+    val service = ServiceLoader
       .load(classOf[ExtLinkInterface], classLoader)
       .asScala
       .headOption
+
+    service.knownSize match {
+      case 1 => logger.info(s"External simulation $myJar was loaded with one service.")
+      case _ => logger.warn(s"External simulation $myJar was loaded with ${service.knownSize} services.")
+    }
+
+    service
   }
 }
