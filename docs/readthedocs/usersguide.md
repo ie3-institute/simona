@@ -16,9 +16,7 @@ To run and customize the project you need a Java Development Kit (JDK) installat
 
 You can find and download the source code of the latest stable SIMONA version `here <https://github.com/ie3-institute/simona>`_. Go ahead and clone the repository using git:
 
-.. code-block:: none
-
-$ git clone https://github.com/ie3-institute/simona.git
+    $ git clone https://github.com/ie3-institute/simona.git
 
 
 ## Running a Standalone Simulation
@@ -40,8 +38,6 @@ Execute ``./gradlew shadowJar`` within the CLI. This creates a fat jar of SIMONA
 
 #.
 For executing a fat jar you need to specify the classpath of the entrypoint of your application. Assuming we are still in the top level directory of our project, the execution command would look as follows:
-
-.. code-block:: none
 
       java -cp build/libs/simona-2.1-all.jar edu.ie3.simona.main.RunSimonaStandalone
 
@@ -74,9 +70,7 @@ Using a CLI
 ^^^^^^^^^^^
 When you want to start a simulation run from the command line interface you have to pass the directory of the config file as a command-line argument. That would look as follows:
 
-.. code-block:: none
-
-java -cp build/libs/simona-2.1-all.jar edu.ie3.simona.main.RunSimonaStandalone --config=inputData/vn_simona/vn_simona.conf
+    java -cp build/libs/simona-2.1-all.jar edu.ie3.simona.main.RunSimonaStandalone --config=inputData/vn_simona/vn_simona.conf
 
 
 Using IntelliJ IDEA
@@ -88,23 +82,22 @@ If you are using IntelliJ IDEA as your IDE, this is how setting the command line
 #.
 Find the ``vn_simona.conf`` file in your project directory and copy its path from the content root
 
-.. figure:: ./images/usersguide/copy-path.png
-
+[](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/images/usersguide/copy-path.png)
 
 #.
 Go to the window "Select Run/Debug Configuration" and select "Edit Configurations"
 
 
-.. figure:: ./images/usersguide/edit-conf.png
+[](http://www.plantuml.com/plantuml/proxy?cache=no&src=hhttps://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/images/usersguide/edit-conf.png)
 
 
 #.
 Enter ``--config={path from the content root of config file}``
 
-.. note::
+> **_NOTE:_**
 For our example that would be ``--config=inputData/vn_simona/vn_simona.conf``
 
-.. figure:: ./images/usersguide/edit-conf2.png
+[](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/images/usersguide/edit-conf2.png)
 
 #.
 Click Apply on the bottom right
@@ -154,7 +147,7 @@ The ``configs`` folder will hold the ``.conf`` file, which was used to configure
 
 Within the ``rawOutputData`` folder you can find the raw simulation results. For writing the output results, the output models from the `PSDM <https://powersystemdatamodel.readthedocs.io/en/latest/index.html>`_ are used.
 
-.. note::
+> **_NOTE:_**
 SIMONA is a `discrete event simulation <https://en.wikipedia.org/wiki/Discrete-event_simulation>`_, where each event marks a change of system state that occurs at a particular point in time.
 Between two consecutive events, the state is assumed to stay the same.
 Accordingly, data is only written for each of these events.
@@ -170,7 +163,7 @@ Currently, only a data stream transporting electric vehicle movement information
 An external simulation has to depend on `SimonaAPI <https://github.com/ie3-institute/simonaAPI>`_ and make use of some of its interfaces (see below).
 In order to run an external simulation, several requirements have to be fulfilled and a bunch of preparation steps have to be followed.
 
-.. note::
+> **_NOTE:_**
 The external simulation is loaded via class loader. Thus, SIMONA and the external simulation should be built using the same JDK.
 
 ### Requirements
