@@ -82,16 +82,14 @@ class ExtSimLoaderSpec extends UnitSpec {
 
     "no service loaded when the META-INF/service file is missing" in {
       val jar = getResource(missingServiceFileJar)
-      val file = Iterable(jar)
-      val extSim = ExtSimLoader.loadExtLink(file)
+      val extSim = ExtSimLoader.loadExtLink(jar)
 
       extSim.iterator.hasNext shouldBe false
     }
 
     "no service loaded when service file is empty" in {
       val jar = getResource(emptyFileJar)
-      val file = Iterable(jar)
-      val extSim = ExtSimLoader.loadExtLink(file)
+      val extSim = ExtSimLoader.loadExtLink(jar)
 
       extSim.iterator.hasNext shouldBe false
     }
@@ -99,8 +97,7 @@ class ExtSimLoaderSpec extends UnitSpec {
     "throw exception when ExtLinkInterface is not implemented" in {
       val jar = getResource(wrongImplementationJar)
       assertThrows[ServiceConfigurationError] {
-        val file = Iterable(jar)
-        val extSim = ExtSimLoader.loadExtLink(file)
+        val extSim = ExtSimLoader.loadExtLink(jar)
 
         extSim.iterator.next().getExtSimulation shouldBe false
       }
@@ -108,8 +105,8 @@ class ExtSimLoaderSpec extends UnitSpec {
 
     "load a proper jar correctly" in {
       val jar = getResource(workingJar)
-      val file = Iterable(jar)
-      val extSim = ExtSimLoader.loadExtLink(file).iterator.next()
+      val jars = Iterable(jar)
+      val extSim = jars.flatMap(ExtSimLoader.loadExtLink).iterator.next()
 
       extSim should not be null
       extSim shouldBe an[ExtLinkInterface]
@@ -118,7 +115,8 @@ class ExtSimLoaderSpec extends UnitSpec {
     "load multiple proper jars correctly" in {
       val jarOne = getResource(workingJar)
       val jarTwo = getResource(workingJar2)
-      val extSims = ExtSimLoader.loadExtLink(Iterable(jarOne, jarTwo))
+      val jars = Iterable(jarOne, jarTwo)
+      val extSims = jars.flatMap(ExtSimLoader.loadExtLink)
 
       val extSimIterator = extSims.iterator
 
