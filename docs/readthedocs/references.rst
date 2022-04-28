@@ -10,7 +10,7 @@ The following publications discuss SIMONA and implementation details as well as 
 .. rubric:: SIMONA Publications
 
 .. bibliography:: _static/bibliography/bibAboutSimona.bib
-   :style: custom
+   :style: unsrt
    :all:
 
 

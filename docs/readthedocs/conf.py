@@ -53,6 +53,7 @@ hoverxref_intersphinx = [
 bibtex_bibfiles = ['_static/bibliography/bibAboutSimona.bib',
                    '_static/bibliography/bibtexAll.bib',
                    ]
+bibtex_default_style = 'unsrt'
 
 
 # BibTex Styles
@@ -72,15 +73,6 @@ class CustomStyle(UnsrtStyle):
         self.label_style = KeyLabelStyle()
         self.format_labels = self.label_style.format_labels
 
-class CustomStyleOrderYear(UnsrtStyle):
-    default_sorting_style = 'year_author_title'
-
-    def __init__(self, *args, **kwargs):
-        super(CustomStyle, self).__init__(*args, **kwargs)
-        self.label_style = KeyLabelStyle()
-        self.format_labels = self.label_style.format_labels
-
 from pybtex.plugin import register_plugin
 
 register_plugin('pybtex.style.formatting', 'custom', CustomStyle)
-register_plugin('pybtex.style.formatting', 'custom_order_year', CustomStyleOrderYear)
