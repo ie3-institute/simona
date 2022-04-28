@@ -80,23 +80,22 @@ When you want to start a simulation run from the command line interface you have
 If you are using IntelliJ IDEA as your IDE, this is how setting the command line argument would look like:
 
 
-
-1. Find the ``vn_simona.conf`` file in your project directory and copy its path from the content root
+- Find the ``vn_simona.conf`` file in your project directory and copy its path from the content root
 
 ![copy-path](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/images/usersguide/copy-path.png)
 
-2. Go to the window "Select Run/Debug Configuration" and select "Edit Configurations"
+- Go to the window "Select Run/Debug Configuration" and select "Edit Configurations"
 
 ![edit-conf](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/images/usersguide/edit-conf.png)
 
-3. Enter ``--config={path from the content root of config file}``
+- Enter ``--config={path from the content root of config file}``
 
 > **_NOTE:_**
 For our example that would be ``--config=inputData/vn_simona/vn_simona.conf``
 
 ![edit-conf2](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/images/usersguide/edit-conf2.png)
 
-4. Click Apply on the bottom right
+- Click Apply on the bottom right
 
 
 ### Configuring your Simulation
