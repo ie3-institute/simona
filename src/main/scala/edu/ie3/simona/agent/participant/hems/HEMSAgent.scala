@@ -10,7 +10,9 @@ import akka.actor.{ActorRef, Props}
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
-import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
+import edu.ie3.simona.config.SimonaConfig.HEMSRuntimeConfig
+import edu.ie3.simona.model.participant.HEMSModel
+import edu.ie3.simona.model.participant.HEMSModel.HEMSRelevantData
 
 
 object HEMSAgent {
@@ -24,7 +26,6 @@ object HEMSAgent {
         listener
       )
     )
-  )
 }
 
 /** Creating a home energy management agent (HEMSAgent)
@@ -42,7 +43,7 @@ class HEMSAgent(
   HEMSRelevantData,
   ParticipantStateData[ApparentPower],
   HEMSInput,
-  PvRuntimeConfig,
+  HEMSRuntimeConfig,
   HEMSModel
 ](
   scheduler
