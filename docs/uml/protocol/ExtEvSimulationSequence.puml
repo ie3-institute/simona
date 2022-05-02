@@ -28,13 +28,15 @@ deactivate ExtSimAdapter
 activate ExtSimulation
 ExtSimulation -> ExtEvDataService: <font color=red>!</font> RequestEvcsFreeLots
 ExtSimulation -> ExtSimAdapter: <font color=red>!</font> ScheduleDataServiceMessage(\n\tdataServiceRef\n)
-deactivate ExtSimulation
 
 activate ExtSimAdapter
 ExtSimAdapter -> SimScheduler: <font color=red>!</font> ScheduleTriggerMessage(\n\t_, dataServiceRef)
 deactivate ExtSimAdapter
 
+activate SimScheduler
 SimScheduler -> ExtEvDataService: <font color=red>!</font> ActivityStartTrigger(tick)
+deactivate SimScheduler
+
 activate ExtEvDataService
 ExtEvDataService -> EvcsAgent1: <font color=red>!</font> EvFreeLotsRequest(tick)
 activate EvcsAgent1
@@ -50,11 +52,9 @@ deactivate EvcsAgent1
 ExtEvDataService -> ExtSimulation: queue(ProvideEvcsFreeLots(_))
 deactivate ExtEvDataService
 
-activate ExtSimulation
 ... Running external mobility simulation,\n determining EV positions ...
 ExtSimulation -> ExtEvDataService: <font color=red>!</font> EvMovementsMessage(_)
 ExtSimulation -> ExtSimAdapter: <font color=red>!</font> ScheduleDataServiceMessage(\n\tdataServiceRef\n)
-deactivate ExtSimulation
 
 activate ExtSimAdapter
 ExtSimAdapter -> SimScheduler: <font color=red>!</font> ScheduleTriggerMessage(\n\t_, dataServiceRef)
@@ -88,12 +88,11 @@ deactivate EvcsAgent2
 ExtEvDataService -> ExtSimulation: queue(AllDepartedEvsResponse(_))
 deactivate ExtEvDataService
 
-activate ExtSimulation
-ExtSimulation -> ExtSimAdapter: <font color=red>!</font> CompletionMessage(None)
+ExtSimulation -> ExtSimAdapter: <font color=red>!</font> CompletionMessage(newTriggers)
 deactivate ExtSimulation
 
 activate ExtSimAdapter
-ExtSimAdapter -> SimScheduler: <font color=red>!</font> <font color=green>CompletionMessage(None)</font>
+ExtSimAdapter -> SimScheduler: <font color=red>!</font> <font color=green>CompletionMessage(newTriggers)</font>
 deactivate ExtSimAdapter
 
 @enduml
