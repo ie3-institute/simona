@@ -17,5 +17,4 @@ Since Simona uses an agent-based approach, the assets are modelled as agents. Th
 
 ## Further Information and Contact Details
 
-Please, visit the SIMONA [website](https://simona.ie3.e-technik.tu-dortmund.de) for further Information. You will find the current developers' contact information. 
- 
+Please, visit the SIMONA [website](https://simona.ie3.e-technik.tu-dortmund.de) for further Information. You will find the current developers' contact information.
