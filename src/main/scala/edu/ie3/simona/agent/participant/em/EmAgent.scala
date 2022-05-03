@@ -4,24 +4,24 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.participant.hems
+package edu.ie3.simona.agent.participant.em
 
 import akka.actor.{ActorRef, Props}
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
-import edu.ie3.simona.config.SimonaConfig.HEMSRuntimeConfig
-import edu.ie3.simona.model.participant.HEMSModel
-import edu.ie3.simona.model.participant.HEMSModel.HEMSRelevantData
+import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
+import edu.ie3.simona.model.participant.EmModel
+import edu.ie3.simona.model.participant.EmModel.EmRelevantData
 
 
-object HEMSAgent {
+object EmAgent {
   def props(
              scheduler: ActorRef,
              listener: Iterable[ActorRef]
            ): Props =
     Props(
-      new HEMSAgent(
+      new EmAgent(
         scheduler,
         listener
       )
@@ -35,20 +35,20 @@ object HEMSAgent {
   * @param listener
   *   List of listeners interested in results
   */
-class HEMSAgent(
+class EmAgent(
                scheduler: ActorRef,
                override val listener: Iterable[ActorRef]
              ) extends ParticipantAgent[
   ApparentPower,
-  HEMSRelevantData,
+  EmRelevantData,
   ParticipantStateData[ApparentPower],
-  HEMSInput,
-  HEMSRuntimeConfig,
-  HEMSModel
+  EmInput,
+  EmRuntimeConfig,
+  EmModel
 ](
   scheduler
 )
-  with HEMSAgentFundamentals {
+  with EmAgentFundamentals {
 
   /*
    * "Hey, SIMONA! What is handled in ParticipantAgent?"

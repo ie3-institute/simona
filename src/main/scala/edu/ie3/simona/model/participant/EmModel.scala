@@ -8,7 +8,7 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.HEMSModel.HEMSRelevantData
+import edu.ie3.simona.model.participant.EmModel.EmRelevantData
 import edu.ie3.simona.model.participant.PVModel.PVRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -28,14 +28,14 @@ import javax.measure.Quantity
 import javax.measure.quantity._
 import scala.math._
 
-final case class HEMSModel private (
-) extends SystemParticipant[HEMSRelevantData](
+final case class EmModel private(
+) extends SystemParticipant[EmRelevantData](
     ) {
 
 
 }
 
-case object HEMSModel {
+case object EmModel {
 
   /** Class that holds all relevant data for a pv model calculation
     *
@@ -49,7 +49,7 @@ case object HEMSModel {
     * @param dirIrradiance
     *   direct solar irradiance
     */
-  final case class HEMSRelevantData(
+  final case class EmRelevantData(
       // TODO: From PvModel, Check ant refactor
       dateTime: ZonedDateTime,
       weatherDataFrameLength: Long,

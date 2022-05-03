@@ -4,6 +4,6 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.participant.hems
+package edu.ie3.simona.agent.participant.em
 
-trait HEMSAgentFundamentals {}
+trait EmAgentFundamentals {}
