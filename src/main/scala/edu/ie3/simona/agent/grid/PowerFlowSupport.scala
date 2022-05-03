@@ -7,10 +7,7 @@
 package edu.ie3.simona.agent.grid
 
 import akka.actor.ActorRef
-
-import java.util.UUID
 import breeze.math.Complex
-import edu.ie3.datamodel.models.input.connector.Transformer2WInput
 import edu.ie3.powerflow.NewtonRaphsonPF
 import edu.ie3.powerflow.model.NodeData.{PresetData, StateData}
 import edu.ie3.powerflow.model.PowerFlowResult
@@ -19,24 +16,19 @@ import edu.ie3.powerflow.model.StartData.WithForcedStartVoltages
 import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.simona.agent.grid.ReceivedValues.ReceivedSlackValues
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
-import edu.ie3.simona.model.grid.{
-  GridModel,
-  NodeModel,
-  RefSystem,
-  Transformer3wModel,
-  TransformerModel
-}
+import edu.ie3.simona.model.grid._
 import edu.ie3.simona.ontology.messages.PowerMessage
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvidePowerMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 import edu.ie3.util.quantities.PowerSystemUnits
 import tech.units.indriya.ComparableQuantity
-
-import javax.measure.Quantity
-import javax.measure.quantity.{Dimensionless, ElectricPotential, Power}
 import tech.units.indriya.quantity.Quantities
 
+import java.util.UUID
+import javax.measure.Quantity
+import javax.measure.quantity.{Dimensionless, ElectricPotential}
 import scala.annotation.tailrec
+import scala.collection.mutable
 
 /** Support and helper methods for power flow calculations provided by
   * [[edu.ie3.powerflow]]
@@ -83,53 +75,51 @@ trait PowerFlowSupport {
       targetVoltageFromReceivedData: Boolean = true,
       ignoreTargetVoltage: Boolean = false
   ): (Array[PresetData], WithForcedStartVoltages) =
-    nodes.foldLeft((Array.empty[PresetData], Array.empty[StateData])) {
-      case ((operatingPoint, stateData), nodeModel) =>
-        // note: currently we only support pq nodes as we not distinguish between pq/pv nodes -
-        // when slack emulators or pv-node assets are added this needs to be considered here
+    nodes.toArray.map { nodeModel =>
+      // note: currently we only support pq nodes as we not distinguish between pq/pv nodes -
+      // when slack emulators or pv-node assets are added this needs to be considered here
 
-        /* Determine the operating point for this given node */
-        val nodeIdx = nodeUuidToIndexMap.getOrElse(
-          nodeModel.uuid,
-          throw new RuntimeException(
-            s"Received data for node ${nodeModel.id} [${nodeModel.uuid}] which is not in my nodeUuidToIndexMap!"
+      /* Determine the operating point for this given node */
+      val nodeIdx = nodeUuidToIndexMap.getOrElse(
+        nodeModel.uuid,
+        throw new RuntimeException(
+          s"Received data for node ${nodeModel.id} [${nodeModel.uuid}] which is not in my nodeUuidToIndexMap!"
+        )
+      )
+
+      /* Determine the nodal residual apparent power */
+      val apparentPower = determineNodalApparentPower(
+        receivedValuesStore.nodeToReceivedPower.get(nodeModel.uuid),
+        nodeModel.id,
+        gridMainRefSystem
+      )
+
+      /* Determine node type, target voltage and updated state data (dependent on the node type) */
+      nodeTypeTargetVoltageStateData(
+        nodeModel,
+        nodeIdx,
+        receivedValuesStore,
+        transformers2w,
+        transformers3w,
+        apparentPower,
+        gridMainRefSystem,
+        targetVoltageFromReceivedData,
+        ignoreTargetVoltage
+      ) match {
+        case (nodeType, targetVoltage, optStateData) =>
+          (
+            PresetData(
+              nodeIdx,
+              nodeType,
+              apparentPower,
+              targetVoltage.abs
+            ),
+            optStateData
           )
-        )
-
-        /* Determine the nodal residual apparent power */
-        val apparentPower = determineNodalApparentPower(
-          receivedValuesStore.nodeToReceivedPower.get(nodeModel.uuid),
-          nodeModel.id,
-          gridMainRefSystem
-        )
-
-        /* Determine node type, target voltage and updated state data (dependent on the node type) */
-        nodeTypeTargetVoltageStateData(
-          nodeModel,
-          nodeIdx,
-          receivedValuesStore,
-          transformers2w,
-          transformers3w,
-          apparentPower,
-          stateData,
-          gridMainRefSystem,
-          targetVoltageFromReceivedData,
-          ignoreTargetVoltage
-        ) match {
-          case (nodeType, targetVoltage, stateData) =>
-            (
-              operatingPoint :+ PresetData(
-                nodeIdx,
-                nodeType,
-                apparentPower,
-                targetVoltage.abs
-              ),
-              stateData
-            )
-        }
-    } match {
+      }
+    }.unzip match {
       case (operatingPoint, stateData) =>
-        (operatingPoint, WithForcedStartVoltages(stateData))
+        (operatingPoint, WithForcedStartVoltages(stateData.flatten))
     }
 
   /** Determine the residual apparent nodal power balance for a given node.
@@ -181,26 +171,6 @@ trait PowerFlowSupport {
     case None => new Complex(0, 0)
   }
 
-  /** Determine a target voltage if no received values are meant to be taken
-    *
-    * @param nodeModel
-    *   The nodal model
-    * @param ignoreTargetVoltage
-    *   Whether or not to ignore the nodal target voltage provided by input
-    *   model
-    * @return
-    *   A complex nodal target voltage
-    */
-  private def nodalTargetVoltage(
-      nodeModel: NodeModel,
-      ignoreTargetVoltage: Boolean
-  ): Complex = Complex.one * (if (!ignoreTargetVoltage)
-                                nodeModel.vTarget
-                                  .to(PowerSystemUnits.PU)
-                                  .getValue
-                                  .doubleValue()
-                              else 1.0)
-
   /** Determine node type, target voltage and state data (dependent of the node
     * type)
     *
@@ -216,8 +186,6 @@ trait PowerFlowSupport {
     *   Set of three winding transformer models
     * @param residualPower
     *   Relative nodal residual power
-    * @param stateData
-    *   Current collection of state data
     * @param refSystem
     *   Reference system to use
     * @param targetVoltageFromReceivedData
@@ -233,11 +201,10 @@ trait PowerFlowSupport {
       transformers2w: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
       residualPower: Complex,
-      stateData: Array[StateData],
       refSystem: RefSystem,
       targetVoltageFromReceivedData: Boolean,
       ignoreTargetVoltage: Boolean
-  ): (NodeType, Complex, Array[StateData]) = if (nodeModel.isSlack) {
+  ): (NodeType, Complex, Option[StateData]) = if (nodeModel.isSlack) {
     val targetVoltage = if (targetVoltageFromReceivedData) {
       /* If the preset voltage is meant to be determined by means of received data and the node is a slack node
        * (only then there is received data), look it up and transform it */
@@ -258,20 +225,42 @@ trait PowerFlowSupport {
         refSystem
       )
     } else nodalTargetVoltage(nodeModel, ignoreTargetVoltage)
-    val updatedStateData = stateData :+ StateData(
+    val updatedStateData = StateData(
       nodeIndex,
       NodeType.SL,
       targetVoltage,
       residualPower
     )
-    (NodeType.SL, targetVoltage, updatedStateData)
+    (NodeType.SL, targetVoltage, Some(updatedStateData))
   } else {
     (
       NodeType.PQ,
       nodalTargetVoltage(nodeModel, ignoreTargetVoltage),
-      stateData
+      None
     )
   }
+
+  /** Determine a target voltage if no received values are meant to be taken
+    *
+    * @param nodeModel
+    *   The nodal model
+    * @param ignoreTargetVoltage
+    *   Whether or not to ignore the nodal target voltage provided by input
+    *   model
+    * @return
+    *   A complex nodal target voltage
+    */
+  private def nodalTargetVoltage(
+      nodeModel: NodeModel,
+      ignoreTargetVoltage: Boolean
+  ): Complex =
+    Complex.one *
+      (if (!ignoreTargetVoltage)
+         nodeModel.vTarget
+           .to(PowerSystemUnits.PU)
+           .getValue
+           .doubleValue()
+       else 1.0)
 
   /** Composes the current operation point needed by
     * [[edu.ie3.powerflow.NewtonRaphsonPF.calculate()]] by reusing the provided
@@ -364,7 +353,7 @@ trait PowerFlowSupport {
       validResult: ValidNewtonRaphsonPFResult,
       gridModel: GridModel
   ): String = {
-    val debugString = new StringBuilder("Power flow result: ")
+    val debugString = new mutable.StringBuilder("Power flow result: ")
     validResult.nodeData.foreach(nodeStateData => {
       // get idx
       val idx = nodeStateData.index
