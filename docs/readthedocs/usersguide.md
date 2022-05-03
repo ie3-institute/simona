@@ -30,7 +30,7 @@ You can either delegate the job to your preferred IDE or build an executable jar
 
 In order to be able to execute SIMONA from a CLI, you need an executable fat jar. A fat jar contains all compiled classes and dependencies, ready for execution. For building one, you can use a Gradle task of the project.
 
-<ol>
+<ol xmlns="http://www.w3.org/1999/html">
 <li>Open a CLI and change directories to the top level directory of the project.</li>
 
 <li>
@@ -79,23 +79,24 @@ When you want to start a simulation run from the command line interface you have
 
 If you are using IntelliJ IDEA as your IDE, this is how setting the command line argument would look like:
 
+<ol>
+<li> Find the <code>vn_simona.conf</code> file in your project directory and copy its path from the content root </li>
 
-- Find the ``vn_simona.conf`` file in your project directory and copy its path from the content root
+![](../readthedocs/images/usersguide/copy-path.png)
 
-![copy-path](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/images/usersguide/copy-path.png)
+<li> Go to the window "Select Run/Debug Configuration" and select "Edit Configurations" </li>
 
-- Go to the window "Select Run/Debug Configuration" and select "Edit Configurations"
+![](../readthedocs/images/usersguide/edit-conf.png)
 
-![edit-conf](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/images/usersguide/edit-conf.png)
-
-- Enter ``--config={path from the content root of config file}``
+<li> Enter <code>--config={path from the content root of config file}</code> </li>
 
 > **_NOTE:_**
 For our example that would be ``--config=inputData/vn_simona/vn_simona.conf``
 
-![edit-conf2](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/images/usersguide/edit-conf2.png)
+![](../readthedocs/images/usersguide/edit-conf2.png)
 
-- Click Apply on the bottom right
+<li> Click Apply on the bottom right </li>
+</ol>
 
 
 ### Configuring your Simulation
