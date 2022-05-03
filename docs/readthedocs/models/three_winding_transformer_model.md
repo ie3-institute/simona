@@ -26,7 +26,7 @@ The following basic principles lead us to the implemented solution:
 
 This is why we divide the physical three-winding transformer model (which is a T-equivalent circuit with an additional branch) as shown in the figure below.
 
-![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/_static/figures/models/transformer_model/ModelTwt.png)
+![](../_static/figures/models/transformer_model/ModelTwt.png)
 
 Being scissored at the artificial central node, allows for the model in subgrid A to remain in one single voltage level.
 The transformation between voltage level A and B or C, respectively, happens during the message exchange between the `GridAgent`s for subgrid A and B as well as C.

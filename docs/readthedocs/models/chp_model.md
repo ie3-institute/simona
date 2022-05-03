@@ -10,7 +10,7 @@ The CHP unit is able to operate either at full load or not at all. Uncovered hea
 
 ### Parameters
 
-![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/_static/figures/models/chp_model/chp4.png)
+![](../_static/figures/models/chp_model/chp4.png)
 
 ### Attributes, Units and Remarks
 

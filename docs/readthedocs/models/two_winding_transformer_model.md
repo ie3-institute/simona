@@ -11,7 +11,7 @@ Input and Result Attributes and Units are defined at PowerSystemDataModel. Pleas
 - Result: {doc}`PowerSystemDataModel - Two Winding Transformer Model <psdm:models/result/grid/transformer2w>`
 
 
-![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/_static/figures/models/transformer_model/tecdoc_tc1.jpg)
+![](../_static/figures/models/transformer_model/tecdoc_tc1.jpg)
 
 **Calculation of basic equivalent circuit elements**
 

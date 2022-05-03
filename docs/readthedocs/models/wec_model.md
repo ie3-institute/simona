@@ -39,6 +39,6 @@ The Enercon E-82 has a three-bladed rotor with a diameter of 82m. A rotors swept
 
 The betz curve (or betz characteristic) is a mapping of wind velocities to cP values. It is used to determine the power that can be extracted from the wind. It follows [Betz's law](https://en.wikipedia.org/wiki/Betz's_law). Each wind turbine has a unique betz curve. The figure below shows the betz curve for the Enercon E-82 wind turbine.
 
-![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/_static/figures/models/wec_model/EnerconE82cpPlot.png)
+![](../_static/figures/models/wec_model/EnerconE82cpPlot.png)
 
 The cut-in wind velocity is $2\frac{m}{s}$, meaning that the turbine requires wind speed of at least $2\frac{m}{s}$ to produce energy. The cut-off wind velocity is $34\frac{m}{s}$, meaning that the Enercon E-82 won't produce energy for velocities that are higher.

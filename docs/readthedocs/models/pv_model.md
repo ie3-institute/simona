@@ -10,7 +10,7 @@ The PV Model is part of the SIMONA Simulation framework and represented by an ag
 
 ### Parameters
 
-![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/readthedocs/_static/figures/models/pv_model/ModelPv.png)
+![](../_static/figures/models/pv_model/ModelPv.png)
 
 ### Attributes, Units and Remarks
 
