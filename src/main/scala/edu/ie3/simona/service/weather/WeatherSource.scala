@@ -28,10 +28,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates
 }
-import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.{
-  checkBaseCsvParams,
-  checkCsvParams
-}
+import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
 import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
   checkCouchbaseParams,
   checkInfluxDb1xParams,

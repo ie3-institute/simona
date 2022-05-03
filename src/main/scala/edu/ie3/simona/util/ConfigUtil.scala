@@ -305,7 +305,7 @@ object ConfigUtil {
           )
     }
 
-    @deprecated
+    @deprecated(since = "2.1")
     def checkCsvParams(
         csvParamsName: String,
         csvSep: String,
