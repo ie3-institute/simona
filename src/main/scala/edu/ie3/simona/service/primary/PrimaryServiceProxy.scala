@@ -193,17 +193,17 @@ case class PrimaryServiceProxy(
       primaryConfig.csvParams,
       primaryConfig.couchbaseParams
     ).filter(_.isDefined).flatten.headOption match {
-      case Some(PrimaryCsvParams(csvSep, folderPath, _, _)) =>
+      case Some(PrimaryCsvParams(csvSep, directoryPath, _, _)) =>
         val fileNamingStrategy = new FileNamingStrategy()
         Success(
           new CsvTimeSeriesMappingSource(
             csvSep,
-            folderPath,
+            directoryPath,
             fileNamingStrategy
           ),
           new CsvTimeSeriesTypeSource(
             csvSep,
-            folderPath,
+            directoryPath,
             fileNamingStrategy
           )
         )
