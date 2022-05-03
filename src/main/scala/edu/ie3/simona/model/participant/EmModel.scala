@@ -6,64 +6,42 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.input.system.PvInput
+import edu.ie3.datamodel.exceptions.InvalidGridException
+import edu.ie3.datamodel.models.input.connector.ConnectorInput
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.grid.NodeModel
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
-import edu.ie3.simona.model.participant.PVModel.PVRelevantData
-import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.quantities.interfaces.{Irradiance, Irradiation}
 import edu.ie3.util.scala.OperationInterval
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.quantity.Quantities.getQuantity
-import tech.units.indriya.unit.Units
-import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import java.util.stream.IntStream
-import javax.measure.Quantity
-import javax.measure.quantity._
-import scala.math._
 
-final case class EmModel private(
+final case class EmModel private (
 ) extends SystemParticipant[EmRelevantData](
-    ) {
-
-
-}
+    ) {}
 
 case object EmModel {
 
-  /** Class that holds all relevant data for a pv model calculation
+  /** Class that holds all relevant data for Energy Management calculation
     *
     * @param dateTime
     *   date and time of the <b>ending</b> of time frame to calculate
     * @param weatherDataFrameLength
     *   the duration in ticks (= seconds) the provided irradiance is received by
     *   the pv panel
-    * @param diffIrradiance
-    *   diffuse solar irradiance
-    * @param dirIrradiance
-    *   direct solar irradiance
     */
   final case class EmRelevantData(
-      // TODO: From PvModel, Check ant refactor
+      // TODO: From PvModel, Check and refactor
       dateTime: ZonedDateTime,
-      weatherDataFrameLength: Long,
-      diffIrradiance: ComparableQuantity[Irradiance],
-      dirIrradiance: ComparableQuantity[Irradiance]
+      weatherDataFrameLength: Long
   ) extends CalcRelevantData
 
   def apply(
-      // TODO: From PvModel, Check ant refactor
-      inputModel: PvInput,
-      scalingFactor: Double,
+      // TODO: From PvModel, Check and refactor
+      inputModel: EmInput,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
-  ): PVModel = {
+  ): EmModel = {
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
@@ -72,32 +50,99 @@ case object EmModel {
         inputModel.getOperationTime
       )
 
-    // moduleSurface and yieldSTC are left out for now
     val model = apply(
       inputModel.getUuid,
       inputModel.getId,
-      operationInterval,
-      scalingFactor,
-      QControl(inputModel.getqCharacteristics),
-      inputModel.getsRated,
-      inputModel.getCosPhiRated,
-      inputModel.getNode.getGeoPosition.getY,
-      inputModel.getNode.getGeoPosition.getX,
-      inputModel.getAlbedo,
-      inputModel.getEtaConv,
-      inputModel.getAzimuth,
-      inputModel.getElevationAngle
+      operationInterval
     )
 
     model.enable()
 
     model
   }
+  // TODO:
+  /** Checks the availability of node calculation models, that are connected by
+    * the given [[ConnectorInput]]. If not both models can be found,
+    * [[InvalidGridException]] s are thrown
+    *
+    * @param connector
+    *   Connector, that connects the two queried nodes
+    * @param nodes
+    *   [[Array]] of [[NodeModel]] calculation models
+    * @return
+    *   A tuple of both connected nodes
+    */
+  private def getConnectedNodes(
+      connector: ConnectorInput,
+      nodes: Set[NodeModel]
+  ): (NodeModel, NodeModel) = {
+    val nodeAOpt: Option[NodeModel] =
+      nodes.find(_.uuid.equals(connector.getNodeA.getUuid))
+    val nodeBOpt: Option[NodeModel] =
+      nodes.find(_.uuid.equals(connector.getNodeB.getUuid))
 
-  // TODO: From PvModel, Check ant refactor
-  /** Default factory method to create an PVModel instance. This constructor
-    * ensures, that the angles passed in are converted to radian as required by
-    * the model.
+    (nodeAOpt, nodeBOpt) match {
+      case (Some(nodeA), Some(nodeB)) =>
+        (nodeA, nodeB)
+      case (None, Some(_)) =>
+        throw new InvalidGridException(
+          s"NodeA: ${connector.getNodeA.getUuid} for connector ${connector.getUuid} cannot be found."
+        )
+      case (Some(_), None) =>
+        throw new InvalidGridException(
+          s"NodeB: ${connector.getNodeB.getUuid} for connector ${connector.getUuid} cannot be found."
+        )
+      case _ =>
+        throw new InvalidGridException(
+          s"Nodes (nodeA: ${connector.getNodeA.getUuid}, nodeB: ${connector.getNodeB.getUuid})for connector ${connector.getUuid} cannot be found."
+        )
+    }
+  }
+
+  // TODO: Refactor:
+  // Questions: From where does the EmAgent know which participants it controls? -> EmScheduler
+
+  /** Checks the availability of calculation models of connected participants to
+    * the Energy Management Agent, that are connected by the given
+    * [[ConnectorInput]]. If not both models can be found,
+    * [[InvalidGridException]] s are thrown
+    *
+    * @param connector
+    *   Connector, that connects the two queried nodes
+    * @param nodes
+    *   [[Array]] of [[NodeModel]] calculation models
+    * @return
+    *   A tuple of both connected nodes
+    */
+  private def getConnectedParticipants(
+      connector: ConnectorInput,
+      nodes: Set[NodeModel]
+  ): (NodeModel, NodeModel) = {
+    val nodeAOpt: Option[NodeModel] =
+      nodes.find(_.uuid.equals(connector.getNodeA.getUuid))
+    val nodeBOpt: Option[NodeModel] =
+      nodes.find(_.uuid.equals(connector.getNodeB.getUuid))
+
+    (nodeAOpt, nodeBOpt) match {
+      case (Some(nodeA), Some(nodeB)) =>
+        (nodeA, nodeB)
+      case (None, Some(_)) =>
+        throw new InvalidGridException(
+          s"NodeA: ${connector.getNodeA.getUuid} for connector ${connector.getUuid} cannot be found."
+        )
+      case (Some(_), None) =>
+        throw new InvalidGridException(
+          s"NodeB: ${connector.getNodeB.getUuid} for connector ${connector.getUuid} cannot be found."
+        )
+      case _ =>
+        throw new InvalidGridException(
+          s"Nodes (nodeA: ${connector.getNodeA.getUuid}, nodeB: ${connector.getNodeB.getUuid})for connector ${connector.getUuid} cannot be found."
+        )
+    }
+  }
+
+  // TODO: From PvModel, Check and refactor
+  /** Default factory method to create an EmModel instance.
     *
     * @param uuid
     *   the unique id of the model
@@ -105,61 +150,17 @@ case object EmModel {
     *   the human readable id
     * @param operationInterval
     *   the operation interval of the model
-    * @param scalingFactor
-    *   the scaling factor of the power output
-    * @param qControl
-    *   the q control this model is using
-    * @param sRated
-    *   the rated apparent power of the model
-    * @param cosPhiRated
-    *   the rated cosine phi of the model
-    * @param lat
-    *   the latitude of the model
-    * @param lon
-    *   the longitude of the mode l
-    * @param albedo
-    *   the albedo of the model
-    * @param etaConv
-    *   the converter efficiency
-    * @param alphaE
-    *   the sun azimuth angle of the pv panel
-    * @param gammaE
-    *   the slope angle of the pv panel
-    * @param moduleSurface
-    *   the model surface size
     * @return
     */
   def apply(
       uuid: UUID,
       id: String,
-      operationInterval: OperationInterval,
-      scalingFactor: Double,
-      qControl: QControl,
-      sRated: ComparableQuantity[Power],
-      cosPhiRated: Double,
-      lat: Double,
-      lon: Double,
-      albedo: Double,
-      etaConv: ComparableQuantity[Dimensionless],
-      alphaE: ComparableQuantity[Angle],
-      gammaE: ComparableQuantity[Angle],
-      moduleSurface: Quantity[Area] = Quantities.getQuantity(1d, SQUARE_METRE)
-  ): PVModel = {
-    val model = new PVModel(
+      operationInterval: OperationInterval
+  ): EmModel = {
+    val model = new EmModel(
       uuid,
       id,
-      operationInterval,
-      scalingFactor,
-      qControl,
-      sRated,
-      cosPhiRated,
-      lat,
-      lon,
-      albedo,
-      etaConv,
-      alphaE.to(RADIAN),
-      gammaE.to(RADIAN),
-      moduleSurface
+      operationInterval
     )
 
     model.enable()
