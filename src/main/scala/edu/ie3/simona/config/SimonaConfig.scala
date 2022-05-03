@@ -69,6 +69,67 @@ object SimonaConfig {
       val uuids: scala.List[java.lang.String]
   ) extends java.io.Serializable
 
+  //TODO Refactor
+  final case class EmRuntimeConfig(
+                                      override val calculateMissingReactivePowerWithModel: scala.Boolean,
+                                      override val scaling: scala.Double,
+                                      override val uuids: scala.List[java.lang.String]
+                                    ) extends BaseRuntimeConfig(
+    calculateMissingReactivePowerWithModel,
+    scaling,
+    uuids
+  )
+  object EmRuntimeConfig {
+    def apply(
+               c: com.typesafe.config.Config,
+               parentPath: java.lang.String,
+               $tsCfgValidator: $TsCfgValidator
+             ): SimonaConfig.EmRuntimeConfig = {
+      SimonaConfig.EmRuntimeConfig(
+        calculateMissingReactivePowerWithModel = $_reqBln(
+          parentPath,
+          c,
+          "calculateMissingReactivePowerWithModel",
+          $tsCfgValidator
+        ),
+        scaling = $_reqDbl(parentPath, c, "scaling", $tsCfgValidator),
+        uuids = $_L$_str(c.getList("uuids"), parentPath, $tsCfgValidator)
+      )
+    }
+    private def $_reqBln(
+                          parentPath: java.lang.String,
+                          c: com.typesafe.config.Config,
+                          path: java.lang.String,
+                          $tsCfgValidator: $TsCfgValidator
+                        ): scala.Boolean = {
+      if (c == null) false
+      else
+        try c.getBoolean(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            false
+        }
+    }
+
+    private def $_reqDbl(
+                          parentPath: java.lang.String,
+                          c: com.typesafe.config.Config,
+                          path: java.lang.String,
+                          $tsCfgValidator: $TsCfgValidator
+                        ): scala.Double = {
+      if (c == null) 0
+      else
+        try c.getDouble(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            0
+        }
+    }
+
+  }
+
   final case class EvcsRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: scala.Boolean,
       override val scaling: scala.Double,
