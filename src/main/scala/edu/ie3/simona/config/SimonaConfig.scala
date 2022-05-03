@@ -69,22 +69,22 @@ object SimonaConfig {
       val uuids: scala.List[java.lang.String]
   ) extends java.io.Serializable
 
-  //TODO Refactor
+  // TODO Refactor
   final case class EmRuntimeConfig(
-                                      override val calculateMissingReactivePowerWithModel: scala.Boolean,
-                                      override val scaling: scala.Double,
-                                      override val uuids: scala.List[java.lang.String]
-                                    ) extends BaseRuntimeConfig(
-    calculateMissingReactivePowerWithModel,
-    scaling,
-    uuids
-  )
+      override val calculateMissingReactivePowerWithModel: scala.Boolean,
+      override val scaling: scala.Double,
+      override val uuids: scala.List[java.lang.String]
+  ) extends BaseRuntimeConfig(
+        calculateMissingReactivePowerWithModel,
+        scaling,
+        uuids
+      )
   object EmRuntimeConfig {
     def apply(
-               c: com.typesafe.config.Config,
-               parentPath: java.lang.String,
-               $tsCfgValidator: $TsCfgValidator
-             ): SimonaConfig.EmRuntimeConfig = {
+        c: com.typesafe.config.Config,
+        parentPath: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): SimonaConfig.EmRuntimeConfig = {
       SimonaConfig.EmRuntimeConfig(
         calculateMissingReactivePowerWithModel = $_reqBln(
           parentPath,
@@ -97,11 +97,11 @@ object SimonaConfig {
       )
     }
     private def $_reqBln(
-                          parentPath: java.lang.String,
-                          c: com.typesafe.config.Config,
-                          path: java.lang.String,
-                          $tsCfgValidator: $TsCfgValidator
-                        ): scala.Boolean = {
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): scala.Boolean = {
       if (c == null) false
       else
         try c.getBoolean(path)
@@ -113,11 +113,11 @@ object SimonaConfig {
     }
 
     private def $_reqDbl(
-                          parentPath: java.lang.String,
-                          c: com.typesafe.config.Config,
-                          path: java.lang.String,
-                          $tsCfgValidator: $TsCfgValidator
-                        ): scala.Double = {
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): scala.Double = {
       if (c == null) 0
       else
         try c.getDouble(path)

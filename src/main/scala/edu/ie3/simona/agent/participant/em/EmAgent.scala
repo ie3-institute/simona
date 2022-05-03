@@ -1,5 +1,5 @@
 /*
- * © 2020. TU Dortmund University,
+ * © 2022. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
@@ -14,12 +14,11 @@ import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.model.participant.EmModel
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
 
-
 object EmAgent {
   def props(
-             scheduler: ActorRef,
-             listener: Iterable[ActorRef]
-           ): Props =
+      scheduler: ActorRef,
+      listener: Iterable[ActorRef]
+  ): Props =
     Props(
       new EmAgent(
         scheduler,
@@ -28,7 +27,7 @@ object EmAgent {
     )
 }
 
-/** Creating a home energy management agent (HEMSAgent)
+/** Creating an Energy Management Agent (EmAgent)
   *
   * @param scheduler
   *   Actor reference of the scheduler
@@ -36,19 +35,19 @@ object EmAgent {
   *   List of listeners interested in results
   */
 class EmAgent(
-               scheduler: ActorRef,
-               override val listener: Iterable[ActorRef]
-             ) extends ParticipantAgent[
-  ApparentPower,
-  EmRelevantData,
-  ParticipantStateData[ApparentPower],
-  EmInput,
-  EmRuntimeConfig,
-  EmModel
-](
-  scheduler
-)
-  with EmAgentFundamentals {
+    scheduler: ActorRef,
+    override val listener: Iterable[ActorRef]
+) extends ParticipantAgent[
+      ApparentPower,
+      EmRelevantData,
+      ParticipantStateData[ApparentPower],
+      EmInput,
+      EmRuntimeConfig,
+      EmModel
+    ](
+      scheduler
+    )
+    with EmAgentFundamentals {
 
   /*
    * "Hey, SIMONA! What is handled in ParticipantAgent?"
