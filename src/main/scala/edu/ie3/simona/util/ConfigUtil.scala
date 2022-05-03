@@ -113,7 +113,7 @@ object ConfigUtil {
       }
   }
 
-  case object ParticipantConfigUtil {
+  object ParticipantConfigUtil {
 
     /** Creates a system participant config utility from the given participant
       * configuration. It builds a map from uuid to individual system
@@ -211,7 +211,7 @@ object ConfigUtil {
       )
   }
 
-  case object BaseOutputConfigUtil {
+  object BaseOutputConfigUtil {
     def apply(
         subConfig: SimonaConfig.Simona.Output.Participant
     ): BaseOutputConfigUtil = {
@@ -265,7 +265,7 @@ object ConfigUtil {
   /** Enumeration of known [[Notifier]] implementations including an identifying
     * String, so that they can be identified from e.g. configuration files
     */
-  case object NotifierIdentifier extends ParsableEnumeration {
+  object NotifierIdentifier extends ParsableEnumeration {
     val BioMassPlant: Value = Value("bm")
     val ChpPlant: Value = Value("chp")
     val Ev: Value = Value("ev")
@@ -277,7 +277,7 @@ object ConfigUtil {
     val Wec: Value = Value("wec")
   }
 
-  case object CsvConfigUtil {
+  object CsvConfigUtil {
 
     /** Check basic csv parameter information
       *
@@ -326,7 +326,7 @@ object ConfigUtil {
 
   }
 
-  case object DatabaseConfigUtil extends LazyLogging {
+  object DatabaseConfigUtil extends LazyLogging {
 
     def checkSqlParams(
         sql: edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.SqlParams
