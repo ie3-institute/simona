@@ -585,8 +585,8 @@ class PVAgentModelCalculationSpec
                 0L -> PVRelevantData(
                   0L.toDateTime,
                   3600L,
-                  weatherData.diffRad,
-                  weatherData.dirRad
+                  weatherData.diffIrr,
+                  weatherData.dirIrr
                 )
               )
           }
@@ -737,8 +737,8 @@ class PVAgentModelCalculationSpec
                 0L -> PVRelevantData(
                   0L.toDateTime,
                   3600L,
-                  weatherData.diffRad,
-                  weatherData.dirRad
+                  weatherData.diffIrr,
+                  weatherData.dirIrr
                 )
               )
           }

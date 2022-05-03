@@ -13,8 +13,8 @@ import edu.ie3.datamodel.io.connectors.{
   SqlConnector
 }
 import edu.ie3.datamodel.io.factory.timeseries.{
-  IconTimeBasedWeatherValueFactory,
-  CosmoTimeBasedWeatherValueFactory
+  CosmoTimeBasedWeatherValueFactory,
+  IconTimeBasedWeatherValueFactory
 }
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.couchbase.CouchbaseWeatherSource
@@ -45,7 +45,9 @@ import edu.ie3.simona.util.TickUtil
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.exceptions.EmptyQuantityException
 import edu.ie3.util.interval.ClosedInterval
+import edu.ie3.util.scala.DoubleUtils.ImplicitDouble
 import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import javax.measure.Quantity
@@ -140,21 +142,21 @@ private[weather] final case class WeatherSourceWrapper private (
         )
 
         /* Determine actual weights and contributions */
-        val (diffRadContrib, diffRadWeight) = currentWeather.diffRad match {
-          case EMPTY_WEATHER_DATA.diffRad => (EMPTY_WEATHER_DATA.diffRad, 0d)
-          case nonEmptyDiffRad =>
+        val (diffIrrContrib, diffIrrWeight) = currentWeather.diffIrr match {
+          case EMPTY_WEATHER_DATA.diffIrr => (EMPTY_WEATHER_DATA.diffIrr, 0d)
+          case nonEmptyDiffIrr =>
             calculateContrib(
-              nonEmptyDiffRad,
+              nonEmptyDiffIrr,
               weight,
               StandardUnits.SOLAR_IRRADIANCE,
               s"Diffuse solar irradiance not available at $point."
             )
         }
-        val (dirRadContrib, dirRadWeight) = currentWeather.dirRad match {
-          case EMPTY_WEATHER_DATA.dirRad => (EMPTY_WEATHER_DATA.dirRad, 0d)
-          case nonEmptyDirRad =>
+        val (dirIrrContrib, dirIrrWeight) = currentWeather.dirIrr match {
+          case EMPTY_WEATHER_DATA.`dirIrr` => (EMPTY_WEATHER_DATA.dirIrr, 0d)
+          case nonEmptyDirIrr =>
             calculateContrib(
-              nonEmptyDirRad,
+              nonEmptyDirIrr,
               weight,
               StandardUnits.SOLAR_IRRADIANCE,
               s"Direct solar irradiance not available at $point."
@@ -164,7 +166,7 @@ private[weather] final case class WeatherSourceWrapper private (
           case EMPTY_WEATHER_DATA.temp => (EMPTY_WEATHER_DATA.temp, 0d)
           case nonEmptyTemp =>
             calculateContrib(
-              nonEmptyTemp,
+              nonEmptyTemp.to(Units.KELVIN),
               weight,
               StandardUnits.TEMPERATURE,
               s"Temperature not available at $point."
@@ -184,29 +186,22 @@ private[weather] final case class WeatherSourceWrapper private (
         /* Sum up weight and contributions */
         (
           WeatherData(
-            averagedWeather.diffRad.add(diffRadContrib),
-            averagedWeather.dirRad.add(dirRadContrib),
+            averagedWeather.diffIrr.add(diffIrrContrib),
+            averagedWeather.dirIrr.add(dirIrrContrib),
             averagedWeather.temp.add(tempContrib),
             averagedWeather.windVel.add(windVelContrib)
           ),
           currentWeightSum.add(
-            diffRadWeight,
-            dirRadWeight,
+            diffIrrWeight,
+            dirIrrWeight,
             tempWeight,
             windVelWeight
           )
         )
     } match {
       case (weatherData: WeatherData, weightSum: WeightSum) =>
-        /* Divide by weight sum to correctly account for missing data. Change temperature scale back to absolute*/
-        WeatherData(
-          weatherData.diffRad.divide(weightSum.diffRad),
-          weatherData.dirRad.divide(weightSum.dirRad),
-          weatherData.temp.divide(weightSum.temp),
-          weatherData.windVel.divide(weightSum.windVel)
-        )
+        weightSum.scale(weatherData)
     }
-
   }
 
   /** Determine an Array with all ticks between the request frame's start and
@@ -227,7 +222,7 @@ private[weather] final case class WeatherSourceWrapper private (
 }
 
 private[weather] object WeatherSourceWrapper extends LazyLogging {
-  private val DEFAULT_RESOLUTION = 360L
+  private val DEFAULT_RESOLUTION = 3600L
 
   def apply(
       csvSep: String,
@@ -243,7 +238,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       folderPath,
       new FileNamingStrategy(),
       idCoordinateSource,
-      buildFactory(timestampPattern, scheme)
+      buildFactory(scheme, timestampPattern)
     )
     logger.info(
       "Successfully initiated CsvWeatherSource as source for WeatherSourceWrapper."
@@ -274,7 +269,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       idCoordinateSourceFunction(),
       couchbaseParams.coordinateColumnName,
       couchbaseParams.keyPrefix,
-      buildFactory(timestampPattern, scheme)
+      buildFactory(scheme, timestampPattern)
     )
     logger.info(
       "Successfully initiated CouchbaseWeatherSource as source for WeatherSourceWrapper."
@@ -299,7 +294,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
     val source = new InfluxDbWeatherSource(
       influxDb1xConnector,
       idCoordinateSource,
-      buildFactory(timestampPattern, scheme)
+      buildFactory(scheme, timestampPattern)
     )
     logger.info(
       "Successfully initiated InfluxDbWeatherSource as source for WeatherSourceWrapper."
@@ -328,8 +323,8 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       sqlConnector,
       idCoordinateSource,
       sqlParams.schemaName,
-      sqlParams.weatherTableName,
-      buildFactory(timestampPattern, scheme)
+      sqlParams.tableName,
+      buildFactory(scheme, timestampPattern)
     )
     logger.info(
       "Successfully initiated SqlWeatherSource as source for WeatherSourceWrapper."
@@ -341,67 +336,86 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
     )
   }
 
-  private def buildFactory(timestampPattern: Option[String], scheme: String) = {
-    timestampPattern match {
-      case None => initWeatherFactory(scheme)
-      case Some(timeStampPattern) =>
-        initWeatherFactory(scheme, timeStampPattern)
-    }
-  }
-
-  private def initWeatherFactory(scheme: String) =
+  private def buildFactory(scheme: String, timestampPattern: Option[String]) =
     Try(WeatherScheme(scheme)) match {
-      case Failure(_) =>
+      case Failure(exception) =>
         throw new InitializationException(
           s"Error while initializing WeatherFactory for weather source wrapper: '$scheme' is not a weather scheme. Supported schemes:\n\t${WeatherScheme.values
-            .mkString("\n\t")}'"
-        )
-      case Success(WeatherScheme.ICON) => new IconTimeBasedWeatherValueFactory()
-      case Success(WeatherScheme.COSMO) =>
-        new CosmoTimeBasedWeatherValueFactory()
-      case Success(unknownScheme) =>
-        throw new InitializationException(
-          s"Error while initializing WeatherFactory for weather source wrapper: weather scheme '$unknownScheme' is not an expected input."
-        )
-    }
-
-  private def initWeatherFactory(scheme: String, timeStampPattern: String) =
-    Try(WeatherScheme(scheme)) match {
-      case Failure(_) =>
-        throw new InitializationException(
-          s"Error while initializing WeatherFactory for weather source wrapper: '$scheme' is not a weather scheme. Supported schemes:\n\t${WeatherScheme.values
-            .mkString("\n\t")}'"
+            .mkString("\n\t")}'",
+          exception
         )
       case Success(WeatherScheme.ICON) =>
-        new IconTimeBasedWeatherValueFactory(timeStampPattern)
+        timestampPattern
+          .map(new IconTimeBasedWeatherValueFactory(_))
+          .getOrElse(new IconTimeBasedWeatherValueFactory())
       case Success(WeatherScheme.COSMO) =>
-        new CosmoTimeBasedWeatherValueFactory(timeStampPattern)
+        timestampPattern
+          .map(new CosmoTimeBasedWeatherValueFactory(_))
+          .getOrElse(new CosmoTimeBasedWeatherValueFactory())
       case Success(unknownScheme) =>
         throw new InitializationException(
           s"Error while initializing WeatherFactory for weather source wrapper: weather scheme '$unknownScheme' is not an expected input."
         )
     }
 
+  /** Simple container class to allow for accumulating determination of the sum
+    * of weights for different weather properties for different locations
+    * surrounding a given coordinate of interest
+    *
+    * @param diffIrr
+    *   Sum of weight for diffuse irradiance
+    * @param dirIrr
+    *   Sum of weight for direct irradiance
+    * @param temp
+    *   Sum of weight for temperature
+    * @param windVel
+    *   Sum of weight for wind velocity
+    */
   final case class WeightSum(
-      diffRad: Double,
-      dirRad: Double,
+      diffIrr: Double,
+      dirIrr: Double,
       temp: Double,
       windVel: Double
   ) {
     def add(
-        diffRad: Double,
-        dirRad: Double,
+        diffIrr: Double,
+        dirIrr: Double,
         temp: Double,
         windVel: Double
     ): WeightSum =
       WeightSum(
-        this.diffRad + diffRad,
-        this.dirRad + dirRad,
+        this.diffIrr + diffIrr,
+        this.dirIrr + dirIrr,
         this.temp + temp,
         this.windVel + windVel
       )
+
+    /** Scale the given [[WeatherData]] by dividing by the sum of weights per
+      * attribute of the weather data. If one of the weight sums is empty (and
+      * thus a division by zero would happen) the defined "empty" information
+      * for this attribute is returned.
+      *
+      * @param weatherData
+      *   Weighted and accumulated weather information
+      * @return
+      *   Weighted weather information, which are divided by the sum of weights
+      */
+    def scale(weatherData: WeatherData): WeatherData = weatherData match {
+      case WeatherData(diffIrr, dirIrr, temp, windVel) =>
+        implicit val precision: Double = 1e-3
+        WeatherData(
+          if (this.diffIrr !~= 0d) diffIrr.divide(this.diffIrr)
+          else EMPTY_WEATHER_DATA.diffIrr,
+          if (this.dirIrr !~= 0d) dirIrr.divide(this.dirIrr)
+          else EMPTY_WEATHER_DATA.dirIrr,
+          if (this.temp !~= 0d) temp.divide(this.temp)
+          else EMPTY_WEATHER_DATA.temp,
+          if (this.windVel !~= 0d) windVel.divide(this.windVel)
+          else EMPTY_WEATHER_DATA.windVel
+        )
+    }
   }
-  case object WeightSum {
+  object WeightSum {
     val EMPTY_WEIGHT_SUM: WeightSum = WeightSum(0d, 0d, 0d, 0d)
   }
 

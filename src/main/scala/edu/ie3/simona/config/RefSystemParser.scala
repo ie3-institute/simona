@@ -107,15 +107,7 @@ object RefSystemParser {
           case Some(voltLvls) =>
             voltLvls.foldLeft(Vector.empty[(VoltageLevel, RefSystem)])(
               (voltLvlRefSystems, voltLvlDef) => {
-                val voltLvl = voltLvlDef match {
-                  case SimonaConfig.VoltLvlConfig(id, vNom) =>
-                    VoltLvlParser.parse(id, vNom)
-                  case invalid =>
-                    throw new InvalidConfigParameterException(
-                      s"Got invalid voltage level definition $invalid. Double-check your entry!"
-                    )
-                }
-                voltLvlRefSystems :+ (voltLvl, refSystem)
+                voltLvlRefSystems :+ (VoltLvlParser.from(voltLvlDef), refSystem)
               }
             )
           case None => List.empty[(VoltageLevel, RefSystem)]

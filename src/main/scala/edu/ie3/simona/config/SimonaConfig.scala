@@ -1003,10 +1003,8 @@ object SimonaConfig {
             jdbcUrl: java.lang.String,
             password: java.lang.String,
             schemaName: java.lang.String,
-            timeColumnName: java.lang.String,
             timePattern: java.lang.String,
-            userName: java.lang.String,
-            weatherTableName: java.lang.String
+            userName: java.lang.String
         )
         object SqlParams {
           def apply(
@@ -1020,14 +1018,10 @@ object SimonaConfig {
               schemaName =
                 if (c.hasPathOrNull("schemaName")) c.getString("schemaName")
                 else "public",
-              timeColumnName =
-                $_reqStr(parentPath, c, "timeColumnName", $tsCfgValidator),
               timePattern =
                 if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
                 else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
-              userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator),
-              weatherTableName =
-                $_reqStr(parentPath, c, "weatherTableName", $tsCfgValidator)
+              userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
             )
           }
           private def $_reqStr(
@@ -1372,9 +1366,8 @@ object SimonaConfig {
               jdbcUrl: java.lang.String,
               password: java.lang.String,
               schemaName: java.lang.String,
-              timeColumnName: java.lang.String,
-              userName: java.lang.String,
-              weatherTableName: java.lang.String
+              tableName: java.lang.String,
+              userName: java.lang.String
           )
           object SqlParams {
             def apply(
@@ -1388,11 +1381,9 @@ object SimonaConfig {
                 schemaName =
                   if (c.hasPathOrNull("schemaName")) c.getString("schemaName")
                   else "public",
-                timeColumnName =
-                  $_reqStr(parentPath, c, "timeColumnName", $tsCfgValidator),
-                userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator),
-                weatherTableName =
-                  $_reqStr(parentPath, c, "weatherTableName", $tsCfgValidator)
+                tableName =
+                  $_reqStr(parentPath, c, "tableName", $tsCfgValidator),
+                userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
               )
             }
             private def $_reqStr(
