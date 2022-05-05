@@ -58,18 +58,19 @@ object ExtSimLoader extends LazyLogging {
     val service = ServiceLoader
       .load(classOf[ExtLinkInterface], classLoader)
       .asScala
+      .headOption
 
-    service.knownSize match {
+    service.asScala.knownSize match {
       case 1 =>
         logger.info(
           s"External simulation ${myJar.getName} was loaded with one implementation."
         )
       case _ =>
         logger.warn(
-          s"External simulation ${myJar.getName} was loaded with ${service.knownSize} implementations."
+          s"External simulation ${myJar.getName} was loaded with ${service.asScala.knownSize} implementations."
         )
     }
 
-    service.headOption
+    service
   }
 }
