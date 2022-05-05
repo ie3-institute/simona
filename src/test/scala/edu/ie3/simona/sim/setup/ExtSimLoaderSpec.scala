@@ -118,6 +118,8 @@ class ExtSimLoaderSpec extends UnitSpec {
       val jars = Iterable(jarOne, jarTwo)
       val extSims = jars.flatMap(ExtSimLoader.loadExtLink)
 
+      extSims.size shouldBe 2
+
       val extSimIterator = extSims.iterator
 
       while (extSimIterator.hasNext) {

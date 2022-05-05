@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.sim.setup
 
+import akka.japi.Option.scala2JavaOption
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.api.ExtLinkInterface
 
@@ -57,7 +58,6 @@ object ExtSimLoader extends LazyLogging {
     val service = ServiceLoader
       .load(classOf[ExtLinkInterface], classLoader)
       .asScala
-      .headOption
 
     service.knownSize match {
       case 1 =>
@@ -70,6 +70,6 @@ object ExtSimLoader extends LazyLogging {
         )
     }
 
-    service
+    service.headOption
   }
 }

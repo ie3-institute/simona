@@ -22,7 +22,7 @@ You can find and download the source code of the latest stable SIMONA version [h
 ## Running a Standalone Simulation
 
 
-Running a standalone simulation is a matter of invoking the ``RunSimonaStandalone`` object. You can find it at ``./src/main/scala/edu.ie3/simona/main``.
+Running a standalone simulation is a matter of invoking the ``RunSimonaStandalone`` object. You can find it at ``./src/main/scala/edu/ie3/simona/main``.
 As what you are getting from the git repository is scala source code, you need to compile the code before you can run it.
 You can either delegate the job to your preferred IDE or build an executable jar manually and use a command line interface (CLI).
 
@@ -58,7 +58,7 @@ Since a simulation can be run with all sorts of grids and with different paramet
 
 
 Within the SIMONA repository, there are two default configurations and their corresponding grids with all necessary data to execute a simulation.
-For each configuration, there is a separate directory in the project directory at ``./inputData``.
+For each configuration, there is a separate directory in the project directory at ``./input/``.
 Each configuration is described by a ``.conf`` file that holds the simulation configuration parameters.
 
 
@@ -71,7 +71,7 @@ Let's pretend you want to start a simulation with the default ``vn_simona`` conf
 
 When you want to start a simulation run from the command line interface you have to pass the directory of the config file as a command-line argument. That would look as follows:
 
-    java -cp build/libs/simona-2.1-all.jar edu.ie3.simona.main.RunSimonaStandalone --config=inputData/vn_simona/vn_simona.conf
+    java -cp build/libs/simona-2.1-all.jar edu.ie3.simona.main.RunSimonaStandalone --config=input/vn_simona/vn_simona.conf
 
 
 #### Using IntelliJ IDEA
@@ -80,7 +80,7 @@ When you want to start a simulation run from the command line interface you have
 If you are using IntelliJ IDEA as your IDE, this is how setting the command line argument would look like:
 
 <ol>
-<li> Find the <code>vn_simona.conf</code> file in your project directory and copy its path from the content root </li>
+<li> Find the ``vn_simona.conf`` file in your project directory and copy its path from the content root </li>
 
 ![](../readthedocs/images/usersguide/copy-path.png)
 
@@ -88,10 +88,10 @@ If you are using IntelliJ IDEA as your IDE, this is how setting the command line
 
 ![](../readthedocs/images/usersguide/edit-conf.png)
 
-<li> Enter <code>--config={path from the content root of config file}</code> </li>
+<li> Enter ``--config={path from the content root of config file}`` </li>
 
 > **_NOTE:_**
-For our example that would be ``--config=inputData/vn_simona/vn_simona.conf``
+For our example that would be ``--config=input/vn_simona/vn_simona.conf``
 
 ![](../readthedocs/images/usersguide/edit-conf2.png)
 
@@ -112,7 +112,7 @@ For a detailed description on how to do that and all the various configuration p
 Besides a simulation configuration, the specifications of each grid component (e.g. lines, transformers, ...) and system participant (e.g. loads, pv plants, ... ) have to be fed into the simulation.
 Within SIMONA we use the PowerSystemDataModel (PSDM) for modeling the system components.
 Before the data can be utilized for a simulation run, make sure to convert them to the PSDM.
-For more information on the PSDM visit the [docs](https://powersystemdatamodel.readthedocs.io/en/latest/index.html) and for an example of how the converted data looks like you can take a look at an example grid at ``./inputData/vn_simona/fullGrid``.
+For more information on the PSDM visit the [docs](https://powersystemdatamodel.readthedocs.io/en/latest/index.html) and for an example of how the converted data looks like you can take a look at an example grid at ``./input/vn_simona/fullGrid``.
 The example grids are provided as csv files. You can choose to use a different data source for your own grid.
 For more information on supported sources, check out the /config/config section.
 Include your grid and its specification by referencing the folder path, where all the converted grid data is located, within your custom configuration file.
@@ -174,7 +174,7 @@ The external simulation is loaded via class loader. Thus, SIMONA and the externa
 - For each data stream, a sub-interface of ``edu.ie3.simona.api.data.ExtDataSimulation`` needs to be implemented, such as ``edu.ie3.simona.api.data.ev.ExtEvSimulation``, and all methods of the interface have to be implemented. The *main class* could be the implementing class here.
 - In order for SIMONA to use the external simulation, a class that extends ``edu.ie3.simona.api.ExtLinkInterface`` has to reside inside the project. The class has to implement the corresponding methods by returning the control stream and data stream implementations (could all be the same *main class*).
 - When loading the external simulations, SIMONA is looking for the corresponding service files of the class ``edu.ie3.simona.api.ExtLinkInterface``. Therefor every external simulation needs the following service file: ``src/main/resources/META-INF/services/edu.ie3.simona.api.ExtLinkInterface``. The service file needs to contain the relative path to the class that extends ``edu.ie3.simona.api.ExtLinkInterface``.
-- An example for an external simulation can be found [here](https://github.com/ie3-institute/ExtSimSample)
+- A <em>very simple</em> example for an external simulation can be found [here](https://github.com/ie3-institute/ExtSimSample)
 
 **SIMONA**
 
@@ -186,7 +186,7 @@ The external simulation is loaded via class loader. Thus, SIMONA and the externa
 These steps have to be performed each time updates to the external simulation need to be deployed.
 
 - Execute ``gradle shadowJar`` inside the external simulation project.
-- Copy the resulting *jar* (usually placed inside <external project>/build/libs) to SIMONA/inputData/ext_sim.
+- Copy the resulting *jar* (usually placed inside ``<external project>``/build/libs) to SIMONA/input/ext_sim.
 
 Now, when a simulation with SIMONA is started (see [above](#running-a-standalone-simulation), the external simulation is triggered at each tick that it requested.
 
