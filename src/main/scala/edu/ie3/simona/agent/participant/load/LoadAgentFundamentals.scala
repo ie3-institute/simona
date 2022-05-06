@@ -148,8 +148,15 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
           profileLoadModel.operationInterval.start,
           profileLoadModel.operationInterval.end
         )
-      case _ =>
-        Array.emptyLongArray
+      case randomLoadModel: RandomLoadModel =>
+        activationTicksInOperationTime(
+          simulationStartDate,
+          900L,
+          randomLoadModel.operationInterval.start,
+          randomLoadModel.operationInterval.end
+        )
+      case unknownModel =>
+        throw new IllegalArgumentException(f"Cannot determine activation ticks for unknown model: $unknownModel")
     }
 
     ParticipantModelBaseStateData(
