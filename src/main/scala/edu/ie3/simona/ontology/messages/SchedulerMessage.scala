@@ -22,7 +22,7 @@ object SchedulerMessage {
   /** Tell the [[SimScheduler]] to initialize the simulation with all
     * [[edu.ie3.simona.ontology.trigger.Trigger.InitializeTrigger]] s
     */
-  case object InitSimMessage extends SchedulerMessage
+  case class InitSimMessage(sender: ActorRef) extends SchedulerMessage
 
   /** Tell the [[SimScheduler]] to start the simulation
     */

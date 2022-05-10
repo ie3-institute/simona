@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.scheduler
 
-import java.util.PriorityQueue
 import akka.actor.ActorRef
 import com.google.common.collect.TreeMultimap
 import edu.ie3.simona.event.RuntimeEvent.{
@@ -19,13 +18,14 @@ import edu.ie3.simona.exceptions.SchedulerException
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
-import edu.ie3.simona.ontology.trigger.{ScheduledTrigger, Trigger}
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeTrigger
+import edu.ie3.simona.ontology.trigger.{ScheduledTrigger, Trigger}
 import edu.ie3.simona.scheduler.SimSchedulerStateData.SchedulerStateData
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.TimeUtil
 
+import java.util.PriorityQueue
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.jdk.Accumulator
@@ -538,9 +538,9 @@ trait SchedulerHelper extends SimonaActorLogging {
 
     /* notify start sender */
     if (errorInSim) {
-      stateData.runtime.initSender ! SimulationFailureMessage
+      stateData.runtime.initSender ! SimonaSim.SimulationFailureMessage
     } else {
-      stateData.runtime.initSender ! SimulationSuccessfulMessage
+      stateData.runtime.initSender ! SimonaSim.SimulationSuccessfulMessage
     }
 
     /* disable schedule */

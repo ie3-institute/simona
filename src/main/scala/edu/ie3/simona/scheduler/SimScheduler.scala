@@ -61,13 +61,10 @@ class SimScheduler(
   def schedulerReceive(stateData: SchedulerStateData): Receive = {
 
     /* start the initialization process based on all up to this call scheduled initialization triggers  */
-    case InitSimMessage =>
+    case InitSimMessage(sender) =>
       /* initialize agents */
       // notify listeners
       notifyListener(Initializing)
-
-      // set init sender
-      val startSender = sender()
 
       // initializing process
       val initStartTime = System.nanoTime
@@ -76,7 +73,7 @@ class SimScheduler(
       context become schedulerReceive(
         stateData.copy(
           runtime = stateData.runtime
-            .copy(initStarted = true, initSender = startSender),
+            .copy(initStarted = true, initSender = sender),
           time = stateData.time.copy(
             initStartTime = initStartTime
           )

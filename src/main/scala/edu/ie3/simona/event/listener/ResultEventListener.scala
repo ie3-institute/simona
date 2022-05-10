@@ -312,7 +312,7 @@ class ResultEventListener(
     case Event(SinkResponse(classToSink), _) =>
       // Sink Initialization succeeded
       log.debug("Initialization complete!")
-      supervisor ! ServiceInitComplete
+      supervisor ! ServiceInitComplete(self)
 
       unstashAll()
       goto(Idle) using BaseData(classToSink)

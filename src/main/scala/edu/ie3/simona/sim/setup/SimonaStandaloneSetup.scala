@@ -6,7 +6,9 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.{ActorContext, ActorRef, ActorSystem}
+import akka.actor.{ActorContext, ActorRef => ClassicActorRef}
+import akka.actor.typed.ActorRef
+import akka.actor.typed.scaladsl.adapter.TypedActorRefOps
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridTopologyGraph
@@ -34,6 +36,7 @@ import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
+import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.util.TimeUtil
 
@@ -47,7 +50,6 @@ import scala.jdk.CollectionConverters._
   * @since 01.07.20
   */
 class SimonaStandaloneSetup(
-    override val buildActorSystem: () => ActorSystem,
     simonaConfig: SimonaConfig,
     resultFileHierarchy: ResultFileHierarchy,
     runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
@@ -57,8 +59,8 @@ class SimonaStandaloneSetup(
   override def gridAgents(
       context: ActorContext,
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ActorRef]
-  ): Map[ActorRef, GridAgentData.GridAgentInitData] = {
+      systemParticipantListener: Seq[ClassicActorRef]
+  ): Map[ClassicActorRef, GridAgentData.GridAgentInitData] = {
 
     /* get the grid */
     val subGridTopologyGraph = GridProvider
@@ -116,8 +118,8 @@ class SimonaStandaloneSetup(
 
   override def primaryServiceProxy(
       context: ActorContext,
-      scheduler: ActorRef
-  ): (ActorRef, PrimaryServiceProxy.InitPrimaryServiceProxyStateData) = {
+      scheduler: ClassicActorRef
+  ): (ClassicActorRef, PrimaryServiceProxy.InitPrimaryServiceProxyStateData) = {
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
@@ -137,8 +139,8 @@ class SimonaStandaloneSetup(
 
   override def weatherService(
       context: ActorContext,
-      scheduler: ActorRef
-  ): (ActorRef, InitWeatherServiceStateData) =
+      scheduler: ClassicActorRef
+  ): (ClassicActorRef, InitWeatherServiceStateData) =
     (
       context.simonaActorOf(
         WeatherService.props(
@@ -156,7 +158,7 @@ class SimonaStandaloneSetup(
 
   override def extSimulations(
       context: ActorContext,
-      scheduler: ActorRef
+      scheduler: ClassicActorRef
   ): ExtSimSetupData = {
     val jars = ExtSimLoader.scanInputFolder()
 
@@ -179,7 +181,7 @@ class SimonaStandaloneSetup(
         // setup data services that belong to this external simulation
         val (extData, extDataInit): (
             Iterable[ExtData],
-            Iterable[(ActorRef, InitializeServiceTrigger[_])]
+            Iterable[(ClassicActorRef, InitializeServiceTrigger[_])]
         ) =
           extLink.getExtDataSimulations.asScala.zipWithIndex.map {
             case (_: ExtEvSimulation, dIndex) =>
@@ -213,8 +215,8 @@ class SimonaStandaloneSetup(
 
   override def scheduler(
       context: ActorContext,
-      runtimeEventListener: Seq[ActorRef]
-  ): ActorRef = context.simonaActorOf(
+      runtimeEventListener: Seq[ClassicActorRef]
+  ): ClassicActorRef = context.simonaActorOf(
     SimScheduler.props(
       simonaConfig.simona.time,
       runtimeEventListener,
@@ -222,8 +224,10 @@ class SimonaStandaloneSetup(
     )
   )
 
-  override def runtimeEventListener(context: ActorContext): Vector[ActorRef] =
-    Vector(
+  override def runtimeEventListener(
+      context: ActorContext
+  ): Seq[ClassicActorRef] =
+    Seq(
       context.simonaActorOf(
         RuntimeEventListener.props(
           None,
@@ -235,8 +239,8 @@ class SimonaStandaloneSetup(
 
   override def systemParticipantsListener(
       context: ActorContext,
-      simonaSim: ActorRef
-  ): Vector[ActorRef] = {
+      simonaSim: ActorRef[SimonaSim.Request]
+  ): Seq[ClassicActorRef] = {
     // append ResultEventListener as well to write raw output files
     ArgsParser
       .parseListenerConfigOption(simonaConfig.simona.event.listener)
@@ -247,12 +251,12 @@ class SimonaStandaloneSetup(
           index.toString
         )
       }
-      .toVector :+
+      .toSeq :+
       context.simonaActorOf(
         ResultEventListener.props(
           SetupHelper.allResultEntitiesToWrite(simonaConfig.simona.output),
           resultFileHierarchy,
-          simonaSim
+          simonaSim.toClassic
         )
       )
   }
@@ -261,8 +265,8 @@ class SimonaStandaloneSetup(
       subGridTopologyGraph: SubGridTopologyGraph,
       context: ActorContext,
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ActorRef]
-  ): Map[Int, ActorRef] = {
+      systemParticipantListener: Seq[ClassicActorRef]
+  ): Map[Int, ClassicActorRef] = {
     subGridTopologyGraph
       .vertexSet()
       .asScala
@@ -294,7 +298,6 @@ object SimonaStandaloneSetup extends LazyLogging with SetupHelper {
       mainArgs: Array[String] = Array.empty[String]
   ): SimonaStandaloneSetup =
     new SimonaStandaloneSetup(
-      () => ActorSystem("simona", typeSafeConfig),
       SimonaConfig(typeSafeConfig),
       resultFileHierarchy,
       runtimeEventQueue,

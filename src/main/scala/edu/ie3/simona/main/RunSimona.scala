@@ -7,15 +7,11 @@
 package edu.ie3.simona.main
 
 import java.util.Locale
-
-import akka.actor.{ActorRef, ActorSystem}
-import akka.pattern.gracefulStop
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.sim.setup.SimonaSetup
 import edu.ie3.util.scala.quantities.QuantityUtil
 
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Random
 
@@ -50,12 +46,6 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
       1000
     ) // prevents cutting of the log when having a fast simulation
     System.exit(0)
-  }
-
-  def shutdownGracefully(
-      simonaSim: ActorRef
-  )(implicit timeout: FiniteDuration): Future[Boolean] = {
-    gracefulStop(simonaSim, timeout)
   }
 
   // a fancy opener
