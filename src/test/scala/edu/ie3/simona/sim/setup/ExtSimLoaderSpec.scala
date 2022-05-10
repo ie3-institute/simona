@@ -9,7 +9,8 @@ package edu.ie3.simona.sim.setup
 import edu.ie3.simona.api.ExtLinkInterface
 import edu.ie3.simona.test.common.UnitSpec
 
-import java.io.File
+import java.io.{BufferedReader, File, FileReader, InputStreamReader}
+import java.nio.file.Paths
 import java.util.ServiceConfigurationError
 import scala.jdk.CollectionConverters._
 
@@ -27,6 +28,8 @@ class ExtSimLoaderSpec extends UnitSpec {
   private val emptyFileJar = s"$jarsDir/mock_ext_sim-empty_file.jar"
   private val missingServiceFileJar =
     s"$jarsDir/mock_ext_sim-missing_service_file.jar"
+  private val twoImplementationJar =
+    s"$jarsDir/mock_ext_sim-two_implementations.jar"
 
   // testing whether this test is complete
   "An ExtSimLoaderSpec " should {
@@ -52,9 +55,9 @@ class ExtSimLoaderSpec extends UnitSpec {
       assert(dir.isDirectory, "Directory with jars does not exist")
 
       val files = dir.listFiles().toVector
-      files.size shouldBe 6
+      files.size shouldBe 7
 
-      files.count(file => fileSuffix(file.getName) == "jar") shouldBe 5
+      files.count(file => fileSuffix(file.getName) == "jar") shouldBe 6
 
       files.count(file => fileSuffix(file.getName) == "txt") shouldBe 1
     }
@@ -73,7 +76,7 @@ class ExtSimLoaderSpec extends UnitSpec {
       val dir = getResource(jarsDir)
       val jars = ExtSimLoader.scanInputFolder(dir)
 
-      jars.size shouldBe 5
+      jars.size shouldBe 6
 
       jars.foreach { jar =>
         fileSuffix(jar.getName) shouldBe "jar"
@@ -128,6 +131,28 @@ class ExtSimLoaderSpec extends UnitSpec {
         extSim should not be null
         extSim shouldBe an[ExtLinkInterface]
       }
+    }
+
+    "test for log message when two implementations are loaded" in {
+      val jarOne = getResource(twoImplementationJar)
+      val jars = Iterable(jarOne)
+      jars.flatMap(ExtSimLoader.loadExtLink)
+
+      val path =
+        Paths.get("test/logs/simona/simona_tests.log").toAbsolutePath.toUri
+
+      val reader = new BufferedReader(new FileReader(new File(path)))
+      var line = reader.readLine()
+      var log = ""
+
+      while (line != null) {
+        log = line
+        line = reader.readLine()
+      }
+
+      log.substring(
+        52
+      ) shouldBe "WARN  e.ie3.simona.sim.setup.ExtSimLoader$ - External simulation mock_ext_sim-two_implementations.jar was loaded with 2 implementations."
     }
   }
 

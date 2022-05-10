@@ -30,17 +30,12 @@ You can either delegate the job to your preferred IDE or build an executable jar
 
 In order to be able to execute SIMONA from a CLI, you need an executable fat jar. A fat jar contains all compiled classes and dependencies, ready for execution. For building one, you can use a Gradle task of the project.
 
-<ol xmlns="http://www.w3.org/1999/html">
-<li>Open a CLI and change directories to the top level directory of the project.</li>
+1. Open a CLI and change directories to the top level directory of the project.   
+2. Execute ``./gradlew shadowJar`` within the CLI. This creates a fat jar of SIMONA inside of the directory ``build/libs``.   
+3. For executing a fat jar you need to specify the classpath of the entrypoint of your application. Assuming we are still in the top level directory of our project, the execution command would look as follows:
 
-<li>
-Execute ``./gradlew shadowJar`` within the CLI. This creates a fat jar of SIMONA inside of the directory ``build/libs``.</li>
 
-<li>
-For executing a fat jar you need to specify the classpath of the entrypoint of your application. Assuming we are still in the top level directory of our project, the execution command would look as follows:</li>
-</ol>
-
-      java -cp build/libs/simona-2.1-all.jar edu.ie3.simona.main.RunSimonaStandalone
+    java -cp build/libs/simona-2.1-all.jar edu.ie3.simona.main.RunSimonaStandalone 
 
 
 ### Using an IDE
@@ -58,7 +53,7 @@ Since a simulation can be run with all sorts of grids and with different paramet
 
 
 Within the SIMONA repository, there are two default configurations and their corresponding grids with all necessary data to execute a simulation.
-For each configuration, there is a separate directory in the project directory at ``./input/``.
+For each configuration, there is a separate directory in the project directory at ``./input/samples/``.
 Each configuration is described by a ``.conf`` file that holds the simulation configuration parameters.
 
 
@@ -71,7 +66,7 @@ Let's pretend you want to start a simulation with the default ``vn_simona`` conf
 
 When you want to start a simulation run from the command line interface you have to pass the directory of the config file as a command-line argument. That would look as follows:
 
-    java -cp build/libs/simona-2.1-all.jar edu.ie3.simona.main.RunSimonaStandalone --config=input/vn_simona/vn_simona.conf
+    java -cp build/libs/simona-2.1-all.jar edu.ie3.simona.main.RunSimonaStandalone --config=input/samples/vn_simona/vn_simona.conf
 
 
 #### Using IntelliJ IDEA
@@ -79,24 +74,22 @@ When you want to start a simulation run from the command line interface you have
 
 If you are using IntelliJ IDEA as your IDE, this is how setting the command line argument would look like:
 
-<ol>
-<li> Find the ``vn_simona.conf`` file in your project directory and copy its path from the content root </li>
+&nbsp;1. Find the ``vn_simona.conf`` file in your project directory and copy its path from the content root
 
 ![](../readthedocs/images/usersguide/copy-path.png)
 
-<li> Go to the window "Select Run/Debug Configuration" and select "Edit Configurations" </li>
+&nbsp;2. Go to the window "Select Run/Debug Configuration" and select "Edit Configurations"
 
 ![](../readthedocs/images/usersguide/edit-conf.png)
 
-<li> Enter ``--config={path from the content root of config file}`` </li>
+&nbsp;3. Enter ``--config={path from the content root of config file}``
 
 > **_NOTE:_**
-For our example that would be ``--config=input/vn_simona/vn_simona.conf``
+For our example that would be ``--config=input/samples/vn_simona/vn_simona.conf``
 
 ![](../readthedocs/images/usersguide/edit-conf2.png)
 
-<li> Click Apply on the bottom right </li>
-</ol>
+&nbsp;4. Click Apply on the bottom right
 
 
 ### Configuring your Simulation
@@ -112,7 +105,7 @@ For a detailed description on how to do that and all the various configuration p
 Besides a simulation configuration, the specifications of each grid component (e.g. lines, transformers, ...) and system participant (e.g. loads, pv plants, ... ) have to be fed into the simulation.
 Within SIMONA we use the PowerSystemDataModel (PSDM) for modeling the system components.
 Before the data can be utilized for a simulation run, make sure to convert them to the PSDM.
-For more information on the PSDM visit the [docs](https://powersystemdatamodel.readthedocs.io/en/latest/index.html) and for an example of how the converted data looks like you can take a look at an example grid at ``./input/vn_simona/fullGrid``.
+For more information on the PSDM visit the [docs](https://powersystemdatamodel.readthedocs.io/en/latest/index.html) and for an example of how the converted data looks like you can take a look at an example grid at ``./input/samples/vn_simona/fullGrid``.
 The example grids are provided as csv files. You can choose to use a different data source for your own grid.
 For more information on supported sources, check out the /config/config section.
 Include your grid and its specification by referencing the folder path, where all the converted grid data is located, within your custom configuration file.
@@ -186,7 +179,7 @@ The external simulation is loaded via class loader. Thus, SIMONA and the externa
 These steps have to be performed each time updates to the external simulation need to be deployed.
 
 - Execute ``gradle shadowJar`` inside the external simulation project.
-- Copy the resulting *jar* (usually placed inside ``<external project>``/build/libs) to SIMONA/input/ext_sim.
+- Copy the resulting *jar* (usually placed inside ``<external project>/build/libs``) to SIMONA/input/samples/ext_sim.
 
 Now, when a simulation with SIMONA is started (see [above](#running-a-standalone-simulation), the external simulation is triggered at each tick that it requested.
 
@@ -200,11 +193,10 @@ When your power flow is not converging it means that the load situation in the g
 
 This can have basically one of the following two reasons:
 
-<ol>
-<li>There is more load in the grid than it can physically handle.</li>
+1. There is more load in the grid than it can physically handle.
 
-<li>There is more generation in the grid than it can physically handle.</li>
-</ol>
+2. There is more generation in the grid than it can physically handle.
+
 
 One of the main reasons is a misconfiguration of the grid and its assets.
 Assess the power of the load and generation units and check if the values make sense.

@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.japi.Option.scala2JavaOption
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.api.ExtLinkInterface
 
@@ -58,19 +57,18 @@ object ExtSimLoader extends LazyLogging {
     val service = ServiceLoader
       .load(classOf[ExtLinkInterface], classLoader)
       .asScala
-      .headOption
 
-    service.asScala.knownSize match {
+    service.size match {
       case 1 =>
         logger.info(
           s"External simulation ${myJar.getName} was loaded with one implementation."
         )
       case _ =>
         logger.warn(
-          s"External simulation ${myJar.getName} was loaded with ${service.asScala.knownSize} implementations."
+          s"External simulation ${myJar.getName} was loaded with ${service.size} implementations."
         )
     }
 
-    service
+    service.headOption
   }
 }
