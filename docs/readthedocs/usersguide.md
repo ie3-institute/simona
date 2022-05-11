@@ -74,22 +74,22 @@ When you want to start a simulation run from the command line interface you have
 
 If you are using IntelliJ IDEA as your IDE, this is how setting the command line argument would look like:
 
-&nbsp;1. Find the ``vn_simona.conf`` file in your project directory and copy its path from the content root
+1. Find the ``vn_simona.conf`` file in your project directory and copy its path from the content root
 
-![](../readthedocs/images/usersguide/copy-path.png)
+    ![](../readthedocs/images/usersguide/copy-path.png)
 
-&nbsp;2. Go to the window "Select Run/Debug Configuration" and select "Edit Configurations"
+2. Go to the window "Select Run/Debug Configuration" and select "Edit Configurations"
 
-![](../readthedocs/images/usersguide/edit-conf.png)
+    ![](../readthedocs/images/usersguide/edit-conf.png)
 
-&nbsp;3. Enter ``--config={path from the content root of config file}``
+3. Enter ``--config={path from the content root of config file}``
 
-> **_NOTE:_**
-For our example that would be ``--config=input/samples/vn_simona/vn_simona.conf``
+    > **_NOTE:_**
+    For our example that would be ``--config=input/samples/vn_simona/vn_simona.conf``
 
-![](../readthedocs/images/usersguide/edit-conf2.png)
+    ![](../readthedocs/images/usersguide/edit-conf2.png)
 
-&nbsp;4. Click Apply on the bottom right
+4. Click Apply on the bottom right
 
 
 ### Configuring your Simulation
@@ -178,8 +178,8 @@ The external simulation is loaded via class loader. Thus, SIMONA and the externa
 
 These steps have to be performed each time updates to the external simulation need to be deployed.
 
-- Execute ``gradle shadowJar`` inside the external simulation project.
-- Copy the resulting *jar* (usually placed inside ``<external project>/build/libs``) to SIMONA/input/samples/ext_sim.
+- Execute ``./gradlew shadowJar`` inside the external simulation project.
+- Copy the resulting *jar* (usually placed inside ``<external project>/build/libs/``) to ``./input/ext_sim/``.
 
 Now, when a simulation with SIMONA is started (see [above](#running-a-standalone-simulation), the external simulation is triggered at each tick that it requested.
 
