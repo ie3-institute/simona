@@ -112,17 +112,7 @@ final case class WecModel(
     val activePower = determinePower(wecData).to(MEGAWATT)
     val pMax = sMax.multiply(cosPhiRated).to(MEGAWATT)
 
-    (if (activePower.isGreaterThan(pMax)) {
-       logger.warn(
-         "The fed in active power is higher than the estimated maximum active power of this plant ({} > {}). " +
-           "Did you provide wrong weather input data?",
-         activePower,
-         pMax
-       )
-       pMax
-     } else {
-       activePower
-     }).multiply(-1)
+    limitActivePower(activePower, pMax).multiply(-1)
   }
 
   /** Determine the turbine output power with the air density ρ, the wind

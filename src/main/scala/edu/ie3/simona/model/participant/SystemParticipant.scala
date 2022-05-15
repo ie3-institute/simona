@@ -188,5 +188,30 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     }
   }
 
+  /** Limits active power with respect to the maximum permissible power defined
+    * for the system participant.
+    *
+    * @param p
+    *   the calculated active power
+    * @param pMax
+    *   the maximum permissible power
+    * @return
+    */
+  protected def limitActivePower(
+      p: ComparableQuantity[Power],
+      pMax: ComparableQuantity[Power]
+  ): ComparableQuantity[Power] = {
+    if (p.isGreaterThan(pMax)) {
+      logger.warn(
+        "The calculated active power of plant {} is higher than its estimated maximum active power ({} > {}). Will be limited to the maximum permissible output.",
+        uuid,
+        p,
+        pMax
+      )
+      pMax
+    } else
+      p
+  }
+
   def getUuid: UUID = this.uuid
 }
