@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - BREAKING: Using snapshot version of PSDM
 - Simplified PrimaryServiceProxy due to changes in PSDM [#120](https://github.com/ie3-institute/simona/issues/120)
 - Improved handling of weights and their sum in determination of weather data [#173](https://github.com/ie3-institute/simona/issues/173)
+- Removed Gradle task puml2png (Converting Plantuml to png / svg files) since it is no longer needed  [#230](https://github.com/ie3-institute/simona/issues/230)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund)
