@@ -109,10 +109,12 @@ class ExtSimLoaderSpec extends UnitSpec {
     "load a proper jar correctly" in {
       val jar = getResource(workingJar)
       val jars = Iterable(jar)
-      val extSim = jars.flatMap(ExtSimLoader.loadExtLink).iterator.next()
+      val extSim = jars.flatMap(ExtSimLoader.loadExtLink)
 
-      extSim should not be null
-      extSim shouldBe an[ExtLinkInterface]
+      extSim.size shouldBe 1
+
+      extSim.headOption.value should not be null
+      extSim.headOption.value shouldBe an[ExtLinkInterface]
     }
 
     "load multiple proper jars correctly" in {
@@ -133,26 +135,12 @@ class ExtSimLoaderSpec extends UnitSpec {
       }
     }
 
-    "test for log message when two implementations are loaded" in {
+    "load a jar with multiple ExtSims" in {
       val jarOne = getResource(twoImplementationJar)
       val jars = Iterable(jarOne)
-      jars.flatMap(ExtSimLoader.loadExtLink)
+      val extSims = jars.flatMap(ExtSimLoader.loadExtLink)
 
-      val path =
-        Paths.get("test/logs/simona/simona_tests.log").toAbsolutePath.toUri
-
-      val reader = new BufferedReader(new FileReader(new File(path)))
-      var line = reader.readLine()
-      var log = ""
-
-      while (line != null) {
-        log = line
-        line = reader.readLine()
-      }
-
-      log.substring(
-        52
-      ) shouldBe "WARN  e.ie3.simona.sim.setup.ExtSimLoader$ - External simulation mock_ext_sim-two_implementations.jar was loaded with 2 implementations."
+      extSims.size shouldBe 1
     }
   }
 
