@@ -16,11 +16,10 @@ import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformatio
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.{SValue, Value}
-import edu.ie3.simona.config.SimonaConfig.PrimaryCsvParams
+import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{
   CouchbaseParams,
-  InfluxDb1xParams,
-  SqlParams
+  InfluxDb1xParams
 }
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
   Primary => PrimaryConfig
@@ -92,7 +91,7 @@ class PrimaryServiceProxySpec
     PrimaryConfig(
       None,
       Some(
-        PrimaryCsvParams(
+        PrimaryDataCsvParams(
           csvSep,
           baseDirectoryPath,
           isHierarchic = false,
@@ -132,7 +131,7 @@ class PrimaryServiceProxySpec
     "lead to complaining about too much source definitions" in {
       val maliciousConfig = PrimaryConfig(
         Some(CouchbaseParams("", "", "", "", "", "", "")),
-        Some(PrimaryCsvParams("", "", isHierarchic = false, "")),
+        Some(PrimaryDataCsvParams("", "", isHierarchic = false, "")),
         None,
         None
       )
@@ -174,7 +173,7 @@ class PrimaryServiceProxySpec
     "let csv parameters pass for mapping configuration" in {
       val mappingConfig = PrimaryConfig(
         None,
-        Some(PrimaryCsvParams("", "", isHierarchic = false, "")),
+        Some(PrimaryDataCsvParams("", "", isHierarchic = false, "")),
         None,
         None
       )
@@ -201,7 +200,7 @@ class PrimaryServiceProxySpec
     "fails on invalid time pattern with csv" in {
       val invalidTimePatternConfig = PrimaryConfig(
         None,
-        Some(PrimaryCsvParams("", "", isHierarchic = false, "xYz")),
+        Some(PrimaryDataCsvParams("", "", isHierarchic = false, "xYz")),
         None,
         None
       )
@@ -217,7 +216,7 @@ class PrimaryServiceProxySpec
       val validTimePatternConfig = PrimaryConfig(
         None,
         Some(
-          PrimaryCsvParams(
+          PrimaryDataCsvParams(
             "",
             "",
             isHierarchic = false,

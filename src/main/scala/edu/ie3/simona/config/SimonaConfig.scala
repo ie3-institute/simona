@@ -371,19 +371,19 @@ object SimonaConfig {
 
   }
 
-  final case class PrimaryCsvParams(
+  final case class PrimaryDataCsvParams(
       override val csvSep: java.lang.String,
       override val directoryPath: java.lang.String,
       override val isHierarchic: scala.Boolean,
       timePattern: java.lang.String
   ) extends CsvParams(csvSep, directoryPath, isHierarchic)
-  object PrimaryCsvParams {
+  object PrimaryDataCsvParams {
     def apply(
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.PrimaryCsvParams = {
-      SimonaConfig.PrimaryCsvParams(
+    ): SimonaConfig.PrimaryDataCsvParams = {
+      SimonaConfig.PrimaryDataCsvParams(
         timePattern =
           if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
           else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
@@ -851,7 +851,7 @@ object SimonaConfig {
           couchbaseParams: scala.Option[
             SimonaConfig.Simona.Input.Primary.CouchbaseParams
           ],
-          csvParams: scala.Option[SimonaConfig.PrimaryCsvParams],
+          csvParams: scala.Option[SimonaConfig.PrimaryDataCsvParams],
           influxDb1xParams: scala.Option[
             SimonaConfig.Simona.Input.Primary.InfluxDb1xParams
           ],
@@ -1026,7 +1026,7 @@ object SimonaConfig {
             csvParams =
               if (c.hasPathOrNull("csvParams"))
                 scala.Some(
-                  SimonaConfig.PrimaryCsvParams(
+                  SimonaConfig.PrimaryDataCsvParams(
                     c.getConfig("csvParams"),
                     parentPath + "csvParams.",
                     $tsCfgValidator
