@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.api
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.simona.api.ExtMessageUtils.{
   RichExtCompletion,
   RichExtScheduleTrigger
@@ -18,6 +18,8 @@ import edu.ie3.simona.api.ExtSimAdapter.{
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
+  Terminate,
+  TerminationCompleted,
   ActivityStartTrigger => ExtActivityStartTrigger,
   CompletionMessage => ExtCompletionMessage
 }
@@ -27,6 +29,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
+import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
   InitializeExtSimAdapterTrigger
@@ -124,6 +127,13 @@ final case class ExtSimAdapter(scheduler: ActorRef)
       )
       scheduler ! scheduleDataService.toSimona(oldestTick)
 
+    case StopMessage(simulationSuccessful) =>
+      // let external sim know that we have terminated
+      stateData.extSimData.queueExtMsg(new Terminate(simulationSuccessful))
+
+    case _: TerminationCompleted =>
+      // external simulation has terminated as well, we can exit
+      self ! PoisonPill
   }
 
   private def getOldestTickAndTriggerId(implicit

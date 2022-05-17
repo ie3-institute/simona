@@ -12,7 +12,7 @@ Please refer to {doc}`PowerSystemDataModel - Wec Model <psdm:models/input/partic
 
 The figure below depicts the calculation steps as implemented.
 
-![](../_static/figures/models/wec_model/WecModelCalculation.png)
+![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/uml/main/participants/WecModelCalculation.puml)
 
 **Air density**
 The air density is calculated using the temperature and the air pressure, as stated in the diagram above. For this calculation the formula $\rho = \frac{(P \cdot M)}{R \cdot T}$ is used. The arguments for this formula are listed in the table below. In case no air pressure is given, the default value $1.2401 \frac{kg}{m^3}$ is returned, which corresponds to the air density at sea level at 20° Celsius.
