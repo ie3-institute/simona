@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved handling of weights and their sum in determination of weather data [#173](https://github.com/ie3-institute/simona/issues/173)
 - Improving code readability in EvcsAgent by moving FreeLotsRequest to separate methods [#19](https://github.com/ie3-institute/simona/issues/19)
 - Sending termination message to external simulation on expected and unexpected shutdowns of SIMONA [#35](https://github.com/ie3-institute/simona/issues/35)
+- Improved implementation of `RefSystemParser` [#212](https://github.com/ie3-institute/simona/issues/212)
 - Removed Gradle task puml2png (Converting Plantuml to png / svg files) since it is no longer needed  [#230](https://github.com/ie3-institute/simona/issues/230)
 
 ### Fixed

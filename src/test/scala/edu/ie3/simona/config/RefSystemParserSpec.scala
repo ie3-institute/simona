@@ -6,15 +6,11 @@
 
 package edu.ie3.simona.config
 
-import edu.ie3.datamodel.models.voltagelevels.{
-  CommonVoltageLevel,
-  GermanVoltageLevelUtils
-}
+import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.config.SimonaConfig.{RefSystemConfig, VoltLvlConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.test.common.UnitSpec
-import tech.units.indriya.quantity.Quantities
 
 class RefSystemParserSpec extends UnitSpec {
 
