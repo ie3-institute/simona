@@ -16,7 +16,7 @@ import java.net.URLClassLoader
   */
 object ExtSimLoader extends LazyLogging {
 
-  private val extSimPath = "inputData" + java.io.File.separator + "ext_sim"
+  private val extSimPath = "input" + java.io.File.separator + "ext_sim"
 
   private val extLinkClassPath = "edu.ie3.simona.api.ExtLink"
 
