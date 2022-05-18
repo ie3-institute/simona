@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sending termination message to external simulation on expected and unexpected shutdowns of SIMONA [#35](https://github.com/ie3-institute/simona/issues/35)
 - Improved implementation of `RefSystemParser` [#212](https://github.com/ie3-institute/simona/issues/212)
 - Removed Gradle task puml2png (Converting Plantuml to png / svg files) since it is no longer needed  [#230](https://github.com/ie3-institute/simona/issues/230)
+- Harmonized configuration of csv parameters [#149](https://github.com/ie3-institute/simona/issues/149)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund)

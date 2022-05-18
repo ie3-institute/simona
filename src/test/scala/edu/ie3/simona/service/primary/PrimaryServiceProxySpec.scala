@@ -16,11 +16,10 @@ import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformatio
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.{SValue, Value}
+import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{
   CouchbaseParams,
-  CsvParams,
-  InfluxDb1xParams,
-  SqlParams
+  InfluxDb1xParams
 }
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
   Primary => PrimaryConfig
@@ -92,9 +91,10 @@ class PrimaryServiceProxySpec
     PrimaryConfig(
       None,
       Some(
-        CsvParams(
+        PrimaryDataCsvParams(
           csvSep,
           baseDirectoryPath,
+          isHierarchic = false,
           TimeUtil.withDefaults.getDtfPattern
         )
       ),
@@ -131,7 +131,7 @@ class PrimaryServiceProxySpec
     "lead to complaining about too much source definitions" in {
       val maliciousConfig = PrimaryConfig(
         Some(CouchbaseParams("", "", "", "", "", "", "")),
-        Some(CsvParams("", "", "")),
+        Some(PrimaryDataCsvParams("", "", isHierarchic = false, "")),
         None,
         None
       )
@@ -173,7 +173,7 @@ class PrimaryServiceProxySpec
     "let csv parameters pass for mapping configuration" in {
       val mappingConfig = PrimaryConfig(
         None,
-        Some(CsvParams("", "", "")),
+        Some(PrimaryDataCsvParams("", "", isHierarchic = false, "")),
         None,
         None
       )
@@ -200,7 +200,7 @@ class PrimaryServiceProxySpec
     "fails on invalid time pattern with csv" in {
       val invalidTimePatternConfig = PrimaryConfig(
         None,
-        Some(CsvParams("", "", "xYz")),
+        Some(PrimaryDataCsvParams("", "", isHierarchic = false, "xYz")),
         None,
         None
       )
@@ -215,7 +215,14 @@ class PrimaryServiceProxySpec
     "succeeds on valid time pattern with csv" in {
       val validTimePatternConfig = PrimaryConfig(
         None,
-        Some(CsvParams("", "", "yyyy-MM-dd'T'HH:mm'Z[UTC]'")),
+        Some(
+          PrimaryDataCsvParams(
+            "",
+            "",
+            isHierarchic = false,
+            "yyyy-MM-dd'T'HH:mm'Z[UTC]'"
+          )
+        ),
         None,
         None
       )
@@ -303,8 +310,11 @@ class PrimaryServiceProxySpec
           classOf[TimeSeriesMappingSource].isAssignableFrom(
             mappingSource.getClass
           ) shouldBe true
-        case Failure(_) =>
-          fail("Building state data with correct config should not fail")
+        case Failure(failure) =>
+          fail(
+            "Building state data with correct config should not fail, but failed with:",
+            failure
+          )
       }
     }
   }
