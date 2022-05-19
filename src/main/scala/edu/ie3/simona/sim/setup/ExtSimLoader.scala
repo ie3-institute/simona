@@ -68,7 +68,6 @@ object ExtSimLoader extends LazyLogging {
           s"External simulation ${myJar.getName} was loaded with ${service.size} implementations."
         )
     }
-
     service.headOption
   }
 }
