@@ -61,11 +61,11 @@ object ExtSimLoader extends LazyLogging {
     service.size match {
       case 1 =>
         logger.info(
-          s"External simulation ${myJar.getName} was loaded with one implementation."
+          s"Jar file ${myJar.getName} was loaded with one implementation."
         )
-      case _ =>
+      case count =>
         logger.warn(
-          s"External simulation ${myJar.getName} was loaded with ${service.size} implementations."
+          s"Jar file ${myJar.getName} was loaded with $count implementations."
         )
     }
     service.headOption
