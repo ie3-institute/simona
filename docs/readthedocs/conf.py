@@ -19,7 +19,7 @@ extensions = [
     'sphinxcontrib.plantuml',
     'sphinx.ext.intersphinx',
     'hoverxref.extension',
-    'sphinxcontrib.bibtex'
+    'sphinxcontrib.bibtex',
 ]
 
 templates_path = ['_templates']
@@ -50,4 +50,29 @@ hoverxref_intersphinx = [
 ]
 
 # BibTex options
-bibtex_bibfiles = ['_static/bib/references.bib']
+bibtex_bibfiles = ['_static/bibliography/bibAboutSimona.bib',
+                   '_static/bibliography/bibtexAll.bib',
+                   ]
+bibtex_default_style = 'unsrt'
+
+
+# BibTex Styles
+from pybtex.style.formatting.unsrt import Style as UnsrtStyle
+from pybtex.style.labels.alpha import LabelStyle as AlphaLabelStyle
+
+class KeyLabelStyle(AlphaLabelStyle):
+    def format_label(self, entry):
+        label = entry.key
+        return label
+
+class CustomStyle(UnsrtStyle):
+    default_sorting_style = 'author_year_title'
+
+    def __init__(self, *args, **kwargs):
+        super(CustomStyle, self).__init__(*args, **kwargs)
+        self.label_style = KeyLabelStyle()
+        self.format_labels = self.label_style.format_labels
+
+from pybtex.plugin import register_plugin
+
+register_plugin('pybtex.style.formatting', 'custom', CustomStyle)

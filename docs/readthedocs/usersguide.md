@@ -53,7 +53,8 @@ Since a simulation can be run with all sorts of grids and with different paramet
 
 
 Within the SIMONA repository, there are two default configurations and their corresponding grids with all necessary data to execute a simulation.
-For each configuration, there is a separate directory in the project directory at ``./input/samples/``.
+For each configuration, there is a separate directory in the project directory at ``./input``.
+Sample configurations are provided within the subdirectory ``samples``.
 Each configuration is described by a ``.conf`` file that holds the simulation configuration parameters.
 
 
@@ -178,8 +179,8 @@ The external simulation is loaded via class loader. Thus, SIMONA and the externa
 
 These steps have to be performed each time updates to the external simulation need to be deployed.
 
-- Execute ``./gradlew shadowJar`` inside the external simulation project.
-- Copy the resulting *jar* (usually placed inside ``<external project>/build/libs/``) to ``./input/ext_sim/``.
+- Execute ``gradle shadowJar`` inside the external simulation project.
+- Copy the resulting *jar* (usually placed inside <external project>/build/libs) to ``./input/ext_sim/``.
 
 Now, when a simulation with SIMONA is started (see [above](#running-a-standalone-simulation), the external simulation is triggered at each tick that it requested.
 
