@@ -226,7 +226,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
 
   def apply(
       csvSep: String,
-      folderPath: String,
+      directoryPath: String,
       idCoordinateSourceFunction: () => IdCoordinateSource,
       timestampPattern: Option[String],
       scheme: String,
@@ -235,7 +235,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
     val idCoordinateSource = idCoordinateSourceFunction()
     val source = new CsvWeatherSource(
       csvSep,
-      folderPath,
+      directoryPath,
       new FileNamingStrategy(),
       idCoordinateSource,
       buildFactory(scheme, timestampPattern)

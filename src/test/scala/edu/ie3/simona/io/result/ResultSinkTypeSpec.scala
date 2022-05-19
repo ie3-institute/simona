@@ -18,7 +18,8 @@ class ResultSinkTypeSpec extends UnitSpec {
           SimonaConfig.Simona.Output.Sink.Csv(
             fileFormat = ".csv",
             filePrefix = "",
-            fileSuffix = ""
+            fileSuffix = "",
+            isHierarchic = false
           )
         ),
         influxDb1x = None
@@ -63,7 +64,8 @@ class ResultSinkTypeSpec extends UnitSpec {
           SimonaConfig.Simona.Output.Sink.Csv(
             fileFormat = ".csv",
             filePrefix = "",
-            fileSuffix = ""
+            fileSuffix = "",
+            isHierarchic = false
           )
         ),
         influxDb1x = Some(

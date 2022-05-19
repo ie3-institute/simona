@@ -64,7 +64,8 @@ Default Config and Where to Find It
 -----------------------------------
 
 Within the SIMONA repository, there are two default configurations and their corresponding grids with all necessary data to execute a simulation.
-For each configuration, there is a separate directory in the project directory at ``./inputData``.
+For each configuration, there is a separate directory in the project directory at ``./input``.
+Sample configurations are provided within the subdirectory ``samples``.
 Each configuration is described by a ``.conf`` file that holds the simulation configuration parameters.
 
 
@@ -79,7 +80,7 @@ When you want to start a simulation run from the command line interface you have
 
 .. code-block:: none
 
-   java -cp build/libs/simona-2.1-all.jar edu.ie3.simona.main.RunSimonaStandalone --config=inputData/vn_simona/vn_simona.conf
+   java -cp build/libs/simona-2.1-all.jar edu.ie3.simona.main.RunSimonaStandalone --config=input/samples/vn_simona/vn_simona.conf
 
 
 Using IntelliJ IDEA
@@ -105,7 +106,7 @@ If you are using IntelliJ IDEA as your IDE, this is how setting the command line
    Enter ``--config={path from the content root of config file}``
    
    .. note::
-    For our example that would be ``--config=inputData/vn_simona/vn_simona.conf``
+    For our example that would be ``--config=input/samples/vn_simona/vn_simona.conf``
    
    .. figure:: ./images/usersguide/edit-conf2.png
 
@@ -125,7 +126,7 @@ Model and Grid Data
 Besides a simulation configuration, the specifications of each grid component (e.g. lines, transformers, ...) and system participant (e.g. loads, pv plants, ... ) have to be fed into the simulation.
 Within SIMONA we use the PowerSystemDataModel (PSDM) for modeling the system components.
 Before the data can be utilized for a simulation run, make sure to convert them to the PSDM.
-For more information on the PSDM visit the `docs <https://powersystemdatamodel.readthedocs.io/en/latest/index.html>`_ and for an example of how the converted data looks like you can take a look at an example grid at ``./inputData/vn_simona/fullGrid``.
+For more information on the PSDM visit the `docs <https://powersystemdatamodel.readthedocs.io/en/latest/index.html>`_ and for an example of how the converted data looks like you can take a look at an example grid at ``./input/samples/vn_simona/fullGrid``.
 The example grids are provided as csv files. You can choose to use a different data source for your own grid.
 For more information on supported sources, check out the :doc:`/config/config` section.
 Include your grid and its specification by referencing the folder path, where all the converted grid data is located, within your custom configuration file.
@@ -197,7 +198,7 @@ Preparation
 These steps have to be performed each time updates to the external simulation need to be deployed.
 
 - Execute ``gradle shadowJar`` inside the external simulation project.
-- Copy the resulting *jar* (usually placed inside <external project>/build/libs) to SIMONA/inputData/ext_sim.
+- Copy the resulting *jar* (usually placed inside <external project>/build/libs) to ``./input/ext_sim/``.
 
 Now, when a simulation with SIMONA is started (see `above <#running-a-standalone-simulation>`_), the external simulation is triggered at each tick that it requested.
 
