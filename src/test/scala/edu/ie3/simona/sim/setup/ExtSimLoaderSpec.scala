@@ -9,10 +9,8 @@ package edu.ie3.simona.sim.setup
 import edu.ie3.simona.api.ExtLinkInterface
 import edu.ie3.simona.test.common.UnitSpec
 
-import java.io.{BufferedReader, File, FileReader, InputStreamReader}
-import java.nio.file.Paths
+import java.io.File
 import java.util.ServiceConfigurationError
-import scala.jdk.CollectionConverters._
 
 class ExtSimLoaderSpec extends UnitSpec {
 
@@ -83,64 +81,58 @@ class ExtSimLoaderSpec extends UnitSpec {
       }
     }
 
-    "no service loaded when the META-INF/service file is missing" in {
+    "load no service if the META-INF/service file is missing" in {
       val jar = getResource(missingServiceFileJar)
-      val extSim = ExtSimLoader.loadExtLink(jar)
+      val extLink = ExtSimLoader.loadExtLink(jar)
 
-      extSim.iterator.hasNext shouldBe false
+      extLink.isEmpty shouldBe true
     }
 
-    "no service loaded when service file is empty" in {
+    "load no service if service file is empty" in {
       val jar = getResource(emptyFileJar)
-      val extSim = ExtSimLoader.loadExtLink(jar)
+      val extLink = ExtSimLoader.loadExtLink(jar)
 
-      extSim.iterator.hasNext shouldBe false
+      extLink.isEmpty shouldBe true
     }
 
-    "throw exception when ExtLinkInterface is not implemented" in {
+    "throw an exception when ExtLinkInterface is not implemented" in {
       val jar = getResource(wrongImplementationJar)
       assertThrows[ServiceConfigurationError] {
-        val extSim = ExtSimLoader.loadExtLink(jar)
-
-        extSim.iterator.next().getExtSimulation shouldBe false
+        ExtSimLoader.loadExtLink(jar)
       }
     }
 
     "load a proper jar correctly" in {
       val jar = getResource(workingJar)
       val jars = Iterable(jar)
-      val extSim = jars.flatMap(ExtSimLoader.loadExtLink)
+      val extLinks = jars.flatMap(ExtSimLoader.loadExtLink)
 
-      extSim.size shouldBe 1
+      extLinks.size shouldBe 1
 
-      extSim.headOption.value should not be null
-      extSim.headOption.value shouldBe an[ExtLinkInterface]
+      extLinks.headOption.value should not be null
+      extLinks.headOption.value shouldBe an[ExtLinkInterface]
     }
 
     "load multiple proper jars correctly" in {
       val jarOne = getResource(workingJar)
       val jarTwo = getResource(workingJar2)
       val jars = Iterable(jarOne, jarTwo)
-      val extSims = jars.flatMap(ExtSimLoader.loadExtLink)
+      val extLinks = jars.flatMap(ExtSimLoader.loadExtLink)
 
-      extSims.size shouldBe 2
+      extLinks.size shouldBe 2
 
-      val extSimIterator = extSims.iterator
-
-      while (extSimIterator.hasNext) {
-        val extSim = extSimIterator.next()
-
-        extSim should not be null
-        extSim shouldBe an[ExtLinkInterface]
+      extLinks.map { extLink =>
+        extLink should not be null
+        extLink shouldBe an[ExtLinkInterface]
       }
     }
 
-    "load a jar with multiple ExtSims" in {
+    "load a jar with multiple ExtLinks" in {
       val jarOne = getResource(twoImplementationJar)
       val jars = Iterable(jarOne)
-      val extSims = jars.flatMap(ExtSimLoader.loadExtLink)
+      val extLinks = jars.flatMap(ExtSimLoader.loadExtLink)
 
-      extSims.size shouldBe 1
+      extLinks.size shouldBe 1
     }
   }
 
