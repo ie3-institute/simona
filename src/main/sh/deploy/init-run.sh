@@ -28,7 +28,7 @@ margs=3
 
 # Common functions - BEGIN
 function example() {
-  echo -e "example: $script -b jh/#123-test-run -c 92e8b8bea18e8f8a62f6397e05d369acaba0e3b7 -s inputData/vn_simona/vn_simona.conf"
+  echo -e "example: $script -b jh/#123-test-run -c 92e8b8bea18e8f8a62f6397e05d369acaba0e3b7 -s input/samples/vn_simona/vn_simona.conf"
 }
 
 function usage() {
