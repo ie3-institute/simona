@@ -11,7 +11,6 @@ import akka.actor.{
   Actor,
   ActorRef,
   AllForOneStrategy,
-  PoisonPill,
   Props,
   Stash,
   SupervisorStrategy,
@@ -21,8 +20,8 @@ import akka.pattern.after
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.state.AgentState.Finish
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
+import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeGridAgentTrigger,
   InitializeServiceTrigger
@@ -37,8 +36,8 @@ import edu.ie3.simona.sim.SimonaSim.{
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
 /** Main entrance point to a simona simulation as top level actor. This actors
@@ -182,19 +181,21 @@ class SimonaSim(simonaSetup: SimonaSetup)
       scheduler ! StartScheduleMessage(pauseScheduleAtTick)
 
     case msg @ (SimulationSuccessfulMessage | SimulationFailureMessage) =>
-      msg match {
+      val simulationSuccessful = msg match {
         case SimulationSuccessfulMessage =>
           logger.info(
             "Simulation terminated successfully. Stopping children ..."
           )
+          true
         case SimulationFailureMessage =>
           logger.error(
             "An error occurred during the simulation. See stacktrace for details."
           )
+          false
       }
 
       // stop all children
-      stopAllChildrenGracefully()
+      stopAllChildrenGracefully(simulationSuccessful)
 
       // inform initSimMessage Sender
       data.initSimSender ! msg
@@ -214,7 +215,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
       )
 
       // stop all children
-      stopAllChildrenGracefully()
+      stopAllChildrenGracefully(simulationSuccessful = false)
 
       // inform initSimMessage Sender
       data.initSimSender ! SimulationFailureMessage
@@ -236,18 +237,28 @@ class SimonaSim(simonaSetup: SimonaSetup)
   }
 
   def stopAllChildrenGracefully(
+      simulationSuccessful: Boolean,
       listenerDelay: FiniteDuration = 500.millis
   ): Unit = {
     gridAgents.foreach { case (gridAgentRef, _) =>
       context.unwatch(gridAgentRef)
+      gridAgentRef ! StopMessage(simulationSuccessful)
     }
-    gridAgents.foreach(_._1 ! Finish)
 
     context.unwatch(scheduler)
     context.stop(scheduler)
 
     context.unwatch(weatherService)
     context.stop(weatherService)
+
+    extSimulationData.extSimAdapters.foreach { case (ref, _) =>
+      context.unwatch(ref)
+      ref ! StopMessage(simulationSuccessful)
+    }
+    extSimulationData.extDataServices.foreach { case (ref, _) =>
+      context.unwatch(ref)
+      context.stop(ref)
+    }
 
     /* Stop listeners with a delay */
     logger.debug("Waiting for {} to stop the listeners.", listenerDelay)

@@ -16,11 +16,10 @@ import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformatio
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.{SValue, Value}
+import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{
   CouchbaseParams,
-  CsvParams,
-  InfluxDb1xParams,
-  SqlParams
+  InfluxDb1xParams
 }
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
   Primary => PrimaryConfig
@@ -92,9 +91,10 @@ class PrimaryServiceProxySpec
     PrimaryConfig(
       None,
       Some(
-        CsvParams(
+        PrimaryDataCsvParams(
           csvSep,
           baseDirectoryPath,
+          isHierarchic = false,
           TimeUtil.withDefaults.getDtfPattern
         )
       ),
@@ -131,7 +131,7 @@ class PrimaryServiceProxySpec
     "lead to complaining about too much source definitions" in {
       val maliciousConfig = PrimaryConfig(
         Some(CouchbaseParams("", "", "", "", "", "", "")),
-        Some(CsvParams("", "", "")),
+        Some(PrimaryDataCsvParams("", "", isHierarchic = false, "")),
         None,
         None
       )
@@ -139,7 +139,7 @@ class PrimaryServiceProxySpec
       val exception = intercept[InvalidConfigParameterException](
         PrimaryServiceProxy.checkConfig(maliciousConfig)
       )
-      exception.getMessage shouldBe "2 time series source types defined. Please define only one type!\nAvailable types:\n\tcsv"
+      exception.getMessage shouldBe "2 time series source types defined. Please define only one type!\nAvailable types:\n\tcsv\n\tsql"
     }
 
     "lead to complaining about too few source definitions" in {
@@ -153,7 +153,7 @@ class PrimaryServiceProxySpec
       val exception = intercept[InvalidConfigParameterException](
         PrimaryServiceProxy.checkConfig(maliciousConfig)
       )
-      exception.getMessage shouldBe "No time series source type defined. Please define exactly one type!\nAvailable types:\n\tcsv"
+      exception.getMessage shouldBe "No time series source type defined. Please define exactly one type!\nAvailable types:\n\tcsv\n\tsql"
     }
 
     "not let couchbase parameters pass for mapping configuration" in {
@@ -167,13 +167,13 @@ class PrimaryServiceProxySpec
       val exception = intercept[InvalidConfigParameterException](
         PrimaryServiceProxy.checkConfig(maliciousConfig)
       )
-      exception.getMessage shouldBe "Invalid configuration 'CouchbaseParams(,,,,,,)' for a time series source.\nAvailable types:\n\tcsv"
+      exception.getMessage shouldBe "Invalid configuration 'CouchbaseParams(,,,,,,)' for a time series source.\nAvailable types:\n\tcsv\n\tsql"
     }
 
     "let csv parameters pass for mapping configuration" in {
       val mappingConfig = PrimaryConfig(
         None,
-        Some(CsvParams("", "", "")),
+        Some(PrimaryDataCsvParams("", "", isHierarchic = false, "")),
         None,
         None
       )
@@ -194,27 +194,13 @@ class PrimaryServiceProxySpec
       val exception = intercept[InvalidConfigParameterException](
         PrimaryServiceProxy.checkConfig(maliciousConfig)
       )
-      exception.getMessage shouldBe "Invalid configuration 'InfluxDb1xParams(,0,,)' for a time series source.\nAvailable types:\n\tcsv"
+      exception.getMessage shouldBe "Invalid configuration 'InfluxDb1xParams(,0,,)' for a time series source.\nAvailable types:\n\tcsv\n\tsql"
     }
 
-    "not let sql parameters pass for mapping configuration" in {
-      val maliciousConfig = PrimaryConfig(
-        None,
-        None,
-        None,
-        Some(SqlParams("", "", "", "", ""))
-      )
-
-      val exception = intercept[InvalidConfigParameterException](
-        PrimaryServiceProxy.checkConfig(maliciousConfig)
-      )
-      exception.getMessage shouldBe "Invalid configuration 'SqlParams(,,,,)' for a time series source.\nAvailable types:\n\tcsv"
-    }
-
-    "fails on invalid time pattern" in {
+    "fails on invalid time pattern with csv" in {
       val invalidTimePatternConfig = PrimaryConfig(
         None,
-        Some(CsvParams("", "", "xYz")),
+        Some(PrimaryDataCsvParams("", "", isHierarchic = false, "xYz")),
         None,
         None
       )
@@ -226,10 +212,17 @@ class PrimaryServiceProxySpec
 
     }
 
-    "succeeds on valid time pattern" in {
+    "succeeds on valid time pattern with csv" in {
       val validTimePatternConfig = PrimaryConfig(
         None,
-        Some(CsvParams("", "", "yyyy-MM-dd'T'HH:mm'Z[UTC]'")),
+        Some(
+          PrimaryDataCsvParams(
+            "",
+            "",
+            isHierarchic = false,
+            "yyyy-MM-dd'T'HH:mm'Z[UTC]'"
+          )
+        ),
         None,
         None
       )
@@ -273,8 +266,8 @@ class PrimaryServiceProxySpec
       val maliciousConfig = PrimaryConfig(
         None,
         None,
-        None,
-        Some(SqlParams("", "", "", "", ""))
+        Some(InfluxDb1xParams("", -1, "", "")),
+        None
       )
 
       proxy invokePrivate prepareStateData(
@@ -285,7 +278,7 @@ class PrimaryServiceProxySpec
           fail("Building state data with missing config should fail")
         case Failure(exception) =>
           exception.getClass shouldBe classOf[IllegalArgumentException]
-          exception.getMessage shouldBe "Unsupported config for mapping source: 'SqlParams(,,,,)'"
+          exception.getMessage shouldBe "Unsupported config for mapping source: 'InfluxDb1xParams(,-1,,)'"
       }
     }
 
@@ -317,8 +310,11 @@ class PrimaryServiceProxySpec
           classOf[TimeSeriesMappingSource].isAssignableFrom(
             mappingSource.getClass
           ) shouldBe true
-        case Failure(_) =>
-          fail("Building state data with correct config should not fail")
+        case Failure(failure) =>
+          fail(
+            "Building state data with correct config should not fail, but failed with:",
+            failure
+          )
       }
     }
   }

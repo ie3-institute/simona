@@ -23,7 +23,6 @@ import edu.ie3.util.{StringUtils, TimeUtil}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
-import java.security.InvalidParameterException
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import javax.measure.quantity.ElectricPotential
@@ -404,11 +403,11 @@ case object ConfigFailFast extends LazyLogging {
         case Success(quantity) =>
           if (!quantity.getUnit.isCompatible(Units.VOLT))
             throw new InvalidConfigParameterException(
-              s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to electrical potential!"
+              s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to electrical potential! Please provide the volt level with its unit, e.g. \"20 kV\""
             )
         case Failure(exception) =>
           throw new InvalidConfigParameterException(
-            s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to Quantity.",
+            s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?",
             exception
           )
       }
@@ -466,11 +465,7 @@ case object ConfigFailFast extends LazyLogging {
       case "csv" =>
         gridDataSource.csvParams match {
           case Some(csvParams) =>
-            CsvConfigUtil.checkCsvParams(
-              "GridSource",
-              csvParams.csvSep,
-              csvParams.folderPath
-            )
+            CsvConfigUtil.checkBaseCsvParams(csvParams, "GridSource")
           case None =>
             throw new InvalidConfigParameterException(
               "No grid data source csv parameters provided. If you intend to read grid data from .csv-files, please " +

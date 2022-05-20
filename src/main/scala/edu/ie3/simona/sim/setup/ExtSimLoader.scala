@@ -11,14 +11,14 @@ import edu.ie3.simona.api.ExtLinkInterface
 
 import java.io.{File, IOException}
 import java.net.URLClassLoader
+import java.util.ServiceLoader
+import scala.jdk.CollectionConverters._
 
 /** Finds and loads jars containing external simulations.
   */
 object ExtSimLoader extends LazyLogging {
 
   private val extSimPath = "input" + java.io.File.separator + "ext_sim"
-
-  private val extLinkClassPath = "edu.ie3.simona.api.ExtLink"
 
   def getStandardDirectory: File = {
     val workingDir = new File(System.getProperty("user.dir"))
@@ -52,19 +52,22 @@ object ExtSimLoader extends LazyLogging {
       }
   }
 
-  def loadExtLink(myJar: File): ExtLinkInterface = {
-    val classLoader = new URLClassLoader(
-      Array(myJar.toURI.toURL),
-      this.getClass.getClassLoader
-    )
-    val classToLoad = Class.forName(extLinkClassPath, true, classLoader)
-    classToLoad.getDeclaredConstructor().newInstance() match {
-      case extSim: ExtLinkInterface =>
-        extSim
-      case other =>
-        throw new ClassCastException(
-          s"$extLinkClassPath in loaded jar ${myJar.getPath} is of wrong type ${other.getClass.getSimpleName}"
+  def loadExtLink(myJar: File): Option[ExtLinkInterface] = {
+    val classLoader = new URLClassLoader(Array(myJar.toURI.toURL))
+    val service = ServiceLoader
+      .load(classOf[ExtLinkInterface], classLoader)
+      .asScala
+
+    service.size match {
+      case 1 =>
+        logger.info(
+          s"Jar file ${myJar.getName} was loaded with one implementation."
+        )
+      case count =>
+        logger.warn(
+          s"Jar file ${myJar.getName} was loaded with $count implementations."
         )
     }
+    service.headOption
   }
 }
