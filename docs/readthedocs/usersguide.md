@@ -34,8 +34,8 @@ In order to be able to execute SIMONA from a CLI, you need an executable fat jar
 2. Execute ``./gradlew shadowJar`` within the CLI. This creates a fat jar of SIMONA inside of the directory ``build/libs``.   
 3. For executing a fat jar you need to specify the classpath of the entrypoint of your application. Assuming we are still in the top level directory of our project, the execution command would look as follows:
 
-
-    java -cp build/libs/simona-2.1-all.jar edu.ie3.simona.main.RunSimonaStandalone 
+    
+        java -cp build/libs/simona-2.1-all.jar edu.ie3.simona.main.RunSimonaStandalone 
 
 
 ### Using an IDE
