@@ -8,26 +8,34 @@ package edu.ie3.simona.model.grid
 
 import java.time.ZonedDateTime
 import java.util.UUID
-
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
-import edu.ie3.datamodel.models.input.NodeInput
+import edu.ie3.datamodel.models.input.{MeasurementUnitInput, NodeInput}
 import edu.ie3.datamodel.models.input.connector._
 import edu.ie3.datamodel.models.input.container.SubGridContainer
+import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.SimonaConfig.TransformerControlGroup
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.grid.GridModel.GridComponents
+import edu.ie3.simona.model.grid.GridModel.{GridComponents, GridControls}
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseA,
   PowerFlowCaseB,
   PowerFlowCaseC
 }
+import edu.ie3.simona.model.control.{
+  TransformerControlGroup => ControlGroupModel
+}
 import edu.ie3.simona.util.CollectionUtils
+import edu.ie3.util.quantities.PowerSystemUnits
 import org.jgrapht.Graph
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
+import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.quantity.Quantities
 
+import javax.measure.quantity.Dimensionless
 import scala.collection.immutable.ListSet
 import scala.jdk.CollectionConverters._
 
@@ -38,7 +46,8 @@ import scala.jdk.CollectionConverters._
 final case class GridModel(
     subnetNo: Int,
     mainRefSystem: RefSystem,
-    gridComponents: GridComponents
+    gridComponents: GridComponents,
+    gridControls: GridControls
 ) {
 
   // init nodeUuidToIndexMap
@@ -66,10 +75,15 @@ case object GridModel {
       subGridContainer: SubGridContainer,
       refSystem: RefSystem,
       startDate: ZonedDateTime,
-      endDate: ZonedDateTime
-  ): GridModel = {
-    buildAndValidate(subGridContainer, refSystem, startDate, endDate)
-  }
+      endDate: ZonedDateTime,
+      controlConfig: Option[SimonaConfig.Simona.Control]
+  ): GridModel = buildAndValidate(
+    subGridContainer,
+    refSystem,
+    startDate,
+    endDate,
+    controlConfig
+  )
 
   /** structure that represents all grid components that are needed by a grid
     * model
@@ -80,6 +94,15 @@ case object GridModel {
       transformers: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
       switches: Set[SwitchModel]
+  )
+
+  /** Collection of grid-related control strategies
+    *
+    * @param transformerControlGroups
+    *   Transformer control groups
+    */
+  final case class GridControls(
+      transformerControlGroups: Set[ControlGroupModel]
   )
 
   /** Checks the availability of node calculation models, that are connected by
@@ -491,7 +514,8 @@ case object GridModel {
       subGridContainer: SubGridContainer,
       refSystem: RefSystem,
       startDate: ZonedDateTime,
-      endDate: ZonedDateTime
+      endDate: ZonedDateTime,
+      maybeControlConfig: Option[SimonaConfig.Simona.Control]
   ): GridModel = {
 
     // build
@@ -581,8 +605,26 @@ case object GridModel {
         switches
       )
 
+    /* Build transformer control groups */
+    val transformerControlGroups = maybeControlConfig
+      .map { controlConfig =>
+        buildTransformerControlGroups(
+          controlConfig.transformer,
+          subGridContainer.getRawGrid.getMeasurementUnits
+        )
+      }
+      .getOrElse(Set.empty[ControlGroupModel])
+
+    /* Build grid related control strategies */
+    val gridControls = GridControls(transformerControlGroups)
+
     val gridModel =
-      GridModel(subGridContainer.getSubnet, refSystem, gridComponents)
+      GridModel(
+        subGridContainer.getSubnet,
+        refSystem,
+        gridComponents,
+        gridControls
+      )
 
     // validate
     validateConsistency(gridModel)
@@ -590,6 +632,133 @@ case object GridModel {
 
     // return
     gridModel
+  }
+
+  /** Build business models for transformer control groups
+    *
+    * @param config
+    *   List of configs for control groups
+    * @param measurementUnitInput
+    *   Set of [[MeasurementUnitInput]] s
+    * @return
+    *   A set of control group business models
+    */
+  private def buildTransformerControlGroups(
+      config: List[SimonaConfig.TransformerControlGroup],
+      measurementUnitInput: java.util.Set[MeasurementUnitInput]
+  ): Set[ControlGroupModel] = config.map {
+    case TransformerControlGroup(measurements, _, vMax, vMin) =>
+      buildTransformerControlGroupModel(
+        measurementUnitInput,
+        measurements,
+        vMax,
+        vMin
+      )
+  }.toSet
+
+  /** Build a single control group model. Currently, only limit violation
+    * prevention logic is captured: The nodal regulation need is equal to the
+    * voltage change needed to comply with the given thresholds
+    *
+    * @param measurementUnitInput
+    *   Collection of all known [[MeasurementUnitInput]] s
+    * @param measurementConfigs
+    *   Collection of all uuids, denoting which of the [[MeasurementUnitInput]]
+    *   s does belong to this control group
+    * @param vMax
+    *   Upper permissible voltage magnitude
+    * @param vMin
+    *   Lower permissible voltage magnitude
+    * @return
+    *   A [[ControlGroupModel]]
+    */
+  private def buildTransformerControlGroupModel(
+      measurementUnitInput: java.util.Set[MeasurementUnitInput],
+      measurementConfigs: List[String],
+      vMax: Double,
+      vMin: Double
+  ): ControlGroupModel = {
+    val nodeUuids =
+      determineNodeUuids(measurementUnitInput, measurementConfigs)
+    buildTransformerControlModels(nodeUuids, vMax, vMin)
+  }
+
+  /** Determine the uuids of the nodes to control
+    *
+    * @param measurementUnitInput
+    *   Collection of all known [[MeasurementUnitInput]] s
+    * @param measurementConfigs
+    *   Collection of all uuids, denoting which of the [[MeasurementUnitInput]]
+    *   s does belong to this control group
+    * @return
+    *   A set of relevant nodal uuids
+    */
+  private def determineNodeUuids(
+      measurementUnitInput: java.util.Set[MeasurementUnitInput],
+      measurementConfigs: List[String]
+  ): Set[UUID] = Set.from(
+    measurementUnitInput.asScala
+      .filter(input =>
+        measurementConfigs.contains(input.getUuid.toString) && input.getVMag
+      )
+      .map(_.getNode.getUuid)
+  )
+
+  /** Build a single control group model. Currently, only limit violation
+    * prevention logic is captured: The nodal regulation need is equal to the
+    * voltage change needed to comply with the given thresholds
+    *
+    * @param nodeUuids
+    *   Collection of all relevant node uuids
+    * @param vMax
+    *   Upper permissible voltage magnitude
+    * @param vMin
+    *   Lower permissible voltage magnitude
+    * @return
+    *   A [[ControlGroupModel]]
+    */
+  private def buildTransformerControlModels(
+      nodeUuids: Set[UUID],
+      vMax: Double,
+      vMin: Double
+  ): ControlGroupModel = {
+    /* Determine the voltage regulation criterion for each of the available nodes */
+    val nodeUuidToRegulationCriterion = nodeUuids.map { uuid =>
+      uuid -> { (complexVoltage: Complex) =>
+        {
+          val vMag = complexVoltage.abs
+          if (vMag > vMax)
+            Some(vMax - vMag)
+          else if (vMag < vMin)
+            Some(vMin - vMag)
+          else
+            None
+        }.map(Quantities.getQuantity(_, PowerSystemUnits.PU))
+      }
+    }.toMap
+
+    val harmonizationFunction =
+      (regulationRequests: Array[ComparableQuantity[Dimensionless]]) => {
+        val negativeRequests = regulationRequests.filter(
+          _.isLessThan(Quantities.getQuantity(0d, PowerSystemUnits.PU))
+        )
+        val positiveRequests = regulationRequests.filter(
+          _.isGreaterThan(Quantities.getQuantity(0d, PowerSystemUnits.PU))
+        )
+
+        if (negativeRequests.nonEmpty && positiveRequests.nonEmpty) {
+          /* There are requests for higher and lower voltages at the same time => do nothing! */
+          None
+        } else if (negativeRequests.nonEmpty) {
+          /* There are only requests for lower voltages => decide for the lowest required voltage */
+          negativeRequests.minOption
+        } else {
+          /* There are only requests for higher voltages => decide for the highest required voltage */
+          positiveRequests.maxOption
+        }
+      }
+
+    ControlGroupModel(nodeUuidToRegulationCriterion, harmonizationFunction)
   }
 
   /** Updates the internal state of the [[GridModel.nodeUuidToIndexMap]] to

@@ -7,13 +7,15 @@
 package edu.ie3.simona.model.grid
 
 import java.util.UUID
-
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import breeze.numerics.abs
 import edu.ie3.datamodel.exceptions.InvalidGridException
+import edu.ie3.datamodel.models.input.MeasurementUnitInput
+import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.exceptions.GridInconsistencyException
-import edu.ie3.simona.model.grid.GridModel.GridComponents
+import edu.ie3.simona.model.control.TransformerControlGroup
+import edu.ie3.simona.model.grid.GridModel.{GridComponents, GridControls}
 import edu.ie3.simona.test.common.input.{GridInputTestData, LineInputTestData}
 import edu.ie3.simona.test.common.model.grid.{
   BasicGrid,
@@ -21,6 +23,9 @@ import edu.ie3.simona.test.common.model.grid.{
   FiveLinesWithNodes
 }
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
+import testutils.TestObjectFactory
+
+import scala.jdk.CollectionConverters.SetHasAsJava
 
 class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
@@ -117,7 +122,8 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           Set(transformer2wModel),
           Set.empty[Transformer3wModel],
           switches
-        )
+        ),
+        GridControls(Set.empty[TransformerControlGroup])
       )
       // get the private method for validation
       val validateConnectivity: PrivateMethod[Unit] =
@@ -145,7 +151,8 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           Set(transformer2wModel),
           Set.empty[Transformer3wModel],
           Set.empty[SwitchModel]
-        )
+        ),
+        GridControls(Set.empty[TransformerControlGroup])
       )
 
       // get the private method for validation
@@ -190,7 +197,8 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           Set(transformer2wModel),
           Set.empty[Transformer3wModel],
           switches
-        )
+        ),
+        GridControls(Set.empty[TransformerControlGroup])
       )
 
       // get the private method for validation
@@ -229,7 +237,8 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             Set(transformer2wModel),
             Set.empty[Transformer3wModel],
             switches
-          )
+          ),
+          GridControls(Set.empty[TransformerControlGroup])
         )
 
         // update the uuidToIndexMap
@@ -272,7 +281,8 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             Set(transformer2wModel),
             Set.empty[Transformer3wModel],
             switches
-          )
+          ),
+          GridControls(Set.empty[TransformerControlGroup])
         )
 
         // update the uuidToIndexMap
@@ -357,7 +367,8 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             Set(transformer2wModel),
             Set.empty[Transformer3wModel],
             switches
-          )
+          ),
+          GridControls(Set.empty[TransformerControlGroup])
         )
 
         // update the uuidToIndexMap
@@ -425,7 +436,8 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             Set(transformer2wModel),
             Set.empty[Transformer3wModel],
             Set.empty[SwitchModel]
-          )
+          ),
+          GridControls(Set.empty[TransformerControlGroup])
         )
 
         // update the uuidToIndexMap
@@ -456,7 +468,8 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         validTestGridInputModel,
         gridInputModelTestDataRefSystem,
         defaultSimulationStart,
-        defaultSimulationEnd
+        defaultSimulationEnd,
+        controlConfig = None
       )
 
     }
