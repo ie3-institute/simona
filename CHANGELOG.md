@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Implement SQL source for primary data [#34](https://github.com/ie3-institute/simona/issues/34), [#101](https://github.com/ie3-institute/simona/issues/101)
+- Relevant scientific papers have been added to the documentation [#139](https://github.com/ie3-institute/simona/issues/139)
+- Add troubleshooting section to Users guide [#160](https://github.com/ie3-institute/simona/issues/160)
+- Adapt documentation to changed simonaAPI [#191](https://github.com/ie3-institute/simona/issues/191)
+- Implementing a new plugin framework for external simulations [#195](https://github.com/ie3-institute/simona/issues/195)
+ 
 
 ### Changed
 - Re-organizing test resources into their respective packages [#105](https://github.com/ie3-institute/simona/issues/105)
@@ -15,14 +20,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplified PrimaryServiceProxy due to changes in PSDM [#120](https://github.com/ie3-institute/simona/issues/120)
 - Improved handling of weights and their sum in determination of weather data [#173](https://github.com/ie3-institute/simona/issues/173)
 - Improving code readability in EvcsAgent by moving FreeLotsRequest to separate methods [#19](https://github.com/ie3-institute/simona/issues/19)
+- Ignore dependabot snapshot dependencies [#27](https://github.com/ie3-institute/simona/issues/27)
 - Sending termination message to external simulation on expected and unexpected shutdowns of SIMONA [#35](https://github.com/ie3-institute/simona/issues/35)
+- Change transformer calculation since changes in PSDM [#99](https://github.com/ie3-institute/simona/issues/99)
+- Adapt to changed PvInputModel of PSDM (elevationAngle) [#100](https://github.com/ie3-institute/simona/issues/100)
+- Re-organizing test resources to packages [#105](https://github.com/ie3-institute/simona/issues/105)
+- Consolidate csv parameterization in config [#149](https://github.com/ie3-institute/simona/issues/149)
+- Change weather scheme to COSMO [PR#154](https://github.com/ie3-institute/simona/pull/154)
 - Improved implementation of `RefSystemParser` [#212](https://github.com/ie3-institute/simona/issues/212)
-- Removed Gradle task puml2png (Converting Plantuml to png / svg files) since it is no longer needed  [#230](https://github.com/ie3-institute/simona/issues/230)
 - Harmonized configuration of csv parameters [#149](https://github.com/ie3-institute/simona/issues/149)
+
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund)
 - Let `ParticipantAgent` die after failed registration with secondary services (prevents stuck simulation)
 - Fix default resolution of weather source wrapper [#78](https://github.com/ie3-institute/simona/issues/78)
+- Fix invalid thread allocation in GridAgent [#111](https://github.com/ie3-institute/simona/issues/111)
+- Fixed config auto-generation [#131](https://github.com/ie3-institute/simona/pull/131)
+- Fixed genConfigSample gradle task[#148(https://github.com/ie3-institute/simona/issues/148)
+- Fixed some unreachable code [#167](https://github.com/ie3-institute/simona/issues/167)
+- Fix treatment of non-InitializeTrigger triggers in initialization within SimScheduler [#237](https://github.com/ie3-institute/simona/issues/237)
+
+### Removed
+- Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)
+- Removed Gradle task puml2png (Converting Plantuml to png / svg files) since it is no longer needed  [#228](https://github.com/ie3-institute/simona/issues/228)
+- Remove RocketChat notification from Jenkinsfile [#234](https://github.com/ie3-institute/simona/issues/234)
 
 [Unreleased]: https://github.com/ie3-institute/simona/compare/a14a093239f58fca9b2b974712686b33e5e5f939...HEAD
