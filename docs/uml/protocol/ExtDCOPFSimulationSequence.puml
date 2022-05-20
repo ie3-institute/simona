@@ -1,0 +1,101 @@
+@startuml
+
+!theme plain
+
+==Init==
+
+SimScheduler -> ExtSimAdapter: <font color=red>!</font> color=green>ActivityStartTrigger(-1L)
+activate ExtSimAdapter
+
+ExtSimAdapter -> ExtSimulation: queue(ActivityStartTrigger(-1L))
+deactivate ExtSimAdapter
+activate ExtSimulation
+...initialize Matpower Interface...
+
+ExtSimulation -> ExtSimAdapter: <font color=red>!</font> CompletionMessage(newTriggers)
+deactivate ExtSimulation
+activate ExtSimAdapter
+
+ExtSimAdapter -> SimScheduler: <font color=red>!</font> CompletionMessage(newTriggers)
+deactivate ExtSimAdapter
+
+SimScheduler -> PrimaryDataProxy: <font color=red>!</font> InitTrigger(-1L)
+activate PrimaryDataProxy
+
+SimScheduler -> ExtDataExchangeService: <font color=red>!</font> ActivityStartTrigger(-1L)
+activate ExtDataExchangeService
+
+ExtDataExchangeService -> PrimaryDataProxy: Zuweisung als PDW für Gen1+2
+ExtDataExchangeService -> SimScheduler: <font color=red>!</font> CompletionMessage(GeneratorDataRef)
+deactivate ExtDataExchangeService
+
+SimScheduler -> Generator1: <font color=red>!</font> ActivityStartTrigger(-1L)
+activate Generator1
+SimScheduler -> Generator2: <font color=red>!</font> ActivityStartTrigger(-1L)
+activate Generator2
+
+Generator1 -> PrimaryDataProxy: Request: Primärdaten vorhanden?
+Generator2 -> PrimaryDataProxy: Request: Primärdaten vorhanden?
+
+PrimaryDataProxy -> Generator1: Primärdaten vorhanden: Ja/Nein
+PrimaryDataProxy -> Generator2: Primärdaten vorhanden: Ja/Nein
+PrimaryDataProxy -> SimScheduler: <font color=red>!</font> CompletionMessage(None)
+deactivate PrimaryDataProxy
+
+Generator1 -> SimScheduler: <font color=red>!</font> CompletionMessage(None)
+deactivate Generator1
+Generator2 -> SimScheduler: <font color=red>!</font> CompletionMessage(None)
+deactivate Generator2
+
+==Sim==
+SimScheduler -> ExtSimAdapter: <font color=red>!</font> ActivityStartTrigger(tick)
+activate ExtSimAdapter
+
+ExtSimAdapter -> ExtSimulation: queue(ActivityStartTrigger(tick))
+deactivate ExtSimAdapter
+
+activate ExtSimulation
+ExtSimulation -> ExtDataExchangeService: <font color=red>!</font> SetPointsMessage(_)
+ExtSimulation -> ExtSimAdapter: <font color=red>!</font> ScheduleDataServiceMessage(\n\tdataServiceRef\n)
+deactivate ExtSimulation
+
+activate ExtSimAdapter
+ExtSimAdapter -> SimScheduler: <font color=red>!</font> ScheduleTriggerMessage(\n\t_, dataServiceRef)
+deactivate ExtSimAdapter
+
+SimScheduler -> ExtDataExchangeService: <font color=red>!</font> ActivityStartTrigger(tick)
+activate ExtDataExchangeService
+ExtDataExchangeService -> Generator1: <font color=red>!</font> ProvideSetPointDataMessage(tick)
+ExtDataExchangeService -> Generator2: <font color=red>!</font> ProvideSetPointDataMessage(tick)
+ExtDataExchangeService -> SimScheduler: <font color=red>!</font> ScheduleDataServiceMessage(\n\tdataServiceRef\n)
+deactivate ExtDataExchangeService
+
+SimScheduler -> GridAgent: <font color=red>!</font> ActivityStartTrigger(tick)
+activate GridAgent
+SimScheduler -> Generator1: <font color=red>!</font> ActivityStartTrigger(tick)
+activate Generator1
+SimScheduler -> Generator2: <font color=red>!</font> ActivityStartTrigger(tick)
+activate Generator2
+Generator1 -> GridAgent: <font color=red>!</font> SendCalculatedPower(tick)
+Generator1 -> SimScheduler: <font color=red>!</font> CompletionMessage(None)
+deactivate Generator1
+Generator2 -> GridAgent: <font color=red>!</font> SendCalculatedPower(tick)
+Generator2 -> SimScheduler: <font color=red>!</font> CompletionMessage(None)
+deactivate Generator2
+
+GridAgent -> ExtDataExchangeService: <font color=red>!</font> PowerFlowCalculationResult(tick)
+deactivate GridAgent
+
+activate ExtDataExchangeService
+ExtDataExchangeService -> ExtSimulation: <font color=red>!</font> PowerFlowCalculationResult(tick)
+deactivate ExtDataExchangeService
+
+activate ExtSimulation
+ExtSimulation -> ExtSimAdapter: <font color=red>!</font> CompletionMessage(None)
+deactivate ExtSimulation
+
+activate ExtSimAdapter
+ExtSimAdapter -> SimScheduler: <font color=red>!</font> CompletionMessage(None)
+deactivate ExtSimAdapter
+
+@enduml

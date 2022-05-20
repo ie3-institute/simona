@@ -159,6 +159,7 @@ case class PrimaryServiceProxy(
           .flatMap { timeSeriesUuid =>
             timeSeriesMetaInformation
               .get(timeSeriesUuid) match {
+              case // erstmal überprüfen, ob DCOPF Interface aktiv...wenn ja, dann ExtOPFDataService als PSW für alle Generatoren!
               case Some(metaInformation) =>
                 /* Only register those entries, that meet the supported column schemes */
                 when(

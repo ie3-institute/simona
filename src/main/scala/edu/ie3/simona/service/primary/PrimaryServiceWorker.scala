@@ -399,6 +399,12 @@ object PrimaryServiceWorker {
       databaseNamingStrategy: DatabaseNamingStrategy
   ) extends InitPrimaryServiceStateData
 
+  final case class InterfaceInitPrimaryServiceStateData(
+                                                         override val timeSeriesUuid: UUID,
+                                                         override val simulationStart: ZonedDateTime,
+                                                       // weitere Infos, die für Zugriff auf Interface benötigt werden
+                                                       )extends InitPrimaryServiceStateData
+
   /** Class carrying the state of a fully initialized [[PrimaryServiceWorker]]
     *
     * @param maybeNextActivationTick
