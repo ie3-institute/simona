@@ -17,6 +17,7 @@ import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
 import edu.ie3.simona.exceptions.{
   InvalidConfigParameterException,
@@ -27,7 +28,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates
 }
-import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkCsvParams
+import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
 import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
   checkCouchbaseParams,
   checkInfluxDb1xParams,
@@ -164,7 +165,8 @@ trait WeatherSource {
     }
   }
 
-  /** Determine the weights of each coordinate
+  /** Determine the weights of each coordinate. It is ensured, that the entirety
+    * of weights sum up to 1.0
     *
     * @param nearestCoordinates
     *   Collection of nearest coordinates with their distances
@@ -174,62 +176,63 @@ trait WeatherSource {
   def determineWeights(
       nearestCoordinates: Iterable[CoordinateDistance]
   ): Try[WeightedCoordinates] = {
-    if (nearestCoordinates.size == 1) {
-      /* There is only one coordinate -> weight this with 1 */
-      Success(
-        WeightedCoordinates(Map(nearestCoordinates.head.getCoordinateB -> 1d))
-      )
-    } else {
-      /* There is more than one coordinate existent */
-      val totalDistanceToSurroundingCoordinates =
-        nearestCoordinates.foldLeft(Quantities.getQuantity(0d, Units.METRE)) {
-          case (cumulativeDistance, coordinateDistance) =>
-            cumulativeDistance.add(coordinateDistance.getDistance)
-        }
-
-      /* Partial function, that transfers a distance to proximity */
-      val toProximity = (coordinateDistance: CoordinateDistance) =>
-        1 - coordinateDistance.getDistance
-          .divide(totalDistanceToSurroundingCoordinates)
-          .asType(classOf[Dimensionless])
-          .to(PowerSystemUnits.PU)
-          .getValue
-          .doubleValue()
-
-      if (
-        totalDistanceToSurroundingCoordinates.isGreaterThan(
-          Quantities.getQuantity(0d, Units.METRE)
+    nearestCoordinates.headOption match {
+      case Some(dist) if nearestCoordinates.size == 1 =>
+        /* There is only one coordinate -> weight this with 1 */
+        Success(
+          WeightedCoordinates(Map(dist.getCoordinateB -> 1d))
         )
-      ) {
-        val weightMap = nearestCoordinates
-          .map(coordinateDistance => {
-            /* Maybe some words on the calculus of the weight here: We intend to have a weight, that linear increases
-             * from zero to one, the closer the coordinate is to the coordinate in question. Therefore we calculate the
-             * proximity of each node as a linear function between 1 at 0m distance to the questioned coordinate to zero
-             * at the sum of all coordinates' distances (1 - d / d_sum). However, summing up this proximity over all
-             * n coordinates brings n*1 from the left part of the sum and -1 as the sum of all distances shares.
-             * Thereby all weights sum up to n-1. Therefore, we divide by this to scale the sum of weights to one. */
-            val weight =
-              toProximity(coordinateDistance) / (nearestCoordinates.size - 1)
-            coordinateDistance.getCoordinateB -> weight
-          })
-          .toMap
+      case _ =>
+        /* There is more than one coordinate or none existent */
+        val totalDistanceToSurroundingCoordinates =
+          nearestCoordinates.foldLeft(Quantities.getQuantity(0d, Units.METRE)) {
+            case (cumulativeDistance, coordinateDistance) =>
+              cumulativeDistance.add(coordinateDistance.getDistance)
+          }
 
-        val weightSum = weightMap.values.sum
-        if (weightSum > 0.99 && weightSum < 1.01)
-          Success(WeightedCoordinates(weightMap))
-        else
+        /* Partial function, that transfers a distance to proximity */
+        val toProximity = (coordinateDistance: CoordinateDistance) =>
+          1 - coordinateDistance.getDistance
+            .divide(totalDistanceToSurroundingCoordinates)
+            .asType(classOf[Dimensionless])
+            .to(PowerSystemUnits.PU)
+            .getValue
+            .doubleValue()
+
+        if (
+          totalDistanceToSurroundingCoordinates.isGreaterThan(
+            Quantities.getQuantity(0d, Units.METRE)
+          )
+        ) {
+          val weightMap = nearestCoordinates
+            .map(coordinateDistance => {
+              /* Maybe some words on the calculus of the weight here: We intend to have a weight, that linear increases
+               * from zero to one, the closer the coordinate is to the coordinate in question. Therefore we calculate the
+               * proximity of each node as a linear function between 1 at 0m distance to the questioned coordinate to zero
+               * at the sum of all coordinates' distances (1 - d / d_sum). However, summing up this proximity over all
+               * n coordinates brings n*1 from the left part of the sum and -1 as the sum of all distances shares.
+               * Thereby all weights sum up to n-1. Therefore, we divide by this to scale the sum of weights to one. */
+              val weight =
+                toProximity(coordinateDistance) / (nearestCoordinates.size - 1)
+              coordinateDistance.getCoordinateB -> weight
+            })
+            .toMap
+
+          val weightSum = weightMap.values.sum
+          if (weightSum > 0.99 && weightSum < 1.01)
+            Success(WeightedCoordinates(weightMap))
+          else
+            Failure(
+              ServiceException(
+                "The sum of weights differs more than 1 % from 100 %."
+              )
+            )
+        } else
           Failure(
             ServiceException(
-              "The sum of weights differs more than 1 % from 100 %."
+              "The total sum of distances to surrounding coordinates is 0 m or less. Therefore averaging would lead to numeric errors."
             )
           )
-      } else
-        Failure(
-          ServiceException(
-            "The total sum of distances to surrounding coordinates is 0 m or less. Therefore averaging would lead to numeric errors."
-          )
-        )
     }
   }
 
@@ -342,12 +345,14 @@ object WeatherSource {
       )
     val weatherSourceFunction: ZonedDateTime => WeatherSource =
       definedWeatherSources.headOption match {
-        case Some(Some(CsvParams(csvSep, folderPath))) =>
-          checkCsvParams("WeatherSource", csvSep, folderPath)
+        case Some(
+              Some(baseCsvParams @ BaseCsvParams(csvSep, directoryPath, _))
+            ) =>
+          checkBaseCsvParams(baseCsvParams, "WeatherSource")
           (simulationStart: ZonedDateTime) =>
             WeatherSourceWrapper(
               csvSep,
-              folderPath,
+              directoryPath,
               coordinateSourceFunction,
               timestampPattern,
               scheme,
@@ -441,23 +446,16 @@ object WeatherSource {
     // check source parameters
     definedCoordSources.headOption match {
       case Some(
-            Some(
-              SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
-                .CsvParams(csvSep, folderPath)
-            )
+            Some(baseCsvParams @ BaseCsvParams(csvSep, directoryPath, _))
           ) =>
-        checkCsvParams(
-          "CoordinateSource",
-          csvSep,
-          folderPath
-        )
+        checkBaseCsvParams(baseCsvParams, "CoordinateSource")
         val idCoordinateFactory = checkCoordinateFactory(
           coordinateSourceConfig.gridModel
         )
         () =>
           new CsvIdCoordinateSource(
             csvSep,
-            folderPath,
+            directoryPath,
             new FileNamingStrategy(),
             idCoordinateFactory
           )
@@ -521,9 +519,9 @@ object WeatherSource {
   ): WeatherData = {
     WeatherData(
       weatherValue.getSolarIrradiance.getDiffuseIrradiance
-        .orElse(EMPTY_WEATHER_DATA.diffRad),
+        .orElse(EMPTY_WEATHER_DATA.diffIrr),
       weatherValue.getSolarIrradiance.getDirectIrradiance
-        .orElse(EMPTY_WEATHER_DATA.dirRad),
+        .orElse(EMPTY_WEATHER_DATA.dirIrr),
       weatherValue.getTemperature.getTemperature
         .orElse(EMPTY_WEATHER_DATA.temp),
       weatherValue.getWind.getVelocity.orElse(EMPTY_WEATHER_DATA.windVel)
@@ -558,7 +556,7 @@ object WeatherSource {
     */
   object WeatherScheme extends ParsableEnumeration {
     val ICON: Value = Value("icon")
-    val PSDM: Value = Value("psdm")
+    val COSMO: Value = Value("cosmo")
   }
 
 }

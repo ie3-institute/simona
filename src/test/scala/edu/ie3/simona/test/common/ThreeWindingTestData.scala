@@ -93,7 +93,7 @@ trait ThreeWindingTestData extends DefaultTestData {
     Quantities.getQuantity(0.08, OHM),
     Quantities.getQuantity(0.003, OHM),
     Quantities.getQuantity(40d, MetricPrefix.NANO(SIEMENS)),
-    Quantities.getQuantity(1d, MetricPrefix.NANO(SIEMENS)),
+    Quantities.getQuantity(-1d, MetricPrefix.NANO(SIEMENS)),
     Quantities.getQuantity(1.5, PERCENT),
     Quantities.getQuantity(0d, DEGREE_GEOM),
     0,

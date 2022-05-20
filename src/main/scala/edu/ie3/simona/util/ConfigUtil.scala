@@ -113,7 +113,7 @@ object ConfigUtil {
       }
   }
 
-  case object ParticipantConfigUtil {
+  object ParticipantConfigUtil {
 
     /** Creates a system participant config utility from the given participant
       * configuration. It builds a map from uuid to individual system
@@ -211,7 +211,7 @@ object ConfigUtil {
       )
   }
 
-  case object BaseOutputConfigUtil {
+  object BaseOutputConfigUtil {
     def apply(
         subConfig: SimonaConfig.Simona.Output.Participant
     ): BaseOutputConfigUtil = {
@@ -265,7 +265,7 @@ object ConfigUtil {
   /** Enumeration of known [[Notifier]] implementations including an identifying
     * String, so that they can be identified from e.g. configuration files
     */
-  case object NotifierIdentifier extends ParsableEnumeration {
+  object NotifierIdentifier extends ParsableEnumeration {
     val BioMassPlant: Value = Value("bm")
     val ChpPlant: Value = Value("chp")
     val Ev: Value = Value("ev")
@@ -277,7 +277,35 @@ object ConfigUtil {
     val Wec: Value = Value("wec")
   }
 
-  case object CsvConfigUtil {
+  object CsvConfigUtil {
+
+    /** Check basic csv parameter information
+      *
+      * @param params
+      *   Parameters to check
+      * @param csvParamsName
+      *   Description for what the parameters are intended to be used (for more
+      *   descriptive exception messages)
+      */
+    def checkBaseCsvParams(
+        params: SimonaConfig.BaseCsvParams,
+        csvParamsName: String
+    ): Unit = params match {
+      case BaseCsvParams(csvSep, directoryPath, _) =>
+        if (!(csvSep.equals(";") || csvSep.equals(",")))
+          throw new InvalidConfigParameterException(
+            s"The csvSep parameter '$csvSep' for '$csvParamsName' configuration is invalid! Please choose between ';' or ','!"
+          )
+        if (
+          directoryPath.isEmpty || !new File(directoryPath)
+            .exists() || new File(directoryPath).isFile
+        )
+          throw new InvalidConfigParameterException(
+            s"The provided directoryPath for .csv-files '$directoryPath' for '$csvParamsName' configuration is invalid! Please correct the path!"
+          )
+    }
+
+    @deprecated(since = "2.1")
     def checkCsvParams(
         csvParamsName: String,
         csvSep: String,
@@ -298,7 +326,7 @@ object ConfigUtil {
 
   }
 
-  case object DatabaseConfigUtil extends LazyLogging {
+  object DatabaseConfigUtil extends LazyLogging {
 
     def checkSqlParams(
         sql: edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.SqlParams
@@ -321,11 +349,7 @@ object ConfigUtil {
         logger.info(
           "Password for SQL weather source is empty. This is allowed, but not common. Please check if this an intended setting."
         )
-      if (sql.timeColumnName.isEmpty)
-        throw new InvalidConfigParameterException(
-          "Time column for SQL weather source cannot be empty"
-        )
-      if (sql.weatherTableName.isEmpty)
+      if (sql.tableName.isEmpty)
         throw new InvalidConfigParameterException(
           "Weather table name for SQL weather source cannot be empty"
         )

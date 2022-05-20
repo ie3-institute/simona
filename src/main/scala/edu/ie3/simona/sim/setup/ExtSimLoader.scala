@@ -16,7 +16,7 @@ import java.net.URLClassLoader
   */
 object ExtSimLoader extends LazyLogging {
 
-  private val extSimPath = "inputData" + java.io.File.separator + "ext_sim"
+  private val extSimPath = "input" + java.io.File.separator + "ext_sim"
 
   private val extLinkClassPath = "edu.ie3.simona.api.ExtLink"
 
@@ -50,7 +50,6 @@ object ExtSimLoader extends LazyLogging {
           name.substring(name.lastIndexOf('.') + 1).toLowerCase
         )
       }
-      .toIterable
   }
 
   def loadExtLink(myJar: File): ExtLinkInterface = {
@@ -59,7 +58,7 @@ object ExtSimLoader extends LazyLogging {
       this.getClass.getClassLoader
     )
     val classToLoad = Class.forName(extLinkClassPath, true, classLoader)
-    classToLoad.newInstance match {
+    classToLoad.getDeclaredConstructor().newInstance() match {
       case extSim: ExtLinkInterface =>
         extSim
       case other =>

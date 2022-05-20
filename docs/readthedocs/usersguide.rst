@@ -17,11 +17,11 @@ To run and customize the project you need a Java Development Kit (JDK) installat
 Installation
 ============
 
-You can find and download the source code of the latest stable SIMONA version `here <https://git.ie3.e-technik.tu-dortmund.de/SIMONACrew/SIMONA>`_. Go ahead and clone the repository using git:
+You can find and download the source code of the latest stable SIMONA version `here <https://github.com/ie3-institute/simona>`_. Go ahead and clone the repository using git:
 
 .. code-block:: none
 
-   $ git clone https://git.ie3.e-technik.tu-dortmund.de/SIMONACrew/SIMONA.git
+   $ git clone https://github.com/ie3-institute/simona.git
 
 
 Running a Standalone Simulation
@@ -64,7 +64,8 @@ Default Config and Where to Find It
 -----------------------------------
 
 Within the SIMONA repository, there are two default configurations and their corresponding grids with all necessary data to execute a simulation.
-For each configuration, there is a separate directory in the project directory at ``./inputData``.
+For each configuration, there is a separate directory in the project directory at ``./input``.
+Sample configurations are provided within the subdirectory ``samples``.
 Each configuration is described by a ``.conf`` file that holds the simulation configuration parameters.
 
 
@@ -79,7 +80,7 @@ When you want to start a simulation run from the command line interface you have
 
 .. code-block:: none
 
-   java -cp build/libs/simona-2.1-all.jar edu.ie3.simona.main.RunSimonaStandalone --config=inputData/vn_simona/vn_simona.conf
+   java -cp build/libs/simona-2.1-all.jar edu.ie3.simona.main.RunSimonaStandalone --config=input/samples/vn_simona/vn_simona.conf
 
 
 Using IntelliJ IDEA
@@ -105,7 +106,7 @@ If you are using IntelliJ IDEA as your IDE, this is how setting the command line
    Enter ``--config={path from the content root of config file}``
    
    .. note::
-    For our example that would be ``--config=inputData/vn_simona/vn_simona.conf``
+    For our example that would be ``--config=input/samples/vn_simona/vn_simona.conf``
    
    .. figure:: ./images/usersguide/edit-conf2.png
 
@@ -125,7 +126,7 @@ Model and Grid Data
 Besides a simulation configuration, the specifications of each grid component (e.g. lines, transformers, ...) and system participant (e.g. loads, pv plants, ... ) have to be fed into the simulation.
 Within SIMONA we use the PowerSystemDataModel (PSDM) for modeling the system components.
 Before the data can be utilized for a simulation run, make sure to convert them to the PSDM.
-For more information on the PSDM visit the `docs <https://powersystemdatamodel.readthedocs.io/en/latest/index.html>`_ and for an example of how the converted data looks like you can take a look at an example grid at ``./inputData/vn_simona/fullGrid``.
+For more information on the PSDM visit the `docs <https://powersystemdatamodel.readthedocs.io/en/latest/index.html>`_ and for an example of how the converted data looks like you can take a look at an example grid at ``./input/samples/vn_simona/fullGrid``.
 The example grids are provided as csv files. You can choose to use a different data source for your own grid.
 For more information on supported sources, check out the :doc:`/config/config` section.
 Include your grid and its specification by referencing the folder path, where all the converted grid data is located, within your custom configuration file.
@@ -170,7 +171,7 @@ SIMONA is capable of running an external sub-simulation by integration within th
 The information flow between SIMONA and the external simulation is partitioned into a control stream (see ``edu.ie3.simona.api.ExtSimAdapter``) and a number of optional data streams.
 Currently, only a data stream transporting electric vehicle movement information is implemented (see ``edu.ie3.simona.service.ev.ExtEvDataService``).
 
-An external simulation has to depend on `SimonaAPI <https://git.ie3.e-technik.tu-dortmund.de/SIMONACrew/SimonaAPI>`_ and make use of some of its interfaces (see below).
+An external simulation has to depend on `SimonaAPI <https://github.com/ie3-institute/simonaAPI>`_ and make use of some of its interfaces (see below).
 In order to run an external simulation, several requirements have to be fulfilled and a bunch of preparation steps have to be followed.
 
 .. note::
@@ -183,7 +184,7 @@ Requirements
 
 - The external simulation should be implemented in its own project (repository).
 - The project should include the *shadowJar* gradle plugin (``id "com.github.johnrengelman.shadow" version "x.y.z"``).
-- A class (called *main class* here) needs to extend ``edu.ie3.simona.api.schedule.ExtSimulation`` and thus implement ``List<Long> doActivity(long tick)``, which is called when time step ``tick`` is triggered. ``doActivity`` must return a list of subsequent new ticks that the sub simulation should be scheduled at.
+- A class (called *main class* here) needs to extend ``edu.ie3.simona.api.schedule.ExtSimulation`` and thus implement the two methods ``List<Long> initialize()´´ and ``List<Long> doActivity(long tick)``. The method ``initialize´´ is called when the external simulation needs to be initialized whereas the method ``doActivity´´ is called when time step ``tick`` is triggered. ``initialize´´ and ``doActivity`` must return a list of subsequent new ticks that the sub simulation should be scheduled at.
 - For each data stream, a sub-interface of ``edu.ie3.simona.api.data.ExtDataSimulation`` needs to be implemented, such as ``edu.ie3.simona.api.data.ev.ExtEvSimulation``, and all methods of the interface have to be implemented. The *main class* could be the implementing class here.
 - In order for SIMONA to recognize the external simulation, a class ``edu.ie3.simona.api.ExtLink`` has to reside inside the project. This class has to extend ``edu.ie3.simona.api.ExtLinkInterface`` and implement the corresponding methods by returning the control stream and data stream implementations (could all be the same *main class*).
 
@@ -197,6 +198,28 @@ Preparation
 These steps have to be performed each time updates to the external simulation need to be deployed.
 
 - Execute ``gradle shadowJar`` inside the external simulation project.
-- Copy the resulting *jar* (usually placed inside <external project>/build/libs) to SIMONA/inputData/ext_sim.
+- Copy the resulting *jar* (usually placed inside <external project>/build/libs) to ``./input/ext_sim/``.
 
 Now, when a simulation with SIMONA is started (see `above <#running-a-standalone-simulation>`_), the external simulation is triggered at each tick that it requested.
+
+Troubleshooting
+===============
+
+My power flow calculation isn't converging - why is that?
+---------------------------------------------------------
+
+When your power flow is not converging it means that the load situation in the grid during the time of the power flow calculation is not physically feasible.
+
+This can have basically one of the following two reasons:
+
+#.
+    There is more load in the grid than it can physically handle.
+
+#.
+    There is more generation in the grid than it can physically handle.
+
+One of the main reasons is a misconfiguration of the grid and its assets.
+Assess the power of the load and generation units and check if the values make sense.
+Keep in mind the metric prefixes that are assumed for the models, which are listed in the `PSDM docs <https://powersystemdatamodel.readthedocs.io/en/latest/index.html>`_.
+If everything seems to be configured correctly it could also be the case that the grid itself is incorrectly configured.
+Do a similar sanity check for the grids assets.

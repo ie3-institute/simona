@@ -25,8 +25,9 @@ import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.checkInfluxDb1xParams
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.scala.ReflectionTools
 import edu.ie3.util.{StringUtils, TimeUtil}
+import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
-import java.security.InvalidParameterException
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
@@ -393,7 +394,8 @@ case object ConfigFailFast extends LazyLogging {
     */
   private def checkRefSystem(refSystem: RefSystemConfig): Unit = {
 
-    val voltLvls = refSystem.voltLvls.getOrElse(List.empty[String])
+    val voltLvls =
+      refSystem.voltLvls.getOrElse(List.empty[SimonaConfig.VoltLvlConfig])
     val gridIds = refSystem.gridIds.getOrElse(List.empty[String])
 
     if (voltLvls.isEmpty && gridIds.isEmpty)
@@ -402,6 +404,21 @@ case object ConfigFailFast extends LazyLogging {
           s"At least one of these optional parameters has to be provided for a valid refSystem! " +
           s"Provided refSystem is: $refSystem."
       )
+
+    voltLvls.foreach { voltLvl =>
+      Try(Quantities.getQuantity(voltLvl.vNom)) match {
+        case Success(quantity) =>
+          if (!quantity.getUnit.isCompatible(Units.VOLT))
+            throw new InvalidConfigParameterException(
+              s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to electrical potential! Please provide the volt level with its unit, e.g. \"20 kV\""
+            )
+        case Failure(exception) =>
+          throw new InvalidConfigParameterException(
+            s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?",
+            exception
+          )
+      }
+    }
 
     gridIds.foreach {
       case gridIdRange @ ConfigConventions.gridIdDotRange(from, to) =>
@@ -455,11 +472,7 @@ case object ConfigFailFast extends LazyLogging {
       case "csv" =>
         gridDataSource.csvParams match {
           case Some(csvParams) =>
-            CsvConfigUtil.checkCsvParams(
-              "GridSource",
-              csvParams.csvSep,
-              csvParams.folderPath
-            )
+            CsvConfigUtil.checkBaseCsvParams(csvParams, "GridSource")
           case None =>
             throw new InvalidConfigParameterException(
               "No grid data source csv parameters provided. If you intend to read grid data from .csv-files, please " +
