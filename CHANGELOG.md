@@ -10,8 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement SQL source for primary data [#34](https://github.com/ie3-institute/simona/issues/34), [#101](https://github.com/ie3-institute/simona/issues/101)
 - Relevant scientific papers have been added to the documentation [#139](https://github.com/ie3-institute/simona/issues/139)
 - Add troubleshooting section to Users guide [#160](https://github.com/ie3-institute/simona/issues/160)
-- Adapt documentation to changed simonaAPI [#191](https://github.com/ie3-institute/simona/issues/191)
-- Implementing a new plugin framework for external simulations [#195](https://github.com/ie3-institute/simona/issues/195)
+
  
 
 ### Changed
@@ -24,20 +23,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sending termination message to external simulation on expected and unexpected shutdowns of SIMONA [#35](https://github.com/ie3-institute/simona/issues/35)
 - Change transformer calculation since changes in PSDM [#99](https://github.com/ie3-institute/simona/issues/99)
 - Adapt to changed PvInputModel of PSDM (elevationAngle) [#100](https://github.com/ie3-institute/simona/issues/100)
-- Re-organizing test resources to packages [#105](https://github.com/ie3-institute/simona/issues/105)
 - Consolidate csv parameterization in config [#149](https://github.com/ie3-institute/simona/issues/149)
 - Change weather scheme to COSMO [PR#154](https://github.com/ie3-institute/simona/pull/154)
+- Adapt documentation to changed simonaAPI [#191](https://github.com/ie3-institute/simona/issues/191)
+- Implementing a new plugin framework for external simulations [#195](https://github.com/ie3-institute/simona/issues/195)
 - Improved implementation of `RefSystemParser` [#212](https://github.com/ie3-institute/simona/issues/212)
 - Harmonized configuration of csv parameters [#149](https://github.com/ie3-institute/simona/issues/149)
-
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund)
 - Let `ParticipantAgent` die after failed registration with secondary services (prevents stuck simulation)
+- Fix location of "vn_simona" test grid [#72](https://github.com/ie3-institute/simona/issues/72)
+- Participant agents die on failed registration [#76](https://github.com/ie3-institute/simona/issues/76)
 - Fix default resolution of weather source wrapper [#78](https://github.com/ie3-institute/simona/issues/78)
 - Fix invalid thread allocation in GridAgent [#111](https://github.com/ie3-institute/simona/issues/111)
 - Fixed config auto-generation [#131](https://github.com/ie3-institute/simona/pull/131)
-- Fixed genConfigSample gradle task[#148(https://github.com/ie3-institute/simona/issues/148)
+- Fixed genConfigSample gradle task[#148](https://github.com/ie3-institute/simona/issues/148)
 - Fixed some unreachable code [#167](https://github.com/ie3-institute/simona/issues/167)
 - Fix treatment of non-InitializeTrigger triggers in initialization within SimScheduler [#237](https://github.com/ie3-institute/simona/issues/237)
 
