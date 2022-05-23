@@ -174,7 +174,6 @@ case object ConfigFailFast extends LazyLogging {
 
     sinkConfigs.find(_.isDefined) match {
       case Some(Some(influxDb1x: InfluxDb1x)) =>
-        // if this is db sink, check the connection
         checkInfluxDb1xParams(
           "Sink",
           ResultSinkType.buildInfluxDb1xUrl(influxDb1x),
