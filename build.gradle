@@ -163,9 +163,6 @@ tasks.withType(JavaCompile) {
   options.encoding = 'UTF-8'
 }
 
-
-// 'Class-Path': configurations.compile.collect { it.getName() }.join(' '),
-
 jar {
   manifest {
     attributes(
