@@ -81,8 +81,9 @@ class SimSchedulerSpec
             }
             simona.output.participant.individualConfigs = []
             simona.input.grid.datasource.id = "csv"
-            simona.input.grid.datasource.csvParams.folderPath = "netdata"
+            simona.input.grid.datasource.csvParams.directoryPath = "netdata"
             simona.input.grid.datasource.csvParams.csvSep =","
+            simona.input.grid.datasource.csvParams.isHierarchic = false
             simona.runtime.participant.load = {
               defaultConfig = {
                 calculateMissingReactivePowerWithModel = false

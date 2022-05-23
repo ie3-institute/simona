@@ -27,8 +27,8 @@ The implemented behaviour is shown in the program sequence plan below. In genera
 
 ### Implementation:
 
-![](../_static/figures/models/chp_model/ChpModelCalculation.png)
-![](../_static/figures/models/chp_model/ModelChpModelCalculationConcept.png)
+![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/uml/main/participants/ChpModelCalculation.puml)
+![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/uml/main/participants/ChpModelCalculationConcept.puml)
 
 ### Mathematical concept
 
