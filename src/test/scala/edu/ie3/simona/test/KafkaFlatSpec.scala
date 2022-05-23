@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.test
 
+import com.dimafeng.testcontainers.KafkaContainer
 import edu.ie3.simona.test.KafkaFlatSpec.Topic
 import org.apache.kafka.clients.admin.{Admin, NewTopic}
 import org.junit.Rule
@@ -13,7 +14,6 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{BeforeAndAfterAll, GivenWhenThen, Inspectors}
-import org.testcontainers.containers.KafkaContainer
 import org.testcontainers.utility.DockerImageName
 
 import scala.jdk.CollectionConverters._
@@ -29,14 +29,14 @@ trait KafkaFlatSpec
     with GivenWhenThen
     with Eventually {
 
-  val testTopics: Vector[Topic]
+  protected val testTopics: Vector[Topic]
 
   @Rule
-  val kafka = new KafkaContainer(
+  protected val kafka: KafkaContainer = KafkaContainer(
     DockerImageName.parse("confluentinc/cp-kafka:6.1.0")
   )
-  lazy val admin: Admin = Admin.create(
-    Map[String, AnyRef]("bootstrap.servers" -> kafka.getBootstrapServers).asJava
+  protected lazy val admin: Admin = Admin.create(
+    Map[String, AnyRef]("bootstrap.servers" -> kafka.bootstrapServers).asJava
   )
 
   override def beforeAll(): Unit = {

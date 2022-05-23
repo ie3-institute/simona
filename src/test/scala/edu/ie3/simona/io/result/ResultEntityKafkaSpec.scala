@@ -56,7 +56,7 @@ class ResultEntityKafkaSpec extends KafkaFlatSpec with OptionValues {
     super.beforeAll()
     val config = Map[String, AnyRef](
       "group.id" -> "test",
-      "bootstrap.servers" -> kafka.getBootstrapServers
+      "bootstrap.servers" -> kafka.bootstrapServers
     )
     testConsumer = new KafkaConsumer[Bytes, PlainNodeResult](
       config.asJava,
@@ -76,7 +76,7 @@ class ResultEntityKafkaSpec extends KafkaFlatSpec with OptionValues {
     val resultEntitySink = ResultEntityKafkaSink[NodeResult](
       topic,
       runId,
-      kafka.getBootstrapServers,
+      kafka.bootstrapServers,
       mockSchemaRegistryUrl,
       0
     )
