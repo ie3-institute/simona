@@ -151,8 +151,8 @@ object ResultEventListener extends Transformer3wResultSupport {
             linger
           ) =>
         val clzs: Iterable[Class[_ <: ResultEntity]] = Set(
-          classOf[NodeResult]
-        ) // TODO add classOf[LineResult]
+          classOf[NodeResult] // currently, only NodeResults are sent out
+        )
         clzs.map(clz =>
           Future.successful(
             (

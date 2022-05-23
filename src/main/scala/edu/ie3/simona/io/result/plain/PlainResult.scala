@@ -11,7 +11,7 @@ import java.util.UUID
 sealed trait PlainResult
 
 object PlainResult {
-  case class PlainNodeResult(
+  final case class PlainNodeResult(
       simRunId: UUID,
       time: String,
       uuid: UUID,

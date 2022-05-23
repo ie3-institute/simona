@@ -25,7 +25,7 @@ object PlainWriter {
   private lazy val timeFormatter =
     DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
-  case class NodeResultWriter(simRunId: UUID)
+  final case class NodeResultWriter(simRunId: UUID)
       extends PlainWriter[NodeResult, PlainNodeResult] {
 
     override def writePlain(full: NodeResult): PlainNodeResult = {
