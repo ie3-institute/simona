@@ -14,11 +14,11 @@ ARG snapshotSuffix=""
 ENV jarFile="simona-${version}${snapshotSuffix}-all.jar"
 ENV config=""
 
-RUN mkdir exec
-RUN mkdir input
+RUN mkdir exec \
+  && mkdir input
 
 # copy simona fat jar into container
-COPY build/libs/$jarFile exec/
+COPY build/libs/$jarFile /exec/
 # inputData is mounted upon running
 VOLUME /input
 
