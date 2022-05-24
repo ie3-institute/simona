@@ -29,7 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implementing a new plugin framework for external simulations [#195](https://github.com/ie3-institute/simona/issues/195)
 - Improved implementation of `RefSystemParser` [#212](https://github.com/ie3-institute/simona/issues/212)
 - Harmonized configuration of csv parameters [#149](https://github.com/ie3-institute/simona/issues/149)
+- Include missing images into Documentation [#151](https://github.com/ie3-institute/simona/issues/151)
 - Changing the export methode for diagrams [#156](https://github.com/ie3-institute/simona/issues/156)
+- Change references implementation in Documentation to bibtex [#174](https://github.com/ie3-institute/simona/issues/174) 
+- Update Model descriptions (Documentation) [#122](https://github.com/ie3-institute/simona/issues/122)
+- Changes of Getting Started Section (Documentation) [#124](https://github.com/ie3-institute/simona/issues/124) 
+- Update gradle [#176](https://github.com/ie3-institute/simona/issues/176)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
