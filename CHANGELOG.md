@@ -29,12 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implementing a new plugin framework for external simulations [#195](https://github.com/ie3-institute/simona/issues/195)
 - Improved implementation of `RefSystemParser` [#212](https://github.com/ie3-institute/simona/issues/212)
 - Harmonized configuration of csv parameters [#149](https://github.com/ie3-institute/simona/issues/149)
+- Changing the export methode for diagrams [#156](https://github.com/ie3-institute/simona/issues/156)
 
 ### Fixed
-- Location of `vn_simona` test grid (was partially in Berlin and Dortmund)
-- Let `ParticipantAgent` die after failed registration with secondary services (prevents stuck simulation)
-- Fix location of "vn_simona" test grid [#72](https://github.com/ie3-institute/simona/issues/72)
-- Participant agents die on failed registration [#76](https://github.com/ie3-institute/simona/issues/76)
+- Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
+- Let `ParticipantAgent` die after failed registration with secondary services (prevents stuck simulation) [#76](https://github.com/ie3-institute/simona/issues/76)
 - Fix default resolution of weather source wrapper [#78](https://github.com/ie3-institute/simona/issues/78)
 - Fix invalid thread allocation in GridAgent [#111](https://github.com/ie3-institute/simona/issues/111)
 - Fixed config auto-generation [#131](https://github.com/ie3-institute/simona/pull/131)
