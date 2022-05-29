@@ -39,8 +39,8 @@ More details on the physical model transformation can be found in the Ph.D. thes
 - Coupling of subgrids is provided by means of inter-agent communication
 - The tap changer is always apparent in subgrid A. If subgrid B or C require an adaption, they send a tap request with provided power values, subgrid A takes a decision and re-evaluates the outcome
 
-```{eval-rst}
-:cite:empty:`Kittl.2021`
+**References:**
 
-.. bibliography::
+```{eval-rst}
+:cite:cts:`Kittl_2022`
 ```

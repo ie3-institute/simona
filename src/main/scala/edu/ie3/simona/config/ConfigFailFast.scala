@@ -23,10 +23,8 @@ import edu.ie3.util.{StringUtils, TimeUtil}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
-import java.security.InvalidParameterException
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import javax.measure.quantity.ElectricPotential
 import scala.util.{Failure, Success, Try}
 
 /** Sanity checks for [[SimonaConfig]] that should lead to a fast failure during
@@ -466,11 +464,7 @@ case object ConfigFailFast extends LazyLogging {
       case "csv" =>
         gridDataSource.csvParams match {
           case Some(csvParams) =>
-            CsvConfigUtil.checkCsvParams(
-              "GridSource",
-              csvParams.csvSep,
-              csvParams.folderPath
-            )
+            CsvConfigUtil.checkBaseCsvParams(csvParams, "GridSource")
           case None =>
             throw new InvalidConfigParameterException(
               "No grid data source csv parameters provided. If you intend to read grid data from .csv-files, please " +
