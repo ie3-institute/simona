@@ -29,10 +29,8 @@ import edu.ie3.datamodel.io.source.sql.{
 }
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{
-  CsvParams,
-  SqlParams
-}
+import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
   Primary => PrimaryConfig
 }
@@ -195,17 +193,17 @@ case class PrimaryServiceProxy(
       primaryConfig.csvParams,
       primaryConfig.couchbaseParams
     ).filter(_.isDefined).flatten.headOption match {
-      case Some(CsvParams(csvSep, folderPath, _)) =>
+      case Some(PrimaryDataCsvParams(csvSep, directoryPath, _, _)) =>
         val fileNamingStrategy = new FileNamingStrategy()
         Success(
           new CsvTimeSeriesMappingSource(
             csvSep,
-            folderPath,
+            directoryPath,
             fileNamingStrategy
           ),
           new CsvTimeSeriesTypeSource(
             csvSep,
-            folderPath,
+            directoryPath,
             fileNamingStrategy
           )
         )
@@ -418,7 +416,7 @@ case class PrimaryServiceProxy(
     primaryConfig match {
       case PrimaryConfig(
             None,
-            Some(CsvParams(csvSep, directoryPath, timePattern)),
+            Some(PrimaryDataCsvParams(csvSep, directoryPath, _, timePattern)),
             None,
             None
           ) =>
@@ -593,7 +591,7 @@ object PrimaryServiceProxy {
       )
     else {
       sourceConfigs.headOption match {
-        case Some(csvParams: SimonaConfig.Simona.Input.Primary.CsvParams) =>
+        case Some(csvParams: PrimaryDataCsvParams) =>
           // note: if inheritance is supported by tscfg,
           // the following method should be called for all different supported sources!
           checkTimePattern(csvParams.timePattern)

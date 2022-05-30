@@ -18,10 +18,8 @@ import edu.ie3.simona.exceptions.SchedulerException
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
-import edu.ie3.simona.ontology.trigger.Trigger.InitializeTrigger
 import edu.ie3.simona.ontology.trigger.{ScheduledTrigger, Trigger}
 import edu.ie3.simona.scheduler.SimSchedulerStateData.SchedulerStateData
-import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.TimeUtil
 
@@ -57,17 +55,18 @@ trait SchedulerHelper extends SimonaActorLogging {
   private val schedulerReadyCheckWindow =
     simonaTimeConfig.schedulerReadyCheckWindow
 
-  /** Sends out all triggers of type [[InitializeTrigger]] inside the trigger
-    * queue in the provided state data. This method modifies the mutual trigger
-    * data inside of the provided [[SimSchedulerStateData]]. To indicate this
-    * behavior, the provided state data is returned again, because the return
-    * value is a modified, but not a copied version of the provided state data!
+  /** Sends out all triggers with tick [[SimonaConstants.INIT_SIM_TICK]] inside
+    * the trigger queue in the provided state data. This method modifies the
+    * mutual trigger data inside of the provided [[SimSchedulerStateData]]. To
+    * indicate this behavior, the provided state data is returned again, because
+    * the return value is a modified, but not a copied version of the provided
+    * state data!
     *
     * @param stateData
     *   the state data that should be processed
     * @return
-    *   a modified version of the provided state data with all
-    *   [[InitializeTrigger]] send out and updated
+    *   a modified version of the provided state data with all triggers with
+    *   tick [[SimonaConstants.INIT_SIM_TICK]] sent out and updated
     *   [[SimSchedulerStateData.SchedulerStateData.trigger.awaitingResponseMap]]
     *   and
     *   [[SimSchedulerStateData.SchedulerStateData.trigger.triggerIdToScheduledTriggerMap accordingly]]
@@ -87,10 +86,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     val initTriggers = triggerQueue.stream
       .toScala(Accumulator)
       .filter(schedTrigger =>
-        schedTrigger.triggerWithIdMessage.trigger match {
-          case _: InitializeTrigger => true
-          case _                    => false
-        }
+        schedTrigger.triggerWithIdMessage.trigger.tick == SimonaConstants.INIT_SIM_TICK
       )
       .map(schedTrigger => {
         /* actual init process */
@@ -809,9 +805,10 @@ trait SchedulerHelper extends SimonaActorLogging {
   }
 
   /** Checks if initialization of the simulation is complete. It is complete, if
-    * two conditions are fulfilled: <ol> <li>there is no [[InitializeTrigger]]
-    * inside the provided trigger queue left</li> <li>there is no sent out
-    * [[InitializeTrigger]], which is not completed, yet</li> </ol>
+    * two conditions are fulfilled: <ol> <li>there is no trigger with tick
+    * [[SimonaConstants.INIT_SIM_TICK]] inside the provided trigger queue
+    * left</li> <li>there is no sent out trigger with tick
+    * [[SimonaConstants.INIT_SIM_TICK]], which is not completed, yet</li> </ol>
     *
     * @param awaitingResponseMap
     *   a map containing a tick to scheduled trigger mapping
@@ -824,22 +821,16 @@ trait SchedulerHelper extends SimonaActorLogging {
       awaitingResponseMap: TreeMultimap[java.lang.Long, ScheduledTrigger],
       triggerQueue: java.util.PriorityQueue[ScheduledTrigger]
   ): Boolean = {
-    val initAwait = awaitingResponseMap
+    val initAwait = !awaitingResponseMap
       .get(SimonaConstants.INIT_SIM_TICK)
-      .asScala
-      .iterator
-      .exists(_.triggerWithIdMessage.trigger match {
-        case _: InitializeTrigger => true
-        case _                    => false
-      })
+      .isEmpty
 
     val initTriggerInQueue = triggerQueue
       .iterator()
       .asScala
-      .exists(_.triggerWithIdMessage.trigger match {
-        case _: InitializeTrigger => true
-        case _                    => false
-      })
+      .exists(
+        _.triggerWithIdMessage.trigger.tick == SimonaConstants.INIT_SIM_TICK
+      )
 
     !initAwait && !initTriggerInQueue
   }

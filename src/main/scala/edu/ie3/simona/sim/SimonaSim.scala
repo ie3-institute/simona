@@ -12,15 +12,12 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.state.AgentState.Finish
-import edu.ie3.simona.ontology.messages.SchedulerMessage
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, StopMessage}
 import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeGridAgentTrigger,
   InitializeServiceTrigger
 }
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
-import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
-import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
+import edu.ie3.simona.sim.setup.SimonaSetup
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
@@ -59,7 +56,8 @@ object SimonaSim {
       systemParticipantsListener: Seq[ActorRef],
       runtimeEventListener: Seq[ActorRef],
       environmentRefs: EnvironmentRefs,
-      gridAgents: Seq[ActorRef]
+      gridAgents: Seq[ActorRef],
+      extSimAdapters: Seq[ActorRef]
   )
 
   private final case class InitStateData(
@@ -149,7 +147,8 @@ object SimonaSim {
           systemParticipantsListener,
           runtimeEventListener,
           environmentRefs,
-          gridAgents.keySet.toSeq
+          gridAgents.keySet.toSeq,
+          extSimulationData.extSimAdapters.map { case (ref, _) => ref }.toSeq
         ),
         gridAgents,
         actorInitWaitingList
@@ -217,27 +216,38 @@ object SimonaSim {
               context,
               msg @ (SimulationSuccessfulMessage | SimulationFailureMessage)
             ) =>
-          msg match {
+          val simulationSuccessful = msg match {
             case SimulationSuccessfulMessage =>
               context.log.info(
                 "Simulation terminated successfully. Stopping children ..."
               )
+              true
             case SimulationFailureMessage =>
               context.log.error(
                 "An error occurred during the simulation. See stacktrace for details."
               )
+              false
           }
 
           // stop all children
           val listenerDelay: FiniteDuration = 500.millis
           stateData.gridAgents.foreach(context.unwatch(_))
-          stateData.gridAgents.foreach(_ ! Finish)
+          stateData.gridAgents.foreach(_ ! StopMessage(simulationSuccessful))
 
           context.unwatch(stateData.environmentRefs.scheduler)
           context.stop(stateData.environmentRefs.scheduler)
 
           context.unwatch(stateData.environmentRefs.weather)
           context.stop(stateData.environmentRefs.weather)
+
+          stateData.extSimAdapters.foreach { ref =>
+            context.unwatch(ref)
+            ref ! StopMessage(simulationSuccessful)
+          }
+          stateData.environmentRefs.evDataService.foreach { ref =>
+            context.unwatch(ref)
+            context.stop(ref)
+          }
 
           /* Stop listeners with a delay */
           context.log.debug(
