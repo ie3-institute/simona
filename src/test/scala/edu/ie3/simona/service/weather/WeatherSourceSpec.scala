@@ -27,7 +27,7 @@ import scala.jdk.OptionConverters._
 import scala.util.{Failure, Success}
 
 class WeatherSourceSpec extends UnitSpec {
-  private val coordinate0 = GeoUtils.xyToPoint(7.41, 51.47)
+  private val coordinate0 = GeoUtils.buildPoint(51.47, 7.41)
 
   "A weather source" should {
     "issue a ServiceException, if there are not enough coordinates available" in {
@@ -300,14 +300,14 @@ class WeatherSourceSpec extends UnitSpec {
 }
 
 case object WeatherSourceSpec {
-  private val coordinate67775 = GeoUtils.xyToPoint(7.438, 51.5)
-  private val coordinate531137 = GeoUtils.xyToPoint(7.375, 51.5)
-  private val coordinate551525 = GeoUtils.xyToPoint(7.438, 51.438)
-  private val coordinate278150 = GeoUtils.xyToPoint(7.375, 51.438)
-  private val coordinate477295 = GeoUtils.xyToPoint(12.812, 52.312)
-  private val coordinate537947 = GeoUtils.xyToPoint(12.812, 52.25)
-  private val coordinate144112 = GeoUtils.xyToPoint(12.875, 52.312)
-  private val coordinate165125 = GeoUtils.xyToPoint(12.875, 52.25)
+  private val coordinate67775 = GeoUtils.buildPoint(51.5, 7.438)
+  private val coordinate531137 = GeoUtils.buildPoint(51.5, 7.375)
+  private val coordinate551525 = GeoUtils.buildPoint(51.438, 7.438)
+  private val coordinate278150 = GeoUtils.buildPoint(51.438, 7.375)
+  private val coordinate477295 = GeoUtils.buildPoint(52.312, 12.812)
+  private val coordinate537947 = GeoUtils.buildPoint(52.25, 12.812)
+  private val coordinate144112 = GeoUtils.buildPoint(52.312, 12.875)
+  private val coordinate165125 = GeoUtils.buildPoint(52.25, 12.875)
 
   case object DummyWeatherSource extends WeatherSource {
     override protected val idCoordinateSource: IdCoordinateSource =
