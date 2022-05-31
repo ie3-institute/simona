@@ -28,9 +28,6 @@ String mavenCentralCredentialsId = '87bfb2d4-7613-4816-9fe1-70dfd7e6dec2' // id 
 String mavenCentralSignKeyFileId = 'dc96216c-d20a-48ff-98c0-1c7ba096d08d' // id that matches the maven central sign key file set as jenkins property
 String mavenCentralSignKeyId = 'a1357827-1516-4fa2-ab8e-72cdea07a692' // id that matches the maven central sign key id set as jenkins property
 
-/* Rocket.Chat configuration */
-String rocketChatChannel = 'jenkins'
-
 /**
  * pipeline configuration
  */
@@ -61,9 +58,6 @@ node {
 
       /* prs from forks require a special handling*/
       String headGitCheckoutUrl = prJsonObj == null ? gitCheckoutUrl : prJsonObj.head.repo.ssh_url
-
-      // notify rocket chat
-      notifyRocketChat(rocketChatChannel, ':jenkins_triggered:', buildStartMsg(currentBranchName, targetBranchName, projectName))
 
       // checkout scm
       String commitHash = ""
@@ -183,15 +177,6 @@ node {
             // deploy java docs
             deployJavaDocs(projectName, sshCredentialsId, gitCheckoutUrl)
           }
-
-          // notify rocket chat
-          String successMsg = "deployment of version $projectVersion from branch '$currentBranchName' to sonatype " +
-              "successful. If this is a deployment from 'main' pls remember visiting https://oss.sonatype.org to " +
-              "stage and release artifact!\n" +
-              "*project:* ${projectName}\n" +
-              "*branch:* ${currentBranchName}\n"
-
-          notifyRocketChat(rocketChatChannel, ':jenkins_party:', successMsg)
         }
       }
 
@@ -207,10 +192,6 @@ node {
         ]) {
           sh "curl -s https://codecov.io/bash | bash -s - -t ${env.codeCovToken} -C ${commitHash}"
         }
-
-        // notify Rocket.Chat
-        String successMsg = buildSuccessMsg(currentBranchName, targetBranchName, projectName)
-        notifyRocketChat(rocketChatChannel, ':jenkins_party:', successMsg)
       }
 
     } catch (Exception e) {
@@ -223,15 +204,6 @@ node {
       // print exception
       Date date = new Date()
       println("[ERROR] [${date.format("dd/MM/yyyy")} - ${date.format("HH:mm:ss")}] " + e)
-
-      // notify rocket chat
-      net.sf.json.JSONObject prJsonObj = getPRJsonObj(orgName, projectName, env.CHANGE_ID)
-      String branchName = prJsonObj == null ? env.BRANCH_NAME : prJsonObj.head.ref
-      String errorMsg = "CI failed.\n" +
-          "*project:* ${projectName}\n" +
-          "*branch:* ${branchName}\n" +
-          "*error:* ${e.getMessage()}\n"
-      notifyRocketChat(rocketChatChannel, ':jenkins_explode:', errorMsg)
     }
 
   }
@@ -472,35 +444,6 @@ def publishReports(String relativeProjectDir) {
   publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: relativeProjectDir + '/build/reports/scoverageTest', reportFiles: 'scoverage.xml', reportName: "${relativeProjectDir}_scoverage_report", reportTitles: ''])
 }
 
-/* Rocket.Chat */
-
-def notifyRocketChat(String rocketChatChannel, String emoji, String message) {
-  rocketSend channel: rocketChatChannel, emoji: emoji,
-  message: message
-  rawMessage: true
-}
-
-def buildSuccessMsg(String currentBranchName, String targetBranchName, String projectName) {
-
-  String msg = "Build successful!\n" +
-      "*project:* ${projectName}\n" +
-      "*branch:* ${currentBranchName}\n"
-  String targetBranch = targetBranchName != null ? "*target:* ${targetBranchName} \n" : ""
-
-
-  return msg + targetBranch
-}
-
-def buildStartMsg(String currentBranchName, String targetBranchName, String projectName) {
-
-  String msg = "Build triggered.\n" +
-      "*project:* ${projectName}\n" +
-      "*branch:* ${currentBranchName}\n"
-  String targetBranch = targetBranchName != null ? "*target:* ${targetBranchName} \n" : ""
-
-  return msg + targetBranch
-}
-
 def prFromFork() {
   return env.CHANGE_FORK != null
 }
@@ -727,7 +670,6 @@ def compareVersionParts(String sourceBranchType, String[] sourceBranchVersion, S
       return -1
       break
   }
-
 
 }
 
