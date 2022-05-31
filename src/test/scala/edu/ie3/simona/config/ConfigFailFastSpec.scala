@@ -736,7 +736,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           }.getMessage shouldBe "The UUID '-not-a-uuid-' cannot be parsed as it is invalid."
         }
 
-        "throw an exception if kafka is configured, but connection to broker fails" in {
+        "throw an exception if kafka is configured, but creating kafka client fails" in {
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkDataSinks(
               Sink(
@@ -744,7 +744,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 None,
                 Some(
                   ResultKafkaParams(
-                    "doesnotexist:1234",
+                    "not§a§server",
                     0,
                     "00000000-0000-0000-0000-000000000000",
                     "https://reg:123",
@@ -753,7 +753,27 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 )
               )
             )
-          }.getMessage shouldBe "Exception creating kafka client for broker doesnotexist:1234."
+          }.getMessage shouldBe "Exception creating kafka client for broker not§a§server."
+        }
+
+        "throw an exception if kafka is configured, but connection to broker fails" in {
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkDataSinks(
+              Sink(
+                None,
+                None,
+                Some(
+                  ResultKafkaParams(
+                    "localhost:12345",
+                    0,
+                    "00000000-0000-0000-0000-000000000000",
+                    "https://reg:123",
+                    "topic"
+                  )
+                )
+              )
+            )
+          }.getMessage shouldBe "Connection with kafka broker localhost:12345 failed."
         }
       }
 
