@@ -7,7 +7,7 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
+import edu.ie3.simona.config.SimonaConfig.{BaseCsvParams, ResultKafkaParams}
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.{Csv, InfluxDb1x}
@@ -716,6 +716,45 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             "Exception: java.lang.IllegalArgumentException: Unable to parse url: :0"
         }
 
+        "throw an exception if kafka is configured with a malformed UUID" in {
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkDataSinks(
+              Sink(
+                None,
+                None,
+                Some(
+                  ResultKafkaParams(
+                    "server:1234",
+                    0,
+                    "-not-a-uuid-",
+                    "https://reg:123",
+                    "topic"
+                  )
+                )
+              )
+            )
+          }.getMessage shouldBe "The UUID '-not-a-uuid-' cannot be parsed as it is invalid."
+        }
+
+        "throw an exception if kafka is configured, but connection to broker fails" in {
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkDataSinks(
+              Sink(
+                None,
+                None,
+                Some(
+                  ResultKafkaParams(
+                    "doesnotexist:1234",
+                    0,
+                    "00000000-0000-0000-0000-000000000000",
+                    "https://reg:123",
+                    "topic"
+                  )
+                )
+              )
+            )
+          }.getMessage shouldBe "Exception creating kafka client for broker doesnotexist:1234."
+        }
       }
 
       "Checking grid data sources" should {

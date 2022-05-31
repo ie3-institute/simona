@@ -51,7 +51,7 @@ object ResultSinkType {
         Csv(params.fileFormat, params.filePrefix, params.fileSuffix)
       case Some(params: SimonaConfig.Simona.Output.Sink.InfluxDb1x) =>
         InfluxDb1x(buildInfluxDb1xUrl(params), params.database, runName)
-      case Some(params: SimonaConfig.Simona.Output.Sink.Kafka) =>
+      case Some(params: SimonaConfig.ResultKafkaParams) =>
         Kafka(
           params.topicNodeRes,
           UUID.fromString(params.runId),
