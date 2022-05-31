@@ -17,6 +17,7 @@ import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
 import edu.ie3.simona.exceptions.{
   InvalidConfigParameterException,
@@ -27,7 +28,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates
 }
-import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkCsvParams
+import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
 import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
   checkCouchbaseParams,
   checkInfluxDb1xParams,
@@ -164,7 +165,8 @@ trait WeatherSource {
     }
   }
 
-  /** Determine the weights of each coordinate
+  /** Determine the weights of each coordinate. It is ensured, that the entirety
+    * of weights sum up to 1.0
     *
     * @param nearestCoordinates
     *   Collection of nearest coordinates with their distances
@@ -343,12 +345,14 @@ object WeatherSource {
       )
     val weatherSourceFunction: ZonedDateTime => WeatherSource =
       definedWeatherSources.headOption match {
-        case Some(Some(CsvParams(csvSep, folderPath))) =>
-          checkCsvParams("WeatherSource", csvSep, folderPath)
+        case Some(
+              Some(baseCsvParams @ BaseCsvParams(csvSep, directoryPath, _))
+            ) =>
+          checkBaseCsvParams(baseCsvParams, "WeatherSource")
           (simulationStart: ZonedDateTime) =>
             WeatherSourceWrapper(
               csvSep,
-              folderPath,
+              directoryPath,
               coordinateSourceFunction,
               timestampPattern,
               scheme,
@@ -442,23 +446,16 @@ object WeatherSource {
     // check source parameters
     definedCoordSources.headOption match {
       case Some(
-            Some(
-              SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
-                .CsvParams(csvSep, folderPath)
-            )
+            Some(baseCsvParams @ BaseCsvParams(csvSep, directoryPath, _))
           ) =>
-        checkCsvParams(
-          "CoordinateSource",
-          csvSep,
-          folderPath
-        )
+        checkBaseCsvParams(baseCsvParams, "CoordinateSource")
         val idCoordinateFactory = checkCoordinateFactory(
           coordinateSourceConfig.gridModel
         )
         () =>
           new CsvIdCoordinateSource(
             csvSep,
-            folderPath,
+            directoryPath,
             new FileNamingStrategy(),
             idCoordinateFactory
           )
@@ -522,9 +519,9 @@ object WeatherSource {
   ): WeatherData = {
     WeatherData(
       weatherValue.getSolarIrradiance.getDiffuseIrradiance
-        .orElse(EMPTY_WEATHER_DATA.diffRad),
+        .orElse(EMPTY_WEATHER_DATA.diffIrr),
       weatherValue.getSolarIrradiance.getDirectIrradiance
-        .orElse(EMPTY_WEATHER_DATA.dirRad),
+        .orElse(EMPTY_WEATHER_DATA.dirIrr),
       weatherValue.getTemperature.getTemperature
         .orElse(EMPTY_WEATHER_DATA.temp),
       weatherValue.getWind.getVelocity.orElse(EMPTY_WEATHER_DATA.windVel)
@@ -559,7 +556,7 @@ object WeatherSource {
     */
   object WeatherScheme extends ParsableEnumeration {
     val ICON: Value = Value("icon")
-    val PSDM: Value = Value("psdm")
+    val COSMO: Value = Value("cosmo")
   }
 
 }
