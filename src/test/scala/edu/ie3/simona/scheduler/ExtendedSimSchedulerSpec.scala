@@ -20,6 +20,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeServiceTrigger
 }
 import edu.ie3.simona.service.ServiceStateData
+import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
 import org.scalatest._
 import org.scalatest.matchers.should
@@ -160,7 +161,7 @@ class ExtendedSimSchedulerSpec
       )
 
       // tell scheduler to init
-      scheduler ! InitSimMessage
+      scheduler ! InitSimMessage(testActor)
 
       // we expect two init triggers we need to answer with completion, otherwise scheduler won't go on
       expectReturnComplete(
@@ -224,7 +225,7 @@ class ExtendedSimSchedulerSpec
 
               // we also expect that the scheduler answers with a SimulationSuccessfullMessage to the sender of the run request (this test)
               expectMsgPF() {
-                case SimulationSuccessfulMessage =>
+                case SimonaSim.SimulationSuccessfulMessage =>
                 case msg =>
                   fail(
                     s"Unexpected message received when SimulationSuccessfulMessage was expected: $msg"
@@ -282,7 +283,7 @@ class ExtendedSimSchedulerSpec
       )
 
       // tell scheduler to init
-      scheduler ! InitSimMessage
+      scheduler ! InitSimMessage(testActor)
 
       // we expect two init triggers we need to answer with completion, otherwise scheduler won't go on
       expectReturnComplete(
@@ -468,7 +469,7 @@ class ExtendedSimSchedulerSpec
 
               // we also expect that the scheduler answers with a SimulationSuccessfullMessage to the sender of the run request (this test)
               expectMsgPF() {
-                case SimulationSuccessfulMessage =>
+                case SimonaSim.SimulationSuccessfulMessage =>
                 case msg =>
                   fail(
                     s"Unexpected message received when SimulationSuccessfulMessage was expected: $msg"
@@ -512,7 +513,7 @@ class ExtendedSimSchedulerSpec
       )
 
       // tell scheduler to init
-      scheduler ! InitSimMessage
+      scheduler ! InitSimMessage(testActor)
 
       // we expect two init triggers we need to answer with completion, otherwise scheduler won't go on
       expectReturnComplete(
@@ -575,7 +576,7 @@ class ExtendedSimSchedulerSpec
 
               // we also expect that the scheduler answers with a SimulationSuccessfullMessage to the sender of the run request (this test)
               expectMsgPF() {
-                case SimulationSuccessfulMessage =>
+                case SimonaSim.SimulationSuccessfulMessage =>
                 case msg =>
                   fail(
                     s"Unexpected message received when SimulationSuccessfulMessage was expected: $msg"
@@ -618,7 +619,7 @@ class ExtendedSimSchedulerSpec
       )
 
       // tell scheduler to init
-      scheduler ! InitSimMessage
+      scheduler ! InitSimMessage(testActor)
 
       // we expect two init triggers we need to answer with completion, otherwise scheduler won't go on
       expectReturnComplete(
@@ -712,7 +713,7 @@ class ExtendedSimSchedulerSpec
               expectReturnComplete(scheduler)
               // we also expect that the scheduler answers with a SimulationSuccessfulMessage @ tick 6300 to the sender of the run request (this test)
               expectMsgPF() {
-                case SimulationSuccessfulMessage =>
+                case SimonaSim.SimulationSuccessfulMessage =>
                 case msg =>
                   fail(
                     s"Unexpected message received when SimulationSuccessfulMessage was expected: $msg"
@@ -775,7 +776,7 @@ class ExtendedSimSchedulerSpec
       )
 
       // tell scheduler to init
-      scheduler ! InitSimMessage
+      scheduler ! InitSimMessage(testActor)
 
       // we expect two init triggers we need to answer with completion, otherwise scheduler won't go on
       expectReturnComplete(
@@ -887,7 +888,7 @@ class ExtendedSimSchedulerSpec
       }
 
       expectMsgPF() {
-        case SimulationSuccessfulMessage =>
+        case SimonaSim.SimulationSuccessfulMessage =>
         case msg =>
           fail(
             s"Unexpected message received when SimulationSuccessfulMessage was expected: $msg"
@@ -966,7 +967,7 @@ class ExtendedSimSchedulerSpec
       )
 
       // tell scheduler to init
-      scheduler ! InitSimMessage
+      scheduler ! InitSimMessage(testActor)
 
       // we expect one init trigger we need to answer with completion, otherwise scheduler won't go on
       expectReturnComplete(
@@ -1036,7 +1037,7 @@ class ExtendedSimSchedulerSpec
 
       // finally expect a simulation successful message
       expectMsgPF() {
-        case SimulationSuccessfulMessage =>
+        case SimonaSim.SimulationSuccessfulMessage =>
         case msg =>
           fail(
             s"Unexpected message received when SimulationSuccessfulMessage was expected: $msg"
