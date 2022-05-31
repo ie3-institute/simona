@@ -20,6 +20,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
 import edu.ie3.simona.ontology.trigger.{ScheduledTrigger, Trigger}
 import edu.ie3.simona.scheduler.SimSchedulerStateData.SchedulerStateData
+import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.TimeUtil
 
