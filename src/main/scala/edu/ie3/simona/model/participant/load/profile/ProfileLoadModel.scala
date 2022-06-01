@@ -62,7 +62,7 @@ final case class ProfileLoadModel(
       cosPhiRated
     ) {
 
-  private val loadProfileStore: LoadProfileStore = LoadProfileStore()
+  private val loadProfileStore: StandardLoadProfileStore = StandardLoadProfileStore()
 
   /* maximum energy throughout the year of the selected load profile*/
   private val profileMaxPower = loadProfileStore.maxPower(loadProfile)
@@ -72,7 +72,7 @@ final case class ProfileLoadModel(
     reference match {
       case EnergyConsumption(energyConsumption) =>
         energyConsumption
-          .divide(LoadProfileStore.defaultLoadProfileEnergyScaling)
+          .divide(StandardLoadProfileStore.defaultLoadProfileEnergyScaling)
           .asType(classOf[Dimensionless])
           .to(PU)
       case _ =>
@@ -142,12 +142,12 @@ case object ProfileLoadModel {
 
     case LoadReference.EnergyConsumption(energyConsumption) =>
       val loadProfileMax =
-        LoadProfileStore().maxPower(input.getStandardLoadProfile)
+        StandardLoadProfileStore().maxPower(input.getStandardLoadProfile)
       val sRatedEnergy = LoadModel.scaleSRatedEnergy(
         input,
         energyConsumption,
         loadProfileMax,
-        LoadProfileStore.defaultLoadProfileEnergyScaling
+        StandardLoadProfileStore.defaultLoadProfileEnergyScaling
       )
       ProfileLoadModel(
         input.getUuid,

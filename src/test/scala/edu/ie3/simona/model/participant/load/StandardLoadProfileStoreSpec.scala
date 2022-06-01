@@ -16,7 +16,7 @@ import edu.ie3.datamodel.models.BdewLoadProfile._
 import edu.ie3.datamodel.models.{BdewLoadProfile, StandardLoadProfile}
 import edu.ie3.simona.model.participant.load.profile.{
   LoadProfileKey,
-  LoadProfileStore,
+  StandardLoadProfileStore,
   TypeDayProfile
 }
 import edu.ie3.simona.test.common.UnitSpec
@@ -29,7 +29,7 @@ import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{MINUTE, WATT}
 
-class LoadProfileStoreSpec
+class StandardLoadProfileStoreSpec
     extends UnitSpec
     with PrivateMethodTester
     with TableDrivenPropertyChecks
@@ -42,7 +42,7 @@ class LoadProfileStoreSpec
     this.getClass.getResourceAsStream("standard_load_profiles_test.csv")
   )
 
-  val customStore: LoadProfileStore = LoadProfileStore(reader)
+  val customStore: StandardLoadProfileStore = StandardLoadProfileStore(reader)
 
   "A LoadProfileStore" must {
     "return the correct values based on a custom reader" in {

@@ -13,7 +13,7 @@ import java.util
 import breeze.numerics.round
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.{BdewLoadProfile, StandardLoadProfile}
-import edu.ie3.simona.model.participant.load.profile.LoadProfileStore.{
+import edu.ie3.simona.model.participant.load.profile.StandardLoadProfileStore.{
   initializeMaxConsumptionPerProfile,
   initializeTypeDayValues
 }
@@ -38,7 +38,7 @@ import scala.math.Ordering.Double.IeeeOrdering
   *
   * Access via: LoadProfileStore()
   */
-class LoadProfileStore private (val reader: Reader) {
+class StandardLoadProfileStore private(val reader: Reader) {
   private val profileMap: Map[LoadProfileKey, TypeDayProfile] =
     initializeTypeDayValues(reader)
   private val maxParamMap: Map[StandardLoadProfile, Double] =
@@ -68,7 +68,7 @@ class LoadProfileStore private (val reader: Reader) {
           case BdewLoadProfile.H0 =>
             /* For the residential average profile, a dynamization has to be taken into account */
             val t = time.getDayOfYear // leap years are ignored
-            LoadProfileStore.dynamization(quarterHourEnergy, t)
+            StandardLoadProfileStore.dynamization(quarterHourEnergy, t)
           case _ => quarterHourEnergy
         }
         Quantities.getQuantity(load, WATT)
@@ -102,14 +102,14 @@ class LoadProfileStore private (val reader: Reader) {
   }
 }
 
-object LoadProfileStore extends LazyLogging {
+object StandardLoadProfileStore extends LazyLogging {
   val resolution: Duration = Duration.ofMinutes(15)
 
   /** Default value store, that uses information from a file
     * 'standard_load_profiles.csv' placed in the resources folder of the project
     * / jar
     */
-  private lazy val defaultStore = new LoadProfileStore(getDefaultReader)
+  private lazy val defaultStore = new StandardLoadProfileStore(getDefaultReader)
 
   /** Default standard load profile energy scaling
     */
@@ -120,11 +120,11 @@ object LoadProfileStore extends LazyLogging {
     * default standard load profiles
     *
     * @return
-    *   Instance of [[LoadProfileStore]] with default load profiles
+    * Instance of [[StandardLoadProfileStore]] with default load profiles
     */
-  def apply(): LoadProfileStore = defaultStore
+  def apply(): StandardLoadProfileStore = defaultStore
 
-  /** Default entry point to get an instance of [[LoadProfileStore]] with
+  /** Default entry point to get an instance of [[StandardLoadProfileStore]] with
     * customized load profiles provided by a specific reader including the
     * files. For the default implementation with the provided default standard
     * load profiles use [[apply()]] above.
@@ -133,9 +133,9 @@ object LoadProfileStore extends LazyLogging {
     *   the reader containing the information where the file with custom load
     *   profiles is located
     * @return
-    *   instance of [[LoadProfileStore]] with custom load profiles
+    * instance of [[StandardLoadProfileStore]] with custom load profiles
     */
-  def apply(reader: Reader): LoadProfileStore = new LoadProfileStore(reader)
+  def apply(reader: Reader): StandardLoadProfileStore = new StandardLoadProfileStore(reader)
 
   /** Calculates the dynamization factor for given day of year. Cf. <a
     * href="https://www.bdew.de/media/documents/2000131_Anwendung-repraesentativen_Lastprofile-Step-by-step.pdf">
