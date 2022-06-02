@@ -16,7 +16,7 @@ import java.util.UUID
 import javax.measure.quantity.Dimensionless
 
 /** Business logic for a transformer control group. It's main purpose is to
-  * determine, if there is any regulation need and if yes, in what circumference
+  * determine, if there is any regulation need and if yes, to what extent
   * (here: voltage raise or reduction to achieve)
   *
   * @param nodalRegulationCriterion
