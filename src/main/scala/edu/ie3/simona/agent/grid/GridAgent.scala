@@ -7,7 +7,11 @@
 package edu.ie3.simona.agent.grid
 
 import akka.actor.{ActorRef, Props, Stash}
-import edu.ie3.simona.agent.grid.GridAgentData.{GridAgentBaseData, GridAgentInitData, GridAgentUninitializedData}
+import edu.ie3.simona.agent.grid.GridAgentData.{
+  GridAgentBaseData,
+  GridAgentInitData,
+  GridAgentUninitializedData
+}
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
 import edu.ie3.simona.agent.{EnvironmentRefs, SimonaAgent}
@@ -16,15 +20,22 @@ import edu.ie3.simona.config.SimonaConfig.TransformerControlGroup
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestGridPowerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  CompletionMessage,
+  ScheduleTriggerMessage,
+  TriggerWithIdMessage
+}
 import edu.ie3.simona.ontology.messages.StopMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeGridAgentTrigger, StartGridSimulationTrigger}
+import edu.ie3.simona.ontology.trigger.Trigger.{
+  ActivityStartTrigger,
+  InitializeGridAgentTrigger,
+  StartGridSimulationTrigger
+}
 import edu.ie3.util.TimeUtil
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object GridAgent {
@@ -40,6 +51,55 @@ object GridAgent {
         listener
       )
     )
+
+  private def failFast(
+      simonaConfig: SimonaConfig,
+      gridAgentInitData: GridAgentInitData
+  ): Unit = {
+
+    /** Check if there is InitData for superior or inferior GridGates
+      */
+    if (
+      gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty
+    )
+      throw new GridAgentInitializationException(
+        s"${gridAgentInitData.subGridContainer.getGridName} has neither superior nor inferior grids! This can either " +
+          s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"
+      )
+
+    /** Check of Control Boundaries
+      */
+    simonaConfig.simona.control.foreach(control =>
+      checkBoundariesOfControlGroup(control.transformer, gridAgentInitData)
+    )
+  }
+
+  private def checkBoundariesOfControlGroup(
+      transformerControlGroup: Seq[TransformerControlGroup],
+      gridAgentInitData: GridAgentInitData
+  ): Unit = {
+    val vNom = gridAgentInitData.refSystem.nominalVoltage
+    // TODO transfer lowerBoundary Voltage from RefSystem to per Unit
+    //    val lowerBoundary = vNom.multiply(0.8).getValue.doubleValue()
+    val lowerBoundary = 0.8
+    // TODO transfer lowerBoundary Voltage from RefSystem to per Unit
+    //    val upperBoundary = vNom.multiply(1.2).getValue.doubleValue()
+    val upperBoundary = 1.2
+
+    transformerControlGroup.foreach {
+      case TransformerControlGroup(_, _, vMax, vMin) =>
+        if (vMin < lowerBoundary)
+          throw new GridAgentInitializationException(
+            s"${gridAgentInitData.subGridContainer.getGridName} has a control group which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
+              s"by invalid parametrization of one control groups where vMin is lower than the lower boundary (0.8 of nominal Voltage)!"
+          )
+        if (vMax > upperBoundary)
+          throw new GridAgentInitializationException(
+            s"${gridAgentInitData.subGridContainer.getGridName} has a control group which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
+              s"by invalid parametrization of one control groups where vMax is higher than the upper boundary (1.2 of nominal Voltage)!"
+          )
+    }
+  }
 }
 
 class GridAgent(
@@ -97,7 +157,7 @@ class GridAgent(
           _
         ) =>
       // fail fast sanity checks
-      failFast(gridAgentInitData)
+      GridAgent.failFast(simonaConfig, gridAgentInitData)
 
       log.debug(
         s"Inferior Subnets: {}; Inferior Subnet Nodes: {}",
@@ -211,59 +271,5 @@ class GridAgent(
 
   // everything else
   whenUnhandled(myUnhandled())
-  private def failFast(gridAgentInitData: GridAgentInitData): Unit = {
 
-    /** Check if there is InitData for superior or inferior GridGates
-      */
-    if (
-      gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty
-    )
-      throw new GridAgentInitializationException(
-        s"$actorName has neither superior nor inferior grids! This can either " +
-          s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"
-      )
-
-    /** Check of Control Boundaries
-      */
-    if (simonaConfig.simona.control.isDefined) {
-      val transformerControlGroup = simonaConfig.simona.control match {
-        case Some(control) => control.transformer
-      }
-      checkBoundariesofControlGroup(transformerControlGroup, gridAgentInitData)
-    }
-  }
-
-  private def checkBoundariesofControlGroup(
-      transformerControlGroup: List[TransformerControlGroup],
-      gridAgentInitData: GridAgentInitData
-  ): Unit = {
-    val vNom = gridAgentInitData.refSystem.nominalVoltage
-    val lowerBoundary = vNom.multiply(0.8).getValue.doubleValue()
-    val upperBoundary = vNom.multiply(1.2).getValue.doubleValue()
-
-    for (controlGroup <- transformerControlGroup)
-      controlGroup match {
-        case TransformerControlGroup(measurements, transformers, vMax, vMin) =>
-          if (lowerBoundary > vMin)
-            throw new GridAgentInitializationException(
-              s"$actorName has a control group which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
-                s"by invalid parametrization of one control groups where the lower Boundary is higher than vMin!"
-            )
-          if (lowerBoundary > vMax)
-            throw new GridAgentInitializationException(
-              s"$actorName has a control group which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
-                s"by invalid parametrization of one control groups where the lower Boundary is higher than vMax!"
-            )
-          if (upperBoundary < vMin)
-            throw new GridAgentInitializationException(
-              s"$actorName has a control group which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
-                s"by invalid parametrization of one control groups where the upper Boundary is lower than vMin!"
-            )
-          if (upperBoundary < vMax)
-            throw new GridAgentInitializationException(
-              s"$actorName has a control group which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
-                s"by invalid parametrization of one control groups where the upper Boundary is lower than vMax!"
-            )
-      }
-  }
 }
