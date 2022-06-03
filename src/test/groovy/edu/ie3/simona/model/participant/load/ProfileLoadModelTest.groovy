@@ -24,7 +24,7 @@ import javax.measure.quantity.Energy
 import java.time.temporal.ChronoUnit
 import java.util.stream.Collectors
 
-import static edu.ie3.datamodel.models.BdewLoadProfile.*
+import static edu.ie3.datamodel.models.profile.BdewStandardLoadProfile.*
 import static edu.ie3.simona.model.participant.load.LoadReference.ActivePower
 import static edu.ie3.simona.model.participant.load.LoadReference.EnergyConsumption
 import static edu.ie3.util.quantities.PowerSystemUnits.*
@@ -71,7 +71,7 @@ class ProfileLoadModelTest extends Specification {
 	def "A profile load model should be instantiated from valid input correctly"() {
 		when:
 		def actual = ProfileLoadModel.apply(
-				loadInput.copy().standardLoadProfile(profile).build(),
+				loadInput.copy().loadprofile(profile).build(),
 				foreSeenOperationInterval,
 				1.0,
 				reference)
