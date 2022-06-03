@@ -7,13 +7,10 @@
 package edu.ie3.simona.test
 
 import com.dimafeng.testcontainers.KafkaContainer
-import edu.ie3.simona.test.KafkaFlatSpec.Topic
+import edu.ie3.simona.test.KafkaSpecLike.Topic
 import org.apache.kafka.clients.admin.{Admin, NewTopic}
 import org.junit.Rule
-import org.scalatest.concurrent.Eventually
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.{BeforeAndAfterAll, GivenWhenThen, Inspectors}
+import org.scalatest.{BeforeAndAfterAll, TestSuite}
 import org.testcontainers.utility.DockerImageName
 
 import scala.jdk.CollectionConverters._
@@ -21,13 +18,8 @@ import scala.jdk.CollectionConverters._
 /** Adapted from
   * https://kafka-tutorials.confluent.io/produce-consume-lang/scala.html
   */
-trait KafkaFlatSpec
-    extends AnyFlatSpec
-    with Matchers
-    with Inspectors
-    with BeforeAndAfterAll
-    with GivenWhenThen
-    with Eventually {
+trait KafkaSpecLike extends BeforeAndAfterAll {
+  this: TestSuite =>
 
   protected val testTopics: Vector[Topic]
 
@@ -60,7 +52,7 @@ trait KafkaFlatSpec
   }
 }
 
-object KafkaFlatSpec {
+object KafkaSpecLike {
   final case class Topic(
       name: String,
       partitions: Int,

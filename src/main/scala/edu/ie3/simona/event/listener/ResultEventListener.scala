@@ -76,13 +76,11 @@ object ResultEventListener extends Transformer3wResultSupport {
   ) extends ResultEventListenerData
 
   def props(
-      eventClassesToConsider: Set[Class[_ <: ResultEntity]],
       resultFileHierarchy: ResultFileHierarchy,
       supervisor: ActorRef
   ): Props =
     Props(
       new ResultEventListener(
-        eventClassesToConsider,
         resultFileHierarchy,
         supervisor
       )
@@ -92,20 +90,19 @@ object ResultEventListener extends Transformer3wResultSupport {
     * with the model names as strings. It generates one sink for each model
     * class.
     *
-    * @param eventClassesToConsider
-    *   Incoming event classes that should be considered
+    * @param resultFileHierarchy
+    *   The result file hierarchy
     * @return
     *   mapping of the model class to the sink for this model class
     */
   private def initializeSinks(
-      eventClassesToConsider: Set[Class[_ <: ResultEntity]],
       resultFileHierarchy: ResultFileHierarchy
   )(implicit
       materializer: Materializer
   ): Iterable[Future[(Class[_], ResultEntitySink)]] = {
     resultFileHierarchy.resultSinkType match {
       case _: ResultSinkType.Csv =>
-        eventClassesToConsider
+        resultFileHierarchy.resultEntitiesToConsider
           .map(resultClass => {
             resultFileHierarchy.rawOutputDataFilePaths
               .get(resultClass)
@@ -136,7 +133,7 @@ object ResultEventListener extends Transformer3wResultSupport {
           })
       case ResultSinkType.InfluxDb1x(url, database, scenario) =>
         // creates one connection per result entity that should be processed
-        eventClassesToConsider
+        resultFileHierarchy.resultEntitiesToConsider
           .map(resultClass =>
             ResultEntityInfluxDbSink(url, database, scenario).map(
               (resultClass, _)
@@ -172,7 +169,6 @@ object ResultEventListener extends Transformer3wResultSupport {
 }
 
 class ResultEventListener(
-    eventClassesToConsider: Set[Class[_ <: ResultEntity]],
     resultFileHierarchy: ResultFileHierarchy,
     supervisor: ActorRef
 ) extends SimonaListener
@@ -186,7 +182,9 @@ class ResultEventListener(
     log.debug("Starting initialization!")
     log.debug(
       s"Events that will be processed: {}",
-      eventClassesToConsider.map(_.getSimpleName).mkString(",")
+      resultFileHierarchy.resultEntitiesToConsider
+        .map(_.getSimpleName)
+        .mkString(",")
     )
     self ! Init
   }
@@ -321,7 +319,6 @@ class ResultEventListener(
       Future
         .sequence(
           ResultEventListener.initializeSinks(
-            eventClassesToConsider,
             resultFileHierarchy
           )
         )
