@@ -9,16 +9,21 @@ package edu.ie3.simona.model.participant.load.profile
 import java.io.{InputStreamReader, Reader}
 import java.time.{Duration, ZonedDateTime}
 import java.util
-
 import breeze.numerics.round
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.{BdewLoadProfile, StandardLoadProfile}
+import edu.ie3.datamodel.models.profile.{
+  BdewStandardLoadProfile,
+  LoadProfile,
+  StandardLoadProfile
+}
 import edu.ie3.simona.model.participant.load.profile.LoadProfileStore.{
   initializeMaxConsumptionPerProfile,
   initializeTypeDayValues
 }
-import edu.ie3.simona.model.participant.load.{DayType, profile}
+import edu.ie3.simona.model.participant.load.DayType
+import edu.ie3.simona.model.participant.load.profile.LoadProfileKey
 import edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
+
 import javax.measure.quantity.{Energy, Power}
 import org.apache.commons.csv.CSVFormat
 import tech.units.indriya.ComparableQuantity
@@ -41,7 +46,7 @@ import scala.math.Ordering.Double.IeeeOrdering
 class LoadProfileStore private (val reader: Reader) {
   private val profileMap: Map[LoadProfileKey, TypeDayProfile] =
     initializeTypeDayValues(reader)
-  private val maxParamMap: Map[StandardLoadProfile, Double] =
+  private val maxParamMap: Map[LoadProfile, Double] =
     initializeMaxConsumptionPerProfile(
       profileMap
     )
@@ -65,7 +70,7 @@ class LoadProfileStore private (val reader: Reader) {
       case Some(typeDayValues) =>
         val quarterHourEnergy = typeDayValues.getQuarterHourEnergy(time)
         val load = loadProfile match {
-          case BdewLoadProfile.H0 =>
+          case BdewStandardLoadProfile.H0 =>
             /* For the residential average profile, a dynamization has to be taken into account */
             val t = time.getDayOfYear // leap years are ignored
             LoadProfileStore.dynamization(quarterHourEnergy, t)
@@ -89,7 +94,7 @@ class LoadProfileStore private (val reader: Reader) {
     *   the maximum load in W
     */
   def maxPower(
-      loadProfile: StandardLoadProfile
+      loadProfile: LoadProfile
   ): ComparableQuantity[Power] = {
     maxParamMap.get(loadProfile) match {
       case Some(value) =>
@@ -197,21 +202,25 @@ object LoadProfileStore extends LazyLogging {
     */
   private def initializeMaxConsumptionPerProfile(
       profileMap: Map[LoadProfileKey, TypeDayProfile]
-  ): Map[StandardLoadProfile, Double] = {
+  ): Map[LoadProfile, Double] = {
     /* Get all standard load profiles, that have been put into the store */
-    val knownLoadProfiles: Set[StandardLoadProfile] =
+    val knownLoadProfiles: Set[LoadProfile] =
       profileMap.keySet.map(key => key.standardLoadProfile)
 
     knownLoadProfiles
       .flatMap(loadProfile => {
         (loadProfile match {
-          case BdewLoadProfile.H0 =>
+          case BdewStandardLoadProfile.H0 =>
             // max load for h0 is expected to be exclusively found in winter,
             // thus we only search there.
             DayType.values
               .map(dayType => {
                 val key =
-                  profile.LoadProfileKey(loadProfile, Season.winter, dayType)
+                  LoadProfileKey(
+                    loadProfile.asInstanceOf[StandardLoadProfile],
+                    Season.winter,
+                    dayType
+                  )
                 // maximum dynamization factor is on day 366 (leap year) or day 365 (regular year).
                 // The difference between day 365 and day 366 is negligible, thus pick 366
                 profileMap
@@ -222,7 +231,11 @@ object LoadProfileStore extends LazyLogging {
               .maxOption
           case _ =>
             (for (season <- Season.values; dayType <- DayType.values) yield {
-              val key = profile.LoadProfileKey(loadProfile, season, dayType)
+              val key = LoadProfileKey(
+                loadProfile.asInstanceOf[StandardLoadProfile],
+                season,
+                dayType
+              )
               profileMap.get(key) match {
                 case Some(value) => Option(value.getMaxValue)
                 case None        => None

@@ -11,6 +11,7 @@ import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
+import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
@@ -21,10 +22,11 @@ import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
 import javax.measure.quantity.Energy
+import javax.measure.quantity.Power
 import java.time.temporal.ChronoUnit
 import java.util.stream.Collectors
 
-import static edu.ie3.datamodel.models.BdewLoadProfile.*
+import static edu.ie3.datamodel.models.profile.BdewStandardLoadProfile.*
 import static edu.ie3.simona.model.participant.load.LoadReference.ActivePower
 import static edu.ie3.simona.model.participant.load.LoadReference.EnergyConsumption
 import static edu.ie3.util.quantities.PowerSystemUnits.*
@@ -68,10 +70,10 @@ class ProfileLoadModelTest extends Specification {
 	)
 	def testingTolerance = 1e-6 // Equals to 1 W power
 
-	def "A profile load model should be instantiated from valid input correctly"() {
+	def "A profile load model should be instantiated from valid input correctly"(StandardLoadProfile profile, ComparableQuantity<Power> reference, ComparableQuantity<Power> expectedsRated) {
 		when:
 		def actual = ProfileLoadModel.apply(
-				loadInput.copy().standardLoadProfile(profile).build(),
+				loadInput.copy().loadProfile(profile).build(),
 				foreSeenOperationInterval,
 				1.0,
 				reference)
