@@ -11,7 +11,10 @@ import akka.event.LoggingAdapter
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.datamodel.models.input.system._
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower,
+  ApparentPowerAndHeat
+}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorEvMovementsService,
@@ -28,6 +31,7 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.{
   EvcsRuntimeConfig,
   FixedFeedInRuntimeConfig,
+  HpRuntimeConfig,
   LoadRuntimeConfig,
   PvRuntimeConfig,
   WecRuntimeConfig
@@ -40,6 +44,7 @@ import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.participant.hp.HpAgent
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -279,6 +284,15 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs)
+      )
+    case hpInput: HpInput =>
+      buildHp(
+        hpInput,
+        participantConfigUtil.getHpConfigOrDefault(hpInput.getUuid),
+        environmentRefs.primaryServiceProxy,
+        environmentRefs.weather,
+        requestVoltageDeviationThreshold,
+        outputConfigUtil.getOrDefault(NotifierIdentifier.Hp)
       )
     case input: SystemParticipantInput =>
       throw new NotImplementedError(
@@ -548,6 +562,57 @@ class GridAgentController(
       )
     )
   }
+
+  /** Builds an [[HpAgent]] from given input
+    * @param hpInput
+    *   Input model
+    * @param modelConfiguration
+    *   Runtime configuration for the agent
+    * @param primaryServiceProxy
+    *   Proxy actor reference for primary data
+    * @param weatherService
+    *   Actor reference for weather service
+    * @param requestVoltageDeviationThreshold
+    *   Permissible voltage magnitude deviation to consider being equal
+    * @param outputConfig
+    *   Configuration for output notification
+    * @return
+    *   A tuple of actor reference and [[ParticipantInitializeStateData]]
+    */
+  private def buildHp(
+      hpInput: HpInput,
+      modelConfiguration: HpRuntimeConfig,
+      primaryServiceProxy: ActorRef,
+      weatherService: ActorRef,
+      requestVoltageDeviationThreshold: Double,
+      outputConfig: ParticipantNotifierConfig
+  ): (
+      ActorRef,
+      ParticipantInitializeStateData[
+        HpInput,
+        HpRuntimeConfig,
+        ApparentPowerAndHeat
+      ]
+  ) = (
+    gridAgentContext.simonaActorOf(
+      HpAgent.props(
+        environmentRefs.scheduler,
+        listener
+      ),
+      hpInput.getId
+    ),
+    ParticipantInitializeStateData(
+      hpInput,
+      modelConfiguration,
+      primaryServiceProxy,
+      Some(Vector(ActorWeatherService(weatherService))),
+      simulationStartDate,
+      simulationEndDate,
+      resolution,
+      requestVoltageDeviationThreshold,
+      outputConfig
+    )
+  )
 
   /** Creates a pv agent and determines the needed additional information for
     * later initialization of the agent.

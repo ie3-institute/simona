@@ -38,7 +38,8 @@ object ConfigUtil {
       private val defaultFixedFeedInConfig: FixedFeedInRuntimeConfig,
       private val defaultPvConfig: PvRuntimeConfig,
       private val defaultWecConfig: WecRuntimeConfig,
-      private val defaultEvcsConfig: EvcsRuntimeConfig
+      private val defaultEvcsConfig: EvcsRuntimeConfig,
+      private val defaultHpConfig: HpRuntimeConfig
   ) {
 
     /** Queries for a [[LoadRuntimeConfig]], that applies for the given uuid and
@@ -111,6 +112,22 @@ object ConfigUtil {
         case Some(evcsConfig: EvcsRuntimeConfig) => evcsConfig
         case _                                   => defaultEvcsConfig
       }
+
+    /** Queries for a [[HpRuntimeConfig]], that applies for the given uuid and
+      * either returns the config for the requested uuid or the default config.
+      * If the requested uuid is valid, but the return type is not of type
+      * [[HpRuntimeConfig]] the default config for this type is returned.
+      *
+      * @param uuid
+      *   Identifier of the requested Heatpump model
+      * @return
+      *   the requested [[HpRuntimeConfig]] or a default value
+      */
+    def getHpConfigOrDefault(uuid: UUID): HpRuntimeConfig =
+      configs.get(uuid) match {
+        case Some(hpConfig: HpRuntimeConfig) => hpConfig
+        case _                               => defaultHpConfig
+      }
   }
 
   object ParticipantConfigUtil {
@@ -139,7 +156,8 @@ object ConfigUtil {
         subConfig.fixedFeedIn.defaultConfig,
         subConfig.pv.defaultConfig,
         subConfig.wec.defaultConfig,
-        subConfig.evcs.defaultConfig
+        subConfig.evcs.defaultConfig,
+        subConfig.hp.defaultConfig
       )
     }
 
@@ -275,6 +293,7 @@ object ConfigUtil {
     val PvPlant: Value = Value("pv")
     val Storage: Value = Value("storage")
     val Wec: Value = Value("wec")
+    val Hp: Value = Value("hp")
   }
 
   object CsvConfigUtil {
