@@ -70,10 +70,11 @@ class ProfileLoadModelTest extends Specification {
 	)
 	def testingTolerance = 1e-6 // Equals to 1 W power
 
-	def "A profile load model should be instantiated from valid input correctly"(StandardLoadProfile profile, ComparableQuantity<Power> reference, ComparableQuantity<Power> expectedsRated) {
+	def "A profile load model should be instantiated from valid input correctly"(StandardLoadProfile profile, LoadReference reference, ComparableQuantity<Power> expectedsRated) {
 		when:
+		def adaptedInput = loadInput.copy().loadprofile(profile).build()
 		def actual = ProfileLoadModel.apply(
-				loadInput.copy().loadProfile(profile).build(),
+				adaptedInput,
 				foreSeenOperationInterval,
 				1.0,
 				reference)
@@ -82,13 +83,13 @@ class ProfileLoadModelTest extends Specification {
 		abs((actual.sRated() * actual.cosPhiRated()).subtract(expectedsRated).to(MEGAWATT).value.doubleValue()) < testingTolerance
 
 		where:
-		profile | reference                                                          || expectedsRated
-		H0      | new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
-		H0      | new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(805.8089, WATT)
-		L0      | new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
-		L0      | new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(721.2, WATT)
-		G0      | new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
-		G0      | new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(721.2, WATT)
+		profile                   | reference                                                          || expectedsRated
+		H0 as StandardLoadProfile | new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
+		H0 as StandardLoadProfile | new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(805.8089, WATT)
+		L0 as StandardLoadProfile | new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
+		L0 as StandardLoadProfile | new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(721.2, WATT)
+		G0 as StandardLoadProfile | new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
+		G0 as StandardLoadProfile | new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(721.2, WATT)
 	}
 
 	def "A profile load model should reach the targeted maximum power within a year"() {

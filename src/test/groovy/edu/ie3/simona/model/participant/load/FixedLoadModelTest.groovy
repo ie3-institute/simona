@@ -11,6 +11,7 @@ import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
+import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
@@ -43,7 +44,7 @@ class FixedLoadModelTest extends Specification {
 	-1
 	),
 	new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
-	BdewLoadProfile.H0,
+	BdewStandardLoadProfile.H0,
 	false,
 	Quantities.getQuantity(3000d, KILOWATTHOUR),
 	Quantities.getQuantity(282.74d, VOLTAMPERE),
