@@ -30,7 +30,7 @@ ext {
   tscfgVersion = '0.9.998'
   scapegoatVersion = '1.4.14'
 
-  testContainerVersion = '0.40.7'
+  testContainerVersion = '0.40.8'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
 }
@@ -70,7 +70,7 @@ dependencies {
   }
 
   // ie³ internal repository
-  implementation('com.github.ie3-institute:PowerSystemUtils:1.6') {
+  implementation('com.github.ie3-institute:PowerSystemUtils:2.0-SNAPSHOT') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -99,13 +99,13 @@ dependencies {
   implementation 'org.scala-lang.modules:scala-parallel-collections_2.13:1.0.4'
 
   /* logging */
-  implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.4" // akka scala logging
+  implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // akka scala logging
   implementation "ch.qos.logback:logback-classic:1.2.11"
 
   /* testing */
   testImplementation 'org.spockframework:spock-core:2.1-groovy-3.0'
   testImplementation 'org.scalatestplus:mockito-3-4_2.13:3.2.10.0'
-  implementation 'org.mockito:mockito-core:4.5.1' // mocking framework
+  implementation 'org.mockito:mockito-core:4.6.1' // mocking framework
   testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.12"
   testRuntimeOnly 'com.vladsch.flexmark:flexmark-all:0.64.0' //scalatest html output
   testImplementation group: 'org.pegdown', name: 'pegdown', version: '1.6.0'
