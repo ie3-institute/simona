@@ -68,7 +68,7 @@ case object LoadProfileKey {
   ): LoadProfileKey = {
     try {
       new LoadProfileKey(
-        LoadProfile.parse(loadProfile).asInstanceOf[StandardLoadProfile],
+        StandardLoadProfile.parse(loadProfile),
         Season(season),
         DayType(dayType)
       )
