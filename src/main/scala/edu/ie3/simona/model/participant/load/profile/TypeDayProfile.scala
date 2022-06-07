@@ -15,7 +15,7 @@ import scala.math.Ordering.Double.IeeeOrdering
 
 /** Stores a slice of load profile data, that comprises a whole day (96 quarter
   * hours). The data describes a typical day, that can unequivocally be
-  * identified by a [[LoadProfileKey]].
+  * identified by a [[StandardLoadProfileKey]].
   *
   * @param values
   *   96 quarter-hour values for this load profile,

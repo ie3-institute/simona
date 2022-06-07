@@ -6,4 +6,4 @@
 
 package edu.ie3.simona.model.participant.load.profile
 
-trait LoadProfileKey {}
+trait LoadProfileStoreUtils {}

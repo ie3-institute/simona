@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.model.participant.load.profile
 
-import edu.ie3.datamodel.models.StandardLoadProfile
 import edu.ie3.datamodel.models.input.system.LoadInput
+import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference._
@@ -62,7 +62,8 @@ final case class ProfileLoadModel(
       cosPhiRated
     ) {
 
-  private val loadProfileStore: StandardLoadProfileStore = StandardLoadProfileStore()
+  private val loadProfileStore: StandardLoadProfileStore =
+    StandardLoadProfileStore()
 
   /* maximum energy throughout the year of the selected load profile*/
   private val profileMaxPower = loadProfileStore.maxPower(loadProfile)

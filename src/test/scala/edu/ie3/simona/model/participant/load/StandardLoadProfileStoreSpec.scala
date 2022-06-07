@@ -15,7 +15,7 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.BdewLoadProfile._
 import edu.ie3.datamodel.models.{BdewLoadProfile, StandardLoadProfile}
 import edu.ie3.simona.model.participant.load.profile.{
-  LoadProfileKey,
+  StandardLoadProfileKey,
   StandardLoadProfileStore,
   TypeDayProfile
 }
@@ -107,7 +107,7 @@ class StandardLoadProfileStoreSpec
       /* Collect all available load profiles */
       val availableLoadProfiles: Set[StandardLoadProfile] =
         (customStore invokePrivate PrivateMethod[
-          Map[LoadProfileKey, TypeDayProfile]
+          Map[StandardLoadProfileKey, TypeDayProfile]
         ](Symbol("profileMap"))()).keySet.map(_.standardLoadProfile)
 
       /* List the expected annual energy consumption */
