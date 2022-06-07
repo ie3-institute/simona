@@ -1,0 +1,24 @@
+@startuml
+title Use Case MarketSignal Optimization \n Existing: LoadAgent, PV \n Missing: HomeStorage, EV
+participant GridAgent
+participant HEMS
+participant LoadAgent
+participant PVAgent
+group init
+LoadAgent -> HEMS: PowerDemandLoadAgentTotal,\nPowerDemandLoadAgentCurtailable
+PVAgent -> HEMS: PVInput
+GridAgent -> HEMS: MarketSignal [0,1] /'0 == Energy expensive , 1 == Energy cheap'/
+end
+alt#Gold #Brown MarketSignal = 0
+    alt#Gold #LightBlue Load <= Production
+        HEMS -> GridAgent: Feed-in = PVInput - PowerDemandGrid
+    else #Pink Load > Production
+        HEMS -> LoadAgent: Curtailment (On/off or Stepwise?) \nPowerDemandLoadAgent = PowerDemandLoadAgentTotal - PowerDemandLoadAgentCurtailable
+        HEMS -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PVInput
+    end
+else #Green MarketSignal = 1
+group Same behavoiur as in Self Optimization Case
+end
+end
+
+@enduml
