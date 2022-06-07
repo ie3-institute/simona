@@ -6,24 +6,21 @@
 
 package edu.ie3.simona.model.participant.load
 
+import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.load.LoadReference.{
-  ActivePower,
-  EnergyConsumption
-}
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData
-import edu.ie3.simona.util.ConfigUtil
-import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATTHOUR, MEGAVOLTAMPERE}
+import edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
 import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
-import javax.measure.Quantity
-import javax.measure.quantity.Power
 import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.TableDrivenPropertyChecks
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.WATT
+
+import javax.measure.Quantity
+import javax.measure.quantity.Power
 
 class LoadModelSpec
     extends UnitSpec
@@ -85,7 +82,8 @@ class LoadModelSpec
                   quantityTolerance
                 ) shouldBe true
                 cosPhiRated shouldBe loadInput.getCosPhiRated
-                loadProfile shouldBe loadInput.getStandardLoadProfile
+                loadProfile shouldBe loadInput.getLoadProfile
+                  .asInstanceOf[StandardLoadProfile]
                 reference shouldBe foreSeenReference
             }
           }

@@ -290,13 +290,13 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
 object WeatherSourceWrapperSpec {
   // lat/lon are irrelevant, we will manually create weights later on
-  private val coordinate1a = GeoUtils.xyToPoint(6, 51)
-  private val coordinate1b = GeoUtils.xyToPoint(7, 51)
-  private val coordinate1c = GeoUtils.xyToPoint(8, 51)
-  private val coordinate1d = GeoUtils.xyToPoint(9, 51)
-  private val coordinate13 = GeoUtils.xyToPoint(10, 51)
-  private val coordinate13NoTemp = GeoUtils.xyToPoint(10, 52)
-  private val coordinateEmpty = GeoUtils.xyToPoint(10, 53)
+  private val coordinate1a = GeoUtils.buildPoint(51, 6)
+  private val coordinate1b = GeoUtils.buildPoint(51, 7)
+  private val coordinate1c = GeoUtils.buildPoint(51, 8)
+  private val coordinate1d = GeoUtils.buildPoint(51, 9)
+  private val coordinate13 = GeoUtils.buildPoint(51, 10)
+  private val coordinate13NoTemp = GeoUtils.buildPoint(52, 10)
+  private val coordinateEmpty = GeoUtils.buildPoint(53, 10)
 
   case object DummyPsdmWeatherSource extends PsdmWeatherSource {
 
