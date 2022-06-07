@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Implement SQL source for primary data [#34](https://github.com/ie3-institute/simona/issues/34), [#101](https://github.com/ie3-institute/simona/issues/101)
+- Instantiation of Energy Management Agents [#204](https://github.com/ie3-institute/simona/issues/204)
 
 ### Changed
 - Improving code readability in EvcsAgent by moving FreeLotsRequest to separate methods
