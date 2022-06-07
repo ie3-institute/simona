@@ -20,7 +20,6 @@ class GridAgentControlSpec extends UnitSpec with GridInputTestData {
       Symbol("checkBoundariesOfControlGroup")
     )
 
-
     val gridAgentInitData = GridAgentInitData(
       validTestGridInputModel,
       Map.empty,
@@ -69,13 +68,13 @@ class GridAgentControlSpec extends UnitSpec with GridInputTestData {
 
     "should run through when vMin and vMax are within the boundaries of +-20% of nominal Voltage" in {
       val transformerControlGroup = Seq(
-      TransformerControlGroup(
-        List.empty[String],
-        List.empty[String],
-        1.1,
-        0.9
+        TransformerControlGroup(
+          List.empty[String],
+          List.empty[String],
+          1.1,
+          0.9
+        )
       )
-    )
 
       GridAgent invokePrivate checkBoundariesOfControlGroup(
         transformerControlGroup,

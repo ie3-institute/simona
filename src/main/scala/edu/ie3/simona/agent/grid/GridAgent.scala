@@ -7,7 +7,11 @@
 package edu.ie3.simona.agent.grid
 
 import akka.actor.{ActorRef, Props, Stash}
-import edu.ie3.simona.agent.grid.GridAgentData.{GridAgentBaseData, GridAgentInitData, GridAgentUninitializedData}
+import edu.ie3.simona.agent.grid.GridAgentData.{
+  GridAgentBaseData,
+  GridAgentInitData,
+  GridAgentUninitializedData
+}
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
 import edu.ie3.simona.agent.{EnvironmentRefs, SimonaAgent}
@@ -15,9 +19,17 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestGridPowerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  CompletionMessage,
+  ScheduleTriggerMessage,
+  TriggerWithIdMessage
+}
 import edu.ie3.simona.ontology.messages.StopMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeGridAgentTrigger, StartGridSimulationTrigger}
+import edu.ie3.simona.ontology.trigger.Trigger.{
+  ActivityStartTrigger,
+  InitializeGridAgentTrigger,
+  StartGridSimulationTrigger
+}
 import edu.ie3.util.TimeUtil
 
 import java.time.ZonedDateTime
@@ -40,7 +52,7 @@ object GridAgent {
     )
 
   private def failFast(
-        gridAgentInitData: GridAgentInitData
+      gridAgentInitData: GridAgentInitData
   ): Unit = {
 
     /** Check if there is InitData for superior or inferior GridGates
