@@ -573,40 +573,31 @@ case object ConfigFailFast extends LazyLogging {
     val lowerBoundary = 0.8
     val upperBoundary = 1.2
     transformerControlGroup match {
-    case TransformerControlGroup(measurements, transformers, vMax, vMin) =>
-      if (measurements.isEmpty)
-        throw new InvalidConfigParameterException(
-          "A transformer control group cannot have no measurements assigned."
-        )
-      if (transformers.isEmpty)
-        throw new InvalidConfigParameterException(
-          "A transformer control group cannot have no transformers assigned."
-        )
-      if (vMin < 0)
-        throw new InvalidConfigParameterException(
-          "The minimum permissible voltage magnitude of a transformer control group has to be positive."
-        )
-      if (vMax < 0)
-        throw new InvalidConfigParameterException(
-          "The maximum permissible voltage magnitude of a transformer control group has to be positive."
-        )
-      if (vMax < vMin)
-        throw new InvalidConfigParameterException(
-          "The minimum permissible voltage magnitude of a transformer control group must be smaller than the maximum permissible voltage magnitude."
-        )
-      if (vMin < lowerBoundary)
-        throw new InvalidConfigParameterException(
-          s"A control group which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
-            s"by invalid parametrization of one control groups where vMin is lower than the lower boundary (0.8 of nominal Voltage)!"
-        )
-      if (vMax > upperBoundary)
-        throw new InvalidConfigParameterException(
-          s"A control group which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
-            s"by invalid parametrization of one control groups where vMax is higher than the upper boundary (1.2 of nominal Voltage)!"
-        )
+      case TransformerControlGroup(measurements, transformers, vMax, vMin) =>
+        if (measurements.isEmpty)
+          throw new InvalidConfigParameterException(
+            "A transformer control group cannot have no measurements assigned."
+          )
+        if (transformers.isEmpty)
+          throw new InvalidConfigParameterException(
+            "A transformer control group cannot have no transformers assigned."
+          )
+        if (vMax < vMin)
+          throw new InvalidConfigParameterException(
+            "The minimum permissible voltage magnitude of a transformer control group must be smaller than the maximum permissible voltage magnitude."
+          )
+        if (vMin < lowerBoundary)
+          throw new InvalidConfigParameterException(
+            s"A control group which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
+              s"by invalid parametrization of one control groups where vMin is lower than the lower boundary (0.8 of nominal Voltage)!"
+          )
+        if (vMax > upperBoundary)
+          throw new InvalidConfigParameterException(
+            s"A control group which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
+              s"by invalid parametrization of one control groups where vMax is higher than the upper boundary (1.2 of nominal Voltage)!"
+          )
+    }
   }
-  }
-
 
   /** Check the default config
     *
