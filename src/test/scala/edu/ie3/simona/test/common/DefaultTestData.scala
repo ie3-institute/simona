@@ -171,6 +171,13 @@ trait DefaultTestData {
          |    uuids = ["default"]
          |    scaling = 1.0
          |  }
+         |
+         |simona.runtime.participant.energymanagement = {
+         |  defaultConfig = {
+         |    calculateMissingReactivePowerWithModel = false
+         |    uuids = ["default"]
+         |    scaling = 1.0
+         |  }
          |  individualConfigs = [
          |    {
          |      calculateMissingReactivePowerWithModel = false

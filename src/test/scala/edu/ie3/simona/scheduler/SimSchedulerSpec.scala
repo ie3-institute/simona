@@ -154,6 +154,21 @@ class SimSchedulerSpec
               ]
             }
 
+            simona.runtime.participant.energymanagement = {
+              defaultConfig = {
+                calculateMissingReactivePowerWithModel = false
+                uuids = ["default"]
+                scaling = 1.0
+              }
+              individualConfigs = [
+                {
+                  calculateMissingReactivePowerWithModel = false
+                  uuids = ["4eeaf76a-ec17-4fc3-872d-34b7d6004b03"]
+                  scaling = 1.0
+                }
+              ]
+            }
+
             simona.powerflow.maxSweepPowerDeviation = 1E-5 // the maximum allowed deviation in power between two sweeps, before overall convergence is assumed
             simona.powerflow.skipOnFailure = true
             simona.powerflow.resolution = "${resolutionInSec}s"

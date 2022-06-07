@@ -22,7 +22,8 @@ case object EntityMapperUtil {
     Ev -> classOf[EvResult],
     Evcs -> classOf[EvcsResult],
     ChpPlant -> classOf[ChpResult],
-    Storage -> classOf[StorageResult]
+    Storage -> classOf[StorageResult],
+    Em -> classOf[EmResult]
   )
 
   /** Get the classes of [[ResultEntity]], that are issued by the notifier, that
