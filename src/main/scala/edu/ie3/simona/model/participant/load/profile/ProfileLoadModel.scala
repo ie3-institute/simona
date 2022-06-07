@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.participant.load.profile
 
-import edu.ie3.datamodel.models.StandardLoadProfile
+import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.control.QControl
@@ -136,13 +136,15 @@ case object ProfileLoadModel {
         QControl.apply(input.getqCharacteristics()),
         sRatedPowerScaled,
         input.getCosPhiRated,
-        input.getStandardLoadProfile,
+        input.getLoadProfile.asInstanceOf[StandardLoadProfile],
         reference
       )
 
     case LoadReference.EnergyConsumption(energyConsumption) =>
       val loadProfileMax =
-        LoadProfileStore().maxPower(input.getStandardLoadProfile)
+        LoadProfileStore().maxPower(
+          input.getLoadProfile.asInstanceOf[StandardLoadProfile]
+        )
       val sRatedEnergy = LoadModel.scaleSRatedEnergy(
         input,
         energyConsumption,
@@ -157,7 +159,7 @@ case object ProfileLoadModel {
         QControl.apply(input.getqCharacteristics()),
         sRatedEnergy,
         input.getCosPhiRated,
-        input.getStandardLoadProfile,
+        input.getLoadProfile.asInstanceOf[StandardLoadProfile],
         reference
       )
   }
