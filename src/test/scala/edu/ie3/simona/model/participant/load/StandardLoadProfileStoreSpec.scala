@@ -12,8 +12,8 @@ import java.time.temporal.ChronoUnit
 
 import breeze.numerics.abs
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.BdewLoadProfile._
-import edu.ie3.datamodel.models.{BdewLoadProfile, StandardLoadProfile}
+import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile._
+import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.simona.model.participant.load.profile.{
   StandardLoadProfileKey,
   StandardLoadProfileStore,
@@ -113,10 +113,10 @@ class StandardLoadProfileStoreSpec
       /* List the expected annual energy consumption */
       val expectedEnergyConsumption
           : Map[StandardLoadProfile, ComparableQuantity[Energy]] = Map(
-        BdewLoadProfile.H0 -> Quantities.getQuantity(1000d, KILOWATTHOUR),
-        BdewLoadProfile.L0 -> Quantities.getQuantity(1002d, KILOWATTHOUR),
+        H0 -> Quantities.getQuantity(1000d, KILOWATTHOUR),
+        L0 -> Quantities.getQuantity(1002d, KILOWATTHOUR),
         /* TODO: Check, if this is correct */
-        BdewLoadProfile.G0 -> Quantities.getQuantity(1022d, KILOWATTHOUR)
+        G0 -> Quantities.getQuantity(1022d, KILOWATTHOUR)
       )
 
       /* Collect all available time steps in 2020 */
