@@ -1,0 +1,45 @@
+@startuml
+title Use Case Markte Signal Optimization \n Existing: LoadAgent, HomeStorage, PV \n Missing: EV
+participant GridAgent
+participant HEMS
+participant LoadAgent
+participant PVAgent
+participant HomeStorageAgent
+
+group init
+LoadAgent -> HEMS: PowerDemandLoadAgentTotal,\nPowerDemandLoadAgentCurtailable
+PVAgent -> HEMS: PVInput
+HomeStorageAgent -> HEMS: SoC HomeStorage
+GridAgent -> HEMS: MarketSignal [0,1] /'0 == Energy expensive , 1 == Energy cheap'/
+end
+alt#Gold #Brown MarketSignal = 0
+alt#Gold #LightBlue Load <= Production
+    group#Gold #LightBlue Same Case as Load <= Production in Self Optimization case -> Increase Load until Production
+    end
+else #Pink Load > Production
+     group#Gold #LightBlue
+        HEMS -> HEMS: 3 Fälle
+        HEMS -> HEMS: a. SoC HomeStorage > 0, Load < Production + Ausspeichern -> no Curtailment
+        HEMS -> HEMS: b. SoC HomeStorage > 0, Load > Production + Ausspeichern -> Curtailment
+        HEMS -> HEMS: c. SoC HomeStorage = 0, Load !> Production -> Curtailment
+        group
+        HEMS -> HomeStorageAgent: \nwhile SoC HomeStorage > 0: Uncharge HomeStorage with \nUnchargePowerHomestorage = min [PowerDemandLoadAgent - PVInput || RatedPowerHomestorage]
+        alt#Gold if PowerDemandLoadAgentTotal - PVInput - UnchargePowerHomestorage > 0
+        HEMS -> LoadAgent: Curtailment,\n PowerDemandLoadAgent = PowerDemandLoadAgentTotal - PowerDemandLoadAgentCurtailable
+
+        alt#Gold if ResidualLoad > 0
+           HEMS -> GridAgent: PowerDemand = PowerDemandLoadAgentTotal - PowerDemandLoadAgentCurtailable - UnchargePowerHomestorage - PVInput
+           end
+        end
+end
+end
+end
+
+else #Green MarketSignal = 1
+group Same behavoiur as in Self Optimization Case
+end
+end
+@enduml
+
+
+

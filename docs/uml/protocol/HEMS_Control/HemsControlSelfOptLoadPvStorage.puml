@@ -1,0 +1,66 @@
+@startuml
+/'
+Check SoC of Homestorage when calculate PowerDemandHomeStorage
+
+'/
+title Use Case Optimize Self Consumption \n Existing: LoadAgent, HomeStorage, PV \n Missing: EV
+participant GridAgent
+participant HEMSAgent
+participant LoadAgent
+participant PVAgent
+participant HomeStorageAgent
+group init
+    activate GridAgent
+    GridAgent -> HEMSAgent: create()
+        activate HEMSAgent
+
+    HEMSAgent -> LoadAgent: create()
+        activate LoadAgent
+        LoadAgent --> HEMSAgent: active
+
+    HEMSAgent -> PVAgent: create()
+        activate PVAgent
+         PVAgent --> HEMSAgent: active
+
+    HEMSAgent -> HomeStorageAgent: create(Volume, RatedPower, SoC)
+        activate HomeStorageAgent
+        HomeStorageAgent --> HEMSAgent: active
+    end
+group #LightGrey InitialUpdateFirstTick
+    HEMSAgent -> LoadAgent: get PowerDemand
+    LoadAgent -> HEMSAgent: PowerDemand
+    HEMSAgent -> PVAgent: get PvPower
+    PVAgent -> HEMSAgent: PvPower
+    HEMSAgent -> HomeStorageAgent: PowerDemandHomeStorage = min [PvPower - PowerDemandLoadAgent | RatedPowerHomeStorage]
+    end
+group #LightGreen Requests from GridAgent
+    GridAgent -> HEMSAgent: request PowerDemandGrid
+    HEMSAgent -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PvPower + PowerDemandHomeStorage
+    end
+
+group #LightGreen Update ValueStore through trigger of Child of HEMSAgent
+    alt#Gold Trigger by LoadAgent or PVAgent or HomeStorageAgent
+    LoadAgent -> HEMSAgent: new PowerDemand
+    HEMSAgent -> HEMSAgent: Update ValueStore
+    HEMSAgent -> HomeStorageAgent: PowerDemandHomeStorage = min [PvPower - PowerDemandLoadAgent | RatedPowerHomeStorage]
+    alt#Gold If change of Load could not compensate by HomeStorage
+        HEMSAgent -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PvPower + PowerDemandHomeStorage
+    end
+    else
+    PVAgent -> HEMSAgent: new PvPower
+    HEMSAgent -> HEMSAgent: Update ValueStore
+    HEMSAgent -> HomeStorageAgent: PowerDemandHomeStorage = min [PvPower - PowerDemandLoadAgent | RatedPowerHomeStorage]
+    alt#Gold If change of PvPower could not compensate by HomeStorage
+    HEMSAgent -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PvPower + PowerDemandHomeStorage
+    end
+    else
+    HomeStorageAgent -> HEMSAgent: Soc = 1 | SoC = 0
+    HEMSAgent -> HEMSAgent: Update ValueStore
+    HEMSAgent -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PvPower + PowerDemandHomeStorage
+    end
+    end
+
+@enduml
+
+
+

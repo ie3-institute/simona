@@ -1,0 +1,44 @@
+@startuml
+title Use Case Optimize Self Consumption \n Existing: LoadAgent, PV \n Missing: HomeStorage, EV
+participant GridAgent
+participant HEMSAgent
+participant LoadAgent
+participant PVAgent
+
+group init
+        activate GridAgent
+        GridAgent -> HEMSAgent: create()
+            activate HEMSAgent
+
+        HEMSAgent -> LoadAgent: create()
+            activate LoadAgent
+            LoadAgent --> HEMSAgent: active
+
+        HEMSAgent -> PVAgent: create()
+            activate PVAgent
+            PVAgent --> HEMSAgent: active
+    end
+
+group #LightGrey InitialUpdateFirstTick
+    HEMSAgent -> LoadAgent: get PowerDemand
+    LoadAgent -> HEMSAgent: PowerDemand
+    HEMSAgent -> PVAgent: get PvPower
+    PVAgent -> HEMSAgent: PvPower
+    end
+
+group #LightGrey Requests from GridAgent
+    GridAgent -> HEMSAgent: request PowerDemand
+    HEMSAgent -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PvPower
+    end
+
+group #LightGreen Update ValueStore through trigger of Child of HEMSAgent
+    alt Trigger by LoadAgent or PVAgent
+    LoadAgent -> HEMSAgent: new PowerDemand
+    else
+    PVAgent -> HEMSAgent: new PvPower
+    end
+
+    HEMSAgent -> GridAgent: PowerDemand = PvPower - PowerDemandLoadAgent
+    end
+
+@enduml

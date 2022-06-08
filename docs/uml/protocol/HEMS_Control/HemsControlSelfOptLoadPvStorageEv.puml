@@ -1,0 +1,100 @@
+@startuml
+/'
+
+
+New tick 60% by EvcsAgent not HEMSAgent
+
+todo:
+   -
+'/
+title Use Case Optimize Self Consumption \n Existing: LoadAgent, HomeStorage, PV, EV \n Missing: -
+participant GridAgent
+participant HEMSAgent
+participant LoadAgent
+participant PVAgent
+participant HomeStorageAgent
+participant EvcsAgent1
+participant EV
+group init
+    activate GridAgent
+    GridAgent -> HEMSAgent: create()
+    activate HEMSAgent
+
+    HEMSAgent -> LoadAgent: create()
+        activate LoadAgent
+        LoadAgent --> HEMSAgent: active
+
+    HEMSAgent -> PVAgent: create()
+        activate PVAgent
+        PVAgent --> HEMSAgent: active
+
+    HEMSAgent -> HomeStorageAgent: create(Volume, RatedPower, SoC)
+        activate HomeStorageAgent
+        HomeStorageAgent --> HEMSAgent: active
+
+
+    HEMSAgent -> EvcsAgent1: create (RatedPower)
+        activate EvcsAgent1
+        EvcsAgent1 --> HEMSAgent: active
+
+    end
+
+group #LightGrey InitialUpdateFirstTick
+
+    HEMSAgent -> LoadAgent: get PowerDemand
+    LoadAgent -> HEMSAgent: PowerDemand
+    HEMSAgent -> PVAgent: get PvPower
+    PVAgent -> HEMSAgent: PvPower
+    alt#Gold no EV
+    HEMSAgent -> EvcsAgent1: get PowerDemand
+    EvcsAgent1 -> HEMSAgent: PowerDemandEvcsAgent1 = 0
+    else EV
+    activate EV
+        HEMSAgent -> EvcsAgent1: get PowerDemand
+        EvcsAgent1 -> EV: get SoC, get DemandEV, RatedPowerEV
+        EV -> EvcsAgent1: SoC, DemandEV, RatedPowerEV
+        EvcsAgent1 -> HEMSAgent: SoC, PowerDemandEvcs, RatedPowerCharging = min [RatedPowerEvcs  | RatedPowerEV]
+        /' If there is Demand of the EV to be charged, this will be fulfilled at max Power
+        '/
+        alt#Gold PowerDemandEvcsAgent1 > 0 -> ChargeEV
+            HEMSAgent -> EvcsAgent1: PowerDemandEvcsAgent1 = RatedPowerCharging
+            EvcsAgent1 -> EV: RatedPowerCharging
+            HEMSAgent -> HomeStorageAgent: PowerDemandHomeStorage = min [PvPower - PowerDemandLoadAgent - PowerDemandEvcsAgent1 | RatedPowerCharging]
+            HEMSAgent -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PvPower + PowerDemandHomeStorage + PowerDemandEvcsAgent1
+        /' If there is NO Demand of the EV to be charged,
+            if there is more PV then Demand of LoadAgent, EV will be charged with min of PV - DemandLoadAgent or with RatedPowerCharging (Delta to Homestorage or then Feed-in ) till SoC of 60%
+            if there is less PV then Demand of LoadAgent, HomeStorage will be uncharged, if this isn't enough to avoid taking power from Grid, EV will be uncharged till SoC !=< 60%
+            '/
+        else PowerDemandEvcsAgent1 = 0
+            alt#Gold PvPower - PowerDemandLoadAgent > 0 /' Soc !< 1 '/
+            HEMSAgent -> EvcsAgent1: PowerDemandEvcsAgent1 = min [PvPower - PowerDemandLoadAgent | RatedPowerCharging]
+            EvcsAgent1 -> EV: PowerDemandEvcsAgent1
+            EvcsAgent1 -> HEMSAgent: New Tick @ 60% SoC EV stop unchargeEV
+            HEMSAgent -> HomeStorageAgent: PowerDemandHomeStorage = min [PvPower - PowerDemandLoadAgent - PowerDemandEvcsAgent1 | RatedPowerCharging]
+            HEMSAgent -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PvPower + PowerDemandHomeStorage + PowerDemandEvcsAgent1
+            else PvPower - PowerDemandLoadAgent < 0 -> Uncharge HomeStorage, do V2H = UnchargeEV /' SoC !> 60 '/
+            HEMSAgent -> HomeStorageAgent: PowerDemandHomeStorage = min [PvPower - PowerDemandLoadAgent | RatedPowerHomeStorage] /'TODO it's not minimum should be Minimum of Absolute Value, but preserve the direction of energy flow '/
+            HEMSAgent -> EvcsAgent1: PowerDemandEvcs = min [PvPower - PowerDemandLoadAgent - PowerDemandHomeStorage] | RatedPowerCharging]
+            EvcsAgent1 -> EV: PowerDemandEVcs
+            EvcsAgent1 -> HEMSAgent: New Tick @ 60% SoC EV stop unchargeEV
+            HEMSAgent -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PvPower + PowerDemandHomeStorage + PowerDemandEvcsAgent1
+            deactivate EV
+            end
+        end
+    end
+    end
+group #LightGreen Regular request
+    group Request Data for new power flow
+        GridAgent -> HEMSAgent: request PowerDemand
+        HEMSAgent -> GridAgent: PowerDemandGrid = PowerDemandLoadAgent - PvPower + PowerDemandHomeStorage + PowerDemandEvcsAgent1
+    end
+    end
+group #LightGreen Update ValueStore through trigger of Child of HEMSAgent
+    group For all triggers of Childof HEMSAgent: Run InitialUpdateFirstTick
+    end
+end
+
+@enduml
+
+
+

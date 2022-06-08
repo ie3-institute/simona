@@ -7,19 +7,10 @@
 package edu.ie3.simona.util
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.io.connectors.{
-  CouchbaseConnector,
-  InfluxDbConnector,
-  SqlConnector
-}
+import edu.ie3.datamodel.io.connectors.{CouchbaseConnector, InfluxDbConnector, SqlConnector}
 
 import java.util.UUID
-import edu.ie3.datamodel.models.result.connector.{
-  LineResult,
-  SwitchResult,
-  Transformer2WResult,
-  Transformer3WResult
-}
+import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult, Transformer3WResult}
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig._
@@ -38,7 +29,8 @@ object ConfigUtil {
       private val defaultFixedFeedInConfig: FixedFeedInRuntimeConfig,
       private val defaultPvConfig: PvRuntimeConfig,
       private val defaultWecConfig: WecRuntimeConfig,
-      private val defaultEvcsConfig: EvcsRuntimeConfig
+      private val defaultEvcsConfig: EvcsRuntimeConfig,
+      private val defaultEmConfig: EmRuntimeConfig
   ) {
 
     /** Queries for a [[LoadRuntimeConfig]], that applies for the given uuid and
@@ -113,6 +105,23 @@ object ConfigUtil {
       }
   }
 
+  /** Queries for a [[EmRuntimeConfig]], that applies for the given uuid and
+    * either returns the config for the requested uuid or the default config.
+    * If the requested uuid is valid, but the return type is not of type
+    * [[EmRuntimeConfig]] the default config for this type is returned.
+    *
+    * @param uuid
+    *   Identifier of the requested Evcs model
+    * @return
+    *   the requested [[EvcsRuntimeConfig]] or a default value
+    */
+  def getEmConfigOrDefault(uuid: UUID): EmRuntimeConfig =
+    configs.get(uuid) match {
+      case Some(emConfig: EmRuntimeConfig) => emConfig
+      case _                                   => defaultEmConfig
+    }
+}
+
   object ParticipantConfigUtil {
 
     /** Creates a system participant config utility from the given participant
@@ -139,7 +148,8 @@ object ConfigUtil {
         subConfig.fixedFeedIn.defaultConfig,
         subConfig.pv.defaultConfig,
         subConfig.wec.defaultConfig,
-        subConfig.evcs.defaultConfig
+        subConfig.evcs.defaultConfig,
+        subConfig.em.defaultConfig
       )
     }
 
@@ -268,6 +278,7 @@ object ConfigUtil {
   object NotifierIdentifier extends ParsableEnumeration {
     val BioMassPlant: Value = Value("bm")
     val ChpPlant: Value = Value("chp")
+    val Em: Value = Value("em")
     val Ev: Value = Value("ev")
     val Evcs: Value = Value("evcs")
     val FixedFeedIn: Value = Value("fixedfeedin")

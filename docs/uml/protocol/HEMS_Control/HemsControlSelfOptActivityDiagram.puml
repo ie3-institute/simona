@@ -1,0 +1,66 @@
+@startuml
+title HEMSAgent Control Scheme Self Power Optimization
+partition InitPhase {
+(*) --> "Init GridAgent"
+
+
+if "Is there a HEMS?"
+--> [yes] "Init HEMSAgent"
+--> ===B1===
+
+===B1=== --> if "Is there a PV?"
+--> [yes] "Init PVAgent"
+--> ===B2===
+else
+--> [no] ===B2===
+endif
+
+===B2=== --> if "Is there a HomeStorage"
+--> [yes] "Init HomeStorageAgent"
+--> ===B3===
+else
+--> ===B3===
+endif
+
+===B3=== --> if "Is there an Evcs"
+--> [yes] "Init EvcsAgent"
+--> ===B4===
+
+else
+--> ===B4===
+endif
+
+else
+--> [no] "Init Agents direct"
+endif
+--> "Init Completed"
+
+}
+partition InitialUpdateFirstTick {
+--> "Update ValueStore for \n all Childs of all HEMSAgents"
+}
+===B4=== --> "Init Completed"
+partition Scheduling {
+--> "SimScheduler" as SimScheduler
+
+partition atTriggerByChildOfHEMS {
+"Trigger by Childs of HEMSAgent" -->[create newTick \n relavant for Agent321] "SimScheduler"
+}
+
+partition atEachTick {
+"Trigger by Childs of HEMSAgent" --> "Update ValueStore for \n all Childs of HEMSAgent" as updateValueStore
+SimScheduler --> if "next Tick relevant for Agent?"
+--> [yes] updateValueStore
+--> [update]"HEMSAgent ValueStore" as HEMSValueStore
+endif
+}
+
+partition atTriggerLoadFlow {
+SimScheduler -->[trigger] "GridAgent" as GridAgent
+"GridAgent" -->[Request Data for New Power Flow] HEMSValueStore
+--> [Answers Request] GridAgent
+}
+}
+
+SimScheduler --> (*)
+@enduml
