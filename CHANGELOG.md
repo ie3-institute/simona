@@ -10,8 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement SQL source for primary data [#34](https://github.com/ie3-institute/simona/issues/34), [#101](https://github.com/ie3-institute/simona/issues/101)
 - Relevant scientific papers have been added to the documentation [#139](https://github.com/ie3-institute/simona/issues/139)
 - Add troubleshooting section to Users guide [#160](https://github.com/ie3-institute/simona/issues/160)
-- Config possibility for transformer control groups
-- Models for measurements within the grid structure
+- Models for measurements within the grid structure [#89](https://github.com/ie3-institute/simona/issues/89)
+- Config possibility for transformer control groups [#90](https://github.com/ie3-institute/simona/issues/90)
+
 
 ### Changed
 - Re-organizing test resources into their respective packages [#105](https://github.com/ie3-institute/simona/issues/105)
