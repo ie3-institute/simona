@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant.load
 
-import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
@@ -83,7 +82,6 @@ class LoadModelSpec
                 ) shouldBe true
                 cosPhiRated shouldBe loadInput.getCosPhiRated
                 loadProfile shouldBe loadInput.getLoadProfile
-                  .asInstanceOf[StandardLoadProfile]
                 reference shouldBe foreSeenReference
             }
           }
