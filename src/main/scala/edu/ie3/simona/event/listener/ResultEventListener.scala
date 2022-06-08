@@ -180,12 +180,17 @@ class ResultEventListener(
 
   override def preStart(): Unit = {
     log.debug("Starting initialization!")
-    log.debug(
-      s"Events that will be processed: {}",
-      resultFileHierarchy.resultEntitiesToConsider
-        .map(_.getSimpleName)
-        .mkString(",")
-    )
+    resultFileHierarchy.resultSinkType match {
+      case _: ResultSinkType.Kafka =>
+        log.debug("NodeResults will be processed by a Kafka sink.")
+      case _ =>
+        log.debug(
+          s"Events that will be processed: {}",
+          resultFileHierarchy.resultEntitiesToConsider
+            .map(_.getSimpleName)
+            .mkString(",")
+        )
+    }
     self ! Init
   }
 

@@ -7,8 +7,9 @@
 package edu.ie3.simona.model.participant.load.profile
 
 import java.time.ZonedDateTime
+
 import edu.ie3.datamodel.exceptions.ParsingException
-import edu.ie3.datamodel.models.profile.{LoadProfile, StandardLoadProfile}
+import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.simona.model.participant.load
 import edu.ie3.simona.model.participant.load.{DayType, profile}
 
@@ -68,7 +69,7 @@ case object LoadProfileKey {
   ): LoadProfileKey = {
     try {
       new LoadProfileKey(
-        LoadProfile.parse(loadProfile).asInstanceOf[StandardLoadProfile],
+        StandardLoadProfile.parse(loadProfile),
         Season(season),
         DayType(dayType)
       )

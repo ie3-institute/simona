@@ -17,7 +17,7 @@ import edu.ie3.simona.io.result.plain.PlainResult.PlainNodeResult
 import edu.ie3.simona.io.result.plain.PlainWriter
 import edu.ie3.simona.test.KafkaSpecLike
 import edu.ie3.simona.test.KafkaSpecLike.Topic
-import edu.ie3.simona.test.common.{TestKitWithShutdown, UnitSpec}
+import edu.ie3.simona.test.common.TestKitWithShutdown
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.io.ScalaReflectionSerde
@@ -52,7 +52,6 @@ class ResultEntityKafkaSpec
           )
       )
     )
-    with UnitSpec
     with KafkaSpecLike
     with GivenWhenThen
     with Eventually {
