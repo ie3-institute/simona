@@ -87,19 +87,16 @@ class ResultEventListenerSpec
     )
 
   def createDir(
-      resultFileHierarchy: ResultFileHierarchy,
-      resultEntitiesToBeWritten: Set[Class[_ <: ResultEntity]]
-  ): Iterable[Future[(Class[_], ResultEntitySink)]] = {
+      resultFileHierarchy: ResultFileHierarchy
+  ): Iterable[Future[ResultEntitySink]] = {
     val materializer: Materializer = Materializer(system)
 
-    val initializeSinks
-        : PrivateMethod[Iterable[Future[(Class[_], ResultEntitySink)]]] =
-      PrivateMethod[Iterable[Future[(Class[_], ResultEntitySink)]]](
+    val initializeSinks: PrivateMethod[Iterable[Future[ResultEntitySink]]] =
+      PrivateMethod[Iterable[Future[ResultEntitySink]]](
         Symbol("initializeSinks")
       )
 
     ResultEventListener invokePrivate initializeSinks(
-      resultEntitiesToBeWritten,
       resultFileHierarchy,
       materializer
     )
@@ -123,7 +120,7 @@ class ResultEventListenerSpec
       "initialize its sinks correctly" in {
         val fileHierarchy = resultFileHierarchy(1, ".csv")
         Await.ready(
-          Future.sequence(createDir(fileHierarchy, resultEntitiesToBeWritten)),
+          Future.sequence(createDir(fileHierarchy)),
           60 seconds
         )
 
