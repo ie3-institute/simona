@@ -8,6 +8,10 @@ package edu.ie3.simona.scheduler
 
 import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue, TimeUnit}
 import akka.actor._
+import akka.actor.typed.scaladsl.adapter.{
+  ClassicActorSystemOps,
+  TypedActorRefOps
+}
 import akka.testkit.{ImplicitSender, TestActorRef}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
@@ -166,14 +170,20 @@ class SimSchedulerSpec
   override protected val simonaConfig: SimonaConfig = SimonaConfig(config)
 
   // build the run time listener
-  val runtimeListeners = Vector(
-    TestActorRef(
-      new RuntimeEventListener(
-        None,
-        Some(eventQueue),
-        simonaConfig.simona.time.startDateTime
+  private val runtimeListeners = Seq(
+    system
+      .spawn(
+        RuntimeEventListener(
+          SimonaConfig.Simona.Runtime.Listener(
+            None,
+            None
+          ),
+          Some(eventQueue),
+          simonaConfig.simona.time.startDateTime
+        ),
+        RuntimeEventListener.getClass.getSimpleName
       )
-    )
+      .toClassic
   )
 
   // build the scheduler

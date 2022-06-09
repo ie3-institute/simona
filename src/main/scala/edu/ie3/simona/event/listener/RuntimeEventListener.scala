@@ -6,130 +6,71 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.{ActorRef, Props}
-import edu.ie3.simona.event.RuntimeEvent._
-import edu.ie3.simona.event.{Event, RuntimeEvent}
-import edu.ie3.simona.logging.SimonaActorLogging
-import edu.ie3.simona.util.TickUtil._
+import akka.actor.typed.{Behavior, PostStop}
+import akka.actor.typed.scaladsl.Behaviors
+import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.event.RuntimeEvent
+import edu.ie3.simona.io.runtime.{
+  RuntimeEventKafkaSink,
+  RuntimeEventLogSink,
+  RuntimeEventQueueSink,
+  RuntimeEventSink
+}
 import edu.ie3.util.TimeUtil
+import org.slf4j.Logger
 
 import java.util.concurrent.BlockingQueue
-import scala.reflect.ClassTag
 
-object RuntimeEventListener extends SimonaListenerCompanion {
+object RuntimeEventListener {
 
-  override def props[A: ClassTag](
-      eventsToProcess: Option[List[String]]
-  ): Props =
-    Props(new RuntimeEventListener(eventsToProcess))
-
-  def props(
-      eventsToProcess: Option[List[String]],
+  def apply(
+      listenerConf: SimonaConfig.Simona.Runtime.Listener,
       queue: Option[BlockingQueue[RuntimeEvent]],
       startDateTimeString: String
-  ): Props =
-    Props(
-      new RuntimeEventListener(
-        eventsToProcess,
-        queue,
-        startDateTimeString
-      )
-    )
-
-}
-
-// receive and selects valid runtime status events to process further
-class RuntimeEventListener(
-    eventsToProcess: Option[List[String]] = None,
-    queue: Option[BlockingQueue[RuntimeEvent]] = None,
-    startDateTimeString: String = ""
-) extends SimonaListenerWithFilter(eventsToProcess)
-    with SimonaActorLogging {
-
-  override protected def processEvent(event: Event, ref: ActorRef): Unit = {
-    event match {
-      case event: RuntimeEvent =>
-        handleEvent(event)
-
-      case _ =>
-        log.debug(
-          "Skipping event {}, because it is not in the list of events to process.",
-          event.id
+  ): Behavior[RuntimeEvent] = {
+    val listeners = Iterable(
+      Some(
+        RuntimeEventLogSink(
+          TimeUtil.withDefaults.toZonedDateTime(startDateTimeString)
         )
-    }
-  }
+      ),
+      listenerConf.kafka.map(kafkaConf => RuntimeEventKafkaSink(kafkaConf)),
+      queue.map(qu => RuntimeEventQueueSink(qu))
+    ).flatten
 
-  // processes each runtime event, adds them to a queue and prints further information
-  private def handleEvent(event: RuntimeEvent): Unit = {
-    event match {
-      case Initializing =>
-        log.info("Initializing Agents and Services for Simulation ... ")
-
-      case InitComplete(duration) =>
-        log.info(
-          s"Initialization complete. (duration: ${roundDuration(duration)} s)"
-        )
-
-      case CheckWindowPassed(tick, duration) =>
-        log.info(
-          s"******* Simulation until ${calcTime(tick)} completed. ${durationAndMemoryString(duration)} ******"
-        )
-
-      case Ready(tick, duration) =>
-        log.info(
-          s"******* Switched from 'Simulating' to 'Ready'. Last simulated time: ${calcTime(tick)}. ${durationAndMemoryString(duration)}  ******"
-        )
-
-      case Simulating(startTick, endTick) =>
-        log.info(
-          s"******* Simulating from ${calcTime(startTick)} until ${calcTime(endTick)}. *******"
-        )
-
-      case Done(currentTick, duration, noOfFailedPF, errorInSim) =>
-        val simStatus =
-          if (errorInSim)
-            s"\u001b[0;31mERROR (Failed PF: $noOfFailedPF)\u001b[0;30m"
-          else s"\u001b[0;32mSUCCESS (Failed PF: $noOfFailedPF)\u001b[0;30m"
-        log.info(
-          s"******* Simulation completed with $simStatus in time step ${calcTime(currentTick)}. Total runtime: ${roundDuration(duration)} s *******"
-        )
-
-      case Error(errMsg) =>
-        log.error(s"$errMsg")
-
-      case _ =>
-        log.error(
-          s"Unexpected run time event received: $event."
-        )
-    }
-
-    queue.foreach(_.put(event))
-  }
-
-  private def calcTime(currentTick: Long): String = {
-    TimeUtil.withDefaults.toString(
-      currentTick.toDateTime(
-        TimeUtil.withDefaults.toZonedDateTime(startDateTimeString)
-      )
+    RuntimeEventListener(
+      listeners,
+      listenerConf.eventsToProcess
     )
   }
 
-  private def roundDuration(duration: Double): Double = {
-    roundAt(5)(duration / 1000)
-  }
+  def apply(
+      listeners: Iterable[RuntimeEventSink],
+      eventsToProcess: Option[List[String]] = None
+  ): Behavior[RuntimeEvent] = Behaviors
+    .receive[RuntimeEvent] { case (ctx, event) =>
+      eventsToProcess match {
+        case None => processEvent(listeners, event, ctx.log)
+        case Some(events) if events.contains(event.id) =>
+          processEvent(listeners, event, ctx.log)
+        case _ =>
+          ctx.log.debug(
+            "Skipping event {} as it is not in the list of events to process.",
+            event.id
+          )
+      }
+      Behaviors.same
+    }
+    .receiveSignal { case (_, PostStop) =>
+      listeners.foreach(_.close())
+      Behaviors.same
+    }
 
-  private def roundAt(precision: Int)(number: Double): Double = {
-    val s = math pow (10, precision)
-    (math round number * s) / s
-  }
+  private def processEvent(
+      listeners: Iterable[RuntimeEventSink],
+      event: RuntimeEvent,
+      log: Logger
+  ): Unit =
+    listeners.foreach(_.handleRuntimeEvent(event, log))
 
-  private def durationAndMemoryString(duration: Double) = {
-    val memory = math.round(
-      10 * (Runtime.getRuntime.totalMemory() - Runtime.getRuntime
-        .freeMemory()) / Math
-        .pow(1000, 3)
-    ) / 10.0
-
-    s"(duration: ${roundDuration(duration)} s, memory: $memory GB)"
-  }
 }

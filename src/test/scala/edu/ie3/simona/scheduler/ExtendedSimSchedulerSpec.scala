@@ -6,9 +6,12 @@
 
 package edu.ie3.simona.scheduler
 
-import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue, TimeUnit}
+import akka.actor.typed.scaladsl.adapter.{
+  ClassicActorSystemOps,
+  TypedActorRefOps
+}
 import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.{ImplicitSender, TestActorRef}
+import akka.testkit.ImplicitSender
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
@@ -25,6 +28,7 @@ import org.scalatest._
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue, TimeUnit}
 import scala.collection.mutable
 
 class ExtendedSimSchedulerSpec
@@ -76,14 +80,19 @@ class ExtendedSimSchedulerSpec
       eventQueue.clear()
 
       // build the run time listener
-      val runtimeListeners = Vector(
-        TestActorRef(
-          new RuntimeEventListener(
-            None,
-            Some(eventQueue),
-            simonaConfig.simona.time.startDateTime
+      val runtimeListeners = Seq(
+        system
+          .spawnAnonymous(
+            RuntimeEventListener(
+              SimonaConfig.Simona.Runtime.Listener(
+                None,
+                None
+              ),
+              Some(eventQueue),
+              simonaConfig.simona.time.startDateTime
+            )
           )
-        )
+          .toClassic
       )
 
       // build scheduler
