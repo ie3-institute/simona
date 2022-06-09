@@ -1,10 +1,10 @@
 /*
- * © 2020. TU Dortmund University,
+ * © 2022. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant.load.profile
+package edu.ie3.simona.model.participant.load.profile.standard
 
 import java.time.Month._
 import java.time.ZonedDateTime
@@ -16,6 +16,7 @@ object Season extends Enumeration {
   val winter, summer, transition = Value
 
   /** Creates a season from given time
+    *
     * @param time
     *   the time
     * @return
@@ -42,6 +43,7 @@ object Season extends Enumeration {
 
   /** Creates a season from given String key, taken from the csv or database
     * table header
+    *
     * @param key
     *   season, such as "winter"
     * @return

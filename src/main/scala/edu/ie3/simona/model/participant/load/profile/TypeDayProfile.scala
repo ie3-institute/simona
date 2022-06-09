@@ -6,8 +6,9 @@
 
 package edu.ie3.simona.model.participant.load.profile
 
-import java.time.ZonedDateTime
+import edu.ie3.simona.model.participant.load.profile.standard.StandardLoadProfileKey
 
+import java.time.ZonedDateTime
 import edu.ie3.util.TimeUtil
 
 // needs to be imported for max function

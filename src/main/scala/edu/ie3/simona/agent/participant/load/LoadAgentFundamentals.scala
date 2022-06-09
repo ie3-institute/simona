@@ -8,6 +8,7 @@ package edu.ie3.simona.agent.participant.load
 
 import akka.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.LoadInput
+import edu.ie3.datamodel.models.profile.LoadProfile
 import edu.ie3.datamodel.models.result.system.{
   LoadResult,
   SystemParticipantResult
@@ -29,15 +30,24 @@ import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.exceptions.agent.InconsistentStateException
+import edu.ie3.simona.exceptions.agent.{
+  InconsistentStateException,
+  InvalidRequestException
+}
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
-import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
-import edu.ie3.simona.model.participant.load.profile.{
-  StandardLoadProfileStore,
-  ProfileLoadModel
+import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
+import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.{
+  ProfileRelevantData,
+  StandardProfileRelevantData,
+  TemperatureProfileRelevantData
 }
+import edu.ie3.simona.model.participant.load.profile.standard.{
+  StandardLoadProfileStore,
+  StandardProfileLoadModel
+}
+import edu.ie3.simona.model.participant.load.profile.temperature.TemperatureDependantProfileLoadModel
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
 import edu.ie3.simona.model.participant.load.{
@@ -141,13 +151,15 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
           fixedLoadModel.operationInterval.start,
           fixedLoadModel.operationInterval.end
         ).distinct.sorted.filterNot(_ == lastTickInSimulation).toArray
-      case profileLoadModel: ProfileLoadModel =>
+      case profileLoadModel: StandardProfileLoadModel =>
         activationTicksInOperationTime(
           simulationStartDate,
           StandardLoadProfileStore.resolution.getSeconds,
           profileLoadModel.operationInterval.start,
           profileLoadModel.operationInterval.end
         )
+      case profileLoadModel: TemperatureDependantProfileLoadModel =>
+        ???
       case _ =>
         Array.emptyLongArray
     }
@@ -320,8 +332,8 @@ case object LoadAgentFundamentals {
 
   trait ProfileLoadAgentFundamentals
       extends LoadAgentFundamentals[
-        ProfileRelevantData,
-        ProfileLoadModel
+        StandardProfileRelevantData,
+        StandardProfileLoadModel
       ] {
     this: LoadAgent.ProfileLoadAgent =>
 
@@ -329,8 +341,13 @@ case object LoadAgentFundamentals {
         inputModel: LoadInput,
         operationInterval: OperationInterval,
         reference: LoadReference
-    ): ProfileLoadModel = {
-      val model = ProfileLoadModel(inputModel, operationInterval, 1d, reference)
+    ): StandardProfileLoadModel = {
+      val model = ProfileLoadModel.buildProfileLoadModel(
+        inputModel,
+        operationInterval,
+        1d,
+        reference
+      )
       model.enable()
       model
     }
@@ -343,32 +360,37 @@ case object LoadAgentFundamentals {
         Long,
         ParticipantModelBaseStateData[
           ApparentPower,
-          ProfileRelevantData,
-          ProfileLoadModel
+          StandardProfileRelevantData,
+          StandardProfileLoadModel
         ],
         ComparableQuantity[Dimensionless]
     ) => ApparentPower = (tick, baseStateData, voltage) => {
       val profileLoadModel = baseStateData.model
-      val profileRelevantData = ProfileRelevantData(
+      val profileRelevantData = StandardProfileRelevantData(
         tick.toDateTime(baseStateData.startDate)
       )
       profileLoadModel.calculatePower(currentTick, voltage, profileRelevantData)
     }
   }
 
-  trait RandomLoadAgentFundamentals
+  trait TemperatureProfileLoadAgentFundamentals
       extends LoadAgentFundamentals[
-        RandomRelevantData,
-        RandomLoadModel
+        TemperatureProfileRelevantData,
+        TemperatureDependantProfileLoadModel
       ] {
-    this: LoadAgent.RandomLoadAgent =>
+    this: LoadAgent.TemperatureProfileLoadAgent =>
 
     override def buildModel(
         inputModel: LoadInput,
         operationInterval: OperationInterval,
         reference: LoadReference
-    ): RandomLoadModel = {
-      val model = RandomLoadModel(inputModel, operationInterval, 1d, reference)
+    ): TemperatureDependantProfileLoadModel = {
+      val model = ProfileLoadModel.buildProfileLoadModel(
+        inputModel,
+        operationInterval,
+        1d,
+        reference
+      )
       model.enable()
       model
     }
@@ -381,16 +403,85 @@ case object LoadAgentFundamentals {
         Long,
         ParticipantModelBaseStateData[
           ApparentPower,
-          RandomRelevantData,
-          RandomLoadModel
+          StandardProfileRelevantData,
+          StandardProfileLoadModel
         ],
         ComparableQuantity[Dimensionless]
-    ) => ApparentPower = (tick, baseStateData, voltage) => {
-      val randomLoadModel = baseStateData.model
-      val profileRelevantData = RandomRelevantData(
-        tick.toDateTime(baseStateData.startDate)
+    ) => ApparentPower = (_, _, _) =>
+      throw new InvalidRequestException(
+        "Temperature dependant load cannot be run without secondary data."
       )
-      randomLoadModel.calculatePower(currentTick, voltage, profileRelevantData)
+
+    /** Calculate the power output of the participant utilising secondary data.
+      * However, it might appear, that not the complete set of secondary data is
+      * available for the given tick. This might especially be true, if the
+      * actor has been additionally activated. This method thereby has to try
+      * and fill up missing data with the last known data, as this is still
+      * supposed to be valid. The secondary data therefore is put to the
+      * calculation relevant data store. <p>The next state is [[Idle]], sending
+      * a
+      * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]]
+      * to scheduler and using update result values.</p>
+      *
+      * @param collectionStateData
+      *   State data with collected, comprehensive secondary data.
+      * @param currentTick
+      *   Tick, the trigger belongs to
+      * @param scheduler
+      *   [[ActorRef]] to the scheduler in the simulation
+      * @return
+      *   [[Idle]] with updated result values
+      */
+    override def calculatePowerWithSecondaryDataAndGoToIdle(
+        collectionStateData: DataCollectionStateData[ApparentPower],
+        currentTick: Long,
+        scheduler: ActorRef
+    ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
+
+      ???
+    }
+
+    trait RandomLoadAgentFundamentals
+        extends LoadAgentFundamentals[
+          RandomRelevantData,
+          RandomLoadModel
+        ] {
+      this: LoadAgent.RandomLoadAgent =>
+
+      override def buildModel(
+          inputModel: LoadInput,
+          operationInterval: OperationInterval,
+          reference: LoadReference
+      ): RandomLoadModel = {
+        val model =
+          RandomLoadModel(inputModel, operationInterval, 1d, reference)
+        model.enable()
+        model
+      }
+
+      /** Partial function, that is able to transfer
+        * [[ParticipantModelBaseStateData]] (holding the actual calculation
+        * model) into a pair of active and reactive power
+        */
+      override val calculateModelPowerFunc: (
+          Long,
+          ParticipantModelBaseStateData[
+            ApparentPower,
+            RandomRelevantData,
+            RandomLoadModel
+          ],
+          ComparableQuantity[Dimensionless]
+      ) => ApparentPower = (tick, baseStateData, voltage) => {
+        val randomLoadModel = baseStateData.model
+        val profileRelevantData = RandomRelevantData(
+          tick.toDateTime(baseStateData.startDate)
+        )
+        randomLoadModel.calculatePower(
+          currentTick,
+          voltage,
+          profileRelevantData
+        )
+      }
     }
   }
 }

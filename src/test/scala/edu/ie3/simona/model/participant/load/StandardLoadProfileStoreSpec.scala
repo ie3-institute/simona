@@ -14,11 +14,11 @@ import breeze.numerics.abs
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile._
 import edu.ie3.datamodel.models.profile.StandardLoadProfile
-import edu.ie3.simona.model.participant.load.profile.{
+import edu.ie3.simona.model.participant.load.profile.standard.{
   StandardLoadProfileKey,
-  StandardLoadProfileStore,
-  TypeDayProfile
+  StandardLoadProfileStore
 }
+import edu.ie3.simona.model.participant.load.profile.TypeDayProfile
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATTHOUR, WATTHOUR}

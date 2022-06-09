@@ -4,17 +4,22 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant.load.profile
+package edu.ie3.simona.model.participant.load.profile.standard
 
-import java.time.ZonedDateTime
 import edu.ie3.datamodel.exceptions.ParsingException
 import edu.ie3.datamodel.models.profile.{
   BdewStandardLoadProfile,
-  LoadProfile,
   StandardLoadProfile
 }
 import edu.ie3.simona.model.participant.load
+import edu.ie3.simona.model.participant.load.profile.{
+  LoadProfileKey,
+  Season,
+  standard
+}
 import edu.ie3.simona.model.participant.load.{DayType, profile}
+
+import java.time.ZonedDateTime
 
 /** A key describing a load profile, consisting of consumer type, a season and a
   * day type. Is used to store load profile values for a single type.
@@ -101,7 +106,7 @@ case object StandardLoadProfileKey {
   ): StandardLoadProfileKey = {
     new StandardLoadProfileKey(
       loadProfile,
-      profile.Season(time),
+      standard.Season(time),
       load.DayType(time.getDayOfWeek)
     )
   }

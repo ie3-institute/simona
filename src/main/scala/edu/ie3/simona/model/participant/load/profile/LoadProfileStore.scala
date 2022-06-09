@@ -10,9 +10,17 @@ import breeze.numerics.round
 
 import java.time.ZonedDateTime
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.profile.{BdewStandardLoadProfile, LoadProfile, StandardLoadProfile, TemperatureDependantLoadProfile}
+import edu.ie3.datamodel.models.profile.{
+  BdewStandardLoadProfile,
+  LoadProfile,
+  StandardLoadProfile,
+  TemperatureDependantLoadProfile
+}
 import edu.ie3.simona.model.participant.load.{DayType, profile}
-import edu.ie3.simona.model.participant.load.profile.StandardLoadProfileStore.{dynamization, getDefaultReader}
+import edu.ie3.simona.model.participant.load.profile.StandardLoadProfileStore.{
+  dynamization,
+  getDefaultReader
+}
 import org.apache.commons.csv.CSVFormat
 
 import javax.measure.quantity.Power

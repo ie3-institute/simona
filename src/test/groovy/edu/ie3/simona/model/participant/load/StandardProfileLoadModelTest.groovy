@@ -32,7 +32,7 @@ import static org.apache.commons.math3.util.FastMath.abs
 import static tech.units.indriya.unit.Units.MINUTE
 import static tech.units.indriya.unit.Units.WATT
 
-class ProfileLoadModelTest extends Specification {
+class StandardProfileLoadModelTest extends Specification {
 	def loadInput =
 	new LoadInput(
 	UUID.fromString("4eeaf76a-ec17-4fc3-872d-34b7d6004b03"),
@@ -182,7 +182,7 @@ class ProfileLoadModelTest extends Specification {
 				new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR))
 				)
 		def relevantDatas = (0..35040).stream().map({ cnt ->
-			new ProfileLoadModel.ProfileRelevantData(
+			new ProfileLoadModel.StandardProfileReleventData(
 					startDate.plus(cnt * 15, ChronoUnit.MINUTES))
 		}).collect(Collectors.toSet())
 
@@ -221,7 +221,7 @@ class ProfileLoadModelTest extends Specification {
 				new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR))
 				)
 		def relevantDatas = (0..35040).stream().map({ cnt ->
-			new ProfileLoadModel.ProfileRelevantData(
+			new ProfileLoadModel.StandardProfileReleventData(
 					startDate.plus(cnt * 15, ChronoUnit.MINUTES))
 		}).collect(Collectors.toSet())
 

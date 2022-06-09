@@ -13,19 +13,56 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.load.LoadAgentFundamentals.{
   FixedLoadAgentFundamentals,
   ProfileLoadAgentFundamentals,
-  RandomLoadAgentFundamentals
+  RandomLoadAgentFundamentals,
+  TemperatureProfileLoadAgentFundamentals
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
-import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
+import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.{
+  ProfileRelevantData,
+  StandardProfileRelevantData,
+  TemperatureProfileRelevantData
+}
+import edu.ie3.simona.model.participant.load.profile.standard.StandardProfileLoadModel
+import edu.ie3.simona.model.participant.load.profile.temperature.TemperatureDependantProfileLoadModel
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
 import edu.ie3.simona.model.participant.load.{
   FixedLoadModel,
   LoadModel,
   LoadModelBehaviour
+}
+
+/** Creating a load agent
+  *
+  * @param scheduler
+  *   Actor reference of the scheduler
+  * @param listener
+  *   List of listeners interested in results
+  */
+abstract class LoadAgent[LD <: LoadRelevantData, LM <: LoadModel[LD]](
+    scheduler: ActorRef,
+    override val listener: Iterable[ActorRef]
+) extends ParticipantAgent[
+      ApparentPower,
+      LD,
+      ParticipantStateData[ApparentPower],
+      LoadInput,
+      LoadRuntimeConfig,
+      LM
+    ](scheduler)
+    with LoadAgentFundamentals[LD, LM] {
+  /*
+   * "Hey, SIMONA! What is handled in ParticipantAgent?"
+   * "Hey, dude! The following things are handled in ParticipantAgent:
+   *   1) Initialization of Agent
+   *   2) Event reactions in Idle state
+   *   3) Handling of incoming information
+   *   4) Performing model calculations
+   * "
+   */
 }
 
 object LoadAgent {
@@ -60,10 +97,19 @@ object LoadAgent {
       scheduler: ActorRef,
       override val listener: Iterable[ActorRef]
   ) extends LoadAgent[
-        ProfileRelevantData,
-        ProfileLoadModel
+        StandardProfileRelevantData,
+        StandardProfileLoadModel
       ](scheduler, listener)
       with ProfileLoadAgentFundamentals
+
+  final class TemperatureProfileLoadAgent(
+      scheduler: ActorRef,
+      override val listener: Iterable[ActorRef]
+  ) extends LoadAgent[
+        TemperatureProfileRelevantData,
+        TemperatureDependantProfileLoadModel
+      ](scheduler, listener)
+      with TemperatureProfileLoadAgentFundamentals
 
   final class RandomLoadAgent(
       scheduler: ActorRef,
@@ -73,34 +119,4 @@ object LoadAgent {
         RandomLoadModel
       ](scheduler, listener)
       with RandomLoadAgentFundamentals
-}
-
-/** Creating a load agent
-  *
-  * @param scheduler
-  *   Actor reference of the scheduler
-  * @param listener
-  *   List of listeners interested in results
-  */
-abstract class LoadAgent[LD <: LoadRelevantData, LM <: LoadModel[LD]](
-    scheduler: ActorRef,
-    override val listener: Iterable[ActorRef]
-) extends ParticipantAgent[
-      ApparentPower,
-      LD,
-      ParticipantStateData[ApparentPower],
-      LoadInput,
-      LoadRuntimeConfig,
-      LM
-    ](scheduler)
-    with LoadAgentFundamentals[LD, LM] {
-  /*
-   * "Hey, SIMONA! What is handled in ParticipantAgent?"
-   * "Hey, dude! The following things are handled in ParticipantAgent:
-   *   1) Initialization of Agent
-   *   2) Event reactions in Idle state
-   *   3) Handling of incoming information
-   *   4) Performing model calculations
-   * "
-   */
 }

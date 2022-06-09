@@ -1,10 +1,10 @@
 /*
- * © 2020. TU Dortmund University,
+ * © 2022. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant.load.profile
+package edu.ie3.simona.model.participant.load.profile.standard
 
 import edu.ie3.datamodel.models.profile.{
   LoadProfile,
@@ -15,15 +15,16 @@ import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference._
+import edu.ie3.simona.model.participant.load.profile.{
+  LoadProfileStore,
+  ProfileLoadModel
+}
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.{
   ProfileRelevantData,
   StandardProfileRelevantData,
   TemperatureProfileRelevantData
 }
-import edu.ie3.simona.model.participant.load.profile.standard.{
-  StandardLoadProfileStore,
-  StandardProfileLoadModel
-}
+import edu.ie3.simona.model.participant.load.profile.standard.StandardLoadProfileStore
 import edu.ie3.simona.model.participant.load.profile.temperature.{
   TemperatureDependantLoadProfileStore,
   TemperatureDependantProfileLoadModel
@@ -58,7 +59,7 @@ import javax.measure.quantity.{Dimensionless, Power, Temperature}
   * @param reference
   *   Scale the profiles to this reference
   */
-abstract class ProfileLoadModel[P <: LoadProfile, D <: ProfileRelevantData](
+final case class StandardProfileLoadModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
@@ -66,39 +67,84 @@ abstract class ProfileLoadModel[P <: LoadProfile, D <: ProfileRelevantData](
     qControl: QControl,
     sRated: ComparableQuantity[Power],
     cosPhiRated: Double,
-    loadProfile: P,
+    loadProfile: StandardLoadProfile,
     reference: LoadReference,
-    protected val loadProfileStore: LoadProfileStore[P]
-) extends LoadModel[D](
+    private val loadProfileStore: StandardLoadProfileStore
+) extends ProfileLoadModel[StandardLoadProfile, StandardProfileRelevantData](
       uuid,
       id,
       operationInterval,
       scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
-    ) {}
+      cosPhiRated,
+      loadProfile,
+      reference,
+      loadProfileStore
+    ) {
 
-case object ProfileLoadModel {
+  /* maximum energy throughout the year of the selected load profile*/
+  private val profileMaxPower = loadProfileStore.maxPower(loadProfile)
 
-  sealed trait ProfileRelevantData extends LoadRelevantData {
-    def date: ZonedDateTime
+  /* energy reference is always models yearly energy consumption divided by the energy the profile is scaled to */
+  private lazy val energyReferenceScalingFactor =
+    reference match {
+      case EnergyConsumption(energyConsumption) =>
+        energyConsumption
+          .divide(StandardLoadProfileStore.defaultLoadProfileEnergyScaling)
+          .asType(classOf[Dimensionless])
+          .to(PU)
+      case _ =>
+        throw new IllegalArgumentException(
+          s"Applying energy reference scaling factor for reference mode '$reference' is not supported!"
+        )
+    }
+
+  /** Calculate the active power behaviour of the model
+    *
+    * @param data
+    *   Further needed, secondary data
+    * @return
+    *   Active power
+    */
+  override protected def calculateActivePower(
+      data: StandardProfileRelevantData
+  ): ComparableQuantity[Power] = {
+
+    // todo: differentiate between temp dependent and standard load profile
+
+    /* The power comes in W and is delivered all 15 minutes */
+    val averagePower: ComparableQuantity[Power] = loadProfileStore
+      .entry(data.date, loadProfile)
+
+    val activePower = reference match {
+      case ActivePower(activePower) =>
+        /* scale the reference active power based on the profiles averagePower/maxPower ratio */
+        val referenceScalingFactor = averagePower
+          .divide(profileMaxPower)
+          .asType(classOf[Dimensionless])
+          .to(PU)
+          .getValue
+          .doubleValue()
+        activePower.multiply(referenceScalingFactor)
+      case _: EnergyConsumption =>
+        /* scale the profiles average power based on the energyConsumption/profileEnergyScaling(=1000kWh/year) ratio  */
+        averagePower
+          .multiply(energyReferenceScalingFactor)
+          .asType(classOf[Power])
+    }
+    activePower.multiply(scalingFactor)
   }
+}
 
-  final case class StandardProfileRelevantData(date: ZonedDateTime)
-      extends ProfileRelevantData
+case object StandardProfileLoadModel {
 
-  final case class TemperatureProfileRelevantData(
-      date: ZonedDateTime,
-      averageTemperature: ComparableQuantity[Temperature]
-  ) extends ProfileRelevantData
-
-  def buildProfileLoadModel(
+  def apply(
       input: LoadInput,
       operationInterval: OperationInterval,
       scalingFactor: Double,
       reference: LoadReference
-  ): ProfileLoadModel[_ <: LoadProfile, _ <: ProfileRelevantData] = {
+  ) = {
 
     val sRated = reference match {
       case LoadReference.ActivePower(power) =>
@@ -114,6 +160,7 @@ case object ProfileLoadModel {
           StandardLoadProfileStore.defaultLoadProfileEnergyScaling
         )
     }
+
     input.getLoadProfile match {
       case profile: StandardLoadProfile =>
         StandardProfileLoadModel(
@@ -129,23 +176,13 @@ case object ProfileLoadModel {
           StandardLoadProfileStore()
         )
       case profile: TemperatureDependantLoadProfile =>
-        TemperatureDependantProfileLoadModel(
-          input.getUuid,
-          input.getId,
-          operationInterval,
-          scalingFactor,
-          QControl.apply(input.getqCharacteristics()),
-          sRated,
-          input.getCosPhiRated,
-          profile,
-          reference,
-          TemperatureDependantLoadProfileStore()
+        throw new IllegalArgumentException(
+          s"Can not build a ProfileLoadModel with load profile $profile"
         )
       case unknown =>
         throw new IllegalArgumentException(
           s"Can not build a ProfileLoadModel with load profile $unknown"
         )
     }
-
   }
 }
