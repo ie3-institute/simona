@@ -160,8 +160,8 @@ class RuntimeEventListenerSpec
 
       events.foreach { case (event, level, msg) =>
         LoggingTestKit.empty
-          // .withLogLevel(level)
-          // .withCustom(_.message == msg)
+          .withLogLevel(level)
+          .withMessageContains(msg)
           .expect {
             listenerRef ! event
           }
