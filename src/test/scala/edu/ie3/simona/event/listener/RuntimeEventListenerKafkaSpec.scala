@@ -125,7 +125,7 @@ class RuntimeEventListenerKafkaSpec
       forAll(cases) { case (event, expectedMsg) =>
         listenerRef ! event
 
-        eventually(timeout(5 second), interval(1 second)) {
+        eventually(timeout(20 seconds), interval(1 second)) {
           val records: List[SimonaEndMessage] =
             testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
 
