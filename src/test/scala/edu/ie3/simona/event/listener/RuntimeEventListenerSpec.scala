@@ -110,16 +110,6 @@ class RuntimeEventListenerSpec
         (math round number * s) / s
       }
 
-      def durationAndMemoryString(dur: Double) = {
-        val memory = math.round(
-          10 * (Runtime.getRuntime.totalMemory() - Runtime.getRuntime
-            .freeMemory()) / Math
-            .pow(1000, 3)
-        ) / 10.0
-
-        s"(duration: ${roundDuration(dur)} s, memory: $memory GB)"
-      }
-
       val events = Seq(
         (
           Initializing,
@@ -134,22 +124,22 @@ class RuntimeEventListenerSpec
         (
           Ready(currentTick, 0d),
           Level.INFO,
-          s"******* Switched from 'Simulating' to 'Ready'. Last simulated time: ${calcTime(currentTick)}. ${durationAndMemoryString(0d)}  ******"
+          s"Switched from 'Simulating' to 'Ready'. Last simulated time: ${calcTime(currentTick)}."
         ),
         (
           Simulating(currentTick, endTick),
           Level.INFO,
-          s"******* Simulating from ${calcTime(currentTick)} until ${calcTime(endTick)}. *******"
+          s"Simulating from ${calcTime(currentTick)} until ${calcTime(endTick)}."
         ),
         (
           CheckWindowPassed(currentTick, 0d),
           Level.INFO,
-          s"******* Simulation until ${calcTime(currentTick)} completed. ${durationAndMemoryString(0d)} ******"
+          s"Simulation until ${calcTime(currentTick)} completed."
         ),
         (
           Done(endTick, duration, 0, errorInSim = false),
           Level.INFO,
-          s"******* Simulation completed with \u001b[0;32mSUCCESS (Failed PF: 0)\u001b[0;30m in time step ${calcTime(endTick)}. Total runtime: ${roundDuration(duration)} s *******"
+          s"Simulation completed with \u001b[0;32mSUCCESS (Failed PF: 0)\u001b[0;30m in time step ${calcTime(endTick)}. Total runtime: ${roundDuration(duration)} s"
         ),
         (
           Error(errMsg),
