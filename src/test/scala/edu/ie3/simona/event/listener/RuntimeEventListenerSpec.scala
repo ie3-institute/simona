@@ -7,9 +7,11 @@
 package edu.ie3.simona.event.listener
 
 import akka.actor.testkit.typed.scaladsl.{
+  ActorTestKit,
   LoggingTestKit,
   ScalaTestWithActorTestKit
 }
+import com.typesafe.config.ConfigValueFactory
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent.{
@@ -31,7 +33,12 @@ import org.slf4j.event.Level
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 class RuntimeEventListenerSpec
-    extends ScalaTestWithActorTestKit
+    extends ScalaTestWithActorTestKit(
+      ActorTestKit.ApplicationTestConfig.withValue(
+        "akka.actor.testkit.typed.filter-leeway",
+        ConfigValueFactory.fromAnyRef("10s")
+      )
+    )
     with AnyWordSpecLike
     with should.Matchers
     with PrivateMethodTester {
