@@ -37,6 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made SimonaConfig.BaseRuntimeConfig serializable [#36](https://github.com/ie3-institute/simona/issues/36)
 - Adapt to new simonaAPI snapshot [#95](https://github.com/ie3-institute/simona/issues/95)
 - Update Sphinx to 4.5.0 as well as extensions [#214](https://github.com/ie3-institute/simona/issues/214)
+- Respect for scaling factor when simulating the system participants [#81](https://github.com/ie3-institute/simona/issues/81)
+- Harmonize participant model instantiation [#81](https://github.com/ie3-institute/simona/issues/81)
+
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
@@ -48,9 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed some unreachable code [#167](https://github.com/ie3-institute/simona/issues/167)
 - Fix treatment of non-InitializeTrigger triggers in initialization within SimScheduler [#237](https://github.com/ie3-institute/simona/issues/237)
 - Fix breaking SIMONA caused by introducing temperature dependant load profiles in PSDM [#255](https://github.com/ie3-institute/simona/issues/255)
-- Improving code readability in `EvcsAgent` by moving FreeLotsRequest to separate methods
-- Respect for scaling factor when simulating the system participants
-- Harmonize participant model instantiation
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)
