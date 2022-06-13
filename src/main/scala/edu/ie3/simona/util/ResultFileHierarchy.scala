@@ -62,6 +62,9 @@ final case class ResultFileHierarchy(
 
   val resultSinkType: ResultSinkType = resultEntityPathConfig.resultSinkType
 
+  val resultEntitiesToConsider: Set[Class[_ <: ResultEntity]] =
+    resultEntityPathConfig.resultEntitiesToConsider
+
   val rawOutputDataFilePaths: Map[Class[_ <: ResultEntity], String] = {
     resultSinkType match {
       case csv: Csv =>
