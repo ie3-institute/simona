@@ -19,5 +19,7 @@ final case class RuntimeEventQueueSink(queue: BlockingQueue[RuntimeEvent])
   ): Unit =
     queue.put(runtimeEvent)
 
-  override def close(): Unit = {}
+  override def close(): Unit = {
+    // nothing to close
+  }
 }

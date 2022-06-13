@@ -90,9 +90,7 @@ final case class RuntimeEventLogSink(
     s"(duration: ${roundDuration(duration)} s, memory: $memory GB)"
   }
 
-  /** Contains all cleanup operations before closing this sink. Should be
-    * blocking to ensure that everything inside a buffer or similar is written
-    * out.
-    */
-  override def close(): Unit = {}
+  override def close(): Unit = {
+    // nothing to close
+  }
 }
