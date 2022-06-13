@@ -9,19 +9,27 @@ package edu.ie3.simona.config
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
-import edu.ie3.simona.config.SimonaConfig.{BaseOutputConfig, RefSystemConfig}
+import edu.ie3.simona.config.SimonaConfig.{
+  BaseOutputConfig,
+  RefSystemConfig,
+  ResultKafkaParams
+}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherSource
 import edu.ie3.simona.util.CollectionUtils
-import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.checkInfluxDb1xParams
+import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
+  checkInfluxDb1xParams,
+  checkKafkaParams
+}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.scala.ReflectionTools
 import edu.ie3.util.{StringUtils, TimeUtil}
+import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
-import java.security.InvalidParameterException
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
@@ -137,7 +145,7 @@ case object ConfigFailFast extends LazyLogging {
     */
   private def checkDataSink(sink: SimonaConfig.Simona.Output.Sink): Unit = {
     // ensures failure if new output sinks are added to enforce adaptions of the check sink method as well
-    val supportedSinks = Set("influxdb1x", "csv")
+    val supportedSinks = Set("influxdb1x", "csv", "kafka")
     if (
       !sink.productElementNames
         .map(_.trim.toLowerCase)
@@ -146,7 +154,7 @@ case object ConfigFailFast extends LazyLogging {
     )
       throw new InvalidConfigParameterException(
         s"Newly added sink(s) " +
-          s"'${sink.productElementNames.toSet.removedAll(supportedSinks)}' detected! " +
+          s"'${sink.productElementNames.map(_.toLowerCase).toSet.removedAll(supportedSinks)}' detected! " +
           s"Please adapt 'ConfigFailFast' accordingly! Currently supported sinks: ${supportedSinks.mkString(", ")}."
       )
 
@@ -171,7 +179,6 @@ case object ConfigFailFast extends LazyLogging {
           "one sink is configured!"
       )
 
-    // if this is db sink, check the connection
     sinkConfigs.find(_.isDefined) match {
       case Some(Some(influxDb1x: InfluxDb1x)) =>
         checkInfluxDb1xParams(
@@ -179,7 +186,9 @@ case object ConfigFailFast extends LazyLogging {
           ResultSinkType.buildInfluxDb1xUrl(influxDb1x),
           influxDb1x.database
         )
-      case _ => // no db connection, do nothing
+      case Some(Some(kafka: ResultKafkaParams)) =>
+        checkKafkaParams(kafka, Seq(kafka.topicNodeRes))
+      case _ => // do nothing
     }
 
   }
@@ -385,7 +394,8 @@ case object ConfigFailFast extends LazyLogging {
     */
   private def checkRefSystem(refSystem: RefSystemConfig): Unit = {
 
-    val voltLvls = refSystem.voltLvls.getOrElse(List.empty[String])
+    val voltLvls =
+      refSystem.voltLvls.getOrElse(List.empty[SimonaConfig.VoltLvlConfig])
     val gridIds = refSystem.gridIds.getOrElse(List.empty[String])
 
     if (voltLvls.isEmpty && gridIds.isEmpty)
@@ -396,10 +406,16 @@ case object ConfigFailFast extends LazyLogging {
       )
 
     voltLvls.foreach { voltLvl =>
-      {
-        if (!ConfigConventions.voltLvlRegex.matches(voltLvl))
+      Try(Quantities.getQuantity(voltLvl.vNom)) match {
+        case Success(quantity) =>
+          if (!quantity.getUnit.isCompatible(Units.VOLT))
+            throw new InvalidConfigParameterException(
+              s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to electrical potential! Please provide the volt level with its unit, e.g. \"20 kV\""
+            )
+        case Failure(exception) =>
           throw new InvalidConfigParameterException(
-            s"The definition string for voltLvl '$voltLvl' does not comply with the definition {<id>, <rated voltage>}!"
+            s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?",
+            exception
           )
       }
     }
@@ -456,11 +472,7 @@ case object ConfigFailFast extends LazyLogging {
       case "csv" =>
         gridDataSource.csvParams match {
           case Some(csvParams) =>
-            CsvConfigUtil.checkCsvParams(
-              "GridSource",
-              csvParams.csvSep,
-              csvParams.folderPath
-            )
+            CsvConfigUtil.checkBaseCsvParams(csvParams, "GridSource")
           case None =>
             throw new InvalidConfigParameterException(
               "No grid data source csv parameters provided. If you intend to read grid data from .csv-files, please " +

@@ -32,7 +32,7 @@ object GridProvider {
             CsvGridSource(
               simulationName,
               params.csvSep,
-              params.folderPath,
+              params.directoryPath,
               new FileNamingStrategy()
             ).getOrElse(
               throw new InitializationException(

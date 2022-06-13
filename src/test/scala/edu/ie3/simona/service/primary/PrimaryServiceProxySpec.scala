@@ -9,18 +9,17 @@ package edu.ie3.simona.service.primary
 import akka.actor.{ActorRef, ActorSystem, PoisonPill}
 import akka.testkit.{TestActorRef, TestProbe}
 import akka.util.Timeout
-import breeze.stats.distributions.Rand
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.io.csv.timeseries.ColumnScheme
+import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
+import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
-import edu.ie3.datamodel.models.value.SValue
+import edu.ie3.datamodel.models.value.{SValue, Value}
+import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{
   CouchbaseParams,
-  CsvParams,
-  InfluxDb1xParams,
-  SqlParams
+  InfluxDb1xParams
 }
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
   Primary => PrimaryConfig
@@ -34,32 +33,33 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   WorkerRegistrationMessage
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
-  CsvInitPrimaryServiceStateData,
-  InitPrimaryServiceStateData
-}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
   PrimaryServiceStateData,
   SourceRef
 }
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
+  CsvInitPrimaryServiceStateData,
+  InitPrimaryServiceStateData
+}
 import edu.ie3.simona.test.common.AgentSpec
+import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.util.TimeUtil
 import org.scalatest.PartialFunctionValues
 import org.scalatest.prop.TableDrivenPropertyChecks
 
+import java.nio.file.Paths
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 import java.util.{Objects, UUID}
-import scala.reflect.io.File
-import scala.util.{Failure, Success, Try}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success, Try}
 
 class PrimaryServiceProxySpec
     extends AgentSpec(
@@ -73,19 +73,28 @@ class PrimaryServiceProxySpec
       )
     )
     with TableDrivenPropertyChecks
-    with PartialFunctionValues {
-  val baseDirectoryPath: String = this.getClass
-    .getResource(File.separator + "it-data" + File.separator + "primaryService")
-    .getPath
+    with PartialFunctionValues
+    with TimeSeriesTestData {
+  // this works both on Windows and Unix systems
+  val baseDirectoryPath: String = Paths
+    .get(
+      this.getClass
+        .getResource(
+          "it"
+        )
+        .toURI
+    )
+    .toString
   val csvSep = ";"
   val fileNamingStrategy = new FileNamingStrategy()
   val validPrimaryConfig: PrimaryConfig =
     PrimaryConfig(
       None,
       Some(
-        CsvParams(
+        PrimaryDataCsvParams(
           csvSep,
           baseDirectoryPath,
+          isHierarchic = false,
           TimeUtil.withDefaults.getDtfPattern
         )
       ),
@@ -97,43 +106,32 @@ class PrimaryServiceProxySpec
     baseDirectoryPath,
     fileNamingStrategy
   )
-  val workerId: String =
-    "PrimaryService_3fbfaa97-cff4-46d4-95ba-a95665e87c26"
+  val workerId: String = "PrimaryService_" + uuidPq
   val modelUuid: UUID = UUID.fromString("c7ebcc6c-55fc-479b-aa6b-6fa82ccac6b8")
-  val timeSeriesUuid: UUID =
-    UUID.fromString("3fbfaa97-cff4-46d4-95ba-a95665e87c26")
   val simulationStart: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2021-03-17 13:14:00")
   val proxyStateData: PrimaryServiceStateData = PrimaryServiceStateData(
     Map(
-      UUID.fromString("b86e95b0-e579-4a80-a534-37c7a470a409") -> UUID
-        .fromString("9185b8c1-86ba-4a16-8dea-5ac898e8caa5"),
-      modelUuid -> UUID.fromString("3fbfaa97-cff4-46d4-95ba-a95665e87c26"),
-      UUID.fromString("90a96daa-012b-4fea-82dc-24ba7a7ab81c") -> UUID
-        .fromString("3fbfaa97-cff4-46d4-95ba-a95665e87c26")
+      UUID.fromString("b86e95b0-e579-4a80-a534-37c7a470a409") -> uuidP,
+      modelUuid -> uuidPq,
+      UUID.fromString("90a96daa-012b-4fea-82dc-24ba7a7ab81c") -> uuidPq
     ),
     Map(
-      UUID.fromString("9185b8c1-86ba-4a16-8dea-5ac898e8caa5") -> SourceRef(
-        ColumnScheme.ACTIVE_POWER,
-        None
-      ),
-      UUID.fromString("3fbfaa97-cff4-46d4-95ba-a95665e87c26") -> SourceRef(
-        ColumnScheme.APPARENT_POWER,
-        None
-      )
+      uuidP -> SourceRef(metaP, None),
+      uuidPq -> SourceRef(metaPq, None)
     ),
     simulationStart,
     validPrimaryConfig,
     mappingSource
   )
 
-  val scheduler = TestProbe("scheduler")
+  private val scheduler: TestProbe = TestProbe("scheduler")
 
   "Testing a primary service config" should {
     "lead to complaining about too much source definitions" in {
       val maliciousConfig = PrimaryConfig(
         Some(CouchbaseParams("", "", "", "", "", "", "")),
-        Some(CsvParams("", "", "")),
+        Some(PrimaryDataCsvParams("", "", isHierarchic = false, "")),
         None,
         None
       )
@@ -141,7 +139,7 @@ class PrimaryServiceProxySpec
       val exception = intercept[InvalidConfigParameterException](
         PrimaryServiceProxy.checkConfig(maliciousConfig)
       )
-      exception.getMessage shouldBe "2 time series source types defined. Please define only one type!\nAvailable types:\n\tcsv"
+      exception.getMessage shouldBe "2 time series source types defined. Please define only one type!\nAvailable types:\n\tcsv\n\tsql"
     }
 
     "lead to complaining about too few source definitions" in {
@@ -155,7 +153,7 @@ class PrimaryServiceProxySpec
       val exception = intercept[InvalidConfigParameterException](
         PrimaryServiceProxy.checkConfig(maliciousConfig)
       )
-      exception.getMessage shouldBe "No time series source type defined. Please define exactly one type!\nAvailable types:\n\tcsv"
+      exception.getMessage shouldBe "No time series source type defined. Please define exactly one type!\nAvailable types:\n\tcsv\n\tsql"
     }
 
     "not let couchbase parameters pass for mapping configuration" in {
@@ -169,13 +167,13 @@ class PrimaryServiceProxySpec
       val exception = intercept[InvalidConfigParameterException](
         PrimaryServiceProxy.checkConfig(maliciousConfig)
       )
-      exception.getMessage shouldBe "Invalid configuration 'CouchbaseParams(,,,,,,)' for a time series source.\nAvailable types:\n\tcsv"
+      exception.getMessage shouldBe "Invalid configuration 'CouchbaseParams(,,,,,,)' for a time series source.\nAvailable types:\n\tcsv\n\tsql"
     }
 
     "let csv parameters pass for mapping configuration" in {
       val mappingConfig = PrimaryConfig(
         None,
-        Some(CsvParams("", "", "")),
+        Some(PrimaryDataCsvParams("", "", isHierarchic = false, "")),
         None,
         None
       )
@@ -196,27 +194,13 @@ class PrimaryServiceProxySpec
       val exception = intercept[InvalidConfigParameterException](
         PrimaryServiceProxy.checkConfig(maliciousConfig)
       )
-      exception.getMessage shouldBe "Invalid configuration 'InfluxDb1xParams(,0,,)' for a time series source.\nAvailable types:\n\tcsv"
+      exception.getMessage shouldBe "Invalid configuration 'InfluxDb1xParams(,0,,)' for a time series source.\nAvailable types:\n\tcsv\n\tsql"
     }
 
-    "not let sql parameters pass for mapping configuration" in {
-      val maliciousConfig = PrimaryConfig(
-        None,
-        None,
-        None,
-        Some(SqlParams("", "", "", "", "", "", ""))
-      )
-
-      val exception = intercept[InvalidConfigParameterException](
-        PrimaryServiceProxy.checkConfig(maliciousConfig)
-      )
-      exception.getMessage shouldBe "Invalid configuration 'SqlParams(,,,,,,)' for a time series source.\nAvailable types:\n\tcsv"
-    }
-
-    "fails on invalid time pattern" in {
+    "fails on invalid time pattern with csv" in {
       val invalidTimePatternConfig = PrimaryConfig(
         None,
-        Some(CsvParams("", "", "xYz")),
+        Some(PrimaryDataCsvParams("", "", isHierarchic = false, "xYz")),
         None,
         None
       )
@@ -228,10 +212,17 @@ class PrimaryServiceProxySpec
 
     }
 
-    "succeeds on valid time pattern" in {
+    "succeeds on valid time pattern with csv" in {
       val validTimePatternConfig = PrimaryConfig(
         None,
-        Some(CsvParams("", "", "yyyy-MM-dd'T'HH:mm'Z[UTC]'")),
+        Some(
+          PrimaryDataCsvParams(
+            "",
+            "",
+            isHierarchic = false,
+            "yyyy-MM-dd'T'HH:mm'Z[UTC]'"
+          )
+        ),
         None,
         None
       )
@@ -275,8 +266,8 @@ class PrimaryServiceProxySpec
       val maliciousConfig = PrimaryConfig(
         None,
         None,
-        None,
-        Some(SqlParams("", "", "", "", "", "", ""))
+        Some(InfluxDb1xParams("", -1, "", "")),
+        None
       )
 
       proxy invokePrivate prepareStateData(
@@ -287,7 +278,7 @@ class PrimaryServiceProxySpec
           fail("Building state data with missing config should fail")
         case Failure(exception) =>
           exception.getClass shouldBe classOf[IllegalArgumentException]
-          exception.getMessage shouldBe "Unsupported config for mapping source: 'SqlParams(,,,,,,)'"
+          exception.getMessage shouldBe "Unsupported config for mapping source: 'InfluxDb1xParams(,-1,,)'"
       }
     }
 
@@ -306,32 +297,24 @@ class PrimaryServiceProxySpec
               )
             ) =>
           modelToTimeSeries shouldBe Map(
-            UUID.fromString("b86e95b0-e579-4a80-a534-37c7a470a409") -> UUID
-              .fromString("9185b8c1-86ba-4a16-8dea-5ac898e8caa5"),
-            UUID.fromString("c7ebcc6c-55fc-479b-aa6b-6fa82ccac6b8") -> UUID
-              .fromString("3fbfaa97-cff4-46d4-95ba-a95665e87c26"),
-            UUID.fromString("90a96daa-012b-4fea-82dc-24ba7a7ab81c") -> UUID
-              .fromString("3fbfaa97-cff4-46d4-95ba-a95665e87c26")
+            UUID.fromString("b86e95b0-e579-4a80-a534-37c7a470a409") -> uuidP,
+            UUID.fromString("c7ebcc6c-55fc-479b-aa6b-6fa82ccac6b8") -> uuidPq,
+            UUID.fromString("90a96daa-012b-4fea-82dc-24ba7a7ab81c") -> uuidPq
           )
           timeSeriesToSourceRef shouldBe Map(
-            UUID
-              .fromString("9185b8c1-86ba-4a16-8dea-5ac898e8caa5") -> SourceRef(
-              ColumnScheme.ACTIVE_POWER,
-              None
-            ),
-            UUID
-              .fromString("3fbfaa97-cff4-46d4-95ba-a95665e87c26") -> SourceRef(
-              ColumnScheme.APPARENT_POWER,
-              None
-            )
+            uuidP -> SourceRef(metaP, None),
+            uuidPq -> SourceRef(metaPq, None)
           )
           simulationStart shouldBe this.simulationStart
           primaryConfig shouldBe validPrimaryConfig
           classOf[TimeSeriesMappingSource].isAssignableFrom(
             mappingSource.getClass
           ) shouldBe true
-        case Failure(_) =>
-          fail("Building state data with correct config should not fail")
+        case Failure(failure) =>
+          fail(
+            "Building state data with correct config should not fail, but failed with:",
+            failure
+          )
       }
     }
   }
@@ -353,6 +336,9 @@ class PrimaryServiceProxySpec
   }
 
   "Spinning off a worker" should {
+    val initializeWorker =
+      PrivateMethod[Try[ActorRef]](Symbol("initializeWorker"))
+
     "successfully instantiate an actor within the actor system" in {
       val classToWorkerRef = PrivateMethod[ActorRef](Symbol("classToWorkerRef"))
 
@@ -363,8 +349,7 @@ class PrimaryServiceProxySpec
 
       val workerRef = proxy invokePrivate classToWorkerRef(
         testClass,
-        workerId,
-        simulationStart
+        workerId
       )
       Objects.nonNull(workerRef) shouldBe true
 
@@ -372,55 +357,19 @@ class PrimaryServiceProxySpec
       workerRef ! PoisonPill
     }
 
-    "successfully spin off an actor from supported ColumnScheme and refuse unsupported ones" in {
-      val testData = Table(
-        ("columnScheme", "successful"),
-        (ColumnScheme.ACTIVE_POWER, true),
-        (ColumnScheme.ACTIVE_POWER_AND_HEAT_DEMAND, true),
-        (ColumnScheme.APPARENT_POWER, true),
-        (ColumnScheme.APPARENT_POWER_AND_HEAT_DEMAND, true),
-        (ColumnScheme.ENERGY_PRICE, false),
-        (ColumnScheme.HEAT_DEMAND, false),
-        (ColumnScheme.WEATHER, false)
-      )
-
-      val columnSchemeToActor =
-        PrivateMethod[Try[ActorRef]](Symbol("columnSchemeToActor"))
-
-      forAll(testData) {
-        case (columnScheme: ColumnScheme, successFul: Boolean) =>
-          proxy invokePrivate columnSchemeToActor(
-            columnScheme,
-            workerId + Rand.randInt.draw(),
-            simulationStart
-          ) match {
-            case Success(workerRef) =>
-              if (!successFul)
-                fail(
-                  s"Spinning off an worker for column scheme '$columnScheme' was meant to fail, but succeeded."
-                )
-              /* Kill the worker, as we do not need it */
-              workerRef ! PoisonPill
-            case Failure(exception) =>
-              if (successFul)
-                fail(
-                  s"Spinning off an worker for column scheme '$columnScheme' was meant to succeed, but with message '${exception.getMessage}'."
-                )
-              exception.getMessage shouldBe s"Cannot build a primary source for unsupported column scheme '$columnScheme'."
-          }
-      }
-    }
-
     "successfully build initialization data for the worker" in {
       val toInitData = PrivateMethod[Try[InitPrimaryServiceStateData]](
         Symbol("toInitData")
       )
+      val metaInformation = new CsvIndividualTimeSeriesMetaInformation(
+        metaPq,
+        "its_pq_" + uuidPq
+      )
 
       proxy invokePrivate toInitData(
-        validPrimaryConfig,
-        mappingSource,
-        timeSeriesUuid,
-        simulationStart
+        metaInformation,
+        simulationStart,
+        validPrimaryConfig
       ) match {
         case Success(
               CsvInitPrimaryServiceStateData(
@@ -433,11 +382,11 @@ class PrimaryServiceProxySpec
                 timePattern
               )
             ) =>
-          actualTimeSeriesUuid shouldBe timeSeriesUuid
+          actualTimeSeriesUuid shouldBe uuidPq
           actualSimulationStart shouldBe simulationStart
           actualCsvSep shouldBe csvSep
           directoryPath shouldBe baseDirectoryPath
-          filePath shouldBe "its_pq_3fbfaa97-cff4-46d4-95ba-a95665e87c26"
+          filePath shouldBe metaInformation.getFullFilePath
           classOf[FileNamingStrategy].isAssignableFrom(
             fileNamingStrategy.getClass
           ) shouldBe true
@@ -452,27 +401,6 @@ class PrimaryServiceProxySpec
       }
     }
 
-    "fail, if no worker actor can be initialized" in {
-      val maliciousColumnScheme = ColumnScheme.WEATHER
-
-      proxy.initializeWorker(
-        maliciousColumnScheme,
-        timeSeriesUuid,
-        simulationStart,
-        validPrimaryConfig,
-        mappingSource
-      ) match {
-        case Failure(exception) =>
-          exception.getClass shouldBe classOf[InitializationException]
-          exception.getMessage shouldBe "Unable to establish a typed worker for primary data provision."
-          exception.getCause.getMessage shouldBe s"Cannot build a primary source for unsupported column scheme '$maliciousColumnScheme'."
-        case Success(_) =>
-          fail(
-            "Instantiating a worker with malicious column scheme should fail."
-          )
-      }
-    }
-
     "fail, if init data cannot be established for the worker" in {
       val maliciousPrimaryConfig = PrimaryConfig(
         Some(CouchbaseParams("", "", "", "", "", "", "")),
@@ -480,13 +408,10 @@ class PrimaryServiceProxySpec
         None,
         None
       )
-
-      proxy.initializeWorker(
-        ColumnScheme.APPARENT_POWER,
-        timeSeriesUuid,
+      proxy invokePrivate initializeWorker(
+        metaPq,
         simulationStart,
-        maliciousPrimaryConfig,
-        mappingSource
+        maliciousPrimaryConfig
       ) match {
         case Failure(exception) =>
           /* Check the exception */
@@ -517,20 +442,34 @@ class PrimaryServiceProxySpec
       val testProbe = TestProbe("workerTestProbe")
       val fakeProxyRef =
         TestActorRef(new PrimaryServiceProxy(scheduler.ref, simulationStart) {
-          override def columnSchemeToActor(
-              columnScheme: ColumnScheme,
-              actorId: String,
-              simulationStart: ZonedDateTime
-          ): Try[ActorRef] = Success(testProbe.ref)
+          override protected def classToWorkerRef[V <: Value](
+              valueClass: Class[V],
+              timeSeriesUuid: String
+          ): ActorRef = testProbe.ref
+
+          // needs to be overwritten as to make it available to the private method tester
+          @SuppressWarnings(Array("NoOpOverride"))
+          override protected def initializeWorker(
+              metaInformation: IndividualTimeSeriesMetaInformation,
+              simulationStart: ZonedDateTime,
+              primaryConfig: PrimaryConfig
+          ): Try[ActorRef] =
+            super.initializeWorker(
+              metaInformation,
+              simulationStart,
+              primaryConfig
+            )
         })
       val fakeProxy: PrimaryServiceProxy = fakeProxyRef.underlyingActor
+      val metaInformation = new CsvIndividualTimeSeriesMetaInformation(
+        metaPq,
+        "its_pq_" + uuidPq
+      )
 
-      fakeProxy.initializeWorker(
-        ColumnScheme.APPARENT_POWER,
-        timeSeriesUuid,
+      fakeProxy invokePrivate initializeWorker(
+        metaInformation,
         simulationStart,
-        validPrimaryConfig,
-        mappingSource
+        validPrimaryConfig
       ) match {
         case Success(workerRef) =>
           /* Check, if expected init message has been sent */
@@ -549,11 +488,11 @@ class PrimaryServiceProxySpec
                   ),
                   actorToBeScheduled
                 ) =>
-              actualTimeSeriesUuid shouldBe timeSeriesUuid
+              actualTimeSeriesUuid shouldBe uuidPq
               actualSimulationStart shouldBe simulationStart
               actualCsvSep shouldBe csvSep
               directoryPath shouldBe baseDirectoryPath
-              filePath shouldBe "its_pq_3fbfaa97-cff4-46d4-95ba-a95665e87c26"
+              filePath shouldBe metaInformation.getFullFilePath
               classOf[FileNamingStrategy].isAssignableFrom(
                 fileNamingStrategy.getClass
               ) shouldBe true
@@ -590,7 +529,7 @@ class PrimaryServiceProxySpec
     "work otherwise" in {
       proxy invokePrivate updateStateData(
         proxyStateData,
-        timeSeriesUuid,
+        uuidPq,
         self
       ) match {
         case PrimaryServiceStateData(
@@ -602,16 +541,8 @@ class PrimaryServiceProxySpec
             ) =>
           modelToTimeSeries shouldBe proxyStateData.modelToTimeSeries
           timeSeriesToSourceRef shouldBe Map(
-            UUID
-              .fromString("9185b8c1-86ba-4a16-8dea-5ac898e8caa5") -> SourceRef(
-              ColumnScheme.ACTIVE_POWER,
-              None
-            ),
-            UUID
-              .fromString("3fbfaa97-cff4-46d4-95ba-a95665e87c26") -> SourceRef(
-              ColumnScheme.APPARENT_POWER,
-              Some(self)
-            )
+            uuidP -> SourceRef(metaP, None),
+            uuidPq -> SourceRef(metaPq, Some(self))
           )
           simulationStart shouldBe proxyStateData.simulationStart
           primaryConfig shouldBe proxyStateData.primaryConfig
@@ -621,13 +552,15 @@ class PrimaryServiceProxySpec
   }
 
   "Handling of a covered model" should {
+    val handleCoveredModel = PrivateMethod(Symbol("handleCoveredModel"))
+
     "fail, if no information can be obtained from state data" in {
       val maliciousStateData =
         proxyStateData.copy(timeSeriesToSourceRef = Map.empty[UUID, SourceRef])
 
-      proxy.handleCoveredModel(
+      proxy invokePrivate handleCoveredModel(
         modelUuid,
-        timeSeriesUuid,
+        uuidPq,
         maliciousStateData,
         self
       )
@@ -637,13 +570,13 @@ class PrimaryServiceProxySpec
     "forward the registration request, if worker is already known" in {
       val adaptedStateData = proxyStateData.copy(
         timeSeriesToSourceRef = Map(
-          timeSeriesUuid -> SourceRef(ColumnScheme.APPARENT_POWER, Some(self))
+          uuidPq -> SourceRef(metaPq, Some(self))
         )
       )
 
-      proxy.handleCoveredModel(
+      proxy invokePrivate handleCoveredModel(
         modelUuid,
-        timeSeriesUuid,
+        uuidPq,
         adaptedStateData,
         self
       )
@@ -660,9 +593,9 @@ class PrimaryServiceProxySpec
         )
       )
 
-      proxy.handleCoveredModel(
+      proxy invokePrivate handleCoveredModel(
         modelUuid,
-        timeSeriesUuid,
+        uuidPq,
         maliciousStateData,
         self
       )
@@ -674,19 +607,32 @@ class PrimaryServiceProxySpec
       val probe = TestProbe("workerTestProbe")
       val fakeProxyRef =
         TestActorRef(new PrimaryServiceProxy(self, simulationStart) {
-          override def initializeWorker(
-              columnScheme: ColumnScheme,
-              timeSeriesUuid: UUID,
+          override protected def initializeWorker(
+              metaInformation: IndividualTimeSeriesMetaInformation,
               simulationStart: ZonedDateTime,
-              primaryConfig: PrimaryConfig,
-              mappingSource: TimeSeriesMappingSource
+              primaryConfig: PrimaryConfig
           ): Try[ActorRef] = Success(probe.ref)
+
+          // needs to be overwritten as to make it available to the private method tester
+          @SuppressWarnings(Array("NoOpOverride"))
+          override protected def handleCoveredModel(
+              modelUuid: UUID,
+              timeSeriesUuid: UUID,
+              stateData: PrimaryServiceStateData,
+              requestingActor: ActorRef
+          ): Unit =
+            super.handleCoveredModel(
+              modelUuid,
+              timeSeriesUuid,
+              stateData,
+              requestingActor
+            )
         })
       val fakeProxy = fakeProxyRef.underlyingActor
 
-      fakeProxy.handleCoveredModel(
+      fakeProxy invokePrivate handleCoveredModel(
         modelUuid,
-        timeSeriesUuid,
+        uuidPq,
         proxyStateData,
         self
       )
@@ -709,12 +655,10 @@ class PrimaryServiceProxySpec
       val probe = TestProbe("workerTestProbe")
       val fakeProxyRef =
         TestActorRef(new PrimaryServiceProxy(self, simulationStart) {
-          override def initializeWorker(
-              columnScheme: ColumnScheme,
-              timeSeriesUuid: UUID,
+          override protected def initializeWorker(
+              metaInformation: IndividualTimeSeriesMetaInformation,
               simulationStart: ZonedDateTime,
-              primaryConfig: PrimaryConfig,
-              mappingSource: TimeSeriesMappingSource
+              primaryConfig: PrimaryConfig
           ): Try[ActorRef] = Success(probe.ref)
         })
 

@@ -327,7 +327,7 @@ case object Transformer3wModel {
           transformerRefSystem.rInPu(transformerType.getrScA),
           transformerRefSystem.xInPu(transformerType.getxScA),
           transformerRefSystem.gInPu(transformerType.getgM),
-          transformerRefSystem.gInPu(transformerType.getbM).multiply(-1)
+          transformerRefSystem.gInPu(transformerType.getbM)
         )
       case PowerFlowCaseB =>
         (

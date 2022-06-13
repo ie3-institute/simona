@@ -8,15 +8,24 @@ updates:
   open-pull-requests-limit: 10
   target-branch: dev
   reviewers:
-  - ckittl
-  - johanneshiry
   - t-ober
   - sensarmad
+  - sebastian-peter
+  - danielfeismann
   ignore:
     - dependency-name: org.spockframework:spock-core
       versions:
-        - 2.1-groovy-3.0-SNAPSHOT
         - 2.1-groovy-2.5-SNAPSHOT
+        - 2.1-groovy-3.0-SNAPSHOT
+        - 2.2-groovy-4.0-SNAPSHOT
+        - 2.2-groovy-2.5-SNAPSHOT
+        - 2.2-groovy-3.0-SNAPSHOT
+        - 2.2-M1-groovy-2.5
+        - 2.2-M1-groovy-3.0
+        - 2.2-M1-groovy-4.0
+        - 2.2-M2-groovy-2.5
+        - 2.2-M2-groovy-3.0
+        - 2.2-M2-groovy-4.0
     - dependency-name: org.scalatest:scalatest_2.13
       versions:
         - 3.3.0-SNAP+

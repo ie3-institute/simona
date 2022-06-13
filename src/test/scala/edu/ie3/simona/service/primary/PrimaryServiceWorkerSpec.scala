@@ -37,14 +37,15 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorkerSpec.WrongInitPrimaryServiceStateData
 import edu.ie3.simona.test.common.AgentSpec
+import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import tech.units.indriya.quantity.Quantities
 
+import java.nio.file.Paths
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.reflect.io.File
 import scala.util.{Failure, Success}
 
 class PrimaryServiceWorkerSpec
@@ -56,25 +57,25 @@ class PrimaryServiceWorkerSpec
                        |akka.loglevel="OFF"
           """.stripMargin)
       )
-    ) {
-  val baseDirectoryPath: String = "^file:".r.replaceFirstIn(
-    this.getClass
-      .getResource(
-        File.separator + "it-data" + File.separator + "primaryService"
-      )
-      .toString,
-    ""
-  )
-
-  private val simulationStart =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+    )
+    with TimeSeriesTestData {
+  // this works both on Windows and Unix systems
+  val baseDirectoryPath: String = Paths
+    .get(
+      this.getClass
+        .getResource(
+          "it"
+        )
+        .toURI
+    )
+    .toString
 
   val validInitData: CsvInitPrimaryServiceStateData =
     CsvInitPrimaryServiceStateData(
-      timeSeriesUuid = UUID.fromString("9185b8c1-86ba-4a16-8dea-5ac898e8caa5"),
+      timeSeriesUuid = uuidP,
       csvSep = ";",
       directoryPath = baseDirectoryPath,
-      filePath = "its_p_9185b8c1-86ba-4a16-8dea-5ac898e8caa5",
+      filePath = "its_p_" + uuidP,
       fileNamingStrategy = new FileNamingStrategy(),
       simulationStart =
         TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
@@ -86,8 +87,7 @@ class PrimaryServiceWorkerSpec
       TestActorRef(
         new PrimaryServiceWorker[PValue](
           self,
-          classOf[PValue],
-          simulationStart
+          classOf[PValue]
         )
       )
     val service = serviceRef.underlyingActor
@@ -104,13 +104,12 @@ class PrimaryServiceWorkerSpec
 
     "fail, if pointed to the wrong file" in {
       val maliciousInitData = CsvInitPrimaryServiceStateData(
-        timeSeriesUuid =
-          UUID.fromString("3fbfaa97-cff4-46d4-95ba-a95665e87c26"),
+        timeSeriesUuid = uuidPq,
         simulationStart =
           TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
         csvSep = ";",
         directoryPath = baseDirectoryPath,
-        filePath = "its_pq_3fbfaa97-cff4-46d4-95ba-a95665e87c26",
+        filePath = "its_pq_" + uuidPq,
         fileNamingStrategy = new FileNamingStrategy(),
         timePattern = TimeUtil.withDefaults.getDtfPattern
       )
@@ -198,8 +197,8 @@ class PrimaryServiceWorkerSpec
         ";",
         baseDirectoryPath,
         new FileNamingStrategy(),
-        UUID.fromString("9185b8c1-86ba-4a16-8dea-5ac898e8caa5"),
-        "its_p_9185b8c1-86ba-4a16-8dea-5ac898e8caa5",
+        uuidP,
+        "its_p_" + uuidP,
         classOf[PValue],
         new TimeBasedSimpleValueFactory[PValue](classOf[PValue])
       ),
