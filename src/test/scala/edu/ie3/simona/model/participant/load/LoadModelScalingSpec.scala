@@ -7,10 +7,11 @@
 package edu.ie3.simona.model.participant.load
 
 import breeze.numerics.abs
+import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
-import edu.ie3.datamodel.models.{BdewLoadProfile, OperationTime}
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
+import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
@@ -60,7 +61,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             -1
           ),
           new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
-          BdewLoadProfile.H0,
+          BdewStandardLoadProfile.H0,
           false,
           Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR),
           Quantities.getQuantity(282.74d, PowerSystemUnits.VOLTAMPERE),
@@ -84,9 +85,9 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         forAll(
           Table(
             "profile",
-            BdewLoadProfile.H0,
-            BdewLoadProfile.L0,
-            BdewLoadProfile.G0
+            BdewStandardLoadProfile.H0,
+            BdewStandardLoadProfile.L0,
+            BdewStandardLoadProfile.G0
           )
         ) { profile =>
           val dut = ProfileLoadModel(
@@ -164,7 +165,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           QControl.apply(profileLoadInput.getqCharacteristics()),
           profileLoadInput.getsRated(),
           profileLoadInput.getCosPhiRated,
-          BdewLoadProfile.H0,
+          BdewStandardLoadProfile.H0,
           EnergyConsumption(targetEnergyConsumption)
         )
         dut.enable()
@@ -224,9 +225,9 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         forAll(
           Table(
             "profile",
-            BdewLoadProfile.H0,
-            BdewLoadProfile.L0,
-            BdewLoadProfile.G0
+            BdewStandardLoadProfile.H0,
+            BdewStandardLoadProfile.L0,
+            BdewStandardLoadProfile.G0
           )
         ) { profile =>
           val dut = ProfileLoadModel(
@@ -285,7 +286,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           QControl.apply(profileLoadInput.getqCharacteristics()),
           profileLoadInput.getsRated(),
           profileLoadInput.getCosPhiRated,
-          BdewLoadProfile.H0,
+          BdewStandardLoadProfile.H0,
           ActivePower(targetMaximumPower)
         )
         dut.enable()
@@ -339,7 +340,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             -1
           ),
           new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
-          BdewLoadProfile.H0,
+          BdewStandardLoadProfile.H0,
           false,
           Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR),
           Quantities.getQuantity(282.74d, PowerSystemUnits.VOLTAMPERE),
