@@ -35,15 +35,15 @@ class RuntimeEventListenerKafkaSpec
     with UnitSpec
     with GivenWhenThen
     with TableDrivenPropertyChecks {
-  var testConsumer: KafkaConsumer[Bytes, SimonaEndMessage] = _
+  private var testConsumer: KafkaConsumer[Bytes, SimonaEndMessage] = _
 
   private implicit lazy val resultFormat: RecordFormat[SimonaEndMessage] =
     RecordFormat[SimonaEndMessage]
-  val deserializer: Deserializer[SimonaEndMessage] =
+  private val deserializer: Deserializer[SimonaEndMessage] =
     ScalaReflectionSerde.reflectionDeserializer4S[SimonaEndMessage]
 
   private val testTopic = Topic("testtopic", 1, 1)
-  override val testTopics: Seq[Topic] = Seq(
+  override protected val testTopics: Seq[Topic] = Seq(
     testTopic
   )
   private val topicPartitions: Seq[TopicPartition] =

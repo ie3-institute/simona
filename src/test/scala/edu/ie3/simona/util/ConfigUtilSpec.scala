@@ -792,7 +792,7 @@ class ConfigUtilSpec
       intercept[InvalidConfigParameterException] {
         ConfigUtil.DatabaseConfigUtil.checkKafkaParams(
           ResultKafkaParams(
-            "not§a§server",
+            "not#a#server",
             0,
             "00000000-0000-0000-0000-000000000000",
             "https://reg:123",
@@ -800,7 +800,7 @@ class ConfigUtilSpec
           ),
           Seq("topic")
         )
-      }.getMessage shouldBe "Exception creating kafka client for broker not§a§server."
+      }.getMessage shouldBe "Exception creating kafka client for broker not#a#server."
     }
 
     "throw an exception if kafka is configured, but connection to broker fails" in {

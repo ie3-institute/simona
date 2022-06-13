@@ -56,15 +56,15 @@ class ResultEntityKafkaSpec
     with GivenWhenThen
     with Eventually {
 
-  var testConsumer: KafkaConsumer[Bytes, PlainNodeResult] = _
+  private var testConsumer: KafkaConsumer[Bytes, PlainNodeResult] = _
 
   private implicit lazy val resultFormat: RecordFormat[PlainNodeResult] =
     RecordFormat[PlainNodeResult]
-  val deserializer: Deserializer[PlainNodeResult] =
+  private val deserializer: Deserializer[PlainNodeResult] =
     ScalaReflectionSerde.reflectionDeserializer4S[PlainNodeResult]
 
   private val testTopic = Topic("testtopic", 1, 1)
-  override val testTopics: Seq[Topic] = Seq(
+  override protected val testTopics: Seq[Topic] = Seq(
     testTopic
   )
   private val topicPartitions: Seq[TopicPartition] =
