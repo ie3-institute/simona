@@ -7,13 +7,17 @@
 package edu.ie3.simona.agent.participant.hp
 
 import akka.actor.{ActorRef, FSM}
+import edu.ie3.datamodel.models.OperationTime.OperationTimeBuilder
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
+import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.agent.participant.hp.HpAgent.neededServices
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
   DataCollectionStateData,
@@ -22,8 +26,11 @@ import edu.ie3.simona.agent.participant.statedata.{
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.exceptions.agent.AgentInitializationException
 import edu.ie3.simona.model.participant.HpModel
 import edu.ie3.simona.model.participant.HpModel.HpData
+import edu.ie3.simona.model.thermal.ThermalHouse
+import edu.ie3.util.quantities.PowerSystemUnits.PU
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
@@ -90,6 +97,56 @@ trait HpAgentFundamentals
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] = ???
 
+  /** Abstract definition, individual implementations found in individual agent
+    * fundamental classes
+    */
+  override def determineModelBaseStateData(
+      inputModel: HpInput,
+      modelConfig: HpRuntimeConfig,
+      services: Option[Vector[SecondaryDataService[_ <: Data.SecondaryData]]],
+      simulationStartDate: ZonedDateTime,
+      simulationEndDate: ZonedDateTime,
+      resolution: Long,
+      requestVoltageDeviationThreshold: Double,
+      outputConfig: ParticipantNotifierConfig
+  ): BaseStateData.ParticipantModelBaseStateData[
+    ApparentPowerAndHeat,
+    HpData,
+    HpModel
+  ] = {
+    if (!services.exists(_.map(_.getClass).containsSlice(neededServices)))
+      throw new AgentInitializationException(
+        "HpAgent cannot be initialized without its needed services."
+      )
+
+    /* Build the calculation model */
+    val model = buildModel(
+      inputModel,
+      modelConfig,
+      simulationStartDate,
+      simulationEndDate
+    )
+    ParticipantModelBaseStateData(
+      simulationStartDate,
+      simulationEndDate,
+      model,
+      services,
+      outputConfig,
+      Array.emptyLongArray,
+      Map.empty,
+      requestVoltageDeviationThreshold,
+      ValueStore.forVoltage(
+        resolution * 10,
+        inputModel.getNode
+          .getvTarget()
+          .to(PU)
+      ),
+      ValueStore.forResult(resolution, 10),
+      ValueStore(resolution * 10),
+      ValueStore(resolution * 10)
+    )
+  }
+
   /** Abstract method to build the calculation model from input
     *
     * @param inputModel
@@ -107,25 +164,19 @@ trait HpAgentFundamentals
       modelConfig: HpRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
-  ): HpModel = ???
-
-  /** Abstract definition, individual implementations found in individual agent
-    * fundamental classes
-    */
-  override def determineModelBaseStateData(
-      inputModel: HpInput,
-      modelConfig: HpRuntimeConfig,
-      services: Option[Vector[SecondaryDataService[_ <: Data.SecondaryData]]],
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      resolution: Long,
-      requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
-  ): BaseStateData.ParticipantModelBaseStateData[
-    ApparentPowerAndHeat,
-    HpData,
-    HpModel
-  ] = ???
+  ): HpModel = {
+    new HpModel(
+      inputModel.getUuid,
+      inputModel.getId,
+      inputModel.getOperationTime,
+      modelConfig.scaling,
+      inputModel.getqCharacteristics(),
+      inputModel.getType.getsRated(),
+      inputModel.getType.getCosPhiRated,
+      inputModel.getType.getpThermal(),
+      new ThermalHouse()
+    )
+  }
 
   /** Determine the average result within the given tick window
     *
