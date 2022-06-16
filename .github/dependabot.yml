@@ -8,8 +8,6 @@ updates:
   open-pull-requests-limit: 10
   target-branch: dev
   reviewers:
-  - ckittl
-  - johanneshiry
   - t-ober
   - sensarmad
   - sebastian-peter
