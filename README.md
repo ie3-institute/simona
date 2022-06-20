@@ -34,6 +34,7 @@ CONTRIBUTING.md file in the root directory of this repository.
 For all SIMONA related questions please feel free to contact people involved in the development and maintenance of SIMONA.
 For the moment, these people are:
 
+- Feismann, Daniel - [daniel.feismann@tu-dortmund.de](mailto:daniel.feismann@tu-dortmund.de)
 - Peter, Sebastian - [sebastian.peter@tu-dortmund.de](mailto:sebastian.peter@tu-dortmund.de)
 - Oberließen, Thomas - [thomas.oberliessen@tu-dortmund.de](mailto:thomas.oberliessen@tu-dortmund.de)
 - Sen Sarma, Debopama - [debopama-sen.sarma@tu-dortmund.de](mailto:debopama-sen.sarma@tu-dortmund.de)
