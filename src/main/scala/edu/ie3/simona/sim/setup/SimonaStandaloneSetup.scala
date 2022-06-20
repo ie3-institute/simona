@@ -252,7 +252,6 @@ class SimonaStandaloneSetup(
       .toSeq :+
       context.simonaActorOf(
         ResultEventListener.props(
-          SetupHelper.allResultEntitiesToWrite(simonaConfig.simona.output),
           resultFileHierarchy,
           simonaSim.toClassic
         )

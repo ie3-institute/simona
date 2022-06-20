@@ -9,14 +9,21 @@ package edu.ie3.simona.config
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
-import edu.ie3.simona.config.SimonaConfig.{BaseOutputConfig, RefSystemConfig}
+import edu.ie3.simona.config.SimonaConfig.{
+  BaseOutputConfig,
+  RefSystemConfig,
+  ResultKafkaParams
+}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherSource
 import edu.ie3.simona.util.CollectionUtils
-import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.checkInfluxDb1xParams
+import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
+  checkInfluxDb1xParams,
+  checkKafkaParams
+}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.scala.ReflectionTools
 import edu.ie3.util.{StringUtils, TimeUtil}
@@ -138,7 +145,7 @@ case object ConfigFailFast extends LazyLogging {
     */
   private def checkDataSink(sink: SimonaConfig.Simona.Output.Sink): Unit = {
     // ensures failure if new output sinks are added to enforce adaptions of the check sink method as well
-    val supportedSinks = Set("influxdb1x", "csv")
+    val supportedSinks = Set("influxdb1x", "csv", "kafka")
     if (
       !sink.productElementNames
         .map(_.trim.toLowerCase)
@@ -147,7 +154,7 @@ case object ConfigFailFast extends LazyLogging {
     )
       throw new InvalidConfigParameterException(
         s"Newly added sink(s) " +
-          s"'${sink.productElementNames.toSet.removedAll(supportedSinks)}' detected! " +
+          s"'${sink.productElementNames.map(_.toLowerCase).toSet.removedAll(supportedSinks)}' detected! " +
           s"Please adapt 'ConfigFailFast' accordingly! Currently supported sinks: ${supportedSinks.mkString(", ")}."
       )
 
@@ -172,7 +179,6 @@ case object ConfigFailFast extends LazyLogging {
           "one sink is configured!"
       )
 
-    // if this is db sink, check the connection
     sinkConfigs.find(_.isDefined) match {
       case Some(Some(influxDb1x: InfluxDb1x)) =>
         checkInfluxDb1xParams(
@@ -180,7 +186,9 @@ case object ConfigFailFast extends LazyLogging {
           ResultSinkType.buildInfluxDb1xUrl(influxDb1x),
           influxDb1x.database
         )
-      case _ => // no db connection, do nothing
+      case Some(Some(kafka: ResultKafkaParams)) =>
+        checkKafkaParams(kafka, Seq(kafka.topicNodeRes))
+      case _ => // do nothing
     }
 
   }
