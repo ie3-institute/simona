@@ -13,6 +13,11 @@ import org.slf4j.Logger
 
 import java.time.ZonedDateTime
 
+/** Runtime event sink that just logs all received events.
+  * @param simulationStartDate
+  *   the simulation start date time, used for calculating simulation time from
+  *   ticks
+  */
 final case class RuntimeEventLogSink(
     simulationStartDate: ZonedDateTime
 ) extends RuntimeEventSink {

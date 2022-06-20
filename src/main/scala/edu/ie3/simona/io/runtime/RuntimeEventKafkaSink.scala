@@ -23,6 +23,15 @@ import org.slf4j.Logger
 import java.util.{Properties, UUID}
 import scala.jdk.CollectionConverters._
 
+/** Runtime event sink that sends events related to the simulation ending to a
+  * kafka topic.
+  * @param producer
+  *   the kafka producer to use
+  * @param simRunId
+  *   the id of this simulation run
+  * @param topic
+  *   the topic to send the events to
+  */
 final case class RuntimeEventKafkaSink(
     producer: KafkaProducer[String, SimonaEndMessage],
     simRunId: UUID,

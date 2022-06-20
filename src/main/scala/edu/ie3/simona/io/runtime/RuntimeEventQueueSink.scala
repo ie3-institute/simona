@@ -10,6 +10,10 @@ import org.slf4j.Logger
 
 import java.util.concurrent.BlockingQueue
 
+/** Runtime event sink that appends all received events to a queue.
+  * @param queue
+  *   the queue that events are appended to
+  */
 final case class RuntimeEventQueueSink(queue: BlockingQueue[RuntimeEvent])
     extends RuntimeEventSink {
 

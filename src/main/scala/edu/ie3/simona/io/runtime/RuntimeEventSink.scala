@@ -9,9 +9,12 @@ package edu.ie3.simona.io.runtime
 import edu.ie3.simona.event.RuntimeEvent
 import org.slf4j.Logger
 
+/** Runtime event sinks are handling runtime events. More than one sink can
+  * exist in parallel.
+  */
 trait RuntimeEventSink {
 
-  /** Handling of a [[RuntimeEvent]] to perform an I/O operation to e.g. a file
+  /** Handling of a [[RuntimeEvent]], e.g. performing an I/O operation to a file
     * or a database.
     *
     * @param runtimeEvent
