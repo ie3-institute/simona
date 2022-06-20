@@ -144,7 +144,7 @@ dependencies {
   scalaCompilerPlugin "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:${scapegoatVersion}"
 
   /* Kafka */
-  implementation group: 'org.apache.kafka', name: 'kafka-clients', version: '3.2.0'
+  implementation group: 'org.apache.kafka', name: 'kafka-clients', version: '7.1.1-ce'
   implementation 'io.confluent:kafka-streams-avro-serde:7.1.1'
   implementation "com.sksamuel.avro4s:avro4s-core_${scalaVersion}:4.1.0"
 
