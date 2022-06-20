@@ -291,52 +291,52 @@ trait PowerFlowSupport {
       transformers3w: Set[Transformer3wModel],
       gridMainRefSystem: RefSystem
   ): (Array[PresetData], WithForcedStartVoltages) =
-    sweepDataValues.foldLeft(Array.empty[PresetData], Array.empty[StateData]) {
-      case ((operatingPoint, stateData), sweepValueStoreData) =>
-        val nodeStateData = sweepValueStoreData.stateData
-        val targetVoltage = if (nodeStateData.nodeType == NodeType.SL) {
-          val receivedSlackVoltage = receivedSlackValues.values
-            .flatMap(_._2)
-            .find(_.nodeUuid == sweepValueStoreData.nodeUuid)
-            .getOrElse(
-              throw new RuntimeException(
-                s"Unable to find node with uuid " +
-                  s"${sweepValueStoreData.nodeUuid} in received slack voltage values!"
-              )
+    sweepDataValues.map { sweepValueStoreData =>
+      val nodeStateData = sweepValueStoreData.stateData
+      val targetVoltage = if (nodeStateData.nodeType == NodeType.SL) {
+        val receivedSlackVoltage = receivedSlackValues.values
+          .flatMap { case (_, slackValueOpt) => slackValueOpt }
+          .find(_.nodeUuid == sweepValueStoreData.nodeUuid)
+          .getOrElse(
+            throw new RuntimeException(
+              s"Unable to find node with uuid " +
+                s"${sweepValueStoreData.nodeUuid} in received slack voltage values!"
             )
-
-          transformVoltage(
-            receivedSlackVoltage,
-            sweepValueStoreData.nodeUuid,
-            transformers2w,
-            transformers3w,
-            gridMainRefSystem
           )
-        } else
-          Complex.one
 
-        val updatedStateData = if (nodeStateData.nodeType == NodeType.SL) {
-          stateData :+ StateData(
+        transformVoltage(
+          receivedSlackVoltage,
+          sweepValueStoreData.nodeUuid,
+          transformers2w,
+          transformers3w,
+          gridMainRefSystem
+        )
+      } else
+        Complex.one
+
+      // note: target voltage will be ignored for slack node if provided
+      (
+        PresetData(
+          nodeStateData.index,
+          nodeStateData.nodeType,
+          nodeStateData.power,
+          targetVoltage.abs
+        ),
+        Option.when(nodeStateData.nodeType == NodeType.SL)(
+          StateData(
             nodeStateData.index,
             nodeStateData.nodeType,
             targetVoltage,
             nodeStateData.power
           )
-        } else stateData
-
-        // note: target voltage will be ignored for slack node if provided
-        (
-          operatingPoint :+ PresetData(
-            nodeStateData.index,
-            nodeStateData.nodeType,
-            nodeStateData.power,
-            targetVoltage.abs
-          ),
-          updatedStateData
         )
-    } match {
+      )
+    }.unzip match {
       case (operatingPoint, stateData) =>
-        (operatingPoint, WithForcedStartVoltages(stateData))
+        (
+          operatingPoint.toArray,
+          WithForcedStartVoltages(stateData.flatten.toArray)
+        )
     }
 
   /** A debug method that composes a string with voltage information (in p.u.)
