@@ -19,9 +19,9 @@ import edu.ie3.simona.agent.grid.ReceivedValues.{
   ReceivedSlackValues
 }
 import edu.ie3.simona.model.grid.{GridModel, RefSystem}
-import edu.ie3.simona.ontology.messages.PowerMessage
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   FailedPowerFlow,
+  PowerResponseMessage,
   ProvidePowerMessage
 }
 
@@ -183,7 +183,9 @@ object GridAgentData {
       // we expect power values from inferior grids and assets
       val assetAndGridPowerValuesReady =
         receivedValueStore.nodeToReceivedPower.values.forall(vector =>
-          vector.forall(actorRefOption => actorRefOption._2.isDefined)
+          vector.forall { case (_, powerResponseOpt) =>
+            powerResponseOpt.isDefined
+          }
         )
       // we expect slack voltages only from our superior grids (if any)
       val slackVoltageValuesReady =
@@ -219,58 +221,19 @@ object GridAgentData {
         receivedValueStore.nodeToReceivedPower
       ) {
         case (
-              updatedNodeToReceivedPowerValuesMap,
-              (senderRef, powerValueMessageOpt)
+              nodeToReceivedPowerValuesMapWithAddedPowerResponse,
+              (senderRef, Some(powerResponseMessage))
             ) =>
-          // extract the nodeUuid that corresponds to the sender's actorRef and check if we expect a message from the sender
-          val nodeUuid = powerValueMessageOpt match {
-            case Some(
-                  powerValuesMessage: ProvidePowerMessage
-                ) => // can either be an AssetPowerChangedMessage or an AssetPowerUnchangedMessage
-              uuid(updatedNodeToReceivedPowerValuesMap, senderRef, replace)
-                .getOrElse(
-                  throw new RuntimeException(
-                    s"$actorName Received asset power values msg $powerValuesMessage " +
-                      s"from $senderRef which is not in my power values nodes map or which cannot be replaced!"
-                  )
-                )
-                ._1
-            case Some(FailedPowerFlow) =>
-              uuid(updatedNodeToReceivedPowerValuesMap, senderRef, replace)
-                .getOrElse(
-                  throw new RuntimeException(
-                    s"$actorName Received failed power flow message " +
-                      s"from $senderRef which is not in my power values nodes map or which cannot be replaced!"
-                  )
-                )
-                ._1
-            case None =>
-              throw new RuntimeException(
-                s"Received a 'None' as provided asset power from '$senderRef'. Provision of 'None' is not supported." +
-                  s"Either a changed power or an unchanged power message is expected!"
-              )
-            case unknownMsg =>
-              throw new RuntimeException(
-                s"$actorName Unknown message received. Can't process message $unknownMsg."
-              )
-          }
-
-          // update the values in the received map
-          val receivedVector = updatedNodeToReceivedPowerValuesMap
-            .getOrElse(
-              nodeUuid,
-              throw new RuntimeException(
-                s"NodeId $nodeUuid is not part of nodeToReceivedPowerValuesMap!"
-              )
-            )
-            .filterNot { case (k, v) =>
-              k == senderRef &
-                (if (!replace) v.isEmpty else v.isDefined)
-            } :+ (senderRef, powerValueMessageOpt)
-
-          updatedNodeToReceivedPowerValuesMap
-            .updated(nodeUuid, receivedVector)
-
+          updateNodalReceivedVector(
+            powerResponseMessage,
+            nodeToReceivedPowerValuesMapWithAddedPowerResponse,
+            senderRef,
+            replace
+          )
+        case (_, (senderRef, None)) =>
+          throw new RuntimeException(
+            s"Received a 'None' as provided power from '$senderRef'. Provision of 'None' is not supported."
+          )
       }
       this.copy(
         receivedValueStore = receivedValueStore
@@ -296,19 +259,83 @@ object GridAgentData {
         nodeToReceivedPower: Map[UUID, Vector[ActorPowerRequestResponse]],
         senderRef: ActorRef,
         replace: Boolean
-    ): Option[
-      (UUID, Vector[(ActorRef, Option[PowerMessage.PowerResponseMessage])])
-    ] = {
+    ): Option[UUID] =
       nodeToReceivedPower
-        .find(
-          _._2.exists(actorRefPowerValueOpt =>
-            actorRefPowerValueOpt._1 == senderRef &&
+        .find { case (_, receivedPowerMessages) =>
+          receivedPowerMessages.exists { case (ref, maybePowerResponse) =>
+            ref == senderRef &&
               (if (!replace)
-                 actorRefPowerValueOpt._2.isEmpty
+                 maybePowerResponse.isEmpty
                else
-                 actorRefPowerValueOpt._2.isDefined)
+                 maybePowerResponse.isDefined)
+          }
+        }
+        .map { case (uuid, _) => uuid }
+
+    /** Identify and update the vector of already received information.
+      *
+      * @param powerResponse
+      *   Optional power response message
+      * @param nodeToReceived
+      *   Mapping from node uuid to received values
+      * @param senderRef
+      *   Reference of current sender
+      * @param replace
+      *   If existing values may be replaced or not
+      * @return
+      *   The nodal uuid as well as the updated collection of received
+      *   information
+      */
+    private def updateNodalReceivedVector(
+        powerResponse: PowerResponseMessage,
+        nodeToReceived: Map[UUID, Vector[
+          (ActorRef, Option[PowerResponseMessage])
+        ]],
+        senderRef: ActorRef,
+        replace: Boolean
+    ): Map[UUID, Vector[(ActorRef, Option[PowerResponseMessage])]] = {
+      // extract the nodeUuid that corresponds to the sender's actorRef and check if we expect a message from the sender
+      val nodeUuid = powerResponse match {
+        case powerValuesMessage: ProvidePowerMessage =>
+          uuid(nodeToReceived, senderRef, replace)
+            .getOrElse(
+              throw new RuntimeException(
+                s"$actorName Received asset power values msg $powerValuesMessage " +
+                  s"from $senderRef which is not in my power values nodes map or which cannot be replaced!"
+              )
+            )
+        case FailedPowerFlow =>
+          uuid(nodeToReceived, senderRef, replace)
+            .getOrElse(
+              throw new RuntimeException(
+                s"$actorName Received failed power flow message " +
+                  s"from $senderRef which is not in my power values nodes map or which cannot be replaced!"
+              )
+            )
+        case unknownMsg =>
+          throw new RuntimeException(
+            s"$actorName Unknown message received. Can't process message $unknownMsg."
+          )
+      }
+
+      // update the values in the received map
+      val receivedVector = nodeToReceived
+        .getOrElse(
+          nodeUuid,
+          throw new RuntimeException(
+            s"NodeId $nodeUuid is not part of nodeToReceivedPowerValuesMap!"
           )
         )
+        /* Filter out the entry, that belongs to the given sender and is not defined, yet, in case no replacement shall
+         * be made. If a replacement is desired, filter out the already provided data. */
+        .filterNot { case (k, v) =>
+          k == senderRef &
+            (if (!replace) v.isEmpty else v.isDefined)
+        } :+ (senderRef, Some(powerResponse))
+
+      /* Actually update the map and hand it back */
+      nodeToReceived
+        .updated(nodeUuid, receivedVector)
     }
 
     /** Update this [[GridAgentBaseData]] with [[ReceivedSlackValues]] and
