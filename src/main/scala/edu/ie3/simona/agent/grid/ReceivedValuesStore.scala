@@ -99,7 +99,7 @@ case object ReceivedValuesStore {
 
     /* Add everything, that I expect from my sub ordinate grid agents. Build distinct pairs of sending actor reference
      * and target node */
-    inferiorSubGridGateToActorRef
+    inferiorSubGridGateToActorRef.toVector
       .map { case (gate, reference) =>
         reference -> gate.getSuperiorNode.getUuid
       }
