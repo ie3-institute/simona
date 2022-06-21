@@ -187,7 +187,7 @@ final case class ResultEntityCsvSink private (
 
 object ResultEntityCsvSink {
 
-  /** Default constructor to get an instance of [[ResultEntityCsvSource]] incl.
+  /** Default constructor to get an instance of [[ResultEntityCsvSink]] incl.
     * creation of the output file with the headers written
     *
     * @param outfileName
@@ -202,7 +202,7 @@ object ResultEntityCsvSink {
     * @param materializer
     *   the materializer to be used by the stream that writes the output file
     * @return
-    *   instance of [[ResultEntityCsvSource]] to be used to write results
+    *   instance of [[ResultEntityCsvSink]] to be used to write results
     */
   def apply(
       outfileName: String,

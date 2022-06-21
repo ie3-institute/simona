@@ -160,9 +160,7 @@ class SimonaStandaloneSetup(
   ): ExtSimSetupData = {
     val jars = ExtSimLoader.scanInputFolder()
 
-    val extLinks = jars.map { jar =>
-      ExtSimLoader.loadExtLink(jar)
-    }
+    val extLinks = jars.flatMap(ExtSimLoader.loadExtLink)
 
     val (extSimAdapters, extDataServices) =
       extLinks.zipWithIndex.map { case (extLink, index) =>
@@ -250,7 +248,6 @@ class SimonaStandaloneSetup(
       .toVector :+
       context.simonaActorOf(
         ResultEventListener.props(
-          SetupHelper.allResultEntitiesToWrite(simonaConfig.simona.output),
           resultFileHierarchy,
           simonaSim
         )

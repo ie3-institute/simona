@@ -10,7 +10,7 @@ import java.io.{File, FileInputStream}
 import java.util.zip.GZIPInputStream
 import akka.actor.ActorSystem
 import akka.stream.Materializer
-import akka.testkit.{ImplicitSender, TestFSMRef, TestKit, TestProbe}
+import akka.testkit.{TestFSMRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
@@ -25,11 +25,7 @@ import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
   PowerFlowResultEvent
 }
-import edu.ie3.simona.io.result.{
-  ResultEntityCsvSink,
-  ResultEntitySink,
-  ResultSinkType
-}
+import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
 import edu.ie3.simona.test.common.result.PowerFlowResultData
 import edu.ie3.simona.test.common.{AgentSpec, IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
@@ -75,32 +71,32 @@ class ResultEventListenerSpec
   )
 
   // the OutputFileHierarchy
-  val resultFileHierarchy: (Int, String) => ResultFileHierarchy =
-    (runId: Int, fileFormat: String) =>
-      ResultFileHierarchy(
-        outputDir = testTmpDir + File.separator + runId,
-        simulationName,
-        ResultEntityPathConfig(
-          resultEntitiesToBeWritten,
-          ResultSinkType.Csv(fileFormat = fileFormat)
-        ),
-        createDirs = true
-      )
+  private def resultFileHierarchy(
+      runId: Int,
+      fileFormat: String,
+      classes: Set[Class[_ <: ResultEntity]] = resultEntitiesToBeWritten
+  ): ResultFileHierarchy =
+    ResultFileHierarchy(
+      outputDir = testTmpDir + File.separator + runId,
+      simulationName,
+      ResultEntityPathConfig(
+        classes,
+        ResultSinkType.Csv(fileFormat = fileFormat)
+      ),
+      createDirs = true
+    )
 
   def createDir(
-      resultFileHierarchy: ResultFileHierarchy,
-      resultEntitiesToBeWritten: Set[Class[_ <: ResultEntity]]
-  ): Iterable[Future[(Class[_], ResultEntitySink)]] = {
+      resultFileHierarchy: ResultFileHierarchy
+  ): Iterable[Future[ResultEntitySink]] = {
     val materializer: Materializer = Materializer(system)
 
-    val initializeSinks
-        : PrivateMethod[Iterable[Future[(Class[_], ResultEntitySink)]]] =
-      PrivateMethod[Iterable[Future[(Class[_], ResultEntitySink)]]](
+    val initializeSinks: PrivateMethod[Iterable[Future[ResultEntitySink]]] =
+      PrivateMethod[Iterable[Future[ResultEntitySink]]](
         Symbol("initializeSinks")
       )
 
     ResultEventListener invokePrivate initializeSinks(
-      resultEntitiesToBeWritten,
       resultFileHierarchy,
       materializer
     )
@@ -124,7 +120,7 @@ class ResultEventListenerSpec
       "initialize its sinks correctly" in {
         val fileHierarchy = resultFileHierarchy(1, ".csv")
         Await.ready(
-          Future.sequence(createDir(fileHierarchy, resultEntitiesToBeWritten)),
+          Future.sequence(createDir(fileHierarchy)),
           60 seconds
         )
 
@@ -141,16 +137,31 @@ class ResultEventListenerSpec
         assert(outputFile.exists)
         assert(outputFile.isFile)
       }
+
+      "check if actor dies when it should die" in {
+        val fileHierarchy =
+          resultFileHierarchy(2, ".ttt", Set(classOf[Transformer3WResult]))
+        val testProbe = TestProbe()
+        val listener = testProbe.childActorOf(
+          ResultEventListener.props(
+            fileHierarchy,
+            testProbe.ref
+          )
+        )
+
+        testProbe watch listener
+        testProbe expectTerminated (listener, 2 seconds)
+
+      }
     }
 
     "handling ordinary results" should {
       "process a valid participants result correctly" in {
-        val specificOutputFileHierarchy = resultFileHierarchy(2, ".csv")
+        val specificOutputFileHierarchy = resultFileHierarchy(3, ".csv")
 
         val listenerRef = system.actorOf(
           ResultEventListener
             .props(
-              resultEntitiesToBeWritten,
               specificOutputFileHierarchy,
               testActor
             )
@@ -192,11 +203,10 @@ class ResultEventListenerSpec
       }
 
       "process a valid power flow result correctly" in {
-        val specificOutputFileHierarchy = resultFileHierarchy(3, ".csv")
+        val specificOutputFileHierarchy = resultFileHierarchy(4, ".csv")
         val listenerRef = system.actorOf(
           ResultEventListener
             .props(
-              resultEntitiesToBeWritten,
               specificOutputFileHierarchy,
               testActor
             )
@@ -280,10 +290,10 @@ class ResultEventListenerSpec
         PrivateMethod[Map[Transformer3wKey, AggregatedTransformer3wResult]](
           Symbol("registerPartialTransformer3wResult")
         )
-      val fileHierarchy = resultFileHierarchy(4, ".csv")
+      val fileHierarchy =
+        resultFileHierarchy(5, ".csv", Set(classOf[Transformer3WResult]))
       val listener = TestFSMRef(
         new ResultEventListener(
-          Set(classOf[Transformer3WResult]),
           fileHierarchy,
           testActor
         )
@@ -510,11 +520,10 @@ class ResultEventListenerSpec
 
     "shutting down" should {
       "shutdown and compress the data when requested to do so without any errors" in {
-        val specificOutputFileHierarchy = resultFileHierarchy(5, ".csv.gz")
+        val specificOutputFileHierarchy = resultFileHierarchy(6, ".csv.gz")
         val listenerRef = system.actorOf(
           ResultEventListener
             .props(
-              resultEntitiesToBeWritten,
               specificOutputFileHierarchy,
               testActor
             )
