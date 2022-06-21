@@ -581,24 +581,24 @@ case object ConfigFailFast extends LazyLogging {
       case TransformerControlGroup(measurements, transformers, vMax, vMin) =>
         if (measurements.isEmpty)
           throw new InvalidConfigParameterException(
-            "A transformer control group cannot have no measurements assigned."
+            s"A transformer control group (${transformerControlGroup.toString}) cannot have no measurements assigned."
           )
         if (transformers.isEmpty)
           throw new InvalidConfigParameterException(
-            "A transformer control group cannot have no transformers assigned."
+            s"A transformer control group (${transformerControlGroup.toString}) cannot have no transformers assigned."
           )
         if (vMax < vMin)
           throw new InvalidConfigParameterException(
-            "The minimum permissible voltage magnitude of a transformer control group must be smaller than the maximum permissible voltage magnitude."
+            s"The minimum permissible voltage magnitude of a transformer control group (${transformerControlGroup.toString}) must be smaller than the maximum permissible voltage magnitude."
           )
         if (vMin < lowerBoundary)
           throw new InvalidConfigParameterException(
-            s"A control group which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
+            s"A control group (${transformerControlGroup.toString}) which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
               s"by invalid parametrization of one control groups where vMin is lower than the lower boundary (0.8 of nominal Voltage)!"
           )
         if (vMax > upperBoundary)
           throw new InvalidConfigParameterException(
-            s"A control group which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
+            s"A control group (${transformerControlGroup.toString}) which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
               s"by invalid parametrization of one control groups where vMax is higher than the upper boundary (1.2 of nominal Voltage)!"
           )
     }
