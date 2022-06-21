@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import java.util.UUID
 import akka.actor.ActorRef
 import akka.event.LoggingAdapter
 import edu.ie3.datamodel.graph.SubGridGate
@@ -14,16 +13,18 @@ import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.grid.ReceivedValues.{
-  ActorPowerRequestResponse,
   ReceivedPowerValues,
   ReceivedSlackValues
 }
+import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.model.grid.{GridModel, RefSystem}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   FailedPowerFlow,
   PowerResponseMessage,
   ProvidePowerMessage
 }
+
+import java.util.UUID
 
 sealed trait GridAgentData
 
@@ -222,17 +223,13 @@ object GridAgentData {
       ) {
         case (
               nodeToReceivedPowerValuesMapWithAddedPowerResponse,
-              (senderRef, Some(powerResponseMessage))
+              (senderRef, powerResponseMessage)
             ) =>
           updateNodalReceivedVector(
             powerResponseMessage,
             nodeToReceivedPowerValuesMapWithAddedPowerResponse,
             senderRef,
             replace
-          )
-        case (_, (senderRef, None)) =>
-          throw new RuntimeException(
-            s"Received a 'None' as provided power from '$senderRef'. Provision of 'None' is not supported."
           )
       }
       this.copy(
@@ -256,7 +253,7 @@ object GridAgentData {
       * @return
       */
     private def uuid(
-        nodeToReceivedPower: Map[UUID, Vector[ActorPowerRequestResponse]],
+        nodeToReceivedPower: NodeToReceivedPower,
         senderRef: ActorRef,
         replace: Boolean
     ): Option[UUID] =
@@ -288,9 +285,7 @@ object GridAgentData {
       */
     private def updateNodalReceivedVector(
         powerResponse: PowerResponseMessage,
-        nodeToReceived: Map[UUID, Vector[
-          (ActorRef, Option[PowerResponseMessage])
-        ]],
+        nodeToReceived: NodeToReceivedPower,
         senderRef: ActorRef,
         replace: Boolean
     ): Map[UUID, Vector[(ActorRef, Option[PowerResponseMessage])]] = {
@@ -356,7 +351,7 @@ object GridAgentData {
         ) {
           case (
                 nodeToSlackVoltageUpdated,
-                (senderRef, maybeSlackValues @ Some(slackValues))
+                (senderRef, slackValues)
               ) =>
             val nodeUuid: UUID = slackValues.nodeUuid
 
@@ -364,7 +359,7 @@ object GridAgentData {
               .get(nodeUuid) match {
               case Some(None) =>
                 /* Slack voltage is expected and not yet received */
-                nodeToSlackVoltageUpdated + (nodeUuid -> maybeSlackValues)
+                nodeToSlackVoltageUpdated + (nodeUuid -> Some(slackValues))
               case Some(Some(_)) =>
                 throw new RuntimeException(
                   s"Already received slack value for node $nodeUuid!"
@@ -374,10 +369,6 @@ object GridAgentData {
                   s"Received slack value for node $nodeUuid from $senderRef which is not in my slack values nodes list!"
                 )
             }
-          case (_, (senderRef, None)) =>
-            throw new RuntimeException(
-              s"Received an empty voltage message from $senderRef"
-            )
         }
       this.copy(
         receivedValueStore = receivedValueStore.copy(
