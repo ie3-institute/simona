@@ -292,13 +292,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           )
         ) =>
       /* Determine the subnet number of the grid agent, that has sent the request */
-      val firstRequestedNodeUuid = requestedNodeUuids.headOption match {
-        case Some(uuid) => uuid
-        case None =>
-          throw new DBFSAlgorithmException(
-            "Did receive a grid power request but without specified nodes"
-          )
-      }
+      val firstRequestedNodeUuid = requestedNodeUuids.headOption.getOrElse(
+        throw new DBFSAlgorithmException(
+          "Did receive a grid power request but without specified nodes"
+        )
+      )
       gridAgentBaseData.gridEnv.subnetGateToActorRef
         .map { case (subGridGate, _) => subGridGate.getSuperiorNode }
         .find(_.getUuid == firstRequestedNodeUuid)

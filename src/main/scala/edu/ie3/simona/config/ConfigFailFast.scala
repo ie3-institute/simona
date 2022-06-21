@@ -32,7 +32,6 @@ import tech.units.indriya.unit.Units
 
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import javax.measure.quantity.ElectricPotential
 import scala.util.{Failure, Success, Try}
 
 /** Sanity checks for [[SimonaConfig]] that should lead to a fast failure during
