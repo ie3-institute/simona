@@ -45,13 +45,11 @@ import edu.ie3.simona.ontology.messages.VoltageMessage.{
 }
 import edu.ie3.simona.ontology.trigger.Trigger._
 import edu.ie3.simona.util.TickUtil._
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits._
 import tech.units.indriya.quantity.Quantities
 
 import java.time.{Duration, ZonedDateTime}
 import java.util.UUID
-import javax.measure.Quantity
 import javax.measure.quantity.ElectricPotential
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -224,7 +222,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                 uuid == nodeUuid && isSlack
               }
               .map(_.vTarget)
-              .getOrElse(Quantities.getQuantity(1d, PowerSystemUnits.PU))
+              .getOrElse(Quantities.getQuantity(1d, PU))
           val vSlack = vTarget
             .multiply(
               gridAgentBaseData.gridEnv.gridModel.mainRefSystem.nominalVoltage
@@ -335,8 +333,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                       case _ =>
                         /* TODO: As long as there are no multiple slack nodes, provide "real" power only for the slack node */
                         (
-                          Quantities.getQuantity(0d, PowerSystemUnits.MEGAWATT),
-                          Quantities.getQuantity(0d, PowerSystemUnits.MEGAVAR)
+                          Quantities.getQuantity(0d, MEGAWATT),
+                          Quantities.getQuantity(0d, MEGAVAR)
                         )
                     }
                     .getOrElse {
@@ -561,12 +559,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       // if yes, we do another PF with adapted values
       // if no, we are done with the pf and ready to report to our parent grid
       val changed = receivedPowerValues.values.exists {
-        case (_, providePowerResponseMsgOpt) =>
-          providePowerResponseMsgOpt.exists {
-            case _: AssetPowerChangedMessage => true
-            case _                           => false
-          }
-        case _ => false
+        case (_, _: AssetPowerChangedMessage) => true
+        case _                                => false
       }
 
       if (changed) {
@@ -1108,10 +1102,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                   fInPU
                 )).map {
                   case providedPowerValuesMessage: AssetPowerChangedMessage =>
-                    (assetAgent, Some(providedPowerValuesMessage))
+                    (assetAgent, providedPowerValuesMessage)
                   case assetPowerUnchangedMessage: AssetPowerUnchangedMessage =>
-                    (assetAgent, Some(assetPowerUnchangedMessage))
-                }.mapTo[ActorPowerRequestResponse]
+                    (assetAgent, assetPowerUnchangedMessage)
+                }
               })
             }.toVector
           )
@@ -1169,9 +1163,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                 inferiorGridGateNodes.distinct
               )).map {
                 case provideGridPowerMessage: ProvideGridPowerMessage =>
-                  (inferiorGridAgentRef, Some(provideGridPowerMessage))
+                  (inferiorGridAgentRef, provideGridPowerMessage)
                 case FailedPowerFlow =>
-                  (inferiorGridAgentRef, Some(FailedPowerFlow))
+                  (inferiorGridAgentRef, FailedPowerFlow)
               }
             }
             .toVector
@@ -1206,25 +1200,22 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       s"asking superior grids for slack voltage values: {}",
       superiorGridGates
     )
-    if (superiorGridGates.nonEmpty)
-      Some(
-        Future
-          .sequence(
-            superiorGridGates.map(superiorGridGate => {
-              val superiorGridAgent = subGridGateToActorRef(superiorGridGate)
-              (superiorGridAgent ? RequestSlackVoltageMessage(
-                currentSweepNo,
-                superiorGridGate.getSuperiorNode.getUuid
-              )).map(providedSlackValues =>
-                (superiorGridAgent, Option(providedSlackValues))
-              ).mapTo[(ActorRef, Option[ProvideSlackVoltageMessage])]
-            })
-          )
-          .map(ReceivedSlackValues)
-          .pipeTo(self)
-      )
-    else
-      None
+    Option.when(superiorGridGates.nonEmpty) {
+      Future
+        .sequence(
+          superiorGridGates.map(superiorGridGate => {
+            val superiorGridAgent = subGridGateToActorRef(superiorGridGate)
+            (superiorGridAgent ? RequestSlackVoltageMessage(
+              currentSweepNo,
+              superiorGridGate.getSuperiorNode.getUuid
+            )).map { case providedSlackValues: ProvideSlackVoltageMessage =>
+              (superiorGridAgent, providedSlackValues)
+            }
+          })
+        )
+        .map(ReceivedSlackValues)
+        .pipeTo(self)
+    }
   }
 
   /** Create an instance of

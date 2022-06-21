@@ -6,13 +6,19 @@
 
 package edu.ie3.simona.agent.grid
 
-import java.util.UUID
-
 import akka.actor.ActorRef
 import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.simona.agent.grid.ReceivedValues.ActorPowerRequestResponse
-import edu.ie3.simona.ontology.messages.PowerMessage.ProvidePowerMessage
+import edu.ie3.simona.agent.grid.ReceivedValuesStore.{
+  NodeToReceivedPower,
+  NodeToReceivedSlackVoltage
+}
+import edu.ie3.simona.ontology.messages.PowerMessage.{
+  PowerResponseMessage,
+  ProvidePowerMessage
+}
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
+
+import java.util.UUID
 
 /** Value store that contains all data that should be received by the
   * [[GridAgent]] from other agents. The mapping is structured as the uuid of a
@@ -34,14 +40,14 @@ import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessag
   *   [[GridAgent]] s if any
   */
 final case class ReceivedValuesStore private (
-    nodeToReceivedPower: Map[UUID, Vector[ActorPowerRequestResponse]],
-    nodeToReceivedSlackVoltage: Map[UUID, Option[ProvideSlackVoltageMessage]]
+    nodeToReceivedPower: NodeToReceivedPower,
+    nodeToReceivedSlackVoltage: NodeToReceivedSlackVoltage
 )
 
-case object ReceivedValuesStore {
+object ReceivedValuesStore {
 
   type NodeToReceivedPower =
-    Map[UUID, Vector[(ActorRef, Option[ProvidePowerMessage])]]
+    Map[UUID, Vector[(ActorRef, Option[PowerResponseMessage])]]
   type NodeToReceivedSlackVoltage =
     Map[UUID, Option[ProvideSlackVoltageMessage]]
 
@@ -109,7 +115,7 @@ case object ReceivedValuesStore {
               subOrdinateToReceivedPower,
               (inferiorSubGridRef, couplingNodeUuid)
             ) =>
-          /* Check, if there is yet something expected for the given coupling node and add reference to the subordinate
+          /* Check, if there is already something expected for the given coupling node and add reference to the subordinate
            * grid agent */
           val actorRefToMessage = subOrdinateToReceivedPower
             .getOrElse(

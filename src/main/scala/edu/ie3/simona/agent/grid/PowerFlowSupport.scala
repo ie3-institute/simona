@@ -201,7 +201,7 @@ trait PowerFlowSupport {
         val nodeStateData = sweepValueStoreData.stateData
         val targetVoltage = if (nodeStateData.nodeType == NodeType.SL) {
           val receivedSlackVoltage = receivedSlackValues.values
-            .flatMap { case (_, slackVoltageMsg) => slackVoltageMsg }
+            .map { case (_, slackVoltageMsg) => slackVoltageMsg }
             .find(_.nodeUuid == sweepValueStoreData.nodeUuid)
             .getOrElse(
               throw new RuntimeException(

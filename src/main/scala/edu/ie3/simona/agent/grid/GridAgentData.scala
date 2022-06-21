@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import java.util.UUID
 import akka.actor.ActorRef
 import akka.event.LoggingAdapter
 import edu.ie3.datamodel.graph.SubGridGate
@@ -14,10 +13,10 @@ import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.grid.ReceivedValues.{
-  ActorPowerRequestResponse,
   ReceivedPowerValues,
   ReceivedSlackValues
 }
+import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.model.grid.{GridModel, RefSystem}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   FailedPowerFlow,
@@ -25,6 +24,8 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvideGridPowerMessage,
   ProvidePowerMessage
 }
+
+import java.util.UUID
 
 sealed trait GridAgentData
 
@@ -241,20 +242,9 @@ object GridAgentData {
       ) {
         case (
               nodeToReceivedPowerValuesMapWithAddedPowerResponse,
-              (senderRef, Some(providePowerMessage: ProvidePowerMessage))
-            ) =>
-          /* This is a message with only one nodal power */
-          updateNodalReceivedVector(
-            providePowerMessage,
-            nodeToReceivedPowerValuesMapWithAddedPowerResponse,
-            senderRef,
-            replace
-          )
-        case (
-              nodeToReceivedPowerValuesMapWithAddedPowerResponse,
               (
                 senderRef,
-                Some(provideGridPowerMessage: ProvideGridPowerMessage)
+                provideGridPowerMessage: ProvideGridPowerMessage
               )
             ) =>
           /* Go over all includes messages and add them. */
@@ -272,13 +262,16 @@ object GridAgentData {
                 replace
               )
           }
-        case (_, (senderRef, Some(unsupported))) =>
-          throw new RuntimeException(
-            s"Received an unsupported type of power provision message from '$senderRef', which I cannot add to the register of received messages: $unsupported"
-          )
-        case (_, (senderRef, None)) =>
-          throw new RuntimeException(
-            s"Received a 'None' as provided power from '$senderRef'. Provision of 'None' is not supported."
+        case (
+              nodeToReceivedPowerValuesMapWithAddedPowerResponse,
+              (senderRef, powerResponseMessage)
+            ) =>
+          // some other singular power response message
+          updateNodalReceivedVector(
+            powerResponseMessage,
+            nodeToReceivedPowerValuesMapWithAddedPowerResponse,
+            senderRef,
+            replace
           )
       }
       this.copy(
@@ -302,10 +295,10 @@ object GridAgentData {
       * @return
       */
     private def uuid(
-        nodeToReceivedPower: Map[UUID, Vector[ActorPowerRequestResponse]],
+        nodeToReceivedPower: NodeToReceivedPower,
         senderRef: ActorRef,
         replace: Boolean
-    ): Option[UUID] = {
+    ): Option[UUID] =
       nodeToReceivedPower
         .find { case (_, receivedPowerMessages) =>
           receivedPowerMessages.exists { case (ref, maybePowerResponse) =>
@@ -317,7 +310,6 @@ object GridAgentData {
           }
         }
         .map { case (uuid, _) => uuid }
-    }
 
     /** Identify and update the vector of already received information.
       *
@@ -335,9 +327,7 @@ object GridAgentData {
       */
     private def updateNodalReceivedVector(
         powerResponse: PowerResponseMessage,
-        nodeToReceived: Map[UUID, Vector[
-          (ActorRef, Option[PowerResponseMessage])
-        ]],
+        nodeToReceived: NodeToReceivedPower,
         senderRef: ActorRef,
         replace: Boolean
     ): Map[UUID, Vector[(ActorRef, Option[PowerResponseMessage])]] = {
@@ -403,7 +393,7 @@ object GridAgentData {
         ) {
           case (
                 nodeToSlackVoltageUpdated,
-                (senderRef, maybeSlackValues @ Some(slackValues))
+                (senderRef, slackValues)
               ) =>
             val nodeUuid: UUID = slackValues.nodeUuid
 
@@ -411,7 +401,7 @@ object GridAgentData {
               .get(nodeUuid) match {
               case Some(None) =>
                 /* Slack voltage is expected and not yet received */
-                nodeToSlackVoltageUpdated + (nodeUuid -> maybeSlackValues)
+                nodeToSlackVoltageUpdated + (nodeUuid -> Some(slackValues))
               case Some(Some(_)) =>
                 throw new RuntimeException(
                   s"Already received slack value for node $nodeUuid!"
@@ -421,10 +411,6 @@ object GridAgentData {
                   s"Received slack value for node $nodeUuid from $senderRef which is not in my slack values nodes list!"
                 )
             }
-          case (_, (senderRef, None)) =>
-            throw new RuntimeException(
-              s"Received an empty voltage message from $senderRef"
-            )
         }
       this.copy(
         receivedValueStore = receivedValueStore.copy(
