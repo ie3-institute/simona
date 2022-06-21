@@ -45,14 +45,14 @@ import edu.ie3.simona.ontology.messages.VoltageMessage.{
 }
 import edu.ie3.simona.ontology.trigger.Trigger._
 import edu.ie3.simona.util.TickUtil._
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import tech.units.indriya.quantity.Quantities
 
 import java.time.{Duration, ZonedDateTime}
 import java.util.UUID
 import javax.measure.Quantity
-import javax.measure.quantity.{Dimensionless, ElectricPotential}
+import javax.measure.quantity.ElectricPotential
 import scala.concurrent.{ExecutionContext, Future}
 
 /** Trait that is normally mixed into every [[GridAgent]] to enable distributed
@@ -172,10 +172,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
       // we either have voltages ready calculated (not the first sweep) or we don't have them here
       // -> return calculated value or target voltage as physical value
-      val (slackE, slackF): (
-          Quantity[ElectricPotential],
-          Quantity[ElectricPotential]
-      ) =
+      val (slackE, slackF) =
         (gridAgentBaseData.sweepValueStores.get(currentSweepNo) match {
           case Some(result) =>
             Some(result, currentSweepNo)
@@ -1080,10 +1077,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             nodeToAssetAgents.flatten { case (nodeUuid, assetActorRefs) =>
               assetActorRefs.map(assetAgent => {
 
-                val (eInPu, fInPU): (
-                    Quantity[Dimensionless],
-                    Quantity[Dimensionless]
-                ) =
+                val (eInPu, fInPU) =
                   sweepValueStore match {
                     case Some(sweepValueStore) =>
                       val (pInSi, qInSi) = refSystem.vInSi(
@@ -1110,8 +1104,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
                 (assetAgent ? RequestAssetPowerMessage(
                   currentTick,
-                  QuantityUtil.asComparable(eInPu),
-                  QuantityUtil.asComparable(fInPU)
+                  eInPu,
+                  fInPU
                 )).map {
                   case providedPowerValuesMessage: AssetPowerChangedMessage =>
                     (assetAgent, Some(providedPowerValuesMessage))
@@ -1158,19 +1152,21 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         .sequence(
           inferiorGridGates
             .map { subGridGate =>
-              subGridGateToActorRef(subGridGate) -> subGridGate
+              subGridGateToActorRef(
+                subGridGate
+              ) -> subGridGate.getSuperiorNode.getUuid
             }
             .groupMap {
               // Group the gates by target actor, so that only one request is sent per grid agent
               case (inferiorGridAgentRef, _) =>
                 inferiorGridAgentRef
             } { case (_, inferiorGridGates) =>
-              inferiorGridGates.getSuperiorNode.getUuid
+              inferiorGridGates
             }
-            .map { case (inferiorGridAgentRef, inferiorGridGates) =>
+            .map { case (inferiorGridAgentRef, inferiorGridGateNodes) =>
               (inferiorGridAgentRef ? RequestGridPowerMessage(
                 currentSweepNo,
-                inferiorGridGates.distinct
+                inferiorGridGateNodes.distinct
               )).map {
                 case provideGridPowerMessage: ProvideGridPowerMessage =>
                   (inferiorGridAgentRef, Some(provideGridPowerMessage))
