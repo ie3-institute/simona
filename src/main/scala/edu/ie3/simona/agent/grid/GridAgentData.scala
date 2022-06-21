@@ -19,7 +19,6 @@ import edu.ie3.simona.agent.grid.ReceivedValues.{
   ReceivedSlackValues
 }
 import edu.ie3.simona.model.grid.{GridModel, RefSystem}
-import edu.ie3.simona.ontology.messages.PowerMessage
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   FailedPowerFlow,
   PowerResponseMessage,
@@ -82,7 +81,7 @@ object GridAgentData {
     ): PowerFlowDoneData = {
       /* Determine the subnet numbers of all superior grids */
       val superiorSubGrids = gridAgentBaseData.gridEnv.subnetGateToActorRef
-        .map(_._1.getSuperiorNode.getSubnet)
+        .map { case (subGridGate, _) => subGridGate.getSuperiorNode.getSubnet }
         .filterNot(_ == gridAgentBaseData.gridEnv.gridModel.subnetNo)
         .toSet
       PowerFlowDoneData(gridAgentBaseData, powerFlowResult, superiorSubGrids)
@@ -203,7 +202,9 @@ object GridAgentData {
       // we expect power values from inferior grids and assets
       val assetAndGridPowerValuesReady =
         receivedValueStore.nodeToReceivedPower.values.forall(vector =>
-          vector.forall(actorRefOption => actorRefOption._2.isDefined)
+          vector.forall { case (_, powerResponseOpt) =>
+            powerResponseOpt.isDefined
+          }
         )
       // we expect slack voltages only from our superior grids (if any)
       val slackVoltageValuesReady =
@@ -304,9 +305,7 @@ object GridAgentData {
         nodeToReceivedPower: Map[UUID, Vector[ActorPowerRequestResponse]],
         senderRef: ActorRef,
         replace: Boolean
-    ): Option[
-      (UUID, Vector[(ActorRef, Option[PowerMessage.PowerResponseMessage])])
-    ] = {
+    ): Option[UUID] = {
       nodeToReceivedPower
         .find { case (_, receivedPowerMessages) =>
           receivedPowerMessages.exists { case (ref, maybePowerResponse) =>
@@ -317,6 +316,7 @@ object GridAgentData {
                  maybePowerResponse.isDefined)
           }
         }
+        .map { case (uuid, _) => uuid }
     }
 
     /** Identify and update the vector of already received information.
@@ -351,7 +351,6 @@ object GridAgentData {
                   s"from $senderRef which is not in my power values nodes map or which cannot be replaced!"
               )
             )
-            ._1
         case FailedPowerFlow =>
           uuid(nodeToReceived, senderRef, replace)
             .getOrElse(
@@ -360,7 +359,6 @@ object GridAgentData {
                   s"from $senderRef which is not in my power values nodes map or which cannot be replaced!"
               )
             )
-            ._1
         case unknownMsg =>
           throw new RuntimeException(
             s"$actorName Unknown message received. Can't process message $unknownMsg."

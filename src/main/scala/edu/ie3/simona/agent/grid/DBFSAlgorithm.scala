@@ -260,17 +260,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     // / before power flow calc for this sweep we either have to stash() the message to answer it later (in current sweep)
     // / or trigger a new run for the next sweepNo
     case Event(
-          RequestGridPowerMessage(requestSweepNo, requestedNodeUuids),
+          RequestGridPowerMessage(requestSweepNo, _),
           gridAgentBaseData: GridAgentBaseData
         ) =>
-      val firstRequestedNodeUuid = requestedNodeUuids.headOption match {
-        case Some(uuid) => uuid
-        case None =>
-          throw new DBFSAlgorithmException(
-            "Did receive a grid power request but without specified nodes"
-          )
-      }
-
       if (gridAgentBaseData.currentSweepNo == requestSweepNo) {
         log.debug(
           s"Received request for grid power values for sweepNo {} before my first power flow calc. Stashing away.",
@@ -308,8 +300,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           )
       }
       gridAgentBaseData.gridEnv.subnetGateToActorRef
-        .find(_._1.getSuperiorNode.getUuid == firstRequestedNodeUuid)
-        .map(_._1.getSuperiorNode.getSubnet) match {
+        .map { case (subGridGate, _) => subGridGate.getSuperiorNode }
+        .find(_.getUuid == firstRequestedNodeUuid)
+        .map(_.getSubnet) match {
         case Some(requestingSubnetNumber) =>
           log.debug(
             "Received request for grid power values and im READY to provide."
@@ -1062,7 +1055,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     *   a map contains a mapping between nodes and the [[ActorRef]] s located @
     *   those nodes
     * @param refSystem
-    *   the reference system of the [[GridModel]] of this [[GridAgent]]
+    *   the reference system of the [[edu.ie3.simona.model.grid.GridModel]] of
+    *   this [[GridAgent]]
     * @param askTimeout
     *   a timeout for the request
     * @return
@@ -1085,53 +1079,49 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       Some(
         Future
           .sequence(
-            nodeToAssetAgents
-              .flatten(nodeUuidWithActorRefs => {
-                val assetActorRefs = nodeUuidWithActorRefs._2
-                val nodeUuid = nodeUuidWithActorRefs._1
-                assetActorRefs.map(assetAgent => {
+            nodeToAssetAgents.flatten { case (nodeUuid, assetActorRefs) =>
+              assetActorRefs.map(assetAgent => {
 
-                  val (eInPu, fInPU): (
-                      Quantity[Dimensionless],
-                      Quantity[Dimensionless]
-                  ) =
-                    sweepValueStore match {
-                      case Some(sweepValueStore) =>
-                        val assetNodeVoltageInSi = refSystem.vInSi(
-                          sweepValueStore.sweepData
-                            .find(_.nodeUuid == nodeUuid)
-                            .getOrElse(
-                              throw new DBFSAlgorithmException(
-                                s"Provided Sweep value store contains no data for node with id $nodeUuid"
-                              )
+                val (eInPu, fInPU): (
+                    Quantity[Dimensionless],
+                    Quantity[Dimensionless]
+                ) =
+                  sweepValueStore match {
+                    case Some(sweepValueStore) =>
+                      val (pInSi, qInSi) = refSystem.vInSi(
+                        sweepValueStore.sweepData
+                          .find(_.nodeUuid == nodeUuid)
+                          .getOrElse(
+                            throw new DBFSAlgorithmException(
+                              s"Provided Sweep value store contains no data for node with id $nodeUuid"
                             )
-                            .stateData
-                            .voltage
-                        )
-                        (
-                          refSystem.vInPu(assetNodeVoltageInSi._1),
-                          refSystem.vInPu(assetNodeVoltageInSi._2)
-                        )
-                      case None =>
-                        (
-                          Quantities.getQuantity(1, PU),
-                          Quantities.getQuantity(0, PU)
-                        )
-                    }
+                          )
+                          .stateData
+                          .voltage
+                      )
+                      (
+                        refSystem.vInPu(pInSi),
+                        refSystem.vInPu(qInSi)
+                      )
+                    case None =>
+                      (
+                        Quantities.getQuantity(1, PU),
+                        Quantities.getQuantity(0, PU)
+                      )
+                  }
 
-                  (assetAgent ? RequestAssetPowerMessage(
-                    currentTick,
-                    QuantityUtil.asComparable(eInPu),
-                    QuantityUtil.asComparable(fInPU)
-                  )).map {
-                    case providedPowerValuesMessage: AssetPowerChangedMessage =>
-                      (assetAgent, Some(providedPowerValuesMessage))
-                    case assetPowerUnchangedMessage: AssetPowerUnchangedMessage =>
-                      (assetAgent, Some(assetPowerUnchangedMessage))
-                  }.mapTo[ActorPowerRequestResponse]
-                })
+                (assetAgent ? RequestAssetPowerMessage(
+                  currentTick,
+                  QuantityUtil.asComparable(eInPu),
+                  QuantityUtil.asComparable(fInPU)
+                )).map {
+                  case providedPowerValuesMessage: AssetPowerChangedMessage =>
+                    (assetAgent, Some(providedPowerValuesMessage))
+                  case assetPowerUnchangedMessage: AssetPowerUnchangedMessage =>
+                    (assetAgent, Some(assetPowerUnchangedMessage))
+                }.mapTo[ActorPowerRequestResponse]
               })
-              .toVector
+            }.toVector
           )
           .map(ReceivedAssetPowerValues)
           .pipeTo(self)
@@ -1172,17 +1162,23 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             .map { subGridGate =>
               subGridGateToActorRef(subGridGate) -> subGridGate
             }
-            .groupBy(_._1) // Group the gates by target actor, so that only one request is sent per grid agent
+            .groupMap {
+              // Group the gates by target actor, so that only one request is sent per grid agent
+              case (inferiorGridAgentRef, _) =>
+                inferiorGridAgentRef
+            } { case (_, inferiorGridGates) =>
+              inferiorGridGates.getSuperiorNode.getUuid
+            }
             .map { case (inferiorGridAgentRef, inferiorGridGates) =>
               (inferiorGridAgentRef ? RequestGridPowerMessage(
                 currentSweepNo,
-                inferiorGridGates.map(_._2.getSuperiorNode.getUuid).distinct
+                inferiorGridGates.distinct
               )).map {
                 case provideGridPowerMessage: ProvideGridPowerMessage =>
-                  (inferiorGridAgentRef, Option(provideGridPowerMessage))
+                  (inferiorGridAgentRef, Some(provideGridPowerMessage))
                 case FailedPowerFlow =>
                   (inferiorGridAgentRef, Some(FailedPowerFlow))
-              }.mapTo[ActorPowerRequestResponse]
+              }
             }
             .toVector
         )
@@ -1237,11 +1233,12 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       None
   }
 
-  /** Create an instance of [[PowerFlowResults]] and send it to all listener
-    * Note: in the future this one could become a bottleneck for power flow
-    * calculation timesteps. For performance improvements one might consider
-    * putting this into a future with pipeTo. One has to consider how to deal
-    * with unfinished futures in shutdown phase then
+  /** Create an instance of
+    * [[edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent]] and send it to
+    * all listener Note: in the future this one could become a bottleneck for
+    * power flow calculation timesteps. For performance improvements one might
+    * consider putting this into a future with pipeTo. One has to consider how
+    * to deal with unfinished futures in shutdown phase then
     *
     * @param gridAgentBaseData
     *   the grid agent base data
