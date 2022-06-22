@@ -137,7 +137,7 @@ dependencies {
   implementation ('org.locationtech.jts:jts-core:1.18.2'){
     exclude group: 'junit', module: 'junit'
   }
-  implementation 'org.locationtech.jts.io:jts-io-common:1.18.2'
+  implementation 'org.locationtech.jts.io:jts-io-common:1.19.0'
 
   /* Scala compiler plugin for static code analysis */
   implementation "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:${scapegoatVersion}"
