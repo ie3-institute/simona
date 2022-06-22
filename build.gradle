@@ -134,7 +134,7 @@ dependencies {
   implementation "com.github.scopt:scopt_${scalaVersion}:4.0.1" // cmd args parser
 
   // JTS
-  implementation ('org.locationtech.jts:jts-core:1.18.2'){
+  implementation ('org.locationtech.jts:jts-core:1.19.0'){
     exclude group: 'junit', module: 'junit'
   }
   implementation 'org.locationtech.jts.io:jts-io-common:1.18.2'
