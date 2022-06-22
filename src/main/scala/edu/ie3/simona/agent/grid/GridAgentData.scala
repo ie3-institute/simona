@@ -280,37 +280,6 @@ object GridAgentData {
       )
     }
 
-    /** Find the uuid of the grid node the provided actor sender ref is located
-      * on.
-      *
-      * @param nodeToReceivedPower
-      *   a mapping of a grid node uuid to all actors and their optionally
-      *   already provided power responses
-      * @param senderRef
-      *   the actor whose node uuid should be determined
-      * @param replace
-      *   if true, it is checked if the sender has already provided power
-      *   values, which should be replaced, if false, it is checked if the
-      *   sender has no yet provided power values
-      * @return
-      */
-    private def uuid(
-        nodeToReceivedPower: NodeToReceivedPower,
-        senderRef: ActorRef,
-        replace: Boolean
-    ): Option[UUID] =
-      nodeToReceivedPower
-        .find { case (_, receivedPowerMessages) =>
-          receivedPowerMessages.exists { case (ref, maybePowerResponse) =>
-            ref == senderRef &&
-              (if (!replace)
-                 maybePowerResponse.isEmpty
-               else
-                 maybePowerResponse.isDefined)
-          }
-        }
-        .map { case (uuid, _) => uuid }
-
     /** Identify and update the vector of already received information.
       *
       * @param powerResponse
@@ -374,6 +343,37 @@ object GridAgentData {
       nodeToReceived
         .updated(nodeUuid, receivedVector)
     }
+
+    /** Find the uuid of the grid node the provided actor sender ref is located
+      * on.
+      *
+      * @param nodeToReceivedPower
+      *   a mapping of a grid node uuid to all actors and their optionally
+      *   already provided power responses
+      * @param senderRef
+      *   the actor whose node uuid should be determined
+      * @param replace
+      *   if true, it is checked if the sender has already provided power
+      *   values, which should be replaced, if false, it is checked if the
+      *   sender has no yet provided power values
+      * @return
+      */
+    private def uuid(
+        nodeToReceivedPower: NodeToReceivedPower,
+        senderRef: ActorRef,
+        replace: Boolean
+    ): Option[UUID] =
+      nodeToReceivedPower
+        .find { case (_, receivedPowerMessages) =>
+          receivedPowerMessages.exists { case (ref, maybePowerResponse) =>
+            ref == senderRef &&
+              (if (!replace)
+                 maybePowerResponse.isEmpty
+               else
+                 maybePowerResponse.isDefined)
+          }
+        }
+        .map { case (uuid, _) => uuid }
 
     /** Update this [[GridAgentBaseData]] with [[ReceivedSlackValues]] and
       * return a copy of this [[GridAgentBaseData]] for further processing
