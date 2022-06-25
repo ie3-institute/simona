@@ -7,23 +7,33 @@
 package edu.ie3.simona.agent.grid
 
 import akka.actor.{ActorRef, Props, Stash}
-import edu.ie3.simona.agent.grid.GridAgentData.{GridAgentBaseData, GridAgentInitData, GridAgentUninitializedData}
+import edu.ie3.simona.agent.grid.GridAgentData.{
+  GridAgentBaseData,
+  GridAgentInitData,
+  GridAgentUninitializedData
+}
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
 import edu.ie3.simona.agent.{EnvironmentRefs, SimonaAgent}
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestGridPowerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  CompletionMessage,
+  ScheduleTriggerMessage,
+  TriggerWithIdMessage
+}
 import edu.ie3.simona.ontology.messages.StopMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeGridAgentTrigger, StartGridSimulationTrigger}
+import edu.ie3.simona.ontology.trigger.Trigger.{
+  ActivityStartTrigger,
+  InitializeGridAgentTrigger,
+  StartGridSimulationTrigger
+}
 import edu.ie3.util.TimeUtil
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.language.postfixOps
 
 object GridAgent {
@@ -39,33 +49,7 @@ object GridAgent {
         listener
       )
     )
-
-  private def failFast(
-      gridAgentInitData: GridAgentInitData,
-      simonaConfig: SimonaConfig,
-  ): Unit = {
-
-    /** Check if there is InitData for superior or inferior GridGates
-      */
-    if (
-      gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty
-    )
-      throw new GridAgentInitializationException(
-        s"${gridAgentInitData.subGridContainer.getGridName} has neither superior nor inferior grids! This can either " +
-          s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"
-      )
-
-    /** Check if there exits voltage measurements for transformerControlGroups
-      */
-    val measurementUnitInput =  gridAgentInitData.subGridContainer.getRawGrid.getMeasurementUnits
-    val maybeControlConfig: Option[SimonaConfig.Simona.Control] = simonaConfig.simona.control
-    if (maybeControlConfig.isDefined && !measurementUnitInput.asScala.exists(input => input.getVMag))
-      throw new GridAgentInitializationException(
-        s"${gridAgentInitData.subGridContainer.getGridName} has a control group with measurement that don't deliver voltage magnitude."
-      )
-  }
 }
-
 class GridAgent(
     val environmentRefs: EnvironmentRefs,
     simonaConfig: SimonaConfig,
@@ -121,7 +105,7 @@ class GridAgent(
           _
         ) =>
       // fail fast sanity checks
-      GridAgent.failFast(gridAgentInitData, simonaConfig)
+      GridAgentFailFast.failFast(gridAgentInitData, simonaConfig)
 
       log.debug(
         s"Inferior Subnets: {}; Inferior Subnet Nodes: {}",
