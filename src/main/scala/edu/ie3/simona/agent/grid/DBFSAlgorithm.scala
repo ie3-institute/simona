@@ -364,8 +364,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         ) =>
       // inform my child grids about the end of this grid simulation
       gridAgentBaseData.inferiorGridGates
-        .map { inferiorGridGate =>
-          gridAgentBaseData.gridEnv.subnetGateToActorRef(inferiorGridGate)
+        .map { 
+          gridAgentBaseData.gridEnv.subnetGateToActorRef(_)
         }
         .foreach(_ ! FinishGridSimulationTrigger(currentTick))
 
