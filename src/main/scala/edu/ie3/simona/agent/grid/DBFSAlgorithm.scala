@@ -1101,10 +1101,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                 subGridGate
               ) -> subGridGate.getSuperiorNode.getUuid
             }
-            .map { case (inferiorGridAgentRef, inferiorGridGateNodes) =>
+            .map { case (inferiorGridAgentRef, inferiorGridGateNode) =>
               (inferiorGridAgentRef ? RequestGridPowerMessage(
                 currentSweepNo,
-                inferiorGridGateNodes
+                inferiorGridGateNode
               )).map {
                 case provideGridPowerMessage: ProvideGridPowerMessage =>
                   (inferiorGridAgentRef, provideGridPowerMessage)
