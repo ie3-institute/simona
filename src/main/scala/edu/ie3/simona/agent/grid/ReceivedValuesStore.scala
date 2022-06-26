@@ -47,7 +47,7 @@ final case class ReceivedValuesStore private (
 object ReceivedValuesStore {
 
   type NodeToReceivedPower =
-    Map[UUID, Vector[(ActorRef, Option[PowerResponseMessage])]]
+    Map[UUID, Map[ActorRef, Option[PowerResponseMessage]]]
   type NodeToReceivedSlackVoltage =
     Map[UUID, Option[ProvideSlackVoltageMessage]]
 
@@ -100,27 +100,29 @@ object ReceivedValuesStore {
     /* Collect everything, that I expect from my asset agents */
     val assetsToReceivedPower: NodeToReceivedPower = nodeToAssetAgents.collect {
       case (uuid: UUID, actorRefs: Set[ActorRef]) =>
-        (uuid, actorRefs.toVector.map(actorRef => actorRef -> None))
+        (uuid, actorRefs.map(actorRef => actorRef -> None).toMap)
     }
 
-    /* Add everything, that I expect from my sub ordinate grid agents. Build distinct pairs of sending actor reference
-     * and target node */
-    inferiorSubGridGateToActorRef.toVector
+    /* Add everything, that I expect from my sub ordinate grid agents.
+     * Build distinct pairs of sending actor reference and target node.
+     * Convert to sequence first, since the map operation conflates
+     * key/value pairs with the same key */
+    inferiorSubGridGateToActorRef.toSeq
       .map { case (gate, reference) =>
         reference -> gate.getSuperiorNode.getUuid
       }
       .foldLeft(assetsToReceivedPower) {
         case (
               subOrdinateToReceivedPower,
-              (inferiorSubGridRef, couplingNodeUuid)
+              inferiorSubGridRef -> couplingNodeUuid
             ) =>
-          /* Check, if there is already something expected for the given coupling node and add reference to the subordinate
-           * grid agent */
+          /* Check, if there is already something expected for the given coupling node
+           * and add reference to the subordinate grid agent */
           val actorRefToMessage = subOrdinateToReceivedPower
             .getOrElse(
               couplingNodeUuid,
-              Vector.empty[(ActorRef, Option[ProvidePowerMessage])]
-            ) :+ (inferiorSubGridRef -> None)
+              Map.empty[ActorRef, Option[ProvidePowerMessage]]
+            ) + (inferiorSubGridRef -> None)
 
           /* Update the existing map */
           subOrdinateToReceivedPower + (couplingNodeUuid -> actorRefToMessage)

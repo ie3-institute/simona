@@ -257,7 +257,7 @@ object GridAgentData {
         nodeToReceived: NodeToReceivedPower,
         senderRef: ActorRef,
         replace: Boolean
-    ): Map[UUID, Vector[(ActorRef, Option[PowerResponseMessage])]] = {
+    ): NodeToReceivedPower = {
       // extract the nodeUuid that corresponds to the sender's actorRef and check if we expect a message from the sender
       val nodeUuid = powerResponse match {
         case powerValuesMessage: ProvidePowerMessage =>
@@ -283,23 +283,18 @@ object GridAgentData {
       }
 
       // update the values in the received map
-      val receivedVector = nodeToReceived
+      val nodeReceived = nodeToReceived
         .getOrElse(
           nodeUuid,
           throw new RuntimeException(
             s"NodeId $nodeUuid is not part of nodeToReceivedPowerValuesMap!"
           )
-        )
-        /* Filter out the entry, that belongs to the given sender and is not defined, yet, in case no replacement shall
-         * be made. If a replacement is desired, filter out the already provided data. */
-        .filterNot { case (k, v) =>
-          k == senderRef &
-            (if (!replace) v.isEmpty else v.isDefined)
-        } :+ (senderRef, Some(powerResponse))
+        ) +
+        // add or update entry in map of node entries
+        (senderRef -> Some(powerResponse))
 
       /* Actually update the map and hand it back */
-      nodeToReceived
-        .updated(nodeUuid, receivedVector)
+      nodeToReceived.updated(nodeUuid, nodeReceived)
     }
 
     /** Find the uuid of the grid node the provided actor sender ref is located
