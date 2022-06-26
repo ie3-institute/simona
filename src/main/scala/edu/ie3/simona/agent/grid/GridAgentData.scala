@@ -183,11 +183,11 @@ object GridAgentData {
     val allRequestedDataReceived: Boolean = {
       // we expect power values from inferior grids and assets
       val assetAndGridPowerValuesReady =
-        receivedValueStore.nodeToReceivedPower.values.forall(vector =>
-          vector.forall { case (_, powerResponseOpt) =>
+        receivedValueStore.nodeToReceivedPower.values.forall {
+          _.forall { case (_, powerResponseOpt) =>
             powerResponseOpt.isDefined
           }
-        )
+        }
       // we expect slack voltages only from our superior grids (if any)
       val slackVoltageValuesReady =
         receivedValueStore.nodeToReceivedSlackVoltage.values
@@ -261,7 +261,7 @@ object GridAgentData {
       // extract the nodeUuid that corresponds to the sender's actorRef and check if we expect a message from the sender
       val nodeUuid = powerResponse match {
         case powerValuesMessage: ProvidePowerMessage =>
-          uuid(nodeToReceived, senderRef, replace)
+          getNodeUuidForSender(nodeToReceived, senderRef, replace)
             .getOrElse(
               throw new RuntimeException(
                 s"$actorName Received asset power values msg $powerValuesMessage " +
@@ -269,7 +269,7 @@ object GridAgentData {
               )
             )
         case FailedPowerFlow =>
-          uuid(nodeToReceived, senderRef, replace)
+          getNodeUuidForSender(nodeToReceived, senderRef, replace)
             .getOrElse(
               throw new RuntimeException(
                 s"$actorName Received failed power flow message " +
@@ -316,7 +316,7 @@ object GridAgentData {
       *   sender has no yet provided power values
       * @return
       */
-    private def uuid(
+    private def getNodeUuidForSender(
         nodeToReceivedPower: NodeToReceivedPower,
         senderRef: ActorRef,
         replace: Boolean
