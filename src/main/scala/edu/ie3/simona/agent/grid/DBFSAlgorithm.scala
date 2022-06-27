@@ -412,8 +412,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         ) =>
       // inform my child grids about the end of this grid simulation
       gridAgentBaseData.inferiorGridGates
-        .map { inferiorGridGate =>
-          gridAgentBaseData.gridEnv.subnetGateToActorRef(inferiorGridGate)
+        .map {
+          gridAgentBaseData.gridEnv.subnetGateToActorRef(_)
         }
         .distinct
         .foreach(_ ! FinishGridSimulationTrigger(currentTick))
@@ -1074,7 +1074,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                 val (eInPu, fInPU) =
                   sweepValueStore match {
                     case Some(sweepValueStore) =>
-                      val (pInSi, qInSi) = refSystem.vInSi(
+                      val (eInSi, fInSi) = refSystem.vInSi(
                         sweepValueStore.sweepData
                           .find(_.nodeUuid == nodeUuid)
                           .getOrElse(
@@ -1086,8 +1086,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                           .voltage
                       )
                       (
-                        refSystem.vInPu(pInSi),
-                        refSystem.vInPu(qInSi)
+                        refSystem.vInPu(eInSi),
+                        refSystem.vInPu(fInSi)
                       )
                     case None =>
                       (
@@ -1145,10 +1145,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       Future
         .sequence(
           inferiorGridGates
-            .map { subGridGate =>
+            .map { inferiorGridGate =>
               subGridGateToActorRef(
-                subGridGate
-              ) -> subGridGate.getSuperiorNode.getUuid
+                inferiorGridGate
+              ) -> inferiorGridGate.getSuperiorNode.getUuid
             }
             .groupMap {
               // Group the gates by target actor, so that only one request is sent per grid agent
