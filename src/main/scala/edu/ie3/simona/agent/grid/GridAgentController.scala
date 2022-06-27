@@ -11,9 +11,15 @@ import akka.event.LoggingAdapter
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.datamodel.models.input.system._
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ApparentPower, ApparentPowerAndHeat}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower,
+  ApparentPowerAndHeat
+}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{ActorEvMovementsService, ActorWeatherService}
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
+  ActorEvMovementsService,
+  ActorWeatherService
+}
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.fixedfeedin.FixedFeedInAgent
 import edu.ie3.simona.agent.participant.load.LoadAgent
@@ -22,12 +28,23 @@ import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.{EmRuntimeConfig, EvcsRuntimeConfig, FixedFeedInRuntimeConfig, LoadRuntimeConfig, PvRuntimeConfig, WecRuntimeConfig}
+import edu.ie3.simona.config.SimonaConfig.{
+  EmRuntimeConfig,
+  EvcsRuntimeConfig,
+  FixedFeedInRuntimeConfig,
+  LoadRuntimeConfig,
+  PvRuntimeConfig,
+  WecRuntimeConfig
+}
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeParticipantAgentTrigger
-import edu.ie3.simona.util.{BaseOutputConfigUtil, ConfigUtil, NotifierIdentifier}
+import edu.ie3.simona.util.{
+  BaseOutputConfigUtil,
+  ConfigUtil,
+  NotifierIdentifier
+}
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -569,20 +586,20 @@ class GridAgentController(
     *   A tuple of actor reference and [[ParticipantInitializeStateData]]
     */
   private def buildEm(
-                       emInput: EmInput,
-                       modelConfiguration: EmRuntimeConfig,
-                       primaryServiceProxy: ActorRef,
-                       weatherService: ActorRef,
-                       requestVoltageDeviationThreshold: Double,
-                       outputConfig: ParticipantNotifierConfig
-                     ): (
-    ActorRef,
+      emInput: EmInput,
+      modelConfiguration: EmRuntimeConfig,
+      primaryServiceProxy: ActorRef,
+      weatherService: ActorRef,
+      requestVoltageDeviationThreshold: Double,
+      outputConfig: ParticipantNotifierConfig
+  ): (
+      ActorRef,
       ParticipantInitializeStateData[
         EmInput,
         EmRuntimeConfig,
         ApparentPowerAndHeat
       ]
-    ) = (
+  ) = (
     gridAgentContext.simonaActorOf(
       EmAgent.props(
         environmentRefs.scheduler,
@@ -602,7 +619,6 @@ class GridAgentController(
       outputConfig
     )
   )
-
 
   /** Creates a pv agent and determines the needed additional information for
     * later initialization of the agent.

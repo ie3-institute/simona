@@ -7,10 +7,19 @@
 package edu.ie3.simona.util
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.io.connectors.{CouchbaseConnector, InfluxDbConnector, SqlConnector}
+import edu.ie3.datamodel.io.connectors.{
+  CouchbaseConnector,
+  InfluxDbConnector,
+  SqlConnector
+}
 
 import java.util.UUID
-import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult, Transformer3WResult}
+import edu.ie3.datamodel.models.result.connector.{
+  LineResult,
+  SwitchResult,
+  Transformer2WResult,
+  Transformer3WResult
+}
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig._
@@ -103,24 +112,23 @@ object ConfigUtil {
         case Some(evcsConfig: EvcsRuntimeConfig) => evcsConfig
         case _                                   => defaultEvcsConfig
       }
-  }
 
-  /** Queries for a [[EmRuntimeConfig]], that applies for the given uuid and
-    * either returns the config for the requested uuid or the default config.
-    * If the requested uuid is valid, but the return type is not of type
-    * [[EmRuntimeConfig]] the default config for this type is returned.
-    *
-    * @param uuid
-    *   Identifier of the requested Evcs model
-    * @return
-    *   the requested [[EvcsRuntimeConfig]] or a default value
-    */
-  def getEmConfigOrDefault(uuid: UUID): EmRuntimeConfig =
-    configs.get(uuid) match {
-      case Some(emConfig: EmRuntimeConfig) => emConfig
-      case _                                   => defaultEmConfig
-    }
-}
+    /** Queries for a [[EmRuntimeConfig]], that applies for the given uuid and
+      * either returns the config for the requested uuid or the default config.
+      * If the requested uuid is valid, but the return type is not of type
+      * [[EmRuntimeConfig]] the default config for this type is returned.
+      *
+      * @param uuid
+      *   Identifier of the requested Evcs model
+      * @return
+      *   the requested [[EvcsRuntimeConfig]] or a default value
+      */
+    def getEmConfigOrDefault(uuid: UUID): EmRuntimeConfig =
+      configs.get(uuid) match {
+        case Some(emConfig: EmRuntimeConfig) => emConfig
+        case _                               => defaultEmConfig
+      }
+  }
 
   object ParticipantConfigUtil {
 
