@@ -180,9 +180,9 @@ class ConfigUtilsSpec
         )
       }
 
-      actual.getConfigOrDefault[LoadRuntimeConfig](
+      actual.getOrDefault[LoadRuntimeConfig](
         UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-      ) shouldBe actual.getConfigOrDefault[LoadRuntimeConfig](
+      ) shouldBe actual.getOrDefault[LoadRuntimeConfig](
         UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
       )
     }
@@ -233,7 +233,7 @@ class ConfigUtilsSpec
         )
       }
 
-      actual.getConfigOrDefault[LoadRuntimeConfig](
+      actual.getOrDefault[LoadRuntimeConfig](
         UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
       ) shouldBe
         LoadRuntimeConfig(
@@ -243,7 +243,7 @@ class ConfigUtilsSpec
           "profile",
           "power"
         )
-      actual.getConfigOrDefault[LoadRuntimeConfig](
+      actual.getOrDefault[LoadRuntimeConfig](
         UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
       ) shouldBe
         LoadRuntimeConfig(
@@ -384,9 +384,9 @@ class ConfigUtilsSpec
           UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
         )
 
-        actual.getConfigOrDefault[FixedFeedInRuntimeConfig](
+        actual.getOrDefault[FixedFeedInRuntimeConfig](
           UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-        ) shouldBe actual.getConfigOrDefault[FixedFeedInRuntimeConfig](
+        ) shouldBe actual.getOrDefault[FixedFeedInRuntimeConfig](
           UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
         )
       }
@@ -432,7 +432,7 @@ class ConfigUtilsSpec
         )
       }
 
-      actual.getConfigOrDefault[FixedFeedInRuntimeConfig](
+      actual.getOrDefault[FixedFeedInRuntimeConfig](
         UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
       ) shouldBe
         FixedFeedInRuntimeConfig(
@@ -440,7 +440,7 @@ class ConfigUtilsSpec
           1.3,
           List("49f250fa-41ff-4434-a083-79c98d260a76")
         )
-      actual.getConfigOrDefault[FixedFeedInRuntimeConfig](
+      actual.getOrDefault[FixedFeedInRuntimeConfig](
         UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
       ) shouldBe
         FixedFeedInRuntimeConfig(
@@ -531,7 +531,7 @@ class ConfigUtilsSpec
       }
 
       // return default if a request for fix feed is done, but a load config is found
-      actual.getConfigOrDefault[FixedFeedInRuntimeConfig](
+      actual.getOrDefault[FixedFeedInRuntimeConfig](
         UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
       ) shouldBe
         FixedFeedInRuntimeConfig(
@@ -541,7 +541,7 @@ class ConfigUtilsSpec
         )
 
       // return default if a request for load is done, but fixed feed is found
-      actual.getConfigOrDefault[LoadRuntimeConfig](
+      actual.getOrDefault[LoadRuntimeConfig](
         UUID.fromString("50f250fa-41ff-4434-a083-79c98d260a76")
       ) shouldBe
         LoadRuntimeConfig(
@@ -553,7 +553,7 @@ class ConfigUtilsSpec
         )
 
       // return default if a request for pv is done, but fixed feed is found
-      actual.getConfigOrDefault[PvRuntimeConfig](
+      actual.getOrDefault[PvRuntimeConfig](
         UUID.fromString("50f250fa-41ff-4434-a083-79c98d260a76")
       ) shouldBe
         PvRuntimeConfig(

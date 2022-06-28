@@ -117,7 +117,7 @@ class WecAgentModelCalculationSpec
     simonaConfig.simona.runtime.participant
   )
   private val modelConfig =
-    configUtil.getConfigOrDefault[WecRuntimeConfig](
+    configUtil.getOrDefault[WecRuntimeConfig](
       voltageSensitiveInput.getUuid
     )
 

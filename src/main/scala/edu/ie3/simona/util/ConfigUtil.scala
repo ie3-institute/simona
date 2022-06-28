@@ -50,7 +50,7 @@ object ConfigUtil {
       * @return
       *   the requested config or a default value of type [[T]]
       */
-    def getConfigOrDefault[T <: BaseRuntimeConfig](
+    def getOrDefault[T <: BaseRuntimeConfig](
         uuid: UUID
     )(implicit tag: ClassTag[T]): T =
       configs.get(uuid) match {

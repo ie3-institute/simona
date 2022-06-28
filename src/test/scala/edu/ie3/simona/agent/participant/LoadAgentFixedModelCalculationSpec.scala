@@ -88,7 +88,7 @@ class LoadAgentFixedModelCalculationSpec
     simonaConfig.simona.runtime.participant
   )
   private val modelConfig =
-    loadConfigUtil.getConfigOrDefault[LoadRuntimeConfig](
+    loadConfigUtil.getOrDefault[LoadRuntimeConfig](
       voltageSensitiveInput.getUuid
     )
   private val services = None

@@ -40,7 +40,7 @@ class FixedFeedInModelSpec
         .ParticipantConfigUtil(
           simonaConfig.simona.runtime.participant
         )
-        .getConfigOrDefault[FixedFeedInRuntimeConfig](fixedFeedInput.getUuid)
+        .getOrDefault[FixedFeedInRuntimeConfig](fixedFeedInput.getUuid)
 
       val actualModel = FixedFeedInModel.apply(
         fixedFeedInput,

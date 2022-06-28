@@ -221,7 +221,7 @@ class GridAgentController(
     case input: FixedFeedInInput =>
       buildFixedFeedIn(
         input,
-        participantConfigUtil.getConfigOrDefault[FixedFeedInRuntimeConfig](
+        participantConfigUtil.getOrDefault[FixedFeedInRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -234,7 +234,7 @@ class GridAgentController(
     case input: LoadInput =>
       buildLoad(
         input,
-        participantConfigUtil.getConfigOrDefault[LoadRuntimeConfig](
+        participantConfigUtil.getOrDefault[LoadRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -247,7 +247,7 @@ class GridAgentController(
     case input: PvInput =>
       buildPV(
         input,
-        participantConfigUtil.getConfigOrDefault[PvRuntimeConfig](
+        participantConfigUtil.getOrDefault[PvRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -261,7 +261,7 @@ class GridAgentController(
     case input: WecInput =>
       buildWec(
         input,
-        participantConfigUtil.getConfigOrDefault[WecRuntimeConfig](
+        participantConfigUtil.getOrDefault[WecRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -275,7 +275,7 @@ class GridAgentController(
     case input: EvcsInput =>
       buildEvcs(
         input,
-        participantConfigUtil.getConfigOrDefault[EvcsRuntimeConfig](
+        participantConfigUtil.getOrDefault[EvcsRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,

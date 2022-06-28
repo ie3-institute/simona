@@ -100,7 +100,7 @@ class FixedFeedInAgentModelCalculationSpec
     simonaConfig.simona.runtime.participant
   )
   private val modelConfig =
-    fixedFeedConfigUtil.getConfigOrDefault[FixedFeedInRuntimeConfig](
+    fixedFeedConfigUtil.getOrDefault[FixedFeedInRuntimeConfig](
       voltageSensitiveInput.getUuid
     )
   private val services = None
