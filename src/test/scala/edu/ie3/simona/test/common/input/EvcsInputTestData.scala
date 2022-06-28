@@ -56,7 +56,7 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     )
 
   protected val modelConfig: SimonaConfig.EvcsRuntimeConfig =
-    configUtil.getEvcsConfigOrDefault(
+    configUtil.getConfigOrDefault[SimonaConfig.EvcsRuntimeConfig](
       evcsInputModel.getUuid
     )
 
