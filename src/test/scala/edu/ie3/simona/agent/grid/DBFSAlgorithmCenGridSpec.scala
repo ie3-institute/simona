@@ -372,8 +372,8 @@ class DBFSAlgorithmCenGridSpec
       secondSlackAskSender ! ProvideSlackVoltageMessage(
         secondSweepNo,
         slackRequestNodeUuid,
-        Quantities.getQuantity(380, KILOVOLT),
-        Quantities.getQuantity(0, KILOVOLT)
+        Quantities.getQuantity(374.22694614463, KILOVOLT), // 380 kV @ 10°
+        Quantities.getQuantity(65.9863075134335, KILOVOLT) // 380 kV @ 10°
       )
 
       // after the intermediate power flow calculation
@@ -408,7 +408,7 @@ class DBFSAlgorithmCenGridSpec
       // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculations
       // we simulate this behaviour now by doing the same for our 4 inferior grid agents
       inferiorGridNodeUuids.foreach { nodeUuid =>
-        centerGridAgent ! RequestSlackVoltageMessage(firstSweepNo, nodeUuid)
+        centerGridAgent ! RequestSlackVoltageMessage(secondSweepNo, nodeUuid)
       }
 
       // as we are in the second sweep, all provided slack voltages should be unequal
@@ -426,28 +426,28 @@ class DBFSAlgorithmCenGridSpec
       secondProvidedSlackVoltages.size shouldBe 4
       val secondExpectedResults = List(
         ProvideSlackVoltageMessage(
-          firstSweepNo,
+          secondSweepNo,
           UUID.fromString("d44ba8ed-81db-4a22-a40d-f7c0d0808a75"),
-          Quantities.getQuantity(110.1277081582144170, KILOVOLT),
-          Quantities.getQuantity(-0.011124597905979507, KILOVOLT)
+          Quantities.getQuantity(108.4565525820633120, KILOVOLT),
+          Quantities.getQuantity(19.11252024208434820, KILOVOLT)
         ),
         ProvideSlackVoltageMessage(
-          firstSweepNo,
+          secondSweepNo,
           UUID.fromString("e364ef00-e6ca-46b1-ba2b-bb73c0c6fee0"),
-          Quantities.getQuantity(110.1422124824355620, KILOVOLT),
-          Quantities.getQuantity(-0.014094294956794604, KILOVOLT)
+          Quantities.getQuantity(108.4713522355223970, KILOVOLT),
+          Quantities.getQuantity(19.11211431087968570, KILOVOLT)
         ),
         ProvideSlackVoltageMessage(
-          firstSweepNo,
+          secondSweepNo,
           UUID.fromString("78c5d473-e01b-44c4-afd2-e4ff3c4a5d7c"),
-          Quantities.getQuantity(110.1196117051188620, KILOVOLT),
-          Quantities.getQuantity(-0.009318349620959118, KILOVOLT)
+          Quantities.getQuantity(108.4482654805414590, KILOVOLT),
+          Quantities.getQuantity(19.11289311507043710, KILOVOLT)
         ),
         ProvideSlackVoltageMessage(
-          firstSweepNo,
+          secondSweepNo,
           UUID.fromString("47ef9983-8fcf-4713-be90-093fc27864ae"),
-          Quantities.getQuantity(110.147346134387320, KILOVOLT),
-          Quantities.getQuantity(-0.015819259689252657, KILOVOLT)
+          Quantities.getQuantity(108.4767074327598750, KILOVOLT),
+          Quantities.getQuantity(19.11130700154577660, KILOVOLT)
         )
       )
 
@@ -524,11 +524,11 @@ class DBFSAlgorithmCenGridSpec
         case ProvideGridPowerMessage(nodeUuid, p, q) =>
           nodeUuid shouldBe slackNodeUuid
           p should equalWithTolerance(
-            Quantities.getQuantity(0.080423711881452700000, MEGAVOLTAMPERE),
+            Quantities.getQuantity(0.08042371202897453, MEGAVOLTAMPERE),
             floatPrecision
           )
           q should equalWithTolerance(
-            Quantities.getQuantity(-1.45357503915621860000, MEGAVOLTAMPERE),
+            Quantities.getQuantity(-1.4535750374419432, MEGAVOLTAMPERE),
             floatPrecision
           )
         case x =>
