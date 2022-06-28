@@ -221,7 +221,9 @@ class GridAgentController(
     case input: FixedFeedInInput =>
       buildFixedFeedIn(
         input,
-        participantConfigUtil.getConfigOrDefault(input.getUuid),
+        participantConfigUtil.getConfigOrDefault[FixedFeedInRuntimeConfig](
+          input.getUuid
+        ),
         environmentRefs.primaryServiceProxy,
         simulationStartDate,
         simulationEndDate,
@@ -232,7 +234,9 @@ class GridAgentController(
     case input: LoadInput =>
       buildLoad(
         input,
-        participantConfigUtil.getConfigOrDefault(input.getUuid),
+        participantConfigUtil.getConfigOrDefault[LoadRuntimeConfig](
+          input.getUuid
+        ),
         environmentRefs.primaryServiceProxy,
         simulationStartDate,
         simulationEndDate,
@@ -243,7 +247,9 @@ class GridAgentController(
     case input: PvInput =>
       buildPV(
         input,
-        participantConfigUtil.getConfigOrDefault(input.getUuid),
+        participantConfigUtil.getConfigOrDefault[PvRuntimeConfig](
+          input.getUuid
+        ),
         environmentRefs.primaryServiceProxy,
         environmentRefs.weather,
         simulationStartDate,
@@ -255,7 +261,9 @@ class GridAgentController(
     case input: WecInput =>
       buildWec(
         input,
-        participantConfigUtil.getConfigOrDefault(input.getUuid),
+        participantConfigUtil.getConfigOrDefault[WecRuntimeConfig](
+          input.getUuid
+        ),
         environmentRefs.primaryServiceProxy,
         environmentRefs.weather,
         simulationStartDate,
@@ -267,7 +275,9 @@ class GridAgentController(
     case input: EvcsInput =>
       buildEvcs(
         input,
-        participantConfigUtil.getConfigOrDefault(input.getUuid),
+        participantConfigUtil.getConfigOrDefault[EvcsRuntimeConfig](
+          input.getUuid
+        ),
         environmentRefs.primaryServiceProxy,
         environmentRefs.evDataService.getOrElse(
           throw new GridAgentInitializationException(
