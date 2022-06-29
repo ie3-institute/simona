@@ -82,8 +82,7 @@ trait PowerFlowSupport {
 
     val mainRefSystemPowerUnit = gridMainRefSystem.nominalPower.getUnit
 
-    nodes.foldLeft(Array.empty[PresetData])((operatingPoint, nodeModel) => {
-
+    nodes.toArray.map { nodeModel =>
       // note: currently we only support pq nodes as we not distinguish between pq/pv nodes -
       // when slack emulators or pv-node assets are added this needs to be considered here
       val nodeType = if (nodeModel.isSlack) NodeType.SL else NodeType.PQ
@@ -159,12 +158,8 @@ trait PowerFlowSupport {
                          else 1.0)
         }
 
-      val presetNodeData =
-        PresetData(nodeIdx, nodeType, apparentPower, targetVoltageInPu.abs)
-
-      operatingPoint :+ presetNodeData
-
-    })
+      PresetData(nodeIdx, nodeType, apparentPower, targetVoltageInPu.abs)
+    }
   }
 
   /** Composes the current operation point needed by
