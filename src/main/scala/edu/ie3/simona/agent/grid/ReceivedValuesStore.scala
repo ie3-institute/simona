@@ -103,19 +103,15 @@ object ReceivedValuesStore {
         (uuid, actorRefs.map(actorRef => actorRef -> None).toMap)
     }
 
-    /* Add everything, that I expect from my sub ordinate grid agents.
-     * Build distinct pairs of sending actor reference and target node.
-     * Convert to sequence first, since the map operation conflates
-     * key/value pairs with the same key */
-    inferiorSubGridGateToActorRef.toSeq
+    /* Add everything, that I expect from my sub ordinate grid agents. */
+    inferiorSubGridGateToActorRef
       .map { case (gate, reference) =>
-        reference -> gate.getSuperiorNode.getUuid
+        gate.getSuperiorNode.getUuid -> reference
       }
-      .distinct
       .foldLeft(assetsToReceivedPower) {
         case (
               subOrdinateToReceivedPower,
-              inferiorSubGridRef -> couplingNodeUuid
+              couplingNodeUuid -> inferiorSubGridRef
             ) =>
           /* Check, if there is already something expected for the given coupling node
            * and add reference to the subordinate grid agent */
