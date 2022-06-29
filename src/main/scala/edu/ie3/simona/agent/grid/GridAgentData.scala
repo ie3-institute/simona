@@ -225,7 +225,7 @@ object GridAgentData {
               nodeToReceivedPowerValuesMapWithAddedPowerResponse,
               (senderRef, powerResponseMessage)
             ) =>
-          updateNodalReceivedVector(
+          updateNodalReceivedPower(
             powerResponseMessage,
             nodeToReceivedPowerValuesMapWithAddedPowerResponse,
             senderRef,
@@ -252,7 +252,7 @@ object GridAgentData {
       *   The nodal uuid as well as the updated collection of received
       *   information
       */
-    private def updateNodalReceivedVector(
+    private def updateNodalReceivedPower(
         powerResponse: PowerResponseMessage,
         nodeToReceived: NodeToReceivedPower,
         senderRef: ActorRef,
