@@ -287,15 +287,15 @@ trait DbfsTestGrid extends SubGridGateMokka {
     )
 
     /* Sub grid gates are the apparent gates to superior grids + artificial one to underlying grids */
-    val subGridGates: Vector[SubGridGate] =
-      (rawGridElements.getTransformer2Ws.asScala.map(
+    val subGridGates: Seq[SubGridGate] =
+      rawGridElements.getTransformer2Ws.asScala.toSeq.map(
         SubGridGate.fromTransformer2W
       ) ++ rawGridElements.getTransformer3Ws.asScala.flatMap(transformer =>
-        Vector(
+        Seq(
           SubGridGate.fromTransformer3W(transformer, ConnectorPort.B),
           SubGridGate.fromTransformer3W(transformer, ConnectorPort.C)
         )
-      ) ++ Vector(
+      ) ++ Seq(
         build2wSubGridGate(
           node3b.getUuid,
           1,
@@ -320,7 +320,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
           UUID.fromString("9237e237-01e9-446f-899f-c3b5cf69d288"),
           13
         )
-      )).toVector
+      )
 
     (
       new SubGridContainer(
@@ -336,12 +336,10 @@ trait DbfsTestGrid extends SubGridGateMokka {
 
   protected val (ehvGridContainer, ehvSubGridGates) = {
     val nodes = Set(slackNode)
-    val lines = Set.empty[LineInput]
-    val transformers = Set.empty[Transformer2WInput]
     val rawGridElements = new RawGridElements(
       nodes.asJava,
-      lines.asJava,
-      transformers.asJava,
+      Set.empty[LineInput].asJava,
+      Set.empty[Transformer2WInput].asJava,
       Set.empty[Transformer3WInput].asJava,
       Set.empty[SwitchInput].asJava,
       Set.empty[MeasurementUnitInput].asJava
@@ -363,16 +361,10 @@ trait DbfsTestGrid extends SubGridGateMokka {
       Set.empty[LineGraphicInput].asJava
     )
 
-    val subGridGates: Vector[SubGridGate] =
-      (Set(transformer1).map(
+    val subGridGates: Seq[SubGridGate] =
+      Seq(transformer1).map(
         SubGridGate.fromTransformer2W
-      ) ++ rawGridElements.getTransformer3Ws.asScala
-        .flatMap(transformer =>
-          Vector(
-            SubGridGate.fromTransformer3W(transformer, ConnectorPort.B),
-            SubGridGate.fromTransformer3W(transformer, ConnectorPort.C)
-          )
-        )).toVector
+      )
 
     (
       new SubGridContainer(
