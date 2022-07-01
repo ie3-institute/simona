@@ -46,7 +46,7 @@ import scala.jdk.CollectionConverters._
   */
 trait DbfsTestGrid extends SubGridGateMokka {
   // 4 HS nodes, 1 slack HöS node
-  private val node1 = new NodeInput(
+  protected val node1 = new NodeInput(
     UUID.fromString("78c5d473-e01b-44c4-afd2-e4ff3c4a5d7c"),
     "HS_NET1_Station_1",
     OperatorInput.NO_OPERATOR_ASSIGNED,
@@ -57,7 +57,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     GermanVoltageLevelUtils.HV,
     1
   )
-  private val node2 = new NodeInput(
+  protected val node2 = new NodeInput(
     UUID.fromString("e364ef00-e6ca-46b1-ba2b-bb73c0c6fee0"),
     "HS_NET1_Station_2",
     OperatorInput.NO_OPERATOR_ASSIGNED,

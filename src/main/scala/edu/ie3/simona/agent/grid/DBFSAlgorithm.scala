@@ -1133,7 +1133,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   private def askInferiorGridsForPowers(
       currentSweepNo: Int,
       subGridGateToActorRef: Map[SubGridGate, ActorRef],
-      inferiorGridGates: Vector[SubGridGate],
+      inferiorGridGates: Seq[SubGridGate],
       askTimeout: Duration
   ): Option[Future[ReceivedPowerValues]] = {
     implicit val timeout: AkkaTimeout = AkkaTimeout.create(askTimeout)
