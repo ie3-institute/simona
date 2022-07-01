@@ -565,7 +565,12 @@ private[grid] trait GridResultsSupport {
           imag
         )
       case Complex(real, imag) =>
-/* Both real and imaginary parts are != 0. This means that the angle related to the positive real axis is to be determined. To do this, atan can be used to calculate an angle between -90 and 90 degrees. To calculate the real angle (between -180 and 180 degrees) with respect to the real axis, 180 degrees must be added if the real part is negative. */
+        /* Both real and imaginary parts are != 0. This means that the angle
+         * related to the positive real axis is to be determined. To do this,
+         * atan can be used to calculate an angle between -90 and 90 degrees.
+         * To calculate the real angle (between -180 and 180 degrees) with
+         * respect to the real axis, 180 degrees must be added if the real
+         * part is negative. */
         val baseAngle = atan(imag / real).toDegrees
         angleOffsetCorrection(
           Quantities.getQuantity(baseAngle, PowerSystemUnits.DEGREE_GEOM),
