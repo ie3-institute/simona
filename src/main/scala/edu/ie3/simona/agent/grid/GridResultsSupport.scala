@@ -7,9 +7,6 @@
 package edu.ie3.simona.agent.grid
 
 import akka.event.LoggingAdapter
-
-import java.time.ZonedDateTime
-import java.util.UUID
 import breeze.math.Complex
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
@@ -34,14 +31,15 @@ import edu.ie3.simona.model.grid._
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.QuantityUtil
 import edu.ie3.util.scala.quantities.QuantityUtil._
-
-import javax.measure.Quantity
-import javax.measure.quantity.{Angle, ElectricCurrent}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
-import scala.math.{asin, atan, copySign, max, pow, signum, sqrt}
+import java.time.ZonedDateTime
+import java.util.UUID
+import javax.measure.Quantity
+import javax.measure.quantity.{Angle, ElectricCurrent}
+import scala.math._
 
 /** Trait that holds methods to convert the results of a power flow calculation
   * to their corresponding [[edu.ie3.datamodel.models.result.ResultEntity]]
@@ -520,14 +518,15 @@ private[grid] trait GridResultsSupport {
     (iMag, iAng)
   }
 
-  /** Calculate the voltage magnitude and the voltage angle in physical units
+  /** Calculate the current magnitude and the current angle in physical units
     * based on a provided electric current in p.u. and the nominal referenced
     * electric current. The arctangent "only" calculates the angle between the
     * complex current and it's real part. This means, that i = (i_real, i_imag)
     * and i' = (-i_real, -i_imag) will lead to the same angle. However, for
-    * power system simulation, the absolute orientation in the complex plain
+    * power system simulation, the absolute orientation in the complex plane
     * with regard to the positive real axis is of interest. Therefore,
-    * additional 180° are added, if the real part of the current is negative.
+    * additional 180 degrees are added, if the real part of the current is
+    * negative.
     *
     * @param iPu
     *   the electric current in p.u.
@@ -542,14 +541,54 @@ private[grid] trait GridResultsSupport {
   ): (ComparableQuantity[ElectricCurrent], ComparableQuantity[Angle]) =
     (
       iNominal.multiply(iPu.abs).asComparable,
-      Quantities.getQuantity(
-        atan(iPu.imag / iPu.real).toDegrees + max(
-          0.0,
-          -signum(iPu.real)
-        ) * 180.0,
-        PowerSystemUnits.DEGREE_GEOM
-      )
+      complexToAngle(iPu)
     )
+
+  /** Calculate the angle of the complex value given. The angle has the proper
+    * orientation on the complex plane.
+    *
+    * @param cplx
+    *   The complex value
+    * @return
+    *   The angle of the complex value
+    */
+  private def complexToAngle(cplx: Complex): ComparableQuantity[Angle] =
+    cplx match {
+      case Complex(0d, 0d) =>
+        /* The complex value has no magnitude, therefore define the angle to zero */
+        Quantities.getQuantity(0d, PowerSystemUnits.DEGREE_GEOM)
+      case Complex(0d, imag) =>
+        /* There is only an imaginary part:
+        Angle can be 90 or 270 degrees, depending on sign of the imaginary part */
+        angleOffsetCorrection(
+          Quantities.getQuantity(90d, PowerSystemUnits.DEGREE_GEOM),
+          imag
+        )
+      case Complex(real, imag) =>
+        /* Both real and imaginary parts are != 0. This means that the angle
+         * related to the positive real axis is to be determined. To do this,
+         * atan can be used to calculate an angle between -90 and 90 degrees.
+         * To calculate the real angle (between -180 and 180 degrees) with
+         * respect to the real axis, 180 degrees must be added if the real
+         * part is negative. */
+        val baseAngle = atan(imag / real).toDegrees
+        angleOffsetCorrection(
+          Quantities.getQuantity(baseAngle, PowerSystemUnits.DEGREE_GEOM),
+          real
+        )
+    }
+
+  /** Correct the offset of an angle dependent on the direction. If the
+    * direction is negative, 180 degrees are added
+    */
+  private def angleOffsetCorrection(
+      angle: ComparableQuantity[Angle],
+      dir: Double
+  ): ComparableQuantity[Angle] =
+    if (dir < 0)
+      angle.add(Quantities.getQuantity(180d, PowerSystemUnits.DEGREE_GEOM))
+    else
+      angle
 
   /** Calculates the electric current of a two-port element @ port i (=A) and j
     * (=B) based on the provided voltages @ each port and the corresponding
