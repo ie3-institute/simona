@@ -42,27 +42,20 @@ case object GridAgentFailFast {
     val transformerUnits2W =
       gridAgentInitData.subGridContainer.getRawGrid.getTransformer2Ws.asScala
 
+    val transformerUnits3W =
+      gridAgentInitData.subGridContainer.getRawGrid.getTransformer3Ws.asScala
+
     if (maybeControlConfig.isDefined) {
-      /*
-      maybeControlConfig.foreach(control =>
-        control.transformer.foreach(transformer =>
-          transformer.transformers.map(UUID.fromString).foreach {
-            transformers =>
-             val transformerUnit = transformerUnits2W
-               .find(element => element.getUuid == transformers)
-
-
-      if(transformerUnit.isDefined)
-
-       */
       maybeControlConfig.foreach(control =>
         control.transformer.foreach(transformer =>
           transformer.transformers.map(UUID.fromString).foreach {
             transformers =>
               // Check if transformer is part of subgrid of this GridAgent
-              val transformerUnit = transformerUnits2W
+              val transformerUnit2W = transformerUnits2W
                 .find(element => element.getUuid == transformers)
-              if (transformerUnit.isDefined) {
+              val transformerUnit3W = transformerUnits3W
+                .find(element => element.getUuid == transformers)
+              if (transformerUnit2W.isDefined || transformerUnit3W.isDefined) {
 
                 transformer.measurements
                   .map(UUID.fromString)
