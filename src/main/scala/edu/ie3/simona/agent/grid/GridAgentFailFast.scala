@@ -39,22 +39,50 @@ case object GridAgentFailFast {
     val measurementUnits =
       gridAgentInitData.subGridContainer.getRawGrid.getMeasurementUnits.asScala
 
-    maybeControlConfig.foreach(control =>
-      control.transformer.foreach(transformer =>
-        transformer.measurements.map(UUID.fromString).foreach { measurements =>
-          val measurementUnit = measurementUnits
-            .find(element => element.getUuid == measurements)
-            .getOrElse(
-              throw new GridAgentInitializationException(
-                s"${gridAgentInitData.subGridContainer.getGridName} has a transformer control group (${control.transformer.toString}) with a measurement which UUID does not exists in this subnet."
-              )
-            )
-          if (!measurementUnit.getVMag)
-            throw new GridAgentInitializationException(
-              s"${gridAgentInitData.subGridContainer.getGridName}  has a transformer control group (${control.transformer.toString}) with a measurement which does not measure voltage magnitude."
-            )
-        }
+    val transformerUnits2W =
+      gridAgentInitData.subGridContainer.getRawGrid.getTransformer2Ws.asScala
+
+    if (maybeControlConfig.isDefined) {
+      /*
+      maybeControlConfig.foreach(control =>
+        control.transformer.foreach(transformer =>
+          transformer.transformers.map(UUID.fromString).foreach {
+            transformers =>
+             val transformerUnit = transformerUnits2W
+               .find(element => element.getUuid == transformers)
+
+
+      if(transformerUnit.isDefined)
+
+       */
+      maybeControlConfig.foreach(control =>
+        control.transformer.foreach(transformer =>
+          transformer.transformers.map(UUID.fromString).foreach {
+            transformers =>
+              // Check if transformer is part of subgrid of this GridAgent
+              val transformerUnit = transformerUnits2W
+                .find(element => element.getUuid == transformers)
+              if (transformerUnit.isDefined) {
+
+                transformer.measurements
+                  .map(UUID.fromString)
+                  .foreach { measurements =>
+                    val measurementUnit = measurementUnits
+                      .find(element => element.getUuid == measurements)
+                      .getOrElse(
+                        throw new GridAgentInitializationException(
+                          s"${gridAgentInitData.subGridContainer.getGridName} has a transformer control group (${control.transformer.toString}) with a measurement which UUID does not exists in this subnet."
+                        )
+                      )
+                    if (!measurementUnit.getVMag)
+                      throw new GridAgentInitializationException(
+                        s"${gridAgentInitData.subGridContainer.getGridName}  has a transformer control group (${control.transformer.toString}) with a measurement which does not measure voltage magnitude."
+                      )
+                  }
+              }
+          }
+        )
       )
-    )
+    }
   }
 }
