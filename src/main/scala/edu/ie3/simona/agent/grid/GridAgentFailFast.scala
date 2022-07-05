@@ -9,7 +9,9 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
-import scala.jdk.CollectionConverters.CollectionHasAsScala
+
+import java.util.UUID
+import scala.jdk.CollectionConverters._
 
 case object GridAgentFailFast {
 
@@ -30,17 +32,29 @@ case object GridAgentFailFast {
 
     /** Check if there exits voltage measurements for transformerControlGroups
       */
-    val measurementUnitInput =
-      gridAgentInitData.subGridContainer.getRawGrid.getMeasurementUnits
+
     val maybeControlConfig: Option[SimonaConfig.Simona.Control] =
       simonaConfig.simona.control
-    if (
-      maybeControlConfig.isDefined && !measurementUnitInput.asScala.exists(
-        input => input.getVMag
+
+    val measurementUnits =
+      gridAgentInitData.subGridContainer.getRawGrid.getMeasurementUnits.asScala
+
+    maybeControlConfig.foreach(control =>
+      control.transformer.foreach(transformer =>
+        transformer.measurements.map(UUID.fromString).foreach { measurements =>
+          val measurementUnit = measurementUnits
+            .find(element => element.getUuid == measurements)
+            .getOrElse(
+              throw new GridAgentInitializationException(
+                s"${gridAgentInitData.subGridContainer.getGridName} has a transformer control group (${control.transformer.toString}) with a measurement which UUID does not exists in this subnet."
+              )
+            )
+          if (!measurementUnit.getVMag)
+            throw new GridAgentInitializationException(
+              s"${gridAgentInitData.subGridContainer.getGridName}  has a transformer control group (${control.transformer.toString}) with a measurement which does not measure voltage magnitude."
+            )
+        }
       )
     )
-      throw new GridAgentInitializationException(
-        s"${gridAgentInitData.subGridContainer.getGridName} has a control group with measurement that don't deliver voltage magnitude."
-      )
   }
 }
