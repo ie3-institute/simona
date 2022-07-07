@@ -12,7 +12,10 @@ import java.util
 
 import breeze.numerics.round
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.{BdewLoadProfile, StandardLoadProfile}
+import edu.ie3.datamodel.models.profile.{
+  BdewStandardLoadProfile,
+  StandardLoadProfile
+}
 import edu.ie3.simona.model.participant.load.profile.LoadProfileStore.{
   initializeMaxConsumptionPerProfile,
   initializeTypeDayValues
@@ -65,7 +68,7 @@ class LoadProfileStore private (val reader: Reader) {
       case Some(typeDayValues) =>
         val quarterHourEnergy = typeDayValues.getQuarterHourEnergy(time)
         val load = loadProfile match {
-          case BdewLoadProfile.H0 =>
+          case BdewStandardLoadProfile.H0 =>
             /* For the residential average profile, a dynamization has to be taken into account */
             val t = time.getDayOfYear // leap years are ignored
             LoadProfileStore.dynamization(quarterHourEnergy, t)
@@ -205,7 +208,7 @@ object LoadProfileStore extends LazyLogging {
     knownLoadProfiles
       .flatMap(loadProfile => {
         (loadProfile match {
-          case BdewLoadProfile.H0 =>
+          case BdewStandardLoadProfile.H0 =>
             // max load for h0 is expected to be exclusively found in winter,
             // thus we only search there.
             DayType.values
