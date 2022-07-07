@@ -18,7 +18,7 @@ import tech.units.indriya.quantity.Quantities
 import java.time.ZonedDateTime
 import javax.measure.Quantity
 import javax.measure.quantity.Dimensionless
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Try}
 
 object VoltagePrediction {
 

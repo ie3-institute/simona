@@ -42,7 +42,6 @@ import edu.ie3.util.quantities.PowerSystemUnits.{
 }
 import edu.ie3.util.quantities.interfaces.Currency
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWH
 import edu.ie3.util.scala.quantities.QuantityUtil.RichQuantity
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
@@ -157,7 +156,7 @@ final case class EvcsModel(
     * @param voltages
     *   Mapping from wall-clock time to nodal voltage
     * @return
-    *   A set of [[EvcsChargingScheduleEntry]]s
+    *   A set of [[ChargingSchedule]]s
     */
   private def scheduleByStrategy(
       strategy: ChargingStrategy.Value,

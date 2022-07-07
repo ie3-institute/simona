@@ -14,14 +14,13 @@ import edu.ie3.simona.model.participant.evcs.marketoriented.MarketPricePredictio
   priceTimeTable
 }
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.interfaces.EnergyPrice
 import edu.ie3.util.quantities.PowerSystemUnits.EURO_PER_KILOWATTHOUR
+import edu.ie3.util.quantities.interfaces.EnergyPrice
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
-import scala.math.Ordering.Implicits.infixOrderingOps
 
 object MarketOrientedCurrentPrice extends LazyLogging {
 
