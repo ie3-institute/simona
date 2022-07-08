@@ -110,19 +110,19 @@ object ReceivedValuesStore {
       }
       .foldLeft(assetsToReceivedPower) {
         case (
-              subOrdinateToReceivedPower,
+              subordinateToReceivedPower,
               couplingNodeUuid -> inferiorSubGridRef
             ) =>
           /* Check, if there is already something expected for the given coupling node
            * and add reference to the subordinate grid agent */
-          val actorRefToMessage = subOrdinateToReceivedPower
+          val actorRefToMessage = subordinateToReceivedPower
             .getOrElse(
               couplingNodeUuid,
               Map.empty[ActorRef, Option[ProvidePowerMessage]]
             ) + (inferiorSubGridRef -> None)
 
           /* Update the existing map */
-          subOrdinateToReceivedPower + (couplingNodeUuid -> actorRefToMessage)
+          subordinateToReceivedPower + (couplingNodeUuid -> actorRefToMessage)
       }
   }
 
