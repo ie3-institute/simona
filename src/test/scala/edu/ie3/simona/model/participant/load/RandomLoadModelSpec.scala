@@ -7,34 +7,25 @@
 package edu.ie3.simona.model.participant.load
 
 import de.lmu.ifi.dbs.elki.math.statistics.distribution.GeneralizedExtremeValueDistribution
+import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
+import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
-import edu.ie3.datamodel.models.{BdewLoadProfile, OperationTime}
-import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.load.LoadReference.{
-  ActivePower,
-  EnergyConsumption
-}
-import edu.ie3.simona.model.participant.load.random.{
-  RandomLoadModel,
-  RandomLoadParameters
-}
+import edu.ie3.simona.model.participant.load.LoadReference.{ActivePower, EnergyConsumption}
+import edu.ie3.simona.model.participant.load.random.{RandomLoadModel, RandomLoadParameters}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.matchers.QuantityMatchers
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.prop.TableDrivenPropertyChecks
-import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
-import java.time.temporal.ChronoUnit
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Energy, Power}
 
 class RandomLoadModelSpec
     extends UnitSpec
@@ -59,7 +50,7 @@ class RandomLoadModelSpec
           -1
         ),
         new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
-        BdewLoadProfile.H0,
+        BdewStandardLoadProfile.H0,
         false,
         Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR),
         Quantities.getQuantity(282.74d, PowerSystemUnits.VOLTAMPERE),

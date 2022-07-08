@@ -6,17 +6,14 @@
 
 package edu.ie3.simona.model.participant.load
 
+import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
+import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
-import edu.ie3.datamodel.models.{BdewLoadProfile, OperationTime}
-import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.load.LoadReference.{
-  ActivePower,
-  EnergyConsumption
-}
+import edu.ie3.simona.model.participant.load.LoadReference.{ActivePower, EnergyConsumption}
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
@@ -47,7 +44,7 @@ class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           -1
         ),
         new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
-        BdewLoadProfile.H0,
+        BdewStandardLoadProfile.H0,
         false,
         Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR),
         Quantities.getQuantity(282.74d, PowerSystemUnits.VOLTAMPERE),
@@ -72,36 +69,36 @@ class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           Table(
             ("profile", "reference", "expectedsRated"),
             (
-              BdewLoadProfile.H0,
+              BdewStandardLoadProfile.H0,
               ActivePower(Quantities.getQuantity(268.6, Units.WATT)),
               Quantities.getQuantity(282.74, PowerSystemUnits.VOLTAMPERE)
             ),
             (
-              BdewLoadProfile.H0,
+              BdewStandardLoadProfile.H0,
               EnergyConsumption(
                 Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR)
               ),
               Quantities.getQuantity(848.22, PowerSystemUnits.VOLTAMPERE)
             ),
             (
-              BdewLoadProfile.L0,
+              BdewStandardLoadProfile.L0,
               ActivePower(Quantities.getQuantity(268.6, Units.WATT)),
               Quantities.getQuantity(282.74, PowerSystemUnits.VOLTAMPERE)
             ),
             (
-              BdewLoadProfile.L0,
+              BdewStandardLoadProfile.L0,
               EnergyConsumption(
                 Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR)
               ),
               Quantities.getQuantity(759.158, PowerSystemUnits.VOLTAMPERE)
             ),
             (
-              BdewLoadProfile.G0,
+              BdewStandardLoadProfile.G0,
               ActivePower(Quantities.getQuantity(268.6, Units.WATT)),
               Quantities.getQuantity(282.74, PowerSystemUnits.VOLTAMPERE)
             ),
             (
-              BdewLoadProfile.G0,
+              BdewStandardLoadProfile.G0,
               EnergyConsumption(
                 Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR)
               ),
@@ -110,7 +107,7 @@ class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           )
         ) { (profile, reference, expectedSRated) =>
           val actual = ProfileLoadModel(
-            loadInput.copy().standardLoadProfile(profile).build(),
+            loadInput.copy().loadprofile(profile).build(),
             foreSeenOperationInterval,
             1.0,
             reference
