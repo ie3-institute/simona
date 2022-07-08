@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.participant.load
 
 import edu.ie3.datamodel.models.input.system.LoadInput
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
@@ -77,7 +78,7 @@ final case class FixedLoadModel(
     */
   override protected def calculateActivePower(
       data: FixedLoadRelevantData.type = FixedLoadRelevantData
-  ): ComparableQuantity[Power] = activePower.multiply(scalingFactor)
+  ): ComparableQuantity[Power] = activePower
 
 }
 
@@ -86,17 +87,21 @@ case object FixedLoadModel {
 
   def apply(
       input: LoadInput,
-      operationInterval: OperationInterval,
       scalingFactor: Double,
+      operationInterval: OperationInterval,
       reference: LoadReference
-  ): FixedLoadModel = FixedLoadModel(
-    input.getUuid,
-    input.getId,
-    operationInterval,
-    scalingFactor,
-    QControl(input.getqCharacteristics()),
-    input.getsRated(),
-    input.getCosPhiRated,
-    reference
-  )
+  ): FixedLoadModel = {
+    val model = FixedLoadModel(
+      input.getUuid,
+      input.getId,
+      operationInterval,
+      scalingFactor,
+      QControl(input.getqCharacteristics()),
+      input.getsRated(),
+      input.getCosPhiRated,
+      reference
+    )
+    model.enable()
+    model
+  }
 }

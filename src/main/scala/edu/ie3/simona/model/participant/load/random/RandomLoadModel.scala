@@ -9,6 +9,7 @@ package edu.ie3.simona.model.participant.load.random
 import de.lmu.ifi.dbs.elki.math.statistics.distribution.GeneralizedExtremeValueDistribution
 import de.lmu.ifi.dbs.elki.utilities.random.RandomFactory
 import edu.ie3.datamodel.models.input.system.LoadInput
+import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference._
@@ -121,7 +122,7 @@ final case class RandomLoadModel(
             .multiply(energyReferenceScalingFactor)
             .asType(classOf[Power])
       }
-      activePower.multiply(scalingFactor)
+      activePower
     }
   }
 
@@ -193,7 +194,7 @@ case object RandomLoadModel {
       scalingFactor: Double,
       reference: LoadReference
   ): RandomLoadModel = {
-    reference match {
+    val model = reference match {
       case ActivePower(power) =>
         val sRatedPowerScaled =
           LoadModel.scaleSRatedActivePower(input, power, 1.1)
@@ -227,5 +228,7 @@ case object RandomLoadModel {
           reference
         )
     }
+    model.enable()
+    model
   }
 }

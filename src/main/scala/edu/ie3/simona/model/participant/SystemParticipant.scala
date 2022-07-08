@@ -75,7 +75,10 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
       val activePower = calculateActivePower(data).to(MEGAWATT)
       val reactivePower =
         calculateReactivePower(activePower, voltage).to(MEGAVAR)
-      ApparentPower(activePower, reactivePower)
+      ApparentPower(
+        activePower.multiply(scalingFactor),
+        reactivePower.multiply(scalingFactor)
+      )
     } else {
       ApparentPower(
         Quantities.getQuantity(0d, MEGAWATT),
@@ -105,11 +108,7 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
   def activeToReactivePowerFunc(
       nodalVoltage: ComparableQuantity[Dimensionless]
   ): ComparableQuantity[Power] => ComparableQuantity[Power] =
-    qControl.activeToReactivePowerFunc(
-      sRated.multiply(scalingFactor),
-      cosPhiRated,
-      nodalVoltage
-    )
+    qControl.activeToReactivePowerFunc(sRated, cosPhiRated, nodalVoltage)
 
   /** Calculate the reactive power of the model
     *

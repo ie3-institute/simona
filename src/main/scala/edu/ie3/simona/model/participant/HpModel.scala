@@ -7,17 +7,20 @@
 package edu.ie3.simona.model.participant
 
 import java.util.UUID
-
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
+import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.HpModel._
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalHouse
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
+
 import javax.measure.quantity.{Power, Temperature, Time}
 import tech.units.indriya.ComparableQuantity
 import edu.ie3.simona.util.TickUtil.TickLong
+
+import java.time.ZonedDateTime
 
 /** Model of a heat pump (HP) with a [[ThermalHouse]] medium and its current
   * [[HpState]].
@@ -65,7 +68,6 @@ final case class HpModel(
   private val pRated: ComparableQuantity[Power] =
     sRated
       .multiply(cosPhiRated)
-      .multiply(scalingFactor)
       .to(StandardUnits.ACTIVE_POWER_IN)
 
   /** As this is a state-full model (with respect to the current operation
@@ -138,7 +140,7 @@ final case class HpModel(
   private def calcState(hpData: HpData, isRunning: Boolean): HpState = {
     val (newActivePower, newThermalPower) =
       if (isRunning)
-        (pRated, pThermal.multiply(scalingFactor))
+        (pRated, pThermal)
       else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
 
     val duration: ComparableQuantity[Time] =
@@ -207,10 +209,14 @@ case object HpModel {
     *
     * @param hpInput
     *   instance of [[HpInput]] this chp model should be built from
-    * @param operationInterval
-    *   operation interval of the simulation
+    * @param simulationStartDate
+    *   wall-clock time, the simulation starts
+    * @param simulationEndDate
+    *   wall-clock time, the simulation ends
     * @param qControl
-    *   (no usage)
+    *   Strategy to control the reactive power output
+    * @param scalingFactor
+    *   Scale the output of this asset by the given factor
     * @param thermalHouse
     *   thermal house defining transmission coefficient and heat energy storage
     *   capacity
@@ -219,21 +225,31 @@ case object HpModel {
     */
   def apply(
       hpInput: HpInput,
-      operationInterval: OperationInterval,
+      simulationStartDate: ZonedDateTime,
+      simulationEndDate: ZonedDateTime,
       qControl: QControl,
+      scalingFactor: Double,
       thermalHouse: ThermalHouse
   ): HpModel = {
-    new HpModel(
+    val operationInterval = SystemComponent.determineOperationInterval(
+      simulationStartDate,
+      simulationEndDate,
+      hpInput.getOperationTime
+    )
+
+    val model = new HpModel(
       hpInput.getUuid,
       hpInput.getId,
       operationInterval,
-      scalingFactor = 1.0,
+      scalingFactor,
       qControl,
       hpInput.getType.getsRated,
       hpInput.getType.getCosPhiRated,
       hpInput.getType.getpThermal,
       thermalHouse
     )
-  }
 
+    model.enable()
+    model
+  }
 }
