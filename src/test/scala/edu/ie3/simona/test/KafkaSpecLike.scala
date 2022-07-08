@@ -21,7 +21,7 @@ import scala.jdk.CollectionConverters._
 trait KafkaSpecLike extends BeforeAndAfterAll {
   this: TestSuite =>
 
-  protected val testTopics: Vector[Topic]
+  protected val testTopics: Seq[Topic]
 
   @Rule
   protected val kafka: KafkaContainer = KafkaContainer(

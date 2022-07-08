@@ -56,21 +56,26 @@ class ResultEntityKafkaSpec
     with GivenWhenThen
     with Eventually {
 
-  var testConsumer: KafkaConsumer[Bytes, PlainNodeResult] = _
+  private var testConsumer: KafkaConsumer[Bytes, PlainNodeResult] = _
 
   private implicit lazy val resultFormat: RecordFormat[PlainNodeResult] =
     RecordFormat[PlainNodeResult]
-  val deserializer: Deserializer[PlainNodeResult] =
+  private val deserializer: Deserializer[PlainNodeResult] =
     ScalaReflectionSerde.reflectionDeserializer4S[PlainNodeResult]
 
-  private val topic = "testtopic"
-
-  override val testTopics: Vector[Topic] = Vector(
-    Topic(topic, 1, 1)
+  private val testTopic = Topic("testtopic", 1, 1)
+  override protected val testTopics: Seq[Topic] = Seq(
+    testTopic
   )
+  private val topicPartitions: Seq[TopicPartition] =
+    (0 until testTopic.partitions).map(
+      new TopicPartition(testTopic.name, _)
+    )
+
+  private val mockSchemaRegistryUrl = "mock://unused:8081"
 
   deserializer.configure(
-    Map(SCHEMA_REGISTRY_URL_CONFIG -> "mock://unused:8081").asJava,
+    Map(SCHEMA_REGISTRY_URL_CONFIG -> mockSchemaRegistryUrl).asJava,
     false
   )
 
@@ -85,14 +90,14 @@ class ResultEntityKafkaSpec
       Serdes.Bytes().deserializer(),
       deserializer
     )
+
+    testConsumer.assign(topicPartitions.asJava)
   }
 
   "ResultEventListener with Kafka configuration" should {
     "write a series of new NodeResults to Kafka" in {
 
       Given("a ResultEventListener with Kafka config")
-
-      val mockSchemaRegistryUrl = "mock://unused:8081"
 
       val runId = UUID.randomUUID()
 
@@ -105,11 +110,11 @@ class ResultEntityKafkaSpec
             ResultFileHierarchy.ResultEntityPathConfig(
               Set(classOf[NodeResult]),
               ResultSinkType.Kafka(
-                topic,
+                testTopic.name,
                 runId,
                 kafka.bootstrapServers,
                 mockSchemaRegistryUrl,
-                0
+                20
               )
             )
           ),
@@ -146,17 +151,10 @@ class ResultEntityKafkaSpec
         Iterable.empty
       )
 
-      val testTopic = testTopics.headOption.value
-      val topicPartitions: Seq[TopicPartition] =
-        (0 until testTopic.partitions).map(
-          new TopicPartition(testTopic.name, _)
-        )
-
-      testConsumer.assign(topicPartitions.asJava)
-
       Then("records can be fetched from Kafka")
-      eventually(timeout(5 second), interval(1 second)) {
-        testConsumer.seekToBeginning(topicPartitions.asJava)
+      testConsumer.seekToBeginning(topicPartitions.asJava)
+
+      eventually(timeout(20 seconds), interval(1 second)) {
         val records: List[PlainNodeResult] =
           testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
 

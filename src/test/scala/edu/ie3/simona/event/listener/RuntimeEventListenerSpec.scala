@@ -6,10 +6,14 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.ActorSystem
-import akka.testkit.{EventFilter, ImplicitSender, TestActorRef}
-import akka.util.Timeout
-import com.typesafe.config.ConfigFactory
+import akka.actor.testkit.typed.scaladsl.{
+  ActorTestKit,
+  LoggingTestKit,
+  ScalaTestWithActorTestKit
+}
+import com.typesafe.config.ConfigValueFactory
+import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent.{
   CheckWindowPassed,
   Done,
@@ -19,37 +23,25 @@ import edu.ie3.simona.event.RuntimeEvent.{
   Ready,
   Simulating
 }
-import edu.ie3.simona.event.{Event, RuntimeEvent}
-import edu.ie3.simona.logging.SimonaLogging.SimonaBusLogging
-import edu.ie3.simona.test.common.TestKitWithShutdown
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.TimeUtil
 import org.scalatest.PrivateMethodTester
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.slf4j.event.Level
 
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
-import scala.concurrent.duration.Duration
 
 class RuntimeEventListenerSpec
-    extends TestKitWithShutdown(
-      ActorSystem(
-        "RuntimeEventListenerSpec",
-        ConfigFactory
-          .parseString(
-            """
-                       akka.loggers = ["edu.ie3.simona.test.common.SilentTestEventListener"]
-            |akka.loglevel="info"
-          """.stripMargin
-          )
+    extends ScalaTestWithActorTestKit(
+      ActorTestKit.ApplicationTestConfig.withValue(
+        "akka.actor.testkit.typed.filter-leeway",
+        ConfigValueFactory.fromAnyRef("10s")
       )
     )
-    with ImplicitSender
     with AnyWordSpecLike
     with should.Matchers
     with PrivateMethodTester {
-
-  implicit val timeout: Timeout = Timeout(10, TimeUnit.SECONDS)
 
   // global variables
   val eventQueue = new LinkedBlockingQueue[RuntimeEvent]()
@@ -63,22 +55,16 @@ class RuntimeEventListenerSpec
   val currentTick = 0
 
   // build the listener
-  private val listenerRef = TestActorRef(
-    new RuntimeEventListener(
-      None,
+  private val listenerRef = spawn(
+    RuntimeEventListener(
+      SimonaConfig.Simona.Runtime.Listener(
+        None,
+        None
+      ),
       Some(eventQueue),
       startDateTimeString
     )
   )
-
-  private val logPrefix = listenerRef.underlyingActor.log match {
-    case simonaLogging: SimonaBusLogging =>
-      simonaLogging.prefix()
-    case x =>
-      throw new IllegalArgumentException(
-        s"Invalid logger in RuntimeEventListener: $x"
-      )
-  }
 
   "A runtime event listener" must {
     "add a valid runtime event to the blocking queue for further processing" in {
@@ -124,109 +110,53 @@ class RuntimeEventListenerSpec
         (math round number * s) / s
       }
 
-      def durationAndMemoryString(dur: Double) = {
-        val memory = math.round(
-          10 * (Runtime.getRuntime.totalMemory() - Runtime.getRuntime
-            .freeMemory()) / Math
-            .pow(1000, 3)
-        ) / 10.0
-
-        s"(duration: ${roundDuration(dur)} s, memory: $memory GB)"
-      }
-
-      // runtime events without schedulerReadyCheckWindow dependency
-      val eventsToProcess = List(
-        Initializing,
-        InitComplete(0),
-        Ready(currentTick, 0),
-        Simulating(currentTick, 0),
-        CheckWindowPassed(currentTick, 0),
-        Done(endTick, duration, 0, errorInSim = false),
-        Error(errMsg)
+      val events = Seq(
+        (
+          Initializing,
+          Level.INFO,
+          "Initializing Agents and Services for Simulation ... "
+        ),
+        (
+          InitComplete(0d),
+          Level.INFO,
+          s"Initialization complete. (duration: ${roundDuration(0d)} s)"
+        ),
+        (
+          Ready(currentTick, 0d),
+          Level.INFO,
+          s"Switched from 'Simulating' to 'Ready'. Last simulated time: ${calcTime(currentTick)}."
+        ),
+        (
+          Simulating(currentTick, endTick),
+          Level.INFO,
+          s"Simulating from ${calcTime(currentTick)} until ${calcTime(endTick)}."
+        ),
+        (
+          CheckWindowPassed(currentTick, 0d),
+          Level.INFO,
+          s"Simulation until ${calcTime(currentTick)} completed."
+        ),
+        (
+          Done(endTick, duration, 0, errorInSim = false),
+          Level.INFO,
+          s"Simulation completed with \u001b[0;32mSUCCESS (Failed PF: 0)\u001b[0;30m in time step ${calcTime(endTick)}. Total runtime: ${roundDuration(duration)} s"
+        ),
+        (
+          Error(errMsg),
+          Level.ERROR,
+          errMsg
+        )
       )
 
-      val assertDoneFilter
-          : PartialFunction[RuntimeEvent, (EventFilter, Event)] = {
-        case event @ Initializing =>
-          (
-            EventFilter.info(
-              message =
-                s"$logPrefix Initializing Agents and Services for Simulation ... ",
-              occurrences = 1
-            ),
-            event
-          )
-        case event @ InitComplete(duration) =>
-          (
-            EventFilter.info(
-              message =
-                s"$logPrefix Initialization complete. (duration: ${roundDuration(duration)} s)",
-              occurrences = 1
-            ),
-            event
-          )
-
-        case event @ CheckWindowPassed(tick, duration) =>
-          (
-            EventFilter.info(
-              message =
-                s"$logPrefix ******* Simulation until ${calcTime(tick)} completed. ${durationAndMemoryString(duration)} ******",
-              occurrences = 1
-            ),
-            event
-          )
-        case event @ Ready(tick, duration) =>
-          (
-            EventFilter.info(
-              message =
-                s"$logPrefix ******* Switched from 'Simulating' to 'Ready'. Last simulated time: ${calcTime(tick)}. ${durationAndMemoryString(duration)}  ******",
-              occurrences = 1
-            ),
-            event
-          )
-
-        case event @ Simulating(startTick, endTick) =>
-          (
-            EventFilter.info(
-              message =
-                s"$logPrefix ******* Simulating from ${calcTime(startTick)} until ${calcTime(endTick)}. *******",
-              occurrences = 1
-            ),
-            event
-          )
-
-        case event @ Done(tick, duration, _, _) =>
-          (
-            EventFilter.info(
-              message =
-                s"$logPrefix ******* Simulation completed with \u001b[0;32mSUCCESS (Failed PF: 0)\u001b[0;30m in time step ${calcTime(tick)}. Total runtime: ${roundDuration(duration)} s *******",
-              occurrences = 1
-            ),
-            event
-          )
-
-        case event @ Error(errMsg) =>
-          (
-            EventFilter.error(
-              message = s"$logPrefix $errMsg",
-              occurrences = 1
-            ),
-            event
-          )
-
-        case _ => fail()
-
-      }
-
-      val intercept: PartialFunction[(EventFilter, Event), Unit] = {
-        case (filter: EventFilter, event: RuntimeEvent) =>
-          filter.intercept {
+      events.foreach { case (event, level, msg) =>
+        LoggingTestKit.empty
+          .withLogLevel(level)
+          .withMessageContains(msg)
+          .expect {
             listenerRef ! event
           }
-          filter assertDone Duration("1 s")
       }
 
-      eventsToProcess.foreach(assertDoneFilter andThen intercept)
     }
   }
 }
