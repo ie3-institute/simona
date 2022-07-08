@@ -54,9 +54,9 @@ object GridAgentData {
       refSystem: RefSystem
   ) extends GridAgentData
       with GridAgentDataHelper {
-    override protected val subnetGates: Vector[SubGridGate] =
+    override protected val subgridGates: Vector[SubGridGate] =
       subGridGateToActorRef.keys.toVector
-    override protected val subnetId: Int = subGridContainer.getSubnet
+    override protected val subgridId: Int = subGridContainer.getSubnet
   }
 
   /** State data indicating that a power flow has been executed.
@@ -66,8 +66,8 @@ object GridAgentData {
     * @param powerFlowResult
     *   result of the executed power flow
     * @param pendingRequestAnswers
-    *   Set of subnet numbers of those [[GridAgent]] s, that still don't have
-    *   their request answered, yet
+    *   Set of subgrid numbers of [[GridAgent]]s that don't have their request
+    *   answered, yet
     */
   final case class PowerFlowDoneData private (
       gridAgentBaseData: GridAgentBaseData,
@@ -80,8 +80,8 @@ object GridAgentData {
         gridAgentBaseData: GridAgentBaseData,
         powerFlowResult: PowerFlowResult
     ): PowerFlowDoneData = {
-      /* Determine the subnet numbers of all superior grids */
-      val superiorSubGrids = gridAgentBaseData.gridEnv.subnetGateToActorRef
+      /* Determine the subgrid numbers of all superior grids */
+      val superiorSubGrids = gridAgentBaseData.gridEnv.subgridGateToActorRef
         .map { case (subGridGate, _) => subGridGate.getSuperiorNode.getSubnet }
         .filterNot(_ == gridAgentBaseData.gridEnv.gridModel.subnetNo)
         .toSet
@@ -97,7 +97,7 @@ object GridAgentData {
 
     def apply(
         gridModel: GridModel,
-        subnetGateToActorRef: Map[SubGridGate, ActorRef],
+        subgridGateToActorRef: Map[SubGridGate, ActorRef],
         nodeToAssetAgents: Map[UUID, Set[ActorRef]],
         superiorGridNodeUuids: Vector[UUID],
         inferiorGridGates: Vector[SubGridGate],
@@ -112,11 +112,11 @@ object GridAgentData {
           Int,
           SweepValueStore
         ] // initialization is assumed to be always with no sweep data
-      val inferiorGridGateToActorRef = subnetGateToActorRef.filter {
+      val inferiorGridGateToActorRef = subgridGateToActorRef.filter {
         case (gate, _) => inferiorGridGates.contains(gate)
       }
       GridAgentBaseData(
-        GridEnvironment(gridModel, subnetGateToActorRef, nodeToAssetAgents),
+        GridEnvironment(gridModel, subgridGateToActorRef, nodeToAssetAgents),
         powerFlowParams,
         currentSweepNo,
         ReceivedValuesStore.empty(
@@ -154,7 +154,7 @@ object GridAgentData {
       gridAgentBaseData.copy(
         receivedValueStore = ReceivedValuesStore.empty(
           gridAgentBaseData.gridEnv.nodeToAssetAgents,
-          gridAgentBaseData.gridEnv.subnetGateToActorRef.filter {
+          gridAgentBaseData.gridEnv.subgridGateToActorRef.filter {
             case (gate, _) => inferiorGridGates.contains(gate)
           },
           superiorGridNodeUuids
@@ -195,9 +195,9 @@ object GridAgentData {
   ) extends GridAgentData
       with GridAgentDataHelper {
 
-    override protected val subnetGates: Vector[SubGridGate] =
-      gridEnv.subnetGateToActorRef.keys.toVector
-    override protected val subnetId: Int = gridEnv.gridModel.subnetNo
+    override protected val subgridGates: Vector[SubGridGate] =
+      gridEnv.subgridGateToActorRef.keys.toVector
+    override protected val subgridId: Int = gridEnv.gridModel.subnetNo
 
     val allRequestedDataReceived: Boolean = {
       // we expect power values from inferior grids and assets
@@ -448,7 +448,7 @@ object GridAgentData {
         sweepValueStores = updatedSweepValueStore,
         receivedValueStore = ReceivedValuesStore.empty(
           gridEnv.nodeToAssetAgents,
-          gridEnv.subnetGateToActorRef.filter { case (gate, _) =>
+          gridEnv.subgridGateToActorRef.filter { case (gate, _) =>
             inferiorGridGates.contains(gate)
           },
           superiorGridNodeUuids

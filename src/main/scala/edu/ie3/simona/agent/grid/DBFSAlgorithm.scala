@@ -95,7 +95,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       // 2. inferior grids p/q values
       askInferiorGridsForPowers(
         gridAgentBaseData.currentSweepNo,
-        gridAgentBaseData.gridEnv.subnetGateToActorRef,
+        gridAgentBaseData.gridEnv.subgridGateToActorRef,
         gridAgentBaseData.inferiorGridGates,
         gridAgentBaseData.powerFlowParams.sweepTimeout
       )
@@ -103,7 +103,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       // 3. superior grids slack voltage
       askSuperiorGridsForSlackVoltages(
         gridAgentBaseData.currentSweepNo,
-        gridAgentBaseData.gridEnv.subnetGateToActorRef,
+        gridAgentBaseData.gridEnv.subgridGateToActorRef,
         gridAgentBaseData.superiorGridGates,
         gridAgentBaseData.powerFlowParams.sweepTimeout
       )
@@ -286,13 +286,13 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             pendingRequestAnswers
           )
         ) =>
-      /* Determine the subnet number of the grid agent, that has sent the request */
+      /* Determine the subgrid number of the grid agent, that has sent the request */
       val firstRequestedNodeUuid = requestedNodeUuids.headOption.getOrElse(
         throw new DBFSAlgorithmException(
           "Did receive a grid power request but without specified nodes"
         )
       )
-      gridAgentBaseData.gridEnv.subnetGateToActorRef
+      gridAgentBaseData.gridEnv.subgridGateToActorRef
         .map { case (subGridGate, _) => subGridGate.getSuperiorNode }
         .find(_.getUuid == firstRequestedNodeUuid)
         .map(_.getSubnet) match {
@@ -375,7 +375,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         case None =>
           /* It is not possible to determine, who has asked */
           log.error(
-            "I got a grid power request from a subnet I don't know. Can't answer it properly."
+            "I got a grid power request from a subgrid I don't know. Can't answer it properly."
           )
           stay() replying FailedPowerFlow using gridAgentBaseData
       }
@@ -391,7 +391,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       // request the updated slack voltages from the superior grid
       askSuperiorGridsForSlackVoltages(
         gridAgentBaseData.currentSweepNo,
-        gridAgentBaseData.gridEnv.subnetGateToActorRef,
+        gridAgentBaseData.gridEnv.subgridGateToActorRef,
         gridAgentBaseData.superiorGridGates,
         gridAgentBaseData.powerFlowParams.sweepTimeout
       )
@@ -409,7 +409,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       // inform my child grids about the end of this grid simulation
       gridAgentBaseData.inferiorGridGates
         .map {
-          gridAgentBaseData.gridEnv.subnetGateToActorRef(_)
+          gridAgentBaseData.gridEnv.subgridGateToActorRef(_)
         }
         .distinct
         .foreach(_ ! FinishGridSimulationTrigger(currentTick))
@@ -670,7 +670,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           val askForInferiorGridPowersOpt =
             askInferiorGridsForPowers(
               gridAgentBaseData.currentSweepNo,
-              gridAgentBaseData.gridEnv.subnetGateToActorRef,
+              gridAgentBaseData.gridEnv.subgridGateToActorRef,
               gridAgentBaseData.inferiorGridGates,
               gridAgentBaseData.powerFlowParams.sweepTimeout
             )

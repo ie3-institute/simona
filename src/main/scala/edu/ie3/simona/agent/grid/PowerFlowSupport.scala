@@ -481,7 +481,7 @@ trait PowerFlowSupport {
           case Success(result) => result
           case Failure(exception) =>
             throw new DBFSAlgorithmException(
-              s"Power flow calculation in subnet ${gridModel.subnetNo} failed.",
+              s"Power flow calculation in subgrid ${gridModel.subnetNo} failed.",
               exception
             )
         }
