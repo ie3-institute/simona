@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made SimonaConfig.BaseRuntimeConfig serializable [#36](https://github.com/ie3-institute/simona/issues/36)
 - Adapt to new simonaAPI snapshot [#95](https://github.com/ie3-institute/simona/issues/95)
 - Update Sphinx to 4.5.0 as well as extensions [#214](https://github.com/ie3-institute/simona/issues/214)
+- Improved code quality in and around DBFS algorithm [#265](https://github.com/ie3-institute/simona/issues/265)
 - Respect for scaling factor when simulating the system participants [#81](https://github.com/ie3-institute/simona/issues/81)
 - Harmonize participant model instantiation [#81](https://github.com/ie3-institute/simona/issues/81)
 
