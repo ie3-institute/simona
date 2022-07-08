@@ -442,7 +442,7 @@ trait PowerFlowSupport {
         val powerFlow =
           NewtonRaphsonPF(epsilon, maxIterations, admittanceMatrix)
 
-        /* Currently, only one slack node per sub net is allowed. In case a model has more than one, set all others to
+        /* Currently, only one slack node per sub grid is allowed. In case a model has more than one, set all others to
          * PQ nodes. ATTENTION: This does not cover the power flow situation correctly! */
         val adaptedOperatingPoint = operatingPoint
           .foldLeft((Array.empty[PresetData], true)) {

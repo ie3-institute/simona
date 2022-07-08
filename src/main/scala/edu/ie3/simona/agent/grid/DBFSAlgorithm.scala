@@ -353,7 +353,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
               // update the sweep value store and clear all received maps
               // note: normally it is expected that this has to be done after power flow calculations but for the sake
-              // of having it only once in the code we put this here. Otherwise it would have to been putted before EVERY
+              // of having it only once in the code we put this here. Otherwise it would have to been put before EVERY
               // return with a valid power flow result (currently happens already in two situations)
               val updatedGridAgentBaseData =
                 if (stillPendingRequestAnswers.isEmpty) {

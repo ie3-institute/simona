@@ -103,7 +103,7 @@ object ReceivedValuesStore {
         (uuid, actorRefs.map(actorRef => actorRef -> None).toMap)
     }
 
-    /* Add everything, that I expect from my sub ordinate grid agents. */
+    /* Add everything, that I expect from my subordinate grid agents. */
     inferiorSubGridGateToActorRef
       .map { case (gate, reference) =>
         gate.getSuperiorNode.getUuid -> reference
