@@ -68,18 +68,15 @@ class GridResultsSupportSpec
     "calculating node results" should {
       "calculate node results correctly" in {
         val nodeUuid = UUID.randomUUID
-        val sweepValueStoreData = SweepValueStore.SweepValueStoreData(
-          nodeUuid,
-          new StateData(
-            0,
-            NodeType.PQ,
-            Complex(0.9583756183209947, -0.04673985022513541),
-            Complex(0.006466666857417822, 2.7286658176028933e-15)
-          )
+        val nodeStateData = new StateData(
+          0,
+          NodeType.PQ,
+          Complex(0.9583756183209947, -0.04673985022513541),
+          Complex(0.006466666857417822, 2.7286658176028933e-15)
         )
 
         val nodeResult =
-          calcNodeResult(sweepValueStoreData, defaultSimulationStart)
+          calcNodeResult(nodeUuid, nodeStateData, defaultSimulationStart)
         val expectedNodeResult = new NodeResult(
           defaultSimulationStart,
           nodeUuid,

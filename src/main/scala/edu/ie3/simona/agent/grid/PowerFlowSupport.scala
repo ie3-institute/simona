@@ -171,7 +171,7 @@ trait PowerFlowSupport {
     *
     * @param receivedSlackValues
     *   new slack voltages provided by the superior grid
-    * @param sweepDataValues
+    * @param sweepData
     *   instance of [[SweepValueStore]] from the previous sweep
     * @param transformers2w
     *   two winding transformer models in the grid under investigation
@@ -185,45 +185,41 @@ trait PowerFlowSupport {
     */
   protected def composeOperatingPointWithUpdatedSlackVoltages(
       receivedSlackValues: ReceivedSlackValues,
-      sweepDataValues: Vector[SweepValueStore.SweepValueStoreData],
+      sweepData: Map[UUID, StateData],
       transformers2w: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
       gridMainRefSystem: RefSystem
   ): Array[PresetData] = {
-    sweepDataValues
-      .map(sweepValueStoreData => {
-
-        val nodeStateData = sweepValueStoreData.stateData
-        val targetVoltage = if (nodeStateData.nodeType == NodeType.SL) {
-          val receivedSlackVoltage = receivedSlackValues.values
-            .map { case (_, slackVoltageMsg) => slackVoltageMsg }
-            .find(_.nodeUuid == sweepValueStoreData.nodeUuid)
-            .getOrElse(
-              throw new RuntimeException(
-                s"Unable to find node with uuid " +
-                  s"${sweepValueStoreData.nodeUuid} in received slack voltage values!"
-              )
+    sweepData.map { case (nodeUuid, stateData) =>
+      val targetVoltage = if (stateData.nodeType == NodeType.SL) {
+        val receivedSlackVoltage = receivedSlackValues.values
+          .map { case (_, slackVoltageMsg) => slackVoltageMsg }
+          .find(_.nodeUuid == nodeUuid)
+          .getOrElse(
+            throw new RuntimeException(
+              s"Unable to find node with uuid " +
+                s"$nodeUuid in received slack voltage values!"
             )
-
-          transformVoltage(
-            receivedSlackVoltage,
-            sweepValueStoreData.nodeUuid,
-            transformers2w,
-            transformers3w,
-            gridMainRefSystem
           )
-        } else
-          new Complex(1, 0)
 
-        // note: target voltage will be ignored for slack node if provided
-        PresetData(
-          nodeStateData.index,
-          nodeStateData.nodeType,
-          nodeStateData.power,
-          targetVoltage.abs
+        transformVoltage(
+          receivedSlackVoltage,
+          nodeUuid,
+          transformers2w,
+          transformers3w,
+          gridMainRefSystem
         )
-      })
-      .toArray
+      } else
+        new Complex(1, 0)
+
+      // note: target voltage will be ignored for slack node if provided
+      PresetData(
+        stateData.index,
+        stateData.nodeType,
+        stateData.power,
+        targetVoltage.abs
+      )
+    }.toArray
 
   }
 
