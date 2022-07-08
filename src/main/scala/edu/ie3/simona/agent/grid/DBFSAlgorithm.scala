@@ -296,11 +296,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         .map { case (subGridGate, _) => subGridGate.getSuperiorNode }
         .find(_.getUuid == firstRequestedNodeUuid)
         .map(_.getSubnet) match {
-        case Some(requestingSubnetNumber) =>
-          log.debug(
-            "Received request for grid power values and im READY to provide."
-          )
-
+        case Some(requestingSubgridNumber) =>
           powerFlowResult match {
             case validNewtonRaphsonPFResult: ValidNewtonRaphsonPFResult =>
               val exchangePowers = requestedNodeUuids
@@ -349,7 +345,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
               /* Determine the remaining replies */
               val stillPendingRequestAnswers =
-                pendingRequestAnswers.filterNot(_ == requestingSubnetNumber)
+                pendingRequestAnswers.filterNot(_ == requestingSubgridNumber)
 
               // update the sweep value store and clear all received maps
               // note: normally it is expected that this has to be done after power flow calculations but for the sake

@@ -44,7 +44,7 @@ object PowerMessage {
       fInPu: ComparableQuantity[Dimensionless]
   ) extends PowerRequestMessage
 
-  /** Provide power values as a reply on an [[RequestAssetPowerMessage]]
+  /** Provide power values as a reply to a [[RequestAssetPowerMessage]]
     *
     * @param p
     *   Unchanged active power
@@ -56,7 +56,7 @@ object PowerMessage {
       override val q: ComparableQuantity[Power]
   ) extends ProvidePowerMessage
 
-  /** Provide values as a reply on a [[RequestAssetPowerMessage]]. In contrast
+  /** Provide values as a reply to a [[RequestAssetPowerMessage]]. In contrast
     * to [[AssetPowerChangedMessage]], this message indicates that the same
     * values for [[p]] and [[q]] has been send again as in the previous request
     *
@@ -70,11 +70,23 @@ object PowerMessage {
       override val q: ComparableQuantity[Power]
   ) extends ProvidePowerMessage
 
+  /** Request complex power at the nodes that the inferior sub grid shares with
+    * the sender's sub grid
+    * @param currentSweepNo
+    *   The current sweep
+    * @param nodeUuids
+    *   The UUIDs of the nodes that are bordering the sender's grid
+    */
   final case class RequestGridPowerMessage(
       currentSweepNo: Int,
       nodeUuids: Seq[UUID]
   ) extends PowerRequestMessage
 
+  /** Provide complex power at the nodes that the sender's sub grid shares with
+    * the superior sub grid, as a reply to a [[RequestGridPowerMessage]].
+    * @param nodalResidualPower
+    *   The complex powers of the shared nodes
+    */
   final case class ProvideGridPowerMessage(
       nodalResidualPower: Seq[ExchangePower]
   ) extends PowerResponseMessage
@@ -97,6 +109,9 @@ object PowerMessage {
     ) extends ProvidePowerMessage
   }
 
+  /** Indicate that the power flow calculation failed, as a reply to a
+    * [[RequestGridPowerMessage]].
+    */
   final case object FailedPowerFlow extends PowerResponseMessage
 
 }
