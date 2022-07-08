@@ -19,6 +19,7 @@ import edu.ie3.datamodel.models.result.connector.{
 }
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
+import edu.ie3.simona.agent.grid.SweepValueStore.SweepValueStoreData
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.Transformer3wModel.yij
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
@@ -65,8 +66,12 @@ private[grid] trait GridResultsSupport {
       sweepValueStore: SweepValueStore
   )(implicit timestamp: ZonedDateTime): PowerFlowResultEvent = {
     // no sanity check for duplicated uuid result data as we expect valid data at this point
-    implicit val sweepValueStoreData: Map[UUID, StateData] =
+    implicit val sweepValueStoreData: Map[UUID, SweepValueStoreData] =
       sweepValueStore.sweepData
+        .map(sweepValueStoreData =>
+          sweepValueStoreData.nodeUuid -> sweepValueStoreData
+        )
+        .toMap
 
     implicit val iNominal: ComparableQuantity[ElectricCurrent] =
       grid.mainRefSystem.nominalCurrent
@@ -83,9 +88,8 @@ private[grid] trait GridResultsSupport {
         .filterNot { case (uuid, _) =>
           transformerNodesToIgnore.contains(uuid)
         }
-        .map { case (nodeUuid, stateData) =>
-          calcNodeResult(nodeUuid, stateData, timestamp)
-        },
+        .values
+        .map(calcNodeResult(_, timestamp)),
       grid.gridComponents.switches.map(calcSwitchResult(_, timestamp)),
       buildLineResults(grid.gridComponents.lines),
       buildTransformer2wResults(grid.gridComponents.transformers),
@@ -108,7 +112,7 @@ private[grid] trait GridResultsSupport {
     *   a set of [[LineResult]] s
     */
   private def buildLineResults(lines: Set[LineModel])(implicit
-      sweepValueStoreData: Map[UUID, StateData],
+      sweepValueStoreData: Map[UUID, SweepValueStoreData],
       iNominal: ComparableQuantity[ElectricCurrent],
       timestamp: ZonedDateTime
   ): Set[LineResult] = {
@@ -120,8 +124,8 @@ private[grid] trait GridResultsSupport {
           Some(
             calcLineResult(
               lineModel,
-              nodeAStateData,
-              nodeBStateData,
+              nodeAStateData.stateData,
+              nodeBStateData.stateData,
               iNominal,
               timestamp
             )
@@ -155,7 +159,7 @@ private[grid] trait GridResultsSupport {
     */
   private def buildTransformer2wResults(transformers: Set[TransformerModel])(
       implicit
-      sweepValueStoreData: Map[UUID, StateData],
+      sweepValueStoreData: Map[UUID, SweepValueStoreData],
       iNominal: ComparableQuantity[ElectricCurrent],
       timestamp: ZonedDateTime
   ): Set[Transformer2WResult] = {
@@ -167,8 +171,8 @@ private[grid] trait GridResultsSupport {
           Some(
             calcTransformer2wResult(
               trafo2w,
-              hvNodeStateData,
-              lvNodeStateData,
+              hvNodeStateData.stateData,
+              lvNodeStateData.stateData,
               iNominal,
               timestamp
             )
@@ -202,7 +206,7 @@ private[grid] trait GridResultsSupport {
     */
   def buildTransformer3wResults(transformers3w: Set[Transformer3wModel])(
       implicit
-      sweepValueStoreData: Map[UUID, StateData],
+      sweepValueStoreData: Map[UUID, SweepValueStoreData],
       iNominal: ComparableQuantity[ElectricCurrent],
       timestamp: ZonedDateTime
   ): Set[PartialTransformer3wResult] = transformers3w.flatMap { trafo3w =>
@@ -225,8 +229,8 @@ private[grid] trait GridResultsSupport {
           Some(
             calcTransformer3wResult(
               trafo3w,
-              upperNodeStateData,
-              internalNodeStateData,
+              upperNodeStateData.stateData,
+              internalNodeStateData.stateData,
               iNominal,
               timestamp
             )
@@ -244,30 +248,28 @@ private[grid] trait GridResultsSupport {
     }
   }
 
-  /** Creates an instance of [[NodeResult]] based on the provided node UUID and
-    * node [[StateData]]
+  /** Creates an instance of [[NodeResult]] based on the provided
+    * [[SweepValueStoreData]]
     *
-    * @param nodeUuid
-    *   the node uuid
-    * @param nodeStateData
-    *   the node state data
+    * @param sweepValueStoreData
+    *   the sweep value store with the node results
     * @param timestamp
     *   the timestamp of the result
     * @return
     *   instance of [[NodeResult]] based on the provided data
     */
   protected def calcNodeResult(
-      nodeUuid: UUID,
-      nodeStateData: StateData,
+      sweepValueStoreData: SweepValueStoreData,
       timestamp: ZonedDateTime
   ): NodeResult = {
 
+    val nodeStateData = sweepValueStoreData.stateData
     val vMag = nodeStateData.voltage.abs
     val vAng = asin(nodeStateData.voltage.imag / vMag).toDegrees
 
     new NodeResult(
       timestamp,
-      nodeUuid,
+      sweepValueStoreData.nodeUuid,
       Quantities.getQuantity(vMag, PowerSystemUnits.PU),
       Quantities.getQuantity(vAng, PowerSystemUnits.DEGREE_GEOM)
     )

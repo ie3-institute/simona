@@ -187,13 +187,15 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               .get(currentSweepNo - 1)
               .map((_, currentSweepNo - 1))
         }).map { case (result, sweepNo) =>
-          result.sweepData.get(nodeUuid) match {
-            case Some(stateData) =>
+          // get nodeUUID
+          result.sweepData.find(_.nodeUuid == nodeUuid) match {
+            case Some(sweepValueStoreData) =>
+              val slackVoltageInPu = sweepValueStoreData.stateData.voltage
               val mainRefSystem =
                 gridAgentBaseData.gridEnv.gridModel.mainRefSystem
               (
-                mainRefSystem.vInSi(stateData.voltage.real),
-                mainRefSystem.vInSi(stateData.voltage.imag)
+                mainRefSystem.vInSi(slackVoltageInPu.real),
+                mainRefSystem.vInSi(slackVoltageInPu.imag)
               )
             case None =>
               throw new DBFSAlgorithmException(
@@ -808,39 +810,31 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           } else {
             log.debug("Sweep value store is not empty. Check for deviation ...")
 
-            val previousSweepData = updatedGridAgentBaseData.sweepValueStores
-              .getOrElse(
-                currentSweepNo - 1,
-                throw new DBFSAlgorithmException(
-                  s"No data for previous sweep with no ${currentSweepNo - 1} available!"
-                )
-              )
-              .sweepData
-            val currentSweepData = updatedGridAgentBaseData.sweepValueStores
-              .getOrElse(
-                currentSweepNo,
-                throw new DBFSAlgorithmException(
-                  s"No data for current sweep with no $currentSweepNo available!"
-                )
-              )
-              .sweepData
-
-            // define a set order of nodes, so that the order of previous and current state data matches
-            val nodeUuids = previousSweepData.keys.toSeq
-
             // calculate deviation vector for all nodes
             val previousSweepNodePower: DenseVector[Complex] =
               DenseVector(
-                nodeUuids
-                  .flatMap(previousSweepData.get)
-                  .map(_.power)
+                updatedGridAgentBaseData.sweepValueStores
+                  .getOrElse(
+                    currentSweepNo - 1,
+                    throw new DBFSAlgorithmException(
+                      s"No data for previous sweep with no ${currentSweepNo - 1} available!"
+                    )
+                  )
+                  .sweepData
+                  .map(_.stateData.power)
                   .toArray
               )
             val currentSweepNodePower: DenseVector[Complex] =
               DenseVector(
-                nodeUuids
-                  .flatMap(currentSweepData.get)
-                  .map(_.power)
+                updatedGridAgentBaseData.sweepValueStores
+                  .getOrElse(
+                    currentSweepNo,
+                    throw new DBFSAlgorithmException(
+                      s"No data for current sweep with no $currentSweepNo available!"
+                    )
+                  )
+                  .sweepData
+                  .map(_.stateData.power)
                   .toArray
               )
 
@@ -1078,12 +1072,13 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                     case Some(sweepValueStore) =>
                       val (eInSi, fInSi) = refSystem.vInSi(
                         sweepValueStore.sweepData
+                          .find(_.nodeUuid == nodeUuid)
                           .getOrElse(
-                            nodeUuid,
                             throw new DBFSAlgorithmException(
                               s"Provided Sweep value store contains no data for node with id $nodeUuid"
                             )
                           )
+                          .stateData
                           .voltage
                       )
                       (
