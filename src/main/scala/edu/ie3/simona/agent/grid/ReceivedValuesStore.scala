@@ -16,7 +16,7 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   PowerResponseMessage,
   ProvidePowerMessage
 }
-import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
+import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 
 import java.util.UUID
 
@@ -49,7 +49,7 @@ object ReceivedValuesStore {
   type NodeToReceivedPower =
     Map[UUID, Map[ActorRef, Option[PowerResponseMessage]]]
   type NodeToReceivedSlackVoltage =
-    Map[UUID, Option[ProvideSlackVoltageMessage]]
+    Map[UUID, Option[ExchangeVoltage]]
 
   /** Get an empty, ready to be used instance of [[ReceivedValuesStore]]
     * containing an `empty` mapping of [[NodeToReceivedPower]] and

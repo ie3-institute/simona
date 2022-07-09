@@ -39,6 +39,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
+import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.simona.ontology.messages.VoltageMessage.{
   ProvideSlackVoltageMessage,
   RequestSlackVoltageMessage
@@ -158,19 +159,19 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
     // if we receive a request for slack voltages from our inferior grids we want to answer it
     case Event(
-          RequestSlackVoltageMessage(currentSweepNo, nodeUuid),
+          RequestSlackVoltageMessage(currentSweepNo, nodeUuids),
           gridAgentBaseData: GridAgentBaseData
         ) =>
       log.debug(
-        s"Received Slack Voltages request from {} for node {} and sweepNo: {}",
+        s"Received Slack Voltages request from {} for nodes {} and sweepNo: {}",
         sender(),
-        nodeUuid,
+        nodeUuids,
         gridAgentBaseData.currentSweepNo
       )
 
-      // we either have voltages ready calculated (not the first sweep) or we don't have them here
-      // -> return calculated value or target voltage as physical value
-      val (slackE, slackF) =
+      nodeUuids.map { nodeUuid =>
+        // we either have voltages ready calculated (not the first sweep) or we don't have them here
+        // -> return calculated value or target voltage as physical value
         (gridAgentBaseData.sweepValueStores.get(currentSweepNo) match {
           case Some(result) =>
             Some(result, currentSweepNo)
@@ -179,8 +180,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             // the next sweep, as it triggers calculations for the next sweep or b) at all other
             // (non last downstream grid agents) in sweep 0
             log.debug(
-              "Unable to find slack voltage for node '{}' in sweep '{}'. Try to get voltage of previous sweep.",
-              nodeUuid,
+              "Unable to find slack voltage for nodes '{}' in sweep '{}'. Try to get voltage of previous sweep.",
+              nodeUuids,
               currentSweepNo
             )
             gridAgentBaseData.sweepValueStores
@@ -234,22 +235,25 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             vSlack,
             Quantities.getQuantity(0, refSystemVUnit)
           )
+        } match {
+          case (slackE, slackF) =>
+            log.debug(
+              s"Provide {} to {} for node {} and sweepNo: {}",
+              s"$slackE, $slackF",
+              sender(),
+              nodeUuid,
+              gridAgentBaseData.currentSweepNo
+            )
+
+            ExchangeVoltage(nodeUuid, slackE, slackF)
         }
-
-      log.debug(
-        s"Provide {} to {} for node {} and sweepNo: {}",
-        s"$slackE, $slackF",
-        sender(),
-        nodeUuid,
-        gridAgentBaseData.currentSweepNo
-      )
-
-      stay() replying ProvideSlackVoltageMessage(
-        currentSweepNo,
-        nodeUuid,
-        slackE,
-        slackF
-      )
+      } match {
+        case exchangeVoltages =>
+          stay() replying ProvideSlackVoltageMessage(
+            currentSweepNo,
+            exchangeVoltages
+          )
+      }
 
     // receive grid power values message request from superior grids
     // / before power flow calc for this sweep we either have to stash() the message to answer it later (in current sweep)
@@ -1196,18 +1200,21 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       s"asking superior grids for slack voltage values: {}",
       superiorGridGates
     )
+
     Option.when(superiorGridGates.nonEmpty) {
       Future
         .sequence(
-          superiorGridGates.map(superiorGridGate => {
-            val superiorGridAgent = subGridGateToActorRef(superiorGridGate)
-            (superiorGridAgent ? RequestSlackVoltageMessage(
-              currentSweepNo,
-              superiorGridGate.getSuperiorNode.getUuid
-            )).map { case providedSlackValues: ProvideSlackVoltageMessage =>
-              (superiorGridAgent, providedSlackValues)
+          superiorGridGates
+            .groupBy(subGridGateToActorRef(_))
+            .map { case (superiorGridAgent, gridGates) =>
+              (superiorGridAgent ? RequestSlackVoltageMessage(
+                currentSweepNo,
+                gridGates.map(_.getSuperiorNode.getUuid)
+              )).map { case providedSlackValues: ProvideSlackVoltageMessage =>
+                (superiorGridAgent, providedSlackValues)
+              }
             }
-          })
+            .toVector
         )
         .map(ReceivedSlackValues)
         .pipeTo(self)

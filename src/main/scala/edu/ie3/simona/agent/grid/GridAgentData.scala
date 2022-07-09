@@ -383,30 +383,24 @@ object GridAgentData {
         receivedSlackValues: ReceivedSlackValues
     ): GridAgentBaseData = {
       val updatedNodeToReceivedSlackVoltageValuesMap =
-        receivedSlackValues.values.foldLeft(
-          receivedValueStore.nodeToReceivedSlackVoltage
-        ) {
-          case (
-                nodeToSlackVoltageUpdated,
-                (senderRef, slackValues)
-              ) =>
-            val nodeUuid: UUID = slackValues.nodeUuid
-
+        receivedSlackValues.values.flatMap { case (senderRef, slackValues) =>
+          slackValues.nodalSlackVoltages.map { exchangeVoltage =>
             receivedValueStore.nodeToReceivedSlackVoltage
-              .get(nodeUuid) match {
+              .get(exchangeVoltage.nodeUuid) match {
               case Some(None) =>
                 /* Slack voltage is expected and not yet received */
-                nodeToSlackVoltageUpdated + (nodeUuid -> Some(slackValues))
+                exchangeVoltage.nodeUuid -> Some(exchangeVoltage)
               case Some(Some(_)) =>
                 throw new RuntimeException(
-                  s"Already received slack value for node $nodeUuid!"
+                  s"Already received slack value for node ${exchangeVoltage.nodeUuid}!"
                 )
               case None =>
                 throw new RuntimeException(
-                  s"Received slack value for node $nodeUuid from $senderRef which is not in my slack values nodes list!"
+                  s"Received slack value for node ${exchangeVoltage.nodeUuid} from $senderRef which is not in my slack values nodes list!"
                 )
             }
-        }
+          }
+        }.toMap
       this.copy(
         receivedValueStore = receivedValueStore.copy(
           nodeToReceivedSlackVoltage =

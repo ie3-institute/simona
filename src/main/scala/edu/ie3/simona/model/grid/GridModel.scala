@@ -497,25 +497,21 @@ case object GridModel {
     // build
     // / nodes
     val nodes: Set[NodeModel] =
-      subGridContainer.getRawGrid.getNodes.asScala
-        .collect { case nodeInput: NodeInput =>
-          NodeModel(nodeInput, startDate, endDate)
-        }
-        .to(collection.immutable.Set)
+      subGridContainer.getRawGrid.getNodes.asScala.map { nodeInput =>
+        NodeModel(nodeInput, startDate, endDate)
+      }.toSet
 
     // / lines
     val lines: Set[LineModel] =
-      subGridContainer.getRawGrid.getLines.asScala
-        .collect { case lineInput: LineInput =>
-          getConnectedNodes(lineInput, nodes)
-          LineModel(lineInput, refSystem, startDate, endDate)
-        }
-        .to(collection.immutable.Set)
+      subGridContainer.getRawGrid.getLines.asScala.map { lineInput =>
+        getConnectedNodes(lineInput, nodes)
+        LineModel(lineInput, refSystem, startDate, endDate)
+      }.toSet
 
     // / transformers
     val transformers: Set[TransformerModel] =
-      subGridContainer.getRawGrid.getTransformer2Ws.asScala
-        .collect { case transformer2wInput: Transformer2WInput =>
+      subGridContainer.getRawGrid.getTransformer2Ws.asScala.map {
+        transformer2wInput =>
           val (nodeA, _) = getConnectedNodes(transformer2wInput, nodes)
           if (nodeA.isSlack) {
             TransformerModel(
@@ -529,13 +525,12 @@ case object GridModel {
               s"NodeA: ${transformer2wInput.getNodeA.getUuid} for transformer ${transformer2wInput.getUuid} is not set as slack. This has to be corrected first!"
             )
           }
-        }
-        .to(collection.immutable.Set)
+      }.toSet
 
     // / transformers3w
     val transformer3ws: Set[Transformer3wModel] =
-      subGridContainer.getRawGrid.getTransformer3Ws.asScala
-        .collect { case transformer3wInput: Transformer3WInput =>
+      subGridContainer.getRawGrid.getTransformer3Ws.asScala.map {
+        transformer3wInput =>
           getConnectedNodes(transformer3wInput, nodes)
           Transformer3wModel(
             transformer3wInput,
@@ -544,8 +539,7 @@ case object GridModel {
             startDate,
             endDate
           )
-        }
-        .to(collection.immutable.Set)
+      }.toSet
 
     /* Transformers are shipped as full models, therefore also containing two nodes, that do not belong in here.
      * Odd those nodes out. */
@@ -564,12 +558,10 @@ case object GridModel {
 
     // / switches
     val switches: Set[SwitchModel] =
-      subGridContainer.getRawGrid.getSwitches.asScala
-        .collect { case switchInput: SwitchInput =>
-          getConnectedNodes(switchInput, nodes)
-          SwitchModel(switchInput, startDate, endDate)
-        }
-        .to(collection.immutable.Set)
+      subGridContainer.getRawGrid.getSwitches.asScala.map { switchInput =>
+        getConnectedNodes(switchInput, nodes)
+        SwitchModel(switchInput, startDate, endDate)
+      }.toSet
 
     // build
     val gridComponents =

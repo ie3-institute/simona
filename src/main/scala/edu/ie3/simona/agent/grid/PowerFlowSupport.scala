@@ -24,7 +24,7 @@ import edu.ie3.simona.model.grid.{
   TransformerModel
 }
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvidePowerMessage
-import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
+import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.util.quantities.PowerSystemUnits
 import tech.units.indriya.ComparableQuantity
 
@@ -197,6 +197,7 @@ trait PowerFlowSupport {
         val targetVoltage = if (nodeStateData.nodeType == NodeType.SL) {
           val receivedSlackVoltage = receivedSlackValues.values
             .map { case (_, slackVoltageMsg) => slackVoltageMsg }
+            .flatMap(_.nodalSlackVoltages)
             .find(_.nodeUuid == sweepValueStoreData.nodeUuid)
             .getOrElse(
               throw new RuntimeException(
@@ -288,7 +289,7 @@ trait PowerFlowSupport {
     *   Complex nodal voltage to use
     */
   private def transformVoltage(
-      receivedSlackVoltage: ProvideSlackVoltageMessage,
+      receivedSlackVoltage: ExchangeVoltage,
       nodeUuid: UUID,
       transformers2w: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],

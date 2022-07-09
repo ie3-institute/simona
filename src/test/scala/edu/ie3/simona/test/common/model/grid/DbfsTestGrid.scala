@@ -7,7 +7,6 @@
 package edu.ie3.simona.test.common.model.grid
 
 import java.util.UUID
-
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.connector._
@@ -35,6 +34,7 @@ import edu.ie3.datamodel.models.input.{
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.datamodel.utils.GridAndGeoUtils
 import edu.ie3.util.quantities.PowerSystemUnits._
+
 import javax.measure.MetricPrefix
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
@@ -90,9 +90,20 @@ trait DbfsTestGrid extends SubGridGateMokka {
     GermanVoltageLevelUtils.HV,
     1
   )
-  private val slackNode = new NodeInput(
+  protected val supNodeA = new NodeInput(
     UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"),
     "HS_NET1_Station_1_380",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    Quantities.getQuantity(1.0, PU),
+    true,
+    NodeInput.DEFAULT_GEO_POSITION,
+    GermanVoltageLevelUtils.EHV_380KV,
+    1000
+  )
+  protected val supNodeB = new NodeInput(
+    UUID.fromString("fb4272fa-5a31-4218-9a46-0a37ac5b34a4"),
+    "HS_NET1_Station_2_380",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
     Quantities.getQuantity(1.0, PU),
@@ -246,11 +257,23 @@ trait DbfsTestGrid extends SubGridGateMokka {
 
   private val transformer1 = new Transformer2WInput(
     UUID.fromString("6e9d912b-b652-471b-84d2-6ed571e53a7b"),
+    "HöS-Trafo_S2",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    supNodeA,
+    node1,
+    1,
+    trafoType,
+    0,
+    false
+  )
+  private val transformer2 = new Transformer2WInput(
+    UUID.fromString("ceccd8cb-29dc-45d6-8a13-4b0033c5f1ef"),
     "HöS-Trafo_S1",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
-    slackNode,
-    node1,
+    supNodeB,
+    node2,
     1,
     trafoType,
     0,
@@ -258,9 +281,9 @@ trait DbfsTestGrid extends SubGridGateMokka {
   )
 
   protected val (hvGridContainer, hvSubGridGates) = {
-    val nodes = Set(node1, node2, node3a, node3b, slackNode)
+    val nodes = Set(node1, node2, node3a, node3b, supNodeA, supNodeB)
     val lines = Set(line1, line2, line3, line4, line5)
-    val transformers = Set(transformer1)
+    val transformers = Set(transformer1, transformer2)
     val rawGridElements = new RawGridElements(
       nodes.asJava,
       lines.asJava,
@@ -335,7 +358,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
   }
 
   protected val (ehvGridContainer, ehvSubGridGates) = {
-    val nodes = Set(slackNode)
+    val nodes = Set(supNodeA)
     val rawGridElements = new RawGridElements(
       nodes.asJava,
       Set.empty[LineInput].asJava,
