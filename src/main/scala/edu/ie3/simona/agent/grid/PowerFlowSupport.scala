@@ -429,35 +429,35 @@ trait PowerFlowSupport {
           )
         // / add WithForcedVoltageVector for slackNode
         // / as we know that there is at least one slack in every grid available here, we can do a direct call on element zero
-        // // NOTE: currently only the first slack node is taken, needs to be adapted when several slacks are present
-        val forcedSlackNodeVoltage =
-          operatingPoint.find(_.nodeType == NodeType.SL) match {
-            case Some(slackNodeData) =>
-              WithForcedStartVoltages(Array(StateData(slackNodeData)))
-            case None =>
-              throw new DBFSAlgorithmException(
-                s"Unable to find a slack node in grid ${gridModel.subnetNo}."
-              )
-          }
+
+        // // NOTE: currently only the first slack node is taken, needs to be adapted when several slacks are present.
+        val slackNodeData = operatingPoint
+          .filter(_.nodeType == NodeType.SL)
+          .minByOption(_.index)
+          .getOrElse(
+            throw new DBFSAlgorithmException(
+              s"Unable to find a slack node in grid ${gridModel.subnetNo}."
+            )
+          )
+        val forcedSlackNodeVoltage = WithForcedStartVoltages(
+          Array(StateData(slackNodeData))
+        )
+
         // / execute
         val powerFlow =
           NewtonRaphsonPF(epsilon, maxIterations, admittanceMatrix)
 
         /* Currently, only one slack node per sub grid is allowed. In case a model has more than one, set all others to
          * PQ nodes. ATTENTION: This does not cover the power flow situation correctly! */
-        val adaptedOperatingPoint = operatingPoint
-          .foldLeft((Array.empty[PresetData], true)) {
-            case ((adaptedOperatingPoint, firstSlack), nodePreset)
-                if nodePreset.nodeType == NodeType.SL =>
-              /* If this is the first slack node see, leave it as a slack node. If it is not the first one. Make it a
-               * PQ node. */
-              val adaptedNodePreset =
-                if (firstSlack) nodePreset
-                else nodePreset.copy(nodeType = NodeType.PQ)
-              (adaptedOperatingPoint.appended(adaptedNodePreset), false)
-            case ((adaptedOperatingPoint, firstSlack), nodePreset) =>
-              (adaptedOperatingPoint.appended(nodePreset), firstSlack)
-          } match { case (operatingPoint, _) => operatingPoint }
+        val adaptedOperatingPoint = operatingPoint.map { nodePreset =>
+          if (nodePreset.nodeType == NodeType.SL) {
+            /* If this is the first slack node see, leave it as a slack node. If it is not the first one. Make it a
+             * PQ node. */
+            if (nodePreset == slackNodeData) nodePreset
+            else nodePreset.copy(nodeType = NodeType.PQ)
+          } else
+            nodePreset
+        }
 
         Try {
           powerFlow.calculate(
