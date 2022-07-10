@@ -10,7 +10,7 @@ import akka.actor.ActorRef
 import com.typesafe.config.{Config => TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.datamodel.models.input.container.SubGridContainer
+import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.utils.ContainerUtils
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
@@ -74,7 +74,12 @@ trait SetupHelper extends LazyLogging {
       ContainerUtils.withTrafoNodeAsSlack(subGridContainer)
 
     // build the grid agent data and check for its validity
-    GridAgentInitData(updatedSubGridContainer, subGridGateToActorRef, refSystem)
+    GridAgentInitData(
+      updatedSubGridContainer,
+      Seq.empty[ThermalGrid],
+      subGridGateToActorRef,
+      refSystem
+    )
   }
 
   /** Maps the [[SubGridGate]] s of a given sub grid to the corresponding actor
