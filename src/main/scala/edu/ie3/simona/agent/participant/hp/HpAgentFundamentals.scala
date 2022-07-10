@@ -18,6 +18,10 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHe
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.hp.HpAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
+  InputModelContainer,
+  WithHeatInputContainer
+}
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
   DataCollectionStateData,
@@ -101,7 +105,7 @@ trait HpAgentFundamentals
     * fundamental classes
     */
   override def determineModelBaseStateData(
-      inputModel: HpInput,
+      inputModel: InputModelContainer[HpInput],
       modelConfig: HpRuntimeConfig,
       services: Option[Vector[SecondaryDataService[_ <: Data.SecondaryData]]],
       simulationStartDate: ZonedDateTime,
@@ -119,32 +123,40 @@ trait HpAgentFundamentals
         "HpAgent cannot be initialized without its needed services."
       )
 
-    /* Build the calculation model */
-    val model = buildModel(
-      inputModel,
-      modelConfig,
-      simulationStartDate,
-      simulationEndDate
-    )
-    ParticipantModelBaseStateData(
-      simulationStartDate,
-      simulationEndDate,
-      model,
-      services,
-      outputConfig,
-      Array.emptyLongArray,
-      Map.empty,
-      requestVoltageDeviationThreshold,
-      ValueStore.forVoltage(
-        resolution * 10,
-        inputModel.getNode
-          .getvTarget()
-          .to(PU)
-      ),
-      ValueStore.forResult(resolution, 10),
-      ValueStore(resolution * 10),
-      ValueStore(resolution * 10)
-    )
+    inputModel match {
+      case withHeatContainer: WithHeatInputContainer[HpInput] =>
+        /* Build the calculation model */
+        val model = buildModel(
+          withHeatContainer,
+          modelConfig,
+          simulationStartDate,
+          simulationEndDate
+        )
+        ParticipantModelBaseStateData(
+          simulationStartDate,
+          simulationEndDate,
+          model,
+          services,
+          outputConfig,
+          Array.emptyLongArray,
+          Map.empty,
+          requestVoltageDeviationThreshold,
+          ValueStore.forVoltage(
+            resolution * 10,
+            inputModel.electricalInputModel.getNode
+              .getvTarget()
+              .to(PU)
+          ),
+          ValueStore.forResult(resolution, 10),
+          ValueStore(resolution * 10),
+          ValueStore(resolution * 10)
+        )
+      case unsupported =>
+        throw new AgentInitializationException(
+          s"HpAgent cannot be initialized with wrong init state data of type '${unsupported.getClass.getName}'. " +
+            s"Expected: '${WithHeatInputContainer.getClass.getName}[${classOf[HpInput].getName}]'."
+        )
+    }
   }
 
   /** Abstract method to build the calculation model from input
@@ -160,12 +172,12 @@ trait HpAgentFundamentals
     * @return
     */
   override def buildModel(
-      inputModel: HpInput,
+      inputModel: InputModelContainer[HpInput],
       modelConfig: HpRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
   ): HpModel = HpModel(
-    inputModel,
+    inputModel.electricalInputModel,
     modelConfig.scaling,
     simulationStartDate,
     simulationEndDate
