@@ -21,6 +21,7 @@ import java.util.*;
  *     href="https://github.com/ie3-institute/PowerSystemDataModel/pull/619">PR 619</a> of
  *     PowerSystemDataModel hasn't been completed and deployed
  */
+@Deprecated
 public record ThermalGrid(
     ThermalBusInput bus, Set<ThermalHouseInput> houses, Set<ThermalStorageInput> storages)
     implements InputContainer<AssetInput> {

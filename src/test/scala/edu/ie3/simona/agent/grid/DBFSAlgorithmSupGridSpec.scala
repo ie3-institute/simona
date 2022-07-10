@@ -7,11 +7,11 @@
 package edu.ie3.simona.agent.grid
 
 import java.util.UUID
-
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestFSMRef}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
+import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
@@ -95,6 +95,7 @@ class DBFSAlgorithmSupGridSpec
       val gridAgentInitData =
         GridAgentInitData(
           ehvGridContainer,
+          Seq.empty[ThermalGrid],
           subGridGateToActorRef,
           RefSystem("5000 MVA", "380 kV")
         )
@@ -403,6 +404,7 @@ class DBFSAlgorithmSupGridSpec
       val gridAgentInitData =
         GridAgentInitData(
           ehvGridContainer,
+          Seq.empty[ThermalGrid],
           subnetGatesToActorRef,
           RefSystem("5000 MVA", "380 kV")
         )

@@ -164,19 +164,12 @@ trait HpAgentFundamentals
       modelConfig: HpRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
-  ): HpModel = {
-    new HpModel(
-      inputModel.getUuid,
-      inputModel.getId,
-      inputModel.getOperationTime,
-      modelConfig.scaling,
-      inputModel.getqCharacteristics(),
-      inputModel.getType.getsRated(),
-      inputModel.getType.getCosPhiRated,
-      inputModel.getType.getpThermal(),
-      new ThermalHouse()
-    )
-  }
+  ): HpModel = HpModel(
+    inputModel,
+    modelConfig.scaling,
+    simulationStartDate,
+    simulationEndDate
+  )
 
   /** Determine the average result within the given tick window
     *

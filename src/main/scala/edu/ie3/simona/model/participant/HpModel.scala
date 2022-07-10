@@ -7,17 +7,20 @@
 package edu.ie3.simona.model.participant
 
 import java.util.UUID
-
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
+import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.HpModel._
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalHouse
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
+
 import javax.measure.quantity.{Power, Temperature, Time}
 import tech.units.indriya.ComparableQuantity
 import edu.ie3.simona.util.TickUtil.TickLong
+
+import java.time.ZonedDateTime
 
 /** Model of a heat pump (HP) with a [[ThermalHouse]] medium and its current
   * [[HpState]].
@@ -164,6 +167,35 @@ final case class HpModel(
 /** Create valid [[HpModel]] by calling the apply function.
   */
 case object HpModel {
+
+  def apply(
+      inputModel: HpInput,
+      scaling: Double,
+      simulationStartDate: ZonedDateTime,
+      simulationEndDate: ZonedDateTime
+  ): HpModel = {
+    /* Determine the operation interval */
+    val operationInterval: OperationInterval =
+      SystemComponent.determineOperationInterval(
+        simulationStartDate,
+        simulationEndDate,
+        inputModel.getOperationTime
+      )
+
+    val qControl = QControl(inputModel.getqCharacteristics())
+
+    new HpModel(
+      inputModel.getUuid,
+      inputModel.getId,
+      operationInterval,
+      scaling,
+      qControl,
+      inputModel.getType.getsRated(),
+      inputModel.getType.getCosPhiRated,
+      inputModel.getType.getpThermal(),
+      null
+    )
+  }
 
   /** As the HpModel class is a dynamic model, it requires a state for its
     * calculations. The state contains all variables needed including the inner
