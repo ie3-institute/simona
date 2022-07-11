@@ -132,8 +132,9 @@ trait PowerFlowSupport {
           /* If the preset voltage is meant to be determined by means of received data and the node is a slack node
            * (only then there is received data), look it up and transform it */
           val receivedSlackVoltage =
-            receivedValuesStore.nodeToReceivedSlackVoltage.values.flatten
-              .find(_.nodeUuid == nodeModel.uuid)
+            receivedValuesStore.nodeToReceivedSlackVoltage
+              .get(nodeModel.uuid)
+              .flatten
               .getOrElse(
                 throw new RuntimeException(
                   s"No slack voltage received for node ${nodeModel.id} [${nodeModel.uuid}]!"
