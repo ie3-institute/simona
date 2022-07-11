@@ -39,6 +39,7 @@ import javax.measure.MetricPrefix
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
+import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
 /** Provides the high voltage level of SIMONA's test grid. Only consists of
@@ -281,7 +282,10 @@ trait DbfsTestGrid extends SubGridGateMokka {
   )
 
   protected val (hvGridContainer, hvSubGridGates) = {
-    val nodes = Set(node1, node2, node3a, node3b, supNodeA, supNodeB)
+    // LinkedHashSet in order to preserve the given order.
+    // This is important as long as only one slack node between two sub grids can exist
+    val nodes =
+      mutable.LinkedHashSet(node1, node2, node3a, node3b, supNodeB, supNodeA)
     val lines = Set(line1, line2, line3, line4, line5)
     val transformers = Set(transformer1, transformer2)
     val rawGridElements = new RawGridElements(

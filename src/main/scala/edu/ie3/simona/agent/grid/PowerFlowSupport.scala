@@ -70,7 +70,7 @@ trait PowerFlowSupport {
     *   [[edu.ie3.powerflow.NewtonRaphsonPF.calculate()]]
     */
   protected def composeOperatingPoint(
-      nodes: Set[NodeModel],
+      nodes: Seq[NodeModel],
       transformers2w: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
       nodeUuidToIndexMap: Map[UUID, Int],
@@ -82,7 +82,7 @@ trait PowerFlowSupport {
 
     val mainRefSystemPowerUnit = gridMainRefSystem.nominalPower.getUnit
 
-    nodes.toArray.map { nodeModel =>
+    nodes.map { nodeModel =>
       // note: currently we only support pq nodes as we not distinguish between pq/pv nodes -
       // when slack emulators or pv-node assets are added this needs to be considered here
       val nodeType = if (nodeModel.isSlack) NodeType.SL else NodeType.PQ
@@ -160,7 +160,7 @@ trait PowerFlowSupport {
         }
 
       PresetData(nodeIdx, nodeType, apparentPower, targetVoltageInPu.abs)
-    }
+    }.toArray
   }
 
   /** Composes the current operation point needed by

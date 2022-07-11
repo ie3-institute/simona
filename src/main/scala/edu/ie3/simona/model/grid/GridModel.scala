@@ -75,7 +75,7 @@ case object GridModel {
     * model
     */
   final case class GridComponents(
-      nodes: Set[NodeModel],
+      nodes: Seq[NodeModel],
       lines: Set[LineModel],
       transformers: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
@@ -95,7 +95,7 @@ case object GridModel {
     */
   private def getConnectedNodes(
       connector: ConnectorInput,
-      nodes: Set[NodeModel]
+      nodes: Seq[NodeModel]
   ): (NodeModel, NodeModel) = {
     val nodeAOpt: Option[NodeModel] =
       nodes.find(_.uuid.equals(connector.getNodeA.getUuid))
@@ -133,7 +133,7 @@ case object GridModel {
     */
   private def getConnectedNodes(
       transformerInput: Transformer3WInput,
-      nodes: Set[NodeModel]
+      nodes: Seq[NodeModel]
   ): (NodeModel, NodeModel, NodeModel) = {
     val (nodeA, nodeB) =
       getConnectedNodes(transformerInput.asInstanceOf[ConnectorInput], nodes)
@@ -496,10 +496,9 @@ case object GridModel {
 
     // build
     // / nodes
-    val nodes: Set[NodeModel] =
-      subGridContainer.getRawGrid.getNodes.asScala.map { nodeInput =>
-        NodeModel(nodeInput, startDate, endDate)
-      }.toSet
+    val nodes = subGridContainer.getRawGrid.getNodes.asScala.toSeq.map {
+      nodeInput => NodeModel(nodeInput, startDate, endDate)
+    }
 
     // / lines
     val lines: Set[LineModel] =

@@ -49,8 +49,9 @@ import edu.ie3.util.quantities.PowerSystemUnits._
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 import scala.concurrent.Await
+import scala.concurrent.duration.DurationInt
+import scala.language.postfixOps
 
 /** Test to ensure the functions that a [[GridAgent]] in center position should
   * be able to do if the DBFSAlgorithm is used. The scheduler, the weather
@@ -138,7 +139,7 @@ class DBFSAlgorithmCenGridSpec
         )
 
       // send init data to agent and expect a CompletionMessage
-      implicit val timeout: Timeout = Timeout(1, TimeUnit.SECONDS)
+      implicit val timeout: Timeout = 3 seconds
       val actualInitReply =
         Await.result(
           centerGridAgent ? TriggerWithIdMessage(
