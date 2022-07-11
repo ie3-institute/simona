@@ -339,7 +339,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
         val updatedResponses = serviceStateData.evModelResponses +
           (evcs -> Some(evModels.toList))
 
-        if (updatedResponses.values.toSeq.contains(None)) {
+        if (updatedResponses.exists { case (_, resp) => resp.isEmpty }) {
           // responses are still incomplete
           serviceStateData.copy(
             evModelResponses = updatedResponses
@@ -360,7 +360,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
         val updatedFreeLots = serviceStateData.freeLots +
           (evcs -> Some(freeLots))
 
-        if (updatedFreeLots.values.toSeq.contains(None)) {
+        if (updatedFreeLots.exists { case (_, resp) => resp.isEmpty }) {
           // responses are still incomplete
           serviceStateData.copy(
             freeLots = updatedFreeLots
@@ -386,7 +386,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
         val updatedCurrentPrices = serviceStateData.currentPrices +
           (evcs -> Some(currentPrice))
 
-        if (updatedCurrentPrices.values.toSeq.contains(None)) {
+        if (updatedCurrentPrices.exists { case (_, resp) => resp.isEmpty }) {
           // responses are still incomplete
           serviceStateData.copy(
             currentPrices = updatedCurrentPrices
@@ -395,7 +395,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
           // all responses received, forward them to external simulation in a bundle
           val currentPricesResponse = updatedCurrentPrices.flatMap {
             case (evcs, Some(currentPrice)) =>
-              Some(evcs -> new java.lang.Double(currentPrice))
+              Some(evcs -> java.lang.Double.valueOf(currentPrice))
             case _ =>
               None
           }
