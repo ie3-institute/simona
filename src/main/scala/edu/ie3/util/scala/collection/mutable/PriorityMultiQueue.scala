@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.util.scala
+package edu.ie3.util.scala.collection.mutable
 
 import scala.collection.{SortedSet, mutable}
 
