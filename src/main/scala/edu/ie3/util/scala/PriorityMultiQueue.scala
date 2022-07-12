@@ -16,8 +16,6 @@ import scala.collection.{SortedSet, mutable}
   *   Queue that holds keys in order and provides the first element in O(1)
   * @param table
   *   HashMap that provides access to lists with a specific key in O(1)
-  * @param ev
-  *   Ordering of key
   * @tparam K
   *   Type of the key
   * @tparam V
@@ -26,7 +24,7 @@ import scala.collection.{SortedSet, mutable}
 final case class PriorityMultiQueue[K, V] private (
     private val queue: mutable.SortedMap[K, mutable.ListBuffer[V]],
     private val table: mutable.HashMap[K, mutable.ListBuffer[V]]
-)(implicit ev: K => Ordered[K]) {
+) {
 
   /** Get the first key of the queue, if the queue is not empty.
     * @return
@@ -112,9 +110,7 @@ object PriorityMultiQueue {
     * @return
     *   An empty PriorityMultiQueue
     */
-  def empty[K, V](implicit
-      ev: K => Ordered[K]
-  ): PriorityMultiQueue[K, V] =
+  def empty[K, V](implicit ev: K => Ordered[K]): PriorityMultiQueue[K, V] =
     PriorityMultiQueue(
       mutable.SortedMap[K, mutable.ListBuffer[V]](),
       mutable.HashMap[K, mutable.ListBuffer[V]]()
@@ -138,9 +134,7 @@ object PriorityMultiQueue {
   def empty[K, V](
       initialKeyCapacity: Int,
       loadFactor: Double = mutable.HashMap.defaultLoadFactor
-  )(implicit
-      ev: K => Ordered[K]
-  ): PriorityMultiQueue[K, V] =
+  )(implicit ev: K => Ordered[K]): PriorityMultiQueue[K, V] =
     PriorityMultiQueue(
       mutable.SortedMap[K, mutable.ListBuffer[V]](),
       new mutable.HashMap[K, mutable.ListBuffer[V]](
