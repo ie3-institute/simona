@@ -53,14 +53,14 @@ object GridAgentFailFast {
               val transformerUnit2W = transformerUnits2W
                 .find(_.getUuid == transformer)
               val transformerUnit3W = transformerUnits3W
-                .find(element => element.getUuid == transformer)
+                .find(_.getUuid == transformer)
               if (transformerUnit2W.isDefined || transformerUnit3W.isDefined) {
 
                 controlGroup.measurements
                   .map(UUID.fromString)
                   .foreach { measurements =>
                     val measurementUnit = measurementUnits
-                      .find(element => element.getUuid == measurements)
+                      .find(_.getUuid == measurements)
                       .getOrElse(
                         throw new GridAgentInitializationException(
                           s"${gridAgentInitData.subGridContainer.getGridName} has a transformer control group (${control.transformer.toString}) with a measurement which UUID does not exists in this subnet."
