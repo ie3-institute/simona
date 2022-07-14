@@ -22,6 +22,7 @@ import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData._
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.participant.statedata.{
   DataCollectionStateData,
   ParticipantStateData
@@ -92,7 +93,7 @@ protected trait WecAgentFundamentals
     *   based on the data source definition
     */
   override def determineModelBaseStateData(
-      inputModel: WecInput,
+      inputModel: InputModelContainer[WecInput],
       modelConfig: WecRuntimeConfig,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
@@ -131,7 +132,7 @@ protected trait WecAgentFundamentals
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution * 10,
-        inputModel.getNode
+        inputModel.electricalInputModel.getNode
           .getvTarget()
           .to(PU)
       ),
@@ -142,12 +143,12 @@ protected trait WecAgentFundamentals
   }
 
   override def buildModel(
-      inputModel: WecInput,
+      inputModel: InputModelContainer[WecInput],
       modelConfig: WecRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
   ): WecModel = WecModel(
-    inputModel,
+    inputModel.electricalInputModel,
     modelConfig.scaling,
     simulationStartDate,
     simulationEndDate

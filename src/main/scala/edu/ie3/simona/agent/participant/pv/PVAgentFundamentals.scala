@@ -27,6 +27,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
 }
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
@@ -88,7 +89,7 @@ protected trait PVAgentFundamentals
     *   based on the data source definition
     */
   override def determineModelBaseStateData(
-      inputModel: PvInput,
+      inputModel: InputModelContainer[PvInput],
       modelConfig: PvRuntimeConfig,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
@@ -127,7 +128,7 @@ protected trait PVAgentFundamentals
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution * 10,
-        inputModel.getNode
+        inputModel.electricalInputModel.getNode
           .getvTarget()
           .to(PU)
       ),
@@ -138,12 +139,12 @@ protected trait PVAgentFundamentals
   }
 
   override def buildModel(
-      inputModel: PvInput,
+      inputModel: InputModelContainer[PvInput],
       modelConfig: PvRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
   ): PVModel = PVModel(
-    inputModel,
+    inputModel.electricalInputModel,
     modelConfig.scaling,
     simulationStartDate,
     simulationEndDate

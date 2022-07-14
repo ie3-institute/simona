@@ -26,7 +26,8 @@ import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantInitializeStateData,
   ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
+  ParticipantUninitializedStateData,
+  SimpleInputContainer
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
@@ -196,7 +197,7 @@ class ParticipantAgentExternalSourceSpec
               requestVoltageDeviationThreshold,
               outputConfig
             ) =>
-          inputModel shouldBe mockInputModel
+          inputModel shouldBe SimpleInputContainer(mockInputModel)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe None
           simulationStartDate shouldBe defaultSimulationStart

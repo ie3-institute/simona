@@ -56,7 +56,7 @@ class ConfigUtilsSpec
       )
 
       inside(actual) {
-        case ParticipantConfigUtil(configs, defaultLoadConfig, _, _, _, _) =>
+        case ParticipantConfigUtil(configs, defaultLoadConfig, _, _, _, _, _) =>
           configs shouldBe Map.empty[UUID, SimonaConfig.LoadRuntimeConfig]
           inside(defaultLoadConfig) {
             case LoadRuntimeConfig(
@@ -109,7 +109,7 @@ class ConfigUtilsSpec
       )
 
       inside(actual) {
-        case ParticipantConfigUtil(configs, _, _, _, _, _) =>
+        case ParticipantConfigUtil(configs, _, _, _, _, _, _) =>
           configs.size shouldBe 1
           configs.contains(
             UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
@@ -151,7 +151,7 @@ class ConfigUtilsSpec
       )
 
       inside(actual) {
-        case ParticipantConfigUtil(configs, _, _, _, _, _) =>
+        case ParticipantConfigUtil(configs, _, _, _, _, _, _) =>
           configs.size shouldBe 2
           configs.contains(
             UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
@@ -208,7 +208,7 @@ class ConfigUtilsSpec
       )
 
       inside(actual) {
-        case ParticipantConfigUtil(configs, _, _, _, _, _) =>
+        case ParticipantConfigUtil(configs, _, _, _, _, _, _) =>
           configs.size shouldBe 2
           configs.contains(
             UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
@@ -271,6 +271,7 @@ class ConfigUtilsSpec
               defaultFixedFeedInConfig,
               _,
               _,
+              _,
               _
             ) =>
           configs shouldBe Map
@@ -318,7 +319,7 @@ class ConfigUtilsSpec
       )
 
       inside(actual) {
-        case ParticipantConfigUtil(fixedFeedInConfigs, _, _, _, _, _) =>
+        case ParticipantConfigUtil(fixedFeedInConfigs, _, _, _, _, _, _) =>
           fixedFeedInConfigs.size shouldBe 1
           fixedFeedInConfigs.contains(
             UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
@@ -356,7 +357,7 @@ class ConfigUtilsSpec
       )
 
       inside(actual) {
-        case ParticipantConfigUtil(fixedFeedInConfigs, _, _, _, _, _) =>
+        case ParticipantConfigUtil(fixedFeedInConfigs, _, _, _, _, _, _) =>
           fixedFeedInConfigs.size shouldBe 2
           fixedFeedInConfigs.contains(
             UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
@@ -407,7 +408,7 @@ class ConfigUtilsSpec
       )
 
       inside(actual) {
-        case ParticipantConfigUtil(fixedFeedInConfigs, _, _, _, _, _) =>
+        case ParticipantConfigUtil(fixedFeedInConfigs, _, _, _, _, _, _) =>
           fixedFeedInConfigs.size shouldBe 2
           fixedFeedInConfigs.contains(
             UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
@@ -515,7 +516,7 @@ class ConfigUtilsSpec
       )
 
       inside(actual) {
-        case ParticipantConfigUtil(configs, _, _, _, _, _) =>
+        case ParticipantConfigUtil(configs, _, _, _, _, _, _) =>
           configs.size shouldBe 4
           // return default if a request for fix feed is done, but a load config is found
           actual.getFixedFeedConfigOrDefault(

@@ -18,6 +18,7 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   CollectRegistrationConfirmMessages,
+  InputModelContainer,
   ParticipantInitializeStateData,
   ParticipantInitializingStateData,
   ParticipantUninitializedStateData
@@ -120,7 +121,7 @@ abstract class ParticipantAgent[
        * that will confirm, otherwise, a failed registration is announced. */
       holdTickAndTriggerId(initTrigger.tick, triggerId)
       primaryServiceProxy ! PrimaryServiceRegistrationMessage(
-        inputModel.getUuid
+        inputModel.electricalInputModel.getUuid
       )
       goto(HandleInformation) using ParticipantInitializingStateData(
         inputModel,
@@ -224,7 +225,7 @@ abstract class ParticipantAgent[
     case Event(
           RegistrationSuccessfulMessage(maybeNextDataTick),
           ParticipantInitializingStateData(
-            inputModel: I,
+            inputModel: InputModelContainer[I],
             modelConfig: MC,
             secondaryDataServices,
             simulationStartDate,
@@ -252,7 +253,7 @@ abstract class ParticipantAgent[
     case Event(
           RegistrationResponseMessage.RegistrationFailedMessage,
           ParticipantInitializingStateData(
-            inputModel: I,
+            inputModel: InputModelContainer[I],
             modelConfig: MC,
             secondaryDataServices,
             simulationStartDate,
@@ -449,7 +450,7 @@ abstract class ParticipantAgent[
     *   Idle state with child of [[BaseStateData]]
     */
   def initializeParticipantForPrimaryDataReplay(
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: MC,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
@@ -487,7 +488,7 @@ abstract class ParticipantAgent[
     *   Idle state with child of [[BaseStateData]]
     */
   def initializeParticipantForModelCalculation(
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: MC,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,

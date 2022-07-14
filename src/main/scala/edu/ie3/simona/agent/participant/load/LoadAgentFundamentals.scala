@@ -25,6 +25,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
 }
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
@@ -105,7 +106,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     *   based on the data source definition
     */
   override def determineModelBaseStateData(
-      inputModel: LoadInput,
+      inputModel: InputModelContainer[LoadInput],
       modelConfig: LoadRuntimeConfig,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
@@ -163,7 +164,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution,
-        inputModel.getNode
+        inputModel.electricalInputModel.getNode
           .getvTarget()
           .to(PU)
       ),
@@ -174,7 +175,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
   }
 
   override def buildModel(
-      inputModel: LoadInput,
+      inputModel: InputModelContainer[LoadInput],
       modelConfig: LoadRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
@@ -183,10 +184,10 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        inputModel.getOperationTime
+        inputModel.electricalInputModel.getOperationTime
       )
-    val reference = LoadReference(inputModel, modelConfig)
-    buildModel(inputModel, operationInterval, reference)
+    val reference = LoadReference(inputModel.electricalInputModel, modelConfig)
+    buildModel(inputModel.electricalInputModel, operationInterval, reference)
   }
 
   protected def buildModel(

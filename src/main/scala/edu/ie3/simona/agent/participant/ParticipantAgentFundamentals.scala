@@ -29,7 +29,10 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FromOutsideBaseStateData,
   ParticipantModelBaseStateData
 }
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.CollectRegistrationConfirmMessages
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
+  CollectRegistrationConfirmMessages,
+  InputModelContainer
+}
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
   DataCollectionStateData,
@@ -122,7 +125,7 @@ protected trait ParticipantAgentFundamentals[
   }
 
   override def initializeParticipantForPrimaryDataReplay(
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: MC,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
@@ -179,7 +182,7 @@ protected trait ParticipantAgentFundamentals[
     *   [[FromOutsideBaseStateData]] with required information
     */
   def determineFromOutsideBaseStateData(
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: MC,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -205,7 +208,7 @@ protected trait ParticipantAgentFundamentals[
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution,
-        inputModel.getNode
+        inputModel.electricalInputModel.getNode
           .getvTarget()
           .to(PU)
       ),
@@ -227,7 +230,7 @@ protected trait ParticipantAgentFundamentals[
     * @return
     */
   def buildModel(
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: MC,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
@@ -263,7 +266,7 @@ protected trait ParticipantAgentFundamentals[
     *   Idle state with child of [[BaseStateData]]
     */
   override def initializeParticipantForModelCalculation(
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: MC,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
@@ -276,7 +279,7 @@ protected trait ParticipantAgentFundamentals[
     try {
       /* Register for services */
       val awaitRegistrationResponsesFrom =
-        registerForServices(inputModel, services)
+        registerForServices(inputModel.electricalInputModel, services)
 
       val baseStateData = determineModelBaseStateData(
         inputModel,
@@ -321,7 +324,7 @@ protected trait ParticipantAgentFundamentals[
     * fundamental classes
     */
   def determineModelBaseStateData(
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: MC,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,

@@ -11,6 +11,7 @@ import akka.pattern.ask
 import akka.testkit.{ImplicitSender, TestFSMRef}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
+import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.AgentState
@@ -110,6 +111,7 @@ class DBFSAlgorithmCenGridSpec
       val gridAgentInitData =
         GridAgentInitData(
           hvGridContainer,
+          Seq.empty[ThermalGrid],
           subGridGateToActorRef,
           RefSystem("2000 MVA", "110 kV")
         )
@@ -560,6 +562,7 @@ class DBFSAlgorithmCenGridSpec
       val gridAgentInitData =
         GridAgentInitData(
           hvGridContainer,
+          Seq.empty[ThermalGrid],
           subGridGateToActorRef,
           RefSystem("2000 MVA", "110 kV")
         )

@@ -154,6 +154,15 @@ class SimSchedulerSpec
               ]
             }
 
+            simona.runtime.participant.hp = {
+              defaultConfig = {
+                   calculateMissingReactivePowerWithModel = false
+                   uuids = ["default"]
+                   scaling = 1.0
+              }
+              individualConfigs = []
+            }
+
             simona.powerflow.maxSweepPowerDeviation = 1E-5 // the maximum allowed deviation in power between two sweeps, before overall convergence is assumed
             simona.powerflow.skipOnFailure = true
             simona.powerflow.resolution = "${resolutionInSec}s"

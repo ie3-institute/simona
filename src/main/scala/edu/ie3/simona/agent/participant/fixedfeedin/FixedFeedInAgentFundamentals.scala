@@ -25,6 +25,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
 }
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.FixedFeedInRuntimeConfig
@@ -93,7 +94,7 @@ protected trait FixedFeedInAgentFundamentals
     *   based on the data source definition
     */
   override def determineModelBaseStateData(
-      inputModel: FixedFeedInInput,
+      inputModel: InputModelContainer[FixedFeedInInput],
       modelConfig: FixedFeedInRuntimeConfig,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
@@ -143,7 +144,7 @@ protected trait FixedFeedInAgentFundamentals
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution,
-        inputModel.getNode
+        inputModel.electricalInputModel.getNode
           .getvTarget()
           .to(PU)
       ),
@@ -154,12 +155,12 @@ protected trait FixedFeedInAgentFundamentals
   }
 
   override def buildModel(
-      inputModel: FixedFeedInInput,
+      inputModel: InputModelContainer[FixedFeedInInput],
       modelConfig: FixedFeedInRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
   ): FixedFeedInModel = FixedFeedInModel(
-    inputModel,
+    inputModel.electricalInputModel,
     modelConfig,
     simulationStartDate,
     simulationEndDate

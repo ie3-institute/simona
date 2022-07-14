@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant.statedata
 
 import akka.actor.ActorRef
+import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
@@ -64,7 +65,7 @@ object ParticipantStateData {
       C <: SimonaConfig.BaseRuntimeConfig,
       PD <: PrimaryData
   ](
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: C,
       secondaryDataServices: Option[
         Vector[SecondaryDataService[_ <: SecondaryData]]
@@ -107,7 +108,7 @@ object ParticipantStateData {
       C <: SimonaConfig.BaseRuntimeConfig,
       PD <: PrimaryData
   ](
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: C,
       primaryServiceProxy: ActorRef,
       secondaryDataServices: Option[
@@ -119,6 +120,37 @@ object ParticipantStateData {
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig
   ) extends InitializeStateData[PD]
+
+  object ParticipantInitializeStateData {
+    def apply[
+        I <: SystemParticipantInput,
+        C <: SimonaConfig.BaseRuntimeConfig,
+        PD <: PrimaryData
+    ](
+        inputModel: I,
+        modelConfig: C,
+        primaryServiceProxy: ActorRef,
+        secondaryDataServices: Option[
+          Vector[SecondaryDataService[_ <: SecondaryData]]
+        ],
+        simulationStartDate: ZonedDateTime,
+        simulationEndDate: ZonedDateTime,
+        resolution: Long,
+        requestVoltageDeviationThreshold: Double,
+        outputConfig: ParticipantNotifierConfig
+    ): ParticipantInitializeStateData[I, C, PD] =
+      new ParticipantInitializeStateData[I, C, PD](
+        SimpleInputContainer(inputModel),
+        modelConfig,
+        primaryServiceProxy,
+        secondaryDataServices,
+        simulationStartDate,
+        simulationEndDate,
+        resolution,
+        requestVoltageDeviationThreshold,
+        outputConfig
+      )
+  }
 
   /** StateData to be used, while waiting for registration replies
     *
@@ -140,4 +172,17 @@ object ParticipantStateData {
       pendingResponses: Vector[ActorRef],
       foreseenNextDataTicks: Map[ActorRef, Long] = Map.empty
   ) extends ParticipantStateData[PD]
+
+  sealed trait InputModelContainer[+I <: SystemParticipantInput] {
+    val electricalInputModel: I
+  }
+
+  final case class SimpleInputContainer[+I <: SystemParticipantInput](
+      override val electricalInputModel: I
+  ) extends InputModelContainer[I]
+
+  final case class WithHeatInputContainer[+I <: SystemParticipantInput](
+      override val electricalInputModel: I,
+      thermalGrid: ThermalGrid
+  ) extends InputModelContainer[I]
 }
