@@ -990,7 +990,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             "by invalid parametrization of one control groups where vMin is lower than the lower boundary (0.8 of nominal Voltage)!"
         }
 
-        "throw Exception when vMax is higher then +21% of nominal Voltage" in {
+        "throw Exception if vMax is higher than +20% of nominal Voltage" in {
           val dut = TransformerControlGroup(
             List("6888c53a-7629-4563-ac8e-840f80b03106"),
             List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
