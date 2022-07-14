@@ -51,7 +51,7 @@ object GridAgentFailFast {
             transformer =>
               // Check if transformer is part of subgrid of this GridAgent
               val transformerUnit2W = transformerUnits2W
-                .find(element => element.getUuid == transformer)
+                .find(_.getUuid == transformer)
               val transformerUnit3W = transformerUnits3W
                 .find(element => element.getUuid == transformer)
               if (transformerUnit2W.isDefined || transformerUnit3W.isDefined) {
