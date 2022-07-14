@@ -11,8 +11,6 @@ import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import breeze.numerics.abs
 import edu.ie3.datamodel.exceptions.InvalidGridException
-import edu.ie3.datamodel.models.input.MeasurementUnitInput
-import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.model.control.TransformerControlGroup
 import edu.ie3.simona.model.grid.GridModel.{GridComponents, GridControls}
@@ -23,9 +21,6 @@ import edu.ie3.simona.test.common.model.grid.{
   FiveLinesWithNodes
 }
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
-import testutils.TestObjectFactory
-
-import scala.jdk.CollectionConverters.SetHasAsJava
 
 class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
