@@ -45,8 +45,7 @@ object GridAgentFailFast {
     val transformerUnits3W =
       gridAgentInitData.subGridContainer.getRawGrid.getTransformer3Ws.asScala
 
-    if (maybeControlConfig.isDefined) {
-      maybeControlConfig.foreach(control =>
+    maybeControlConfig.foreach(control =>
         control.transformer.foreach(transformer =>
           transformer.transformers.map(UUID.fromString).foreach {
             transformers =>
@@ -76,6 +75,6 @@ object GridAgentFailFast {
           }
         )
       )
-    }
+    
   }
 }
