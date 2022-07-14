@@ -13,7 +13,7 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import java.util.UUID
 import scala.jdk.CollectionConverters._
 
-case object GridAgentFailFast {
+object GridAgentFailFast {
 
   def failFast(
       gridAgentInitData: GridAgentInitData,
