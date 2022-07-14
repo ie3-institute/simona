@@ -46,17 +46,17 @@ object GridAgentFailFast {
       gridAgentInitData.subGridContainer.getRawGrid.getTransformer3Ws.asScala
 
     maybeControlConfig.foreach(control =>
-        control.transformer.foreach(transformer =>
-          transformer.transformers.map(UUID.fromString).foreach {
-            transformers =>
+        control.transformer.foreach(controlGroup =>
+          controlGroup.transformers.map(UUID.fromString).foreach {
+            transformer =>
               // Check if transformer is part of subgrid of this GridAgent
               val transformerUnit2W = transformerUnits2W
-                .find(element => element.getUuid == transformers)
+                .find(element => element.getUuid == transformer)
               val transformerUnit3W = transformerUnits3W
-                .find(element => element.getUuid == transformers)
+                .find(element => element.getUuid == transformer)
               if (transformerUnit2W.isDefined || transformerUnit3W.isDefined) {
 
-                transformer.measurements
+                controlGroup.measurements
                   .map(UUID.fromString)
                   .foreach { measurements =>
                     val measurementUnit = measurementUnits
@@ -75,6 +75,6 @@ object GridAgentFailFast {
           }
         )
       )
-    
+
   }
 }
