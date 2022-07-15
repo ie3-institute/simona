@@ -16,7 +16,6 @@ import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
 import edu.ie3.simona.agent.{EnvironmentRefs, SimonaAgent}
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestGridPowerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -35,8 +34,6 @@ import edu.ie3.util.TimeUtil
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object GridAgent {
@@ -53,7 +50,6 @@ object GridAgent {
       )
     )
 }
-
 class GridAgent(
     val environmentRefs: EnvironmentRefs,
     simonaConfig: SimonaConfig,
@@ -109,7 +105,7 @@ class GridAgent(
           _
         ) =>
       // fail fast sanity checks
-      failFast(gridAgentInitData)
+      GridAgentFailFast.failFast(gridAgentInitData, simonaConfig)
 
       log.debug(
         s"Inferior Subnets: {}; Inferior Subnet Nodes: {}",
@@ -137,7 +133,8 @@ class GridAgent(
           .toZonedDateTime(simonaConfig.simona.time.startDateTime),
         TimeUtil.withDefaults.toZonedDateTime(
           simonaConfig.simona.time.endDateTime
-        )
+        ),
+        simonaConfig.simona.control
       )
 
       /* Reassure, that there are also calculation models for the given uuids */
@@ -223,13 +220,4 @@ class GridAgent(
   // everything else
   whenUnhandled(myUnhandled())
 
-  private def failFast(gridAgentInitData: GridAgentInitData): Unit = {
-    if (
-      gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty
-    )
-      throw new GridAgentInitializationException(
-        s"$actorName has neither superior nor inferior grids! This can either " +
-          s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"
-      )
-  }
 }

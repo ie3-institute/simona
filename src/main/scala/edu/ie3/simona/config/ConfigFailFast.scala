@@ -12,7 +12,9 @@ import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
 import edu.ie3.simona.config.SimonaConfig.{
   BaseOutputConfig,
   RefSystemConfig,
-  ResultKafkaParams
+  ResultKafkaParams,
+  Simona,
+  TransformerControlGroup
 }
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
@@ -136,6 +138,9 @@ case object ConfigFailFast extends LazyLogging {
 
     /* Check power flow resolution configuration */
     checkPowerFlowResolutionConfiguration(simonaConfig.simona.powerflow)
+
+    /* Check control scheme definitions */
+    simonaConfig.simona.control.foreach(checkControlSchemes)
   }
 
   /** Checks for valid sink configuration
@@ -546,6 +551,57 @@ case object ConfigFailFast extends LazyLogging {
         s"Invalid time resolution. Please ensure, that " +
           s"the time resolution for power flow calculation is at least rounded to a full second!"
       )
+    }
+  }
+
+  /** Check the validity of control scheme definitions
+    *
+    * @param control
+    *   Control scheme definitions
+    */
+  private def checkControlSchemes(control: Simona.Control): Unit = {
+    control.transformer.foreach(checkTransformerControl)
+  }
+
+  /** Check the suitability of transformer control group definition.
+    *
+    * One important check cannot be performed at this place, as input data is
+    * not available, yet: Do the measurements belong to a region, that can be
+    * influenced by the transformer? This is partly addressed in
+    * [[edu.ie3.simona.agent.grid.GridAgentFailFast]]
+    *
+    * @param transformerControlGroup
+    *   Transformer control group definition
+    */
+  private def checkTransformerControl(
+      transformerControlGroup: TransformerControlGroup
+  ): Unit = {
+    val lowerBoundary = 0.8
+    val upperBoundary = 1.2
+    transformerControlGroup match {
+      case TransformerControlGroup(measurements, transformers, vMax, vMin) =>
+        if (measurements.isEmpty)
+          throw new InvalidConfigParameterException(
+            s"A transformer control group (${transformerControlGroup.toString}) cannot have no measurements assigned."
+          )
+        if (transformers.isEmpty)
+          throw new InvalidConfigParameterException(
+            s"A transformer control group (${transformerControlGroup.toString}) cannot have no transformers assigned."
+          )
+        if (vMax < vMin)
+          throw new InvalidConfigParameterException(
+            s"The minimum permissible voltage magnitude of a transformer control group (${transformerControlGroup.toString}) must be smaller than the maximum permissible voltage magnitude."
+          )
+        if (vMin < lowerBoundary)
+          throw new InvalidConfigParameterException(
+            s"A control group (${transformerControlGroup.toString}) which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
+              s"by invalid parametrization of one control groups where vMin is lower than the lower boundary (0.8 of nominal Voltage)!"
+          )
+        if (vMax > upperBoundary)
+          throw new InvalidConfigParameterException(
+            s"A control group (${transformerControlGroup.toString}) which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
+              s"by invalid parametrization of one control groups where vMax is higher than the upper boundary (1.2 of nominal Voltage)!"
+          )
     }
   }
 
