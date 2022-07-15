@@ -567,7 +567,8 @@ case object ConfigFailFast extends LazyLogging {
     *
     * One important check cannot be performed at this place, as input data is
     * not available, yet: Do the measurements belong to a region, that can be
-    * influenced by the transformer?
+    * influenced by the transformer? This is partly addressed in
+    * [[edu.ie3.simona.agent.grid.GridAgentFailFast]]
     *
     * @param transformerControlGroup
     *   Transformer control group definition

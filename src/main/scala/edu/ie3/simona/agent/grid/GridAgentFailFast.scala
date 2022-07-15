@@ -77,6 +77,7 @@ object GridAgentFailFast {
             .find(_.getUuid == transformer)
           val transformerUnit3W = transformerUnits3W
             .find(_.getUuid == transformer)
+
           /** In order to check that the measurements are located in the subgrid
             * of this GridAgent, it is first checked if the transformer belongs
             * to this GridAgent and is therefore part of this subgrid.
