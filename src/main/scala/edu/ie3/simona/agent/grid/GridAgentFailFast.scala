@@ -73,13 +73,15 @@ object GridAgentFailFast {
     maybeControlConfig.foreach(control =>
       control.transformer.foreach(controlGroup =>
         controlGroup.transformers.map(UUID.fromString).foreach { transformer =>
-          // Check if transformer is part of subgrid of this GridAgent
           val transformerUnit2W = transformerUnits2W
             .find(_.getUuid == transformer)
           val transformerUnit3W = transformerUnits3W
             .find(_.getUuid == transformer)
+          /** In order to check that the measurements are located in the subgrid
+            * of this GridAgent, it is first checked if the transformer belongs
+            * to this GridAgent and is therefore part of this subgrid.
+            */
           if (transformerUnit2W.isDefined || transformerUnit3W.isDefined) {
-
             controlGroup.measurements
               .map(UUID.fromString)
               .foreach { measurement =>
