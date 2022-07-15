@@ -6,20 +6,14 @@
 
 package edu.ie3.simona.main
 
-import akka.actor.ActorSystem
-
-import java.util.concurrent.TimeUnit
-import akka.pattern.ask
+import akka.actor.typed.ActorSystem
 import akka.util.Timeout
 import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, SimonaConfig}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  InitSimMessage,
-  SimulationFailureMessage,
-  SimulationSuccessfulMessage
-}
 import edu.ie3.simona.sim.SimonaSim
+import edu.ie3.simona.sim.SimonaSim.InitSimMessage
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.Await
 
 /** Run a standalone simulation of simona
@@ -53,25 +47,13 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
   override def run(
       simonaSetup: SimonaStandaloneSetup
   ): Unit = {
-    val actorSystem: ActorSystem = simonaSetup.buildActorSystem.apply()
-    // build the simulation container actor
-    val simonaSim = actorSystem.actorOf(
-      SimonaSim.props(simonaSetup)
-    )
+    val actorSystem =
+      ActorSystem(SimonaSim(simonaSetup), name = "SimonaSim")
 
-    // run the simulation
-    val terminated = simonaSim ? InitSimMessage
+    // initialize and run the simulation
+    actorSystem ! InitSimMessage
 
-    Await.result(terminated, timeout.duration) match {
-      case SimulationFailureMessage | SimulationSuccessfulMessage =>
-        Await.ready(shutdownGracefully(simonaSim), timeout.duration)
-        Await.ready(actorSystem.terminate(), timeout.duration)
-
-      case unknown =>
-        throw new RuntimeException(
-          s"Unexpected message from SimonaSim $unknown"
-        )
-    }
+    Await.ready(actorSystem.whenTerminated, timeout.duration)
 
   }
 

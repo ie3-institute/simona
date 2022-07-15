@@ -6,13 +6,15 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.{ActorContext, ActorRef, ActorSystem}
+import akka.actor.typed.ActorRef
+import akka.actor.{ActorContext, ActorRef => ClassicActorRef}
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
+import edu.ie3.simona.sim.SimonaSim
 
 /** Trait that can be used to setup a customized simona simulation by providing
   * implementations for all setup information required by a
@@ -31,11 +33,6 @@ trait SimonaSetup {
     */
   val args: Array[String]
 
-  /** A function, that constructs the [[ActorSystem]], the simulation shall live
-    * in
-    */
-  val buildActorSystem: () => ActorSystem
-
   /** Creates a sequence of runtime event listeners
     *
     * @param context
@@ -43,7 +40,9 @@ trait SimonaSetup {
     * @return
     *   A sequence of actor references to runtime event listeners
     */
-  def runtimeEventListener(context: ActorContext): Seq[ActorRef]
+  def runtimeEventListener(
+      context: ActorContext
+  ): Seq[ClassicActorRef]
 
   /** Creates a sequence of system participant event listeners
     *
@@ -54,8 +53,8 @@ trait SimonaSetup {
     */
   def systemParticipantsListener(
       context: ActorContext,
-      simonaSim: ActorRef
-  ): Seq[ActorRef]
+      simonaSim: ActorRef[SimonaSim.Request]
+  ): Seq[ClassicActorRef]
 
   /** Creates a primary service proxy. The proxy is the first instance to ask
     * for primary data. If necessary, it delegates the registration request to
@@ -71,8 +70,8 @@ trait SimonaSetup {
     */
   def primaryServiceProxy(
       context: ActorContext,
-      scheduler: ActorRef
-  ): (ActorRef, InitPrimaryServiceProxyStateData)
+      scheduler: ClassicActorRef
+  ): (ClassicActorRef, InitPrimaryServiceProxyStateData)
 
   /** Creates a weather service
     *
@@ -86,8 +85,8 @@ trait SimonaSetup {
     */
   def weatherService(
       context: ActorContext,
-      scheduler: ActorRef
-  ): (ActorRef, InitWeatherServiceStateData)
+      scheduler: ClassicActorRef
+  ): (ClassicActorRef, InitWeatherServiceStateData)
 
   /** Loads external simulations and provides corresponding actors and init data
     *
@@ -100,7 +99,7 @@ trait SimonaSetup {
     */
   def extSimulations(
       context: ActorContext,
-      scheduler: ActorRef
+      scheduler: ClassicActorRef
   ): ExtSimSetupData
 
   /** Creates a scheduler service
@@ -112,8 +111,8 @@ trait SimonaSetup {
     */
   def scheduler(
       context: ActorContext,
-      runtimeEventListener: Seq[ActorRef]
-  ): ActorRef
+      runtimeEventListener: Seq[ClassicActorRef]
+  ): ClassicActorRef
 
   /** Creates all the needed grid agents
     *
@@ -130,8 +129,8 @@ trait SimonaSetup {
   def gridAgents(
       context: ActorContext,
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ActorRef]
-  ): Map[ActorRef, GridAgentInitData]
+      systemParticipantListener: Seq[ClassicActorRef]
+  ): Map[ClassicActorRef, GridAgentInitData]
 
   /** SIMONA links sub grids connected by a three winding transformer a bit
     * different. Therefore, the internal node has to be set as superior node.

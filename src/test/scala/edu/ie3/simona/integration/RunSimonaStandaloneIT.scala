@@ -24,6 +24,7 @@ import org.scalatest.BeforeAndAfterAll
 
 import scala.io.{BufferedSource, Source}
 import scala.jdk.CollectionConverters._
+import scala.util.Using
 
 class RunSimonaStandaloneIT
     extends IntegrationSpecCommon
@@ -91,21 +92,25 @@ class RunSimonaStandaloneIT
       val configOutputDir = new File(resultFileHierarchy.configOutputDir)
 
       configOutputDir.isDirectory shouldBe true
-      configOutputDir.listFiles.toVector.size shouldBe 1
+      configOutputDir.listFiles.length shouldBe 1
 
       // check runtime event queue for the expected runtime events
       checkRuntimeEvents(runtimeEventQueue.asScala)
 
       // check result data
       // todo implement if valid result handling is implemented
-      val pvResultFileContent = getFileSource(
-        resultFileHierarchy,
-        classOf[PvResult]
-      ).getLines().toVector
-      pvResultFileContent.size shouldBe 190
-      pvResultFileContent.headOption.map(
-        _.equals("uuid,inputModel,p,q,timestamp")
-      )
+      Using(
+        getFileSource(
+          resultFileHierarchy,
+          classOf[PvResult]
+        )
+      ) { source =>
+        val pvResultFileContent = source.getLines().toSeq
+        pvResultFileContent.size shouldBe 190
+        pvResultFileContent.headOption.map(
+          _.equals("uuid,inputModel,p,q,timestamp")
+        )
+      }
 
     }
 
