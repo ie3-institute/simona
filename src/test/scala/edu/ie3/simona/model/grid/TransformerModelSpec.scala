@@ -403,7 +403,8 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
               grid,
               refSystem,
               defaultSimulationStart,
-              defaultSimulationEnd
+              defaultSimulationEnd,
+              controlConfig = None
             )
 
             gridModel.gridComponents.transformers

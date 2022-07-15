@@ -12,7 +12,9 @@ import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
 import edu.ie3.simona.config.SimonaConfig.{
   BaseOutputConfig,
   RefSystemConfig,
-  ResultKafkaParams
+  ResultKafkaParams,
+  Simona,
+  TransformerControlGroup
 }
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
@@ -136,6 +138,9 @@ case object ConfigFailFast extends LazyLogging {
 
     /* Check power flow resolution configuration */
     checkPowerFlowResolutionConfiguration(simonaConfig.simona.powerflow)
+
+    /* Check control scheme definitions */
+    simonaConfig.simona.control.foreach(checkControlSchemes)
   }
 
   /** Checks for valid sink configuration
@@ -547,6 +552,50 @@ case object ConfigFailFast extends LazyLogging {
           s"the time resolution for power flow calculation is at least rounded to a full second!"
       )
     }
+  }
+
+  /** Check the validity of control scheme definitions
+    *
+    * @param control
+    *   Control scheme definitions
+    */
+  private def checkControlSchemes(control: Simona.Control): Unit = {
+    control.transformer.foreach(checkTransformerControl)
+  }
+
+  /** Check the suitability of transformer control group definition.
+    *
+    * One important check cannot be performed at this place, as input data is
+    * not available, yet: Do the measurements belong to a region, that can be
+    * influenced by the transformer?
+    *
+    * @param transformerControlGroup
+    *   Transformer control group definition
+    */
+  private def checkTransformerControl(
+      transformerControlGroup: TransformerControlGroup
+  ): Unit = transformerControlGroup match {
+    case TransformerControlGroup(measurements, transformers, vMax, vMin) =>
+      if (measurements.isEmpty)
+        throw new InvalidConfigParameterException(
+          "A transformer control group cannot have no measurements assigned."
+        )
+      if (transformers.isEmpty)
+        throw new InvalidConfigParameterException(
+          "A transformer control group cannot have no transformers assigned."
+        )
+      if (vMin < 0)
+        throw new InvalidConfigParameterException(
+          "The minimum permissible voltage magnitude of a transformer control group has to be positive."
+        )
+      if (vMax < 0)
+        throw new InvalidConfigParameterException(
+          "The maximum permissible voltage magnitude of a transformer control group has to be positive."
+        )
+      if (vMax < vMin)
+        throw new InvalidConfigParameterException(
+          "The minimum permissible voltage magnitude of a transformer control group must be smaller than the maximum permissible voltage magnitude."
+        )
   }
 
   /** Check the default config

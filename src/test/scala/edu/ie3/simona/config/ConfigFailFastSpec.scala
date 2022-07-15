@@ -13,6 +13,7 @@ import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.{Csv, InfluxDb1x}
 import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow.Newtonraphson
 import edu.ie3.simona.config.SimonaConfig.Simona.{Powerflow, Time}
+import edu.ie3.simona.config.SimonaConfig.TransformerControlGroup
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
@@ -67,8 +68,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                   List(10, 30),
                   100
                 ),
-                Duration.of(3600, ChronoUnit.SECONDS),
-                Duration.of(3600, ChronoUnit.SECONDS)
+                resolution = Duration.of(3600, ChronoUnit.SECONDS),
+                sweepTimeout = Duration.of(3600, ChronoUnit.SECONDS)
               )
             )
           }
@@ -930,7 +931,76 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             )
           }.getMessage shouldBe "The weather data scheme 'this won't work' is not supported. Supported schemes:\n\ticon\n\tcosmo"
         }
+      }
 
+      "checking the transformer control groups" should {
+        val checkTransformerControl =
+          PrivateMethod[Unit](Symbol("checkTransformerControl"))
+
+        "throw an exception, if the measurements are empty" in {
+          val dut = TransformerControlGroup(
+            List.empty[String],
+            List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
+            1.02,
+            0.98
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe "A transformer control group cannot have no measurements assigned."
+        }
+
+        "throw an exception, if the transformers are empty" in {
+          val dut = TransformerControlGroup(
+            List("6888c53a-7629-4563-ac8e-840f80b03106"),
+            List.empty[String],
+            1.02,
+            0.98
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe "A transformer control group cannot have no transformers assigned."
+        }
+
+        "throw an exception, if vMax is smaller than vMin" in {
+          val dut = TransformerControlGroup(
+            List("6888c53a-7629-4563-ac8e-840f80b03106"),
+            List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
+            0.98,
+            1.02
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe "The minimum permissible voltage magnitude of a transformer control group must be smaller than the maximum permissible voltage magnitude."
+        }
+
+        "throw an exception, if vMin is negative" in {
+          val dut = TransformerControlGroup(
+            List("6888c53a-7629-4563-ac8e-840f80b03106"),
+            List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
+            1.02,
+            -0.98
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe "The minimum permissible voltage magnitude of a transformer control group has to be positive."
+        }
+
+        "throw an exception, if vMax is negative" in {
+          val dut = TransformerControlGroup(
+            List("6888c53a-7629-4563-ac8e-840f80b03106"),
+            List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
+            -1.02,
+            0.98
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe "The maximum permissible voltage magnitude of a transformer control group has to be positive."
+        }
       }
     }
 
