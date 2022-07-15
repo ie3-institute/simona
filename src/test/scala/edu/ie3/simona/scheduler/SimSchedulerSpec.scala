@@ -17,13 +17,22 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
   InitializeTrigger
 }
-import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
+import edu.ie3.simona.test.common.{
+  ConfigTestData,
+  TestKitWithShutdown,
+  UnitSpec
+}
 import edu.ie3.simona.util.SimonaConstants
 import org.mockito.Mockito.doReturn
 import org.scalatest.PrivateMethodTester
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar.mock
+import edu.ie3.simona.scheduler.SimSchedulerSpec.{
+  DummySupervisor,
+  RichTriggeredAgent,
+  createMockInitTrigger
+}
 
 import scala.reflect.ClassTag
 
@@ -34,9 +43,9 @@ class SimSchedulerSpec
         ConfigFactory
           .parseString(
             """
-                         |akka.loggers =["edu.ie3.simona.test.common.SilentTestEventListener"]
-                         |akka.loglevel="debug"
-          """.stripMargin
+            |akka.loggers =["edu.ie3.simona.test.common.SilentTestEventListener"]
+            |akka.loglevel="debug"
+            """.stripMargin
           )
       )
     )
@@ -60,13 +69,17 @@ class SimSchedulerSpec
   ): (TestActorRef[SimScheduler], TestProbe) = {
     val resultEventListener = TestProbe("ResultEventListener")
 
-    val simScheduler = TestActorRef(
-      new SimScheduler(
+    // make sure that the scheduler stops on exceptions
+    val supervisorRef = TestActorRef(new DummySupervisor())
+
+    val simScheduler = TestActorRef[SimScheduler](
+      SimScheduler.props(
         timeConfig,
         Iterable(resultEventListener.ref),
         stopOnFailedPowerFlow = stopOnFailedPowerFlow,
         autoStart = autostart
-      )
+      ),
+      supervisor = supervisorRef
     )
 
     (simScheduler, resultEventListener)
@@ -199,28 +212,10 @@ class SimSchedulerSpec
 
       resultEventListener.expectMsg(Initializing)
 
-      val receivedTrigger1Init =
-        triggeredAgent1.expectMsgType[TriggerWithIdMessage]
-      receivedTrigger1Init.trigger shouldBe initTrigger1
-      receivedTrigger1Init.receiverActor shouldBe triggeredAgent1.ref
-
-      triggeredAgent1.send(
+      triggeredAgent1.expectInitAndComplete(
         simScheduler,
-        CompletionMessage(
-          receivedTrigger1Init.triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(0L),
-                triggeredAgent1.ref
-              ),
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(900L),
-                triggeredAgent1.ref
-              )
-            )
-          )
-        )
+        resultEventListener,
+        Seq(0L, 900L)
       )
 
       resultEventListener.expectMsgType[InitComplete]
@@ -246,11 +241,9 @@ class SimSchedulerSpec
         triggeredAgent1.ref
       )
 
-      expectTriggerAndComplete[InitializeTrigger](
+      triggeredAgent1.expectInitAndComplete(
         simScheduler,
         resultEventListener,
-        triggeredAgent1,
-        SimonaConstants.INIT_SIM_TICK,
         Seq(0L)
       )
 
@@ -260,48 +253,43 @@ class SimSchedulerSpec
 
       resultEventListener.expectMsg(Simulating(0L, 3600L))
 
-      expectTriggerAndComplete[ActivityStartTrigger](
+      triggeredAgent1.expectAstAndComplete(
         simScheduler,
         resultEventListener,
-        triggeredAgent1,
         0L,
         Seq(900L)
       )
 
-      expectTriggerAndComplete[ActivityStartTrigger](
+      triggeredAgent1.expectAstAndComplete(
         simScheduler,
         resultEventListener,
-        triggeredAgent1,
         900L,
         Seq(1800L)
       )
 
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 900L
 
-      expectTriggerAndComplete[ActivityStartTrigger](
+      triggeredAgent1.expectAstAndComplete(
         simScheduler,
         resultEventListener,
-        triggeredAgent1,
         1800L,
         Seq(2700L)
       )
 
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 1800L
 
-      expectTriggerAndComplete[ActivityStartTrigger](
+      triggeredAgent1.expectAstAndComplete(
         simScheduler,
         resultEventListener,
-        triggeredAgent1,
         2700L,
         Seq(3600L)
       )
 
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 2700L
 
-      expectTriggerAndComplete[ActivityStartTrigger](
+      triggeredAgent1.expectAstAndComplete(
         simScheduler,
         resultEventListener,
-        triggeredAgent1,
         3600L
       )
 
@@ -330,22 +318,10 @@ class SimSchedulerSpec
         initTrigger1,
         triggeredAgent1.ref
       )
-      val receivedTrigger1Init =
-        triggeredAgent1.expectMsgType[TriggerWithIdMessage]
-
-      triggeredAgent1.send(
+      triggeredAgent1.expectInitAndComplete(
         simScheduler,
-        CompletionMessage(
-          receivedTrigger1Init.triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(3600L),
-                triggeredAgent1.ref
-              )
-            )
-          )
-        )
+        resultEventListener,
+        Seq(3600L)
       )
 
       resultEventListener.expectMsgType[InitComplete]
@@ -359,10 +335,9 @@ class SimSchedulerSpec
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 1800L
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 2700L
 
-      expectTriggerAndComplete[ActivityStartTrigger](
+      triggeredAgent1.expectAstAndComplete(
         simScheduler,
         resultEventListener,
-        triggeredAgent1,
         3600L
       )
 
@@ -391,22 +366,10 @@ class SimSchedulerSpec
         initTrigger1,
         triggeredAgent1.ref
       )
-      val receivedTrigger1Init =
-        triggeredAgent1.expectMsgType[TriggerWithIdMessage]
-
-      triggeredAgent1.send(
+      triggeredAgent1.expectInitAndComplete(
         simScheduler,
-        CompletionMessage(
-          receivedTrigger1Init.triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(3600L),
-                triggeredAgent1.ref
-              )
-            )
-          )
-        )
+        resultEventListener,
+        Seq(3600L)
       )
 
       resultEventListener.expectMsgType[InitComplete]
@@ -420,10 +383,9 @@ class SimSchedulerSpec
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 1800L
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 2700L
 
-      expectTriggerAndComplete[ActivityStartTrigger](
+      triggeredAgent1.expectAstAndComplete(
         simScheduler,
         resultEventListener,
-        triggeredAgent1,
         3600L
       )
 
@@ -451,27 +413,14 @@ class SimSchedulerSpec
 
       val triggeredAgent1 = TestProbe()
 
-      val initTrigger1 = createMockInitTrigger()
       simScheduler ! ScheduleTriggerMessage(
-        initTrigger1,
+        createMockInitTrigger(),
         triggeredAgent1.ref
       )
-      val receivedTrigger1Init =
-        triggeredAgent1.expectMsgType[TriggerWithIdMessage]
-
-      triggeredAgent1.send(
+      triggeredAgent1.expectInitAndComplete(
         simScheduler,
-        CompletionMessage(
-          receivedTrigger1Init.triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(3600L),
-                triggeredAgent1.ref
-              )
-            )
-          )
-        )
+        resultEventListener,
+        Seq(3600L)
       )
 
       resultEventListener.expectMsgType[InitComplete]
@@ -485,10 +434,9 @@ class SimSchedulerSpec
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 1800L
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 2700L
 
-      expectTriggerAndComplete[ActivityStartTrigger](
+      triggeredAgent1.expectAstAndComplete(
         simScheduler,
         resultEventListener,
-        triggeredAgent1,
         3600L,
         Seq(7200L)
       )
@@ -504,10 +452,9 @@ class SimSchedulerSpec
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 5400L
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 6300L
 
-      expectTriggerAndComplete[ActivityStartTrigger](
+      triggeredAgent1.expectAstAndComplete(
         simScheduler,
         resultEventListener,
-        triggeredAgent1,
         7200L
       )
 
@@ -532,27 +479,15 @@ class SimSchedulerSpec
 
       val triggeredAgent1 = TestProbe()
 
-      val initTrigger1 = createMockInitTrigger()
       simScheduler ! ScheduleTriggerMessage(
-        initTrigger1,
+        createMockInitTrigger(),
         triggeredAgent1.ref
       )
-      val receivedTrigger1Init =
-        triggeredAgent1.expectMsgType[TriggerWithIdMessage]
 
-      triggeredAgent1.send(
+      triggeredAgent1.expectInitAndComplete(
         simScheduler,
-        CompletionMessage(
-          receivedTrigger1Init.triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(3600L),
-                triggeredAgent1.ref
-              )
-            )
-          )
-        )
+        resultEventListener,
+        Seq(3600L)
       )
 
       resultEventListener.expectMsgType[InitComplete]
@@ -571,10 +506,9 @@ class SimSchedulerSpec
 
       resultEventListener.expectMsg(Simulating(3600L, 3600L))
 
-      expectTriggerAndComplete[ActivityStartTrigger](
+      triggeredAgent1.expectAstAndComplete(
         simScheduler,
         resultEventListener,
-        triggeredAgent1,
         3600L
       )
 
@@ -614,12 +548,10 @@ class SimSchedulerSpec
 
       resultEventListener.expectMsg(Initializing)
 
-      triggeredAgents.foreach { actor =>
-        expectTriggerAndComplete[InitializeTrigger](
+      triggeredAgents.foreach {
+        _.expectInitAndComplete(
           simScheduler,
           resultEventListener,
-          actor,
-          -1L,
           Seq(1L)
         )
       }
@@ -635,11 +567,10 @@ class SimSchedulerSpec
 
       // interact with the scheduler for each tick
       for (tick <- 1L to 9L) {
-        triggeredAgents.foreach { actor =>
-          expectTriggerAndComplete[ActivityStartTrigger](
+        triggeredAgents.foreach {
+          _.expectAstAndComplete(
             simScheduler,
             resultEventListener,
-            actor,
             tick,
             Seq(tick + 1)
           )
@@ -651,11 +582,10 @@ class SimSchedulerSpec
 
       // answer with completion for the last tick, schedule another tick to test if the simulation event terminates as
       // expected
-      triggeredAgents.foreach(actor =>
-        expectTriggerAndComplete[ActivityStartTrigger](
+      triggeredAgents.foreach(
+        _.expectAstAndComplete(
           simScheduler,
           resultEventListener,
-          actor,
           10L,
           Seq(11L)
         )
@@ -672,54 +602,186 @@ class SimSchedulerSpec
       expectMsg(SimulationSuccessfulMessage)
     }
 
-    // TODO handle error cases
-  }
+    /* exceptional cases */
 
-  private def expectTriggerAndComplete[T <: Trigger](
-      simScheduler: TestActorRef[SimScheduler],
-      resultEventListener: TestProbe,
-      triggeredAgent: TestProbe,
-      expectedTick: Long,
-      newTicks: Seq[Long] = Seq.empty
-  )(implicit tag: ClassTag[T]): Unit = {
-    val receivedTrigger =
-      triggeredAgent.expectMsgType[TriggerWithIdMessage]
+    "fail validation of StartScheduleMessage if pauseScheduleAtTick < nowInTicks" in {
+      val (simScheduler, resultEventListener) = setupScheduler()
 
-    receivedTrigger.trigger match {
-      case trigger: T =>
-        trigger.tick shouldBe expectedTick
-      case unexpected =>
-        fail(s"Received unexpected trigger $unexpected")
+      // observe if scheduler dies
+      val deathWatch = TestProbe()
+      deathWatch.watch(simScheduler)
+
+      simScheduler ! InitSimMessage
+      resultEventListener.expectMsg(Initializing)
+
+      val triggeredAgent1 = TestProbe()
+
+      simScheduler ! ScheduleTriggerMessage(
+        createMockInitTrigger(),
+        triggeredAgent1.ref
+      )
+      triggeredAgent1.expectInitAndComplete(
+        simScheduler,
+        resultEventListener,
+        Seq(900L)
+      )
+
+      resultEventListener.expectMsgType[InitComplete]
+
+      simScheduler ! StartScheduleMessage(Some(1800L))
+      resultEventListener.expectMsg(Simulating(0L, 1800L))
+
+      // should still live
+      deathWatch.expectNoMessage()
+
+      // send faulty StartScheduleMessage
+      simScheduler ! StartScheduleMessage(Some(0L))
+
+      // exception should be thrown,
+      deathWatch.expectTerminated(simScheduler)
+
+      resultEventListener.expectNoMessage()
     }
-    receivedTrigger.receiverActor shouldBe triggeredAgent.ref
 
-    // when an agent is triggered, we can be sure that no result event
-    // is fired at least until the corresponding completion has been sent out
-    resultEventListener.expectNoMessage()
+    "do nothing when receiving StartScheduleTrigger during initialization" in {
+      val (simScheduler, resultEventListener) = setupScheduler()
 
-    val newTriggers =
-      Option.when(newTicks.nonEmpty)(
-        newTicks.map(tick =>
-          ScheduleTriggerMessage(
-            ActivityStartTrigger(tick),
-            triggeredAgent.ref
-          )
-        )
+      // observe if scheduler dies
+      val deathWatch = TestProbe()
+      deathWatch.watch(simScheduler)
+
+      simScheduler ! InitSimMessage
+      resultEventListener.expectMsg(Initializing)
+
+      simScheduler ! StartScheduleMessage(None)
+
+      resultEventListener.expectNoMessage()
+      // scheduler should not die, but just continue
+      deathWatch.expectNoMessage()
+    }
+
+    "do nothing when receiving StartScheduleTrigger and already started" in {
+      val (simScheduler, resultEventListener) = setupScheduler()
+
+      // observe if scheduler dies
+      val deathWatch = TestProbe()
+      deathWatch.watch(simScheduler)
+
+      simScheduler ! InitSimMessage
+      resultEventListener.expectMsg(Initializing)
+
+      val triggeredAgent1 = TestProbe()
+
+      simScheduler ! ScheduleTriggerMessage(
+        createMockInitTrigger(),
+        triggeredAgent1.ref
+      )
+      triggeredAgent1.expectInitAndComplete(
+        simScheduler,
+        resultEventListener,
+        Seq(900L)
       )
 
-    triggeredAgent.send(
-      simScheduler,
-      CompletionMessage(
-        receivedTrigger.triggerId,
-        newTriggers
-      )
-    )
+      resultEventListener.expectMsgType[InitComplete]
+
+      simScheduler ! StartScheduleMessage(Some(1800L))
+      resultEventListener.expectMsg(Simulating(0L, 1800L))
+
+      simScheduler ! StartScheduleMessage(None)
+
+      resultEventListener.expectNoMessage()
+      // scheduler should not die, but just continue
+      deathWatch.expectNoMessage()
+    }
+
+    // TODO handle more exceptional cases
   }
 
-  private def createMockInitTrigger(): InitializeTrigger = {
+}
+
+object SimSchedulerSpec extends UnitSpec {
+
+  def createMockInitTrigger(): InitializeTrigger = {
     val mockTrigger = mock[InitializeTrigger]
     doReturn(SimonaConstants.INIT_SIM_TICK).when(mockTrigger).tick
     mockTrigger
+  }
+
+  class DummySupervisor extends Actor {
+    override def supervisorStrategy: SupervisorStrategy = OneForOneStrategy() {
+      case _: RuntimeException => SupervisorStrategy.stop
+    }
+
+    override def receive: Receive = { case _ => }
+  }
+
+  implicit class RichTriggeredAgent(private val triggeredAgent: TestProbe) {
+
+    def expectInitAndComplete(
+        simScheduler: TestActorRef[SimScheduler],
+        resultEventListener: TestProbe,
+        newTicks: Seq[Long] = Seq.empty
+    ): Unit =
+      expectTriggerAndComplete[InitializeTrigger](
+        simScheduler,
+        resultEventListener,
+        SimonaConstants.INIT_SIM_TICK,
+        newTicks
+      )
+
+    def expectAstAndComplete(
+        simScheduler: TestActorRef[SimScheduler],
+        resultEventListener: TestProbe,
+        expectedTick: Long,
+        newTicks: Seq[Long] = Seq.empty
+    ): Unit =
+      expectTriggerAndComplete[ActivityStartTrigger](
+        simScheduler,
+        resultEventListener,
+        expectedTick,
+        newTicks
+      )
+
+    private def expectTriggerAndComplete[T <: Trigger](
+        simScheduler: TestActorRef[SimScheduler],
+        resultEventListener: TestProbe,
+        expectedTick: Long,
+        newTicks: Seq[Long] = Seq.empty
+    )(implicit tag: ClassTag[T]): Unit = {
+      val receivedTrigger =
+        triggeredAgent.expectMsgType[TriggerWithIdMessage]
+
+      receivedTrigger.trigger match {
+        case trigger: T =>
+          trigger.tick shouldBe expectedTick
+        case unexpected =>
+          fail(s"Received unexpected trigger $unexpected")
+      }
+      receivedTrigger.receiverActor shouldBe triggeredAgent.ref
+
+      // when an agent is triggered, we can be sure that no result event
+      // is fired at least until the corresponding completion has been sent out
+      resultEventListener.expectNoMessage()
+
+      val newTriggers =
+        Option.when(newTicks.nonEmpty)(
+          newTicks.map(tick =>
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(tick),
+              triggeredAgent.ref
+            )
+          )
+        )
+
+      triggeredAgent.send(
+        simScheduler,
+        CompletionMessage(
+          receivedTrigger.triggerId,
+          newTriggers
+        )
+      )
+    }
+
   }
 
 }
