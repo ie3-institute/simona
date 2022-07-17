@@ -17,22 +17,14 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
   InitializeTrigger
 }
-import edu.ie3.simona.test.common.{
-  ConfigTestData,
-  TestKitWithShutdown,
-  UnitSpec
-}
-import edu.ie3.simona.util.SimonaConstants
-import org.mockito.Mockito.doReturn
-import org.scalatest.PrivateMethodTester
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatestplus.mockito.MockitoSugar.mock
 import edu.ie3.simona.scheduler.SimSchedulerSpec.{
   DummySupervisor,
-  RichTriggeredAgent,
-  createMockInitTrigger
+  RichTriggeredAgent
 }
+import edu.ie3.simona.test.common.{TestKitWithShutdown, UnitSpec}
+import edu.ie3.simona.util.SimonaConstants
+import org.mockito.Mockito.doReturn
+import org.scalatestplus.mockito.MockitoSugar.mock
 
 import scala.reflect.ClassTag
 
@@ -43,17 +35,13 @@ class SimSchedulerSpec
         ConfigFactory
           .parseString(
             """
-            |akka.loggers =["edu.ie3.simona.test.common.SilentTestEventListener"]
+            |akka.loggers=["edu.ie3.simona.test.common.SilentTestEventListener"]
             |akka.loglevel="debug"
             """.stripMargin
           )
       )
     )
-    with ImplicitSender
-    with AnyWordSpecLike
-    with Matchers
-    with PrivateMethodTester
-    with ConfigTestData {
+    with ImplicitSender {
 
   private val defaultTimeConfig = SimonaConfig.Simona.Time(
     startDateTime = "2011-01-01 00:00:00",
@@ -259,6 +247,9 @@ class SimSchedulerSpec
         0L,
         Seq(900L)
       )
+
+      // no CheckWindowPassed at tick 0
+      resultEventListener.expectNoMessage()
 
       triggeredAgent1.expectAstAndComplete(
         simScheduler,
@@ -471,7 +462,7 @@ class SimSchedulerSpec
       expectMsg(SimulationSuccessfulMessage)
     }
 
-    "stop correctly for a pauseScheduleAtTick if endTick - pauseScheduleAtTick = 1" in {
+    "pause and finish simulation correctly for a pauseScheduleAtTick if endTick - pauseScheduleAtTick = 1" in {
       val (simScheduler, resultEventListener) = setupScheduler()
 
       simScheduler ! InitSimMessage
@@ -524,7 +515,7 @@ class SimSchedulerSpec
       expectMsg(SimulationSuccessfulMessage)
     }
 
-    "should work correctly if timeBinSize == 1 and readyCheckWindow == 1" in {
+    "work correctly if timeBinSize == 1 and readyCheckWindow == 1" in {
       val triggeredAgents = Range.inclusive(1, 5).map(i => TestProbe(s"SPA_$i"))
 
       val (simScheduler, resultEventListener) = setupScheduler(
@@ -694,18 +685,185 @@ class SimSchedulerSpec
       deathWatch.expectNoMessage()
     }
 
-    // TODO handle more exceptional cases
+    "handle PowerFlow failures when stopOnFailedPowerFlow = false" in {
+      val (simScheduler, resultEventListener) = setupScheduler()
+
+      simScheduler ! InitSimMessage
+      resultEventListener.expectMsg(Initializing)
+
+      val triggeredAgent1 = TestProbe()
+
+      simScheduler ! ScheduleTriggerMessage(
+        createMockInitTrigger(),
+        triggeredAgent1.ref
+      )
+      triggeredAgent1.expectInitAndComplete(
+        simScheduler,
+        resultEventListener,
+        Seq(0L)
+      )
+
+      resultEventListener.expectMsgType[InitComplete]
+
+      simScheduler ! StartScheduleMessage(None)
+      resultEventListener.expectMsg(Simulating(0L, 3600L))
+
+      val receivedTrigger1 = triggeredAgent1.expectMsgType[TriggerWithIdMessage]
+
+      triggeredAgent1.send(simScheduler, PowerFlowFailedMessage)
+      triggeredAgent1.send(simScheduler, PowerFlowFailedMessage)
+      triggeredAgent1.send(simScheduler, PowerFlowFailedMessage)
+
+      resultEventListener.expectNoMessage()
+
+      simScheduler ! CompletionMessage(
+        receivedTrigger1.triggerId,
+        None
+      )
+
+      resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 900L
+      resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 1800L
+      resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 2700L
+      resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 3600L
+
+      val doneMsg = resultEventListener.expectMsgType[Done]
+      doneMsg.tick shouldBe 3600L
+      doneMsg.noOfFailedPF shouldBe 3
+      doneMsg.errorInSim shouldBe false
+
+      expectMsg(SimulationSuccessfulMessage)
+    }
+
+    "handle PowerFlow failures when stopOnFailedPowerFlow = true" in {
+      val (simScheduler, resultEventListener) =
+        setupScheduler(stopOnFailedPowerFlow = true)
+
+      simScheduler ! InitSimMessage
+      resultEventListener.expectMsg(Initializing)
+
+      val triggeredAgent1 = TestProbe()
+
+      simScheduler ! ScheduleTriggerMessage(
+        createMockInitTrigger(),
+        triggeredAgent1.ref
+      )
+      triggeredAgent1.expectInitAndComplete(
+        simScheduler,
+        resultEventListener,
+        Seq(0L)
+      )
+
+      resultEventListener.expectMsgType[InitComplete]
+
+      simScheduler ! StartScheduleMessage(None)
+      resultEventListener.expectMsg(Simulating(0L, 3600L))
+
+      val receivedTrigger1 = triggeredAgent1.expectMsgType[TriggerWithIdMessage]
+
+      triggeredAgent1.send(simScheduler, PowerFlowFailedMessage)
+      triggeredAgent1.send(simScheduler, PowerFlowFailedMessage)
+
+      resultEventListener.expectNoMessage()
+
+      simScheduler ! CompletionMessage(
+        receivedTrigger1.triggerId,
+        None
+      )
+
+      val doneMsg = resultEventListener.expectMsgType[Done]
+      doneMsg.tick shouldBe 3600L
+      doneMsg.noOfFailedPF shouldBe 2
+      doneMsg.errorInSim shouldBe true
+
+      expectMsg(SimulationFailureMessage)
+    }
+
+    "terminate on child actor termination when initializing" in {
+      val (simScheduler, resultEventListener) = setupScheduler()
+
+      simScheduler ! InitSimMessage
+      resultEventListener.expectMsg(Initializing)
+
+      checkTerminationHandling(simScheduler, resultEventListener)
+    }
+
+    "terminate on child actor termination when paused" in {
+      val (simScheduler, resultEventListener) = setupScheduler()
+
+      simScheduler ! InitSimMessage
+      resultEventListener.expectMsg(Initializing)
+
+      val triggeredAgent1 = TestProbe()
+
+      simScheduler ! ScheduleTriggerMessage(
+        createMockInitTrigger(),
+        triggeredAgent1.ref
+      )
+      triggeredAgent1.expectInitAndComplete(
+        simScheduler,
+        resultEventListener,
+        Seq(0L)
+      )
+
+      resultEventListener.expectMsgType[InitComplete]
+
+      checkTerminationHandling(simScheduler, resultEventListener)
+    }
+
+    "terminate on child actor termination when running" in {
+      val (simScheduler, resultEventListener) = setupScheduler(autostart = true)
+
+      simScheduler ! InitSimMessage
+      resultEventListener.expectMsg(Initializing)
+
+      val triggeredAgent1 = TestProbe()
+
+      simScheduler ! ScheduleTriggerMessage(
+        createMockInitTrigger(),
+        triggeredAgent1.ref
+      )
+      triggeredAgent1.expectInitAndComplete(
+        simScheduler,
+        resultEventListener,
+        Seq(0L)
+      )
+
+      resultEventListener.expectMsgType[InitComplete]
+      resultEventListener.expectMsg(Simulating(0L, 3600L))
+
+      checkTerminationHandling(simScheduler, resultEventListener)
+    }
   }
-
-}
-
-object SimSchedulerSpec extends UnitSpec {
 
   def createMockInitTrigger(): InitializeTrigger = {
     val mockTrigger = mock[InitializeTrigger]
     doReturn(SimonaConstants.INIT_SIM_TICK).when(mockTrigger).tick
     mockTrigger
   }
+
+  private def checkTerminationHandling(
+      simScheduler: TestActorRef[SimScheduler],
+      resultEventListener: TestProbe
+  ): Unit = {
+    // observe scheduler for stopping
+    val deathWatch = TestProbe()
+    deathWatch.watch(simScheduler)
+
+    // give scheduler a child that dies
+    val dyingActor = TestProbe()
+    simScheduler.watch(dyingActor.ref)
+
+    dyingActor.ref ! PoisonPill
+
+    resultEventListener.expectMsgType[Error]
+    expectMsg(SimulationFailureMessage)
+
+    // scheduler should have died
+    deathWatch.expectTerminated(simScheduler)
+  }
+}
+
+object SimSchedulerSpec extends UnitSpec {
 
   class DummySupervisor extends Actor {
     override def supervisorStrategy: SupervisorStrategy = OneForOneStrategy() {
