@@ -71,7 +71,7 @@ class SimScheduler(
 
       // initializing process
       val initStartTime = System.nanoTime
-      initializeAgents(stateData)
+      sendEligibleTrigger(stateData)
 
       context become schedulerReceive(
         stateData.copy(
@@ -160,15 +160,15 @@ class SimScheduler(
     case PowerFlowFailedMessage =>
       /* config dependant we either go into onErrorReceive and terminate when we have
        * all completion messages received or we just go on with the normal schedule*/
-      val updateStateData = stateData.copy(
+      val updatedStateData = stateData.copy(
         runtime = stateData.runtime
           .copy(noOfFailedPF = stateData.runtime.noOfFailedPF + 1)
       )
       if (stopOnFailedPowerFlow) {
         /* go to onError receive state */
-        context become schedulerReceiveOnError(updateStateData)
+        context become schedulerReceiveOnError(updatedStateData)
       } else {
-        context become schedulerReceive(updateStateData)
+        context become schedulerReceive(updatedStateData)
       }
 
     /* received whenever a watched agent dies */
@@ -197,6 +197,15 @@ class SimScheduler(
       if (updatedStateData.trigger.awaitingResponseMap.isEmpty)
         finishSimulationOnError(updatedStateData)
 
+      context become schedulerReceiveOnError(updatedStateData)
+
+    case PowerFlowFailedMessage =>
+      /* config dependant we either go into onErrorReceive and terminate when we have
+       * all completion messages received or we just go on with the normal schedule*/
+      val updatedStateData = stateData.copy(
+        runtime = stateData.runtime
+          .copy(noOfFailedPF = stateData.runtime.noOfFailedPF + 1)
+      )
       context become schedulerReceiveOnError(updatedStateData)
 
     /* all unhandled messages */
