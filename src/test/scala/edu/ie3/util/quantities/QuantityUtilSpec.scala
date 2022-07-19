@@ -8,24 +8,25 @@ package edu.ie3.util.quantities
 
 import edu.ie3.simona.exceptions.QuantityException
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.scala.quantities.QuantityUtil
+import edu.ie3.util.scala.quantities.QuantityUtil.RichUnit
+import org.scalatest.prop.TableDrivenPropertyChecks
 import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units.WATT
+import tech.units.indriya.unit.{ProductUnit, Units}
 
 import javax.measure.Quantity
 import javax.measure.quantity.{Energy, Power}
-import edu.ie3.util.scala.quantities.QuantityUtil
-import org.scalatest.prop.TableDrivenPropertyChecks
-import tech.units.indriya.unit.{ProductUnit, Units}
-
-import javax.measure
 import scala.util.{Failure, Success}
 
 class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
-  val unit: measure.Unit[Power] = PowerSystemUnits.KILOWATT
-  val integrationUnit =
+  private val unit = PowerSystemUnits.KILOWATT
+  private val integrationUnit =
     new ProductUnit[Energy](PowerSystemUnits.KILOWATT.multiply(Units.SECOND))
-  val integrationClass: Class[Energy] = classOf[Energy]
-  val averagingClass: Class[Power] = classOf[Power]
-  val values = Map(
+  private val integrationClass = classOf[Energy]
+  private val averagingClass = classOf[Power]
+  private val values = Map(
     2L -> Quantities.getQuantity(5d, unit),
     4L -> Quantities.getQuantity(15d, unit),
     6L -> Quantities.getQuantity(-5d, unit),
@@ -183,6 +184,30 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
               )
           }
         }
+      }
+    }
+  }
+
+  "Converting units to alternative units" should {
+    "succeed if units are compatible" in {
+      val cases = Table(
+        ("sourceUnit", "targetUnit", "expectedUnit"),
+        (VOLTAMPERE, WATT, WATT),
+        (KILOVOLTAMPERE, WATT, KILOWATT),
+        (MEGAVOLTAMPERE, WATT, MEGAWATT),
+        (VAR, WATT, WATT),
+        (KILOVAR, WATT, KILOWATT),
+        (MEGAVAR, WATT, MEGAWATT),
+        (VOLTAMPERE, VAR, VAR),
+        (KILOVOLTAMPERE, VAR, KILOVAR),
+        (MEGAVOLTAMPERE, VAR, MEGAVAR),
+        (WATT, VAR, VAR),
+        (KILOWATT, VAR, KILOVAR),
+        (MEGAWATT, VAR, MEGAVAR)
+      )
+
+      forAll(cases) { (sourceUnit, targetUnit, expectedUnit) =>
+        sourceUnit.toEquivalentIn(targetUnit) shouldBe expectedUnit
       }
     }
   }

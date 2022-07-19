@@ -343,8 +343,8 @@ class DBFSAlgorithmCenGridSpec
           ),
           ExchangePower(
             supNodeB.getUuid,
-            Quantities.getQuantity(0.160905770717798, MEGAVOLTAMPERE),
-            Quantities.getQuantity(-1.4535602349123878, MEGAVOLTAMPERE)
+            Quantities.getQuantity(0.160905770717798, MEGAWATT),
+            Quantities.getQuantity(-1.4535602349123878, MEGAVAR)
           )
         )
       )
@@ -492,8 +492,8 @@ class DBFSAlgorithmCenGridSpec
           ),
           ExchangePower(
             supNodeB.getUuid,
-            Quantities.getQuantity(0.160905770717798, MEGAVOLTAMPERE),
-            Quantities.getQuantity(-1.4535602349123878, MEGAVOLTAMPERE)
+            Quantities.getQuantity(0.160905770717798, MEGAWATT),
+            Quantities.getQuantity(-1.4535602349123878, MEGAVAR)
           )
         )
       )
