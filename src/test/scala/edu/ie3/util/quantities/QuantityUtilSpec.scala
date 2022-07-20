@@ -203,7 +203,13 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
         (MEGAVOLTAMPERE, VAR, MEGAVAR),
         (WATT, VAR, VAR),
         (KILOWATT, VAR, KILOVAR),
-        (MEGAWATT, VAR, MEGAVAR)
+        (MEGAWATT, VAR, MEGAVAR),
+        (VAR, VOLTAMPERE, VOLTAMPERE),
+        (KILOVAR, VOLTAMPERE, KILOVOLTAMPERE),
+        (MEGAVAR, VOLTAMPERE, MEGAVOLTAMPERE),
+        (WATT, VOLTAMPERE, VOLTAMPERE),
+        (KILOWATT, VOLTAMPERE, KILOVOLTAMPERE),
+        (MEGAWATT, VOLTAMPERE, MEGAVOLTAMPERE)
       )
 
       forAll(cases) { (sourceUnit, targetUnit, expectedUnit) =>
