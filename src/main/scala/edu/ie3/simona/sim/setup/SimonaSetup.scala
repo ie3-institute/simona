@@ -100,7 +100,8 @@ trait SimonaSetup {
     */
   def extSimulations(
       context: ActorContext,
-      scheduler: ActorRef
+      scheduler: ActorRef,
+      primaryServiceProxy: ActorRef
   ): ExtSimSetupData
 
   /** Creates a scheduler service

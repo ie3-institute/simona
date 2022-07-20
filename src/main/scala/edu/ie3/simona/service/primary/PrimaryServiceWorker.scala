@@ -173,7 +173,7 @@ final case class PrimaryServiceWorker[V <: Value](
   )(implicit
       serviceStateData: PrimaryServiceInitializedStateData[V]
   ): Try[PrimaryServiceInitializedStateData[V]] = registrationMessage match {
-    case ServiceMessage.WorkerRegistrationMessage(requestingActor) =>
+    case ServiceMessage.WorkerRegistrationMessage(requestingActor, _) =>
       requestingActor ! RegistrationSuccessfulMessage(
         serviceStateData.maybeNextActivationTick
       )
@@ -398,12 +398,6 @@ object PrimaryServiceWorker {
       sqlParams: SqlParams,
       databaseNamingStrategy: DatabaseNamingStrategy
   ) extends InitPrimaryServiceStateData
-
-  final case class InterfaceInitPrimaryServiceStateData(
-                                                         override val timeSeriesUuid: UUID,
-                                                         override val simulationStart: ZonedDateTime,
-                                                       // weitere Infos, die für Zugriff auf Interface benötigt werden
-                                                       )extends InitPrimaryServiceStateData
 
   /** Class carrying the state of a fully initialized [[PrimaryServiceWorker]]
     *

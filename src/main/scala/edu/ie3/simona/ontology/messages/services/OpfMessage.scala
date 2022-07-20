@@ -10,8 +10,8 @@ sealed trait OpfMessage
 object OpfMessage {
 
   final case class RegisterForOpfDataMessage(
-                                                    generator: UUID
-                                                    ) extends OpfMessage with ServiceRegistrationMessage
+                                              generator: UUID
+                                            ) extends OpfMessage with ServiceRegistrationMessage
 
   trait ExtOpfData extends PrimaryData
 
@@ -22,18 +22,18 @@ object OpfMessage {
                                          ) extends OpfMessage with ProvisionMessage[ExtOpfData]
 
   final case class ActivePowerRequest(
-                                     tick: Long
+                                       tick: Long
                                      )
 
   final case class SetpointData (
-                                 setpoints: SetPoints   // zu implementieren in API (vgl. public static final class EvcsMovements in Datei EvMovementsMessage.java)
-                                 ) extends ExtOpfData
+                                  setpoints: SetPoints   // zu implementieren in API (vgl. public static final class EvcsMovements in Datei EvMovementsMessage.java)
+                                ) extends ExtOpfData
 
   trait OpfResponseMessage extends OpfMessage
 
   final case class ActivePowerResponse(
-                                      generator: UUID,
-                                      activePower: Double // hier fehlt noch der richtige Datentyp, da an dieser stelle nicht die Setpoints aus Matpower gemeint sind, sondern die Leistung, die jeder SPA an den GA übergibt.
+                                        generator: UUID,
+                                        activePower: Double // hier fehlt noch der richtige Datentyp, da an dieser stelle nicht die Setpoints aus Matpower gemeint sind, sondern die Leistung, die jeder SPA an den GA übergibt.
                                       ) extends OpfResponseMessage
 
 }

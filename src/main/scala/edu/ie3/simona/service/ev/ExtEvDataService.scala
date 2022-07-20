@@ -200,7 +200,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
   private def requestFreeLots(tick: Long)(implicit
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Seq[ScheduleTriggerMessage]]) = {
-    serviceStateData.uuidToActorRef.foreach { case (_, evcsActor) =>
+    serviceStateData.uuidToActorRef.foreach { case (_, evcsActor) => // was heißt der Strich genau? wird das für alle evcs separat gemacht?
       evcsActor ! EvFreeLotsRequest(tick)
     }
 
