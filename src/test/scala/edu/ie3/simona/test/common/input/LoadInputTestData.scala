@@ -7,7 +7,6 @@
 package edu.ie3.simona.test.common.input
 
 import java.util.UUID
-
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed

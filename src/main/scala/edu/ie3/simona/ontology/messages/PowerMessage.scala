@@ -28,9 +28,15 @@ object PowerMessage {
     def q: ComparableQuantity[Power]
   }
 
-  /** Request the power values for the requested tick from an AssetAgent
+  /** Request the power values for the requested tick from an AssetAgent and
+    * provide the latest nodal voltage
     *
     * @param currentTick
+    *   The tick that power values are requested for
+    * @param eInPu
+    *   Real part of the complex, dimensionless nodal voltage
+    * @param fInPu
+    *   Imaginary part of the complex, dimensionless nodal voltage
     */
   final case class RequestAssetPowerMessage(
       currentTick: Long,
@@ -38,38 +44,53 @@ object PowerMessage {
       fInPu: ComparableQuantity[Dimensionless]
   ) extends PowerRequestMessage
 
-  /** Provide power values as a reply on an [[RequestAssetPowerMessage]]
+  /** Provide power values as a reply to a [[RequestAssetPowerMessage]]
     *
     * @param p
+    *   Unchanged active power
     * @param q
+    *   Unchanged reactive power
     */
   final case class AssetPowerChangedMessage(
       override val p: ComparableQuantity[Power],
       override val q: ComparableQuantity[Power]
   ) extends ProvidePowerMessage
 
-  /** Provide values as a reply on a [[RequestAssetPowerMessage]]. In contrast
+  /** Provide values as a reply to a [[RequestAssetPowerMessage]]. In contrast
     * to [[AssetPowerChangedMessage]], this message indicates that the same
     * values for [[p]] and [[q]] has been send again as in the previous request
     *
     * @param p
-    *   active power from the previous request
+    *   Active power from the previous request
     * @param q
-    *   reactive power from the previous request
+    *   Reactive power from the previous request
     */
   final case class AssetPowerUnchangedMessage(
       override val p: ComparableQuantity[Power],
       override val q: ComparableQuantity[Power]
   ) extends ProvidePowerMessage
 
+  /** Request complex power at the nodes that the inferior sub grid shares with
+    * the sender's sub grid
+    * @param currentSweepNo
+    *   The current sweep
+    * @param nodeUuids
+    *   The UUIDs of the nodes that are bordering the sender's grid
+    */
   final case class RequestGridPowerMessage(
       currentSweepNo: Int,
-      nodeUuids: Vector[UUID]
+      nodeUuids: Seq[UUID]
   ) extends PowerRequestMessage
 
+  /** Provide complex power at the nodes that the sender's sub grid shares with
+    * the superior sub grid, as a reply to a [[RequestGridPowerMessage]].
+    * @param nodalResidualPower
+    *   The complex powers of the shared nodes
+    */
   final case class ProvideGridPowerMessage(
-      nodalResidualPower: Vector[ExchangePower]
+      nodalResidualPower: Seq[ExchangePower]
   ) extends PowerResponseMessage
+
   object ProvideGridPowerMessage {
 
     /** Defining the exchanged power at one interconnection point
@@ -77,9 +98,9 @@ object PowerMessage {
       * @param nodeUuid
       *   Unique identifier of the node, at which this residual power did appear
       * @param p
-      *   active power from the previous request
+      *   Active power from the previous request
       * @param q
-      *   reactive power from the previous request
+      *   Reactive power from the previous request
       */
     final case class ExchangePower(
         nodeUuid: UUID,
@@ -88,6 +109,9 @@ object PowerMessage {
     ) extends ProvidePowerMessage
   }
 
+  /** Indicate that the power flow calculation failed, as a reply to a
+    * [[RequestGridPowerMessage]].
+    */
   final case object FailedPowerFlow extends PowerResponseMessage
 
 }

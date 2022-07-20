@@ -95,7 +95,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
     "validate the connectivity of a connected grid correctly" in new BasicGridWithSwitches {
       // enable nodes
-      override val nodes: Set[NodeModel] = super.nodes
+      override val nodes: Seq[NodeModel] = super.nodes
       nodes.foreach(_.enable())
 
       // enable lines
@@ -129,7 +129,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
     "throw an InvalidGridException if a grid is not connected" in new BasicGridWithSwitches {
       // enable nodes
-      override val nodes: Set[NodeModel] = super.nodes
+      override val nodes: Seq[NodeModel] = super.nodes
       nodes.foreach(_.enable())
 
       // remove a line from the grid
@@ -163,7 +163,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
     "throw an InvalidGridException if two switches are connected @ the same node" in new BasicGridWithSwitches {
       // enable nodes
-      override val nodes: Set[NodeModel] = super.nodes
+      override val nodes: Seq[NodeModel] = super.nodes
       nodes.foreach(_.enable())
 
       // add a second switch @ node13 (between node1 and node13)
@@ -211,7 +211,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
       "contains 3 open switches" in new BasicGridWithSwitches {
         // enable nodes
-        override val nodes: Set[NodeModel] = super.nodes
+        override val nodes: Seq[NodeModel] = super.nodes
         nodes.foreach(_.enable())
         // enable switches
         override val switches: Set[SwitchModel] = super.switches
@@ -255,7 +255,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
       "contains 3 closed switches" in new BasicGridWithSwitches {
         // enable nodes
-        override val nodes: Set[NodeModel] = super.nodes
+        override val nodes: Seq[NodeModel] = super.nodes
         nodes.foreach(_.enable())
         // enable switches
         override val switches: Set[SwitchModel] = super.switches
@@ -339,7 +339,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
       "contains 1 open and 2 closed switches" in new BasicGridWithSwitches {
         // enable nodes
-        override val nodes: Set[NodeModel] = super.nodes
+        override val nodes: Seq[NodeModel] = super.nodes
         nodes.foreach(_.enable())
         // enable switches
         override val switches: Set[SwitchModel] = super.switches
@@ -412,7 +412,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
       "contains no switches" in new BasicGrid {
         // enable nodes
-        override val nodes: Set[NodeModel] = super.nodes
+        override val nodes: Seq[NodeModel] = super.nodes
         nodes.foreach(_.enable())
 
         // get the grid from the raw data

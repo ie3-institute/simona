@@ -13,7 +13,7 @@ import edu.ie3.datamodel.io.connectors.{
   SqlConnector
 }
 
-import java.util.UUID
+import java.util.{Properties, UUID}
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
@@ -25,10 +25,14 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.notifier.{Notifier, ParticipantNotifierConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
+import org.apache.kafka.clients.admin.AdminClient
+import org.apache.kafka.common.KafkaException
 
 import java.io.File
+import java.util.concurrent.ExecutionException
 import scala.collection.mutable
-import scala.util.{Failure, Success, Try}
+import scala.jdk.CollectionConverters._
+import scala.util.{Failure, Success, Try, Using}
 
 object ConfigUtil {
 
@@ -455,6 +459,54 @@ object ConfigUtil {
           logger.debug(
             s"Successfully pinged influxDb1x with url '$url' for '$influxDb1xParamsName' configuration and s'$database'."
           )
+      }
+    }
+
+    def checkKafkaParams(
+        kafkaParams: KafkaParams,
+        topics: Seq[String]
+    ): Unit = {
+      try {
+        UUID.fromString(kafkaParams.runId)
+      } catch {
+        case e: IllegalArgumentException =>
+          throw new InvalidConfigParameterException(
+            s"The UUID '${kafkaParams.runId}' cannot be parsed as it is invalid.",
+            e
+          )
+      }
+
+      val properties = new Properties()
+      properties.put("bootstrap.servers", kafkaParams.bootstrapServers)
+      properties.put("default.api.timeout.ms", 2000)
+      properties.put("request.timeout.ms", 1000)
+      try {
+        Using(AdminClient.create(properties)) { client =>
+          val existingTopics = client.listTopics.names().get().asScala
+          topics.filterNot(existingTopics.contains)
+        } match {
+          case Failure(ke: KafkaException) =>
+            throw new InvalidConfigParameterException(
+              s"Exception creating kafka client for broker ${kafkaParams.bootstrapServers}.",
+              ke
+            )
+          case Failure(ee: ExecutionException) =>
+            throw new InvalidConfigParameterException(
+              s"Connection with kafka broker ${kafkaParams.bootstrapServers} failed.",
+              ee
+            )
+          case Failure(other) =>
+            throw new InvalidConfigParameterException(
+              s"Checking kafka config failed with unexpected exception.",
+              other
+            )
+          case Success(missingTopics) if missingTopics.nonEmpty =>
+            throw new InvalidConfigParameterException(
+              s"Required kafka topics {${missingTopics.mkString}} do not exist."
+            )
+          case Success(_) =>
+          // testing connection succeeded, do nothing
+        }
       }
     }
   }

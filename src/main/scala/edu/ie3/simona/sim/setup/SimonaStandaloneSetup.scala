@@ -255,7 +255,6 @@ class SimonaStandaloneSetup(
       .toVector :+
       context.simonaActorOf(
         ResultEventListener.props(
-          SetupHelper.allResultEntitiesToWrite(simonaConfig.simona.output),
           resultFileHierarchy,
           simonaSim
         )

@@ -24,7 +24,7 @@ import edu.ie3.simona.model.grid.{
   TransformerModel
 }
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvidePowerMessage
-import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
+import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.util.quantities.PowerSystemUnits
 import tech.units.indriya.ComparableQuantity
 
@@ -32,6 +32,7 @@ import javax.measure.Quantity
 import javax.measure.quantity.{Dimensionless, ElectricPotential}
 import tech.units.indriya.quantity.Quantities
 
+import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 /** Support and helper methods for power flow calculations provided by
@@ -69,7 +70,7 @@ trait PowerFlowSupport {
     *   [[edu.ie3.powerflow.NewtonRaphsonPF.calculate()]]
     */
   protected def composeOperatingPoint(
-      nodes: Set[NodeModel],
+      nodes: Seq[NodeModel],
       transformers2w: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
       nodeUuidToIndexMap: Map[UUID, Int],
@@ -81,8 +82,7 @@ trait PowerFlowSupport {
 
     val mainRefSystemPowerUnit = gridMainRefSystem.nominalPower.getUnit
 
-    nodes.foldLeft(Array.empty[PresetData])((operatingPoint, nodeModel) => {
-
+    nodes.map { nodeModel =>
       // note: currently we only support pq nodes as we not distinguish between pq/pv nodes -
       // when slack emulators or pv-node assets are added this needs to be considered here
       val nodeType = if (nodeModel.isSlack) NodeType.SL else NodeType.PQ
@@ -98,7 +98,7 @@ trait PowerFlowSupport {
           .get(nodeModel.uuid) match {
           case Some(actorRefsWithPower) =>
             val (p, q) = actorRefsWithPower
-              .map(_._2)
+              .map { case (_, powerMsg) => powerMsg }
               .collect {
                 case Some(providePowerMessage: ProvidePowerMessage) =>
                   providePowerMessage
@@ -116,9 +116,9 @@ trait PowerFlowSupport {
                   Quantities.getQuantity(0, mainRefSystemPowerUnit),
                   Quantities.getQuantity(0, mainRefSystemPowerUnit)
                 )
-              )((pqSum, powerMessage) => {
-                (pqSum._1.add(powerMessage.p), pqSum._2.add(powerMessage.q))
-              })
+              ) { case ((pSum, qSum), powerMessage) =>
+                (pSum.add(powerMessage.p), qSum.add(powerMessage.q))
+              }
 
             new Complex(
               gridMainRefSystem.pInPu(p).getValue.doubleValue(),
@@ -132,8 +132,9 @@ trait PowerFlowSupport {
           /* If the preset voltage is meant to be determined by means of received data and the node is a slack node
            * (only then there is received data), look it up and transform it */
           val receivedSlackVoltage =
-            receivedValuesStore.nodeToReceivedSlackVoltage.values.flatten
-              .find(_.nodeUuid == nodeModel.uuid)
+            receivedValuesStore.nodeToReceivedSlackVoltage
+              .get(nodeModel.uuid)
+              .flatten
               .getOrElse(
                 throw new RuntimeException(
                   s"No slack voltage received for node ${nodeModel.id} [${nodeModel.uuid}]!"
@@ -158,12 +159,8 @@ trait PowerFlowSupport {
                          else 1.0)
         }
 
-      val presetNodeData =
-        PresetData(nodeIdx, nodeType, apparentPower, targetVoltageInPu.abs)
-
-      operatingPoint :+ presetNodeData
-
-    })
+      PresetData(nodeIdx, nodeType, apparentPower, targetVoltageInPu.abs)
+    }.toArray
   }
 
   /** Composes the current operation point needed by
@@ -200,7 +197,8 @@ trait PowerFlowSupport {
         val nodeStateData = sweepValueStoreData.stateData
         val targetVoltage = if (nodeStateData.nodeType == NodeType.SL) {
           val receivedSlackVoltage = receivedSlackValues.values
-            .flatMap(_._2)
+            .map { case (_, slackVoltageMsg) => slackVoltageMsg }
+            .flatMap(_.nodalSlackVoltages)
             .find(_.nodeUuid == sweepValueStoreData.nodeUuid)
             .getOrElse(
               throw new RuntimeException(
@@ -245,15 +243,16 @@ trait PowerFlowSupport {
       validResult: ValidNewtonRaphsonPFResult,
       gridModel: GridModel
   ): String = {
-    val debugString = new StringBuilder("Power flow result: ")
+    val debugString = new mutable.StringBuilder("Power flow result: ")
     validResult.nodeData.foreach(nodeStateData => {
-      // get idx
-      val idx = nodeStateData.index
+      // get node index
+      val nodeIndex = nodeStateData.index
       // get nodeUUID
       val uuid = gridModel.nodeUuidToIndexMap
-        .find(_._2 == idx)
+        .find { case (_, index) => index == nodeIndex }
+        .map { case (uuid, _) => uuid }
         .getOrElse(throw new RuntimeException("NODE NOT FOUND REMOVE THIS "))
-        ._1
+
       // get nodeId from UUID
       val nodeId = gridModel.gridComponents.nodes
         .find(_.uuid == uuid)
@@ -291,7 +290,7 @@ trait PowerFlowSupport {
     *   Complex nodal voltage to use
     */
   private def transformVoltage(
-      receivedSlackVoltage: ProvideSlackVoltageMessage,
+      receivedSlackVoltage: ExchangeVoltage,
       nodeUuid: UUID,
       transformers2w: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
@@ -431,36 +430,35 @@ trait PowerFlowSupport {
           )
         // / add WithForcedVoltageVector for slackNode
         // / as we know that there is at least one slack in every grid available here, we can do a direct call on element zero
-        // // NOTE: currently only the first slack node is taken, needs to be adapted when several slacks are present
-        val forcedSlackNodeVoltage =
-          operatingPoint.find(_.nodeType == NodeType.SL) match {
-            case Some(slackNodeData) =>
-              WithForcedStartVoltages(Array(StateData(slackNodeData)))
-            case None =>
-              throw new DBFSAlgorithmException(
-                s"Unable to find a slack node in grid ${gridModel.subnetNo}."
-              )
-          }
+
+        // // NOTE: currently only the first slack node is taken, needs to be adapted when several slacks are present.
+        val slackNodeData = operatingPoint
+          .filter(_.nodeType == NodeType.SL)
+          .minByOption(_.index)
+          .getOrElse(
+            throw new DBFSAlgorithmException(
+              s"Unable to find a slack node in grid ${gridModel.subnetNo}."
+            )
+          )
+        val forcedSlackNodeVoltage = WithForcedStartVoltages(
+          Array(StateData(slackNodeData))
+        )
+
         // / execute
         val powerFlow =
           NewtonRaphsonPF(epsilon, maxIterations, admittanceMatrix)
 
-        /* Currently, only one slack node per sub net is allowed. In case a model has more than one, set all others to
+        /* Currently, only one slack node per sub grid is allowed. In case a model has more than one, set all others to
          * PQ nodes. ATTENTION: This does not cover the power flow situation correctly! */
-        val adaptedOperatingPoint = operatingPoint
-          .foldLeft((Array.empty[PresetData], true)) {
-            case ((adaptedOperatingPoint, firstSlack), nodePreset)
-                if nodePreset.nodeType == NodeType.SL =>
-              /* If this is the first slack node see, leave it as a slack node. If it is not the first one. Make it a
-               * PQ node. */
-              val adaptedNodePreset =
-                if (firstSlack) nodePreset
-                else nodePreset.copy(nodeType = NodeType.PQ)
-              (adaptedOperatingPoint.appended(adaptedNodePreset), false)
-            case ((adaptedOperatingPoint, firstSlack), nodePreset) =>
-              (adaptedOperatingPoint.appended(nodePreset), firstSlack)
-          }
-          ._1
+        val adaptedOperatingPoint = operatingPoint.map { nodePreset =>
+          if (nodePreset.nodeType == NodeType.SL) {
+            /* If this is the first slack node see, leave it as a slack node. If it is not the first one. Make it a
+             * PQ node. */
+            if (nodePreset == slackNodeData) nodePreset
+            else nodePreset.copy(nodeType = NodeType.PQ)
+          } else
+            nodePreset
+        }
 
         Try {
           powerFlow.calculate(
@@ -485,7 +483,7 @@ trait PowerFlowSupport {
           case Success(result) => result
           case Failure(exception) =>
             throw new DBFSAlgorithmException(
-              s"Power flow calculation in subnet ${gridModel.subnetNo} failed.",
+              s"Power flow calculation in subgrid ${gridModel.subnetNo} failed.",
               exception
             )
         }
