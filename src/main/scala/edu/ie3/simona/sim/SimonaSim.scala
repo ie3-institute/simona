@@ -94,7 +94,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
     simonaSetup.weatherService(context, scheduler)
 
   val extSimulationData: ExtSimSetupData =
-    simonaSetup.extSimulations(context, scheduler)
+    simonaSetup.extSimulations(context, scheduler, primaryServiceProxy)
 
   // init all services
   scheduler ! ScheduleTriggerMessage(
@@ -123,7 +123,8 @@ class SimonaSim(simonaSetup: SimonaSetup)
       scheduler,
       primaryServiceProxy,
       weatherService,
-      extSimulationData.evDataService
+      extSimulationData.evDataService,
+      extSimulationData.dcopfDataService
     ),
     systemParticipantsListener
   )

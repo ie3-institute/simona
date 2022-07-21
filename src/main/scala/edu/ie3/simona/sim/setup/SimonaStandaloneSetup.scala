@@ -16,6 +16,7 @@ import edu.ie3.simona.agent.grid.{GridAgent, GridAgentData}
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.ExtSimAdapter.InitExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
+import edu.ie3.simona.api.data.dcopf.{ExtOpfData, ExtOpfSimulation}
 import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
@@ -23,11 +24,10 @@ import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  InitializeExtSimAdapterTrigger,
-  InitializeServiceTrigger
-}
+import edu.ie3.simona.ontology.trigger.Trigger.{InitializeExtSimAdapterTrigger, InitializeServiceTrigger}
 import edu.ie3.simona.scheduler.SimScheduler
+import edu.ie3.simona.service.dcopf.ExtOpfDataService
+import edu.ie3.simona.service.dcopf.ExtOpfDataService.InitExtOpfData
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
@@ -156,7 +156,8 @@ class SimonaStandaloneSetup(
 
   override def extSimulations(
       context: ActorContext,
-      scheduler: ActorRef
+      scheduler: ActorRef,
+      primaryServiceProxy: ActorRef
   ): ExtSimSetupData = {
     val jars = ExtSimLoader.scanInputFolder()
 
@@ -192,6 +193,21 @@ class SimonaStandaloneSetup(
               )
 
               (extEvData, (extEvDataService, initExtEvData))
+
+            case (_: ExtOpfSimulation, dIndex) =>
+              val extOpfDataService = context.simonaActorOf(
+                ExtOpfDataService.props(scheduler),
+                s"$index-$dIndex"
+              )
+              val extOpfData = new ExtOpfData(extOpfDataService, extSimAdapter)
+
+              val initExtOpfData = InitializeServiceTrigger(
+                InitExtOpfData(extOpfData) // hier fehlt noch PSP und evtl. generators ActorRefs
+                primary
+              )
+
+              (extOpfData, (extOpfDataService, initExtOpfData))
+
           }.unzip
 
         extLink.getExtSimulation.setup(

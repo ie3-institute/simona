@@ -24,5 +24,6 @@ final case class EnvironmentRefs(
     scheduler: ActorRef,
     primaryServiceProxy: ActorRef,
     weather: ActorRef,
-    evDataService: Option[ActorRef]
+    evDataService: Option[ActorRef],
+    opfDataService: Option[ActorRef]
 )

@@ -6,62 +6,29 @@
 
 package edu.ie3.simona.service.primary
 
-import akka.actor.{Actor, ActorRef, PoisonPill, Props}
+import akka.actor.{Actor, ActorRef, PoisonPill, Props, Stash}
 import edu.ie3.datamodel.io.connectors.SqlConnector
-import edu.ie3.datamodel.io.naming.{
-  DatabaseNamingStrategy,
-  EntityPersistenceNamingStrategy,
-  FileNamingStrategy
-}
+import edu.ie3.datamodel.io.naming.{DatabaseNamingStrategy, EntityPersistenceNamingStrategy, FileNamingStrategy}
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
-import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
-import edu.ie3.datamodel.io.source.{
-  TimeSeriesMappingSource,
-  TimeSeriesTypeSource
-}
-import edu.ie3.datamodel.io.source.csv.{
-  CsvTimeSeriesMappingSource,
-  CsvTimeSeriesTypeSource
-}
-import edu.ie3.datamodel.io.source.sql.{
-  SqlTimeSeriesMappingSource,
-  SqlTimeSeriesTypeSource
-}
+import edu.ie3.datamodel.io.naming.timeseries.{ColumnScheme, IndividualTimeSeriesMetaInformation}
+import edu.ie3.datamodel.io.source.{TimeSeriesMappingSource, TimeSeriesTypeSource}
+import edu.ie3.datamodel.io.source.csv.{CsvTimeSeriesMappingSource, CsvTimeSeriesTypeSource}
+import edu.ie3.datamodel.io.source.sql.{SqlTimeSeriesMappingSource, SqlTimeSeriesTypeSource}
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
-  Primary => PrimaryConfig
-}
-import edu.ie3.simona.exceptions.{
-  InitializationException,
-  InvalidConfigParameterException
-}
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.{Primary => PrimaryConfig}
+import edu.ie3.simona.exceptions.{InitializationException, InvalidConfigParameterException}
 import edu.ie3.simona.logging.SimonaActorLogging
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  PrimaryServiceRegistrationMessage,
-  WorkerRegistrationMessage
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{ExtOpfRegistrationMessage, PrimaryServiceRegistrationMessage, WorkerRegistrationMessage}
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
-  InitPrimaryServiceProxyStateData,
-  PrimaryServiceStateData,
-  SourceRef
-}
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
-  CsvInitPrimaryServiceStateData,
-  InitPrimaryServiceStateData,
-  SqlInitPrimaryServiceStateData
-}
+import edu.ie3.simona.service.primary.PrimaryServiceProxy.{InitPrimaryServiceProxyStateData, PrimaryServiceStateData, SourceRef}
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.{CsvInitPrimaryServiceStateData, InitPrimaryServiceStateData, SqlInitPrimaryServiceStateData}
 
 import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
@@ -85,7 +52,8 @@ case class PrimaryServiceProxy(
     scheduler: ActorRef,
     private implicit val startDateTime: ZonedDateTime
 ) extends Actor
-    with SimonaActorLogging {
+    with SimonaActorLogging
+    with Stash {
 
   /** Start receiving without knowing specifics about myself
     *
@@ -102,28 +70,34 @@ case class PrimaryServiceProxy(
   private def uninitialized: Receive = {
     case TriggerWithIdMessage(
           InitializeServiceTrigger(
-            InitPrimaryServiceProxyStateData(
-              primaryConfig,
+            initStateData @ InitPrimaryServiceProxyStateData(
+              primaryConfig,            // hier steht drin, dass es einen ExtOPD Simulation gibt
               simulationStart
             )
           ),
           triggerId,
           _
-        ) =>
+        ) => unstashAll()
+      if (primaryConfig.dcopfParams.isDefined){
+        // in neuen state wechseln, damit OPF Registrierung empfangen werden kann
+        context become waitForExtOpfDataServiceRegistration(primaryConfig, simulationStart)
+      } else {
       /* The proxy is asked to initialize itself. If that happened successfully, change the logic of receiving
        * messages */
-      prepareStateData(primaryConfig, simulationStart) match {
-        case Success(stateData) =>
-          sender() ! CompletionMessage(triggerId, newTriggers = None)
-          context become onMessage(stateData)
-        case Failure(exception) =>
-          log.error(
-            s"Unable to initialize the $actorName. Shut it down.",
-            exception
-          )
+        prepareStateData(primaryConfig, simulationStart) match {
+          case Success(stateData) =>
+            sender() ! CompletionMessage(triggerId, newTriggers = None)
+            context become onMessage(stateData)
+          case Failure(exception) =>
+            log.error(
+              s"Unable to initialize the $actorName. Shut it down.",
+              exception
+            )
           self ! PoisonPill
+        }
       }
 
+    case ExtOpfRegistrationMessage(generators) => stash()  // if OPF message arrives before PrimaryServiceProxy could change to state "waitForExtOpfDataServiceRegistration"
     case x =>
       /* Unhandled message */
       log.error("Received unhandled message: {}", x)
@@ -157,7 +131,6 @@ case class PrimaryServiceProxy(
           .flatMap { timeSeriesUuid =>
             timeSeriesMetaInformation
               .get(timeSeriesUuid) match {
-              case // erstmal überprüfen, ob DCOPF Interface aktiv...wenn ja, dann ExtOPFDataService als PSW für alle Generatoren!
               case Some(metaInformation) =>
                 /* Only register those entries, that meet the supported column schemes */
                 when(
@@ -179,10 +152,41 @@ case class PrimaryServiceProxy(
           modelToTimeSeries,
           timeSeriesToSourceRef,
           simulationStart,
-          primaryConfig,
-          mappingSource
+          primaryConfig
         )
     }
+  }
+
+  private def waitForExtOpfDataServiceRegistration(primaryConfig: PrimaryConfig,
+                                                   simulationStart: ZonedDateTime
+                                                  ): Receive = {
+
+    case ExtOpfRegistrationMessage(generators) =>
+      val stateData = registerExtOpfDataService(primaryConfig, simulationStart, generators, sender())
+      context become onMessage(stateData)
+  }
+
+  private def registerExtOpfDataService(
+                                   primaryConfig: PrimaryConfig,
+                                   simulationStart: ZonedDateTime,
+                                   generators: List[UUID],
+                                   actorRef: ActorRef,
+                                 ): PrimaryServiceStateData ={
+
+    // Ersatz für prepare State Data
+    val ts_uuid = java.util.UUID.randomUUID()
+    val ts_uuid_list = List.fill(generators.length)(ts_uuid)
+    val metaInformation = new IndividualTimeSeriesMetaInformation(ts_uuid, ColumnScheme.ACTIVE_POWER)
+
+    val modelToTimeSeries = (generators zip ts_uuid_list).toMap
+    val timeSeriesToSourceRef = Map((ts_uuid, SourceRef(metaInformation, Some(actorRef))))
+
+    PrimaryServiceStateData(
+      modelToTimeSeries,
+      timeSeriesToSourceRef,
+      simulationStart,
+      primaryConfig
+    )
   }
 
   private def createSources(
@@ -299,7 +303,7 @@ case class PrimaryServiceProxy(
       case Some(SourceRef(_, Some(worker))) =>
         /* There is yet a worker apparent. Register the requesting actor. The worker will reply to the original
          * requesting actor. */
-        worker ! WorkerRegistrationMessage(requestingActor)
+        worker ! WorkerRegistrationMessage(requestingActor, modelUuid)
       case Some(SourceRef(metaInformation, None)) =>
         /* There is NO worker apparent, yet. Spin one off. */
         initializeWorker(
@@ -309,7 +313,7 @@ case class PrimaryServiceProxy(
         ) match {
           case Success(workerRef) =>
             /* Forward the registration request. The worker will reply about successful registration or not. */
-            workerRef ! WorkerRegistrationMessage(requestingActor)
+            workerRef ! WorkerRegistrationMessage(requestingActor, modelUuid)
 
             /* Register the new worker within the state data and change the context */
             context become onMessage(
@@ -447,7 +451,8 @@ case class PrimaryServiceProxy(
             None,
             None,
             None,
-            Some(sqlParams: SqlParams)
+            Some(sqlParams: SqlParams),
+            None
           ) =>
         Success(
           SqlInitPrimaryServiceStateData(
@@ -526,15 +531,12 @@ object PrimaryServiceProxy {
     *   Wall clock time of the first instant in simulation
     * @param primaryConfig
     *   The configuration for the sources
-    * @param mappingSource
-    *   The mapping source
     */
   final case class PrimaryServiceStateData(
       modelToTimeSeries: Map[UUID, UUID],
       timeSeriesToSourceRef: Map[UUID, SourceRef],
       simulationStart: ZonedDateTime,
-      primaryConfig: PrimaryConfig,
-      mappingSource: TimeSeriesMappingSource
+      primaryConfig: PrimaryConfig
   ) extends ServiceStateData
 
   /** Giving reference to the target time series and source worker.
@@ -572,7 +574,7 @@ object PrimaryServiceProxy {
       }
 
     val supportedSources =
-      Set("csv", "sql")
+      Set("csv", "sql", "External Matpower DC-OPF")
 
     val sourceConfigs = Seq(
       primaryConfig.couchbaseParams,

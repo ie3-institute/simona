@@ -26,7 +26,7 @@ final case class ExtSimSetupData(
     }
 
   def dcopfDataService: Option[ActorRef] = extDataServices.collectFirst {
-    case (actorRef, InitializeServiceTrigger(InitExtOpfData(_))) =>
+    case (actorRef, InitializeServiceTrigger(InitExtOpfData(_,_))) =>
       actorRef
   }
 }
