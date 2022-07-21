@@ -7,10 +7,9 @@
 package edu.ie3.simona.scheduler
 
 import akka.actor.{Actor, ActorRef}
-import com.google.common.collect.TreeMultimap
 import edu.ie3.simona.ontology.trigger.ScheduledTrigger
-import edu.ie3.simona.ontology.trigger.ScheduledTrigger.ScheduledTriggerComparator
 import edu.ie3.simona.util.SimonaConstants
+import edu.ie3.util.scala.collection.mutable.{CountingMap, PriorityMultiQueue}
 
 import scala.collection.mutable
 
@@ -71,8 +70,6 @@ object SimSchedulerStateData {
     *
     * @param triggerIdCounter
     *   no of triggers that has been scheduled for now
-    * @param triggerIdToTickMap
-    *   mapping of a triggerId to it the tick it has been send out
     * @param triggerQueue
     *   holds trigger that needs to be scheduled in ascending tick order
     * @param triggerIdToScheduledTriggerMap
@@ -82,16 +79,11 @@ object SimSchedulerStateData {
     */
   private[scheduler] final case class TriggerData(
       triggerIdCounter: Int = 0,
-      triggerIdToTickMap: Map[Long, Long] = Map.empty[Long, Long],
-      triggerQueue: java.util.PriorityQueue[ScheduledTrigger] =
-        new java.util.PriorityQueue[ScheduledTrigger](
-          ScheduledTriggerComparator
-        ),
+      triggerQueue: PriorityMultiQueue[Long, ScheduledTrigger] =
+        PriorityMultiQueue.empty[Long, ScheduledTrigger],
       triggerIdToScheduledTriggerMap: mutable.Map[Long, ScheduledTrigger] =
         mutable.Map.empty[Long, ScheduledTrigger],
-      awaitingResponseMap: TreeMultimap[java.lang.Long, ScheduledTrigger] =
-        TreeMultimap // see https://google.github.io/guava/releases/19.0/api/docs/com/google/common/collect/Multimap.html
-          .create[java.lang.Long, ScheduledTrigger]() // com.google.common.collect.Ordering.natural(), com.google.common.collect.Ordering.arbitrary())
+      awaitingResponseMap: CountingMap[Long] = CountingMap.empty[Long]
   )
 
   /** Time data information

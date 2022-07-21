@@ -15,43 +15,43 @@ import edu.ie3.datamodel.graph.SubGridGate
   */
 private[grid] trait GridAgentDataHelper {
 
-  protected val subnetGates: Vector[SubGridGate]
-  protected val subnetId: Int
+  protected val subgridGates: Vector[SubGridGate]
+  protected val subgridId: Int
 
   // methods definition
   def superiorGridIds: Vector[String] =
-    subnetGates.collect {
-      case gate: SubGridGate if gate.getInferiorSubGrid == subnetId =>
+    subgridGates.collect {
+      case gate: SubGridGate if gate.getInferiorSubGrid == subgridId =>
         gate.getSuperiorSubGrid.toString
     }
 
   def inferiorGridIds: Vector[String] =
-    subnetGates.collect {
-      case gate: SubGridGate if gate.getSuperiorSubGrid == subnetId =>
+    subgridGates.collect {
+      case gate: SubGridGate if gate.getSuperiorSubGrid == subgridId =>
         gate.getInferiorSubGrid.toString
     }
 
   def superiorGridNodeUuids: Vector[UUID] =
-    subnetGates.collect {
-      case gate: SubGridGate if gate.getInferiorSubGrid == subnetId =>
+    subgridGates.collect {
+      case gate: SubGridGate if gate.getInferiorSubGrid == subgridId =>
         gate.getSuperiorNode.getUuid
     }
 
   def inferiorGridNodeUuids: Vector[UUID] =
-    subnetGates.collect {
-      case gate: SubGridGate if gate.getSuperiorSubGrid == subnetId =>
+    subgridGates.collect {
+      case gate: SubGridGate if gate.getSuperiorSubGrid == subgridId =>
         gate.getInferiorNode.getUuid
     }
 
   def superiorGridGates: Vector[SubGridGate] =
-    subnetGates.collect {
-      case gate: SubGridGate if gate.getInferiorSubGrid == subnetId =>
+    subgridGates.collect {
+      case gate: SubGridGate if gate.getInferiorSubGrid == subgridId =>
         gate
     }
 
   def inferiorGridGates: Vector[SubGridGate] =
-    subnetGates.collect {
-      case gate: SubGridGate if gate.getSuperiorSubGrid == subnetId =>
+    subgridGates.collect {
+      case gate: SubGridGate if gate.getSuperiorSubGrid == subgridId =>
         gate
     }
 

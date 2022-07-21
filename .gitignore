@@ -232,3 +232,9 @@ deploy.properties
 
 # Ignore Gradle build output directory
 build
+
+# Remove unwanted input directories
+input/ext_sim
+input/market_price
+input/mobilitySimulator/*
+!input/mobilitySimulator/poi

@@ -6,9 +6,10 @@
 
 package edu.ie3.simona.ontology.messages
 
-import java.util.UUID
+import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import tech.units.indriya.ComparableQuantity
 
-import javax.measure.Quantity
+import java.util.UUID
 import javax.measure.quantity.ElectricPotential
 
 sealed trait VoltageMessage
@@ -18,16 +19,45 @@ sealed trait VoltageMessage
   */
 object VoltageMessage {
 
+  /** Request complex voltage at the nodes that the superior sub grid shares
+    * with the sender's sub grid
+    * @param currentSweepNo
+    *   The current sweep
+    * @param nodeUuids
+    *   The UUIDs of the nodes that are bordering the sender's grid
+    */
   final case class RequestSlackVoltageMessage(
       currentSweepNo: Int,
-      nodeUuid: UUID
+      nodeUuids: Seq[UUID]
   ) extends VoltageMessage
 
+  /** Provide complex voltage at the nodes that the sender's sub grid shares
+    * with the inferior sub grid, as a reply to a
+    * [[RequestSlackVoltageMessage]].
+    * @param nodalSlackVoltages
+    *   The complex voltages of the shared nodes
+    */
   final case class ProvideSlackVoltageMessage(
       currentSweepNo: Int,
-      nodeUuid: UUID,
-      e: Quantity[ElectricPotential],
-      f: Quantity[ElectricPotential]
+      nodalSlackVoltages: Seq[ExchangeVoltage]
   ) extends VoltageMessage
+
+  object ProvideSlackVoltageMessage {
+
+    /** Defining the exchanged voltage at one interconnection point
+      *
+      * @param nodeUuid
+      *   Unique identifier of the node for which complex voltage is shared
+      * @param e
+      *   Real part of the slack voltage
+      * @param f
+      *   Imaginary part of the slack voltage
+      */
+    final case class ExchangeVoltage(
+        nodeUuid: UUID,
+        e: ComparableQuantity[ElectricPotential],
+        f: ComparableQuantity[ElectricPotential]
+    )
+  }
 
 }

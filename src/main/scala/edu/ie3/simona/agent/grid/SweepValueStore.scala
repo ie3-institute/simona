@@ -54,7 +54,7 @@ case object SweepValueStore {
     */
   def apply(
       validResult: ValidNewtonRaphsonPFResult,
-      nodes: Set[NodeModel],
+      nodes: Seq[NodeModel],
       nodeUuidToIndexMap: Map[UUID, Int]
   ): SweepValueStore = {
     val sweepDataValues = nodes.foldLeft(Vector.empty[SweepValueStoreData])(

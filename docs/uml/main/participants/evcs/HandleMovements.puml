@@ -1,0 +1,34 @@
+@startuml
+!theme plain
+
+start
+:Determine last relevant data (schedule);
+:Validate movements;
+partition "Apply schedule to apparent cars" {
+    :Get schedule for ev;
+    note left: Each schedule is applied to\neach car apparent in that\ninstant for the time frame\nsince last movement asynchronously.
+    if (car has schedule?) then (Yes)
+        partition "Charge ev" {
+            :filter applicable slice of schedule;
+            while (schedule entry available?)
+                :determine time bounds for entry;
+                :calculate energy in this entry;
+                :accumulate energy in this slice;
+                :determine charging power;
+                :update SoC;
+                :build result entry;
+            endwhile (No)
+            :update ev + handback results;
+        }
+    else
+        :return uncharged car + empty results;
+    endif
+}
+:Calculate departed evs;
+:Update result value store;
+:Announce arrived evs to listener;
+:Update relevant calculation data;
+
+stop
+
+@enduml

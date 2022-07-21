@@ -21,6 +21,7 @@ import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
+import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
 import edu.ie3.simona.ontology.trigger.Trigger.{
@@ -169,7 +170,13 @@ class SimonaStandaloneSetup(
           ExtSimAdapter.props(scheduler),
           s"$index"
         )
-        val extSimAdapterData = new ExtSimAdapterData(extSimAdapter, args)
+
+        val extSimAdapterData =
+          new ExtSimAdapterData(
+            extSimAdapter,
+            args
+          )
+
         val initExtSimAdapter = InitializeExtSimAdapterTrigger(
           InitExtSimAdapter(extSimAdapterData)
         )
