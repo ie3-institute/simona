@@ -126,7 +126,7 @@ final case class RefSystem private (
     * @param qInPu
     *   referenced active power value in p.u.
     * @return
-    *   unreferenced active power value in VAr
+    *   unreferenced active power value in Var
     */
   def qInSi(qInPu: Quantity[Dimensionless]): ComparableQuantity[Power] =
     nominalPower
