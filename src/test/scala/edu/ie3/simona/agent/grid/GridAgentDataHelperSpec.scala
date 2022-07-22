@@ -15,8 +15,8 @@ import edu.ie3.simona.test.common.model.grid.SubGridGateMokka
 object GridAgentDataHelperSpec {
 
   final case class TestGridData(
-      subnetId: Int,
-      subnetGates: Vector[SubGridGate]
+      subgridId: Int,
+      subgridGates: Vector[SubGridGate]
   ) extends GridAgentDataHelper {
 
     def getSuperiorGridGates: Vector[SubGridGate] =

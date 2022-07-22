@@ -14,8 +14,8 @@ import edu.ie3.datamodel.models.voltagelevels.VoltageLevel
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.scala.OperationInterval
+import tech.units.indriya.ComparableQuantity
 
-import javax.measure.Quantity
 import javax.measure.quantity.Dimensionless
 
 /** This model represents an electric node
@@ -38,7 +38,7 @@ final case class NodeModel(
     id: String,
     operationInterval: OperationInterval,
     isSlack: Boolean,
-    vTarget: Quantity[Dimensionless],
+    vTarget: ComparableQuantity[Dimensionless],
     voltLvl: VoltageLevel
 ) extends SystemComponent(
       uuid,

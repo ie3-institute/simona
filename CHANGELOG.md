@@ -49,6 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed some unreachable code [#167](https://github.com/ie3-institute/simona/issues/167)
 - Fix treatment of non-InitializeTrigger triggers in initialization within SimScheduler [#237](https://github.com/ie3-institute/simona/issues/237)
 - Fix breaking SIMONA caused by introducing temperature dependant load profiles in PSDM [#255](https://github.com/ie3-institute/simona/issues/255)
+- Fix handling of multiple connections between subgrids [#22](https://github.com/ie3-institute/simona/issues/22)
+  - Consolidate request replies for different sub grid gates in one message
+  - Await and send responses for distinct pairs of sender reference and target node
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)
