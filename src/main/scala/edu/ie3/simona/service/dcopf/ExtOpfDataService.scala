@@ -15,18 +15,13 @@ import edu.ie3.simona.api.data.ontology.ExtDataMessage
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
+import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.OpfMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ExtOpfRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceActivationBaseStateData
-}
-import edu.ie3.simona.service.dcopf.ExtOpfDataService.{
-  ExtOpfStateData,
-  InitExtOpfData
-}
+import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceActivationBaseStateData}
+import edu.ie3.simona.service.dcopf.ExtOpfDataService.{ExtOpfStateData, InitExtOpfData}
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.ProvidePrimaryDataMessage
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
@@ -192,7 +187,7 @@ class ExtOpfDataService(
     */
   override protected def announceInformation(
       tick: Long
-  )(implicit extOpfStateData: ExtOpfStateData): ExtOpfStateData = {
+  )(implicit extOpfStateData: ExtOpfStateData): (ExtOpfStateData, Option[Seq[ScheduleTriggerMessage]]) = {
     extOpfStateData.extOpfMessage.getOrElse(
       throw ServiceException(
         "ExtOpfDataActor was triggered without available ExtOpfMessage"
@@ -226,7 +221,7 @@ class ExtOpfDataService(
             // muss alte Nachricht noch gelöscht werden?
             // muss nächster Tick (+900L) angegeben werden?
           )
-        updatedStateData
+        (updatedStateData, None) // hier nicht zurück geben?
     }
   }
 

@@ -474,6 +474,7 @@ case class PrimaryServiceProxy(
             None,
             Some(PrimaryDataCsvParams(csvSep, directoryPath, _, timePattern)),
             None,
+            None,
             None
           ) =>
         /* The actual data sources are from csv. Meta information have to match */
@@ -502,8 +503,8 @@ case class PrimaryServiceProxy(
             None,
             None,
             None,
-            Some(sqlParams: SqlParams),
-            None
+            None,
+            Some(sqlParams: SqlParams)
           ) =>
         Success(
           SqlInitPrimaryServiceStateData(

@@ -15,7 +15,7 @@ task genConfigClass {
       args = [
         "build/tscfg-${tscfgVersion}.jar",
         "--spec",
-        "simona/src/main/resources/config/config-template.conf",
+        "src/main/resources/config/config-template.conf",
         "--scala",
         "--durations",
         "--pn",
@@ -23,7 +23,7 @@ task genConfigClass {
         "--cn",
         "SimonaConfig",
         "--dd",
-        "simona/src/main/scala/edu/ie3/simona/config/"
+        "src/main/scala/edu/ie3/simona/config"
       ]
     }
   }
