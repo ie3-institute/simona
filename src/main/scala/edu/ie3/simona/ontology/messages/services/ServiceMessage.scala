@@ -37,15 +37,17 @@ case object ServiceMessage {
     * @param requestingActor
     *   Reference to the requesting actor
     */
-  final case class WorkerRegistrationMessage(requestingActor: ActorRef, requestingUUID: UUID)
-      extends ServiceRegistrationMessage
+  final case class WorkerRegistrationMessage(
+      requestingActor: ActorRef,
+      requestingUUID: UUID
+  ) extends ServiceRegistrationMessage
 
-  /**
-   * This message can be sent from the ExtOpfDataService to the PrimaryServiceProxy
-   * in order to register als PrimaryServiceWorker for all fixed feed-in generators
-   *
-   * @param generators
-   */
+  /** This message can be sent from the ExtOpfDataService to the
+    * PrimaryServiceProxy in order to register als PrimaryServiceWorker for all
+    * fixed feed-in generators
+    *
+    * @param generators
+    */
   final case class ExtOpfRegistrationMessage(generators: List[UUID])
       extends ServiceRegistrationMessage
 

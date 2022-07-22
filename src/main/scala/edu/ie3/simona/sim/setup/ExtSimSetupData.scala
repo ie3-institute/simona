@@ -7,7 +7,11 @@
 package edu.ie3.simona.sim.setup
 
 import akka.actor.{ActorRef, actorRef2Scala}
-import edu.ie3.simona.ontology.trigger.Trigger.{InitializeExtSimAdapterTrigger, InitializeServiceTrigger, InitializeTrigger}
+import edu.ie3.simona.ontology.trigger.Trigger.{
+  InitializeExtSimAdapterTrigger,
+  InitializeServiceTrigger,
+  InitializeTrigger
+}
 import edu.ie3.simona.service.dcopf.ExtOpfDataService.InitExtOpfData
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 
@@ -26,7 +30,7 @@ final case class ExtSimSetupData(
     }
 
   def dcopfDataService: Option[ActorRef] = extDataServices.collectFirst {
-    case (actorRef, InitializeServiceTrigger(InitExtOpfData(_,_))) =>
+    case (actorRef, InitializeServiceTrigger(InitExtOpfData(_, _))) =>
       actorRef
   }
 }

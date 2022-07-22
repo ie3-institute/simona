@@ -24,7 +24,10 @@ import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
-import edu.ie3.simona.ontology.trigger.Trigger.{InitializeExtSimAdapterTrigger, InitializeServiceTrigger}
+import edu.ie3.simona.ontology.trigger.Trigger.{
+  InitializeExtSimAdapterTrigger,
+  InitializeServiceTrigger
+}
 import edu.ie3.simona.scheduler.SimScheduler
 import edu.ie3.simona.service.dcopf.ExtOpfDataService
 import edu.ie3.simona.service.dcopf.ExtOpfDataService.InitExtOpfData
@@ -202,7 +205,9 @@ class SimonaStandaloneSetup(
               val extOpfData = new ExtOpfData(extOpfDataService, extSimAdapter)
 
               val initExtOpfData = InitializeServiceTrigger(
-                InitExtOpfData(extOpfData) // hier fehlt noch PSP und evtl. generators ActorRefs
+                InitExtOpfData(
+                  extOpfData
+                ) // hier fehlt noch PSP und evtl. generators ActorRefs
                 primary
               )
 

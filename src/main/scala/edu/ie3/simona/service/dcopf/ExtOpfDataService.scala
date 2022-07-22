@@ -1,3 +1,9 @@
+/*
+ * © 2022. TU Dortmund University,
+ * Institute of Energy Systems, Energy Efficiency and Energy Economics,
+ * Research group Distribution grid planning and operation
+ */
+
 package edu.ie3.simona.service.dcopf
 
 import akka.actor.{ActorRef, Props}
@@ -13,8 +19,14 @@ import edu.ie3.simona.ontology.messages.services.OpfMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ExtOpfRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceActivationBaseStateData}
-import edu.ie3.simona.service.dcopf.ExtOpfDataService.{ExtOpfStateData, InitExtOpfData}
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceActivationBaseStateData
+}
+import edu.ie3.simona.service.dcopf.ExtOpfDataService.{
+  ExtOpfStateData,
+  InitExtOpfData
+}
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.ProvidePrimaryDataMessage
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
@@ -28,54 +40,51 @@ import scala.util.{Failure, Success, Try}
 object ExtOpfDataService {
 
   def props[V <: Value](
-                         scheduler: ActorRef,
-                       ): Props =
+      scheduler: ActorRef
+  ): Props =
     Props(new ExtOpfDataService(scheduler))
 
   final case class InitExtOpfData(
-                                 extOpfData: ExtOpfData,
-                                 primaryServiceProxy: ActorRef
-                                 ) extends InitializeServiceStateData {
-  }
+      extOpfData: ExtOpfData,
+      primaryServiceProxy: ActorRef
+  ) extends InitializeServiceStateData {}
 
-  /**
-   * Class carrying the state of a fully initialized [[ExtOpfDataService]]
-   *
-   * @param extOpfData
-   * @param uuidToActorRef
-   * @param extOpfMessage
-   * @param setpoints
-   * @param activePowerResponses
-   */
+  /** Class carrying the state of a fully initialized [[ExtOpfDataService]]
+    *
+    * @param extOpfData
+    * @param uuidToActorRef
+    * @param extOpfMessage
+    * @param setpoints
+    * @param activePowerResponses
+    */
   final case class ExtOpfStateData(
-                                    extOpfData: ExtOpfData,
-                                    uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
-                                    extOpfMessage: Option[ExtOpfMessage] = None,
-
-                                    override val maybeNextActivationTick: Option[Long] = None,
-                                    override val activationTicks: SortedDistinctSeq[Long] = SortedDistinctSeq.empty
-                                  ) extends ServiceActivationBaseStateData
+      extOpfData: ExtOpfData,
+      uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
+      extOpfMessage: Option[ExtOpfMessage] = None,
+      override val maybeNextActivationTick: Option[Long] = None,
+      override val activationTicks: SortedDistinctSeq[Long] =
+        SortedDistinctSeq.empty
+  ) extends ServiceActivationBaseStateData
 }
 
 class ExtOpfDataService(
-                         override val scheduler: ActorRef
-                                   )
-  extends SimonaService[ExtOpfStateData](scheduler)
-  with ExtDataSupport[ExtOpfStateData] {
+    override val scheduler: ActorRef
+) extends SimonaService[ExtOpfStateData](scheduler)
+    with ExtDataSupport[ExtOpfStateData] {
 
-  /**Initialize the actor with the given information. Try to figure out the
-   * initialized state data and the next activation ticks, that will then be
-   * sent to the scheduler
-   *
-   * @param initServiceData
-   *   the data that should be used for initialization
-   *  @return
-   *   the state data of this service and optional triggers that should be
-   *   included in the completion message
-   */
-    override def init(
-                     initServiceData: ServiceStateData.InitializeServiceStateData
-                   ): Try[
+  /** Initialize the actor with the given information. Try to figure out the
+    * initialized state data and the next activation ticks, that will then be
+    * sent to the scheduler
+    *
+    * @param initServiceData
+    *   the data that should be used for initialization
+    * @return
+    *   the state data of this service and optional triggers that should be
+    *   included in the completion message
+    */
+  override def init(
+      initServiceData: ServiceStateData.InitializeServiceStateData
+  ): Try[
     (
         ExtOpfStateData,
         Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
@@ -90,28 +99,39 @@ class ExtOpfDataService(
       Success(extOpfStateData, None)
 
     case invalidData =>
-      Failure(new InitializationException(s"Provided init data '${invalidData.getClass.getSimpleName}' for External OPF Data Service is invalid!"))
+      Failure(
+        new InitializationException(
+          s"Provided init data '${invalidData.getClass.getSimpleName}' for External OPF Data Service is invalid!"
+        )
+      )
 
   }
 
-  private def getGeneratorsUuid(): List[UUID] ={
-    val directoryPath = "input/samples/vn_simona/fullGrid/fixed_feed_in_input.csv"
+  private def getGeneratorsUuid(): List[UUID] = {
+    val directoryPath =
+      "input/samples/vn_simona/fullGrid/fixed_feed_in_input.csv"
 
-    val generators = csvreader(directoryPath, 0).asScala.map(UUID.fromString).toList
+    val generators =
+      csvreader(directoryPath, 0).asScala.map(UUID.fromString).toList
 
     generators
   }
 
   override protected def handleRegistrationRequest(
-                                                    registrationMessage: ServiceMessage.ServiceRegistrationMessage
-                                                  )(implicit
-                                                    extOpfStateData: ExtOpfStateData
-                                                  ): Try[ExtOpfStateData] = registrationMessage match {
-    case ServiceMessage.WorkerRegistrationMessage(requestingActor, requestingUUID) =>
+      registrationMessage: ServiceMessage.ServiceRegistrationMessage
+  )(implicit
+      extOpfStateData: ExtOpfStateData
+  ): Try[ExtOpfStateData] = registrationMessage match {
+    case ServiceMessage.WorkerRegistrationMessage(
+          requestingActor,
+          requestingUUID
+        ) =>
       requestingActor ! RegistrationSuccessfulMessage(
         extOpfStateData.maybeNextActivationTick
       )
-      Success(mapActorRefToUuid(requestingActor, requestingUUID, extOpfStateData))
+      Success(
+        mapActorRefToUuid(requestingActor, requestingUUID, extOpfStateData)
+      )
     case unsupported =>
       Failure(
         InvalidRegistrationRequestException(
@@ -120,7 +140,11 @@ class ExtOpfDataService(
       )
   }
 
-  private def mapActorRefToUuid(actorRef: ActorRef, uuid: UUID, extOpfStateData: ExtOpfStateData): ExtOpfStateData = {
+  private def mapActorRefToUuid(
+      actorRef: ActorRef,
+      uuid: UUID,
+      extOpfStateData: ExtOpfStateData
+  ): ExtOpfStateData = {
     val map = extOpfStateData.uuidToActorRef + (uuid -> actorRef)
     extOpfStateData.copy(
       uuidToActorRef = map
@@ -132,7 +156,7 @@ class ExtOpfDataService(
     val output = new util.ArrayList[String]
     try {
       val br = new BufferedReader(new FileReader(path))
-      while ( {
+      while ({
         (line = br.readLine) != null
       }) {
         val values = line.split(";")
@@ -147,43 +171,50 @@ class ExtOpfDataService(
     output
   }
 
-  private def registerAsPrimaryServiceWorker(primaryServiceProxy: ActorRef, generators: List[UUID]): Unit = {
+  private def registerAsPrimaryServiceWorker(
+      primaryServiceProxy: ActorRef,
+      generators: List[UUID]
+  ): Unit = {
     primaryServiceProxy ! ExtOpfRegistrationMessage(generators)
   }
 
-  /**Send out information to all registered recipients DEPENDING ON THE MAPPED SETPOINTS???
-   *
-   * @param tick
-   *   current tick data should be announced for
-   * @param extOpfStateData
-   *   the current state data of this service
-   *  @return
-   *   the service stata data that should be used in the next state (normally
-   *   with updated values) together with the completion message that is send
-   *   in response to the trigger that was sent to start this announcement
-   */
+  /** Send out information to all registered recipients DEPENDING ON THE MAPPED
+    * SETPOINTS???
+    *
+    * @param tick
+    *   current tick data should be announced for
+    * @param extOpfStateData
+    *   the current state data of this service
+    * @return
+    *   the service stata data that should be used in the next state (normally
+    *   with updated values) together with the completion message that is send
+    *   in response to the trigger that was sent to start this announcement
+    */
   override protected def announceInformation(
       tick: Long
-  )(implicit extOpfStateData: ExtOpfStateData
-  ): ExtOpfStateData
-     = {
+  )(implicit extOpfStateData: ExtOpfStateData): ExtOpfStateData = {
     extOpfStateData.extOpfMessage.getOrElse(
       throw ServiceException(
         "ExtOpfDataActor was triggered without available ExtOpfMessage"
       )
     ) match {
       case setpointsMessage: SetpointsMessage =>
-        setpointsMessage.getSetpoints.asScala.map{
+        setpointsMessage.getSetpoints.asScala.map {
           case (generator, setpoint) =>
-            val generatorRef = extOpfStateData.uuidToActorRef.get(generator).getOrElse(
-              throw ServiceException(
-              "ExtOpfDataActor was triggered without generators' ActorRef")
-            )
+            val generatorRef = extOpfStateData.uuidToActorRef
+              .get(generator)
+              .getOrElse(
+                throw ServiceException(
+                  "ExtOpfDataActor was triggered without generators' ActorRef"
+                )
+              )
             processData(tick, generatorRef, setpoint)
           case _ =>
-            Failure(new IllegalArgumentException(
-              s"Cannot convert SetpointsMessage."
-            ))
+            Failure(
+              new IllegalArgumentException(
+                s"Cannot convert SetpointsMessage."
+              )
+            )
             updateStateDataAndBuildTriggerMessages(extOpfStateData)
         }
         val (maybeNextTick, remainderActivationTicks) =
@@ -200,13 +231,12 @@ class ExtOpfDataService(
   }
 
   def processData(
-                   tick: Long,
-                   generator: ActorRef,
-                   setpoint: PValue
-    )
-     = setpoint.toPrimaryData match {
+      tick: Long,
+      generator: ActorRef,
+      setpoint: PValue
+  ) = setpoint.toPrimaryData match {
     case Success(setpointPrimary) =>
-        announcePrimaryData(tick, generator, setpointPrimary)
+      announcePrimaryData(tick, generator, setpointPrimary)
     case Failure(exception) =>
       /* Processing of data failed */
       log.warning(
@@ -217,19 +247,18 @@ class ExtOpfDataService(
   }
 
   def announcePrimaryData(
-                           tick: Long,
-                           generator: ActorRef,
-                           primaryData: PrimaryData
-  )
-  = {
+      tick: Long,
+      generator: ActorRef,
+      primaryData: PrimaryData
+  ) = {
     val provisionMessage =
-      ProvidePrimaryDataMessage(tick, primaryData, Some(tick+900L))
+      ProvidePrimaryDataMessage(tick, primaryData, Some(tick + 900L))
     generator ! provisionMessage
   }
 
   def updateStateDataAndBuildTriggerMessages(
-                                              extOpfStateData: ExtOpfStateData
-  ):ExtOpfStateData={
+      extOpfStateData: ExtOpfStateData
+  ): ExtOpfStateData = {
     val (maybeNextActivationTick, remainderActivationTicks) =
       extOpfStateData.activationTicks.pop
     val triggerMessages =
@@ -243,23 +272,20 @@ class ExtOpfDataService(
     )
   }
 
-
-
-  /** This method is called from State idleExternal for receiving
-   * the external message and adding it to the ExtOpfStateData.
-   * It does not trigger the processing of the data.
-   *
-   * @param extMsg
-   *   the external incoming message
-   * @param serviceStateData
-   *   the current state data of this service
-   *  @return
-   *   the updated state data
-   */
+  /** This method is called from State idleExternal for receiving the external
+    * message and adding it to the ExtOpfStateData. It does not trigger the
+    * processing of the data.
+    *
+    * @param extMsg
+    *   the external incoming message
+    * @param serviceStateData
+    *   the current state data of this service
+    * @return
+    *   the updated state data
+    */
   override protected def handleDataMessage(
-                                            extMsg: ExtDataMessage
-                                          )(implicit serviceStateData: ExtOpfStateData
-                                          ): ExtOpfStateData =
+      extMsg: ExtDataMessage
+  )(implicit serviceStateData: ExtOpfStateData): ExtOpfStateData =
     extMsg match {
       case extOpfMessage: ExtOpfMessage =>
         serviceStateData.copy(

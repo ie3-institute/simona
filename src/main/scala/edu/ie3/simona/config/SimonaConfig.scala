@@ -912,11 +912,16 @@ object SimonaConfig {
       }
 
       final case class Primary(
-          couchbaseParams:
-          scala.Option[SimonaConfig.Simona.Input.Primary.CouchbaseParams],
+          couchbaseParams: scala.Option[
+            SimonaConfig.Simona.Input.Primary.CouchbaseParams
+          ],
           csvParams: scala.Option[SimonaConfig.PrimaryDataCsvParams],
-          dcopfParams: scala.Option[SimonaConfig.Simona.Input.Primary.DcopfParams],
-          influxDb1xParams: scala.Option[SimonaConfig.Simona.Input.Primary.InfluxDb1xParams],
+          dcopfParams: scala.Option[
+            SimonaConfig.Simona.Input.Primary.DcopfParams
+          ],
+          influxDb1xParams: scala.Option[
+            SimonaConfig.Simona.Input.Primary.InfluxDb1xParams
+          ],
           sqlParams: scala.Option[SimonaConfig.Simona.Input.Primary.SqlParams]
       )
       object Primary {
@@ -972,15 +977,19 @@ object SimonaConfig {
         }
 
         final case class DcopfParams(
-          grid : java.lang.String
+            grid: java.lang.String
         )
         object DcopfParams {
-        def apply(c: com.typesafe.config.Config, parentPath: java.lang.String, $tsCfgValidator: $TsCfgValidator):
-        SimonaConfig.Simona.Input.Primary.DcopfParams = {
-          SimonaConfig.Simona.Input.Primary.DcopfParams(
-            grid = $_reqStr(parentPath, c, "grid", $tsCfgValidator)
+          def apply(
+              c: com.typesafe.config.Config,
+              parentPath: java.lang.String,
+              $tsCfgValidator: $TsCfgValidator
+          ): SimonaConfig.Simona.Input.Primary.DcopfParams = {
+            SimonaConfig.Simona.Input.Primary.DcopfParams(
+              grid = $_reqStr(parentPath, c, "grid", $tsCfgValidator)
             )
-          }}
+          }
+        }
 
         final case class InfluxDb1xParams(
             database: java.lang.String,
@@ -2357,7 +2366,7 @@ object SimonaConfig {
       if (badPaths.nonEmpty) {
         throw new com.typesafe.config.ConfigException(
           badPaths.mkString("Invalid configuration:\n    ", "\n    ", "")
-        ){}
+        ) {}
       }
     }
   }
