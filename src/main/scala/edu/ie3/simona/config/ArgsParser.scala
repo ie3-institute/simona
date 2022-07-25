@@ -42,11 +42,7 @@ object ArgsParser extends LazyLogging {
       opt[String]("config")
         .action((value, args) => {
           args.copy(
-            config = Some(
-              parseTypesafeConfig(value).getString(
-                "simona.input.primary.csvParams.folderPath"
-              )
-            ),
+            config = Some(parseTypesafeConfig(value)),
             configLocation = Option(value)
           )
         })
