@@ -1,0 +1,48 @@
+@startuml
+'https://plantuml.com/class-diagram
+'<|--
+'--|>
+package edu.ie3.edu.ie3.simona {
+    package Setup {
+    Class SimonaSim{
+        val extSimulationData: ExtSimSetupData
+        extSimulationData.allActorsAndInitTriggers
+        extSimulationData.dcopfDataService
+    }
+    Abstract Class ExtSimSetupData {
+        def allActorsAndInitTriggers
+        def dcopfDataService
+    }
+
+
+        SimonaSim --|> ExtSimSetupData
+        SimonaSetup --|> SimonaSim
+        SimonaSetup <|-- SimonaStandaloneSetup
+    }
+
+    package Services{
+        SimonaService <|-- PrimaryDataService
+        SimonaService <|-- ExtOpfDataService
+    }
+
+
+    package Config {
+        config_template --|> SimonaConfig
+    }
+
+
+
+}
+
+package edu.ie3.edu.ie3.simonaAPI {
+
+}
+
+package edu.ie3.edu.ie3.simonaOpfInterface {
+
+}
+
+
+
+
+@enduml

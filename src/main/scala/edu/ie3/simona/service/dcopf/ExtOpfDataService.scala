@@ -10,18 +10,24 @@ import akka.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.value.{PValue, Value}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.RichValue
+import edu.ie3.simona.api.data.dcopf.ExtOpfData
 import edu.ie3.simona.api.data.dcopf.ontology._
 import edu.ie3.simona.api.data.ontology.ExtDataMessage
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
-import edu.ie3.simona.ontology.messages.services.OpfMessage._
 import edu.ie3.simona.ontology.messages.services.{EvMessage, ServiceMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ExtOpfRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceActivationBaseStateData}
-import edu.ie3.simona.service.dcopf.ExtOpfDataService.{ExtOpfStateData, InitExtOpfData}
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceActivationBaseStateData
+}
+import edu.ie3.simona.service.dcopf.ExtOpfDataService.{
+  ExtOpfStateData,
+  InitExtOpfData
+}
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.ProvidePrimaryDataMessage
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
@@ -187,7 +193,9 @@ class ExtOpfDataService(
     */
   override protected def announceInformation(
       tick: Long
-  )(implicit extOpfStateData: ExtOpfStateData): (ExtOpfStateData, Option[Seq[ScheduleTriggerMessage]]) = {
+  )(implicit
+      extOpfStateData: ExtOpfStateData
+  ): (ExtOpfStateData, Option[Seq[ScheduleTriggerMessage]]) = {
     extOpfStateData.extOpfMessage.getOrElse(
       throw ServiceException(
         "ExtOpfDataActor was triggered without available ExtOpfMessage"
@@ -288,8 +296,10 @@ class ExtOpfDataService(
         )
     }
 
-  override protected def handleDataResponseMessage(extResponseMsg: EvMessage.EvResponseMessage)(implicit serviceStateData: ExtOpfStateData): ExtOpfStateData = {
-  serviceStateData
+  override protected def handleDataResponseMessage(
+      extResponseMsg: EvMessage.EvResponseMessage
+  )(implicit serviceStateData: ExtOpfStateData): ExtOpfStateData = {
+    serviceStateData
   }
 
 }

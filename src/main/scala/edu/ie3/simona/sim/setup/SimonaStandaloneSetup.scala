@@ -206,9 +206,9 @@ class SimonaStandaloneSetup(
 
               val initExtOpfData = InitializeServiceTrigger(
                 InitExtOpfData(
-                  extOpfData
-                ) // hier fehlt noch PSP und evtl. generators ActorRefs
-                primary
+                  extOpfData,
+                  primaryServiceProxy
+                )
               )
 
               (extOpfData, (extOpfDataService, initExtOpfData))
