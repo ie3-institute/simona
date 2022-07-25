@@ -17,7 +17,7 @@ import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.OpfMessage._
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.ontology.messages.services.{EvMessage, ServiceMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ExtOpfRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceActivationBaseStateData}
@@ -225,7 +225,7 @@ class ExtOpfDataService(
     }
   }
 
-  def processData(
+  private def processData(
       tick: Long,
       generator: ActorRef,
       setpoint: PValue
@@ -241,7 +241,7 @@ class ExtOpfDataService(
       )
   }
 
-  def announcePrimaryData(
+  private def announcePrimaryData(
       tick: Long,
       generator: ActorRef,
       primaryData: PrimaryData
@@ -251,7 +251,7 @@ class ExtOpfDataService(
     generator ! provisionMessage
   }
 
-  def updateStateDataAndBuildTriggerMessages(
+  private def updateStateDataAndBuildTriggerMessages(
       extOpfStateData: ExtOpfStateData
   ): ExtOpfStateData = {
     val (maybeNextActivationTick, remainderActivationTicks) =
@@ -287,5 +287,9 @@ class ExtOpfDataService(
           extOpfMessage = Some(extOpfMessage)
         )
     }
+
+  override protected def handleDataResponseMessage(extResponseMsg: EvMessage.EvResponseMessage)(implicit serviceStateData: ExtOpfStateData): ExtOpfStateData = {
+  serviceStateData
+  }
 
 }

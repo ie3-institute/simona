@@ -14,7 +14,7 @@ deactivate ExtSimAdapter
 SimScheduler -> ExtSimAdapter: <font color=red>!</font> ActivityStartTrigger(-1L)
 activate ExtSimAdapter
 
-ExtSimAdapter -> ExtSimulation: queue(ExtActivityStartTrigger)
+ExtSimAdapter -> ExtSimulation: queue(ExtActivityStartTrigger(-1L))
 activate ExtSimulation
 
 ExtSimulation -> ExtSimAdapter: queue(CompletionMessage(newTriggers))
@@ -31,7 +31,7 @@ activate PrimaryServiceProxy
 SimScheduler -> ExtOpfDataService: <font color=red>!</font> ScheduleServiceTrigger(InitializeServiceTrigger(-1L))
 activate ExtOpfDataService
 
-ExtOpfDataService -> PrimaryServiceProxy: Zuweisung als PDW für Gen1+2
+ExtOpfDataService -> PrimaryServiceProxy: <font color=red>!</font> ExtOpfRegistrationMessage(generators)
 ExtOpfDataService -> SimScheduler: <font color=red>!</font> CompletionMessage(GeneratorDataRef)
 deactivate ExtOpfDataService
 
@@ -40,11 +40,11 @@ activate Generator1
 SimScheduler -> Generator2: <font color=red>!</font> ActivityStartTrigger(-1L)
 activate Generator2
 
-Generator1 -> PrimaryServiceProxy: Request: Primärdaten vorhanden?
-Generator2 -> PrimaryServiceProxy: Request: Primärdaten vorhanden?
+Generator1 -> PrimaryServiceProxy: <font color=red>!</font> PrimaryServiceRegistrationMessage
+Generator2 -> PrimaryServiceProxy: <font color=red>!</font> PrimaryServiceRegistrationMessage
 
-PrimaryServiceProxy -> Generator1: Primärdaten vorhanden: Ja/Nein
-PrimaryServiceProxy -> Generator2: Primärdaten vorhanden: Ja/Nein
+PrimaryServiceProxy -> Generator1: <font color=red>!</font> WorkerRegistrationMessage + <font color=red>!</font> RegistrationSuccessfulMessage
+PrimaryServiceProxy -> Generator2: <font color=red>!</font> WorkerRegistrationMessage + <font color=red>!</font> RegistrationSuccessfulMessage
 PrimaryServiceProxy -> SimScheduler: <font color=red>!</font> CompletionMessage(None)
 deactivate PrimaryServiceProxy
 
@@ -57,11 +57,11 @@ deactivate Generator2
 SimScheduler -> ExtSimAdapter: <font color=red>!</font> ActivityStartTrigger(tick)
 activate ExtSimAdapter
 
-ExtSimAdapter -> ExtSimulation: queue(ActivityStartTrigger(tick))
+ExtSimAdapter -> ExtSimulation: queue(ExtActivityStartTrigger(tick))
 deactivate ExtSimAdapter
 
 activate ExtSimulation
-ExtSimulation -> ExtOpfDataService: <font color=red>!</font> SetPointsMessage(_)
+ExtSimulation -> ExtOpfDataService: <font color=red>!</font> ExtOpfMessage(_)
 ExtSimulation -> ExtSimAdapter: <font color=red>!</font> ScheduleDataServiceMessage(\n\tdataServiceRef\n)
 deactivate ExtSimulation
 
@@ -71,8 +71,8 @@ deactivate ExtSimAdapter
 
 SimScheduler -> ExtOpfDataService: <font color=red>!</font> ActivityStartTrigger(tick)
 activate ExtOpfDataService
-ExtOpfDataService -> Generator1: <font color=red>!</font> ProvideSetPointDataMessage(tick)
-ExtOpfDataService -> Generator2: <font color=red>!</font> ProvideSetPointDataMessage(tick)
+ExtOpfDataService -> Generator1: <font color=red>!</font> ProvideSetpointsMessage(_)
+ExtOpfDataService -> Generator2: <font color=red>!</font> ProvideSetpointsMessage(_)
 ExtOpfDataService -> SimScheduler: <font color=red>!</font> ScheduleDataServiceMessage(\n\tdataServiceRef\n)
 deactivate ExtOpfDataService
 
