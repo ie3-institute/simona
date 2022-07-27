@@ -20,14 +20,8 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.{EvMessage, ServiceMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ExtOpfRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceActivationBaseStateData
-}
-import edu.ie3.simona.service.dcopf.ExtOpfDataService.{
-  ExtOpfStateData,
-  InitExtOpfData
-}
+import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceActivationBaseStateData}
+import edu.ie3.simona.service.dcopf.ExtOpfDataService.{ExtOpfStateData, InitExtOpfData}
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.ProvidePrimaryDataMessage
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
@@ -35,6 +29,7 @@ import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import java.io.{BufferedReader, FileNotFoundException, FileReader, IOException}
 import java.util
 import java.util.UUID
+import scala.io.Source
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -94,6 +89,7 @@ class ExtOpfDataService(
     case InitExtOpfData(extOpfData, primaryServiceProxy) =>
       val generators = getGeneratorsUuid()
       registerAsPrimaryServiceWorker(primaryServiceProxy, generators)
+      log.info("Registration started...")
       val extOpfStateData = ExtOpfStateData(
         extOpfData
       )
@@ -110,7 +106,7 @@ class ExtOpfDataService(
 
   private def getGeneratorsUuid(): List[UUID] = {
     val directoryPath =
-      "input/samples/vn_simona/fullGrid/fixed_feed_in_input.csv"
+      "input/samples/dcopf/1-LV-semiurb4-2-no_sw/fixed_feed_in_input.csv"
 
     val generators =
       csvreader(directoryPath, 0).asScala.map(UUID.fromString).toList
@@ -152,23 +148,16 @@ class ExtOpfDataService(
     )
   }
 
-  def csvreader(path: String, index: Int): util.ArrayList[String] = {
-    var line = ""
+  def csvreader(filename: String, index: Int): util.ArrayList[String] = {
+
     val output = new util.ArrayList[String]
-    try {
-      val br = new BufferedReader(new FileReader(path))
-      while ({
-        (line = br.readLine) != null
-      }) {
-        val values = line.split(";")
-        output.add(values(index))
-      }
-    } catch {
-      case e: FileNotFoundException =>
-        e.printStackTrace()
-      case e: IOException =>
-        e.printStackTrace()
+
+    for(line <- Source.fromFile(filename).getLines){
+    val values = line.split(";")
+    output.add(values(index))
     }
+
+    output.remove(0)
     output
   }
 
@@ -205,8 +194,7 @@ class ExtOpfDataService(
         setpointsMessage.getSetpoints.asScala.map {
           case (generator, setpoint) =>
             val generatorRef = extOpfStateData.uuidToActorRef
-              .get(generator)
-              .getOrElse(
+              .getOrElse(generator,
                 throw ServiceException(
                   "ExtOpfDataActor was triggered without generators' ActorRef"
                 )

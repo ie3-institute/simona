@@ -7,6 +7,7 @@
 package edu.ie3.simona.sim.setup
 
 import akka.actor.{ActorContext, ActorRef, ActorSystem}
+import ch.qos.logback.classic.Logger
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridTopologyGraph
@@ -24,10 +25,7 @@ import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  InitializeExtSimAdapterTrigger,
-  InitializeServiceTrigger
-}
+import edu.ie3.simona.ontology.trigger.Trigger.{InitializeExtSimAdapterTrigger, InitializeServiceTrigger}
 import edu.ie3.simona.scheduler.SimScheduler
 import edu.ie3.simona.service.dcopf.ExtOpfDataService
 import edu.ie3.simona.service.dcopf.ExtOpfDataService.InitExtOpfData
@@ -39,6 +37,7 @@ import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.util.TimeUtil
+import org.slf4j.LoggerFactory
 
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters._
@@ -56,6 +55,8 @@ class SimonaStandaloneSetup(
     runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
     override val args: Array[String]
 ) extends SimonaSetup {
+
+  private val log = LoggerFactory.getLogger("ExternalSampleSim").asInstanceOf[Logger]
 
   override def gridAgents(
       context: ActorContext,
@@ -163,6 +164,7 @@ class SimonaStandaloneSetup(
       primaryServiceProxy: ActorRef
   ): ExtSimSetupData = {
     val jars = ExtSimLoader.scanInputFolder()
+    log.info("Sim Loader")
 
     val extLinks = jars.flatMap(ExtSimLoader.loadExtLink)
 
@@ -202,6 +204,7 @@ class SimonaStandaloneSetup(
                 ExtOpfDataService.props(scheduler),
                 s"$index-$dIndex"
               )
+              log.info("ext Sim OPF")
               val extOpfData = new ExtOpfData(extOpfDataService, extSimAdapter)
 
               val initExtOpfData = InitializeServiceTrigger(
