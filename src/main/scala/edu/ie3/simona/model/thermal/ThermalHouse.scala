@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.thermal
 
 import java.util.UUID
-
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.{
@@ -15,6 +14,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalHouseInput
 }
 import edu.ie3.util.quantities.interfaces.{HeatCapacity, ThermalConductance}
+
 import javax.measure.quantity.{Energy, Power, Temperature, Time}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.unit.Units.HOUR
@@ -36,6 +36,12 @@ import tech.units.indriya.unit.Units.HOUR
   *   transmission coefficient of heat storage, usually in [kW/K]
   * @param ethCapa
   *   heat energy storage capability of thermal house, usually in [kWh/K]
+  * @param targetTemperature
+  *   Target room temperature [K]
+  * @param lowerBoundaryTemperature
+  *   Lower temperature boundary [K]
+  * @param upperBoundaryTemperature
+  *   Upper boundary temperature [K]
   */
 final case class ThermalHouse(
     uuid: UUID,
@@ -45,6 +51,7 @@ final case class ThermalHouse(
     bus: ThermalBusInput,
     ethLosses: ComparableQuantity[ThermalConductance],
     ethCapa: ComparableQuantity[HeatCapacity],
+    targetTemperature: ComparableQuantity[Temperature],
     lowerBoundaryTemperature: ComparableQuantity[Temperature],
     upperBoundaryTemperature: ComparableQuantity[Temperature]
 ) extends ThermalSink(
@@ -194,30 +201,17 @@ final case class ThermalHouse(
 
 }
 
-case object ThermalHouse {
-
-  /** Internal method to construct a new [[ThermalHouse]] based on a provided
-    * [[ThermalHouseInput]]
-    *
-    * @param input
-    *   instance of [[ThermalHouseInput]] this thermal house should be built
-    *   from
-    * @return
-    *   a ready-to-use [[ThermalHouse]] with referenced electric parameters
-    */
-  def apply(
-      input: ThermalHouseInput
-  ): ThermalHouse =
-    new ThermalHouse(
-      input.getUuid,
-      input.getId,
-      input.getOperator,
-      input.getOperationTime,
-      input.getThermalBus,
-      input.getEthLosses,
-      input.getEthCapa,
-      input.getLowerTemperatureLimit,
-      input.getUpperTemperatureLimit
-    )
-
+object ThermalHouse {
+  def apply(input: ThermalHouseInput): ThermalHouse = new ThermalHouse(
+    input.getUuid,
+    input.getId,
+    input.getOperator,
+    input.getOperationTime,
+    input.getThermalBus,
+    input.getEthLosses,
+    input.getEthCapa,
+    input.getTargetTemperature,
+    input.getLowerTemperatureLimit,
+    input.getUpperTemperatureLimit
+  )
 }

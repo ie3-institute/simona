@@ -172,7 +172,8 @@ case object HpModel {
       inputModel: HpInput,
       scaling: Double,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
+      thermalHouse: ThermalHouse
   ): HpModel = {
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
@@ -193,7 +194,7 @@ case object HpModel {
       inputModel.getType.getsRated(),
       inputModel.getType.getCosPhiRated,
       inputModel.getType.getpThermal(),
-      null
+      thermalHouse
     )
   }
 

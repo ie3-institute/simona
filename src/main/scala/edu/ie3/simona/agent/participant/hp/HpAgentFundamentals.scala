@@ -7,9 +7,12 @@
 package edu.ie3.simona.agent.participant.hp
 
 import akka.actor.{ActorRef, FSM}
-import edu.ie3.datamodel.models.OperationTime.OperationTimeBuilder
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
+import edu.ie3.datamodel.models.input.thermal.{
+  ThermalBusInput,
+  ThermalHouseInput
+}
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
@@ -41,6 +44,7 @@ import tech.units.indriya.quantity.Quantities
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
+import scala.compat.java8.OptionConverters.RichOptionalGeneric
 import scala.reflect.{ClassTag, classTag}
 
 trait HpAgentFundamentals
@@ -176,12 +180,40 @@ trait HpAgentFundamentals
       modelConfig: HpRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
-  ): HpModel = HpModel(
-    inputModel.electricalInputModel,
-    modelConfig.scaling,
-    simulationStartDate,
-    simulationEndDate
-  )
+  ): HpModel = {
+    val thermalHouseInput = {
+      inputModel match {
+        case ParticipantStateData.SimpleInputContainer(_) =>
+          None
+        case WithHeatInputContainer(_, thermalGrid) =>
+          /* Build the thermal model */
+          thermalGrid.houses().stream().findFirst().asScala
+      }
+    }.getOrElse {
+      new ThermalHouseInput(
+        UUID.randomUUID(),
+        "Random thermal house",
+        new ThermalBusInput(UUID.randomUUID(), "Random thermal bus"),
+        Quantities.getQuantity(1d, StandardUnits.THERMAL_TRANSMISSION),
+        Quantities.getQuantity(100d, StandardUnits.HEAT_CAPACITY),
+        Quantities.getQuantity(21d, StandardUnits.TEMPERATURE),
+        Quantities.getQuantity(23d, StandardUnits.TEMPERATURE),
+        Quantities.getQuantity(19d, StandardUnits.TEMPERATURE)
+      )
+    }
+
+    /* Build the thermal model */
+    val thermalHouse = ThermalHouse(thermalHouseInput)
+
+    /* Build the actual heat pump model */
+    HpModel(
+      inputModel.electricalInputModel,
+      modelConfig.scaling,
+      simulationStartDate,
+      simulationEndDate,
+      thermalHouse
+    )
+  }
 
   /** Determine the average result within the given tick window
     *
