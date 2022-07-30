@@ -440,25 +440,22 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
       val gridModel = gridAgentBaseData.gridEnv.gridModel
 
-      val powerFlowResult = composeOperatingPoint(
+      val (operatingPoint, slackNodeVoltages) = composeOperatingPoint(
         gridModel.gridComponents.nodes,
         gridModel.gridComponents.transformers,
         gridModel.gridComponents.transformers3w,
         gridModel.nodeUuidToIndexMap,
         gridAgentBaseData.receivedValueStore,
         gridModel.mainRefSystem
-      ) match {
-        case (operatingPoint, slackNodeVoltages) =>
-          newtonRaphsonPF(
-            gridModel,
-            gridAgentBaseData.powerFlowParams.maxIterations,
-            operatingPoint,
-            slackNodeVoltages
-          )(gridAgentBaseData.powerFlowParams.epsilon)
-      }
+      )
 
-      // if res is valid, ask our assets (if any) for updated power values based on the newly determined nodal voltages
-      powerFlowResult match {
+      newtonRaphsonPF(
+        gridModel,
+        gridAgentBaseData.powerFlowParams.maxIterations,
+        operatingPoint,
+        slackNodeVoltages
+      )(gridAgentBaseData.powerFlowParams.epsilon) match {
+        // if res is valid, ask our assets (if any) for updated power values based on the newly determined nodal voltages
         case validPowerFlowResult: ValidNewtonRaphsonPFResult =>
           log.debug(
             "{}",
@@ -595,99 +592,99 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         )
       )
 
-      composeOperatingPointWithUpdatedSlackVoltages(
-        receivedSlackValues,
-        previousSweepData.sweepData,
-        gridModel.gridComponents.transformers,
-        gridModel.gridComponents.transformers3w,
-        gridModel.mainRefSystem
-      ) match {
-        case (operatingPoint, slackNodeVoltages) =>
-          newtonRaphsonPF(
-            gridModel,
-            gridAgentBaseData.powerFlowParams.maxIterations,
-            operatingPoint,
-            slackNodeVoltages
-          )(gridAgentBaseData.powerFlowParams.epsilon) match {
-            case validPowerFlowResult: ValidNewtonRaphsonPFResult =>
+      val (operatingPoint, slackNodeVoltages) =
+        composeOperatingPointWithUpdatedSlackVoltages(
+          receivedSlackValues,
+          previousSweepData.sweepData,
+          gridModel.gridComponents.transformers,
+          gridModel.gridComponents.transformers3w,
+          gridModel.mainRefSystem
+        )
+
+      newtonRaphsonPF(
+        gridModel,
+        gridAgentBaseData.powerFlowParams.maxIterations,
+        operatingPoint,
+        slackNodeVoltages
+      )(gridAgentBaseData.powerFlowParams.epsilon) match {
+        case validPowerFlowResult: ValidNewtonRaphsonPFResult =>
+          log.debug(
+            "{}",
+            composeValidNewtonRaphsonPFResultVoltagesDebugString(
+              validPowerFlowResult,
+              gridModel
+            )
+          )
+
+          // update the data
+          val sweepValueStore = SweepValueStore(
+            validPowerFlowResult,
+            gridModel.gridComponents.nodes,
+            gridModel.nodeUuidToIndexMap
+          )
+          val updatedSweepValueStore =
+            gridAgentBaseData.sweepValueStores + (gridAgentBaseData.currentSweepNo -> sweepValueStore)
+
+          // send request to child grids and assets for updated p/q values
+          // we start the grid simulation by requesting the p/q values of all the nodes we are responsible for
+          // as well as the slack voltage power from our superior grid
+          // 1. assets p/q values
+          val askForAssetPowersOpt =
+            askForAssetPowers(
+              currentTick,
+              Some(sweepValueStore),
+              gridAgentBaseData.gridEnv.nodeToAssetAgents,
+              gridModel.mainRefSystem,
+              gridAgentBaseData.powerFlowParams.sweepTimeout
+            )
+
+          // 2. inferior grids p/q values
+          val askForInferiorGridPowersOpt =
+            askInferiorGridsForPowers(
+              gridAgentBaseData.currentSweepNo,
+              gridAgentBaseData.gridEnv.subnetGateToActorRef,
+              gridAgentBaseData.inferiorGridGates,
+              gridAgentBaseData.powerFlowParams.sweepTimeout
+            )
+
+          // when we don't have inferior grids and no assets both methods return None and we can skip doing another power
+          // flow calculation otherwise we go back to simulate grid and wait for the answers
+          (askForAssetPowersOpt, askForInferiorGridPowersOpt) match {
+            case (None, None) =>
               log.debug(
-                "{}",
-                composeValidNewtonRaphsonPFResultVoltagesDebugString(
-                  validPowerFlowResult,
-                  gridModel
-                )
+                "I don't have assets or child grids. " +
+                  "Going back to SimulateGrid and provide the power flow result if there is any request left."
               )
 
-              // update the data
-              val sweepValueStore = SweepValueStore(
-                validPowerFlowResult,
-                gridModel.gridComponents.nodes,
-                gridModel.nodeUuidToIndexMap
-              )
-              val updatedSweepValueStore =
-                gridAgentBaseData.sweepValueStores + (gridAgentBaseData.currentSweepNo -> sweepValueStore)
-
-              // send request to child grids and assets for updated p/q values
-              // we start the grid simulation by requesting the p/q values of all the nodes we are responsible for
-              // as well as the slack voltage power from our superior grid
-              // 1. assets p/q values
-              val askForAssetPowersOpt =
-                askForAssetPowers(
-                  currentTick,
-                  Some(sweepValueStore),
-                  gridAgentBaseData.gridEnv.nodeToAssetAgents,
-                  gridModel.mainRefSystem,
-                  gridAgentBaseData.powerFlowParams.sweepTimeout
-                )
-
-              // 2. inferior grids p/q values
-              val askForInferiorGridPowersOpt =
-                askInferiorGridsForPowers(
-                  gridAgentBaseData.currentSweepNo,
-                  gridAgentBaseData.gridEnv.subnetGateToActorRef,
-                  gridAgentBaseData.inferiorGridGates,
-                  gridAgentBaseData.powerFlowParams.sweepTimeout
-                )
-
-              // when we don't have inferior grids and no assets both methods return None and we can skip doing another power
-              // flow calculation otherwise we go back to simulate grid and wait for the answers
-              (askForAssetPowersOpt, askForInferiorGridPowersOpt) match {
-                case (None, None) =>
-                  log.debug(
-                    "I don't have assets or child grids. " +
-                      "Going back to SimulateGrid and provide the power flow result if there is any request left."
-                  )
-
-                  val powerFlowDoneData =
-                    PowerFlowDoneData(gridAgentBaseData, validPowerFlowResult)
-
-                  unstashAll() // we can answer the stashed grid power requests now
-                  goto(SimulateGrid) using powerFlowDoneData
-
-                case _ =>
-                  log.debug(
-                    "Going back to SimulateGrid and wait for my assets or inferior grids to return."
-                  )
-
-                  // go back to simulate grid
-                  goto(SimulateGrid) using gridAgentBaseData
-                    .updateWithReceivedSlackVoltages(receivedSlackValues)
-                    .copy(sweepValueStores = updatedSweepValueStore)
-              }
-
-            case failedNewtonRaphsonPFResult: FailedNewtonRaphsonPFResult =>
               val powerFlowDoneData =
-                PowerFlowDoneData(
-                  gridAgentBaseData,
-                  failedNewtonRaphsonPFResult
-                )
-              log.warning(
-                "Power flow with updated slack voltage did finally not converge!"
-              )
-              unstashAll() // we can answer the stashed grid power requests now and report a failed power flow back
+                PowerFlowDoneData(gridAgentBaseData, validPowerFlowResult)
+
+              unstashAll() // we can answer the stashed grid power requests now
               goto(SimulateGrid) using powerFlowDoneData
 
+            case _ =>
+              log.debug(
+                "Going back to SimulateGrid and wait for my assets or inferior grids to return."
+              )
+
+              // go back to simulate grid
+              goto(SimulateGrid) using gridAgentBaseData
+                .updateWithReceivedSlackVoltages(receivedSlackValues)
+                .copy(sweepValueStores = updatedSweepValueStore)
           }
+
+        case failedNewtonRaphsonPFResult: FailedNewtonRaphsonPFResult =>
+          val powerFlowDoneData =
+            PowerFlowDoneData(
+              gridAgentBaseData,
+              failedNewtonRaphsonPFResult
+            )
+          log.warning(
+            "Power flow with updated slack voltage did finally not converge!"
+          )
+          unstashAll() // we can answer the stashed grid power requests now and report a failed power flow back
+          goto(SimulateGrid) using powerFlowDoneData
+
       }
 
     // happens only when we received slack data and power values before we received a request to provide grid data
