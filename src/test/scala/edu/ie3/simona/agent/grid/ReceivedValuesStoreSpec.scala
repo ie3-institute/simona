@@ -92,19 +92,13 @@ class ReceivedValuesStoreSpec
       receivedValuesStore.nodeToReceivedPower.size shouldBe 3
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546")
-      ) shouldBe Vector(
-        (actorProbe1.ref, None)
-      )
+      ) shouldBe Map(actorProbe1.ref -> None)
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97")
-      ) shouldBe Vector(
-        (actorProbe2.ref, None)
-      )
+      ) shouldBe Map(actorProbe2.ref -> None)
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("5cd55ab5-a7d2-499f-a25f-6dbc3845c5e8")
-      ) shouldBe Vector(
-        (actorProbe3.ref, None)
-      )
+      ) shouldBe Map(actorProbe3.ref -> None)
 
       receivedValuesStore.nodeToReceivedSlackVoltage.size shouldBe 1
       receivedValuesStore.nodeToReceivedSlackVoltage(
@@ -141,14 +135,12 @@ class ReceivedValuesStoreSpec
       receivedValuesStore.nodeToReceivedPower.size shouldBe 2
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546")
-      ) shouldBe Vector(
-        (actorProbe1.ref, None)
-      )
+      ) shouldBe Map(actorProbe1.ref -> None)
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97")
-      ) shouldBe Vector(
-        (actorProbe2.ref, None),
-        (actorProbe3.ref, None)
+      ) shouldBe Map(
+        actorProbe2.ref -> None,
+        actorProbe3.ref -> None
       )
 
     }
@@ -169,19 +161,13 @@ class ReceivedValuesStoreSpec
       receivedValuesStore.nodeToReceivedPower.size shouldBe 3
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546")
-      ) shouldBe Vector(
-        (actorProbe1.ref, None)
-      )
+      ) shouldBe Map(actorProbe1.ref -> None)
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97")
-      ) shouldBe Vector(
-        (actorProbe2.ref, None)
-      )
+      ) shouldBe Map(actorProbe2.ref -> None)
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("5cd55ab5-a7d2-499f-a25f-6dbc3845c5e8")
-      ) shouldBe Vector(
-        (actorProbe3.ref, None)
-      )
+      ) shouldBe Map(actorProbe3.ref -> None)
 
     }
 
@@ -231,14 +217,10 @@ class ReceivedValuesStoreSpec
       receivedValuesStore.nodeToReceivedPower.size shouldBe 2
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546")
-      ) shouldBe Vector(
-        (actorProbe1.ref, None)
-      )
+      ) shouldBe Map(actorProbe1.ref -> None)
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97")
-      ) shouldBe Vector(
-        (actorProbe2.ref, None)
-      )
+      ) shouldBe Map(actorProbe2.ref -> None)
 
     }
 

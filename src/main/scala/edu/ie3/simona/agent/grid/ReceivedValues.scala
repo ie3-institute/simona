@@ -15,12 +15,10 @@ import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessag
   */
 sealed trait ReceivedValues
 
-case object ReceivedValues {
+object ReceivedValues {
 
-  type ActorPowerRequestResponse =
-    (ActorRef, Option[PowerResponseMessage])
-  type ActorSlackVoltageRequestResponse =
-    (ActorRef, Option[ProvideSlackVoltageMessage])
+  type ActorPowerRequestResponse = (ActorRef, PowerResponseMessage)
+  type ActorSlackVoltageRequestResponse = (ActorRef, ProvideSlackVoltageMessage)
 
   sealed trait ReceivedPowerValues extends ReceivedValues {
     def values: Vector[ActorPowerRequestResponse]
@@ -29,6 +27,7 @@ case object ReceivedValues {
   /** Wrapper for received asset power values (p, q)
     *
     * @param values
+    *   the asset power values and their senders
     */
   final case class ReceivedAssetPowerValues(
       values: Vector[ActorPowerRequestResponse]
@@ -37,6 +36,7 @@ case object ReceivedValues {
   /** Wrapper for received grid power values (p, q)
     *
     * @param values
+    *   the grid power values and their senders
     */
   final case class ReceivedGridPowerValues(
       values: Vector[ActorPowerRequestResponse]
@@ -45,6 +45,7 @@ case object ReceivedValues {
   /** Wrapper for received slack voltage values (v)
     *
     * @param values
+    *   the slack voltage values and their senders
     */
   final case class ReceivedSlackValues(
       values: Vector[ActorSlackVoltageRequestResponse]

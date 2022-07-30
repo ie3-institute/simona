@@ -25,8 +25,8 @@ import tech.units.indriya.quantity.Quantities
 import java.util.UUID
 import javax.measure.Quantity
 import javax.measure.quantity.{Dimensionless, ElectricPotential}
-import scala.annotation.tailrec
 import scala.collection.mutable
+import scala.util.{Failure, Success, Try}
 
 /** Support and helper methods for power flow calculations provided by
   * [[edu.ie3.powerflow]]
@@ -72,7 +72,7 @@ trait PowerFlowSupport {
       gridMainRefSystem: RefSystem,
       targetVoltageFromReceivedData: Boolean = true,
       ignoreTargetVoltage: Boolean = false
-  ): (Array[PresetData], WithForcedStartVoltages) =
+  ): (Array[PresetData], WithForcedStartVoltages) = {
     nodes.toArray.map { nodeModel =>
       // note: currently we only support pq nodes as we not distinguish between pq/pv nodes -
       // when slack emulators or pv-node assets are added this needs to be considered here
@@ -142,6 +142,7 @@ trait PowerFlowSupport {
             gridMainRefSystem
           )
         } else {
+          // Either the received data shall not be considered or the node is not a slack node
           Complex.one *
             (if (!ignoreTargetVoltage)
                nodeModel.vTarget
@@ -173,6 +174,7 @@ trait PowerFlowSupport {
       case (operatingPoint, stateData) =>
         (operatingPoint, WithForcedStartVoltages(stateData.flatten))
     }
+  }
 
   /** Composes the current operation point needed by
     * [[edu.ie3.powerflow.NewtonRaphsonPF.calculate()]] by reusing the provided
@@ -207,7 +209,7 @@ trait PowerFlowSupport {
       val nodeStateData = sweepValueStoreData.stateData
       val targetVoltage = if (nodeStateData.nodeType == NodeType.SL) {
         val receivedSlackVoltage = receivedSlackValues.values
-          .flatMap { case (_, slackValueOpt) => slackValueOpt }
+          .map { case (_, slackVoltageMsg) => slackVoltageMsg }
           .find(_.nodeUuid == sweepValueStoreData.nodeUuid)
           .getOrElse(
             throw new RuntimeException(
@@ -267,13 +269,14 @@ trait PowerFlowSupport {
   ): String = {
     val debugString = new mutable.StringBuilder("Power flow result: ")
     validResult.nodeData.foreach(nodeStateData => {
-      // get idx
-      val idx = nodeStateData.index
+      // get node index
+      val nodeIndex = nodeStateData.index
       // get nodeUUID
       val uuid = gridModel.nodeUuidToIndexMap
-        .find(_._2 == idx)
+        .find { case (_, index) => index == nodeIndex }
+        .map { case (uuid, _) => uuid }
         .getOrElse(throw new RuntimeException("NODE NOT FOUND REMOVE THIS "))
-        ._1
+
       // get nodeId from UUID
       val nodeId = gridModel.gridComponents.nodes
         .find(_.uuid == uuid)
@@ -439,7 +442,6 @@ trait PowerFlowSupport {
     * @return
     *   The result of newton raphson power flow calculation
     */
-  @tailrec
   protected final def newtonRaphsonPF(
       gridModel: GridModel,
       maxIterations: Int,
@@ -457,10 +459,13 @@ trait PowerFlowSupport {
         // / execute
         val powerFlow =
           NewtonRaphsonPF(epsilon, maxIterations, admittanceMatrix)
-        powerFlow.calculate(
-          operatingPoint,
-          Some(slackVoltages)
-        ) match {
+
+        Try {
+          powerFlow.calculate(
+            operatingPoint,
+            Some(slackVoltages)
+          )
+        }.map {
           case _: PowerFlowResult.FailedPowerFlowResult if epsilons.size > 1 =>
             // if we can relax, we relax
             val epsilonsLeft = epsilons.drop(1)
@@ -479,6 +484,13 @@ trait PowerFlowSupport {
             )
           case result =>
             result
+        } match {
+          case Success(result) => result
+          case Failure(exception) =>
+            throw new DBFSAlgorithmException(
+              s"Power flow calculation in subnet ${gridModel.subnetNo} failed.",
+              exception
+            )
         }
       case None =>
         throw new DBFSAlgorithmException(
