@@ -8,64 +8,27 @@ package edu.ie3.simona.service.primary
 
 import akka.actor.{Actor, ActorRef, PoisonPill, Props, Stash}
 import edu.ie3.datamodel.io.connectors.SqlConnector
-import edu.ie3.datamodel.io.naming.{
-  DatabaseNamingStrategy,
-  EntityPersistenceNamingStrategy,
-  FileNamingStrategy
-}
+import edu.ie3.datamodel.io.naming.{DatabaseNamingStrategy, EntityPersistenceNamingStrategy, FileNamingStrategy}
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
-import edu.ie3.datamodel.io.naming.timeseries.{
-  ColumnScheme,
-  IndividualTimeSeriesMetaInformation
-}
-import edu.ie3.datamodel.io.source.{
-  TimeSeriesMappingSource,
-  TimeSeriesTypeSource
-}
-import edu.ie3.datamodel.io.source.csv.{
-  CsvTimeSeriesMappingSource,
-  CsvTimeSeriesTypeSource
-}
-import edu.ie3.datamodel.io.source.sql.{
-  SqlTimeSeriesMappingSource,
-  SqlTimeSeriesTypeSource
-}
+import edu.ie3.datamodel.io.naming.timeseries.{ColumnScheme, IndividualTimeSeriesMetaInformation}
+import edu.ie3.datamodel.io.source.{TimeSeriesMappingSource, TimeSeriesTypeSource}
+import edu.ie3.datamodel.io.source.csv.{CsvTimeSeriesMappingSource, CsvTimeSeriesTypeSource}
+import edu.ie3.datamodel.io.source.sql.{SqlTimeSeriesMappingSource, SqlTimeSeriesTypeSource}
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
-  Primary => PrimaryConfig
-}
-import edu.ie3.simona.exceptions.{
-  InitializationException,
-  InvalidConfigParameterException
-}
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{DcopfParams, SqlParams}
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.{Primary => PrimaryConfig}
+import edu.ie3.simona.exceptions.{InitializationException, InvalidConfigParameterException}
 import edu.ie3.simona.logging.SimonaActorLogging
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  ExtOpfRegistrationMessage,
-  PrimaryServiceRegistrationMessage,
-  WorkerRegistrationMessage
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{ExtOpfRegistrationMessage, PrimaryServiceRegistrationMessage, WorkerRegistrationMessage}
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
-  InitPrimaryServiceProxyStateData,
-  PrimaryServiceStateData,
-  SourceRef
-}
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
-  CsvInitPrimaryServiceStateData,
-  InitPrimaryServiceStateData,
-  SqlInitPrimaryServiceStateData
-}
+import edu.ie3.simona.service.primary.PrimaryServiceProxy.{InitPrimaryServiceProxyStateData, PrimaryServiceStateData, SourceRef}
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.{CsvInitPrimaryServiceStateData, InitPrimaryServiceStateData, SqlInitPrimaryServiceStateData}
 
 import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
@@ -118,9 +81,12 @@ case class PrimaryServiceProxy(
       unstashAll()
       if (primaryConfig.dcopfParams.isDefined) {
         // in neuen state wechseln, damit OPF Registrierung empfangen werden kann
+        log.info(s"dcopfParams ${primaryConfig.dcopfParams} are defined...")
         context become waitForExtOpfDataServiceRegistration(
           primaryConfig,
-          simulationStart
+          simulationStart,
+          triggerId,
+          sender()
         )
       } else {
         /* The proxy is asked to initialize itself. If that happened successfully, change the logic of receiving
@@ -201,15 +167,21 @@ case class PrimaryServiceProxy(
 
   private def waitForExtOpfDataServiceRegistration(
       primaryConfig: PrimaryConfig,
-      simulationStart: ZonedDateTime
+      simulationStart: ZonedDateTime,
+      triggerId: Long,
+      scheduler: ActorRef
   ): Receive = { case ExtOpfRegistrationMessage(generators) =>
+    log.info(s"RegistrationMessage $ExtOpfRegistrationMessage from ExtOpfDataService received...")
     val stateData = registerExtOpfDataService(
       primaryConfig,
       simulationStart,
       generators,
       sender()
     )
+    log.info(s"changed to state onMessage...")
+    scheduler ! CompletionMessage(triggerId, newTriggers = None)
     context become onMessage(stateData)
+
   }
 
   private def registerExtOpfDataService(
@@ -231,6 +203,7 @@ case class PrimaryServiceProxy(
     val timeSeriesToSourceRef = Map(
       (ts_uuid, SourceRef(metaInformation, Some(actorRef)))
     )
+    log.info(s"PrimaryService State Data is updated with ExtOpfDataService as Worker for $timeSeriesToSourceRef...")
 
     PrimaryServiceStateData(
       modelToTimeSeries,
@@ -632,7 +605,8 @@ object PrimaryServiceProxy {
       primaryConfig.couchbaseParams,
       primaryConfig.csvParams,
       primaryConfig.influxDb1xParams,
-      primaryConfig.sqlParams
+      primaryConfig.sqlParams,
+      primaryConfig.dcopfParams
     ).filter(_.isDefined).flatten
     if (sourceConfigs.size > 1)
       throw new InvalidConfigParameterException(
@@ -652,6 +626,8 @@ object PrimaryServiceProxy {
           checkTimePattern(csvParams.timePattern)
         case Some(sqlParams: SimonaConfig.Simona.Input.Primary.SqlParams) =>
           checkTimePattern(sqlParams.timePattern)
+        case Some(_:DcopfParams) =>
+          // this is fine
         case Some(x) =>
           throw new InvalidConfigParameterException(
             s"Invalid configuration '$x' for a time series source.\nAvailable types:\n\t${supportedSources

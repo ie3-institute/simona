@@ -98,6 +98,8 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
+  implementation "com.github.ie3-institute:simonaOpfInterface:1.0"
+
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // akka scala logging
   implementation "ch.qos.logback:logback-classic:1.2.11"

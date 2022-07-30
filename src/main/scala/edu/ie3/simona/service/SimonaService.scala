@@ -64,6 +64,7 @@ abstract class SimonaService[
         initializeStateData
       ) match {
         case Success((serviceStateData, maybeTriggersToBeScheduled)) =>
+          log.info(s"Initialisation complete for $serviceStateData")
           scheduler ! CompletionMessage(triggerId, maybeTriggersToBeScheduled)
           unstashAll()
           context become idle(serviceStateData)

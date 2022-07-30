@@ -62,18 +62,18 @@ deactivate ExtSimAdapter
 
 activate ExtSimulation
 ExtSimulation -> ExtOpfDataService: <font color=red>!</font> ExtOpfMessage(_)
-ExtSimulation -> ExtSimAdapter: <font color=red>!</font> ScheduleDataServiceMessage(\n\tdataServiceRef\n)
+ExtSimulation -> ExtSimAdapter: <font color=red>!</font> ScheduleDataServiceMessage(\n\tdataServiceRef)
 deactivate ExtSimulation
 
 activate ExtSimAdapter
-ExtSimAdapter -> SimScheduler: <font color=red>!</font> ScheduleTriggerMessage(\n\t_, dataServiceRef)
+ExtSimAdapter -> SimScheduler: <font color=red>!</font> ScheduleTriggerMessage(_, dataServiceRef)
 deactivate ExtSimAdapter
 
 SimScheduler -> ExtOpfDataService: <font color=red>!</font> ActivityStartTrigger(tick)
 activate ExtOpfDataService
 ExtOpfDataService -> Generator1: <font color=red>!</font> ProvideSetpointsMessage(_)
 ExtOpfDataService -> Generator2: <font color=red>!</font> ProvideSetpointsMessage(_)
-ExtOpfDataService -> SimScheduler: <font color=red>!</font> ScheduleDataServiceMessage(\n\tdataServiceRef\n)
+ExtOpfDataService -> SimScheduler: <font color=red>!</font> CompletionMessage(newTriggers)
 deactivate ExtOpfDataService
 
 SimScheduler -> Generator1: <font color=red>!</font> ActivityStartTrigger(tick)
@@ -84,17 +84,5 @@ Generator1 -> SimScheduler: <font color=red>!</font> CompletionMessage(None)
 deactivate Generator1
 Generator2 -> SimScheduler: <font color=red>!</font> CompletionMessage(None)
 deactivate Generator2
-
-activate ExtOpfDataService
-ExtOpfDataService -> ExtSimulation: <font color=red>!</font> PowerFlowCalculationResult(tick)
-deactivate ExtOpfDataService
-
-activate ExtSimulation
-ExtSimulation -> ExtSimAdapter: <font color=red>!</font> CompletionMessage(None)
-deactivate ExtSimulation
-
-activate ExtSimAdapter
-ExtSimAdapter -> SimScheduler: <font color=red>!</font> CompletionMessage(None)
-deactivate ExtSimAdapter
 
 @enduml

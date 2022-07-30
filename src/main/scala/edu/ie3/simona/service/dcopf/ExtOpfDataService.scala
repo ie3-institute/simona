@@ -196,7 +196,7 @@ class ExtOpfDataService(
             val generatorRef = extOpfStateData.uuidToActorRef
               .getOrElse(generator,
                 throw ServiceException(
-                  "ExtOpfDataActor was triggered without generators' ActorRef"
+                  s"ExtOpfDataActor was triggered without generators' ActorRef $generator. In State Data: ${extOpfStateData.uuidToActorRef} "
                 )
               )
             processData(tick, generatorRef, setpoint)
@@ -245,6 +245,7 @@ class ExtOpfDataService(
     val provisionMessage =
       ProvidePrimaryDataMessage(tick, primaryData, Some(tick + 900L))
     generator ! provisionMessage
+    log.info(s"external Data $primaryData was sent to generator $generator.")
   }
 
   private def updateStateDataAndBuildTriggerMessages(
@@ -279,6 +280,7 @@ class ExtOpfDataService(
   )(implicit serviceStateData: ExtOpfStateData): ExtOpfStateData =
     extMsg match {
       case extOpfMessage: ExtOpfMessage =>
+        log.info(s"external data received...")
         serviceStateData.copy(
           extOpfMessage = Some(extOpfMessage)
         )
