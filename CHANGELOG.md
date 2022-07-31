@@ -43,7 +43,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Respect for scaling factor when simulating the system participants [#81](https://github.com/ie3-institute/simona/issues/81)
 - Harmonize participant model instantiation [#81](https://github.com/ie3-institute/simona/issues/81)
 
-
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
 - Let `ParticipantAgent` die after failed registration with secondary services (prevents stuck simulation) [#76](https://github.com/ie3-institute/simona/issues/76)
