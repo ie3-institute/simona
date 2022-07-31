@@ -344,8 +344,8 @@ case object Transformer3wModel extends LazyLogging {
         (
           transformerType.getrScB.divide(pow(nominalRatio, 2)),
           transformerType.getxScB.divide(pow(nominalRatio, 2)),
-          Quantities.getQuantity(0d, StandardUnits.ADMITTANCE),
-          Quantities.getQuantity(0d, StandardUnits.ADMITTANCE)
+          Quantities.getQuantity(0d, StandardUnits.CONDUCTANCE),
+          Quantities.getQuantity(0d, StandardUnits.SUSCEPTANCE)
         )
       case PowerFlowCaseC =>
         val nominalRatio = transformerType
@@ -358,8 +358,8 @@ case object Transformer3wModel extends LazyLogging {
         (
           transformerType.getrScC.divide(pow(nominalRatio, 2)),
           transformerType.getxScC.divide(pow(nominalRatio, 2)),
-          Quantities.getQuantity(0d, StandardUnits.ADMITTANCE),
-          Quantities.getQuantity(0d, StandardUnits.ADMITTANCE)
+          Quantities.getQuantity(0d, StandardUnits.CONDUCTANCE),
+          Quantities.getQuantity(0d, StandardUnits.SUSCEPTANCE)
         )
     }
 
