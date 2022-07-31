@@ -12,7 +12,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentInitData,
   GridAgentUninitializedData
 }
-import edu.ie3.simona.agent.state.AgentState.{Finish, Idle, Uninitialized}
+import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
 import edu.ie3.simona.agent.{EnvironmentRefs, SimonaAgent}
 import edu.ie3.simona.config.SimonaConfig
@@ -24,6 +24,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
+import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
   InitializeGridAgentTrigger,
@@ -209,7 +210,7 @@ class GridAgent(
         )
       )
 
-    case Event(Finish, data: GridAgentBaseData) =>
+    case Event(StopMessage(_), data: GridAgentBaseData) =>
       // shutdown children
       data.gridEnv.nodeToAssetAgents.foreach { case (_, actors) =>
         actors.foreach(context.stop)
