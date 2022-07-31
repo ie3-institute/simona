@@ -8,27 +8,18 @@ package edu.ie3.simona.io.grid
 
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.csv._
-import edu.ie3.datamodel.models.input._
-import edu.ie3.datamodel.models.input.connector._
 import edu.ie3.datamodel.models.input.container._
-import edu.ie3.datamodel.models.input.graphics._
-import edu.ie3.datamodel.models.input.system._
+import edu.ie3.datamodel.models.input.thermal.{
+  ThermalBusInput,
+  ThermalHouseInput,
+  ThermalStorageInput
+}
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, SeqHasAsJava}
 import scala.jdk.OptionConverters._
 
 protected case object CsvGridSource {
-
-  def apply(
-      gridName: String,
-      csvSep: String,
-      baseFolder: String,
-      fileNamingStrategy: FileNamingStrategy
-  ): Option[JointGridContainer] = {
-    readGrid(gridName, csvSep, baseFolder, fileNamingStrategy)
-  }
-
-  private def readGrid(
+  def readGrid(
       gridName: String,
       csvSep: String,
       baseFolder: String,
@@ -91,43 +82,46 @@ protected case object CsvGridSource {
     }
   }
 
-  /** Creates an empty grid without any element. Is only for intermediate state,
-    * as the PowerSystemDataModel doesn't provide a csv reader, yet.
-    *
-    * @return
-    *   An empty [[JointGridContainer]]
-    */
-  @deprecated("Use a proper reader instead.")
-  def getEmptyGrid: JointGridContainer = {
-    val rawGridElements = new RawGridElements(
-      Set.empty[NodeInput].asJava,
-      Set.empty[LineInput].asJava,
-      Set.empty[Transformer2WInput].asJava,
-      Set.empty[Transformer3WInput].asJava,
-      Set.empty[SwitchInput].asJava,
-      Set.empty[MeasurementUnitInput].asJava
+  def readThermalGrids(
+      csvSep: String,
+      baseFolder: String,
+      fileNamingStrategy: FileNamingStrategy
+  ): Map[ThermalBusInput, ThermalGrid] = {
+    val csvTypeSource: CsvTypeSource =
+      new CsvTypeSource(csvSep, baseFolder, fileNamingStrategy)
+    val csvThermalSource: CsvThermalSource = new CsvThermalSource(
+      csvSep,
+      baseFolder,
+      fileNamingStrategy,
+      csvTypeSource
     )
-    val systemParticipants = new SystemParticipants(
-      Set.empty[BmInput].asJava,
-      Set.empty[ChpInput].asJava,
-      Set.empty[EvcsInput].asJava,
-      Set.empty[EvInput].asJava,
-      Set.empty[FixedFeedInInput].asJava,
-      Set.empty[HpInput].asJava,
-      Set.empty[LoadInput].asJava,
-      Set.empty[PvInput].asJava,
-      Set.empty[StorageInput].asJava,
-      Set.empty[WecInput].asJava
-    )
-    val graphicElements = new GraphicElements(
-      Set.empty[NodeGraphicInput].asJava,
-      Set.empty[LineGraphicInput].asJava
-    )
-    new JointGridContainer(
-      "I'm so empty",
-      rawGridElements,
-      systemParticipants,
-      graphicElements
-    )
+
+    val busses = csvThermalSource.getThermalBuses()
+    val houses = csvThermalSource
+      .getThermalHouses()
+      .asScala
+      .groupBy(thermalHouse => thermalHouse.getThermalBus)
+      .map { case (bus, houses) =>
+        bus -> houses.toSet
+      }
+    val storages = csvThermalSource
+      .getThermalStorages()
+      .asScala
+      .groupBy(thermalStorage => thermalStorage.getThermalBus)
+      .map { case (bus, storages) =>
+        bus -> storages.toSet
+      }
+
+    busses.asScala.map { bus =>
+      val h: java.util.Collection[ThermalHouseInput] =
+        houses.getOrElse(bus, Set.empty[ThermalHouseInput]).toSeq.asJava
+      val s: java.util.Collection[ThermalStorageInput] =
+        storages.getOrElse(bus, Set.empty[ThermalStorageInput]).toSeq.asJava
+      bus -> new ThermalGrid(
+        bus,
+        h,
+        s
+      )
+    }.toMap
   }
 }

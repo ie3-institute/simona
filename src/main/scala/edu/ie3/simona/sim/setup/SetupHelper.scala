@@ -49,6 +49,8 @@ trait SetupHelper extends LazyLogging {
     *   ancestors and children
     * @param configRefSystems
     *   Collection of reference systems defined in config
+    * @param thermalGrids
+    *   Collection of applicable thermal grids
     * @return
     *   Initialization data for the [[edu.ie3.simona.agent.grid.GridAgent]]
     *   representing this sub grid
@@ -57,7 +59,8 @@ trait SetupHelper extends LazyLogging {
       subGridContainer: SubGridContainer,
       subGridToActorRef: Map[Int, ActorRef],
       gridGates: Set[SubGridGate],
-      configRefSystems: ConfigRefSystems
+      configRefSystems: ConfigRefSystems,
+      thermalGrids: Seq[ThermalGrid]
   ): GridAgentInitData = {
     val subGridGateToActorRef = buildGateToActorRef(
       subGridToActorRef,
@@ -76,7 +79,7 @@ trait SetupHelper extends LazyLogging {
     // build the grid agent data and check for its validity
     GridAgentInitData(
       updatedSubGridContainer,
-      Seq.empty[ThermalGrid],
+      thermalGrids,
       subGridGateToActorRef,
       refSystem
     )

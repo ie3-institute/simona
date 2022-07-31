@@ -305,13 +305,19 @@ class PrimaryServiceProxySpec
             case Some(SourceRef(metaInformation, worker)) =>
               metaInformation shouldBe metaP
               worker shouldBe None
-            case None => fail("Expected to receive a source ref for the active power time series")
+            case None =>
+              fail(
+                "Expected to receive a source ref for the active power time series"
+              )
           }
           timeSeriesToSourceRef.get(uuidPq) match {
             case Some(SourceRef(metaInformation, worker)) =>
               metaInformation shouldBe metaPq
               worker shouldBe None
-            case None => fail("Expected to receive a source ref for the apparent power time series")
+            case None =>
+              fail(
+                "Expected to receive a source ref for the apparent power time series"
+              )
           }
           simulationStart shouldBe this.simulationStart
           primaryConfig shouldBe validPrimaryConfig

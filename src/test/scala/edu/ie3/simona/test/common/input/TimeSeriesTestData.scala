@@ -7,7 +7,10 @@
 package edu.ie3.simona.test.common.input
 
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
-import edu.ie3.datamodel.io.naming.timeseries.{ColumnScheme, IndividualTimeSeriesMetaInformation}
+import edu.ie3.datamodel.io.naming.timeseries.{
+  ColumnScheme,
+  IndividualTimeSeriesMetaInformation
+}
 
 import java.util.UUID
 
