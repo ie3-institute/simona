@@ -8,16 +8,12 @@ package edu.ie3.simona.service.primary
 
 import akka.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
+import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
+import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.{
   DatabaseNamingStrategy,
   EntityPersistenceNamingStrategy,
   FileNamingStrategy
-}
-import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
-import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
-import edu.ie3.datamodel.io.source.{
-  TimeSeriesMappingSource,
-  TimeSeriesMetaInformationSource
 }
 import edu.ie3.datamodel.io.source.csv.{
   CsvTimeSeriesMappingSource,
@@ -26,6 +22,10 @@ import edu.ie3.datamodel.io.source.csv.{
 import edu.ie3.datamodel.io.source.sql.{
   SqlTimeSeriesMappingSource,
   SqlTimeSeriesMetaInformationSource
+}
+import edu.ie3.datamodel.io.source.{
+  TimeSeriesMappingSource,
+  TimeSeriesMetaInformationSource
 }
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.config.SimonaConfig
@@ -67,6 +67,7 @@ import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.Option.when
+import scala.compat.java8.OptionConverters.RichOptionalGeneric
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -148,15 +149,13 @@ case class PrimaryServiceProxy(
     createSources(primaryConfig).map {
       case (mappingSource, metaInformationSource) =>
         val modelToTimeSeries = mappingSource.getMapping.asScala.toMap
-        val timeSeriesMetaInformation =
-          metaInformationSource.getTimeSeriesMetaInformation.asScala.toMap
-
         val timeSeriesToSourceRef = modelToTimeSeries.values
           .to(LazyList)
           .distinct
           .flatMap { timeSeriesUuid =>
-            timeSeriesMetaInformation
-              .get(timeSeriesUuid) match {
+            metaInformationSource
+              .getTimeSeriesMetaInformation(timeSeriesUuid)
+              .asScala match {
               case Some(metaInformation) =>
                 /* Only register those entries, that meet the supported column schemes */
                 when(
