@@ -17,15 +17,15 @@ import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.source.{
   TimeSeriesMappingSource,
-  TimeSeriesTypeSource
+  TimeSeriesMetaInformationSource
 }
 import edu.ie3.datamodel.io.source.csv.{
   CsvTimeSeriesMappingSource,
-  CsvTimeSeriesTypeSource
+  CsvTimeSeriesMetaInformationSource
 }
 import edu.ie3.datamodel.io.source.sql.{
   SqlTimeSeriesMappingSource,
-  SqlTimeSeriesTypeSource
+  SqlTimeSeriesMetaInformationSource
 }
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.config.SimonaConfig
@@ -186,7 +186,7 @@ case class PrimaryServiceProxy(
 
   private def createSources(
       primaryConfig: PrimaryConfig
-  ): Try[(TimeSeriesMappingSource, TimeSeriesTypeSource)] = {
+  ): Try[(TimeSeriesMappingSource, TimeSeriesMetaInformationSource)] = {
     Seq(
       primaryConfig.sqlParams,
       primaryConfig.influxDb1xParams,
@@ -201,7 +201,7 @@ case class PrimaryServiceProxy(
             directoryPath,
             fileNamingStrategy
           ),
-          new CsvTimeSeriesTypeSource(
+          new CsvTimeSeriesMetaInformationSource(
             csvSep,
             directoryPath,
             fileNamingStrategy
@@ -219,7 +219,7 @@ case class PrimaryServiceProxy(
             sqlParams.schemaName,
             new EntityPersistenceNamingStrategy()
           ),
-          new SqlTimeSeriesTypeSource(
+          new SqlTimeSeriesMetaInformationSource(
             sqlConnector,
             sqlParams.schemaName,
             new DatabaseNamingStrategy()
