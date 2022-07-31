@@ -45,7 +45,7 @@ import edu.ie3.simona.util.TickUtil
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.exceptions.EmptyQuantityException
 import edu.ie3.util.interval.ClosedInterval
-import edu.ie3.util.scala.DoubleUtils.ImplicitDouble
+import edu.ie3.util.DoubleUtils.ImplicitDouble
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
