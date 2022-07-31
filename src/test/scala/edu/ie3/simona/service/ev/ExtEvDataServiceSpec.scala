@@ -741,7 +741,7 @@ class ExtEvDataServiceSpec
       extData.receiveTriggerQueue.size() shouldBe 1
       // only evcs 1 should be included, the other one is full
       extData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots(
-        Map(evcs1UUID -> new Integer(2)).asJava
+        Map(evcs1UUID -> Integer.valueOf(2)).asJava
       )
     }
 
