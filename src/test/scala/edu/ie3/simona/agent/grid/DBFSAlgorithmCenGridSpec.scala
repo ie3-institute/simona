@@ -330,6 +330,7 @@ class DBFSAlgorithmCenGridSpec
         )
       )
 
+      // power flow calculation should run now. After it's done,
       // our test agent should now be ready to provide the grid power values,
       // hence we ask for them and expect a corresponding response
       superiorGridAgent.requestGridPower(centerGridAgent, firstSweepNo)
@@ -366,10 +367,10 @@ class DBFSAlgorithmCenGridSpec
           Seq(
             ExchangeVoltage(
               supNodeB.getUuid,
-              Quantities.getQuantity(380, KILOVOLT),
-              Quantities.getQuantity(0, KILOVOLT)
+              Quantities.getQuantity(374.22694614463, KILOVOLT), // 380 kV @ 10°
+              Quantities.getQuantity(65.9863075134335, KILOVOLT) // 380 kV @ 10°
             ),
-            ExchangeVoltage(
+            ExchangeVoltage( // this one should currently be ignored anyways
               supNodeA.getUuid,
               Quantities.getQuantity(380, KILOVOLT),
               Quantities.getQuantity(0, KILOVOLT)
@@ -393,50 +394,50 @@ class DBFSAlgorithmCenGridSpec
       // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculations
       // we simulate this behaviour now by doing the same for our three inferior grid agents
 
-      inferiorGrid11.requestSlackVoltage(centerGridAgent, firstSweepNo)
+      inferiorGrid11.requestSlackVoltage(centerGridAgent, secondSweepNo)
 
-      inferiorGrid12.requestSlackVoltage(centerGridAgent, firstSweepNo)
+      inferiorGrid12.requestSlackVoltage(centerGridAgent, secondSweepNo)
 
-      inferiorGrid13.requestSlackVoltage(centerGridAgent, firstSweepNo)
+      inferiorGrid13.requestSlackVoltage(centerGridAgent, secondSweepNo)
 
       // as we are in the second sweep, all provided slack voltages should be unequal
       // to 1 p.u. (in physical values, here: 110kV) from the superior grid agent perspective
       // (here: centerGridAgent perspective)
 
       inferiorGrid11.expectSlackVoltageProvision(
-        firstSweepNo,
+        secondSweepNo,
         Seq(
           ExchangeVoltage(
             node1.getUuid,
-            Quantities.getQuantity(110.156504579861168, KILOVOLT),
-            Quantities.getQuantity(-0.02700804012678551, KILOVOLT)
+            Quantities.getQuantity(108.487669651919932, KILOVOLT),
+            Quantities.getQuantity(19.101878551141232, KILOVOLT)
           )
         )
       )
 
       inferiorGrid12.expectSlackVoltageProvision(
-        firstSweepNo,
+        secondSweepNo,
         Seq(
           ExchangeVoltage(
             node2.getUuid,
-            Quantities.getQuantity(110.11927849702049, KILOVOLT),
-            Quantities.getQuantity(-0.01594978168595568, KILOVOLT)
+            Quantities.getQuantity(108.449088870497683, KILOVOLT),
+            Quantities.getQuantity(19.10630456834157630, KILOVOLT)
           )
         )
       )
 
       inferiorGrid13.expectSlackVoltageProvision(
-        firstSweepNo,
+        secondSweepNo,
         Seq(
           ExchangeVoltage(
             node3a.getUuid,
-            Quantities.getQuantity(110.13956933728223, KILOVOLT),
-            Quantities.getQuantity(-0.02145845898589436, KILOVOLT)
+            Quantities.getQuantity(108.470028019077087, KILOVOLT),
+            Quantities.getQuantity(19.104403047662570, KILOVOLT)
           ),
           ExchangeVoltage(
             node3b.getUuid,
-            Quantities.getQuantity(110.151555766674, KILOVOLT),
-            Quantities.getQuantity(-0.02544502304127, KILOVOLT)
+            Quantities.getQuantity(108.482524607256866, KILOVOLT),
+            Quantities.getQuantity(19.1025584700935336, KILOVOLT)
           )
         )
       )
@@ -492,8 +493,8 @@ class DBFSAlgorithmCenGridSpec
           ),
           ExchangePower(
             supNodeB.getUuid,
-            Quantities.getQuantity(0.160905770717798, MEGAWATT),
-            Quantities.getQuantity(-1.4535602349123878, MEGAVAR)
+            Quantities.getQuantity(0.16090577067051856, MEGAWATT),
+            Quantities.getQuantity(-1.4535602358772026, MEGAVAR)
           )
         )
       )
@@ -585,7 +586,7 @@ object DBFSAlgorithmCenGridSpec extends UnitSpec {
     def expectGridPowerProvision(
         expectedExchangedPowers: Seq[ExchangePower]
     ): Unit = {
-      inside(gaProbe.expectMsgType[ProvideGridPowerMessage]) {
+      inside(gaProbe.expectMsgType[ProvideGridPowerMessage](10.seconds)) {
         case ProvideGridPowerMessage(exchangedPower) =>
           exchangedPower should have size expectedExchangedPowers.size
 
