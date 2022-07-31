@@ -174,8 +174,7 @@ trait PowerFlowSupport {
     }.unzip
 
     // NOTE: Currently, only one slack node per sub grid is allowed.
-    val slackNodeData = stateData
-      .flatten
+    val slackNodeData = stateData.flatten
       .minByOption(_.index)
       .getOrElse(
         throw new DBFSAlgorithmException(
@@ -195,7 +194,10 @@ trait PowerFlowSupport {
         nodePreset
     }
 
-    (operatingPoints.toArray, WithForcedStartVoltages(Array(slackNodeData)))
+    (
+      adaptedOperatingPoint.toArray,
+      WithForcedStartVoltages(Array(slackNodeData))
+    )
   }
 
   /** Composes the current operation point needed by
