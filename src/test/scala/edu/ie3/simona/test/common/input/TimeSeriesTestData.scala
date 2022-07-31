@@ -6,10 +6,8 @@
 
 package edu.ie3.simona.test.common.input
 
-import edu.ie3.datamodel.io.naming.timeseries.{
-  ColumnScheme,
-  IndividualTimeSeriesMetaInformation
-}
+import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
+import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
 
 import java.util.UUID
 
@@ -21,19 +19,22 @@ trait TimeSeriesTestData {
   protected val uuidPqh: UUID =
     UUID.fromString("46be1e57-e4ed-4ef7-95f1-b2b321cb2047")
 
-  protected val metaP: IndividualTimeSeriesMetaInformation =
-    new IndividualTimeSeriesMetaInformation(
+  protected val metaP: CsvIndividualTimeSeriesMetaInformation =
+    new CsvIndividualTimeSeriesMetaInformation(
       uuidP,
-      ColumnScheme.ACTIVE_POWER
+      ColumnScheme.ACTIVE_POWER,
+      s"its_p_$uuidP"
     )
-  protected val metaPq: IndividualTimeSeriesMetaInformation =
-    new IndividualTimeSeriesMetaInformation(
+  protected val metaPq: CsvIndividualTimeSeriesMetaInformation =
+    new CsvIndividualTimeSeriesMetaInformation(
       uuidPq,
-      ColumnScheme.APPARENT_POWER
+      ColumnScheme.APPARENT_POWER,
+      s"its_pq_$uuidPq"
     )
-  protected val metaPqh: IndividualTimeSeriesMetaInformation =
-    new IndividualTimeSeriesMetaInformation(
+  protected val metaPqh: CsvIndividualTimeSeriesMetaInformation =
+    new CsvIndividualTimeSeriesMetaInformation(
       uuidPqh,
-      ColumnScheme.APPARENT_POWER_AND_HEAT_DEMAND
+      ColumnScheme.APPARENT_POWER_AND_HEAT_DEMAND,
+      s"its_pqh_$uuidPqh"
     )
 }
