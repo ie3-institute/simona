@@ -8,7 +8,6 @@ package edu.ie3.simona.agent.grid
 
 import akka.event.LoggingAdapter
 import breeze.math.Complex
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.datamodel.models.result.NodeResult
 import edu.ie3.datamodel.models.result.connector.{
@@ -448,7 +447,14 @@ private[grid] trait GridResultsSupport {
       internalNodeStateData.voltage,
       nodeStateData.voltage,
       yij(trafo3w),
-      Complex.zero,
+      Transformer3wModel.y0(
+        trafo3w,
+        trafo3w.powerFlowCase match {
+          case PowerFlowCaseA => Transformer3wModel.Transformer3wPort.A
+          case PowerFlowCaseB => Transformer3wModel.Transformer3wPort.B
+          case PowerFlowCaseC => Transformer3wModel.Transformer3wPort.C
+        }
+      ),
       None
     )
 
