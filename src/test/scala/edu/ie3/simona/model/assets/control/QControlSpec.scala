@@ -71,7 +71,7 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
       intercept[QControlException](
         QControl(invalidInput)
-      ).getMessage shouldBe "Got an invalid definition of fixed power factor: cosPhiFixed{points=[CharacteristicCoordinate{x=1 PU, y=2 PU}, CharacteristicCoordinate{x=3 PU, y=4 PU}]}. It may only contain one coordinate"
+      ).getMessage shouldBe "Got an invalid definition of fixed power factor: cosPhiFixed{points=[CharacteristicCoordinate{x=1 p.u., y=2 p.u.}, CharacteristicCoordinate{x=3 p.u., y=4 p.u.}]}. It may only contain one coordinate"
     }
 
     "parse a valid CosPhiFixed correctly" in {
