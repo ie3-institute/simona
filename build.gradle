@@ -28,7 +28,7 @@ ext {
   scalaBinaryVersion = '2.13.8'
   akkaVersion = '2.6.19'
   jtsVersion = '1.19.0'
-  tscfgVersion = '0.9.998'
+  tscfgVersion = '1.0.0'
   scapegoatVersion = '1.4.15'
 
   testContainerVersion = '0.40.10'
