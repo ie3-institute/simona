@@ -130,7 +130,8 @@ object SimonaConfig {
   final case class EvcsRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: scala.Boolean,
       override val scaling: scala.Double,
-      override val uuids: scala.List[java.lang.String]
+      override val uuids: scala.List[java.lang.String],
+      chargingStrategy: java.lang.String
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -143,6 +144,10 @@ object SimonaConfig {
         $tsCfgValidator: $TsCfgValidator
     ): SimonaConfig.EvcsRuntimeConfig = {
       SimonaConfig.EvcsRuntimeConfig(
+        chargingStrategy =
+          if (c.hasPathOrNull("chargingStrategy"))
+            c.getString("chargingStrategy")
+          else "maxPower",
         calculateMissingReactivePowerWithModel = $_reqBln(
           parentPath,
           c,

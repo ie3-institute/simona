@@ -91,7 +91,7 @@ final case class EvcsModel(
     chargingPoints: Int,
     locationType: EvcsLocationType,
     execCtx: ExecutionContext,
-    strategy: ChargingStrategy.Value = ChargingStrategy.GRID_ORIENTED
+    strategy: ChargingStrategy.Value
 ) extends SystemParticipant[EvcsRelevantData](
       uuid,
       id,
@@ -758,6 +758,7 @@ object EvcsModel {
       scalingFactor: Double,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
+      chargingStrategy: String,
       executionContext: ExecutionContext
   ): EvcsModel = {
     /* Determine the operation interval */
@@ -779,7 +780,8 @@ object EvcsModel {
       inputModel.getCosPhiRated,
       inputModel.getChargingPoints,
       inputModel.getLocationType,
-      executionContext
+      executionContext,
+      ChargingStrategy(chargingStrategy)
     )
   }
 
@@ -803,6 +805,8 @@ object EvcsModel {
     *   Number of charging points available at this charging station
     * @param locationType
     *   The location type
+    * @param chargingStrategy
+    *   The charging strategy to use
     * @return
     *   the enabled EvcsModel
     */
@@ -817,7 +821,8 @@ object EvcsModel {
       cosPhiRated: Double,
       chargingPoints: Int,
       locationType: EvcsLocationType,
-      executionContext: ExecutionContext
+      executionContext: ExecutionContext,
+      chargingStrategy: ChargingStrategy.Value
   ): EvcsModel = {
     val model = new EvcsModel(
       uuid,
@@ -830,7 +835,8 @@ object EvcsModel {
       cosPhiRated,
       chargingPoints,
       locationType,
-      executionContext
+      executionContext,
+      chargingStrategy
     )
 
     model.enable()

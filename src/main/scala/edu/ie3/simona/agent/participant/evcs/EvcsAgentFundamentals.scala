@@ -214,6 +214,7 @@ protected trait EvcsAgentFundamentals
     modelConfig.scaling,
     simulationStartDate,
     simulationEndDate,
+    modelConfig.chargingStrategy,
     context.dispatcher
   )
 
