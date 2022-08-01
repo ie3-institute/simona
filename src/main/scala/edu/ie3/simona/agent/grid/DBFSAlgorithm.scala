@@ -121,7 +121,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         case receivedPowers: ReceivedPowerValues =>
           /* Can be a message from an asset or a message from an inferior grid */
           gridAgentBaseData.updateWithReceivedPowerValues(receivedPowers)
-        case receivedSlacks: ReceivedSlackValues =>
+        case receivedSlacks: ReceivedSlackVoltageValues =>
           gridAgentBaseData.updateWithReceivedSlackVoltages(receivedSlacks)
         case unknownReceivedValues =>
           throw new DBFSAlgorithmException(
@@ -615,7 +615,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     // this means we requested an update of the slack voltage values, but for now don't request (and hence don't expect)
     // updated power values for our power flow calculations
     case Event(
-          receivedSlackValues: ReceivedSlackValues,
+          receivedSlackValues: ReceivedSlackVoltageValues,
           gridAgentBaseData: GridAgentBaseData
         ) =>
       log.debug(
@@ -1205,7 +1205,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       subGridGateToActorRef: Map[SubGridGate, ActorRef],
       superiorGridGates: Vector[SubGridGate],
       askTimeout: Duration
-  ): Option[Future[ReceivedSlackValues]] = {
+  ): Option[Future[ReceivedSlackVoltageValues]] = {
     implicit val timeout: AkkaTimeout = AkkaTimeout.create(askTimeout)
     log.debug(
       s"asking superior grids for slack voltage values: {}",
@@ -1227,7 +1227,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             }
             .toVector
         )
-        .map(ReceivedSlackValues)
+        .map(ReceivedSlackVoltageValues)
         .pipeTo(self)
     }
   }
