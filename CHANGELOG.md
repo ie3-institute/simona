@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement SQL source for primary data [#34](https://github.com/ie3-institute/simona/issues/34), [#101](https://github.com/ie3-institute/simona/issues/101)
 - Relevant scientific papers have been added to the documentation [#139](https://github.com/ie3-institute/simona/issues/139)
 - Add troubleshooting section to Users guide [#160](https://github.com/ie3-institute/simona/issues/160)
+- Added Kafka sink for results [#24](https://github.com/ie3-institute/simona/issues/24)
 - Instantiation of Energy Management Agents [#204](https://github.com/ie3-institute/simona/issues/204)
 
 ### Changed
@@ -37,6 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made SimonaConfig.BaseRuntimeConfig serializable [#36](https://github.com/ie3-institute/simona/issues/36)
 - Adapt to new simonaAPI snapshot [#95](https://github.com/ie3-institute/simona/issues/95)
 - Update Sphinx to 4.5.0 as well as extensions [#214](https://github.com/ie3-institute/simona/issues/214)
+- Improved code quality in and around DBFS algorithm [#265](https://github.com/ie3-institute/simona/issues/265)
+- Adapt test to new PowerSystemUtils snapshot  [#294](https://github.com/ie3-institute/simona/issues/294)
+- Simplified ParticipantConfigUtil [#273](https://github.com/ie3-institute/simona/issues/273)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
@@ -48,6 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed some unreachable code [#167](https://github.com/ie3-institute/simona/issues/167)
 - Fix treatment of non-InitializeTrigger triggers in initialization within SimScheduler [#237](https://github.com/ie3-institute/simona/issues/237)
 - Fix breaking SIMONA caused by introducing temperature dependant load profiles in PSDM [#255](https://github.com/ie3-institute/simona/issues/255)
+- Respect for voltage angle in DBFS slack voltage exchange protocol [#69](https://github.com/ie3-institute/simona/issues/69)
+- Adapted to changed time series interfaces in PSDM [#296](https://github.com/ie3-institute/simona/issues/296)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)

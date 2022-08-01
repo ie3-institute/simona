@@ -7,7 +7,7 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
+import edu.ie3.simona.config.SimonaConfig.{BaseCsvParams, ResultKafkaParams}
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.{Csv, InfluxDb1x}
@@ -689,9 +689,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "throw an exception if no sink is provided" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast invokePrivate checkDataSinks(Sink(None, None))
+            ConfigFailFast invokePrivate checkDataSinks(Sink(None, None, None))
           }.getLocalizedMessage shouldBe "No sink configuration found! Please ensure that at least " +
-            "one sink is configured! You can choose from: influxdb1x, csv."
+            "one sink is configured! You can choose from: influxdb1x, csv, kafka."
         }
 
         "throw an exception if more than one sink is provided" in {
@@ -699,7 +699,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkDataSinks(
               Sink(
                 Some(Csv("", "", "", isHierarchic = false)),
-                Some(InfluxDb1x("", 0, ""))
+                Some(InfluxDb1x("", 0, "")),
+                None
               )
             )
           }.getLocalizedMessage shouldBe "Multiple sink configurations are not supported! Please ensure that only " +
@@ -709,12 +710,71 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "throw an exception if an influxDb1x is configured, but not accessible" ignore {
           intercept[java.lang.IllegalArgumentException] {
             ConfigFailFast invokePrivate checkDataSinks(
-              Sink(None, Some(InfluxDb1x("", 0, "")))
+              Sink(None, Some(InfluxDb1x("", 0, "")), None)
             )
           }.getLocalizedMessage shouldBe "Unable to reach configured influxDb1x with url ':0' for 'Sink' configuration and database ''. " +
             "Exception: java.lang.IllegalArgumentException: Unable to parse url: :0"
         }
 
+        "throw an exception if kafka is configured with a malformed UUID" in {
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkDataSinks(
+              Sink(
+                None,
+                None,
+                Some(
+                  ResultKafkaParams(
+                    "server:1234",
+                    0,
+                    "-not-a-uuid-",
+                    "https://reg:123",
+                    "topic"
+                  )
+                )
+              )
+            )
+          }.getMessage shouldBe "The UUID '-not-a-uuid-' cannot be parsed as it is invalid."
+        }
+
+        "throw an exception if kafka is configured, but creating kafka client fails" in {
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkDataSinks(
+              Sink(
+                None,
+                None,
+                Some(
+                  ResultKafkaParams(
+                    "not§a§server",
+                    0,
+                    "00000000-0000-0000-0000-000000000000",
+                    "https://reg:123",
+                    "topic"
+                  )
+                )
+              )
+            )
+          }.getMessage shouldBe "Exception creating kafka client for broker not§a§server."
+        }
+
+        "throw an exception if kafka is configured, but connection to broker fails" in {
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkDataSinks(
+              Sink(
+                None,
+                None,
+                Some(
+                  ResultKafkaParams(
+                    "localhost:12345",
+                    0,
+                    "00000000-0000-0000-0000-000000000000",
+                    "https://reg:123",
+                    "topic"
+                  )
+                )
+              )
+            )
+          }.getMessage shouldBe "Connection with kafka broker localhost:12345 failed."
+        }
       }
 
       "Checking grid data sources" should {

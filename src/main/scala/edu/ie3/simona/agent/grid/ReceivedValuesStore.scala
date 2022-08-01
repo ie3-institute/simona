@@ -6,13 +6,19 @@
 
 package edu.ie3.simona.agent.grid
 
-import java.util.UUID
-
 import akka.actor.ActorRef
 import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.simona.agent.grid.ReceivedValues.ActorPowerRequestResponse
-import edu.ie3.simona.ontology.messages.PowerMessage.ProvidePowerMessage
+import edu.ie3.simona.agent.grid.ReceivedValuesStore.{
+  NodeToReceivedPower,
+  NodeToReceivedSlackVoltage
+}
+import edu.ie3.simona.ontology.messages.PowerMessage.{
+  PowerResponseMessage,
+  ProvidePowerMessage
+}
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
+
+import java.util.UUID
 
 /** Value store that contains all data that should be received by the
   * [[GridAgent]] from other agents. The mapping is structured as the uuid of a
@@ -34,14 +40,14 @@ import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessag
   *   [[GridAgent]] s if any
   */
 final case class ReceivedValuesStore private (
-    nodeToReceivedPower: Map[UUID, Vector[ActorPowerRequestResponse]],
-    nodeToReceivedSlackVoltage: Map[UUID, Option[ProvideSlackVoltageMessage]]
+    nodeToReceivedPower: NodeToReceivedPower,
+    nodeToReceivedSlackVoltage: NodeToReceivedSlackVoltage
 )
 
-case object ReceivedValuesStore {
+object ReceivedValuesStore {
 
   type NodeToReceivedPower =
-    Map[UUID, Vector[(ActorRef, Option[ProvidePowerMessage])]]
+    Map[UUID, Map[ActorRef, Option[PowerResponseMessage]]]
   type NodeToReceivedSlackVoltage =
     Map[UUID, Option[ProvideSlackVoltageMessage]]
 
@@ -94,25 +100,33 @@ case object ReceivedValuesStore {
     /* Collect everything, that I expect from my asset agents */
     val assetsToReceivedPower: NodeToReceivedPower = nodeToAssetAgents.collect {
       case (uuid: UUID, actorRefs: Set[ActorRef]) =>
-        (uuid, actorRefs.toVector.map(actorRef => actorRef -> None))
+        (uuid, actorRefs.map(actorRef => actorRef -> None).toMap)
     }
 
-    /* Add everything, that I expect from my sub ordinate grid agents */
-    inferiorSubGridGateToActorRef.foldLeft(assetsToReceivedPower) {
-      case (subOrdinateToReceivedPower, (gate, inferiorSubGridRef)) =>
-        val couplingNodeUuid = gate.getSuperiorNode.getUuid
+    /* Add everything, that I expect from my sub ordinate grid agents.
+     * Build distinct pairs of sending actor reference and target node.
+     * Convert to sequence first, since the map operation conflates
+     * key/value pairs with the same key */
+    inferiorSubGridGateToActorRef.toSeq
+      .map { case (gate, reference) =>
+        reference -> gate.getSuperiorNode.getUuid
+      }
+      .foldLeft(assetsToReceivedPower) {
+        case (
+              subOrdinateToReceivedPower,
+              inferiorSubGridRef -> couplingNodeUuid
+            ) =>
+          /* Check, if there is already something expected for the given coupling node
+           * and add reference to the subordinate grid agent */
+          val actorRefToMessage = subOrdinateToReceivedPower
+            .getOrElse(
+              couplingNodeUuid,
+              Map.empty[ActorRef, Option[ProvidePowerMessage]]
+            ) + (inferiorSubGridRef -> None)
 
-        /* Check, if there is yet something expected for the given coupling node and add reference to the subordinate
-         * grid agent */
-        val actorRefToMessage = subOrdinateToReceivedPower
-          .getOrElse(
-            couplingNodeUuid,
-            Vector.empty[(ActorRef, Option[ProvidePowerMessage])]
-          ) :+ (inferiorSubGridRef -> None)
-
-        /* Update the existing map */
-        subOrdinateToReceivedPower + (couplingNodeUuid -> actorRefToMessage)
-    }
+          /* Update the existing map */
+          subOrdinateToReceivedPower + (couplingNodeUuid -> actorRefToMessage)
+      }
   }
 
   /** Composes an empty [[NodeToReceivedSlackVoltage]] with all options

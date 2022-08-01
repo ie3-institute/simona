@@ -55,27 +55,30 @@ class ConfigUtilsSpec
         simonaConfig.simona.runtime.participant
       )
 
-      inside(actual) {
-        case ParticipantConfigUtil(configs, defaultLoadConfig, _, _, _, _, _) =>
-          configs shouldBe Map.empty[UUID, SimonaConfig.LoadRuntimeConfig]
-          inside(defaultLoadConfig) {
-            case LoadRuntimeConfig(
+      inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
+        configs shouldBe Map.empty[UUID, SimonaConfig.LoadRuntimeConfig]
+        defaultConfigs.size shouldBe 5
+
+        inside(defaultConfigs.get(classOf[LoadRuntimeConfig])) {
+          case Some(
+                LoadRuntimeConfig(
                   calculateMissingReactivePowerWithModel,
                   scaling,
                   uuids,
                   modelBehaviour,
                   reference
-                ) =>
-              calculateMissingReactivePowerWithModel shouldBe false
-              modelBehaviour shouldBe "fix"
-              reference shouldBe "power"
-              scaling shouldBe 1.0
-              uuids shouldBe List("default")
-          }
-        case unexpected =>
-          fail(
-            s"The input is supposed to be converted to ${ParticipantConfigUtil.getClass.getSimpleName}. I got '$unexpected"
-          )
+                )
+              ) =>
+            calculateMissingReactivePowerWithModel shouldBe false
+            modelBehaviour shouldBe "fix"
+            reference shouldBe "power"
+            scaling shouldBe 1.0
+            uuids shouldBe List("default")
+          case unexpected =>
+            fail(
+              s"Expected a default $LoadRuntimeConfig. I got '$unexpected"
+            )
+        }
       }
     }
 
@@ -108,16 +111,33 @@ class ConfigUtilsSpec
         simonaConfig.simona.runtime.participant
       )
 
-      inside(actual) {
-        case ParticipantConfigUtil(configs, _, _, _, _, _, _) =>
-          configs.size shouldBe 1
-          configs.contains(
-            UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-          )
-        case unexpected =>
-          fail(
-            s"The input is supposed to be converted to ${ParticipantConfigUtil.getClass.getSimpleName}. I got '$unexpected"
-          )
+      inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
+        configs.size shouldBe 1
+        configs.contains(
+          UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
+        )
+
+        defaultConfigs.size shouldBe 5
+        inside(defaultConfigs.get(classOf[LoadRuntimeConfig])) {
+          case Some(
+                LoadRuntimeConfig(
+                  calculateMissingReactivePowerWithModel,
+                  scaling,
+                  uuids,
+                  modelBehaviour,
+                  reference
+                )
+              ) =>
+            calculateMissingReactivePowerWithModel shouldBe false
+            modelBehaviour shouldBe "profile"
+            reference shouldBe "power"
+            scaling shouldBe 1.3
+            uuids shouldBe List("default")
+          case unexpected =>
+            fail(
+              s"Expected a default $LoadRuntimeConfig. I got '$unexpected"
+            )
+        }
       }
     }
 
@@ -150,25 +170,21 @@ class ConfigUtilsSpec
         simonaConfig.simona.runtime.participant
       )
 
-      inside(actual) {
-        case ParticipantConfigUtil(configs, _, _, _, _, _, _) =>
-          configs.size shouldBe 2
-          configs.contains(
-            UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-          )
-          configs.contains(
-            UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
-          )
-          actual.getLoadConfigOrDefault(
-            UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-          ) shouldBe actual.getLoadConfigOrDefault(
-            UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
-          )
-        case unexpected =>
-          fail(
-            s"The input is supposed to be converted to ${ParticipantConfigUtil.getClass.getSimpleName}. I got '$unexpected"
-          )
+      inside(actual) { case ParticipantConfigUtil(configs, _) =>
+        configs.size shouldBe 2
+        configs.contains(
+          UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
+        )
+        configs.contains(
+          UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
+        )
       }
+
+      actual.getOrDefault[LoadRuntimeConfig](
+        UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
+      ) shouldBe actual.getOrDefault[LoadRuntimeConfig](
+        UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
+      )
     }
 
     "setup on multiple correct load input configs correctly" in {
@@ -207,40 +223,36 @@ class ConfigUtilsSpec
         simonaConfig.simona.runtime.participant
       )
 
-      inside(actual) {
-        case ParticipantConfigUtil(configs, _, _, _, _, _, _) =>
-          configs.size shouldBe 2
-          configs.contains(
-            UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-          )
-          configs.contains(
-            UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
-          )
-          actual.getLoadConfigOrDefault(
-            UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-          ) shouldBe
-            LoadRuntimeConfig(
-              calculateMissingReactivePowerWithModel = false,
-              1.3,
-              List("49f250fa-41ff-4434-a083-79c98d260a76"),
-              "profile",
-              "power"
-            )
-          actual.getLoadConfigOrDefault(
-            UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
-          ) shouldBe
-            LoadRuntimeConfig(
-              calculateMissingReactivePowerWithModel = false,
-              1.5,
-              List("fb8f1443-1843-4ecd-a94a-59be8148397f"),
-              "random",
-              "energy"
-            )
-        case unexpected =>
-          fail(
-            s"The input is supposed to be converted to ${ParticipantConfigUtil.getClass.getSimpleName}. I got '$unexpected"
-          )
+      inside(actual) { case ParticipantConfigUtil(configs, _) =>
+        configs.size shouldBe 2
+        configs.contains(
+          UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
+        )
+        configs.contains(
+          UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
+        )
       }
+
+      actual.getOrDefault[LoadRuntimeConfig](
+        UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
+      ) shouldBe
+        LoadRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          1.3,
+          List("49f250fa-41ff-4434-a083-79c98d260a76"),
+          "profile",
+          "power"
+        )
+      actual.getOrDefault[LoadRuntimeConfig](
+        UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
+      ) shouldBe
+        LoadRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          1.5,
+          List("fb8f1443-1843-4ecd-a94a-59be8148397f"),
+          "random",
+          "energy"
+        )
     }
   }
 
@@ -264,32 +276,26 @@ class ConfigUtilsSpec
         simonaConfig.simona.runtime.participant
       )
 
-      inside(actual) {
-        case ParticipantConfigUtil(
-              configs,
-              _,
-              defaultFixedFeedInConfig,
-              _,
-              _,
-              _,
-              _
-            ) =>
-          configs shouldBe Map
-            .empty[UUID, SimonaConfig.FixedFeedInRuntimeConfig]
-          inside(defaultFixedFeedInConfig) {
-            case FixedFeedInRuntimeConfig(
+      inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
+        configs shouldBe Map
+          .empty[UUID, SimonaConfig.FixedFeedInRuntimeConfig]
+
+        inside(defaultConfigs.get(classOf[FixedFeedInRuntimeConfig])) {
+          case Some(
+                FixedFeedInRuntimeConfig(
                   calculateMissingReactivePowerWithModel,
                   scaling,
                   uuids
-                ) =>
-              calculateMissingReactivePowerWithModel shouldBe false
-              scaling shouldBe 1.0
-              uuids shouldBe List("default")
-          }
-        case unexpected =>
-          fail(
-            s"The input is supposed to be converted to ${ParticipantConfigUtil.getClass.getSimpleName}. I got '$unexpected"
-          )
+                )
+              ) =>
+            calculateMissingReactivePowerWithModel shouldBe false
+            scaling shouldBe 1.0
+            uuids shouldBe List("default")
+          case unexpected =>
+            fail(
+              s"Expected a default $FixedFeedInRuntimeConfig. I got '$unexpected"
+            )
+        }
       }
     }
 
@@ -318,16 +324,29 @@ class ConfigUtilsSpec
         simonaConfig.simona.runtime.participant
       )
 
-      inside(actual) {
-        case ParticipantConfigUtil(fixedFeedInConfigs, _, _, _, _, _, _) =>
-          fixedFeedInConfigs.size shouldBe 1
-          fixedFeedInConfigs.contains(
-            UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-          )
-        case unexpected =>
-          fail(
-            s"The input is supposed to be converted to ${ParticipantConfigUtil.getClass.getSimpleName}. I got '$unexpected"
-          )
+      inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
+        configs.size shouldBe 1
+        configs.contains(
+          UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
+        )
+
+        defaultConfigs.size shouldBe 5
+        inside(defaultConfigs.get(classOf[FixedFeedInRuntimeConfig])) {
+          case Some(
+                FixedFeedInRuntimeConfig(
+                  calculateMissingReactivePowerWithModel,
+                  scaling,
+                  uuids
+                )
+              ) =>
+            calculateMissingReactivePowerWithModel shouldBe false
+            scaling shouldBe 1.3
+            uuids shouldBe List("default")
+          case unexpected =>
+            fail(
+              s"Expected a default $FixedFeedInRuntimeConfig. I got '$unexpected"
+            )
+        }
       }
     }
 
@@ -356,24 +375,20 @@ class ConfigUtilsSpec
         simonaConfig.simona.runtime.participant
       )
 
-      inside(actual) {
-        case ParticipantConfigUtil(fixedFeedInConfigs, _, _, _, _, _, _) =>
-          fixedFeedInConfigs.size shouldBe 2
-          fixedFeedInConfigs.contains(
-            UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-          )
-          fixedFeedInConfigs.contains(
-            UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
-          )
-          actual.getFixedFeedConfigOrDefault(
-            UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-          ) shouldBe actual.getFixedFeedConfigOrDefault(
-            UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
-          )
-        case unexpected =>
-          fail(
-            s"The input is supposed to be converted to ${ParticipantConfigUtil.getClass.getSimpleName}. I got '$unexpected"
-          )
+      inside(actual) { case ParticipantConfigUtil(configs, _) =>
+        configs.size shouldBe 2
+        configs.contains(
+          UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
+        )
+        configs.contains(
+          UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
+        )
+
+        actual.getOrDefault[FixedFeedInRuntimeConfig](
+          UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
+        ) shouldBe actual.getOrDefault[FixedFeedInRuntimeConfig](
+          UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
+        )
       }
     }
 
@@ -407,36 +422,32 @@ class ConfigUtilsSpec
         simonaConfig.simona.runtime.participant
       )
 
-      inside(actual) {
-        case ParticipantConfigUtil(fixedFeedInConfigs, _, _, _, _, _, _) =>
-          fixedFeedInConfigs.size shouldBe 2
-          fixedFeedInConfigs.contains(
-            UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-          )
-          fixedFeedInConfigs.contains(
-            UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
-          )
-          actual.getFixedFeedConfigOrDefault(
-            UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-          ) shouldBe
-            FixedFeedInRuntimeConfig(
-              calculateMissingReactivePowerWithModel = false,
-              1.3,
-              List("49f250fa-41ff-4434-a083-79c98d260a76")
-            )
-          actual.getFixedFeedConfigOrDefault(
-            UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
-          ) shouldBe
-            FixedFeedInRuntimeConfig(
-              calculateMissingReactivePowerWithModel = false,
-              1.5,
-              List("fb8f1443-1843-4ecd-a94a-59be8148397f")
-            )
-        case unexpected =>
-          fail(
-            s"The input is supposed to be converted to ${ParticipantConfigUtil.getClass.getSimpleName}. I got '$unexpected"
-          )
+      inside(actual) { case ParticipantConfigUtil(configs, _) =>
+        configs.size shouldBe 2
+        configs.contains(
+          UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
+        )
+        configs.contains(
+          UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
+        )
       }
+
+      actual.getOrDefault[FixedFeedInRuntimeConfig](
+        UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
+      ) shouldBe
+        FixedFeedInRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          1.3,
+          List("49f250fa-41ff-4434-a083-79c98d260a76")
+        )
+      actual.getOrDefault[FixedFeedInRuntimeConfig](
+        UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
+      ) shouldBe
+        FixedFeedInRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          1.5,
+          List("fb8f1443-1843-4ecd-a94a-59be8148397f")
+        )
     }
   }
 
@@ -515,46 +526,41 @@ class ConfigUtilsSpec
         simonaConfig.simona.runtime.participant
       )
 
-      inside(actual) {
-        case ParticipantConfigUtil(configs, _, _, _, _, _, _) =>
-          configs.size shouldBe 4
-          // return default if a request for fix feed is done, but a load config is found
-          actual.getFixedFeedConfigOrDefault(
-            UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-          ) shouldBe
-            FixedFeedInRuntimeConfig(
-              calculateMissingReactivePowerWithModel = false,
-              1.0,
-              List("default")
-            )
-
-          // return default if a request for load is done, but fixed feed is found
-          actual.getLoadConfigOrDefault(
-            UUID.fromString("50f250fa-41ff-4434-a083-79c98d260a76")
-          ) shouldBe
-            LoadRuntimeConfig(
-              calculateMissingReactivePowerWithModel = false,
-              1.0,
-              List("default"),
-              "profile",
-              "power"
-            )
-
-          // return default if a request for pv is done, but fixed feed is found
-          actual.getPvConfigOrDefault(
-            UUID.fromString("50f250fa-41ff-4434-a083-79c98d260a76")
-          ) shouldBe
-            PvRuntimeConfig(
-              calculateMissingReactivePowerWithModel = false,
-              1.0,
-              List("default")
-            )
-
-        case unexpected =>
-          fail(
-            s"The input is supposed to be converted to ${ParticipantConfigUtil.getClass.getSimpleName}. I got '$unexpected"
-          )
+      inside(actual) { case ParticipantConfigUtil(configs, _) =>
+        configs.size shouldBe 4
       }
+
+      // return default if a request for fix feed is done, but a load config is found
+      actual.getOrDefault[FixedFeedInRuntimeConfig](
+        UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
+      ) shouldBe
+        FixedFeedInRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          1.0,
+          List("default")
+        )
+
+      // return default if a request for load is done, but fixed feed is found
+      actual.getOrDefault[LoadRuntimeConfig](
+        UUID.fromString("50f250fa-41ff-4434-a083-79c98d260a76")
+      ) shouldBe
+        LoadRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          1.0,
+          List("default"),
+          "profile",
+          "power"
+        )
+
+      // return default if a request for pv is done, but fixed feed is found
+      actual.getOrDefault[PvRuntimeConfig](
+        UUID.fromString("50f250fa-41ff-4434-a083-79c98d260a76")
+      ) shouldBe
+        PvRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          1.0,
+          List("default")
+        )
     }
   }
 

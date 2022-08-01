@@ -350,6 +350,13 @@ object SimonaConfig {
 
   }
 
+  sealed abstract class KafkaParams(
+      val bootstrapServers: java.lang.String,
+      val linger: scala.Int,
+      val runId: java.lang.String,
+      val schemaRegistryUrl: java.lang.String
+  )
+
   final case class LoadRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: scala.Boolean,
       override val scaling: scala.Double,
@@ -596,6 +603,63 @@ object SimonaConfig {
         )
         .toList
     }
+    private def $_reqStr(
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): java.lang.String = {
+      if (c == null) null
+      else
+        try c.getString(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            null
+        }
+    }
+
+  }
+
+  final case class ResultKafkaParams(
+      override val bootstrapServers: java.lang.String,
+      override val linger: scala.Int,
+      override val runId: java.lang.String,
+      override val schemaRegistryUrl: java.lang.String,
+      topicNodeRes: java.lang.String
+  ) extends KafkaParams(bootstrapServers, linger, runId, schemaRegistryUrl)
+  object ResultKafkaParams {
+    def apply(
+        c: com.typesafe.config.Config,
+        parentPath: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): SimonaConfig.ResultKafkaParams = {
+      SimonaConfig.ResultKafkaParams(
+        topicNodeRes = $_reqStr(parentPath, c, "topicNodeRes", $tsCfgValidator),
+        bootstrapServers =
+          $_reqStr(parentPath, c, "bootstrapServers", $tsCfgValidator),
+        linger = $_reqInt(parentPath, c, "linger", $tsCfgValidator),
+        runId = $_reqStr(parentPath, c, "runId", $tsCfgValidator),
+        schemaRegistryUrl =
+          $_reqStr(parentPath, c, "schemaRegistryUrl", $tsCfgValidator)
+      )
+    }
+    private def $_reqInt(
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): scala.Int = {
+      if (c == null) 0
+      else
+        try c.getInt(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            0
+        }
+    }
+
     private def $_reqStr(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
@@ -1571,7 +1635,8 @@ object SimonaConfig {
 
       final case class Sink(
           csv: scala.Option[SimonaConfig.Simona.Output.Sink.Csv],
-          influxDb1x: scala.Option[SimonaConfig.Simona.Output.Sink.InfluxDb1x]
+          influxDb1x: scala.Option[SimonaConfig.Simona.Output.Sink.InfluxDb1x],
+          kafka: scala.Option[SimonaConfig.ResultKafkaParams]
       )
       object Sink {
         final case class Csv(
@@ -1675,6 +1740,16 @@ object SimonaConfig {
                   SimonaConfig.Simona.Output.Sink.InfluxDb1x(
                     c.getConfig("influxDb1x"),
                     parentPath + "influxDb1x.",
+                    $tsCfgValidator
+                  )
+                )
+              else None,
+            kafka =
+              if (c.hasPathOrNull("kafka"))
+                scala.Some(
+                  SimonaConfig.ResultKafkaParams(
+                    c.getConfig("kafka"),
+                    parentPath + "kafka.",
                     $tsCfgValidator
                   )
                 )
