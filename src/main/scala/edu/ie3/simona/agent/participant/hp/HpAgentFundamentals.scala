@@ -13,7 +13,10 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput
 }
-import edu.ie3.datamodel.models.result.system.SystemParticipantResult
+import edu.ie3.datamodel.models.result.system.{
+  HpResult,
+  SystemParticipantResult
+}
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data
@@ -31,9 +34,13 @@ import edu.ie3.simona.agent.participant.statedata.{
   ParticipantStateData
 }
 import edu.ie3.simona.agent.state.AgentState
+import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.exceptions.agent.AgentInitializationException
+import edu.ie3.simona.exceptions.agent.{
+  AgentInitializationException,
+  InvalidRequestException
+}
 import edu.ie3.simona.model.participant.HpModel
 import edu.ie3.simona.model.participant.HpModel.HpData
 import edu.ie3.simona.model.thermal.ThermalHouse
@@ -77,7 +84,11 @@ trait HpAgentFundamentals
         HpModel
       ],
       ComparableQuantity[Dimensionless]
-  ) => ApparentPowerAndHeat = ???
+  ) => ApparentPowerAndHeat =
+    (_, _, _) =>
+      throw new InvalidRequestException(
+        "HP model cannot be run without secondary data."
+      )
 
   /** Abstractly calculate the power output of the participant utilising
     * secondary data. However, it might appear, that not the complete set of
@@ -103,7 +114,9 @@ trait HpAgentFundamentals
       collectionStateData: DataCollectionStateData[ApparentPowerAndHeat],
       currentTick: Long,
       scheduler: ActorRef
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] = ???
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] = goto(
+    Idle
+  )
 
   /** Abstract definition, individual implementations found in individual agent
     * fundamental classes
@@ -235,7 +248,14 @@ trait HpAgentFundamentals
       activeToReactivePowerFuncOpt: Option[
         ComparableQuantity[Power] => ComparableQuantity[Power]
       ]
-  ): ApparentPowerAndHeat = ???
+  ): ApparentPowerAndHeat =
+    ParticipantAgentFundamentals.averageApparentPowerAndHeat(
+      tickToResults,
+      windowStart,
+      windowEnd,
+      activeToReactivePowerFuncOpt,
+      log
+    )
 
   /** Determines the correct result.
     *
@@ -252,5 +272,11 @@ trait HpAgentFundamentals
       uuid: UUID,
       dateTime: ZonedDateTime,
       result: ApparentPowerAndHeat
-  ): SystemParticipantResult = ???
+  ): SystemParticipantResult = new HpResult(
+    dateTime,
+    uuid,
+    result.p,
+    result.q,
+    result.qDot
+  )
 }

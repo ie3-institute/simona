@@ -19,6 +19,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantRes
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
+  ApparentPowerAndHeat,
   EnrichableData,
   PrimaryDataWithApparentPower
 }
@@ -1737,6 +1738,88 @@ case object ParticipantAgentFundamentals {
     }
 
     ApparentPower(p, q)
+  }
+
+  /** Determine the average apparent power within the given tick window
+    *
+    * @param tickToResults
+    *   Mapping from data tick to actual data
+    * @param windowStart
+    *   First, included tick of the time window
+    * @param windowEnd
+    *   Last, included tick of the time window
+    * @param activeToReactivePowerFuncOpt
+    *   An Option on a function, that transfers the active into reactive power
+    * @return
+    *   The averaged apparent power
+    */
+  def averageApparentPowerAndHeat(
+      tickToResults: Map[Long, ApparentPowerAndHeat],
+      windowStart: Long,
+      windowEnd: Long,
+      activeToReactivePowerFuncOpt: Option[
+        ComparableQuantity[Power] => ComparableQuantity[Power]
+      ] = None,
+      log: LoggingAdapter
+  ): ApparentPowerAndHeat = {
+    val p = QuantityUtil.average(
+      tickToResults.map { case (tick, pd) => tick -> pd.p },
+      windowStart,
+      windowEnd,
+      classOf[Energy],
+      KILOWATTHOUR,
+      classOf[Power],
+      MEGAWATT
+    ) match {
+      case Success(pSuccess) => pSuccess
+      case Failure(exception) =>
+        log.warning(
+          "Unable to determine average active power. Apply 0 instead. Cause:\n\t{}",
+          exception
+        )
+        Quantities.getQuantity(0d, MEGAWATT)
+    }
+    val q = QuantityUtil.average(
+      tickToResults.map { case (tick, pd) =>
+        activeToReactivePowerFuncOpt match {
+          case Some(qFunc) => tick -> qFunc(pd.toApparentPower.p)
+          case None        => tick -> pd.toApparentPower.q
+        }
+      },
+      windowStart,
+      windowEnd,
+      classOf[Energy],
+      KILOVARHOUR,
+      classOf[Power],
+      MEGAVAR
+    ) match {
+      case Success(pSuccess) => pSuccess
+      case Failure(exception) =>
+        log.warning(
+          "Unable to determine average reactive power. Apply 0 instead. Cause:\n\t{}",
+          exception
+        )
+        Quantities.getQuantity(0d, MEGAVAR)
+    }
+    val qDot = QuantityUtil.average(
+      tickToResults.map { case (tick, pd) => tick -> pd.qDot },
+      windowStart,
+      windowEnd,
+      classOf[Energy],
+      KILOWATTHOUR,
+      classOf[Power],
+      MEGAWATT
+    ) match {
+      case Success(qDotSuccess) => qDotSuccess
+      case Failure(exception) =>
+        log.warning(
+          "Unable to determine average thermal power. Apply 0 instead. Cause:\n\t{}",
+          exception
+        )
+        Quantities.getQuantity(0d, MEGAWATT)
+    }
+
+    ApparentPowerAndHeat(p, q, qDot)
   }
 
 }

@@ -150,6 +150,36 @@ object ParticipantStateData {
         requestVoltageDeviationThreshold,
         outputConfig
       )
+
+    def apply[
+        I <: SystemParticipantInput,
+        C <: SimonaConfig.BaseRuntimeConfig,
+        PD <: PrimaryData
+    ](
+        inputModel: I,
+        thermalGrid: ThermalGrid,
+        modelConfig: C,
+        primaryServiceProxy: ActorRef,
+        secondaryDataServices: Option[
+          Vector[SecondaryDataService[_ <: SecondaryData]]
+        ],
+        simulationStartDate: ZonedDateTime,
+        simulationEndDate: ZonedDateTime,
+        resolution: Long,
+        requestVoltageDeviationThreshold: Double,
+        outputConfig: ParticipantNotifierConfig
+    ): ParticipantInitializeStateData[I, C, PD] =
+      new ParticipantInitializeStateData[I, C, PD](
+        WithHeatInputContainer(inputModel, thermalGrid),
+        modelConfig,
+        primaryServiceProxy,
+        secondaryDataServices,
+        simulationStartDate,
+        simulationEndDate,
+        resolution,
+        requestVoltageDeviationThreshold,
+        outputConfig
+      )
   }
 
   /** StateData to be used, while waiting for registration replies

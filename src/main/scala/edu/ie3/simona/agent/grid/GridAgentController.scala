@@ -622,6 +622,7 @@ class GridAgentController(
     ),
     ParticipantInitializeStateData(
       hpInput,
+      thermalGrid,
       modelConfiguration,
       primaryServiceProxy,
       Some(Vector(ActorWeatherService(weatherService))),
