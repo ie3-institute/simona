@@ -8,12 +8,9 @@ package edu.ie3.util.quantities
 
 import edu.ie3.simona.exceptions.QuantityException
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.quantities.QuantityUtil
-import edu.ie3.util.scala.quantities.QuantityUtil.RichUnit
 import org.scalatest.prop.TableDrivenPropertyChecks
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.WATT
 import tech.units.indriya.unit.{ProductUnit, Units}
 
 import javax.measure.Quantity
@@ -184,36 +181,6 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
               )
           }
         }
-      }
-    }
-  }
-
-  "Converting units to alternative units" should {
-    "succeed if units are compatible" in {
-      val cases = Table(
-        ("sourceUnit", "targetUnit", "expectedUnit"),
-        (VOLTAMPERE, WATT, WATT),
-        (KILOVOLTAMPERE, WATT, KILOWATT),
-        (MEGAVOLTAMPERE, WATT, MEGAWATT),
-        (VAR, WATT, WATT),
-        (KILOVAR, WATT, KILOWATT),
-        (MEGAVAR, WATT, MEGAWATT),
-        (VOLTAMPERE, VAR, VAR),
-        (KILOVOLTAMPERE, VAR, KILOVAR),
-        (MEGAVOLTAMPERE, VAR, MEGAVAR),
-        (WATT, VAR, VAR),
-        (KILOWATT, VAR, KILOVAR),
-        (MEGAWATT, VAR, MEGAVAR),
-        (VAR, VOLTAMPERE, VOLTAMPERE),
-        (KILOVAR, VOLTAMPERE, KILOVOLTAMPERE),
-        (MEGAVAR, VOLTAMPERE, MEGAVOLTAMPERE),
-        (WATT, VOLTAMPERE, VOLTAMPERE),
-        (KILOWATT, VOLTAMPERE, KILOVOLTAMPERE),
-        (MEGAWATT, VOLTAMPERE, MEGAVOLTAMPERE)
-      )
-
-      forAll(cases) { (sourceUnit, targetUnit, expectedUnit) =>
-        sourceUnit.toEquivalentIn(targetUnit) shouldBe expectedUnit
       }
     }
   }
