@@ -303,7 +303,7 @@ class GridAgentController(
     case emInput: EmInput =>
       buildEm(
         emInput,
-        participantConfigUtil.getEmConfigOrDefault(emInput.getUuid),
+        participantConfigUtil.getOrDefault[EmRuntimeConfig](emInput.getUuid),
         environmentRefs.primaryServiceProxy,
         environmentRefs.weather,
         requestVoltageDeviationThreshold,

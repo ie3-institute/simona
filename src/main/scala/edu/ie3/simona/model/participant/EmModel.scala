@@ -6,19 +6,60 @@
 
 package edu.ie3.simona.model.participant
 
+import akka.actor.ActorRef
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.ConnectorInput
+import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.simona.agent.ValueStore
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.grid.NodeModel
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
+import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.scala.OperationInterval
+import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import javax.measure.quantity.Power
 
 final case class EmModel private (
+    uuid: UUID,
+    id: String,
+    operationInterval: OperationInterval,
+    scalingFactor: Double,
+    qControl: QControl,
+    sRated: ComparableQuantity[Power],
+    cosPhiRated: Double,
+    connectedAgents: Seq[(ActorRef, SystemParticipantInput)]
 ) extends SystemParticipant[EmRelevantData](
-    ) {}
+      uuid,
+      id,
+      operationInterval,
+      scalingFactor,
+      qControl,
+      sRated,
+      cosPhiRated
+    ) {
+
+  /** Determine the power of controllable devices such as storages
+    * @return
+    */
+  def determineDeviceControl(
+      data: EmRelevantData
+  ): Map[UUID, ComparableQuantity[Power]] = ???
+
+  /** Calculate the active power behaviour of the model
+    *
+    * @param data
+    *   Further needed, secondary data
+    * @return
+    *   Active power
+    */
+  override protected def calculateActivePower(
+      data: EmRelevantData
+  ): ComparableQuantity[Power] = ???
+}
 
 case object EmModel {
 
@@ -33,7 +74,8 @@ case object EmModel {
   final case class EmRelevantData(
       // TODO: From PvModel, Check and refactor
       dateTime: ZonedDateTime,
-      weatherDataFrameLength: Long
+      weatherDataFrameLength: Long,
+      lastResults: ValueStore[ApparentPower]
   ) extends CalcRelevantData
 
   def apply(
