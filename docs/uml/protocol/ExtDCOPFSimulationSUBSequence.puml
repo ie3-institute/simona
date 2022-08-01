@@ -1,0 +1,23 @@
+@startuml
+
+!theme plain
+
+==Sim==
+
+SimScheduler -> ExtOpfDataService: <font color=red>!</font> ActivityStartTrigger(tick)
+activate ExtOpfDataService
+ExtOpfDataService -> Generator1: <font color=red>!</font> ProvideSetpointsMessage(_)
+ExtOpfDataService -> Generator2: <font color=red>!</font> ProvideSetpointsMessage(_)
+ExtOpfDataService -> SimScheduler: <font color=red>!</font> CompletionMessage(newTriggers)
+deactivate ExtOpfDataService
+
+SimScheduler -> Generator1: <font color=red>!</font> ActivityStartTrigger(tick)
+activate Generator1
+SimScheduler -> Generator2: <font color=red>!</font> ActivityStartTrigger(tick)
+activate Generator2
+Generator1 -> SimScheduler: <font color=red>!</font> CompletionMessage(None)
+deactivate Generator1
+Generator2 -> SimScheduler: <font color=red>!</font> CompletionMessage(None)
+deactivate Generator2
+
+@enduml
