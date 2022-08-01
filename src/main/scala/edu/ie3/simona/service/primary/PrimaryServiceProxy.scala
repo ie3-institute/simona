@@ -8,12 +8,27 @@ package edu.ie3.simona.service.primary
 
 import akka.actor.{Actor, ActorRef, PoisonPill, Props, Stash}
 import edu.ie3.datamodel.io.connectors.SqlConnector
-import edu.ie3.datamodel.io.naming.{DatabaseNamingStrategy, EntityPersistenceNamingStrategy, FileNamingStrategy}
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
-import edu.ie3.datamodel.io.naming.timeseries.{ColumnScheme, IndividualTimeSeriesMetaInformation}
-import edu.ie3.datamodel.io.source.{TimeSeriesMappingSource, TimeSeriesTypeSource}
-import edu.ie3.datamodel.io.source.csv.{CsvTimeSeriesMappingSource, CsvTimeSeriesTypeSource}
-import edu.ie3.datamodel.io.source.sql.{SqlTimeSeriesMappingSource, SqlTimeSeriesTypeSource}
+import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
+import edu.ie3.datamodel.io.naming.{
+  DatabaseNamingStrategy,
+  EntityPersistenceNamingStrategy,
+  FileNamingStrategy
+}
+import edu.ie3.datamodel.io.source.csv.{
+  CsvTimeSeriesMappingSource,
+  CsvTimeSeriesMetaInformationSource
+}
+import edu.ie3.datamodel.io.source.sql.{
+  SqlTimeSeriesMappingSource,
+  SqlTimeSeriesMetaInformationSource
+}
+import edu.ie3.datamodel.io.source.{
+  TimeSeriesMappingSource,
+  TimeSeriesMetaInformationSource
+}
+
+import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
@@ -130,15 +145,13 @@ case class PrimaryServiceProxy(
     createSources(primaryConfig).map {
       case (mappingSource, metaInformationSource) =>
         val modelToTimeSeries = mappingSource.getMapping.asScala.toMap
-        val timeSeriesMetaInformation =
-          metaInformationSource.getTimeSeriesMetaInformation.asScala.toMap
-
         val timeSeriesToSourceRef = modelToTimeSeries.values
           .to(LazyList)
           .distinct
           .flatMap { timeSeriesUuid =>
-            timeSeriesMetaInformation
-              .get(timeSeriesUuid) match {
+            metaInformationSource
+              .getTimeSeriesMetaInformation(timeSeriesUuid)
+              .asScala match {
               case Some(metaInformation) =>
                 /* Only register those entries, that meet the supported column schemes */
                 when(
@@ -215,7 +228,7 @@ case class PrimaryServiceProxy(
 
   private def createSources(
       primaryConfig: PrimaryConfig
-  ): Try[(TimeSeriesMappingSource, TimeSeriesTypeSource)] = {
+  ): Try[(TimeSeriesMappingSource, TimeSeriesMetaInformationSource)] = {
     Seq(
       primaryConfig.sqlParams,
       primaryConfig.influxDb1xParams,
@@ -230,7 +243,7 @@ case class PrimaryServiceProxy(
             directoryPath,
             fileNamingStrategy
           ),
-          new CsvTimeSeriesTypeSource(
+          new CsvTimeSeriesMetaInformationSource(
             csvSep,
             directoryPath,
             fileNamingStrategy
@@ -248,7 +261,7 @@ case class PrimaryServiceProxy(
             sqlParams.schemaName,
             new EntityPersistenceNamingStrategy()
           ),
-          new SqlTimeSeriesTypeSource(
+          new SqlTimeSeriesMetaInformationSource(
             sqlConnector,
             sqlParams.schemaName,
             new DatabaseNamingStrategy()
