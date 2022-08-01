@@ -22,6 +22,7 @@ import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.EmModel
+import edu.ie3.simona.model.participant.EmModel.EmRelevantData
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
@@ -33,7 +34,7 @@ import scala.reflect.{ClassTag, classTag}
 trait EmAgentFundamentals
     extends ParticipantAgentFundamentals[
       ApparentPowerAndHeat,
-      EmData,
+      EmRelevantData,
       ParticipantStateData[ApparentPowerAndHeat],
       EmInput,
       EmRuntimeConfig,
@@ -56,7 +57,7 @@ trait EmAgentFundamentals
       Long,
       BaseStateData.ParticipantModelBaseStateData[
         ApparentPowerAndHeat,
-        EmData,
+        EmRelevantData,
         EmModel
       ],
       ComparableQuantity[Dimensionless]
