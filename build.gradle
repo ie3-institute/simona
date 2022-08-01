@@ -7,7 +7,7 @@ plugins {
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
   id 'pmd' // code check, working on source code
-  id 'com.diffplug.spotless' version '6.8.0'// code format
+  id 'com.diffplug.spotless' version '6.9.0'// code format
   id 'com.github.onslip.gradle-one-jar' version '1.0.6' // pack a self contained jar
   id "com.github.ben-manes.versions" version '0.42.0'
   id "de.undercouch.download" version "5.1.0" // downloads plugin
@@ -28,10 +28,10 @@ ext {
   scalaBinaryVersion = '2.13.8'
   akkaVersion = '2.6.19'
   jtsVersion = '1.19.0'
-  tscfgVersion = '0.9.998'
+  tscfgVersion = '1.0.0'
   scapegoatVersion = '1.4.15'
 
-  testContainerVersion = '0.40.9'
+  testContainerVersion = '0.40.10'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
 }
@@ -108,7 +108,7 @@ dependencies {
   testImplementation 'org.spockframework:spock-core:2.1-groovy-3.0'
   testImplementation 'org.scalatestplus:mockito-3-4_2.13:3.2.10.0'
   implementation 'org.mockito:mockito-core:4.6.1' // mocking framework
-  testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.12"
+  testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.13"
   testRuntimeOnly 'com.vladsch.flexmark:flexmark-all:0.64.0' //scalatest html output
   testImplementation group: 'org.pegdown', name: 'pegdown', version: '1.6.0'
   testImplementation "com.typesafe.akka:akka-testkit_${scalaVersion}:${akkaVersion}" // akka testkit
@@ -148,7 +148,7 @@ dependencies {
 
   /* Kafka */
   implementation group: 'org.apache.kafka', name: 'kafka-clients', version: '3.2.0'
-  implementation 'io.confluent:kafka-streams-avro-serde:7.2.0'
+  implementation 'io.confluent:kafka-streams-avro-serde:7.2.1'
   implementation "com.sksamuel.avro4s:avro4s-core_${scalaVersion}:4.1.0"
 
   implementation 'org.apache.commons:commons-math3:3.6.1' // apache commons math3

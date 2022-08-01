@@ -482,21 +482,23 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       )
 
       val gridModel = gridAgentBaseData.gridEnv.gridModel
-      val powerFlowResult = newtonRaphsonPF(
+
+      val (operatingPoint, slackNodeVoltages) = composeOperatingPoint(
+        gridModel.gridComponents.nodes,
+        gridModel.gridComponents.transformers,
+        gridModel.gridComponents.transformers3w,
+        gridModel.nodeUuidToIndexMap,
+        gridAgentBaseData.receivedValueStore,
+        gridModel.mainRefSystem
+      )
+
+      newtonRaphsonPF(
         gridModel,
         gridAgentBaseData.powerFlowParams.maxIterations,
-        composeOperatingPoint(
-          gridModel.gridComponents.nodes,
-          gridModel.gridComponents.transformers,
-          gridModel.gridComponents.transformers3w,
-          gridModel.nodeUuidToIndexMap,
-          gridAgentBaseData.receivedValueStore,
-          gridModel.mainRefSystem
-        )
-      )(gridAgentBaseData.powerFlowParams.epsilon)
-
-      // if res is valid, ask our assets (if any) for updated power values based on the newly determined nodal voltages
-      powerFlowResult match {
+        operatingPoint,
+        slackNodeVoltages
+      )(gridAgentBaseData.powerFlowParams.epsilon) match {
+        // if res is valid, ask our assets (if any) for updated power values based on the newly determined nodal voltages
         case validPowerFlowResult: ValidNewtonRaphsonPFResult =>
           log.debug(
             "{}",
@@ -628,9 +630,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           s"$actorName Unable to get results from previous sweep ${gridAgentBaseData.currentSweepNo - 1}!"
         )
       )
-      newtonRaphsonPF(
-        gridModel,
-        gridAgentBaseData.powerFlowParams.maxIterations,
+
+      val (operatingPoint, slackNodeVoltages) =
         composeOperatingPointWithUpdatedSlackVoltages(
           receivedSlackValues,
           previousSweepData.sweepData,
@@ -638,6 +639,12 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           gridModel.gridComponents.transformers3w,
           gridModel.mainRefSystem
         )
+
+      newtonRaphsonPF(
+        gridModel,
+        gridAgentBaseData.powerFlowParams.maxIterations,
+        operatingPoint,
+        slackNodeVoltages
       )(gridAgentBaseData.powerFlowParams.epsilon) match {
         case validPowerFlowResult: ValidNewtonRaphsonPFResult =>
           log.debug(
@@ -707,7 +714,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
         case failedNewtonRaphsonPFResult: FailedNewtonRaphsonPFResult =>
           val powerFlowDoneData =
-            PowerFlowDoneData(gridAgentBaseData, failedNewtonRaphsonPFResult)
+            PowerFlowDoneData(
+              gridAgentBaseData,
+              failedNewtonRaphsonPFResult
+            )
           log.warning(
             "Power flow with updated slack voltage did finally not converge!"
           )
@@ -754,7 +764,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
       /* This is the highest grid agent, therefore no data is received for the slack node. Suppress, that it is looked
        * up in the empty store. */
-      val operationPoint = composeOperatingPoint(
+      val (operationPoint, slackNodeVoltages) = composeOperatingPoint(
         gridModel.gridComponents.nodes,
         gridModel.gridComponents.transformers,
         gridModel.gridComponents.transformers3w,
@@ -778,7 +788,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
          newtonRaphsonPF(
            gridModel,
            gridAgentBaseData.powerFlowParams.maxIterations,
-           operationPoint
+           operationPoint,
+           slackNodeVoltages
          )(gridAgentBaseData.powerFlowParams.epsilon) match {
            case validPowerFlowResult: ValidNewtonRaphsonPFResult =>
              log.debug(

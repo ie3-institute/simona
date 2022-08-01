@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adapt to new simonaAPI snapshot [#95](https://github.com/ie3-institute/simona/issues/95)
 - Update Sphinx to 4.5.0 as well as extensions [#214](https://github.com/ie3-institute/simona/issues/214)
 - Improved code quality in and around DBFS algorithm [#265](https://github.com/ie3-institute/simona/issues/265)
+- Adapt test to new PowerSystemUtils snapshot  [#294](https://github.com/ie3-institute/simona/issues/294)
+- Simplified ParticipantConfigUtil [#273](https://github.com/ie3-institute/simona/issues/273)
 - Consolidated and enhanced SimScheduler tests [#285](https://github.com/ie3-institute/simona/issues/285)
 
 ### Fixed
@@ -50,6 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed some unreachable code [#167](https://github.com/ie3-institute/simona/issues/167)
 - Fix treatment of non-InitializeTrigger triggers in initialization within SimScheduler [#237](https://github.com/ie3-institute/simona/issues/237)
 - Fix breaking SIMONA caused by introducing temperature dependant load profiles in PSDM [#255](https://github.com/ie3-institute/simona/issues/255)
+- Respect for voltage angle in DBFS slack voltage exchange protocol [#69](https://github.com/ie3-institute/simona/issues/69)
+- Adapted to changed time series interfaces in PSDM [#296](https://github.com/ie3-institute/simona/issues/296)
 - Fix handling of multiple connections between subgrids [#22](https://github.com/ie3-institute/simona/issues/22)
   - Consolidate request replies for different sub grid gates in one message
   - Await and send responses for distinct pairs of sender reference and target node
