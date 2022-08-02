@@ -17,9 +17,9 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT}
+import edu.ie3.util.quantities.QuantityUtils.RichQuantity
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.QuantityUtil
-import edu.ie3.util.scala.quantities.QuantityUtil.RichQuantity
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
