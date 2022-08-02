@@ -17,7 +17,7 @@ import edu.ie3.simona.model.grid.GridModel
   *
   * @param gridModel
   *   [[GridModel]] with all asset information
-  * @param subnetGateToActorRef
+  * @param subgridGateToActorRef
   *   a mapping of all [[SubGridGate]] s to their corresponding [[ActorRef]] s
   * @param nodeToAssetAgents
   *   a mapping of all node uuids to a set of asset [[ActorRef]] s at those
@@ -25,6 +25,6 @@ import edu.ie3.simona.model.grid.GridModel
   */
 final case class GridEnvironment(
     gridModel: GridModel,
-    subnetGateToActorRef: Map[SubGridGate, ActorRef],
+    subgridGateToActorRef: Map[SubGridGate, ActorRef],
     nodeToAssetAgents: Map[UUID, Set[ActorRef]]
 )

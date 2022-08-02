@@ -8,7 +8,9 @@ package edu.ie3.simona.model.grid
 
 import breeze.math.Complex
 import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.QuantityUtils.RichUnit
 import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
+
 import javax.measure.Quantity
 import javax.measure.quantity._
 import tech.units.indriya.ComparableQuantity
@@ -97,7 +99,10 @@ final case class RefSystem private (
     *   unreferenced active power value in Watt
     */
   def pInSi(pInPu: Quantity[Dimensionless]): ComparableQuantity[Power] =
-    nominalPower.multiply(pInPu).asType(classOf[Power]).to(nominalPower.getUnit)
+    nominalPower
+      .multiply(pInPu)
+      .asType(classOf[Power])
+      .to(nominalPower.getUnit.toEquivalentIn(WATT))
 
   def pInSi(pInPu: Double): ComparableQuantity[Power] =
     pInSi(Quantities.getQuantity(pInPu, PU))
@@ -124,7 +129,10 @@ final case class RefSystem private (
     *   unreferenced active power value in Var
     */
   def qInSi(qInPu: Quantity[Dimensionless]): ComparableQuantity[Power] =
-    nominalPower.multiply(qInPu).asType(classOf[Power]).to(nominalPower.getUnit)
+    nominalPower
+      .multiply(qInPu)
+      .asType(classOf[Power])
+      .to(nominalPower.getUnit.toEquivalentIn(VAR))
 
   def qInSi(qInPu: Double): ComparableQuantity[Power] =
     qInSi(Quantities.getQuantity(qInPu, PU))
