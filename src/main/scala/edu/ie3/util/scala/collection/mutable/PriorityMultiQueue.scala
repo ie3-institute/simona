@@ -16,6 +16,8 @@ import scala.collection.{SortedSet, mutable}
   *   Queue that holds keys in order and provides the first element in O(1)
   * @param table
   *   HashMap that provides access to lists with a specific key in O(1)
+  * @param ev
+  *   Ordering of key
   * @tparam K
   *   Type of the key
   * @tparam V
@@ -24,7 +26,7 @@ import scala.collection.{SortedSet, mutable}
 final case class PriorityMultiQueue[K, V] private (
     private val queue: mutable.SortedMap[K, mutable.ListBuffer[V]],
     private val table: mutable.HashMap[K, mutable.ListBuffer[V]]
-) {
+)(implicit ev: K => Ordered[K]) {
 
   /** Get the first key of the queue, if the queue is not empty.
     * @return
@@ -77,6 +79,28 @@ final case class PriorityMultiQueue[K, V] private (
 
       list.remove(0)
     }
+  }
+
+  /** Retrieves all elements for keys that are smaller or equal to given key.
+    * The returned elements are also removed the queue here.
+    *
+    * @return
+    *   All elements for keys up to and including the given key. An empty
+    *   Iterable is returned if this queue is empty or all keys are greater than
+    *   the given key.
+    */
+  def pollTo(key: K): Iterable[V] = {
+    // a copy has to be made here because the resulting Map of
+    // rangeTo is linked to the original map. This means that
+    // the map with the values to be returned would be depleted
+    // with the subtractions below
+    val polledValues = mutable.SortedMap.from(queue.rangeTo(key))
+
+    val keys = polledValues.keySet
+    queue --= keys
+    table --= keys
+
+    polledValues.values.flatten
   }
 
   /** Get all values for all keys as an iterable.
