@@ -17,7 +17,8 @@ import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
-  PowerFlowResultEvent
+  PowerFlowResultEvent,
+  ThermalResultEvent
 }
 import edu.ie3.simona.event.listener.ResultEventListener.{
   AggregatedTransformer3wResult,
@@ -350,6 +351,10 @@ class ResultEventListener(
         ) =>
       val updateBaseData = handleResult(systemParticipantResult, baseData)
       stay() using updateBaseData
+
+    case Event(ThermalResultEvent(thermalResult), baseData: BaseData) =>
+      val updatedBaseData = handleResult(thermalResult, baseData)
+      stay using updatedBaseData
 
     case Event(
           PowerFlowResultEvent(

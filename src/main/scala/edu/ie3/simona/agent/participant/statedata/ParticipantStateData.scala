@@ -13,7 +13,7 @@ import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 
 import java.time.ZonedDateTime
 
@@ -74,7 +74,7 @@ object ParticipantStateData {
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ) extends ParticipantStateData[PD]
 
   /** State data to use, when initializing the participant agent
@@ -118,7 +118,7 @@ object ParticipantStateData {
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ) extends InitializeStateData[PD]
 
   object ParticipantInitializeStateData {
@@ -137,7 +137,7 @@ object ParticipantStateData {
         simulationEndDate: ZonedDateTime,
         resolution: Long,
         requestVoltageDeviationThreshold: Double,
-        outputConfig: ParticipantNotifierConfig
+        outputConfig: NotifierConfig
     ): ParticipantInitializeStateData[I, C, PD] =
       new ParticipantInitializeStateData[I, C, PD](
         SimpleInputContainer(inputModel),
@@ -167,7 +167,7 @@ object ParticipantStateData {
         simulationEndDate: ZonedDateTime,
         resolution: Long,
         requestVoltageDeviationThreshold: Double,
-        outputConfig: ParticipantNotifierConfig
+        outputConfig: NotifierConfig
     ): ParticipantInitializeStateData[I, C, PD] =
       new ParticipantInitializeStateData[I, C, PD](
         WithHeatInputContainer(inputModel, thermalGrid),

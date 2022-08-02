@@ -18,7 +18,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.state.AgentState
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
   InconsistentStateException
@@ -67,8 +67,8 @@ class ParticipantAgentFundamentalsSpec
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
 
-  private val outputConfig: ParticipantNotifierConfig =
-    ParticipantNotifierConfig(
+  private val outputConfig: NotifierConfig =
+    NotifierConfig(
       simulationResultInfo = false,
       powerRequestReply = false
     )
@@ -696,7 +696,7 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
       TimeUtil.withDefaults.toZonedDateTime("2020-01-01 23:59:00"),
       modelMock,
       None,
-      ParticipantNotifierConfig(
+      NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false
       ),

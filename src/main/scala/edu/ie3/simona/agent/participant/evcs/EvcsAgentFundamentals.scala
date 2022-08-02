@@ -31,7 +31,7 @@ import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology.EvMovementsMessage.EvcsMovements
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
   InconsistentStateException,
@@ -99,7 +99,7 @@ protected trait EvcsAgentFundamentals
       simulationEndDate: ZonedDateTime,
       timeBin: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
@@ -157,7 +157,7 @@ protected trait EvcsAgentFundamentals
       simulationEndDate: ZonedDateTime,
       timeBin: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,

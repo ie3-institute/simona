@@ -17,7 +17,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.Participa
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
@@ -99,7 +99,7 @@ class ParticipantAgent2ListenerSpec
       )
 
       /* Let the agent send announcements, when there is anew request reply */
-      val outputConfig = ParticipantNotifierConfig(
+      val outputConfig = NotifierConfig(
         simulationResultInfo = true,
         powerRequestReply = false
       )
@@ -183,7 +183,7 @@ class ParticipantAgent2ListenerSpec
       )
 
       /* Let the agent send announcements, when there is anew request reply */
-      val outputConfig = ParticipantNotifierConfig(
+      val outputConfig = NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false
       )
@@ -254,7 +254,7 @@ class ParticipantAgent2ListenerSpec
       )
 
       /* Let the agent send announcements, when there is anew request reply */
-      val outputConfig = ParticipantNotifierConfig(
+      val outputConfig = NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = true
       )
@@ -346,7 +346,7 @@ class ParticipantAgent2ListenerSpec
       )
 
       /* Let the agent send announcements, when there is anew request reply */
-      val outputConfig = ParticipantNotifierConfig(
+      val outputConfig = NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false
       )

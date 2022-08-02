@@ -47,7 +47,7 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
 }
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   ActorNotRegisteredException,
   AgentInitializationException,
@@ -133,7 +133,7 @@ protected trait ParticipantAgentFundamentals[
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig,
+      outputConfig: NotifierConfig,
       senderToMaybeTick: (ActorRef, Option[Long]),
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
@@ -189,7 +189,7 @@ protected trait ParticipantAgentFundamentals[
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig,
+      outputConfig: NotifierConfig,
       senderToMaybeTick: (ActorRef, Option[Long])
   ): FromOutsideBaseStateData[M, PD] = {
     val model = buildModel(
@@ -274,7 +274,7 @@ protected trait ParticipantAgentFundamentals[
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig,
+      outputConfig: NotifierConfig,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]] =
     try {
@@ -332,7 +332,7 @@ protected trait ParticipantAgentFundamentals[
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): ParticipantModelBaseStateData[PD, CD, M]
 
   /** Determine all ticks between the operation start and end of the
@@ -545,7 +545,7 @@ protected trait ParticipantAgentFundamentals[
       tick: Long,
       scheduler: ActorRef
   )(implicit
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     if (!stateData.data.exists(_._2.isEmpty) && isYetTriggered) {
       /* We got everything we expect and we are yet triggered */
@@ -928,7 +928,7 @@ protected trait ParticipantAgentFundamentals[
       nodalVoltage: ComparableQuantity[Dimensionless],
       lastNodalVoltage: Option[(Long, ComparableQuantity[Dimensionless])]
   ): Option[FSM.State[AgentState, ParticipantStateData[PD]]] = {
-    implicit val outputConfig: ParticipantNotifierConfig =
+    implicit val outputConfig: NotifierConfig =
       baseStateData.outputConfig
     mostRecentRequest match {
       case Some((mostRecentRequestTick, latestProvidedValues))
@@ -1453,7 +1453,7 @@ protected trait ParticipantAgentFundamentals[
       baseStateData: BaseStateData[PD],
       tick: Long,
       result: PD
-  )(implicit outputConfig: ParticipantNotifierConfig): Unit =
+  )(implicit outputConfig: NotifierConfig): Unit =
     if (outputConfig.simulationResultInfo)
       notifyListener(
         buildResultEvent(baseStateData, tick, result)
@@ -1546,7 +1546,7 @@ protected trait ParticipantAgentFundamentals[
       tick: Long,
       activePower: ComparableQuantity[Power],
       reactivePower: ComparableQuantity[Power]
-  )(implicit outputConfig: ParticipantNotifierConfig): Unit =
+  )(implicit outputConfig: NotifierConfig): Unit =
     if (outputConfig.powerRequestReply) {
       log.warning(
         "Writing out power request replies is currently not supported!"

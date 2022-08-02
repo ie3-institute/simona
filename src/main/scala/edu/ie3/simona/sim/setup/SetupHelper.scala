@@ -21,8 +21,9 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.util.ConfigUtil.{
-  BaseOutputConfigUtil,
-  GridOutputConfigUtil
+  GridOutputConfigUtil,
+  ParticipantOutputConfigUtil,
+  ThermalOutputConfigUtil
 }
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.simona.util.{EntityMapperUtil, ResultFileHierarchy}
@@ -255,8 +256,10 @@ case object SetupHelper {
     GridOutputConfigUtil(
       outputConfig.grid
     ).simulationResultEntitiesToConsider ++
-      BaseOutputConfigUtil(
+      (ParticipantOutputConfigUtil(
         outputConfig.participant
-      ).simulationResultIdentifiersToConsider
+      ).simulationResultIdentifiersToConsider ++ ThermalOutputConfigUtil(
+        outputConfig.thermal
+      ).simulationResultIdentifiersToConsider)
         .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId))
 }

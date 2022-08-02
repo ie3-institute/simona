@@ -36,7 +36,7 @@ import edu.ie3.simona.config.SimonaConfig.{
   PvRuntimeConfig,
   WecRuntimeConfig
 }
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeParticipantAgentTrigger
@@ -187,7 +187,7 @@ class GridAgentController(
      * phase */
     val participantConfigUtil =
       ConfigUtil.ParticipantConfigUtil(participantsConfig)
-    val outputConfigUtil = ConfigUtil.BaseOutputConfigUtil(outputConfig)
+    val outputConfigUtil = ConfigUtil.ParticipantOutputConfigUtil(outputConfig)
 
     participants
       .map(participant => {
@@ -218,7 +218,7 @@ class GridAgentController(
   private def buildParticipantActor(
       requestVoltageDeviationThreshold: Double,
       participantConfigUtil: ConfigUtil.ParticipantConfigUtil,
-      outputConfigUtil: BaseOutputConfigUtil,
+      outputConfigUtil: ParticipantOutputConfigUtil,
       participantInputModel: SystemParticipantInput,
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs
@@ -351,7 +351,7 @@ class GridAgentController(
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -413,7 +413,7 @@ class GridAgentController(
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -477,7 +477,7 @@ class GridAgentController(
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -541,7 +541,7 @@ class GridAgentController(
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -604,7 +604,7 @@ class GridAgentController(
       primaryServiceProxy: ActorRef,
       weatherService: ActorRef,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -668,7 +668,7 @@ class GridAgentController(
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): (
       ActorRef,
       ParticipantInitializeStateData[

@@ -37,7 +37,7 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
 import edu.ie3.simona.agent.SimonaAgent
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage
@@ -457,7 +457,7 @@ abstract class ParticipantAgent[
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig,
+      outputConfig: NotifierConfig,
       senderToMaybeTick: (ActorRef, Option[Long]),
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]]
@@ -495,7 +495,7 @@ abstract class ParticipantAgent[
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig,
+      outputConfig: NotifierConfig,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
@@ -609,7 +609,7 @@ abstract class ParticipantAgent[
       tick: Long,
       scheduler: ActorRef
   )(implicit
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Partial function, that is able to transfer
@@ -728,7 +728,7 @@ abstract class ParticipantAgent[
       currentTick: Long,
       activePower: ComparableQuantity[Power],
       reactivePower: ComparableQuantity[Power]
-  )(implicit outputConfig: ParticipantNotifierConfig): Unit
+  )(implicit outputConfig: NotifierConfig): Unit
 
   /** Abstract definition to clean up agent value stores after power flow
     * convergence. This is necessary for agents whose results are time dependent

@@ -12,10 +12,9 @@ import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -73,7 +72,7 @@ trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
 
   /** Determines the output behaviour of this model
     */
-  val outputConfig: ParticipantNotifierConfig
+  val outputConfig: NotifierConfig
 }
 
 object BaseStateData {
@@ -141,7 +140,7 @@ object BaseStateData {
       model: M,
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
-      override val outputConfig: ParticipantNotifierConfig,
+      override val outputConfig: NotifierConfig,
       override val additionalActivationTicks: Array[Long],
       override val foreseenDataTicks: Map[ActorRef, Option[Long]],
       fillUpReactivePowerWithModelFunc: Boolean = false,
@@ -198,7 +197,7 @@ object BaseStateData {
       override val services: Option[
         Vector[SecondaryDataService[_ <: SecondaryData]]
       ],
-      override val outputConfig: ParticipantNotifierConfig,
+      override val outputConfig: NotifierConfig,
       override val additionalActivationTicks: Array[Long],
       override val foreseenDataTicks: Map[ActorRef, Option[Long]],
       requestVoltageDeviationThreshold: Double,

@@ -149,6 +149,13 @@ trait DefaultTestData {
          |    }
          |  ]
          |}
+         |simona.output.thermal = {
+         |  defaultConfig = {
+         |    notifier = "default",
+         |    simulationResult = false
+         |  }
+         |  individualConfigs = []
+         |}
          |
          |simona.runtime.participant.wec = {
          |  defaultConfig = {

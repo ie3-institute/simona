@@ -19,11 +19,11 @@ import edu.ie3.datamodel.models.result.system.{ChpResult, LoadResult}
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.{apply => _, _}
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
 import edu.ie3.simona.util.ConfigUtil.{
-  BaseOutputConfigUtil,
+  ParticipantOutputConfigUtil,
   GridOutputConfigUtil,
   NotifierIdentifier,
   ParticipantConfigUtil
@@ -610,23 +610,23 @@ class ConfigUtilsSpec
 
   "The participant model output config util" should {
     val validInput = new Simona.Output.Participant(
-      SimonaConfig.BaseOutputConfig(
+      SimonaConfig.ParticipantBaseOutputConfig(
         notifier = "default",
         powerRequestReply = false,
         simulationResult = false
       ),
       List(
-        SimonaConfig.BaseOutputConfig(
+        SimonaConfig.ParticipantBaseOutputConfig(
           notifier = "load",
           powerRequestReply = false,
           simulationResult = false
         ),
-        SimonaConfig.BaseOutputConfig(
+        SimonaConfig.ParticipantBaseOutputConfig(
           notifier = "pv",
           powerRequestReply = false,
           simulationResult = false
         ),
-        SimonaConfig.BaseOutputConfig(
+        SimonaConfig.ParticipantBaseOutputConfig(
           notifier = "chp",
           powerRequestReply = false,
           simulationResult = false
@@ -635,22 +635,22 @@ class ConfigUtilsSpec
     )
 
     "build the correct map on valid input" in {
-      val configUtil = BaseOutputConfigUtil(validInput)
-      inside(configUtil) { case BaseOutputConfigUtil(default, configs) =>
-        default shouldBe ParticipantNotifierConfig(
+      val configUtil = ParticipantOutputConfigUtil(validInput)
+      inside(configUtil) { case ParticipantOutputConfigUtil(default, configs) =>
+        default shouldBe NotifierConfig(
           simulationResultInfo = false,
           powerRequestReply = false
         )
         configs shouldBe Map(
-          Load -> ParticipantNotifierConfig(
+          Load -> NotifierConfig(
             simulationResultInfo = false,
             powerRequestReply = false
           ),
-          PvPlant -> ParticipantNotifierConfig(
+          PvPlant -> NotifierConfig(
             simulationResultInfo = false,
             powerRequestReply = false
           ),
-          ChpPlant -> ParticipantNotifierConfig(
+          ChpPlant -> NotifierConfig(
             simulationResultInfo = false,
             powerRequestReply = false
           )
@@ -658,17 +658,17 @@ class ConfigUtilsSpec
       }
     }
 
-    val configUtil = BaseOutputConfigUtil(validInput)
+    val configUtil = ParticipantOutputConfigUtil(validInput)
     "return the correct config on request" in {
       val actual = configUtil.getOrDefault(PvPlant)
-      actual shouldBe ParticipantNotifierConfig(
+      actual shouldBe NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false
       )
     }
 
     "return default config, when the requested model type is not apparent" in {
-      configUtil.getOrDefault(Wec) shouldBe ParticipantNotifierConfig(
+      configUtil.getOrDefault(Wec) shouldBe NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false
       )
@@ -676,30 +676,30 @@ class ConfigUtilsSpec
 
     "return the correct notifier identifiers when the default is to inform about new simulation results" in {
       val inputConfig = new Simona.Output.Participant(
-        SimonaConfig.BaseOutputConfig(
+        SimonaConfig.ParticipantBaseOutputConfig(
           notifier = "default",
           powerRequestReply = false,
           simulationResult = true
         ),
         List(
-          SimonaConfig.BaseOutputConfig(
+          SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "load",
             powerRequestReply = true,
             simulationResult = true
           ),
-          SimonaConfig.BaseOutputConfig(
+          SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "pv",
             powerRequestReply = true,
             simulationResult = false
           ),
-          SimonaConfig.BaseOutputConfig(
+          SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "chp",
             powerRequestReply = true,
             simulationResult = true
           )
         )
       )
-      val configUtil = BaseOutputConfigUtil(inputConfig)
+      val configUtil = ParticipantOutputConfigUtil(inputConfig)
       val expectedResult: Set[Value] = NotifierIdentifier.values -- Vector(
         NotifierIdentifier.PvPlant
       )
@@ -709,30 +709,30 @@ class ConfigUtilsSpec
 
     "return the correct notifier identifiers when the default is to NOT inform about new simulation results" in {
       val inputConfig = new Simona.Output.Participant(
-        SimonaConfig.BaseOutputConfig(
+        SimonaConfig.ParticipantBaseOutputConfig(
           notifier = "default",
           powerRequestReply = false,
           simulationResult = false
         ),
         List(
-          SimonaConfig.BaseOutputConfig(
+          SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "load",
             powerRequestReply = true,
             simulationResult = true
           ),
-          SimonaConfig.BaseOutputConfig(
+          SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "pv",
             powerRequestReply = true,
             simulationResult = false
           ),
-          SimonaConfig.BaseOutputConfig(
+          SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "chp",
             powerRequestReply = true,
             simulationResult = true
           )
         )
       )
-      val configUtil = BaseOutputConfigUtil(inputConfig)
+      val configUtil = ParticipantOutputConfigUtil(inputConfig)
       val expectedResult: Set[Value] =
         Set(NotifierIdentifier.Load, NotifierIdentifier.ChpPlant)
 
@@ -741,30 +741,30 @@ class ConfigUtilsSpec
 
     "return the correct result entity classes to be considered " in {
       val inputConfig = new Simona.Output.Participant(
-        SimonaConfig.BaseOutputConfig(
+        SimonaConfig.ParticipantBaseOutputConfig(
           notifier = "default",
           powerRequestReply = false,
           simulationResult = false
         ),
         List(
-          SimonaConfig.BaseOutputConfig(
+          SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "load",
             powerRequestReply = true,
             simulationResult = true
           ),
-          SimonaConfig.BaseOutputConfig(
+          SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "pv",
             powerRequestReply = true,
             simulationResult = false
           ),
-          SimonaConfig.BaseOutputConfig(
+          SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "chp",
             powerRequestReply = true,
             simulationResult = true
           )
         )
       )
-      val configUtil = BaseOutputConfigUtil(inputConfig)
+      val configUtil = ParticipantOutputConfigUtil(inputConfig)
       val expectedResult: Set[Class[_ <: ResultEntity]] =
         Set[Class[_ <: ResultEntity]](classOf[LoadResult], classOf[ChpResult])
 

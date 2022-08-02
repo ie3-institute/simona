@@ -80,6 +80,13 @@ class SimSchedulerSpec
               simulationResult = false
             }
             simona.output.participant.individualConfigs = []
+            simona.output.thermal = {
+              defaultConfig = {
+                notifier = "default",
+                simulationResult = false
+              }
+              individualConfigs = []
+            }
             simona.input.grid.datasource.id = "csv"
             simona.input.grid.datasource.csvParams.directoryPath = "netdata"
             simona.input.grid.datasource.csvParams.csvSep =","

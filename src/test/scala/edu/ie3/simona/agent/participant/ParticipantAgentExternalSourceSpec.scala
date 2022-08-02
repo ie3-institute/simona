@@ -33,7 +33,7 @@ import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -118,7 +118,7 @@ class ParticipantAgentExternalSourceSpec
     LoadModelBehaviour.FIX,
     LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
   )
-  private val defaultOutputConfig = ParticipantNotifierConfig(
+  private val defaultOutputConfig = NotifierConfig(
     simulationResultInfo = false,
     powerRequestReply = false
   )
