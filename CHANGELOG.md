@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved code quality in and around DBFS algorithm [#265](https://github.com/ie3-institute/simona/issues/265)
 - Adapt test to new PowerSystemUtils snapshot  [#294](https://github.com/ie3-institute/simona/issues/294)
 - Simplified ParticipantConfigUtil [#273](https://github.com/ie3-institute/simona/issues/273)
+- Consolidated and enhanced SimScheduler tests [#285](https://github.com/ie3-institute/simona/issues/285)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
@@ -56,6 +57,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix breaking SIMONA caused by introducing temperature dependant load profiles in PSDM [#255](https://github.com/ie3-institute/simona/issues/255)
 - Respect for voltage angle in DBFS slack voltage exchange protocol [#69](https://github.com/ie3-institute/simona/issues/69)
 - Adapted to changed time series interfaces in PSDM [#296](https://github.com/ie3-institute/simona/issues/296)
+- Fix handling of multiple connections between subgrids [#22](https://github.com/ie3-institute/simona/issues/22)
+  - Consolidate request replies for different sub grid gates in one message
+  - Await and send responses for distinct pairs of sender reference and target node
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)

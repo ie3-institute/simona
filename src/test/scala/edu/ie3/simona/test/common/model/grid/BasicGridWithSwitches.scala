@@ -68,8 +68,8 @@ trait BasicGridWithSwitches extends BasicGrid {
     )
 
   // add nodes to nodes list
-  override protected def nodes: Set[NodeModel] =
-    super.nodes ++ List(node13, node14, node15, node16, node17, node18)
+  override protected def nodes: Seq[NodeModel] =
+    super.nodes ++ Seq(node13, node14, node15, node16, node17, node18)
 
   // add nodes to nodeUuidToIndexMap
   override protected def nodeUuidToIndexMap: Map[UUID, Int] =
