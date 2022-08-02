@@ -20,8 +20,8 @@ import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
-/** A simple grid consisting of 6 nodes and 5 lines. Besides the [[NodeModel]] s
-  * and [[LineModels]] s it also contains the corresponding admittance matrix.
+/** A simple grid consisting of 6 nodes and 5 lines. Besides the [[NodeModel]]s
+  * and [[LineModel]]s it also contains the corresponding admittance matrix.
   *
   * (5)
   * |
@@ -131,8 +131,8 @@ trait FiveLinesWithNodes {
       linesRatedVoltage
     )
 
-  protected def nodes: Set[NodeModel] =
-    Set(node0, node1, node2, node3, node4, node5)
+  protected def nodes: Seq[NodeModel] =
+    Seq(node0, node1, node2, node3, node4, node5)
 
   val line01: LineModel = _lineCreator(
     "line01",

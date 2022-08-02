@@ -47,7 +47,7 @@ object ReceivedValues {
     * @param values
     *   the slack voltage values and their senders
     */
-  final case class ReceivedSlackValues(
+  final case class ReceivedSlackVoltageValues(
       values: Vector[ActorSlackVoltageRequestResponse]
   ) extends ReceivedValues
 
