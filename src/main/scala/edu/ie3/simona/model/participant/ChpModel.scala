@@ -7,14 +7,15 @@
 package edu.ie3.simona.model.participant
 
 import java.util.UUID
-
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.ChpInput
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.participant.ChpModel._
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.{MutableStorage, ThermalStorage}
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
+
 import javax.measure.quantity.{Energy, Power, Time}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities.getQuantity
@@ -52,7 +53,7 @@ final case class ChpModel(
     cosPhiRated: Double,
     pThermal: ComparableQuantity[Power],
     storage: ThermalStorage with MutableStorage
-) extends SystemParticipant[ChpData](
+) extends SystemParticipant[ChpData, ApparentPower](
       uuid,
       id,
       operationInterval,
@@ -60,7 +61,8 @@ final case class ChpModel(
       qControl,
       sRated,
       cosPhiRated
-    ) {
+    )
+    with ApparentPowerParticipant[ChpData] {
 
   val pRated: ComparableQuantity[Power] =
     sRated.multiply(cosPhiRated).to(StandardUnits.ACTIVE_POWER_IN)

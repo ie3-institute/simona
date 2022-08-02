@@ -9,6 +9,7 @@ package edu.ie3.simona.model.participant
 import java.util.UUID
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.characteristic.WecCharacteristicInput
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.WecModel.{
   WecCharacteristic,
@@ -80,7 +81,7 @@ final case class WecModel(
     cosPhiRated: Double,
     rotorArea: ComparableQuantity[Area],
     betzCurve: WecCharacteristic
-) extends SystemParticipant[WecRelevantData](
+) extends SystemParticipant[WecRelevantData, ApparentPower](
       uuid,
       id,
       operationInterval,
@@ -88,7 +89,8 @@ final case class WecModel(
       qControl,
       sRated,
       cosPhiRated
-    ) {
+    )
+    with ApparentPowerParticipant[WecRelevantData] {
 
   /** Universal gas constant
     */

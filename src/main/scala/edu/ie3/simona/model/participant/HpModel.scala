@@ -9,6 +9,7 @@ package edu.ie3.simona.model.participant
 import java.util.UUID
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.HpModel._
 import edu.ie3.simona.model.participant.control.QControl
@@ -55,7 +56,7 @@ final case class HpModel(
     cosPhiRated: Double,
     pThermal: ComparableQuantity[Power],
     thermalHouse: ThermalHouse
-) extends SystemParticipant[HpData](
+) extends SystemParticipant[HpRelevantData, ApparentPowerAndHeat](
       uuid,
       id,
       operationInterval,
@@ -63,7 +64,8 @@ final case class HpModel(
       qControl,
       sRated,
       cosPhiRated
-    ) {
+    )
+    with ApparentPowerAndHeatParticipant[HpRelevantData] {
 
   private val pRated: ComparableQuantity[Power] =
     sRated
@@ -83,23 +85,40 @@ final case class HpModel(
     *   active power
     */
   override protected def calculateActivePower(
-      hpData: HpData
+      hpData: HpRelevantData
   ): ComparableQuantity[Power] = {
     calculateNextState(hpData)
     hpData.hpState.activePower
   }
 
-  /** Given a [[HpData]] object, containing the [[HpState]], other values and
-    * the current time tick, this function calculates the heat pump's next state
-    * To get the actual active power of this state use [[calculateActivePower]]
-    * with the generated state
+  /** "Calculate" the heat output of the heat pump. The hp's state is already
+    * updated, because the calculation of apparent power in
+    * [[ApparentPowerAndHeatParticipant]] did trigger it. So we only need to
+    * extract the information
+    * @param tick
+    *   Current simulation time for the calculation
+    * @param data
+    *   Needed calculation relevant data
+    * @return
+    *   The heat, that is produced in that instant
+    */
+  override def calculateHeat(
+      tick: Long,
+      data: HpRelevantData
+  ): ComparableQuantity[Power] =
+    data.hpState.qDot
+
+  /** Given a [[HpRelevantData]] object, containing the [[HpState]], other
+    * values and the current time tick, this function calculates the heat pump's
+    * next state To get the actual active power of this state use
+    * [[calculateActivePower]] with the generated state
     *
     * @param hpData
     *   data of heat pump including state of the heat pump
     * @return
     *   next [[HpState]]
     */
-  def calculateNextState(hpData: HpData): HpState = {
+  def calculateNextState(hpData: HpRelevantData): HpState = {
     val turnOn = operatesInNextState(hpData)
     calcState(hpData, turnOn)
   }
@@ -117,7 +136,7 @@ final case class HpModel(
     * @return
     *   boolean defining if heat pump runs in next time step
     */
-  def operatesInNextState(hpData: HpData): Boolean = {
+  def operatesInNextState(hpData: HpRelevantData): Boolean = {
     val isRunning = hpData.hpState.isRunning
     val tooHigh =
       thermalHouse.isInnerTemperatureTooHigh(hpData.hpState.innerTemperature)
@@ -138,7 +157,7 @@ final case class HpModel(
     * @return
     *   next [[HpState]]
     */
-  private def calcState(hpData: HpData, isRunning: Boolean): HpState = {
+  private def calcState(hpData: HpRelevantData, isRunning: Boolean): HpState = {
     val (newActivePower, newThermalPower) =
       if (isRunning)
         (pRated, pThermal.multiply(scalingFactor))
@@ -158,10 +177,10 @@ final case class HpModel(
       isRunning,
       hpData.currentTimeTick,
       newActivePower,
+      newThermalPower,
       newInnerTemperature
     )
   }
-
 }
 
 /** Create valid [[HpModel]] by calling the apply function.
@@ -208,6 +227,8 @@ case object HpModel {
     *   contains last time tick
     * @param activePower
     *   result active power
+    * @param qDot
+    *   result heat power
     * @param innerTemperature
     *   inner temperature of the thermal house
     */
@@ -215,11 +236,12 @@ case object HpModel {
       isRunning: Boolean,
       lastTimeTick: Long,
       activePower: ComparableQuantity[Power],
+      qDot: ComparableQuantity[Power],
       innerTemperature: ComparableQuantity[Temperature]
   )
 
   /** Main data required for simulation/calculation, containing a [[HpState]]
-    * and the current time tick. <p> [[HpData.currentTimeTick]] and
+    * and the current time tick. <p> [[HpRelevantData.currentTimeTick]] and
     * [[HpState.lastTimeTick]] form a time interval for the current state
     * calculation. One time tick represents one second (3600 time ticks = 1
     * hour).
@@ -229,7 +251,7 @@ case object HpModel {
     * @param currentTimeTick
     *   contains current time tick
     */
-  final case class HpData(
+  final case class HpRelevantData(
       hpState: HpState,
       currentTimeTick: Long,
       ambientTemperature: ComparableQuantity[Temperature]

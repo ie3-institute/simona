@@ -173,7 +173,7 @@ protected trait EvcsAgentFundamentals
         simulationEndDate
       )
 
-    ParticipantModelBaseStateData(
+    ParticipantModelBaseStateData[ApparentPower, EvcsRelevantData, EvcsModel](
       simulationStartDate,
       simulationEndDate,
       model,

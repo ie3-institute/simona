@@ -85,7 +85,7 @@ abstract class ParticipantAgent[
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
     MC <: SimonaConfig.BaseRuntimeConfig,
-    M <: SystemParticipant[CD]
+    M <: SystemParticipant[CD, PD]
 ](scheduler: ActorRef)
     extends SimonaAgent[ParticipantStateData[PD]] {
 

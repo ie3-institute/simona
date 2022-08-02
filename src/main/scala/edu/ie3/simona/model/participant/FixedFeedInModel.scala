@@ -8,15 +8,16 @@ package edu.ie3.simona.model.participant
 
 import java.time.ZonedDateTime
 import java.util.UUID
-
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
 import edu.ie3.util.scala.OperationInterval
+
 import javax.measure.quantity.Power
 import tech.units.indriya.ComparableQuantity
 
@@ -45,7 +46,7 @@ final case class FixedFeedInModel(
     qControl: QControl,
     sRated: ComparableQuantity[Power],
     cosPhiRated: Double
-) extends SystemParticipant[FixedRelevantData.type](
+) extends SystemParticipant[FixedRelevantData.type, ApparentPower](
       uuid,
       id,
       operationInterval,
@@ -53,7 +54,8 @@ final case class FixedFeedInModel(
       qControl,
       sRated,
       cosPhiRated
-    ) {
+    )
+    with ApparentPowerParticipant[FixedRelevantData.type] {
 
   /** Calculate the active power behaviour of the model
     *

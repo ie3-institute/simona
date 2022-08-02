@@ -8,10 +8,14 @@ package edu.ie3.simona.model.participant.load
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.LoadInput
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
-import edu.ie3.simona.model.participant.SystemParticipant
+import edu.ie3.simona.model.participant.{
+  ApparentPowerParticipant,
+  SystemParticipant
+}
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
@@ -37,7 +41,7 @@ abstract class LoadModel[D <: LoadRelevantData](
     qControl: QControl,
     sRated: ComparableQuantity[Power],
     cosPhiRated: Double
-) extends SystemParticipant[D](
+) extends SystemParticipant[D, ApparentPower](
       uuid,
       id,
       operationInterval,
@@ -46,6 +50,7 @@ abstract class LoadModel[D <: LoadRelevantData](
       sRated,
       cosPhiRated
     )
+    with ApparentPowerParticipant[D]
 
 case object LoadModel extends LazyLogging {
 

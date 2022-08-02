@@ -133,7 +133,11 @@ protected trait FixedFeedInAgentFundamentals
         model.operationInterval.end
       ).distinct.sorted.filterNot(_ == lastTickInSimulation).toArray
 
-    ParticipantModelBaseStateData(
+    ParticipantModelBaseStateData[
+      ApparentPower,
+      FixedRelevantData.type,
+      FixedFeedInModel
+    ](
       simulationStartDate,
       simulationEndDate,
       model,

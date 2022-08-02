@@ -18,6 +18,7 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult
 }
 import edu.ie3.simona.agent.ValueStore
+import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
@@ -39,25 +40,27 @@ import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
+  InconsistentStateException,
   InvalidRequestException
 }
 import edu.ie3.simona.model.participant.HpModel
-import edu.ie3.simona.model.participant.HpModel.HpData
+import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.thermal.ThermalHouse
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
+import javax.measure.quantity.{Dimensionless, Power, Temperature}
 import scala.compat.java8.OptionConverters.RichOptionalGeneric
 import scala.reflect.{ClassTag, classTag}
 
 trait HpAgentFundamentals
     extends ParticipantAgentFundamentals[
       ApparentPowerAndHeat,
-      HpData,
+      HpRelevantData,
       ParticipantStateData[ApparentPowerAndHeat],
       HpInput,
       HpRuntimeConfig,
@@ -80,7 +83,7 @@ trait HpAgentFundamentals
       Long,
       BaseStateData.ParticipantModelBaseStateData[
         ApparentPowerAndHeat,
-        HpData,
+        HpRelevantData,
         HpModel
       ],
       ComparableQuantity[Dimensionless]
@@ -114,8 +117,78 @@ trait HpAgentFundamentals
       collectionStateData: DataCollectionStateData[ApparentPowerAndHeat],
       currentTick: Long,
       scheduler: ActorRef
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] = goto(
-    Idle
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] = {
+    implicit val startDateTime: ZonedDateTime =
+      collectionStateData.baseStateData.startDate
+
+    val voltage =
+      getAndCheckNodalVoltage(collectionStateData.baseStateData, currentTick)
+
+    val (result, relevantData) =
+      collectionStateData.baseStateData match {
+        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
+          modelBaseStateData.model match {
+            case hpModel: HpModel =>
+              /* extract weather data from secondary data, which should have been requested and received before */
+              val weatherData =
+                collectionStateData.data
+                  .collectFirst {
+                    // filter secondary data for weather data
+                    case (_, Some(data: WeatherData)) => data
+                  }
+                  .getOrElse(
+                    throw new InconsistentStateException(
+                      s"The model ${modelBaseStateData.model} was not provided with needed weather data."
+                    )
+                  )
+
+              /* Try to get the last calc relevant data. It contains the hp state after the last calculation. If no data
+               * can be found, this is the first calculation step and therefore define starting state. */
+              val hpState = modelBaseStateData.calcRelevantDateStore.last(
+                currentTick
+              ) match {
+                case Some((_, HpRelevantData(lastState, _, _))) => lastState
+                case None =>
+                  startingState(hpModel.thermalHouse.targetTemperature)
+              }
+
+              val relevantData =
+                HpRelevantData(
+                  hpState,
+                  currentTick,
+                  weatherData.temp
+                )
+
+              val power = hpModel.calculatePower(
+                currentTick,
+                voltage,
+                relevantData
+              )
+
+              (power, relevantData)
+            case _ =>
+              throw new InconsistentStateException(
+                "Cannot find a model for model calculation."
+              )
+          }
+      }
+
+    updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
+      scheduler,
+      collectionStateData.baseStateData,
+      result,
+      relevantData
+    )
+  }
+
+  private def startingState(
+      targetTemperature: ComparableQuantity[Temperature]
+  ): HpState = HpState(
+    isRunning = false,
+    -1,
+    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
+    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
+    targetTemperature
   )
 
   /** Abstract definition, individual implementations found in individual agent
@@ -132,7 +205,7 @@ trait HpAgentFundamentals
       outputConfig: ParticipantNotifierConfig
   ): BaseStateData.ParticipantModelBaseStateData[
     ApparentPowerAndHeat,
-    HpData,
+    HpRelevantData,
     HpModel
   ] = {
     if (!services.exists(_.map(_.getClass).containsSlice(neededServices)))
@@ -149,7 +222,11 @@ trait HpAgentFundamentals
           simulationStartDate,
           simulationEndDate
         )
-        ParticipantModelBaseStateData(
+        ParticipantModelBaseStateData[
+          ApparentPowerAndHeat,
+          HpRelevantData,
+          HpModel
+        ](
           simulationStartDate,
           simulationEndDate,
           model,

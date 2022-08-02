@@ -153,7 +153,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
         Array.emptyLongArray
     }
 
-    ParticipantModelBaseStateData(
+    ParticipantModelBaseStateData[ApparentPower, LD, LM](
       simulationStartDate,
       simulationEndDate,
       model,

@@ -36,7 +36,7 @@ final case class BMModel(
     private val opex: ComparableQuantity[EnergyPrice],
     private val feedInTariff: ComparableQuantity[EnergyPrice],
     private val loadGradient: ComparableQuantity[DimensionlessRate]
-) extends SystemParticipant[BMCalcRelevantData](
+) extends SystemParticipant[BMCalcRelevantData, ApparentPower](
       uuid,
       id,
       operationInterval,
@@ -44,7 +44,8 @@ final case class BMModel(
       qControl,
       sRated,
       cosPhi
-    ) {
+    )
+    with ApparentPowerParticipant[BMCalcRelevantData] {
 
   /** Saves power output of last cycle. Needed for load gradient
     */

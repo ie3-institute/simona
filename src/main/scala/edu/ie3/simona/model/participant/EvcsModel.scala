@@ -58,7 +58,7 @@ final case class EvcsModel(
     cosPhiRated: Double,
     chargingPoints: Int,
     locationType: EvcsLocationType
-) extends SystemParticipant[EvcsRelevantData](
+) extends SystemParticipant[EvcsRelevantData, ApparentPower](
       uuid,
       id,
       operationInterval,
@@ -67,6 +67,7 @@ final case class EvcsModel(
       sRated,
       cosPhiRated
     )
+    with ApparentPowerParticipant[EvcsRelevantData]
     with LazyLogging {
 
   /** Calculate the power behaviour based on the given data.

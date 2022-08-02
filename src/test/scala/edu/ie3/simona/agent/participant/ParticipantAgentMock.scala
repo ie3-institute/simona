@@ -60,7 +60,7 @@ class ParticipantAgentMock(
       ParticipantStateData[ApparentPower],
       SystemParticipantInput,
       SimonaConfig.BaseRuntimeConfig,
-      SystemParticipant[FixedRelevantData.type]
+      SystemParticipant[FixedRelevantData.type, ApparentPower]
     ](scheduler)
     with ParticipantAgentFundamentals[
       ApparentPower,
@@ -68,7 +68,7 @@ class ParticipantAgentMock(
       ParticipantStateData[ApparentPower],
       SystemParticipantInput,
       SimonaConfig.BaseRuntimeConfig,
-      SystemParticipant[FixedRelevantData.type]
+      SystemParticipant[FixedRelevantData.type, ApparentPower]
     ] {
   override protected val pdClassTag: ClassTag[ApparentPower] =
     classTag[ApparentPower]
@@ -83,7 +83,7 @@ class ParticipantAgentMock(
       ParticipantModelBaseStateData[
         ApparentPower,
         FixedRelevantData.type,
-        SystemParticipant[FixedRelevantData.type]
+        SystemParticipant[FixedRelevantData.type, ApparentPower]
       ],
       ComparableQuantity[Dimensionless]
   ) => ApparentPower = (_, _, _) =>
@@ -154,18 +154,22 @@ class ParticipantAgentMock(
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,
-    SystemParticipant[FixedRelevantData.type]
+    SystemParticipant[FixedRelevantData.type, ApparentPower]
   ] = {
     val func = CosPhiFixed(0.95).activeToReactivePowerFunc(
       Quantities.getQuantity(0, StandardUnits.S_RATED),
       0.95d,
       Quantities.getQuantity(1, PU)
     )
-    val participant: SystemParticipant[FixedRelevantData.type] =
-      mock[SystemParticipant[FixedRelevantData.type]]
+    val participant: SystemParticipant[FixedRelevantData.type, ApparentPower] =
+      mock[SystemParticipant[FixedRelevantData.type, ApparentPower]]
     doReturn(func).when(participant).activeToReactivePowerFunc(any())
 
-    ParticipantModelBaseStateData(
+    ParticipantModelBaseStateData[
+      ApparentPower,
+      FixedRelevantData.type,
+      SystemParticipant[FixedRelevantData.type, ApparentPower]
+    ](
       simulationStartDate,
       simulationEndDate,
       participant,
@@ -201,8 +205,9 @@ class ParticipantAgentMock(
       modelConfig: BaseRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
-  ): SystemParticipant[FixedRelevantData.type] = {
-    val mockModel = mock[SystemParticipant[FixedRelevantData.type]]
+  ): SystemParticipant[FixedRelevantData.type, ApparentPower] = {
+    val mockModel =
+      mock[SystemParticipant[FixedRelevantData.type, ApparentPower]]
     val uuid = inputModel.electricalInputModel.getUuid
     Mockito.when(mockModel.getUuid).thenReturn(uuid)
     mockModel

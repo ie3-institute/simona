@@ -91,7 +91,7 @@ object BaseStateData {
   trait ModelBaseStateData[
       +PD <: PrimaryDataWithApparentPower[PD],
       CD <: CalcRelevantData,
-      M <: SystemParticipant[_ <: CalcRelevantData]
+      +M <: SystemParticipant[_ <: CalcRelevantData, PD]
   ] extends BaseStateData[PD] {
 
     /** The physical system model
@@ -135,7 +135,8 @@ object BaseStateData {
     *   Type of primary data, that the model produces
     */
   final case class FromOutsideBaseStateData[M <: SystemParticipant[
-    _ <: CalcRelevantData
+    _ <: CalcRelevantData,
+    P
   ], +P <: PrimaryDataWithApparentPower[P]](
       model: M,
       override val startDate: ZonedDateTime,
@@ -189,7 +190,7 @@ object BaseStateData {
   final case class ParticipantModelBaseStateData[
       +PD <: PrimaryDataWithApparentPower[PD],
       CD <: CalcRelevantData,
-      M <: SystemParticipant[_ <: CalcRelevantData]
+      +M <: SystemParticipant[_ <: CalcRelevantData, PD]
   ](
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
@@ -242,7 +243,7 @@ object BaseStateData {
       updatedForeseenTicks: Map[ActorRef, Option[Long]]
   ): BaseStateData[PD] = {
     baseStateData match {
-      case external: FromOutsideBaseStateData[_, _] =>
+      case external: FromOutsideBaseStateData[_, PD] =>
         external.copy(
           resultValueStore = updatedResultValueStore,
           requestValueStore = updatedRequestValueStore,
@@ -250,7 +251,7 @@ object BaseStateData {
           additionalActivationTicks = updatedAdditionalActivationTicks,
           foreseenDataTicks = updatedForeseenTicks
         )
-      case model: ParticipantModelBaseStateData[_, _, _] =>
+      case model: ParticipantModelBaseStateData[PD, _, _] =>
         model.copy(
           resultValueStore = updatedResultValueStore,
           requestValueStore = updatedRequestValueStore,

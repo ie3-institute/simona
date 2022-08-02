@@ -13,7 +13,7 @@ import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.type.HpTypeInput
 import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
-import edu.ie3.simona.model.participant.HpModel.HpData
+import edu.ie3.simona.model.participant.HpModel.HpRelevantData
 import edu.ie3.simona.model.participant.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalHouse
 import edu.ie3.util.quantities.QuantityUtil
@@ -72,7 +72,7 @@ class HpModelTest extends Specification {
 	}
 
 	static def buildHpData(HpState hpState) {
-		return new HpData(hpState, 7200, getQuantity(10, CELSIUS))
+		return new HpRelevantData(hpState, 7200, getQuantity(10, CELSIUS))
 	}
 
 	static def buildThermalHouse(Double lowerBoundaryTemperature, Double upperBoundaryTemperature) {

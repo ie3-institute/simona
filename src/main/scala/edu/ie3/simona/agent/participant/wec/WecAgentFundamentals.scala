@@ -121,7 +121,7 @@ protected trait WecAgentFundamentals
         simulationEndDate
       )
 
-    ParticipantModelBaseStateData(
+    ParticipantModelBaseStateData[ApparentPower, WecRelevantData, WecModel](
       simulationStartDate,
       simulationEndDate,
       model,

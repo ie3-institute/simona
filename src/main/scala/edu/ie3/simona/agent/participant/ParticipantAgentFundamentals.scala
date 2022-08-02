@@ -99,7 +99,7 @@ protected trait ParticipantAgentFundamentals[
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
     MC <: SimonaConfig.BaseRuntimeConfig,
-    M <: SystemParticipant[CD]
+    M <: SystemParticipant[CD, PD]
 ] extends ServiceRegistration[PD, CD, D, I, MC, M] {
   this: ParticipantAgent[PD, CD, D, I, MC, M] =>
   protected val pdClassTag: ClassTag[PD]
