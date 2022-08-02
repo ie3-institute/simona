@@ -78,23 +78,16 @@ trait SchedulerHelper extends SimonaActorLogging {
       nowInTicks: Long
   ): TriggerData = {
 
-    while (triggerData.triggerQueue.headKeyOption.exists(_ <= nowInTicks)) {
+    triggerData.triggerQueue.pollTo(nowInTicks).foreach {
+      case scheduledTrigger @ ScheduledTrigger(triggerWithIdMessage, actor) =>
+        // track that we wait for a response for this tick
+        triggerData.awaitingResponseMap.add(triggerWithIdMessage.trigger.tick)
 
-      val scheduledTrigger = triggerData.triggerQueue
-        .poll()
-        .getOrElse(
-          throw new RuntimeException("No scheduled trigger was available")
-        )
-      val triggerWithIdMessage = scheduledTrigger.triggerWithIdMessage
+        // track the trigger id with the scheduled trigger
+        triggerData.triggerIdToScheduledTriggerMap +=
+          triggerWithIdMessage.triggerId -> scheduledTrigger
 
-      // track that we wait for a response for this tick
-      triggerData.awaitingResponseMap.add(triggerWithIdMessage.trigger.tick)
-
-      // track the trigger id with the scheduled trigger
-      triggerData.triggerIdToScheduledTriggerMap +=
-        triggerWithIdMessage.triggerId -> scheduledTrigger
-
-      scheduledTrigger.agent ! triggerWithIdMessage
+        actor ! triggerWithIdMessage
     }
 
     triggerData
