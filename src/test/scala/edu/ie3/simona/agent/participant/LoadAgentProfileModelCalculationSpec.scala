@@ -87,9 +87,10 @@ class LoadAgentProfileModelCalculationSpec
   private val loadConfigUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
   )
-  private val modelConfig = loadConfigUtil.getLoadConfigOrDefault(
-    voltageSensitiveInput.getUuid
-  )
+  private val modelConfig =
+    loadConfigUtil.getOrDefault[LoadRuntimeConfig](
+      voltageSensitiveInput.getUuid
+    )
   private val services = None
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
