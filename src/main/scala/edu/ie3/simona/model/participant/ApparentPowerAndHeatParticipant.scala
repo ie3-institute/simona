@@ -7,10 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ApparentPowerAndHeat
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
@@ -26,7 +23,7 @@ trait ApparentPowerAndHeatParticipant[CD <: CalcRelevantData] {
     val apparentPower = calculateApparentPower(tick, voltage, data)
     val heat =
       if (isInOperation(tick))
-        calculateHeat(tick, data)
+        calculateHeat(tick, data).to(StandardUnits.ACTIVE_POWER_RESULT)
       else
         Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
 

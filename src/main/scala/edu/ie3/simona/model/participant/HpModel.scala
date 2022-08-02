@@ -87,7 +87,7 @@ final case class HpModel(
   override protected def calculateActivePower(
       hpData: HpRelevantData
   ): ComparableQuantity[Power] = {
-    calculateNextState(hpData)
+    hpData.hpState = calculateNextState(hpData)
     hpData.hpState.activePower
   }
 
@@ -106,7 +106,7 @@ final case class HpModel(
       tick: Long,
       data: HpRelevantData
   ): ComparableQuantity[Power] =
-    data.hpState.qDot
+    data.hpState.qDot.to(StandardUnits.ACTIVE_POWER_RESULT)
 
   /** Given a [[HpRelevantData]] object, containing the [[HpState]], other
     * values and the current time tick, this function calculates the heat pump's
@@ -204,7 +204,7 @@ case object HpModel {
 
     val qControl = QControl(inputModel.getqCharacteristics())
 
-    new HpModel(
+    val model = new HpModel(
       inputModel.getUuid,
       inputModel.getId,
       operationInterval,
@@ -215,6 +215,9 @@ case object HpModel {
       inputModel.getType.getpThermal(),
       thermalHouse
     )
+
+    model.enable()
+    model
   }
 
   /** As the HpModel class is a dynamic model, it requires a state for its
@@ -252,7 +255,7 @@ case object HpModel {
     *   contains current time tick
     */
   final case class HpRelevantData(
-      hpState: HpState,
+      var hpState: HpState,
       currentTimeTick: Long,
       ambientTemperature: ComparableQuantity[Temperature]
   ) extends CalcRelevantData
@@ -278,7 +281,7 @@ case object HpModel {
       qControl: QControl,
       thermalHouse: ThermalHouse
   ): HpModel = {
-    new HpModel(
+    val model = new HpModel(
       hpInput.getUuid,
       hpInput.getId,
       operationInterval,
@@ -289,6 +292,8 @@ case object HpModel {
       hpInput.getType.getpThermal,
       thermalHouse
     )
-  }
 
+    model.enable()
+    model
+  }
 }
