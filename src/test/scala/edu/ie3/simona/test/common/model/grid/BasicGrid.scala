@@ -73,8 +73,8 @@ trait BasicGrid extends FiveLinesWithNodes with DefaultTestData {
       transformerHvVoltLvl
     )
 
-  override protected def nodes: Set[NodeModel] =
-    super.nodes + node6
+  override protected def nodes: Seq[NodeModel] =
+    super.nodes :+ node6
 
   // update nodeToIndexMap
   // nodeToIndexMap
