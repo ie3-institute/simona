@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.util
 
-import java.util.UUID
-
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
@@ -20,6 +18,7 @@ import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.{apply => _, _}
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
 import edu.ie3.simona.util.ConfigUtil.{
@@ -30,7 +29,9 @@ import edu.ie3.simona.util.ConfigUtil.{
 }
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 
-class ConfigUtilsSpec
+import java.util.UUID
+
+class ConfigUtilSpec
     extends UnitSpec
     with TableDrivenPropertyChecks
     with ConfigTestData {
@@ -775,6 +776,53 @@ class ConfigUtilsSpec
         Set[Class[_ <: ResultEntity]](classOf[LoadResult], classOf[ChpResult])
 
       configUtil.simulationResultEntitiesToConsider shouldBe expectedResult
+    }
+  }
+
+  "The database config util" should {
+    "throw an exception if kafka is configured with a malformed UUID" in {
+      intercept[InvalidConfigParameterException] {
+        ConfigUtil.DatabaseConfigUtil.checkKafkaParams(
+          ResultKafkaParams(
+            "server:1234",
+            0,
+            "-not-a-uuid-",
+            "https://reg:123",
+            "topic"
+          ),
+          Seq("topic")
+        )
+      }.getMessage shouldBe "The UUID '-not-a-uuid-' cannot be parsed as it is invalid."
+    }
+
+    "throw an exception if kafka is configured, but creating kafka client fails" in {
+      intercept[InvalidConfigParameterException] {
+        ConfigUtil.DatabaseConfigUtil.checkKafkaParams(
+          ResultKafkaParams(
+            "not#a#server",
+            0,
+            "00000000-0000-0000-0000-000000000000",
+            "https://reg:123",
+            "topic"
+          ),
+          Seq("topic")
+        )
+      }.getMessage shouldBe "Exception creating kafka client for broker not#a#server."
+    }
+
+    "throw an exception if kafka is configured, but connection to broker fails" in {
+      intercept[InvalidConfigParameterException] {
+        ConfigUtil.DatabaseConfigUtil.checkKafkaParams(
+          ResultKafkaParams(
+            "localhost:12345",
+            0,
+            "00000000-0000-0000-0000-000000000000",
+            "https://reg:123",
+            "topic"
+          ),
+          Seq("topic")
+        )
+      }.getMessage shouldBe "Connection with kafka broker localhost:12345 failed."
     }
   }
 }
