@@ -618,40 +618,58 @@ object SimonaConfig {
 
   }
 
-  final case class TransformerControlGroup(
-      measurements: scala.List[java.lang.String],
-      transformers: scala.List[java.lang.String],
-      vMax: scala.Double,
-      vMin: scala.Double
-  )
-  object TransformerControlGroup {
+  final case class RuntimeKafkaParams(
+      override val bootstrapServers: java.lang.String,
+      override val linger: scala.Int,
+      override val runId: java.lang.String,
+      override val schemaRegistryUrl: java.lang.String,
+      topic: java.lang.String
+  ) extends KafkaParams(bootstrapServers, linger, runId, schemaRegistryUrl)
+  object RuntimeKafkaParams {
     def apply(
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.TransformerControlGroup = {
-      SimonaConfig.TransformerControlGroup(
-        measurements =
-          $_L$_str(c.getList("measurements"), parentPath, $tsCfgValidator),
-        transformers =
-          $_L$_str(c.getList("transformers"), parentPath, $tsCfgValidator),
-        vMax = $_reqDbl(parentPath, c, "vMax", $tsCfgValidator),
-        vMin = $_reqDbl(parentPath, c, "vMin", $tsCfgValidator)
+    ): SimonaConfig.RuntimeKafkaParams = {
+      SimonaConfig.RuntimeKafkaParams(
+        topic = $_reqStr(parentPath, c, "topic", $tsCfgValidator),
+        bootstrapServers =
+          $_reqStr(parentPath, c, "bootstrapServers", $tsCfgValidator),
+        linger = $_reqInt(parentPath, c, "linger", $tsCfgValidator),
+        runId = $_reqStr(parentPath, c, "runId", $tsCfgValidator),
+        schemaRegistryUrl =
+          $_reqStr(parentPath, c, "schemaRegistryUrl", $tsCfgValidator)
       )
     }
-    private def $_reqDbl(
+    private def $_reqInt(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Double = {
+    ): scala.Int = {
       if (c == null) 0
       else
-        try c.getDouble(path)
+        try c.getInt(path)
         catch {
           case e: com.typesafe.config.ConfigException =>
             $tsCfgValidator.addBadPath(parentPath + path, e)
             0
+        }
+    }
+
+    private def $_reqStr(
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): java.lang.String = {
+      if (c == null) null
+      else
+        try c.getString(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            null
         }
     }
 
@@ -1890,11 +1908,47 @@ object SimonaConfig {
     }
 
     final case class Runtime(
+        listener: SimonaConfig.Simona.Runtime.Listener,
         participant: SimonaConfig.Simona.Runtime.Participant,
         selected_subgrids: scala.Option[scala.List[scala.Int]],
         selected_volt_lvls: scala.Option[scala.List[SimonaConfig.VoltLvlConfig]]
     )
     object Runtime {
+      final case class Listener(
+          eventsToProcess: scala.Option[scala.List[java.lang.String]],
+          kafka: scala.Option[SimonaConfig.RuntimeKafkaParams]
+      )
+      object Listener {
+        def apply(
+            c: com.typesafe.config.Config,
+            parentPath: java.lang.String,
+            $tsCfgValidator: $TsCfgValidator
+        ): SimonaConfig.Simona.Runtime.Listener = {
+          SimonaConfig.Simona.Runtime.Listener(
+            eventsToProcess =
+              if (c.hasPathOrNull("eventsToProcess"))
+                scala.Some(
+                  $_L$_str(
+                    c.getList("eventsToProcess"),
+                    parentPath,
+                    $tsCfgValidator
+                  )
+                )
+              else None,
+            kafka =
+              if (c.hasPathOrNull("kafka"))
+                scala.Some(
+                  SimonaConfig.RuntimeKafkaParams(
+                    c.getConfig("kafka"),
+                    parentPath + "kafka.",
+                    $tsCfgValidator
+                  )
+                )
+              else None
+          )
+        }
+      }
+
       final case class Participant(
           evcs: SimonaConfig.Simona.Runtime.Participant.Evcs,
           fixedFeedIn: SimonaConfig.Simona.Runtime.Participant.FixedFeedIn,
@@ -2180,6 +2234,12 @@ object SimonaConfig {
           $tsCfgValidator: $TsCfgValidator
       ): SimonaConfig.Simona.Runtime = {
         SimonaConfig.Simona.Runtime(
+          listener = SimonaConfig.Simona.Runtime.Listener(
+            if (c.hasPathOrNull("listener")) c.getConfig("listener")
+            else com.typesafe.config.ConfigFactory.parseString("listener{}"),
+            parentPath + "listener.",
+            $tsCfgValidator
+          ),
           participant = SimonaConfig.Simona.Runtime.Participant(
             if (c.hasPathOrNull("participant")) c.getConfig("participant")
             else com.typesafe.config.ConfigFactory.parseString("participant{}"),
