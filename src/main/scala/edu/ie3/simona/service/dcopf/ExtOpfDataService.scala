@@ -20,8 +20,14 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.{EvMessage, ServiceMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ExtOpfRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceActivationBaseStateData}
-import edu.ie3.simona.service.dcopf.ExtOpfDataService.{ExtOpfStateData, InitExtOpfData}
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceActivationBaseStateData
+}
+import edu.ie3.simona.service.dcopf.ExtOpfDataService.{
+  ExtOpfStateData,
+  InitExtOpfData
+}
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.ProvidePrimaryDataMessage
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
@@ -42,7 +48,8 @@ object ExtOpfDataService {
 
   final case class InitExtOpfData(
       extOpfData: ExtOpfData,
-      primaryServiceProxy: ActorRef
+      primaryServiceProxy: ActorRef,
+      endTime: Long
   ) extends InitializeServiceStateData {}
 
   /** Class carrying the state of a fully initialized [[ExtOpfDataService]]
@@ -53,8 +60,9 @@ object ExtOpfDataService {
     * @param setpoints
     * @param activePowerResponses
     */
-  final case class ExtOpfStateData(
+  final case class ExtOpfStateData( // Aufrufe durchegen
       extOpfData: ExtOpfData,
+      endTime: Long,
       uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
       extOpfMessage: Option[ExtOpfMessage] = None,
       override val maybeNextActivationTick: Option[Long] = None,
@@ -86,12 +94,13 @@ class ExtOpfDataService(
         Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
     )
   ] = initServiceData match {
-    case InitExtOpfData(extOpfData, primaryServiceProxy) =>
+    case InitExtOpfData(extOpfData, primaryServiceProxy, endTime) =>
       val generators = getGeneratorsUuid()
       registerAsPrimaryServiceWorker(primaryServiceProxy, generators)
       log.info("Registration started...")
       val extOpfStateData = ExtOpfStateData(
-        extOpfData
+        extOpfData,
+        endTime
       )
       Success(extOpfStateData, None)
 
@@ -152,9 +161,9 @@ class ExtOpfDataService(
 
     val output = new util.ArrayList[String]
 
-    for(line <- Source.fromFile(filename).getLines){
-    val values = line.split(";")
-    output.add(values(index))
+    for (line <- Source.fromFile(filename).getLines) {
+      val values = line.split(";")
+      output.add(values(index))
     }
 
     output.remove(0)
@@ -194,12 +203,13 @@ class ExtOpfDataService(
         setpointsMessage.getSetpoints.asScala.map {
           case (generator, setpoint) =>
             val generatorRef = extOpfStateData.uuidToActorRef
-              .getOrElse(generator,
+              .getOrElse(
+                generator,
                 throw ServiceException(
                   s"ExtOpfDataActor was triggered without generators' ActorRef $generator. In State Data: ${extOpfStateData.uuidToActorRef} "
                 )
               )
-            processData(tick, generatorRef, setpoint)
+            processData(tick, generatorRef, setpoint, extOpfStateData.endTime)
           case _ =>
             Failure(
               new IllegalArgumentException(
@@ -224,10 +234,11 @@ class ExtOpfDataService(
   private def processData(
       tick: Long,
       generator: ActorRef,
-      setpoint: PValue
+      setpoint: PValue,
+      endTime: Long
   ) = setpoint.toPrimaryData match {
     case Success(setpointPrimary) =>
-      announcePrimaryData(tick, generator, setpointPrimary)
+      announcePrimaryData(tick, generator, setpointPrimary, endTime)
     case Failure(exception) =>
       /* Processing of data failed */
       log.warning(
@@ -240,10 +251,13 @@ class ExtOpfDataService(
   private def announcePrimaryData(
       tick: Long,
       generator: ActorRef,
-      primaryData: PrimaryData
+      primaryData: PrimaryData,
+      endTime: Long
   ) = {
+    val nextTick = if (tick + 900 == endTime) None else Some(tick + 900)
+
     val provisionMessage =
-      ProvidePrimaryDataMessage(tick, primaryData, Some(tick + 900L))
+      ProvidePrimaryDataMessage(tick, primaryData, nextTick)
     generator ! provisionMessage
     log.info(s"external Data $primaryData was sent to generator $generator.")
   }

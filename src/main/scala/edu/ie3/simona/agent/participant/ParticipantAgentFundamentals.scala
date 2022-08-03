@@ -50,6 +50,7 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException
 }
+import edu.ie3.simona.logging.{SimonaActorLogging, SimonaFSMActorLogging}
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -559,6 +560,7 @@ protected trait ParticipantAgentFundamentals[
               /* Add received information to base state data and reply, that everything is done */
 
               /* Announce the result */
+              log.info("Results are written into result file.")
               announceSimulationResult(
                 stateData.baseStateData,
                 tick,
@@ -571,6 +573,7 @@ protected trait ParticipantAgentFundamentals[
                 currentTick,
                 mostRecentData
               )
+              log.info("updatedResultValueStore l. 536")
               val baseStateDataWithUpdatedResults =
                 BaseStateData.updateBaseStateData(
                   stateData.baseStateData,
@@ -596,6 +599,7 @@ protected trait ParticipantAgentFundamentals[
         case _: BaseStateData.ModelBaseStateData[_, _, _] =>
           /* Go to calculation state and send a trigger for this to myself as well */
           self ! StartCalculationTrigger(currentTick)
+          log.info("StartCalculationTrigger l. 566")
           goto(Calculate) using stateData
         case x =>
           throw new IllegalStateException(
@@ -1482,6 +1486,7 @@ protected trait ParticipantAgentFundamentals[
         currentTick,
         result
       )
+    log.info("updatedValueStore l. 1448")
     val updatedRelevantDataStore =
       baseStateData match {
         case data: BaseStateData.ModelBaseStateData[_, _, _] =>
@@ -1502,7 +1507,7 @@ protected trait ParticipantAgentFundamentals[
       currentTick,
       result
     )(baseStateData.outputConfig)
-
+    log.info("announceSimulationResult l. 1471")
     /* Update the base state data */
     val baseStateDateWithUpdatedResults =
       baseStateData match {

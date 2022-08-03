@@ -33,6 +33,7 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException
 }
+import edu.ie3.simona.logging.SimonaFSMActorLogging
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.FixedFeedInModel
 import edu.ie3.simona.util.SimonaConstants
@@ -118,6 +119,7 @@ protected trait FixedFeedInAgentFundamentals
     /* Go and collect all ticks, in which new data will be available. Also register for
      * services, where needed. */
     val lastTickInSimulation = simulationEndDate.toTick(simulationStartDate)
+    log.info(s"Last tick is $lastTickInSimulation.")
     val dataTicks =
       /* As participant agents always return their last known operation point on request, it is sufficient
        * to let a fixed fixed in model determine it's operation point on:

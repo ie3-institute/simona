@@ -318,12 +318,16 @@ abstract class ParticipantAgent[
         }
       ) {
         /* Update the yet received information */
+        log.info(
+          s"Update the yet received information and send ${msg.data} to ${sender()}."
+        )
         val updatedData = data + (sender() -> Some(msg.data))
 
         /* Depending on if a next data tick can be foreseen, either update the entry in the base state data or remove
          * it */
         val foreSeenDataTicks =
           baseStateData.foreseenDataTicks + (sender() -> msg.nextDataTick)
+        log.info(s"next tick ${msg.nextDataTick} sent to ${sender()}.")
         val updatedBaseStateData = BaseStateData.updateBaseStateData(
           baseStateData,
           baseStateData.resultValueStore,
@@ -337,6 +341,7 @@ abstract class ParticipantAgent[
             baseStateData = updatedBaseStateData,
             data = updatedData
           )
+        log.info("checkForExpectedDataAndChangeState l. 342")
         checkForExpectedDataAndChangeState(
           updatedStateData,
           isYetTriggered,
@@ -558,6 +563,7 @@ abstract class ParticipantAgent[
     } else {
       /* I don't expect new data. Do a shortcut to Calculate */
       self ! StartCalculationTrigger(currentTick)
+      log.info("StartCalculationTrigger l. 563")
       goto(Calculate) using nextStateData
     }
   }

@@ -26,7 +26,10 @@ import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
-import edu.ie3.simona.ontology.trigger.Trigger.{InitializeExtSimAdapterTrigger, InitializeServiceTrigger}
+import edu.ie3.simona.ontology.trigger.Trigger.{
+  InitializeExtSimAdapterTrigger,
+  InitializeServiceTrigger
+}
 import edu.ie3.simona.scheduler.SimScheduler
 import edu.ie3.simona.service.dcopf.ExtOpfDataService
 import edu.ie3.simona.service.dcopf.ExtOpfDataService.InitExtOpfData
@@ -37,6 +40,7 @@ import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProx
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.util.ResultFileHierarchy
+import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
 import org.slf4j.LoggerFactory
 
@@ -57,7 +61,8 @@ class SimonaStandaloneSetup(
     override val args: Array[String]
 ) extends SimonaSetup {
 
-  private val log = LoggerFactory.getLogger("ExternalSampleSim").asInstanceOf[Logger]
+  private val log =
+    LoggerFactory.getLogger("ExternalSampleSim").asInstanceOf[Logger]
 
   override def gridAgents(
       context: ActorContext,
@@ -159,7 +164,11 @@ class SimonaStandaloneSetup(
       )
     )
 
-  def extSimulations1(context: ActorContext, scheduler: ActorRef, primaryServiceProxy: ActorRef): ExtSimSetupData = {
+  def extSimulations1(
+      context: ActorContext,
+      scheduler: ActorRef,
+      primaryServiceProxy: ActorRef
+  ): ExtSimSetupData = {
 
     val extSimAdapter = context.simonaActorOf(
       ExtSimAdapter.props(scheduler),
@@ -186,9 +195,12 @@ class SimonaStandaloneSetup(
       )
     )
 
-    extDcopfSim.setup(extSimAdapterData,List[ExtData](extOpfData).asJava)
+    extDcopfSim.setup(extSimAdapterData, List[ExtData](extOpfData).asJava)
 
-    ExtSimSetupData(Iterable((extSimAdapter,initExtSimAdapter)), Iterable((extOpfDataService,initExtOpfData)))
+    ExtSimSetupData(
+      Iterable((extSimAdapter, initExtSimAdapter)),
+      Iterable((extOpfDataService, initExtOpfData))
+    )
   }
 
   override def extSimulations(
@@ -243,7 +255,14 @@ class SimonaStandaloneSetup(
               val initExtOpfData = InitializeServiceTrigger(
                 InitExtOpfData(
                   extOpfData,
-                  primaryServiceProxy
+                  primaryServiceProxy,
+                  TimeUtil.withDefaults
+                    .toZonedDateTime(simonaConfig.simona.time.endDateTime)
+                    .toTick(
+                      TimeUtil.withDefaults.toZonedDateTime(
+                        simonaConfig.simona.time.startDateTime
+                      )
+                    )
                 )
               )
 

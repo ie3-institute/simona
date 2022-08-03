@@ -151,11 +151,10 @@ class SimScheduler(
 
     /* process completion messages */
     case completionMessage: CompletionMessage =>
-
       val updatedStateData = doSimStepOrInitAgents(
         handleCompletionMessage(completionMessage, stateData)
       )
-      //log.info(s"Completion Message still missing from ${updatedStateData.trigger.awaitingResponseMap}")
+      // log.info(s"Completion Message still missing from ${updatedStateData.trigger.awaitingResponseMap}")
       context become schedulerReceive(updatedStateData)
 
     case PowerFlowFailedMessage =>

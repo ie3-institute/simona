@@ -27,28 +27,52 @@ import edu.ie3.datamodel.io.source.{
   TimeSeriesMappingSource,
   TimeSeriesMetaInformationSource
 }
-
 import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{DcopfParams, SqlParams}
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.{Primary => PrimaryConfig}
-import edu.ie3.simona.exceptions.{InitializationException, InvalidConfigParameterException}
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{
+  DcopfParams,
+  SqlParams
+}
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
+  Primary => PrimaryConfig
+}
+import edu.ie3.simona.exceptions.{
+  InitializationException,
+  InvalidConfigParameterException
+}
 import edu.ie3.simona.logging.SimonaActorLogging
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  CompletionMessage,
+  ScheduleTriggerMessage,
+  TriggerWithIdMessage
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{ExtOpfRegistrationMessage, PrimaryServiceRegistrationMessage, WorkerRegistrationMessage}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  ExtOpfRegistrationMessage,
+  PrimaryServiceRegistrationMessage,
+  WorkerRegistrationMessage
+}
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.{InitPrimaryServiceProxyStateData, PrimaryServiceStateData, SourceRef}
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{CsvInitPrimaryServiceStateData, InitPrimaryServiceStateData, SqlInitPrimaryServiceStateData}
+import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
+  InitPrimaryServiceProxyStateData,
+  PrimaryServiceStateData,
+  SourceRef
+}
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
+  CsvInitPrimaryServiceStateData,
+  InitPrimaryServiceStateData,
+  SqlInitPrimaryServiceStateData
+}
 
 import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.Option.when
+import scala.compat.java8.OptionConverters.RichOptionalGeneric
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -184,7 +208,9 @@ case class PrimaryServiceProxy(
       triggerId: Long,
       scheduler: ActorRef
   ): Receive = { case ExtOpfRegistrationMessage(generators) =>
-    log.info(s"RegistrationMessage $ExtOpfRegistrationMessage from ExtOpfDataService received...")
+    log.info(
+      s"RegistrationMessage $ExtOpfRegistrationMessage from ExtOpfDataService received..."
+    )
     val stateData = registerExtOpfDataService(
       primaryConfig,
       simulationStart,
@@ -216,7 +242,9 @@ case class PrimaryServiceProxy(
     val timeSeriesToSourceRef = Map(
       (ts_uuid, SourceRef(metaInformation, Some(actorRef)))
     )
-    log.info(s"PrimaryService State Data is updated with ExtOpfDataService as Worker for $timeSeriesToSourceRef...")
+    log.info(
+      s"PrimaryService State Data is updated with ExtOpfDataService as Worker for $timeSeriesToSourceRef..."
+    )
 
     PrimaryServiceStateData(
       modelToTimeSeries,
@@ -639,8 +667,8 @@ object PrimaryServiceProxy {
           checkTimePattern(csvParams.timePattern)
         case Some(sqlParams: SimonaConfig.Simona.Input.Primary.SqlParams) =>
           checkTimePattern(sqlParams.timePattern)
-        case Some(_:DcopfParams) =>
-          // this is fine
+        case Some(_: DcopfParams) =>
+        // this is fine
         case Some(x) =>
           throw new InvalidConfigParameterException(
             s"Invalid configuration '$x' for a time series source.\nAvailable types:\n\t${supportedSources

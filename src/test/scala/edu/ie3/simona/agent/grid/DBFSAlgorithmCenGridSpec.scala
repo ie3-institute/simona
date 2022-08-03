@@ -84,7 +84,8 @@ class DBFSAlgorithmCenGridSpec
     scheduler = self,
     primaryServiceProxy = self,
     weather = self,
-    evDataService = None
+    evDataService = None,
+    opfDataService = None
   )
 
   "A GridAgent actor in center position with FSM test" should {
