@@ -9,10 +9,12 @@ package edu.ie3.simona.agent.participant.em
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
 import edu.ie3.simona.ontology.trigger.ScheduledTrigger
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.util.scala.{CountingMap, PriorityMultiQueue}
+import edu.ie3.util.scala.collection.mutable.{CountingMap, PriorityMultiQueue}
+
+import scala.collection.mutable
 
 /** Class holding all different kinds of state data a
-  * [[edu.ie3.simona.scheduler.grid.GridScheduler]] needs
+  * [[edu.ie3.simona.agent.participant.em.EmScheduler]] needs
   *
   * @param trigger
   *   state data about trigger
@@ -46,8 +48,9 @@ object EmSchedulerStateData {
       triggerIdCounter: Int = 0,
       triggerQueue: PriorityMultiQueue[Long, ScheduledTrigger] =
         PriorityMultiQueue.empty[Long, ScheduledTrigger],
-      triggerIdToScheduledTriggerMap: Map[Long, ScheduledTrigger] = Map
-        .empty[Long, ScheduledTrigger], // TODO replace with mutable map again
+      triggerIdToScheduledTriggerMap: mutable.Map[Long, ScheduledTrigger] =
+        mutable.Map
+          .empty[Long, ScheduledTrigger],
       awaitingResponseMap: CountingMap[Long] = CountingMap.empty[Long]
   )
 }

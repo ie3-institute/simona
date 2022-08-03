@@ -20,7 +20,7 @@ import javax.measure.quantity.Dimensionless
   * @tparam D
   *   Type of data to hold
   */
-final case class ValueStore[+D](
+final case class ValueStore[D](
     maxTickSpan: Long,
     private val store: Map[Long, D] = Map.empty[Long, D]
 ) {
@@ -55,6 +55,13 @@ final case class ValueStore[+D](
     */
   def last(): Option[(Long, D)] =
     store.maxByOption(_._1)
+
+  /** TODO scaladoc
+    * @param requestedTick
+    * @return
+    */
+  def getOrElse(requestedTick: Long, default: => D): D =
+    store.getOrElse(requestedTick, default)
 
   /** Acquires the stored information within the specified tick window
     *

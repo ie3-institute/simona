@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.em
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorRef, ActorSystem}
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -15,20 +15,19 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
+import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.ontology.trigger.{ScheduledTrigger, Trigger}
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeTrigger
-}
 import edu.ie3.simona.util.SimonaConstants.PARALLELISM_WINDOW
-import edu.ie3.util.scala.CountingMap
+import edu.ie3.util.scala.collection.mutable.CountingMap
+
+import scala.collection.mutable
 
 /** Main functionalities of [[EmScheduler]]. While the entry points for the
   * methods can be found in [[EmScheduler]], the functionalities that are
   * carried out are located here
   */
 trait EmSchedulerHelper {
-  this: EmScheduler =>
+  this: EmAgent =>
 
   protected final implicit val system: ActorSystem = context.system
 
@@ -48,50 +47,19 @@ trait EmSchedulerHelper {
       triggerData: TriggerData,
       nowInTicks: Long
   ): TriggerData = {
-    val triggerQueue = triggerData.triggerQueue
-
-    def triggerAvailable: Boolean =
-      triggerQueue.nonEmpty && triggerQueue.headKey <= nowInTicks
-
-    if (triggerAvailable) {
-      val triggerIdToSTMapBuilder = Map.newBuilder[Long, ScheduledTrigger]
-      triggerIdToSTMapBuilder ++= triggerData.triggerIdToScheduledTriggerMap
-
-      /* send out eligible trigger */
-      // this routine changes mutable data inside the loop for performance reasons
-      while (triggerAvailable) {
-
-        val scheduledTrigger = triggerQueue.poll()
-        val triggerWithIdMessage = scheduledTrigger.triggerWithIdMessage
-
+    triggerData.triggerQueue.pollTo(nowInTicks).foreach {
+      case scheduledTrigger @ ScheduledTrigger(triggerWithIdMessage, actor) =>
         // track that we wait for a response for this tick
         triggerData.awaitingResponseMap.add(triggerWithIdMessage.trigger.tick)
 
         // track the trigger id with the scheduled trigger
-        triggerIdToSTMapBuilder += (
-          triggerWithIdMessage.triggerId ->
-            scheduledTrigger
-        )
+        triggerData.triggerIdToScheduledTriggerMap +=
+          triggerWithIdMessage.triggerId -> scheduledTrigger
 
-        CustomKamon.countTriggerMessage(
-          triggerWithIdMessage,
-          getClass,
-          init = triggerWithIdMessage.trigger match {
-            case _: InitializeTrigger => true
-            case _                    => false
-          }
-        )
+        actor ! triggerWithIdMessage
+    }
 
-        scheduledTrigger.agent ! triggerWithIdMessage
-      }
-
-      triggerData.copy(
-        triggerQueue = triggerQueue,
-        awaitingResponseMap = triggerData.awaitingResponseMap,
-        triggerIdToScheduledTriggerMap = triggerIdToSTMapBuilder.result()
-      )
-    } else
-      triggerData
+    triggerData
   }
 
   /** Main method to handle all [[CompletionMessage]]s received by the
@@ -131,16 +99,6 @@ trait EmSchedulerHelper {
 
     val triggerId = completionMessage.triggerId
 
-    // count message
-    val isInit = triggerData.triggerIdToScheduledTriggerMap
-      .get(completionMessage.triggerId)
-      .exists {
-        _.triggerWithIdMessage.trigger match {
-          case _: InitializeTrigger => true
-          case _                    => false
-        }
-      }
-
     val (
       updatedAwaitingResponseMap,
       updatedTriggerIdToScheduledTriggerMap
@@ -157,9 +115,6 @@ trait EmSchedulerHelper {
         triggerData.triggerIdToScheduledTriggerMap
       )
     }
-
-    /* unwatch sender */
-    context.unwatch(completionMessage.actor)
 
     triggerData.copy(
       awaitingResponseMap = updatedAwaitingResponseMap,
@@ -185,11 +140,11 @@ trait EmSchedulerHelper {
   private def updateAwaitingResponseAndTriggerIdToScheduledTriggerMap(
       triggerId: Long,
       awaitingResponseMap: CountingMap[Long],
-      triggerIdToScheduledTriggerMap: Map[Long, ScheduledTrigger]
+      triggerIdToScheduledTriggerMap: mutable.Map[Long, ScheduledTrigger]
   ): Option[
     (
         CountingMap[Long],
-        Map[Long, ScheduledTrigger]
+        mutable.Map[Long, ScheduledTrigger]
     )
   ] = {
     triggerIdToScheduledTriggerMap.get(triggerId) match {
@@ -201,12 +156,11 @@ trait EmSchedulerHelper {
 
           awaitingResponseMap.subtract(tick)
 
-          val updatedTriggerIdToScheduledTriggerMap =
-            triggerIdToScheduledTriggerMap - triggerId
+          triggerIdToScheduledTriggerMap -= triggerId
 
           Some(
             awaitingResponseMap,
-            updatedTriggerIdToScheduledTriggerMap
+            triggerIdToScheduledTriggerMap
           )
         } else {
           None
@@ -254,13 +208,10 @@ trait EmSchedulerHelper {
     */
   protected final def scheduleTrigger(
       trigger: Trigger,
-      actorToBeScheduled: SimonaActorRef,
+      actorToBeScheduled: ActorRef,
       triggerData: TriggerData,
       nowInTicks: Long
   ): TriggerData = {
-
-    // watch the actor to be scheduled to know when it dies
-    context.watch(actorToBeScheduled)
 
     // if the tick of this trigger is too far in the past, we cannot schedule it
     if (nowInTicks - trigger.tick > parallelWindow) {
@@ -351,7 +302,7 @@ trait EmSchedulerHelper {
             None
         }
         .filter { case (mainTick, _) =>
-          stateData.trigger.awaitingResponseMap.minKey match {
+          stateData.trigger.awaitingResponseMap.minKeyOption match {
             case Some(head) =>
               // main ticks that have been triggered and completed (no more awaited completion messages).
               // we do not check whether trigger has been init or not, as non-init-triggers are sent
@@ -376,14 +327,13 @@ trait EmSchedulerHelper {
           Seq(
             ScheduleTriggerMessage(
               ActivityStartTrigger(tick),
-              selfSharded(currentStateData.subnetNo)
+              self
             )
           )
         )
 
-        mainScheduler ! CompletionMessage(
+        scheduler ! CompletionMessage(
           mainTriggerId,
-          selfSharded(currentStateData.subnetNo),
           nextTriggerOpt
         )
 
