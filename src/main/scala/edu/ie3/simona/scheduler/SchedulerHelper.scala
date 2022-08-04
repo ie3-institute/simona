@@ -15,10 +15,10 @@ import edu.ie3.simona.event.RuntimeEvent.{
 }
 import edu.ie3.simona.exceptions.SchedulerException
 import edu.ie3.simona.logging.SimonaActorLogging
-import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
-import edu.ie3.simona.ontology.trigger.{ScheduledTrigger, Trigger}
+import edu.ie3.simona.ontology.trigger.Trigger
 import edu.ie3.simona.scheduler.SimSchedulerStateData.{
+  ScheduledTrigger,
   SchedulerStateData,
   TriggerData
 }
@@ -758,7 +758,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     *   a copy of the provided state data with updated trigger data
     */
   protected final def scheduleTrigger(
-      triggerMessage: SchedulerMessage.ScheduleTriggerMessage,
+      triggerMessage: ScheduleTriggerMessage,
       stateData: SchedulerStateData
   ): SchedulerStateData =
     scheduleTrigger(
