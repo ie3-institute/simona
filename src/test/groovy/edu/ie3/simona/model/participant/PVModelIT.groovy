@@ -127,7 +127,7 @@ trait PVModelITHelper {
 	HashMap<String, PVModel> getPVModels() {
 		"load the grid input data from the corresponding resources folder"
 
-		def csvGridSource = CsvGridSource.apply("it_grid", ";",
+		def csvGridSource = CsvGridSource.readGrid("it_grid", ";",
 				this.getClass().getResource("pv/it/grid_data").file,
 				new FileNamingStrategy())
 
