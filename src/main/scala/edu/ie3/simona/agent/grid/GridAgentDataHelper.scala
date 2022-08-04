@@ -34,13 +34,13 @@ private[grid] trait GridAgentDataHelper {
   def superiorGridNodeUuids: Vector[UUID] =
     subgridGates.collect {
       case gate: SubGridGate if gate.getInferiorSubGrid == subgridId =>
-        gate.getSuperiorNode.getUuid
+        gate.superiorNode.getUuid
     }
 
   def inferiorGridNodeUuids: Vector[UUID] =
     subgridGates.collect {
       case gate: SubGridGate if gate.getSuperiorSubGrid == subgridId =>
-        gate.getInferiorNode.getUuid
+        gate.inferiorNode.getUuid
     }
 
   def superiorGridGates: Vector[SubGridGate] =

@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.test.common.model.grid
 
-import java.time.ZonedDateTime
-import java.util.UUID
-
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.connector.`type`.Transformer2WTypeInput
 import edu.ie3.datamodel.models.input.connector.{
@@ -18,16 +15,9 @@ import edu.ie3.datamodel.models.input.connector.{
   Transformer3WInput
 }
 import edu.ie3.datamodel.models.input.container.{
-  GraphicElements,
   RawGridElements,
-  SubGridContainer,
-  SystemParticipants
+  SubGridContainer
 }
-import edu.ie3.datamodel.models.input.graphics.{
-  LineGraphicInput,
-  NodeGraphicInput
-}
-import edu.ie3.datamodel.models.input.system._
 import edu.ie3.datamodel.models.input.{
   MeasurementUnitInput,
   NodeInput,
@@ -36,12 +26,15 @@ import edu.ie3.datamodel.models.input.{
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.grid.{RefSystem, TransformerModel}
+import edu.ie3.simona.util.TestGridFactory
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
+import java.time.ZonedDateTime
+import java.util.UUID
 import scala.jdk.CollectionConverters._
 
 /** Represents a simple test grid, consisting of one transformer connecting two
@@ -184,28 +177,10 @@ trait TransformerTestGrid {
       Set.empty[SwitchInput].asJava,
       Set.empty[MeasurementUnitInput].asJava
     )
-    val systemParticipants = new SystemParticipants(
-      Set.empty[BmInput].asJava,
-      Set.empty[ChpInput].asJava,
-      Set.empty[EvcsInput].asJava,
-      Set.empty[EvInput].asJava,
-      Set.empty[FixedFeedInInput].asJava,
-      Set.empty[HpInput].asJava,
-      Set.empty[LoadInput].asJava,
-      Set.empty[PvInput].asJava,
-      Set.empty[StorageInput].asJava,
-      Set.empty[WecInput].asJava
-    )
-    val graphicElements = new GraphicElements(
-      Set.empty[NodeGraphicInput].asJava,
-      Set.empty[LineGraphicInput].asJava
-    )
-    new SubGridContainer(
-      "transformer_test_grid",
-      1,
-      rawGridElements,
-      systemParticipants,
-      graphicElements
+    TestGridFactory.createSubGrid(
+      gridName = "transformer_test_grid",
+      subgrid = 1,
+      rawGridElements = rawGridElements
     )
   }
 
@@ -218,28 +193,10 @@ trait TransformerTestGrid {
       Set.empty[SwitchInput].asJava,
       Set.empty[MeasurementUnitInput].asJava
     )
-    val systemParticipants = new SystemParticipants(
-      Set.empty[BmInput].asJava,
-      Set.empty[ChpInput].asJava,
-      Set.empty[EvcsInput].asJava,
-      Set.empty[EvInput].asJava,
-      Set.empty[FixedFeedInInput].asJava,
-      Set.empty[HpInput].asJava,
-      Set.empty[LoadInput].asJava,
-      Set.empty[PvInput].asJava,
-      Set.empty[StorageInput].asJava,
-      Set.empty[WecInput].asJava
-    )
-    val graphicElements = new GraphicElements(
-      Set.empty[NodeGraphicInput].asJava,
-      Set.empty[LineGraphicInput].asJava
-    )
-    new SubGridContainer(
-      "transformer_test_grid",
-      1,
-      rawGridElements,
-      systemParticipants,
-      graphicElements
+    TestGridFactory.createSubGrid(
+      gridName = "transformer_test_grid",
+      subgrid = 1,
+      rawGridElements = rawGridElements
     )
   }
 }
