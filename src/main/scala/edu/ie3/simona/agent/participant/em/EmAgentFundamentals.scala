@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.em
 
-import akka.actor.{ActorRef, FSM}
+import akka.actor.ActorRef
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.EmInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
@@ -38,6 +38,7 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage
 }
+import edu.ie3.util.quantities.{QuantityUtil => PsuQuantityUtil}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
@@ -56,7 +57,7 @@ trait EmAgentFundamentals
       EmModel
     ] {
   this: EmAgent =>
-  override protected val pdClassTag: ClassTag[ApparentPowerAndHeat] =
+  protected val ApparentPowerAndHeatClassTag: ClassTag[ApparentPowerAndHeat] =
     classTag[ApparentPowerAndHeat]
   val alternativeResult: ApparentPowerAndHeat = ApparentPowerAndHeat(
     Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
@@ -68,7 +69,7 @@ trait EmAgentFundamentals
     * [[ParticipantModelBaseStateData]] (holding the actual calculation model)
     * into a pair of active and reactive power
     */
-  override val calculateModelPowerFunc: (
+  val calculateModelPowerFunc: (
       Long,
       BaseStateData.ParticipantModelBaseStateData[
         ApparentPowerAndHeat,
@@ -86,8 +87,8 @@ trait EmAgentFundamentals
     * still supposed to be valid. The secondary data therefore is put to the
     * calculation relevant data store. <p>The next state is [[Idle]], sending a
     * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
-    * scheduler and using update result values.</p> </p>Actual implementation
-    * can be found in each participant's fundamentals.</p>
+    * scheduler and using uApparentPowerAndHeatate result values.</p> </p>Actual
+    * implementation can be found in each participant's fundamentals.</p>
     *
     * @param collectionStateData
     *   State data with collected secondary data.
@@ -96,9 +97,9 @@ trait EmAgentFundamentals
     * @param scheduler
     *   [[ActorRef]] to the scheduler in the simulation
     * @return
-    *   [[Idle]] with updated result values
+    *   [[Idle]] with uApparentPowerAndHeatated result values
     */
-  override def calculatePowerWithSecondaryDataAndGoToIdle(
+  def calculatePowerWithSecondaryDataAndGoToIdle(
       collectionStateData: DataCollectionStateData[ApparentPowerAndHeat],
       currentTick: Long,
       scheduler: ActorRef
@@ -187,13 +188,14 @@ trait EmAgentFundamentals
     * Additionally, the listener are informed about the result.
     *
     * @param baseStateData
-    *   Base state data to update
+    *   Base state data to uApparentPowerAndHeatate
     * @param mostRecentRequest
     *   [[Option]] on a tuple of last request tick and corresponding answer
     * @param requestTick
     *   Tick of the incoming request
     * @param voltageValueStore
-    *   [[ValueStore]] with nodal voltages to use in updated state data
+    *   [[ValueStore]] with nodal voltages to use in uApparentPowerAndHeatated
+    *   state data
     * @param nodalVoltage
     *   Magnitude of the complex, dimensionless nodal voltage
     * @param lastNodalVoltage
@@ -202,13 +204,13 @@ trait EmAgentFundamentals
     *   Option on a possible fast state change
     */
   final def determineFastReply(
-      baseStateData: BaseStateData[PD],
-      mostRecentRequest: Option[(Long, PD)],
+      baseStateData: BaseStateData[ApparentPowerAndHeat],
+      mostRecentRequest: Option[(Long, ApparentPowerAndHeat)],
       requestTick: Long,
       voltageValueStore: ValueStore[ComparableQuantity[Dimensionless]],
       nodalVoltage: ComparableQuantity[Dimensionless],
       lastNodalVoltage: Option[(Long, ComparableQuantity[Dimensionless])]
-  ): Option[FSM.State[AgentState, ParticipantStateData[PD]]] = {
+  ): Unit = {
     implicit val outputConfig: ParticipantNotifierConfig =
       baseStateData.outputConfig
     mostRecentRequest match {
@@ -218,9 +220,13 @@ trait EmAgentFundamentals
          * if it has been the same request we wanna answer with the same values afterwards, this data MUST always
          * be available when we already provided data for this tick */
         baseStateData match {
-          case externalBaseStateData: FromOutsideBaseStateData[M, PD] =>
-            /* When data is provided from outside it is NOT altered depending on the node voltage. Send an
-             * AssetPowerUnchangedMessage */
+          case externalBaseStateData: FromOutsideBaseStateData[
+                M,
+                ApparentPowerAndHeat
+              ] =>
+          /* When data is provided from outside it is NOT altered depending on the node voltage. Send an
+           * AssetPowerUnchangedMessage */
+          /* TODO
             Some(
               stay() using externalBaseStateData.copy(
                 voltageValueStore = voltageValueStore
@@ -228,8 +234,12 @@ trait EmAgentFundamentals
                 latestProvidedValues.p,
                 latestProvidedValues.q
               )
-            )
-          case modelBaseStateData: ParticipantModelBaseStateData[PD, CD, M] =>
+            )*/
+          case modelBaseStateData: ParticipantModelBaseStateData[
+                ApparentPowerAndHeat,
+                CD,
+                M
+              ] =>
             /* Check, if the last request has been made with the same nodal voltage. If not, recalculate the reactive
              * power. */
             lastNodalVoltage match {
@@ -279,8 +289,8 @@ trait EmAgentFundamentals
     *   The request reply, that most recently has been sent
     * @param nodalVoltage
     *   Current nodal voltage
-    * @param updatedVoltageValueStore
-    *   Value store with updated nodal voltages
+    * @param uApparentPowerAndHeatatedVoltageValueStore
+    *   Value store with uApparentPowerAndHeatated nodal voltages
     * @param alternativeResult
     *   Alternative result to use, if no reasonable result can be obtained
     * @return
@@ -288,12 +298,14 @@ trait EmAgentFundamentals
     */
   def determineReply(
       requestTick: Long,
-      baseStateData: BaseStateData[PD],
-      mostRecentRequest: Option[(Long, PD)],
+      baseStateData: BaseStateData[ApparentPowerAndHeat],
+      mostRecentRequest: Option[(Long, ApparentPowerAndHeat)],
       nodalVoltage: ComparableQuantity[Dimensionless],
-      updatedVoltageValueStore: ValueStore[ComparableQuantity[Dimensionless]],
-      alternativeResult: PD
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+      uApparentPowerAndHeatatedVoltageValueStore: ValueStore[
+        ComparableQuantity[Dimensionless]
+      ],
+      alternativeResult: ApparentPowerAndHeat
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] = {
     /* No fast reply possible --> Some calculations have to be made */
     mostRecentRequest match {
       case Some((lastRequestTick, _)) if lastRequestTick > requestTick =>
@@ -304,22 +316,26 @@ trait EmAgentFundamentals
           if lastRequestTick == requestTick =>
         /* Repetitive request for the same tick, but with different voltage */
         baseStateData match {
-          case modelBaseStateData: ParticipantModelBaseStateData[PD, CD, M] =>
-            /* Active power is yet calculated, but reactive power needs update */
+          case modelBaseStateData: ParticipantModelBaseStateData[
+                ApparentPowerAndHeat,
+                CD,
+                M
+              ] =>
+            /* Active power is yet calculated, but reactive power needs uApparentPowerAndHeatate */
             val nextReactivePower = modelBaseStateData.model
               .calculateReactivePower(lastResult.p, nodalVoltage)
 
             /* Determine the reply, based new circumstances */
-            val updatedRequestValueStore =
-              ValueStore.updateValueStore(
+            val uApparentPowerAndHeatatedRequestValueStore =
+              ValueStore.uApparentPowerAndHeatateValueStore(
                 baseStateData.requestValueStore,
                 requestTick,
                 lastResult.withReactivePower(nextReactivePower)
               )
             val nextStateData =
               modelBaseStateData.copy(
-                requestValueStore = updatedRequestValueStore,
-                voltageValueStore = updatedVoltageValueStore
+                requestValueStore = uApparentPowerAndHeatatedRequestValueStore,
+                voltageValueStore = uApparentPowerAndHeatatedVoltageValueStore
               )
 
             stay() using nextStateData replying AssetPowerChangedMessage(
@@ -349,16 +365,16 @@ trait EmAgentFundamentals
               relevantData,
               requestTick,
               nodalVoltage,
-              updatedVoltageValueStore,
+              uApparentPowerAndHeatatedVoltageValueStore,
               alternativeResult
             )
           case None =>
             /* There is no simulation result at all. Reply with zero power */
-            stayWithUpdatedRequestValueStore(
+            stayWithUApparentPowerAndHeatatedRequestValueStore(
               baseStateData,
               alternativeResult,
               requestTick,
-              updatedVoltageValueStore
+              uApparentPowerAndHeatatedVoltageValueStore
             )
         }
     }
@@ -383,9 +399,9 @@ trait EmAgentFundamentals
     */
   def getRelevantResultData(
       requestTick: Long,
-      resultValueStore: ValueStore[PD],
-      requestValueStore: ValueStore[PD]
-  ): Option[RelevantResultValues[PD]] = {
+      resultValueStore: ValueStore[ApparentPowerAndHeat],
+      requestValueStore: ValueStore[ApparentPowerAndHeat]
+  ): Option[RelevantResultValues[ApparentPowerAndHeat]] = {
     /* The actual tick window for averaging is the last request tick and this request tick (both including) */
     val (averagingWindowStart, averagingWindowEnd) =
       determineTickWindow(requestTick, requestValueStore)
@@ -468,21 +484,22 @@ trait EmAgentFundamentals
     * @param nodalVoltage
     *   Nodal voltage magnitude in the moment of request
     * @param voltageValueStore
-    *   Voltage value store to be used in the updated base state data
+    *   Voltage value store to be used in the uApparentPowerAndHeatated base
+    *   state data
     * @param alternativeResult
     *   If no relevant data are apparent, then use this result instead
     * @return
-    *   The very same state as the agent currently is in, but with updated base
-    *   state data
+    *   The very same state as the agent currently is in, but with
+    *   uApparentPowerAndHeatated base state data
     */
   final def averagePowerAndStay(
-      baseData: BaseStateData[PD],
-      relevantResults: RelevantResultValues[PD],
+      baseData: BaseStateData[ApparentPowerAndHeat],
+      relevantResults: RelevantResultValues[ApparentPowerAndHeat],
       requestTick: Long,
       nodalVoltage: ComparableQuantity[Dimensionless],
       voltageValueStore: ValueStore[ComparableQuantity[Dimensionless]],
-      alternativeResult: PD
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+      alternativeResult: ApparentPowerAndHeat
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] = {
     if (relevantResults.relevantData.nonEmpty) {
       averagePowerAndStay(
         baseData,
@@ -498,7 +515,7 @@ trait EmAgentFundamentals
         s"No relevant data apparent, stay and reply with alternative result {}.",
         alternativeResult
       )
-      stayWithUpdatedRequestValueStore(
+      stayWithUApparentPowerAndHeatatedRequestValueStore(
         baseData,
         alternativeResult,
         requestTick,
@@ -525,20 +542,21 @@ trait EmAgentFundamentals
     * @param nodalVoltage
     *   Nodal voltage magnitude in the moment of request
     * @param voltageValueStore
-    *   Voltage value store to be used in the updated base state data
-    * @return
-    *   The very same state as the agent currently is in, but with updated base
+    *   Voltage value store to be used in the uApparentPowerAndHeatated base
     *   state data
+    * @return
+    *   The very same state as the agent currently is in, but with
+    *   uApparentPowerAndHeatated base state data
     */
   def averagePowerAndStay(
-      baseData: BaseStateData[PD],
-      tickToResult: Map[Long, PD],
+      baseData: BaseStateData[ApparentPowerAndHeat],
+      tickToResult: Map[Long, ApparentPowerAndHeat],
       requestTick: Long,
       windowStartTick: Long,
       windowEndTick: Long,
       nodalVoltage: ComparableQuantity[Dimensionless],
       voltageValueStore: ValueStore[ComparableQuantity[Dimensionless]]
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] = {
     val averageResult = determineAverageResult(
       baseData,
       tickToResult,
@@ -546,7 +564,7 @@ trait EmAgentFundamentals
       windowEndTick,
       nodalVoltage
     )
-    stayWithUpdatedRequestValueStore(
+    stayWithUApparentPowerAndHeatatedRequestValueStore(
       baseData,
       averageResult,
       requestTick,
@@ -572,16 +590,20 @@ trait EmAgentFundamentals
     *   Averaged result
     */
   def determineAverageResult(
-      baseStateData: BaseStateData[PD],
-      tickToResult: Map[Long, PD],
+      baseStateData: BaseStateData[ApparentPowerAndHeat],
+      tickToResult: Map[Long, ApparentPowerAndHeat],
       windowStartTick: Long,
       windowEndTick: Long,
       nodalVoltage: ComparableQuantity[Dimensionless]
-  ): PD = {
+  ): ApparentPowerAndHeat = {
     /* Determine, how the single model would transfer the active into reactive power */
     val activeToReactivePowerFunction = baseStateData match {
-      case _: FromOutsideBaseStateData[M, PD] => None
-      case modelBaseStateData: ParticipantModelBaseStateData[PD, CD, M] =>
+      case _: FromOutsideBaseStateData[M, ApparentPowerAndHeat] => None
+      case modelBaseStateData: ParticipantModelBaseStateData[
+            ApparentPowerAndHeat,
+            CD,
+            M
+          ] =>
         Some(
           modelBaseStateData.model.activeToReactivePowerFunc(nodalVoltage)
         )
@@ -609,12 +631,12 @@ trait EmAgentFundamentals
     *   The averaged result
     */
   def averageResults(
-      tickToResults: Map[Long, PD],
+      tickToResults: Map[Long, ApparentPowerAndHeat],
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         ComparableQuantity[Power] => ComparableQuantity[Power]
       ] = None
-  ): PD
+  ): ApparentPowerAndHeat
 
 }

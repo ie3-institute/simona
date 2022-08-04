@@ -61,6 +61,7 @@ class PriorityMultiQueueSpec extends UnitSpec {
       queue.nonEmpty shouldBe true
       queue.headKeyOption shouldBe Some(1)
       queue.keySet shouldBe SortedSet(1, 3)
+      queue.get(1) shouldBe Some(List(item1))
       queue.allValues shouldBe Iterable(item1, item3)
 
       queue.add(3, item2)

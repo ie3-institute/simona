@@ -9,15 +9,18 @@ package edu.ie3.simona.model.participant
 import akka.actor.ActorRef
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.ConnectorInput
-import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.datamodel.models.input.system.{EmInput, SystemParticipantInput}
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.grid.NodeModel
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -29,8 +32,6 @@ final case class EmModel private (
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: ComparableQuantity[Power],
-    cosPhiRated: Double,
     connectedAgents: Seq[(ActorRef, SystemParticipantInput)]
 ) extends SystemParticipant[EmRelevantData](
       uuid,
@@ -38,8 +39,8 @@ final case class EmModel private (
       operationInterval,
       scalingFactor,
       qControl,
-      sRated,
-      cosPhiRated
+      Quantities.getQuantity(0, PowerSystemUnits.KILOWATT), // FIXME dummy
+      0 // FIXME dummy
     ) {
 
   /** Determine the power of controllable devices such as storages
@@ -56,7 +57,7 @@ final case class EmModel private (
     * @return
     *   Active power
     */
-  override protected def calculateActivePower(
+  protected def calculateActivePower(
       data: EmRelevantData
   ): ComparableQuantity[Power] = ???
 }
@@ -79,10 +80,11 @@ case object EmModel {
   ) extends CalcRelevantData
 
   def apply(
-      // TODO: From PvModel, Check and refactor
       inputModel: EmInput,
+      modelConfig: EmRuntimeConfig,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
+      connectedAgents: Seq[(ActorRef, SystemParticipantInput)]
   ): EmModel = {
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
@@ -92,15 +94,14 @@ case object EmModel {
         inputModel.getOperationTime
       )
 
-    val model = apply(
+    EmModel(
       inputModel.getUuid,
       inputModel.getId,
-      operationInterval
+      operationInterval,
+      modelConfig.scaling,
+      QControl(inputModel.getqCharacteristics),
+      connectedAgents
     )
-
-    model.enable()
-
-    model
   }
   // TODO:
   /** Checks the availability of node calculation models, that are connected by
@@ -181,33 +182,6 @@ case object EmModel {
           s"Nodes (nodeA: ${connector.getNodeA.getUuid}, nodeB: ${connector.getNodeB.getUuid})for connector ${connector.getUuid} cannot be found."
         )
     }
-  }
-
-  // TODO: From PvModel, Check and refactor
-  /** Default factory method to create an EmModel instance.
-    *
-    * @param uuid
-    *   the unique id of the model
-    * @param id
-    *   the human readable id
-    * @param operationInterval
-    *   the operation interval of the model
-    * @return
-    */
-  def apply(
-      uuid: UUID,
-      id: String,
-      operationInterval: OperationInterval
-  ): EmModel = {
-    val model = new EmModel(
-      uuid,
-      id,
-      operationInterval
-    )
-
-    model.enable()
-
-    model
   }
 
 }

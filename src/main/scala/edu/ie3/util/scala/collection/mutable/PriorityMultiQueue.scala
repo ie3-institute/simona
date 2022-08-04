@@ -6,7 +6,7 @@
 
 package edu.ie3.util.scala.collection.mutable
 
-import scala.collection.{SortedSet, mutable}
+import scala.collection.{SortedSet, immutable, mutable}
 
 /** Queue that is specialized at holding many values of type [[V]] for the same
   * key of type [[K]]. Mutable structure. Values are stored in a
@@ -58,6 +58,14 @@ final case class PriorityMultiQueue[K, V] private (
         queue.addOne(key, list)
         table.addOne(key, list)
     }
+  }
+
+  // TODO scaladoc
+  // TODO test this
+  def get(key: K): Option[Seq[V]] = {
+    // make a copy of list, the original is mutable
+    // FIXME maybe only List.from works?
+    table.get(key).map(immutable.Seq.from)
   }
 
   /** Retrieves the first element in the list of the first key. The returned

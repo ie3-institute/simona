@@ -38,7 +38,6 @@ import edu.ie3.util.quantities.PowerSystemUnits.PU
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
-import java.util.UUID
 import javax.measure.quantity.Dimensionless
 
 object EmAgent {
@@ -93,8 +92,11 @@ object EmAgent {
       resultValueStore: ValueStore[ApparentPowerAndHeat],
       requestValueStore: ValueStore[ApparentPowerAndHeat],
       calcRelevantDateStore: ValueStore[EmRelevantData],
-      receivedResultsValueStore: ValueStore[Map[UUID, SystemParticipantResult]],
-      schedulerStateData: EmSchedulerStateData
+      receivedResultsValueStore: ValueStore[
+        Map[ActorRef, Option[SystemParticipantResult]]
+      ],
+      schedulerStateData: EmSchedulerStateData,
+      connectedAgents: Seq[(ActorRef, SystemParticipantInput)]
   )
 
 }
@@ -115,11 +117,11 @@ class EmAgent(
 
   def receiveUninitialized: Receive = {
     case TriggerWithIdMessage(
-          initTrigger @ InitializeParticipantAgentTrigger(
+          InitializeParticipantAgentTrigger(
             EmAgentInitializeStateData(
               inputModel,
               modelConfig,
-              primaryServiceProxy,
+              _, // replaying primary data is disabled here for now
               services,
               simulationStartDate,
               simulationEndDate,
@@ -132,8 +134,10 @@ class EmAgent(
           triggerId,
           _
         ) =>
+      // sending init triggers
       val triggerData = connectedAgents.foldLeft(TriggerData()) {
         case (triggerData, (actor, initTrigger, _)) =>
+          context.watch(actor)
           scheduleTrigger(
             initTrigger,
             actor,
@@ -142,7 +146,17 @@ class EmAgent(
           )
       }
 
-      val model = EmModel(inputModel, simulationStartDate, simulationEndDate)
+      val connectedInputs = connectedAgents.map { case (actor, _, input) =>
+        (actor, input)
+      }
+
+      val model = EmModel(
+        inputModel,
+        modelConfig,
+        simulationStartDate,
+        simulationEndDate,
+        connectedInputs
+      )
 
       val baseStateData = EmAgentModelBaseStateData(
         simulationStartDate,
@@ -162,7 +176,9 @@ class EmAgent(
         ValueStore.forResult(resolution, 10),
         ValueStore(resolution * 10),
         ValueStore(resolution * 10),
-        EmSchedulerStateData(trigger = triggerData)
+        ValueStore(resolution * 10),
+        EmSchedulerStateData(trigger = triggerData),
+        connectedInputs
       )
 
       setActiveTickAndSendTriggers(
@@ -195,30 +211,55 @@ class EmAgent(
           )
         )
 
-      if (!updatedStateData.mainTrigger.contains(updatedStateData.nowInTicks)) {
-        // TODO
-        // baseStateData.model.calculatePower(baseStateData.schedulerStateData.nowInTicks, )
-      }
-
       context become receiveIdle(
         baseStateData.copy(schedulerStateData = updatedStateData)
       )
 
     case TriggerWithIdMessage(ActivityStartTrigger(newTick), triggerId, _) =>
+      // prepare map for expected results for this tick
+      val resultsForTick =
+        baseStateData.schedulerStateData.trigger.triggerQueue
+          .get(newTick)
+          .map {
+            _.map { _.agent }.map(_ -> None).toMap
+          }
+          .getOrElse(Map.empty)
+
+      val updatedValueStore = ValueStore.updateValueStore(
+        baseStateData.receivedResultsValueStore,
+        newTick,
+        resultsForTick
+      )
+
+      val updatedBaseStateData =
+        baseStateData.copy(receivedResultsValueStore = updatedValueStore)
+
       setActiveTickAndSendTriggers(baseStateData, newTick, triggerId)
 
     case ParticipantResultEvent(systemParticipantResult) =>
-      val now = baseStateData.schedulerStateData.nowInTicks
+      val tick = baseStateData.schedulerStateData.nowInTicks
 
       val resultsForTick =
-        baseStateData.receivedResultsValueStore.getOrElse(now, Map.empty)
+        baseStateData.receivedResultsValueStore.getOrElse(tick, Map.empty)
 
       val updatedResultsForTick =
-        resultsForTick + (systemParticipantResult.getUuid, systemParticipantResult)
+        resultsForTick.updated(
+          sender(),
+          Some(systemParticipantResult)
+        )
+
+      val updatedValueStore = ValueStore.updateValueStore(
+        baseStateData.receivedResultsValueStore,
+        tick,
+        updatedResultsForTick
+      )
+
+      // check if all expected results arrived
+      // TODO
 
       context become receiveIdle(
         baseStateData.copy(
-          receivedResultsValueStore = updatedResultsForTick
+          receivedResultsValueStore = updatedValueStore
         )
       )
   }

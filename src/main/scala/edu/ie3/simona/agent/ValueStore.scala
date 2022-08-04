@@ -87,7 +87,7 @@ final case class ValueStore[D](
     store.keySet.toSeq.sorted.containsSlice(neededTicks.toSeq.sorted)
 }
 
-case object ValueStore {
+object ValueStore {
 
   /** Create a default "empty" voltage value store which requires an initial
     * voltage value to be set for tick 0
