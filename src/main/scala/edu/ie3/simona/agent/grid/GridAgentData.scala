@@ -82,7 +82,7 @@ object GridAgentData {
     ): PowerFlowDoneData = {
       /* Determine the subgrid numbers of all superior grids */
       val superiorSubGrids = gridAgentBaseData.gridEnv.subgridGateToActorRef
-        .map { case (subGridGate, _) => subGridGate.getSuperiorNode.getSubnet }
+        .map { case (subGridGate, _) => subGridGate.superiorNode.getSubnet }
         .filterNot(_ == gridAgentBaseData.gridEnv.gridModel.subnetNo)
         .toSet
       PowerFlowDoneData(gridAgentBaseData, powerFlowResult, superiorSubGrids)

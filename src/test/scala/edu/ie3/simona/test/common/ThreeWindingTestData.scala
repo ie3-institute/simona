@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.test.common
 
-import java.util.UUID
-
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.connector.`type`.Transformer3WTypeInput
 import edu.ie3.datamodel.models.input.connector.{
@@ -17,27 +15,22 @@ import edu.ie3.datamodel.models.input.connector.{
   Transformer3WInput
 }
 import edu.ie3.datamodel.models.input.container.{
-  GraphicElements,
   JointGridContainer,
-  RawGridElements,
-  SystemParticipants
+  RawGridElements
 }
-import edu.ie3.datamodel.models.input.graphics.{
-  LineGraphicInput,
-  NodeGraphicInput
-}
-import edu.ie3.datamodel.models.input.system._
 import edu.ie3.datamodel.models.input.{
   MeasurementUnitInput,
   NodeInput,
   OperatorInput
 }
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
+import edu.ie3.simona.util.TestGridFactory
 import edu.ie3.util.quantities.PowerSystemUnits._
-import javax.measure.MetricPrefix
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
+import java.util.UUID
+import javax.measure.MetricPrefix
 import scala.jdk.CollectionConverters._
 
 /** Simple grid structure with only one three winding transformer
@@ -124,27 +117,9 @@ trait ThreeWindingTestData extends DefaultTestData {
       Set.empty[SwitchInput].asJava,
       Set.empty[MeasurementUnitInput].asJava
     )
-    val systemParticipants = new SystemParticipants(
-      Set.empty[BmInput].asJava,
-      Set.empty[ChpInput].asJava,
-      Set.empty[EvcsInput].asJava,
-      Set.empty[EvInput].asJava,
-      Set.empty[FixedFeedInInput].asJava,
-      Set.empty[HpInput].asJava,
-      Set.empty[LoadInput].asJava,
-      Set.empty[PvInput].asJava,
-      Set.empty[StorageInput].asJava,
-      Set.empty[WecInput].asJava
-    )
-    val graphicElements = new GraphicElements(
-      Set.empty[NodeGraphicInput].asJava,
-      Set.empty[LineGraphicInput].asJava
-    )
-    new JointGridContainer(
-      "threeWindingTestGrid",
-      rawGridElements,
-      systemParticipants,
-      graphicElements
+    TestGridFactory.createJointGrid(
+      gridName = "threeWindingTestGrid",
+      rawGridElements = rawGridElements
     )
   }
 }
