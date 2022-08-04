@@ -40,11 +40,7 @@ import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeParticipantAgentTrigger
-import edu.ie3.simona.util.{
-  BaseOutputConfigUtil,
-  ConfigUtil,
-  NotifierIdentifier
-}
+import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs

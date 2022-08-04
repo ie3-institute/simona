@@ -13,8 +13,7 @@ import edu.ie3.util.scala.collection.mutable.{CountingMap, PriorityMultiQueue}
 
 import scala.collection.mutable
 
-/** Class holding all different kinds of state data a
-  * [[edu.ie3.simona.agent.participant.em.EmScheduler]] needs
+/** Class holding scheduling state data a [[EmAgent]] needs
   *
   * @param trigger
   *   state data about trigger

@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.participant.em
 
 import akka.actor.{Actor, ActorRef, Props}
-import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.datamodel.models.input.system.{EmInput, SystemParticipantInput}
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat

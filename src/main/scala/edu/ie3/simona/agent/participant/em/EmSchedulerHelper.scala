@@ -22,9 +22,7 @@ import edu.ie3.util.scala.collection.mutable.CountingMap
 
 import scala.collection.mutable
 
-/** Main functionalities of [[EmScheduler]]. While the entry points for the
-  * methods can be found in [[EmScheduler]], the functionalities that are
-  * carried out are located here
+/** Main functionalities of scheduling within [[EmAgent]]
   */
 trait EmSchedulerHelper {
   this: EmAgent =>
@@ -108,7 +106,7 @@ trait EmSchedulerHelper {
       triggerData.triggerIdToScheduledTriggerMap
     ).getOrElse {
       log.error(
-        s"Received bad completion notice $completionMessage from ${completionMessage.actor}"
+        s"Received bad completion notice $completionMessage"
       )
       (
         triggerData.awaitingResponseMap,
