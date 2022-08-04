@@ -297,7 +297,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         )
       )
       gridAgentBaseData.gridEnv.subgridGateToActorRef
-        .map { case (subGridGate, _) => subGridGate.getSuperiorNode }
+        .map { case (subGridGate, _) => subGridGate.superiorNode }
         .find(_.getUuid == firstRequestedNodeUuid)
         .map(_.getSubnet) match {
         case Some(requestingSubgridNumber) =>
@@ -1159,7 +1159,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             .map { inferiorGridGate =>
               subGridGateToActorRef(
                 inferiorGridGate
-              ) -> inferiorGridGate.getSuperiorNode.getUuid
+              ) -> inferiorGridGate.superiorNode.getUuid
             }
             .groupMap {
               // Group the gates by target actor, so that only one request is sent per grid agent
@@ -1220,7 +1220,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             .map { case (superiorGridAgent, gridGates) =>
               (superiorGridAgent ? RequestSlackVoltageMessage(
                 currentSweepNo,
-                gridGates.map(_.getSuperiorNode.getUuid)
+                gridGates.map(_.superiorNode.getUuid)
               )).map { case providedSlackValues: ProvideSlackVoltageMessage =>
                 (superiorGridAgent, providedSlackValues)
               }
