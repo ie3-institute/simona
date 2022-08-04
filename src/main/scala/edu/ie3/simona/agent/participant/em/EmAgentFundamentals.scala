@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant.em
 
-import akka.actor.ActorRef
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.EmInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
@@ -16,13 +15,13 @@ import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantRes
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.agent.participant.em.EmAgent.EmAgentModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FromOutsideBaseStateData,
   ParticipantModelBaseStateData
 }
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
-  DataCollectionStateData,
   ParticipantStateData
 }
 import edu.ie3.simona.agent.state.AgentState
@@ -64,65 +63,6 @@ trait EmAgentFundamentals
     Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT),
     Quantities.getQuantity(0d, StandardUnits.HEAT_DEMAND)
   )
-
-  /** Partial function, that is able to transfer
-    * [[ParticipantModelBaseStateData]] (holding the actual calculation model)
-    * into a pair of active and reactive power
-    */
-  val calculateModelPowerFunc: (
-      Long,
-      BaseStateData.ParticipantModelBaseStateData[
-        ApparentPowerAndHeat,
-        EmRelevantData,
-        EmModel
-      ],
-      ComparableQuantity[Dimensionless]
-  ) => ApparentPowerAndHeat = ???
-
-  /** Abstractly calculate the power output of the participant utilising
-    * secondary data. However, it might appear, that not the complete set of
-    * secondary data is available for the given tick. This might especially be
-    * true, if the actor has been additionally activated. This method thereby
-    * has to try and fill up missing data with the last known data, as this is
-    * still supposed to be valid. The secondary data therefore is put to the
-    * calculation relevant data store. <p>The next state is [[Idle]], sending a
-    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
-    * scheduler and using uApparentPowerAndHeatate result values.</p> </p>Actual
-    * implementation can be found in each participant's fundamentals.</p>
-    *
-    * @param collectionStateData
-    *   State data with collected secondary data.
-    * @param currentTick
-    *   Tick, the trigger belongs to
-    * @param scheduler
-    *   [[ActorRef]] to the scheduler in the simulation
-    * @return
-    *   [[Idle]] with uApparentPowerAndHeatated result values
-    */
-  def calculatePowerWithSecondaryDataAndGoToIdle(
-      collectionStateData: DataCollectionStateData[ApparentPowerAndHeat],
-      currentTick: Long,
-      scheduler: ActorRef
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] = ???
-
-  /** Abstract method to build the calculation model from input
-    *
-    * @param inputModel
-    *   Input model description
-    * @param modelConfig
-    *   Configuration for the model
-    * @param simulationStartDate
-    *   Wall clock time of first instant in simulation
-    * @param simulationEndDate
-    *   Wall clock time of last instant in simulation
-    * @return
-    */
-  override def buildModel(
-      inputModel: EmInput,
-      modelConfig: EmRuntimeConfig,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
-  ): EmModel = ???
 
   /** Abstract definition, individual implementations found in individual agent
     * fundamental classes
@@ -235,11 +175,7 @@ trait EmAgentFundamentals
                 latestProvidedValues.q
               )
             )*/
-          case modelBaseStateData: ParticipantModelBaseStateData[
-                ApparentPowerAndHeat,
-                CD,
-                M
-              ] =>
+          case modelBaseStateData: EmAgentModelBaseStateData =>
             /* Check, if the last request has been made with the same nodal voltage. If not, recalculate the reactive
              * power. */
             lastNodalVoltage match {
@@ -499,7 +435,7 @@ trait EmAgentFundamentals
       nodalVoltage: ComparableQuantity[Dimensionless],
       voltageValueStore: ValueStore[ComparableQuantity[Dimensionless]],
       alternativeResult: ApparentPowerAndHeat
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] = {
+  ): Unit = {
     if (relevantResults.relevantData.nonEmpty) {
       averagePowerAndStay(
         baseData,
@@ -556,7 +492,7 @@ trait EmAgentFundamentals
       windowEndTick: Long,
       nodalVoltage: ComparableQuantity[Dimensionless],
       voltageValueStore: ValueStore[ComparableQuantity[Dimensionless]]
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] = {
+  ): Unit = {
     val averageResult = determineAverageResult(
       baseData,
       tickToResult,
@@ -598,12 +534,8 @@ trait EmAgentFundamentals
   ): ApparentPowerAndHeat = {
     /* Determine, how the single model would transfer the active into reactive power */
     val activeToReactivePowerFunction = baseStateData match {
-      case _: FromOutsideBaseStateData[M, ApparentPowerAndHeat] => None
-      case modelBaseStateData: ParticipantModelBaseStateData[
-            ApparentPowerAndHeat,
-            CD,
-            M
-          ] =>
+      case _: FromOutsideBaseStateData[EmModel, ApparentPowerAndHeat] => None
+      case modelBaseStateData: EmAgentModelBaseStateData =>
         Some(
           modelBaseStateData.model.activeToReactivePowerFunc(nodalVoltage)
         )

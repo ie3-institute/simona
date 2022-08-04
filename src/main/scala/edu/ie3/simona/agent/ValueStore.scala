@@ -20,7 +20,7 @@ import javax.measure.quantity.Dimensionless
   * @tparam D
   *   Type of data to hold
   */
-final case class ValueStore[D](
+final case class ValueStore[+D](
     maxTickSpan: Long,
     private val store: Map[Long, D] = Map.empty[Long, D]
 ) {
@@ -60,7 +60,7 @@ final case class ValueStore[D](
     * @param requestedTick
     * @return
     */
-  def getOrElse(requestedTick: Long, default: => D): D =
+  def getOrElse[D2 >: D](requestedTick: Long, default: => D2): D2 =
     store.getOrElse(requestedTick, default)
 
   /** Acquires the stored information within the specified tick window

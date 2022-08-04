@@ -18,6 +18,7 @@ import edu.ie3.simona.agent.participant.em.EmAgent.{
   EmAgentModelBaseStateData
 }
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.ModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
@@ -38,6 +39,7 @@ import edu.ie3.util.quantities.PowerSystemUnits.PU
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
+import java.util.UUID
 import javax.measure.quantity.Dimensionless
 
 object EmAgent {
@@ -97,7 +99,9 @@ object EmAgent {
       ],
       schedulerStateData: EmSchedulerStateData,
       connectedAgents: Seq[(ActorRef, SystemParticipantInput)]
-  )
+  ) extends ModelBaseStateData[ApparentPowerAndHeat, EmRelevantData, EmModel] {
+    override val modelUuid: UUID = model.getUuid
+  }
 
 }
 
@@ -234,7 +238,7 @@ class EmAgent(
       val updatedBaseStateData =
         baseStateData.copy(receivedResultsValueStore = updatedValueStore)
 
-      setActiveTickAndSendTriggers(baseStateData, newTick, triggerId)
+      setActiveTickAndSendTriggers(updatedBaseStateData, newTick, triggerId)
 
     case ParticipantResultEvent(systemParticipantResult) =>
       val tick = baseStateData.schedulerStateData.nowInTicks
