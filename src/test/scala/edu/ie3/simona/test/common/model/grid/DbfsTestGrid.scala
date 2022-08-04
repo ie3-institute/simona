@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.test.common.model.grid
 
-import java.util.UUID
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.connector._
@@ -14,18 +13,8 @@ import edu.ie3.datamodel.models.input.connector.`type`.{
   LineTypeInput,
   Transformer2WTypeInput
 }
-import edu.ie3.datamodel.models.input.container.{
-  GraphicElements,
-  RawGridElements,
-  SubGridContainer,
-  SystemParticipants
-}
-import edu.ie3.datamodel.models.input.graphics.{
-  LineGraphicInput,
-  NodeGraphicInput
-}
+import edu.ie3.datamodel.models.input.container.RawGridElements
 import edu.ie3.datamodel.models.input.system.characteristic.OlmCharacteristicInput
-import edu.ie3.datamodel.models.input.system.{EvcsInput, _}
 import edu.ie3.datamodel.models.input.{
   MeasurementUnitInput,
   NodeInput,
@@ -33,12 +22,13 @@ import edu.ie3.datamodel.models.input.{
 }
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.datamodel.utils.GridAndGeoUtils
+import edu.ie3.simona.util.TestGridFactory
 import edu.ie3.util.quantities.PowerSystemUnits._
-
-import javax.measure.MetricPrefix
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
+import java.util.UUID
+import javax.measure.MetricPrefix
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
@@ -296,22 +286,6 @@ trait DbfsTestGrid extends SubGridGateMokka {
       Set.empty[SwitchInput].asJava,
       Set.empty[MeasurementUnitInput].asJava
     )
-    val systemParticipants = new SystemParticipants(
-      Set.empty[BmInput].asJava,
-      Set.empty[ChpInput].asJava,
-      Set.empty[EvcsInput].asJava,
-      Set.empty[EvInput].asJava,
-      Set.empty[FixedFeedInInput].asJava,
-      Set.empty[HpInput].asJava,
-      Set.empty[LoadInput].asJava,
-      Set.empty[PvInput].asJava,
-      Set.empty[StorageInput].asJava,
-      Set.empty[WecInput].asJava
-    )
-    val graphicElements = new GraphicElements(
-      Set.empty[NodeGraphicInput].asJava,
-      Set.empty[LineGraphicInput].asJava
-    )
 
     /* Sub grid gates are the apparent gates to superior grids + artificial one to underlying grids */
     val subGridGates: Seq[SubGridGate] =
@@ -350,12 +324,10 @@ trait DbfsTestGrid extends SubGridGateMokka {
       )
 
     (
-      new SubGridContainer(
-        "centerGrid",
-        1,
-        rawGridElements,
-        systemParticipants,
-        graphicElements
+      TestGridFactory.createSubGrid(
+        gridName = "centerGrid",
+        subgrid = 1,
+        rawGridElements = rawGridElements
       ),
       subGridGates
     )
@@ -371,22 +343,6 @@ trait DbfsTestGrid extends SubGridGateMokka {
       Set.empty[SwitchInput].asJava,
       Set.empty[MeasurementUnitInput].asJava
     )
-    val systemParticipants = new SystemParticipants(
-      Set.empty[BmInput].asJava,
-      Set.empty[ChpInput].asJava,
-      Set.empty[EvcsInput].asJava,
-      Set.empty[EvInput].asJava,
-      Set.empty[FixedFeedInInput].asJava,
-      Set.empty[HpInput].asJava,
-      Set.empty[LoadInput].asJava,
-      Set.empty[PvInput].asJava,
-      Set.empty[StorageInput].asJava,
-      Set.empty[WecInput].asJava
-    )
-    val graphicElements = new GraphicElements(
-      Set.empty[NodeGraphicInput].asJava,
-      Set.empty[LineGraphicInput].asJava
-    )
 
     val subGridGates: Seq[SubGridGate] =
       Seq(transformer1).map(
@@ -394,12 +350,10 @@ trait DbfsTestGrid extends SubGridGateMokka {
       )
 
     (
-      new SubGridContainer(
-        "superiorGrid",
-        1000,
-        rawGridElements,
-        systemParticipants,
-        graphicElements
+      TestGridFactory.createSubGrid(
+        gridName = "superiorGrid",
+        subgrid = 1000,
+        rawGridElements = rawGridElements
       ),
       subGridGates
     )
