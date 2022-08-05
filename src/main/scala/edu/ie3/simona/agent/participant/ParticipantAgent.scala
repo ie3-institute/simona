@@ -142,7 +142,7 @@ abstract class ParticipantAgent[
       /* An activity start trigger is sent and no data is awaited (neither secondary nor primary). Therefore go straight
        * ahead to calculations */
 
-      log.debug(
+      log.info(
         s"Received activity start trigger {} for tick {}",
         triggerId,
         currentTick
@@ -234,7 +234,7 @@ abstract class ParticipantAgent[
             outputConfig
           )
         ) =>
-      log.debug("Will replay primary data")
+      log.info(s"Will replay primary data for $inputModel for $maybeNextDataTick")
       initializeParticipantForPrimaryDataReplay(
         inputModel,
         modelConfig,
@@ -319,7 +319,7 @@ abstract class ParticipantAgent[
       ) {
         /* Update the yet received information */
         log.info(
-          s"Update the yet received information and send ${msg.data} to ${sender()}."
+          s"Update the yet received information ${msg.data} from ${sender()}."
         )
         val updatedData = data + (sender() -> Some(msg.data))
 
@@ -327,7 +327,9 @@ abstract class ParticipantAgent[
          * it */
         val foreSeenDataTicks =
           baseStateData.foreseenDataTicks + (sender() -> msg.nextDataTick)
-        log.info(s"next tick ${msg.nextDataTick} sent to ${sender()}.")
+
+        log.info(s"next message from ${sender()} expected at tick ${msg.nextDataTick}.")
+        log.info(s"forseenDataTicks: ${foreSeenDataTicks.toString()}")
         val updatedBaseStateData = BaseStateData.updateBaseStateData(
           baseStateData,
           baseStateData.resultValueStore,
@@ -341,7 +343,6 @@ abstract class ParticipantAgent[
             baseStateData = updatedBaseStateData,
             data = updatedData
           )
-        log.info("checkForExpectedDataAndChangeState l. 342")
         checkForExpectedDataAndChangeState(
           updatedStateData,
           isYetTriggered,

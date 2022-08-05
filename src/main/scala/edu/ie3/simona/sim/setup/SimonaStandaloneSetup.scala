@@ -164,45 +164,6 @@ class SimonaStandaloneSetup(
       )
     )
 
-  def extSimulations1(
-      context: ActorContext,
-      scheduler: ActorRef,
-      primaryServiceProxy: ActorRef
-  ): ExtSimSetupData = {
-
-    val extSimAdapter = context.simonaActorOf(
-      ExtSimAdapter.props(scheduler),
-      s"0"
-    )
-    val extSimAdapterData = new ExtSimAdapterData(extSimAdapter, args)
-    val initExtSimAdapter = InitializeExtSimAdapterTrigger(
-      InitExtSimAdapter(extSimAdapterData)
-    )
-
-    val extDcopfSim = new ExtDcopfSim()
-
-    val extOpfDataService = context.simonaActorOf(
-      ExtOpfDataService.props(scheduler),
-      s"1"
-    )
-    log.info("ext Sim OPF")
-    val extOpfData = new ExtOpfData(extOpfDataService, extSimAdapter)
-
-    val initExtOpfData = InitializeServiceTrigger(
-      InitExtOpfData(
-        extOpfData,
-        primaryServiceProxy
-      )
-    )
-
-    extDcopfSim.setup(extSimAdapterData, List[ExtData](extOpfData).asJava)
-
-    ExtSimSetupData(
-      Iterable((extSimAdapter, initExtSimAdapter)),
-      Iterable((extOpfDataService, initExtOpfData))
-    )
-  }
-
   override def extSimulations(
       context: ActorContext,
       scheduler: ActorRef,

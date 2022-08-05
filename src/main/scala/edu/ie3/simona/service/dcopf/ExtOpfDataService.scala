@@ -65,7 +65,7 @@ object ExtOpfDataService {
       endTime: Long,
       uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
       extOpfMessage: Option[ExtOpfMessage] = None,
-      override val maybeNextActivationTick: Option[Long] = None,
+      override val maybeNextActivationTick: Option[Long] = Some(0),
       override val activationTicks: SortedDistinctSeq[Long] =
         SortedDistinctSeq.empty
   ) extends ServiceActivationBaseStateData
@@ -254,8 +254,8 @@ class ExtOpfDataService(
       primaryData: PrimaryData,
       endTime: Long
   ) = {
-    val nextTick = if (tick + 900 == endTime) None else Some(tick + 900)
-
+    val nextTick = if (tick + 900 > endTime) None else Some(tick + 900)
+    log.info(s"next Tick: $nextTick")
     val provisionMessage =
       ProvidePrimaryDataMessage(tick, primaryData, nextTick)
     generator ! provisionMessage
