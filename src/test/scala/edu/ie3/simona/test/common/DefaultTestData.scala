@@ -171,13 +171,6 @@ trait DefaultTestData {
          |    uuids = ["default"]
          |    scaling = 1.0
          |  }
-         |
-         |simona.runtime.participant.energymanagement = {
-         |  defaultConfig = {
-         |    calculateMissingReactivePowerWithModel = false
-         |    uuids = ["default"]
-         |    scaling = 1.0
-         |  }
          |  individualConfigs = [
          |    {
          |      calculateMissingReactivePowerWithModel = false
@@ -185,6 +178,15 @@ trait DefaultTestData {
          |      scaling = 1.0
          |    }
          |  ]
+         |}
+         |
+         |simona.runtime.participant.em = {
+         |  defaultConfig = {
+         |    calculateMissingReactivePowerWithModel = false
+         |    uuids = ["default"]
+         |    scaling = 1.0
+         |  }
+         |  individualConfigs = []
          |}
          |
          |simona.powerflow.maxSweepPowerDeviation = 1E-5 // the maximum allowed deviation in power between two sweeps, before overall convergence is assumed

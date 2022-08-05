@@ -105,7 +105,7 @@ trait ConfigTestData {
       |  individualConfigs = []
       |}
       |
-      |simona.runtime.participant.energymanagement = {
+      |simona.runtime.participant.em = {
       |  defaultConfig = {
       |       calculateMissingReactivePowerWithModel = false
       |       uuids = ["default"]
