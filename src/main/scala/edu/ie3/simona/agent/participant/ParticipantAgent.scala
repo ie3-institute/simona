@@ -90,11 +90,7 @@ abstract class ParticipantAgent[
 
   val alternativeResult: PD
 
-  // general agent states
-  // first fsm state of the agent
-  startWith(Uninitialized, ParticipantUninitializedStateData[PD]())
-
-  when(Uninitialized) {
+  protected val handleUnitialized: StateFunction = {
     /* Initialize the agent */
     case Event(
           TriggerWithIdMessage(
@@ -134,7 +130,7 @@ abstract class ParticipantAgent[
       )
   }
 
-  when(Idle) {
+  protected val handleIdle: StateFunction = {
     case Event(
           TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId, _),
           modelBaseStateData: ParticipantModelBaseStateData[PD, CD, M]
@@ -219,7 +215,7 @@ abstract class ParticipantAgent[
       finalizeTickAfterPF(baseStateData, tick)
   }
 
-  when(HandleInformation) {
+  protected val handleHandleInformation: StateFunction = {
     /* Receive registration confirm from primary data service -> Set up actor for replay of data */
     case Event(
           RegistrationSuccessfulMessage(maybeNextDataTick),
@@ -371,7 +367,7 @@ abstract class ParticipantAgent[
       stay()
   }
 
-  when(Calculate) {
+  protected val handleCalculate: StateFunction = {
     case Event(
           StartCalculationTrigger(currentTick),
           modelBaseStateData: ParticipantModelBaseStateData[PD, CD, M]
@@ -415,6 +411,18 @@ abstract class ParticipantAgent[
       stash()
       stay()
   }
+
+  // general agent states
+  // first fsm state of the agent
+  startWith(Uninitialized, ParticipantUninitializedStateData[PD]())
+
+  when(Uninitialized)(handleUnitialized)
+
+  when(Idle)(handleIdle)
+
+  when(HandleInformation)(handleHandleInformation)
+
+  when(Calculate)(handleCalculate)
 
   // everything else
   whenUnhandled(myUnhandled())

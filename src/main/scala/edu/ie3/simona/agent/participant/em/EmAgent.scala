@@ -6,10 +6,11 @@
 
 package edu.ie3.simona.agent.participant.em
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.{EmInput, SystemParticipantInput}
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
+import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
@@ -20,6 +21,8 @@ import edu.ie3.simona.agent.participant.em.EmAgent.{
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.InitializeStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantUninitializedStateData
+import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
@@ -113,30 +116,42 @@ object EmAgent {
   *   List of listeners interested in results
   */
 class EmAgent(
-    scheduler: ActorRef,
-    listener: Iterable[ActorRef]
-) extends Actor
+    val scheduler: ActorRef,
+    override val listener: Iterable[ActorRef]
+) extends ParticipantAgent[
+      ApparentPowerAndHeat,
+      EmRelevantData,
+      EmAgentModelBaseStateData,
+      EmInput,
+      EmRuntimeConfig,
+      EmModel
+    ](
+      scheduler
+    )
+    with EmAgentFundamentals
     with EmSchedulerHelper {
-  override def receive: Receive = receiveUninitialized
 
-  def receiveUninitialized: Receive = {
-    case TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger(
-            EmAgentInitializeStateData(
-              inputModel,
-              modelConfig,
-              _, // replaying primary data is disabled here for now
-              services,
-              simulationStartDate,
-              simulationEndDate,
-              resolution,
-              requestVoltageDeviationThreshold,
-              outputConfig,
-              connectedAgents
-            )
+  private val handleUnitializedEm: StateFunction = {
+    case Event(
+          TriggerWithIdMessage(
+            InitializeParticipantAgentTrigger(
+              EmAgentInitializeStateData(
+                inputModel,
+                modelConfig,
+                _, // replaying primary data is disabled here for now
+                services,
+                simulationStartDate,
+                simulationEndDate,
+                resolution,
+                requestVoltageDeviationThreshold,
+                outputConfig,
+                connectedAgents
+              )
+            ),
+            triggerId,
+            _
           ),
-          triggerId,
-          _
+          _: ParticipantUninitializedStateData[ApparentPowerAndHeat]
         ) =>
       // sending init triggers
       val triggerData = connectedAgents.foldLeft(TriggerData()) {
@@ -190,20 +205,25 @@ class EmAgent(
         SimonaConstants.INIT_SIM_TICK,
         triggerId
       )
+
   }
 
-  def receiveIdle(baseStateData: EmAgentModelBaseStateData): Receive = {
-    case triggerToSchedule: ScheduleTriggerMessage =>
-      context become receiveIdle(
+  private val handleIdleEm: StateFunction = {
+    case Event(
+          triggerToSchedule: ScheduleTriggerMessage,
+          baseStateData: EmAgentModelBaseStateData
+        ) =>
+      stay() using
         baseStateData.copy(schedulerStateData =
           sendEligibleTrigger(
             scheduleTrigger(triggerToSchedule, baseStateData.schedulerStateData)
           )
         )
-      )
 
-    /* process completion messages */
-    case completionMessage: CompletionMessage =>
+    case Event(
+          completionMessage: CompletionMessage,
+          baseStateData: EmAgentModelBaseStateData
+        ) =>
       // there can be new triggers for the current tick, which need to be sent out immediately
       val updatedStateData =
         maybeTicksCompleted(
@@ -215,11 +235,12 @@ class EmAgent(
           )
         )
 
-      context become receiveIdle(
-        baseStateData.copy(schedulerStateData = updatedStateData)
-      )
+      stay() using baseStateData.copy(schedulerStateData = updatedStateData)
 
-    case TriggerWithIdMessage(ActivityStartTrigger(newTick), triggerId, _) =>
+    case Event(
+          TriggerWithIdMessage(ActivityStartTrigger(newTick), triggerId, _),
+          baseStateData: EmAgentModelBaseStateData
+        ) =>
       // prepare map for expected results for this tick
       val resultsForTick =
         baseStateData.schedulerStateData.trigger.triggerQueue
@@ -240,7 +261,10 @@ class EmAgent(
 
       setActiveTickAndSendTriggers(updatedBaseStateData, newTick, triggerId)
 
-    case ParticipantResultEvent(systemParticipantResult) =>
+    case Event(
+          ParticipantResultEvent(systemParticipantResult),
+          baseStateData: EmAgentModelBaseStateData
+        ) =>
       val tick = baseStateData.schedulerStateData.nowInTicks
 
       val resultsForTick =
@@ -261,28 +285,29 @@ class EmAgent(
       // check if all expected results arrived
       // TODO
 
-      context become receiveIdle(
+      stay() using
         baseStateData.copy(
           receivedResultsValueStore = updatedValueStore
         )
-      )
   }
+
+  when(Uninitialized) { handleUnitializedEm orElse handleUnitialized }
+
+  when(Idle) { handleIdleEm orElse handleIdle }
 
   private def setActiveTickAndSendTriggers(
       baseStateData: EmAgentModelBaseStateData,
       newTick: Long,
       triggerId: Long
-  ): Unit = {
+  ): State = {
     val updatedStateData = baseStateData.schedulerStateData.copy(
       nowInTicks = newTick,
       mainTrigger = baseStateData.schedulerStateData.mainTrigger +
         (newTick -> Some(triggerId))
     )
 
-    context become receiveIdle(
-      baseStateData.copy(schedulerStateData =
-        sendEligibleTrigger(updatedStateData)
-      )
+    goto(Idle) using baseStateData.copy(schedulerStateData =
+      sendEligibleTrigger(updatedStateData)
     )
   }
 }
