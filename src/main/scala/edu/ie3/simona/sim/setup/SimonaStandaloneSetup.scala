@@ -6,6 +6,10 @@
 
 package edu.ie3.simona.sim.setup
 
+import akka.actor.typed.scaladsl.adapter.{
+  ClassicActorContextOps,
+  TypedActorRefOps
+}
 import akka.actor.{ActorContext, ActorRef, ActorSystem}
 import ch.qos.logback.classic.Logger
 import com.typesafe.config.Config
@@ -257,21 +261,25 @@ class SimonaStandaloneSetup(
     )
   )
 
-  override def runtimeEventListener(context: ActorContext): Vector[ActorRef] =
-    Vector(
-      context.simonaActorOf(
-        RuntimeEventListener.props(
-          None,
-          runtimeEventQueue,
-          startDateTimeString = simonaConfig.simona.time.startDateTime
+  override def runtimeEventListener(context: ActorContext): Seq[ActorRef] = {
+    Seq(
+      context
+        .spawn(
+          RuntimeEventListener(
+            simonaConfig.simona.runtime.listener,
+            runtimeEventQueue,
+            startDateTimeString = simonaConfig.simona.time.startDateTime
+          ),
+          RuntimeEventListener.getClass.getSimpleName
         )
-      )
+        .toClassic
     )
+  }
 
   override def systemParticipantsListener(
       context: ActorContext,
       simonaSim: ActorRef
-  ): Vector[ActorRef] = {
+  ): Seq[ActorRef] = {
     // append ResultEventListener as well to write raw output files
     ArgsParser
       .parseListenerConfigOption(simonaConfig.simona.event.listener)
@@ -282,13 +290,12 @@ class SimonaStandaloneSetup(
           index.toString
         )
       }
-      .toVector :+
-      context.simonaActorOf(
-        ResultEventListener.props(
-          resultFileHierarchy,
-          simonaSim
-        )
+      .toSeq :+ context.simonaActorOf(
+      ResultEventListener.props(
+        resultFileHierarchy,
+        simonaSim
       )
+    )
   }
 
   def buildSubGridToActorRefMap(

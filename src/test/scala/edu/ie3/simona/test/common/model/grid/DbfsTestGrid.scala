@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.test.common.model.grid
 
-import java.util.UUID
-
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.connector._
@@ -15,18 +13,8 @@ import edu.ie3.datamodel.models.input.connector.`type`.{
   LineTypeInput,
   Transformer2WTypeInput
 }
-import edu.ie3.datamodel.models.input.container.{
-  GraphicElements,
-  RawGridElements,
-  SubGridContainer,
-  SystemParticipants
-}
-import edu.ie3.datamodel.models.input.graphics.{
-  LineGraphicInput,
-  NodeGraphicInput
-}
+import edu.ie3.datamodel.models.input.container.RawGridElements
 import edu.ie3.datamodel.models.input.system.characteristic.OlmCharacteristicInput
-import edu.ie3.datamodel.models.input.system.{EvcsInput, _}
 import edu.ie3.datamodel.models.input.{
   MeasurementUnitInput,
   NodeInput,
@@ -34,11 +22,14 @@ import edu.ie3.datamodel.models.input.{
 }
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.datamodel.utils.GridAndGeoUtils
+import edu.ie3.simona.util.TestGridFactory
 import edu.ie3.util.quantities.PowerSystemUnits._
-import javax.measure.MetricPrefix
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
+import java.util.UUID
+import javax.measure.MetricPrefix
+import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
 /** Provides the high voltage level of SIMONA's test grid. Only consists of
@@ -46,7 +37,7 @@ import scala.jdk.CollectionConverters._
   */
 trait DbfsTestGrid extends SubGridGateMokka {
   // 4 HS nodes, 1 slack HöS node
-  val node1 = new NodeInput(
+  protected val node1 = new NodeInput(
     UUID.fromString("78c5d473-e01b-44c4-afd2-e4ff3c4a5d7c"),
     "HS_NET1_Station_1",
     OperatorInput.NO_OPERATOR_ASSIGNED,
@@ -57,7 +48,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     GermanVoltageLevelUtils.HV,
     1
   )
-  val node2 = new NodeInput(
+  protected val node2 = new NodeInput(
     UUID.fromString("e364ef00-e6ca-46b1-ba2b-bb73c0c6fee0"),
     "HS_NET1_Station_2",
     OperatorInput.NO_OPERATOR_ASSIGNED,
@@ -68,7 +59,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     GermanVoltageLevelUtils.HV,
     1
   )
-  val node3 = new NodeInput(
+  protected val node3a = new NodeInput(
     UUID.fromString("47ef9983-8fcf-4713-be90-093fc27864ae"),
     "HS_NET1_Station_3",
     OperatorInput.NO_OPERATOR_ASSIGNED,
@@ -79,7 +70,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     GermanVoltageLevelUtils.HV,
     1
   )
-  val node4 = new NodeInput(
+  protected val node3b = new NodeInput(
     UUID.fromString("d44ba8ed-81db-4a22-a40d-f7c0d0808a75"),
     "HS_NET1_Station_4",
     OperatorInput.NO_OPERATOR_ASSIGNED,
@@ -90,9 +81,20 @@ trait DbfsTestGrid extends SubGridGateMokka {
     GermanVoltageLevelUtils.HV,
     1
   )
-  val slackNode = new NodeInput(
+  protected val supNodeA = new NodeInput(
     UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"),
     "HS_NET1_Station_1_380",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    Quantities.getQuantity(1.0, PU),
+    true,
+    NodeInput.DEFAULT_GEO_POSITION,
+    GermanVoltageLevelUtils.EHV_380KV,
+    1000
+  )
+  protected val supNodeB = new NodeInput(
+    UUID.fromString("fb4272fa-5a31-4218-9a46-0a37ac5b34a4"),
+    "HS_NET1_Station_2_380",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
     Quantities.getQuantity(1.0, PU),
@@ -104,7 +106,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
 
   /* Mocking table of nodes of underlying grids
    *
-   * MS4_01 @ 14 -> 1129b00d-3d89-4a4a-8ae1-2a56041b95aa @ 14
+   * MS3_01 @ 13 -> 1129b00d-3d89-4a4a-8ae1-2a56041b95aa @ 13
    * MS2_01 @ 12 -> 139c435d-e550-48d8-b590-ee897621f42a @ 12
    * MS1_01 @ 11 -> 1676e48c-5353-4f06-b671-c579cf6a7072 @ 11
    * MS3_01 @ 13 -> 9237e237-01e9-446f-899f-c3b5cf69d288 @ 13
@@ -155,35 +157,35 @@ trait DbfsTestGrid extends SubGridGateMokka {
     Quantities.getQuantity(110.0, KILOVOLT)
   )
 
-  val line1 = new LineInput(
+  private val line1 = new LineInput(
     UUID.fromString("b6dff9c3-cebb-4aea-9f12-0556bdbf35dc"),
     "LTG_HS_NET1_Station_3-HS_NET1_Station_4",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
-    node3,
-    node4,
+    node3a,
+    node3b,
     1,
     lineType1,
     Quantities.getQuantity(20, KILOMETRE),
-    GridAndGeoUtils.buildSafeLineStringBetweenNodes(node3, node4),
+    GridAndGeoUtils.buildSafeLineStringBetweenNodes(node3a, node3b),
     OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
   )
 
-  val line2 = new LineInput(
+  private val line2 = new LineInput(
     UUID.fromString("c15ec4ad-3ff3-43f0-bc72-ee9a76f53afd"),
     "LTG_HS_NET1_Station_3-HS_NET1_Station_2",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
-    node3,
+    node3a,
     node2,
     1,
     lineType2,
     Quantities.getQuantity(20.0, KILOMETRE),
-    GridAndGeoUtils.buildSafeLineStringBetweenNodes(node3, node2),
+    GridAndGeoUtils.buildSafeLineStringBetweenNodes(node3a, node2),
     OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
   )
 
-  val line3 = new LineInput(
+  private val line3 = new LineInput(
     UUID.fromString("8440825c-24c9-4b3d-9e94-a6bfb9643a6b"),
     "LTG_HS_NET1_Station_1-HS_NET1_Station_2",
     OperatorInput.NO_OPERATOR_ASSIGNED,
@@ -197,31 +199,31 @@ trait DbfsTestGrid extends SubGridGateMokka {
     OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
   )
 
-  val line4 = new LineInput(
+  private val line4 = new LineInput(
     UUID.fromString("e0ca3891-1757-4dea-ac9d-8f1194da453e"),
     "LTG_HS_NET1_Station_1-HS_NET1_Station_3",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
     node1,
-    node3,
+    node3a,
     1,
     lineType4,
     Quantities.getQuantity(40, KILOMETRE),
-    GridAndGeoUtils.buildSafeLineStringBetweenNodes(node1, node3),
+    GridAndGeoUtils.buildSafeLineStringBetweenNodes(node1, node3a),
     OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
   )
 
-  val line5 = new LineInput(
+  private val line5 = new LineInput(
     UUID.fromString("147ae685-4fc7-406c-aca6-afb2bc6e19fc"),
     "LTG_HS_NET1_Station_4-HS_NET1_Station_1",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
-    node4,
+    node3b,
     node1,
     1,
     lineType2,
     Quantities.getQuantity(30, KILOMETRE),
-    GridAndGeoUtils.buildSafeLineStringBetweenNodes(node4, node1),
+    GridAndGeoUtils.buildSafeLineStringBetweenNodes(node3b, node1),
     OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
   )
 
@@ -244,23 +246,38 @@ trait DbfsTestGrid extends SubGridGateMokka {
     5
   )
 
-  val transformer1 = new Transformer2WInput(
+  private val transformer1 = new Transformer2WInput(
     UUID.fromString("6e9d912b-b652-471b-84d2-6ed571e53a7b"),
-    "HöS-Trafo_S1",
+    "HöS-Trafo_S2",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
-    slackNode,
+    supNodeA,
     node1,
     1,
     trafoType,
     0,
     false
   )
+  private val transformer2 = new Transformer2WInput(
+    UUID.fromString("ceccd8cb-29dc-45d6-8a13-4b0033c5f1ef"),
+    "HöS-Trafo_S1",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    supNodeB,
+    node2,
+    1,
+    trafoType,
+    0,
+    false
+  )
 
-  val (hvGridContainer, hvSubGridGates) = {
-    val nodes = Set(node1, node2, node3, node4, slackNode)
+  protected val (hvGridContainer, hvSubGridGates) = {
+    // LinkedHashSet in order to preserve the given order.
+    // This is important as long as only one slack node between two sub grids can exist
+    val nodes =
+      mutable.LinkedHashSet(node1, node2, node3a, node3b, supNodeB, supNodeA)
     val lines = Set(line1, line2, line3, line4, line5)
-    val transformers = Set(transformer1)
+    val transformers = Set(transformer1, transformer2)
     val rawGridElements = new RawGridElements(
       nodes.asJava,
       lines.asJava,
@@ -269,118 +286,74 @@ trait DbfsTestGrid extends SubGridGateMokka {
       Set.empty[SwitchInput].asJava,
       Set.empty[MeasurementUnitInput].asJava
     )
-    val systemParticipants = new SystemParticipants(
-      Set.empty[BmInput].asJava,
-      Set.empty[ChpInput].asJava,
-      Set.empty[EvcsInput].asJava,
-      Set.empty[EvInput].asJava,
-      Set.empty[FixedFeedInInput].asJava,
-      Set.empty[HpInput].asJava,
-      Set.empty[LoadInput].asJava,
-      Set.empty[PvInput].asJava,
-      Set.empty[StorageInput].asJava,
-      Set.empty[WecInput].asJava
-    )
-    val graphicElements = new GraphicElements(
-      Set.empty[NodeGraphicInput].asJava,
-      Set.empty[LineGraphicInput].asJava
-    )
 
     /* Sub grid gates are the apparent gates to superior grids + artificial one to underlying grids */
-    val subGridGates: Vector[SubGridGate] =
-      (rawGridElements.getTransformer2Ws.asScala.map(
+    val subGridGates: Seq[SubGridGate] =
+      rawGridElements.getTransformer2Ws.asScala.toSeq.map(
         SubGridGate.fromTransformer2W
       ) ++ rawGridElements.getTransformer3Ws.asScala.flatMap(transformer =>
-        Vector(
+        Seq(
           SubGridGate.fromTransformer3W(transformer, ConnectorPort.B),
           SubGridGate.fromTransformer3W(transformer, ConnectorPort.C)
         )
-      ) ++ Vector(
+      ) ++ Seq(
         build2wSubGridGate(
-          UUID.fromString("d44ba8ed-81db-4a22-a40d-f7c0d0808a75"),
+          node3b.getUuid,
           1,
           UUID.fromString("1129b00d-3d89-4a4a-8ae1-2a56041b95aa"),
-          14
+          13
         ),
         build2wSubGridGate(
-          UUID.fromString("e364ef00-e6ca-46b1-ba2b-bb73c0c6fee0"),
+          node2.getUuid,
           1,
           UUID.fromString("139c435d-e550-48d8-b590-ee897621f42a"),
           12
         ),
         build2wSubGridGate(
-          UUID.fromString("78c5d473-e01b-44c4-afd2-e4ff3c4a5d7c"),
+          node1.getUuid,
           1,
           UUID.fromString("1676e48c-5353-4f06-b671-c579cf6a7072"),
           11
         ),
         build2wSubGridGate(
-          UUID.fromString("47ef9983-8fcf-4713-be90-093fc27864ae"),
+          node3a.getUuid,
           1,
           UUID.fromString("9237e237-01e9-446f-899f-c3b5cf69d288"),
           13
         )
-      )).toVector
+      )
 
     (
-      new SubGridContainer(
-        "centerGrid",
-        1,
-        rawGridElements,
-        systemParticipants,
-        graphicElements
+      TestGridFactory.createSubGrid(
+        gridName = "centerGrid",
+        subgrid = 1,
+        rawGridElements = rawGridElements
       ),
       subGridGates
     )
   }
 
-  val (ehvGridContainer, ehvSubGridGates) = {
-    val nodes = Set(slackNode)
-    val lines = Set.empty[LineInput]
-    val transformers = Set.empty[Transformer2WInput]
+  protected val (ehvGridContainer, ehvSubGridGates) = {
+    val nodes = Set(supNodeA)
     val rawGridElements = new RawGridElements(
       nodes.asJava,
-      lines.asJava,
-      transformers.asJava,
+      Set.empty[LineInput].asJava,
+      Set.empty[Transformer2WInput].asJava,
       Set.empty[Transformer3WInput].asJava,
       Set.empty[SwitchInput].asJava,
       Set.empty[MeasurementUnitInput].asJava
     )
-    val systemParticipants = new SystemParticipants(
-      Set.empty[BmInput].asJava,
-      Set.empty[ChpInput].asJava,
-      Set.empty[EvcsInput].asJava,
-      Set.empty[EvInput].asJava,
-      Set.empty[FixedFeedInInput].asJava,
-      Set.empty[HpInput].asJava,
-      Set.empty[LoadInput].asJava,
-      Set.empty[PvInput].asJava,
-      Set.empty[StorageInput].asJava,
-      Set.empty[WecInput].asJava
-    )
-    val graphicElements = new GraphicElements(
-      Set.empty[NodeGraphicInput].asJava,
-      Set.empty[LineGraphicInput].asJava
-    )
 
-    val subGridGates: Vector[SubGridGate] =
-      (Set(transformer1).map(
+    val subGridGates: Seq[SubGridGate] =
+      Seq(transformer1).map(
         SubGridGate.fromTransformer2W
-      ) ++ rawGridElements.getTransformer3Ws.asScala
-        .flatMap(transformer =>
-          Vector(
-            SubGridGate.fromTransformer3W(transformer, ConnectorPort.B),
-            SubGridGate.fromTransformer3W(transformer, ConnectorPort.C)
-          )
-        )).toVector
+      )
 
     (
-      new SubGridContainer(
-        "superiorGrid",
-        1000,
-        rawGridElements,
-        systemParticipants,
-        graphicElements
+      TestGridFactory.createSubGrid(
+        gridName = "superiorGrid",
+        subgrid = 1000,
+        rawGridElements = rawGridElements
       ),
       subGridGates
     )
