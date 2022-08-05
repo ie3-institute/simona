@@ -12,7 +12,7 @@ import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
-import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
+import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.em.EmAgent.{
   EmAgentInitializeStateData,
@@ -57,9 +57,7 @@ object EmAgent {
       )
     )
 
-  final case class EmAgentInitializeStateData[
-      PD <: PrimaryData
-  ](
+  final case class EmAgentInitializeStateData(
       inputModel: EmInput,
       modelConfig: EmRuntimeConfig,
       primaryServiceProxy: ActorRef,
@@ -78,7 +76,7 @@ object EmAgent {
             SystemParticipantInput
         )
       ]
-  ) extends InitializeStateData[PD]
+  ) extends InitializeStateData[ApparentPowerAndHeat]
 
   final case class EmAgentModelBaseStateData(
       startDate: ZonedDateTime,
