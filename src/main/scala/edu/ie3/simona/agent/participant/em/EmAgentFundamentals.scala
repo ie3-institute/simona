@@ -51,6 +51,7 @@ trait EmAgentFundamentals
     Quantities.getQuantity(0d, StandardUnits.HEAT_DEMAND)
   )
 
+  // TODO power calc
   override val calculateModelPowerFunc: (
       Long,
       BaseStateData.ParticipantModelBaseStateData[
