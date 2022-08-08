@@ -14,7 +14,7 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.grid.ReceivedValues.{
   ReceivedPowerValues,
-  ReceivedSlackValues
+  ReceivedSlackVoltageValues
 }
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.model.grid.{GridModel, RefSystem}
@@ -82,7 +82,7 @@ object GridAgentData {
     ): PowerFlowDoneData = {
       /* Determine the subgrid numbers of all superior grids */
       val superiorSubGrids = gridAgentBaseData.gridEnv.subgridGateToActorRef
-        .map { case (subGridGate, _) => subGridGate.getSuperiorNode.getSubnet }
+        .map { case (subGridGate, _) => subGridGate.superiorNode.getSubnet }
         .filterNot(_ == gridAgentBaseData.gridEnv.gridModel.subnetNo)
         .toSet
       PowerFlowDoneData(gridAgentBaseData, powerFlowResult, superiorSubGrids)
@@ -370,8 +370,8 @@ object GridAgentData {
         }
         .map { case (uuid, _) => uuid }
 
-    /** Update this [[GridAgentBaseData]] with [[ReceivedSlackValues]] and
-      * return a copy of this [[GridAgentBaseData]] for further processing
+    /** Update this [[GridAgentBaseData]] with [[ReceivedSlackVoltageValues]]
+      * and return a copy of this [[GridAgentBaseData]] for further processing
       *
       * @param receivedSlackValues
       *   the slack voltage values that should be used for the update
@@ -380,7 +380,7 @@ object GridAgentData {
       *   receivedSlackValues
       */
     def updateWithReceivedSlackVoltages(
-        receivedSlackValues: ReceivedSlackValues
+        receivedSlackValues: ReceivedSlackVoltageValues
     ): GridAgentBaseData = {
       val updatedNodeToReceivedSlackVoltageValuesMap =
         receivedSlackValues.values.flatMap { case (senderRef, slackValues) =>

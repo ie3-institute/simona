@@ -7,10 +7,10 @@
 package edu.ie3.simona.model.participant.evcs
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.{ElectricCurrentType, StandardUnits}
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.result.system.EvResult
+import edu.ie3.datamodel.models.{ElectricCurrentType, StandardUnits}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.SystemComponent
@@ -20,10 +20,10 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
   PowerEntry
 }
-import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedCurrentPrice.calculateCurrentPriceGridOriented
 import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedCharging
-import edu.ie3.simona.model.participant.evcs.marketoriented.MarketOrientedCurrentPrice.calculateCurrentPriceMarketOriented
+import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedCurrentPrice.calculateCurrentPriceGridOriented
 import edu.ie3.simona.model.participant.evcs.marketoriented.MarketOrientedCharging
+import edu.ie3.simona.model.participant.evcs.marketoriented.MarketOrientedCurrentPrice.calculateCurrentPriceMarketOriented
 import edu.ie3.simona.model.participant.evcs.uncontrolled.{
   ConstantPowerCharging,
   MaximumPowerCharging
@@ -32,17 +32,10 @@ import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.service.market.StaticMarketSource
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  EURO,
-  EURO_PER_KILOWATTHOUR,
-  KILOWATT,
-  KILOWATTHOUR,
-  MEGAVAR,
-  MEGAWATT
-}
+import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.QuantityUtils.RichQuantity
 import edu.ie3.util.quantities.interfaces.Currency
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.QuantityUtil.RichQuantity
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{PERCENT, SECOND}
@@ -52,9 +45,9 @@ import java.time.temporal.ChronoUnit
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Energy, Power}
 import scala.annotation.tailrec
+import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
-import scala.collection.parallel.CollectionConverters._
 
 /** EV charging station model
   *

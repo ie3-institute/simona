@@ -496,6 +496,9 @@ case object GridModel {
 
     // build
     // / nodes
+    // // the set of nodes is converted to a sequence here, since the
+    // // order of nodes is important for data preparations related to
+    // // power flow calculation
     val nodes = subGridContainer.getRawGrid.getNodes.asScala.toSeq.map {
       nodeInput => NodeModel(nodeInput, startDate, endDate)
     }

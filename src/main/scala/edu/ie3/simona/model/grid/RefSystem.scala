@@ -8,8 +8,8 @@ package edu.ie3.simona.model.grid
 
 import breeze.math.Complex
 import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.QuantityUtils.RichUnit
 import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
-import edu.ie3.util.scala.quantities.QuantityUtil.RichUnit
 
 import javax.measure.Quantity
 import javax.measure.quantity._

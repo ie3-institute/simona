@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Relevant scientific papers have been added to the documentation [#139](https://github.com/ie3-institute/simona/issues/139)
 - Add troubleshooting section to Users guide [#160](https://github.com/ie3-institute/simona/issues/160)
 - Added Kafka sink for results [#24](https://github.com/ie3-institute/simona/issues/24)
+- Added Kafka sink for runtime events, re-implemented RuntimeEventListener in akka typed [#242](https://github.com/ie3-institute/simona/issues/242)
 
 ### Changed
 - Re-organizing test resources into their respective packages [#105](https://github.com/ie3-institute/simona/issues/105)
@@ -57,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix handling of multiple connections between subgrids [#22](https://github.com/ie3-institute/simona/issues/22)
   - Consolidate request replies for different sub grid gates in one message
   - Await and send responses for distinct pairs of sender reference and target node
+- Removed deprecations from `CsvGridSource` and added `TestGridFactory` [#304](https://github.com/ie3-institute/simona/issues/304)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)

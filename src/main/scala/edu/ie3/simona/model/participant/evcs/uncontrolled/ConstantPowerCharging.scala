@@ -10,7 +10,7 @@ import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.participant.evcs.ChargingSchedule.Entry
 import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvcsModel}
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT, KILOWATTHOUR}
-import edu.ie3.util.scala.quantities.QuantityUtil.RichQuantity
+import edu.ie3.util.quantities.QuantityUtils.RichQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.SECOND
 

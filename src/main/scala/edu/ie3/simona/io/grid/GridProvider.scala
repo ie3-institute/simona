@@ -29,16 +29,18 @@ object GridProvider {
       case GridSourceType.CSV =>
         gridDataSource.csvParams match {
           case Some(params) =>
-            CsvGridSource(
-              simulationName,
-              params.csvSep,
-              params.directoryPath,
-              new FileNamingStrategy()
-            ).getOrElse(
-              throw new InitializationException(
-                "Error while initializing CsvGridSource! Cannot proceed without a valid GridSource!"
+            CsvGridSource
+              .readGrid(
+                simulationName,
+                params.csvSep,
+                params.directoryPath,
+                new FileNamingStrategy()
               )
-            )
+              .getOrElse(
+                throw new InitializationException(
+                  "Error while initializing CsvGridSource! Cannot proceed without a valid GridSource!"
+                )
+              )
           case None =>
             throw new RuntimeException(
               "CSVGridSource requires csv params to be set!"

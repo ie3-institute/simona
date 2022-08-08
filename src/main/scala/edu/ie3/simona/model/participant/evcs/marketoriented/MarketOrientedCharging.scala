@@ -9,12 +9,12 @@ package edu.ie3.simona.model.participant.evcs.marketoriented
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.exceptions.InvalidParameterException
-import edu.ie3.simona.model.participant.evcs.SchedulingTimeWindows.SchedulingSliceWithPrice
 import edu.ie3.simona.model.participant.evcs.PredictionAndSchedulingUtils.{
   calculateRemainingEnergyToBeChargedAfterThisUpdate,
   findDispatchableEvs,
   getDepartureTimesAndRequiredEnergyOfAllEvs
 }
+import edu.ie3.simona.model.participant.evcs.SchedulingTimeWindows.SchedulingSliceWithPrice
 import edu.ie3.simona.model.participant.evcs.marketoriented.MarketOrientedCharging.getSchedulingSlices
 import edu.ie3.simona.model.participant.evcs.marketoriented.MarketPricePrediction.{
   PredictedPrice,
@@ -24,8 +24,8 @@ import edu.ie3.simona.model.participant.evcs.marketoriented.MarketPricePredictio
 import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvcsModel}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
+import edu.ie3.util.quantities.QuantityUtils.RichQuantity
 import edu.ie3.util.scala.quantities.DefaultQuantities
-import edu.ie3.util.scala.quantities.QuantityUtil.RichQuantity
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.SECOND

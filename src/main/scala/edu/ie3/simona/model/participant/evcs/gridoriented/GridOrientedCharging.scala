@@ -8,14 +8,8 @@ package edu.ie3.simona.model.participant.evcs.gridoriented
 
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.exceptions.InvalidParameterException
+import edu.ie3.simona.model.participant.evcs.PredictionAndSchedulingUtils._
 import edu.ie3.simona.model.participant.evcs.SchedulingTimeWindows.SchedulingTimeWindowWithVoltage
-import edu.ie3.simona.model.participant.evcs.PredictionAndSchedulingUtils.{
-  calculateRemainingEnergyToBeChargedAfterThisUpdate,
-  calculateSumOfEnergies,
-  findDispatchableEvs,
-  getDepartureTimesAndRequiredEnergyOfAllEvs,
-  getEvsStillParkedAtThisTime
-}
 import edu.ie3.simona.model.participant.evcs.gridoriented.VoltagePrediction.{
   PredictedVoltage,
   getPredictedVoltagesForRelevantTimeWindowBasedOnReferenceVoltages
@@ -23,18 +17,18 @@ import edu.ie3.simona.model.participant.evcs.gridoriented.VoltagePrediction.{
 import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvcsModel}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT, PU}
+import edu.ie3.util.quantities.QuantityUtils.RichQuantity
 import edu.ie3.util.scala.quantities.DefaultQuantities
-import edu.ie3.util.scala.quantities.QuantityUtil.RichQuantity
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.SECOND
 
-import java.time.temporal.ChronoUnit
 import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 import javax.measure.quantity.{Dimensionless, Energy, Power}
 import scala.annotation.tailrec
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success}
 
 trait GridOrientedCharging {
