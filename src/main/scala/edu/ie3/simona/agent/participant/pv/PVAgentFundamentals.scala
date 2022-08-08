@@ -37,6 +37,7 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException
 }
+import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.PVModel
 import edu.ie3.simona.model.participant.PVModel.PVRelevantData
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
@@ -256,7 +257,7 @@ protected trait PVAgentFundamentals
     updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
       scheduler,
       collectionStateData.baseStateData,
-      result,
+      AccompaniedSimulationResult(result),
       relevantData
     )
   }

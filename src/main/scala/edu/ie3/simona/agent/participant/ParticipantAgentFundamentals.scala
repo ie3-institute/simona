@@ -13,7 +13,9 @@ import akka.util.Timeout
 import breeze.numerics.{ceil, floor, pow, sqrt}
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
+import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data
@@ -46,7 +48,11 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   HandleInformation
 }
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
+import edu.ie3.simona.event.ResultEvent
+import edu.ie3.simona.event.ResultEvent.{
+  ParticipantResultEvent,
+  ThermalResultEvent
+}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   ActorNotRegisteredException,
@@ -54,6 +60,7 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException
 }
+import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -566,7 +573,7 @@ protected trait ParticipantAgentFundamentals[
               announceSimulationResult(
                 stateData.baseStateData,
                 tick,
-                mostRecentData
+                AccompaniedSimulationResult(mostRecentData)
               )
 
               val resultValueStore = fromOutsideBaseStateData.resultValueStore
@@ -1418,7 +1425,7 @@ protected trait ParticipantAgentFundamentals[
     announceSimulationResult(
       baseStateData,
       currentTick,
-      result
+      AccompaniedSimulationResult(result)
     )(baseStateData.outputConfig)
 
     /* In this case, without secondary data, the agent has been triggered by an ActivityStartTrigger by itself,
@@ -1452,12 +1459,16 @@ protected trait ParticipantAgentFundamentals[
   def announceSimulationResult(
       baseStateData: BaseStateData[PD],
       tick: Long,
-      result: PD
+      result: AccompaniedSimulationResult[PD]
   )(implicit outputConfig: NotifierConfig): Unit =
-    if (outputConfig.simulationResultInfo)
+    if (outputConfig.simulationResultInfo) {
       notifyListener(
-        buildResultEvent(baseStateData, tick, result)
+        buildResultEvent(baseStateData, tick, result.primaryData)
       )
+      result.accompanyingResults
+        .flatMap(result => buildResultEvent(result))
+        .foreach(notifyListener(_))
+    }
 
   /** Update the result and calc relevant data value stores, inform all
     * registered listeners and go to Idle using the updated base state data
@@ -1476,7 +1487,7 @@ protected trait ParticipantAgentFundamentals[
   final def updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
       scheduler: ActorRef,
       baseStateData: BaseStateData[PD],
-      result: PD,
+      result: AccompaniedSimulationResult[PD],
       relevantData: CD
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     /* Update the value stores */
@@ -1484,7 +1495,7 @@ protected trait ParticipantAgentFundamentals[
       ValueStore.updateValueStore(
         baseStateData.resultValueStore,
         currentTick,
-        result
+        result.primaryData
       )
     val updatedRelevantDataStore =
       baseStateData match {
@@ -1601,6 +1612,27 @@ protected trait ParticipantAgentFundamentals[
     ParticipantResultEvent(
       buildResult(uuid, dateTime, result)
     )
+  }
+
+  /** Wrap a given result into a [[ResultEvent]], so that it can be sent to the
+    * listener
+    * @param result
+    *   Result entity to send
+    * @tparam R
+    *   Type of result
+    * @return
+    *   Optionally wrapped event
+    */
+  def buildResultEvent[R <: ResultEntity](
+      result: R
+  ): Option[ResultEvent] = result match {
+    case thermalResult: ThermalUnitResult =>
+      Some(ThermalResultEvent(thermalResult))
+    case unsupported =>
+      log.debug(
+        s"Results of class '${unsupported.getClass.getSimpleName}' are currently not supported."
+      )
+      None
   }
 
   /** Determines the correct result.

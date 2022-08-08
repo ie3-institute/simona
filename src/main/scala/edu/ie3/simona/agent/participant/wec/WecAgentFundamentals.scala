@@ -37,6 +37,7 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException
 }
+import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.WecModel
 import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
@@ -253,7 +254,7 @@ protected trait WecAgentFundamentals
     updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
       scheduler,
       collectionStateData.baseStateData,
-      result,
+      AccompaniedSimulationResult(result),
       relevantData
     )
   }

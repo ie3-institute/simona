@@ -37,6 +37,7 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException
 }
+import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.EvcsModel
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
 import edu.ie3.simona.ontology.messages.services.EvMessage.{
@@ -389,7 +390,7 @@ protected trait EvcsAgentFundamentals
     updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
       scheduler,
       modelBaseStateData,
-      power,
+      AccompaniedSimulationResult(power),
       updatedRelevantData
     )
   }

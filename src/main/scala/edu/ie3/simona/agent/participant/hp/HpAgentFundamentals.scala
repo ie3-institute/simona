@@ -17,6 +17,7 @@ import edu.ie3.datamodel.models.result.system.{
   HpResult,
   SystemParticipantResult
 }
+import edu.ie3.datamodel.models.result.thermal.ThermalHouseResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
@@ -43,10 +44,12 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException
 }
+import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.HpModel
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.thermal.ThermalHouse
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
+import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
@@ -165,7 +168,17 @@ trait HpAgentFundamentals
                 relevantData
               )
 
-              (power, relevantData)
+              val thermalHouseResult = new ThermalHouseResult(
+                currentTick.toDateTime(modelBaseStateData.startDate),
+                hpModel.thermalHouse.uuid,
+                power.qDot,
+                relevantData.hpState.innerTemperature
+              )
+
+              (
+                AccompaniedSimulationResult(power, Seq(thermalHouseResult)),
+                relevantData
+              )
             case _ =>
               throw new InconsistentStateException(
                 "Cannot find a model for model calculation."
