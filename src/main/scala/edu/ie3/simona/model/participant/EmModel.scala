@@ -11,12 +11,16 @@ import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.ConnectorInput
 import edu.ie3.datamodel.models.input.system.{EmInput, SystemParticipantInput}
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.grid.NodeModel
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  IssueFlexibilityControl,
+  ProvideFlexibilityOptions
+}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import tech.units.indriya.ComparableQuantity
@@ -32,7 +36,8 @@ final case class EmModel private (
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    connectedAgents: Seq[(ActorRef, SystemParticipantInput)]
+    uncontrolledAgents: Seq[(ActorRef, SystemParticipantInput)],
+    controlledAgents: Seq[(ActorRef, SystemParticipantInput)]
 ) extends SystemParticipant[EmRelevantData](
       uuid,
       id,
@@ -43,12 +48,15 @@ final case class EmModel private (
       0 // FIXME dummy
     ) {
 
-  /** Determine the power of controllable devices such as storages
+  /** TODO maybe use UUIDs instead of ActorRefs here, since EmModel is not
+    * supposed to send msgs itself
+    *
+    * Determine the power of controllable devices such as storages
     * @return
     */
   def determineDeviceControl(
-      data: EmRelevantData
-  ): Map[UUID, ComparableQuantity[Power]] = ???
+      flexOptions: Map[ActorRef, Option[ProvideFlexibilityOptions]]
+  ): Seq[(ActorRef, IssueFlexibilityControl)] = ???
 
   /** Calculate the active power behaviour of the model
     *
@@ -62,21 +70,17 @@ final case class EmModel private (
   ): ComparableQuantity[Power] = ???
 }
 
-case object EmModel {
+object EmModel {
 
   /** Class that holds all relevant data for Energy Management calculation
     *
     * @param dateTime
     *   date and time of the <b>ending</b> of time frame to calculate
-    * @param weatherDataFrameLength
-    *   the duration in ticks (= seconds) the provided irradiance is received by
-    *   the pv panel
     */
   final case class EmRelevantData(
       // TODO: From PvModel, Check and refactor
       dateTime: ZonedDateTime,
-      weatherDataFrameLength: Long,
-      lastResults: ValueStore[ApparentPower]
+      lastResults: ValueStore[ApparentPowerAndHeat]
   ) extends CalcRelevantData
 
   def apply(
@@ -84,7 +88,8 @@ case object EmModel {
       modelConfig: EmRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
-      connectedAgents: Seq[(ActorRef, SystemParticipantInput)]
+      uncontrolledAgents: Seq[(ActorRef, SystemParticipantInput)],
+      controlledAgents: Seq[(ActorRef, SystemParticipantInput)]
   ): EmModel = {
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
@@ -100,7 +105,8 @@ case object EmModel {
       operationInterval,
       modelConfig.scaling,
       QControl(inputModel.getqCharacteristics),
-      connectedAgents
+      uncontrolledAgents,
+      controlledAgents
     )
   }
   // TODO:

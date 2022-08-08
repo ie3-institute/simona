@@ -7,7 +7,12 @@
 package edu.ie3.simona.agent.participant.em
 
 import akka.actor.{ActorRef, Props}
-import edu.ie3.datamodel.models.input.system.{EmInput, SystemParticipantInput}
+import edu.ie3.datamodel.models.input.system.{
+  EmInput,
+  EvcsInput,
+  HpInput,
+  SystemParticipantInput
+}
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent
@@ -28,6 +33,10 @@ import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.EmModel
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  ProvideFlexibilityOptions,
+  RequestFlexibilityOptions
+}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   ScheduleTriggerMessage,
@@ -98,8 +107,12 @@ object EmAgent {
       receivedResultsValueStore: ValueStore[
         Map[ActorRef, Option[SystemParticipantResult]]
       ],
+      receivedFlexOptionsValueStore: ValueStore[
+        Map[ActorRef, Option[ProvideFlexibilityOptions]]
+      ],
       schedulerStateData: EmSchedulerStateData,
-      connectedAgents: Seq[(ActorRef, SystemParticipantInput)]
+      uncontrolledAgents: Seq[ActorRef],
+      controlledAgents: Seq[ActorRef]
   ) extends ModelBaseStateData[ApparentPowerAndHeat, EmRelevantData, EmModel] {
     override val modelUuid: UUID = model.getUuid
   }
@@ -163,8 +176,10 @@ class EmAgent(
           )
       }
 
-      val connectedInputs = connectedAgents.map { case (actor, _, input) =>
-        (actor, input)
+      val (uncontrolledAgents, controlledAgents) = connectedAgents.partition {
+        case (_, _, _: HpInput)   => true
+        case (_, _, _: EvcsInput) => true
+        case _                    => false
       }
 
       val model = EmModel(
@@ -172,7 +187,8 @@ class EmAgent(
         modelConfig,
         simulationStartDate,
         simulationEndDate,
-        connectedInputs
+        uncontrolledAgents.map { case (actor, _, input) => (actor, input) },
+        controlledAgents.map { case (actor, _, input) => (actor, input) }
       )
 
       val baseStateData = EmAgentModelBaseStateData(
@@ -194,8 +210,10 @@ class EmAgent(
         ValueStore(resolution * 10),
         ValueStore(resolution * 10),
         ValueStore(resolution * 10),
+        ValueStore(resolution * 10),
         EmSchedulerStateData(trigger = triggerData),
-        connectedInputs
+        uncontrolledAgents.map { case (actor, _, _) => actor },
+        controlledAgents.map { case (actor, _, _) => actor }
       )
 
       setActiveTickAndSendTriggers(
@@ -240,23 +258,46 @@ class EmAgent(
           baseStateData: EmAgentModelBaseStateData
         ) =>
       // prepare map for expected results for this tick
+      // TODO do we also always expected results for controlled agents? probably yes
       val resultsForTick =
         baseStateData.schedulerStateData.trigger.triggerQueue
           .get(newTick)
           .map {
-            _.map { _.agent }.map(_ -> None).toMap
+            _.map { _.agent }
+              .map(_ -> None)
+              .toMap
           }
           .getOrElse(Map.empty)
 
-      val updatedValueStore = ValueStore.updateValueStore(
+      val updatedResValueStore = ValueStore.updateValueStore(
         baseStateData.receivedResultsValueStore,
         newTick,
         resultsForTick
       )
 
-      val updatedBaseStateData =
-        baseStateData.copy(receivedResultsValueStore = updatedValueStore)
+      // prepare map for expected flex options for this tick
+      val expectedFlexOptions = baseStateData.controlledAgents
+        .map(_ -> None)
+        .toMap
 
+      val updatedFlexValueStore = ValueStore.updateValueStore(
+        baseStateData.receivedFlexOptionsValueStore,
+        newTick,
+        expectedFlexOptions
+      )
+
+      val updatedBaseStateData =
+        baseStateData.copy(
+          receivedResultsValueStore = updatedResValueStore,
+          receivedFlexOptionsValueStore = updatedFlexValueStore
+        )
+
+      // send out flex requests for all controlled agents
+      baseStateData.controlledAgents.foreach {
+        _ ! RequestFlexibilityOptions
+      }
+
+      // send out all ActivityStartTriggers
       setActiveTickAndSendTriggers(updatedBaseStateData, newTick, triggerId)
 
     case Event(
@@ -280,13 +321,42 @@ class EmAgent(
         updatedResultsForTick
       )
 
-      // check if all expected results arrived
-      // TODO
+      val updatedBaseStateData = baseStateData.copy(
+        receivedResultsValueStore = updatedValueStore
+      )
 
-      stay() using
-        baseStateData.copy(
-          receivedResultsValueStore = updatedValueStore
+      maybeIssueFlexControl(updatedBaseStateData)
+
+      stay() using updatedBaseStateData
+
+    case Event(
+          flexOptions: ProvideFlexibilityOptions,
+          baseStateData: EmAgentModelBaseStateData
+        ) =>
+      val tick = baseStateData.schedulerStateData.nowInTicks
+
+      val flexOptionsForTick =
+        baseStateData.receivedFlexOptionsValueStore.getOrElse(tick, Map.empty)
+
+      val updatedFlexOptionsTick =
+        flexOptionsForTick.updated(
+          sender(),
+          Some(flexOptions)
         )
+
+      val updatedValueStore = ValueStore.updateValueStore(
+        baseStateData.receivedFlexOptionsValueStore,
+        tick,
+        updatedFlexOptionsTick
+      )
+
+      val updatedBaseStateData = baseStateData.copy(
+        receivedFlexOptionsValueStore = updatedValueStore
+      )
+
+      maybeIssueFlexControl(updatedBaseStateData)
+
+      stay() using updatedBaseStateData
   }
 
   when(Uninitialized) { handleUnitializedEm orElse handleUnitialized }
@@ -307,5 +377,37 @@ class EmAgent(
     goto(Idle) using baseStateData.copy(schedulerStateData =
       sendEligibleTrigger(updatedStateData)
     )
+  }
+
+  private def maybeIssueFlexControl(
+      baseStateData: EmAgentModelBaseStateData
+  ): Unit = {
+    val tick = baseStateData.schedulerStateData.nowInTicks
+
+    // check if all expected results arrived
+    val resultsForTick =
+      baseStateData.receivedResultsValueStore.getOrElse(tick, Map.empty)
+
+    val uncontrolledResultsReceived =
+      resultsForTick.collect { case (actor, None) =>
+        baseStateData.uncontrolledAgents.contains(actor)
+      }.isEmpty
+
+    // check if flex answers arrived
+    val receivedFlexOptions = baseStateData.receivedFlexOptionsValueStore
+      .getOrElse(tick, Map.empty)
+
+    val flexAnswersReceived = !receivedFlexOptions
+      .exists { case (_, None) => true }
+
+    if (uncontrolledResultsReceived && flexAnswersReceived) {
+      baseStateData.model
+        .determineDeviceControl(
+          receivedFlexOptions
+        )
+        .foreach { case (agent, flexOptions) =>
+          agent ! flexOptions
+        }
+    }
   }
 }
