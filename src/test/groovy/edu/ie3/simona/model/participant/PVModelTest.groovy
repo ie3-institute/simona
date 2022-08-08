@@ -395,7 +395,7 @@ class PVModelTest extends Specification {
 		40d           | 0d    | 0d      | -11.6d  | -37.5d  | 37.0d    || 67.777778d            // flat surface => eBeamS = eBeamH
 		40d           | 60d   | 0d      | -11.6d  | -37.5d  | 37.0d    || 112.84217113154841369d// 2011-02-20T09:00:00
 		40d           | 60d   | 0d      | -11.6d  | -78.0d  | 75.0d    || 210.97937494450753662d// sunrise
-		40d           | 60d   | 0d      | -11.6d  | 62.0d   | 76.0d    || 199.165665362241176d  // sunset
+		40d           | 60d   | 0d      | -11.6d  | 62.0d   | 76.0d    || 199.165665362241448d  // sunset
 		40d           | 60d   | 0d      | -11.6d  | 69.0d   | 89.9d    || 245.776377666734070d  // sunset, cut off
 		40d           | 60d   | 0d      | -11.6d  | 75.0d   | 89.9d    || 0d                    // no sun
 		40d           | 60d   | -90.0d  | -11.6d  | 60.0d   | 91.0d    || 0d                    // no direct beam
