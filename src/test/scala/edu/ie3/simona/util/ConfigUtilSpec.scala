@@ -25,7 +25,7 @@ import edu.ie3.simona.util.ConfigUtil.{
   GridOutputConfigUtil,
   NotifierIdentifier,
   ParticipantConfigUtil,
-  ParticipantOutputConfigUtil
+  OutputConfigUtil
 }
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 
@@ -642,8 +642,8 @@ class ConfigUtilSpec
     )
 
     "build the correct map on valid input" in {
-      val configUtil = ParticipantOutputConfigUtil(validInput)
-      inside(configUtil) { case ParticipantOutputConfigUtil(default, configs) =>
+      val configUtil = OutputConfigUtil(validInput)
+      inside(configUtil) { case OutputConfigUtil(default, configs) =>
         default shouldBe NotifierConfig(
           simulationResultInfo = false,
           powerRequestReply = false
@@ -665,7 +665,7 @@ class ConfigUtilSpec
       }
     }
 
-    val configUtil = ParticipantOutputConfigUtil(validInput)
+    val configUtil = OutputConfigUtil(validInput)
     "return the correct config on request" in {
       val actual = configUtil.getOrDefault(PvPlant)
       actual shouldBe NotifierConfig(
@@ -706,7 +706,7 @@ class ConfigUtilSpec
           )
         )
       )
-      val configUtil = ParticipantOutputConfigUtil(inputConfig)
+      val configUtil = OutputConfigUtil(inputConfig)
       val expectedResult: Set[Value] = NotifierIdentifier.values -- Vector(
         NotifierIdentifier.PvPlant
       )
@@ -739,7 +739,7 @@ class ConfigUtilSpec
           )
         )
       )
-      val configUtil = ParticipantOutputConfigUtil(inputConfig)
+      val configUtil = OutputConfigUtil(inputConfig)
       val expectedResult: Set[Value] =
         Set(NotifierIdentifier.Load, NotifierIdentifier.ChpPlant)
 
@@ -771,7 +771,7 @@ class ConfigUtilSpec
           )
         )
       )
-      val configUtil = ParticipantOutputConfigUtil(inputConfig)
+      val configUtil = OutputConfigUtil(inputConfig)
       val expectedResult: Set[Class[_ <: ResultEntity]] =
         Set[Class[_ <: ResultEntity]](classOf[LoadResult], classOf[ChpResult])
 

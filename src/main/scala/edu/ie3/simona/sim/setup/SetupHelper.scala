@@ -22,7 +22,7 @@ import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.util.ConfigUtil.{
   GridOutputConfigUtil,
-  ParticipantOutputConfigUtil,
+  OutputConfigUtil,
   ThermalOutputConfigUtil
 }
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
@@ -256,9 +256,9 @@ case object SetupHelper {
     GridOutputConfigUtil(
       outputConfig.grid
     ).simulationResultEntitiesToConsider ++
-      (ParticipantOutputConfigUtil(
+      (OutputConfigUtil(
         outputConfig.participant
-      ).simulationResultIdentifiersToConsider ++ ThermalOutputConfigUtil(
+      ).simulationResultIdentifiersToConsider ++ OutputConfigUtil(
         outputConfig.thermal
       ).simulationResultIdentifiersToConsider)
         .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId))

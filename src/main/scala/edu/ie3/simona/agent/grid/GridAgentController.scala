@@ -187,7 +187,7 @@ class GridAgentController(
      * phase */
     val participantConfigUtil =
       ConfigUtil.ParticipantConfigUtil(participantsConfig)
-    val outputConfigUtil = ConfigUtil.ParticipantOutputConfigUtil(outputConfig)
+    val outputConfigUtil = ConfigUtil.OutputConfigUtil(outputConfig)
 
     participants
       .map(participant => {
@@ -218,7 +218,7 @@ class GridAgentController(
   private def buildParticipantActor(
       requestVoltageDeviationThreshold: Double,
       participantConfigUtil: ConfigUtil.ParticipantConfigUtil,
-      outputConfigUtil: ParticipantOutputConfigUtil,
+      outputConfigUtil: OutputConfigUtil,
       participantInputModel: SystemParticipantInput,
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs

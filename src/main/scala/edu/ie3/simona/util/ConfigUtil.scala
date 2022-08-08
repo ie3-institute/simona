@@ -122,7 +122,7 @@ object ConfigUtil {
     * @param configs
     *   Mapping from notifier identifier to it's notifier configuration
     */
-  final case class ParticipantOutputConfigUtil(
+  final case class OutputConfigUtil(
       private val defaultConfig: NotifierConfig,
       private val configs: Map[
         NotifierIdentifier.Value,
@@ -169,10 +169,10 @@ object ConfigUtil {
       )
   }
 
-  object ParticipantOutputConfigUtil {
+  object OutputConfigUtil {
     def apply(
         subConfig: SimonaConfig.Simona.Output.Participant
-    ): ParticipantOutputConfigUtil = {
+    ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
         case ParticipantBaseOutputConfig(
               _,
@@ -198,7 +198,30 @@ object ConfigUtil {
               )
           }
       }.toMap
-      new ParticipantOutputConfigUtil(defaultConfig, configMap)
+      new OutputConfigUtil(defaultConfig, configMap)
+    }
+
+    def apply(
+        subConfig: SimonaConfig.Simona.Output.Thermal
+    ): OutputConfigUtil = {
+      val defaultConfig = subConfig.defaultConfig match {
+        case SimpleOutputConfig(_, simulationResult) =>
+          NotifierConfig(simulationResult, powerRequestReply = false)
+      }
+      val configMap = subConfig.individualConfigs.map {
+        case SimpleOutputConfig(notifier, simulationResult) =>
+          try {
+            val id = NotifierIdentifier(notifier)
+            id -> NotifierConfig(simulationResult, powerRequestReply = false)
+          } catch {
+            case e: NoSuchElementException =>
+              throw new InvalidConfigParameterException(
+                s"Cannot parse $notifier to known result event notifier.",
+                e
+              )
+          }
+      }.toMap
+      new OutputConfigUtil(defaultConfig, configMap)
     }
   }
 
@@ -225,87 +248,6 @@ object ConfigUtil {
         entities += classOf[Transformer3WResult]
 
       entities.toSet
-    }
-  }
-
-  /** A config utility to handle the output configuration for thermal models. It
-    * holds a map from thermal model type to actual config for speeding up
-    * processing.
-    *
-    * @param defaultConfig
-    *   Default config to use, when there is no specific one
-    * @param configs
-    *   Mapping from notifier identifier to it's notifier configuration
-    */
-  final case class ThermalOutputConfigUtil(
-      private val defaultConfig: NotifierConfig,
-      private val configs: Map[
-        NotifierIdentifier.Value,
-        NotifierConfig
-      ]
-  ) {
-    def getOrDefault(
-        notifierId: NotifierIdentifier.Value
-    ): NotifierConfig =
-      configs.getOrElse(notifierId, defaultConfig)
-
-    /** Get all identifiers of [[Notifier]] implementations, that will announce
-      * new simulation results
-      *
-      * @return
-      *   A set of applicable notifiers
-      */
-    def simulationResultIdentifiersToConsider: Set[NotifierIdentifier.Value] =
-      if (defaultConfig.simulationResultInfo) {
-        /* Generally inform about all simulation results, but not on those, that are explicitly marked */
-        NotifierIdentifier.values -- configs.flatMap {
-          case (
-                notifierId,
-                NotifierConfig(resultInfo, _)
-              ) if !resultInfo =>
-            Some(notifierId)
-          case _ => None
-        }
-      } else {
-        /* Only register those events, that are explicitly marked to be considered */
-        configs.flatMap {
-          case (
-                notifierId,
-                NotifierConfig(resultInfo, _)
-              ) if resultInfo =>
-            Some(notifierId)
-          case _ => None
-        }.toSet
-      }
-
-    def simulationResultEntitiesToConsider: Set[Class[_ <: ResultEntity]] =
-      simulationResultIdentifiersToConsider.map(notifierId =>
-        EntityMapperUtil.getResultEntityClass(notifierId)
-      )
-  }
-
-  object ThermalOutputConfigUtil {
-    def apply(
-        subConfig: SimonaConfig.Simona.Output.Thermal
-    ): ThermalOutputConfigUtil = {
-      val defaultConfig = subConfig.defaultConfig match {
-        case SimpleOutputConfig(_, simulationResult) =>
-          NotifierConfig(simulationResult, powerRequestReply = false)
-      }
-      val configMap = subConfig.individualConfigs.map {
-        case SimpleOutputConfig(notifier, simulationResult) =>
-          try {
-            val id = NotifierIdentifier(notifier)
-            id -> NotifierConfig(simulationResult, powerRequestReply = false)
-          } catch {
-            case e: NoSuchElementException =>
-              throw new InvalidConfigParameterException(
-                s"Cannot parse $notifier to known result event notifier.",
-                e
-              )
-          }
-      }.toMap
-      new ThermalOutputConfigUtil(defaultConfig, configMap)
     }
   }
 
