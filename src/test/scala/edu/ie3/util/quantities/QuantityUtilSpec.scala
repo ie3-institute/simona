@@ -8,24 +8,22 @@ package edu.ie3.util.quantities
 
 import edu.ie3.simona.exceptions.QuantityException
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.util.scala.quantities.QuantityUtil
+import org.scalatest.prop.TableDrivenPropertyChecks
 import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.{ProductUnit, Units}
 
 import javax.measure.Quantity
 import javax.measure.quantity.{Energy, Power}
-import edu.ie3.util.scala.quantities.QuantityUtil
-import org.scalatest.prop.TableDrivenPropertyChecks
-import tech.units.indriya.unit.{ProductUnit, Units}
-
-import javax.measure
 import scala.util.{Failure, Success}
 
 class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
-  val unit: measure.Unit[Power] = PowerSystemUnits.KILOWATT
-  val integrationUnit =
+  private val unit = PowerSystemUnits.KILOWATT
+  private val integrationUnit =
     new ProductUnit[Energy](PowerSystemUnits.KILOWATT.multiply(Units.SECOND))
-  val integrationClass: Class[Energy] = classOf[Energy]
-  val averagingClass: Class[Power] = classOf[Power]
-  val values = Map(
+  private val integrationClass = classOf[Energy]
+  private val averagingClass = classOf[Power]
+  private val values = Map(
     2L -> Quantities.getQuantity(5d, unit),
     4L -> Quantities.getQuantity(15d, unit),
     6L -> Quantities.getQuantity(-5d, unit),

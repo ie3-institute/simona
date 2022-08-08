@@ -7,12 +7,12 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.config.SimonaConfig.{BaseCsvParams, ResultKafkaParams}
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.{Csv, InfluxDb1x}
 import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow.Newtonraphson
 import edu.ie3.simona.config.SimonaConfig.Simona.{Powerflow, Time}
+import edu.ie3.simona.config.SimonaConfig.{BaseCsvParams, ResultKafkaParams}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
@@ -119,12 +119,12 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
             val refSystemConfigAllEmpty =
               ConfigFactory.parseString(s"""simona.gridConfig.refSystems = [
-                                           |  {
-                                           |   sNom="100 MVA",
-                                           |   vNom="0.4 kV",
-                                           |   gridIds = [$malformedGridId]
-                                           |   }
-                                           |]""".stripMargin)
+                   |  {
+                   |   sNom="100 MVA",
+                   |   vNom="0.4 kV",
+                   |   gridIds = [$malformedGridId]
+                   |   }
+                   |]""".stripMargin)
             val faultyConfig =
               refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
             val faultySimonaConfig = SimonaConfig(faultyConfig)
@@ -143,12 +143,12 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           val refSystemConfigAllEmpty =
             ConfigFactory.parseString("""simona.gridConfig.refSystems = [
-                                          |  {
-                                          |   sNom="100 MVA",
-                                          |   vNom="0.4 kV",
-                                          |   voltLvls = [{id = "1", vNom = "foo"}]
-                                          |   }
-                                          |]""".stripMargin)
+                |  {
+                |   sNom="100 MVA",
+                |   vNom="0.4 kV",
+                |   voltLvls = [{id = "1", vNom = "foo"}]
+                |   }
+                |]""".stripMargin)
           val faultyConfig =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
           val faultySimonaConfig = SimonaConfig(faultyConfig)
@@ -165,12 +165,12 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val refSystemConfigAllEmpty =
             ConfigFactory.parseString(
               """simona.gridConfig.refSystems = [
-                                        |  {
-                                        |   sNom="100",
-                                        |   vNom="0.4 kV",
-                                        |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
-                                        |   }
-                                        |]""".stripMargin
+                |  {
+                |   sNom="100",
+                |   vNom="0.4 kV",
+                |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
+                |   }
+                |]""".stripMargin
             )
           val faultyConfig =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
@@ -189,12 +189,12 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val refSystemConfigAllEmpty =
             ConfigFactory.parseString(
               """simona.gridConfig.refSystems = [
-                                        |  {
-                                        |   sNom="100 MVA",
-                                        |   vNom="0.4",
-                                        |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
-                                        |   }
-                                        |]""".stripMargin
+                |  {
+                |   sNom="100 MVA",
+                |   vNom="0.4",
+                |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
+                |   }
+                |]""".stripMargin
             )
           val faultyConfig =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
@@ -606,6 +606,32 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
       }
 
+      "Checking runtime listener configs" should {
+        val checkRuntimeListenerConfiguration =
+          PrivateMethod[Unit](Symbol("checkRuntimeListenerConfiguration"))
+
+        "throw an exception if kafka is configured, but connection to broker fails" in {
+          val runtimeListenerConfig = ConfigFactory.parseString(
+            """simona.runtime.listener.kafka {
+              |  topic = "topic"
+              |  runId = "00000000-0000-0000-0000-000000000000"
+              |  bootstrapServers = "localhost:12345"
+              |  schemaRegistryUrl = "https://reg:123"
+              |  linger = 3
+              |}""".stripMargin
+          )
+          val config =
+            runtimeListenerConfig.withFallback(typesafeConfig).resolve()
+          val simonaConfig = SimonaConfig(config)
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkRuntimeListenerConfiguration(
+              simonaConfig.simona.runtime.listener
+            )
+          }.getMessage shouldBe "Connection with kafka broker localhost:12345 failed."
+        }
+      }
+
       "Checking participant output configs" should {
         val checkNotifierIdentifier =
           PrivateMethod[Unit](Symbol("checkNotifierIdentifier"))
@@ -685,18 +711,18 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
       }
 
       "Checking data sinks" should {
-        val checkDataSinks = PrivateMethod[Unit](Symbol("checkDataSink"))
+        val checkDataSink = PrivateMethod[Unit](Symbol("checkDataSink"))
 
         "throw an exception if no sink is provided" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast invokePrivate checkDataSinks(Sink(None, None, None))
+            ConfigFailFast invokePrivate checkDataSink(Sink(None, None, None))
           }.getLocalizedMessage shouldBe "No sink configuration found! Please ensure that at least " +
             "one sink is configured! You can choose from: influxdb1x, csv, kafka."
         }
 
         "throw an exception if more than one sink is provided" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast invokePrivate checkDataSinks(
+            ConfigFailFast invokePrivate checkDataSink(
               Sink(
                 Some(Csv("", "", "", isHierarchic = false)),
                 Some(InfluxDb1x("", 0, "")),
@@ -709,56 +735,16 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "throw an exception if an influxDb1x is configured, but not accessible" ignore {
           intercept[java.lang.IllegalArgumentException] {
-            ConfigFailFast invokePrivate checkDataSinks(
+            ConfigFailFast invokePrivate checkDataSink(
               Sink(None, Some(InfluxDb1x("", 0, "")), None)
             )
           }.getLocalizedMessage shouldBe "Unable to reach configured influxDb1x with url ':0' for 'Sink' configuration and database ''. " +
             "Exception: java.lang.IllegalArgumentException: Unable to parse url: :0"
         }
 
-        "throw an exception if kafka is configured with a malformed UUID" in {
-          intercept[InvalidConfigParameterException] {
-            ConfigFailFast invokePrivate checkDataSinks(
-              Sink(
-                None,
-                None,
-                Some(
-                  ResultKafkaParams(
-                    "server:1234",
-                    0,
-                    "-not-a-uuid-",
-                    "https://reg:123",
-                    "topic"
-                  )
-                )
-              )
-            )
-          }.getMessage shouldBe "The UUID '-not-a-uuid-' cannot be parsed as it is invalid."
-        }
-
-        "throw an exception if kafka is configured, but creating kafka client fails" in {
-          intercept[InvalidConfigParameterException] {
-            ConfigFailFast invokePrivate checkDataSinks(
-              Sink(
-                None,
-                None,
-                Some(
-                  ResultKafkaParams(
-                    "not§a§server",
-                    0,
-                    "00000000-0000-0000-0000-000000000000",
-                    "https://reg:123",
-                    "topic"
-                  )
-                )
-              )
-            )
-          }.getMessage shouldBe "Exception creating kafka client for broker not§a§server."
-        }
-
         "throw an exception if kafka is configured, but connection to broker fails" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast invokePrivate checkDataSinks(
+            ConfigFailFast invokePrivate checkDataSink(
               Sink(
                 None,
                 None,

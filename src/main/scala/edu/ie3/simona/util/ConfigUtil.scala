@@ -12,8 +12,6 @@ import edu.ie3.datamodel.io.connectors.{
   InfluxDbConnector,
   SqlConnector
 }
-
-import java.util.{Properties, UUID}
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
@@ -30,107 +28,41 @@ import org.apache.kafka.common.KafkaException
 
 import java.io.File
 import java.util.concurrent.ExecutionException
+import java.util.{Properties, UUID}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
+import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try, Using}
 
 object ConfigUtil {
 
   final case class ParticipantConfigUtil private (
       private val configs: Map[UUID, SimonaConfig.BaseRuntimeConfig],
-      private val defaultLoadConfig: LoadRuntimeConfig,
-      private val defaultFixedFeedInConfig: FixedFeedInRuntimeConfig,
-      private val defaultPvConfig: PvRuntimeConfig,
-      private val defaultWecConfig: WecRuntimeConfig,
-      private val defaultEvcsConfig: EvcsRuntimeConfig,
-      private val defaultHpConfig: HpRuntimeConfig
+      private val defaultConfigs: Map[Class[_], BaseRuntimeConfig]
   ) {
 
-    /** Queries for a [[LoadRuntimeConfig]], that applies for the given uuid and
-      * either returns the config for the requested uuid or the default config.
-      * If the requested uuid is valid, but the return type is not of type
-      * [[LoadRuntimeConfig]] the default config for this type is returned.
+    /** Queries for a [[BaseRuntimeConfig]] of type [[T]], that applies for the
+      * given uuid and either returns the config for the requested uuid or the
+      * default config for type [[T]].
       *
       * @param uuid
       *   Identifier of the requested load model
       * @return
-      *   the requested [[LoadRuntimeConfig]] or a default value
+      *   the requested config or a default value of type [[T]]
       */
-    def getLoadConfigOrDefault(uuid: UUID): LoadRuntimeConfig =
+    def getOrDefault[T <: BaseRuntimeConfig](
+        uuid: UUID
+    )(implicit tag: ClassTag[T]): T =
       configs.get(uuid) match {
-        case Some(loadConfig: LoadRuntimeConfig) => loadConfig
-        case _                                   => defaultLoadConfig
-      }
-
-    /** Queries for a [[PvRuntimeConfig]], that applies for the given uuid and
-      * either returns the config for the requested uuid or the default config.
-      * If the requested uuid is valid, but the return type is not of type
-      * [[PvRuntimeConfig]] the default config for this type is returned.
-      *
-      * @param uuid
-      *   Identifier of the requested load model
-      * @return
-      *   the requested [[PvRuntimeConfig]] or a default value
-      */
-    def getPvConfigOrDefault(uuid: UUID): PvRuntimeConfig =
-      configs.get(uuid) match {
-        case Some(pvRuntimeConfig: PvRuntimeConfig) => pvRuntimeConfig
-        case _                                      => defaultPvConfig
-      }
-
-    def getWecConfigOrDefault(uuid: UUID): WecRuntimeConfig =
-      configs.get(uuid) match {
-        case Some(wecRuntimeConfig: WecRuntimeConfig) => wecRuntimeConfig
-        case _                                        => defaultWecConfig
-      }
-
-    /** Queries for a [[FixedFeedInRuntimeConfig]], that applies for the given
-      * uuid and either returns the config for the requested uuid or the default
-      * config. If the requested uuid is valid, but the return type is not of
-      * type [[FixedFeedInRuntimeConfig]] the default config for this type is
-      * returned.
-      *
-      * @param uuid
-      *   Identifier of the requested fixed feed in model
-      * @return
-      *   the requested [[FixedFeedInRuntimeConfig]] or a default value
-      */
-    def getFixedFeedConfigOrDefault(uuid: UUID): FixedFeedInRuntimeConfig =
-      configs.get(uuid) match {
-        case Some(ffinConfig: FixedFeedInRuntimeConfig) => ffinConfig
-        case _ => defaultFixedFeedInConfig
-      }
-
-    /** Queries for a [[EvcsRuntimeConfig]], that applies for the given uuid and
-      * either returns the config for the requested uuid or the default config.
-      * If the requested uuid is valid, but the return type is not of type
-      * [[EvcsRuntimeConfig]] the default config for this type is returned.
-      *
-      * @param uuid
-      *   Identifier of the requested Evcs model
-      * @return
-      *   the requested [[EvcsRuntimeConfig]] or a default value
-      */
-    def getEvcsConfigOrDefault(uuid: UUID): EvcsRuntimeConfig =
-      configs.get(uuid) match {
-        case Some(evcsConfig: EvcsRuntimeConfig) => evcsConfig
-        case _                                   => defaultEvcsConfig
-      }
-
-    /** Queries for a [[HpRuntimeConfig]], that applies for the given uuid and
-      * either returns the config for the requested uuid or the default config.
-      * If the requested uuid is valid, but the return type is not of type
-      * [[HpRuntimeConfig]] the default config for this type is returned.
-      *
-      * @param uuid
-      *   Identifier of the requested Heatpump model
-      * @return
-      *   the requested [[HpRuntimeConfig]] or a default value
-      */
-    def getHpConfigOrDefault(uuid: UUID): HpRuntimeConfig =
-      configs.get(uuid) match {
-        case Some(hpConfig: HpRuntimeConfig) => hpConfig
-        case _                               => defaultHpConfig
+        case Some(conf: T) => conf
+        case _ =>
+          defaultConfigs.get(tag.runtimeClass) match {
+            case Some(conf: T) => conf
+            case _ =>
+              throw new RuntimeException(
+                s"No config found for $uuid of type ${tag.runtimeClass.getSimpleName}."
+              )
+          }
       }
   }
 
@@ -148,25 +80,29 @@ object ConfigUtil {
     def apply(
         subConfig: SimonaConfig.Simona.Runtime.Participant
     ): ParticipantConfigUtil = {
-      new ParticipantConfigUtil(
+      ParticipantConfigUtil(
         buildUuidMapping(
-          subConfig.load.individualConfigs ++
-            subConfig.fixedFeedIn.individualConfigs ++
-            subConfig.pv.individualConfigs ++
-            subConfig.evcs.individualConfigs ++
+          Seq(
+            subConfig.load.individualConfigs,
+            subConfig.fixedFeedIn.individualConfigs,
+            subConfig.pv.individualConfigs,
+            subConfig.evcs.individualConfigs,
             subConfig.wec.individualConfigs
+          ).reduceOption(_ ++ _).getOrElse(Seq.empty)
         ),
-        subConfig.load.defaultConfig,
-        subConfig.fixedFeedIn.defaultConfig,
-        subConfig.pv.defaultConfig,
-        subConfig.wec.defaultConfig,
-        subConfig.evcs.defaultConfig,
-        subConfig.hp.defaultConfig
+        Seq(
+          subConfig.load.defaultConfig,
+          subConfig.fixedFeedIn.defaultConfig,
+          subConfig.pv.defaultConfig,
+          subConfig.evcs.defaultConfig,
+          subConfig.wec.defaultConfig,
+          subConfig.hp.defaultConfig
+        ).map { conf => conf.getClass -> conf }.toMap
       )
     }
 
     private def buildUuidMapping(
-        configs: List[BaseRuntimeConfig]
+        configs: Seq[BaseRuntimeConfig]
     ): Map[UUID, BaseRuntimeConfig] =
       configs
         .flatMap(modelConfig =>
@@ -589,33 +525,31 @@ object ConfigUtil {
       properties.put("bootstrap.servers", kafkaParams.bootstrapServers)
       properties.put("default.api.timeout.ms", 2000)
       properties.put("request.timeout.ms", 1000)
-      try {
-        Using(AdminClient.create(properties)) { client =>
-          val existingTopics = client.listTopics.names().get().asScala
-          topics.filterNot(existingTopics.contains)
-        } match {
-          case Failure(ke: KafkaException) =>
-            throw new InvalidConfigParameterException(
-              s"Exception creating kafka client for broker ${kafkaParams.bootstrapServers}.",
-              ke
-            )
-          case Failure(ee: ExecutionException) =>
-            throw new InvalidConfigParameterException(
-              s"Connection with kafka broker ${kafkaParams.bootstrapServers} failed.",
-              ee
-            )
-          case Failure(other) =>
-            throw new InvalidConfigParameterException(
-              s"Checking kafka config failed with unexpected exception.",
-              other
-            )
-          case Success(missingTopics) if missingTopics.nonEmpty =>
-            throw new InvalidConfigParameterException(
-              s"Required kafka topics {${missingTopics.mkString}} do not exist."
-            )
-          case Success(_) =>
-          // testing connection succeeded, do nothing
-        }
+      Using(AdminClient.create(properties)) { client =>
+        val existingTopics = client.listTopics.names().get().asScala
+        topics.filterNot(existingTopics.contains)
+      } match {
+        case Failure(ke: KafkaException) =>
+          throw new InvalidConfigParameterException(
+            s"Exception creating kafka client for broker ${kafkaParams.bootstrapServers}.",
+            ke
+          )
+        case Failure(ee: ExecutionException) =>
+          throw new InvalidConfigParameterException(
+            s"Connection with kafka broker ${kafkaParams.bootstrapServers} failed.",
+            ee
+          )
+        case Failure(other) =>
+          throw new InvalidConfigParameterException(
+            s"Checking kafka config failed with unexpected exception.",
+            other
+          )
+        case Success(missingTopics) if missingTopics.nonEmpty =>
+          throw new InvalidConfigParameterException(
+            s"Required kafka topics {${missingTopics.mkString}} do not exist."
+          )
+        case Success(_) =>
+        // testing connection succeeded, do nothing
       }
     }
   }

@@ -117,7 +117,9 @@ class WecAgentModelCalculationSpec
     simonaConfig.simona.runtime.participant
   )
   private val modelConfig =
-    configUtil.getWecConfigOrDefault(voltageSensitiveInput.getUuid)
+    configUtil.getOrDefault[WecRuntimeConfig](
+      voltageSensitiveInput.getUuid
+    )
 
   private val withServices = Some(
     Vector(ActorWeatherService(weatherService.ref))

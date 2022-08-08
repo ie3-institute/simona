@@ -28,10 +28,10 @@ ext {
   scalaBinaryVersion = '2.13.8'
   akkaVersion = '2.6.19'
   jtsVersion = '1.19.0'
-  tscfgVersion = '0.9.998'
+  tscfgVersion = '1.0.0'
   scapegoatVersion = '1.4.15'
 
-  testContainerVersion = '0.40.9'
+  testContainerVersion = '0.40.10'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
 }
@@ -106,10 +106,11 @@ dependencies {
   testImplementation 'org.spockframework:spock-core:2.1-groovy-3.0'
   testImplementation 'org.scalatestplus:mockito-3-4_2.13:3.2.10.0'
   implementation 'org.mockito:mockito-core:4.6.1' // mocking framework
-  testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.12"
+  testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.13"
   testRuntimeOnly 'com.vladsch.flexmark:flexmark-all:0.64.0' //scalatest html output
   testImplementation group: 'org.pegdown', name: 'pegdown', version: '1.6.0'
   testImplementation "com.typesafe.akka:akka-testkit_${scalaVersion}:${akkaVersion}" // akka testkit
+  testImplementation "com.typesafe.akka:akka-actor-testkit-typed_${scalaVersion}:${akkaVersion}"
 
   // testcontainers
   testImplementation "com.dimafeng:testcontainers-scala-scalatest_${scalaVersion}:${testContainerVersion}"
@@ -122,10 +123,10 @@ dependencies {
 
   /* CORE Akka */
   implementation "com.typesafe.akka:akka-actor_${scalaVersion}:${akkaVersion}"
+  implementation "com.typesafe.akka:akka-actor-typed_${scalaVersion}:${akkaVersion}"
   implementation "com.typesafe.akka:akka-slf4j_${scalaVersion}:${akkaVersion}"
   implementation "com.typesafe.akka:akka-cluster_${scalaVersion}:${akkaVersion}"
   implementation "com.lightbend.akka:akka-stream-alpakka-csv_${scalaVersion}:3.0.4"
-  implementation "com.typesafe.akka:akka-actor_${scalaVersion}:${akkaVersion}"
   implementation "com.typesafe.akka:akka-cluster-sharding_${scalaVersion}:${akkaVersion}"
   implementation "com.typesafe.akka:akka-cluster-tools_${scalaVersion}:${akkaVersion}"
 

@@ -233,7 +233,9 @@ class GridAgentController(
     case input: FixedFeedInInput =>
       buildFixedFeedIn(
         input,
-        participantConfigUtil.getFixedFeedConfigOrDefault(input.getUuid),
+        participantConfigUtil.getOrDefault[FixedFeedInRuntimeConfig](
+          input.getUuid
+        ),
         environmentRefs.primaryServiceProxy,
         simulationStartDate,
         simulationEndDate,
@@ -244,7 +246,9 @@ class GridAgentController(
     case input: LoadInput =>
       buildLoad(
         input,
-        participantConfigUtil.getLoadConfigOrDefault(input.getUuid),
+        participantConfigUtil.getOrDefault[LoadRuntimeConfig](
+          input.getUuid
+        ),
         environmentRefs.primaryServiceProxy,
         simulationStartDate,
         simulationEndDate,
@@ -255,7 +259,9 @@ class GridAgentController(
     case input: PvInput =>
       buildPV(
         input,
-        participantConfigUtil.getPvConfigOrDefault(input.getUuid),
+        participantConfigUtil.getOrDefault[PvRuntimeConfig](
+          input.getUuid
+        ),
         environmentRefs.primaryServiceProxy,
         environmentRefs.weather,
         simulationStartDate,
@@ -267,7 +273,9 @@ class GridAgentController(
     case input: WecInput =>
       buildWec(
         input,
-        participantConfigUtil.getWecConfigOrDefault(input.getUuid),
+        participantConfigUtil.getOrDefault[WecRuntimeConfig](
+          input.getUuid
+        ),
         environmentRefs.primaryServiceProxy,
         environmentRefs.weather,
         simulationStartDate,
@@ -279,7 +287,9 @@ class GridAgentController(
     case input: EvcsInput =>
       buildEvcs(
         input,
-        participantConfigUtil.getEvcsConfigOrDefault(input.getUuid),
+        participantConfigUtil.getOrDefault[EvcsRuntimeConfig](
+          input.getUuid
+        ),
         environmentRefs.primaryServiceProxy,
         environmentRefs.evDataService.getOrElse(
           throw new GridAgentInitializationException(
@@ -298,7 +308,7 @@ class GridAgentController(
           buildHp(
             hpInput,
             thermalGrid,
-            participantConfigUtil.getHpConfigOrDefault(hpInput.getUuid),
+            participantConfigUtil.getOrDefault(hpInput.getUuid),
             environmentRefs.primaryServiceProxy,
             environmentRefs.weather,
             requestVoltageDeviationThreshold,

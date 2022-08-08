@@ -100,9 +100,10 @@ class FixedFeedInAgentModelCalculationSpec
   private val fixedFeedConfigUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
   )
-  private val modelConfig = fixedFeedConfigUtil.getFixedFeedConfigOrDefault(
-    voltageSensitiveInput.getUuid
-  )
+  private val modelConfig =
+    fixedFeedConfigUtil.getOrDefault[FixedFeedInRuntimeConfig](
+      voltageSensitiveInput.getUuid
+    )
   private val services = None
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 

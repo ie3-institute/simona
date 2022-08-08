@@ -11,7 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Relevant scientific papers have been added to the documentation [#139](https://github.com/ie3-institute/simona/issues/139)
 - Add troubleshooting section to Users guide [#160](https://github.com/ie3-institute/simona/issues/160)
 - Added Kafka sink for results [#24](https://github.com/ie3-institute/simona/issues/24)
-- Instantiation of Heatpump Agents [#253](https://github.com/ie3-institute/simona/issues/253)
+- Added Kafka sink for runtime events, re-implemented RuntimeEventListener in akka typed [#242](https://github.com/ie3-institute/simona/issues/242)
+- Instantiation of Heat Pump Agents [#253](https://github.com/ie3-institute/simona/issues/253)
+- Output of accompanying thermal result models
 
 ### Changed
 - Re-organizing test resources into their respective packages [#105](https://github.com/ie3-institute/simona/issues/105)
@@ -40,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update Sphinx to 4.5.0 as well as extensions [#214](https://github.com/ie3-institute/simona/issues/214)
 - Improved code quality in and around DBFS algorithm [#265](https://github.com/ie3-institute/simona/issues/265)
 - Adapt test to new PowerSystemUtils snapshot  [#294](https://github.com/ie3-institute/simona/issues/294)
+- Simplified ParticipantConfigUtil [#273](https://github.com/ie3-institute/simona/issues/273)
+- Consolidated and enhanced SimScheduler tests [#285](https://github.com/ie3-institute/simona/issues/285)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
@@ -53,6 +57,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix breaking SIMONA caused by introducing temperature dependant load profiles in PSDM [#255](https://github.com/ie3-institute/simona/issues/255)
 - Respect for voltage angle in DBFS slack voltage exchange protocol [#69](https://github.com/ie3-institute/simona/issues/69)
 - Adapted to changed time series interfaces in PSDM [#296](https://github.com/ie3-institute/simona/issues/296)
+- Fix handling of multiple connections between subgrids [#22](https://github.com/ie3-institute/simona/issues/22)
+  - Consolidate request replies for different sub grid gates in one message
+  - Await and send responses for distinct pairs of sender reference and target node
+- Removed deprecations from `CsvGridSource` and added `TestGridFactory` [#304](https://github.com/ie3-institute/simona/issues/304)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)

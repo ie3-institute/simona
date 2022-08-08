@@ -15,10 +15,10 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalStorageInput
 }
 
-import scala.jdk.CollectionConverters.{CollectionHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
-protected case object CsvGridSource {
+object CsvGridSource {
   def readGrid(
       gridName: String,
       csvSep: String,
