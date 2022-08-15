@@ -234,7 +234,9 @@ abstract class ParticipantAgent[
             outputConfig
           )
         ) =>
-      log.info(s"Will replay primary data for $inputModel for $maybeNextDataTick")
+      log.info(
+        s"Will replay primary data for $inputModel for $maybeNextDataTick"
+      )
       initializeParticipantForPrimaryDataReplay(
         inputModel,
         modelConfig,
@@ -308,6 +310,7 @@ abstract class ParticipantAgent[
             isYetTriggered
           )
         ) =>
+      log.info(s"Provision Message $msg has arrived, but is collected first")
       /* We yet have received at least one data provision message. Handle all messages, that follow up for this tick, by
        * adding the received data to the collection state data and checking, if everything is at its place */
       if (
@@ -328,8 +331,9 @@ abstract class ParticipantAgent[
         val foreSeenDataTicks =
           baseStateData.foreseenDataTicks + (sender() -> msg.nextDataTick)
 
-        log.info(s"next message from ${sender()} expected at tick ${msg.nextDataTick}.")
-        log.info(s"forseenDataTicks: ${foreSeenDataTicks.toString()}")
+        log.info(
+          s"next message from ${sender()} expected at tick ${msg.nextDataTick}."
+        )
         val updatedBaseStateData = BaseStateData.updateBaseStateData(
           baseStateData,
           baseStateData.resultValueStore,

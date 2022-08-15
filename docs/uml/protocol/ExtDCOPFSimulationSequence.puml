@@ -17,6 +17,8 @@ activate ExtSimAdapter
 ExtSimAdapter -> ExtSimulation: queue(ExtActivityStartTrigger(-1L))
 activate ExtSimulation
 
+ExtSimulation -> ExtDcopfSim: initialize()
+
 ExtSimulation -> ExtSimAdapter: queue(CompletionMessage(newTriggers))
 deactivate ExtSimulation
 
@@ -61,6 +63,11 @@ ExtSimAdapter -> ExtSimulation: queue(ExtActivityStartTrigger(tick))
 deactivate ExtSimAdapter
 
 activate ExtSimulation
+ExtSimulation -> ExtDcopfSim: doActivity(tick)
+activate ExtDcopfSim
+ExtDcopfSim -> ExtSimulation: sendSetpoints(opfData)
+deactivate ExtDcopfSim
+
 ExtSimulation -> ExtOpfDataService: <font color=red>!</font> ExtOpfMessage(_)
 ExtSimulation -> ExtSimAdapter: <font color=red>!</font> ScheduleDataServiceMessage(\n\tdataServiceRef)
 deactivate ExtSimulation
@@ -73,8 +80,12 @@ SimScheduler -> ExtOpfDataService: <font color=red>!</font> ActivityStartTrigger
 activate ExtOpfDataService
 ExtOpfDataService -> Generator1: <font color=red>!</font> ProvideSetpointsMessage(_)
 ExtOpfDataService -> Generator2: <font color=red>!</font> ProvideSetpointsMessage(_)
-ExtOpfDataService -> SimScheduler: <font color=red>!</font> CompletionMessage(newTriggers)
+ExtOpfDataService -> ExtSimAdapter: <font color=red>!</font> CompletionMessage(newTriggers)
 deactivate ExtOpfDataService
+activate ExtSimAdapter
+ExtSimAdapter -> SimScheduler: <font color=red>!</font> CompletionMessage(newTriggers)
+deactivate ExtSimAdapter
+
 
 SimScheduler -> Generator1: <font color=red>!</font> ActivityStartTrigger(tick)
 activate Generator1

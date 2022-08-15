@@ -1113,8 +1113,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                   fInPU
                 )).map {
                   case providedPowerValuesMessage: AssetPowerChangedMessage =>
+                    log.info(s"Asset Power was changed: $providedPowerValuesMessage")
                     (assetAgent, providedPowerValuesMessage)
                   case assetPowerUnchangedMessage: AssetPowerUnchangedMessage =>
+                    log.info(s"Asset Power was changed: $assetPowerUnchangedMessage")
                     (assetAgent, assetPowerUnchangedMessage)
                 }
               })

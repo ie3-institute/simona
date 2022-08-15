@@ -573,7 +573,6 @@ protected trait ParticipantAgentFundamentals[
                 currentTick,
                 mostRecentData
               )
-              log.info("updatedResultValueStore l. 536")
               val baseStateDataWithUpdatedResults =
                 BaseStateData.updateBaseStateData(
                   stateData.baseStateData,
