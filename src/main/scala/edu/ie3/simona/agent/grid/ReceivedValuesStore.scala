@@ -106,7 +106,7 @@ object ReceivedValuesStore {
     /* Add everything, that I expect from my subordinate grid agents. */
     inferiorSubGridGateToActorRef
       .map { case (gate, reference) =>
-        gate.getSuperiorNode.getUuid -> reference
+        gate.superiorNode.getUuid -> reference
       }
       .foldLeft(assetsToReceivedPower) {
         case (

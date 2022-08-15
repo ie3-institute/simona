@@ -89,16 +89,16 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
         3,
         ConnectorPort.C
       )
-      val internalNode = subGridGate.getLink match {
+      val internalNode = subGridGate.link match {
         case input: Transformer3WInput => input.getNodeInternal
         case _                         => fail("Got wrong link")
       }
 
       val alteredGate =
         modifySubGridGateForThreeWindingSupport.apply(subGridGate)
-      alteredGate.getSuperiorNode shouldBe internalNode
+      alteredGate.superiorNode shouldBe internalNode
       alteredGate.getSuperiorSubGrid shouldBe subGridGate.getSuperiorSubGrid
-      alteredGate.getInferiorNode shouldBe subGridGate.getInferiorNode
+      alteredGate.inferiorNode shouldBe subGridGate.inferiorNode
       alteredGate.getInferiorSubGrid shouldBe subGridGate.getInferiorSubGrid
     }
   }
