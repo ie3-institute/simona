@@ -16,8 +16,8 @@ class ExtSimLoaderSpec extends UnitSpec {
 
   private val resourceDir = "ext-sim-loader"
 
-  private val noJarsDir = s"$resourceDir/no-jars"
-  private val jarsDir = s"$resourceDir/jars"
+  private val noJarsDir = s"$resourceDir/_no-jars"
+  private val jarsDir = s"$resourceDir/_jars"
 
   private val workingJar = s"$jarsDir/mock_ext_sim.jar"
   private val workingJar2 = s"$jarsDir/mock_ext_sim-2.jar"

@@ -128,7 +128,7 @@ trait PVModelITHelper {
 		"load the grid input data from the corresponding resources folder"
 
 		def csvGridSource = CsvGridSource.apply("it_grid", ";",
-				this.getClass().getResource("pv/it/grid_data").file,
+				this.getClass().getResource("_pv/it/grid_data").file,
 				new FileNamingStrategy())
 
 		def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2011-01-01 00:00:00")
