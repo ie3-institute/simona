@@ -9,17 +9,21 @@ package edu.ie3.simona.agent.grid
 import akka.actor.{ActorContext, ActorRef}
 import akka.event.LoggingAdapter
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.input.container.SubGridContainer
-import edu.ie3.datamodel.models.input.system._
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ApparentPowerAndHeat
+import edu.ie3.datamodel.models.input.container.{
+  SubGridContainer,
+  SystemParticipants
 }
+import edu.ie3.datamodel.models.input.system._
+import edu.ie3.simona.actor.SimonaActorNaming._
+import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorEvMovementsService,
   ActorWeatherService
 }
+import edu.ie3.simona.agent.participant.em.EmAgent
+import edu.ie3.simona.agent.participant.em.EmAgent.EmAgentInitializeStateData
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.fixedfeedin.FixedFeedInAgent
 import edu.ie3.simona.agent.participant.load.LoadAgent
@@ -28,23 +32,13 @@ import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.{
-  EmRuntimeConfig,
-  EvcsRuntimeConfig,
-  FixedFeedInRuntimeConfig,
-  LoadRuntimeConfig,
-  PvRuntimeConfig,
-  WecRuntimeConfig
-}
+import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeParticipantAgentTrigger
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
-import edu.ie3.simona.actor.SimonaActorNaming._
-import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.participant.em.EmAgent
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -95,6 +89,7 @@ class GridAgentController(
     buildParticipantToActorRef(
       participantsConfig,
       outputConfig,
+      subGridContainer.getSystemParticipants,
       systemParticipants,
       environmentRefs
     )
@@ -102,21 +97,26 @@ class GridAgentController(
 
   /** Takes the provided [[SubGridContainer]] and removes all
     * [[SystemParticipantInput]] of which no agent implementations are available
-    * at the moment. This method needs to be adapted whenever a new agent
-    * implementation is ready. Hopefully, it can be removed soon.
+    * at the moment or which are connected to some EM system. This method needs
+    * to be adapted whenever a new agent implementation is ready.
     *
-    * To disabled a filter fo a specific asset adapt the code below.
+    * To disable a filter for a specific system participant, adapt the code
+    * below.
     *
     * @param subGridContainer
     *   the original subGrid container
     * @return
-    *   a filtered subGrid container w/o assets no agent implementations exist
-    *   atm
+    *   a filtered subGrid container w/o assets for which no agent
+    *   implementations exist atm
     */
   private def filterSysParts(
       subGridContainer: SubGridContainer,
       environmentRefs: EnvironmentRefs
   ) = {
+
+    val emParticipants =
+      subGridContainer.getSystemParticipants.getEmSystems.asScala
+        .flatMap(_.getConnectedAssets)
 
     val (notProcessedElements, availableSysParts) =
       subGridContainer.getSystemParticipants
@@ -139,6 +139,12 @@ class GridAgentController(
                   if environmentRefs.evDataService.isEmpty =>
                 log.warning(
                   s"Evcs ${evcsInput.getId} has been removed because no ev movements service is present."
+                )
+                (notProcessedElements, availableSystemParticipants)
+              case entity if emParticipants.contains(entity.getUuid) =>
+                log.debug(
+                  s"System participant {} is part of an energy-managed system and thus not directly connected to the grid.",
+                  entity
                 )
                 (notProcessedElements, availableSystemParticipants)
               case entity =>
@@ -165,7 +171,7 @@ class GridAgentController(
     *   Configuration information for participant models
     * @param outputConfig
     *   Configuration information for output behaviour
-    * @param participants
+    * @param filteredParticipants
     *   Set of system participants to create agents for
     * @param environmentRefs
     *   References to singleton entities representing the agent environment
@@ -175,7 +181,8 @@ class GridAgentController(
   private def buildParticipantToActorRef(
       participantsConfig: SimonaConfig.Simona.Runtime.Participant,
       outputConfig: SimonaConfig.Simona.Output.Participant,
-      participants: Vector[SystemParticipantInput],
+      allParticipants: SystemParticipants,
+      filteredParticipants: Vector[SystemParticipantInput],
       environmentRefs: EnvironmentRefs
   ): Map[UUID, Set[ActorRef]] = {
     /* Prepare the config util for the participant models, which (possibly) utilizes as map to speed up the initialization
@@ -184,7 +191,18 @@ class GridAgentController(
       ConfigUtil.ParticipantConfigUtil(participantsConfig)
     val outputConfigUtil = ConfigUtil.BaseOutputConfigUtil(outputConfig)
 
-    participants
+    val emParticipantsUuids =
+      allParticipants.getEmSystems.asScala
+        .flatMap(_.getConnectedAssets)
+
+    val emParticipantMap = allParticipants
+      .allEntitiesAsList()
+      .asScala
+      .filter(sp => emParticipantsUuids.contains(sp.getUuid))
+      .map(sp => sp.getUuid -> sp)
+      .toMap
+
+    filteredParticipants
       .map(participant => {
         val node = participant.getNode
         val (actorRef, initStateData) =
@@ -194,7 +212,8 @@ class GridAgentController(
             participantConfigUtil,
             outputConfigUtil,
             participant,
-            environmentRefs
+            environmentRefs,
+            emParticipantMap
           ) // introduce to environment
         introduceAgentToEnvironment(
           actorRef,
@@ -214,14 +233,11 @@ class GridAgentController(
       participantConfigUtil: ConfigUtil.ParticipantConfigUtil,
       outputConfigUtil: BaseOutputConfigUtil,
       participantInputModel: SystemParticipantInput,
-      environmentRefs: EnvironmentRefs
+      environmentRefs: EnvironmentRefs,
+      emParticipantMap: Map[UUID, SystemParticipantInput]
   ): (
       ActorRef,
-      ParticipantInitializeStateData[
-        _ <: SystemParticipantInput,
-        _ <: SimonaConfig.BaseRuntimeConfig,
-        _ <: PrimaryData
-      ]
+      InitializeStateData[_ <: PrimaryData]
   ) = participantInputModel match {
     case input: FixedFeedInInput =>
       buildFixedFeedIn(
@@ -303,7 +319,10 @@ class GridAgentController(
         environmentRefs.primaryServiceProxy,
         environmentRefs.weather,
         requestVoltageDeviationThreshold,
-        outputConfigUtil.getOrDefault(NotifierIdentifier.Em)
+        outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
+        emParticipantMap,
+        participantConfigUtil,
+        outputConfigUtil
       )
 
     case input: SystemParticipantInput =>
@@ -588,6 +607,8 @@ class GridAgentController(
     *   Permissible voltage magnitude deviation to consider being equal
     * @param outputConfig
     *   Configuration for output notification
+    * @param emParticipantMap
+    *   Map from UUID to all participants that are connected to some EM system
     * @return
     *   A tuple of actor reference and [[ParticipantInitializeStateData]]
     */
@@ -597,34 +618,66 @@ class GridAgentController(
       primaryServiceProxy: ActorRef,
       weatherService: ActorRef,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: ParticipantNotifierConfig,
+      emParticipantMap: Map[UUID, SystemParticipantInput],
+      participantConfigUtil: ConfigUtil.ParticipantConfigUtil,
+      outputConfigUtil: BaseOutputConfigUtil
   ): (
       ActorRef,
-      ParticipantInitializeStateData[
-        EmInput,
-        EmRuntimeConfig,
-        ApparentPowerAndHeat
-      ]
-  ) = (
-    gridAgentContext.simonaActorOf(
-      EmAgent.props(
-        environmentRefs.scheduler,
-        listener
+      EmAgentInitializeStateData
+  ) = {
+    val connectedAgents = emInput.getConnectedAssets
+      .map { uuid =>
+        emParticipantMap.getOrElse(
+          uuid,
+          throw new GridAgentInitializationException(
+            s"Agent with UUID $uuid connected to $emInput could not be found."
+          )
+        )
+      }
+      .map { sp =>
+        val (actorRef, initData) = buildParticipantActor(
+          requestVoltageDeviationThreshold,
+          participantConfigUtil,
+          outputConfigUtil,
+          sp,
+          environmentRefs,
+          emParticipantMap
+        )
+
+        val initTrigger =
+          InitializeParticipantAgentTrigger[PrimaryData, InitializeStateData[
+            PrimaryData
+          ]](
+            initData
+          )
+
+        (actorRef, initTrigger, sp)
+      }
+      .toSeq
+
+    (
+      gridAgentContext.simonaActorOf(
+        EmAgent.props(
+          environmentRefs.scheduler,
+          listener
+        ),
+        emInput.getId
       ),
-      emInput.getId
-    ),
-    ParticipantInitializeStateData(
-      emInput,
-      modelConfiguration,
-      primaryServiceProxy,
-      Some(Vector(ActorWeatherService(weatherService))),
-      simulationStartDate,
-      simulationEndDate,
-      resolution,
-      requestVoltageDeviationThreshold,
-      outputConfig
+      EmAgentInitializeStateData(
+        emInput,
+        modelConfiguration,
+        primaryServiceProxy,
+        Some(Vector(ActorWeatherService(weatherService))),
+        simulationStartDate,
+        simulationEndDate,
+        resolution,
+        requestVoltageDeviationThreshold,
+        outputConfig,
+        connectedAgents
+      )
     )
-  )
+  }
 
   /** Creates a pv agent and determines the needed additional information for
     * later initialization of the agent.
