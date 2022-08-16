@@ -128,7 +128,7 @@ trait PVModelITHelper {
 		"load the grid input data from the corresponding resources folder"
 
 		def csvGridSource = CsvGridSource.readGrid("it_grid", ";",
-				this.getClass().getResource("pv/it/grid_data").file,
+				this.getClass().getResource("_pv/it/grid_data").file,
 				new FileNamingStrategy())
 
 		def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2011-01-01 00:00:00")
@@ -165,7 +165,7 @@ trait PVModelITHelper {
 
 	HashMap<ZonedDateTime, HashMap<String, WeatherMessage.WeatherData>> getWeatherData() {
 		"read the weather data from the provided weather data file"
-		final String fileName = "pv/it/weather.tar.gz"
+		final String fileName = "_pv/it/weather.tar.gz"
 		final def csvRecords = getCsvRecords(fileName)
 
 		HashMap<ZonedDateTime, HashMap<String, WeatherMessage.WeatherData>> weatherMap = new HashMap<>()
@@ -203,7 +203,7 @@ trait PVModelITHelper {
 
 	HashMap<ZonedDateTime, HashMap<String, Quantity<Power>>> getResultsData() {
 		"read the results data from the provided file"
-		final String fileName = "pv/it/results2.tar.gz"
+		final String fileName = "_pv/it/results2.tar.gz"
 		def csvRecords = getCsvRecords(fileName)
 
 		// we skip the first line and use hardcoded headers, because the first line is garbled
