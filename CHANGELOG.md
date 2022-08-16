@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adapt test to new PowerSystemUtils snapshot  [#294](https://github.com/ie3-institute/simona/issues/294)
 - Simplified ParticipantConfigUtil [#273](https://github.com/ie3-institute/simona/issues/273)
 - Consolidated and enhanced SimScheduler tests [#285](https://github.com/ie3-institute/simona/issues/285)
+- Renaming sub-package directories [#141](https://github.com/ie3-institute/simona/issues/141)
 - Added faster data structures to SimScheduler [#282](https://github.com/ie3-institute/simona/issues/282)
 
 ### Fixed
