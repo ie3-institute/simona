@@ -6,19 +6,35 @@
 
 package edu.ie3.simona.ontology.messages
 
+import tech.units.indriya.ComparableQuantity
+
+import javax.measure.quantity.{Energy, Power}
+
 trait FlexibilityMessage {}
 
 object FlexibilityMessage {
 
   /** EmAgent requests flexibility options from connected agents
     */
-  case class RequestFlexibilityOptions()
+  case object RequestFlexibilityOptions
 
   /** Connected agents provide flex options
     */
-  case class ProvideFlexibilityOptions()
+  trait ProvideFlexibilityOptions
 
   /** EmAgent issues flexibility control
     */
-  case class IssueFlexibilityControl()
+  trait IssueFlexibilityControl
+
+  case class ProvideStorageState(
+      soc: ComparableQuantity[Energy],
+      currentChargingPower: ComparableQuantity[Power]
+  ) extends ProvideFlexibilityOptions
+
+  /** @param chargingPower
+    *   positive: charging, negative: discharging
+    */
+  case class IssueChargingPower(
+      chargingPower: ComparableQuantity[Power]
+  ) extends IssueFlexibilityControl
 }
