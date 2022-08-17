@@ -110,7 +110,8 @@ object EmAgent {
       receivedConnectedResultsValueStore: ValueStore[ReceivedValuesContainer],
       schedulerStateData: EmSchedulerStateData,
       uncontrolledAgents: Seq[ActorRef],
-      controlledAgents: Seq[ActorRef]
+      controlledAgents: Seq[ActorRef],
+      actorRefToUuid: Map[ActorRef, UUID]
   ) extends ModelBaseStateData[ApparentPowerAndHeat, EmRelevantData, EmModel] {
     override val modelUuid: UUID = model.getUuid
   }
@@ -190,8 +191,12 @@ class EmAgent(
         modelConfig,
         simulationStartDate,
         simulationEndDate,
-        uncontrolledAgents.map { case (actor, _, input) => (actor, input) },
-        controlledAgents.map { case (actor, _, input) => (actor, input) }
+        uncontrolledAgents.map { case (_, _, input) =>
+          (input.getUuid, input)
+        }.toMap,
+        controlledAgents.map { case (_, _, input) =>
+          (input.getUuid, input)
+        }.toMap
       )
 
       val baseStateData = EmAgentModelBaseStateData(
@@ -215,7 +220,10 @@ class EmAgent(
         ValueStore(resolution * 10),
         EmSchedulerStateData(trigger = triggerData),
         uncontrolledAgents.map { case (actor, _, _) => actor },
-        controlledAgents.map { case (actor, _, _) => actor }
+        controlledAgents.map { case (actor, _, _) => actor },
+        (uncontrolledAgents ++ controlledAgents).map { case (actor, _, sp) =>
+          actor -> sp.getUuid
+        }.toMap
       )
 
       setActiveTickAndSendTriggers(
@@ -421,13 +429,29 @@ class EmAgent(
       flexAnswersReceived && uncontrolledResultsReceived && !connectedResults.flexControlIssued
     ) {
       // All results of uncontrolled agents and all flex options
-      // have been received. Since no flex controls have been issued,
-      // this can be done now.
+      // have been received. Since no flex controls have been
+      // issued, this is done now.
       baseStateData.model
         .determineDeviceControl(
-          connectedResults.receivedFlexOptions
+          connectedResults.receivedResults.flatMap { case (actor, resultOpt) =>
+            baseStateData.actorRefToUuid.get(actor).zip(resultOpt)
+          },
+          connectedResults.receivedFlexOptions.flatMap {
+            case (actor, flexOpt) =>
+              baseStateData.actorRefToUuid.get(actor).zip(flexOpt)
+          }
         )
-        .foreach { case (agent, flexOptions) =>
+        .foreach { case (participantUuid, flexOptions) =>
+          // send out flex control messages
+          val agent = baseStateData.actorRefToUuid
+            .collectFirst {
+              case (actor, uuid) if uuid.equals(participantUuid) => actor
+            }
+            .getOrElse(
+              throw new RuntimeException(
+                s"Could not find actor for uuid $participantUuid"
+              )
+            )
           agent ! flexOptions
         }
 

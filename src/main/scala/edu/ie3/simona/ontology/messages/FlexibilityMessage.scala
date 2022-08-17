@@ -27,7 +27,8 @@ object FlexibilityMessage {
   trait IssueFlexibilityControl
 
   case class ProvideStorageState(
-      soc: ComparableQuantity[Energy],
+      storedEnergy: ComparableQuantity[Energy],
+      capacity: ComparableQuantity[Energy],
       currentChargingPower: ComparableQuantity[Power]
   ) extends ProvideFlexibilityOptions
 
