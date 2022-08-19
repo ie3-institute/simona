@@ -378,7 +378,7 @@ class GridAgentController(
     gridAgentContext.simonaActorOf(
       FixedFeedInAgent.props(
         environmentRefs.scheduler,
-        listener
+        listener // TODO this needs to be a param
       ),
       fixedFeedInInput.getId
     ),
