@@ -32,8 +32,7 @@ final case class EmModel private (
     id: String,
     operationInterval: OperationInterval,
     scalingFactor: Double,
-    qControl: QControl,
-    connectedAgents: Map[UUID, SystemParticipantInput]
+    qControl: QControl
 ) extends SystemParticipant[EmRelevantData](
       uuid,
       id,
@@ -179,8 +178,7 @@ object EmModel {
       inputModel: EmInput,
       modelConfig: EmRuntimeConfig,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      connectedAgents: Map[UUID, SystemParticipantInput]
+      simulationEndDate: ZonedDateTime
   ): EmModel = {
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
@@ -195,8 +193,7 @@ object EmModel {
       inputModel.getId,
       operationInterval,
       modelConfig.scaling,
-      QControl(inputModel.getqCharacteristics),
-      connectedAgents
+      QControl(inputModel.getqCharacteristics)
     )
   }
 

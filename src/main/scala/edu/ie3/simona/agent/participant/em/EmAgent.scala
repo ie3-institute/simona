@@ -100,10 +100,10 @@ object EmAgent {
       resultValueStore: ValueStore[ApparentPowerAndHeat],
       requestValueStore: ValueStore[ApparentPowerAndHeat],
       calcRelevantDateStore: ValueStore[EmRelevantData],
-      receivedFlexOptionsValueStore: ValueStore[
-        Map[UUID, Option[ProvideFlexOptions]]
-      ], // TODO issued ctrl value store
-      // TODO enhanced todo: MultiValueStore
+      receivedFlexOptionsValueStore: Map[UUID, ValueStore[
+        Option[ProvideFlexOptions]
+      ]], // TODO enhanced todo: MultiValueStore
+      // TODO issued ctrl value store ?
       actorRefToUuid: Map[ActorRef, UUID],
       connectedModels: Map[UUID, SystemParticipantInput],
       schedulerStateData: EmSchedulerStateData
@@ -174,10 +174,7 @@ class EmAgent(
         inputModel,
         modelConfig,
         simulationStartDate,
-        simulationEndDate,
-        connectedAgents.map { case (_, _, input) =>
-          (input.getUuid, input)
-        }.toMap
+        simulationEndDate
       )
 
       val baseStateData = EmAgentModelBaseStateData(
@@ -198,7 +195,9 @@ class EmAgent(
         ValueStore.forResult(resolution, 10),
         ValueStore(resolution * 10),
         ValueStore(resolution * 10),
-        ValueStore(resolution * 10),
+        connectedAgents.map { case (_, _, sp) =>
+          sp.getUuid -> ValueStore(resolution * 10)
+        }.toMap,
         connectedAgents.map { case (actor, _, sp) =>
           actor -> sp.getUuid
         }.toMap,
@@ -262,18 +261,30 @@ class EmAgent(
           .getOrElse(Map.empty)
 
       // prepare map for expected flex options and expected results for this tick
-      val expectedFlexOptions =
-        expectedActors.map { case (_, uuid) => uuid -> None }
+      val expectedParticipants =
+        expectedActors.map { case (_, uuid) => uuid }
 
-      val updatedFlexOptionsStore = ValueStore.updateValueStore(
-        baseStateData.receivedFlexOptionsValueStore,
-        newTick,
-        expectedFlexOptions
-      )
+      val updatedReceivedFlexOptions = expectedParticipants.foldLeft(
+        baseStateData.receivedFlexOptionsValueStore
+      ) { case (stores, uuid) =>
+        val participantValueStore = stores.getOrElse(
+          uuid,
+          throw new RuntimeException(s"ValueStore for UUID $uuid not found")
+        )
+
+        val updatedFlexOptionsStore =
+          ValueStore.updateValueStore(
+            participantValueStore,
+            newTick,
+            None
+          )
+
+        stores.updated(uuid, updatedFlexOptionsStore)
+      }
 
       val updatedBaseStateData =
         baseStateData.copy(
-          receivedFlexOptionsValueStore = updatedFlexOptionsStore
+          receivedFlexOptionsValueStore = updatedReceivedFlexOptions
         )
 
       // send out flex requests for all expected agents
@@ -292,26 +303,26 @@ class EmAgent(
 
       val receivedFlexOptions =
         baseStateData.receivedFlexOptionsValueStore.getOrElse(
-          tick,
+          flexOptions.modelUuid,
           throw new RuntimeException(
-            "No ReceivedValuesContainer found for current tick"
+            s"No received flex options store found for ${flexOptions.modelUuid}"
           )
         )
 
-      val updatedReceivedFlexOptions =
-        receivedFlexOptions.updated(
-          flexOptions.modelUuid,
-          Some(flexOptions)
-        )
-
       val updatedValueStore = ValueStore.updateValueStore(
-        baseStateData.receivedFlexOptionsValueStore,
+        receivedFlexOptions,
         tick,
-        updatedReceivedFlexOptions
+        Some(flexOptions)
       )
 
+      val updatedReceivedFlexOptions =
+        baseStateData.receivedFlexOptionsValueStore.updated(
+          flexOptions.modelUuid,
+          updatedValueStore
+        )
+
       val updatedBaseStateData = baseStateData.copy(
-        receivedFlexOptionsValueStore = updatedValueStore
+        receivedFlexOptionsValueStore = updatedReceivedFlexOptions
       )
 
       maybeIssueFlexControl(updatedBaseStateData)
@@ -342,36 +353,46 @@ class EmAgent(
   ): State = {
     val tick = baseStateData.schedulerStateData.nowInTicks
 
-    val receivedFlexOptions =
-      baseStateData.receivedFlexOptionsValueStore.getOrElse(
-        tick,
-        throw new RuntimeException(
-          "No ReceivedValuesContainer found for current tick"
+    // check if expected flex answers for this tick arrived
+    val flexAnswers = baseStateData.receivedFlexOptionsValueStore.map {
+      case (uuid, store) =>
+        val spi = baseStateData.connectedModels.getOrElse(
+          uuid,
+          throw new RuntimeException(
+            s"There's no flex options store for $uuid whatsoever"
+          )
         )
-      )
+        val (dataTick, flexOptions) = store
+          .last()
+          .getOrElse(
+            throw new RuntimeException(
+              s"There's no expected flex options for $spi whatsoever"
+            )
+          )
 
-    // check if flex answers arrived
-    val flexAnswersReceived = receivedFlexOptions
-      .exists { case (_, None) => true }
+        (spi, flexOptions, dataTick == tick)
+    }
+
+    val flexAnswersReceived = !flexAnswers.exists {
+      case (_, None, _) => true
+      case _            => false
+    }
 
     if (flexAnswersReceived) {
       // All flex options and all results have been received.
 
-      val flexCtrlInput = receivedFlexOptions.flatMap {
-        case (uuid, resultOpt) =>
-          baseStateData.connectedModels.get(uuid).zip(resultOpt)
+      val flexStratInput = flexAnswers.flatMap {
+        case (spi, flexOptionsOpt, _) => flexOptionsOpt.map(spi -> _)
       }
 
       baseStateData.model
         .determineDeviceControl(
-          flexCtrlInput.collect {
+          flexStratInput.collect {
             case (spi, flexOption: ProvideMinMaxFlexOptions) =>
               (spi, flexOption)
           }.toSeq
         )
         .foreach { case (participantUuid, flexOptions) =>
-          // TODO activate the participants that have not been activated before
-
           // send out flex control messages
           val agent = baseStateData.actorRefToUuid
             .collectFirst {
@@ -382,6 +403,16 @@ class EmAgent(
                 s"Could not find actor for uuid $participantUuid"
               )
             )
+
+          // activate the participants that have not been activated before
+          val notActivatedBefore = flexAnswers.exists {
+            case (spi, _, activated) =>
+              spi.getUuid.equals(participantUuid) && !activated
+          }
+
+          if (notActivatedBefore)
+            agent ! ActivityStartTrigger(tick)
+
           agent ! flexOptions
         }
 

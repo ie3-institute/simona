@@ -56,6 +56,10 @@ final case class ValueStore[+D](
   def last(): Option[(Long, D)] =
     store.maxByOption(_._1)
 
+  // TODO scaladoc
+  def get(tick: Long): Option[D] =
+    store.get(tick)
+
   /** TODO scaladoc
     * @param requestedTick
     * @return
