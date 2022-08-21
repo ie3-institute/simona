@@ -42,4 +42,6 @@ object FlexibilityMessage {
   case class IssuePowerCtrl(
       power: ComparableQuantity[Power]
   ) extends IssueFlexibilityControl
+
+  case object IssueNoCtrl extends IssueFlexibilityControl
 }

@@ -27,11 +27,7 @@ import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.EmModel
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
-  ProvideFlexOptions,
-  ProvideMinMaxFlexOptions,
-  RequestFlexibilityOptions
-}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   ScheduleTriggerMessage,
@@ -354,7 +350,7 @@ class EmAgent(
     val tick = baseStateData.schedulerStateData.nowInTicks
 
     // check if expected flex answers for this tick arrived
-    val flexAnswers = baseStateData.receivedFlexOptionsValueStore.map {
+    val flexOptions = baseStateData.receivedFlexOptionsValueStore.map {
       case (uuid, store) =>
         val (spi, actor) = baseStateData.connectedAgents.getOrElse(
           uuid,
@@ -373,47 +369,58 @@ class EmAgent(
         (spi, actor, flexOptions, dataTick == tick)
     }
 
-    val flexAnswersReceived = !flexAnswers.exists {
-      case (_, _, None, _) => true
-      case _            => false
+    val flexAnswersReceived = !flexOptions.exists {
+      case (_, _, None, true) => true
+      case _                  => false
     }
 
     if (flexAnswersReceived) {
       // All flex options and all results have been received.
 
-      val flexStratInput = flexAnswers.flatMap {
+      val flexStratInput = flexOptions.flatMap {
         case (spi, _, flexOptionsOpt, _) => flexOptionsOpt.map(spi -> _)
       }
 
       // TODO sanity checks before strat calculation
 
-      baseStateData.model
+      val issueCtrlMsgs = baseStateData.model
         .determineDeviceControl(
           flexStratInput.collect {
             case (spi, flexOption: ProvideMinMaxFlexOptions) =>
               (spi, flexOption)
           }.toSeq
         )
-        .foreach { case (participantUuid, flexOptions) =>
-
-          val (actor, notActivatedBefore) = flexAnswers.collectFirst {
-            case (spi, actor, _, activated) if spi.getUuid.equals(participantUuid) =>
-              (actor, !activated)
-          }.getOrElse(throw new RuntimeException(s"Data for actor with UUID $participantUuid not found"))
-
-          // activate the participants that have not been activated before
-          if (notActivatedBefore)
-            actor ! ActivityStartTrigger(tick)
-
-          // send out flex control messages
-          actor ! flexOptions
-        }
 
       // TODO sanity checks after strat calculation
 
+      flexOptions.foreach { case (spi, actor, _, activatedBefore) =>
+        val issueCtrlOpt = issueCtrlMsgs
+          .find { case (uuid, _) =>
+            uuid.equals(spi.getUuid)
+          }
+          .map { case (_, issueCtrlMsg) =>
+            issueCtrlMsg
+          } match {
+          case None if activatedBefore =>
+            // if a response is expected for this tick and flexibility
+            // should be used, send a no-control-msg instead
+            Some(IssueNoCtrl)
+          case other => other
+        }
+
+        issueCtrlOpt.map { issueCtrlMsg =>
+          // activate the participants that have not been activated before
+          if (!activatedBefore)
+            actor ! ActivityStartTrigger(tick)
+
+          // send out flex control messages
+          actor ! issueCtrlMsg
+        }
+      }
+
       stay() using baseStateData
 
-      // TODO
+      // TODO total power calculation
       self ! StartCalculationTrigger
 
       goto(Calculate) using baseStateData
