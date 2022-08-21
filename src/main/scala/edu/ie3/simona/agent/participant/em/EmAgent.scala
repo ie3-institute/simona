@@ -105,7 +105,7 @@ object EmAgent {
       ]], // TODO enhanced todo: MultiValueStore
       // TODO issued ctrl value store ?
       actorRefToUuid: Map[ActorRef, UUID],
-      connectedModels: Map[UUID, SystemParticipantInput],
+      connectedAgents: Map[UUID, (SystemParticipantInput, ActorRef)],
       schedulerStateData: EmSchedulerStateData
   ) extends ModelBaseStateData[ApparentPowerAndHeat, EmRelevantData, EmModel] {
     override val modelUuid: UUID = model.getUuid
@@ -201,8 +201,8 @@ class EmAgent(
         connectedAgents.map { case (actor, _, sp) =>
           actor -> sp.getUuid
         }.toMap,
-        connectedAgents.map { case (_, _, sp) =>
-          sp.getUuid -> sp
+        connectedAgents.map { case (actor, _, sp) =>
+          sp.getUuid -> (sp, actor)
         }.toMap,
         EmSchedulerStateData(trigger = triggerData)
       )
@@ -356,7 +356,7 @@ class EmAgent(
     // check if expected flex answers for this tick arrived
     val flexAnswers = baseStateData.receivedFlexOptionsValueStore.map {
       case (uuid, store) =>
-        val spi = baseStateData.connectedModels.getOrElse(
+        val (spi, actor) = baseStateData.connectedAgents.getOrElse(
           uuid,
           throw new RuntimeException(
             s"There's no flex options store for $uuid whatsoever"
@@ -370,11 +370,11 @@ class EmAgent(
             )
           )
 
-        (spi, flexOptions, dataTick == tick)
+        (spi, actor, flexOptions, dataTick == tick)
     }
 
     val flexAnswersReceived = !flexAnswers.exists {
-      case (_, None, _) => true
+      case (_, _, None, _) => true
       case _            => false
     }
 
@@ -382,8 +382,10 @@ class EmAgent(
       // All flex options and all results have been received.
 
       val flexStratInput = flexAnswers.flatMap {
-        case (spi, flexOptionsOpt, _) => flexOptionsOpt.map(spi -> _)
+        case (spi, _, flexOptionsOpt, _) => flexOptionsOpt.map(spi -> _)
       }
+
+      // TODO sanity checks before strat calculation
 
       baseStateData.model
         .determineDeviceControl(
@@ -393,28 +395,21 @@ class EmAgent(
           }.toSeq
         )
         .foreach { case (participantUuid, flexOptions) =>
-          // send out flex control messages
-          val agent = baseStateData.actorRefToUuid
-            .collectFirst {
-              case (actor, uuid) if uuid.equals(participantUuid) => actor
-            }
-            .getOrElse(
-              throw new RuntimeException(
-                s"Could not find actor for uuid $participantUuid"
-              )
-            )
+
+          val (actor, notActivatedBefore) = flexAnswers.collectFirst {
+            case (spi, actor, _, activated) if spi.getUuid.equals(participantUuid) =>
+              (actor, !activated)
+          }.getOrElse(throw new RuntimeException(s"Data for actor with UUID $participantUuid not found"))
 
           // activate the participants that have not been activated before
-          val notActivatedBefore = flexAnswers.exists {
-            case (spi, _, activated) =>
-              spi.getUuid.equals(participantUuid) && !activated
-          }
-
           if (notActivatedBefore)
-            agent ! ActivityStartTrigger(tick)
+            actor ! ActivityStartTrigger(tick)
 
-          agent ! flexOptions
+          // send out flex control messages
+          actor ! flexOptions
         }
+
+      // TODO sanity checks after strat calculation
 
       stay() using baseStateData
 
