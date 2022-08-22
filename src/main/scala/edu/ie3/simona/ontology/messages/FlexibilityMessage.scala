@@ -9,7 +9,7 @@ package edu.ie3.simona.ontology.messages
 import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
-import javax.measure.quantity.{Energy, Power}
+import javax.measure.quantity.Power
 
 trait FlexibilityMessage {}
 
@@ -17,7 +17,7 @@ object FlexibilityMessage {
 
   /** EmAgent requests flexibility options from connected agents
     */
-  case object RequestFlexibilityOptions
+  case object RequestFlexOptions
 
   /** Connected agents provide flex options
     */
@@ -27,7 +27,7 @@ object FlexibilityMessage {
 
   /** EmAgent issues flexibility control
     */
-  trait IssueFlexibilityControl
+  trait IssueFlexControl
 
   case class ProvideMinMaxFlexOptions(
       override val modelUuid: UUID,
@@ -41,7 +41,7 @@ object FlexibilityMessage {
     */
   case class IssuePowerCtrl(
       power: ComparableQuantity[Power]
-  ) extends IssueFlexibilityControl
+  ) extends IssueFlexControl
 
-  case object IssueNoCtrl extends IssueFlexibilityControl
+  case object IssueNoCtrl extends IssueFlexControl
 }

@@ -15,7 +15,8 @@ import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.em.EmAgent.{
   EmAgentInitializeStateData,
-  EmAgentModelBaseStateData
+  EmAgentModelBaseStateData,
+  FlexCorrespondence
 }
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ModelBaseStateData
@@ -96,15 +97,30 @@ object EmAgent {
       resultValueStore: ValueStore[ApparentPowerAndHeat],
       requestValueStore: ValueStore[ApparentPowerAndHeat],
       calcRelevantDateStore: ValueStore[EmRelevantData],
-      receivedFlexOptionsValueStore: Map[UUID, ValueStore[
-        Option[ProvideFlexOptions]
+      flexCorrespondences: Map[UUID, ValueStore[
+        FlexCorrespondence
       ]], // TODO enhanced todo: MultiValueStore
-      // TODO issued ctrl value store ?
       actorRefToUuid: Map[ActorRef, UUID],
       connectedAgents: Map[UUID, (SystemParticipantInput, ActorRef)],
       schedulerStateData: EmSchedulerStateData
   ) extends ModelBaseStateData[ApparentPowerAndHeat, EmRelevantData, EmModel] {
     override val modelUuid: UUID = model.getUuid
+  }
+
+  final case class FlexCorrespondence(
+      receivedFlexOptions: Option[ProvideFlexOptions] = None,
+      issuedCtrlMsgs: Option[IssueFlexControl] = None
+  ) {
+    def hasOptions: Boolean =
+      receivedFlexOptions.nonEmpty
+  }
+
+  object FlexCorrespondence {
+    def apply(flexOptions: ProvideFlexOptions): FlexCorrespondence =
+      FlexCorrespondence(
+        Some(flexOptions),
+        None
+      )
   }
 
 }
@@ -261,7 +277,7 @@ class EmAgent(
         expectedActors.map { case (_, uuid) => uuid }
 
       val updatedReceivedFlexOptions = expectedParticipants.foldLeft(
-        baseStateData.receivedFlexOptionsValueStore
+        baseStateData.flexCorrespondences
       ) { case (stores, uuid) =>
         val participantValueStore = stores.getOrElse(
           uuid,
@@ -272,7 +288,7 @@ class EmAgent(
           ValueStore.updateValueStore(
             participantValueStore,
             newTick,
-            None
+            FlexCorrespondence()
           )
 
         stores.updated(uuid, updatedFlexOptionsStore)
@@ -280,12 +296,12 @@ class EmAgent(
 
       val updatedBaseStateData =
         baseStateData.copy(
-          receivedFlexOptionsValueStore = updatedReceivedFlexOptions
+          flexCorrespondences = updatedReceivedFlexOptions
         )
 
       // send out flex requests for all expected agents
       expectedActors.foreach { case (actor, _) =>
-        actor ! RequestFlexibilityOptions
+        actor ! RequestFlexOptions
       }
 
       // send out all ActivityStartTriggers
@@ -298,7 +314,7 @@ class EmAgent(
       val tick = baseStateData.schedulerStateData.nowInTicks
 
       val receivedFlexOptions =
-        baseStateData.receivedFlexOptionsValueStore.getOrElse(
+        baseStateData.flexCorrespondences.getOrElse(
           flexOptions.modelUuid,
           throw new RuntimeException(
             s"No received flex options store found for ${flexOptions.modelUuid}"
@@ -308,17 +324,17 @@ class EmAgent(
       val updatedValueStore = ValueStore.updateValueStore(
         receivedFlexOptions,
         tick,
-        Some(flexOptions)
+        FlexCorrespondence(flexOptions)
       )
 
       val updatedReceivedFlexOptions =
-        baseStateData.receivedFlexOptionsValueStore.updated(
+        baseStateData.flexCorrespondences.updated(
           flexOptions.modelUuid,
           updatedValueStore
         )
 
       val updatedBaseStateData = baseStateData.copy(
-        receivedFlexOptionsValueStore = updatedReceivedFlexOptions
+        flexCorrespondences = updatedReceivedFlexOptions
       )
 
       maybeIssueFlexControl(updatedBaseStateData)
@@ -350,7 +366,7 @@ class EmAgent(
     val tick = baseStateData.schedulerStateData.nowInTicks
 
     // check if expected flex answers for this tick arrived
-    val flexOptions = baseStateData.receivedFlexOptionsValueStore.map {
+    val flexOptions = baseStateData.flexCorrespondences.map {
       case (uuid, store) =>
         val (spi, actor) = baseStateData.connectedAgents.getOrElse(
           uuid,
@@ -370,15 +386,16 @@ class EmAgent(
     }
 
     val flexAnswersReceived = !flexOptions.exists {
-      case (_, _, None, true) => true
-      case _                  => false
+      case (_, _, correspondence, true) if !correspondence.hasOptions => true
+      case _                                                          => false
     }
 
     if (flexAnswersReceived) {
       // All flex options and all results have been received.
 
       val flexStratInput = flexOptions.flatMap {
-        case (spi, _, flexOptionsOpt, _) => flexOptionsOpt.map(spi -> _)
+        case (spi, _, flexOptionsOpt, _) =>
+          flexOptionsOpt.receivedFlexOptions.map(spi -> _)
       }
 
       // TODO sanity checks before strat calculation
@@ -393,32 +410,58 @@ class EmAgent(
 
       // TODO sanity checks after strat calculation
 
-      flexOptions.foreach { case (spi, actor, _, activatedBefore) =>
-        val issueCtrlOpt = issueCtrlMsgs
-          .find { case (uuid, _) =>
-            uuid.equals(spi.getUuid)
-          }
-          .map { case (_, issueCtrlMsg) =>
-            issueCtrlMsg
-          } match {
-          case None if activatedBefore =>
-            // if a response is expected for this tick and flexibility
-            // should be used, send a no-control-msg instead
-            Some(IssueNoCtrl)
-          case other => other
-        }
+      val issueCtrlMsgsComplete = flexOptions.flatMap {
+        case (spi, actor, _, activatedBefore) =>
+          issueCtrlMsgs
+            .find { case (uuid, _) =>
+              uuid.equals(spi.getUuid)
+            }
+            .orElse {
+              // if a response is expected for this tick and flexibility
+              // should not be used, send a no-control-msg instead
+              Option.when(activatedBefore)(spi.getUuid -> IssueNoCtrl)
+            }
+            .map { case (uuid, flexCtrl) =>
+              (uuid, actor, flexCtrl, activatedBefore)
+            }
+      }
 
-        issueCtrlOpt.map { issueCtrlMsg =>
+      issueCtrlMsgsComplete.foreach {
+        case (_, actor, issueCtrlMsg, activatedBefore) =>
           // activate the participants that have not been activated before
           if (!activatedBefore)
             actor ! ActivityStartTrigger(tick)
 
           // send out flex control messages
           actor ! issueCtrlMsg
-        }
       }
 
-      stay() using baseStateData
+      // create updated value stores for participants that are received control msgs
+      val updatedValueStores = issueCtrlMsgsComplete.flatMap {
+        case (uuid, _, issueFlex, _) =>
+          baseStateData.flexCorrespondences.get(uuid).flatMap { store =>
+            store.last().map { case (dataTick, correspondence) =>
+              val updatedCorrespondence =
+                correspondence.copy(issuedCtrlMsgs = Some(issueFlex))
+
+              uuid -> ValueStore.updateValueStore(
+                store,
+                dataTick,
+                updatedCorrespondence
+              )
+            }
+          }
+      }.toMap
+
+      // actually update the value store map
+      val updatedCorrespondences = baseStateData.flexCorrespondences.map {
+        case (uuid, store) =>
+          uuid -> updatedValueStores.getOrElse(uuid, store)
+      }
+
+      stay() using baseStateData.copy(
+        flexCorrespondences = updatedCorrespondences
+      )
 
       // TODO total power calculation
       self ! StartCalculationTrigger
