@@ -7,14 +7,16 @@
 package edu.ie3.simona.agent.participant.em
 
 import akka.actor.{ActorRef, FSM}
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.EmInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower,
+  ZERO_POWER
+}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.em.EmAgent.EmAgentModelBaseStateData
+import edu.ie3.simona.agent.participant.em.EmAgent.EmModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
   DataCollectionStateData,
@@ -26,7 +28,6 @@ import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.EmModel
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -35,45 +36,46 @@ import scala.reflect.{ClassTag, classTag}
 
 trait EmAgentFundamentals
     extends ParticipantAgentFundamentals[
-      ApparentPowerAndHeat,
+      ApparentPower,
       EmRelevantData,
-      EmAgentModelBaseStateData,
+      EmModelBaseStateData,
       EmInput,
       EmRuntimeConfig,
       EmModel
     ] {
   this: EmAgent =>
-  override protected val pdClassTag: ClassTag[ApparentPowerAndHeat] =
-    classTag[ApparentPowerAndHeat]
-  override val alternativeResult: ApparentPowerAndHeat = ApparentPowerAndHeat(
-    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
-    Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT),
-    Quantities.getQuantity(0d, StandardUnits.HEAT_DEMAND)
-  )
+  override protected val pdClassTag: ClassTag[ApparentPower] =
+    classTag[ApparentPower]
+  override val alternativeResult: ApparentPower = ZERO_POWER
 
   // TODO power calc
   override val calculateModelPowerFunc: (
       Long,
       BaseStateData.ParticipantModelBaseStateData[
-        ApparentPowerAndHeat,
+        ApparentPower,
         EmRelevantData,
         EmModel
       ],
       ComparableQuantity[Dimensionless]
-  ) => ApparentPowerAndHeat = ???
+  ) => ApparentPower = ???
 
   override def calculatePowerWithSecondaryDataAndGoToIdle(
-      collectionStateData: DataCollectionStateData[ApparentPowerAndHeat],
+      collectionStateData: DataCollectionStateData[ApparentPower],
       currentTick: Long,
       scheduler: ActorRef
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] = ???
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = ???
 
   override def buildModel(
       inputModel: EmInput,
       modelConfig: EmRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
-  ): EmModel = ???
+  ): EmModel = EmModel(
+    inputModel,
+    modelConfig,
+    simulationStartDate,
+    simulationEndDate
+  )
 
   override def determineModelBaseStateData(
       inputModel: EmInput,
@@ -85,7 +87,7 @@ trait EmAgentFundamentals
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig
   ): BaseStateData.ParticipantModelBaseStateData[
-    ApparentPowerAndHeat,
+    ApparentPower,
     EmRelevantData,
     EmModel
   ] = ???
@@ -104,13 +106,13 @@ trait EmAgentFundamentals
     *   The averaged result
     */
   override def averageResults(
-      tickToResults: Map[Long, ApparentPowerAndHeat],
+      tickToResults: Map[Long, ApparentPower],
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         ComparableQuantity[Power] => ComparableQuantity[Power]
       ]
-  ): ApparentPowerAndHeat = ???
+  ): ApparentPower = ???
 
   /** Determines the correct result.
     *
@@ -126,7 +128,7 @@ trait EmAgentFundamentals
   override protected def buildResult(
       uuid: UUID,
       dateTime: ZonedDateTime,
-      result: ApparentPowerAndHeat
+      result: ApparentPower
   ): SystemParticipantResult = ???
 
 }

@@ -7,8 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system._
-import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
+import edu.ie3.simona.agent.participant.em.EmAgent.FlexCorrespondence
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
@@ -158,20 +157,36 @@ final case class EmModel private (
     */
   protected def calculateActivePower(
       data: EmRelevantData
-  ): ComparableQuantity[Power] = ???
+  ): ComparableQuantity[Power] =
+    data.flexCorrespondences
+      .flatMap { correspondence =>
+        correspondence.issuedCtrlMsgs
+          .flatMap {
+            // take flex ctrl as an override, if available
+            case IssuePowerCtrl(power) => Some(power)
+            case _                     => None
+          }
+          .orElse {
+            correspondence.receivedFlexOptions.flatMap {
+              // otherwise, take the suggestion sent by the participant
+              case ProvideMinMaxFlexOptions(_, suggestedPower, _, _) =>
+                Some(suggestedPower)
+              case _ => None
+            }
+          }
+      }
+      .reduceOption { (power1, power2) =>
+        power1.add(power2)
+      }
+      .getOrElse(QuantityUtil.zero(PowerSystemUnits.KILOWATT))
 }
 
 object EmModel {
 
   /** Class that holds all relevant data for Energy Management calculation
-    *
-    * @param dateTime
-    *   date and time of the <b>ending</b> of time frame to calculate
     */
   final case class EmRelevantData(
-      // TODO: From PvModel, Check and refactor
-      dateTime: ZonedDateTime,
-      lastResults: ValueStore[ApparentPowerAndHeat]
+      flexCorrespondences: Iterable[FlexCorrespondence]
   ) extends CalcRelevantData
 
   def apply(

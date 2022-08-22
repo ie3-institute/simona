@@ -10,22 +10,27 @@ import akka.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.{EmInput, SystemParticipantInput}
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
+import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.em.EmAgent.{
   EmAgentInitializeStateData,
-  EmAgentModelBaseStateData,
+  EmModelBaseStateData,
   FlexCorrespondence
 }
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ModelBaseStateData
-import edu.ie3.simona.agent.participant.statedata.InitializeStateData
+import edu.ie3.simona.agent.participant.statedata.{
+  BaseStateData,
+  InitializeStateData
+}
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantUninitializedStateData
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.Calculate
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.participant.EmModel
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
@@ -78,9 +83,9 @@ object EmAgent {
             SystemParticipantInput
         )
       ]
-  ) extends InitializeStateData[ApparentPowerAndHeat]
+  ) extends InitializeStateData[ApparentPower]
 
-  final case class EmAgentModelBaseStateData(
+  final case class EmModelBaseStateData(
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
       model: EmModel,
@@ -94,8 +99,8 @@ object EmAgent {
       voltageValueStore: ValueStore[
         ComparableQuantity[Dimensionless]
       ],
-      resultValueStore: ValueStore[ApparentPowerAndHeat],
-      requestValueStore: ValueStore[ApparentPowerAndHeat],
+      resultValueStore: ValueStore[ApparentPower],
+      requestValueStore: ValueStore[ApparentPower],
       calcRelevantDateStore: ValueStore[EmRelevantData],
       flexCorrespondences: Map[UUID, ValueStore[
         FlexCorrespondence
@@ -103,7 +108,7 @@ object EmAgent {
       actorRefToUuid: Map[ActorRef, UUID],
       connectedAgents: Map[UUID, (SystemParticipantInput, ActorRef)],
       schedulerStateData: EmSchedulerStateData
-  ) extends ModelBaseStateData[ApparentPowerAndHeat, EmRelevantData, EmModel] {
+  ) extends ModelBaseStateData[ApparentPower, EmRelevantData, EmModel] {
     override val modelUuid: UUID = model.getUuid
   }
 
@@ -136,9 +141,9 @@ class EmAgent(
     val scheduler: ActorRef,
     override val listener: Iterable[ActorRef]
 ) extends ParticipantAgent[
-      ApparentPowerAndHeat,
+      ApparentPower,
       EmRelevantData,
-      EmAgentModelBaseStateData,
+      EmModelBaseStateData,
       EmInput,
       EmRuntimeConfig,
       EmModel
@@ -168,7 +173,7 @@ class EmAgent(
             triggerId,
             _
           ),
-          _: ParticipantUninitializedStateData[ApparentPowerAndHeat]
+          _: ParticipantUninitializedStateData[ApparentPower]
         ) =>
       // sending init triggers
       val triggerData = connectedAgents.foldLeft(TriggerData()) {
@@ -182,14 +187,14 @@ class EmAgent(
           )
       }
 
-      val model = EmModel(
+      val model = buildModel(
         inputModel,
         modelConfig,
         simulationStartDate,
         simulationEndDate
       )
 
-      val baseStateData = EmAgentModelBaseStateData(
+      val baseStateData = EmModelBaseStateData(
         simulationStartDate,
         simulationEndDate,
         model,
@@ -230,7 +235,7 @@ class EmAgent(
   private val handleIdleEm: StateFunction = {
     case Event(
           triggerToSchedule: ScheduleTriggerMessage,
-          baseStateData: EmAgentModelBaseStateData
+          baseStateData: EmModelBaseStateData
         ) =>
       stay() using
         baseStateData.copy(schedulerStateData =
@@ -241,7 +246,7 @@ class EmAgent(
 
     case Event(
           completionMessage: CompletionMessage,
-          baseStateData: EmAgentModelBaseStateData
+          baseStateData: EmModelBaseStateData
         ) =>
       // there can be new triggers for the current tick, which need to be sent out immediately
       val updatedStateData =
@@ -258,7 +263,7 @@ class EmAgent(
 
     case Event(
           TriggerWithIdMessage(ActivityStartTrigger(newTick), triggerId, _),
-          baseStateData: EmAgentModelBaseStateData
+          baseStateData: EmModelBaseStateData
         ) =>
       val expectedActors =
         baseStateData.schedulerStateData.trigger.triggerQueue
@@ -309,7 +314,7 @@ class EmAgent(
 
     case Event(
           flexOptions: ProvideFlexOptions,
-          baseStateData: EmAgentModelBaseStateData
+          baseStateData: EmModelBaseStateData
         ) =>
       val tick = baseStateData.schedulerStateData.nowInTicks
 
@@ -345,7 +350,7 @@ class EmAgent(
   when(Idle) { handleIdleEm orElse handleIdle }
 
   private def setActiveTickAndSendTriggers(
-      baseStateData: EmAgentModelBaseStateData,
+      baseStateData: EmModelBaseStateData,
       newTick: Long,
       triggerId: Long
   ): State = {
@@ -361,11 +366,10 @@ class EmAgent(
   }
 
   private def maybeIssueFlexControl(
-      baseStateData: EmAgentModelBaseStateData
+      baseStateData: EmModelBaseStateData
   ): State = {
     val tick = baseStateData.schedulerStateData.nowInTicks
 
-    // check if expected flex answers for this tick arrived
     val flexOptions = baseStateData.flexCorrespondences.map {
       case (uuid, store) =>
         val (spi, actor) = baseStateData.connectedAgents.getOrElse(
@@ -385,6 +389,7 @@ class EmAgent(
         (spi, actor, flexOptions, dataTick == tick)
     }
 
+    // check if expected flex answers for this tick arrived
     val flexAnswersReceived = !flexOptions.exists {
       case (_, _, correspondence, true) if !correspondence.hasOptions => true
       case _                                                          => false
@@ -470,5 +475,109 @@ class EmAgent(
 
     } else
       stay() using baseStateData
+  }
+
+  def calculatePower(
+      baseStateData: EmModelBaseStateData,
+      currentTick: Long,
+      scheduler: ActorRef
+  ): State = {
+    val correspondences = baseStateData.flexCorrespondences
+      .flatMap { case (_, store) =>
+        store.last().map { case (_, correspondence) =>
+          correspondence
+        }
+      }
+
+    val voltage =
+      getAndCheckNodalVoltage(baseStateData, currentTick)
+
+    val relevantData = EmRelevantData(correspondences)
+
+    val result = baseStateData.model.calculatePower(
+      currentTick,
+      voltage,
+      relevantData
+    )
+
+    updateValueStoresInformListeners(
+      scheduler,
+      baseStateData,
+      result,
+      relevantData
+    )
+  }
+
+  /** TODO consolidate with
+    * ParticipantAgentFundamentals#updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(akka.actor.ActorRef,
+    * edu.ie3.simona.agent.participant.statedata.BaseStateData,
+    * java.lang.Object, java.lang.Object)
+    *
+    * Update the result and calc relevant data value stores, inform all
+    * registered listeners and go to Idle using the updated base state data
+    *
+    * @param scheduler
+    *   Actor reference of the scheduler
+    * @param baseStateData
+    *   The base state data of the collection state
+    * @param result
+    *   Result of simulation
+    * @param relevantData
+    *   Data, that have been relevant to this calculation
+    * @return
+    *   Desired state change
+    */
+  final def updateValueStoresInformListeners(
+      scheduler: ActorRef,
+      baseStateData: EmModelBaseStateData,
+      result: ApparentPower,
+      relevantData: EmRelevantData
+  ): State = {
+    /* Update the value stores */
+    val updatedValueStore =
+      ValueStore.updateValueStore(
+        baseStateData.resultValueStore,
+        currentTick,
+        result
+      )
+    val updatedRelevantDataStore =
+      baseStateData match {
+        case data: BaseStateData.ModelBaseStateData[_, _, _] =>
+          ValueStore.updateValueStore(
+            data.calcRelevantDateStore,
+            currentTick,
+            relevantData
+          )
+        case _ =>
+          throw new InconsistentStateException(
+            "Cannot find calculation relevant data to update."
+          )
+      }
+
+    /* Inform the listeners about new result */
+    announceSimulationResult(
+      baseStateData,
+      currentTick,
+      result
+    )(baseStateData.outputConfig)
+
+    /* Update the base state data */
+    val baseStateDateWithUpdatedResults =
+      baseStateData match {
+        case data: EmModelBaseStateData =>
+          data.copy(
+            resultValueStore = updatedValueStore,
+            calcRelevantDateStore = updatedRelevantDataStore
+          )
+        case _ =>
+          throw new InconsistentStateException(
+            "Wrong base state data"
+          )
+      }
+
+    // we don't send the completion message here, as this is part
+    // of the EmScheduler
+    unstashAll()
+    goto(Idle) using baseStateDateWithUpdatedResults
   }
 }
