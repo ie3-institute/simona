@@ -49,11 +49,13 @@ final case class EmModel private (
   ): Seq[(UUID, IssuePowerCtrl)] = {
 
     val suggestedPower =
-      QuantityUtil
-        .sum(flexOptions.map {
-          case (_, ProvideMinMaxFlexOptions(_, suggestedPower, _, _)) =>
-            suggestedPower
-        })
+      flexOptions
+        .map { case (_, ProvideMinMaxFlexOptions(_, suggestedPower, _, _)) =>
+          suggestedPower
+        }
+        .reduceOption { (power1, power2) =>
+          power1.add(power2)
+        }
         .getOrElse(throw new RuntimeException("No flexibilities provided"))
 
     val evcsOpt = flexOptions.collectFirst { case flex @ (_: EvcsInput, _) =>
@@ -74,10 +76,10 @@ final case class EmModel private (
       val orderedParticipants = Seq(evcsOpt, storageOpt, heatPumpOpt).flatten
 
       orderedParticipants.foldLeft(
-        (Seq.empty[(UUID, IssuePowerCtrl)], suggestedPower)
+        (Seq.empty[(UUID, IssuePowerCtrl)], Option(suggestedPower))
       ) {
         case (
-              (issueCtrlMsgs, remainingExcessPower),
+              (issueCtrlMsgs, Some(remainingExcessPower)),
               (spi, flexOption: ProvideMinMaxFlexOptions)
             ) =>
           val differenceNoControl =
@@ -90,18 +92,22 @@ final case class EmModel private (
               issueCtrlMsgs :+ (spi.getUuid, IssuePowerCtrl(
                 flexOption.maxPower
               )),
-              remainingExcessPower.subtract(differenceNoControl)
+              Some(remainingExcessPower.subtract(differenceNoControl))
             )
           } else {
             // this flexibility covers more than we need to reach zero excess,
             // thus we only use as much as we need
-            val powerCtrl = flexOption.suggestedPower.add(differenceNoControl)
+            val powerCtrl =
+              flexOption.suggestedPower.subtract(remainingExcessPower)
 
             (
               issueCtrlMsgs :+ (spi.getUuid, IssuePowerCtrl(powerCtrl)),
-              QuantityUtil.zero(PowerSystemUnits.KILOWATT)
+              None
             )
           }
+        case ((issueCtrlMsgs, None), (_, _)) =>
+          // if no excess feed-in remains, do nothing
+          (issueCtrlMsgs, None)
       } match {
         case (issueCtrlMsgs, _) => issueCtrlMsgs
       }
@@ -112,10 +118,10 @@ final case class EmModel private (
       val orderedParticipants = Seq(storageOpt, evcsOpt, heatPumpOpt).flatten
 
       orderedParticipants.foldLeft(
-        (Seq.empty[(UUID, IssuePowerCtrl)], suggestedPower)
+        (Seq.empty[(UUID, IssuePowerCtrl)], Option(suggestedPower))
       ) {
         case (
-              (issueCtrlMsgs, remainingExcessPower),
+              (issueCtrlMsgs, Some(remainingExcessPower)),
               (spi, flexOption: ProvideMinMaxFlexOptions)
             ) =>
           val differenceNoControl =
@@ -128,19 +134,22 @@ final case class EmModel private (
               issueCtrlMsgs :+ (spi.getUuid, IssuePowerCtrl(
                 flexOption.minPower
               )),
-              remainingExcessPower.subtract(differenceNoControl)
+              Some(remainingExcessPower.subtract(differenceNoControl))
             )
           } else {
             // this flexibility covers more than we need to reach zero excess,
             // thus we only use as much as we need
             val powerCtrl =
-              flexOption.suggestedPower.subtract(differenceNoControl)
+              flexOption.suggestedPower.subtract(remainingExcessPower)
 
             (
               issueCtrlMsgs :+ (spi.getUuid, IssuePowerCtrl(powerCtrl)),
-              QuantityUtil.zero(PowerSystemUnits.KILOWATT)
+              None
             )
           }
+        case ((issueCtrlMsgs, None), (_, _)) =>
+          // if no excess load remains, do nothing
+          (issueCtrlMsgs, None)
       } match {
         case (issueCtrlMsgs, _) => issueCtrlMsgs
       }

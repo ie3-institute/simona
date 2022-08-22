@@ -304,13 +304,16 @@ class EmAgent(
           flexCorrespondences = updatedReceivedFlexOptions
         )
 
+      // send out all ActivityStartTriggers
+      val nextState =
+        setActiveTickAndSendTriggers(updatedBaseStateData, newTick, triggerId)
+
       // send out flex requests for all expected agents
       expectedActors.foreach { case (actor, _) =>
         actor ! RequestFlexOptions
       }
 
-      // send out all ActivityStartTriggers
-      setActiveTickAndSendTriggers(updatedBaseStateData, newTick, triggerId)
+      nextState
 
     case Event(
           flexOptions: ProvideFlexOptions,

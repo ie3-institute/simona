@@ -25,6 +25,7 @@ import edu.ie3.simona.agent.participant.statedata.{
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.exceptions.agent.InvalidRequestException
 import edu.ie3.simona.model.participant.EmModel
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
 import tech.units.indriya.ComparableQuantity
@@ -34,6 +35,8 @@ import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.{ClassTag, classTag}
 
+/** TODO unused methods
+  */
 trait EmAgentFundamentals
     extends ParticipantAgentFundamentals[
       ApparentPower,
@@ -48,7 +51,6 @@ trait EmAgentFundamentals
     classTag[ApparentPower]
   override val alternativeResult: ApparentPower = ZERO_POWER
 
-  // TODO power calc
   override val calculateModelPowerFunc: (
       Long,
       BaseStateData.ParticipantModelBaseStateData[
@@ -57,13 +59,28 @@ trait EmAgentFundamentals
         EmModel
       ],
       ComparableQuantity[Dimensionless]
-  ) => ApparentPower = ???
+  ) => ApparentPower =
+    (
+        _: Long,
+        _: BaseStateData.ParticipantModelBaseStateData[
+          ApparentPower,
+          EmRelevantData,
+          EmModel
+        ],
+        _: ComparableQuantity[Dimensionless]
+    ) =>
+      throw new InvalidRequestException(
+        "WEC model cannot be run without secondary data."
+      )
 
   override def calculatePowerWithSecondaryDataAndGoToIdle(
       collectionStateData: DataCollectionStateData[ApparentPower],
       currentTick: Long,
       scheduler: ActorRef
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = ???
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
+    throw new InvalidRequestException(
+      "Not implemented"
+    )
 
   override def buildModel(
       inputModel: EmInput,
@@ -90,7 +107,10 @@ trait EmAgentFundamentals
     ApparentPower,
     EmRelevantData,
     EmModel
-  ] = ???
+  ] =
+    throw new InvalidRequestException(
+      "Not implemented"
+    )
 
   /** Determine the average result within the given tick window
     *
@@ -112,7 +132,10 @@ trait EmAgentFundamentals
       activeToReactivePowerFuncOpt: Option[
         ComparableQuantity[Power] => ComparableQuantity[Power]
       ]
-  ): ApparentPower = ???
+  ): ApparentPower =
+    throw new InvalidRequestException(
+      "Not implemented"
+    )
 
   /** Determines the correct result.
     *
@@ -129,6 +152,9 @@ trait EmAgentFundamentals
       uuid: UUID,
       dateTime: ZonedDateTime,
       result: ApparentPower
-  ): SystemParticipantResult = ???
+  ): SystemParticipantResult =
+    throw new InvalidRequestException(
+      "Not implemented"
+    )
 
 }
