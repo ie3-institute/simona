@@ -16,10 +16,10 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOpti
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.mockito.Mockito.when
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.mockito.MockitoSugar.mock
-import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
 
@@ -38,41 +38,70 @@ class EmModelSpec
         simulationEndDate
       )
 
-      val loadUuid = UUID.randomUUID()
+      val load = UUID.randomUUID()
       val loadInputModel = mock[LoadInput]
-      when(loadInputModel.getUuid).thenReturn(loadUuid)
+      when(loadInputModel.getUuid).thenReturn(load)
 
-      val pvUuid = UUID.randomUUID()
+      val pv = UUID.randomUUID()
       val pvInputModel = mock[PvInput]
-      when(pvInputModel.getUuid).thenReturn(pvUuid)
+      when(pvInputModel.getUuid).thenReturn(pv)
 
-      val evcsUuid = UUID.randomUUID()
+      val evcs = UUID.randomUUID()
       val evcsInputModel = mock[EvcsInput]
-      when(evcsInputModel.getUuid).thenReturn(evcsUuid)
+      when(evcsInputModel.getUuid).thenReturn(evcs)
 
-      val storageUuid = UUID.randomUUID()
+      val strg = UUID.randomUUID()
       val storageInputModel = mock[StorageInput]
-      when(storageInputModel.getUuid).thenReturn(storageUuid)
+      when(storageInputModel.getUuid).thenReturn(strg)
 
       val cases = Table(
         (
           "loadPower",
           "pvPower",
           "evcsSuggested",
-          "evcsSRated",
-          "storageSRated",
+          "evcsMin",
+          "evcsMax",
+          "storageMin",
+          "storageMax",
           "expectedResult"
         ),
         // TODO add explanation to each row
-        // excess feed-in
-        (0d, -5d, 2d, 11d, 2d, Seq((evcsUuid, 5d))),
-        (1d, -13d, 2d, 11d, 2d, Seq((evcsUuid, 11d), (storageUuid, 1d))),
-        (0d, -14d, 2d, 11d, 2d, Seq((evcsUuid, 11d), (storageUuid, 2d))),
-        // (0d, -14d, 2d, 0d, 5d, Seq((storageUuid, 5d))), FIXME
-        // excess load
-        (5d, -1d, 0d, 11d, 5d, Seq((storageUuid, -4d))),
-        (5d, -1d, 3d, 11d, 5d, Seq((storageUuid, -5d), (evcsUuid, 1d))),
-        (5d, -1d, 5d, 11d, 2d, Seq((storageUuid, -2d), (evcsUuid, -2d)))
+        /* excess feed-in */
+        // excess is fully covered by parts of evcs flexibility
+        (0d, -5d, 2d, -11d, 11d, -2d, 2d, Seq((evcs, 5d))),
+        // excess is fully covered by maximum evcs flexibility
+        (0d, -11d, 2d, -11d, 11d, -2d, 2d, Seq((evcs, 11d))),
+        // excess is fully covered by max evcs and parts of storage flex
+        (1d, -13d, 2d, -11d, 11d, -2d, 2d, Seq((evcs, 11d), (strg, 1d))),
+        // excess is fully covered by max evcs and max storage flex
+        (0d, -14d, 2d, -11d, 11d, -2d, 2d, Seq((evcs, 11d), (strg, 2d))),
+        // excess is fully covered by max storage flex
+        (0d, -4d, 2d, 0d, 2d, -2d, 2d, Seq((strg, 2d))),
+        // excess is partly covered by max evcs and max storage flex, -2kW remains
+        (0d, -15d, 2d, -11d, 11d, -2d, 2d, Seq((evcs, 11d), (strg, 2d))),
+        // excess is partly covered by max storage flex, -7kW remains
+        (0d, -14d, 2d, 0d, 2d, -5d, 5d, Seq((strg, 5d))),
+        // excess can't be covered because there is no flexibility
+        (0d, -5d, 2d, 2d, 2d, 0d, 0d, Seq.empty),
+        /* excess load */
+        // excess is fully covered by parts of storage flex
+        (5d, -1d, 0d, -11d, 11d, -5d, 5d, Seq((strg, -4d))),
+        // excess is fully covered by min storage flex
+        (6d, -1d, 0d, -11d, 11d, -5d, 5d, Seq((strg, -5d))),
+        // excess is fully covered by min storage and parts of evcs flex, charging power reduced
+        (5d, -1d, 3d, -11d, 11d, -5d, 5d, Seq((strg, -5d), (evcs, 1d))),
+        // excess is fully covered by min storage and parts of evcs flex, vehicle-to-home
+        (5d, -1d, 5d, -11d, 11d, -2d, 2d, Seq((strg, -2d), (evcs, -2d))),
+        // excess is fully covered by min storage and min evcs flex
+        (14d, -1d, 5d, -11d, 11d, -2d, 2d, Seq((strg, -2d), (evcs, -11d))),
+        // excess is fully covered by min evcs flex
+        (12d, -1d, 2d, -11d, 11d, 0d, 0d, Seq((evcs, -11d))),
+        // excess is partly covered by min evcs and min storage flex, 1kW remains
+        (15d, -1d, 2d, -11d, 11d, -2d, 2d, Seq((strg, -2d), (evcs, -11d))),
+        // excess is partly covered by min evcs flex, 2kW remains
+        (14d, -1d, 4d, -11d, 11d, 0d, 0d, Seq((evcs, -11d))),
+        // excess can't be covered because there is no flexibility
+        (5d, 0d, 2d, 2d, 2d, 0d, 0d, Seq.empty)
       )
 
       forAll(cases) {
@@ -80,48 +109,47 @@ class EmModelSpec
             loadPower,
             pvPower,
             evcsSuggested,
-            evcsSRated,
-            storageSRated,
+            evcsMin,
+            evcsMax,
+            storageMin,
+            storageMax,
             expectedResult
         ) =>
           val flexOptions = Seq(
             (
               loadInputModel,
               ProvideMinMaxFlexOptions(
-                loadUuid,
-                Quantities.getQuantity(loadPower, PowerSystemUnits.KILOWATT),
-                Quantities.getQuantity(loadPower, PowerSystemUnits.KILOWATT),
-                Quantities.getQuantity(loadPower, PowerSystemUnits.KILOWATT)
+                load,
+                loadPower.asKiloWatt,
+                loadPower.asKiloWatt,
+                loadPower.asKiloWatt
               )
             ),
             (
               pvInputModel,
               ProvideMinMaxFlexOptions(
-                pvUuid,
-                Quantities.getQuantity(pvPower, PowerSystemUnits.KILOWATT),
-                Quantities.getQuantity(pvPower, PowerSystemUnits.KILOWATT),
-                Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+                pv,
+                pvPower.asKiloWatt,
+                pvPower.asKiloWatt,
+                0d.asKiloWatt
               )
             ),
             (
               evcsInputModel,
               ProvideMinMaxFlexOptions(
-                evcsUuid,
-                Quantities
-                  .getQuantity(evcsSuggested, PowerSystemUnits.KILOWATT),
-                Quantities
-                  .getQuantity(evcsSRated * -1d, PowerSystemUnits.KILOWATT),
-                Quantities.getQuantity(evcsSRated, PowerSystemUnits.KILOWATT)
+                evcs,
+                evcsSuggested.asKiloWatt,
+                evcsMin.asKiloWatt,
+                evcsMax.asKiloWatt
               )
             ),
             (
               storageInputModel,
               ProvideMinMaxFlexOptions(
-                storageUuid,
-                Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT),
-                Quantities
-                  .getQuantity(storageSRated * -1d, PowerSystemUnits.KILOWATT),
-                Quantities.getQuantity(storageSRated, PowerSystemUnits.KILOWATT)
+                strg,
+                0d.asKiloWatt,
+                storageMin.asKiloWatt,
+                storageMax.asKiloWatt
               )
             )
           )

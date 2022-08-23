@@ -10,7 +10,10 @@ import edu.ie3.datamodel.models.input.system._
 import edu.ie3.simona.agent.participant.em.EmAgent.FlexCorrespondence
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.EmModel.EmRelevantData
+import edu.ie3.simona.model.participant.EmModel.{
+  EmRelevantData,
+  relativeTolerance
+}
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   IssuePowerCtrl,
@@ -21,6 +24,7 @@ import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.QuantityUtil
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.quantities.{QuantityUtil => PsuQuantityUtil}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -85,7 +89,15 @@ final case class EmModel private (
           val differenceNoControl =
             flexOption.suggestedPower.subtract(flexOption.maxPower)
 
-          if (remainingExcessPower.isLessThan(differenceNoControl)) {
+          if (
+            PsuQuantityUtil.isEquivalentAbs(
+              QuantityUtil.zero(PowerSystemUnits.KILOWATT),
+              differenceNoControl,
+              relativeTolerance
+            )
+          ) {
+            (issueCtrlMsgs, Some(remainingExcessPower))
+          } else if (remainingExcessPower.isLessThan(differenceNoControl)) {
             // we cannot cover the excess feed-in with just this flexibility,
             // thus use all of the flexibility
             (
@@ -127,7 +139,15 @@ final case class EmModel private (
           val differenceNoControl =
             flexOption.suggestedPower.subtract(flexOption.minPower)
 
-          if (remainingExcessPower.isGreaterThan(differenceNoControl)) {
+          if (
+            PsuQuantityUtil.isEquivalentAbs(
+              QuantityUtil.zero(PowerSystemUnits.KILOWATT),
+              differenceNoControl,
+              relativeTolerance
+            )
+          ) {
+            (issueCtrlMsgs, Some(remainingExcessPower))
+          } else if (remainingExcessPower.isGreaterThan(differenceNoControl)) {
             // we cannot cover the excess load with just this flexibility,
             // thus use all of the flexibility
             (
@@ -191,6 +211,8 @@ final case class EmModel private (
 }
 
 object EmModel {
+
+  private val relativeTolerance = 1e-6d
 
   /** Class that holds all relevant data for Energy Management calculation
     */
