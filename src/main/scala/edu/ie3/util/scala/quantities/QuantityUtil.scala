@@ -37,9 +37,12 @@ object QuantityUtil {
       unit: javax.measure.Unit[Q]
   ): ComparableQuantity[Q] = Quantities.getQuantity(0, unit)
 
-  def sum[Q <: Quantity[Q]](
-      quantities: Iterable[ComparableQuantity[Q]]
-  ): Option[ComparableQuantity[Q]] = {
+  @deprecated(
+    "Use reduceOption { (power1, power2) => power1.add(power2) } instead"
+  )
+  def add[Q <: Quantity[Q]](
+      quantities: Iterable[Quantity[Q]]
+  ): Option[Quantity[Q]] = {
     if (quantities.nonEmpty) {
       val iterator = quantities.iterator
       val sum = iterator.next()
