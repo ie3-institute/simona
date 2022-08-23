@@ -12,10 +12,16 @@ import edu.ie3.datamodel.models.input.system.{
   PvInput,
   StorageInput
 }
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.agent.participant.em.EmAgent.FlexCorrespondence
+import edu.ie3.simona.model.participant.EmModel.EmRelevantData
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  IssueNoCtrl,
+  IssuePowerCtrl,
+  ProvideMinMaxFlexOptions
+}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EmInputTestData
-import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.mockito.Mockito.when
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -30,14 +36,16 @@ class EmModelSpec
 
   "The em model object" should {
 
-    "determine flex" in {
-      val model = EmModel(
-        emInputModel,
-        modelConfig,
-        simulationStartDate,
-        simulationEndDate
-      )
+    val model = EmModel(
+      emInputModel,
+      modelConfig,
+      simulationStartDate,
+      simulationEndDate
+    )
 
+    model.enable()
+
+    "determine flex control dependent on flex options" in {
       val load = UUID.randomUUID()
       val loadInputModel = mock[LoadInput]
       when(loadInputModel.getUuid).thenReturn(load)
@@ -65,7 +73,6 @@ class EmModelSpec
           "storageMax",
           "expectedResult"
         ),
-        // TODO add explanation to each row
         /* excess feed-in */
         // excess is fully covered by parts of evcs flexibility
         (0d, -5d, 2d, -11d, 11d, -2d, 2d, Seq((evcs, 5d))),
@@ -173,6 +180,47 @@ class EmModelSpec
               .doubleValue() should ===(expectedRes +- 1e-6d)
           }
       }
+    }
+
+    "calculate total power based on flex options and flex control" in {
+      val flexCorrespondences = Iterable(
+        FlexCorrespondence(
+          Some(
+            ProvideMinMaxFlexOptions(
+              UUID.randomUUID(),
+              5d.asKiloWatt,
+              (-5d).asKiloWatt,
+              5d.asKiloWatt
+            )
+          ),
+          Some(IssueNoCtrl)
+        ),
+        FlexCorrespondence(
+          Some(
+            ProvideMinMaxFlexOptions(
+              UUID.randomUUID(),
+              1d.asKiloWatt,
+              0d.asKiloWatt,
+              2d.asKiloWatt
+            )
+          ),
+          Some(IssuePowerCtrl(3.asKiloWatt))
+        )
+      )
+
+      val actualResult =
+        model.calculatePower(0L, 1d.asPu, EmRelevantData(flexCorrespondences))
+
+      QuantityUtil.isEquivalentAbs(
+        actualResult.p,
+        8.asKiloWatt,
+        1e-9d
+      ) shouldBe true
+      QuantityUtil.isEquivalentAbs(
+        actualResult.q,
+        0.asKiloWatt,
+        1e-9d
+      ) shouldBe true
     }
   }
 
