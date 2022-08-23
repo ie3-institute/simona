@@ -31,6 +31,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.scalatestplus.mockito.MockitoSugar.mock
 import tech.units.indriya.quantity.Quantities
 
@@ -167,27 +168,29 @@ class EmAgentSelfOptSpec
       )
 
       // init done, start EmAgent
-      val activationTriggerId = 1L
+      val activationTriggerId1 = 1L
 
       scheduler.send(
         emAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          activationTriggerId,
+          activationTriggerId1,
           emAgent
         )
       )
 
       // expect activations and flex requests
-      val activationTrigger1 = participant1.expectMsgType[TriggerWithIdMessage]
-      activationTrigger1.trigger shouldBe ActivityStartTrigger(0L)
-      activationTrigger1.receiverActor shouldBe participant1.ref
+      val activationTrigger1_1 =
+        participant1.expectMsgType[TriggerWithIdMessage]
+      activationTrigger1_1.trigger shouldBe ActivityStartTrigger(0L)
+      activationTrigger1_1.receiverActor shouldBe participant1.ref
 
       participant1.expectMsg(RequestFlexOptions)
 
-      val activationTrigger2 = participant2.expectMsgType[TriggerWithIdMessage]
-      activationTrigger2.trigger shouldBe ActivityStartTrigger(0L)
-      activationTrigger2.receiverActor shouldBe participant2.ref
+      val activationTrigger1_2 =
+        participant2.expectMsgType[TriggerWithIdMessage]
+      activationTrigger1_2.trigger shouldBe ActivityStartTrigger(0L)
+      activationTrigger1_2.receiverActor shouldBe participant2.ref
 
       participant2.expectMsg(RequestFlexOptions)
 
@@ -215,10 +218,109 @@ class EmAgentSelfOptSpec
         )
       )
 
+      // receive flex control messages
       participant1.expectMsg(IssueNoCtrl)
       val issuePower = participant2.expectMsgType[IssuePowerCtrl]
+      issuePower.power should equalWithTolerance(5d.asKiloWatt, 1e-9)
 
-      // TODO compare to expected result
+      // TODO test results
+
+      // send completions
+      participant1.send(
+        emAgent,
+        CompletionMessage(
+          activationTrigger1_1.triggerId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(600L),
+                participant1.ref
+              )
+            )
+          )
+        )
+      )
+
+      scheduler.expectNoMessage()
+
+      participant2.send(
+        emAgent,
+        CompletionMessage(
+          activationTrigger1_2.triggerId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(300L),
+                participant2.ref
+              )
+            )
+          )
+        )
+      )
+
+      // expect completion from EmAgent
+      scheduler.expectMsg(
+        CompletionMessage(
+          activationTriggerId1,
+          Some(Seq(ScheduleTriggerMessage(ActivityStartTrigger(300L), emAgent)))
+        )
+      )
+
+      // trigger EmAgent with next tick
+      val activationTriggerId2 = 1L
+
+      scheduler.send(
+        emAgent,
+        TriggerWithIdMessage(
+          ActivityStartTrigger(300L),
+          activationTriggerId2,
+          emAgent
+        )
+      )
+
+      // expect activations and flex requests
+      participant1.expectNoMessage()
+
+      val activationTrigger2_2 =
+        participant2.expectMsgType[TriggerWithIdMessage]
+      activationTrigger2_2.trigger shouldBe ActivityStartTrigger(300L)
+      activationTrigger2_2.receiverActor shouldBe participant2.ref
+
+      participant2.expectMsg(RequestFlexOptions)
+
+      // send flex options again, ev is fully charged
+      participant2.send(
+        emAgent,
+        ProvideMinMaxFlexOptions(
+          participant2Model.getUuid,
+          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT),
+          Quantities.getQuantity(-11d, PowerSystemUnits.KILOWATT),
+          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+        )
+      )
+
+      // receive flex control messages
+      participant1.expectNoMessage()
+      participant2.expectMsg(IssueNoCtrl)
+
+      // TODO test results
+
+      // send completion
+      scheduler.expectNoMessage()
+
+      participant2.send(
+        emAgent,
+        CompletionMessage(activationTrigger2_2.triggerId, None)
+      )
+
+      // expect completion from EmAgent
+      scheduler.expectMsg(
+        CompletionMessage(
+          activationTriggerId2,
+          Some(Seq(ScheduleTriggerMessage(ActivityStartTrigger(600L), emAgent)))
+        )
+      )
+
     }
   }
 

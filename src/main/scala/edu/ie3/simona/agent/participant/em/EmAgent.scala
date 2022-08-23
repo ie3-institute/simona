@@ -21,13 +21,12 @@ import edu.ie3.simona.agent.participant.em.EmAgent.{
 }
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ModelBaseStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantUninitializedStateData
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
   InitializeStateData
 }
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantUninitializedStateData
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
-import edu.ie3.simona.agent.state.ParticipantAgentState.Calculate
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
@@ -39,7 +38,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
-import edu.ie3.simona.ontology.trigger.Trigger.ParticipantTrigger.StartCalculationTrigger
 import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
   InitializeParticipantAgentTrigger
@@ -434,6 +432,9 @@ class EmAgent(
             }
       }
 
+      // TODO also handle the case where flex control has been issued
+      // for old flex options, but for the current tick no control is
+      // issued: currently, suggested power is assumed
       issueCtrlMsgsComplete.foreach {
         case (_, actor, issueCtrlMsg, activatedBefore) =>
           // activate the participants that have not been activated before
@@ -467,22 +468,21 @@ class EmAgent(
           uuid -> updatedValueStores.getOrElse(uuid, store)
       }
 
-      stay() using baseStateData.copy(
+      val updatedBaseStateData = baseStateData.copy(
         flexCorrespondences = updatedCorrespondences
       )
 
-      // TODO total power calculation
-      self ! StartCalculationTrigger
-
-      goto(Calculate) using baseStateData
+      calculatePower(
+        updatedBaseStateData,
+        scheduler
+      )
 
     } else
       stay() using baseStateData
   }
 
-  def calculatePower(
+  private def calculatePower(
       baseStateData: EmModelBaseStateData,
-      currentTick: Long,
       scheduler: ActorRef
   ): State = {
     val correspondences = baseStateData.flexCorrespondences
@@ -493,12 +493,15 @@ class EmAgent(
       }
 
     val voltage =
-      getAndCheckNodalVoltage(baseStateData, currentTick)
+      getAndCheckNodalVoltage(
+        baseStateData,
+        baseStateData.schedulerStateData.nowInTicks
+      )
 
     val relevantData = EmRelevantData(correspondences)
 
     val result = baseStateData.model.calculatePower(
-      currentTick,
+      baseStateData.schedulerStateData.nowInTicks,
       voltage,
       relevantData
     )
@@ -540,7 +543,7 @@ class EmAgent(
     val updatedValueStore =
       ValueStore.updateValueStore(
         baseStateData.resultValueStore,
-        currentTick,
+        baseStateData.schedulerStateData.nowInTicks,
         result
       )
     val updatedRelevantDataStore =
@@ -548,7 +551,7 @@ class EmAgent(
         case data: BaseStateData.ModelBaseStateData[_, _, _] =>
           ValueStore.updateValueStore(
             data.calcRelevantDateStore,
-            currentTick,
+            baseStateData.schedulerStateData.nowInTicks,
             relevantData
           )
         case _ =>
@@ -560,7 +563,7 @@ class EmAgent(
     /* Inform the listeners about new result */
     announceSimulationResult(
       baseStateData,
-      currentTick,
+      baseStateData.schedulerStateData.nowInTicks,
       result
     )(baseStateData.outputConfig)
 
