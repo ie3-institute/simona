@@ -80,7 +80,7 @@ class PrimaryServiceProxySpec
     .get(
       this.getClass
         .getResource(
-          "it"
+          "_it"
         )
         .toURI
     )
