@@ -50,9 +50,13 @@ Scala and uses akka as its main library for concurrent calculation and to repres
 #### 3. Generaiton
 - Oberließen, Thomas (TRANSENSE)
 - Peter, Sebastian (TRANSENSE)
+- Feismann, Daniel (Redispatch 3.0)
 
 ### Scientific Assistants
 - Krause, Mia
 - Peter, Sebastian
 - Schmahl, Maximilian
 - Zachopoulos, Vasilios
+- Staudt, Marius
+- Roumeliotis, Lara
+- Bung, Vicky 
