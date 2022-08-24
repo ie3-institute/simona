@@ -7,16 +7,19 @@
 package edu.ie3.simona.model.thermal
 
 import java.util.UUID
-import edu.ie3.datamodel.models.OperationTime
+import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput
 }
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
+import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.interfaces.{HeatCapacity, ThermalConductance}
 
 import javax.measure.quantity.{Energy, Power, Temperature, Time}
 import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.HOUR
 
 /** A thermal house model including a variable inner temperature <p> *
@@ -42,6 +45,8 @@ import tech.units.indriya.unit.Units.HOUR
   *   Lower temperature boundary [K]
   * @param upperBoundaryTemperature
   *   Upper boundary temperature [K]
+  * @param state
+  *   State of the thermal house
   */
 final case class ThermalHouse(
     uuid: UUID,
@@ -53,7 +58,8 @@ final case class ThermalHouse(
     ethCapa: ComparableQuantity[HeatCapacity],
     targetTemperature: ComparableQuantity[Temperature],
     lowerBoundaryTemperature: ComparableQuantity[Temperature],
-    upperBoundaryTemperature: ComparableQuantity[Temperature]
+    upperBoundaryTemperature: ComparableQuantity[Temperature],
+    state: ThermalHouseState
 ) extends ThermalSink(
       uuid,
       id,
@@ -61,6 +67,46 @@ final case class ThermalHouse(
       operationTime,
       bus
     ) {
+
+  /** Calculate the energy demand at the instance in question. If the inner
+    * temperature is at or above the lower boundary temperature, there is no
+    * demand. If it is below the target temperature, the demand is the energy
+    * needed to heat up the house to the maximum temperature. The current
+    * (external) thermal infeed is not accounted for, as we assume, that after
+    * determining the thermal demand, a change in external infeed will take
+    * place.
+    *
+    * @param tick
+    *   Questionable tick
+    * @param ambientTemperature
+    *   Ambient temperature in the instance in question
+    * @return
+    *   the needed energy in the questioned tick
+    */
+  def energyDemand(
+      tick: Long,
+      ambientTemperature: ComparableQuantity[Temperature]
+  ): ComparableQuantity[Energy] = {
+    /* Calculate the inner temperature of the house, at the questioned instance in time */
+    val duration = state.tick.durationUntil(tick)
+    val innerTemperature = newInnerTemperature(
+      state.thermalInfeed,
+      duration,
+      state.innerTemperature,
+      ambientTemperature
+    )
+
+    /* Determine the needed energy.  */
+    if (innerTemperature.isLessThanOrEqualTo(lowerBoundaryTemperature)) {
+      val temperatureDifference =
+        upperBoundaryTemperature.subtract(innerTemperature)
+      ethCapa
+        .divide(temperatureDifference)
+        .asType(classOf[Energy])
+        .to(StandardUnits.ENERGY_RESULT)
+    } else
+      Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT)
+  }
 
   /** Check if inner temperature is higher than preferred maximum temperature
     *
@@ -95,6 +141,7 @@ final case class ThermalHouse(
     * @return
     *   new inner temperature
     */
+  @deprecated
   def newInnerTemperature(
       thermalPower: ComparableQuantity[Power],
       duration: ComparableQuantity[Time],
@@ -212,6 +259,26 @@ object ThermalHouse {
     input.getEthCapa,
     input.getTargetTemperature,
     input.getLowerTemperatureLimit,
-    input.getUpperTemperatureLimit
+    input.getUpperTemperatureLimit,
+    ThermalHouseState(
+      -1L,
+      input.getTargetTemperature,
+      Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
+    )
+  )
+
+  /** State of a thermal house
+    *
+    * @param tick
+    *   Last tick of temperature change
+    * @param innerTemperature
+    *   Inner temperature of the house
+    * @param thermalInfeed
+    *   Continuous infeed of thermal energy since the given tick
+    */
+  case class ThermalHouseState(
+      tick: Long,
+      innerTemperature: ComparableQuantity[Temperature],
+      thermalInfeed: ComparableQuantity[Power]
   )
 }
