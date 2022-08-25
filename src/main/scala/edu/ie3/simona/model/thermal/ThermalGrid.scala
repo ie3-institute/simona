@@ -8,9 +8,13 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
+import edu.ie3.simona.exceptions.agent.InconsistentStateException
+import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
+import java.util.UUID
 import javax.measure.quantity.{Energy, Temperature}
 import scala.jdk.CollectionConverters.SetHasAsScala
 
@@ -33,18 +37,29 @@ case class ThermalGrid(
     *   Questioned instance in time
     * @param ambientTemperature
     *   Ambient temperature in the instance in question
+    * @param state
+    *   Currently applicable state of the thermal grid
     * @return
     *   The total energy demand of the grid
     */
   def energyDemand(
       tick: Long,
-      ambientTemperature: ComparableQuantity[Temperature]
+      ambientTemperature: ComparableQuantity[Temperature],
+      state: ThermalGridState
   ): ComparableQuantity[Energy] = {
     /* First get the energy demand of the houses */
     val houseDemand =
       houses.foldLeft(Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT)) {
         case (currentEnergy, house) =>
-          currentEnergy.add(house.energyDemand(tick, ambientTemperature))
+          val houseDemand = state.partState.get(house.uuid) match {
+            case Some(houseState: ThermalHouseState) =>
+              house.energyDemand(tick, ambientTemperature, houseState)
+            case Some(_) || None =>
+              throw new InconsistentStateException(
+                s"Unable to find state for thermal house with uuid '${house.uuid}'."
+              )
+          }
+          currentEnergy.add(houseDemand)
       }
 
     houseDemand
@@ -70,4 +85,10 @@ object ThermalGrid {
       storages
     )
   }
+
+  /** Current state of a grid
+    * @param partState
+    *   Mapping from model uuid to it's state
+    */
+  final case class ThermalGridState(partState: Map[UUID, ThermalModelState])
 }

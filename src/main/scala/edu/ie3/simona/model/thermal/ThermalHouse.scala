@@ -45,8 +45,6 @@ import tech.units.indriya.unit.Units.HOUR
   *   Lower temperature boundary [K]
   * @param upperBoundaryTemperature
   *   Upper boundary temperature [K]
-  * @param state
-  *   State of the thermal house
   */
 final case class ThermalHouse(
     uuid: UUID,
@@ -58,8 +56,7 @@ final case class ThermalHouse(
     ethCapa: ComparableQuantity[HeatCapacity],
     targetTemperature: ComparableQuantity[Temperature],
     lowerBoundaryTemperature: ComparableQuantity[Temperature],
-    upperBoundaryTemperature: ComparableQuantity[Temperature],
-    state: ThermalHouseState
+    upperBoundaryTemperature: ComparableQuantity[Temperature]
 ) extends ThermalSink(
       uuid,
       id,
@@ -80,12 +77,15 @@ final case class ThermalHouse(
     *   Questionable tick
     * @param ambientTemperature
     *   Ambient temperature in the instance in question
+    * @param state
+    *   most recent state, that is valid for this model
     * @return
     *   the needed energy in the questioned tick
     */
   def energyDemand(
       tick: Long,
-      ambientTemperature: ComparableQuantity[Temperature]
+      ambientTemperature: ComparableQuantity[Temperature],
+      state: ThermalHouseState
   ): ComparableQuantity[Energy] = {
     /* Calculate the inner temperature of the house, at the questioned instance in time */
     val duration = state.tick.durationUntil(tick)
@@ -259,12 +259,7 @@ object ThermalHouse {
     input.getEthCapa,
     input.getTargetTemperature,
     input.getLowerTemperatureLimit,
-    input.getUpperTemperatureLimit,
-    ThermalHouseState(
-      -1L,
-      input.getTargetTemperature,
-      Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
-    )
+    input.getUpperTemperatureLimit
   )
 
   /** State of a thermal house
@@ -276,9 +271,16 @@ object ThermalHouse {
     * @param thermalInfeed
     *   Continuous infeed of thermal energy since the given tick
     */
-  case class ThermalHouseState(
-      tick: Long,
+  final case class ThermalHouseState(
+      override val tick: Long,
       innerTemperature: ComparableQuantity[Temperature],
       thermalInfeed: ComparableQuantity[Power]
-  )
+  ) extends ThermalModelState
+
+  def startState(input: ThermalHouseInput): ThermalModelState =
+    ThermalHouseState(
+      -1L,
+      input.getTargetTemperature,
+      Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+    )
 }
