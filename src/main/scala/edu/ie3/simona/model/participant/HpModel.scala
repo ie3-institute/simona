@@ -13,13 +13,14 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHe
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.HpModel._
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.thermal.ThermalHouse
+import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
+import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalHouse}
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
 
-import javax.measure.quantity.{Power, Temperature, Time}
+import javax.measure.quantity.{Power, Temperature}
 import tech.units.indriya.ComparableQuantity
-import edu.ie3.simona.util.TickUtil.TickLong
+import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 
@@ -42,9 +43,10 @@ import java.time.ZonedDateTime
   *   Rated power factor
   * @param pThermal
   *   Thermal output of heat pump
-  * @param thermalHouse
-  *   Thermal house with a variable inner temperature, temperature boundaries,
-  *   transmission coefficient and heat energy storage capacity
+  * @param thermalGrid
+  *   Thermal grid attached to this heat pump. Attention!!! This model assumes,
+  *   that the grid is only attached to this asset as a source. Shared grids
+  *   across electrical models is currently not supported
   */
 final case class HpModel(
     uuid: UUID,
@@ -55,7 +57,7 @@ final case class HpModel(
     sRated: ComparableQuantity[Power],
     cosPhiRated: Double,
     pThermal: ComparableQuantity[Power],
-    thermalHouse: ThermalHouse
+    thermalGrid: ThermalGrid
 ) extends SystemParticipant[HpRelevantData, ApparentPowerAndHeat](
       uuid,
       id,
@@ -136,15 +138,19 @@ final case class HpModel(
     * @return
     *   boolean defining if heat pump runs in next time step
     */
-  def operatesInNextState(hpData: HpRelevantData): Boolean = {
-    val isRunning = hpData.hpState.isRunning
-    val tooHigh =
-      thermalHouse.isInnerTemperatureTooHigh(hpData.hpState.innerTemperature)
-    val tooLow =
-      thermalHouse.isInnerTemperatureTooLow(hpData.hpState.innerTemperature)
+  def operatesInNextState(hpData: HpRelevantData): Boolean =
+    hpData match {
+      case HpRelevantData(hpState, currentTimeTick, ambientTemperature) =>
+        val thermalDemand = thermalGrid.energyDemand(
+          currentTimeTick,
+          ambientTemperature,
+          hpState.thermalGridState
+        )
 
-    tooLow || (isRunning && !tooLow && !tooHigh)
-  }
+        thermalDemand.isGreaterThan(
+          Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT)
+        )
+    }
 
   /** Calculate state depending on whether heat pump is needed or not. Also
     * calculate inner temperature change of thermal house and update its inner
@@ -163,22 +169,23 @@ final case class HpModel(
         (pRated, pThermal.multiply(scalingFactor))
       else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
 
-    val duration: ComparableQuantity[Time] =
-      hpData.hpState.lastTimeTick.durationUntil(hpData.currentTimeTick)
-
-    val newInnerTemperature = thermalHouse.newInnerTemperature(
-      newThermalPower,
-      duration,
-      hpData.hpState.innerTemperature,
-      hpData.ambientTemperature
-    )
+    /* Push thermal energy to the thermal grid and get it's updated state in return */
+    val thermalGridState = hpData match {
+      case HpRelevantData(hpState, currentTimeTick, ambientTemperature) =>
+        thermalGrid.updateState(
+          currentTimeTick,
+          hpState.thermalGridState,
+          ambientTemperature,
+          newThermalPower
+        )
+    }
 
     HpState(
       isRunning,
       hpData.currentTimeTick,
       newActivePower,
       newThermalPower,
-      newInnerTemperature
+      thermalGridState
     )
   }
 }
@@ -192,7 +199,7 @@ case object HpModel {
       scaling: Double,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
-      thermalHouse: ThermalHouse
+      thermalGrid: ThermalGrid
   ): HpModel = {
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
@@ -213,7 +220,7 @@ case object HpModel {
       inputModel.getType.getsRated(),
       inputModel.getType.getCosPhiRated,
       inputModel.getType.getpThermal(),
-      thermalHouse
+      thermalGrid
     )
 
     model.enable()
@@ -232,15 +239,15 @@ case object HpModel {
     *   result active power
     * @param qDot
     *   result heat power
-    * @param innerTemperature
-    *   inner temperature of the thermal house
+    * @param thermalGridState
+    *   Currently applicable state of the thermal grid
     */
   final case class HpState(
       isRunning: Boolean,
       lastTimeTick: Long,
       activePower: ComparableQuantity[Power],
       qDot: ComparableQuantity[Power],
-      innerTemperature: ComparableQuantity[Temperature]
+      thermalGridState: ThermalGridState
   )
 
   /** Main data required for simulation/calculation, containing a [[HpState]]
@@ -269,9 +276,8 @@ case object HpModel {
     *   operation interval of the simulation
     * @param qControl
     *   (no usage)
-    * @param thermalHouse
-    *   thermal house defining transmission coefficient and heat energy storage
-    *   capacity
+    * @param thermalGrid
+    *   thermal grid, defining the behaviour of the connected sinks and storages
     * @return
     *   a ready-to-use [[HpModel]] with referenced electric parameters
     */
@@ -279,7 +285,7 @@ case object HpModel {
       hpInput: HpInput,
       operationInterval: OperationInterval,
       qControl: QControl,
-      thermalHouse: ThermalHouse
+      thermalGrid: ThermalGrid
   ): HpModel = {
     val model = new HpModel(
       hpInput.getUuid,
@@ -290,7 +296,7 @@ case object HpModel {
       hpInput.getType.getsRated,
       hpInput.getType.getCosPhiRated,
       hpInput.getType.getpThermal,
-      thermalHouse
+      thermalGrid
     )
 
     model.enable()

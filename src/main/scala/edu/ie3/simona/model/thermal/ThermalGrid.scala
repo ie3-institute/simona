@@ -15,7 +15,7 @@ import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
-import javax.measure.quantity.{Energy, Temperature}
+import javax.measure.quantity.{Energy, Power, Temperature}
 import scala.jdk.CollectionConverters.SetHasAsScala
 
 /** Calculation model for a thermal grid. It is assumed, that all elements are
@@ -64,6 +64,43 @@ case class ThermalGrid(
 
     houseDemand
   }
+
+  /** Update the current state of the grid
+    * @param tick
+    *   Instance in time
+    * @param state
+    *   Currently applicable state
+    * @param ambientTemperature
+    *   Ambient temperature
+    * @param qDot
+    *   Thermal energy balance
+    * @return
+    *   The updated state of the grid
+    */
+  def updateState(
+      tick: Long,
+      state: ThermalGridState,
+      ambientTemperature: ComparableQuantity[Temperature],
+      qDot: ComparableQuantity[Power]
+  ): ThermalGridState = {
+    val updatedHouseStates = houses.map { house =>
+      state.partState.get(house.uuid) match {
+        case Some(houseState: ThermalHouseState) =>
+          house.uuid -> house.updateState(
+            tick,
+            houseState,
+            ambientTemperature,
+            qDot
+          )
+        case Some(_) || None =>
+          throw new InconsistentStateException(
+            s"Unable to find state for thermal house with uuid '${house.uuid}'."
+          )
+      }
+    }.toMap
+
+    ThermalGridState(updatedHouseStates)
+  }
 }
 
 object ThermalGrid {
@@ -91,4 +128,11 @@ object ThermalGrid {
     *   Mapping from model uuid to it's state
     */
   final case class ThermalGridState(partState: Map[UUID, ThermalModelState])
+
+  def startingState(thermalGrid: ThermalGrid): ThermalGridState =
+    ThermalGridState(
+      thermalGrid.houses
+        .map(house => house.uuid -> ThermalHouse.startingState(house))
+        .toMap
+    )
 }

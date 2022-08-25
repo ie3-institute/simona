@@ -141,8 +141,7 @@ final case class ThermalHouse(
     * @return
     *   new inner temperature
     */
-  @deprecated
-  def newInnerTemperature(
+  private def newInnerTemperature(
       thermalPower: ComparableQuantity[Power],
       duration: ComparableQuantity[Time],
       currentInnerTemperature: ComparableQuantity[Temperature],
@@ -246,6 +245,38 @@ final case class ThermalHouse(
       .asType(classOf[Energy])
   }
 
+  /** Update the current state of the house
+    * @param tick
+    *   current instance in time
+    * @param state
+    *   currently applicable state
+    * @param ambientTemperature
+    *   Ambient temperature
+    * @param qDot
+    *   new thermal influx
+    * @return
+    *   Updated state
+    */
+  def updateState(
+      tick: Long,
+      state: ThermalHouseState,
+      ambientTemperature: ComparableQuantity[Temperature],
+      qDot: ComparableQuantity[Power]
+  ): ThermalModelState = {
+    val duration = state.tick.durationUntil(tick)
+    val updatedInnerTemperature = newInnerTemperature(
+      state.thermalInfeed,
+      duration,
+      state.innerTemperature,
+      ambientTemperature
+    )
+
+    state.copy(
+      tick = tick,
+      innerTemperature = updatedInnerTemperature,
+      thermalInfeed = qDot
+    )
+  }
 }
 
 object ThermalHouse {
@@ -277,10 +308,10 @@ object ThermalHouse {
       thermalInfeed: ComparableQuantity[Power]
   ) extends ThermalModelState
 
-  def startState(input: ThermalHouseInput): ThermalModelState =
+  def startingState(house: ThermalHouse): ThermalModelState =
     ThermalHouseState(
       -1L,
-      input.getTargetTemperature,
+      house.targetTemperature,
       Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
     )
 }

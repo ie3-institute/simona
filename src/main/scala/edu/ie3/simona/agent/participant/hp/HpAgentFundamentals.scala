@@ -47,7 +47,7 @@ import edu.ie3.simona.exceptions.agent.{
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.HpModel
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
-import edu.ie3.simona.model.thermal.ThermalHouse
+import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalHouse}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.PU
@@ -152,7 +152,7 @@ trait HpAgentFundamentals
               ) match {
                 case Some((_, HpRelevantData(lastState, _, _))) => lastState
                 case None =>
-                  startingState(hpModel.thermalHouse.targetTemperature)
+                  startingState(hpModel.thermalGrid)
               }
 
               val relevantData =
@@ -195,13 +195,13 @@ trait HpAgentFundamentals
   }
 
   private def startingState(
-      targetTemperature: ComparableQuantity[Temperature]
+      thermalGrid: ThermalGrid
   ): HpState = HpState(
     isRunning = false,
     -1,
     Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
     Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
-    targetTemperature
+    ThermalGrid.startingState(thermalGrid)
   )
 
   /** Abstract definition, individual implementations found in individual agent
