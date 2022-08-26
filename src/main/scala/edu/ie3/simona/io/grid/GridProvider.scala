@@ -53,7 +53,7 @@ object GridProvider {
       case _ =>
         throw new RuntimeException(
           s"No provision of a GridDataSource is not allowed! Please choose from one of the following parameters ${GridSourceType.values
-            .mkString(", ")}."
+              .mkString(", ")}."
         )
     }
 
