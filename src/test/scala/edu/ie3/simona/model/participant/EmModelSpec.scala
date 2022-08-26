@@ -174,7 +174,7 @@ class EmModelSpec
               )
             )
 
-            msg.power
+            msg.setPower
               .to(PowerSystemUnits.KILOWATT)
               .getValue
               .doubleValue() should ===(expectedRes +- 1e-6d)

@@ -87,7 +87,7 @@ final case class EmModel private (
               (spi, flexOption: ProvideMinMaxFlexOptions)
             ) =>
           val differenceNoControl =
-            flexOption.suggestedPower.subtract(flexOption.maxPower)
+            flexOption.referencePower.subtract(flexOption.maxPower)
 
           if (
             PsuQuantityUtil.isEquivalentAbs(
@@ -110,7 +110,7 @@ final case class EmModel private (
             // this flexibility covers more than we need to reach zero excess,
             // thus we only use as much as we need
             val powerCtrl =
-              flexOption.suggestedPower.subtract(remainingExcessPower)
+              flexOption.referencePower.subtract(remainingExcessPower)
 
             (
               issueCtrlMsgs :+ (spi.getUuid, IssuePowerCtrl(powerCtrl)),
@@ -137,7 +137,7 @@ final case class EmModel private (
               (spi, flexOption: ProvideMinMaxFlexOptions)
             ) =>
           val differenceNoControl =
-            flexOption.suggestedPower.subtract(flexOption.minPower)
+            flexOption.referencePower.subtract(flexOption.minPower)
 
           if (
             PsuQuantityUtil.isEquivalentAbs(
@@ -160,7 +160,7 @@ final case class EmModel private (
             // this flexibility covers more than we need to reach zero excess,
             // thus we only use as much as we need
             val powerCtrl =
-              flexOption.suggestedPower.subtract(remainingExcessPower)
+              flexOption.referencePower.subtract(remainingExcessPower)
 
             (
               issueCtrlMsgs :+ (spi.getUuid, IssuePowerCtrl(powerCtrl)),

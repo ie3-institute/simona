@@ -221,7 +221,7 @@ class EmAgentSelfOptSpec
       // receive flex control messages
       participant1.expectMsg(IssueNoCtrl)
       val issuePower = participant2.expectMsgType[IssuePowerCtrl]
-      issuePower.power should equalWithTolerance(5d.asKiloWatt, 1e-9)
+      issuePower.setPower should equalWithTolerance(5d.asKiloWatt, 1e-9)
 
       // TODO test results
 

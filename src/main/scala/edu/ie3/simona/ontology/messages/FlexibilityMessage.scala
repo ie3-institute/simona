@@ -29,19 +29,41 @@ object FlexibilityMessage {
     */
   trait IssueFlexControl
 
+  /** Provides flexibility options of a system participant using reference,
+    * minimum and maximum power. All powers can be negative, signifying a
+    * feed-in
+    *
+    * @param modelUuid
+    *   the uuid of the input model that references the system participant
+    * @param referencePower
+    *   the active power that the system participant would produce/consume
+    *   normally
+    * @param minPower
+    *   the minimum power that the system participant allows
+    * @param maxPower
+    *   the maximum power that the system participant allows
+    */
   case class ProvideMinMaxFlexOptions(
       override val modelUuid: UUID,
-      suggestedPower: ComparableQuantity[Power],
+      referencePower: ComparableQuantity[Power],
       minPower: ComparableQuantity[Power],
       maxPower: ComparableQuantity[Power]
   ) extends ProvideFlexOptions
 
-  /** @param power
-    *   positive: charging, negative: discharging
+  /** Message sent by [[edu.ie3.simona.agent.participant.em.EmAgent]] that
+    * specifies a power target that needs to be produced/consumed by the system
+    * participant.
+    * @param setPower
+    *   the power that the system participant has to set. Positive: consuming,
+    *   negative: producing
     */
   case class IssuePowerCtrl(
-      power: ComparableQuantity[Power]
+      setPower: ComparableQuantity[Power]
   ) extends IssueFlexControl
 
+  /** Message sent by [[edu.ie3.simona.agent.participant.em.EmAgent]] indicating
+    * that no power target is set and the reference power shall be
+    * produced/consumed.
+    */
   case object IssueNoCtrl extends IssueFlexControl
 }
