@@ -319,7 +319,7 @@ object WeatherSource {
     if (!WeatherScheme.isEligibleInput(weatherDataSourceCfg.scheme))
       throw new InvalidConfigParameterException(
         s"The weather data scheme '${weatherDataSourceCfg.scheme}' is not supported. Supported schemes:\n\t${WeatherScheme.values
-          .mkString("\n\t")}"
+            .mkString("\n\t")}"
       )
 
     // check weather source parameters
