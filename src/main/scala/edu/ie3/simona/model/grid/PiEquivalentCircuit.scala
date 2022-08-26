@@ -52,9 +52,9 @@ trait PiEquivalentCircuit extends LazyLogging {
     *
     * {{{
     * y = 1 / (r + j*x)
-    * = (r - j*x) / (r² + x²)
-    * = (r / (r² + x²)) + j*(-x / (r² + x²))
-    * -> g = r / (r² + x²)
+    *   = (r - j*x) / (r² + x²)
+    *   = (r / (r² + x²)) + j*(-x / (r² + x²))
+    *   -> g = r / (r² + x²)
     * }}}
     *
     * @return
@@ -74,9 +74,9 @@ trait PiEquivalentCircuit extends LazyLogging {
     * Formula:
     * {{{
     * y = 1 / (r + j*x)
-    * = (r - j*x) / (r² + x²)
-    * = (r / (r² + x²)) + j*(-x / (r² + x²))
-    * -> b = -x / (r² + x²)
+    *   = (r - j*x) / (r² + x²)
+    *   = (r / (r² + x²)) + j*(-x / (r² + x²))
+    *   -> b = -x / (r² + x²)
     * }}}
     *
     * @return
