@@ -31,11 +31,13 @@ import scala.jdk.CollectionConverters._
 
 /** Contains a valid GridInputModel with the following structure
   *
+  * {{{
   * (6) / / trafo (5) /
   * | /
   * | / (0)--(15)S2(16)-----(3)-----(4)
   * | (17) S3 (18)
   * | (1)--(13)S1(14)-----(2)
+  * }}}
   *
   * Reference System: 400 kVA @ 10 kV
   */
