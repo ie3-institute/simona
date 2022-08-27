@@ -59,4 +59,4 @@ Scala and uses akka as its main library for concurrent calculation and to repres
 - Zachopoulos, Vasilios
 - Staudt, Marius
 - Roumeliotis, Lara
-- Bung, Vicky 
+- Bung, Vicky
