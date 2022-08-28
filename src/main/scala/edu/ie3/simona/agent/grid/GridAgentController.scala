@@ -30,6 +30,7 @@ import edu.ie3.simona.config.SimonaConfig.{
   FixedFeedInRuntimeConfig,
   LoadRuntimeConfig,
   PvRuntimeConfig,
+  StorageRuntimeConfig,
   WecRuntimeConfig
 }
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
@@ -40,6 +41,7 @@ import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.participant.storage.StorageAgent
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -124,7 +126,7 @@ class GridAgentController(
               ) =>
             curSysPart match {
               case entity @ (_: BmInput | _: ChpInput | _: EvInput |
-                  _: HpInput | _: StorageInput) =>
+                  _: HpInput) =>
                 (
                   notProcessedElements + entity.getClass.getSimpleName,
                   availableSystemParticipants
@@ -289,6 +291,19 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs)
+      )
+    case input: StorageInput =>
+      buildStorage(
+        input,
+        participantConfigUtil.getOrDefault[StorageRuntimeConfig](
+          input.getUuid
+        ),
+        environmentRefs.primaryServiceProxy,
+        simulationStartDate,
+        simulationEndDate,
+        resolution,
+        requestVoltageDeviationThreshold,
+        outputConfigUtil.getOrDefault(NotifierIdentifier.Storage)
       )
     case input: SystemParticipantInput =>
       throw new NotImplementedError(
@@ -559,13 +574,13 @@ class GridAgentController(
     )
   }
 
-  /** Creates a pv agent and determines the needed additional information for
+  /** Creates a wec agent and determines the needed additional information for
     * later initialization of the agent.
     *
     * @param wecInput
     *   WEC input model to derive information from
     * @param modelConfiguration
-    *   User-provided configuration for this specific load model
+    *   User-provided configuration for this specific wec model
     * @param primaryServiceProxy
     *   Reference to the primary data service proxy
     * @param weatherService
@@ -615,6 +630,67 @@ class GridAgentController(
         modelConfiguration,
         primaryServiceProxy,
         Some(Vector(ActorWeatherService(weatherService))),
+        simulationStartDate,
+        simulationEndDate,
+        resolution,
+        requestVoltageDeviationThreshold,
+        outputConfig
+      )
+    )
+
+  /** Creates a storage agent and determines the needed additional information
+    * for later initialization of the agent.
+    *
+    * @param storageInput
+    *   Storage input model to derive information from
+    * @param modelConfiguration
+    *   User-provided configuration for this specific storage model
+    * @param primaryServiceProxy
+    *   Reference to the primary data service proxy
+    * @param simulationStartDate
+    *   First wall clock time in simulation
+    * @param simulationEndDate
+    *   Last wall clock time in simulation
+    * @param resolution
+    *   Frequency of power flow calculations
+    * @param requestVoltageDeviationThreshold
+    *   Maximum deviation in p.u. of request voltages to be considered equal
+    * @param outputConfig
+    *   Configuration of the output behavior
+    * @return
+    *   A pair of [[StorageAgent]] 's [[ActorRef]] as well as the equivalent
+    *   [[InitializeParticipantAgentTrigger]] to sent for initialization
+    */
+  private def buildStorage(
+      storageInput: StorageInput,
+      modelConfiguration: SimonaConfig.StorageRuntimeConfig,
+      primaryServiceProxy: ActorRef,
+      simulationStartDate: ZonedDateTime,
+      simulationEndDate: ZonedDateTime,
+      resolution: Long,
+      requestVoltageDeviationThreshold: Double,
+      outputConfig: ParticipantNotifierConfig
+  ): (
+      ActorRef,
+      ParticipantInitializeStateData[
+        StorageInput,
+        SimonaConfig.StorageRuntimeConfig,
+        ApparentPower
+      ]
+  ) =
+    (
+      gridAgentContext.simonaActorOf(
+        StorageAgent.props(
+          environmentRefs.scheduler,
+          listener
+        ),
+        storageInput.getId
+      ),
+      ParticipantInitializeStateData(
+        storageInput,
+        modelConfiguration,
+        primaryServiceProxy,
+        None,
         simulationStartDate,
         simulationEndDate,
         resolution,
