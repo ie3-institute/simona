@@ -593,6 +593,10 @@ protected trait ParticipantAgentFundamentals[
               throw exception
           }
 
+        case modelStateData: BaseStateData.ModelBaseStateData[_, _, _]
+            if modelStateData.isEmManaged =>
+          // if we're managed by EM, go to Idle and wait for further messages
+          goto(Idle) using stateData
         case _: BaseStateData.ModelBaseStateData[_, _, _] =>
           /* Go to calculation state and send a trigger for this to myself as well */
           self ! StartCalculationTrigger(currentTick)
@@ -606,6 +610,36 @@ protected trait ParticipantAgentFundamentals[
       /* We sill have to wait - either for data or activation */
       stay() using stateData
     }
+  }
+
+  override protected def handleFlexRequest(
+      participantStateData: ParticipantModelBaseStateData[PD, _, _],
+      maybeSecondaryData: Option[Map[ActorRef, Option[_ <: Data]]]
+  ): ParticipantModelBaseStateData[PD, _, _] = {
+    participantStateData.flexStateData
+      .map { flexStateData =>
+        // TODO save calc relevant data as well
+        val flexOptions = calcFlexOptions(
+          participantStateData,
+          currentTick,
+          maybeSecondaryData
+        )
+
+        flexStateData.emAgent ! flexOptions
+
+        // save flex options
+        val updatedFlexStore = ValueStore.updateValueStore(
+          flexStateData.flexOptionsStore,
+          currentTick,
+          flexOptions
+        )
+
+        participantStateData.copy(
+          flexStateData =
+            Some(flexStateData.copy(flexOptionsStore = updatedFlexStore))
+        )
+      }
+      .getOrElse(participantStateData)
   }
 
   /** Determining the active to reactive power function to apply
@@ -1411,6 +1445,7 @@ protected trait ParticipantAgentFundamentals[
       )
 
     /* Inform the listeners about new result */
+    // TODO EM: announce flex options instead
     announceSimulationResult(
       baseStateData,
       currentTick,
@@ -1497,6 +1532,7 @@ protected trait ParticipantAgentFundamentals[
       }
 
     /* Inform the listeners about new result */
+    // TODO EM: announce flex options instead
     announceSimulationResult(
       baseStateData,
       currentTick,

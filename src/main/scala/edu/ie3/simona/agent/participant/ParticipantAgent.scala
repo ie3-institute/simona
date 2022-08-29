@@ -11,9 +11,13 @@ import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower,
+  PrimaryDataWithApparentPower
+}
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FromOutsideBaseStateData,
+  ModelBaseStateData,
   ParticipantModelBaseStateData
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
@@ -33,12 +37,20 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   Calculate,
   HandleInformation
 }
-import edu.ie3.simona.agent.SimonaAgent
+import edu.ie3.simona.agent.{SimonaAgent, ValueStore}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  IssueFlexControl,
+  IssueNoCtrl,
+  IssuePowerCtrl,
+  ProvideFlexOptions,
+  ProvideMinMaxFlexOptions,
+  RequestFlexOptions
+}
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.TriggerWithIdMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
@@ -151,12 +163,11 @@ abstract class ParticipantAgent[
       /* Hold tick and trigger, as state transition is needed */
       holdTickAndTriggerId(currentTick, triggerId)
 
-      self ! StartCalculationTrigger(currentTick)
-
       /* Remove this tick from the array of foreseen activation ticks */
       val additionalActivationTicks =
         modelBaseStateData.additionalActivationTicks.filter(_ > currentTick)
-      goto(Calculate) using BaseStateData.updateBaseStateData(
+
+      val updatedBaseStateData = BaseStateData.updateBaseStateData(
         modelBaseStateData,
         modelBaseStateData.resultValueStore,
         modelBaseStateData.requestValueStore,
@@ -164,6 +175,13 @@ abstract class ParticipantAgent[
         additionalActivationTicks,
         modelBaseStateData.foreseenDataTicks
       )
+
+      if (modelBaseStateData.isEmManaged) {
+        goto(Idle) using updatedBaseStateData
+      } else {
+        self ! StartCalculationTrigger(currentTick)
+        goto(Calculate) using updatedBaseStateData
+      }
 
     case Event(
           TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId, _),
@@ -217,6 +235,99 @@ abstract class ParticipantAgent[
         ) =>
       // clean up agent result value store
       finalizeTickAfterPF(baseStateData, tick)
+
+    case Event(
+          RequestFlexOptions,
+          baseStateData: ParticipantModelBaseStateData[PD, _, _]
+        ) =>
+      val updatedStateData = handleFlexRequest(baseStateData, None)
+
+      stay() using updatedStateData
+
+    case Event(
+          RequestFlexOptions,
+          serviceCollectionStateData: DataCollectionStateData[PD]
+        ) =>
+      val participantStateData =
+        serviceCollectionStateData.baseStateData match {
+          case participantStateData: ParticipantModelBaseStateData[PD, _, _] =>
+            participantStateData
+          case otherStateData =>
+            throw new IllegalStateException(
+              s"Unexpected state data $otherStateData"
+            )
+        }
+
+      val updatedStateData = handleFlexRequest(
+        participantStateData,
+        Some(serviceCollectionStateData.data)
+      )
+
+      stay() using updatedStateData
+
+    case Event(
+          flexCtrl: IssueFlexControl,
+          baseStateData: ParticipantModelBaseStateData[PD, _, _]
+        ) =>
+      val resultingActivePower =
+        baseStateData.flexStateData
+          .map { flexStateData =>
+            val (_, flexOptions) = flexStateData.flexOptionsStore
+              .last()
+              .getOrElse(
+                throw new IllegalStateException(
+                  "Flex options have not been calculated before."
+                )
+              )
+
+            flexOptions match {
+              case ProvideMinMaxFlexOptions(_, pRef, pMin, pMax) =>
+                flexCtrl match {
+                  case IssuePowerCtrl(setPower) =>
+                    // sanity check: setPower is in range of latest flex options
+                    if (setPower.isLessThan(pMin))
+                      throw new RuntimeException(
+                        s"The set power $setPower must not be lower than the minimum power $pMin!"
+                      )
+                    if (setPower.isGreaterThan(pMax)) {
+                      throw new RuntimeException(
+                        s"The set power $setPower must not be greater than the maximum power $pMax!"
+                      )
+                    }
+                    // override, take setPower
+                    setPower
+
+                  case IssueNoCtrl =>
+                    // no override, take reference power
+                    pRef
+                }
+
+              case unknownFlexOpt =>
+                throw new IllegalStateException(
+                  s"Unknown/unfitting flex messages $unknownFlexOpt"
+                )
+            }
+          }
+          .getOrElse(
+            throw new IllegalStateException(
+              s"Received $flexCtrl, but participant agent is not in EM mode"
+            )
+          )
+
+      val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
+
+      val reactivePower = baseStateData.model.calculateReactivePower(
+        resultingActivePower,
+        voltage
+      )
+
+      val apparentPower = ApparentPower(resultingActivePower, reactivePower)
+
+      // TODO save in results store
+
+      // TODO send final participant results to listeners, including EmAgent
+
+      stay()
   }
 
   when(HandleInformation) {
@@ -556,9 +667,18 @@ abstract class ParticipantAgent[
       /* Do await provision messages in HandleInformation */
       goto(HandleInformation) using nextStateData
     } else {
-      /* I don't expect new data. Do a shortcut to Calculate */
-      self ! StartCalculationTrigger(currentTick)
-      goto(Calculate) using nextStateData
+      // I don't expect new data.
+      baseStateData match {
+        case modelStateData: ModelBaseStateData[_, _, _]
+            if modelStateData.isEmManaged =>
+          // We're em-managed. Go to Idle and wait
+          goto(Idle) using nextStateData
+        case _ =>
+          // Make a shortcut to Calculate
+          self ! StartCalculationTrigger(currentTick)
+          goto(Calculate) using nextStateData
+      }
+
     }
   }
 
@@ -679,6 +799,17 @@ abstract class ParticipantAgent[
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
+  protected def handleFlexRequest(
+      baseStateData: ParticipantModelBaseStateData[PD, _, _],
+      maybeSecondaryData: Option[Map[ActorRef, Option[_ <: Data]]]
+  ): ParticipantModelBaseStateData[PD, _, _]
+
+  protected def calcFlexOptions(
+      baseStateData: BaseStateData[PD],
+      currentTick: Long,
+      maybeSecondaryData: Option[Map[ActorRef, Option[_ <: Data]]]
+  ): ProvideFlexOptions
+
   /** Determining the reply to an
     * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]],
     * send this answer and stay in the current state. If no reply can be
@@ -746,7 +877,7 @@ abstract class ParticipantAgent[
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 }
 
-case object ParticipantAgent {
+object ParticipantAgent {
 
   /** Verifies that a nodal voltage value has been provided in the model
     * calculation request and returns it. Actual implementation can be found in
