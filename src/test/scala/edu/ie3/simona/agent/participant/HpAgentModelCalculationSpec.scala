@@ -29,7 +29,7 @@ import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.integration.common.IntegrationSpecCommon
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
-import edu.ie3.simona.model.participant.PVModel.PVRelevantData
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
@@ -58,7 +58,6 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.model.participant.HpTestData
 import edu.ie3.simona.util.ConfigUtil
-import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtil
 import org.scalatest.PrivateMethodTester
@@ -587,7 +586,7 @@ class HpAgentModelCalculationSpec
                           lastTimeTick,
                           activePower,
                           qDot,
-                          innerTemperature
+                          thermalGridState
                         ),
                         currentTimeTick,
                         ambientTemperature
@@ -601,12 +600,22 @@ class HpAgentModelCalculationSpec
                   qDot should equalWithTolerance(
                     Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
                   )
-                  innerTemperature should equalWithTolerance(
-                    Quantities.getQuantity(
-                      20.9999769069444444444444444444444,
-                      StandardUnits.TEMPERATURE
-                    )
-                  )
+
+                  thermalGridState.partState.size shouldBe 1
+                  thermalGridState.partState.get(thermalHouse.getUuid) match {
+                    case Some(ThermalHouseState(_, innerTemperature, _)) =>
+                      innerTemperature should equalWithTolerance(
+                        Quantities.getQuantity(
+                          20.9999769069444444444444444444444,
+                          StandardUnits.TEMPERATURE
+                        )
+                      )
+                    case None =>
+                      fail(
+                        s"Expected to get a result for thermal house '${inputModel.getUuid}'"
+                      )
+                  }
+
                   currentTimeTick shouldBe 0L
                   ambientTemperature should equalWithTolerance(
                     Quantities.getQuantity(1.815, StandardUnits.TEMPERATURE)
@@ -772,7 +781,7 @@ class HpAgentModelCalculationSpec
                           lastTimeTick,
                           activePower,
                           qDot,
-                          innerTemperature
+                          thermalGridState
                         ),
                         currentTimeTick,
                         ambientTemperature
@@ -786,12 +795,21 @@ class HpAgentModelCalculationSpec
                   qDot should equalWithTolerance(
                     Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
                   )
-                  innerTemperature should equalWithTolerance(
-                    Quantities.getQuantity(
-                      20.9999769069444444444444444444444,
-                      StandardUnits.TEMPERATURE
-                    )
-                  )
+                  thermalGridState.partState.size shouldBe 1
+                  thermalGridState.partState.get(thermalHouse.getUuid) match {
+                    case Some(ThermalHouseState(_, innerTemperature, _)) =>
+                      innerTemperature should equalWithTolerance(
+                        Quantities.getQuantity(
+                          20.9999769069444444444444444444444,
+                          StandardUnits.TEMPERATURE
+                        )
+                      )
+                    case None =>
+                      fail(
+                        s"Expected to get a result for thermal house '${inputModel.getUuid}'"
+                      )
+                  }
+
                   currentTimeTick shouldBe 0L
                   ambientTemperature should equalWithTolerance(
                     Quantities.getQuantity(1.815, StandardUnits.TEMPERATURE)
