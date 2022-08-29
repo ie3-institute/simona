@@ -6,14 +6,19 @@
 
 package edu.ie3.simona.model.thermal
 
+import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
+import edu.ie3.datamodel.models.result.ResultEntity
+import edu.ie3.datamodel.models.result.thermal.ThermalHouseResult
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
+import edu.ie3.simona.util.TickUtil.TickLong
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
+import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Energy, Power, Temperature}
 import scala.jdk.CollectionConverters.SetHasAsScala
@@ -29,7 +34,7 @@ import scala.jdk.CollectionConverters.SetHasAsScala
 case class ThermalGrid(
     houses: Set[ThermalHouse],
     storages: Set[ThermalStorage]
-) {
+) extends LazyLogging {
 
   /** Determine the energy demand of the total grid at the given instance in
     * time
@@ -54,7 +59,7 @@ case class ThermalGrid(
           val houseDemand = state.partState.get(house.uuid) match {
             case Some(houseState: ThermalHouseState) =>
               house.energyDemand(tick, ambientTemperature, houseState)
-            case Some(_) || None =>
+            case _ =>
               throw new InconsistentStateException(
                 s"Unable to find state for thermal house with uuid '${house.uuid}'."
               )
@@ -92,7 +97,7 @@ case class ThermalGrid(
             ambientTemperature,
             qDot
           )
-        case Some(_) || None =>
+        case _ =>
           throw new InconsistentStateException(
             s"Unable to find state for thermal house with uuid '${house.uuid}'."
           )
@@ -100,6 +105,37 @@ case class ThermalGrid(
     }.toMap
 
     ThermalGridState(updatedHouseStates)
+  }
+
+  /** Convert the given state of the thermal grid into result models of it's
+    * constituent models
+    * @param state
+    *   State to be converted
+    * @param startDateTime
+    *   Start date time of the simulation
+    * @return
+    *   A [[Seq]] of results of the constituent thermal model
+    */
+  def results(
+      state: ThermalGridState
+  )(implicit startDateTime: ZonedDateTime): Seq[ResultEntity] = {
+    val results = Seq.empty[ResultEntity]
+
+    state.partState.foreach {
+      case (uuid, ThermalHouseState(tick, innerTemperature, thermalInfeed)) =>
+        results :+ new ThermalHouseResult(
+          tick.toDateTime,
+          uuid,
+          thermalInfeed,
+          innerTemperature
+        )
+      case (uuid, unsupported) =>
+        logger.debug(
+          s"The result handling for thermal state '${unsupported.getClass.getSimpleName}' of model '$uuid' is not handled yet."
+        )
+    }
+
+    results
   }
 }
 

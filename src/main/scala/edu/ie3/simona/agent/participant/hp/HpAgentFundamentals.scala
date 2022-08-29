@@ -9,15 +9,10 @@ package edu.ie3.simona.agent.participant.hp
 import akka.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
-import edu.ie3.datamodel.models.input.thermal.{
-  ThermalBusInput,
-  ThermalHouseInput
-}
 import edu.ie3.datamodel.models.result.system.{
   HpResult,
   SystemParticipantResult
 }
-import edu.ie3.datamodel.models.result.thermal.ThermalHouseResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
@@ -47,17 +42,15 @@ import edu.ie3.simona.exceptions.agent.{
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.HpModel
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
-import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalHouse}
+import edu.ie3.simona.model.thermal.ThermalGrid
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power, Temperature}
-import scala.compat.java8.OptionConverters.RichOptionalGeneric
+import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.{ClassTag, classTag}
 
 trait HpAgentFundamentals
@@ -168,15 +161,12 @@ trait HpAgentFundamentals
                 relevantData
               )
 
-              val thermalHouseResult = new ThermalHouseResult(
-                currentTick.toDateTime(modelBaseStateData.startDate),
-                hpModel.thermalHouse.uuid,
-                power.qDot,
-                relevantData.hpState.innerTemperature
-              )
+              val accompanyingResults = hpModel.thermalGrid.results(
+                relevantData.hpState.thermalGridState
+              )(modelBaseStateData.startDate)
 
               (
-                AccompaniedSimulationResult(power, Seq(thermalHouseResult)),
+                AccompaniedSimulationResult(power, accompanyingResults),
                 relevantData
               )
             case _ =>
@@ -283,39 +273,20 @@ trait HpAgentFundamentals
       modelConfig: HpRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
-  ): HpModel = {
-    val thermalHouseInput = {
-      inputModel match {
-        case ParticipantStateData.SimpleInputContainer(_) =>
-          None
-        case WithHeatInputContainer(_, thermalGrid) =>
-          /* Build the thermal model */
-          thermalGrid.houses().stream().findFirst().asScala
-      }
-    }.getOrElse {
-      new ThermalHouseInput(
-        UUID.randomUUID(),
-        "Random thermal house",
-        new ThermalBusInput(UUID.randomUUID(), "Random thermal bus"),
-        Quantities.getQuantity(1d, StandardUnits.THERMAL_TRANSMISSION),
-        Quantities.getQuantity(100d, StandardUnits.HEAT_CAPACITY),
-        Quantities.getQuantity(21d, StandardUnits.TEMPERATURE),
-        Quantities.getQuantity(23d, StandardUnits.TEMPERATURE),
-        Quantities.getQuantity(19d, StandardUnits.TEMPERATURE)
+  ): HpModel = inputModel match {
+    case ParticipantStateData.SimpleInputContainer(_) =>
+      throw new AgentInitializationException(
+        s"Unable to initialize heat pump agent '${inputModel.electricalInputModel.getUuid}' without thermal grid model."
       )
-    }
-
-    /* Build the thermal model */
-    val thermalHouse = ThermalHouse(thermalHouseInput)
-
-    /* Build the actual heat pump model */
-    HpModel(
-      inputModel.electricalInputModel,
-      modelConfig.scaling,
-      simulationStartDate,
-      simulationEndDate,
-      thermalHouse
-    )
+    case WithHeatInputContainer(_, thermalGrid) =>
+      /* Build the actual heat pump model */
+      HpModel(
+        inputModel.electricalInputModel,
+        modelConfig.scaling,
+        simulationStartDate,
+        simulationEndDate,
+        ThermalGrid(thermalGrid)
+      )
   }
 
   /** Determine the average result within the given tick window
