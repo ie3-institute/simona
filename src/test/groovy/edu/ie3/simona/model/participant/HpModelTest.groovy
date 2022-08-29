@@ -15,9 +15,17 @@ import edu.ie3.datamodel.models.input.system.type.HpTypeInput
 import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
 import edu.ie3.simona.model.participant.HpModel.HpRelevantData
 import edu.ie3.simona.model.participant.HpModel.HpState
+import edu.ie3.simona.model.thermal.ThermalGrid
 import edu.ie3.simona.model.thermal.ThermalHouse
+import edu.ie3.simona.model.thermal.ThermalModelState
+import edu.ie3.simona.model.thermal.ThermalStorage
 import edu.ie3.util.quantities.QuantityUtil
 import edu.ie3.util.scala.OperationInterval
+import scala.Tuple2
+import scala.collection.immutable.Set
+import scala.collection.immutable.HashSet
+import scala.collection.mutable.Map
+import scala.collection.mutable.HashMap
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -57,7 +65,10 @@ class HpModelTest extends Specification {
         )
     }
 
-    static def buildStandardModel(ThermalHouse thermalHouse) {
+    static HpModel buildStandardModel(ThermalHouse thermalHouse) {
+        Set<ThermalHouse> thermalHouses = new HashSet<ThermalHouse>() as Set<ThermalHouse>
+        def thermalStorages = []
+        def thermalGrid = new ThermalGrid(thermalHouses.$plus(thermalHouse) as Set<ThermalHouse>, thermalStorages as Set<ThermalStorage>)
         return new HpModel(
                 UUID.randomUUID(),
                 "HpModel",
@@ -67,17 +78,25 @@ class HpModelTest extends Specification {
                 getQuantity(100, KILOWATT),
                 0.95,
                 getQuantity(15, KILOWATT),
-                thermalHouse
+                thermalGrid
         )
+    }
+
+    static ThermalGrid.ThermalGridState buildThermalState(double temperature) {
+        Map<UUID, ThermalModelState> map = new HashMap<UUID, ThermalModelState>()
+        def state = new ThermalHouse.ThermalHouseState(0L, getQuantity(temperature, StandardUnits.TEMPERATURE), getQuantity(0d, StandardUnits.ACTIVE_POWER_IN))
+        return new ThermalGrid.ThermalGridState(map.$plus(new Tuple2<UUID, ThermalHouse.ThermalHouseState>(thermHouseUuid, state)) as scala.collection.immutable.Map<UUID, ThermalModelState>)
     }
 
     static def buildHpData(HpState hpState) {
         return new HpRelevantData(hpState, 7200, getQuantity(10, CELSIUS))
     }
 
+    private static UUID thermHouseUuid = UUID.fromString("75a43a0f-7c20-45ca-9568-949b728804ca")
+
     static def buildThermalHouse(Double lowerBoundaryTemperature, Double upperBoundaryTemperature) {
         def thermalHouseInput = new ThermalHouseInput(
-                UUID.randomUUID(),
+                thermHouseUuid,
                 "Thermal House",
                 null,
                 getQuantity(1.0, StandardUnits.THERMAL_TRANSMISSION),
@@ -103,20 +122,20 @@ class HpModelTest extends Specification {
 
         then:
         nextState.lastTimeTick() == expectedTimeTick
-        nextState.activePower().isEquivalentTo(getQuantity(expectedActivePower, KILOWATT))
         nextState.isRunning() == expectedRunningStatus
+        nextState.activePower().isEquivalentTo(getQuantity(expectedActivePower, KILOWATT))
 
         where:
-        hpState                                                                                              || expectedTimeTick | expectedRunningStatus | expectedActivePower        // (isRunning, tooHigh, tooLow)
-        new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATT), getQuantity(17, CELSIUS))  || 7200             | true                  | 95                            // tests case (false, false, true)
-        new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATT), getQuantity(18, CELSIUS))  || 7200             | false                 | 0                            // tests case (false, false, false)
-        new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATT), getQuantity(22, CELSIUS))  || 7200             | false                 | 0                            // tests case (false, false, false)
-        new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATT), getQuantity(23, CELSIUS))  || 7200             | false                 | 0                            // tests case (false, true, false)
+        hpState                                                                                           || expectedTimeTick | expectedRunningStatus | expectedActivePower
+        new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATT), buildThermalState(17))  || 7200             | true                  | 95
+        new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATT), buildThermalState(18))  || 7200             | true                  | 95
+        new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATT), buildThermalState(22))  || 7200             | false                 | 0
+        new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATT), buildThermalState(23))  || 7200             | false                 | 0
 
-        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), getQuantity(17, CELSIUS)) || 7200             | true                  | 95                            // tests case (true, false, true)
-        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), getQuantity(18, CELSIUS)) || 7200             | true                  | 95                            // tests case (true, false, false)
-        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), getQuantity(22, CELSIUS)) || 7200             | true                  | 95                            // tests case (true, false, false)
-        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), getQuantity(23, CELSIUS)) || 7200             | false                 | 0                            // tests case (true, true, false)
+        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), buildThermalState(17)) || 7200             | true                  | 95
+        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), buildThermalState(18)) || 7200             | true                  | 95
+        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), buildThermalState(22)) || 7200             | false                 | 0
+        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), buildThermalState(23)) || 7200             | false                 | 0
 
     }
 
@@ -127,24 +146,24 @@ class HpModelTest extends Specification {
         def hpModel = buildStandardModel(thermalHouse)
 
         when:
-        def nextInnerTemperature = hpModel.calculateNextState(hpData).innerTemperature()
+        def nextInnerTemperature = hpModel.calculateNextState(hpData).thermalGridState().partState().get(thermalHouse.uuid()).map({s -> (s as ThermalHouse.ThermalHouseState).innerTemperature() }).get()
 
         then:
         QuantityUtil.equals(nextInnerTemperature, getQuantity(expectedNewInnerTemperature, CELSIUS), TOLERANCE)
 
         where:
-        hpState                                                                                              || expectedNewInnerTemperature                                            // (isRunning, tooHigh, tooLow)
-        new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATT), getQuantity(17, CELSIUS))  || 18.6                            // tests case (false, false, true)
-        new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATT), getQuantity(18, CELSIUS))  || 16.4                            // tests case (false, false, false)
-        new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATT), getQuantity(20, CELSIUS))  || 18                            // tests case (false, false, false)
-        new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATT), getQuantity(22, CELSIUS))  || 19.6                            // tests case (false, false, false)
-        new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATT), getQuantity(23, CELSIUS))  || 20.4                            // tests case (false, true, false)
+        hpState                                                                                           || expectedNewInnerTemperature
+        new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATT), buildThermalState(17))  || 15.6
+        new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATT), buildThermalState(18))  || 16.4
+        new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATT), buildThermalState(20))  || 18
+        new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATT), buildThermalState(22))  || 19.6
+        new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATT), buildThermalState(23))  || 20.4
 
-        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), getQuantity(17, CELSIUS)) || 18.6                            // tests case (true, false, true)
-        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), getQuantity(18, CELSIUS)) || 19.4                            // tests case (true, false, false)
-        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), getQuantity(20, CELSIUS)) || 21                            // tests case (false, false, false)
-        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), getQuantity(22, CELSIUS)) || 22.6                            // tests case (true, false, false)
-        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), getQuantity(23, CELSIUS)) || 20.4                            // tests case (true, true, false)
+        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), buildThermalState(17)) || 15.6
+        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), buildThermalState(18)) || 16.4
+        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), buildThermalState(20)) || 18
+        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), buildThermalState(22)) || 19.6
+        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), buildThermalState(23)) || 20.4
 
     }
 
@@ -153,16 +172,20 @@ class HpModelTest extends Specification {
         when:
         def thermalHouse = buildThermalHouse(18, 22)
         def hpModelCaseClass = buildStandardModel(thermalHouse)
+        def thermalGrid = new ThermalGrid([thermalHouse] as Set<ThermalHouse>, [] as Set<ThermalStorage>)
         def hpModelCaseObject = HpModel.apply(
                 hpInput,
                 OperationInterval.apply(0L, 86400L),
                 null,
-                thermalHouse)
+                thermalGrid
+        )
 
         then:
         hpModelCaseClass.sRated().getValue() == hpModelCaseObject.sRated().getValue()
         hpModelCaseClass.cosPhiRated() == hpModelCaseObject.cosPhiRated()
         hpModelCaseClass.pThermal().getValue() == hpModelCaseObject.pThermal().getValue()
-        hpModelCaseClass.thermalHouse() == hpModelCaseObject.thermalHouse()
+        hpModelCaseClass.thermalGrid().houses().size() == 1
+        hpModelCaseObject.thermalGrid().houses().size() == 1
+        hpModelCaseClass.thermalGrid().houses().head() == hpModelCaseObject.thermalGrid().houses().head()
     }
 }

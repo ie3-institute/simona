@@ -101,7 +101,7 @@ final case class ThermalHouse(
       val temperatureDifference =
         upperBoundaryTemperature.subtract(innerTemperature)
       ethCapa
-        .divide(temperatureDifference)
+        .multiply(temperatureDifference)
         .asType(classOf[Energy])
         .to(StandardUnits.ENERGY_RESULT)
     } else
