@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Consolidated and enhanced SimScheduler tests [#285](https://github.com/ie3-institute/simona/issues/285)
 - Renaming sub-package directories [#141](https://github.com/ie3-institute/simona/issues/141)
 - Updated authors in [#301](https://github.com/ie3-institute/simona/issues/301)
+- Use `ThermalGrid` to calculate thermal environment of a heat pump [#315](https://github.com/ie3-institute/simona/issues/315)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
