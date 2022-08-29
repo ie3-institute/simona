@@ -6,20 +6,22 @@
 
 package edu.ie3.simona.test.common.model.grid
 
-import java.util.UUID
-
 import edu.ie3.simona.model.grid.{LineModel, NodeModel, SwitchModel}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import tech.units.indriya.quantity.Quantities
 
+import java.util.UUID
+
 /** Note: the line parameters are NOT adapted. Instead the line params from
   * [[FiveLinesWithNodes]] are used instead!
   *
+  * {{{
   * (6) / / trafo (5) /
   * | /
   * | / (0)--(15)S2(16)-----(3)-----(4)
   * | (17) S3 (18)
   * | (1)--(13)S1(14)-----(2)
+  * }}}
   */
 trait BasicGridWithSwitches extends BasicGrid {
 
