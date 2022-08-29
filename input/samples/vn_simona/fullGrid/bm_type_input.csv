@@ -1,3 +1,2 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:e7dd149dca33a37bc8938bcb854535e39ff0e88bc57da19c8b323944cbb839f7
-size 159
+"uuid","active_power_gradient","capex","cos_phi_rated","eta_conv","id","opex","s_rated"
+2fdca5f1-c11b-4169-a695-4c98f0e0a84a,5.0,0.0,1.0,1.0,typ_01,0.05,190.0
