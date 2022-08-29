@@ -6,15 +6,14 @@
 
 package edu.ie3.simona.config
 
-import java.io.File
-import java.nio.file.Paths
-
 import com.typesafe.config.{ConfigFactory, Config => TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.event.listener.SimonaListenerCompanion
 import edu.ie3.util.scala.ReflectionTools
 import scopt.{OptionParser => scoptOptionParser}
 
+import java.io.File
+import java.nio.file.Paths
 import scala.jdk.CollectionConverters._
 
 object ArgsParser extends LazyLogging {
@@ -237,7 +236,7 @@ object ArgsParser extends LazyLogging {
            |simona.runtime_configuration {
            |  selected_subnets = [${parsedArgs.selectedSubnets.getOrElse("")}]
            |  selected_volt_lvls = [${parsedArgs.selectedVoltLvls
-          .getOrElse("")}]
+            .getOrElse("")}]
            |}
            |""".stripMargin
       )

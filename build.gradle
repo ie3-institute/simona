@@ -7,7 +7,7 @@ plugins {
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
   id 'pmd' // code check, working on source code
-  id 'com.diffplug.spotless' version '6.9.1'// code format
+  id 'com.diffplug.spotless' version '6.10.0'// code format
   id 'com.github.onslip.gradle-one-jar' version '1.0.6' // pack a self contained jar
   id "com.github.ben-manes.versions" version '0.42.0'
   id "de.undercouch.download" version "5.1.2" // downloads plugin
@@ -100,7 +100,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // akka scala logging
-  implementation "ch.qos.logback:logback-classic:1.2.11"
+  implementation "ch.qos.logback:logback-classic:1.4.0"
 
   /* testing */
   testImplementation 'org.spockframework:spock-core:2.1-groovy-3.0'
