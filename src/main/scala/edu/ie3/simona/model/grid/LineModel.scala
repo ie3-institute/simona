@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.model.grid
 
-import java.time.ZonedDateTime
-import java.util.UUID
 import breeze.math.Complex
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.exceptions.InvalidGridException
@@ -16,7 +14,13 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
+import tech.units.indriya.unit.Units._
 
+import java.time.ZonedDateTime
+import java.util.UUID
 import javax.measure.Quantity
 import javax.measure.quantity.{
   Dimensionless,
@@ -24,10 +28,6 @@ import javax.measure.quantity.{
   ElectricCurrent,
   ElectricResistance
 }
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
-import tech.units.indriya.unit.Units._
 
 /** This model represents an electric wire or overhead line
   *
@@ -239,7 +239,7 @@ case object LineModel extends LazyLogging {
     )
       throw new InvalidGridException(
         s"Line ${lineInput.getUuid} (${lineInput.getId}) has a rated voltage of ${lineType
-          .getvRated()} but is connected to node A (${lineInput.getNodeA.getUuid} / ${lineInput.getNodeA.getId}), which has a rated voltage of $vRatedNodeA."
+            .getvRated()} but is connected to node A (${lineInput.getNodeA.getUuid} / ${lineInput.getNodeA.getId}), which has a rated voltage of $vRatedNodeA."
       )
     else if (
       lineType
@@ -248,7 +248,7 @@ case object LineModel extends LazyLogging {
     )
       throw new InvalidGridException(
         s"Line ${lineInput.getUuid} (${lineInput.getId}) has a rated voltage of ${lineType
-          .getvRated()} but is connected to node B (${lineInput.getNodeB.getUuid} / ${lineInput.getNodeB.getId}), which has a rated voltage of $vRatedNodeB."
+            .getvRated()} but is connected to node B (${lineInput.getNodeB.getUuid} / ${lineInput.getNodeB.getId}), which has a rated voltage of $vRatedNodeB."
       )
     else if (
       lineType
@@ -257,7 +257,7 @@ case object LineModel extends LazyLogging {
     )
       logger.warn(
         s"Line ${lineInput.getUuid} (${lineInput.getId}) has a rated voltage of ${lineType
-          .getvRated()} but is connected to node A (${lineInput.getNodeA.getUuid} / ${lineInput.getNodeA.getId}), which has a lower rated voltage of $vRatedNodeA."
+            .getvRated()} but is connected to node A (${lineInput.getNodeA.getUuid} / ${lineInput.getNodeA.getId}), which has a lower rated voltage of $vRatedNodeA."
       )
     else if (
       lineType
@@ -266,7 +266,7 @@ case object LineModel extends LazyLogging {
     )
       logger.warn(
         s"Line ${lineInput.getUuid} (${lineInput.getId}) has a rated voltage of ${lineType
-          .getvRated()} but is connected to node B (${lineInput.getNodeB.getUuid} / ${lineInput.getNodeB.getId}), which has a lower rated voltage of $vRatedNodeB."
+            .getvRated()} but is connected to node B (${lineInput.getNodeB.getUuid} / ${lineInput.getNodeB.getId}), which has a lower rated voltage of $vRatedNodeB."
       )
 
     // length

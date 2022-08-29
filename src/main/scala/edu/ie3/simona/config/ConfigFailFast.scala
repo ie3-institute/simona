@@ -392,7 +392,7 @@ case object ConfigFailFast extends LazyLogging {
     if (!LoadModelBehaviour.isEligibleInput(loadModelConfig.modelBehaviour))
       throw new InvalidConfigParameterException(
         s"The load model behaviour '${loadModelConfig.modelBehaviour}' for the loads with UUIDs '${loadModelConfig.uuids
-          .mkString(",")}' is invalid."
+            .mkString(",")}' is invalid."
       )
 
     if (
@@ -402,7 +402,7 @@ case object ConfigFailFast extends LazyLogging {
     )
       throw new InvalidConfigParameterException(
         s"The standard load profile reference '${loadModelConfig.reference}' for the loads with UUIDs '${loadModelConfig.uuids
-          .mkString(",")}' is invalid."
+            .mkString(",")}' is invalid."
       )
   }
 

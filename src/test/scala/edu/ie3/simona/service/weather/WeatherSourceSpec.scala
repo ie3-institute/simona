@@ -132,8 +132,8 @@ class WeatherSourceSpec extends UnitSpec {
           coordinateDistances.corresponds(expectedCoordinateDistances) {
             case (a: CoordinateDistance, b: CoordinateDistance) =>
               a.getCoordinateA.equalsExact(b.getCoordinateA, 1e-6) &&
-                a.getCoordinateB.equalsExact(b.getCoordinateB, 1e-6) &&
-                QuantityUtil.isEquivalentAbs(a.getDistance, b.getDistance, 1e-4)
+              a.getCoordinateB.equalsExact(b.getCoordinateB, 1e-6) &&
+              QuantityUtil.isEquivalentAbs(a.getDistance, b.getDistance, 1e-4)
           } shouldBe true
         case Failure(exception) =>
           fail(
