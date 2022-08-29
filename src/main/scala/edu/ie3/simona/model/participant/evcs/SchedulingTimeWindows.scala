@@ -52,9 +52,9 @@ object SchedulingTimeWindows {
     override def toString: String =
       s"SchedulingTimeWindow(start=$start, end=$end, voltage=$voltage, voltageDeviation=$voltageDeviation, " +
         s"timeBoxLength=$length, timeBoxSize=$size, parkedEvs=${parkedEvs
-          .foldLeft(Set.empty[String])((names: Set[String], ev: EvModel) => {
-            names + ev.getId
-          })})"
+            .foldLeft(Set.empty[String])((names: Set[String], ev: EvModel) => {
+              names + ev.getId
+            })})"
   }
 
   /** Time window used for the scheduling of ev charging. Additional information

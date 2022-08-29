@@ -220,24 +220,26 @@ object VoltagePrediction {
       windowLength: Int
   ): Try[Seq[VoltageTimeTableEntry]] =
     enhanceVoltageReferences(orderedVoltageReferences, windowLength).map {
-      _.sliding(windowLength).map { slidingWindow =>
-        val lastTwo = slidingWindow.slice(windowLength - 2, windowLength)
-        lastTwo.headOption
-          .flatMap(head => lastTwo.lastOption.map((head, _)))
-          .map { case ((startTime, _), (endTime, _)) =>
-            (startTime, endTime)
+      _.sliding(windowLength)
+        .map { slidingWindow =>
+          val lastTwo = slidingWindow.slice(windowLength - 2, windowLength)
+          lastTwo.headOption
+            .flatMap(head => lastTwo.lastOption.map((head, _)))
+            .map { case ((startTime, _), (endTime, _)) =>
+              (startTime, endTime)
+            }
+            .zip(mean(slidingWindow.map { case (_, quantity) =>
+              quantity
+            })) match {
+            case Some(((startTime, endTime), mean)) =>
+              VoltageTimeTableEntry(startTime, endTime, mean)
+            case None =>
+              throw PredictionException(
+                s"Unable to build blurred values for sliding window '$slidingWindow'."
+              )
           }
-          .zip(mean(slidingWindow.map { case (_, quantity) =>
-            quantity
-          })) match {
-          case Some(((startTime, endTime), mean)) =>
-            VoltageTimeTableEntry(startTime, endTime, mean)
-          case None =>
-            throw PredictionException(
-              s"Unable to build blurred values for sliding window '$slidingWindow'."
-            )
         }
-      }.toSeq
+        .toSeq
     }
 
   /** Pre- and append entries to the voltage references to ensure proper

@@ -753,7 +753,7 @@ trait GridOrientedCharging {
               window.voltageDeviation
                 .subtract(Quantities.getQuantity(voltageTolerance, PU))
             )
-          // make sure not to take window with minimal less voltage deviation which is included in allWindowsWithEqualVoltageDeviation (ugly solution)
+            // make sure not to take window with minimal less voltage deviation which is included in allWindowsWithEqualVoltageDeviation (ugly solution)
         )
         .maxByOption(_.voltageDeviation)
 
