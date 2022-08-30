@@ -17,6 +17,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   SimulationFailureMessage,
   SimulationSuccessfulMessage
 }
+
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
 
