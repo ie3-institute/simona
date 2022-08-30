@@ -599,12 +599,12 @@ object PrimaryServiceProxy {
         case Some(x) =>
           throw new InvalidConfigParameterException(
             s"Invalid configuration '$x' for a time series source.\nAvailable types:\n\t${supportedSources
-              .mkString("\n\t")}"
+                .mkString("\n\t")}"
           )
         case None =>
           throw new InvalidConfigParameterException(
             s"No configuration for a time series mapping source provided.\nPlease provide one of the available sources:\n\t${supportedSources
-              .mkString("\n\t")}"
+                .mkString("\n\t")}"
           )
       }
     }
