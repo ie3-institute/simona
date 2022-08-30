@@ -16,11 +16,27 @@ import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
-import edu.ie3.simona.ontology.messages.PowerMessage.{ProvideGridPowerMessage, RequestGridPowerMessage}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
-import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, FinishGridSimulationTrigger, InitializeGridAgentTrigger, StartGridSimulationTrigger}
+import edu.ie3.simona.ontology.messages.PowerMessage.{
+  ProvideGridPowerMessage,
+  RequestGridPowerMessage
+}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  CompletionMessage,
+  ScheduleTriggerMessage,
+  TriggerWithIdMessage
+}
+import edu.ie3.simona.ontology.trigger.Trigger.{
+  ActivityStartTrigger,
+  FinishGridSimulationTrigger,
+  InitializeGridAgentTrigger,
+  StartGridSimulationTrigger
+}
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
-import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown, UnitSpec}
+import edu.ie3.simona.test.common.{
+  ConfigTestData,
+  TestKitWithShutdown,
+  UnitSpec
+}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import tech.units.indriya.quantity.Quantities
 
@@ -224,8 +240,7 @@ class DBFSAlgorithmSupGridSpec
                   powerFlowResultEvent.transformer3wResults shouldBe empty
               }
 
-              hsActor.expectMsgPF() {
-                case FinishGridSimulationTrigger(3600) =>
+              hsActor.expectMsgPF() { case FinishGridSimulationTrigger(3600) =>
               }
 
             case x =>
@@ -365,7 +380,7 @@ class DBFSAlgorithmSupGridSpec
                     )
                   )
                 ) =>
-            // after doing cleanup stuff, our agent should go back to idle again
+              // after doing cleanup stuff, our agent should go back to idle again
               resultListener.expectMsgPF() {
                 case powerFlowResultEvent: PowerFlowResultEvent =>
                   powerFlowResultEvent.nodeResults.headOption match {
@@ -380,8 +395,7 @@ class DBFSAlgorithmSupGridSpec
                   powerFlowResultEvent.transformer3wResults shouldBe empty
               }
 
-              hsActor.expectMsgPF() {
-                case FinishGridSimulationTrigger(3600) =>
+              hsActor.expectMsgPF() { case FinishGridSimulationTrigger(3600) =>
               }
 
             case x =>
