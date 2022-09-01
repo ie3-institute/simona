@@ -780,11 +780,10 @@ final case class PVModel private (
     ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
   }
 
-  def handleIssuePowerCtrl(
+  override def handleIssuePowerCtrl(
       data: PVRelevantData,
       setPower: ComparableQuantity[Power]
-  ): Option[Long] =
-    None
+  ): Option[(PVRelevantData, Long)] = None
 }
 
 object PVModel {

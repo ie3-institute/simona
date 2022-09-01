@@ -166,7 +166,8 @@ class LoadAgentProfileModelCalculationSpec
               simulationEndDate,
               resolution,
               requestVoltageDeviationThreshold,
-              outputConfig
+              outputConfig,
+              maybeEmAgent
             ) =>
           inputModel shouldBe voltageSensitiveInput
           modelConfig shouldBe modelConfig
@@ -176,6 +177,7 @@ class LoadAgentProfileModelCalculationSpec
           resolution shouldBe this.resolution
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
+          maybeEmAgent shouldBe None
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
       }
@@ -210,6 +212,7 @@ class LoadAgentProfileModelCalculationSpec
               voltageValueStore,
               resultValueStore,
               requestValueStore,
+              _,
               _
             ) =>
           /* Base state data */

@@ -14,6 +14,7 @@ import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT}
@@ -229,6 +230,15 @@ final case class EvcsModel(
       data: EvcsRelevantData
   ): ComparableQuantity[Power] =
     throw new NotImplementedError("Use calculatePowerAndEvSoc() instead.")
+
+  override def determineFlexOptions(
+      data: EvcsRelevantData
+  ): ProvideFlexOptions = ??? // TODO actual implementation
+
+  override def handleIssuePowerCtrl(
+      data: EvcsRelevantData,
+      setPower: ComparableQuantity[Power]
+  ): Option[(EvcsRelevantData, Long)] = ??? // TODO actual implementation
 }
 
 object EvcsModel {

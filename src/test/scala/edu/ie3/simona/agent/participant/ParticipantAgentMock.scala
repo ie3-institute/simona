@@ -11,6 +11,7 @@ import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
+import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
@@ -39,6 +40,7 @@ import edu.ie3.util.quantities.PowerSystemUnits.{
   MEGAWATT,
   PU
 }
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.QuantityUtil
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
@@ -157,7 +159,8 @@ class ParticipantAgentMock(
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: ParticipantNotifierConfig,
+      maybeEmAgent: Option[ActorRef]
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,
@@ -187,7 +190,8 @@ class ParticipantAgentMock(
       ),
       ValueStore.forResult(resolution, 2),
       ValueStore(resolution),
-      ValueStore(resolution)
+      ValueStore(resolution),
+      None
     )
   }
 
@@ -214,6 +218,28 @@ class ParticipantAgentMock(
     Mockito.when(mockModel.getUuid).thenReturn(uuid)
     mockModel
   }
+
+  override protected def createCalcRelevantData(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedRelevantData.type,
+        SystemParticipant[FixedRelevantData.type]
+      ],
+      tick: Long,
+      secondaryData: Map[ActorRef, Option[_ <: Data]]
+  ): FixedRelevantData.type =
+    FixedRelevantData
+
+  override protected def calculateResult(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedRelevantData.type,
+        SystemParticipant[FixedRelevantData.type]
+      ],
+      currentTick: Long,
+      activePower: ComparableQuantity[Power]
+  ): ApparentPower =
+    ApparentPower(0d.asMegaWatt, 0d.asMegaWatt)
 
   /** To clean up agent value stores after power flow convergence. This is
     * necessary for agents whose results are time dependent e.g. storage agents

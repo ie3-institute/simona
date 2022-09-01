@@ -253,7 +253,8 @@ class EvcsAgentModelCalculationSpec
               simulationEndDate,
               timeBin,
               requestVoltageDeviationThreshold,
-              outputConfig
+              outputConfig,
+              maybeEmAgent
             ) =>
           inputModel shouldBe evcsInputModel
           modelConfig shouldBe modelConfig
@@ -263,6 +264,7 @@ class EvcsAgentModelCalculationSpec
           timeBin shouldBe this.resolution
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
+          maybeEmAgent shouldBe None
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
       }
@@ -291,6 +293,7 @@ class EvcsAgentModelCalculationSpec
                 voltageValueStore,
                 resultValueStore,
                 requestValueStore,
+                _,
                 _
               ),
               awaitRegistrationResponsesFrom,

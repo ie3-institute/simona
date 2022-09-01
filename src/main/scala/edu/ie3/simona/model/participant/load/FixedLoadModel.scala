@@ -14,6 +14,10 @@ import edu.ie3.simona.model.participant.load.LoadReference.{
   ActivePower,
   EnergyConsumption
 }
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  ProvideFlexOptions,
+  ProvideMinMaxFlexOptions
+}
 import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVOLTAMPERE, MEGAWATT}
 import edu.ie3.util.scala.OperationInterval
 import tech.units.indriya.ComparableQuantity
@@ -79,10 +83,23 @@ final case class FixedLoadModel(
       data: FixedLoadRelevantData.type = FixedLoadRelevantData
   ): ComparableQuantity[Power] = activePower.multiply(scalingFactor)
 
+  override def determineFlexOptions(
+      data: FixedLoadRelevantData.type
+  ): ProvideFlexOptions = {
+    val power = calculateActivePower(data)
+
+    // no flexibility
+    ProvideMinMaxFlexOptions(uuid, power, power, power)
+  }
+
+  override def handleIssuePowerCtrl(
+      data: FixedLoadRelevantData.type,
+      setPower: ComparableQuantity[Power]
+  ): Option[(FixedLoadRelevantData.type, Long)] = None
 }
 
-case object FixedLoadModel {
-  object FixedLoadRelevantData extends LoadRelevantData
+object FixedLoadModel {
+  case object FixedLoadRelevantData extends LoadRelevantData
 
   def apply(
       input: LoadInput,

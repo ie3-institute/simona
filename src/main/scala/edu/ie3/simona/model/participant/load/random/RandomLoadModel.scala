@@ -14,6 +14,10 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference._
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
 import edu.ie3.simona.model.participant.load.{DayType, LoadModel, LoadReference}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  ProvideFlexOptions,
+  ProvideMinMaxFlexOptions
+}
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT, KILOWATTHOUR, PU}
 import edu.ie3.util.scala.OperationInterval
@@ -157,9 +161,23 @@ final case class RandomLoadModel(
         newGev
     }
   }
+
+  override def determineFlexOptions(
+      data: RandomRelevantData
+  ): ProvideFlexOptions = {
+    val power = calculateActivePower(data)
+
+    // no flexibility
+    ProvideMinMaxFlexOptions(uuid, power, power, power)
+  }
+
+  override def handleIssuePowerCtrl(
+      data: RandomRelevantData,
+      setPower: ComparableQuantity[Power]
+  ): Option[(RandomRelevantData, Long)] = None
 }
 
-case object RandomLoadModel {
+object RandomLoadModel {
 
   final case class RandomRelevantData(date: ZonedDateTime)
       extends LoadRelevantData

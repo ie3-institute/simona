@@ -17,11 +17,16 @@ import edu.ie3.simona.model.participant.WecModel.{
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  ProvideFlexOptions,
+  ProvideMinMaxFlexOptions
+}
 import edu.ie3.util.quantities.EmptyQuantity
 import edu.ie3.util.quantities.PowerSystemUnits.{
   KILOGRAM_PER_CUBIC_METRE,
   MEGAWATT
 }
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.quantities.interfaces.{Density, HeatCapacity}
 import edu.ie3.util.scala.OperationInterval
 
@@ -195,6 +200,20 @@ final case class WecModel(
           .asType(classOf[Density])
     }
   }
+
+  override def determineFlexOptions(
+      data: WecRelevantData
+  ): ProvideFlexOptions = {
+    val power = calculateActivePower(data)
+
+    ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
+  }
+
+  override def handleIssuePowerCtrl(
+      data: WecRelevantData,
+      setPower: ComparableQuantity[Power]
+  ): Option[(WecRelevantData, Long)] =
+    None
 }
 
 /** Create valid [[WecModel]] by calling the apply function.

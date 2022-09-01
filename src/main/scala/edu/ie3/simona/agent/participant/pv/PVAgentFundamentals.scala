@@ -14,18 +14,22 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
-import edu.ie3.simona.agent.participant.data.Data.SecondaryData
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.pv.PVAgent.neededServices
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
-import edu.ie3.simona.agent.participant.statedata.{
-  DataCollectionStateData,
-  ParticipantStateData
-}
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
+import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
+}
+import edu.ie3.simona.agent.participant.data.Data.SecondaryData
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.agent.participant.pv.PVAgent.neededServices
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
+  FlexStateData,
+  ParticipantModelBaseStateData
+}
+import edu.ie3.simona.agent.participant.statedata.{
+  DataCollectionStateData,
+  ParticipantStateData
 }
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
@@ -95,7 +99,8 @@ protected trait PVAgentFundamentals
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: ParticipantNotifierConfig,
+      maybeEmAgent: Option[ActorRef]
   ): ParticipantModelBaseStateData[ApparentPower, PVRelevantData, PVModel] = {
     /* Check for needed services */
     if (
@@ -133,7 +138,8 @@ protected trait PVAgentFundamentals
       ),
       ValueStore.forResult(resolution, 10),
       ValueStore(resolution * 10),
-      ValueStore(resolution * 10)
+      ValueStore(resolution * 10),
+      maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
     )
   }
 
@@ -148,6 +154,75 @@ protected trait PVAgentFundamentals
     simulationStartDate,
     simulationEndDate
   )
+
+  override protected def createCalcRelevantData(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        PVRelevantData,
+        PVModel
+      ],
+      tick: Long,
+      secondaryData: Map[ActorRef, Option[_ <: Data]]
+  ): PVRelevantData = {
+    /* convert current tick to a datetime */
+    implicit val startDateTime: ZonedDateTime =
+      baseStateData.startDate
+    val dateTime = tick.toDateTime
+
+    val tickInterval =
+      baseStateData.calcRelevantDateStore
+        .last(tick - 1) match {
+        case Some((tick, _)) =>
+          tick - tick
+        case _ =>
+          /* At the first tick, we are not able to determine the tick interval from last tick
+           * (since there is none). Then we use a fall back pv stem distance. */
+          FALLBACK_WEATHER_STEM_DISTANCE
+      }
+
+    /* extract weather data from secondary data, which should have been requested and received before */
+    val weatherData =
+      secondaryData
+        .collectFirst {
+          // filter secondary data for weather data
+          case (_, Some(data: WeatherData)) =>
+            data
+        }
+        .getOrElse(
+          throw new InconsistentStateException(
+            s"The model ${baseStateData.model} was not provided with needed weather data."
+          )
+        )
+
+    PVRelevantData(
+      dateTime,
+      tickInterval,
+      weatherData.diffIrr,
+      weatherData.dirIrr
+    )
+  }
+
+  override protected def calculateResult(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        PVRelevantData,
+        PVModel
+      ],
+      currentTick: Long,
+      activePower: ComparableQuantity[Power]
+  ): ApparentPower = {
+    val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
+
+    val reactivePower = baseStateData.model match {
+      case model: PVModel =>
+        model.calculateReactivePower(
+          activePower,
+          voltage
+        )
+    }
+
+    ApparentPower(activePower, reactivePower)
+  }
 
   /** Partial function, that is able to transfer
     * [[ParticipantModelBaseStateData]] (holding the actual calculation model)
@@ -187,51 +262,23 @@ protected trait PVAgentFundamentals
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
-    implicit val startDateTime: ZonedDateTime =
-      collectionStateData.baseStateData.startDate
-
     val voltage =
       getAndCheckNodalVoltage(collectionStateData.baseStateData, currentTick)
 
     val (result, relevantData) =
       collectionStateData.baseStateData match {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case modelBaseStateData: ParticipantModelBaseStateData[
+              ApparentPower,
+              PVRelevantData,
+              PVModel
+            ] =>
           modelBaseStateData.model match {
             case pvModel: PVModel =>
-              /* convert current tick to a datetime */
-              val dateTime = currentTick.toDateTime
-
-              val tickInterval =
-                modelBaseStateData.calcRelevantDateStore
-                  .last(currentTick - 1) match {
-                  case Some((tick, _)) =>
-                    currentTick - tick
-                  case _ =>
-                    /* At the first tick, we are not able to determine the tick interval from last tick
-                     * (since there is none). Then we use a fall back pv stem distance. */
-                    FALLBACK_WEATHER_STEM_DISTANCE
-                }
-
-              /* extract weather data from secondary data, which should have been requested and received before */
-              val weatherData =
-                collectionStateData.data
-                  .collectFirst {
-                    // filter secondary data for weather data
-                    case (_, Some(data: WeatherData)) =>
-                      data
-                  }
-                  .getOrElse(
-                    throw new InconsistentStateException(
-                      s"The model ${modelBaseStateData.model} was not provided with needed weather data."
-                    )
-                  )
-
               val relevantData =
-                PVRelevantData(
-                  dateTime,
-                  tickInterval,
-                  weatherData.diffIrr,
-                  weatherData.dirIrr
+                createCalcRelevantData(
+                  modelBaseStateData,
+                  currentTick,
+                  collectionStateData.data
                 )
 
               val power = pvModel.calculatePower(

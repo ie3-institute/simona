@@ -609,7 +609,8 @@ class ParticipantAgentFundamentalsSpec
           .forVoltage(901L, Quantities.getQuantity(1d, PowerSystemUnits.PU)),
         ValueStore(901L),
         ValueStore(901L),
-        ValueStore(901L)
+        ValueStore(901L),
+        None
       )
 
       ParticipantAgent.getAndCheckNodalVoltage(
@@ -641,7 +642,8 @@ class ParticipantAgentFundamentalsSpec
         ValueStore(901L),
         ValueStore(901L),
         ValueStore(901L),
-        ValueStore(901L)
+        ValueStore(901L),
+        None
       )
 
       intercept[InconsistentStateException] {
@@ -689,7 +691,8 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
       ValueStore(0L),
       ValueStore(0L),
       ValueStore(0L),
-      ValueStore(0L)
+      ValueStore(0L),
+      None
     )
   }
 }

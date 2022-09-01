@@ -107,12 +107,17 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     * @param setPower
     *   power that has been set by EmAgent
     * @return
-    *   optionally the next tick at which flex options will change
+    *   optionally updated relevant data and the next tick at which flex options
+    *   will change.
+    *
+    * TODO currently the model state data is usually saved within
+    * CalcRelevantData, which is less than ideal. But, this is why we optionally
+    * return an updated CD here.
     */
   def handleIssuePowerCtrl(
-      data: PVRelevantData,
+      data: CD,
       setPower: ComparableQuantity[Power]
-  ): Option[Long]
+  ): Option[(CD, Long)]
 
   /** Get a partial function, that transfers the current active into reactive
     * power based on the participants properties and the given nodal voltage

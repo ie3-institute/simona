@@ -8,13 +8,12 @@ package edu.ie3.simona.agent.participant
 
 import akka.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.simona.agent.SimonaAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.data.Data
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  PrimaryDataWithApparentPower
-}
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FromOutsideBaseStateData,
   ModelBaseStateData,
@@ -37,18 +36,12 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   Calculate,
   HandleInformation
 }
-import edu.ie3.simona.agent.{SimonaAgent, ValueStore}
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   IssueFlexControl,
-  IssueNoCtrl,
-  IssuePowerCtrl,
-  ProvideFlexOptions,
-  ProvideMinMaxFlexOptions,
   RequestFlexOptions
 }
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage
@@ -120,7 +113,8 @@ abstract class ParticipantAgent[
                 simulationEndDate,
                 resolution,
                 requestVoltageDeviationThreshold,
-                outputConfig
+                outputConfig,
+                maybeEmAgent
               )
             ),
             triggerId,
@@ -142,7 +136,8 @@ abstract class ParticipantAgent[
         simulationEndDate,
         resolution,
         requestVoltageDeviationThreshold,
-        outputConfig
+        outputConfig,
+        maybeEmAgent
       )
   }
 
@@ -238,7 +233,7 @@ abstract class ParticipantAgent[
 
     case Event(
           RequestFlexOptions,
-          baseStateData: ParticipantModelBaseStateData[PD, _, _]
+          baseStateData: ParticipantModelBaseStateData[PD, CD, M]
         ) =>
       val updatedStateData = handleFlexRequest(baseStateData, None)
 
@@ -250,7 +245,7 @@ abstract class ParticipantAgent[
         ) =>
       val participantStateData =
         serviceCollectionStateData.baseStateData match {
-          case participantStateData: ParticipantModelBaseStateData[PD, _, _] =>
+          case participantStateData: ParticipantModelBaseStateData[PD, CD, M] =>
             participantStateData
           case otherStateData =>
             throw new IllegalStateException(
@@ -267,67 +262,9 @@ abstract class ParticipantAgent[
 
     case Event(
           flexCtrl: IssueFlexControl,
-          baseStateData: ParticipantModelBaseStateData[PD, _, _]
+          baseStateData: ParticipantModelBaseStateData[PD, CD, M]
         ) =>
-      val resultingActivePower =
-        baseStateData.flexStateData
-          .map { flexStateData =>
-            val (_, flexOptions) = flexStateData.flexOptionsStore
-              .last()
-              .getOrElse(
-                throw new IllegalStateException(
-                  "Flex options have not been calculated before."
-                )
-              )
-
-            flexOptions match {
-              case ProvideMinMaxFlexOptions(_, pRef, pMin, pMax) =>
-                flexCtrl match {
-                  case IssuePowerCtrl(setPower) =>
-                    // sanity check: setPower is in range of latest flex options
-                    if (setPower.isLessThan(pMin))
-                      throw new RuntimeException(
-                        s"The set power $setPower must not be lower than the minimum power $pMin!"
-                      )
-                    if (setPower.isGreaterThan(pMax)) {
-                      throw new RuntimeException(
-                        s"The set power $setPower must not be greater than the maximum power $pMax!"
-                      )
-                    }
-                    // override, take setPower
-                    setPower
-
-                  case IssueNoCtrl =>
-                    // no override, take reference power
-                    pRef
-                }
-
-              case unknownFlexOpt =>
-                throw new IllegalStateException(
-                  s"Unknown/unfitting flex messages $unknownFlexOpt"
-                )
-            }
-          }
-          .getOrElse(
-            throw new IllegalStateException(
-              s"Received $flexCtrl, but participant agent is not in EM mode"
-            )
-          )
-
-      val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
-
-      val reactivePower = baseStateData.model.calculateReactivePower(
-        resultingActivePower,
-        voltage
-      )
-
-      val apparentPower = ApparentPower(resultingActivePower, reactivePower)
-
-      // TODO save in results store
-
-      // TODO send final participant results to listeners, including EmAgent
-
-      stay()
+      handleFlexCtrl(baseStateData, currentTick, flexCtrl, scheduler)
   }
 
   when(HandleInformation) {
@@ -342,7 +279,8 @@ abstract class ParticipantAgent[
             simulationEndDate,
             resolution,
             requestVoltageDeviationThreshold,
-            outputConfig
+            outputConfig,
+            _
           )
         ) =>
       log.debug("Will replay primary data")
@@ -370,7 +308,8 @@ abstract class ParticipantAgent[
             simulationEndDate,
             resolution,
             requestVoltageDeviationThreshold,
-            outputConfig
+            outputConfig,
+            maybeEmAgent
           )
         ) =>
       log.debug("Will perform model calculations")
@@ -383,7 +322,8 @@ abstract class ParticipantAgent[
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        scheduler
+        scheduler,
+        maybeEmAgent
       )
 
     /* Receiving the registration replies from services and collect their next data ticks */
@@ -606,7 +546,8 @@ abstract class ParticipantAgent[
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
-      scheduler: ActorRef
+      scheduler: ActorRef,
+      maybeEmAgent: Option[ActorRef]
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Handles the responses from service providers, this actor has registered
@@ -800,15 +741,34 @@ abstract class ParticipantAgent[
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   protected def handleFlexRequest(
-      baseStateData: ParticipantModelBaseStateData[PD, _, _],
+      baseStateData: ParticipantModelBaseStateData[PD, CD, M],
       maybeSecondaryData: Option[Map[ActorRef, Option[_ <: Data]]]
-  ): ParticipantModelBaseStateData[PD, _, _]
+  ): ParticipantModelBaseStateData[PD, CD, M]
 
-  protected def calcFlexOptions(
-      baseStateData: BaseStateData[PD],
+  protected def calculateFlexOptions(
+      baseStateData: ParticipantModelBaseStateData[PD, CD, M],
       currentTick: Long,
       maybeSecondaryData: Option[Map[ActorRef, Option[_ <: Data]]]
-  ): ProvideFlexOptions
+  ): ParticipantModelBaseStateData[PD, CD, M]
+
+  protected def createCalcRelevantData(
+      baseStateData: ParticipantModelBaseStateData[PD, CD, M],
+      tick: Long,
+      secondaryData: Map[ActorRef, Option[_ <: Data]]
+  ): CD
+
+  protected def handleFlexCtrl(
+      baseStateData: ParticipantModelBaseStateData[PD, CD, M],
+      currentTick: Long,
+      flexCtrl: IssueFlexControl,
+      scheduler: ActorRef
+  ): State
+
+  protected def calculateResult(
+      baseStateData: ParticipantModelBaseStateData[PD, CD, M],
+      currentTick: Long,
+      activePower: ComparableQuantity[Power]
+  ): PD
 
   /** Determining the reply to an
     * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]],

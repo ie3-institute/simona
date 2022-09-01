@@ -13,17 +13,22 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult
 }
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.participant.data.Data.SecondaryData
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
-import edu.ie3.simona.agent.participant.statedata.{
-  DataCollectionStateData,
-  ParticipantStateData
-}
+import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
+import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
+}
+import edu.ie3.simona.agent.participant.data.Data.SecondaryData
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
+  FlexStateData,
+  ParticipantModelBaseStateData
+}
+import edu.ie3.simona.agent.participant.statedata.{
+  DataCollectionStateData,
+  ParticipantStateData
 }
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
@@ -37,22 +42,13 @@ import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.FixedFeedInModel
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KILOVARHOUR,
-  KILOWATTHOUR,
-  MEGAVAR,
-  MEGAWATT,
-  PU
-}
-import edu.ie3.util.scala.quantities.QuantityUtil
+import edu.ie3.util.quantities.PowerSystemUnits.PU
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Energy, Power}
+import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.{ClassTag, classTag}
-import scala.util.{Failure, Success}
 
 protected trait FixedFeedInAgentFundamentals
     extends ParticipantAgentFundamentals[
@@ -100,7 +96,8 @@ protected trait FixedFeedInAgentFundamentals
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: ParticipantNotifierConfig,
+      maybeEmAgent: Option[ActorRef]
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,
@@ -149,7 +146,8 @@ protected trait FixedFeedInAgentFundamentals
       ),
       ValueStore.forResult(resolution, 2),
       ValueStore(resolution),
-      ValueStore(resolution)
+      ValueStore(resolution),
+      maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
     )
   }
 
@@ -164,6 +162,39 @@ protected trait FixedFeedInAgentFundamentals
     simulationStartDate,
     simulationEndDate
   )
+
+  override protected def createCalcRelevantData(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedRelevantData.type,
+        FixedFeedInModel
+      ],
+      tick: Long,
+      secondaryData: Map[ActorRef, Option[_ <: Data]]
+  ): FixedRelevantData.type =
+    FixedRelevantData
+
+  override protected def calculateResult(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedRelevantData.type,
+        FixedFeedInModel
+      ],
+      currentTick: Long,
+      activePower: ComparableQuantity[Power]
+  ): ApparentPower = {
+    val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
+
+    val reactivePower = baseStateData.model match {
+      case model: FixedFeedInModel =>
+        model.calculateReactivePower(
+          activePower,
+          voltage
+        )
+    }
+
+    ApparentPower(activePower, reactivePower)
+  }
 
   override val calculateModelPowerFunc: (
       Long,
