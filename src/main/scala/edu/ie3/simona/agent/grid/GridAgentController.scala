@@ -371,7 +371,8 @@ class GridAgentController(
       simulationEndDate,
       resolution,
       requestVoltageDeviationThreshold,
-      outputConfig
+      outputConfig,
+      None // FIXME
     )
   )
 
@@ -434,7 +435,8 @@ class GridAgentController(
       simulationEndDate,
       resolution,
       requestVoltageDeviationThreshold,
-      outputConfig
+      outputConfig,
+      None // FIXME
     )
   )
 
@@ -498,7 +500,8 @@ class GridAgentController(
         simulationEndDate,
         resolution,
         requestVoltageDeviationThreshold,
-        outputConfig
+        outputConfig,
+        None // FIXME
       )
     )
 
@@ -569,7 +572,8 @@ class GridAgentController(
         simulationEndDate,
         resolution,
         requestVoltageDeviationThreshold,
-        outputConfig
+        outputConfig,
+        None // FIXME
       )
     )
   }
@@ -634,7 +638,8 @@ class GridAgentController(
         simulationEndDate,
         resolution,
         requestVoltageDeviationThreshold,
-        outputConfig
+        outputConfig,
+        None // FIXME
       )
     )
 

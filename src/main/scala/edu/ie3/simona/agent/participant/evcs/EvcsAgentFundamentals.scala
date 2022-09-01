@@ -15,12 +15,16 @@ import edu.ie3.datamodel.models.result.system.{
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
+import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent.neededServices
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
+  FlexStateData,
+  ParticipantModelBaseStateData
+}
 import edu.ie3.simona.agent.participant.statedata.{
   DataCollectionStateData,
   ParticipantStateData
@@ -49,7 +53,7 @@ import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.Dimensionless
+import javax.measure.quantity.{Dimensionless, Power}
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.reflect.{ClassTag, classTag}
 
@@ -98,7 +102,8 @@ protected trait EvcsAgentFundamentals
       simulationEndDate: ZonedDateTime,
       timeBin: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: ParticipantNotifierConfig,
+      maybeEmAgent: Option[ActorRef]
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
@@ -122,7 +127,8 @@ protected trait EvcsAgentFundamentals
       simulationEndDate,
       timeBin,
       requestVoltageDeviationThreshold,
-      outputConfig
+      outputConfig,
+      maybeEmAgent
     )
   }
 
@@ -156,7 +162,8 @@ protected trait EvcsAgentFundamentals
       simulationEndDate: ZonedDateTime,
       timeBin: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: ParticipantNotifierConfig,
+      maybeEmAgent: Option[ActorRef]
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
@@ -189,7 +196,8 @@ protected trait EvcsAgentFundamentals
       ),
       ValueStore.forResult(timeBin, 10),
       ValueStore(timeBin * 10),
-      ValueStore(timeBin * 10)
+      ValueStore(timeBin * 10),
+      maybeEmAgent.map(FlexStateData(_, ValueStore(timeBin * 10)))
     )
   }
 
@@ -204,6 +212,42 @@ protected trait EvcsAgentFundamentals
     simulationStartDate,
     simulationEndDate
   )
+
+  override protected def createCalcRelevantData(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsModel
+      ],
+      tick: Long,
+      secondaryData: Map[ActorRef, Option[_ <: Data]]
+  ): EvcsRelevantData = {
+    // TODO implement
+
+    throw new NotImplementedError()
+  }
+
+  override protected def calculateResult(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsModel
+      ],
+      currentTick: Long,
+      activePower: ComparableQuantity[Power]
+  ): ApparentPower = {
+    val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
+
+    val reactivePower = baseStateData.model match {
+      case model: EvcsModel =>
+        model.calculateReactivePower(
+          activePower,
+          voltage
+        )
+    }
+
+    ApparentPower(activePower, reactivePower)
+  }
 
   /** Partial function, that is able to transfer
     * [[ParticipantModelBaseStateData]] (holding the actual calculation model)

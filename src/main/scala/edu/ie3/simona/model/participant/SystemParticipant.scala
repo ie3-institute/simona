@@ -8,7 +8,9 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.participant.PVModel.PVRelevantData
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
@@ -92,6 +94,30 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     *   Active power
     */
   protected def calculateActivePower(data: CD): ComparableQuantity[Power]
+
+  /** @param data
+    * @return
+    *   flex options
+    */
+  def determineFlexOptions(
+      data: CD
+  ): ProvideFlexOptions
+
+  /** @param data
+    * @param setPower
+    *   power that has been set by EmAgent
+    * @return
+    *   optionally updated relevant data and the next tick at which flex options
+    *   will change.
+    *
+    * TODO currently the model state data is usually saved within
+    * CalcRelevantData, which is less than ideal. But, this is why we optionally
+    * return an updated CD here.
+    */
+  def handleIssuePowerCtrl(
+      data: CD,
+      setPower: ComparableQuantity[Power]
+  ): Option[(CD, Long)]
 
   /** Get a partial function, that transfers the current active into reactive
     * power based on the participants properties and the given nodal voltage

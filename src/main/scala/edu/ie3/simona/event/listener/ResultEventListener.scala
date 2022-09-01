@@ -16,6 +16,7 @@ import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
+  FlexOptionsResultEvent,
   ParticipantResultEvent,
   PowerFlowResultEvent
 }
@@ -376,6 +377,13 @@ class ResultEventListener(
               )
           }
       stay() using updatedBaseData
+
+    case Event(
+          FlexOptionsResultEvent(flexOptionsResult),
+          baseData: BaseData
+        ) =>
+      val updateBaseData = handleResult(flexOptionsResult, baseData)
+      stay() using updateBaseData
   }
 
   onTermination { case StopEvent(_, _, baseData: BaseData) =>

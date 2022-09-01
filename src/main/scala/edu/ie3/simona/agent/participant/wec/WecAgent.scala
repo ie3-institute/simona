@@ -12,10 +12,16 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.participant.statedata.{
+  BaseStateData,
+  ParticipantStateData
+}
 import edu.ie3.simona.config.SimonaConfig.WecRuntimeConfig
 import edu.ie3.simona.model.participant.WecModel
 import edu.ie3.simona.model.participant.WecModel._
+import tech.units.indriya.ComparableQuantity
+
+import javax.measure.quantity.Power
 
 object WecAgent {
   def props(

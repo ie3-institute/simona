@@ -12,7 +12,10 @@ import edu.ie3.datamodel.models.input.system.characteristic.QV
 import edu.ie3.simona.model.participant.CalcRelevantData
 import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.FlexibilityMessage
 import edu.ie3.util.scala.OperationInterval
+import scala.Option
+import scala.Tuple2
 import spock.lang.Specification
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
@@ -39,7 +42,17 @@ class SystemParticipantTest extends Specification {
 					ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
 						return Quantities.getQuantity(0, MEGAWATT)
 					}
-				}
+
+					@Override
+					FlexibilityMessage.ProvideFlexOptions determineFlexOptions(CalcRelevantData data) {
+						return null
+					}
+
+					@Override
+					Option<Tuple2<CalcRelevantData, Object>> handleIssuePowerCtrl(CalcRelevantData data, ComparableQuantity<Power> setPower) {
+						return null
+					}
+		}
 		Quantity adjustedVoltage = Quantities.getQuantity(1, PU) // needed for method call but not applicable for cosphi_p
 
 		when: "the reactive power is calculated"
@@ -77,6 +90,16 @@ class SystemParticipantTest extends Specification {
 					ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
 						return Quantities.getQuantity(0, MEGAWATT)
 					}
+
+					@Override
+					FlexibilityMessage.ProvideFlexOptions determineFlexOptions(CalcRelevantData data) {
+						return null
+					}
+
+					@Override
+					Option<Tuple2<CalcRelevantData, Object>> handleIssuePowerCtrl(CalcRelevantData data, ComparableQuantity<Power> setPower) {
+						return null
+					}
 				}
 
 		Quantity adjustedVoltage = Quantities.getQuantity(1, PU) // needed for method call but not applicable for cosphi_p
@@ -111,6 +134,16 @@ class SystemParticipantTest extends Specification {
 					@Override
 					ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
 						return Quantities.getQuantity(0, MEGAWATT)
+					}
+
+					@Override
+					FlexibilityMessage.ProvideFlexOptions determineFlexOptions(CalcRelevantData data) {
+						return null
+					}
+
+					@Override
+					Option<Tuple2<CalcRelevantData, Object>> handleIssuePowerCtrl(CalcRelevantData data, ComparableQuantity<Power> setPower) {
+						return null
 					}
 				}
 
@@ -148,6 +181,16 @@ class SystemParticipantTest extends Specification {
 					@Override
 					ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
 						return Quantities.getQuantity(0, MEGAWATT)
+					}
+
+					@Override
+					FlexibilityMessage.ProvideFlexOptions determineFlexOptions(CalcRelevantData data) {
+						return null
+					}
+
+					@Override
+					Option<Tuple2<CalcRelevantData, Object>> handleIssuePowerCtrl(CalcRelevantData data, ComparableQuantity<Power> setPower) {
+						return null
 					}
 				}
 
@@ -188,6 +231,16 @@ class SystemParticipantTest extends Specification {
 					ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
 						return Quantities.getQuantity(0, MEGAWATT)
 					}
+
+					@Override
+					FlexibilityMessage.ProvideFlexOptions determineFlexOptions(CalcRelevantData data) {
+						return null
+					}
+
+					@Override
+					Option<Tuple2<CalcRelevantData, Object>> handleIssuePowerCtrl(CalcRelevantData data, ComparableQuantity<Power> setPower) {
+						return null
+					}
 				}
 
 		when: "the reactive power is calculated"
@@ -227,6 +280,16 @@ class SystemParticipantTest extends Specification {
 					ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
 						return Quantities.getQuantity(0, MEGAWATT)
 					}
+
+					@Override
+					FlexibilityMessage.ProvideFlexOptions determineFlexOptions(CalcRelevantData data) {
+						return null
+					}
+
+					@Override
+					Option<Tuple2<CalcRelevantData, Object>> handleIssuePowerCtrl(CalcRelevantData data, ComparableQuantity<Power> setPower) {
+						return null
+					}
 				}
 
 		when: "the reactive power is calculated"
@@ -265,6 +328,16 @@ class SystemParticipantTest extends Specification {
 					@Override
 					ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
 						return Quantities.getQuantity(0, MEGAWATT)
+					}
+
+					@Override
+					FlexibilityMessage.ProvideFlexOptions determineFlexOptions(CalcRelevantData data) {
+						return null
+					}
+
+					@Override
+					Option<Tuple2<CalcRelevantData, Object>> handleIssuePowerCtrl(CalcRelevantData data, ComparableQuantity<Power> setPower) {
+						return null
 					}
 				}
 

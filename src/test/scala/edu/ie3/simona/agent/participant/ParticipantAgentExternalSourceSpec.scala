@@ -194,7 +194,8 @@ class ParticipantAgentExternalSourceSpec
               simulationEndDate,
               resolution,
               requestVoltageDeviationThreshold,
-              outputConfig
+              outputConfig,
+              maybeEmAgent
             ) =>
           inputModel shouldBe mockInputModel
           modelConfig shouldBe modelConfig
@@ -204,6 +205,7 @@ class ParticipantAgentExternalSourceSpec
           resolution shouldBe this.resolution
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
+          maybeEmAgent shouldBe None
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
       }

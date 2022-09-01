@@ -299,6 +299,7 @@ class WecAgentModelCalculationSpec
                 voltageValueStore,
                 resultValueStore,
                 requestValueStore,
+                _,
                 _
               ),
               awaitRegistrationResponsesFrom,

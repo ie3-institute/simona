@@ -6,19 +6,20 @@
 
 package edu.ie3.simona.model.participant
 
-import java.util.UUID
-
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.ChpInput
 import edu.ie3.simona.model.participant.ChpModel._
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.{MutableStorage, ThermalStorage}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
-import javax.measure.quantity.{Energy, Power, Time}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units
+
+import java.util.UUID
+import javax.measure.quantity.{Energy, Power, Time}
 
 /** Model of a combined heat and power plant (CHP) with a [[ThermalStorage]]
   * medium and its current [[ChpState]].
@@ -289,11 +290,20 @@ final case class ChpModel(
       chpData.currentTimeTick - chpData.chpState.lastTimeTick,
       Units.SECOND
     )
+
+  def determineFlexOptions(
+      data: ChpData
+  ): ProvideFlexOptions = ??? // TODO actual implementation
+
+  override def handleIssuePowerCtrl(
+      data: ChpData,
+      setPower: ComparableQuantity[Power]
+  ): Option[(ChpData, Long)] = ??? // TODO actual implementation
 }
 
 /** Create valid ChpModel by calling the apply function.
   */
-case object ChpModel {
+object ChpModel {
 
   /** As the ChpModel class is a dynamic model, it requires a state for its
     * calculations. The state contains all variables needed, except the storage

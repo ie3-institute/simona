@@ -8,15 +8,20 @@ package edu.ie3.simona.model.participant
 
 import java.time.ZonedDateTime
 import java.util.UUID
-
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  ProvideFlexOptions,
+  ProvideMinMaxFlexOptions
+}
 import edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
+
 import javax.measure.quantity.Power
 import tech.units.indriya.ComparableQuantity
 
@@ -71,9 +76,22 @@ final case class FixedFeedInModel(
       .multiply(cosPhiRated)
       .multiply(scalingFactor)
       .to(MEGAWATT)
+
+  def determineFlexOptions(
+      data: FixedRelevantData.type
+  ): ProvideFlexOptions = {
+    val power = calculateActivePower(data)
+
+    ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
+  }
+
+  override def handleIssuePowerCtrl(
+      data: FixedRelevantData.type,
+      setPower: ComparableQuantity[Power]
+  ): Option[(FixedRelevantData.type, Long)] = None
 }
 
-case object FixedFeedInModel extends LazyLogging {
+object FixedFeedInModel extends LazyLogging {
   def apply(
       inputModel: FixedFeedInInput,
       modelConfiguration: SimonaConfig.FixedFeedInRuntimeConfig,

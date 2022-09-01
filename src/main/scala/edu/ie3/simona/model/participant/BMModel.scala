@@ -9,7 +9,12 @@ package edu.ie3.simona.model.participant
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.participant.BMModel.BMCalcRelevantData
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  ProvideFlexOptions,
+  ProvideMinMaxFlexOptions
+}
 import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.quantities.interfaces.{DimensionlessRate, EnergyPrice}
 import edu.ie3.util.scala.OperationInterval
 import tech.units.indriya.ComparableQuantity
@@ -219,9 +224,22 @@ final case class BMModel(
         }
     }
   }
+
+  override def determineFlexOptions(
+      data: BMCalcRelevantData
+  ): ProvideFlexOptions = {
+    val power = calculateActivePower(data)
+
+    ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
+  }
+
+  override def handleIssuePowerCtrl(
+      data: BMCalcRelevantData,
+      setPower: ComparableQuantity[Power]
+  ): Option[(BMCalcRelevantData, Long)] = None
 }
 
-case object BMModel {
+object BMModel {
 
   /** Data, that is needed for model calculations with the biomass model
     *

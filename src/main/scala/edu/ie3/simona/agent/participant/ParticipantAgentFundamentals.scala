@@ -13,7 +13,10 @@ import akka.util.Timeout
 import breeze.numerics.{ceil, floor, pow, sqrt}
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
-import edu.ie3.datamodel.models.result.system.SystemParticipantResult
+import edu.ie3.datamodel.models.result.system.{
+  FlexOptionsResult,
+  SystemParticipantResult
+}
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data
@@ -26,6 +29,7 @@ import edu.ie3.simona.agent.participant.data.Data.SecondaryData.DateTime
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
+  FlexStateData,
   FromOutsideBaseStateData,
   ParticipantModelBaseStateData
 }
@@ -42,7 +46,10 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   HandleInformation
 }
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
+import edu.ie3.simona.event.ResultEvent.{
+  FlexOptionsResultEvent,
+  ParticipantResultEvent
+}
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   ActorNotRegisteredException,
@@ -51,6 +58,12 @@ import edu.ie3.simona.exceptions.agent.{
   InvalidRequestException
 }
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  IssueFlexControl,
+  IssueNoCtrl,
+  IssuePowerCtrl,
+  ProvideMinMaxFlexOptions
+}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage
@@ -68,13 +81,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.ontology.trigger.Trigger.ParticipantTrigger.StartCalculationTrigger
 import edu.ie3.simona.service.ServiceStateData.ServiceActivationBaseStateData
 import edu.ie3.simona.util.TickUtil._
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KILOVARHOUR,
-  KILOWATTHOUR,
-  MEGAVAR,
-  MEGAWATT,
-  PU
-}
+import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.{QuantityUtil => PsuQuantityUtil}
 import edu.ie3.util.scala.quantities.QuantityUtil
 import tech.units.indriya.ComparableQuantity
@@ -271,7 +278,8 @@ protected trait ParticipantAgentFundamentals[
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
-      scheduler: ActorRef
+      scheduler: ActorRef,
+      maybeEmAgent: Option[ActorRef]
   ): FSM.State[AgentState, ParticipantStateData[PD]] =
     try {
       /* Register for services */
@@ -286,7 +294,8 @@ protected trait ParticipantAgentFundamentals[
         simulationEndDate,
         resolution,
         requestVoltageDeviationThreshold,
-        outputConfig
+        outputConfig,
+        maybeEmAgent
       )
 
       /* If we do have registered with secondary data providers, wait for their responses. If not, the agent does not
@@ -328,7 +337,8 @@ protected trait ParticipantAgentFundamentals[
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: ParticipantNotifierConfig,
+      maybeEmAgent: Option[ActorRef]
   ): ParticipantModelBaseStateData[PD, CD, M]
 
   /** Determine all ticks between the operation start and end of the
@@ -593,6 +603,10 @@ protected trait ParticipantAgentFundamentals[
               throw exception
           }
 
+        case modelStateData: BaseStateData.ModelBaseStateData[_, _, _]
+            if modelStateData.isEmManaged =>
+          // if we're managed by EM, go to Idle and wait for further messages
+          goto(Idle) using stateData
         case _: BaseStateData.ModelBaseStateData[_, _, _] =>
           /* Go to calculation state and send a trigger for this to myself as well */
           self ! StartCalculationTrigger(currentTick)
@@ -605,6 +619,221 @@ protected trait ParticipantAgentFundamentals[
     } else {
       /* We sill have to wait - either for data or activation */
       stay() using stateData
+    }
+  }
+
+  override protected def handleFlexRequest(
+      participantStateData: ParticipantModelBaseStateData[PD, CD, M],
+      maybeSecondaryData: Option[Map[ActorRef, Option[_ <: Data]]]
+  ): ParticipantModelBaseStateData[PD, CD, M] = {
+    val updatedBaseStateData = calculateFlexOptions(
+      participantStateData,
+      currentTick,
+      maybeSecondaryData
+    )
+
+    val updatedFlexData = updatedBaseStateData.flexStateData.getOrElse(
+      throw new InconsistentStateException("Flex state data is missing!")
+    )
+
+    val (_, newestFlexOptions) = updatedFlexData.flexOptionsStore
+      .last()
+      .getOrElse(
+        throw new RuntimeException(
+          "Flex options have not been calculated by agent!"
+        )
+      )
+
+    updatedFlexData.emAgent ! newestFlexOptions
+
+    updatedBaseStateData
+  }
+
+  override protected def calculateFlexOptions(
+      baseStateData: ParticipantModelBaseStateData[PD, CD, M],
+      currentTick: Long,
+      maybeSecondaryData: Option[Map[ActorRef, Option[_ <: Data]]]
+  ): ParticipantModelBaseStateData[PD, CD, M] = {
+
+    implicit val startDateTime: ZonedDateTime = baseStateData.startDate
+
+    val relevantData =
+      createCalcRelevantData(
+        baseStateData,
+        currentTick,
+        maybeSecondaryData.getOrElse(
+          throw new InconsistentStateException("No secondary data found.")
+        )
+      )
+
+    val flexOptions =
+      baseStateData.model match {
+        case wecModel: M =>
+          wecModel.determineFlexOptions(relevantData)
+        case unsupportedModel =>
+          throw new InconsistentStateException(
+            s"Wrong model: $unsupportedModel!"
+          )
+      }
+
+    // announce flex options (we can do this right away, since this
+    // does not include reactive power which could change later
+    val flexResult = flexOptions match {
+      case ProvideMinMaxFlexOptions(
+            modelUuid,
+            referencePower,
+            minPower,
+            maxPower
+          ) =>
+        new FlexOptionsResult(
+          currentTick.toDateTime,
+          modelUuid,
+          referencePower,
+          minPower,
+          maxPower
+        )
+    }
+
+    if (baseStateData.outputConfig.simulationResultInfo)
+      notifyListener(FlexOptionsResultEvent(flexResult))
+
+    baseStateData.copy(
+      calcRelevantDateStore = ValueStore.updateValueStore(
+        baseStateData.calcRelevantDateStore,
+        currentTick,
+        relevantData
+      ),
+      flexStateData = baseStateData.flexStateData.map(data =>
+        data.copy(flexOptionsStore =
+          ValueStore.updateValueStore(
+            data.flexOptionsStore,
+            currentTick,
+            flexOptions
+          )
+        )
+      )
+    )
+  }
+
+  override protected def handleFlexCtrl(
+      baseStateData: ParticipantModelBaseStateData[PD, CD, M],
+      currentTick: Long,
+      flexCtrl: IssueFlexControl,
+      scheduler: ActorRef
+  ): State = {
+
+    val flexStateData = baseStateData.flexStateData.getOrElse(
+      throw new IllegalStateException(
+        s"Received $flexCtrl, but participant agent is not in EM mode"
+      )
+    )
+
+    val resultingActivePower =
+      determineResultingFlexPower(flexStateData, flexCtrl)
+
+    val result = calculateResult(
+      baseStateData,
+      currentTick,
+      resultingActivePower
+    )
+
+    val relevantData = baseStateData.calcRelevantDateStore
+      .last() match {
+      case Some((_, relevantData: CD)) =>
+        relevantData
+      case _ =>
+        throw new IllegalStateException(
+          s"There is no calc relevant data."
+        )
+    }
+
+    val maybeIssueResults = baseStateData.model.handleIssuePowerCtrl(
+      relevantData,
+      resultingActivePower
+    )
+
+    // announce last result to listeners
+    announceSimulationResult(
+      baseStateData,
+      currentTick,
+      result
+    )(baseStateData.outputConfig)
+
+    /* Update the value stores */
+    val updatedResultsStore =
+      ValueStore.updateValueStore(
+        baseStateData.resultValueStore,
+        currentTick,
+        result
+      )
+
+    // add additional tick and updated relevant data if applicable
+    val updatedStateData = maybeIssueResults
+      .map { case (updatedRelevantData, additionalTick) =>
+        baseStateData.copy(
+          calcRelevantDateStore = ValueStore.updateValueStore(
+            baseStateData.calcRelevantDateStore,
+            currentTick,
+            updatedRelevantData
+          ),
+          additionalActivationTicks =
+            baseStateData.additionalActivationTicks :+ additionalTick
+        )
+      }
+      .getOrElse(baseStateData)
+      .copy(resultValueStore = updatedResultsStore)
+
+    // announce current result to EmAgent
+    flexStateData.emAgent ! buildResultEvent(
+      updatedStateData,
+      currentTick,
+      result
+    )
+
+    goToIdleReplyCompletionAndScheduleTriggerForNextAction(
+      updatedStateData,
+      scheduler
+    )
+  }
+
+  protected def determineResultingFlexPower(
+      flexStateData: FlexStateData,
+      flexCtrl: IssueFlexControl
+  ): ComparableQuantity[Power] = {
+    val (_, flexOptions) = flexStateData.flexOptionsStore
+      .last()
+      .getOrElse(
+        throw new IllegalStateException(
+          "Flex options have not been calculated before."
+        )
+      )
+
+    flexOptions match {
+      case ProvideMinMaxFlexOptions(_, pRef, pMin, pMax) =>
+        flexCtrl match {
+          case IssuePowerCtrl(setPower) =>
+            // sanity check: setPower is in range of latest flex options
+            if (setPower.isLessThan(pMin))
+              throw new RuntimeException(
+                s"The set power $setPower must not be lower than the minimum power $pMin!"
+              )
+            if (setPower.isGreaterThan(pMax)) {
+              throw new RuntimeException(
+                s"The set power $setPower must not be greater than the maximum power $pMax!"
+              )
+            }
+            // override, take setPower
+            setPower
+
+          case IssueNoCtrl =>
+            // no override, take reference power
+            pRef
+        }
+
+      case unknownFlexOpt =>
+        throw new IllegalStateException(
+          s"Unknown/unfitting flex messages $unknownFlexOpt"
+        )
     }
   }
 
@@ -1445,7 +1674,7 @@ protected trait ParticipantAgentFundamentals[
     * @param outputConfig
     *   Configuration of the output behaviour
     */
-  def announceSimulationResult(
+  protected def announceSimulationResult(
       baseStateData: BaseStateData[PD],
       tick: Long,
       result: PD

@@ -7,19 +7,18 @@
 package edu.ie3.simona.agent.participant.statedata
 
 import akka.actor.ActorRef
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
+import javax.measure.quantity.Dimensionless
 
 /** Trait to denote the common properties to all basic state data in participant
   * agents
@@ -105,6 +104,10 @@ object BaseStateData {
     /** Stores all data that are relevant to model calculation
       */
     val calcRelevantDateStore: ValueStore[CalcRelevantData]
+
+    val flexStateData: Option[FlexStateData]
+
+    def isEmManaged: Boolean = flexStateData.nonEmpty
   }
 
   /** Basic state data, when the agent is supposed to only provide external data
@@ -206,13 +209,19 @@ object BaseStateData {
       ],
       override val resultValueStore: ValueStore[PD],
       override val requestValueStore: ValueStore[PD],
-      override val calcRelevantDateStore: ValueStore[CD]
+      override val calcRelevantDateStore: ValueStore[CD],
+      override val flexStateData: Option[FlexStateData]
   ) extends ModelBaseStateData[PD, CD, M] {
 
     /** Unique identifier of the simulation model
       */
     override val modelUuid: UUID = model.getUuid
   }
+
+  final case class FlexStateData(
+      emAgent: ActorRef,
+      flexOptionsStore: ValueStore[ProvideFlexOptions]
+  )
 
   /** Updates the base state data with the given value stores
     *
