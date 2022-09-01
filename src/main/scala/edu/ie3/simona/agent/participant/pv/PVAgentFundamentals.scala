@@ -172,8 +172,8 @@ protected trait PVAgentFundamentals
     val tickInterval =
       baseStateData.calcRelevantDateStore
         .last(tick - 1) match {
-        case Some((tick, _)) =>
-          tick - tick
+        case Some((dataTick, _)) =>
+          tick - dataTick
         case _ =>
           /* At the first tick, we are not able to determine the tick interval from last tick
            * (since there is none). Then we use a fall back pv stem distance. */
