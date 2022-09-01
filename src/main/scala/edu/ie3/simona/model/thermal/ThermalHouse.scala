@@ -13,6 +13,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput
 }
+import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.interfaces.{HeatCapacity, ThermalConductance}
@@ -20,6 +21,7 @@ import edu.ie3.util.quantities.interfaces.{HeatCapacity, ThermalConductance}
 import javax.measure.quantity.{Energy, Power, Temperature, Time}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 import tech.units.indriya.unit.Units.HOUR
 
 /** A thermal house model including a variable inner temperature <p> *
@@ -86,7 +88,7 @@ final case class ThermalHouse(
       tick: Long,
       ambientTemperature: ComparableQuantity[Temperature],
       state: ThermalHouseState
-  ): ComparableQuantity[Energy] = {
+  ): ThermalEnergyDemand = {
     /* Calculate the inner temperature of the house, at the questioned instance in time */
     val duration = state.tick.durationUntil(tick)
     val innerTemperature = newInnerTemperature(
@@ -96,16 +98,35 @@ final case class ThermalHouse(
       ambientTemperature
     )
 
-    /* Determine the needed energy.  */
-    if (innerTemperature.isLessThanOrEqualTo(lowerBoundaryTemperature)) {
-      val temperatureDifference =
-        upperBoundaryTemperature.subtract(innerTemperature)
-      ethCapa
-        .multiply(temperatureDifference)
-        .asType(classOf[Energy])
-        .to(StandardUnits.ENERGY_RESULT)
-    } else
-      Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT)
+    /* Determine the needed energy */
+    val requiredEnergy =
+      if (innerTemperature.isLessThanOrEqualTo(lowerBoundaryTemperature)) {
+        val temperatureDifference =
+          targetTemperature
+            .to(Units.KELVIN)
+            .subtract(innerTemperature)
+            .to(Units.KELVIN)
+        ethCapa
+          .multiply(temperatureDifference)
+          .asType(classOf[Energy])
+          .to(StandardUnits.ENERGY_RESULT)
+      } else
+        Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT)
+
+    val possibleEnergy =
+      if (innerTemperature.isLessThan(upperBoundaryTemperature)) {
+        val temperatureDifference =
+          upperBoundaryTemperature
+            .to(Units.KELVIN)
+            .subtract(innerTemperature)
+            .to(Units.KELVIN)
+        ethCapa
+          .multiply(temperatureDifference)
+          .asType(classOf[Energy])
+          .to(StandardUnits.ENERGY_RESULT)
+      } else
+        Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT)
+    ThermalEnergyDemand(requiredEnergy, possibleEnergy)
   }
 
   /** Check if inner temperature is higher than preferred maximum temperature

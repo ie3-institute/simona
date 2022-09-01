@@ -12,7 +12,10 @@ import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.thermal.ThermalHouseResult
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
-import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalEnergyDemand,
+  ThermalGridState
+}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.util.TickUtil.TickLong
 import tech.units.indriya.ComparableQuantity
@@ -31,7 +34,7 @@ import scala.jdk.CollectionConverters.SetHasAsScala
   * @param storages
   *   Collection of thermal storages
   */
-case class ThermalGrid(
+final case class ThermalGrid(
     houses: Set[ThermalHouse],
     storages: Set[ThermalStorage]
 ) extends LazyLogging {
@@ -51,20 +54,23 @@ case class ThermalGrid(
       tick: Long,
       ambientTemperature: ComparableQuantity[Temperature],
       state: ThermalGridState
-  ): ComparableQuantity[Energy] = {
+  ): ThermalEnergyDemand = {
     /* First get the energy demand of the houses */
     val houseDemand =
-      houses.foldLeft(Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT)) {
-        case (currentEnergy, house) =>
-          val houseDemand = state.partState.get(house.uuid) match {
+      houses.foldLeft(ThermalEnergyDemand.noDemand) {
+        case (currentDemand, house) =>
+          state.partState.get(house.uuid) match {
             case Some(houseState: ThermalHouseState) =>
-              house.energyDemand(tick, ambientTemperature, houseState)
+              currentDemand + house.energyDemand(
+                tick,
+                ambientTemperature,
+                houseState
+              )
             case _ =>
               throw new InconsistentStateException(
                 s"Unable to find state for thermal house with uuid '${house.uuid}'."
               )
           }
-          currentEnergy.add(houseDemand)
       }
 
     houseDemand
@@ -171,4 +177,56 @@ object ThermalGrid {
         .map(house => house.uuid -> ThermalHouse.startingState(house))
         .toMap
     )
+
+  /** Defines the thermal energy demand of a thermal grid. It comprises the
+    * absolutely required energy demand to reach the target state as well as an
+    * energy, that can be handled. The possible energy always has to be greater
+    * than or equal to the absolutely required energy. Thus, this class can only
+    * be instantiated via factory.
+    * @param required
+    *   The absolutely required energy to reach target state
+    * @param possible
+    *   The maximum possible energy, that can be handled
+    */
+  final case class ThermalEnergyDemand private (
+      required: ComparableQuantity[Energy],
+      possible: ComparableQuantity[Energy]
+  ) {
+    def +(rhs: ThermalEnergyDemand): ThermalEnergyDemand = ThermalEnergyDemand(
+      required.add(rhs.required),
+      possible.add(rhs.possible)
+    )
+
+    def hasRequiredDemand: Boolean = required.isGreaterThan(
+      Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT)
+    )
+    def hasAdditionalDemand: Boolean = possible.isGreaterThan(required)
+  }
+  object ThermalEnergyDemand {
+
+    /** Builds a new instance of [[ThermalEnergyDemand]]. If the possible energy
+      * is less than the required energy, this is considered to be a bad state
+      * and the required energy is curtailed to the possible energy.
+      * @param required
+      *   The absolutely required energy to reach target state
+      * @param possible
+      *   The maximum possible energy, that can be handled
+      * @return
+      *   Thermal energy demand container class, that meets all specifications
+      */
+    def apply(
+        required: ComparableQuantity[Energy],
+        possible: ComparableQuantity[Energy]
+    ): ThermalEnergyDemand = {
+      if (possible.isLessThan(required))
+        new ThermalEnergyDemand(possible, possible)
+      else
+        new ThermalEnergyDemand(required, possible)
+    }
+
+    def noDemand: ThermalEnergyDemand = ThermalEnergyDemand(
+      Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT),
+      Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT)
+    )
+  }
 }

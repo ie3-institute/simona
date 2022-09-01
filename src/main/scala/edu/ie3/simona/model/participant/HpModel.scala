@@ -13,7 +13,10 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHe
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.HpModel._
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalEnergyDemand,
+  ThermalGridState
+}
 import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalHouse}
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
@@ -126,14 +129,10 @@ final case class HpModel(
   }
 
   /** Depending on the input, this function decides whether the heat pump will
-    * run in the next state or not. As hysteresis is considered, four possible
-    * cases can be distinguished: <ul> <li>Case 1: Inner temperature is too high
-    * -> Heat pump should not run in next state <li>Case 2: Inner temperature is
-    * too low -> Heat pump should run in next state <li>Case 3: Heat pump is
-    * running and inner temperature is between boundaries -> Heat pump should
-    * run in next state (until over upper boundary) <li>Case 4: Heat pump is not
-    * running and inner temperature is between boundaries -> Heat pump should
-    * not run in next state (until below lower boundary) </ul>
+    * run in the next state or not. The heat pump is foreseen to operate in the
+    * next interval, if the thermal grid either has a demand that needs to be
+    * met or the heat pump currently is in operation and the grid is able to
+    * handle additional energy
     *
     * @return
     *   boolean defining if heat pump runs in next time step
@@ -141,15 +140,12 @@ final case class HpModel(
   def operatesInNextState(hpData: HpRelevantData): Boolean =
     hpData match {
       case HpRelevantData(hpState, currentTimeTick, ambientTemperature) =>
-        val thermalDemand = thermalGrid.energyDemand(
+        val demand = thermalGrid.energyDemand(
           currentTimeTick,
           ambientTemperature,
           hpState.thermalGridState
         )
-
-        thermalDemand.isGreaterThan(
-          Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT)
-        )
+        demand.hasRequiredDemand || (hpState.isRunning && demand.hasAdditionalDemand)
     }
 
   /** Calculate state depending on whether heat pump is needed or not. Also

@@ -101,7 +101,7 @@ class HpModelTest extends Specification {
                 null,
                 getQuantity(1.0, StandardUnits.THERMAL_TRANSMISSION),
                 getQuantity(10.0, StandardUnits.HEAT_CAPACITY),
-                getQuantity(0, CELSIUS), // stub
+                getQuantity((lowerBoundaryTemperature + upperBoundaryTemperature) / 2.0, CELSIUS), // stub
                 getQuantity(upperBoundaryTemperature, CELSIUS),
                 getQuantity(lowerBoundaryTemperature, CELSIUS)
         )
@@ -134,8 +134,8 @@ class HpModelTest extends Specification {
 
         new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), buildThermalState(17)) || 7200             | true                  | 95
         new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), buildThermalState(18)) || 7200             | true                  | 95
-        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), buildThermalState(22)) || 7200             | false                 | 0
-        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), buildThermalState(23)) || 7200             | false                 | 0
+        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), buildThermalState(22)) || 7200             | true                  | 95
+        new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(80, KILOWATT), buildThermalState(25)) || 7200             | false                 | 0
 
     }
 
