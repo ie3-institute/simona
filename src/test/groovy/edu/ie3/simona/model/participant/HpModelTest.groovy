@@ -67,7 +67,7 @@ class HpModelTest extends Specification {
 
     static HpModel buildStandardModel(ThermalHouse thermalHouse) {
         Set<ThermalHouse> thermalHouses = new HashSet<ThermalHouse>() as Set<ThermalHouse>
-        def thermalStorages = []
+        Set<ThermalStorage> thermalStorages = new HashSet<ThermalStorage>() as Set<ThermalStorage>
         def thermalGrid = new ThermalGrid(thermalHouses.$plus(thermalHouse) as Set<ThermalHouse>, thermalStorages as Set<ThermalStorage>)
         return new HpModel(
                 UUID.randomUUID(),
