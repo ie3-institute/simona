@@ -13,9 +13,11 @@ import akka.util.Timeout
 import breeze.numerics.{ceil, floor, pow, sqrt}
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
-import edu.ie3.datamodel.models.result.system.SystemParticipantResult
+import edu.ie3.datamodel.models.result.system.{
+  FlexOptionsResult,
+  SystemParticipantResult
+}
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
@@ -44,7 +46,10 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   HandleInformation
 }
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
+import edu.ie3.simona.event.ResultEvent.{
+  FlexOptionsResultEvent,
+  ParticipantResultEvent
+}
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   ActorNotRegisteredException,
@@ -76,13 +81,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.ontology.trigger.Trigger.ParticipantTrigger.StartCalculationTrigger
 import edu.ie3.simona.service.ServiceStateData.ServiceActivationBaseStateData
 import edu.ie3.simona.util.TickUtil._
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KILOVARHOUR,
-  KILOWATTHOUR,
-  MEGAVAR,
-  MEGAWATT,
-  PU
-}
+import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.{QuantityUtil => PsuQuantityUtil}
 import edu.ie3.util.scala.quantities.QuantityUtil
 import tech.units.indriya.ComparableQuantity
@@ -656,6 +655,8 @@ protected trait ParticipantAgentFundamentals[
       maybeSecondaryData: Option[Map[ActorRef, Option[_ <: Data]]]
   ): ParticipantModelBaseStateData[PD, CD, M] = {
 
+    implicit val startDateTime: ZonedDateTime = baseStateData.startDate
+
     val relevantData =
       createCalcRelevantData(
         baseStateData,
@@ -674,6 +675,27 @@ protected trait ParticipantAgentFundamentals[
             s"Wrong model: $unsupportedModel!"
           )
       }
+
+    // announce flex options (we can do this right away, since this
+    // does not include reactive power which could change later
+    val flexResult = flexOptions match {
+      case ProvideMinMaxFlexOptions(
+            modelUuid,
+            referencePower,
+            minPower,
+            maxPower
+          ) =>
+        new FlexOptionsResult(
+          currentTick.toDateTime,
+          modelUuid,
+          referencePower,
+          minPower,
+          maxPower
+        )
+    }
+
+    if (baseStateData.outputConfig.simulationResultInfo)
+      notifyListener(FlexOptionsResultEvent(flexResult))
 
     baseStateData.copy(
       calcRelevantDateStore = ValueStore.updateValueStore(
@@ -1704,7 +1726,6 @@ protected trait ParticipantAgentFundamentals[
       }
 
     /* Inform the listeners about new result */
-    // TODO EM: announce flex options instead
     announceSimulationResult(
       baseStateData,
       currentTick,

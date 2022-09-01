@@ -1546,6 +1546,7 @@ object SimonaConfig {
 
     final case class Output(
         base: SimonaConfig.Simona.Output.Base,
+        flex: scala.Boolean,
         grid: SimonaConfig.GridOutputConfig,
         participant: SimonaConfig.Simona.Output.Participant,
         sink: SimonaConfig.Simona.Output.Sink
@@ -1767,6 +1768,7 @@ object SimonaConfig {
             parentPath + "base.",
             $tsCfgValidator
           ),
+          flex = c.hasPathOrNull("flex") && c.getBoolean("flex"),
           grid = SimonaConfig.GridOutputConfig(
             if (c.hasPathOrNull("grid")) c.getConfig("grid")
             else com.typesafe.config.ConfigFactory.parseString("grid{}"),
