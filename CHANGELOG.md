@@ -62,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Consolidate request replies for different sub grid gates in one message
   - Await and send responses for distinct pairs of sender reference and target node
 - Removed deprecations from `CsvGridSource` and added `TestGridFactory` [#304](https://github.com/ie3-institute/simona/issues/304)
+- Fixed config of vn_146_lv_small [#290](https://github.com/ie3-institute/simona/issues/290)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)
