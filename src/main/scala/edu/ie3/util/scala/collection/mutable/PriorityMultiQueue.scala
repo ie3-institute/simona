@@ -13,9 +13,12 @@ import scala.collection.{SortedSet, mutable}
   * [[mutable.ListBuffer]], which corresponds to a linked list (with adding and
   * removing items to/from its head/tail in constant time).
   * @param queue
-  *   Queue that holds keys in order and provides the first element in O(1)
+  *   Queue that holds keys in order and thus provides a way to quickly retrieve
+  *   the elements for the first key(s).
   * @param table
-  *   HashMap that provides access to lists with a specific key in O(1)
+  *   HashMap that provides direct access to each list given the key that it was
+  *   added with. This is useful for quickly adding values to new and existing
+  *   keys, running in nearly O(1).
   * @tparam K
   *   Type of the key, which needs to be sortable by means of [[Ordering]]
   * @tparam V
@@ -26,7 +29,7 @@ final case class PriorityMultiQueue[K: Ordering, V] private (
     private val table: mutable.HashMap[K, mutable.ListBuffer[V]]
 ) {
 
-  /** Get the first key of the queue, if the queue is not empty.
+  /** Get the first key of the queue, if the queue is not empty. Runs in O(1).
     * @return
     *   The first key
     */
@@ -139,9 +142,12 @@ object PriorityMultiQueue {
   /** Creates and returns an empty PriorityMultiQueue for given types. The
     * initialKeyCapacity and loadFactor are used in the creation of the HashMap.
     * @param initialKeyCapacity
-    *   The initialKeyCapacity of the HashMap
+    *   The initial capacity of of the HashMap for keys. The capacity increments
+    *   (i.e. the map is recreated with a higher capacity) once the amount
+    *   denoted by loadFactor is hit.
     * @param loadFactor
-    *   The loadFactor of the HashMap
+    *   The loadFactor of the HashMap. If the size of the map reaches capacity *
+    *   loadFactor, the underlying table is replaced with a larger one.
     * @tparam K
     *   Type of the key, which needs to be sortable by means of [[Ordering]]
     * @tparam V
