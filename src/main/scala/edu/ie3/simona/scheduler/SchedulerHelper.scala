@@ -221,7 +221,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     /* if we are in tick pauseScheduleAtTick, it might be possible that we still need to schedule triggers due to
      * incoming triggers for this tick inside completion messages  */
     if (
-      !triggerQueueEmptyOrNextTriggerTickBiggerOrAfterEnd(
+      !noScheduledTriggersForCurrentTick(
         stateData.trigger.triggerQueue,
         pauseTick
       )
@@ -253,7 +253,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     * @return
     *   a boolean
     */
-  private def triggerQueueEmptyOrNextTriggerTickBiggerOrAfterEnd(
+  private def noScheduledTriggersForCurrentTick(
       triggerQueue: PriorityMultiQueue[Long, ScheduledTrigger],
       nowInTicks: Long
   ): Boolean =
@@ -332,7 +332,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     if (
       nowInTicks > 0 && (nowInTicks % readyCheckVal == 0)
       && !awaitingResponseMap.contains(nowInTicks)
-      && triggerQueueEmptyOrNextTriggerTickBiggerOrAfterEnd(
+      && noScheduledTriggersForCurrentTick(
         stateData.trigger.triggerQueue,
         nowInTicks
       )
@@ -376,7 +376,7 @@ trait SchedulerHelper extends SimonaActorLogging {
      * the next trigger in the queue is not the current tick */
     if (
       !stateData.trigger.awaitingResponseMap.contains(nowInTicks)
-      && triggerQueueEmptyOrNextTriggerTickBiggerOrAfterEnd(
+      && noScheduledTriggersForCurrentTick(
         stateData.trigger.triggerQueue,
         nowInTicks
       )
@@ -416,7 +416,7 @@ trait SchedulerHelper extends SimonaActorLogging {
       stateData: SchedulerStateData
   ): SchedulerStateData = {
     if (
-      stateData.trigger.awaitingResponseMap.isEmpty && triggerQueueEmptyOrNextTriggerTickBiggerOrAfterEnd(
+      stateData.trigger.awaitingResponseMap.isEmpty && noScheduledTriggersForCurrentTick(
         stateData.trigger.triggerQueue,
         stateData.time.nowInTicks
       )
