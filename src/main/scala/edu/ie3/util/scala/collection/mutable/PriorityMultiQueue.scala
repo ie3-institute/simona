@@ -16,17 +16,15 @@ import scala.collection.{SortedSet, mutable}
   *   Queue that holds keys in order and provides the first element in O(1)
   * @param table
   *   HashMap that provides access to lists with a specific key in O(1)
-  * @param ev
-  *   Ordering of key
   * @tparam K
-  *   Type of the key
+  *   Type of the key, which needs to be sortable by means of [[Ordering]]
   * @tparam V
   *   Type of the value
   */
-final case class PriorityMultiQueue[K, V] private (
+final case class PriorityMultiQueue[K: Ordering, V] private (
     private val queue: mutable.SortedMap[K, mutable.ListBuffer[V]],
     private val table: mutable.HashMap[K, mutable.ListBuffer[V]]
-)(implicit ev: K => Ordered[K]) {
+) {
 
   /** Get the first key of the queue, if the queue is not empty.
     * @return
@@ -125,16 +123,14 @@ final case class PriorityMultiQueue[K, V] private (
 object PriorityMultiQueue {
 
   /** Creates and returns an empty PriorityMultiQueue for given types.
-    * @param ev
-    *   Ordering of key
     * @tparam K
-    *   Type of the key
+    *   Type of the key, which needs to be sortable by means of [[Ordering]]
     * @tparam V
     *   Type of the value
     * @return
     *   An empty PriorityMultiQueue
     */
-  def empty[K, V](implicit ev: K => Ordered[K]): PriorityMultiQueue[K, V] =
+  def empty[K: Ordering, V]: PriorityMultiQueue[K, V] =
     PriorityMultiQueue(
       mutable.SortedMap[K, mutable.ListBuffer[V]](),
       mutable.HashMap[K, mutable.ListBuffer[V]]()
@@ -146,19 +142,17 @@ object PriorityMultiQueue {
     *   The initialKeyCapacity of the HashMap
     * @param loadFactor
     *   The loadFactor of the HashMap
-    * @param ev
-    *   Ordering of key
     * @tparam K
-    *   Type of the key
+    *   Type of the key, which needs to be sortable by means of [[Ordering]]
     * @tparam V
     *   Type of the value
     * @return
     *   An empty PriorityMultiQueue
     */
-  def empty[K, V](
+  def empty[K: Ordering, V](
       initialKeyCapacity: Int,
       loadFactor: Double = mutable.HashMap.defaultLoadFactor
-  )(implicit ev: K => Ordered[K]): PriorityMultiQueue[K, V] =
+  ): PriorityMultiQueue[K, V] =
     PriorityMultiQueue(
       mutable.SortedMap[K, mutable.ListBuffer[V]](),
       new mutable.HashMap[K, mutable.ListBuffer[V]](
