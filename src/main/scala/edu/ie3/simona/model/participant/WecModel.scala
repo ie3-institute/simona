@@ -209,11 +209,10 @@ final case class WecModel(
     ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
   }
 
-  override def handleIssuePowerCtrl(
+  override def handleControlledPowerChange(
       data: WecRelevantData,
       setPower: ComparableQuantity[Power]
-  ): Option[(WecRelevantData, Long)] =
-    None
+  ): (WecRelevantData, Option[Long]) = (data, None)
 }
 
 /** Create valid [[WecModel]] by calling the apply function.

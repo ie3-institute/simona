@@ -661,9 +661,7 @@ protected trait ParticipantAgentFundamentals[
       createCalcRelevantData(
         baseStateData,
         currentTick,
-        maybeSecondaryData.getOrElse(
-          throw new InconsistentStateException("No secondary data found.")
-        )
+        maybeSecondaryData.getOrElse(Map.empty)
       )
 
     val flexOptions =
@@ -747,10 +745,11 @@ protected trait ParticipantAgentFundamentals[
         )
     }
 
-    val maybeIssueResults = baseStateData.model.handleIssuePowerCtrl(
-      relevantData,
-      resultingActivePower
-    )
+    val (updatedRelevantData, maybeAdditionalTick) =
+      baseStateData.model.handleControlledPowerChange(
+        relevantData,
+        resultingActivePower
+      )
 
     // announce last result to listeners
     announceSimulationResult(
@@ -768,20 +767,22 @@ protected trait ParticipantAgentFundamentals[
       )
 
     // add additional tick and updated relevant data if applicable
-    val updatedStateData = maybeIssueResults
-      .map { case (updatedRelevantData, additionalTick) =>
+    val updatedStateData = maybeAdditionalTick
+      .map { additionalTick =>
         baseStateData.copy(
-          calcRelevantDateStore = ValueStore.updateValueStore(
-            baseStateData.calcRelevantDateStore,
-            currentTick,
-            updatedRelevantData
-          ),
           additionalActivationTicks =
             baseStateData.additionalActivationTicks :+ additionalTick
         )
       }
       .getOrElse(baseStateData)
-      .copy(resultValueStore = updatedResultsStore)
+      .copy(
+        calcRelevantDateStore = ValueStore.updateValueStore(
+          baseStateData.calcRelevantDateStore,
+          currentTick,
+          updatedRelevantData
+        ),
+        resultValueStore = updatedResultsStore
+      )
 
     // announce current result to EmAgent
     flexStateData.emAgent ! buildResultEvent(

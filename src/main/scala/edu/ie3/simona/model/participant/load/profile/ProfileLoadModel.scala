@@ -127,10 +127,10 @@ final case class ProfileLoadModel(
     ProvideMinMaxFlexOptions(uuid, power, power, power)
   }
 
-  override def handleIssuePowerCtrl(
+  override def handleControlledPowerChange(
       data: ProfileRelevantData,
       setPower: ComparableQuantity[Power]
-  ): Option[(ProfileRelevantData, Long)] = None
+  ): (ProfileRelevantData, Option[Long]) = (data, None)
 }
 
 object ProfileLoadModel {

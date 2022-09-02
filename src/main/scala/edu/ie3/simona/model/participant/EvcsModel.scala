@@ -235,10 +235,10 @@ final case class EvcsModel(
       data: EvcsRelevantData
   ): ProvideFlexOptions = ??? // TODO actual implementation
 
-  override def handleIssuePowerCtrl(
+  override def handleControlledPowerChange(
       data: EvcsRelevantData,
       setPower: ComparableQuantity[Power]
-  ): Option[(EvcsRelevantData, Long)] = ??? // TODO actual implementation
+  ): (EvcsRelevantData, Option[Long]) = ??? // TODO actual implementation
 }
 
 object EvcsModel {

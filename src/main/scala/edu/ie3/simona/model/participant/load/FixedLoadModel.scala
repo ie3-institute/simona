@@ -92,10 +92,10 @@ final case class FixedLoadModel(
     ProvideMinMaxFlexOptions(uuid, power, power, power)
   }
 
-  override def handleIssuePowerCtrl(
+  override def handleControlledPowerChange(
       data: FixedLoadRelevantData.type,
       setPower: ComparableQuantity[Power]
-  ): Option[(FixedLoadRelevantData.type, Long)] = None
+  ): (FixedLoadRelevantData.type, Option[Long]) = (data, None)
 }
 
 object FixedLoadModel {

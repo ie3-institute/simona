@@ -8,7 +8,6 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.PVModel.PVRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -114,10 +113,10 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     * CalcRelevantData, which is less than ideal. But, this is why we optionally
     * return an updated CD here.
     */
-  def handleIssuePowerCtrl(
+  def handleControlledPowerChange(
       data: CD,
       setPower: ComparableQuantity[Power]
-  ): Option[(CD, Long)]
+  ): (CD, Option[Long])
 
   /** Get a partial function, that transfers the current active into reactive
     * power based on the participants properties and the given nodal voltage

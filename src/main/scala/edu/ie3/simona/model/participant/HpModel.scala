@@ -164,10 +164,10 @@ final case class HpModel(
       data: HpData
   ): ProvideFlexOptions = ??? // TODO actual implementation
 
-  override def handleIssuePowerCtrl(
+  override def handleControlledPowerChange(
       data: HpData,
       setPower: ComparableQuantity[Power]
-  ): Option[(HpData, Long)] = ??? // TODO actual implementation
+  ): (HpData, Option[Long]) = ??? // TODO actual implementation
 
 }
 

@@ -77,7 +77,7 @@ final case class FixedFeedInModel(
       .multiply(scalingFactor)
       .to(MEGAWATT)
 
-  def determineFlexOptions(
+  override def determineFlexOptions(
       data: FixedRelevantData.type
   ): ProvideFlexOptions = {
     val power = calculateActivePower(data)
@@ -85,10 +85,10 @@ final case class FixedFeedInModel(
     ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
   }
 
-  override def handleIssuePowerCtrl(
+  override def handleControlledPowerChange(
       data: FixedRelevantData.type,
       setPower: ComparableQuantity[Power]
-  ): Option[(FixedRelevantData.type, Long)] = None
+  ): (FixedRelevantData.type, Option[Long]) = (data, None)
 }
 
 object FixedFeedInModel extends LazyLogging {

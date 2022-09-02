@@ -180,6 +180,21 @@ trait DefaultTestData {
          |  ]
          |}
          |
+         |simona.runtime.participant.storage = {
+         |  defaultConfig = {
+         |    calculateMissingReactivePowerWithModel = false
+         |    uuids = ["default"]
+         |    scaling = 1.0
+         |  }
+         |  individualConfigs = [
+         |    {
+         |      calculateMissingReactivePowerWithModel = false
+         |      uuids = ["9abe950d-362e-4ffe-b686-500f84d8f368"]
+         |      scaling = 1.0
+         |    }
+         |  ]
+         |}
+         |
          |simona.powerflow.maxSweepPowerDeviation = 1E-5 // the maximum allowed deviation in power between two sweeps, before overall convergence is assumed
          |simona.powerflow.skipOnFailure = true
          |simona.powerflow.newtonraphson.epsilon = [1E-12]

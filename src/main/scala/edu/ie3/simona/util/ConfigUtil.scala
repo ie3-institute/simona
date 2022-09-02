@@ -88,7 +88,8 @@ object ConfigUtil {
             subConfig.fixedFeedIn.individualConfigs,
             subConfig.pv.individualConfigs,
             subConfig.evcs.individualConfigs,
-            subConfig.wec.individualConfigs
+            subConfig.wec.individualConfigs,
+            subConfig.storage.individualConfigs
           ).reduceOption(_ ++ _).getOrElse(Seq.empty)
         ),
         Seq(
@@ -96,7 +97,8 @@ object ConfigUtil {
           subConfig.fixedFeedIn.defaultConfig,
           subConfig.pv.defaultConfig,
           subConfig.evcs.defaultConfig,
-          subConfig.wec.defaultConfig
+          subConfig.wec.defaultConfig,
+          subConfig.storage.defaultConfig
         ).map { conf => conf.getClass -> conf }.toMap
       )
     }

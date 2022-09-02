@@ -85,7 +85,6 @@ class PVAgentModelCalculationSpec
         """.stripMargin)
       )
     )
-    with PrivateMethodTester
     with PvInputTestData {
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
