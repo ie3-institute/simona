@@ -333,6 +333,49 @@ trait DbfsTestGrid extends SubGridGateMokka {
     )
   }
 
+  protected val (hvGridContainerPF, hvSubGridGatesPF) = {
+    // LinkedHashSet in order to preserve the given order.
+    // This is important as long as only one slack node between two sub grids can exist
+    val nodes =
+      mutable.LinkedHashSet(node1, supNodeA)
+    val transformers = Set(transformer1)
+    val rawGridElements = new RawGridElements(
+      nodes.asJava,
+      Set.empty[LineInput].asJava,
+      transformers.asJava,
+      Set.empty[Transformer3WInput].asJava,
+      Set.empty[SwitchInput].asJava,
+      Set.empty[MeasurementUnitInput].asJava
+    )
+
+    /* Sub grid gates are the apparent gates to superior grids + artificial one to underlying grids */
+    val subGridGates: Seq[SubGridGate] =
+      rawGridElements.getTransformer2Ws.asScala.toSeq.map(
+        SubGridGate.fromTransformer2W
+      ) ++ rawGridElements.getTransformer3Ws.asScala.flatMap(transformer =>
+        Seq(
+          SubGridGate.fromTransformer3W(transformer, ConnectorPort.B),
+          SubGridGate.fromTransformer3W(transformer, ConnectorPort.C)
+        )
+      ) ++ Seq(
+        build2wSubGridGate(
+          node1.getUuid,
+          1,
+          UUID.fromString("1676e48c-5353-4f06-b671-c579cf6a7072"),
+          11
+        )
+      )
+
+    (
+      TestGridFactory.createSubGrid(
+        gridName = "centerGrid",
+        subgrid = 1,
+        rawGridElements = rawGridElements
+      ),
+      subGridGates
+    )
+  }
+
   protected val (ehvGridContainer, ehvSubGridGates) = {
     val nodes = Set(supNodeA)
     val rawGridElements = new RawGridElements(

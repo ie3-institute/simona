@@ -104,6 +104,8 @@ class DBFSAlgorithmCenGridSpec
     evDataService = None
   )
 
+  val resultListener: TestProbe = TestProbe("resultListener")
+
   "A GridAgent actor in center position with async test" should {
 
     val centerGridAgent =
@@ -111,7 +113,7 @@ class DBFSAlgorithmCenGridSpec
         GridAgent.props(
           environmentRefs,
           simonaConfig,
-          listener = Iterable.empty[ActorRef]
+          listener = Iterable(resultListener.ref)
         )
       )
 
