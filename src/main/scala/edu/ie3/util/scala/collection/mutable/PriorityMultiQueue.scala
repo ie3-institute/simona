@@ -82,7 +82,7 @@ final case class PriorityMultiQueue[K, V] private (
   }
 
   /** Retrieves all elements for keys that are smaller or equal to given key.
-    * The returned elements are also removed the queue here.
+    * The returned elements are also removed from the queue here.
     *
     * @return
     *   All elements for keys up to and including the given key. An empty
