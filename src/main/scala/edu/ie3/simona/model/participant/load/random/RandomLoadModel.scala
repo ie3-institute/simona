@@ -171,10 +171,10 @@ final case class RandomLoadModel(
     ProvideMinMaxFlexOptions(uuid, power, power, power)
   }
 
-  override def handleIssuePowerCtrl(
+  override def handleControlledPowerChange(
       data: RandomRelevantData,
       setPower: ComparableQuantity[Power]
-  ): Option[(RandomRelevantData, Long)] = None
+  ): (RandomRelevantData, Option[Long]) = (data, None)
 }
 
 object RandomLoadModel {

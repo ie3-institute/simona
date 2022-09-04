@@ -9,19 +9,13 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiP
 import edu.ie3.datamodel.models.input.system.characteristic.QV
-import edu.ie3.simona.model.participant.CalcRelevantData
-import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.ontology.messages.FlexibilityMessage
+import edu.ie3.simona.test.common.model.MockParticipant
 import edu.ie3.util.scala.OperationInterval
-import scala.Option
-import scala.Tuple2
 import spock.lang.Specification
-import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
 import javax.measure.Quantity
-import javax.measure.quantity.Power
 
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 
@@ -30,29 +24,15 @@ class SystemParticipantTest extends Specification {
 	def "Test calculateQ for a load or generation unit with fixed cosphi"() {
 		given: "the mocked system participant model with a q_v characteristic"
 
-		def loadMock = new SystemParticipant<CalcRelevantData>(
+		def loadMock = new MockParticipant(
 				UUID.fromString("b69f6675-5284-4e28-add5-b76952ec1ec2"),
 				"System participant calculateQ Test",
 				OperationInterval.apply(0L, 86400L),
 				1d,
 				QControl.apply(new CosPhiFixed(varCharacteristicString)),
 				Quantities.getQuantity(200, KILOVOLTAMPERE),
-				1d) {
-					@Override
-					ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
-						return Quantities.getQuantity(0, MEGAWATT)
-					}
+				1d)
 
-					@Override
-					FlexibilityMessage.ProvideFlexOptions determineFlexOptions(CalcRelevantData data) {
-						return null
-					}
-
-					@Override
-					Option<Tuple2<CalcRelevantData, Object>> handleIssuePowerCtrl(CalcRelevantData data, ComparableQuantity<Power> setPower) {
-						return null
-					}
-		}
 		Quantity adjustedVoltage = Quantities.getQuantity(1, PU) // needed for method call but not applicable for cosphi_p
 
 		when: "the reactive power is calculated"
@@ -78,29 +58,14 @@ class SystemParticipantTest extends Specification {
 	def "Test calculateQ for a load unit with cosphi_p"() {
 		given: "the mocked load model"
 
-		def loadMock = new SystemParticipant<CalcRelevantData>(
+		def loadMock = new MockParticipant(
 				UUID.fromString("3d28b9f7-929a-48e3-8696-ad2330a04225"),
 				"Load calculateQ Test",
 				OperationInterval.apply(0L, 86400L),
 				1d,
 				QControl.apply(new CosPhiP(varCharacteristicString)),
 				Quantities.getQuantity(102, KILOWATT),
-				1d) {
-					@Override
-					ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
-						return Quantities.getQuantity(0, MEGAWATT)
-					}
-
-					@Override
-					FlexibilityMessage.ProvideFlexOptions determineFlexOptions(CalcRelevantData data) {
-						return null
-					}
-
-					@Override
-					Option<Tuple2<CalcRelevantData, Object>> handleIssuePowerCtrl(CalcRelevantData data, ComparableQuantity<Power> setPower) {
-						return null
-					}
-				}
+				1d)
 
 		Quantity adjustedVoltage = Quantities.getQuantity(1, PU) // needed for method call but not applicable for cosphi_p
 
@@ -123,29 +88,14 @@ class SystemParticipantTest extends Specification {
 	def "Test calculateQ for a generation unit with cosphi_p"() {
 		given: "the mocked generation model"
 
-		def loadMock = new SystemParticipant<CalcRelevantData>(
+		def loadMock = new MockParticipant(
 				UUID.fromString("30f84d97-83b4-4b71-9c2d-dbc7ebb1127c"),
 				"Generation calculateQ Test",
 				OperationInterval.apply(0L, 86400L),
 				1d,
 				QControl.apply(new CosPhiP(varCharacteristicString)),
 				Quantities.getQuantity(101, KILOWATT),
-				1d) {
-					@Override
-					ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
-						return Quantities.getQuantity(0, MEGAWATT)
-					}
-
-					@Override
-					FlexibilityMessage.ProvideFlexOptions determineFlexOptions(CalcRelevantData data) {
-						return null
-					}
-
-					@Override
-					Option<Tuple2<CalcRelevantData, Object>> handleIssuePowerCtrl(CalcRelevantData data, ComparableQuantity<Power> setPower) {
-						return null
-					}
-				}
+				1d)
 
 		Quantity adjustedVoltage = Quantities.getQuantity(1, PU) // needed for method call but not applicable for cosphi_p
 
@@ -170,29 +120,14 @@ class SystemParticipantTest extends Specification {
 
 		Quantity p = Quantities.getQuantity(42, KILOWATT)
 
-		def loadMock = new SystemParticipant<CalcRelevantData>(
+		def loadMock = new MockParticipant(
 				UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
 				"System participant calculateQ Test",
 				OperationInterval.apply(0L, 86400L),
 				1d,
 				QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
 				Quantities.getQuantity(200, KILOWATT),
-				0.98) {
-					@Override
-					ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
-						return Quantities.getQuantity(0, MEGAWATT)
-					}
-
-					@Override
-					FlexibilityMessage.ProvideFlexOptions determineFlexOptions(CalcRelevantData data) {
-						return null
-					}
-
-					@Override
-					Option<Tuple2<CalcRelevantData, Object>> handleIssuePowerCtrl(CalcRelevantData data, ComparableQuantity<Power> setPower) {
-						return null
-					}
-				}
+				0.98)
 
 		when: "the reactive power is calculated"
 		Quantity adjustedVoltage = Quantities.getQuantity(adjustedVoltageVal, PU)
@@ -219,29 +154,14 @@ class SystemParticipantTest extends Specification {
 
 		Quantity p = Quantities.getQuantity(0, KILOWATT)
 
-		def loadMock = new SystemParticipant<CalcRelevantData>(
+		def loadMock = new MockParticipant(
 				UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
 				"System participant calculateQ Test",
 				OperationInterval.apply(0L, 86400L),
 				1d,
 				QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
 				Quantities.getQuantity(200, KILOWATT),
-				1d) {
-					@Override
-					ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
-						return Quantities.getQuantity(0, MEGAWATT)
-					}
-
-					@Override
-					FlexibilityMessage.ProvideFlexOptions determineFlexOptions(CalcRelevantData data) {
-						return null
-					}
-
-					@Override
-					Option<Tuple2<CalcRelevantData, Object>> handleIssuePowerCtrl(CalcRelevantData data, ComparableQuantity<Power> setPower) {
-						return null
-					}
-				}
+				1d)
 
 		when: "the reactive power is calculated"
 		Quantity adjustedVoltage = Quantities.getQuantity(adjustedVoltageVal, PU)
@@ -268,29 +188,14 @@ class SystemParticipantTest extends Specification {
 
 		Quantity p = Quantities.getQuantity(100d, KILOWATT)
 
-		def loadMock = new SystemParticipant<CalcRelevantData>(
+		def loadMock = new MockParticipant(
 				UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
 				"System participant calculateQ Test",
 				OperationInterval.apply(0L, 86400L),
 				1d,
 				QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
 				Quantities.getQuantity(200, KILOWATT),
-				0.95) {
-					@Override
-					ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
-						return Quantities.getQuantity(0, MEGAWATT)
-					}
-
-					@Override
-					FlexibilityMessage.ProvideFlexOptions determineFlexOptions(CalcRelevantData data) {
-						return null
-					}
-
-					@Override
-					Option<Tuple2<CalcRelevantData, Object>> handleIssuePowerCtrl(CalcRelevantData data, ComparableQuantity<Power> setPower) {
-						return null
-					}
-				}
+				0.95)
 
 		when: "the reactive power is calculated"
 		Quantity adjustedVoltage = Quantities.getQuantity(adjustedVoltageVal, PU)
@@ -317,29 +222,14 @@ class SystemParticipantTest extends Specification {
 
 		Quantity p = Quantities.getQuantity(195d, KILOWATT)
 
-		def loadMock = new SystemParticipant<CalcRelevantData>(
+		def loadMock = new MockParticipant(
 				UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
 				"System participant calculateQ Test",
 				OperationInterval.apply(0L, 86400L),
 				1d,
 				QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
 				Quantities.getQuantity(200, KILOWATT),
-				0.95) {
-					@Override
-					ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
-						return Quantities.getQuantity(0, MEGAWATT)
-					}
-
-					@Override
-					FlexibilityMessage.ProvideFlexOptions determineFlexOptions(CalcRelevantData data) {
-						return null
-					}
-
-					@Override
-					Option<Tuple2<CalcRelevantData, Object>> handleIssuePowerCtrl(CalcRelevantData data, ComparableQuantity<Power> setPower) {
-						return null
-					}
-				}
+				0.95)
 
 		when: "the reactive power is calculated"
 		Quantity adjustedVoltage = Quantities.getQuantity(adjustedVoltageVal, PU)

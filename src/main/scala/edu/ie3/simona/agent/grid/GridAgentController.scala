@@ -563,13 +563,13 @@ class GridAgentController(
     )
   }
 
-  /** Creates a pv agent and determines the needed additional information for
+  /** Creates a wec agent and determines the needed additional information for
     * later initialization of the agent.
     *
     * @param wecInput
     *   WEC input model to derive information from
     * @param modelConfiguration
-    *   User-provided configuration for this specific load model
+    *   User-provided configuration for this specific wec model
     * @param primaryServiceProxy
     *   Reference to the primary data service proxy
     * @param weatherService

@@ -291,14 +291,14 @@ final case class ChpModel(
       Units.SECOND
     )
 
-  def determineFlexOptions(
+  override def determineFlexOptions(
       data: ChpData
   ): ProvideFlexOptions = ??? // TODO actual implementation
 
-  override def handleIssuePowerCtrl(
+  override def handleControlledPowerChange(
       data: ChpData,
       setPower: ComparableQuantity[Power]
-  ): Option[(ChpData, Long)] = ??? // TODO actual implementation
+  ): (ChpData, Option[Long]) = ??? // TODO actual implementation
 }
 
 /** Create valid ChpModel by calling the apply function.

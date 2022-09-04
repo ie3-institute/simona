@@ -233,10 +233,10 @@ final case class BMModel(
     ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
   }
 
-  override def handleIssuePowerCtrl(
+  override def handleControlledPowerChange(
       data: BMCalcRelevantData,
       setPower: ComparableQuantity[Power]
-  ): Option[(BMCalcRelevantData, Long)] = None
+  ): (BMCalcRelevantData, Option[Long]) = (data, None)
 }
 
 object BMModel {

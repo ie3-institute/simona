@@ -772,7 +772,7 @@ final case class PVModel private (
     else proposal
   }
 
-  def determineFlexOptions(
+  override def determineFlexOptions(
       data: PVRelevantData
   ): ProvideFlexOptions = {
     val power = calculateActivePower(data)
@@ -780,10 +780,10 @@ final case class PVModel private (
     ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
   }
 
-  override def handleIssuePowerCtrl(
+  override def handleControlledPowerChange(
       data: PVRelevantData,
       setPower: ComparableQuantity[Power]
-  ): Option[(PVRelevantData, Long)] = None
+  ): (PVRelevantData, Option[Long]) = (data, None)
 }
 
 object PVModel {
