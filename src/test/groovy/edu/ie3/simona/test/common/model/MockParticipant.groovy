@@ -13,9 +13,9 @@ import javax.measure.quantity.Power
 
 import static edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
 
-public class MockParticipant extends SystemParticipant<CalcRelevantData> {
+class MockParticipant extends SystemParticipant<CalcRelevantData> {
 
-    public MockParticipant(
+    MockParticipant(
             UUID uuid,
             String id,
             OperationInterval operationInterval,
@@ -46,7 +46,7 @@ public class MockParticipant extends SystemParticipant<CalcRelevantData> {
     }
 
     @Override
-    public Tuple2 handleControlledPowerChange(CalcRelevantData data, ComparableQuantity setPower) {
+    Tuple2 handleControlledPowerChange(CalcRelevantData data, ComparableQuantity setPower) {
         return null
     }
 
