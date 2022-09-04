@@ -8,7 +8,10 @@ package edu.ie3.simona.agent.participant.em
 
 import akka.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.EmInput
-import edu.ie3.datamodel.models.result.system.SystemParticipantResult
+import edu.ie3.datamodel.models.result.system.{
+  EmResult,
+  SystemParticipantResult
+}
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
@@ -153,8 +156,6 @@ trait EmAgentFundamentals
       dateTime: ZonedDateTime,
       result: ApparentPower
   ): SystemParticipantResult =
-    throw new InvalidRequestException(
-      "Not implemented"
-    )
+    new EmResult(dateTime, uuid, result.p, result.q)
 
 }
