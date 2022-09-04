@@ -234,13 +234,17 @@ object EmModel {
         inputModel.getOperationTime
       )
 
-    new EmModel(
+    val model = new EmModel(
       inputModel.getUuid,
       inputModel.getId,
       operationInterval,
       modelConfig.scaling,
       QControl(inputModel.getqCharacteristics)
     )
+
+    model.enable()
+
+    model
   }
 
 }

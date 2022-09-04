@@ -9,10 +9,13 @@ package edu.ie3.simona.agent.participant
 import akka.actor.ActorSystem
 import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
+import edu.ie3.datamodel.models.result.system.EmResult
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.em.EmAgent
 import edu.ie3.simona.agent.participant.em.EmAgent.EmAgentInitializeStateData
 import edu.ie3.simona.agent.participant.statedata.InitializeStateData
+import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
+import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   IssueNoCtrl,
   IssuePowerCtrl,
@@ -30,6 +33,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 }
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.EmInputTestData
+import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.scalatestplus.mockito.MockitoSugar.mock
@@ -51,12 +55,21 @@ class EmAgentSelfOptSpec
   private val resolution =
     simonaConfig.simona.powerflow.resolution.getSeconds // TODO does this make sense?
 
+  private val outputConfig = ParticipantNotifierConfig(
+    simulationResultInfo = true,
+    powerRequestReply = false
+  )
+
+  private val tolerance = 1e-10d
+
   "An em agent with model calculation" should {
     "be initialized correctly" in {
+      val resultsProbe = TestProbe("ResultListener")
+
       val emAgent = TestActorRef(
         new EmAgent(
           scheduler = scheduler.ref,
-          listener = systemListener
+          listener = Iterable(resultsProbe.ref)
         )
       )
 
@@ -103,7 +116,7 @@ class EmAgentSelfOptSpec
               resolution = resolution,
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
+              outputConfig = outputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
               connectedAgents = connectedAgents
             )
@@ -221,9 +234,18 @@ class EmAgentSelfOptSpec
       // receive flex control messages
       participant1.expectMsg(IssueNoCtrl)
       val issuePower = participant2.expectMsgType[IssuePowerCtrl]
-      issuePower.setPower should equalWithTolerance(5d.asKiloWatt, 1e-9)
+      issuePower.setPower should equalWithTolerance(5d.asKiloWatt, tolerance)
 
-      // TODO test results
+      // expect correct results
+      resultsProbe.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(emResult: EmResult) =>
+          emResult.getInputModel shouldBe emInputModel.getUuid
+          emResult.getTime shouldBe simulationStartDate
+          emResult.getP should equalWithTolerance(0d.asMegaWatt, tolerance)
+          emResult.getQ should equalWithTolerance(0d.asMegaVar, tolerance)
+        case unexpected =>
+          fail(s"Received unexpected result $unexpected")
+      }
 
       // send completions
       participant1.send(
@@ -278,7 +300,9 @@ class EmAgentSelfOptSpec
         )
       )
 
-      // expect activations and flex requests
+      // expect activations and flex requests.
+      // only participant 2 has been scheduled for this tick,
+      // thus 1 does not get activated
       participant1.expectNoMessage()
 
       val activationTrigger2_2 =
@@ -303,7 +327,19 @@ class EmAgentSelfOptSpec
       participant1.expectNoMessage()
       participant2.expectMsg(IssueNoCtrl)
 
-      // TODO test results
+      // expect correct results
+      resultsProbe.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(emResult: EmResult) =>
+          emResult.getInputModel shouldBe emInputModel.getUuid
+          emResult.getTime shouldBe 300L.toDateTime(simulationStartDate)
+          emResult.getP should equalWithTolerance(
+            (-0.005d).asMegaWatt,
+            tolerance
+          )
+          emResult.getQ should equalWithTolerance(0d.asMegaVar, tolerance)
+        case unexpected =>
+          fail(s"Received unexpected result $unexpected")
+      }
 
       // send completion
       scheduler.expectNoMessage()

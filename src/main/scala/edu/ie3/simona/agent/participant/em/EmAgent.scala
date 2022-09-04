@@ -492,6 +492,9 @@ class EmAgent(
         }
       }
 
+    // TODO we need apparent power result sent as ParticipantResultEvents
+    // to aggregate apparent power here
+
     val voltage =
       getAndCheckNodalVoltage(
         baseStateData,
