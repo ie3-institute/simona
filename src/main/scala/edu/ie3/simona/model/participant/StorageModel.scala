@@ -55,14 +55,12 @@ final case class StorageModel(
 
   override protected def calculateActivePower(
       data: StorageRelevantData
-  ): ComparableQuantity[Power] = ???
+  ): ComparableQuantity[Power] =
+    throw new NotImplementedError(
+      "Storage model cannot calculate power without flexibility control."
+    )
 
-  /** @param data
-    * @return
-    *   flex options and optionally the next tick at which flex options will
-    *   change
-    */
-  def determineFlexOptions(
+  override def determineFlexOptions(
       data: StorageRelevantData
   ): ProvideFlexOptions = {
     val currentStoredEnergy =
@@ -81,10 +79,6 @@ final case class StorageModel(
     )
   }
 
-  /** @param setPower
-    *   power that has been set by EmAgent
-    * @return
-    */
   override def handleControlledPowerChange(
       data: StorageRelevantData,
       setPower: ComparableQuantity[Power]
@@ -179,7 +173,7 @@ object StorageModel {
       inputModel.getType.getEta,
       inputModel.getType.getDod
     )
-    // TODO include activePowerGradient, eta, lifeTime, lifeCycle ?
+    // TODO include activePowerGradient, lifeTime, lifeCycle ?
 
     model.enable()
     model
