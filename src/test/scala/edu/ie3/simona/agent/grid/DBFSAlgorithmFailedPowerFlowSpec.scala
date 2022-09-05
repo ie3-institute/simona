@@ -58,7 +58,7 @@ import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 import scala.concurrent.Await
 
-class DBFSAlgorithmPowerFlowSpec
+class DBFSAlgorithmFailedPowerFlowSpec
     extends TestKitWithShutdown(
       ActorSystem(
         "DBFSAlgorithmSpec",
@@ -157,6 +157,7 @@ class DBFSAlgorithmPowerFlowSpec
 
       val activityStartTriggerId = 1
 
+      // send init data to agent
       scheduler.send(
         centerGridAgent,
         TriggerWithIdMessage(
@@ -166,6 +167,7 @@ class DBFSAlgorithmPowerFlowSpec
         )
       )
 
+      // we expect a completion message
       scheduler.expectMsgPF() {
         case CompletionMessage(
               triggerId,
@@ -181,123 +183,113 @@ class DBFSAlgorithmPowerFlowSpec
     }
 
     s"start the simulation when a $StartGridSimulationTrigger is sent, handle failed power flow if it occurs" in {
+      val sweepNo = 0
 
-      // configuration of the test
-      val maxNumberOfTestSweeps = 4
+      val startGridSimulationTriggerId = 2
 
-      // go on with testing the sweep behaviour
-      for (sweepNo <- 0 to maxNumberOfTestSweeps) {
+      // send the start grid simulation trigger
+      scheduler.send(
+        centerGridAgent,
+        TriggerWithIdMessage(
+          StartGridSimulationTrigger(3600),
+          startGridSimulationTriggerId,
+          centerGridAgent
+        )
+      )
 
-        val startGridSimulationTriggerId = sweepNo + 4
-        val requestedConnectionNodeUuids =
-          Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
+      // we expect a request for grid power values here for sweepNo $sweepNo
+      val powerRequestSender = inferiorGridAgent.expectGridPowerRequest()
 
-        // send the start grid simulation trigger
-        scheduler.send(
-          centerGridAgent,
-          TriggerWithIdMessage(
-            StartGridSimulationTrigger(3600),
-            startGridSimulationTriggerId,
-            centerGridAgent
+      // we expect a request for voltage values of slack node
+      val slackVoltageRequestSender =
+        superiorGridAgent.expectSlackVoltageRequest(sweepNo)
+
+      // normally the inferior grid agent ask for the slack voltage as well to do their power flow calculation
+      // we simulate this behaviour now by doing the same for our inferior grid agent
+      inferiorGridAgent.requestSlackVoltage(centerGridAgent, sweepNo)
+
+      // as we are in the first sweep, provided slack voltage should be equal
+      // to 1 p.u. (in physical value, here: 110kV) from the superior grid agent perspective
+      // (here: centerGridAgent perspective)
+      inferiorGridAgent.expectSlackVoltageProvision(
+        sweepNo,
+        Seq(
+          ExchangeVoltage(
+            node1.getUuid,
+            Quantities.getQuantity(110, KILOVOLT),
+            Quantities.getQuantity(0, KILOVOLT)
           )
         )
+      )
 
-        // we expect a request for grid power values here for sweepNo $sweepNo
-        val powerRequestSender = inferiorGridAgent.expectGridPowerRequest()
+      // we now answer the request of our centerGridAgent
+      // with a fake grid power message and one fake slack voltage message
+      inferiorGridAgent.gaProbe.send(
+        powerRequestSender,
+        ProvideGridPowerMessage(
+          inferiorGridAgent.nodeUuids.map(nodeUuid =>
+            ExchangePower(
+              nodeUuid,
+              Quantities.getQuantity(1000, MEGAWATT),
+              Quantities.getQuantity(0, MEGAVAR)
+            )
+          )
+        )
+      )
 
-        val slackVoltageRequestSender =
-          superiorGridAgent.expectSlackVoltageRequest(sweepNo)
-
-        inferiorGridAgent.requestSlackVoltage(centerGridAgent, sweepNo)
-
-        inferiorGridAgent.expectSlackVoltageProvision(
+      superiorGridAgent.gaProbe.send(
+        slackVoltageRequestSender,
+        ProvideSlackVoltageMessage(
           sweepNo,
           Seq(
             ExchangeVoltage(
-              node1.getUuid,
-              Quantities.getQuantity(110, KILOVOLT),
+              supNodeA.getUuid,
+              Quantities.getQuantity(380, KILOVOLT),
               Quantities.getQuantity(0, KILOVOLT)
             )
           )
         )
+      )
 
-        inferiorGridAgent.gaProbe.send(
-          powerRequestSender,
-          ProvideGridPowerMessage(
-            inferiorGridAgent.nodeUuids.map(nodeUuid =>
-              ExchangePower(
-                nodeUuid,
-                Quantities.getQuantity(1000, MEGAWATT),
-                Quantities.getQuantity(0, MEGAVAR)
-              )
-            )
-          )
-        )
+      // power flow calculation should run now. After it's done,
+      // our test agent should now be ready to provide the grid power values,
+      // hence we ask for them and expect a corresponding response
+      superiorGridAgent.requestGridPower(centerGridAgent, sweepNo)
 
-        superiorGridAgent.gaProbe.send(
-          slackVoltageRequestSender,
-          ProvideSlackVoltageMessage(
-            sweepNo,
-            Seq(
-              ExchangeVoltage(
-                supNodeA.getUuid,
-                Quantities.getQuantity(380, KILOVOLT),
-                Quantities.getQuantity(0, KILOVOLT)
-              )
-            )
-          )
-        )
+      // the requested power is to high for the grid to handle, therefor the superior grid agent
+      // receives a failed power flow message
+      superiorGridAgent.gaProbe.expectMsg(FailedPowerFlow)
 
-        superiorGridAgent.requestGridPower(centerGridAgent, sweepNo)
+      // normally the slack node would send a FinishGridSimulationTrigger to itself and to all
+      // connected inferior grids, because the slack node is just a mock, we imitate this behavior
+      superiorGridAgent.gaProbe.send(
+        centerGridAgent,
+        FinishGridSimulationTrigger(3600)
+      )
 
-        superiorGridAgent.gaProbe.expectMsgPF(30.seconds) {
-          case FailedPowerFlow =>
-            fail(s"failed power flow")
-        }
+      // after a FinishGridSimulationTrigger is send the inferior grids themself will send the Trigger
+      // to their connected inferior grids, therefor the inferior grid agent should receive a
+      // FinishGridSimulationTrigger
+      inferiorGridAgent.gaProbe.expectMsg(FinishGridSimulationTrigger(3600))
 
-        // Simulate Grid
-        scheduler.expectMsgPF(30.seconds) {
-          case CompletionMessage(
-                _,
-                Some(
-                  Vector(
-                    ScheduleTriggerMessage(
-                      StartGridSimulationTrigger(3600),
-                      _
-                    )
-                  )
+      // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a CompletionMessage
+      scheduler.expectMsgPF(30.seconds) {
+        case CompletionMessage(
+              _,
+              Some(
+                Vector(
+                  ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
                 )
-              ) =>
-          // when we received a FinishGridSimulationTrigger (as inferior grid agent)
-          // we expect another completion message then as well (scheduler view)
-          case CompletionMessage(
-                _,
-                Some(
-                  Vector(
-                    ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
-                  )
-                )
-              ) =>
-            // after doing cleanup stuff, our agent should go back to idle again
-            resultListener.expectMsgPF(30.seconds) {
-              case powerFlowResultEvent: PowerFlowResultEvent =>
-                powerFlowResultEvent.nodeResults.headOption match {
-                  case Some(value) =>
-                    value.getvMag().getValue shouldBe 1
-                    value.getvAng().getValue shouldBe 0
-                }
+              )
+            ) =>
+          // after doing cleanup stuff, our agent should go back to idle again
+          // because of the failed power flow the result listener should receive no message
+          resultListener.expectNoMessage()
 
-                powerFlowResultEvent.lineResults shouldBe empty
-                powerFlowResultEvent.switchResults shouldBe empty
-                powerFlowResultEvent.transformer2wResults shouldBe empty
-                powerFlowResultEvent.transformer3wResults shouldBe empty
-            }
-
-          case x =>
-            fail(
-              s"Invalid message received when expecting a completion message for simulate grid! Message was $x"
-            )
-        }
+        case x =>
+          fail(
+            s"Invalid message received when expecting a completion message for simulate grid! Message was $x"
+          )
       }
     }
 

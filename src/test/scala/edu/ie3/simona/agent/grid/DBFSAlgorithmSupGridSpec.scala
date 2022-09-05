@@ -13,6 +13,7 @@ import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
@@ -67,7 +68,7 @@ class DBFSAlgorithmSupGridSpec
   private val scheduler: TestProbe = TestProbe("scheduler")
   private val primaryService: TestProbe = TestProbe("primaryService")
   private val weatherService: TestProbe = TestProbe("weatherService")
-  private val hsActor: TestProbe = TestProbe("hsActor")
+  private val hvActor: TestProbe = TestProbe("hvActor")
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
@@ -92,7 +93,7 @@ class DBFSAlgorithmSupGridSpec
       val triggerId = 0
 
       val subnetGatesToActorRef: Map[SubGridGate, ActorRef] =
-        ehvSubGridGates.map(gate => gate -> hsActor.ref).toMap
+        ehvSubGridGates.map(gate => gate -> hvActor.ref).toMap
 
       val gridAgentInitData =
         GridAgentInitData(
@@ -127,9 +128,9 @@ class DBFSAlgorithmSupGridSpec
     }
 
     s"go to $SimulateGrid when it receives an activity start trigger" in {
-
       val activityStartTriggerId = 1
 
+      // send init data to agent
       scheduler.send(
         superiorGridAgentFSM,
         TriggerWithIdMessage(
@@ -175,7 +176,7 @@ class DBFSAlgorithmSupGridSpec
           )
 
           // we expect a request for grid power values here for sweepNo $sweepNo
-          hsActor.expectMsgPF() {
+          hvActor.expectMsgPF() {
             case requestGridPowerMessage: RequestGridPowerMessage =>
               requestGridPowerMessage.currentSweepNo shouldBe sweepNo
               requestGridPowerMessage.nodeUuids should contain allElementsOf requestedConnectionNodeUuids
@@ -189,8 +190,8 @@ class DBFSAlgorithmSupGridSpec
           // we return with a fake grid power message
           // / as we are using the ask pattern, we cannot send it to the grid agent directly but have to send it to the
           // / ask sender
-          hsActor.send(
-            hsActor.lastSender,
+          hvActor.send(
+            hvActor.lastSender,
             ProvideGridPowerMessage(
               requestedConnectionNodeUuids.map { uuid =>
                 ExchangePower(
@@ -225,7 +226,7 @@ class DBFSAlgorithmSupGridSpec
                     )
                   )
                 ) =>
-              // agent should be in Idle again
+              // agent should be in Idle again and listener should contain power flow result data
               resultListener.expectMsgPF() {
                 case powerFlowResultEvent: PowerFlowResultEvent =>
                   powerFlowResultEvent.nodeResults.headOption match {
@@ -240,8 +241,7 @@ class DBFSAlgorithmSupGridSpec
                   powerFlowResultEvent.transformer3wResults shouldBe empty
               }
 
-              hsActor.expectMsgPF() { case FinishGridSimulationTrigger(3600) =>
-              }
+              hvActor.expectMsg(FinishGridSimulationTrigger(3600))
 
             case x =>
               fail(
@@ -328,7 +328,7 @@ class DBFSAlgorithmSupGridSpec
           )
 
           // we expect a request for grid power values here for sweepNo $sweepNo
-          hsActor.expectMsgPF() {
+          hvActor.expectMsgPF() {
             case requestGridPowerMessage: RequestGridPowerMessage =>
               requestGridPowerMessage.currentSweepNo shouldBe sweepNo
               requestGridPowerMessage.nodeUuids should contain allElementsOf requestedConnectionNodeUuids
@@ -341,8 +341,8 @@ class DBFSAlgorithmSupGridSpec
           // we return with a fake grid power message
           // / as we are using the ask pattern, we cannot send it to the grid agent directly but have to send it to the
           // / ask sender
-          hsActor.send(
-            hsActor.lastSender,
+          hvActor.send(
+            hvActor.lastSender,
             ProvideGridPowerMessage(
               requestedConnectionNodeUuids.map { uuid =>
                 ExchangePower(
@@ -380,7 +380,7 @@ class DBFSAlgorithmSupGridSpec
                     )
                   )
                 ) =>
-              // after doing cleanup stuff, our agent should go back to idle again
+              // after doing cleanup stuff, our agent should go back to idle again and listener should contain power flow result data
               resultListener.expectMsgPF() {
                 case powerFlowResultEvent: PowerFlowResultEvent =>
                   powerFlowResultEvent.nodeResults.headOption match {
@@ -395,8 +395,7 @@ class DBFSAlgorithmSupGridSpec
                   powerFlowResultEvent.transformer3wResults shouldBe empty
               }
 
-              hsActor.expectMsgPF() { case FinishGridSimulationTrigger(3600) =>
-              }
+              hvActor.expectMsg(FinishGridSimulationTrigger(3600))
 
             case x =>
               fail(
