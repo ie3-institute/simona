@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.model.grid
 
-import java.util.UUID
-
 import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.simona.test.common.UnitSpec
@@ -15,10 +13,12 @@ import edu.ie3.simona.test.common.input.LineInputTestData
 import edu.ie3.simona.test.common.model.grid.FiveLinesWithNodes
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
-import javax.measure.quantity.ElectricCurrent
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
+
+import java.util.UUID
+import javax.measure.quantity.ElectricCurrent
 
 /** Test class for [[LineModel]]
   */
@@ -124,7 +124,7 @@ class LineSpec extends UnitSpec with LineInputTestData {
       }
 
       exception.getMessage shouldBe s"Line ${lineInputWithTooHighVoltLvlA.getUuid} (${lineInputWithTooHighVoltLvlA.getId}) has a rated voltage of ${lineInputWithTooHighVoltLvlA.getType
-        .getvRated()} but is connected to node A (${lineInputWithTooHighVoltLvlA.getNodeA.getUuid} / ${lineInputWithTooHighVoltLvlA.getNodeA.getId}), which has a rated voltage of ${lineInputWithTooHighVoltLvlA.getNodeA.getVoltLvl.getNominalVoltage}."
+          .getvRated()} but is connected to node A (${lineInputWithTooHighVoltLvlA.getNodeA.getUuid} / ${lineInputWithTooHighVoltLvlA.getNodeA.getId}), which has a rated voltage of ${lineInputWithTooHighVoltLvlA.getNodeA.getVoltLvl.getNominalVoltage}."
     }
 
     "throw a InvalidGridException if voltage of NodeB does not fit to its nominal line voltage" in {
@@ -133,7 +133,7 @@ class LineSpec extends UnitSpec with LineInputTestData {
       }
 
       exception.getMessage shouldBe s"Line ${lineInputWithTooHighVoltLvlB.getUuid} (${lineInputWithTooHighVoltLvlB.getId}) has a rated voltage of ${lineInputWithTooHighVoltLvlB.getType
-        .getvRated()} but is connected to node B (${lineInputWithTooHighVoltLvlB.getNodeB.getUuid} / ${lineInputWithTooHighVoltLvlB.getNodeB.getId}), which has a rated voltage of ${lineInputWithTooHighVoltLvlB.getNodeB.getVoltLvl.getNominalVoltage}."
+          .getvRated()} but is connected to node B (${lineInputWithTooHighVoltLvlB.getNodeB.getUuid} / ${lineInputWithTooHighVoltLvlB.getNodeB.getId}), which has a rated voltage of ${lineInputWithTooHighVoltLvlB.getNodeB.getVoltLvl.getNominalVoltage}."
     }
 
   }
