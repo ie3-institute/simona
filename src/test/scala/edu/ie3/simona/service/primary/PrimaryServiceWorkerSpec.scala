@@ -64,7 +64,7 @@ class PrimaryServiceWorkerSpec
     .get(
       this.getClass
         .getResource(
-          "it"
+          "_it"
         )
         .toURI
     )

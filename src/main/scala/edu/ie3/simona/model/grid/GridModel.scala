@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.model.grid
 
-import java.time.ZonedDateTime
-import java.util.UUID
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
@@ -35,6 +33,8 @@ import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
+import java.time.ZonedDateTime
+import java.util.UUID
 import javax.measure.quantity.Dimensionless
 import scala.collection.immutable.ListSet
 import scala.jdk.CollectionConverters._
@@ -504,7 +504,7 @@ case object GridModel {
     if (switchVector.diff(uniqueSwitchNodeIds).nonEmpty) {
       throw new InvalidGridException(
         s"The grid model for subnet ${gridModel.subnetNo} has nodes with multiple switches. This is not supported yet! Duplicates are located @ nodes: ${switchVector
-          .diff(uniqueSwitchNodeIds)}"
+            .diff(uniqueSwitchNodeIds)}"
       )
     }
 

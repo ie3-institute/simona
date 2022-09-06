@@ -27,6 +27,8 @@ import testutils.TestObjectFactory
 
 import scala.jdk.CollectionConverters.SetHasAsJava
 
+import java.util.UUID
+
 class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
   private val _printAdmittanceMatrixOnMismatch
@@ -45,7 +47,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           )
             logger.debug(
               s"Mismatch in ($rowIdx, $colIdx): Actual = ${actualMatrix
-                .valueAt(rowIdx, colIdx)}, expected = ${expectedMatrix.valueAt(rowIdx, colIdx)}"
+                  .valueAt(rowIdx, colIdx)}, expected = ${expectedMatrix.valueAt(rowIdx, colIdx)}"
             )
         }
       }
