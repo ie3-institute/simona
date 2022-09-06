@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.test.common.input
 
-import java.util.UUID
-
 import edu.ie3.datamodel.models.input.connector.{
   LineInput,
   SwitchInput,
@@ -15,16 +13,9 @@ import edu.ie3.datamodel.models.input.connector.{
   Transformer3WInput
 }
 import edu.ie3.datamodel.models.input.container.{
-  GraphicElements,
   RawGridElements,
-  SubGridContainer,
-  SystemParticipants
+  SubGridContainer
 }
-import edu.ie3.datamodel.models.input.graphics.{
-  LineGraphicInput,
-  NodeGraphicInput
-}
-import edu.ie3.datamodel.models.input.system._
 import edu.ie3.datamodel.models.input.{MeasurementUnitInput, NodeInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils.{
   HV,
@@ -32,17 +23,21 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils.{
 }
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.test.common.DefaultTestData
+import edu.ie3.simona.util.TestGridFactory
 import testutils.TestObjectFactory
 
+import java.util.UUID
 import scala.jdk.CollectionConverters._
 
 /** Contains a valid GridInputModel with the following structure
   *
+  * {{{
   * (6) / / trafo (5) /
   * | /
   * | / (0)--(15)S2(16)-----(3)-----(4)
   * | (17) S3 (18)
   * | (1)--(13)S1(14)-----(2)
+  * }}}
   *
   * Reference System: 400 kVA @ 10 kV
   */
@@ -170,28 +165,8 @@ trait GridInputTestData
       switches.asJava,
       Set.empty[MeasurementUnitInput].asJava
     )
-    val systemParticipants = new SystemParticipants(
-      Set.empty[BmInput].asJava,
-      Set.empty[ChpInput].asJava,
-      Set.empty[EvcsInput].asJava,
-      Set.empty[EvInput].asJava,
-      Set.empty[FixedFeedInInput].asJava,
-      Set.empty[HpInput].asJava,
-      Set.empty[LoadInput].asJava,
-      Set.empty[PvInput].asJava,
-      Set.empty[StorageInput].asJava,
-      Set.empty[WecInput].asJava
-    )
-    val graphicElements = new GraphicElements(
-      Set.empty[NodeGraphicInput].asJava,
-      Set.empty[LineGraphicInput].asJava
-    )
-    new SubGridContainer(
-      "TestGrid",
-      100,
-      rawGridElements,
-      systemParticipants,
-      graphicElements
+    TestGridFactory.createSubGrid(
+      rawGridElements = rawGridElements
     )
   }
 
