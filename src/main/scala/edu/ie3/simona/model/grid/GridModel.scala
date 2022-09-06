@@ -9,11 +9,15 @@ package edu.ie3.simona.model.grid
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
-import edu.ie3.datamodel.models.input.{MeasurementUnitInput, NodeInput}
-import edu.ie3.datamodel.models.input.connector._
+import edu.ie3.simona.config.SimonaConfig.TransformerControlGroup
+import edu.ie3.datamodel.models.input.MeasurementUnitInput
+import edu.ie3.datamodel.models.input.connector.{
+  ConnectorInput,
+  ConnectorPort,
+  Transformer3WInput
+}
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.TransformerControlGroup
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.grid.GridModel.{GridComponents, GridControls}
@@ -22,9 +26,6 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseB,
   PowerFlowCaseC
 }
-import edu.ie3.simona.model.control.{
-  TransformerControlGroup => ControlGroupModel
-}
 import edu.ie3.simona.util.CollectionUtils
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.jgrapht.Graph
@@ -32,6 +33,9 @@ import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
+import edu.ie3.simona.model.control.{
+  TransformerControlGroup => ControlGroupModel
+}
 
 import java.time.ZonedDateTime
 import java.util.UUID
