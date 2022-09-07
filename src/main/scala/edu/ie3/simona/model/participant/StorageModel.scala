@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.StorageInput
-import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.StorageModel.{
   StorageRelevantData,
@@ -18,7 +17,7 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideFlexOptions,
   ProvideMinMaxFlexOptions
 }
-import edu.ie3.util.quantities.QuantityUtil
+import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantity
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
@@ -86,7 +85,10 @@ final case class StorageModel(
       determineCurrentState(data.lastState, data.currentTick)
 
     // net power after considering efficiency
-    val netPower = setPower.multiply(eta).asType(classOf[Power])
+    val netPower = setPower
+      .multiply(eta)
+      .asType(classOf[Power])
+      .to(PowerSystemUnits.KILOWATT)
 
     val currentState =
       StorageState(currentStoredEnergy, netPower, data.currentTick)
@@ -149,7 +151,7 @@ object StorageModel {
 
   def apply(
       inputModel: StorageInput,
-      modelConfiguration: SimonaConfig.StorageRuntimeConfig,
+      scalingFactor: Double,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
   ): StorageModel = {
@@ -166,7 +168,7 @@ object StorageModel {
       inputModel.getUuid,
       inputModel.getId,
       operationInterval,
-      modelConfiguration.scaling,
+      scalingFactor,
       QControl.apply(inputModel.getqCharacteristics),
       inputModel.getType.getsRated,
       inputModel.getType.getCosPhiRated,

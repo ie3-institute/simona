@@ -44,6 +44,7 @@ import edu.ie3.simona.model.participant.StorageModel.{
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
@@ -124,7 +125,7 @@ trait StorageAgentFundamentals
       simulationEndDate: ZonedDateTime
   ): StorageModel = StorageModel(
     inputModel,
-    modelConfig,
+    modelConfig.scaling,
     simulationStartDate,
     simulationEndDate
   )
@@ -146,8 +147,8 @@ trait StorageAgentFundamentals
       }
       .getOrElse {
         StorageState(
-          0d.asKiloWattHour,
-          0d.asKiloWatt,
+          zeroKWH,
+          zeroKW,
           SimonaConstants.INIT_SIM_TICK
         )
       }
