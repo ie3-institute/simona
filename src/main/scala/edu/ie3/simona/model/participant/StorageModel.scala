@@ -19,8 +19,9 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideMinMaxFlexOptions
 }
 import edu.ie3.util.quantities.QuantityUtil
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.QuantityUtils.RichQuantity
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
@@ -69,13 +70,11 @@ final case class StorageModel(
     val chargingPossible = currentStoredEnergy.isLessThan(eStorage)
     val dischargingPossible = currentStoredEnergy.isGreaterThan(lowestEnergy)
 
-    val zeroKw = 0d.asKiloWatt
-
     ProvideMinMaxFlexOptions(
       uuid,
-      zeroKw,
-      if (dischargingPossible) pMax.multiply(-1) else zeroKw,
-      if (chargingPossible) pMax else zeroKw
+      zeroKW,
+      if (dischargingPossible) pMax.multiply(-1) else zeroKW,
+      if (chargingPossible) pMax else zeroKW
     )
   }
 
@@ -95,10 +94,10 @@ final case class StorageModel(
       StorageRelevantData(currentState, data.currentTick)
 
     val maybeAdditionalTick =
-      if (QuantityUtil.isEquivalentAbs(0d.asKiloWatt, netPower, 1e-9)) {
+      if (QuantityUtil.isEquivalentAbs(zeroKW, netPower, 1e-9)) {
         // do nothing
         None
-      } else if (netPower.isGreaterThan(0d.asKiloWatt)) {
+      } else if (netPower.isGreaterThan(zeroKW)) {
         // charge
         val energyToFull = eStorage.subtract(currentStoredEnergy)
         val timeToFull = energyToFull.divide(netPower).asType(classOf[Time])
@@ -126,8 +125,11 @@ final case class StorageModel(
       .multiply(Quantities.getQuantity(timespan, Units.SECOND))
       .asType(classOf[Energy])
 
-    lastState.storedEnergy.add(energyChange)
-    // TODO don't allow under- or overcharge due to rounding error
+    val newEnergy = lastState.storedEnergy.add(energyChange)
+
+    // don't allow under- or overcharge e.g. due to tick rounding error
+    // allow charges below dod though since batteries can start at 0 kWh
+    zeroKWH.max(eStorage.min(newEnergy))
   }
 
 }
