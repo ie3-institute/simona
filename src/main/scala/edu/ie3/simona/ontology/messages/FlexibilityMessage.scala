@@ -43,7 +43,7 @@ object FlexibilityMessage {
     * @param maxPower
     *   the maximum power that the system participant allows
     */
-  case class ProvideMinMaxFlexOptions(
+  final case class ProvideMinMaxFlexOptions(
       override val modelUuid: UUID,
       referencePower: ComparableQuantity[Power],
       minPower: ComparableQuantity[Power],
@@ -57,7 +57,7 @@ object FlexibilityMessage {
     *   the power that the system participant has to set. Positive: consuming,
     *   negative: producing
     */
-  case class IssuePowerCtrl(
+  final case class IssuePowerCtrl(
       setPower: ComparableQuantity[Power]
   ) extends IssueFlexControl
 
