@@ -17,6 +17,7 @@ import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
 import edu.ie3.simona.exceptions.{
   InvalidConfigParameterException,
@@ -27,7 +28,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates
 }
-import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkCsvParams
+import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
 import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
   checkCouchbaseParams,
   checkInfluxDb1xParams,
@@ -318,7 +319,7 @@ object WeatherSource {
     if (!WeatherScheme.isEligibleInput(weatherDataSourceCfg.scheme))
       throw new InvalidConfigParameterException(
         s"The weather data scheme '${weatherDataSourceCfg.scheme}' is not supported. Supported schemes:\n\t${WeatherScheme.values
-          .mkString("\n\t")}"
+            .mkString("\n\t")}"
       )
 
     // check weather source parameters
@@ -344,12 +345,14 @@ object WeatherSource {
       )
     val weatherSourceFunction: ZonedDateTime => WeatherSource =
       definedWeatherSources.headOption match {
-        case Some(Some(CsvParams(csvSep, folderPath))) =>
-          checkCsvParams("WeatherSource", csvSep, folderPath)
+        case Some(
+              Some(baseCsvParams @ BaseCsvParams(csvSep, directoryPath, _))
+            ) =>
+          checkBaseCsvParams(baseCsvParams, "WeatherSource")
           (simulationStart: ZonedDateTime) =>
             WeatherSourceWrapper(
               csvSep,
-              folderPath,
+              directoryPath,
               coordinateSourceFunction,
               timestampPattern,
               scheme,
@@ -443,23 +446,16 @@ object WeatherSource {
     // check source parameters
     definedCoordSources.headOption match {
       case Some(
-            Some(
-              SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
-                .CsvParams(csvSep, folderPath)
-            )
+            Some(baseCsvParams @ BaseCsvParams(csvSep, directoryPath, _))
           ) =>
-        checkCsvParams(
-          "CoordinateSource",
-          csvSep,
-          folderPath
-        )
+        checkBaseCsvParams(baseCsvParams, "CoordinateSource")
         val idCoordinateFactory = checkCoordinateFactory(
           coordinateSourceConfig.gridModel
         )
         () =>
           new CsvIdCoordinateSource(
             csvSep,
-            folderPath,
+            directoryPath,
             new FileNamingStrategy(),
             idCoordinateFactory
           )

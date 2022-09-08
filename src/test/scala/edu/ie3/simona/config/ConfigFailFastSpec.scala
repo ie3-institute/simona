@@ -7,14 +7,12 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Grid.Datasource.{
-  CsvParams => GridCsvParams
-}
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.{Csv, InfluxDb1x}
 import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow.Newtonraphson
 import edu.ie3.simona.config.SimonaConfig.Simona.{Powerflow, Time}
+import edu.ie3.simona.config.SimonaConfig.{BaseCsvParams, ResultKafkaParams}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
@@ -121,12 +119,12 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
             val refSystemConfigAllEmpty =
               ConfigFactory.parseString(s"""simona.gridConfig.refSystems = [
-                                           |  {
-                                           |   sNom="100 MVA",
-                                           |   vNom="0.4 kV",
-                                           |   gridIds = [$malformedGridId]
-                                           |   }
-                                           |]""".stripMargin)
+                   |  {
+                   |   sNom="100 MVA",
+                   |   vNom="0.4 kV",
+                   |   gridIds = [$malformedGridId]
+                   |   }
+                   |]""".stripMargin)
             val faultyConfig =
               refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
             val faultySimonaConfig = SimonaConfig(faultyConfig)
@@ -145,12 +143,12 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           val refSystemConfigAllEmpty =
             ConfigFactory.parseString("""simona.gridConfig.refSystems = [
-                                          |  {
-                                          |   sNom="100 MVA",
-                                          |   vNom="0.4 kV",
-                                          |   voltLvls = [{id = "1", vNom = "foo"}]
-                                          |   }
-                                          |]""".stripMargin)
+                |  {
+                |   sNom="100 MVA",
+                |   vNom="0.4 kV",
+                |   voltLvls = [{id = "1", vNom = "foo"}]
+                |   }
+                |]""".stripMargin)
           val faultyConfig =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
           val faultySimonaConfig = SimonaConfig(faultyConfig)
@@ -167,12 +165,12 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val refSystemConfigAllEmpty =
             ConfigFactory.parseString(
               """simona.gridConfig.refSystems = [
-                                        |  {
-                                        |   sNom="100",
-                                        |   vNom="0.4 kV",
-                                        |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
-                                        |   }
-                                        |]""".stripMargin
+                |  {
+                |   sNom="100",
+                |   vNom="0.4 kV",
+                |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
+                |   }
+                |]""".stripMargin
             )
           val faultyConfig =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
@@ -191,12 +189,12 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val refSystemConfigAllEmpty =
             ConfigFactory.parseString(
               """simona.gridConfig.refSystems = [
-                                        |  {
-                                        |   sNom="100 MVA",
-                                        |   vNom="0.4",
-                                        |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
-                                        |   }
-                                        |]""".stripMargin
+                |  {
+                |   sNom="100 MVA",
+                |   vNom="0.4",
+                |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
+                |   }
+                |]""".stripMargin
             )
           val faultyConfig =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
@@ -608,6 +606,32 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
       }
 
+      "Checking runtime listener configs" should {
+        val checkRuntimeListenerConfiguration =
+          PrivateMethod[Unit](Symbol("checkRuntimeListenerConfiguration"))
+
+        "throw an exception if kafka is configured, but connection to broker fails" in {
+          val runtimeListenerConfig = ConfigFactory.parseString(
+            """simona.runtime.listener.kafka {
+              |  topic = "topic"
+              |  runId = "00000000-0000-0000-0000-000000000000"
+              |  bootstrapServers = "localhost:12345"
+              |  schemaRegistryUrl = "https://reg:123"
+              |  linger = 3
+              |}""".stripMargin
+          )
+          val config =
+            runtimeListenerConfig.withFallback(typesafeConfig).resolve()
+          val simonaConfig = SimonaConfig(config)
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkRuntimeListenerConfiguration(
+              simonaConfig.simona.runtime.listener
+            )
+          }.getMessage shouldBe "Connection with kafka broker localhost:12345 failed."
+        }
+      }
+
       "Checking participant output configs" should {
         val checkNotifierIdentifier =
           PrivateMethod[Unit](Symbol("checkNotifierIdentifier"))
@@ -687,19 +711,23 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
       }
 
       "Checking data sinks" should {
-        val checkDataSinks = PrivateMethod[Unit](Symbol("checkDataSink"))
+        val checkDataSink = PrivateMethod[Unit](Symbol("checkDataSink"))
 
         "throw an exception if no sink is provided" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast invokePrivate checkDataSinks(Sink(None, None))
+            ConfigFailFast invokePrivate checkDataSink(Sink(None, None, None))
           }.getLocalizedMessage shouldBe "No sink configuration found! Please ensure that at least " +
-            "one sink is configured! You can choose from: influxdb1x, csv."
+            "one sink is configured! You can choose from: influxdb1x, csv, kafka."
         }
 
         "throw an exception if more than one sink is provided" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast invokePrivate checkDataSinks(
-              Sink(Some(Csv("", "", "")), Some(InfluxDb1x("", 0, "")))
+            ConfigFailFast invokePrivate checkDataSink(
+              Sink(
+                Some(Csv("", "", "", isHierarchic = false)),
+                Some(InfluxDb1x("", 0, "")),
+                None
+              )
             )
           }.getLocalizedMessage shouldBe "Multiple sink configurations are not supported! Please ensure that only " +
             "one sink is configured!"
@@ -707,70 +735,91 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "throw an exception if an influxDb1x is configured, but not accessible" ignore {
           intercept[java.lang.IllegalArgumentException] {
-            ConfigFailFast invokePrivate checkDataSinks(
-              Sink(None, Some(InfluxDb1x("", 0, "")))
+            ConfigFailFast invokePrivate checkDataSink(
+              Sink(None, Some(InfluxDb1x("", 0, "")), None)
             )
           }.getLocalizedMessage shouldBe "Unable to reach configured influxDb1x with url ':0' for 'Sink' configuration and database ''. " +
             "Exception: java.lang.IllegalArgumentException: Unable to parse url: :0"
         }
 
+        "throw an exception if kafka is configured, but connection to broker fails" in {
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkDataSink(
+              Sink(
+                None,
+                None,
+                Some(
+                  ResultKafkaParams(
+                    "localhost:12345",
+                    0,
+                    "00000000-0000-0000-0000-000000000000",
+                    "https://reg:123",
+                    "topic"
+                  )
+                )
+              )
+            )
+          }.getMessage shouldBe "Connection with kafka broker localhost:12345 failed."
+        }
       }
 
       "Checking grid data sources" should {
         "identify a faulty csv separator" in {
-          val csvParams = GridCsvParams("\t", "inputData/test")
+          val csvParams =
+            BaseCsvParams("\t", "inputData/test", isHierarchic = false)
 
           intercept[InvalidConfigParameterException] {
-            CsvConfigUtil.checkCsvParams(
-              "CsvGridData",
-              csvParams.csvSep,
-              csvParams.folderPath
+            CsvConfigUtil.checkBaseCsvParams(
+              csvParams,
+              "CsvGridData"
             )
           }.getMessage shouldBe "The csvSep parameter '\t' for 'CsvGridData' configuration is invalid! Please choose between ';' or ','!"
         }
 
         "identify a an empty path" in {
-          val csvParams = GridCsvParams(",", "")
+          val csvParams = BaseCsvParams(",", "", isHierarchic = false)
           intercept[InvalidConfigParameterException] {
-            CsvConfigUtil.checkCsvParams(
-              "CsvGridData",
-              csvParams.csvSep,
-              csvParams.folderPath
+            CsvConfigUtil.checkBaseCsvParams(
+              csvParams,
+              "CsvGridData"
             )
-          }.getMessage shouldBe "The provided folderPath for .csv-files '' for 'CsvGridData' configuration is invalid! Please correct the path!"
+          }.getMessage shouldBe "The provided directoryPath for .csv-files '' for 'CsvGridData' configuration is invalid! Please correct the path!"
         }
 
         "identify a non-existing path" in {
-          val csvParams = GridCsvParams(",", "somewhere/else")
+          val csvParams =
+            BaseCsvParams(",", "somewhere/else", isHierarchic = false)
 
           intercept[InvalidConfigParameterException] {
-            CsvConfigUtil.checkCsvParams(
-              "CsvGridData",
-              csvParams.csvSep,
-              csvParams.folderPath
+            CsvConfigUtil.checkBaseCsvParams(
+              csvParams,
+              "CsvGridData"
             )
-          }.getMessage shouldBe "The provided folderPath for .csv-files 'somewhere/else' for 'CsvGridData' configuration is invalid! Please correct the path!"
+          }.getMessage shouldBe "The provided directoryPath for .csv-files 'somewhere/else' for 'CsvGridData' configuration is invalid! Please correct the path!"
         }
 
         "identify a path pointing to a file" in {
-          val csvParams = GridCsvParams(",", "inputData/common/akka.conf")
+          val csvParams = BaseCsvParams(
+            ",",
+            "inputData/common/akka.conf",
+            isHierarchic = false
+          )
 
           intercept[InvalidConfigParameterException] {
-            CsvConfigUtil.checkCsvParams(
-              "CsvGridData",
-              csvParams.csvSep,
-              csvParams.folderPath
+            CsvConfigUtil.checkBaseCsvParams(
+              csvParams,
+              "CsvGridData"
             )
-          }.getMessage shouldBe "The provided folderPath for .csv-files 'inputData/common/akka.conf' for 'CsvGridData' configuration is invalid! Please correct the path!"
+          }.getMessage shouldBe "The provided directoryPath for .csv-files 'inputData/common/akka.conf' for 'CsvGridData' configuration is invalid! Please correct the path!"
         }
 
         "let valid csv parameters pass" in {
-          val csvParams = GridCsvParams(",", "input/samples/vn_simona")
+          val csvParams =
+            BaseCsvParams(",", "input/samples/vn_simona", isHierarchic = false)
           noException shouldBe thrownBy {
-            CsvConfigUtil.checkCsvParams(
-              "CsvGridData",
-              csvParams.csvSep,
-              csvParams.folderPath
+            CsvConfigUtil.checkBaseCsvParams(
+              csvParams,
+              "CsvGridData"
             )
           }
         }
@@ -780,7 +829,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "identify grid data source with empty id" in {
           val gridDataSource = SimonaConfig.Simona.Input.Grid.Datasource(
-            Some(GridCsvParams(",", "inputData/vn_simona")),
+            Some(
+              BaseCsvParams(",", "inputData/vn_simona", isHierarchic = false)
+            ),
             id = ""
           )
 
@@ -814,7 +865,13 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "let valid csv grid data source definition pass" in {
           val gridDataSource = SimonaConfig.Simona.Input.Grid.Datasource(
-            Some(GridCsvParams(",", "input/samples/vn_simona")),
+            Some(
+              BaseCsvParams(
+                ",",
+                "input/samples/vn_simona",
+                isHierarchic = false
+              )
+            ),
             id = "csv"
           )
 

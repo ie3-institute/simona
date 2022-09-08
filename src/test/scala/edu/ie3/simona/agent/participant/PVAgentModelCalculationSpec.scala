@@ -113,7 +113,7 @@ class PVAgentModelCalculationSpec
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
   )
-  private val modelConfig = configUtil.getPvConfigOrDefault(
+  private val modelConfig = configUtil.getOrDefault[PvRuntimeConfig](
     voltageSensitiveInput.getUuid
   )
   private val noServices = None

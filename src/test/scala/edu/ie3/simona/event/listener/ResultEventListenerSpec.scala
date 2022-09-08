@@ -71,32 +71,32 @@ class ResultEventListenerSpec
   )
 
   // the OutputFileHierarchy
-  val resultFileHierarchy: (Int, String) => ResultFileHierarchy =
-    (runId: Int, fileFormat: String) =>
-      ResultFileHierarchy(
-        outputDir = testTmpDir + File.separator + runId,
-        simulationName,
-        ResultEntityPathConfig(
-          resultEntitiesToBeWritten,
-          ResultSinkType.Csv(fileFormat = fileFormat)
-        ),
-        createDirs = true
-      )
+  private def resultFileHierarchy(
+      runId: Int,
+      fileFormat: String,
+      classes: Set[Class[_ <: ResultEntity]] = resultEntitiesToBeWritten
+  ): ResultFileHierarchy =
+    ResultFileHierarchy(
+      outputDir = testTmpDir + File.separator + runId,
+      simulationName,
+      ResultEntityPathConfig(
+        classes,
+        ResultSinkType.Csv(fileFormat = fileFormat)
+      ),
+      createDirs = true
+    )
 
   def createDir(
-      resultFileHierarchy: ResultFileHierarchy,
-      resultEntitiesToBeWritten: Set[Class[_ <: ResultEntity]]
-  ): Iterable[Future[(Class[_], ResultEntitySink)]] = {
+      resultFileHierarchy: ResultFileHierarchy
+  ): Iterable[Future[ResultEntitySink]] = {
     val materializer: Materializer = Materializer(system)
 
-    val initializeSinks
-        : PrivateMethod[Iterable[Future[(Class[_], ResultEntitySink)]]] =
-      PrivateMethod[Iterable[Future[(Class[_], ResultEntitySink)]]](
+    val initializeSinks: PrivateMethod[Iterable[Future[ResultEntitySink]]] =
+      PrivateMethod[Iterable[Future[ResultEntitySink]]](
         Symbol("initializeSinks")
       )
 
     ResultEventListener invokePrivate initializeSinks(
-      resultEntitiesToBeWritten,
       resultFileHierarchy,
       materializer
     )
@@ -120,7 +120,7 @@ class ResultEventListenerSpec
       "initialize its sinks correctly" in {
         val fileHierarchy = resultFileHierarchy(1, ".csv")
         Await.ready(
-          Future.sequence(createDir(fileHierarchy, resultEntitiesToBeWritten)),
+          Future.sequence(createDir(fileHierarchy)),
           60 seconds
         )
 
@@ -139,11 +139,11 @@ class ResultEventListenerSpec
       }
 
       "check if actor dies when it should die" in {
-        val fileHierarchy = resultFileHierarchy(2, ".ttt")
+        val fileHierarchy =
+          resultFileHierarchy(2, ".ttt", Set(classOf[Transformer3WResult]))
         val testProbe = TestProbe()
         val listener = testProbe.childActorOf(
           ResultEventListener.props(
-            Set(classOf[Transformer3WResult]),
             fileHierarchy,
             testProbe.ref
           )
@@ -162,7 +162,6 @@ class ResultEventListenerSpec
         val listenerRef = system.actorOf(
           ResultEventListener
             .props(
-              resultEntitiesToBeWritten,
               specificOutputFileHierarchy,
               testActor
             )
@@ -208,7 +207,6 @@ class ResultEventListenerSpec
         val listenerRef = system.actorOf(
           ResultEventListener
             .props(
-              resultEntitiesToBeWritten,
               specificOutputFileHierarchy,
               testActor
             )
@@ -292,10 +290,10 @@ class ResultEventListenerSpec
         PrivateMethod[Map[Transformer3wKey, AggregatedTransformer3wResult]](
           Symbol("registerPartialTransformer3wResult")
         )
-      val fileHierarchy = resultFileHierarchy(5, ".csv")
+      val fileHierarchy =
+        resultFileHierarchy(5, ".csv", Set(classOf[Transformer3WResult]))
       val listener = TestFSMRef(
         new ResultEventListener(
-          Set(classOf[Transformer3WResult]),
           fileHierarchy,
           testActor
         )
@@ -526,7 +524,6 @@ class ResultEventListenerSpec
         val listenerRef = system.actorOf(
           ResultEventListener
             .props(
-              resultEntitiesToBeWritten,
               specificOutputFileHierarchy,
               testActor
             )

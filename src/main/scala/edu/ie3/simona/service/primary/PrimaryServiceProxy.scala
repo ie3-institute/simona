@@ -8,31 +8,29 @@ package edu.ie3.simona.service.primary
 
 import akka.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
+import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
+import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.{
   DatabaseNamingStrategy,
   EntityPersistenceNamingStrategy,
   FileNamingStrategy
 }
-import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
-import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
-import edu.ie3.datamodel.io.source.{
-  TimeSeriesMappingSource,
-  TimeSeriesTypeSource
-}
 import edu.ie3.datamodel.io.source.csv.{
   CsvTimeSeriesMappingSource,
-  CsvTimeSeriesTypeSource
+  CsvTimeSeriesMetaInformationSource
 }
 import edu.ie3.datamodel.io.source.sql.{
   SqlTimeSeriesMappingSource,
-  SqlTimeSeriesTypeSource
+  SqlTimeSeriesMetaInformationSource
+}
+import edu.ie3.datamodel.io.source.{
+  TimeSeriesMappingSource,
+  TimeSeriesMetaInformationSource
 }
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{
-  CsvParams,
-  SqlParams
-}
+import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
   Primary => PrimaryConfig
 }
@@ -69,6 +67,7 @@ import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.Option.when
+import scala.compat.java8.OptionConverters.RichOptionalGeneric
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -150,15 +149,13 @@ case class PrimaryServiceProxy(
     createSources(primaryConfig).map {
       case (mappingSource, metaInformationSource) =>
         val modelToTimeSeries = mappingSource.getMapping.asScala.toMap
-        val timeSeriesMetaInformation =
-          metaInformationSource.getTimeSeriesMetaInformation.asScala.toMap
-
         val timeSeriesToSourceRef = modelToTimeSeries.values
           .to(LazyList)
           .distinct
           .flatMap { timeSeriesUuid =>
-            timeSeriesMetaInformation
-              .get(timeSeriesUuid) match {
+            metaInformationSource
+              .getTimeSeriesMetaInformation(timeSeriesUuid)
+              .asScala match {
               case Some(metaInformation) =>
                 /* Only register those entries, that meet the supported column schemes */
                 when(
@@ -188,24 +185,24 @@ case class PrimaryServiceProxy(
 
   private def createSources(
       primaryConfig: PrimaryConfig
-  ): Try[(TimeSeriesMappingSource, TimeSeriesTypeSource)] = {
+  ): Try[(TimeSeriesMappingSource, TimeSeriesMetaInformationSource)] = {
     Seq(
       primaryConfig.sqlParams,
       primaryConfig.influxDb1xParams,
       primaryConfig.csvParams,
       primaryConfig.couchbaseParams
     ).filter(_.isDefined).flatten.headOption match {
-      case Some(CsvParams(csvSep, folderPath, _)) =>
+      case Some(PrimaryDataCsvParams(csvSep, directoryPath, _, _)) =>
         val fileNamingStrategy = new FileNamingStrategy()
         Success(
           new CsvTimeSeriesMappingSource(
             csvSep,
-            folderPath,
+            directoryPath,
             fileNamingStrategy
           ),
-          new CsvTimeSeriesTypeSource(
+          new CsvTimeSeriesMetaInformationSource(
             csvSep,
-            folderPath,
+            directoryPath,
             fileNamingStrategy
           )
         )
@@ -221,7 +218,7 @@ case class PrimaryServiceProxy(
             sqlParams.schemaName,
             new EntityPersistenceNamingStrategy()
           ),
-          new SqlTimeSeriesTypeSource(
+          new SqlTimeSeriesMetaInformationSource(
             sqlConnector,
             sqlParams.schemaName,
             new DatabaseNamingStrategy()
@@ -418,7 +415,7 @@ case class PrimaryServiceProxy(
     primaryConfig match {
       case PrimaryConfig(
             None,
-            Some(CsvParams(csvSep, directoryPath, timePattern)),
+            Some(PrimaryDataCsvParams(csvSep, directoryPath, _, timePattern)),
             None,
             None
           ) =>
@@ -593,7 +590,7 @@ object PrimaryServiceProxy {
       )
     else {
       sourceConfigs.headOption match {
-        case Some(csvParams: SimonaConfig.Simona.Input.Primary.CsvParams) =>
+        case Some(csvParams: PrimaryDataCsvParams) =>
           // note: if inheritance is supported by tscfg,
           // the following method should be called for all different supported sources!
           checkTimePattern(csvParams.timePattern)
@@ -602,12 +599,12 @@ object PrimaryServiceProxy {
         case Some(x) =>
           throw new InvalidConfigParameterException(
             s"Invalid configuration '$x' for a time series source.\nAvailable types:\n\t${supportedSources
-              .mkString("\n\t")}"
+                .mkString("\n\t")}"
           )
         case None =>
           throw new InvalidConfigParameterException(
             s"No configuration for a time series mapping source provided.\nPlease provide one of the available sources:\n\t${supportedSources
-              .mkString("\n\t")}"
+                .mkString("\n\t")}"
           )
       }
     }

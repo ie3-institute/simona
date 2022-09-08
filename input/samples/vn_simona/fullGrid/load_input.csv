@@ -1,4 +1,4 @@
-"uuid","cos_phi_rated","dsm","e_cons_annual","id","node","operates_from","operates_until","operator","q_characteristics","s_rated","standard_load_profile"
+"uuid","cos_phi_rated","dsm","e_cons_annual","id","node","operates_from","operates_until","operator","q_characteristics","s_rated","load_profile"
 c2402412-97fa-4ca4-aa66-e6e04d010001,0.9700000286102295,false,4000.0,NS_NET126_L_F1_(36),ca3391eb-ca94-4945-ac72-e116f396f82c,,,,cosPhiFixed:{(0.00,1.00)},2.0618600845336914,h0
 fa8ef266-5b15-4fdd-a145-71ba95e3463d,0.949999988079071,false,4000.0,NS_NET146_L_F3_(17),0f3ba59d-a9ce-4669-aa12-bebec42238b7,,,,cosPhiFixed:{(0.00,1.00)},2.3157899379730225,h0
 4dd0785a-482c-47e3-bb82-e315083684d1,0.9700000286102295,false,4000.0,NS_NET116_L_S3_2(6),550ebca7-1455-44eb-9431-ffbf08e58bd4,,,,cosPhiFixed:{(0.00,1.00)},4.1237101554870605,h0

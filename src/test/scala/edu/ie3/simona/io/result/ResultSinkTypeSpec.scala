@@ -7,8 +7,11 @@
 package edu.ie3.simona.io.result
 
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.io.result.ResultSinkType.{Csv, InfluxDb1x}
+import edu.ie3.simona.config.SimonaConfig.ResultKafkaParams
+import edu.ie3.simona.io.result.ResultSinkType.{Csv, InfluxDb1x, Kafka}
 import edu.ie3.simona.test.common.UnitSpec
+
+import java.util.UUID
 
 class ResultSinkTypeSpec extends UnitSpec {
   "A ResultSinkType" should {
@@ -18,10 +21,12 @@ class ResultSinkTypeSpec extends UnitSpec {
           SimonaConfig.Simona.Output.Sink.Csv(
             fileFormat = ".csv",
             filePrefix = "",
-            fileSuffix = ""
+            fileSuffix = "",
+            isHierarchic = false
           )
         ),
-        influxDb1x = None
+        influxDb1x = None,
+        kafka = None
       )
 
       inside(ResultSinkType(conf, "testRun")) {
@@ -43,7 +48,8 @@ class ResultSinkTypeSpec extends UnitSpec {
             port = 1,
             url = "localhost/"
           )
-        )
+        ),
+        kafka = None
       )
       val runName = "testRun"
 
@@ -57,13 +63,48 @@ class ResultSinkTypeSpec extends UnitSpec {
       }
     }
 
+    "be instantiated correctly when supplying a kafka sink" in {
+      val conf = SimonaConfig.Simona.Output.Sink(
+        csv = None,
+        influxDb1x = None,
+        kafka = Some(
+          ResultKafkaParams(
+            "localhost:9092",
+            12,
+            "00000000-0000-0000-0000-000000000000",
+            "https://reg:123",
+            "topic"
+          )
+        )
+      )
+      val runName = "testRun"
+
+      inside(ResultSinkType(conf, runName)) {
+        case Kafka(
+              topicNodeRes,
+              runId,
+              bootstrapServers,
+              schemaRegistryUrl,
+              linger
+            ) =>
+          topicNodeRes shouldBe "topic"
+          runId shouldBe UUID.fromString("00000000-0000-0000-0000-000000000000")
+          bootstrapServers shouldBe "localhost:9092"
+          schemaRegistryUrl shouldBe "https://reg:123"
+          linger shouldBe 12
+        case _ =>
+          fail("Wrong ResultSinkType got instantiated.")
+      }
+    }
+
     "fail when more than one sink is supplied" in {
       val conf = SimonaConfig.Simona.Output.Sink(
         csv = Some(
           SimonaConfig.Simona.Output.Sink.Csv(
             fileFormat = ".csv",
             filePrefix = "",
-            fileSuffix = ""
+            fileSuffix = "",
+            isHierarchic = false
           )
         ),
         influxDb1x = Some(
@@ -72,7 +113,8 @@ class ResultSinkTypeSpec extends UnitSpec {
             port = 1,
             url = "localhost"
           )
-        )
+        ),
+        kafka = None
       )
 
       assertThrows[IllegalArgumentException](ResultSinkType(conf, "testRun"))
@@ -81,7 +123,8 @@ class ResultSinkTypeSpec extends UnitSpec {
     "fail when no sink is supplied" in {
       val conf = SimonaConfig.Simona.Output.Sink(
         csv = None,
-        influxDb1x = None
+        influxDb1x = None,
+        kafka = None
       )
 
       assertThrows[IllegalArgumentException](ResultSinkType(conf, "testRun"))
