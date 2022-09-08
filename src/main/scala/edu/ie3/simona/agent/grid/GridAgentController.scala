@@ -213,7 +213,8 @@ class GridAgentController(
             outputConfigUtil,
             participant,
             environmentRefs,
-            emParticipantMap
+            emParticipantMap,
+            None
           ) // introduce to environment
         introduceAgentToEnvironment(
           actorRef,
@@ -234,7 +235,8 @@ class GridAgentController(
       outputConfigUtil: BaseOutputConfigUtil,
       participantInputModel: SystemParticipantInput,
       environmentRefs: EnvironmentRefs,
-      emParticipantMap: Map[UUID, SystemParticipantInput]
+      emParticipantMap: Map[UUID, SystemParticipantInput],
+      maybeEmAgent: Option[ActorRef]
   ): (
       ActorRef,
       InitializeStateData[_ <: PrimaryData]
@@ -250,7 +252,8 @@ class GridAgentController(
         simulationEndDate,
         resolution,
         requestVoltageDeviationThreshold,
-        outputConfigUtil.getOrDefault(NotifierIdentifier.FixedFeedIn)
+        outputConfigUtil.getOrDefault(NotifierIdentifier.FixedFeedIn),
+        maybeEmAgent
       )
     case input: LoadInput =>
       buildLoad(
@@ -263,7 +266,8 @@ class GridAgentController(
         simulationEndDate,
         resolution,
         requestVoltageDeviationThreshold,
-        outputConfigUtil.getOrDefault(NotifierIdentifier.Load)
+        outputConfigUtil.getOrDefault(NotifierIdentifier.Load),
+        maybeEmAgent
       )
     case input: PvInput =>
       buildPV(
@@ -277,7 +281,8 @@ class GridAgentController(
         simulationEndDate,
         resolution,
         requestVoltageDeviationThreshold,
-        outputConfigUtil.getOrDefault(NotifierIdentifier.PvPlant)
+        outputConfigUtil.getOrDefault(NotifierIdentifier.PvPlant),
+        maybeEmAgent
       )
     case input: WecInput =>
       buildWec(
@@ -291,7 +296,8 @@ class GridAgentController(
         simulationEndDate,
         resolution,
         requestVoltageDeviationThreshold,
-        outputConfigUtil.getOrDefault(NotifierIdentifier.Wec)
+        outputConfigUtil.getOrDefault(NotifierIdentifier.Wec),
+        maybeEmAgent
       )
     case input: EvcsInput =>
       buildEvcs(
@@ -309,7 +315,8 @@ class GridAgentController(
         simulationEndDate,
         resolution,
         requestVoltageDeviationThreshold,
-        outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs)
+        outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs),
+        maybeEmAgent
       )
 
     case emInput: EmInput =>
@@ -354,6 +361,8 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
+    * @param maybeEmAgent
+    *   The EmAgent if this participant is em-controlled
     * @return
     *   A pair of [[FixedFeedInAgent]] 's [[ActorRef]] as well as the equivalent
     *   [[InitializeParticipantAgentTrigger]] to sent for initialization
@@ -366,7 +375,8 @@ class GridAgentController(
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: ParticipantNotifierConfig,
+      maybeEmAgent: Option[ActorRef]
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -391,7 +401,8 @@ class GridAgentController(
       simulationEndDate,
       resolution,
       requestVoltageDeviationThreshold,
-      outputConfig
+      outputConfig,
+      maybeEmAgent
     )
   )
 
@@ -414,6 +425,8 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
+    * @param maybeEmAgent
+    *   The EmAgent if this participant is em-controlled
     * @return
     *   A pair of [[FixedFeedInAgent]] 's [[ActorRef]] as well as the equivalent
     * @return
@@ -428,7 +441,8 @@ class GridAgentController(
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: ParticipantNotifierConfig,
+      maybeEmAgent: Option[ActorRef]
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -454,7 +468,8 @@ class GridAgentController(
       simulationEndDate,
       resolution,
       requestVoltageDeviationThreshold,
-      outputConfig
+      outputConfig,
+      maybeEmAgent
     )
   )
 
@@ -479,6 +494,8 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
+    * @param maybeEmAgent
+    *   The EmAgent if this participant is em-controlled
     * @return
     *   A pair of [[PVAgent]] 's [[ActorRef]] as well as the equivalent
     *   [[InitializeParticipantAgentTrigger]] to sent for initialization
@@ -492,7 +509,8 @@ class GridAgentController(
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: ParticipantNotifierConfig,
+      maybeEmAgent: Option[ActorRef]
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -518,7 +536,8 @@ class GridAgentController(
         simulationEndDate,
         resolution,
         requestVoltageDeviationThreshold,
-        outputConfig
+        outputConfig,
+        maybeEmAgent
       )
     )
 
@@ -543,6 +562,8 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
+    * @param maybeEmAgent
+    *   The EmAgent if this participant is em-controlled
     * @return
     *   A pair of [[EvcsAgent]] 's [[ActorRef]] as well as the equivalent
     *   [[InitializeParticipantAgentTrigger]] to sent for initialization
@@ -556,7 +577,8 @@ class GridAgentController(
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: ParticipantNotifierConfig,
+      maybeEmAgent: Option[ActorRef]
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -589,12 +611,82 @@ class GridAgentController(
         simulationEndDate,
         resolution,
         requestVoltageDeviationThreshold,
-        outputConfig
+        outputConfig,
+        maybeEmAgent
       )
     )
   }
 
+  /** Creates a pv agent and determines the needed additional information for
+    * later initialization of the agent.
+    *
+    * @param wecInput
+    *   WEC input model to derive information from
+    * @param modelConfiguration
+    *   User-provided configuration for this specific load model
+    * @param primaryServiceProxy
+    *   Reference to the primary data service proxy
+    * @param weatherService
+    *   Reference to the weather service actor
+    * @param simulationStartDate
+    *   First wall clock time in simulation
+    * @param simulationEndDate
+    *   Last wall clock time in simulation
+    * @param resolution
+    *   Frequency of power flow calculations
+    * @param requestVoltageDeviationThreshold
+    *   Maximum deviation in p.u. of request voltages to be considered equal
+    * @param outputConfig
+    *   Configuration of the output behavior
+    * @param maybeEmAgent
+    *   The EmAgent if this participant is em-controlled
+    * @return
+    *   A pair of [[WecAgent]] 's [[ActorRef]] as well as the equivalent
+    *   [[InitializeParticipantAgentTrigger]] to sent for initialization
+    */
+  private def buildWec(
+      wecInput: WecInput,
+      modelConfiguration: WecRuntimeConfig,
+      primaryServiceProxy: ActorRef,
+      weatherService: ActorRef,
+      simulationStartDate: ZonedDateTime,
+      simulationEndDate: ZonedDateTime,
+      resolution: Long,
+      requestVoltageDeviationThreshold: Double,
+      outputConfig: ParticipantNotifierConfig,
+      maybeEmAgent: Option[ActorRef]
+  ): (
+      ActorRef,
+      ParticipantInitializeStateData[
+        WecInput,
+        SimonaConfig.WecRuntimeConfig,
+        ApparentPower
+      ]
+  ) =
+    (
+      gridAgentContext.simonaActorOf(
+        WecAgent.props(
+          environmentRefs.scheduler,
+          listener
+        ),
+        wecInput.getId
+      ),
+      ParticipantInitializeStateData(
+        wecInput,
+        modelConfiguration,
+        primaryServiceProxy,
+        Some(Vector(ActorWeatherService(weatherService))),
+        simulationStartDate,
+        simulationEndDate,
+        resolution,
+        requestVoltageDeviationThreshold,
+        outputConfig,
+        maybeEmAgent
+      )
+    )
+
   /** Builds an [[EmAgent]] from given input
+    *
     * @param emInput
     *   Input model
     * @param modelConfiguration
@@ -626,6 +718,14 @@ class GridAgentController(
       ActorRef,
       EmAgentInitializeStateData
   ) = {
+    val emAgentRef = gridAgentContext.simonaActorOf(
+      EmAgent.props(
+        environmentRefs.scheduler,
+        listener
+      ),
+      emInput.getId
+    )
+
     val connectedAgents = emInput.getConnectedAssets
       .map { uuid =>
         emParticipantMap.getOrElse(
@@ -642,7 +742,8 @@ class GridAgentController(
           outputConfigUtil,
           sp,
           environmentRefs,
-          emParticipantMap
+          emParticipantMap,
+          Some(emAgentRef)
         )
 
         val initTrigger =
@@ -657,13 +758,7 @@ class GridAgentController(
       .toSeq
 
     (
-      gridAgentContext.simonaActorOf(
-        EmAgent.props(
-          environmentRefs.scheduler,
-          listener
-        ),
-        emInput.getId
-      ),
+      emAgentRef,
       EmAgentInitializeStateData(
         emInput,
         modelConfiguration,
@@ -678,70 +773,6 @@ class GridAgentController(
       )
     )
   }
-
-  /** Creates a pv agent and determines the needed additional information for
-    * later initialization of the agent.
-    *
-    * @param wecInput
-    *   WEC input model to derive information from
-    * @param modelConfiguration
-    *   User-provided configuration for this specific load model
-    * @param primaryServiceProxy
-    *   Reference to the primary data service proxy
-    * @param weatherService
-    *   Reference to the weather service actor
-    * @param simulationStartDate
-    *   First wall clock time in simulation
-    * @param simulationEndDate
-    *   Last wall clock time in simulation
-    * @param resolution
-    *   Frequency of power flow calculations
-    * @param requestVoltageDeviationThreshold
-    *   Maximum deviation in p.u. of request voltages to be considered equal
-    * @param outputConfig
-    *   Configuration of the output behavior
-    * @return
-    *   A pair of [[WecAgent]] 's [[ActorRef]] as well as the equivalent
-    *   [[InitializeParticipantAgentTrigger]] to sent for initialization
-    */
-  private def buildWec(
-      wecInput: WecInput,
-      modelConfiguration: WecRuntimeConfig,
-      primaryServiceProxy: ActorRef,
-      weatherService: ActorRef,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      resolution: Long,
-      requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
-  ): (
-      ActorRef,
-      ParticipantInitializeStateData[
-        WecInput,
-        SimonaConfig.WecRuntimeConfig,
-        ApparentPower
-      ]
-  ) =
-    (
-      gridAgentContext.simonaActorOf(
-        WecAgent.props(
-          environmentRefs.scheduler,
-          listener
-        ),
-        wecInput.getId
-      ),
-      ParticipantInitializeStateData(
-        wecInput,
-        modelConfiguration,
-        primaryServiceProxy,
-        Some(Vector(ActorWeatherService(weatherService))),
-        simulationStartDate,
-        simulationEndDate,
-        resolution,
-        requestVoltageDeviationThreshold,
-        outputConfig
-      )
-    )
 
   /** Introduces the given agent to the agent environment and additionally sends
     * an [[InitializeParticipantAgentTrigger]] to this agent to start its

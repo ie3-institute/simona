@@ -104,7 +104,8 @@ abstract class ParticipantAgent[
                 simulationEndDate,
                 resolution,
                 requestVoltageDeviationThreshold,
-                outputConfig
+                outputConfig,
+                _
               )
             ),
             triggerId,
