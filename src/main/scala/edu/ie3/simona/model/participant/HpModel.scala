@@ -13,17 +13,13 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHe
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.HpModel._
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.thermal.ThermalGrid.{
-  ThermalEnergyDemand,
-  ThermalGridState
-}
+import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalHouse}
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
 
 import javax.measure.quantity.{Power, Temperature}
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 

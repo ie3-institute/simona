@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.thermal
 
+import breeze.linalg.min
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
@@ -17,13 +18,19 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalGridState
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
+  LowerTemperatureReached,
+  UpperTemperatureReached
+}
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.quantities.PowerSystemUnits
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Energy, Power, Temperature}
+import javax.measure.quantity.{Dimensionless, Energy, Power, Temperature}
+import scala.annotation.tailrec
 import scala.jdk.CollectionConverters.SetHasAsScala
 
 /** Calculation model for a thermal grid. It is assumed, that all elements are
@@ -134,15 +141,149 @@ final case class ThermalGrid(
       state: ThermalGridState,
       ambientTemperature: ComparableQuantity[Temperature],
       qDot: ComparableQuantity[Power]
+  ): ThermalGridState = if (
+    qDot.isGreaterThan(
+      Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+    )
+  )
+    handleInfeed(tick, ambientTemperature, state, qDot)
+  else
+    handleConsumption(tick, ambientTemperature, state, qDot)
+
+  /** Handles the case, when a grid has infeed. First, heat up all the houses to
+    * their maximum temperature, then fill up the storages
+    * @param tick
+    *   Current tick
+    * @param ambientTemperature
+    *   Ambient temperature
+    * @param state
+    *   Current state of the houses
+    * @param qDot
+    *   Infeed to the grid
+    * @return
+    *   Updated thermal grid state
+    */
+  private def handleInfeed(
+      tick: Long,
+      ambientTemperature: ComparableQuantity[Temperature],
+      state: ThermalGridState,
+      qDot: ComparableQuantity[Power]
   ): ThermalGridState = {
-    val updatedHouseStates = houses.map { house =>
-      state.partState.get(house.uuid) match {
+    /* There is energy fed into the grid. Disperse it along the appliances */
+    // TODO: qDot = 0 for all storages in first iteration
+
+    /* Get the demand of the houses and calculate shares */
+    val (updatedHouseState, nextTick) =
+      heatUpHouses(tick, ambientTemperature, state.partState, qDot)
+
+    /* Fill up the storages */
+    // TODO
+
+    ThermalGridState(updatedHouseState)
+  }
+
+  /** Recursively heat up all the houses, until all upper boundaries are reached
+    *
+    * @param tick
+    *   Current tick
+    * @param ambientTemperature
+    *   Ambient temperature
+    * @param houseState
+    *   Current states of the houses
+    * @param qDot
+    *   Thermal infeed to the grid
+    * @param updatedState
+    *   Optional already updated state (only the first update needs to be handed
+    *   back)
+    * @return
+    *   Updated state and tick of next threshold match
+    */
+  @tailrec
+  private def heatUpHouses(
+      tick: Long,
+      ambientTemperature: ComparableQuantity[Temperature],
+      houseState: Map[UUID, ThermalModelState],
+      qDot: ComparableQuantity[Power],
+      updatedState: Option[Map[UUID, ThermalModelState]] = None
+  ): (Map[UUID, ThermalModelState], Long) = {
+    val shares = houseShares(tick, ambientTemperature, houseState)
+    houses.foldLeft(
+      (Map.empty[UUID, ThermalHouseState], Long.MaxValue, Set.empty[UUID])
+    ) { case ((updatedHouseStates, shortestTick, fullHouses), house) =>
+      houseState.get(house.uuid) match {
         case Some(houseState: ThermalHouseState) =>
-          house.uuid -> house.updateState(
+          val share = shares.getOrElse(house.uuid, 0)
+          house.updateState(
             tick,
             houseState,
             ambientTemperature,
-            qDot
+            qDot.multiply(share)
+          ) match {
+            case (updatedState, LowerTemperatureReached(_)) =>
+              (
+                updatedHouseStates + (house.uuid -> updatedState
+                  .asInstanceOf[ThermalHouseState]),
+                shortestTick,
+                fullHouses + house.uuid
+              )
+            case (updatedState, UpperTemperatureReached(nextTick)) =>
+              (
+                updatedHouseStates + (house.uuid -> updatedState
+                  .asInstanceOf[ThermalHouseState]),
+                min(shortestTick, nextTick),
+                fullHouses
+              )
+          }
+        case _ =>
+          throw new InconsistentStateException(
+            s"Unable to find state for thermal house with uuid '${house.uuid}'."
+          )
+      }
+    } match {
+      case (updatedHouseStates, shortestTick, fullHouses) =>
+        val housesWithCapacity =
+          houses.filter(house => !fullHouses.contains(house.uuid))
+        if (housesWithCapacity.isEmpty) {
+          /* All houses are filled up, return the first updated state and the tick, where the last house is full */
+          updatedState match {
+            case Some(state) => (state, shortestTick)
+            case None        => (updatedHouseStates, shortestTick)
+          }
+        } else {
+          heatUpHouses(
+            shortestTick,
+            ambientTemperature,
+            updatedHouseStates,
+            qDot,
+            if (updatedState.isDefined) updatedState
+            else Some(updatedHouseStates)
+          )
+        }
+    }
+  }
+
+  /** Determine the share of each house to the total energy demand of all houses
+    * @param tick
+    *   The questioned tick
+    * @param ambientTemperature
+    *   The ambient temperature at questioned tick
+    * @param state
+    *   The current state of the houses
+    * @return
+    *   The shares of each single house
+    */
+  private def houseShares(
+      tick: Long,
+      ambientTemperature: ComparableQuantity[Temperature],
+      state: Map[UUID, ThermalModelState]
+  ): Map[UUID, Double] = {
+    val houseDemands = houses.map { house =>
+      state.get(house.uuid) match {
+        case Some(houseState: ThermalHouseState) =>
+          house.uuid -> house.energyDemand(
+            tick,
+            ambientTemperature,
+            houseState
           )
         case _ =>
           throw new InconsistentStateException(
@@ -150,9 +291,35 @@ final case class ThermalGrid(
           )
       }
     }.toMap
-
-    ThermalGridState(updatedHouseStates)
+    val totalDemand = houseDemands.values.reduce(_ + _)
+    houseDemands.map { case (uuid, ThermalEnergyDemand(required, _)) =>
+      uuid -> required
+        .divide(totalDemand.required)
+        .asType(classOf[Dimensionless])
+        .to(PowerSystemUnits.PU)
+        .getValue
+        .doubleValue()
+    }
   }
+
+  /** Handle consumption (or no infeed) from thermal grid
+    * @param tick
+    *   Current tick
+    * @param ambientTemperature
+    *   Ambient temperature
+    * @param state
+    *   Current state of the houses
+    * @param qDot
+    *   Infeed to the grid
+    * @return
+    *   Updated thermal grid state
+    */
+  private def handleConsumption(
+      tick: Long,
+      ambientTemperature: ComparableQuantity[Temperature],
+      state: ThermalGridState,
+      qDot: ComparableQuantity[Power]
+  ): ThermalGridState = state
 
   /** Convert the given state of the thermal grid into result models of it's
     * constituent models

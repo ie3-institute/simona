@@ -14,7 +14,11 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalHouseInput
 }
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
+import edu.ie3.simona.model.thermal.ThermalHouse.{
+  ThermalHouseState,
+  ThermalHouseThreshold
+}
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.LowerTemperatureReached
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.interfaces.{HeatCapacity, ThermalConductance}
 
@@ -276,14 +280,14 @@ final case class ThermalHouse(
     * @param qDot
     *   new thermal influx
     * @return
-    *   Updated state
+    *   Updated state and the tick in which the next threshold is reached
     */
   def updateState(
       tick: Long,
       state: ThermalHouseState,
       ambientTemperature: ComparableQuantity[Temperature],
       qDot: ComparableQuantity[Power]
-  ): ThermalModelState = {
+  ): (ThermalModelState, ThermalHouseThreshold) = {
     val duration = state.tick.durationUntil(tick)
     val updatedInnerTemperature = newInnerTemperature(
       state.thermalInfeed,
@@ -292,10 +296,13 @@ final case class ThermalHouse(
       ambientTemperature
     )
 
-    state.copy(
-      tick = tick,
-      innerTemperature = updatedInnerTemperature,
-      thermalInfeed = qDot
+    (
+      state.copy(
+        tick = tick,
+        innerTemperature = updatedInnerTemperature,
+        thermalInfeed = qDot
+      ),
+      LowerTemperatureReached(Long.MaxValue)
     )
   }
 }
@@ -335,4 +342,14 @@ object ThermalHouse {
       house.targetTemperature,
       Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
     )
+
+  sealed trait ThermalHouseThreshold {
+    val tick: Long
+  }
+  object ThermalHouseThreshold {
+    case class LowerTemperatureReached(override val tick: Long)
+        extends ThermalHouseThreshold
+    case class UpperTemperatureReached(override val tick: Long)
+        extends ThermalHouseThreshold
+  }
 }
