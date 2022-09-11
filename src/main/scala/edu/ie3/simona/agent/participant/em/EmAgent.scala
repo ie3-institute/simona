@@ -8,6 +8,7 @@ package edu.ie3.simona.agent.participant.em
 
 import akka.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.{EmInput, SystemParticipantInput}
+import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
@@ -28,6 +29,7 @@ import edu.ie3.simona.agent.participant.statedata.{
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
+import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.participant.EmModel
@@ -43,6 +45,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeParticipantAgentTrigger
 }
 import edu.ie3.simona.util.SimonaConstants
+import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import tech.units.indriya.ComparableQuantity
 
@@ -112,10 +115,14 @@ object EmAgent {
 
   final case class FlexCorrespondence(
       receivedFlexOptions: Option[ProvideFlexOptions] = None,
-      issuedCtrlMsgs: Option[IssueFlexControl] = None
+      issuedCtrlMsg: Option[IssueFlexControl] = None,
+      participantResult: Option[SystemParticipantResult] = None
   ) {
     def hasOptions: Boolean =
       receivedFlexOptions.nonEmpty
+
+    def hasResults: Boolean =
+      participantResult.nonEmpty
   }
 
   object FlexCorrespondence {
@@ -344,6 +351,63 @@ class EmAgent(
       )
 
       maybeIssueFlexControl(updatedBaseStateData)
+
+    case Event(
+          ParticipantResultEvent(result),
+          baseStateData: EmModelBaseStateData
+        ) =>
+      implicit val startDate: ZonedDateTime = baseStateData.startDate
+      val tick = baseStateData.schedulerStateData.nowInTicks
+
+      val receivedFlexOptions =
+        baseStateData.flexCorrespondences.getOrElse(
+          result.getInputModel,
+          throw new RuntimeException(
+            s"No received flex options store found for ${result.getInputModel}"
+          )
+        )
+
+      val resultTick = result.getTime.toTick
+      val flexCorrespondence = receivedFlexOptions
+        .get(resultTick)
+        .getOrElse(
+          throw new RuntimeException(
+            s"No flex correspondence found for model ${result.getInputModel} and tick $resultTick"
+          )
+        )
+
+      val updatedValueStore = ValueStore.updateValueStore(
+        receivedFlexOptions,
+        tick,
+        flexCorrespondence.copy(participantResult = Some(result))
+      )
+
+      val updatedReceivedFlexOptions =
+        baseStateData.flexCorrespondences.updated(
+          result.getInputModel,
+          updatedValueStore
+        )
+
+      val updatedBaseStateData = baseStateData.copy(
+        flexCorrespondences = updatedReceivedFlexOptions
+      )
+
+      // check if all results received
+      val flexData = extractFlexData(updatedBaseStateData)
+      val resultsReceived = !flexData.exists {
+        case (_, _, correspondence, dataTick)
+            if dataTick == tick && !correspondence.hasResults =>
+          true
+        case _ => false
+      }
+
+      if (resultsReceived)
+        calculatePower(
+          updatedBaseStateData,
+          scheduler
+        )
+      else
+        stay() using updatedBaseStateData
   }
 
   when(Uninitialized) { handleUnitializedEm orElse handleUnitialized }
@@ -371,35 +435,20 @@ class EmAgent(
   ): State = {
     val tick = baseStateData.schedulerStateData.nowInTicks
 
-    val flexOptions = baseStateData.flexCorrespondences.map {
-      case (uuid, store) =>
-        val (spi, actor) = baseStateData.connectedAgents.getOrElse(
-          uuid,
-          throw new RuntimeException(
-            s"There's no flex options store for $uuid whatsoever"
-          )
-        )
-        val (dataTick, flexOptions) = store
-          .last()
-          .getOrElse(
-            throw new RuntimeException(
-              s"There's no expected flex options for $spi whatsoever"
-            )
-          )
-
-        (spi, actor, flexOptions, dataTick == tick)
-    }
+    val flexData = extractFlexData(baseStateData)
 
     // check if expected flex answers for this tick arrived
-    val flexAnswersReceived = !flexOptions.exists {
-      case (_, _, correspondence, true) if !correspondence.hasOptions => true
-      case _                                                          => false
+    val flexAnswersReceived = !flexData.exists {
+      case (_, _, correspondence, dataTick)
+          if dataTick == tick && !correspondence.hasOptions =>
+        true
+      case _ => false
     }
 
     if (flexAnswersReceived) {
       // All flex options and all results have been received.
 
-      val flexStratInput = flexOptions.flatMap {
+      val flexStratInput = flexData.flatMap {
         case (spi, _, flexOptionsOpt, _) =>
           flexOptionsOpt.receivedFlexOptions.map(spi -> _)
       }
@@ -416,33 +465,43 @@ class EmAgent(
 
       // TODO sanity checks after strat calculation
 
-      val issueCtrlMsgsComplete = flexOptions.flatMap {
-        case (spi, actor, _, activatedBefore) =>
+      val issueCtrlMsgsComplete = flexData.flatMap {
+        case (spi, actor, correspondence, dataTick) =>
           issueCtrlMsgs
             .find { case (uuid, _) =>
               uuid.equals(spi.getUuid)
             }
             .orElse {
-              // if a response is expected for this tick and flexibility
-              // should not be used, send a no-control-msg instead
-              Option.when(activatedBefore)(spi.getUuid -> IssueNoCtrl)
+              // no power ctrl message has been set for this participant.
+              // still send a no-control-msg instead, if...
+
+              // ... a response is expected for this tick
+              val currentlyActivated = dataTick == tick
+
+              // ... flex control has been issued for this participant at
+              // an earlier tick
+              val flexControlCancelled =
+                dataTick < tick && (correspondence.issuedCtrlMsg match {
+                  case Some(_: IssuePowerCtrl) => true
+                  case _                       => false
+                })
+
+              Option.when(currentlyActivated || flexControlCancelled)(
+                spi.getUuid -> IssueNoCtrl
+              )
             }
             .map { case (uuid, flexCtrl) =>
-              (uuid, actor, flexCtrl, activatedBefore)
+              (uuid, actor, flexCtrl, dataTick)
             }
       }
 
-      // TODO also handle the case where flex control has been issued
-      // for old flex options, but for the current tick no control is
-      // issued: currently, suggested power is assumed
-      issueCtrlMsgsComplete.foreach {
-        case (_, actor, issueCtrlMsg, activatedBefore) =>
-          // activate the participants that have not been activated before
-          if (!activatedBefore)
-            actor ! ActivityStartTrigger(tick)
+      issueCtrlMsgsComplete.foreach { case (_, actor, issueCtrlMsg, dataTick) =>
+        // activate the participants that have not been activated before
+        if (dataTick != tick)
+          actor ! ActivityStartTrigger(tick)
 
-          // send out flex control messages
-          actor ! issueCtrlMsg
+        // send out flex control messages
+        actor ! issueCtrlMsg
       }
 
       // create updated value stores for participants that are received control msgs
@@ -451,7 +510,7 @@ class EmAgent(
           baseStateData.flexCorrespondences.get(uuid).flatMap { store =>
             store.last().map { case (dataTick, correspondence) =>
               val updatedCorrespondence =
-                correspondence.copy(issuedCtrlMsgs = Some(issueFlex))
+                correspondence.copy(issuedCtrlMsg = Some(issueFlex))
 
               uuid -> ValueStore.updateValueStore(
                 store,
@@ -472,14 +531,32 @@ class EmAgent(
         flexCorrespondences = updatedCorrespondences
       )
 
-      calculatePower(
-        updatedBaseStateData,
-        scheduler
-      )
+      stay() using updatedBaseStateData
 
     } else
       stay() using baseStateData
   }
+
+  private def extractFlexData(baseStateData: EmModelBaseStateData): Iterable[
+    (SystemParticipantInput, ActorRef, FlexCorrespondence, Long)
+  ] =
+    baseStateData.flexCorrespondences.map { case (uuid, store) =>
+      val (spi, actor) = baseStateData.connectedAgents.getOrElse(
+        uuid,
+        throw new RuntimeException(
+          s"There's no flex options store for $uuid whatsoever"
+        )
+      )
+      val (dataTick, correspondence) = store
+        .last()
+        .getOrElse(
+          throw new RuntimeException(
+            s"There's no expected flex options for $spi whatsoever"
+          )
+        )
+
+      (spi, actor, correspondence, dataTick)
+    }
 
   private def calculatePower(
       baseStateData: EmModelBaseStateData,
@@ -491,9 +568,6 @@ class EmAgent(
           correspondence
         }
       }
-
-    // TODO we need apparent power result sent as ParticipantResultEvents
-    // to aggregate apparent power here
 
     val voltage =
       getAndCheckNodalVoltage(
@@ -563,13 +637,6 @@ class EmAgent(
           )
       }
 
-    /* Inform the listeners about new result */
-    announceSimulationResult(
-      baseStateData,
-      baseStateData.schedulerStateData.nowInTicks,
-      result
-    )(baseStateData.outputConfig)
-
     /* Update the base state data */
     val baseStateDateWithUpdatedResults =
       baseStateData match {
@@ -583,6 +650,14 @@ class EmAgent(
             "Wrong base state data"
           )
       }
+
+    /* Inform the listeners about current result
+     * (IN CONTRAST TO REGULAR SPA BEHAVIOR, WHERE WE WAIT FOR POTENTIALLY CHANGED VOLTAGE) */
+    announceSimulationResult(
+      baseStateDateWithUpdatedResults,
+      baseStateDateWithUpdatedResults.schedulerStateData.nowInTicks,
+      result
+    )(baseStateDateWithUpdatedResults.outputConfig)
 
     // we don't send the completion message here, as this is part
     // of the EmScheduler

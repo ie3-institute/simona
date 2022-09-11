@@ -9,7 +9,7 @@ package edu.ie3.simona.agent.participant
 import akka.actor.ActorSystem
 import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.models.result.system.EmResult
+import edu.ie3.datamodel.models.result.system.{EmResult, EvcsResult, PvResult}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.em.EmAgent
 import edu.ie3.simona.agent.participant.em.EmAgent.EmAgentInitializeStateData
@@ -63,7 +63,7 @@ class EmAgentSelfOptSpec
   private val tolerance = 1e-10d
 
   "An em agent with model calculation" should {
-    "be initialized correctly" in {
+    "be initialized correctly and run through some activations" in {
       val resultsProbe = TestProbe("ResultListener")
 
       val emAgent = TestActorRef(
@@ -233,8 +233,31 @@ class EmAgentSelfOptSpec
 
       // receive flex control messages
       participant1.expectMsg(IssueNoCtrl)
+      participant1.send(
+        emAgent,
+        ParticipantResultEvent(
+          new PvResult(
+            0L.toDateTime,
+            participant1Model.getUuid,
+            Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
+            Quantities.getQuantity(-0.5d, PowerSystemUnits.KILOVAR)
+          )
+        )
+      )
+
       val issuePower = participant2.expectMsgType[IssuePowerCtrl]
       issuePower.setPower should equalWithTolerance(5d.asKiloWatt, tolerance)
+      participant2.send(
+        emAgent,
+        ParticipantResultEvent(
+          new EvcsResult(
+            0L.toDateTime,
+            participant2Model.getUuid,
+            Quantities.getQuantity(5d, PowerSystemUnits.KILOWATT),
+            Quantities.getQuantity(0.1d, PowerSystemUnits.KILOVAR)
+          )
+        )
+      )
 
       // expect correct results
       resultsProbe.expectMsgType[ParticipantResultEvent] match {
@@ -242,7 +265,10 @@ class EmAgentSelfOptSpec
           emResult.getInputModel shouldBe emInputModel.getUuid
           emResult.getTime shouldBe simulationStartDate
           emResult.getP should equalWithTolerance(0d.asMegaWatt, tolerance)
-          emResult.getQ should equalWithTolerance(0d.asMegaVar, tolerance)
+          emResult.getQ should equalWithTolerance(
+            (-.0004d).asMegaVar,
+            tolerance
+          )
         case unexpected =>
           fail(s"Received unexpected result $unexpected")
       }
@@ -325,7 +351,19 @@ class EmAgentSelfOptSpec
 
       // receive flex control messages
       participant1.expectNoMessage()
+
       participant2.expectMsg(IssueNoCtrl)
+      participant2.send(
+        emAgent,
+        ParticipantResultEvent(
+          new EvcsResult(
+            0L.toDateTime,
+            participant2Model.getUuid,
+            Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT),
+            Quantities.getQuantity(0d, PowerSystemUnits.KILOVAR)
+          )
+        )
+      )
 
       // expect correct results
       resultsProbe.expectMsgType[ParticipantResultEvent] match {
@@ -336,7 +374,10 @@ class EmAgentSelfOptSpec
             (-0.005d).asMegaWatt,
             tolerance
           )
-          emResult.getQ should equalWithTolerance(0d.asMegaVar, tolerance)
+          emResult.getQ should equalWithTolerance(
+            (-0.0005d).asMegaVar,
+            tolerance
+          )
         case unexpected =>
           fail(s"Received unexpected result $unexpected")
       }

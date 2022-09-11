@@ -6,13 +6,16 @@
 
 package edu.ie3.simona.model.participant
 
+import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system._
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.em.EmAgent.FlexCorrespondence
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.EmModel.{
   EmRelevantData,
-  relativeTolerance
+  relativeTolerance,
+  zeroApparentPower
 }
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
@@ -28,7 +31,7 @@ import edu.ie3.util.quantities.{QuantityUtil => PsuQuantityUtil}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.Power
+import javax.measure.quantity.{Dimensionless, Power}
 
 final case class EmModel private (
     uuid: UUID,
@@ -177,42 +180,44 @@ final case class EmModel private (
 
   }
 
-  /** Calculate the active power behaviour of the model
-    *
-    * @param data
-    *   Further needed, secondary data
-    * @return
-    *   Active power
-    */
-  protected def calculateActivePower(
+  override def calculatePower(
+      tick: Long,
+      voltage: ComparableQuantity[Dimensionless],
       data: EmRelevantData
-  ): ComparableQuantity[Power] =
+  ): ApparentPower =
     data.flexCorrespondences
-      .flatMap { correspondence =>
-        correspondence.issuedCtrlMsgs
-          .flatMap {
-            // take flex ctrl as an override, if available
-            case IssuePowerCtrl(power) => Some(power)
-            case _                     => None
-          }
-          .orElse {
-            correspondence.receivedFlexOptions.flatMap {
-              // otherwise, take the suggestion sent by the participant
-              case ProvideMinMaxFlexOptions(_, suggestedPower, _, _) =>
-                Some(suggestedPower)
-              case _ => None
-            }
-          }
+      .map { correspondence =>
+        correspondence.participantResult
+          .map(res => ApparentPower(res.getP, res.getQ))
+          .getOrElse(
+            throw new RuntimeException(s"No result received in $correspondence")
+          )
       }
       .reduceOption { (power1, power2) =>
-        power1.add(power2)
+        ApparentPower(power1.p.add(power2.p), power1.q.add(power2.q))
       }
-      .getOrElse(QuantityUtil.zero(PowerSystemUnits.KILOWATT))
+      .map { power =>
+        ApparentPower(
+          power.p.to(StandardUnits.ACTIVE_POWER_RESULT),
+          power.q.to(StandardUnits.REACTIVE_POWER_RESULT)
+        )
+      }
+      .getOrElse(zeroApparentPower)
+
+  override protected def calculateActivePower(
+      data: EmRelevantData
+  ): ComparableQuantity[Power] =
+    throw new NotImplementedError("Use calculatePower directly")
 }
 
 object EmModel {
 
   private val relativeTolerance = 1e-6d
+
+  private val zeroApparentPower = ApparentPower(
+    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
+    Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT)
+  )
 
   /** Class that holds all relevant data for Energy Management calculation
     */

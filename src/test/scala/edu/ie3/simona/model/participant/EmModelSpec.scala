@@ -12,17 +12,15 @@ import edu.ie3.datamodel.models.input.system.{
   PvInput,
   StorageInput
 }
+import edu.ie3.datamodel.models.result.system.{EvcsResult, LoadResult}
 import edu.ie3.simona.agent.participant.em.EmAgent.FlexCorrespondence
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
-  IssueNoCtrl,
-  IssuePowerCtrl,
-  ProvideMinMaxFlexOptions
-}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EmInputTestData
-import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
+import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import org.mockito.Mockito.when
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.mockito.MockitoSugar.mock
@@ -185,42 +183,38 @@ class EmModelSpec
     "calculate total power based on flex options and flex control" in {
       val flexCorrespondences = Iterable(
         FlexCorrespondence(
-          Some(
-            ProvideMinMaxFlexOptions(
+          participantResult = Some(
+            new EvcsResult(
+              0L.toDateTime,
               UUID.randomUUID(),
-              5d.asKiloWatt,
-              (-5d).asKiloWatt,
-              5d.asKiloWatt
+              0.005d.asMegaWatt,
+              0.0004.asMegaVar
             )
-          ),
-          Some(IssueNoCtrl)
+          )
         ),
         FlexCorrespondence(
-          Some(
-            ProvideMinMaxFlexOptions(
+          participantResult = Some(
+            new LoadResult(
+              0L.toDateTime,
               UUID.randomUUID(),
-              1d.asKiloWatt,
-              0d.asKiloWatt,
-              2d.asKiloWatt
+              0.003d.asMegaWatt,
+              0.0003.asMegaVar
             )
-          ),
-          Some(IssuePowerCtrl(3.asKiloWatt))
+          )
         )
       )
 
       val actualResult =
         model.calculatePower(0L, 1d.asPu, EmRelevantData(flexCorrespondences))
 
-      QuantityUtil.isEquivalentAbs(
-        actualResult.p,
-        8.asKiloWatt,
+      actualResult.p should equalWithTolerance(
+        0.008d.asMegaWatt,
         1e-9d
-      ) shouldBe true
-      QuantityUtil.isEquivalentAbs(
-        actualResult.q,
-        0.asKiloWatt,
+      )
+      actualResult.q should equalWithTolerance(
+        0.0007d.asMegaVar,
         1e-9d
-      ) shouldBe true
+      )
     }
   }
 
