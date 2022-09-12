@@ -17,36 +17,40 @@ import tech.units.indriya.unit.Units
 
 import java.time.DayOfWeek
 import javax.measure.quantity.{Dimensionless, Length}
+import scala.util.Try
 
 class VoltagePredictionSpec extends UnitSpec {
   "Blurring voltages" when {
-    val blurVoltages =
-      PrivateMethod[Seq[VoltageTimeTableEntry]](Symbol("blurVoltages"))
 
     "having a proper input set" should {
       val windowLength = 3
       val input = Range(0, 5).map(cnt =>
         (
           TimeStamp(DayOfWeek.MONDAY, cnt, 0),
-          (Quantities.getQuantity(cnt, PowerSystemUnits.PU), 1)
+          Quantities.getQuantity(cnt, PowerSystemUnits.PU)
         )
       )
 
       "lead to proper enhanced values" in {
-        val enhanceVoltageReferences = PrivateMethod[Seq[
-          (TimeStamp, (ComparableQuantity[Dimensionless], Int))
+        val enhanceVoltageReferences = PrivateMethod[Try[
+          Seq[(TimeStamp, ComparableQuantity[Dimensionless])]
         ]](Symbol("enhanceVoltageReferences"))
 
         val actual = VoltagePrediction invokePrivate enhanceVoltageReferences(
           input,
           windowLength
         )
-        actual.length shouldBe input.length + 2
-        actual.map(_._1) should contain theSameElementsInOrderAs Seq(4, 0, 1, 2,
+        val result = actual.success.get
+
+        result.size shouldBe input.length + 2
+        result.map(_._1) should contain theSameElementsInOrderAs Seq(4, 0, 1, 2,
           3, 4, 0).map(cnt => TimeStamp(DayOfWeek.MONDAY, cnt, 0))
       }
 
       "reveal correct blurred values" in {
+        val blurVoltages =
+          PrivateMethod[Try[Seq[VoltageTimeTableEntry]]](Symbol("blurVoltages"))
+
         val expectedQuantities =
           Seq(
             Quantities.getQuantity(1.6667d, PowerSystemUnits.PU),
@@ -58,9 +62,10 @@ class VoltagePredictionSpec extends UnitSpec {
 
         val actual =
           VoltagePrediction invokePrivate blurVoltages(input, windowLength)
+        val result = actual.success.get
 
-        actual.length shouldBe expectedQuantities.length
-        actual.zip(expectedQuantities).foreach {
+        result.size shouldBe expectedQuantities.length
+        result.zip(expectedQuantities).foreach {
           case (VoltageTimeTableEntry(_, _, actualVoltage), expectedVoltage) =>
             actualVoltage should equalWithTolerance(expectedVoltage, 1e-3)
         }
