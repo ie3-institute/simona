@@ -218,9 +218,14 @@ object BaseStateData {
     override val modelUuid: UUID = model.getUuid
   }
 
+  /** @param scheduledTick
+    *   Currently scheduled tick. There can only only be one scheduled tick at a
+    *   time
+    */
   final case class FlexStateData(
       emAgent: ActorRef,
-      flexOptionsStore: ValueStore[ProvideFlexOptions]
+      flexOptionsStore: ValueStore[ProvideFlexOptions],
+      scheduledTick: Option[Long] = None
   )
 
   /** Updates the base state data with the given value stores

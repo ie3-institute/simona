@@ -71,6 +71,7 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   IllegalTriggerMessage,
+  RevokeTriggerMessage,
   ScheduleTriggerMessage
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
@@ -766,12 +767,31 @@ protected trait ParticipantAgentFundamentals[
         result
       )
 
-    // add additional tick and updated relevant data if applicable
+    // add new tick and updated relevant data if applicable
     val updatedStateData = maybeAdditionalTick
       .map { additionalTick =>
+        val clearedAdditionalTicks =
+          flexStateData.scheduledTick
+            .map { oldTick =>
+              // revoke old tick if it exists and is placed in the future
+              if (oldTick > currentTick)
+                flexStateData.emAgent !
+                  RevokeTriggerMessage(
+                    ActivityStartTrigger(oldTick),
+                    self
+                  )
+
+              // remove from additionalTicks as well
+              baseStateData.additionalActivationTicks.filterNot(_ == oldTick)
+            }
+            .getOrElse(baseStateData.additionalActivationTicks)
+
+        // save new tick
         baseStateData.copy(
-          additionalActivationTicks =
-            baseStateData.additionalActivationTicks :+ additionalTick
+          additionalActivationTicks = clearedAdditionalTicks :+ additionalTick,
+          flexStateData = Some( // old tick is overwritten if it existed
+            flexStateData.copy(scheduledTick = Some(additionalTick))
+          )
         )
       }
       .getOrElse(baseStateData)
