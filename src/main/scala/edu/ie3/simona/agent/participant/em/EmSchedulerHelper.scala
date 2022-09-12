@@ -12,6 +12,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   IllegalTriggerMessage,
+  RevokeTriggerMessage,
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
@@ -190,6 +191,30 @@ trait EmSchedulerHelper {
       nowInTicks
     )
 
+  /** Removes the provided trigger from the trigger queue
+    *
+    * @param revokeTriggerMsg
+    *   The [[RevokeTriggerMessage]] containing the trigger to remove
+    * @param triggerData
+    *   The trigger data that should be updated
+    * @return
+    *   The state data with updated trigger data
+    */
+  protected final def revokeTrigger(
+      revokeTriggerMsg: RevokeTriggerMessage,
+      triggerData: TriggerData
+  ): TriggerData = {
+    triggerData.triggerQueue.remove(
+      revokeTriggerMsg.trigger.tick,
+      scheduledTrigger =>
+        scheduledTrigger.agent.equals(revokeTriggerMsg.actor) &&
+          scheduledTrigger.triggerWithIdMessage.trigger.equals(
+            revokeTriggerMsg.trigger
+          )
+    )
+    triggerData
+  }
+
   /** Adds the provided trigger to the trigger queue to schedule it at the
     * requested tick
     *
@@ -276,6 +301,17 @@ trait EmSchedulerHelper {
         triggerMessage,
         stateData.trigger,
         stateData.nowInTicks
+      )
+    )
+
+  protected final def revokeTrigger(
+      revokeTriggerMsg: RevokeTriggerMessage,
+      stateData: EmSchedulerStateData
+  ): EmSchedulerStateData =
+    stateData.copy(
+      trigger = revokeTrigger(
+        revokeTriggerMsg,
+        stateData.trigger
       )
     )
 

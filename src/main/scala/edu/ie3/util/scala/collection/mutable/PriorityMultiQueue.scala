@@ -60,6 +60,24 @@ final case class PriorityMultiQueue[K, V] private (
     }
   }
 
+  /** Removes values from the list that belongs to given key and that satisfy
+    * given function
+    * @param key
+    *   The key to remove the value for
+    * @param valueFunc
+    *   Values that are mapped to true are removed
+    */
+  def remove(key: K, valueFunc: V => Boolean): Unit = {
+    table.get(key).foreach { list =>
+      list.filterInPlace(value => !valueFunc(value))
+
+      if (list.isEmpty) {
+        queue.remove(key)
+        table.remove(key)
+      }
+    }
+  }
+
   // TODO scaladoc
   // TODO test this
   def get(key: K): Option[Seq[V]] = {

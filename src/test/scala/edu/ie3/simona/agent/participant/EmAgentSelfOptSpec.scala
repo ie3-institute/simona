@@ -24,6 +24,7 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
+  RevokeTriggerMessage,
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
@@ -395,6 +396,386 @@ class EmAgentSelfOptSpec
         CompletionMessage(
           activationTriggerId2,
           Some(Seq(ScheduleTriggerMessage(ActivityStartTrigger(600L), emAgent)))
+        )
+      )
+
+    }
+
+    "revoke triggers correctly" in {
+      val resultsProbe = TestProbe("ResultListener")
+
+      val emAgent = TestActorRef(
+        new EmAgent(
+          scheduler = scheduler.ref,
+          listener = Iterable(resultsProbe.ref)
+        )
+      )
+
+      val initTriggerId = 0
+
+      val participant1: TestProbe = TestProbe("participant1_pv")
+      val participant2: TestProbe = TestProbe("participant2_evcs")
+
+      val participant1Init =
+        InitializeParticipantAgentTrigger[ApparentPower, InitializeStateData[
+          ApparentPower
+        ]](mock[InitializeStateData[ApparentPower]])
+      val participant2Init =
+        InitializeParticipantAgentTrigger[ApparentPower, InitializeStateData[
+          ApparentPower
+        ]](mock[InitializeStateData[ApparentPower]])
+
+      val connectedAgents = Seq(
+        (
+          participant1.ref,
+          participant1Init,
+          participant1Model
+        ),
+        (
+          participant2.ref,
+          participant2Init,
+          participant2Model
+        )
+      )
+
+      scheduler.send(
+        emAgent,
+        TriggerWithIdMessage(
+          InitializeParticipantAgentTrigger[
+            ApparentPower,
+            EmAgentInitializeStateData
+          ](
+            EmAgentInitializeStateData(
+              inputModel = emInputModel,
+              modelConfig = modelConfig,
+              secondaryDataServices = None,
+              simulationStartDate = simulationStartDate,
+              simulationEndDate = simulationEndDate,
+              resolution = resolution,
+              requestVoltageDeviationThreshold =
+                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+              outputConfig = outputConfig,
+              primaryServiceProxy = primaryServiceProxy.ref,
+              connectedAgents = connectedAgents
+            )
+          ),
+          initTriggerId,
+          emAgent
+        )
+      )
+
+      val receivedInit1 = participant1
+        .expectMsgType[TriggerWithIdMessage]
+      receivedInit1.trigger shouldBe participant1Init
+
+      val receivedInit2 = participant2
+        .expectMsgType[TriggerWithIdMessage]
+      receivedInit2.trigger shouldBe participant2Init
+
+      participant1.send(
+        emAgent,
+        CompletionMessage(
+          receivedInit1.triggerId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(0L),
+                participant1.ref
+              )
+            )
+          )
+        )
+      )
+
+      scheduler.expectNoMessage()
+
+      participant2.send(
+        emAgent,
+        CompletionMessage(
+          receivedInit2.triggerId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(0L),
+                participant2.ref
+              )
+            )
+          )
+        )
+      )
+
+      scheduler.expectMsg(
+        CompletionMessage(
+          initTriggerId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(0L),
+                emAgent
+              )
+            )
+          )
+        )
+      )
+
+      // init done, start EmAgent
+      val activationTriggerId1 = 1L
+
+      scheduler.send(
+        emAgent,
+        TriggerWithIdMessage(
+          ActivityStartTrigger(0L),
+          activationTriggerId1,
+          emAgent
+        )
+      )
+
+      // expect activations and flex requests
+      val activationTrigger1_1 =
+        participant1.expectMsgType[TriggerWithIdMessage]
+      activationTrigger1_1.trigger shouldBe ActivityStartTrigger(0L)
+      activationTrigger1_1.receiverActor shouldBe participant1.ref
+
+      participant1.expectMsg(RequestFlexOptions)
+
+      val activationTrigger1_2 =
+        participant2.expectMsgType[TriggerWithIdMessage]
+      activationTrigger1_2.trigger shouldBe ActivityStartTrigger(0L)
+      activationTrigger1_2.receiverActor shouldBe participant2.ref
+
+      participant2.expectMsg(RequestFlexOptions)
+
+      // send flex options
+      participant1.send(
+        emAgent,
+        ProvideMinMaxFlexOptions(
+          participant1Model.getUuid,
+          Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
+          Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
+          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+        )
+      )
+
+      participant1.expectNoMessage()
+      participant2.expectNoMessage()
+
+      participant2.send(
+        emAgent,
+        ProvideMinMaxFlexOptions(
+          participant2Model.getUuid,
+          Quantities.getQuantity(2d, PowerSystemUnits.KILOWATT),
+          Quantities.getQuantity(-11d, PowerSystemUnits.KILOWATT),
+          Quantities.getQuantity(11d, PowerSystemUnits.KILOWATT)
+        )
+      )
+
+      // receive flex control messages
+      participant1.expectMsg(IssueNoCtrl)
+      participant1.send(
+        emAgent,
+        ParticipantResultEvent(
+          new PvResult(
+            0L.toDateTime,
+            participant1Model.getUuid,
+            Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
+            Quantities.getQuantity(-0.5d, PowerSystemUnits.KILOVAR)
+          )
+        )
+      )
+
+      val issuePower1_2 = participant2.expectMsgType[IssuePowerCtrl]
+      issuePower1_2.setPower should equalWithTolerance(5d.asKiloWatt, tolerance)
+      participant2.send(
+        emAgent,
+        ParticipantResultEvent(
+          new EvcsResult(
+            0L.toDateTime,
+            participant2Model.getUuid,
+            Quantities.getQuantity(5d, PowerSystemUnits.KILOWATT),
+            Quantities.getQuantity(0.1d, PowerSystemUnits.KILOVAR)
+          )
+        )
+      )
+
+      // expect correct results
+      resultsProbe.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(emResult: EmResult) =>
+          emResult.getInputModel shouldBe emInputModel.getUuid
+          emResult.getTime shouldBe simulationStartDate
+          emResult.getP should equalWithTolerance(0d.asMegaWatt, tolerance)
+          emResult.getQ should equalWithTolerance(
+            (-.0004d).asMegaVar,
+            tolerance
+          )
+        case unexpected =>
+          fail(s"Received unexpected result $unexpected")
+      }
+
+      // send completions
+      participant1.send(
+        emAgent,
+        CompletionMessage(
+          activationTrigger1_1.triggerId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(300L),
+                participant1.ref
+              )
+            )
+          )
+        )
+      )
+
+      scheduler.expectNoMessage()
+
+      participant2.send(
+        emAgent,
+        CompletionMessage(
+          activationTrigger1_2.triggerId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(600L),
+                participant2.ref
+              )
+            )
+          )
+        )
+      )
+
+      // expect completion from EmAgent
+      scheduler.expectMsg(
+        CompletionMessage(
+          activationTriggerId1,
+          Some(Seq(ScheduleTriggerMessage(ActivityStartTrigger(300L), emAgent)))
+        )
+      )
+
+      // trigger EmAgent with next tick
+      val activationTriggerId2 = 1L
+
+      scheduler.send(
+        emAgent,
+        TriggerWithIdMessage(
+          ActivityStartTrigger(300L),
+          activationTriggerId2,
+          emAgent
+        )
+      )
+
+      // expect activations and flex requests.
+      // only participant 1 has been scheduled for this tick,
+      // thus 2 does not get activated
+      participant2.expectNoMessage()
+
+      val activationTrigger2_1 =
+        participant1.expectMsgType[TriggerWithIdMessage]
+      activationTrigger2_1.trigger shouldBe ActivityStartTrigger(300L)
+      activationTrigger2_1.receiverActor shouldBe participant1.ref
+
+      participant1.expectMsg(RequestFlexOptions)
+
+      // send flex options again, now there's a cloud and thus less feed-in
+      participant1.send(
+        emAgent,
+        ProvideMinMaxFlexOptions(
+          participant1Model.getUuid,
+          Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
+          Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
+          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+        )
+      )
+
+      // receive flex control messages
+      participant1.expectMsg(IssueNoCtrl)
+
+      participant1.send(
+        emAgent,
+        ParticipantResultEvent(
+          new PvResult(
+            300L.toDateTime,
+            participant1Model.getUuid,
+            Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
+            Quantities.getQuantity(-0.06d, PowerSystemUnits.KILOVAR)
+          )
+        )
+      )
+
+      participant1.send(
+        emAgent,
+        CompletionMessage(activationTrigger2_1.triggerId, None)
+      )
+
+      // evcs is now activated too
+      val activationTrigger2_2 =
+        participant2.expectMsgType[TriggerWithIdMessage]
+      activationTrigger2_2.trigger shouldBe ActivityStartTrigger(300L)
+      activationTrigger2_2.receiverActor shouldBe participant2.ref
+
+      val issuePower2_2 = participant2.expectMsgType[IssuePowerCtrl]
+      issuePower2_2.setPower should equalWithTolerance(3d.asKiloWatt, tolerance)
+
+      participant2.send(
+        emAgent,
+        RevokeTriggerMessage(
+          ActivityStartTrigger(600L),
+          participant2.ref
+        )
+      )
+
+      participant2.send(
+        emAgent,
+        ParticipantResultEvent(
+          new EvcsResult(
+            300L.toDateTime,
+            participant2Model.getUuid,
+            Quantities.getQuantity(3d, PowerSystemUnits.KILOWATT),
+            Quantities.getQuantity(0.06d, PowerSystemUnits.KILOVAR)
+          )
+        )
+      )
+
+      // expect correct results
+      resultsProbe.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(emResult: EmResult) =>
+          emResult.getInputModel shouldBe emInputModel.getUuid
+          emResult.getTime shouldBe 300L.toDateTime(simulationStartDate)
+          emResult.getP should equalWithTolerance(
+            0d.asMegaWatt,
+            tolerance
+          )
+          emResult.getQ should equalWithTolerance(
+            0d.asMegaVar,
+            tolerance
+          )
+        case unexpected =>
+          fail(s"Received unexpected result $unexpected")
+      }
+
+      // send completion
+      scheduler.expectNoMessage()
+
+      participant2.send(
+        emAgent,
+        CompletionMessage(
+          activationTrigger2_2.triggerId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(800L),
+                participant2.ref
+              )
+            )
+          )
+        )
+      )
+
+      // expect completion from EmAgent with new tick (800) instead of revoked tick (600)
+      scheduler.expectMsg(
+        CompletionMessage(
+          activationTriggerId2,
+          Some(Seq(ScheduleTriggerMessage(ActivityStartTrigger(800L), emAgent)))
         )
       )
 

@@ -37,6 +37,7 @@ import edu.ie3.simona.model.participant.EmModel.EmRelevantData
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
+  RevokeTriggerMessage,
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
@@ -267,6 +268,14 @@ class EmAgent(
       stay() using baseStateData.copy(schedulerStateData = updatedStateData)
 
     case Event(
+          revokeTriggerMsg: RevokeTriggerMessage,
+          baseStateData: EmModelBaseStateData
+        ) =>
+      stay() using baseStateData.copy(schedulerStateData =
+        revokeTrigger(revokeTriggerMsg, baseStateData.schedulerStateData)
+      )
+
+    case Event(
           TriggerWithIdMessage(ActivityStartTrigger(newTick), triggerId, _),
           baseStateData: EmModelBaseStateData
         ) =>
@@ -368,8 +377,8 @@ class EmAgent(
         )
 
       val resultTick = result.getTime.toTick
-      val flexCorrespondence = receivedFlexOptions
-        .get(resultTick)
+      val (_, flexCorrespondence) = receivedFlexOptions
+        .last(resultTick)
         .getOrElse(
           throw new RuntimeException(
             s"No flex correspondence found for model ${result.getInputModel} and tick $resultTick"
@@ -495,26 +504,43 @@ class EmAgent(
             }
       }
 
-      issueCtrlMsgsComplete.foreach { case (_, actor, issueCtrlMsg, dataTick) =>
-        // activate the participants that have not been activated before
-        if (dataTick != tick)
-          actor ! ActivityStartTrigger(tick)
+      val updatedSchedulerStateData =
+        issueCtrlMsgsComplete.foldLeft(baseStateData.schedulerStateData) {
+          case (stateData, (_, actor, issueCtrlMsg, dataTick)) =>
+            // activate the participants that have not been activated before
+            val updatedSchedulerData =
+              if (dataTick != tick) {
+                sendEligibleTrigger(
+                  scheduleTrigger(
+                    ScheduleTriggerMessage(ActivityStartTrigger(tick), actor),
+                    stateData
+                  )
+                )
+              } else
+                stateData
 
-        // send out flex control messages
-        actor ! issueCtrlMsg
-      }
+            // send out flex control messages
+            actor ! issueCtrlMsg
 
-      // create updated value stores for participants that are received control msgs
+            updatedSchedulerData
+        }
+
+      // create updated value stores for participants that are receiving control msgs
       val updatedValueStores = issueCtrlMsgsComplete.flatMap {
         case (uuid, _, issueFlex, _) =>
           baseStateData.flexCorrespondences.get(uuid).flatMap { store =>
-            store.last().map { case (dataTick, correspondence) =>
+            store.last().map { case (_, correspondence) =>
+              // since we expect a new result with potentially changed reactive power, empty the last result
               val updatedCorrespondence =
-                correspondence.copy(issuedCtrlMsg = Some(issueFlex))
+                correspondence.copy(
+                  issuedCtrlMsg = Some(issueFlex),
+                  participantResult = None
+                )
 
+              // save for current tick
               uuid -> ValueStore.updateValueStore(
                 store,
-                dataTick,
+                tick,
                 updatedCorrespondence
               )
             }
@@ -528,7 +554,8 @@ class EmAgent(
       }
 
       val updatedBaseStateData = baseStateData.copy(
-        flexCorrespondences = updatedCorrespondences
+        flexCorrespondences = updatedCorrespondences,
+        schedulerStateData = updatedSchedulerStateData
       )
 
       stay() using updatedBaseStateData

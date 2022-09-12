@@ -167,5 +167,50 @@ class PriorityMultiQueueSpec extends UnitSpec {
       queue.allValues shouldBe Iterable(item2)
 
     }
+
+    "behave correctly when removing values" in {
+      val queue = PriorityMultiQueue.empty[Key, Value]
+
+      queue.add(3, item3)
+      queue.add(1, item1)
+      queue.add(2, item2)
+      queue.add(3, item3)
+      queue.add(5, item1)
+
+      queue.isEmpty shouldBe false
+      queue.keySet shouldBe SortedSet(1, 2, 3, 5)
+      queue.allValues shouldBe Iterable(item1, item2, item3, item3, item1)
+
+      queue.remove(3, _ == item3)
+
+      queue.isEmpty shouldBe false
+      queue.keySet shouldBe SortedSet(1, 2, 5)
+      queue.allValues shouldBe Iterable(item1, item2, item1)
+
+      queue.remove(2, _ == item2)
+
+      queue.isEmpty shouldBe false
+      queue.keySet shouldBe SortedSet(1, 5)
+      queue.allValues shouldBe Iterable(item1, item1)
+
+      // removing non-existing
+      queue.remove(5, _ == item2)
+
+      queue.isEmpty shouldBe false
+      queue.keySet shouldBe SortedSet(1, 5)
+      queue.allValues shouldBe Iterable(item1, item1)
+
+      queue.remove(5, _ == item1)
+
+      queue.isEmpty shouldBe false
+      queue.keySet shouldBe SortedSet(1)
+      queue.allValues shouldBe Iterable(item1)
+
+      queue.add(1, item2)
+
+      queue.isEmpty shouldBe false
+      queue.keySet shouldBe SortedSet(1)
+      queue.allValues shouldBe Iterable(item1, item2)
+    }
   }
 }
