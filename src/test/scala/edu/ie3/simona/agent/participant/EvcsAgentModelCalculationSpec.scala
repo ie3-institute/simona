@@ -29,7 +29,7 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.api.data.ev.ontology.builder.EvcsMovementsBuilder
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.model.participant.evcs.EvcsChargingScheduleEntry
+import edu.ie3.simona.model.participant.evcs.ChargingSchedule
 import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsRelevantData
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -41,14 +41,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   IllegalTriggerMessage,
   TriggerWithIdMessage
 }
-import edu.ie3.simona.ontology.messages.services.EvMessage.{
-  DepartedEvsResponse,
-  EvFreeLotsRequest,
-  EvMovementData,
-  FreeLotsResponse,
-  ProvideEvDataMessage,
-  RegisterForEvDataMessage
-}
+import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
@@ -61,8 +54,8 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.EvTestData
 import edu.ie3.simona.test.common.input.EvcsInputTestData
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import tech.units.indriya.quantity.Quantities
 
 import java.time.temporal.ChronoUnit
@@ -550,18 +543,31 @@ class EvcsAgentModelCalculationSpec
               store.get(0L) match {
                 case Some(EvcsRelevantData(currentEvs, schedule, voltages)) =>
                   currentEvs should contain theSameElementsAs Set(evA, evB)
-                  schedule should contain theSameElementsAs Set(
-                    EvcsChargingScheduleEntry(
-                      0,
-                      200,
+
+                  schedule.values.flatten should contain allOf (
+                    ChargingSchedule(
                       evA,
-                      Quantities.getQuantity(11, PowerSystemUnits.KILOWATT)
+                      Seq(
+                        ChargingSchedule.Entry(
+                          0,
+                          200,
+                          Quantities
+                            .getQuantity(11, PowerSystemUnits.KILOWATT)
+                        )
+                      )
                     ),
-                    EvcsChargingScheduleEntry(
-                      0,
-                      200,
+                    ChargingSchedule(
                       evB,
-                      Quantities.getQuantity(11, PowerSystemUnits.KILOWATT)
+                      Seq(
+                        ChargingSchedule.Entry(
+                          0,
+                          200,
+                          Quantities.getQuantity(
+                            11,
+                            PowerSystemUnits.KILOWATT
+                          )
+                        )
+                      )
                     )
                   )
                   voltages shouldBe empty
@@ -690,18 +696,28 @@ class EvcsAgentModelCalculationSpec
               store.get(0L) match {
                 case Some(EvcsRelevantData(currentEvs, schedule, voltages)) =>
                   currentEvs should contain theSameElementsAs Set(evA, evB)
-                  schedule should contain theSameElementsAs Set(
-                    EvcsChargingScheduleEntry(
-                      0,
-                      200,
+                  schedule.values.flatten should contain allOf (
+                    ChargingSchedule(
                       evA,
-                      Quantities.getQuantity(11, PowerSystemUnits.KILOWATT)
+                      Seq(
+                        ChargingSchedule.Entry(
+                          0,
+                          200,
+                          Quantities
+                            .getQuantity(11, PowerSystemUnits.KILOWATT)
+                        )
+                      )
                     ),
-                    EvcsChargingScheduleEntry(
-                      0,
-                      200,
+                    ChargingSchedule(
                       evB,
-                      Quantities.getQuantity(11, PowerSystemUnits.KILOWATT)
+                      Seq(
+                        ChargingSchedule.Entry(
+                          0,
+                          200,
+                          Quantities
+                            .getQuantity(11, PowerSystemUnits.KILOWATT)
+                        )
+                      )
                     )
                   )
                   voltages shouldBe empty
@@ -1050,7 +1066,7 @@ class EvcsAgentModelCalculationSpec
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
           p should equalWithTolerance(
-            Quantities.getQuantity(0.0002933d, MEGAWATT),
+            Quantities.getQuantity(0.011d, MEGAWATT),
             testingTolerance
           )
           q should equalWithTolerance(
@@ -1074,7 +1090,7 @@ class EvcsAgentModelCalculationSpec
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
           p should equalWithTolerance(
-            Quantities.getQuantity(0.0002933d, MEGAWATT),
+            Quantities.getQuantity(0.011d, MEGAWATT),
             testingTolerance
           )
           q should equalWithTolerance(
@@ -1096,11 +1112,11 @@ class EvcsAgentModelCalculationSpec
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
           p should equalWithTolerance(
-            Quantities.getQuantity(0.0002933d, MEGAWATT),
+            Quantities.getQuantity(0.011d, MEGAWATT),
             testingTolerance
           )
           q should equalWithTolerance(
-            Quantities.getQuantity(-3.35669e-3, MEGAVAR),
+            Quantities.getQuantity(-0.0067133728, MEGAVAR),
             testingTolerance
           )
       }
