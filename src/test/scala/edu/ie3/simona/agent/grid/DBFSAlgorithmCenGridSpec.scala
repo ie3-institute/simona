@@ -36,6 +36,7 @@ import edu.ie3.simona.ontology.messages.VoltageMessage.{
 }
 import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
+  FinishGridSimulationTrigger,
   InitializeGridAgentTrigger,
   StartGridSimulationTrigger
 }
@@ -499,6 +500,60 @@ class DBFSAlgorithmCenGridSpec
         )
       )
 
+      // normally the superior grid agent would check weather the power flow calculation converges and would
+      // send a CompletionMessage to the scheduler and a FinishGridSimulationTrigger to the inferior grid agent
+      // after the convergence
+      // (here we do it by hand)
+      superiorGridAgent.gaProbe.send(
+        scheduler.ref,
+        CompletionMessage(
+          startGridSimulationTriggerId + secondSweepNo,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(7200),
+                superiorGridAgent.gaProbe.ref
+              )
+            )
+          )
+        )
+      )
+
+      superiorGridAgent.gaProbe.send(
+        centerGridAgent,
+        FinishGridSimulationTrigger(3600)
+      )
+
+      scheduler.expectMsgPF() {
+        case CompletionMessage(
+              triggerId,
+              Some(Seq(message: ScheduleTriggerMessage))
+            ) =>
+          triggerId shouldBe 3
+          message shouldBe ScheduleTriggerMessage(
+            ActivityStartTrigger(7200),
+            superiorGridAgent.gaProbe.ref
+          )
+
+        case x =>
+          fail(
+            s"Invalid message received when expecting a completion message for simulate grid after cleanup! Message was $x"
+          )
+      }
+
+      // the three inferior grids should each receive a FinishGridSimulationTrigger
+      inferiorGrid11.expectFinishGridSimulationTrigger(
+        FinishGridSimulationTrigger(3600)
+      )
+
+      inferiorGrid12.expectFinishGridSimulationTrigger(
+        FinishGridSimulationTrigger(3600)
+      )
+
+      inferiorGrid13.expectFinishGridSimulationTrigger(
+        FinishGridSimulationTrigger(3600)
+      )
+
     }
   }
 }
@@ -516,6 +571,12 @@ object DBFSAlgorithmCenGridSpec extends UnitSpec {
       override val gaProbe: TestProbe,
       override val nodeUuids: Seq[UUID]
   ) extends GAActorAndModel {
+
+    def expectFinishGridSimulationTrigger(
+        trigger: FinishGridSimulationTrigger
+    ): Unit = {
+      gaProbe.expectMsg(trigger)
+    }
 
     def expectGridPowerRequest(): ActorRef = {
       gaProbe
