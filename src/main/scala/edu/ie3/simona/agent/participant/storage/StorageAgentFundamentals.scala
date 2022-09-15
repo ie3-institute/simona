@@ -103,7 +103,7 @@ trait StorageAgentFundamentals
       model,
       services,
       outputConfig,
-      Array.emptyLongArray, // Additional activation of the pv agent is not needed
+      Array(0L), // schedule one activation for first tick
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
