@@ -6,13 +6,12 @@
 
 package edu.ie3.simona.model.participant
 
-import java.time.ZonedDateTime
-import java.util.UUID
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideFlexOptions,
@@ -21,9 +20,11 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
 import edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
-
-import javax.measure.quantity.Power
 import tech.units.indriya.ComparableQuantity
+
+import java.time.ZonedDateTime
+import java.util.UUID
+import javax.measure.quantity.Power
 
 /** Fixed feed generation model delivering constant power
   *
@@ -50,7 +51,7 @@ final case class FixedFeedInModel(
     qControl: QControl,
     sRated: ComparableQuantity[Power],
     cosPhiRated: Double
-) extends SystemParticipant[FixedRelevantData.type](
+) extends SystemParticipant[FixedRelevantData.type, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -78,7 +79,8 @@ final case class FixedFeedInModel(
       .to(MEGAWATT)
 
   override def determineFlexOptions(
-      data: FixedRelevantData.type
+      data: FixedRelevantData.type,
+      lastState: ConstantState.type
   ): ProvideFlexOptions = {
     val power = calculateActivePower(data)
 
@@ -87,8 +89,9 @@ final case class FixedFeedInModel(
 
   override def handleControlledPowerChange(
       data: FixedRelevantData.type,
+      lastState: ConstantState.type,
       setPower: ComparableQuantity[Power]
-  ): (FixedRelevantData.type, Option[Long]) = (data, None)
+  ): (ConstantState.type, Option[Long]) = (lastState, None)
 }
 
 object FixedFeedInModel extends LazyLogging {

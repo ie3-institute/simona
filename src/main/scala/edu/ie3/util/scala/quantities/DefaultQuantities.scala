@@ -11,7 +11,7 @@ import javax.measure.quantity.{Energy, Power}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities.getQuantity
 
-case object DefaultQuantities {
+object DefaultQuantities {
 
   val zeroKWH: ComparableQuantity[Energy] = getQuantity(0d, KILOWATTHOUR)
   val zeroKW: ComparableQuantity[Power] = getQuantity(0d, KILOWATT)

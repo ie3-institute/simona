@@ -9,6 +9,7 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.ChpInput
 import edu.ie3.simona.model.participant.ChpModel._
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.{MutableStorage, ThermalStorage}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
@@ -53,7 +54,7 @@ final case class ChpModel(
     cosPhiRated: Double,
     pThermal: ComparableQuantity[Power],
     storage: ThermalStorage with MutableStorage
-) extends SystemParticipant[ChpData](
+) extends SystemParticipant[ChpData, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -292,13 +293,15 @@ final case class ChpModel(
     )
 
   override def determineFlexOptions(
-      data: ChpData
+      data: ChpData,
+      lastState: ConstantState.type
   ): ProvideFlexOptions = ??? // TODO actual implementation
 
   override def handleControlledPowerChange(
       data: ChpData,
+      lastState: ConstantState.type,
       setPower: ComparableQuantity[Power]
-  ): (ChpData, Option[Long]) = ??? // TODO actual implementation
+  ): (ConstantState.type, Option[Long]) = ??? // TODO actual implementation
 }
 
 /** Create valid ChpModel by calling the apply function.

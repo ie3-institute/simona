@@ -40,14 +40,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   IllegalTriggerMessage,
   TriggerWithIdMessage
 }
-import edu.ie3.simona.ontology.messages.services.EvMessage.{
-  DepartedEvsResponse,
-  EvFreeLotsRequest,
-  EvMovementData,
-  FreeLotsResponse,
-  ProvideEvDataMessage,
-  RegisterForEvDataMessage
-}
+import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
@@ -294,6 +287,7 @@ class EvcsAgentModelCalculationSpec
                 resultValueStore,
                 requestValueStore,
                 _,
+                _,
                 _
               ),
               awaitRegistrationResponsesFrom,
@@ -340,7 +334,7 @@ class EvcsAgentModelCalculationSpec
       /* ... as well as corresponding state and state data */
       evcsAgent.stateName shouldBe Idle
       evcsAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(evService.ref -> None)
         case _ =>
@@ -417,8 +411,8 @@ class EvcsAgentModelCalculationSpec
       )
 
       inside(evcsAgent.stateData) {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
-          modelBaseStateData.requestValueStore shouldBe ValueStore[
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+          baseStateData.requestValueStore shouldBe ValueStore[
             ApparentPower
           ](
             resolution * 10,
@@ -501,7 +495,7 @@ class EvcsAgentModelCalculationSpec
       evcsAgent.stateName shouldBe HandleInformation
       evcsAgent.stateData match {
         case DataCollectionStateData(
-              baseStateData: ParticipantModelBaseStateData[_, _, _],
+              baseStateData: ParticipantModelBaseStateData[_, _, _, _],
               expectedSenders,
               isYetTriggered
             ) =>
@@ -538,7 +532,7 @@ class EvcsAgentModelCalculationSpec
       )
       evcsAgent.stateName shouldBe Idle
       evcsAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* The store for calculation relevant data has been extended */
           baseStateData.calcRelevantDateStore match {
             case ValueStore(_, store) =>
@@ -643,7 +637,7 @@ class EvcsAgentModelCalculationSpec
       evcsAgent.stateName shouldBe HandleInformation
       evcsAgent.stateData match {
         case DataCollectionStateData(
-              baseStateData: ParticipantModelBaseStateData[_, _, _],
+              baseStateData: ParticipantModelBaseStateData[_, _, _, _],
               expectedSenders,
               isYetTriggered
             ) =>
@@ -678,7 +672,7 @@ class EvcsAgentModelCalculationSpec
       )
       evcsAgent.stateName shouldBe Idle
       evcsAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* The store for calculation relevant data has been extended */
           baseStateData.calcRelevantDateStore match {
             case ValueStore(_, store) =>

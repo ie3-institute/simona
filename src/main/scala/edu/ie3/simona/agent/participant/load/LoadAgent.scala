@@ -18,6 +18,7 @@ import edu.ie3.simona.agent.participant.load.LoadAgentFundamentals.{
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
@@ -88,6 +89,7 @@ abstract class LoadAgent[LD <: LoadRelevantData, LM <: LoadModel[LD]](
 ) extends ParticipantAgent[
       ApparentPower,
       LD,
+      ConstantState.type,
       ParticipantStateData[ApparentPower],
       LoadInput,
       LoadRuntimeConfig,

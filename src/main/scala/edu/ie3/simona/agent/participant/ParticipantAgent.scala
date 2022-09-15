@@ -39,7 +39,11 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
-import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  ModelState,
+  SystemParticipant
+}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   IssueFlexControl,
   RequestFlexOptions
@@ -62,6 +66,7 @@ import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import javax.measure.quantity.{Dimensionless, Power}
+import scala.reflect.ClassTag
 
 /** Common properties to participant agents
   *
@@ -86,11 +91,12 @@ import javax.measure.quantity.{Dimensionless, Power}
 abstract class ParticipantAgent[
     PD <: PrimaryDataWithApparentPower[PD],
     CD <: CalcRelevantData,
+    MS <: ModelState,
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
     MC <: SimonaConfig.BaseRuntimeConfig,
-    M <: SystemParticipant[CD]
-](scheduler: ActorRef)
+    M <: SystemParticipant[CD, MS]
+](scheduler: ActorRef)(implicit val tag: ClassTag[MS])
     extends SimonaAgent[ParticipantStateData[PD]] {
 
   val alternativeResult: PD
@@ -144,7 +150,7 @@ abstract class ParticipantAgent[
   when(Idle) {
     case Event(
           TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId, _),
-          modelBaseStateData: ParticipantModelBaseStateData[PD, CD, M]
+          modelBaseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
         ) if modelBaseStateData.services.isEmpty =>
       /* An activity start trigger is sent and no data is awaited (neither secondary nor primary). Therefore go straight
        * ahead to calculations */
@@ -180,7 +186,7 @@ abstract class ParticipantAgent[
 
     case Event(
           TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId, _),
-          modelBaseStateData: ParticipantModelBaseStateData[PD, CD, M]
+          modelBaseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
         ) =>
       /* An activity start trigger is sent, but I'm not sure yet, if secondary data will arrive. Figure out, if someone
        * is about to deliver new data and either go to HandleInformation, check and possibly wait for data provision
@@ -233,7 +239,7 @@ abstract class ParticipantAgent[
 
     case Event(
           RequestFlexOptions,
-          baseStateData: ParticipantModelBaseStateData[PD, CD, M]
+          baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
         ) =>
       val updatedStateData = handleFlexRequest(baseStateData, None)
 
@@ -245,7 +251,12 @@ abstract class ParticipantAgent[
         ) =>
       val participantStateData =
         serviceCollectionStateData.baseStateData match {
-          case participantStateData: ParticipantModelBaseStateData[PD, CD, M] =>
+          case participantStateData: ParticipantModelBaseStateData[
+                PD,
+                CD,
+                MS,
+                M
+              ] =>
             participantStateData
           case otherStateData =>
             throw new IllegalStateException(
@@ -262,7 +273,7 @@ abstract class ParticipantAgent[
 
     case Event(
           flexCtrl: IssueFlexControl,
-          baseStateData: ParticipantModelBaseStateData[PD, CD, M]
+          baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
         ) =>
       handleFlexCtrl(baseStateData, currentTick, flexCtrl, scheduler)
   }
@@ -425,7 +436,7 @@ abstract class ParticipantAgent[
   when(Calculate) {
     case Event(
           StartCalculationTrigger(currentTick),
-          modelBaseStateData: ParticipantModelBaseStateData[PD, CD, M]
+          modelBaseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
         ) =>
       /* Model calculation without any secondary data needed */
       val voltage = getAndCheckNodalVoltage(modelBaseStateData, currentTick)
@@ -610,7 +621,7 @@ abstract class ParticipantAgent[
     } else {
       // I don't expect new data.
       baseStateData match {
-        case modelStateData: ModelBaseStateData[_, _, _]
+        case modelStateData: ModelBaseStateData[_, _, _, _]
             if modelStateData.isEmManaged =>
           // We're em-managed. Go to Idle and wait
           goto(Idle) using nextStateData
@@ -678,7 +689,7 @@ abstract class ParticipantAgent[
     */
   val calculateModelPowerFunc: (
       Long,
-      ParticipantModelBaseStateData[PD, CD, M],
+      ParticipantModelBaseStateData[PD, CD, MS, M],
       ComparableQuantity[Dimensionless]
   ) => PD
 
@@ -703,13 +714,13 @@ abstract class ParticipantAgent[
     *   [[Idle]] with updated result values
     */
   def calculatePowerWithoutSecondaryDataAndGoToIdle(
-      baseStateData: ParticipantModelBaseStateData[PD, CD, M],
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
       currentTick: Long,
       scheduler: ActorRef,
       nodalVoltage: ComparableQuantity[Dimensionless],
       calculateModelPowerFunc: (
           Long,
-          ParticipantModelBaseStateData[PD, CD, M],
+          ParticipantModelBaseStateData[PD, CD, MS, M],
           ComparableQuantity[Dimensionless]
       ) => PD
   ): FSM.State[AgentState, ParticipantStateData[PD]]
@@ -740,32 +751,34 @@ abstract class ParticipantAgent[
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
+  protected def createInitialState(): MS
+
   protected def handleFlexRequest(
-      baseStateData: ParticipantModelBaseStateData[PD, CD, M],
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
       maybeSecondaryData: Option[Map[ActorRef, Option[_ <: Data]]]
-  ): ParticipantModelBaseStateData[PD, CD, M]
+  ): ParticipantModelBaseStateData[PD, CD, MS, M]
 
   protected def calculateFlexOptions(
-      baseStateData: ParticipantModelBaseStateData[PD, CD, M],
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
       currentTick: Long,
       maybeSecondaryData: Option[Map[ActorRef, Option[_ <: Data]]]
-  ): ParticipantModelBaseStateData[PD, CD, M]
+  ): ParticipantModelBaseStateData[PD, CD, MS, M]
 
   protected def createCalcRelevantData(
-      baseStateData: ParticipantModelBaseStateData[PD, CD, M],
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
       tick: Long,
       secondaryData: Map[ActorRef, Option[_ <: Data]]
   ): CD
 
   protected def handleFlexCtrl(
-      baseStateData: ParticipantModelBaseStateData[PD, CD, M],
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
       currentTick: Long,
       flexCtrl: IssueFlexControl,
       scheduler: ActorRef
   ): State
 
   protected def calculateResult(
-      baseStateData: ParticipantModelBaseStateData[PD, CD, M],
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
       currentTick: Long,
       activePower: ComparableQuantity[Power]
   ): PD

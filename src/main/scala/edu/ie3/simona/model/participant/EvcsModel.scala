@@ -13,6 +13,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -59,7 +60,10 @@ final case class EvcsModel(
     cosPhiRated: Double,
     chargingPoints: Int,
     locationType: EvcsLocationType
-) extends SystemParticipant[EvcsRelevantData](
+) extends SystemParticipant[
+      EvcsRelevantData,
+      ConstantState.type
+    ]( // TODO actual state type
       uuid,
       id,
       operationInterval,
@@ -232,13 +236,15 @@ final case class EvcsModel(
     throw new NotImplementedError("Use calculatePowerAndEvSoc() instead.")
 
   override def determineFlexOptions(
-      data: EvcsRelevantData
+      data: EvcsRelevantData,
+      lastState: ConstantState.type
   ): ProvideFlexOptions = ??? // TODO actual implementation
 
   override def handleControlledPowerChange(
       data: EvcsRelevantData,
+      lastState: ConstantState.type,
       setPower: ComparableQuantity[Power]
-  ): (EvcsRelevantData, Option[Long]) = ??? // TODO actual implementation
+  ): (ConstantState.type, Option[Long]) = ??? // TODO actual implementation
 }
 
 object EvcsModel {

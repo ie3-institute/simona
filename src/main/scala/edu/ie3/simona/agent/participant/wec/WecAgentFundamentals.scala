@@ -38,9 +38,9 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException
 }
-import edu.ie3.simona.model.participant.WecModel
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.WecModel.WecRelevantData
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.IssueFlexControl
+import edu.ie3.simona.model.participant.{ModelState, WecModel}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.util.quantities.EmptyQuantity
 import edu.ie3.util.quantities.PowerSystemUnits._
@@ -56,6 +56,7 @@ protected trait WecAgentFundamentals
     extends ParticipantAgentFundamentals[
       ApparentPower,
       WecRelevantData,
+      ConstantState.type,
       ParticipantStateData[ApparentPower],
       WecInput,
       WecRuntimeConfig,
@@ -100,7 +101,12 @@ protected trait WecAgentFundamentals
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
       maybeEmAgent: Option[ActorRef]
-  ): ParticipantModelBaseStateData[ApparentPower, WecRelevantData, WecModel] = {
+  ): ParticipantModelBaseStateData[
+    ApparentPower,
+    WecRelevantData,
+    ConstantState.type,
+    WecModel
+  ] = {
     /* Check for needed services */
     if (
       !services.exists(serviceDefinitions =>
@@ -138,6 +144,7 @@ protected trait WecAgentFundamentals
       ValueStore.forResult(resolution, 10),
       ValueStore(resolution * 10),
       ValueStore(resolution * 10),
+      ValueStore(0),
       maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
     )
   }
@@ -154,10 +161,14 @@ protected trait WecAgentFundamentals
     simulationEndDate
   )
 
+  override protected def createInitialState(): ModelState.ConstantState.type =
+    ConstantState
+
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         WecRelevantData,
+        ConstantState.type,
         WecModel
       ],
       tick: Long,
@@ -187,6 +198,7 @@ protected trait WecAgentFundamentals
       baseStateData: BaseStateData.ParticipantModelBaseStateData[
         ApparentPower,
         WecRelevantData,
+        ConstantState.type,
         WecModel
       ],
       currentTick: Long,
@@ -211,7 +223,12 @@ protected trait WecAgentFundamentals
     */
   override val calculateModelPowerFunc: (
       Long,
-      ParticipantModelBaseStateData[ApparentPower, WecRelevantData, WecModel],
+      ParticipantModelBaseStateData[
+        ApparentPower,
+        WecRelevantData,
+        ConstantState.type,
+        WecModel
+      ],
       ComparableQuantity[Dimensionless]
   ) => ApparentPower =
     (
@@ -219,6 +236,7 @@ protected trait WecAgentFundamentals
         _: ParticipantModelBaseStateData[
           ApparentPower,
           WecRelevantData,
+          ConstantState.type,
           WecModel
         ],
         _: ComparableQuantity[Dimensionless]
@@ -262,6 +280,7 @@ protected trait WecAgentFundamentals
         case modelBaseStateData: ParticipantModelBaseStateData[
               ApparentPower,
               WecRelevantData,
+              ConstantState.type,
               WecModel
             ] =>
           modelBaseStateData.model match {

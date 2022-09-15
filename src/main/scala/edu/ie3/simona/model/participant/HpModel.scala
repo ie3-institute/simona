@@ -9,6 +9,7 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.model.participant.HpModel._
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalHouse
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
@@ -53,7 +54,7 @@ final case class HpModel(
     cosPhiRated: Double,
     pThermal: ComparableQuantity[Power],
     thermalHouse: ThermalHouse
-) extends SystemParticipant[HpData](
+) extends SystemParticipant[HpData, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -161,13 +162,15 @@ final case class HpModel(
   }
 
   override def determineFlexOptions(
-      data: HpData
+      data: HpData,
+      lastState: ConstantState.type
   ): ProvideFlexOptions = ??? // TODO actual implementation
 
   override def handleControlledPowerChange(
       data: HpData,
+      lastState: ConstantState.type,
       setPower: ComparableQuantity[Power]
-  ): (HpData, Option[Long]) = ??? // TODO actual implementation
+  ): (ConstantState.type, Option[Long]) = ??? // TODO actual implementation
 
 }
 

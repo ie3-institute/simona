@@ -6,17 +6,13 @@
 
 package edu.ie3.simona.model.participant.load.profile
 
-import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.datamodel.models.input.system.LoadInput
+import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference._
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModel, LoadReference}
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
-  ProvideFlexOptions,
-  ProvideMinMaxFlexOptions
-}
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.scala.OperationInterval
 import tech.units.indriya.ComparableQuantity
@@ -117,20 +113,6 @@ final case class ProfileLoadModel(
     }
     activePower.multiply(scalingFactor)
   }
-
-  override def determineFlexOptions(
-      data: ProfileRelevantData
-  ): ProvideFlexOptions = {
-    val power = calculateActivePower(data)
-
-    // no flexibility
-    ProvideMinMaxFlexOptions(uuid, power, power, power)
-  }
-
-  override def handleControlledPowerChange(
-      data: ProfileRelevantData,
-      setPower: ComparableQuantity[Power]
-  ): (ProfileRelevantData, Option[Long]) = (data, None)
 }
 
 object ProfileLoadModel {

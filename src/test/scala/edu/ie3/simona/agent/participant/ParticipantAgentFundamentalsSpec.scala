@@ -24,8 +24,10 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException
 }
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
+import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
 import edu.ie3.simona.model.participant.load.{FixedLoadModel, LoadReference}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
@@ -44,7 +46,7 @@ import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import javax.measure.quantity.{Energy, Power}
+import javax.measure.quantity.Power
 
 class ParticipantAgentFundamentalsSpec
     extends AgentSpec(
@@ -587,7 +589,12 @@ class ParticipantAgentFundamentalsSpec
 
   "Determining the applicable nodal voltage" should {
     "deliver the correct voltage" in {
-      val baseStateData = ParticipantModelBaseStateData(
+      val baseStateData = ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedLoadRelevantData.type,
+        ConstantState.type,
+        FixedLoadModel
+      ](
         simulationStartDate,
         simulationEndDate,
         FixedLoadModel(
@@ -610,6 +617,7 @@ class ParticipantAgentFundamentalsSpec
         ValueStore(901L),
         ValueStore(901L),
         ValueStore(901L),
+        ValueStore(901L),
         None
       )
 
@@ -621,7 +629,12 @@ class ParticipantAgentFundamentalsSpec
     }
 
     "throw an error, if no nodal voltage is available" in {
-      val baseStateData = ParticipantModelBaseStateData(
+      val baseStateData = ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedLoadRelevantData.type,
+        ConstantState.type,
+        FixedLoadModel
+      ](
         simulationStartDate,
         simulationEndDate,
         FixedLoadModel(
@@ -639,6 +652,7 @@ class ParticipantAgentFundamentalsSpec
         Array(0L, 900L, 1800L),
         Map.empty,
         1e-12,
+        ValueStore(901L),
         ValueStore(901L),
         ValueStore(901L),
         ValueStore(901L),
@@ -671,9 +685,11 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,
-    SystemParticipant[FixedRelevantData.type]
+    ConstantState.type,
+    SystemParticipant[FixedRelevantData.type, ConstantState.type]
   ] = {
-    val modelMock = mock[SystemParticipant[FixedRelevantData.type]]
+    val modelMock =
+      mock[SystemParticipant[FixedRelevantData.type, ConstantState.type]]
     when(modelMock.getUuid).thenReturn(UUID.randomUUID())
 
     ParticipantModelBaseStateData(
@@ -688,6 +704,7 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
       additionalActivationTicks,
       foreseenDataTicks,
       0d,
+      ValueStore(0L),
       ValueStore(0L),
       ValueStore(0L),
       ValueStore(0L),

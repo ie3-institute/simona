@@ -40,8 +40,9 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException
 }
-import edu.ie3.simona.model.participant.EvcsModel
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
+import edu.ie3.simona.model.participant.{EvcsModel, ModelState}
 import edu.ie3.simona.ontology.messages.services.EvMessage.{
   DepartedEvsResponse,
   EvMovementData,
@@ -61,6 +62,7 @@ protected trait EvcsAgentFundamentals
     extends ParticipantAgentFundamentals[
       ApparentPower,
       EvcsRelevantData,
+      ConstantState.type, // TODO actual state type
       ParticipantStateData[ApparentPower],
       EvcsInput,
       EvcsRuntimeConfig,
@@ -107,6 +109,7 @@ protected trait EvcsAgentFundamentals
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
+    ConstantState.type,
     EvcsModel
   ] = {
     /* Check for needed services */
@@ -167,6 +170,7 @@ protected trait EvcsAgentFundamentals
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
+    ConstantState.type,
     EvcsModel
   ] = {
 
@@ -197,6 +201,7 @@ protected trait EvcsAgentFundamentals
       ValueStore.forResult(timeBin, 10),
       ValueStore(timeBin * 10),
       ValueStore(timeBin * 10),
+      ValueStore(timeBin * 10),
       maybeEmAgent.map(FlexStateData(_, ValueStore(timeBin * 10)))
     )
   }
@@ -213,10 +218,14 @@ protected trait EvcsAgentFundamentals
     simulationEndDate
   )
 
+  override protected def createInitialState(): ModelState.ConstantState.type =
+    ConstantState // TODO
+
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         EvcsRelevantData,
+        ConstantState.type,
         EvcsModel
       ],
       tick: Long,
@@ -231,6 +240,7 @@ protected trait EvcsAgentFundamentals
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         EvcsRelevantData,
+        ConstantState.type,
         EvcsModel
       ],
       currentTick: Long,
@@ -255,7 +265,12 @@ protected trait EvcsAgentFundamentals
     */
   override val calculateModelPowerFunc: (
       Long,
-      ParticipantModelBaseStateData[ApparentPower, EvcsRelevantData, EvcsModel],
+      ParticipantModelBaseStateData[
+        ApparentPower,
+        EvcsRelevantData,
+        ConstantState.type,
+        EvcsModel
+      ],
       ComparableQuantity[Dimensionless]
   ) => ApparentPower =
     (_, _, _) =>
@@ -293,6 +308,7 @@ protected trait EvcsAgentFundamentals
     collectionStateData.baseStateData match {
       case modelBaseStateData: ParticipantModelBaseStateData[
             ApparentPower,
+            _,
             _,
             _
           ] =>
@@ -333,6 +349,7 @@ protected trait EvcsAgentFundamentals
       modelBaseStateData: ParticipantModelBaseStateData[
         _ <: ApparentPower,
         _,
+        _,
         _
       ]
   ): Unit = {
@@ -371,6 +388,7 @@ protected trait EvcsAgentFundamentals
       scheduler: ActorRef,
       modelBaseStateData: ParticipantModelBaseStateData[
         _ <: ApparentPower,
+        _,
         _,
         _
       ],
@@ -442,6 +460,7 @@ protected trait EvcsAgentFundamentals
       modelBaseStateData: ParticipantModelBaseStateData[
         _ <: ApparentPower,
         _,
+        _,
         _
       ]
   ): (Long, Set[EvModel]) = {
@@ -460,6 +479,7 @@ protected trait EvcsAgentFundamentals
   private def getEvcsModel(
       modelBaseStateData: ParticipantModelBaseStateData[
         _ <: ApparentPower,
+        _,
         _,
         _
       ]

@@ -8,6 +8,7 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.PVModel.PVRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
@@ -48,7 +49,7 @@ final case class PVModel private (
     private val gammaE: ComparableQuantity[Angle],
     private val moduleSurface: Quantity[Area] =
       Quantities.getQuantity(1d, SQUARE_METRE)
-) extends SystemParticipant[PVRelevantData](
+) extends SystemParticipant[PVRelevantData, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -773,7 +774,8 @@ final case class PVModel private (
   }
 
   override def determineFlexOptions(
-      data: PVRelevantData
+      data: PVRelevantData,
+      lastState: ConstantState.type
   ): ProvideFlexOptions = {
     val power = calculateActivePower(data)
 
@@ -782,8 +784,9 @@ final case class PVModel private (
 
   override def handleControlledPowerChange(
       data: PVRelevantData,
+      lastState: ConstantState.type,
       setPower: ComparableQuantity[Power]
-  ): (PVRelevantData, Option[Long]) = (data, None)
+  ): (ConstantState.type, Option[Long]) = (lastState, None)
 }
 
 object PVModel {

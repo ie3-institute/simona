@@ -37,6 +37,8 @@ import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
+import edu.ie3.simona.model.participant.ModelState
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
 import edu.ie3.simona.model.participant.load.profile.{
@@ -66,6 +68,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
 ]] extends ParticipantAgentFundamentals[
       ApparentPower,
       LD,
+      ConstantState.type,
       ParticipantStateData[ApparentPower],
       LoadInput,
       LoadRuntimeConfig,
@@ -110,7 +113,12 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
       maybeEmAgent: Option[ActorRef]
-  ): ParticipantModelBaseStateData[ApparentPower, LD, LM] = {
+  ): ParticipantModelBaseStateData[
+    ApparentPower,
+    LD,
+    ConstantState.type,
+    LM
+  ] = {
     /* Build the calculation model */
     val model =
       buildModel(
@@ -167,6 +175,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       ValueStore.forResult(resolution, 2),
       ValueStore(resolution),
       ValueStore(resolution),
+      ValueStore(0),
       maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
     )
   }
@@ -193,10 +202,14 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       reference: LoadReference
   ): LM
 
+  override protected def createInitialState(): ModelState.ConstantState.type =
+    ConstantState // TODO
+
   override protected def calculateResult(
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         LD,
+        ConstantState.type,
         LM
       ],
       currentTick: Long,
@@ -318,6 +331,7 @@ object LoadAgentFundamentals {
         baseStateData: ParticipantModelBaseStateData[
           ApparentPower,
           FixedLoadRelevantData.type,
+          ConstantState.type,
           FixedLoadModel
         ],
         tick: Long,
@@ -334,6 +348,7 @@ object LoadAgentFundamentals {
         ParticipantModelBaseStateData[
           ApparentPower,
           FixedLoadRelevantData.type,
+          ConstantState.type,
           FixedLoadModel
         ],
         ComparableQuantity[Dimensionless]
@@ -342,6 +357,7 @@ object LoadAgentFundamentals {
         baseStateData: ParticipantModelBaseStateData[
           ApparentPower,
           FixedLoadRelevantData.type,
+          ConstantState.type,
           FixedLoadModel
         ],
         voltage: ComparableQuantity[Dimensionless]
@@ -370,6 +386,7 @@ object LoadAgentFundamentals {
         baseStateData: ParticipantModelBaseStateData[
           ApparentPower,
           ProfileRelevantData,
+          ConstantState.type,
           ProfileLoadModel
         ],
         currentTick: Long,
@@ -388,6 +405,7 @@ object LoadAgentFundamentals {
         ParticipantModelBaseStateData[
           ApparentPower,
           ProfileRelevantData,
+          ConstantState.type,
           ProfileLoadModel
         ],
         ComparableQuantity[Dimensionless]
@@ -424,6 +442,7 @@ object LoadAgentFundamentals {
         baseStateData: ParticipantModelBaseStateData[
           ApparentPower,
           RandomRelevantData,
+          ConstantState.type,
           RandomLoadModel
         ],
         tick: Long,
@@ -442,6 +461,7 @@ object LoadAgentFundamentals {
         ParticipantModelBaseStateData[
           ApparentPower,
           RandomRelevantData,
+          ConstantState.type,
           RandomLoadModel
         ],
         ComparableQuantity[Dimensionless]

@@ -40,8 +40,9 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException
 }
-import edu.ie3.simona.model.participant.PVModel
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.PVModel.PVRelevantData
+import edu.ie3.simona.model.participant.{ModelState, PVModel}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherService.FALLBACK_WEATHER_STEM_DISTANCE
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -57,6 +58,7 @@ protected trait PVAgentFundamentals
     extends ParticipantAgentFundamentals[
       ApparentPower,
       PVRelevantData,
+      ConstantState.type,
       ParticipantStateData[ApparentPower],
       PvInput,
       PvRuntimeConfig,
@@ -101,7 +103,12 @@ protected trait PVAgentFundamentals
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
       maybeEmAgent: Option[ActorRef]
-  ): ParticipantModelBaseStateData[ApparentPower, PVRelevantData, PVModel] = {
+  ): ParticipantModelBaseStateData[
+    ApparentPower,
+    PVRelevantData,
+    ConstantState.type,
+    PVModel
+  ] = {
     /* Check for needed services */
     if (
       !services.exists(serviceDefinitions =>
@@ -139,6 +146,7 @@ protected trait PVAgentFundamentals
       ValueStore.forResult(resolution, 10),
       ValueStore(resolution * 10),
       ValueStore(resolution * 10),
+      ValueStore(0),
       maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
     )
   }
@@ -155,10 +163,14 @@ protected trait PVAgentFundamentals
     simulationEndDate
   )
 
+  override protected def createInitialState(): ModelState.ConstantState.type =
+    ConstantState
+
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         PVRelevantData,
+        ConstantState.type,
         PVModel
       ],
       tick: Long,
@@ -206,6 +218,7 @@ protected trait PVAgentFundamentals
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         PVRelevantData,
+        ConstantState.type,
         PVModel
       ],
       currentTick: Long,
@@ -230,7 +243,12 @@ protected trait PVAgentFundamentals
     */
   override val calculateModelPowerFunc: (
       Long,
-      ParticipantModelBaseStateData[ApparentPower, PVRelevantData, PVModel],
+      ParticipantModelBaseStateData[
+        ApparentPower,
+        PVRelevantData,
+        ConstantState.type,
+        PVModel
+      ],
       ComparableQuantity[Dimensionless]
   ) => ApparentPower =
     (_, _, _) =>
@@ -270,6 +288,7 @@ protected trait PVAgentFundamentals
         case modelBaseStateData: ParticipantModelBaseStateData[
               ApparentPower,
               PVRelevantData,
+              ConstantState.type,
               PVModel
             ] =>
           modelBaseStateData.model match {
