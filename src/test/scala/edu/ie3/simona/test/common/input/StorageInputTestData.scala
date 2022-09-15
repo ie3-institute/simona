@@ -12,24 +12,17 @@ import edu.ie3.datamodel.models.input.system.StorageInput
 import edu.ie3.datamodel.models.input.system.`type`.StorageTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.simona.test.common.DefaultTestData
-import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
-import java.time.ZonedDateTime
 import java.util.UUID
 
 trait StorageInputTestData extends DefaultTestData with NodeInputTestData {
 
-  protected implicit val simulationStartDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
-  protected val simulationEndDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00")
-
   protected val storageTypeInput = new StorageTypeInput(
     UUID.fromString("fbee4995-24dd-45e4-9c85-7d986fe99ff3"),
-    "storage type",
+    "Dummy_StorageTypeInput",
     Quantities.getQuantity(100d, EURO),
     Quantities.getQuantity(101d, EURO_PER_MEGAWATTHOUR),
     Quantities.getQuantity(200d, KILOWATTHOUR),
@@ -45,7 +38,7 @@ trait StorageInputTestData extends DefaultTestData with NodeInputTestData {
 
   protected val storageInput = new StorageInput(
     UUID.randomUUID(),
-    "Dummy_PVModel",
+    "Dummy_StorageInput",
     new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvA,

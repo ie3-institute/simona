@@ -52,9 +52,12 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.StorageInputTestData
 import edu.ie3.simona.util.ConfigUtil
+import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import tech.units.indriya.quantity.Quantities
+
+import java.time.ZonedDateTime
 
 class StorageAgentModelCalculationSpec
     extends ParticipantAgentSpec(
@@ -68,6 +71,11 @@ class StorageAgentModelCalculationSpec
       )
     )
     with StorageInputTestData {
+
+  protected implicit val simulationStartDate: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+  protected val simulationEndDate: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00")
 
   /* Alter the input model to have a voltage sensitive reactive power calculation */
   private val voltageSensitiveInput = storageInput
@@ -183,7 +191,9 @@ class StorageAgentModelCalculationSpec
       scheduler.expectMsg(
         CompletionMessage(
           triggerId,
-          None
+          Some(
+            Seq(ScheduleTriggerMessage(ActivityStartTrigger(0L), storageAgent))
+          )
         )
       )
 

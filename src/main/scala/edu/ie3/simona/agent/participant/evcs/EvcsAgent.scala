@@ -23,7 +23,7 @@ import edu.ie3.simona.agent.participant.{
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.EvcsModel
-import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
+import edu.ie3.simona.model.participant.EvcsModel.{EvcsRelevantData, EvcsState}
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.ontology.messages.services.EvMessage.EvFreeLotsRequest
 import tech.units.indriya.ComparableQuantity
@@ -53,7 +53,7 @@ class EvcsAgent(
 ) extends ParticipantAgent[
       ApparentPower,
       EvcsRelevantData,
-      ConstantState.type,
+      EvcsState,
       ParticipantStateData[ApparentPower],
       EvcsInput,
       EvcsRuntimeConfig,
@@ -68,7 +68,7 @@ class EvcsAgent(
           modelBaseStateData: ParticipantModelBaseStateData[
             ApparentPower,
             EvcsRelevantData,
-            ConstantState.type,
+            EvcsState,
             EvcsModel
           ]
         ) =>

@@ -15,7 +15,6 @@ import edu.ie3.datamodel.models.result.system.{
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent._
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
-import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
@@ -25,7 +24,6 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData._
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
-  DataCollectionStateData,
   ParticipantStateData
 }
 import edu.ie3.simona.agent.participant.wec.WecAgent.neededServices
@@ -171,14 +169,20 @@ protected trait WecAgentFundamentals
         ConstantState.type,
         WecModel
       ],
-      tick: Long,
-      secondaryData: Map[ActorRef, Option[_ <: Data]]
+      tick: Long
   ): WecRelevantData = {
+    val secondaryData = baseStateData.receivedSecondaryDataStore.getOrElse(
+      currentTick,
+      throw new InconsistentStateException(
+        s"The model ${baseStateData.model} was not provided with any secondary data for tick $currentTick."
+      )
+    )
+
     val weatherData =
       secondaryData
         .collectFirst {
           // filter secondary data for weather data
-          case (_, Some(data: WeatherData)) => data
+          case (_, data: WeatherData) => data
         }
         .getOrElse(
           throw new InconsistentStateException(
@@ -255,8 +259,8 @@ protected trait WecAgentFundamentals
     * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
     * scheduler and using update result values.</p>
     *
-    * @param collectionStateData
-    *   State data with collected, comprehensive secondary data.
+    * @param baseStateData
+    *   The base state data with collected secondary data
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
@@ -265,56 +269,43 @@ protected trait WecAgentFundamentals
     *   [[Idle]] with updated result values
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
-      collectionStateData: DataCollectionStateData[ApparentPower],
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        WecRelevantData,
+        ConstantState.type,
+        WecModel
+      ],
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
-    implicit val startDateTime: ZonedDateTime =
-      collectionStateData.baseStateData.startDate
+    implicit val startDateTime: ZonedDateTime = baseStateData.startDate
 
     val voltage =
-      getAndCheckNodalVoltage(collectionStateData.baseStateData, currentTick)
+      getAndCheckNodalVoltage(baseStateData, currentTick)
 
-    val (result, relevantData) =
-      collectionStateData.baseStateData match {
-        case modelBaseStateData: ParticipantModelBaseStateData[
-              ApparentPower,
-              WecRelevantData,
-              ConstantState.type,
-              WecModel
-            ] =>
-          modelBaseStateData.model match {
-            case wecModel: WecModel =>
-              val relevantData =
-                createCalcRelevantData(
-                  modelBaseStateData,
-                  currentTick,
-                  collectionStateData.data
-                )
-
-              val power = wecModel.calculatePower(
-                currentTick,
-                voltage,
-                relevantData
-              )
-
-              (power, relevantData)
-            case unsupportedModel =>
-              throw new InconsistentStateException(
-                s"Wrong model: $unsupportedModel!"
-              )
-          }
-        case _ =>
-          throw new InconsistentStateException(
-            "Cannot find a model for model calculation."
+    val result = baseStateData.model match {
+      case wecModel: WecModel =>
+        val relevantData =
+          createCalcRelevantData(
+            baseStateData,
+            currentTick
           )
-      }
+
+        wecModel.calculatePower(
+          currentTick,
+          voltage,
+          relevantData
+        )
+      case unsupportedModel =>
+        throw new InconsistentStateException(
+          s"Wrong model: $unsupportedModel!"
+        )
+    }
 
     updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
       scheduler,
-      collectionStateData.baseStateData,
-      result,
-      relevantData
+      baseStateData,
+      result
     )
   }
 
