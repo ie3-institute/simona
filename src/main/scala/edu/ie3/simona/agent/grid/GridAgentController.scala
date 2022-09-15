@@ -41,7 +41,6 @@ import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 
-
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters._
@@ -345,7 +344,8 @@ class GridAgentController(
         simulationEndDate,
         resolution,
         requestVoltageDeviationThreshold,
-        outputConfigUtil.getOrDefault(NotifierIdentifier.Storage)
+        outputConfigUtil.getOrDefault(NotifierIdentifier.Storage),
+        maybeEmAgent
       )
 
     case input: SystemParticipantInput =>
@@ -697,7 +697,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        None // FIXME
+        maybeEmAgent
       )
     )
 
@@ -732,7 +732,8 @@ class GridAgentController(
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: ParticipantNotifierConfig,
+      maybeEmAgent: Option[ActorRef]
   ): (
       ActorRef,
       ParticipantInitializeStateData[

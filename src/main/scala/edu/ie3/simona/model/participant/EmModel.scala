@@ -17,7 +17,9 @@ import edu.ie3.simona.model.participant.EmModel.{
   relativeTolerance,
   zeroApparentPower
 }
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   IssuePowerCtrl,
   ProvideMinMaxFlexOptions
@@ -39,7 +41,7 @@ final case class EmModel private (
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl
-) extends SystemParticipant[EmRelevantData](
+) extends SystemParticipant[EmRelevantData, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -208,6 +210,19 @@ final case class EmModel private (
       data: EmRelevantData
   ): ComparableQuantity[Power] =
     throw new NotImplementedError("Use calculatePower directly")
+
+  override def determineFlexOptions(
+      data: EmRelevantData,
+      lastState: ModelState.ConstantState.type
+  ): FlexibilityMessage.ProvideFlexOptions =
+    throw new NotImplementedError("EmModel cannot be managed")
+
+  override def handleControlledPowerChange(
+      data: EmRelevantData,
+      lastState: ModelState.ConstantState.type,
+      setPower: ComparableQuantity[Power]
+  ): (ModelState.ConstantState.type, Option[Long]) =
+    throw new NotImplementedError("EmModel cannot be managed")
 }
 
 object EmModel {

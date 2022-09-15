@@ -29,8 +29,9 @@ import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.InvalidRequestException
-import edu.ie3.simona.model.participant.EmModel
+import edu.ie3.simona.model.participant.{EmModel, ModelState}
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
@@ -44,6 +45,7 @@ trait EmAgentFundamentals
     extends ParticipantAgentFundamentals[
       ApparentPower,
       EmRelevantData,
+      ConstantState.type,
       EmModelBaseStateData,
       EmInput,
       EmRuntimeConfig,
@@ -59,6 +61,7 @@ trait EmAgentFundamentals
       BaseStateData.ParticipantModelBaseStateData[
         ApparentPower,
         EmRelevantData,
+        ConstantState.type,
         EmModel
       ],
       ComparableQuantity[Dimensionless]
@@ -68,6 +71,7 @@ trait EmAgentFundamentals
         _: BaseStateData.ParticipantModelBaseStateData[
           ApparentPower,
           EmRelevantData,
+          ConstantState.type,
           EmModel
         ],
         _: ComparableQuantity[Dimensionless]
@@ -105,12 +109,45 @@ trait EmAgentFundamentals
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: ParticipantNotifierConfig,
+      maybeEmAgent: Option[ActorRef]
   ): BaseStateData.ParticipantModelBaseStateData[
     ApparentPower,
     EmRelevantData,
+    ConstantState.type,
     EmModel
   ] =
+    throw new InvalidRequestException(
+      "Not implemented"
+    )
+
+  override protected def createInitialState(): ModelState.ConstantState.type =
+    ConstantState
+
+  override protected def createCalcRelevantData(
+      baseStateData: BaseStateData.ParticipantModelBaseStateData[
+        ApparentPower,
+        EmRelevantData,
+        ModelState.ConstantState.type,
+        EmModel
+      ],
+      tick: Long,
+      secondaryData: Map[ActorRef, Option[_ <: Data]]
+  ): EmRelevantData =
+    throw new InvalidRequestException(
+      "Not implemented"
+    )
+
+  override protected def calculateResult(
+      baseStateData: BaseStateData.ParticipantModelBaseStateData[
+        ApparentPower,
+        EmRelevantData,
+        ModelState.ConstantState.type,
+        EmModel
+      ],
+      currentTick: Long,
+      activePower: ComparableQuantity[Power]
+  ): ApparentPower =
     throw new InvalidRequestException(
       "Not implemented"
     )
@@ -136,8 +173,12 @@ trait EmAgentFundamentals
         ComparableQuantity[Power] => ComparableQuantity[Power]
       ]
   ): ApparentPower =
-    throw new InvalidRequestException(
-      "Not implemented"
+    ParticipantAgentFundamentals.averageApparentPower(
+      tickToResults,
+      windowStart,
+      windowEnd,
+      activeToReactivePowerFuncOpt,
+      log
     )
 
   /** Determines the correct result.
