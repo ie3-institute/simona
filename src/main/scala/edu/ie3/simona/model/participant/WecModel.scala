@@ -6,10 +6,10 @@
 
 package edu.ie3.simona.model.participant
 
-import java.util.UUID
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.characteristic.WecCharacteristicInput
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.WecModel.{
   WecCharacteristic,
   WecRelevantData
@@ -29,28 +29,14 @@ import edu.ie3.util.quantities.PowerSystemUnits.{
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.quantities.interfaces.{Density, HeatCapacity}
 import edu.ie3.util.scala.OperationInterval
-
-import javax.measure.quantity.{
-  Area,
-  Dimensionless,
-  Power,
-  Pressure,
-  Speed,
-  Temperature
-}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.ProductUnit
-import tech.units.indriya.unit.Units.{
-  JOULE,
-  KELVIN,
-  KILOGRAM,
-  METRE_PER_SECOND,
-  PASCAL,
-  SQUARE_METRE
-}
+import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
+import java.util.UUID
+import javax.measure.quantity._
 import scala.collection.SortedSet
 
 /** A wind energy converter model used for calculating output power of a wind
@@ -85,7 +71,7 @@ final case class WecModel(
     cosPhiRated: Double,
     rotorArea: ComparableQuantity[Area],
     betzCurve: WecCharacteristic
-) extends SystemParticipant[WecRelevantData](
+) extends SystemParticipant[WecRelevantData, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -202,7 +188,8 @@ final case class WecModel(
   }
 
   override def determineFlexOptions(
-      data: WecRelevantData
+      data: WecRelevantData,
+      lastState: ConstantState.type
   ): ProvideFlexOptions = {
     val power = calculateActivePower(data)
 
@@ -211,8 +198,9 @@ final case class WecModel(
 
   override def handleControlledPowerChange(
       data: WecRelevantData,
+      lastState: ConstantState.type,
       setPower: ComparableQuantity[Power]
-  ): (WecRelevantData, Option[Long]) = (data, None)
+  ): (ConstantState.type, Option[Long]) = (lastState, None)
 }
 
 /** Create valid [[WecModel]] by calling the apply function.

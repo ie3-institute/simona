@@ -37,8 +37,10 @@ import javax.measure.quantity.{Dimensionless, Power}
   *   Rated power factor
   * @tparam CD
   *   Type of data, that is needed for model calculation
+  * @tparam MS
+  *   Type of model state data
   */
-abstract class SystemParticipant[CD <: CalcRelevantData](
+abstract class SystemParticipant[CD <: CalcRelevantData, MS <: ModelState](
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
@@ -95,14 +97,17 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
   protected def calculateActivePower(data: CD): ComparableQuantity[Power]
 
   /** @param data
+    * @param lastState
     * @return
     *   flex options
     */
   def determineFlexOptions(
-      data: CD
+      data: CD,
+      lastState: MS
   ): ProvideFlexOptions
 
   /** @param data
+    * @param lastState
     * @param setPower
     *   power that has been set by EmAgent
     * @return
@@ -115,8 +120,9 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     */
   def handleControlledPowerChange(
       data: CD,
+      lastState: MS,
       setPower: ComparableQuantity[Power]
-  ): (CD, Option[Long])
+  ): (MS, Option[Long])
 
   /** Get a partial function, that transfers the current active into reactive
     * power based on the participants properties and the given nodal voltage

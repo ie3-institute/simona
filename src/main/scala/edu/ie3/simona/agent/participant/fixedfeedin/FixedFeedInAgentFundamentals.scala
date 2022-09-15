@@ -39,7 +39,8 @@ import edu.ie3.simona.exceptions.agent.{
   InvalidRequestException
 }
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
-import edu.ie3.simona.model.participant.FixedFeedInModel
+import edu.ie3.simona.model.participant.ModelState.ConstantState
+import edu.ie3.simona.model.participant.{FixedFeedInModel, ModelState}
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.quantities.PowerSystemUnits.PU
@@ -54,6 +55,7 @@ protected trait FixedFeedInAgentFundamentals
     extends ParticipantAgentFundamentals[
       ApparentPower,
       FixedRelevantData.type,
+      ConstantState.type,
       ParticipantStateData[ApparentPower],
       FixedFeedInInput,
       FixedFeedInRuntimeConfig,
@@ -101,6 +103,7 @@ protected trait FixedFeedInAgentFundamentals
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,
+    ConstantState.type,
     FixedFeedInModel
   ] = {
     /* Build the calculation model */
@@ -147,6 +150,7 @@ protected trait FixedFeedInAgentFundamentals
       ValueStore.forResult(resolution, 2),
       ValueStore(resolution),
       ValueStore(resolution),
+      ValueStore(0),
       maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
     )
   }
@@ -163,10 +167,14 @@ protected trait FixedFeedInAgentFundamentals
     simulationEndDate
   )
 
+  override protected def createInitialState(): ModelState.ConstantState.type =
+    ConstantState // TODO
+
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         FixedRelevantData.type,
+        ConstantState.type,
         FixedFeedInModel
       ],
       tick: Long,
@@ -178,6 +186,7 @@ protected trait FixedFeedInAgentFundamentals
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         FixedRelevantData.type,
+        ConstantState.type,
         FixedFeedInModel
       ],
       currentTick: Long,
@@ -201,6 +210,7 @@ protected trait FixedFeedInAgentFundamentals
       ParticipantModelBaseStateData[
         ApparentPower,
         FixedRelevantData.type,
+        ConstantState.type,
         FixedFeedInModel
       ],
       ComparableQuantity[Dimensionless]
@@ -209,6 +219,7 @@ protected trait FixedFeedInAgentFundamentals
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         FixedRelevantData.type,
+        ConstantState.type,
         FixedFeedInModel
       ],
       voltage: ComparableQuantity[Dimensionless]

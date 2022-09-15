@@ -17,8 +17,8 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideFlexOptions,
   ProvideMinMaxFlexOptions
 }
-import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantity
+import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import tech.units.indriya.ComparableQuantity
@@ -41,7 +41,7 @@ final case class StorageModel(
     pMax: ComparableQuantity[Power],
     eta: ComparableQuantity[Dimensionless],
     dod: ComparableQuantity[Dimensionless]
-) extends SystemParticipant[StorageRelevantData](
+) extends SystemParticipant[StorageRelevantData, StorageState](
       uuid,
       id,
       operationInterval,
@@ -61,10 +61,11 @@ final case class StorageModel(
     )
 
   override def determineFlexOptions(
-      data: StorageRelevantData
+      data: StorageRelevantData,
+      lastState: StorageState
   ): ProvideFlexOptions = {
     val currentStoredEnergy =
-      determineCurrentState(data.lastState, data.currentTick)
+      determineCurrentState(lastState, data.currentTick)
 
     val chargingPossible = currentStoredEnergy.isLessThan(eStorage)
     val dischargingPossible = currentStoredEnergy.isGreaterThan(lowestEnergy)
@@ -79,10 +80,11 @@ final case class StorageModel(
 
   override def handleControlledPowerChange(
       data: StorageRelevantData,
+      lastState: StorageState,
       setPower: ComparableQuantity[Power]
-  ): (StorageRelevantData, Option[Long]) = {
+  ): (StorageState, Option[Long]) = {
     val currentStoredEnergy =
-      determineCurrentState(data.lastState, data.currentTick)
+      determineCurrentState(lastState, data.currentTick)
 
     // net power after considering efficiency
     val netPower = setPower
@@ -92,8 +94,6 @@ final case class StorageModel(
 
     val currentState =
       StorageState(currentStoredEnergy, netPower, data.currentTick)
-    val currentRelevantData =
-      StorageRelevantData(currentState, data.currentTick)
 
     val maybeAdditionalTick =
       if (QuantityUtil.isEquivalentAbs(zeroKW, netPower, 1e-9)) {
@@ -115,7 +115,7 @@ final case class StorageModel(
         Some(data.currentTick + ticksToEmpty)
       }
 
-    (currentRelevantData, maybeAdditionalTick)
+    (currentState, maybeAdditionalTick)
   }
 
   private def determineCurrentState(
@@ -139,7 +139,6 @@ final case class StorageModel(
 object StorageModel {
 
   final case class StorageRelevantData(
-      lastState: StorageState,
       currentTick: Long
   ) extends CalcRelevantData
 
@@ -147,7 +146,7 @@ object StorageModel {
       storedEnergy: ComparableQuantity[Energy],
       chargingPower: ComparableQuantity[Power],
       tick: Long
-  )
+  ) extends ModelState
 
   def apply(
       inputModel: StorageInput,

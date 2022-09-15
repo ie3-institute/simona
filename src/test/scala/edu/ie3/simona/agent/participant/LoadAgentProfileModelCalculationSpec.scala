@@ -213,6 +213,7 @@ class LoadAgentProfileModelCalculationSpec
               resultValueStore,
               requestValueStore,
               _,
+              _,
               _
             ) =>
           /* Base state data */
@@ -302,8 +303,8 @@ class LoadAgentProfileModelCalculationSpec
       )
 
       inside(loadAgent.stateData) {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
-          modelBaseStateData.requestValueStore shouldBe ValueStore[
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+          baseStateData.requestValueStore shouldBe ValueStore[
             ApparentPower
           ](
             resolution,
@@ -393,12 +394,8 @@ class LoadAgentProfileModelCalculationSpec
 
       awaitAssert(loadAgent.stateName shouldBe Idle)
       inside(loadAgent.stateData) {
-        case participantModelBaseStateData: ParticipantModelBaseStateData[
-              _,
-              _,
-              _
-            ] =>
-          participantModelBaseStateData.resultValueStore.last(0L) match {
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+          baseStateData.resultValueStore.last(0L) match {
             case Some((tick, entry)) =>
               tick shouldBe 0L
               inside(entry) { case ApparentPower(p, q) =>

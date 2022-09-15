@@ -1,6 +1,7 @@
 package edu.ie3.simona.test.common.model
 
 import edu.ie3.simona.model.participant.CalcRelevantData
+import edu.ie3.simona.model.participant.ModelState
 import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage
@@ -13,7 +14,7 @@ import javax.measure.quantity.Power
 
 import static edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
 
-class MockParticipant extends SystemParticipant<CalcRelevantData> {
+class MockParticipant extends SystemParticipant<CalcRelevantData, ModelState> {
 
     MockParticipant(
             UUID uuid,
@@ -41,12 +42,12 @@ class MockParticipant extends SystemParticipant<CalcRelevantData> {
     }
 
     @Override
-    FlexibilityMessage.ProvideFlexOptions determineFlexOptions(CalcRelevantData data) {
+    FlexibilityMessage.ProvideFlexOptions determineFlexOptions(CalcRelevantData data, ModelState lastState) {
         return null
     }
 
     @Override
-    Tuple2 handleControlledPowerChange(CalcRelevantData data, ComparableQuantity setPower) {
+    Tuple2 handleControlledPowerChange(CalcRelevantData data, ModelState lastState, ComparableQuantity setPower) {
         return null
     }
 

@@ -12,7 +12,11 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApp
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  ModelState,
+  SystemParticipant
+}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import tech.units.indriya.ComparableQuantity
 
@@ -90,7 +94,8 @@ object BaseStateData {
   trait ModelBaseStateData[
       +PD <: PrimaryDataWithApparentPower[PD],
       CD <: CalcRelevantData,
-      M <: SystemParticipant[_ <: CalcRelevantData]
+      MS <: ModelState,
+      M <: SystemParticipant[_ <: CalcRelevantData, MS]
   ] extends BaseStateData[PD] {
 
     /** The physical system model
@@ -103,7 +108,11 @@ object BaseStateData {
 
     /** Stores all data that are relevant to model calculation
       */
-    val calcRelevantDateStore: ValueStore[CalcRelevantData]
+    val calcRelevantDateStore: ValueStore[
+      CD
+    ] // TODO can probably be replaced with receivedSecondaryDataStore
+
+    val stateDataStore: ValueStore[MS]
 
     val flexStateData: Option[FlexStateData]
 
@@ -138,7 +147,8 @@ object BaseStateData {
     *   Type of primary data, that the model produces
     */
   final case class FromOutsideBaseStateData[M <: SystemParticipant[
-    _ <: CalcRelevantData
+    _ <: CalcRelevantData,
+    _
   ], +P <: PrimaryDataWithApparentPower[P]](
       model: M,
       override val startDate: ZonedDateTime,
@@ -192,7 +202,8 @@ object BaseStateData {
   final case class ParticipantModelBaseStateData[
       +PD <: PrimaryDataWithApparentPower[PD],
       CD <: CalcRelevantData,
-      M <: SystemParticipant[_ <: CalcRelevantData]
+      MS <: ModelState,
+      M <: SystemParticipant[_ <: CalcRelevantData, MS]
   ](
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
@@ -210,8 +221,9 @@ object BaseStateData {
       override val resultValueStore: ValueStore[PD],
       override val requestValueStore: ValueStore[PD],
       override val calcRelevantDateStore: ValueStore[CD],
+      override val stateDataStore: ValueStore[MS],
       override val flexStateData: Option[FlexStateData]
-  ) extends ModelBaseStateData[PD, CD, M] {
+  ) extends ModelBaseStateData[PD, CD, MS, M] {
 
     /** Unique identifier of the simulation model
       */
@@ -264,7 +276,7 @@ object BaseStateData {
           additionalActivationTicks = updatedAdditionalActivationTicks,
           foreseenDataTicks = updatedForeseenTicks
         )
-      case model: ParticipantModelBaseStateData[_, _, _] =>
+      case model: ParticipantModelBaseStateData[_, _, _, _] =>
         model.copy(
           resultValueStore = updatedResultValueStore,
           requestValueStore = updatedRequestValueStore,

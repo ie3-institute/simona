@@ -56,6 +56,7 @@ trait StorageAgentFundamentals
     extends ParticipantAgentFundamentals[
       ApparentPower,
       StorageRelevantData,
+      StorageState,
       ParticipantStateData[ApparentPower],
       StorageInput,
       StorageRuntimeConfig,
@@ -80,6 +81,7 @@ trait StorageAgentFundamentals
   ): BaseStateData.ParticipantModelBaseStateData[
     ApparentPower,
     StorageRelevantData,
+    StorageState,
     StorageModel
   ] = {
     if (maybeEmAgent.isEmpty)
@@ -114,6 +116,7 @@ trait StorageAgentFundamentals
       ValueStore.forResult(resolution, 10),
       ValueStore(resolution * 10),
       ValueStore(resolution * 10),
+      ValueStore(resolution * 10),
       maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
     )
   }
@@ -130,40 +133,31 @@ trait StorageAgentFundamentals
     simulationEndDate
   )
 
+  override protected def createInitialState(): StorageState =
+    StorageState(
+      zeroKWH,
+      zeroKW,
+      SimonaConstants.INIT_SIM_TICK
+    )
+
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         StorageRelevantData,
+        StorageState,
         StorageModel
       ],
       tick: Long,
       secondaryData: Map[ActorRef, Option[_ <: Data]]
-  ): StorageRelevantData = {
-
-    val lastState = baseStateData.calcRelevantDateStore
-      .last(tick - 1)
-      .map { case (_, relevantData) =>
-        relevantData.lastState
-      }
-      .getOrElse {
-        StorageState(
-          zeroKWH,
-          zeroKW,
-          SimonaConstants.INIT_SIM_TICK
-        )
-      }
-
-    StorageRelevantData(
-      lastState,
-      tick
-    )
-  }
+  ): StorageRelevantData =
+    StorageRelevantData(tick)
 
   override val calculateModelPowerFunc: (
       Long,
       BaseStateData.ParticipantModelBaseStateData[
         ApparentPower,
         StorageRelevantData,
+        StorageState,
         StorageModel
       ],
       ComparableQuantity[Dimensionless]
@@ -186,6 +180,7 @@ trait StorageAgentFundamentals
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         StorageRelevantData,
+        StorageState,
         StorageModel
       ],
       currentTick: Long,

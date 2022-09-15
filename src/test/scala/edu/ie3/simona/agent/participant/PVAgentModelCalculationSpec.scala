@@ -68,7 +68,6 @@ import edu.ie3.util.quantities.PowerSystemUnits.{
   PU
 }
 import edu.ie3.util.quantities.QuantityUtil
-import org.scalatest.PrivateMethodTester
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND}
 
@@ -316,6 +315,7 @@ class PVAgentModelCalculationSpec
                 resultValueStore,
                 requestValueStore,
                 _,
+                _,
                 _
               ),
               awaitRegistrationResponsesFrom,
@@ -369,7 +369,7 @@ class PVAgentModelCalculationSpec
       /* ... as well as corresponding state and state data */
       pvAgent.stateName shouldBe Idle
       pvAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
             weatherService.ref -> Some(4711L)
@@ -448,8 +448,8 @@ class PVAgentModelCalculationSpec
       )
 
       inside(pvAgent.stateData) {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
-          modelBaseStateData.requestValueStore shouldBe ValueStore[
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+          baseStateData.requestValueStore shouldBe ValueStore[
             ApparentPower
           ](
             resolution * 10,
@@ -535,7 +535,7 @@ class PVAgentModelCalculationSpec
       pvAgent.stateName shouldBe HandleInformation
       pvAgent.stateData match {
         case DataCollectionStateData(
-              baseStateData: ParticipantModelBaseStateData[_, _, _],
+              baseStateData: ParticipantModelBaseStateData[_, _, _, _],
               expectedSenders,
               isYetTriggered
             ) =>
@@ -579,7 +579,7 @@ class PVAgentModelCalculationSpec
       )
       pvAgent.stateName shouldBe Idle
       pvAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* The store for calculation relevant data has been extended */
           baseStateData.calcRelevantDateStore match {
             case ValueStore(_, store) =>
@@ -685,7 +685,7 @@ class PVAgentModelCalculationSpec
       pvAgent.stateName shouldBe HandleInformation
       pvAgent.stateData match {
         case DataCollectionStateData(
-              baseStateData: ParticipantModelBaseStateData[_, _, _],
+              baseStateData: ParticipantModelBaseStateData[_, _, _, _],
               expectedSenders,
               isYetTriggered
             ) =>
@@ -731,7 +731,7 @@ class PVAgentModelCalculationSpec
       /* Expect the state change to idle with updated base state data */
       pvAgent.stateName shouldBe Idle
       pvAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* The store for calculation relevant data has been extended */
           baseStateData.calcRelevantDateStore match {
             case ValueStore(_, store) =>

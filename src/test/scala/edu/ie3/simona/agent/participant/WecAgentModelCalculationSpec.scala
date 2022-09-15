@@ -30,6 +30,7 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.WecRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.WecModel
 import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -300,6 +301,7 @@ class WecAgentModelCalculationSpec
                 resultValueStore,
                 requestValueStore,
                 _,
+                _,
                 _
               ),
               awaitRegistrationResponsesFrom,
@@ -352,6 +354,7 @@ class WecAgentModelCalculationSpec
         case baseStateData: ParticipantModelBaseStateData[
               ApparentPower,
               WecRelevantData,
+              ConstantState.type,
               WecModel
             ] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
@@ -436,6 +439,7 @@ class WecAgentModelCalculationSpec
         case modelBaseStateData: ParticipantModelBaseStateData[
               ApparentPower,
               WecRelevantData,
+              ConstantState.type,
               WecModel
             ] =>
           modelBaseStateData.requestValueStore shouldBe ValueStore[
@@ -530,6 +534,7 @@ class WecAgentModelCalculationSpec
               baseStateData: ParticipantModelBaseStateData[
                 ApparentPower,
                 WecRelevantData,
+                ConstantState.type,
                 WecModel
               ],
               expectedSenders,
@@ -578,6 +583,7 @@ class WecAgentModelCalculationSpec
         case baseStateData: ParticipantModelBaseStateData[
               ApparentPower,
               WecRelevantData,
+              ConstantState.type,
               WecModel
             ] =>
           /* The store for calculation relevant data has been extended */
@@ -690,6 +696,7 @@ class WecAgentModelCalculationSpec
               baseStateData: ParticipantModelBaseStateData[
                 ApparentPower,
                 WecRelevantData,
+                ConstantState.type,
                 WecModel
               ],
               expectedSenders,
@@ -740,6 +747,7 @@ class WecAgentModelCalculationSpec
         case baseStateData: ParticipantModelBaseStateData[
               ApparentPower,
               WecRelevantData,
+              ConstantState.type,
               WecModel
             ] =>
           /* The store for calculation relevant data has been extended */

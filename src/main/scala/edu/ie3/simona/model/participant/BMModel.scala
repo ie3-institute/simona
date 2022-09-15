@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.model.participant.BMModel.BMCalcRelevantData
+import edu.ie3.simona.model.participant.BMModel.{BMCalcRelevantData, BmState}
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideFlexOptions,
@@ -41,7 +41,7 @@ final case class BMModel(
     private val opex: ComparableQuantity[EnergyPrice],
     private val feedInTariff: ComparableQuantity[EnergyPrice],
     private val loadGradient: ComparableQuantity[DimensionlessRate]
-) extends SystemParticipant[BMCalcRelevantData](
+) extends SystemParticipant[BMCalcRelevantData, BmState](
       uuid,
       id,
       operationInterval,
@@ -226,7 +226,8 @@ final case class BMModel(
   }
 
   override def determineFlexOptions(
-      data: BMCalcRelevantData
+      data: BMCalcRelevantData,
+      lastState: BmState
   ): ProvideFlexOptions = {
     val power = calculateActivePower(data)
 
@@ -235,11 +236,14 @@ final case class BMModel(
 
   override def handleControlledPowerChange(
       data: BMCalcRelevantData,
+      lastState: BmState,
       setPower: ComparableQuantity[Power]
-  ): (BMCalcRelevantData, Option[Long]) = (data, None)
+  ): (BmState, Option[Long]) = (lastState, None)
 }
 
 object BMModel {
+
+  case class BmState() extends ModelState
 
   /** Data, that is needed for model calculations with the biomass model
     *

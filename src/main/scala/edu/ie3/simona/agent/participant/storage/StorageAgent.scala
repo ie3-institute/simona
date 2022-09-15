@@ -13,7 +13,10 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
 import edu.ie3.simona.model.participant.StorageModel
-import edu.ie3.simona.model.participant.StorageModel.StorageRelevantData
+import edu.ie3.simona.model.participant.StorageModel.{
+  StorageRelevantData,
+  StorageState
+}
 
 object StorageAgent {
   def props(
@@ -41,6 +44,7 @@ class StorageAgent(
 ) extends ParticipantAgent[
       ApparentPower,
       StorageRelevantData,
+      StorageState,
       ParticipantStateData[ApparentPower],
       StorageInput,
       StorageRuntimeConfig,
