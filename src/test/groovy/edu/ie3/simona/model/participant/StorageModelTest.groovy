@@ -72,17 +72,15 @@ class StorageModelTest extends Specification {
         given:
         def storageModel = buildStorageModel()
         def startTick = 3600L
-        def data = new StorageModel.StorageRelevantData(
-                new StorageModel.StorageState(
-                        getQuantity(lastStored, KILOWATTHOUR),
-                        getQuantity(lastPower, KILOWATT),
-                        startTick
-                ),
-                startTick + timeDelta
+        def data = new StorageModel.StorageRelevantData(startTick + timeDelta)
+        def oldState = new StorageModel.StorageState(
+                getQuantity(lastStored, KILOWATTHOUR),
+                getQuantity(lastPower, KILOWATT),
+                startTick
         )
 
         when:
-        def result = (FlexibilityMessage.ProvideMinMaxFlexOptions) storageModel.determineFlexOptions(data)
+        def result = (FlexibilityMessage.ProvideMinMaxFlexOptions) storageModel.determineFlexOptions(data, oldState)
 
         then:
         equals(result.referencePower(), getQuantity(pRef, KILOWATT), TOLERANCE)
@@ -123,25 +121,24 @@ class StorageModelTest extends Specification {
         given:
         def storageModel = buildStorageModel()
         def startTick = 3600L
-        def data = new StorageModel.StorageRelevantData(
-                new StorageModel.StorageState(
-                        getQuantity(lastStored, KILOWATTHOUR),
-                        getQuantity(0d, KILOWATT),
-                        startTick
-                ),
-                startTick + 1
+        def data = new StorageModel.StorageRelevantData(startTick + 1)
+        def oldState = new StorageModel.StorageState(
+                getQuantity(lastStored, KILOWATTHOUR),
+                getQuantity(0d, KILOWATT),
+                startTick
         )
 
         when:
         def result = storageModel.handleControlledPowerChange(
                 data,
+                oldState,
                 getQuantity(setPower, KILOWATT)
         )
 
         then:
-        equals(result._1.lastState().chargingPower(), getQuantity(expPower, KILOWATT), TOLERANCE)
-        result._1.lastState().tick() == startTick + 1
-        equals(result._1.lastState().storedEnergy(), getQuantity(lastStored, KILOWATTHOUR), TOLERANCE)
+        equals(result._1.chargingPower(), getQuantity(expPower, KILOWATT), TOLERANCE)
+        result._1.tick() == startTick + 1
+        equals(result._1.storedEnergy(), getQuantity(lastStored, KILOWATTHOUR), TOLERANCE)
         result._2.defined == expScheduled
         result._2.map(x -> x == startTick + 1 + expDelta).getOrElse( _ -> true)
 
