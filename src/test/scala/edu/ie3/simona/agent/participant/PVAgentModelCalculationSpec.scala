@@ -30,7 +30,6 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.model.participant.PVModel.PVRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -60,7 +59,6 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.PvInputTestData
 import edu.ie3.simona.util.ConfigUtil
-import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.{
   KILOWATT,
   MEGAVAR,
@@ -581,15 +579,10 @@ class PVAgentModelCalculationSpec
       pvAgent.stateData match {
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* The store for calculation relevant data has been extended */
-          baseStateData.calcRelevantDateStore match {
+          baseStateData.receivedSecondaryDataStore match {
             case ValueStore(_, store) =>
               store shouldBe Map(
-                0L -> PVRelevantData(
-                  0L.toDateTime,
-                  3600L,
-                  weatherData.diffIrr,
-                  weatherData.dirIrr
-                )
+                0L -> Map(weatherService.ref -> weatherData)
               )
           }
 
@@ -733,15 +726,10 @@ class PVAgentModelCalculationSpec
       pvAgent.stateData match {
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* The store for calculation relevant data has been extended */
-          baseStateData.calcRelevantDateStore match {
+          baseStateData.receivedSecondaryDataStore match {
             case ValueStore(_, store) =>
               store shouldBe Map(
-                0L -> PVRelevantData(
-                  0L.toDateTime,
-                  3600L,
-                  weatherData.diffIrr,
-                  weatherData.dirIrr
-                )
+                0L -> Map(weatherService.ref -> weatherData)
               )
           }
 

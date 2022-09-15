@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.participant
 
 import akka.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
-import edu.ie3.simona.agent.SimonaAgent
+import edu.ie3.simona.agent.{SimonaAgent, ValueStore}
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
@@ -243,16 +243,16 @@ abstract class ParticipantAgent[
           RequestFlexOptions,
           baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
         ) =>
-      val updatedStateData = handleFlexRequest(baseStateData, None)
+      val updatedStateData = handleFlexRequest(baseStateData)
 
       stay() using updatedStateData
 
     case Event(
           RequestFlexOptions,
-          serviceCollectionStateData: DataCollectionStateData[PD]
+          DataCollectionStateData(baseStateData, data, _)
         ) =>
       val participantStateData =
-        serviceCollectionStateData.baseStateData match {
+        baseStateData match {
           case participantStateData: ParticipantModelBaseStateData[
                 PD,
                 CD,
@@ -266,9 +266,18 @@ abstract class ParticipantAgent[
             )
         }
 
+      val updatedReceivedSecondaryData = ValueStore.updateValueStore(
+        participantStateData.receivedSecondaryDataStore,
+        currentTick,
+        data.map { case (actorRef, Some(data: SecondaryData)) =>
+          actorRef -> data
+        }
+      )
+
       val updatedStateData = handleFlexRequest(
-        participantStateData,
-        Some(serviceCollectionStateData.data)
+        participantStateData.copy(
+          receivedSecondaryDataStore = updatedReceivedSecondaryData
+        )
       )
 
       stay() using updatedStateData
@@ -460,12 +469,26 @@ abstract class ParticipantAgent[
 
     case Event(
           StartCalculationTrigger(currentTick),
-          serviceCollectionStateData: DataCollectionStateData[PD]
+          DataCollectionStateData(
+            participantStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+            data,
+            _
+          )
         ) =>
+      val updatedReceivedSecondaryData = ValueStore.updateValueStore(
+        participantStateData.receivedSecondaryDataStore,
+        currentTick,
+        data.map { case (actorRef, Some(data: SecondaryData)) =>
+          actorRef -> data
+        }
+      )
+
       /* At least parts of the needed data has been received or it is an additional activation, that has been triggered.
        * Anyways, the calculation routine has also to take care of filling up missing data. */
       calculatePowerWithSecondaryDataAndGoToIdle(
-        serviceCollectionStateData,
+        participantStateData.copy(receivedSecondaryDataStore =
+          updatedReceivedSecondaryData
+        ),
         currentTick,
         scheduler
       )
@@ -745,8 +768,8 @@ abstract class ParticipantAgent[
     * scheduler and using update result values.</p> </p>Actual implementation
     * can be found in each participant's fundamentals.</p>
     *
-    * @param collectionStateData
-    *   State data with collected secondary data.
+    * @param baseStateData
+    *   The base state data with collected secondary data
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
@@ -755,7 +778,7 @@ abstract class ParticipantAgent[
     *   [[Idle]] with updated result values
     */
   def calculatePowerWithSecondaryDataAndGoToIdle(
-      collectionStateData: DataCollectionStateData[PD],
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]]
@@ -763,20 +786,17 @@ abstract class ParticipantAgent[
   protected def createInitialState(): MS
 
   protected def handleFlexRequest(
-      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      maybeSecondaryData: Option[Map[ActorRef, Option[_ <: Data]]]
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
   ): ParticipantModelBaseStateData[PD, CD, MS, M]
 
   protected def calculateFlexOptions(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      currentTick: Long,
-      maybeSecondaryData: Option[Map[ActorRef, Option[_ <: Data]]]
+      currentTick: Long
   ): ParticipantModelBaseStateData[PD, CD, MS, M]
 
   protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      tick: Long,
-      secondaryData: Map[ActorRef, Option[_ <: Data]]
+      tick: Long
   ): CD
 
   protected def handleFlexCtrl(

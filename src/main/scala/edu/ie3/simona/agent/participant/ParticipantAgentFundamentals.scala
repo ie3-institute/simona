@@ -631,13 +631,11 @@ protected trait ParticipantAgentFundamentals[
   }
 
   override protected def handleFlexRequest(
-      participantStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      maybeSecondaryData: Option[Map[ActorRef, Option[_ <: Data]]]
+      participantStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
   ): ParticipantModelBaseStateData[PD, CD, MS, M] = {
     val updatedBaseStateData = calculateFlexOptions(
       participantStateData,
-      currentTick,
-      maybeSecondaryData
+      currentTick
     )
 
     val updatedFlexData = updatedBaseStateData.flexStateData.getOrElse(
@@ -659,8 +657,7 @@ protected trait ParticipantAgentFundamentals[
 
   override protected def calculateFlexOptions(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      currentTick: Long,
-      maybeSecondaryData: Option[Map[ActorRef, Option[_ <: Data]]]
+      currentTick: Long
   ): ParticipantModelBaseStateData[PD, CD, MS, M] = {
 
     implicit val startDateTime: ZonedDateTime = baseStateData.startDate
@@ -668,8 +665,7 @@ protected trait ParticipantAgentFundamentals[
     val relevantData =
       createCalcRelevantData(
         baseStateData,
-        currentTick,
-        maybeSecondaryData.getOrElse(Map.empty)
+        currentTick
       )
 
     val lastState = getLastOrInitialStateData(baseStateData, currentTick)
@@ -699,11 +695,6 @@ protected trait ParticipantAgentFundamentals[
       notifyListener(FlexOptionsResultEvent(flexResult))
 
     baseStateData.copy(
-      calcRelevantDateStore = ValueStore.updateValueStore(
-        baseStateData.calcRelevantDateStore,
-        currentTick,
-        relevantData
-      ),
       flexStateData = baseStateData.flexStateData.map(data =>
         data.copy(flexOptionsStore =
           ValueStore.updateValueStore(
@@ -740,8 +731,7 @@ protected trait ParticipantAgentFundamentals[
 
     val relevantData = createCalcRelevantData(
       baseStateData,
-      currentTick,
-      Map.empty // TODO this is problematic
+      currentTick
     )
 
     val lastState = getLastOrInitialStateData(baseStateData, currentTick)
@@ -773,17 +763,19 @@ protected trait ParticipantAgentFundamentals[
       .map { additionalTick =>
         val clearedAdditionalTicks =
           flexStateData.scheduledTick
-            .map { oldTick =>
+            .map { obsoleteTick =>
               // revoke old tick if it exists and is placed in the future
-              if (oldTick > currentTick)
+              if (obsoleteTick > currentTick)
                 flexStateData.emAgent !
                   RevokeTriggerMessage(
-                    ActivityStartTrigger(oldTick),
+                    ActivityStartTrigger(obsoleteTick),
                     self
                   )
 
               // remove from additionalTicks as well
-              baseStateData.additionalActivationTicks.filterNot(_ == oldTick)
+              baseStateData.additionalActivationTicks.filterNot(
+                _ == obsoleteTick
+              )
             }
             .getOrElse(baseStateData.additionalActivationTicks)
 
@@ -1732,8 +1724,8 @@ protected trait ParticipantAgentFundamentals[
         buildResultEvent(baseStateData, tick, result)
       )
 
-  /** Update the result and calc relevant data value stores, inform all
-    * registered listeners and go to Idle using the updated base state data
+  /** Update the result value store, inform all registered listeners and go to
+    * Idle using the updated base state data
     *
     * @param scheduler
     *   Actor reference of the scheduler
@@ -1741,16 +1733,13 @@ protected trait ParticipantAgentFundamentals[
     *   The base state data of the collection state
     * @param result
     *   Result of simulation
-    * @param relevantData
-    *   Data, that have been relevant to this calculation
     * @return
     *   Desired state change
     */
   final def updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
       scheduler: ActorRef,
       baseStateData: BaseStateData[PD],
-      result: PD,
-      relevantData: CD
+      result: PD
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     /* Update the value stores */
     val updatedValueStore =
@@ -1759,19 +1748,6 @@ protected trait ParticipantAgentFundamentals[
         currentTick,
         result
       )
-    val updatedRelevantDataStore =
-      baseStateData match {
-        case data: BaseStateData.ModelBaseStateData[_, _, _, _] =>
-          ValueStore.updateValueStore(
-            data.calcRelevantDateStore,
-            currentTick,
-            relevantData
-          )
-        case _ =>
-          throw new InconsistentStateException(
-            "Cannot find calculation relevant data to update."
-          )
-      }
 
     /* Inform the listeners about new result */
     announceSimulationResult(
@@ -1784,10 +1760,7 @@ protected trait ParticipantAgentFundamentals[
     val baseStateDateWithUpdatedResults =
       baseStateData match {
         case data: ParticipantModelBaseStateData[PD, CD, MS, M] =>
-          data.copy(
-            resultValueStore = updatedValueStore,
-            calcRelevantDateStore = updatedRelevantDataStore
-          )
+          data.copy(resultValueStore = updatedValueStore)
         case _ =>
           throw new InconsistentStateException(
             "Wrong base state data"

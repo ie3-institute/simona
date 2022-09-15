@@ -15,7 +15,6 @@ import edu.ie3.datamodel.models.result.system.{
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
-import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
@@ -27,10 +26,7 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexStateData,
   ParticipantModelBaseStateData
 }
-import edu.ie3.simona.agent.participant.statedata.{
-  DataCollectionStateData,
-  ParticipantStateData
-}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
@@ -173,8 +169,7 @@ protected trait PVAgentFundamentals
         ConstantState.type,
         PVModel
       ],
-      tick: Long,
-      secondaryData: Map[ActorRef, Option[_ <: Data]]
+      tick: Long
   ): PVRelevantData = {
     /* convert current tick to a datetime */
     implicit val startDateTime: ZonedDateTime =
@@ -182,9 +177,9 @@ protected trait PVAgentFundamentals
     val dateTime = tick.toDateTime
 
     val tickInterval =
-      baseStateData.calcRelevantDateStore
-        .last(tick - 1) match {
-        case Some((dataTick, _)) =>
+      baseStateData.receivedSecondaryDataStore
+        .lastKnownTick(tick - 1) match {
+        case Some(dataTick) =>
           tick - dataTick
         case _ =>
           /* At the first tick, we are not able to determine the tick interval from last tick
@@ -192,12 +187,19 @@ protected trait PVAgentFundamentals
           FALLBACK_WEATHER_STEM_DISTANCE
       }
 
+    val secondaryData = baseStateData.receivedSecondaryDataStore.getOrElse(
+      currentTick,
+      throw new InconsistentStateException(
+        s"The model ${baseStateData.model} was not provided with any secondary data for tick $currentTick."
+      )
+    )
+
     /* extract weather data from secondary data, which should have been requested and received before */
     val weatherData =
       secondaryData
         .collectFirst {
           // filter secondary data for weather data
-          case (_, Some(data: WeatherData)) =>
+          case (_, data: WeatherData) =>
             data
         }
         .getOrElse(
@@ -266,8 +268,8 @@ protected trait PVAgentFundamentals
     * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
     * scheduler and using update result values.</p>
     *
-    * @param collectionStateData
-    *   State data with collected, comprehensive secondary data.
+    * @param baseStateData
+    *   The base state data with collected secondary data
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
@@ -276,53 +278,42 @@ protected trait PVAgentFundamentals
     *   [[Idle]] with updated result values
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
-      collectionStateData: DataCollectionStateData[ApparentPower],
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        PVRelevantData,
+        ConstantState.type,
+        PVModel
+      ],
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
     val voltage =
-      getAndCheckNodalVoltage(collectionStateData.baseStateData, currentTick)
+      getAndCheckNodalVoltage(baseStateData, currentTick)
 
-    val (result, relevantData) =
-      collectionStateData.baseStateData match {
-        case modelBaseStateData: ParticipantModelBaseStateData[
-              ApparentPower,
-              PVRelevantData,
-              ConstantState.type,
-              PVModel
-            ] =>
-          modelBaseStateData.model match {
-            case pvModel: PVModel =>
-              val relevantData =
-                createCalcRelevantData(
-                  modelBaseStateData,
-                  currentTick,
-                  collectionStateData.data
-                )
+    val result =
+      baseStateData.model match {
+        case pvModel: PVModel =>
+          val relevantData =
+            createCalcRelevantData(
+              baseStateData,
+              currentTick
+            )
 
-              val power = pvModel.calculatePower(
-                currentTick,
-                voltage,
-                relevantData
-              )
-
-              (power, relevantData)
-            case unsupportedModel =>
-              throw new InconsistentStateException(
-                s"Wrong model: $unsupportedModel!"
-              )
-          }
-        case _ =>
+          pvModel.calculatePower(
+            currentTick,
+            voltage,
+            relevantData
+          )
+        case unsupportedModel =>
           throw new InconsistentStateException(
-            "Cannot find a model for model calculation."
+            s"Wrong model: $unsupportedModel!"
           )
       }
 
     updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
       scheduler,
-      collectionStateData.baseStateData,
-      result,
-      relevantData
+      baseStateData,
+      result
     )
   }
 

@@ -12,8 +12,7 @@ import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationTyp
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
-import edu.ie3.simona.model.participant.ModelState.ConstantState
+import edu.ie3.simona.model.participant.EvcsModel.{EvcsRelevantData, EvcsState}
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -62,7 +61,7 @@ final case class EvcsModel(
     locationType: EvcsLocationType
 ) extends SystemParticipant[
       EvcsRelevantData,
-      ConstantState.type
+      EvcsState
     ]( // TODO actual state type
       uuid,
       id,
@@ -88,10 +87,12 @@ final case class EvcsModel(
   def calculatePowerAndEvSoc(
       tick: Long,
       voltage: ComparableQuantity[Dimensionless],
-      data: EvcsRelevantData
-  ): (ApparentPower, Set[EvModel]) = {
+      data: EvcsRelevantData,
+      lastState: EvcsState
+  ): (ApparentPower, EvcsState) = {
     if (isInOperation(tick) && data.evMovementsDataFrameLength > 0) {
-      val (activePower, evModels) = calculateActivePowerAndEvSoc(data)
+      val (activePower, evModels) =
+        calculateActivePowerAndEvSoc(data, lastState)
       val reactivePower =
         calculateReactivePower(activePower, voltage).to(MEGAVAR)
       (
@@ -99,7 +100,7 @@ final case class EvcsModel(
           activePower.to(MEGAWATT),
           reactivePower
         ),
-        evModels
+        EvcsState(evModels)
       )
     } else {
       (
@@ -107,7 +108,7 @@ final case class EvcsModel(
           Quantities.getQuantity(0d, MEGAWATT),
           Quantities.getQuantity(0d, MEGAVAR)
         ),
-        data.currentEvs
+        lastState
       )
     }
   }
@@ -120,10 +121,11 @@ final case class EvcsModel(
     *   Active power and ev models with updated stored energy
     */
   private def calculateActivePowerAndEvSoc(
-      data: EvcsRelevantData
+      data: EvcsRelevantData,
+      lastState: EvcsState
   ): (ComparableQuantity[Power], Set[EvModel]) = {
     val (powerSum, models) = calculateActivePowerAndEvSoc(
-      data.currentEvs,
+      lastState.evs,
       data.evMovementsDataFrameLength
     )
     if (powerSum.isLessThanOrEqualTo(sRated)) {
@@ -135,7 +137,7 @@ final case class EvcsModel(
       )
 
       val (calcEvs, noCalcEvs, _) =
-        data.currentEvs.foldLeft(
+        lastState.evs.foldLeft(
           (
             Set.empty[EvModel],
             Set.empty[EvModel],
@@ -237,14 +239,14 @@ final case class EvcsModel(
 
   override def determineFlexOptions(
       data: EvcsRelevantData,
-      lastState: ConstantState.type
+      lastState: EvcsState
   ): ProvideFlexOptions = ??? // TODO actual implementation
 
   override def handleControlledPowerChange(
       data: EvcsRelevantData,
-      lastState: ConstantState.type,
+      lastState: EvcsState,
       setPower: ComparableQuantity[Power]
-  ): (ConstantState.type, Option[Long]) = ??? // TODO actual implementation
+  ): (EvcsState, Option[Long]) = ??? // TODO actual implementation
 }
 
 object EvcsModel {
@@ -253,14 +255,17 @@ object EvcsModel {
     *
     * @param evMovementsDataFrameLength
     *   the duration in ticks (= seconds) until next tick
-    * @param currentEvs
-    *   EVs that have been charging up until this tick. Can include EVs that are
-    *   departing
     */
   final case class EvcsRelevantData(
-      evMovementsDataFrameLength: Long,
-      currentEvs: Set[EvModel]
+      evMovementsDataFrameLength: Long
   ) extends CalcRelevantData
+
+  /** @param evs
+    *   EVs that are staying at the charging station
+    */
+  final case class EvcsState(
+      evs: Set[EvModel]
+  ) extends ModelState
 
   def apply(
       inputModel: EvcsInput,

@@ -15,7 +15,6 @@ import edu.ie3.datamodel.models.result.system.{
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
-import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
@@ -25,10 +24,7 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexStateData,
   ParticipantModelBaseStateData
 }
-import edu.ie3.simona.agent.participant.statedata.{
-  DataCollectionStateData,
-  ParticipantStateData
-}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.api.data.ev.model.EvModel
@@ -40,9 +36,8 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException
 }
-import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
-import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.{EvcsModel, ModelState}
+import edu.ie3.simona.model.participant.EvcsModel
+import edu.ie3.simona.model.participant.EvcsModel.{EvcsRelevantData, EvcsState}
 import edu.ie3.simona.ontology.messages.services.EvMessage.{
   DepartedEvsResponse,
   EvMovementData,
@@ -62,7 +57,7 @@ protected trait EvcsAgentFundamentals
     extends ParticipantAgentFundamentals[
       ApparentPower,
       EvcsRelevantData,
-      ConstantState.type, // TODO actual state type
+      EvcsState,
       ParticipantStateData[ApparentPower],
       EvcsInput,
       EvcsRuntimeConfig,
@@ -109,7 +104,7 @@ protected trait EvcsAgentFundamentals
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
-    ConstantState.type,
+    EvcsState,
     EvcsModel
   ] = {
     /* Check for needed services */
@@ -170,7 +165,7 @@ protected trait EvcsAgentFundamentals
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
-    ConstantState.type,
+    EvcsState,
     EvcsModel
   ] = {
 
@@ -218,18 +213,16 @@ protected trait EvcsAgentFundamentals
     simulationEndDate
   )
 
-  override protected def createInitialState(): ModelState.ConstantState.type =
-    ConstantState // TODO
+  override protected def createInitialState(): EvcsState = EvcsState(Set.empty)
 
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         EvcsRelevantData,
-        ConstantState.type,
+        EvcsState,
         EvcsModel
       ],
-      tick: Long,
-      secondaryData: Map[ActorRef, Option[_ <: Data]]
+      tick: Long
   ): EvcsRelevantData = {
     // TODO implement
 
@@ -240,7 +233,7 @@ protected trait EvcsAgentFundamentals
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         EvcsRelevantData,
-        ConstantState.type,
+        EvcsState,
         EvcsModel
       ],
       currentTick: Long,
@@ -268,7 +261,7 @@ protected trait EvcsAgentFundamentals
       ParticipantModelBaseStateData[
         ApparentPower,
         EvcsRelevantData,
-        ConstantState.type,
+        EvcsState,
         EvcsModel
       ],
       ComparableQuantity[Dimensionless]
@@ -288,8 +281,8 @@ protected trait EvcsAgentFundamentals
     * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
     * scheduler and using update result values.</p>
     *
-    * @param collectionStateData
-    *   State data with collected, comprehensive secondary data.
+    * @param baseStateData
+    *   The base state data with collected secondary data
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
@@ -298,43 +291,36 @@ protected trait EvcsAgentFundamentals
     *   [[Idle]] with updated result values
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
-      collectionStateData: DataCollectionStateData[ApparentPower],
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel
+      ],
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
-    implicit val startDateTime: ZonedDateTime =
-      collectionStateData.baseStateData.startDate
+    implicit val startDateTime: ZonedDateTime = baseStateData.startDate
 
-    collectionStateData.baseStateData match {
-      case modelBaseStateData: ParticipantModelBaseStateData[
-            ApparentPower,
-            _,
-            _,
-            _
-          ] =>
-        /* extract EV data from secondary data, which should have been requested and received before */
-        collectionStateData.data
-          .collectFirst {
-            // filter secondary data for EV movements data
-            case (_, Some(evcsData: EvMovementData)) =>
-              handleEvMovementsAndGoIdle(
-                currentTick,
-                scheduler,
-                modelBaseStateData,
-                evcsData
-              )
-          }
-          .getOrElse(
-            throw new InconsistentStateException(
-              s"The model ${modelBaseStateData.model} was not provided with needed EV data."
-            )
+    /* extract EV data from secondary data, which should have been requested and received before */
+    baseStateData.receivedSecondaryDataStore
+      .getOrElse(currentTick, Map.empty)
+      .collectFirst {
+        // filter secondary data for EV movements data
+        case (_, evcsData: EvMovementData) =>
+          handleEvMovementsAndGoIdle(
+            currentTick,
+            scheduler,
+            baseStateData,
+            evcsData
           )
-
-      case _ =>
+      }
+      .getOrElse(
         throw new InconsistentStateException(
-          "Cannot find a model for model calculation."
+          s"The model ${baseStateData.model} was not provided with needed EV data."
         )
-    }
+      )
+
   }
 
   /** Returns the number of free parking lots based on the last available state
@@ -358,13 +344,13 @@ protected trait EvcsAgentFundamentals
     )
 
     val (_, lastEvs) =
-      getTickIntervalAndLastEvs(tick, modelBaseStateData)
+      getTickIntervalAndLastState(tick, modelBaseStateData)
 
     val evcsModel = getEvcsModel(modelBaseStateData)
 
     evServiceRef ! FreeLotsResponse(
       evcsModel.uuid,
-      evcsModel.chargingPoints - lastEvs.size
+      evcsModel.chargingPoints - lastEvs.evs.size
     )
   }
 
@@ -387,10 +373,10 @@ protected trait EvcsAgentFundamentals
       currentTick: Long,
       scheduler: ActorRef,
       modelBaseStateData: ParticipantModelBaseStateData[
-        _ <: ApparentPower,
-        _,
-        _,
-        _
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel
       ],
       evcsMovementsData: EvMovementData
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
@@ -398,8 +384,8 @@ protected trait EvcsAgentFundamentals
       modelBaseStateData.services
     )
 
-    val (tickInterval, lastEvs) =
-      getTickIntervalAndLastEvs(currentTick, modelBaseStateData)
+    val (tickInterval, lastState) =
+      getTickIntervalAndLastState(currentTick, modelBaseStateData)
 
     val evcsModel = getEvcsModel(modelBaseStateData)
 
@@ -407,7 +393,7 @@ protected trait EvcsAgentFundamentals
       getAndCheckNodalVoltage(modelBaseStateData, currentTick)
 
     validateEvMovements(
-      lastEvs,
+      lastState.evs,
       evcsMovementsData.movements,
       evcsModel.chargingPoints
     )
@@ -415,20 +401,20 @@ protected trait EvcsAgentFundamentals
     // calculate power with evs that have been parked up until now
     val relevantData =
       EvcsRelevantData(
-        tickInterval,
-        lastEvs
+        tickInterval
       )
 
-    val (power, evModelsCalculated) =
+    val (power, updatedState) =
       evcsModel.calculatePowerAndEvSoc(
         currentTick,
         voltage,
-        relevantData
+        relevantData,
+        lastState
       )
 
     {
       val departedEvs = calculateDepartedEvs(
-        evModelsCalculated,
+        updatedState.evs,
         evcsMovementsData.movements
       )
       if (departedEvs.nonEmpty) {
@@ -440,22 +426,24 @@ protected trait EvcsAgentFundamentals
     }
 
     val stayingEvs = calculateStayingEvs(
-      lastEvs,
+      updatedState.evs,
       evcsMovementsData.movements
     )
-    val updatedRelevantData = relevantData.copy(
-      currentEvs = stayingEvs
+
+    val updatedStateStore = ValueStore.updateValueStore(
+      modelBaseStateData.stateDataStore,
+      currentTick,
+      EvcsState(evs = stayingEvs)
     )
 
     updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
       scheduler,
-      modelBaseStateData,
-      power,
-      updatedRelevantData
+      modelBaseStateData.copy(stateDataStore = updatedStateStore),
+      power
     )
   }
 
-  private def getTickIntervalAndLastEvs(
+  private def getTickIntervalAndLastState(
       currentTick: Long,
       modelBaseStateData: ParticipantModelBaseStateData[
         _ <: ApparentPower,
@@ -463,16 +451,16 @@ protected trait EvcsAgentFundamentals
         _,
         _
       ]
-  ): (Long, Set[EvModel]) = {
-    modelBaseStateData.calcRelevantDateStore
+  ): (Long, EvcsState) = {
+    modelBaseStateData.stateDataStore
       .last(currentTick - 1) match {
-      case Some((tick, EvcsRelevantData(_, evs))) =>
-        (currentTick - tick, evs)
+      case Some((tick, state: EvcsState)) =>
+        (currentTick - tick, state)
       case _ =>
         /* At the first tick, we are not able to determine the tick interval from last tick
          * (since there is none). Then we use a fall back ev stem distance.
          * As no evs are charging then, the tick interval should be ignored anyway. */
-        (FALLBACK_EV_MOVEMENTS_STEM_DISTANCE, Set.empty[EvModel])
+        (FALLBACK_EV_MOVEMENTS_STEM_DISTANCE, createInitialState())
     }
   }
 
