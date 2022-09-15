@@ -6,18 +6,16 @@
 
 package edu.ie3.simona.test.common.input
 
-import java.time.ZonedDateTime
-import java.util.UUID
-
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.test.common.DefaultTestData
-import edu.ie3.util.TimeUtil
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 import tech.units.indriya.quantity.Quantities
+
+import java.util.UUID
 
 /** Simple test data to be used in tests for PVModel. Should be extended as
   * needed.
@@ -26,10 +24,6 @@ trait PvInputTestData
     extends DefaultTestData
     with NodeInputTestData
     with MockitoSugar {
-  protected implicit val simulationStartDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
-  protected val simulationEndDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00")
 
   protected val pvInputMock: PvInput = mock[PvInput]
   when(pvInputMock.getUuid)
@@ -42,7 +36,7 @@ trait PvInputTestData
   when(pvInputModel04Kv.getId).thenReturn("TestPvInputModel_0.4_kV")
   when(pvInputModel04Kv.getNode).thenReturn(nodeInputNoSlackNs04KvA)
 
-  protected val pvInputModel = new PvInput(
+  protected val pvInput = new PvInput(
     UUID.randomUUID(),
     "Dummy_PVModel",
     new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),

@@ -23,25 +23,7 @@ import tech.units.indriya.quantity.Quantities
 import java.time.ZonedDateTime
 import java.util.UUID
 
-trait EmInputTestData extends NodeInputTestData {
-
-  protected val pvInput = new PvInput(
-    UUID.randomUUID(),
-    "Dummy_PVModel",
-    new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
-    OperationTime.notLimited(),
-    nodeInputNoSlackNs04KvA,
-    CosPhiFixed.CONSTANT_CHARACTERISTIC,
-    1,
-    Quantities.getQuantity(12, StandardUnits.AZIMUTH),
-    Quantities.getQuantity(10, StandardUnits.EFFICIENCY),
-    Quantities.getQuantity(100, StandardUnits.SOLAR_ELEVATION_ANGLE),
-    12,
-    11,
-    false,
-    Quantities.getQuantity(10, StandardUnits.S_RATED),
-    0.95
-  )
+trait EmInputTestData extends NodeInputTestData with PvInputTestData {
 
   protected val evcsInput = new EvcsInput(
     UUID.randomUUID(),
@@ -63,7 +45,7 @@ trait EmInputTestData extends NodeInputTestData {
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvA,
     CosPhiFixed.CONSTANT_CHARACTERISTIC,
-    Array(pvInput.getUuid, evcsInput.getUuid),
+    Array.empty,
     ControlStrategy.DefaultControlStrategies.NO_CONTROL_STRATEGY // FIXME adapt once available
   )
 
