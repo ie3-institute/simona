@@ -12,7 +12,6 @@ import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
-import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
@@ -26,17 +25,14 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexStateData,
   ModelBaseStateData
 }
+import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantUninitializedStateData
-import edu.ie3.simona.agent.participant.statedata.{
-  BaseStateData,
-  InitializeStateData
-}
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
-import edu.ie3.simona.model.participant.{EmModel, ModelState}
+import edu.ie3.simona.model.participant.EmModel
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
@@ -57,7 +53,7 @@ import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
+import javax.measure.quantity.Dimensionless
 
 object EmAgent {
   def props(
@@ -108,7 +104,7 @@ object EmAgent {
       ],
       resultValueStore: ValueStore[ApparentPower],
       requestValueStore: ValueStore[ApparentPower],
-      calcRelevantDateStore: ValueStore[EmRelevantData],
+      receivedSecondaryDataStore: ValueStore[Map[ActorRef, _ <: SecondaryData]],
       flexCorrespondences: Map[UUID, ValueStore[
         FlexCorrespondence
       ]], // TODO enhanced todo: MultiValueStore
@@ -628,8 +624,7 @@ class EmAgent(
     updateValueStoresInformListeners(
       scheduler,
       baseStateData,
-      result,
-      relevantData
+      result
     )
   }
 
@@ -647,16 +642,13 @@ class EmAgent(
     *   The base state data of the collection state
     * @param result
     *   Result of simulation
-    * @param relevantData
-    *   Data, that have been relevant to this calculation
     * @return
     *   Desired state change
     */
   final def updateValueStoresInformListeners(
       scheduler: ActorRef,
       baseStateData: EmModelBaseStateData,
-      result: ApparentPower,
-      relevantData: EmRelevantData
+      result: ApparentPower
   ): State = {
     /* Update the value stores */
     val updatedValueStore =
@@ -665,27 +657,13 @@ class EmAgent(
         baseStateData.schedulerStateData.nowInTicks,
         result
       )
-    val updatedRelevantDataStore =
-      baseStateData match {
-        case data: BaseStateData.ModelBaseStateData[_, _, _, _] =>
-          ValueStore.updateValueStore(
-            data.calcRelevantDateStore,
-            baseStateData.schedulerStateData.nowInTicks,
-            relevantData
-          )
-        case _ =>
-          throw new InconsistentStateException(
-            "Cannot find calculation relevant data to update."
-          )
-      }
 
     /* Update the base state data */
     val baseStateDateWithUpdatedResults =
       baseStateData match {
         case data: EmModelBaseStateData =>
           data.copy(
-            resultValueStore = updatedValueStore,
-            calcRelevantDateStore = updatedRelevantDataStore
+            resultValueStore = updatedValueStore
           )
         case _ =>
           throw new InconsistentStateException(

@@ -22,16 +22,15 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.em.EmAgent.EmModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
-  DataCollectionStateData,
   ParticipantStateData
 }
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.InvalidRequestException
-import edu.ie3.simona.model.participant.{EmModel, ModelState}
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
+import edu.ie3.simona.model.participant.{EmModel, ModelState}
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
@@ -81,7 +80,12 @@ trait EmAgentFundamentals
       )
 
   override def calculatePowerWithSecondaryDataAndGoToIdle(
-      collectionStateData: DataCollectionStateData[ApparentPower],
+      baseStateData: BaseStateData.ParticipantModelBaseStateData[
+        ApparentPower,
+        EmRelevantData,
+        ConstantState.type,
+        EmModel
+      ],
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
@@ -131,8 +135,7 @@ trait EmAgentFundamentals
         ModelState.ConstantState.type,
         EmModel
       ],
-      tick: Long,
-      secondaryData: Map[ActorRef, Option[_ <: Data]]
+      tick: Long
   ): EmRelevantData =
     throw new InvalidRequestException(
       "Not implemented"
