@@ -23,7 +23,11 @@ import tech.units.indriya.quantity.Quantities
 import java.time.ZonedDateTime
 import java.util.UUID
 
-trait EmInputTestData extends NodeInputTestData with PvInputTestData {
+trait EmInputTestData
+    extends NodeInputTestData
+    with StorageInputTestData
+    with PvInputTestData
+    with LoadInputTestData {
 
   protected val evcsInput = new EvcsInput(
     UUID.randomUUID(),
