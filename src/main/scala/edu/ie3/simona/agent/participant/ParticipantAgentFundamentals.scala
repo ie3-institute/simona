@@ -613,6 +613,7 @@ protected trait ParticipantAgentFundamentals[
         case modelStateData: BaseStateData.ModelBaseStateData[_, _, _, _]
             if modelStateData.isEmManaged =>
           // if we're managed by EM, go to Idle and wait for further messages
+          unstashAll()
           goto(Idle) using stateData
         case _: BaseStateData.ModelBaseStateData[_, _, _, _] =>
           /* Go to calculation state and send a trigger for this to myself as well */

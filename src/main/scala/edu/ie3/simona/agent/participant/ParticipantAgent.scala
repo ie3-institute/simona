@@ -431,6 +431,13 @@ abstract class ParticipantAgent[
       }
       stash()
       stay()
+
+    case Event(
+          RequestFlexOptions,
+          _: DataCollectionStateData[PD]
+        ) =>
+      stash()
+      stay()
   }
 
   when(Calculate) {
