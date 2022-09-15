@@ -27,7 +27,6 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
 }
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
-  DataCollectionStateData,
   ParticipantStateData
 }
 import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
@@ -147,8 +146,7 @@ trait StorageAgentFundamentals
         StorageState,
         StorageModel
       ],
-      tick: Long,
-      secondaryData: Map[ActorRef, Option[_ <: Data]]
+      tick: Long
   ): StorageRelevantData =
     StorageRelevantData(tick)
 
@@ -168,7 +166,12 @@ trait StorageAgentFundamentals
       )
 
   override def calculatePowerWithSecondaryDataAndGoToIdle(
-      collectionStateData: DataCollectionStateData[ApparentPower],
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        StorageRelevantData,
+        StorageState,
+        StorageModel
+      ],
       currentTick: Long,
       scheduler: ActorRef
   ): State =
