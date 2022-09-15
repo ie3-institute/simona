@@ -136,8 +136,12 @@ trait EmAgentFundamentals
         ComparableQuantity[Power] => ComparableQuantity[Power]
       ]
   ): ApparentPower =
-    throw new InvalidRequestException(
-      "Not implemented"
+    ParticipantAgentFundamentals.averageApparentPower(
+      tickToResults,
+      windowStart,
+      windowEnd,
+      activeToReactivePowerFuncOpt,
+      log
     )
 
   /** Determines the correct result.
