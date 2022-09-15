@@ -108,9 +108,9 @@ object BaseStateData {
 
     /** Stores all data that are relevant to model calculation
       */
-    val calcRelevantDateStore: ValueStore[
-      CD
-    ] // TODO can probably be replaced with receivedSecondaryDataStore
+    val receivedSecondaryDataStore: ValueStore[
+      Map[ActorRef, _ <: SecondaryData]
+    ]
 
     val stateDataStore: ValueStore[MS]
 
@@ -220,7 +220,9 @@ object BaseStateData {
       ],
       override val resultValueStore: ValueStore[PD],
       override val requestValueStore: ValueStore[PD],
-      override val calcRelevantDateStore: ValueStore[CD],
+      override val receivedSecondaryDataStore: ValueStore[
+        Map[ActorRef, _ <: SecondaryData]
+      ],
       override val stateDataStore: ValueStore[MS],
       override val flexStateData: Option[FlexStateData]
   ) extends ModelBaseStateData[PD, CD, MS, M] {

@@ -587,14 +587,10 @@ class WecAgentModelCalculationSpec
               WecModel
             ] =>
           /* The store for calculation relevant data has been extended */
-          baseStateData.calcRelevantDateStore match {
+          baseStateData.receivedSecondaryDataStore match {
             case ValueStore(_, store) =>
               store shouldBe Map(
-                900L -> WecRelevantData(
-                  weatherData.windVel,
-                  weatherData.temp,
-                  EmptyQuantity.of(PASCAL)
-                )
+                900L -> Map(weatherService.ref -> weatherData)
               )
           }
 
@@ -751,14 +747,10 @@ class WecAgentModelCalculationSpec
               WecModel
             ] =>
           /* The store for calculation relevant data has been extended */
-          baseStateData.calcRelevantDateStore match {
+          baseStateData.receivedSecondaryDataStore match {
             case ValueStore(_, store) =>
               store shouldBe Map(
-                900L -> WecRelevantData(
-                  weatherData.windVel,
-                  weatherData.temp,
-                  EmptyQuantity.of(PASCAL)
-                )
+                900L -> Map(weatherService.ref -> weatherData)
               )
           }
 
