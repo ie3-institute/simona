@@ -74,30 +74,30 @@ class EmAgentSelfOptSpec
         )
       )
 
-      val initTriggerId = 0
+      val initId = 0
 
-      val participant1: TestProbe = TestProbe("participant1_pv")
-      val participant2: TestProbe = TestProbe("participant2_evcs")
+      val pvAgent: TestProbe = TestProbe("PvAgent")
+      val evcsAgent: TestProbe = TestProbe("EvcsAgent")
 
-      val participant1Init =
+      val pvAgentInit =
         InitializeParticipantAgentTrigger[ApparentPower, InitializeStateData[
           ApparentPower
         ]](mock[InitializeStateData[ApparentPower]])
-      val participant2Init =
+      val evcsAgentInit =
         InitializeParticipantAgentTrigger[ApparentPower, InitializeStateData[
           ApparentPower
         ]](mock[InitializeStateData[ApparentPower]])
 
       val connectedAgents = Seq(
         (
-          participant1.ref,
-          participant1Init,
-          participant1Model
+          pvAgent.ref,
+          pvAgentInit,
+          pvInput
         ),
         (
-          participant2.ref,
-          participant2Init,
-          participant2Model
+          evcsAgent.ref,
+          evcsAgentInit,
+          evcsInput
         )
       )
 
@@ -109,7 +109,7 @@ class EmAgentSelfOptSpec
             EmAgentInitializeStateData
           ](
             EmAgentInitializeStateData(
-              inputModel = emInputModel,
+              inputModel = emInput,
               modelConfig = modelConfig,
               secondaryDataServices = None,
               simulationStartDate = simulationStartDate,
@@ -122,28 +122,26 @@ class EmAgentSelfOptSpec
               connectedAgents = connectedAgents
             )
           ),
-          initTriggerId,
+          initId,
           emAgent
         )
       )
 
-      val receivedInit1 = participant1
-        .expectMsgType[TriggerWithIdMessage]
-      receivedInit1.trigger shouldBe participant1Init
+      val receivedPvInit = pvAgent.expectMsgType[TriggerWithIdMessage]
+      receivedPvInit.trigger shouldBe pvAgentInit
 
-      val receivedInit2 = participant2
-        .expectMsgType[TriggerWithIdMessage]
-      receivedInit2.trigger shouldBe participant2Init
+      val receivedEvcsInit = evcsAgent.expectMsgType[TriggerWithIdMessage]
+      receivedEvcsInit.trigger shouldBe evcsAgentInit
 
-      participant1.send(
+      pvAgent.send(
         emAgent,
         CompletionMessage(
-          receivedInit1.triggerId,
+          receivedPvInit.triggerId,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(0L),
-                participant1.ref
+                pvAgent.ref
               )
             )
           )
@@ -152,15 +150,15 @@ class EmAgentSelfOptSpec
 
       scheduler.expectNoMessage()
 
-      participant2.send(
+      evcsAgent.send(
         emAgent,
         CompletionMessage(
-          receivedInit2.triggerId,
+          receivedEvcsInit.triggerId,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(0L),
-                participant2.ref
+                evcsAgent.ref
               )
             )
           )
@@ -169,7 +167,7 @@ class EmAgentSelfOptSpec
 
       scheduler.expectMsg(
         CompletionMessage(
-          initTriggerId,
+          initId,
           Some(
             Seq(
               ScheduleTriggerMessage(
@@ -182,50 +180,50 @@ class EmAgentSelfOptSpec
       )
 
       // init done, start EmAgent
-      val activationTriggerId1 = 1L
+      val activationId1 = 1L
 
       scheduler.send(
         emAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          activationTriggerId1,
+          activationId1,
           emAgent
         )
       )
 
       // expect activations and flex requests
-      val activationTrigger1_1 =
-        participant1.expectMsgType[TriggerWithIdMessage]
-      activationTrigger1_1.trigger shouldBe ActivityStartTrigger(0L)
-      activationTrigger1_1.receiverActor shouldBe participant1.ref
+      val receivedPvActivation1 =
+        pvAgent.expectMsgType[TriggerWithIdMessage]
+      receivedPvActivation1.trigger shouldBe ActivityStartTrigger(0L)
+      receivedPvActivation1.receiverActor shouldBe pvAgent.ref
 
-      participant1.expectMsg(RequestFlexOptions)
+      pvAgent.expectMsg(RequestFlexOptions)
 
-      val activationTrigger1_2 =
-        participant2.expectMsgType[TriggerWithIdMessage]
-      activationTrigger1_2.trigger shouldBe ActivityStartTrigger(0L)
-      activationTrigger1_2.receiverActor shouldBe participant2.ref
+      val receivedEvcsActivation1 =
+        evcsAgent.expectMsgType[TriggerWithIdMessage]
+      receivedEvcsActivation1.trigger shouldBe ActivityStartTrigger(0L)
+      receivedEvcsActivation1.receiverActor shouldBe evcsAgent.ref
 
-      participant2.expectMsg(RequestFlexOptions)
+      evcsAgent.expectMsg(RequestFlexOptions)
 
       // send flex options
-      participant1.send(
+      pvAgent.send(
         emAgent,
         ProvideMinMaxFlexOptions(
-          participant1Model.getUuid,
+          pvInput.getUuid,
           Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
           Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
           Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
         )
       )
 
-      participant1.expectNoMessage()
-      participant2.expectNoMessage()
+      pvAgent.expectNoMessage()
+      evcsAgent.expectNoMessage()
 
-      participant2.send(
+      evcsAgent.send(
         emAgent,
         ProvideMinMaxFlexOptions(
-          participant2Model.getUuid,
+          evcsInput.getUuid,
           Quantities.getQuantity(2d, PowerSystemUnits.KILOWATT),
           Quantities.getQuantity(-11d, PowerSystemUnits.KILOWATT),
           Quantities.getQuantity(11d, PowerSystemUnits.KILOWATT)
@@ -233,27 +231,29 @@ class EmAgentSelfOptSpec
       )
 
       // receive flex control messages
-      participant1.expectMsg(IssueNoCtrl)
-      participant1.send(
+      pvAgent.expectMsg(IssueNoCtrl)
+      pvAgent.send(
         emAgent,
         ParticipantResultEvent(
           new PvResult(
             0L.toDateTime,
-            participant1Model.getUuid,
+            pvInput.getUuid,
             Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
             Quantities.getQuantity(-0.5d, PowerSystemUnits.KILOVAR)
           )
         )
       )
 
-      val issuePower = participant2.expectMsgType[IssuePowerCtrl]
-      issuePower.setPower should equalWithTolerance(5d.asKiloWatt, tolerance)
-      participant2.send(
+      evcsAgent.expectMsgType[IssuePowerCtrl] match {
+        case IssuePowerCtrl(setPower) =>
+          setPower should equalWithTolerance(5d.asKiloWatt, tolerance)
+      }
+      evcsAgent.send(
         emAgent,
         ParticipantResultEvent(
           new EvcsResult(
             0L.toDateTime,
-            participant2Model.getUuid,
+            evcsInput.getUuid,
             Quantities.getQuantity(5d, PowerSystemUnits.KILOWATT),
             Quantities.getQuantity(0.1d, PowerSystemUnits.KILOVAR)
           )
@@ -263,7 +263,7 @@ class EmAgentSelfOptSpec
       // expect correct results
       resultsProbe.expectMsgType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
-          emResult.getInputModel shouldBe emInputModel.getUuid
+          emResult.getInputModel shouldBe emInput.getUuid
           emResult.getTime shouldBe simulationStartDate
           emResult.getP should equalWithTolerance(0d.asMegaWatt, tolerance)
           emResult.getQ should equalWithTolerance(
@@ -275,15 +275,15 @@ class EmAgentSelfOptSpec
       }
 
       // send completions
-      participant1.send(
+      pvAgent.send(
         emAgent,
         CompletionMessage(
-          activationTrigger1_1.triggerId,
+          receivedPvActivation1.triggerId,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(600L),
-                participant1.ref
+                pvAgent.ref
               )
             )
           )
@@ -292,15 +292,15 @@ class EmAgentSelfOptSpec
 
       scheduler.expectNoMessage()
 
-      participant2.send(
+      evcsAgent.send(
         emAgent,
         CompletionMessage(
-          activationTrigger1_2.triggerId,
+          receivedEvcsActivation1.triggerId,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(300L),
-                participant2.ref
+                evcsAgent.ref
               )
             )
           )
@@ -310,19 +310,19 @@ class EmAgentSelfOptSpec
       // expect completion from EmAgent
       scheduler.expectMsg(
         CompletionMessage(
-          activationTriggerId1,
+          activationId1,
           Some(Seq(ScheduleTriggerMessage(ActivityStartTrigger(300L), emAgent)))
         )
       )
 
       // trigger EmAgent with next tick
-      val activationTriggerId2 = 1L
+      val activationId2 = 1L
 
       scheduler.send(
         emAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(300L),
-          activationTriggerId2,
+          activationId2,
           emAgent
         )
       )
@@ -330,20 +330,20 @@ class EmAgentSelfOptSpec
       // expect activations and flex requests.
       // only participant 2 has been scheduled for this tick,
       // thus 1 does not get activated
-      participant1.expectNoMessage()
+      pvAgent.expectNoMessage()
 
-      val activationTrigger2_2 =
-        participant2.expectMsgType[TriggerWithIdMessage]
-      activationTrigger2_2.trigger shouldBe ActivityStartTrigger(300L)
-      activationTrigger2_2.receiverActor shouldBe participant2.ref
+      val receivedEvcsActivation2 =
+        evcsAgent.expectMsgType[TriggerWithIdMessage]
+      receivedEvcsActivation2.trigger shouldBe ActivityStartTrigger(300L)
+      receivedEvcsActivation2.receiverActor shouldBe evcsAgent.ref
 
-      participant2.expectMsg(RequestFlexOptions)
+      evcsAgent.expectMsg(RequestFlexOptions)
 
       // send flex options again, ev is fully charged
-      participant2.send(
+      evcsAgent.send(
         emAgent,
         ProvideMinMaxFlexOptions(
-          participant2Model.getUuid,
+          evcsInput.getUuid,
           Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT),
           Quantities.getQuantity(-11d, PowerSystemUnits.KILOWATT),
           Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
@@ -351,15 +351,15 @@ class EmAgentSelfOptSpec
       )
 
       // receive flex control messages
-      participant1.expectNoMessage()
+      pvAgent.expectNoMessage()
 
-      participant2.expectMsg(IssueNoCtrl)
-      participant2.send(
+      evcsAgent.expectMsg(IssueNoCtrl)
+      evcsAgent.send(
         emAgent,
         ParticipantResultEvent(
           new EvcsResult(
             0L.toDateTime,
-            participant2Model.getUuid,
+            evcsInput.getUuid,
             Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT),
             Quantities.getQuantity(0d, PowerSystemUnits.KILOVAR)
           )
@@ -369,7 +369,7 @@ class EmAgentSelfOptSpec
       // expect correct results
       resultsProbe.expectMsgType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
-          emResult.getInputModel shouldBe emInputModel.getUuid
+          emResult.getInputModel shouldBe emInput.getUuid
           emResult.getTime shouldBe 300L.toDateTime(simulationStartDate)
           emResult.getP should equalWithTolerance(
             (-0.005d).asMegaWatt,
@@ -386,15 +386,15 @@ class EmAgentSelfOptSpec
       // send completion
       scheduler.expectNoMessage()
 
-      participant2.send(
+      evcsAgent.send(
         emAgent,
-        CompletionMessage(activationTrigger2_2.triggerId, None)
+        CompletionMessage(receivedEvcsActivation2.triggerId, None)
       )
 
       // expect completion from EmAgent
       scheduler.expectMsg(
         CompletionMessage(
-          activationTriggerId2,
+          activationId2,
           Some(Seq(ScheduleTriggerMessage(ActivityStartTrigger(600L), emAgent)))
         )
       )
@@ -411,30 +411,30 @@ class EmAgentSelfOptSpec
         )
       )
 
-      val initTriggerId = 0
+      val initId = 0
 
-      val participant1: TestProbe = TestProbe("participant1_pv")
-      val participant2: TestProbe = TestProbe("participant2_evcs")
+      val pvAgent: TestProbe = TestProbe("PvAgent")
+      val evcsAgent: TestProbe = TestProbe("EvcsAgent")
 
-      val participant1Init =
+      val pvAgentInit =
         InitializeParticipantAgentTrigger[ApparentPower, InitializeStateData[
           ApparentPower
         ]](mock[InitializeStateData[ApparentPower]])
-      val participant2Init =
+      val evcsAgentInit =
         InitializeParticipantAgentTrigger[ApparentPower, InitializeStateData[
           ApparentPower
         ]](mock[InitializeStateData[ApparentPower]])
 
       val connectedAgents = Seq(
         (
-          participant1.ref,
-          participant1Init,
-          participant1Model
+          pvAgent.ref,
+          pvAgentInit,
+          pvInput
         ),
         (
-          participant2.ref,
-          participant2Init,
-          participant2Model
+          evcsAgent.ref,
+          evcsAgentInit,
+          evcsInput
         )
       )
 
@@ -446,7 +446,7 @@ class EmAgentSelfOptSpec
             EmAgentInitializeStateData
           ](
             EmAgentInitializeStateData(
-              inputModel = emInputModel,
+              inputModel = emInput,
               modelConfig = modelConfig,
               secondaryDataServices = None,
               simulationStartDate = simulationStartDate,
@@ -459,28 +459,28 @@ class EmAgentSelfOptSpec
               connectedAgents = connectedAgents
             )
           ),
-          initTriggerId,
+          initId,
           emAgent
         )
       )
 
-      val receivedInit1 = participant1
+      val receivedPvInit = pvAgent
         .expectMsgType[TriggerWithIdMessage]
-      receivedInit1.trigger shouldBe participant1Init
+      receivedPvInit.trigger shouldBe pvAgentInit
 
-      val receivedInit2 = participant2
+      val receivedEvcsInit = evcsAgent
         .expectMsgType[TriggerWithIdMessage]
-      receivedInit2.trigger shouldBe participant2Init
+      receivedEvcsInit.trigger shouldBe evcsAgentInit
 
-      participant1.send(
+      pvAgent.send(
         emAgent,
         CompletionMessage(
-          receivedInit1.triggerId,
+          receivedPvInit.triggerId,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(0L),
-                participant1.ref
+                pvAgent.ref
               )
             )
           )
@@ -489,15 +489,15 @@ class EmAgentSelfOptSpec
 
       scheduler.expectNoMessage()
 
-      participant2.send(
+      evcsAgent.send(
         emAgent,
         CompletionMessage(
-          receivedInit2.triggerId,
+          receivedEvcsInit.triggerId,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(0L),
-                participant2.ref
+                evcsAgent.ref
               )
             )
           )
@@ -506,7 +506,7 @@ class EmAgentSelfOptSpec
 
       scheduler.expectMsg(
         CompletionMessage(
-          initTriggerId,
+          initId,
           Some(
             Seq(
               ScheduleTriggerMessage(
@@ -519,50 +519,50 @@ class EmAgentSelfOptSpec
       )
 
       // init done, start EmAgent
-      val activationTriggerId1 = 1L
+      val activationId1 = 1L
 
       scheduler.send(
         emAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          activationTriggerId1,
+          activationId1,
           emAgent
         )
       )
 
       // expect activations and flex requests
-      val activationTrigger1_1 =
-        participant1.expectMsgType[TriggerWithIdMessage]
-      activationTrigger1_1.trigger shouldBe ActivityStartTrigger(0L)
-      activationTrigger1_1.receiverActor shouldBe participant1.ref
+      val receivedPvActivation1 =
+        pvAgent.expectMsgType[TriggerWithIdMessage]
+      receivedPvActivation1.trigger shouldBe ActivityStartTrigger(0L)
+      receivedPvActivation1.receiverActor shouldBe pvAgent.ref
 
-      participant1.expectMsg(RequestFlexOptions)
+      pvAgent.expectMsg(RequestFlexOptions)
 
-      val activationTrigger1_2 =
-        participant2.expectMsgType[TriggerWithIdMessage]
-      activationTrigger1_2.trigger shouldBe ActivityStartTrigger(0L)
-      activationTrigger1_2.receiverActor shouldBe participant2.ref
+      val receivedEvcsActivation1 =
+        evcsAgent.expectMsgType[TriggerWithIdMessage]
+      receivedEvcsActivation1.trigger shouldBe ActivityStartTrigger(0L)
+      receivedEvcsActivation1.receiverActor shouldBe evcsAgent.ref
 
-      participant2.expectMsg(RequestFlexOptions)
+      evcsAgent.expectMsg(RequestFlexOptions)
 
       // send flex options
-      participant1.send(
+      pvAgent.send(
         emAgent,
         ProvideMinMaxFlexOptions(
-          participant1Model.getUuid,
+          pvInput.getUuid,
           Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
           Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
           Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
         )
       )
 
-      participant1.expectNoMessage()
-      participant2.expectNoMessage()
+      pvAgent.expectNoMessage()
+      evcsAgent.expectNoMessage()
 
-      participant2.send(
+      evcsAgent.send(
         emAgent,
         ProvideMinMaxFlexOptions(
-          participant2Model.getUuid,
+          evcsInput.getUuid,
           Quantities.getQuantity(2d, PowerSystemUnits.KILOWATT),
           Quantities.getQuantity(-11d, PowerSystemUnits.KILOWATT),
           Quantities.getQuantity(11d, PowerSystemUnits.KILOWATT)
@@ -570,27 +570,29 @@ class EmAgentSelfOptSpec
       )
 
       // receive flex control messages
-      participant1.expectMsg(IssueNoCtrl)
-      participant1.send(
+      pvAgent.expectMsg(IssueNoCtrl)
+      pvAgent.send(
         emAgent,
         ParticipantResultEvent(
           new PvResult(
             0L.toDateTime,
-            participant1Model.getUuid,
+            pvInput.getUuid,
             Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
             Quantities.getQuantity(-0.5d, PowerSystemUnits.KILOVAR)
           )
         )
       )
 
-      val issuePower1_2 = participant2.expectMsgType[IssuePowerCtrl]
-      issuePower1_2.setPower should equalWithTolerance(5d.asKiloWatt, tolerance)
-      participant2.send(
+      evcsAgent.expectMsgType[IssuePowerCtrl] match {
+        case IssuePowerCtrl(setPower) =>
+          setPower should equalWithTolerance(5d.asKiloWatt, tolerance)
+      }
+      evcsAgent.send(
         emAgent,
         ParticipantResultEvent(
           new EvcsResult(
             0L.toDateTime,
-            participant2Model.getUuid,
+            evcsInput.getUuid,
             Quantities.getQuantity(5d, PowerSystemUnits.KILOWATT),
             Quantities.getQuantity(0.1d, PowerSystemUnits.KILOVAR)
           )
@@ -600,7 +602,7 @@ class EmAgentSelfOptSpec
       // expect correct results
       resultsProbe.expectMsgType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
-          emResult.getInputModel shouldBe emInputModel.getUuid
+          emResult.getInputModel shouldBe emInput.getUuid
           emResult.getTime shouldBe simulationStartDate
           emResult.getP should equalWithTolerance(0d.asMegaWatt, tolerance)
           emResult.getQ should equalWithTolerance(
@@ -612,15 +614,15 @@ class EmAgentSelfOptSpec
       }
 
       // send completions
-      participant1.send(
+      pvAgent.send(
         emAgent,
         CompletionMessage(
-          activationTrigger1_1.triggerId,
+          receivedPvActivation1.triggerId,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(300L),
-                participant1.ref
+                pvAgent.ref
               )
             )
           )
@@ -629,15 +631,15 @@ class EmAgentSelfOptSpec
 
       scheduler.expectNoMessage()
 
-      participant2.send(
+      evcsAgent.send(
         emAgent,
         CompletionMessage(
-          activationTrigger1_2.triggerId,
+          receivedEvcsActivation1.triggerId,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(600L),
-                participant2.ref
+                evcsAgent.ref
               )
             )
           )
@@ -647,19 +649,19 @@ class EmAgentSelfOptSpec
       // expect completion from EmAgent
       scheduler.expectMsg(
         CompletionMessage(
-          activationTriggerId1,
+          activationId1,
           Some(Seq(ScheduleTriggerMessage(ActivityStartTrigger(300L), emAgent)))
         )
       )
 
       // trigger EmAgent with next tick
-      val activationTriggerId2 = 1L
+      val activationId2 = 1L
 
       scheduler.send(
         emAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(300L),
-          activationTriggerId2,
+          activationId2,
           emAgent
         )
       )
@@ -667,20 +669,20 @@ class EmAgentSelfOptSpec
       // expect activations and flex requests.
       // only participant 1 has been scheduled for this tick,
       // thus 2 does not get activated
-      participant2.expectNoMessage()
+      evcsAgent.expectNoMessage()
 
-      val activationTrigger2_1 =
-        participant1.expectMsgType[TriggerWithIdMessage]
-      activationTrigger2_1.trigger shouldBe ActivityStartTrigger(300L)
-      activationTrigger2_1.receiverActor shouldBe participant1.ref
+      val receivedPvActivation2 =
+        pvAgent.expectMsgType[TriggerWithIdMessage]
+      receivedPvActivation2.trigger shouldBe ActivityStartTrigger(300L)
+      receivedPvActivation2.receiverActor shouldBe pvAgent.ref
 
-      participant1.expectMsg(RequestFlexOptions)
+      pvAgent.expectMsg(RequestFlexOptions)
 
       // send flex options again, now there's a cloud and thus less feed-in
-      participant1.send(
+      pvAgent.send(
         emAgent,
         ProvideMinMaxFlexOptions(
-          participant1Model.getUuid,
+          pvInput.getUuid,
           Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
           Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
           Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
@@ -688,48 +690,49 @@ class EmAgentSelfOptSpec
       )
 
       // receive flex control messages
-      participant1.expectMsg(IssueNoCtrl)
+      pvAgent.expectMsg(IssueNoCtrl)
 
-      participant1.send(
+      pvAgent.send(
         emAgent,
         ParticipantResultEvent(
           new PvResult(
             300L.toDateTime,
-            participant1Model.getUuid,
+            pvInput.getUuid,
             Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
             Quantities.getQuantity(-0.06d, PowerSystemUnits.KILOVAR)
           )
         )
       )
 
-      participant1.send(
+      pvAgent.send(
         emAgent,
-        CompletionMessage(activationTrigger2_1.triggerId, None)
+        CompletionMessage(receivedPvActivation2.triggerId, None)
       )
 
       // evcs is now activated too
-      val activationTrigger2_2 =
-        participant2.expectMsgType[TriggerWithIdMessage]
-      activationTrigger2_2.trigger shouldBe ActivityStartTrigger(300L)
-      activationTrigger2_2.receiverActor shouldBe participant2.ref
+      val receivedEvcsActivation2 =
+        evcsAgent.expectMsgType[TriggerWithIdMessage]
+      receivedEvcsActivation2.trigger shouldBe ActivityStartTrigger(300L)
+      receivedEvcsActivation2.receiverActor shouldBe evcsAgent.ref
 
-      val issuePower2_2 = participant2.expectMsgType[IssuePowerCtrl]
-      issuePower2_2.setPower should equalWithTolerance(3d.asKiloWatt, tolerance)
-
-      participant2.send(
+      evcsAgent.expectMsgType[IssuePowerCtrl] match {
+        case IssuePowerCtrl(setPower) =>
+          setPower should equalWithTolerance(3d.asKiloWatt, tolerance)
+      }
+      evcsAgent.send(
         emAgent,
         RevokeTriggerMessage(
           ActivityStartTrigger(600L),
-          participant2.ref
+          evcsAgent.ref
         )
       )
 
-      participant2.send(
+      evcsAgent.send(
         emAgent,
         ParticipantResultEvent(
           new EvcsResult(
             300L.toDateTime,
-            participant2Model.getUuid,
+            evcsInput.getUuid,
             Quantities.getQuantity(3d, PowerSystemUnits.KILOWATT),
             Quantities.getQuantity(0.06d, PowerSystemUnits.KILOVAR)
           )
@@ -739,7 +742,7 @@ class EmAgentSelfOptSpec
       // expect correct results
       resultsProbe.expectMsgType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
-          emResult.getInputModel shouldBe emInputModel.getUuid
+          emResult.getInputModel shouldBe emInput.getUuid
           emResult.getTime shouldBe 300L.toDateTime(simulationStartDate)
           emResult.getP should equalWithTolerance(
             0d.asMegaWatt,
@@ -756,15 +759,15 @@ class EmAgentSelfOptSpec
       // send completion
       scheduler.expectNoMessage()
 
-      participant2.send(
+      evcsAgent.send(
         emAgent,
         CompletionMessage(
-          activationTrigger2_2.triggerId,
+          receivedEvcsActivation2.triggerId,
           Some(
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(800L),
-                participant2.ref
+                evcsAgent.ref
               )
             )
           )
@@ -774,7 +777,7 @@ class EmAgentSelfOptSpec
       // expect completion from EmAgent with new tick (800) instead of revoked tick (600)
       scheduler.expectMsg(
         CompletionMessage(
-          activationTriggerId2,
+          activationId2,
           Some(Seq(ScheduleTriggerMessage(ActivityStartTrigger(800L), emAgent)))
         )
       )

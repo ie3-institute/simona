@@ -25,7 +25,7 @@ import java.util.UUID
 
 trait EmInputTestData extends NodeInputTestData {
 
-  protected val participant1Model = new PvInput(
+  protected val pvInput = new PvInput(
     UUID.randomUUID(),
     "Dummy_PVModel",
     new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
@@ -43,7 +43,7 @@ trait EmInputTestData extends NodeInputTestData {
     0.95
   )
 
-  protected val participant2Model = new EvcsInput(
+  protected val evcsInput = new EvcsInput(
     UUID.randomUUID(),
     "Dummy_EvcsModel",
     new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
@@ -56,14 +56,14 @@ trait EmInputTestData extends NodeInputTestData {
     EvcsLocationType.HOME
   )
 
-  protected val emInputModel = new EmInput(
+  protected val emInput = new EmInput(
     UUID.randomUUID(),
     "Dummy_EmModel",
     new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvA,
     CosPhiFixed.CONSTANT_CHARACTERISTIC,
-    Array(participant1Model.getUuid, participant2Model.getUuid),
+    Array(pvInput.getUuid, evcsInput.getUuid),
     ControlStrategy.DefaultControlStrategies.NO_CONTROL_STRATEGY // FIXME adapt once available
   )
 
@@ -87,7 +87,7 @@ trait EmInputTestData extends NodeInputTestData {
 
   protected val modelConfig: SimonaConfig.EmRuntimeConfig =
     configUtil.getOrDefault[SimonaConfig.EmRuntimeConfig](
-      emInputModel.getUuid
+      emInput.getUuid
     )
 
   protected implicit val simulationStartDate: ZonedDateTime =

@@ -19,8 +19,8 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOpti
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import org.mockito.Mockito.when
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.mockito.MockitoSugar.mock
@@ -35,7 +35,7 @@ class EmModelSpec
   "The em model object" should {
 
     val model = EmModel(
-      emInputModel,
+      emInput,
       modelConfig,
       simulationStartDate,
       simulationEndDate
