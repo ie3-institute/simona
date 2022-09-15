@@ -61,6 +61,7 @@ import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.PvInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits.{
   KILOWATT,
   MEGAVAR,
@@ -68,10 +69,10 @@ import edu.ie3.util.quantities.PowerSystemUnits.{
   PU
 }
 import edu.ie3.util.quantities.QuantityUtil
-import org.scalatest.PrivateMethodTester
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND}
 
+import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 
 class PVAgentModelCalculationSpec
@@ -85,13 +86,18 @@ class PVAgentModelCalculationSpec
         """.stripMargin)
       )
     )
-    with PrivateMethodTester
     with PvInputTestData {
+
+  private implicit val simulationStartDate: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+  private val simulationEndDate: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00")
+
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
 
   /* Alter the input model to have a voltage sensitive reactive power calculation */
-  val voltageSensitiveInput: PvInput = pvInputModel
+  val voltageSensitiveInput: PvInput = pvInput
     .copy()
     .qCharacteristics(new QV("qV:{(0.95,-0.625),(1.05,0.625)}"))
     .build()

@@ -37,7 +37,7 @@ import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import org.scalatestplus.mockito.MockitoSugar.mock
+import org.scalatestplus.mockito.MockitoSugar
 import tech.units.indriya.quantity.Quantities
 
 class EmAgentSelfOptSpec
@@ -51,7 +51,8 @@ class EmAgentSelfOptSpec
   """.stripMargin)
       )
     )
-    with EmInputTestData {
+    with EmInputTestData
+    with MockitoSugar {
 
   private val resolution =
     simonaConfig.simona.powerflow.resolution.getSeconds // TODO does this make sense?
@@ -63,7 +64,7 @@ class EmAgentSelfOptSpec
 
   private val tolerance = 1e-10d
 
-  "An em agent with model calculation" should {
+  "An em agent" should {
     "be initialized correctly and run through some activations" in {
       val resultsProbe = TestProbe("ResultListener")
 
@@ -76,8 +77,8 @@ class EmAgentSelfOptSpec
 
       val initId = 0
 
-      val pvAgent: TestProbe = TestProbe("PvAgent")
-      val evcsAgent: TestProbe = TestProbe("EvcsAgent")
+      val pvAgent = TestProbe("PvAgent")
+      val evcsAgent = TestProbe("EvcsAgent")
 
       val pvAgentInit =
         InitializeParticipantAgentTrigger[ApparentPower, InitializeStateData[
@@ -89,16 +90,8 @@ class EmAgentSelfOptSpec
         ]](mock[InitializeStateData[ApparentPower]])
 
       val connectedAgents = Seq(
-        (
-          pvAgent.ref,
-          pvAgentInit,
-          pvInput
-        ),
-        (
-          evcsAgent.ref,
-          evcsAgentInit,
-          evcsInput
-        )
+        (pvAgent.ref, pvAgentInit, pvInput),
+        (evcsAgent.ref, evcsAgentInit, evcsInput)
       )
 
       scheduler.send(
@@ -413,8 +406,8 @@ class EmAgentSelfOptSpec
 
       val initId = 0
 
-      val pvAgent: TestProbe = TestProbe("PvAgent")
-      val evcsAgent: TestProbe = TestProbe("EvcsAgent")
+      val pvAgent = TestProbe("PvAgent")
+      val evcsAgent = TestProbe("EvcsAgent")
 
       val pvAgentInit =
         InitializeParticipantAgentTrigger[ApparentPower, InitializeStateData[
