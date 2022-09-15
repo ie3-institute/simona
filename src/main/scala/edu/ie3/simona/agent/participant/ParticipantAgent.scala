@@ -74,6 +74,8 @@ import scala.reflect.ClassTag
   *   Type of primary data, the calculation model will produce
   * @tparam CD
   *   Type of compilation of [[SecondaryData]], that are needed for calculation
+  * @tparam MS
+  *   Type of model state data
   * @tparam D
   *   Type of participant state data to use
   * @tparam I
