@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Kafka sink for results [#24](https://github.com/ie3-institute/simona/issues/24)
 - Added Kafka sink for runtime events, re-implemented RuntimeEventListener in akka typed [#242](https://github.com/ie3-institute/simona/issues/242)
 - Added capability of SystemParticipants to handle flexibility requests regarding self-optimization [#308](https://github.com/ie3-institute/simona/issues/308)
+- Implementation of Energy Management Agents [#204](https://github.com/ie3-institute/simona/issues/204)
 
 ### Changed
 - Re-organizing test resources into their respective packages [#105](https://github.com/ie3-institute/simona/issues/105)
@@ -45,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Consolidated and enhanced SimScheduler tests [#285](https://github.com/ie3-institute/simona/issues/285)
 - Renaming sub-package directories [#141](https://github.com/ie3-institute/simona/issues/141)
 - Updated authors in [#301](https://github.com/ie3-institute/simona/issues/301)
+- Added faster data structures to SimScheduler [#282](https://github.com/ie3-institute/simona/issues/282)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)

@@ -1,0 +1,37 @@
+@startuml
+title Use Case Market Signal Optimization \n Existing: LoadAgent, HomeStorage, PV, EV \n Missing: -
+participant GridAgent
+participant HEMS
+participant LoadAgent
+participant PVAgent
+participant HomeStorageAgent
+participant EvcsAgent1
+group to be discussed
+    HEMS -> HEMS: a. Charge EV before HomeStorage \n b. first HomeStorage then EV \n c. both at same time?
+        end
+group init
+LoadAgent -> HEMS: PowerDemandLoadAgentTotal,\nPowerDemandLoadAgentCurtailable
+PVAgent -> HEMS: PVInput
+EvcsAgent1 -> HEMS: SoC, Demand, (FlexibilityOffer)
+HomeStorageAgent -> HEMS: SoC
+GridAgent -> HEMS: MarketSignal [0,1] /'0 == Energy expensive , 1 == Energy cheap'/
+end
+
+alt#Gold #Brown MarketSignal = 0
+alt#Gold #LightBlue Load <= Production
+    group#Gold #LightBlue Same Case as Load <= Production in Self Optimization case -> Increase Load until Production
+    end
+else #Pink Load > Production
+    group#Gold to be discussed:
+    HEMS -> HEMS: General approach:\n Since an amoount of curtailable load is defined it's not necessary to uncharge the EV\n So same case applies as for Load > Production for Market Signal = 0 at ControlScheme for LoadPVStorage
+    end
+
+    else #Green MarketSignal = 1
+group Same behavoiur as in Self Optimization Case
+end
+end
+
+@enduml
+
+
+

@@ -50,8 +50,9 @@ object FlexibilityMessage {
       maxPower: ComparableQuantity[Power]
   ) extends ProvideFlexOptions
 
-  /** Message sent by EmAgent that specifies a power target that needs to be
-    * produced/consumed by the system participant.
+  /** Message sent by [[edu.ie3.simona.agent.participant.em.EmAgent]] that
+    * specifies a power target that needs to be produced/consumed by the system
+    * participant.
     * @param setPower
     *   the power that the system participant has to set. Positive: consuming,
     *   negative: producing
@@ -60,8 +61,9 @@ object FlexibilityMessage {
       setPower: ComparableQuantity[Power]
   ) extends IssueFlexControl
 
-  /** Message sent by EmAgent indicating that no power target is set and the
-    * reference power shall be produced/consumed.
+  /** Message sent by [[edu.ie3.simona.agent.participant.em.EmAgent]] indicating
+    * that no power target is set and the reference power shall be
+    * produced/consumed.
     */
   case object IssueNoCtrl extends IssueFlexControl
 }

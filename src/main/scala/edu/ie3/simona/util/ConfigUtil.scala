@@ -89,8 +89,9 @@ object ConfigUtil {
             subConfig.pv.individualConfigs,
             subConfig.evcs.individualConfigs,
             subConfig.wec.individualConfigs,
-            subConfig.storage.individualConfigs
-          ).reduceOption(_ ++ _).getOrElse(Seq.empty)
+            subConfig.storage.individualConfigs,
+            subConfig.em.individualConfigs
+          ).flatten
         ),
         Seq(
           subConfig.load.defaultConfig,
@@ -98,7 +99,8 @@ object ConfigUtil {
           subConfig.pv.defaultConfig,
           subConfig.evcs.defaultConfig,
           subConfig.wec.defaultConfig,
-          subConfig.storage.defaultConfig
+          subConfig.storage.defaultConfig,
+          subConfig.em.defaultConfig
         ).map { conf => conf.getClass -> conf }.toMap
       )
     }
@@ -228,6 +230,7 @@ object ConfigUtil {
   object NotifierIdentifier extends ParsableEnumeration {
     val BioMassPlant: Value = Value("bm")
     val ChpPlant: Value = Value("chp")
+    val Em: Value = Value("em")
     val Ev: Value = Value("ev")
     val Evcs: Value = Value("evcs")
     val FixedFeedIn: Value = Value("fixedfeedin")
