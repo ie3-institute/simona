@@ -11,6 +11,7 @@ import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.{LoadInput, PvInput, StorageInput}
+import edu.ie3.datamodel.models.result.system.EmResult
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.em.EmAgent
@@ -24,6 +25,7 @@ import edu.ie3.simona.config.SimonaConfig.{
   PvRuntimeConfig,
   StorageRuntimeConfig
 }
+import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
@@ -46,9 +48,14 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 }
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.EmInputTestData
+import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.TimeUtil
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.scalatestplus.mockito.MockitoSugar
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND}
+
+import java.time.ZonedDateTime
 
 class EmAgentIT
     extends ParticipantAgentSpec(
@@ -63,6 +70,12 @@ class EmAgentIT
     )
     with EmInputTestData
     with MockitoSugar {
+
+  // start a bit later so the sun is up
+  protected implicit val simulationStartDate: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 10:00:00")
+  protected val simulationEndDate: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-02 02:00:00")
 
   private val resolution =
     simonaConfig.simona.powerflow.resolution.getSeconds
@@ -158,7 +171,7 @@ class EmAgentIT
             pvInput,
             PvRuntimeConfig(
               calculateMissingReactivePowerWithModel = true,
-              scaling = 1d,
+              scaling = 2d,
               uuids = List.empty
             ),
             primaryServiceProxy.ref,
@@ -181,7 +194,7 @@ class EmAgentIT
           ]
         ](
           ParticipantInitializeStateData(
-            storageInput,
+            householdStorageInput,
             StorageRuntimeConfig(
               calculateMissingReactivePowerWithModel = true,
               scaling = 1d,
@@ -201,7 +214,7 @@ class EmAgentIT
       val connectedAgents = Seq(
         (loadAgent, loadAgentInit, loadInput),
         (pvAgent, pvAgentInit, pvInput),
-        (storageAgent, storageAgentInit, storageInput)
+        (storageAgent, storageAgentInit, householdStorageInput)
       )
 
       scheduler.send(
@@ -237,7 +250,7 @@ class EmAgentIT
         )
         .map(
           _.inputModelUuid
-        ) should contain allOf (loadInput.getUuid, pvInput.getUuid, storageInput.getUuid)
+        ) should contain allOf (loadInput.getUuid, pvInput.getUuid, householdStorageInput.getUuid)
 
       primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
       primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
@@ -260,7 +273,13 @@ class EmAgentIT
         )
       )
 
-      // TICK 0
+      /* TICK 0
+         LOAD: 0.0002686 MW
+         PV: -0.005685 MW
+         STORAGE: SOC 0 %
+         -> charge with 5 kW
+         -> remaining -0.0004161 MW
+       */
 
       val activationId1 = 1
 
@@ -278,22 +297,192 @@ class EmAgentIT
         ProvideWeatherMessage(
           0L,
           WeatherData(
+            Quantities.getQuantity(400d, StandardUnits.SOLAR_IRRADIANCE),
             Quantities.getQuantity(200d, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(100d, StandardUnits.SOLAR_IRRADIANCE),
             Quantities.getQuantity(0d, CELSIUS),
             Quantities.getQuantity(0d, METRE_PER_SECOND)
           ),
-          Some(900L)
+          Some(7200L)
         )
       )
+
+      resultsListener.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(emResult: EmResult) =>
+          emResult.getInputModel shouldBe emInput.getUuid
+          emResult.getTime shouldBe 0L.toDateTime
+          emResult.getP should equalWithTolerance(
+            (-0.000416087825).asMegaWatt,
+            tolerance
+          )
+          emResult.getQ should equalWithTolerance(
+            0.0000882855367.asMegaVar,
+            tolerance
+          )
+      }
 
       scheduler.expectMsg(
         CompletionMessage(
           activationId1,
-          Some(List(ScheduleTriggerMessage(ActivityStartTrigger(900), emAgent)))
+          Some(
+            List(ScheduleTriggerMessage(ActivityStartTrigger(7200L), emAgent))
+          )
         )
       )
 
+      /* TICK 7200
+         LOAD: 0.0002686 MW (unchanged)
+         PV: -0.003797 MW
+         STORAGE: SOC 63,3 %
+         -> charge with 3.5282 kW
+         -> remaining 0 MW
+       */
+
+      val activationId2 = 2
+
+      scheduler.send(
+        emAgent,
+        TriggerWithIdMessage(
+          ActivityStartTrigger(7200L),
+          activationId2,
+          emAgent
+        )
+      )
+
+      weatherService.send(
+        pvAgent,
+        ProvideWeatherMessage(
+          7200L,
+          WeatherData(
+            Quantities.getQuantity(300d, StandardUnits.SOLAR_IRRADIANCE),
+            Quantities.getQuantity(500d, StandardUnits.SOLAR_IRRADIANCE),
+            Quantities.getQuantity(0d, CELSIUS),
+            Quantities.getQuantity(0d, METRE_PER_SECOND)
+          ),
+          Some(14400L)
+        )
+      )
+
+      resultsListener.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(emResult: EmResult) =>
+          emResult.getInputModel shouldBe emInput.getUuid
+          emResult.getTime shouldBe 7200L.toDateTime
+          emResult.getP should equalWithTolerance(
+            0.asMegaWatt,
+            tolerance
+          )
+          emResult.getQ should equalWithTolerance(
+            0.0000882855367.asMegaVar,
+            tolerance
+          )
+      }
+
+      scheduler.expectMsg(
+        CompletionMessage(
+          activationId2,
+          Some(
+            List(ScheduleTriggerMessage(ActivityStartTrigger(13107L), emAgent))
+          )
+        )
+      )
+
+      /* TICK 13107
+         LOAD: 0.0002686 MW (unchanged)
+         PV: -0.003797 MW (unchanged)
+         STORAGE: SOC 100 %
+         -> charge with 0 kW
+         -> remaining -0.003528 MW
+       */
+
+      val activationId3 = 3
+
+      scheduler.send(
+        emAgent,
+        TriggerWithIdMessage(
+          ActivityStartTrigger(13107L),
+          activationId3,
+          emAgent
+        )
+      )
+
+      resultsListener.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(emResult: EmResult) =>
+          emResult.getInputModel shouldBe emInput.getUuid
+          emResult.getTime shouldBe 13107L.toDateTime
+          emResult.getP should equalWithTolerance(
+            (-0.0035281545552).asMegaWatt,
+            tolerance
+          )
+          emResult.getQ should equalWithTolerance(
+            0.0000882855367.asMegaVar,
+            tolerance
+          )
+      }
+
+      scheduler.expectMsg(
+        CompletionMessage(
+          activationId3,
+          Some(
+            List(ScheduleTriggerMessage(ActivityStartTrigger(14400L), emAgent))
+          )
+        )
+      )
+
+      /* TICK 14400
+         LOAD: 0.0002686 MW (unchanged)
+         PV: -0.00006565 MW
+         STORAGE: SOC 100 %
+         -> charge with -0.202956 kW
+         -> remaining 0 MW
+       */
+
+      val activationId4 = 4
+
+      scheduler.send(
+        emAgent,
+        TriggerWithIdMessage(
+          ActivityStartTrigger(14400L),
+          activationId4,
+          emAgent
+        )
+      )
+
+      // it got cloudy now...
+      weatherService.send(
+        pvAgent,
+        ProvideWeatherMessage(
+          14400L,
+          WeatherData(
+            Quantities.getQuantity(5d, StandardUnits.SOLAR_IRRADIANCE),
+            Quantities.getQuantity(5d, StandardUnits.SOLAR_IRRADIANCE),
+            Quantities.getQuantity(0d, CELSIUS),
+            Quantities.getQuantity(0d, METRE_PER_SECOND)
+          ),
+          Some(21600L)
+        )
+      )
+
+      resultsListener.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(emResult: EmResult) =>
+          emResult.getInputModel shouldBe emInput.getUuid
+          emResult.getTime shouldBe 14400L.toDateTime
+          emResult.getP should equalWithTolerance(
+            0.asMegaWatt,
+            tolerance
+          )
+          emResult.getQ should equalWithTolerance(
+            0.000088285537.asMegaVar,
+            tolerance
+          )
+      }
+
+      scheduler.expectMsg(
+        CompletionMessage(
+          activationId4,
+          Some(
+            List(ScheduleTriggerMessage(ActivityStartTrigger(21600L), emAgent))
+          )
+        )
+      )
     }
   }
 }
