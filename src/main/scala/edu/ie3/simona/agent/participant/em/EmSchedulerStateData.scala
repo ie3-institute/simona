@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.participant.em
 
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
-import edu.ie3.simona.ontology.trigger.ScheduledTrigger
+import edu.ie3.simona.scheduler.SimSchedulerStateData.ScheduledTrigger
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.scala.collection.mutable.{CountingMap, PriorityMultiQueue}
 

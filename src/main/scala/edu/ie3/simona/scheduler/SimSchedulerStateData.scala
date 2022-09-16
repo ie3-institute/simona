@@ -119,7 +119,7 @@ object SimSchedulerStateData {
     * @param agent
     *   the agent that wants to be scheduled
     */
-  private[scheduler] final case class ScheduledTrigger(
+  final case class ScheduledTrigger(
       triggerWithIdMessage: TriggerWithIdMessage,
       agent: ActorRef
   )
