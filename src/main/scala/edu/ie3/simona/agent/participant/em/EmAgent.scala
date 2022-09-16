@@ -226,7 +226,7 @@ class EmAgent(
         ),
         ValueStore.forResult(resolution, 10),
         ValueStore(resolution * 10),
-        ValueStore(resolution * 10),
+        ValueStore(0),
         connectedAgents.map { case (_, _, sp) =>
           sp.getUuid -> ValueStore(resolution * 10)
         }.toMap,

@@ -17,7 +17,8 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   TriggerWithIdMessage
 }
 import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
-import edu.ie3.simona.ontology.trigger.{ScheduledTrigger, Trigger}
+import edu.ie3.simona.ontology.trigger.Trigger
+import edu.ie3.simona.scheduler.SimSchedulerStateData.ScheduledTrigger
 import edu.ie3.simona.util.SimonaConstants.PARALLELISM_WINDOW
 import edu.ie3.util.scala.collection.mutable.CountingMap
 
