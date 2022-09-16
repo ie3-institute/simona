@@ -35,10 +35,13 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.scalatestplus.mockito.MockitoSugar
 import tech.units.indriya.quantity.Quantities
+
+import java.time.ZonedDateTime
 
 class EmAgentSelfOptSpec
     extends ParticipantAgentSpec(
@@ -53,6 +56,11 @@ class EmAgentSelfOptSpec
     )
     with EmInputTestData
     with MockitoSugar {
+
+  protected implicit val simulationStartDate: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+  protected val simulationEndDate: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-02 02:00:00")
 
   private val resolution =
     simonaConfig.simona.powerflow.resolution.getSeconds // TODO does this make sense?

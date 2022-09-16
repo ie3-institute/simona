@@ -10,17 +10,15 @@ import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.`type`.chargingpoint.ChargingPointTypeUtils
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.datamodel.models.input.system.{EmInput, EvcsInput, PvInput}
-import edu.ie3.datamodel.models.{ControlStrategy, OperationTime, StandardUnits}
+import edu.ie3.datamodel.models.input.system.{EmInput, EvcsInput}
+import edu.ie3.datamodel.models.{ControlStrategy, OperationTime}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.util.ConfigUtil
-import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.PowerSystemUnits._
 import tech.units.indriya.quantity.Quantities
 
-import java.time.ZonedDateTime
 import java.util.UUID
 
 trait EmInputTestData extends NodeInputTestData with PvInputTestData {
@@ -53,7 +51,7 @@ trait EmInputTestData extends NodeInputTestData with PvInputTestData {
     createSimonaConfig(
       LoadModelBehaviour.FIX,
       LoadReference.ActivePower(
-        Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+        Quantities.getQuantity(0d, KILOWATT)
       )
     )
 
@@ -72,8 +70,4 @@ trait EmInputTestData extends NodeInputTestData with PvInputTestData {
       emInput.getUuid
     )
 
-  protected implicit val simulationStartDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
-  protected val simulationEndDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 02:00:00")
 }
