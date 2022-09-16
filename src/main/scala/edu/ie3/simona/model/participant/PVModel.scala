@@ -165,7 +165,7 @@ final case class PVModel private (
       eTotal,
       data.dateTime,
       irradiationSTC
-    )
+    ).multiply(scalingFactor)
   }
 
   /** Calculates the position of the earth in relation to the sun (day angle)

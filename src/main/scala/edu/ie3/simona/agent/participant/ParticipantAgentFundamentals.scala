@@ -675,24 +675,25 @@ protected trait ParticipantAgentFundamentals[
 
     // announce flex options (we can do this right away, since this
     // does not include reactive power which could change later
-    val flexResult = flexOptions match {
-      case ProvideMinMaxFlexOptions(
+    if (baseStateData.outputConfig.simulationResultInfo) {
+      val flexResult = flexOptions match {
+        case ProvideMinMaxFlexOptions(
+              modelUuid,
+              referencePower,
+              minPower,
+              maxPower
+            ) =>
+          new FlexOptionsResult(
+            currentTick.toDateTime,
             modelUuid,
             referencePower,
             minPower,
             maxPower
-          ) =>
-        new FlexOptionsResult(
-          currentTick.toDateTime,
-          modelUuid,
-          referencePower,
-          minPower,
-          maxPower
-        )
-    }
+          )
+      }
 
-    if (baseStateData.outputConfig.simulationResultInfo)
       notifyListener(FlexOptionsResultEvent(flexResult))
+    }
 
     baseStateData.copy(
       flexStateData = baseStateData.flexStateData.map(data =>

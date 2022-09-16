@@ -17,7 +17,7 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideFlexOptions,
   ProvideMinMaxFlexOptions
 }
-import edu.ie3.util.quantities.QuantityUtils.RichQuantity
+import edu.ie3.util.quantities.QuantityUtils.{RichQuantity, RichQuantityDouble}
 import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
@@ -52,6 +52,7 @@ final case class StorageModel(
     ) {
 
   private val lowestEnergy = eStorage.multiply(dod).asType(classOf[Energy])
+  private val marginTolerance = 0.01d.asKiloWattHour
 
   override protected def calculateActivePower(
       data: StorageRelevantData
@@ -67,8 +68,10 @@ final case class StorageModel(
     val currentStoredEnergy =
       determineCurrentState(lastState, data.currentTick)
 
-    val chargingPossible = currentStoredEnergy.isLessThan(eStorage)
-    val dischargingPossible = currentStoredEnergy.isGreaterThan(lowestEnergy)
+    val chargingPossible =
+      currentStoredEnergy.isLessThan(eStorage.subtract(marginTolerance))
+    val dischargingPossible =
+      currentStoredEnergy.isGreaterThan(lowestEnergy.add(marginTolerance))
 
     ProvideMinMaxFlexOptions(
       uuid,
