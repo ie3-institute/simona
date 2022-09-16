@@ -7,7 +7,7 @@
 package edu.ie3.simona.scheduler
 
 import akka.actor.{Actor, ActorRef}
-import edu.ie3.simona.ontology.trigger.ScheduledTrigger
+import edu.ie3.simona.ontology.messages.SchedulerMessage.TriggerWithIdMessage
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.scala.collection.mutable.{CountingMap, PriorityMultiQueue}
 
@@ -15,7 +15,7 @@ import scala.collection.mutable
 
 /** Trait containing the state data of the [[SimScheduler]]
   */
-trait SimSchedulerStateData {
+private[scheduler] trait SimSchedulerStateData {
   this: SimScheduler =>
 }
 
@@ -110,4 +110,17 @@ object SimSchedulerStateData {
       pauseScheduleAtTick: Option[Long] = None
   )
 
+  /** Wrapper class for trigger, that are already scheduled for execution @
+    * [[TriggerWithIdMessage.trigger.tick]] in the
+    * [[edu.ie3.simona.scheduler.SimScheduler]]
+    *
+    * @param triggerWithIdMessage
+    *   the trigger that has to be scheduled
+    * @param agent
+    *   the agent that wants to be scheduled
+    */
+  private[scheduler] final case class ScheduledTrigger(
+      triggerWithIdMessage: TriggerWithIdMessage,
+      agent: ActorRef
+  )
 }
