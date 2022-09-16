@@ -187,12 +187,15 @@ protected trait PVAgentFundamentals
           FALLBACK_WEATHER_STEM_DISTANCE
       }
 
-    val secondaryData = baseStateData.receivedSecondaryDataStore.getOrElse(
-      currentTick,
-      throw new InconsistentStateException(
-        s"The model ${baseStateData.model} was not provided with any secondary data for tick $currentTick."
+    // take the last weather data, not necessarily the one for the current tick:
+    // we might receive flex control messages for irregular ticks
+    val (_, secondaryData) = baseStateData.receivedSecondaryDataStore
+      .last(tick)
+      .getOrElse(
+        throw new InconsistentStateException(
+          s"The model ${baseStateData.model} was not provided with any secondary data so far."
+        )
       )
-    )
 
     /* extract weather data from secondary data, which should have been requested and received before */
     val weatherData =
