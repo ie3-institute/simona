@@ -95,24 +95,24 @@ class StorageModelTest extends Specification {
         // at lowest allowed charge
         20         | 0         | 1         || 0    | 0    | 10
         // at a tiny bit above lowest allowed charge
-        20.01      | 0         | 1         || 0    | -10  | 10
+        20.011     | 0         | 1         || 0    | -10  | 10
         // at mid-level charge
         60         | 0         | 1         || 0    | -10  | 10
         // almost fully charged
-        99.99      | 0         | 1         || 0    | -10  | 10
+        99.989     | 0         | 1         || 0    | -10  | 10
         // fully charged
         100        | 0         | 1         || 0    | -10  | 0
         // CHANGED STATE
         // discharged to lowest allowed charge
         30         | -10       | 3600      || 0    | 0    | 10
         // almost discharged to lowest allowed charge
-        30         | -10       | 3599      || 0    | -10  | 10
+        30         | -10       | 3590      || 0    | -10  | 10
         // charged to mid-level charge
         50         | 10        | 3600      || 0    | -10  | 10
         // discharged to mid-level charge
         70         | -10       | 3600      || 0    | -10  | 10
         // almost fully charged
-        95         | 4.99      | 3600      || 0    | -10  | 10
+        95         | 4.98      | 3600      || 0    | -10  | 10
         // fully charged
         95         | 5         | 3600      || 0    | -10  | 0
     }
