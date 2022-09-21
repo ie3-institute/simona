@@ -22,7 +22,7 @@ object SchedulerMessage {
   /** Tell the [[SimScheduler]] to initialize the simulation with all
     * [[edu.ie3.simona.ontology.trigger.Trigger.InitializeTrigger]] s
     */
-  case class InitSimMessage(sender: ActorRef) extends SchedulerMessage
+  final case class InitSimMessage(sender: ActorRef) extends SchedulerMessage
 
   /** Tell the [[SimScheduler]] to start the simulation
     */
@@ -71,15 +71,6 @@ object SchedulerMessage {
       reason: String,
       receiverActor: ActorRef
   ) extends SchedulerMessage
-
-  /** Reported back from the scheduler if an error occurred during the
-    * simulation
-    */
-  case object SimulationFailureMessage extends SchedulerMessage
-
-  /** Reported back from the scheduler if the simulation terminated as expected
-    */
-  case object SimulationSuccessfulMessage extends SchedulerMessage
 
   /** Reported back by the superior [[edu.ie3.simona.agent.grid.GridAgent]] to
     * the scheduler of the power flow of the

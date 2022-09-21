@@ -21,6 +21,10 @@ import edu.ie3.simona.scheduler.SimSchedulerSpec.{
   DummySupervisor,
   RichTriggeredAgent
 }
+import edu.ie3.simona.sim.SimonaSim.{
+  SimulationFailureMessage,
+  SimulationSuccessfulMessage
+}
 import edu.ie3.simona.test.common.{TestKitWithShutdown, UnitSpec}
 import edu.ie3.simona.util.SimonaConstants
 import org.mockito.Mockito.doReturn
@@ -96,7 +100,7 @@ class SimSchedulerSpec
       triggeredAgent1.expectNoMessage()
       triggeredAgent2.expectNoMessage()
 
-      simScheduler ! InitSimMessage
+      simScheduler ! InitSimMessage(self)
 
       resultEventListener.expectMsg(Initializing)
 
@@ -134,7 +138,7 @@ class SimSchedulerSpec
     "initialize as expected when receiving triggers after init trigger" in {
       val (simScheduler, resultEventListener) = setupScheduler()
 
-      simScheduler ! InitSimMessage
+      simScheduler ! InitSimMessage(self)
 
       resultEventListener.expectMsg(Initializing)
 
@@ -196,7 +200,7 @@ class SimSchedulerSpec
 
       triggeredAgent1.expectNoMessage()
 
-      simScheduler ! InitSimMessage
+      simScheduler ! InitSimMessage(self)
 
       resultEventListener.expectMsg(Initializing)
 
@@ -218,7 +222,7 @@ class SimSchedulerSpec
     "send triggers as expected when triggered at x*schedulerReadyCheckWindow" in {
       val (simScheduler, resultEventListener) = setupScheduler()
 
-      simScheduler ! InitSimMessage
+      simScheduler ! InitSimMessage(self)
       resultEventListener.expectMsg(Initializing)
 
       val triggeredAgent1 = TestProbe()
@@ -299,7 +303,7 @@ class SimSchedulerSpec
     "finish simulation correctly when endTick == pauseScheduleAtTick" in {
       val (simScheduler, resultEventListener) = setupScheduler()
 
-      simScheduler ! InitSimMessage
+      simScheduler ! InitSimMessage(self)
       resultEventListener.expectMsg(Initializing)
 
       val triggeredAgent1 = TestProbe()
@@ -347,7 +351,7 @@ class SimSchedulerSpec
     "finish simulation correctly when endTick < pauseScheduleAtTick" in {
       val (simScheduler, resultEventListener) = setupScheduler()
 
-      simScheduler ! InitSimMessage
+      simScheduler ! InitSimMessage(self)
       resultEventListener.expectMsg(Initializing)
 
       val triggeredAgent1 = TestProbe()
@@ -399,7 +403,7 @@ class SimSchedulerSpec
         timeConfig = defaultTimeConfig.copy(endDateTime = "2011-01-01 02:00:00")
       )
 
-      simScheduler ! InitSimMessage
+      simScheduler ! InitSimMessage(self)
       resultEventListener.expectMsg(Initializing)
 
       val triggeredAgent1 = TestProbe()
@@ -465,7 +469,7 @@ class SimSchedulerSpec
     "pause and finish simulation correctly for a pauseScheduleAtTick if endTick - pauseScheduleAtTick = 1" in {
       val (simScheduler, resultEventListener) = setupScheduler()
 
-      simScheduler ! InitSimMessage
+      simScheduler ! InitSimMessage(self)
       resultEventListener.expectMsg(Initializing)
 
       val triggeredAgent1 = TestProbe()
@@ -535,7 +539,7 @@ class SimSchedulerSpec
       )
 
       // tell scheduler to init
-      simScheduler ! InitSimMessage
+      simScheduler ! InitSimMessage(self)
 
       resultEventListener.expectMsg(Initializing)
 
@@ -602,7 +606,7 @@ class SimSchedulerSpec
       val deathWatch = TestProbe()
       deathWatch.watch(simScheduler)
 
-      simScheduler ! InitSimMessage
+      simScheduler ! InitSimMessage(self)
       resultEventListener.expectMsg(Initializing)
 
       val triggeredAgent1 = TestProbe()
@@ -641,7 +645,7 @@ class SimSchedulerSpec
       val deathWatch = TestProbe()
       deathWatch.watch(simScheduler)
 
-      simScheduler ! InitSimMessage
+      simScheduler ! InitSimMessage(self)
       resultEventListener.expectMsg(Initializing)
 
       simScheduler ! StartScheduleMessage(None)
@@ -658,7 +662,7 @@ class SimSchedulerSpec
       val deathWatch = TestProbe()
       deathWatch.watch(simScheduler)
 
-      simScheduler ! InitSimMessage
+      simScheduler ! InitSimMessage(self)
       resultEventListener.expectMsg(Initializing)
 
       val triggeredAgent1 = TestProbe()
@@ -688,7 +692,7 @@ class SimSchedulerSpec
     "handle PowerFlow failures when stopOnFailedPowerFlow = false" in {
       val (simScheduler, resultEventListener) = setupScheduler()
 
-      simScheduler ! InitSimMessage
+      simScheduler ! InitSimMessage(self)
       resultEventListener.expectMsg(Initializing)
 
       val triggeredAgent1 = TestProbe()
@@ -738,7 +742,7 @@ class SimSchedulerSpec
       val (simScheduler, resultEventListener) =
         setupScheduler(stopOnFailedPowerFlow = true)
 
-      simScheduler ! InitSimMessage
+      simScheduler ! InitSimMessage(self)
       resultEventListener.expectMsg(Initializing)
 
       val triggeredAgent1 = TestProbe()
@@ -781,7 +785,7 @@ class SimSchedulerSpec
     "terminate on child actor termination when initializing" in {
       val (simScheduler, resultEventListener) = setupScheduler()
 
-      simScheduler ! InitSimMessage
+      simScheduler ! InitSimMessage(self)
       resultEventListener.expectMsg(Initializing)
 
       checkTerminationHandling(simScheduler, resultEventListener)
@@ -790,7 +794,7 @@ class SimSchedulerSpec
     "terminate on child actor termination when paused" in {
       val (simScheduler, resultEventListener) = setupScheduler()
 
-      simScheduler ! InitSimMessage
+      simScheduler ! InitSimMessage(self)
       resultEventListener.expectMsg(Initializing)
 
       val triggeredAgent1 = TestProbe()
@@ -813,7 +817,7 @@ class SimSchedulerSpec
     "terminate on child actor termination when running" in {
       val (simScheduler, resultEventListener) = setupScheduler(autostart = true)
 
-      simScheduler ! InitSimMessage
+      simScheduler ! InitSimMessage(self)
       resultEventListener.expectMsg(Initializing)
 
       val triggeredAgent1 = TestProbe()

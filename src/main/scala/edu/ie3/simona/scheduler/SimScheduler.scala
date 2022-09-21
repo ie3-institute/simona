@@ -12,6 +12,7 @@ import edu.ie3.simona.event.RuntimeEvent.{Error, Initializing, Simulating}
 import edu.ie3.simona.event.notifier.Notifier
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
 import edu.ie3.simona.scheduler.SimSchedulerStateData.SchedulerStateData
+import edu.ie3.simona.sim.SimonaSim
 
 object SimScheduler {
 
@@ -174,7 +175,7 @@ class SimScheduler(
       notifyListener(
         Error(s"Received termination message from ${sender().path}")
       )
-      stateData.runtime.initSender ! SimulationFailureMessage
+      stateData.runtime.initSender ! SimonaSim.SimulationFailureMessage
       context.stop(self)
 
     /* all unhandled messages */
