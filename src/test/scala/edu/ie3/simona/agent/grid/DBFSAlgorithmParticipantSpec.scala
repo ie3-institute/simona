@@ -13,6 +13,8 @@ import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.DBFSAlgorithmParticipantSpec.SuperiorGA
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData
+import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
@@ -74,14 +76,11 @@ class DBFSAlgorithmParticipantSpec
   )
 
   protected val resultListener: TestProbe = TestProbe("resultListener")
-  protected val loadListener: TestProbe = TestProbe("loadListener")
 
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),
     Seq(supNodeA.getUuid)
   )
-
-  protected var participantAgent: ActorRef = testActor
 
   "Test participant" should {
 
@@ -121,15 +120,21 @@ class DBFSAlgorithmParticipantSpec
         )
       )
 
-      val initializeTrigger: InitializeParticipantAgentTrigger[_, _] =
+      val (loadAgent, initializeTrigger): (
+          ActorRef,
+          InitializeParticipantAgentTrigger[PrimaryData, InitializeStateData[
+            PrimaryData
+          ]]
+      ) =
         scheduler.expectMsgPF() {
           case ScheduleTriggerMessage(
-                initializeTrigger: InitializeParticipantAgentTrigger[_, _],
+                initializeTrigger: InitializeParticipantAgentTrigger[
+                  PrimaryData,
+                  InitializeStateData[PrimaryData]
+                ],
                 loadAgent
               ) =>
-            participantAgent = loadAgent
-
-            initializeTrigger
+            (loadAgent, initializeTrigger)
         }
 
       scheduler.expectMsgPF() {
@@ -142,7 +147,7 @@ class DBFSAlgorithmParticipantSpec
               )
             ) =>
           triggerId shouldBe 0
-          triggerToBeScheduled shouldBe ActivityStartTrigger(3600)
+          triggerToBeScheduled shouldBe ActivityStartTrigger(3600L)
           gridAgentActor shouldBe gridAgentWithParticipants
         case x =>
           fail(
@@ -151,11 +156,11 @@ class DBFSAlgorithmParticipantSpec
       }
 
       scheduler.send(
-        participantAgent,
+        loadAgent,
         TriggerWithIdMessage(
           initializeTrigger,
           loadAgentTriggerId,
-          participantAgent
+          loadAgent
         )
       )
 
@@ -163,7 +168,7 @@ class DBFSAlgorithmParticipantSpec
         PrimaryServiceRegistrationMessage(load1.getUuid)
       )
 
-      primaryService.send(participantAgent, RegistrationFailedMessage)
+      primaryService.send(loadAgent, RegistrationFailedMessage)
 
       scheduler.expectMsgPF(10.seconds) {
         case CompletionMessage(
@@ -171,9 +176,16 @@ class DBFSAlgorithmParticipantSpec
               Some(triggerMessage :: Nil)
             ) =>
           loadAgentTriggerId shouldBe 1
+          triggerMessage.trigger shouldBe ActivityStartTrigger(0L)
+
+          // triggering the loadAgent's calculation
           scheduler.send(
-            gridAgentWithParticipants,
-            triggerMessage.trigger
+            loadAgent,
+            TriggerWithIdMessage(
+              triggerMessage.trigger,
+              2,
+              loadAgent
+            )
           )
 
         case x =>
@@ -182,11 +194,14 @@ class DBFSAlgorithmParticipantSpec
           )
       }
 
+      // the load agent should send a CompletionMessage
+      scheduler.expectMsg(CompletionMessage(2, None))
+
     }
 
     s"go to $SimulateGrid when it receives an activity start trigger" in {
 
-      val activityStartTriggerId = 1
+      val activityStartTriggerId = 3
 
       // send init data to agent
       scheduler.send(
@@ -204,29 +219,8 @@ class DBFSAlgorithmParticipantSpec
               triggerId,
               Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
             ) =>
-          triggerId shouldBe 1
+          triggerId shouldBe 3
           triggerToBeScheduled shouldBe StartGridSimulationTrigger(3600)
-        case x =>
-          fail(
-            s"Invalid message received when expecting a completion message after activity start trigger. Message was $x"
-          )
-      }
-
-      scheduler.send(
-        participantAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(3600),
-          activityStartTriggerId,
-          gridAgentWithParticipants
-        )
-      )
-
-      scheduler.expectMsgPF() {
-        case CompletionMessage(
-              triggerId,
-              None
-            ) =>
-          triggerId shouldBe 1
         case x =>
           fail(
             s"Invalid message received when expecting a completion message after activity start trigger. Message was $x"
@@ -235,17 +229,13 @@ class DBFSAlgorithmParticipantSpec
 
     }
 
-    "check the request asset power message indirectly" in {
+    s"check the request asset power message indirectly" in {
 
-      val startGridSimulationTriggerId = 3
+      val startGridSimulationTriggerId = 4
       val firstSweepNo = 0
 
       val voltageEhv =
         Array(
-          (
-            Quantities.getQuantity(380, KILOVOLT),
-            Quantities.getQuantity(0, KILOVOLT)
-          ),
           (
             Quantities.getQuantity(380, KILOVOLT),
             Quantities.getQuantity(0, KILOVOLT)
@@ -259,16 +249,12 @@ class DBFSAlgorithmParticipantSpec
       val powerEhv =
         Array(
           (
-            Quantities.getQuantity(0.08021413413301926, MEGAWATT),
-            Quantities.getQuantity(0.0001845926447252566, MEGAVAR)
+            Quantities.getQuantity(135.90837346741768, MEGAWATT),
+            Quantities.getQuantity(60.98643348675892, MEGAVAR)
           ),
           (
-            Quantities.getQuantity(0.08021413413301926, MEGAWATT),
-            Quantities.getQuantity(0.0001845926447252566, MEGAVAR)
-          ),
-          (
-            Quantities.getQuantity(0.08021413413301926, MEGAWATT),
-            Quantities.getQuantity(0.0001845926447252566, MEGAVAR)
+            Quantities.getQuantity(135.90837346741768, MEGAWATT),
+            Quantities.getQuantity(60.98643348675892, MEGAVAR)
           )
         )
 
@@ -312,7 +298,8 @@ class DBFSAlgorithmParticipantSpec
         firstSweepNo
       )
 
-      // the gridAgentWithParticipants have received a AssetPowerChangedMessage
+      // the gridAgentWithParticipants have received an AssetPowerChangedMessage
+      // before requesting power from the superiorGrid
       superiorGridAgent.expectGridPowerProvision(
         Seq(
           ExchangePower(
@@ -323,6 +310,7 @@ class DBFSAlgorithmParticipantSpec
         )
       )
 
+      // before the second sweep the gridAgentWithParticipants will receive an AssetPowerUnchangedMessage
       // we start a second sweep by asking for next sweep values which should trigger the whole procedure again
       val secondSweepNo = firstSweepNo + 1
 
@@ -350,7 +338,7 @@ class DBFSAlgorithmParticipantSpec
         )
       )
 
-      // here the gridAgentWithParticipants have received a AssetPowerUnchangedMessage
+      // here the gridAgentWithParticipants have received a second AssetPowerUnchangedMessage
       // we expect that the GridAgent unstashes the messages and return a value for our power request
       superiorGridAgent.expectGridPowerProvision(
         Seq(
@@ -362,45 +350,6 @@ class DBFSAlgorithmParticipantSpec
         )
       )
 
-      // we start a third sweep by asking for next sweep values which should trigger the whole procedure again
-      val thirdSweepNo = secondSweepNo + 1
-
-      superiorGridAgent.requestGridPower(
-        gridAgentWithParticipants,
-        thirdSweepNo
-      )
-
-      // the agent now should ask for updated slack voltages from the superior grid
-      val thirdSlackAskSender =
-        superiorGridAgent.expectSlackVoltageRequest(thirdSweepNo)
-
-      // the superior grid would answer with updated slack voltage values
-      superiorGridAgent.gaProbe.send(
-        thirdSlackAskSender,
-        ProvideSlackVoltageMessage(
-          thirdSweepNo,
-          Seq(
-            ExchangeVoltage( // this one should currently be ignored anyways
-              supNodeA.getUuid,
-              voltageEhv(thirdSweepNo)._1,
-              voltageEhv(thirdSweepNo)._2
-            )
-          )
-        )
-      )
-
-      // here the gridAgentWithParticipants have received a AssetPowerUnchangedMessage
-      // we expect that the GridAgent unstashes the messages and return a value for our power request
-      superiorGridAgent.expectGridPowerProvision(
-        Seq(
-          ExchangePower(
-            supNodeA.getUuid,
-            powerEhv(thirdSweepNo)._1,
-            powerEhv(thirdSweepNo)._2
-          )
-        )
-      )
-
       // normally the superior grid agent would check weather the power flow calculation converges and would
       // send a CompletionMessage to the scheduler and a FinishGridSimulationTrigger to the inferior grid agent
       // after the convergence
@@ -408,7 +357,7 @@ class DBFSAlgorithmParticipantSpec
       superiorGridAgent.gaProbe.send(
         scheduler.ref,
         CompletionMessage(
-          startGridSimulationTriggerId + thirdSweepNo,
+          5,
           Some(
             Seq(
               ScheduleTriggerMessage(
@@ -418,10 +367,6 @@ class DBFSAlgorithmParticipantSpec
             )
           )
         )
-      )
-      superiorGridAgent.gaProbe.send(
-        gridAgentWithParticipants,
-        FinishGridSimulationTrigger(3600)
       )
 
       scheduler.expectMsgPF() {
@@ -433,6 +378,27 @@ class DBFSAlgorithmParticipantSpec
           message shouldBe ScheduleTriggerMessage(
             ActivityStartTrigger(7200),
             superiorGridAgent.gaProbe.ref
+          )
+
+        case x =>
+          fail(
+            s"Invalid message received when expecting a completion message for simulate grid after cleanup! Message was $x"
+          )
+      }
+      superiorGridAgent.gaProbe.send(
+        gridAgentWithParticipants,
+        FinishGridSimulationTrigger(3600)
+      )
+
+      scheduler.expectMsgPF() {
+        case CompletionMessage(
+              triggerId,
+              Some(Seq(message: ScheduleTriggerMessage))
+            ) =>
+          triggerId shouldBe 4
+          message shouldBe ScheduleTriggerMessage(
+            ActivityStartTrigger(7200),
+            gridAgentWithParticipants
           )
 
         case x =>
