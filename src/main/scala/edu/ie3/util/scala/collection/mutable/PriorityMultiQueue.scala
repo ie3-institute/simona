@@ -13,20 +13,23 @@ import scala.collection.{SortedSet, mutable}
   * [[mutable.ListBuffer]], which corresponds to a linked list (with adding and
   * removing items to/from its head/tail in constant time).
   * @param queue
-  *   Queue that holds keys in order and provides the first element in O(1)
+  *   Queue that holds keys in order and thus provides a way to quickly retrieve
+  *   the elements for the first key(s).
   * @param table
-  *   HashMap that provides access to lists with a specific key in O(1)
+  *   HashMap that provides direct access to each list given the key that it was
+  *   added with. This is useful for quickly adding values to new and existing
+  *   keys, running in nearly O(1).
   * @tparam K
-  *   Type of the key
+  *   Type of the key, which needs to be sortable by means of [[Ordering]]
   * @tparam V
   *   Type of the value
   */
-final case class PriorityMultiQueue[K, V] private (
+final case class PriorityMultiQueue[K: Ordering, V] private (
     private val queue: mutable.SortedMap[K, mutable.ListBuffer[V]],
     private val table: mutable.HashMap[K, mutable.ListBuffer[V]]
 ) {
 
-  /** Get the first key of the queue, if the queue is not empty.
+  /** Get the first key of the queue, if the queue is not empty. Runs in O(1).
     * @return
     *   The first key
     */
@@ -79,6 +82,28 @@ final case class PriorityMultiQueue[K, V] private (
     }
   }
 
+  /** Retrieves all elements for keys that are smaller or equal to given key.
+    * The returned elements are also removed from the queue here.
+    *
+    * @return
+    *   All elements for keys up to and including the given key. An empty
+    *   Iterable is returned if this queue is empty or all keys are greater than
+    *   the given key.
+    */
+  def pollTo(key: K): Iterable[V] = {
+    // a copy has to be made here because the resulting Map of
+    // rangeTo is linked to the original map. This means that
+    // the map with the values to be returned would be depleted
+    // with the subtractions below
+    val polledValues = mutable.SortedMap.from(queue.rangeTo(key))
+
+    val keys = polledValues.keySet
+    queue --= keys
+    table --= keys
+
+    polledValues.values.flatten
+  }
+
   /** Get all values for all keys as an iterable.
     * @return
     *   All values
@@ -101,16 +126,14 @@ final case class PriorityMultiQueue[K, V] private (
 object PriorityMultiQueue {
 
   /** Creates and returns an empty PriorityMultiQueue for given types.
-    * @param ev
-    *   Ordering of key
     * @tparam K
-    *   Type of the key
+    *   Type of the key, which needs to be sortable by means of [[Ordering]]
     * @tparam V
     *   Type of the value
     * @return
     *   An empty PriorityMultiQueue
     */
-  def empty[K, V](implicit ev: K => Ordered[K]): PriorityMultiQueue[K, V] =
+  def empty[K: Ordering, V]: PriorityMultiQueue[K, V] =
     PriorityMultiQueue(
       mutable.SortedMap[K, mutable.ListBuffer[V]](),
       mutable.HashMap[K, mutable.ListBuffer[V]]()
@@ -119,22 +142,23 @@ object PriorityMultiQueue {
   /** Creates and returns an empty PriorityMultiQueue for given types. The
     * initialKeyCapacity and loadFactor are used in the creation of the HashMap.
     * @param initialKeyCapacity
-    *   The initialKeyCapacity of the HashMap
+    *   The initial capacity of of the HashMap for keys. The capacity increments
+    *   (i.e. the map is recreated with a higher capacity) once the amount
+    *   denoted by loadFactor is hit.
     * @param loadFactor
-    *   The loadFactor of the HashMap
-    * @param ev
-    *   Ordering of key
+    *   The loadFactor of the HashMap. If the size of the map reaches capacity *
+    *   loadFactor, the underlying table is replaced with a larger one.
     * @tparam K
-    *   Type of the key
+    *   Type of the key, which needs to be sortable by means of [[Ordering]]
     * @tparam V
     *   Type of the value
     * @return
     *   An empty PriorityMultiQueue
     */
-  def empty[K, V](
+  def empty[K: Ordering, V](
       initialKeyCapacity: Int,
       loadFactor: Double = mutable.HashMap.defaultLoadFactor
-  )(implicit ev: K => Ordered[K]): PriorityMultiQueue[K, V] =
+  ): PriorityMultiQueue[K, V] =
     PriorityMultiQueue(
       mutable.SortedMap[K, mutable.ListBuffer[V]](),
       new mutable.HashMap[K, mutable.ListBuffer[V]](

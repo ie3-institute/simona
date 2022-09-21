@@ -113,5 +113,58 @@ class PriorityMultiQueueSpec extends UnitSpec {
 
       queue.poll() shouldBe None
     }
+
+    "behave correctly when polling up to a certain key" in {
+      val queue = PriorityMultiQueue.empty[Key, Value]
+
+      queue.add(3, item3)
+      queue.add(1, item1)
+      queue.add(2, item2)
+      queue.add(3, item3)
+      queue.add(5, item1)
+
+      queue.isEmpty shouldBe false
+      queue.nonEmpty shouldBe true
+      queue.headKeyOption shouldBe Some(1)
+      queue.keySet shouldBe SortedSet(1, 2, 3, 5)
+      queue.allValues shouldBe Iterable(item1, item2, item3, item3, item1)
+
+      queue.pollTo(2) shouldBe Iterable(item1, item2)
+
+      queue.isEmpty shouldBe false
+      queue.nonEmpty shouldBe true
+      queue.headKeyOption shouldBe Some(3)
+      queue.keySet shouldBe SortedSet(3, 5)
+      queue.allValues shouldBe Iterable(item3, item3, item1)
+
+      queue.pollTo(3) shouldBe Iterable(item3, item3)
+
+      queue.isEmpty shouldBe false
+      queue.nonEmpty shouldBe true
+      queue.headKeyOption shouldBe Some(5)
+      queue.keySet shouldBe SortedSet(5)
+      queue.allValues shouldBe Iterable(item1)
+
+      queue.pollTo(5) shouldBe Iterable(item1)
+
+      queue.isEmpty shouldBe true
+      queue.nonEmpty shouldBe false
+      queue.headKeyOption shouldBe None
+      queue.keySet shouldBe SortedSet.empty[Key]
+      queue.allValues shouldBe Iterable.empty[Value]
+
+      queue.pollTo(Integer.MAX_VALUE) shouldBe Iterable.empty[Value]
+
+      // test if the table has been depleted as well -
+      // if it is, adding should work as expected
+      queue.add(1, item2)
+
+      queue.isEmpty shouldBe false
+      queue.nonEmpty shouldBe true
+      queue.headKeyOption shouldBe Some(1)
+      queue.keySet shouldBe SortedSet(1)
+      queue.allValues shouldBe Iterable(item2)
+
+    }
   }
 }

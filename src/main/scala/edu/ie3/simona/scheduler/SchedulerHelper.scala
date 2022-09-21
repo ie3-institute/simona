@@ -15,10 +15,10 @@ import edu.ie3.simona.event.RuntimeEvent.{
 }
 import edu.ie3.simona.exceptions.SchedulerException
 import edu.ie3.simona.logging.SimonaActorLogging
-import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
-import edu.ie3.simona.ontology.trigger.{ScheduledTrigger, Trigger}
+import edu.ie3.simona.ontology.trigger.Trigger
 import edu.ie3.simona.scheduler.SimSchedulerStateData.{
+  ScheduledTrigger,
   SchedulerStateData,
   TriggerData
 }
@@ -78,23 +78,16 @@ trait SchedulerHelper extends SimonaActorLogging {
       nowInTicks: Long
   ): TriggerData = {
 
-    while (triggerData.triggerQueue.headKeyOption.exists(_ <= nowInTicks)) {
+    triggerData.triggerQueue.pollTo(nowInTicks).foreach {
+      case scheduledTrigger @ ScheduledTrigger(triggerWithIdMessage, actor) =>
+        // track that we wait for a response for this tick
+        triggerData.awaitingResponseMap.add(triggerWithIdMessage.trigger.tick)
 
-      val scheduledTrigger = triggerData.triggerQueue
-        .poll()
-        .getOrElse(
-          throw new RuntimeException("No scheduled trigger was available")
-        )
-      val triggerWithIdMessage = scheduledTrigger.triggerWithIdMessage
+        // track the trigger id with the scheduled trigger
+        triggerData.triggerIdToScheduledTriggerMap +=
+          triggerWithIdMessage.triggerId -> scheduledTrigger
 
-      // track that we wait for a response for this tick
-      triggerData.awaitingResponseMap.add(triggerWithIdMessage.trigger.tick)
-
-      // track the trigger id with the scheduled trigger
-      triggerData.triggerIdToScheduledTriggerMap +=
-        triggerWithIdMessage.triggerId -> scheduledTrigger
-
-      scheduledTrigger.agent ! triggerWithIdMessage
+        actor ! triggerWithIdMessage
     }
 
     triggerData
@@ -228,7 +221,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     /* if we are in tick pauseScheduleAtTick, it might be possible that we still need to schedule triggers due to
      * incoming triggers for this tick inside completion messages  */
     if (
-      !triggerQueueEmptyOrNextTriggerTickBiggerOrAfterEnd(
+      !noScheduledTriggersForCurrentTick(
         stateData.trigger.triggerQueue,
         pauseTick
       )
@@ -260,7 +253,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     * @return
     *   a boolean
     */
-  private def triggerQueueEmptyOrNextTriggerTickBiggerOrAfterEnd(
+  private def noScheduledTriggersForCurrentTick(
       triggerQueue: PriorityMultiQueue[Long, ScheduledTrigger],
       nowInTicks: Long
   ): Boolean =
@@ -339,7 +332,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     if (
       nowInTicks > 0 && (nowInTicks % readyCheckVal == 0)
       && !awaitingResponseMap.contains(nowInTicks)
-      && triggerQueueEmptyOrNextTriggerTickBiggerOrAfterEnd(
+      && noScheduledTriggersForCurrentTick(
         stateData.trigger.triggerQueue,
         nowInTicks
       )
@@ -383,7 +376,7 @@ trait SchedulerHelper extends SimonaActorLogging {
      * the next trigger in the queue is not the current tick */
     if (
       !stateData.trigger.awaitingResponseMap.contains(nowInTicks)
-      && triggerQueueEmptyOrNextTriggerTickBiggerOrAfterEnd(
+      && noScheduledTriggersForCurrentTick(
         stateData.trigger.triggerQueue,
         nowInTicks
       )
@@ -423,7 +416,7 @@ trait SchedulerHelper extends SimonaActorLogging {
       stateData: SchedulerStateData
   ): SchedulerStateData = {
     if (
-      stateData.trigger.awaitingResponseMap.isEmpty && triggerQueueEmptyOrNextTriggerTickBiggerOrAfterEnd(
+      stateData.trigger.awaitingResponseMap.isEmpty && noScheduledTriggersForCurrentTick(
         stateData.trigger.triggerQueue,
         stateData.time.nowInTicks
       )
@@ -765,7 +758,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     *   a copy of the provided state data with updated trigger data
     */
   protected final def scheduleTrigger(
-      triggerMessage: SchedulerMessage.ScheduleTriggerMessage,
+      triggerMessage: ScheduleTriggerMessage,
       stateData: SchedulerStateData
   ): SchedulerStateData =
     scheduleTrigger(
