@@ -43,9 +43,9 @@ import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
 import edu.ie3.simona.service.weather.{WeatherSource => SimonaWeatherSource}
 import edu.ie3.simona.util.TickUtil
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.DoubleUtils.ImplicitDouble
 import edu.ie3.util.exceptions.EmptyQuantityException
 import edu.ie3.util.interval.ClosedInterval
-import edu.ie3.util.scala.DoubleUtils.ImplicitDouble
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -341,7 +341,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       case Failure(exception) =>
         throw new InitializationException(
           s"Error while initializing WeatherFactory for weather source wrapper: '$scheme' is not a weather scheme. Supported schemes:\n\t${WeatherScheme.values
-            .mkString("\n\t")}'",
+              .mkString("\n\t")}'",
           exception
         )
       case Success(WeatherScheme.ICON) =>

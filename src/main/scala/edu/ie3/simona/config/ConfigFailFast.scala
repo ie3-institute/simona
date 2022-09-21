@@ -117,6 +117,11 @@ case object ConfigFailFast extends LazyLogging {
       simonaConfig.simona.runtime.participant
     )
 
+    /* Check the runtime listener configuration */
+    checkRuntimeListenerConfiguration(
+      simonaConfig.simona.runtime.listener
+    )
+
     /* Check if the provided combination of data source and parameters are valid */
     checkGridDataSource(simonaConfig.simona.input.grid.datasource)
 
@@ -196,6 +201,7 @@ case object ConfigFailFast extends LazyLogging {
   /** Check time configuration
     *
     * @param timeConfig
+    *   the time config
     */
   private def checkDateTime(
       timeConfig: SimonaConfig.Simona.Time
@@ -261,6 +267,18 @@ case object ConfigFailFast extends LazyLogging {
     // load model
     (subConfig.load.defaultConfig +: subConfig.load.individualConfigs)
       .foreach(checkSpecificLoadModelConfig)
+  }
+
+  /** Check the runtime event listener config
+    * @param listenerConfig
+    *   the runtime listener config
+    */
+  private def checkRuntimeListenerConfiguration(
+      listenerConfig: SimonaConfig.Simona.Runtime.Listener
+  ): Unit = {
+    listenerConfig.kafka.foreach(kafka =>
+      checkKafkaParams(kafka, Seq(kafka.topic))
+    )
   }
 
   /** Check participants's basic runtime configurations, as well as in default
@@ -373,7 +391,7 @@ case object ConfigFailFast extends LazyLogging {
     if (!LoadModelBehaviour.isEligibleInput(loadModelConfig.modelBehaviour))
       throw new InvalidConfigParameterException(
         s"The load model behaviour '${loadModelConfig.modelBehaviour}' for the loads with UUIDs '${loadModelConfig.uuids
-          .mkString(",")}' is invalid."
+            .mkString(",")}' is invalid."
       )
 
     if (
@@ -383,7 +401,7 @@ case object ConfigFailFast extends LazyLogging {
     )
       throw new InvalidConfigParameterException(
         s"The standard load profile reference '${loadModelConfig.reference}' for the loads with UUIDs '${loadModelConfig.uuids
-          .mkString(",")}' is invalid."
+            .mkString(",")}' is invalid."
       )
   }
 

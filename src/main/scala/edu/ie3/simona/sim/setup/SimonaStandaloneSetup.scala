@@ -6,9 +6,12 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.{ActorContext, ActorRef => ClassicActorRef}
 import akka.actor.typed.ActorRef
-import akka.actor.typed.scaladsl.adapter.TypedActorRefOps
+import akka.actor.typed.scaladsl.adapter.{
+  ClassicActorContextOps,
+  TypedActorRefOps
+}
+import akka.actor.{ActorContext, ActorRef => ClassicActorRef}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridTopologyGraph
@@ -224,16 +227,20 @@ class SimonaStandaloneSetup(
 
   override def runtimeEventListener(
       context: ActorContext
-  ): Seq[ClassicActorRef] =
+  ): Seq[ClassicActorRef] = {
     Seq(
-      context.simonaActorOf(
-        RuntimeEventListener.props(
-          None,
-          runtimeEventQueue,
-          startDateTimeString = simonaConfig.simona.time.startDateTime
+      context
+        .spawn(
+          RuntimeEventListener(
+            simonaConfig.simona.runtime.listener,
+            runtimeEventQueue,
+            startDateTimeString = simonaConfig.simona.time.startDateTime
+          ),
+          RuntimeEventListener.getClass.getSimpleName
         )
-      )
+        .toClassic
     )
+  }
 
   override def systemParticipantsListener(
       context: ActorContext,

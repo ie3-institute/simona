@@ -6,28 +6,30 @@
 
 package edu.ie3.simona.test.common.model.grid
 
-import java.util.UUID
-
 import breeze.linalg.DenseMatrix
 import breeze.math.{Complex => C}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.grid.{LineModel, NodeModel}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
-import javax.measure.Quantity
-import javax.measure.quantity.{Dimensionless, ElectricPotential}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
-/** A simple grid consisting of 6 nodes and 5 lines. Besides the [[NodeModel]] s
-  * and [[LineModels]] s it also contains the corresponding admittance matrix.
+import java.util.UUID
+import javax.measure.Quantity
+import javax.measure.quantity.{Dimensionless, ElectricPotential}
+
+/** A simple grid consisting of 6 nodes and 5 lines. Besides the [[NodeModel]]s
+  * and [[LineModel]]s it also contains the corresponding admittance matrix.
   *
+  * {{{
   * (5)
   * |
   * | (0)-----(3)-----(4)
   * |
   * | (1)-----(2)
+  * }}}
   *
   * Reference System: 400 kVA @ 10 kV --> Reference admittance: 4 mS
   *
@@ -131,8 +133,8 @@ trait FiveLinesWithNodes {
       linesRatedVoltage
     )
 
-  protected def nodes: Set[NodeModel] =
-    Set(node0, node1, node2, node3, node4, node5)
+  protected def nodes: Seq[NodeModel] =
+    Seq(node0, node1, node2, node3, node4, node5)
 
   val line01: LineModel = _lineCreator(
     "line01",

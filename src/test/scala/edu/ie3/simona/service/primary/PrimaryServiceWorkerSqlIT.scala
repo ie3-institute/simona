@@ -68,7 +68,7 @@ class PrimaryServiceWorkerSqlIT
 
   override protected def beforeAll(): Unit = {
     // Copy sql import scripts into docker
-    val sqlImportFile = getMountableFile("timeseries/")
+    val sqlImportFile = getMountableFile("_timeseries/")
     container.copyFileToContainer(sqlImportFile, "/home/")
 
     Iterable("time_series_p.sql", "time_series_pqh.sql")

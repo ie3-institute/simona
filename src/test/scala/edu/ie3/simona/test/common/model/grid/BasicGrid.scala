@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.test.common.model.grid
 
-import java.util.UUID
-
 import edu.ie3.simona.model.grid.{
   NodeModel,
   TransformerModel,
@@ -15,24 +13,28 @@ import edu.ie3.simona.model.grid.{
 }
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits._
+import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units._
+
+import java.util.UUID
 import javax.measure.quantity.{
   Dimensionless,
   ElectricCurrent,
   ElectricPotential
 }
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
 
 /** Same as [[FiveLinesWithNodes]] but extended with an additional
   * [[TransformerModel]] and two corresponding additional nodes. For details on
   * used lines and nodes see [[FiveLinesWithNodes]].
   *
+  * {{{
   * (6) / / trafo (5) /
   * | /
   * | / (0)-----(3)-----(4)
   * |
   * | (1)-----(2)
+  * }}}
   *
   * Reference System: 400 kVA @ 10 kV --> Reference admittance: 4 mS
   *
@@ -45,7 +47,7 @@ import tech.units.indriya.unit.Units._
   * -> iNomLv = 2309.401076758503 A
   *
   * Transformer model: tap_side = hv (element port A) tap_pos = 0 amount = 1 vHv
-  * = 110 kV (node 6) vLv = 10 kV (node 3)
+  * \= 110 kV (node 6) vLv = 10 kV (node 3)
   *
   * Transformer admittance matrix data: gij = bij = g0 hv = 0 b0 hv =
   * -0.0000166375 // todo CK check g0 lv = b0 lv =
@@ -73,8 +75,8 @@ trait BasicGrid extends FiveLinesWithNodes with DefaultTestData {
       transformerHvVoltLvl
     )
 
-  override protected def nodes: Set[NodeModel] =
-    super.nodes + node6
+  override protected def nodes: Seq[NodeModel] =
+    super.nodes :+ node6
 
   // update nodeToIndexMap
   // nodeToIndexMap

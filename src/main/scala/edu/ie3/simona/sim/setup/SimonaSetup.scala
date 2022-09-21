@@ -139,12 +139,12 @@ trait SimonaSetup {
   protected val modifySubGridGateForThreeWindingSupport
       : SubGridGate => SubGridGate =
     (gate: SubGridGate) =>
-      gate.getLink match {
+      gate.link match {
         case transformer: Transformer3WInput =>
           new SubGridGate(
             transformer,
             transformer.getNodeInternal,
-            gate.getInferiorNode
+            gate.inferiorNode
           )
         case _ => gate
       }
