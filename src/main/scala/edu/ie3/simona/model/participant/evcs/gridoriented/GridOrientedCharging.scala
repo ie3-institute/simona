@@ -27,8 +27,6 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import javax.measure.quantity.{Dimensionless, Energy, Power}
 import scala.annotation.tailrec
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success}
 
 trait GridOrientedCharging {
@@ -72,23 +70,15 @@ trait GridOrientedCharging {
         startTime
       )
 
-    Await.result(
-      scheduleNonDispatchableEvs(currentTick, nonDispatchableEvs)
-        .zip(
-          scheduleDispatchableEvs(
-            currentTick,
-            currentTime,
-            startTime,
-            dispatchableEvs,
-            voltages
-          )
-        )
-        .map {
-          case (scheduleForNonDispatchableEvs, scheduleForDispatchableEvs) =>
-            scheduleForNonDispatchableEvs ++ scheduleForDispatchableEvs
-        },
-      Duration("1h")
-    )
+    scheduleNonDispatchableEvs(currentTick, nonDispatchableEvs) ++
+      scheduleDispatchableEvs(
+        currentTick,
+        currentTime,
+        startTime,
+        dispatchableEvs,
+        voltages
+      )
+
   }
 
   /** Determine the schedule for all non-dispatchable evs
@@ -103,12 +93,8 @@ trait GridOrientedCharging {
   private def scheduleNonDispatchableEvs(
       tick: Long,
       evs: Set[EvModel]
-  ): Future[Map[EvModel, Option[ChargingSchedule]]] = Future {
-    chargeWithMaximumPower(
-      tick,
-      evs
-    )
-  }
+  ): Map[EvModel, Option[ChargingSchedule]] =
+    chargeWithMaximumPower(tick, evs)
 
   /** Determine a grid conducive scheduling for evs that don't need to be
     * charged with maximum power until their departure. The scheduling for
@@ -134,7 +120,7 @@ trait GridOrientedCharging {
       startTime: ZonedDateTime,
       evs: Set[EvModel],
       voltages: Map[ZonedDateTime, ComparableQuantity[Dimensionless]]
-  ): Future[Map[EvModel, Option[ChargingSchedule]]] = Future {
+  ): Map[EvModel, Option[ChargingSchedule]] = {
     if (evs.nonEmpty) {
 
       /* Get all departure times and required energies of the currently parked and dispatchable evs in separate lists */

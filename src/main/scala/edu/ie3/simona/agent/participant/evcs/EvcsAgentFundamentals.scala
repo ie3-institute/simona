@@ -46,13 +46,7 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
 }
 import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvcsModel}
 import edu.ie3.simona.ontology.messages.PowerMessage.AssetPowerChangedMessage
-import edu.ie3.simona.ontology.messages.services.EvMessage.{
-  CurrentPriceRequest,
-  CurrentPriceResponse,
-  DepartedEvsResponse,
-  EvMovementData,
-  FreeLotsResponse
-}
+import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import tech.units.indriya.ComparableQuantity
@@ -60,7 +54,7 @@ import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
+import javax.measure.quantity.Dimensionless
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.reflect.{ClassTag, classTag}
 
@@ -214,8 +208,7 @@ protected trait EvcsAgentFundamentals
     modelConfig.scaling,
     simulationStartDate,
     simulationEndDate,
-    modelConfig.chargingStrategy,
-    context.dispatcher
+    modelConfig.chargingStrategy
   )
 
   /** Partial function, that is able to transfer

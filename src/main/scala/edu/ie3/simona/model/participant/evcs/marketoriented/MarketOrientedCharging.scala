@@ -34,8 +34,6 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import javax.measure.quantity.{Energy, Power}
 import scala.annotation.tailrec
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
 
 trait MarketOrientedCharging {
   this: EvcsModel =>
@@ -81,22 +79,14 @@ trait MarketOrientedCharging {
         startTime
       )
 
-    Await.result(
-      scheduleNonDispatchableEvs(nonDispatchableEvs, currentTick)
-        .zip(
-          scheduleDispatchableEvs(
-            this,
-            currentTick,
-            currentTime,
-            startTime,
-            dispatchableEvs
-          )
-        )
-        .map { case (nonDispatchableSchedules, dispatchableSchedules) =>
-          nonDispatchableSchedules ++ dispatchableSchedules
-        },
-      Duration("1h")
-    )
+    scheduleNonDispatchableEvs(nonDispatchableEvs, currentTick) ++
+      scheduleDispatchableEvs(
+        this,
+        currentTick,
+        currentTime,
+        startTime,
+        dispatchableEvs
+      )
   }
 
   /** Determine the schedule for all non-dispatchable EVs.
@@ -111,12 +101,11 @@ trait MarketOrientedCharging {
   private def scheduleNonDispatchableEvs(
       evs: Set[EvModel],
       currentTick: Long
-  ): Future[Map[EvModel, Option[ChargingSchedule]]] = Future {
+  ): Map[EvModel, Option[ChargingSchedule]] =
     chargeWithMaximumPower(
       currentTick,
       evs
     )
-  }
 
   /** Determine a market oriented scheduling for evs that don't need to be
     * charged with maximum power until their departure. The scheduling for
@@ -142,7 +131,7 @@ trait MarketOrientedCharging {
       currentTime: ZonedDateTime,
       startTime: ZonedDateTime,
       evs: Set[EvModel]
-  ): Future[Map[EvModel, Option[ChargingSchedule]]] =
+  ): Map[EvModel, Option[ChargingSchedule]] =
     if (evs.nonEmpty) {
       /* Get all departure times and required energies of the currently parked and dispatchable evs in separate lists */
       val lastDeparture =
@@ -170,29 +159,24 @@ trait MarketOrientedCharging {
         startTime.until(currentTime, ChronoUnit.SECONDS)
 
       /* Start with ev departing first and distribute charging energy */
-      Future
-        .sequence {
-          evs.toVector
-            .sortBy(ev => ev.getDepartureTick)
-            .map { ev =>
-              Future {
-                getSchedulingSlices(
-                  predictedPrices,
-                  scheduleStart,
-                  ev.getDepartureTick
-                )
-              }.flatMap { schedulingTimeWindows =>
-                createScheduleForThisEv(
-                  schedulingTimeWindows,
-                  ev,
-                  evcsModel,
-                  startTime
-                )
-              }.map(ev -> Some(_))
-            }
+      evs.toVector
+        .sortBy(ev => ev.getDepartureTick)
+        .map { ev =>
+          val schedulingSlices = getSchedulingSlices(
+            predictedPrices,
+            scheduleStart,
+            ev.getDepartureTick
+          )
+          val schedule = createScheduleForThisEv(
+            schedulingSlices,
+            ev,
+            evcsModel,
+            startTime
+          )
+          ev -> Some(schedule)
         }
-        .map(_.toMap)
-    } else Future { Map.empty }
+        .toMap
+    } else { Map.empty }
 
   /** Calculate the charging schedule for this ev based on the current
     * scheduling time window information.
@@ -213,7 +197,7 @@ trait MarketOrientedCharging {
       ev: EvModel,
       evcsModel: EvcsModel,
       startTime: ZonedDateTime
-  ): Future[ChargingSchedule] = Future {
+  ): ChargingSchedule = {
     /* Energy that needs to be distributed on the time windows to charge the ev to full SoC */
     val energyToChargeForEv = ev.getEStorage.subtract(ev.getStoredEnergy)
 

@@ -46,7 +46,6 @@ import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Energy, Power}
 import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
-import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
 /** EV charging station model
@@ -83,7 +82,6 @@ final case class EvcsModel(
     cosPhiRated: Double,
     chargingPoints: Int,
     locationType: EvcsLocationType,
-    execCtx: ExecutionContext,
     strategy: ChargingStrategy.Value
 ) extends SystemParticipant[EvcsRelevantData](
       uuid,
@@ -99,8 +97,6 @@ final case class EvcsModel(
     with ConstantPowerCharging
     with GridOrientedCharging
     with MarketOrientedCharging {
-
-  protected implicit val executionContext: ExecutionContext = execCtx
 
   /** Determine scheduling for charging the EVs currently parked at the charging
     * station until their departure. The scheduling depends on the chosen
@@ -751,8 +747,7 @@ object EvcsModel {
       scalingFactor: Double,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
-      chargingStrategy: String,
-      executionContext: ExecutionContext
+      chargingStrategy: String
   ): EvcsModel = {
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
@@ -773,7 +768,6 @@ object EvcsModel {
       inputModel.getCosPhiRated,
       inputModel.getChargingPoints,
       inputModel.getLocationType,
-      executionContext,
       ChargingStrategy(chargingStrategy)
     )
   }
@@ -814,7 +808,6 @@ object EvcsModel {
       cosPhiRated: Double,
       chargingPoints: Int,
       locationType: EvcsLocationType,
-      executionContext: ExecutionContext,
       chargingStrategy: ChargingStrategy.Value
   ): EvcsModel = {
     val model = new EvcsModel(
@@ -828,7 +821,6 @@ object EvcsModel {
       cosPhiRated,
       chargingPoints,
       locationType,
-      executionContext,
       chargingStrategy
     )
 
