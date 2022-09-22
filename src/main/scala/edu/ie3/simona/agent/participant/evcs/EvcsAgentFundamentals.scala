@@ -119,55 +119,6 @@ protected trait EvcsAgentFundamentals
         s"EvcsAgent cannot be initialized without an ev data service!"
       )
 
-    baseStateDataForModelCalculation(
-      inputModel,
-      modelConfig,
-      services,
-      simulationStartDate,
-      simulationEndDate,
-      resolution,
-      requestVoltageDeviationThreshold,
-      outputConfig
-    )
-  }
-
-  /** Determine needed base state data for model calculation simulation mode.
-    *
-    * @param inputModel
-    *   Input model
-    * @param modelConfig
-    *   Configuration for the model
-    * @param servicesOpt
-    *   [[Option]] on a vector of [[SecondaryDataService]] s
-    * @param simulationStartDate
-    *   Real world time date time, when the simulation starts
-    * @param simulationEndDate
-    *   Real world time date time, when the simulation ends
-    * @param resolution
-    *   Agents regular time bin it wants to be triggered e.g one hour
-    * @param requestVoltageDeviationThreshold
-    *   Threshold, after which two nodal voltage magnitudes from participant
-    *   power requests for the same tick are considered to be different
-    * @param outputConfig
-    *   Config of the output behaviour for simulation results
-    * @return
-    *   Needed base state data for model calculation
-    */
-  private def baseStateDataForModelCalculation(
-      inputModel: EvcsInput,
-      modelConfig: EvcsRuntimeConfig,
-      servicesOpt: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      resolution: Long,
-      requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
-  ): ParticipantModelBaseStateData[
-    ApparentPower,
-    EvcsRelevantData,
-    EvcsModel
-  ] = {
-
     /* Build the calculation model */
     val model =
       buildModel(
@@ -181,7 +132,7 @@ protected trait EvcsAgentFundamentals
       simulationStartDate,
       simulationEndDate,
       model,
-      servicesOpt,
+      services,
       outputConfig,
       Array.emptyLongArray, // Additional activation of the evcs agent is not needed
       Map.empty,
@@ -823,7 +774,6 @@ protected trait EvcsAgentFundamentals
         EvcsModel
       ]
   ): ValueStore[ApparentPower] = {
-    val start = System.currentTimeMillis()
     /* Power updates are already in the resultValueStore until the tick of the last event. Determine this tick to
      * know from where on new updates need to be written into the value store. This tick is either from the last update
      * of the calcRelevantDataStore (= EvMovements Event) or requestValueStore (= Power Request).
