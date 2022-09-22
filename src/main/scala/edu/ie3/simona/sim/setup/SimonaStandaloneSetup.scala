@@ -175,11 +175,7 @@ class SimonaStandaloneSetup(
           s"$index"
         )
 
-        val extSimAdapterData =
-          new ExtSimAdapterData(
-            extSimAdapter,
-            args
-          )
+        val extSimAdapterData = new ExtSimAdapterData(extSimAdapter, args)
 
         val initExtSimAdapter = InitializeExtSimAdapterTrigger(
           InitExtSimAdapter(extSimAdapterData)
