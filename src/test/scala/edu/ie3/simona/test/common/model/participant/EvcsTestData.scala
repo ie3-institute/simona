@@ -10,8 +10,7 @@ import edu.ie3.datamodel.models.ElectricCurrentType
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.evcs.EvcsModel
-import edu.ie3.simona.model.participant.evcs.EvcsModel.ChargingStrategy
+import edu.ie3.simona.model.participant.evcs.{ChargingStrategy, EvcsModel}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import tech.units.indriya.quantity.Quantities

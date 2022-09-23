@@ -60,7 +60,7 @@ trait MaximumPowerCharging {
             .asType(classOf[Time])
             .to(SECOND)
             .getValue
-            .longValue
+            .longValue + currentTick
         }
 
       ChargingSchedule(ev, Seq(Entry(currentTick, endTick, chargingPower)))

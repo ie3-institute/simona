@@ -16,7 +16,6 @@ import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
-  ChargingStrategy,
   EvcsRelevantData,
   PowerEntry
 }
@@ -695,22 +694,6 @@ final case class EvcsModel(
 }
 
 object EvcsModel {
-
-  object ChargingStrategy extends Enumeration {
-    val MAX_POWER, CONSTANT_POWER, GRID_ORIENTED, MARKET_ORIENTED = Value
-
-    def apply(token: String): ChargingStrategy.Value =
-      "[-_]".r.replaceAllIn(token.trim.toLowerCase, "") match {
-        case "maxpower"                 => MAX_POWER
-        case "constantpower"            => CONSTANT_POWER
-        case "gridorientedscheduling"   => GRID_ORIENTED
-        case "marketorientedscheduling" => MARKET_ORIENTED
-        case malformed =>
-          throw new RuntimeException(
-            s"The token '$malformed' cannot be parsed to charging strategy."
-          )
-      }
-  }
 
   /** Class that holds all relevant data for an Evcs model calculation
     *

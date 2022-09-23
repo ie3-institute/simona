@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.participant.evcs.uncontrolled
 
 import edu.ie3.simona.model.participant.evcs.ChargingSchedule
-import edu.ie3.simona.model.participant.evcs.EvcsModel.ChargingStrategy
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.simona.test.common.model.participant.EvcsTestData
@@ -36,7 +35,7 @@ class MaximumPowerChargingSpec
       )
 
       val actualSchedule = evcsModel.chargeWithMaximumPower(
-        0L,
+        1800L,
         Set(ev)
       )
 
@@ -46,8 +45,10 @@ class MaximumPowerChargingSpec
     }
 
     "work correctly with one ev" in {
+      val offset = 1800L
+
       val cases = Table(
-        ("stayingTicks", "storedEnergy", "expectedEndTick"),
+        ("stayingTicks", "storedEnergy", "expectedDuration"),
         // empty battery
         (3600L, 0.0, 3600L), // stay shorter than full
         (7200L, 0.0, 7200L), // exactly full
@@ -58,7 +59,7 @@ class MaximumPowerChargingSpec
         (14400L, 5.0, 3600L) // full before end of stay
       )
 
-      forAll(cases) { (stayingTicks, storedEnergy, expectedEndTick) =>
+      forAll(cases) { (stayingTicks, storedEnergy, expectedDuration) =>
         val ev = new MockEvModel(
           UUID.randomUUID(),
           "Test EV",
@@ -66,11 +67,11 @@ class MaximumPowerChargingSpec
           10.0.asKiloWatt,
           10.0.asKiloWattHour,
           storedEnergy.asKiloWattHour,
-          stayingTicks
+          offset + stayingTicks
         )
 
         val chargingMap = evcsModel.chargeWithMaximumPower(
-          0L,
+          offset,
           Set(ev)
         )
 
@@ -80,8 +81,8 @@ class MaximumPowerChargingSpec
               ev,
               Seq(
                 ChargingSchedule.Entry(
-                  0L,
-                  expectedEndTick,
+                  offset,
+                  offset + expectedDuration,
                   ev.getSRatedAC
                 )
               )
@@ -93,9 +94,10 @@ class MaximumPowerChargingSpec
     }
 
     "work correctly with two evs" in {
+      val offset = 3600L
+
       val cases = Table(
-        ("stayingTicks", "storedEnergy", "expectedEndTick"),
-        // empty battery
+        ("stayingTicks", "storedEnergy", "expectedDuration"),
         // empty battery
         (3600L, 0.0, 3600L), // stay shorter than full
         (7200L, 0.0, 7200L), // exactly full
@@ -106,7 +108,7 @@ class MaximumPowerChargingSpec
         (14400L, 5.0, 3600L) // full before end of stay
       )
 
-      forAll(cases) { (stayingTicks, storedEnergy, expectedEndTick) =>
+      forAll(cases) { (stayingTicks, storedEnergy, expectedDuration) =>
         val givenEv = new MockEvModel(
           UUID.randomUUID(),
           "First EV",
@@ -114,7 +116,7 @@ class MaximumPowerChargingSpec
           10.0.asKiloWatt,
           10.0.asKiloWattHour,
           5.0.asKiloWattHour,
-          3600L
+          offset + 3600L
         )
 
         val ev = new MockEvModel(
@@ -124,11 +126,11 @@ class MaximumPowerChargingSpec
           10.0.asKiloWatt,
           10.0.asKiloWattHour,
           storedEnergy.asKiloWattHour,
-          stayingTicks
+          offset + stayingTicks
         )
 
         val chargingMap = evcsModel.chargeWithMaximumPower(
-          0L,
+          offset,
           Set(givenEv, ev)
         )
 
@@ -138,8 +140,8 @@ class MaximumPowerChargingSpec
               givenEv,
               Seq(
                 ChargingSchedule.Entry(
-                  0L,
-                  3600L,
+                  offset,
+                  offset + 3600L,
                   5.0.asKiloWatt
                 )
               )
@@ -150,8 +152,8 @@ class MaximumPowerChargingSpec
               ev,
               Seq(
                 ChargingSchedule.Entry(
-                  0L,
-                  expectedEndTick,
+                  offset,
+                  offset + expectedDuration,
                   5.0.asKiloWatt
                 )
               )

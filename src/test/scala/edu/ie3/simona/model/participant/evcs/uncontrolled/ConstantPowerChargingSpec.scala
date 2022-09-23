@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.participant.evcs.uncontrolled
 
 import edu.ie3.simona.model.participant.evcs.ChargingSchedule
-import edu.ie3.simona.model.participant.evcs.EvcsModel.ChargingStrategy
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.simona.test.common.model.participant.EvcsTestData
@@ -32,11 +31,11 @@ class ConstantPowerChargingSpec
         10.0.asKiloWatt,
         20.0.asKiloWattHour,
         20.0.asKiloWattHour,
-        3600
+        3600L
       )
 
       val actualSchedule = evcsModel.chargeWithConstantPower(
-        0L,
+        1800L,
         Set(ev)
       )
 
@@ -46,6 +45,8 @@ class ConstantPowerChargingSpec
     }
 
     "work correctly with one ev" in {
+      val offset = 1800L
+
       val cases = Table(
         ("stayingTicks", "storedEnergy", "expectedPower"),
         // empty battery
@@ -68,11 +69,11 @@ class ConstantPowerChargingSpec
           10.0.asKiloWatt,
           10.0.asKiloWattHour,
           storedEnergy.asKiloWattHour,
-          stayingTicks
+          offset + stayingTicks
         )
 
         val chargingMap = evcsModel.chargeWithConstantPower(
-          0L,
+          offset,
           Set(ev)
         )
 
@@ -82,8 +83,8 @@ class ConstantPowerChargingSpec
               ev,
               Seq(
                 ChargingSchedule.Entry(
-                  0L,
-                  stayingTicks,
+                  offset,
+                  offset + stayingTicks,
                   expectedPower.asKiloWatt
                 )
               )
@@ -95,6 +96,8 @@ class ConstantPowerChargingSpec
     }
 
     "work correctly with two evs" in {
+      val offset = 3600L
+
       val cases = Table(
         ("stayingTicks", "storedEnergy", "expectedPower"),
         // empty battery
@@ -117,7 +120,7 @@ class ConstantPowerChargingSpec
           10.0.asKiloWatt,
           10.0.asKiloWattHour,
           5.0.asKiloWattHour,
-          3600L
+          offset + 3600L
         )
 
         val ev = new MockEvModel(
@@ -127,11 +130,11 @@ class ConstantPowerChargingSpec
           10.0.asKiloWatt,
           10.0.asKiloWattHour,
           storedEnergy.asKiloWattHour,
-          stayingTicks
+          offset + stayingTicks
         )
 
         val chargingMap = evcsModel.chargeWithConstantPower(
-          0L,
+          offset,
           Set(givenEv, ev)
         )
 
@@ -141,8 +144,8 @@ class ConstantPowerChargingSpec
               givenEv,
               Seq(
                 ChargingSchedule.Entry(
-                  0L,
-                  3600L,
+                  offset,
+                  offset + 3600L,
                   5.0.asKiloWatt
                 )
               )
@@ -153,8 +156,8 @@ class ConstantPowerChargingSpec
               ev,
               Seq(
                 ChargingSchedule.Entry(
-                  0L,
-                  stayingTicks,
+                  offset,
+                  offset + stayingTicks,
                   expectedPower.asKiloWatt
                 )
               )
