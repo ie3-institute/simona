@@ -13,7 +13,7 @@ import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT, KILOWATTHOUR}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.SECOND
 
-import javax.measure.quantity.Energy
+import javax.measure.quantity.{Energy, Time}
 
 trait MaximumPowerCharging {
   this: EvcsModel =>
@@ -36,10 +36,11 @@ trait MaximumPowerCharging {
   ): Map[EvModel, Option[ChargingSchedule]] = evs.map { ev =>
     ev -> Option.when(ev.getStoredEnergy.isLessThan(ev.getEStorage)) {
       val chargingPower = getMaxAvailableChargingPower(ev)
-      val remainingParkingTime = ev.getDepartureTick - currentTick
+      val remainingParkingTime =
+        Quantities.getQuantity(ev.getDepartureTick - currentTick, SECOND)
 
       val possibleChargeableEnergyUntilDeparture = chargingPower
-        .multiply(Quantities.getQuantity(remainingParkingTime.toDouble, SECOND))
+        .multiply(remainingParkingTime)
         .asType(classOf[Energy])
         .to(KILOWATTHOUR)
 
@@ -53,12 +54,13 @@ trait MaximumPowerCharging {
           ev.getDepartureTick
         } else {
           /* Charge only until the car is full */
-          (ev.getEStorage
+          ev.getEStorage
             .subtract(ev.getStoredEnergy)
-            .to(KILOWATTHOUR)
             .divide(chargingPower.to(KILOWATT))
+            .asType(classOf[Time])
+            .to(SECOND)
             .getValue
-            .doubleValue() * 3600).toLong
+            .longValue
         }
 
       ChargingSchedule(ev, Seq(Entry(currentTick, endTick, chargingPower)))

@@ -37,19 +37,19 @@ trait ConstantPowerCharging {
   ): Map[EvModel, Option[ChargingSchedule]] = evs.map { ev =>
     ev -> Option.when(ev.getStoredEnergy.isLessThan(ev.getEStorage)) {
       val maxChargingPower = getMaxAvailableChargingPower(ev)
-      val remainingParkingTime = ev.getDepartureTick - currentTick
+      val remainingParkingTime =
+        Quantities.getQuantity(ev.getDepartureTick - currentTick, SECOND)
 
       val requiredEnergyUntilFull =
         ev.getEStorage.subtract(ev.getStoredEnergy)
       val maxChargedEnergyUntilDeparture = maxChargingPower
-        .multiply(Quantities.getQuantity(remainingParkingTime, SECOND))
+        .multiply(remainingParkingTime)
         .asType(classOf[Energy])
-        .to(KILOWATTHOUR)
       val actualChargedEnergy =
         requiredEnergyUntilFull.min(maxChargedEnergyUntilDeparture)
 
       val chargingPower = actualChargedEnergy
-        .divide(Quantities.getQuantity(remainingParkingTime, SECOND))
+        .divide(remainingParkingTime)
         .asType(classOf[Power])
         .to(KILOWATT)
 
