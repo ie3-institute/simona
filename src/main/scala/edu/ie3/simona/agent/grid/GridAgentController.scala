@@ -215,7 +215,7 @@ class GridAgentController(
             participant,
             environmentRefs,
             emParticipantMap,
-            None
+            None // FIXME
           ) // introduce to environment
         introduceAgentToEnvironment(
           actorRef,
@@ -403,7 +403,7 @@ class GridAgentController(
   ) = (
     gridAgentContext.simonaActorOf(
       FixedFeedInAgent.props(
-        environmentRefs.scheduler,
+        maybeEmAgent.getOrElse(environmentRefs.scheduler),
         listener // TODO this needs to be a param
       ),
       fixedFeedInInput.getId
@@ -469,7 +469,7 @@ class GridAgentController(
   ) = (
     gridAgentContext.simonaActorOf(
       LoadAgent.props(
-        environmentRefs.scheduler,
+        maybeEmAgent.getOrElse(environmentRefs.scheduler),
         listener,
         modelConfiguration
       ),
@@ -538,7 +538,7 @@ class GridAgentController(
     (
       gridAgentContext.simonaActorOf(
         PVAgent.props(
-          environmentRefs.scheduler,
+          maybeEmAgent.getOrElse(environmentRefs.scheduler),
           listener
         ),
         pvInput.getId
@@ -614,7 +614,7 @@ class GridAgentController(
     (
       gridAgentContext.simonaActorOf(
         EvcsAgent.props(
-          environmentRefs.scheduler,
+          maybeEmAgent.getOrElse(environmentRefs.scheduler),
           listener
         )
       ),
@@ -682,7 +682,7 @@ class GridAgentController(
     (
       gridAgentContext.simonaActorOf(
         WecAgent.props(
-          environmentRefs.scheduler,
+          maybeEmAgent.getOrElse(environmentRefs.scheduler),
           listener
         ),
         wecInput.getId
@@ -720,6 +720,8 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
+    * @param maybeEmAgent
+    *   The EmAgent if this participant is em-controlled
     * @return
     *   A pair of [[StorageAgent]] 's [[ActorRef]] as well as the equivalent
     *   [[InitializeParticipantAgentTrigger]] to sent for initialization
@@ -745,7 +747,7 @@ class GridAgentController(
     (
       gridAgentContext.simonaActorOf(
         StorageAgent.props(
-          environmentRefs.scheduler,
+          maybeEmAgent.getOrElse(environmentRefs.scheduler),
           listener
         ),
         storageInput.getId
