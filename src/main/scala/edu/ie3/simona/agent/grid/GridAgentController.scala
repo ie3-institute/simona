@@ -310,8 +310,10 @@ class GridAgentController(
         simulationEndDate,
         resolution,
         requestVoltageDeviationThreshold,
-        outputConfigUtil.getOrDefault(NotifierIdentifier.Storage)
+        outputConfigUtil.getOrDefault(NotifierIdentifier.Storage),
+        maybeEmAgent
       )
+
     case input: SystemParticipantInput =>
       throw new NotImplementedError(
         s"Building ${input.getClass.getSimpleName} is not implemented, yet."
@@ -684,6 +686,8 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
+    * @param maybeEmAgent
+    *   The EmAgent if this participant is em-controlled
     * @return
     *   A pair of [[StorageAgent]] 's [[ActorRef]] as well as the equivalent
     *   [[InitializeParticipantAgentTrigger]] to sent for initialization
@@ -696,7 +700,8 @@ class GridAgentController(
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: ParticipantNotifierConfig,
+      maybeEmAgent: Option[ActorRef]
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -708,7 +713,7 @@ class GridAgentController(
     (
       gridAgentContext.simonaActorOf(
         StorageAgent.props(
-          environmentRefs.scheduler,
+          maybeEmAgent.getOrElse(environmentRefs.scheduler),
           listener
         ),
         storageInput.getId
@@ -722,7 +727,8 @@ class GridAgentController(
         simulationEndDate,
         resolution,
         requestVoltageDeviationThreshold,
-        outputConfig
+        outputConfig,
+        maybeEmAgent
       )
     )
 
