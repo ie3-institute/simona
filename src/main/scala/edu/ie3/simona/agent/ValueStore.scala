@@ -145,8 +145,15 @@ object ValueStore {
       valueStore: ValueStore[D],
       tick: Long,
       newEntry: D
-  ): ValueStore[D] = valueStore.copy(
-    store = (valueStore.store + (tick -> newEntry))
-      .filter(pair => pair._1 > tick - valueStore.maxTickSpan)
-  )
+  ): ValueStore[D] = {
+    val updatedStore = valueStore.store + (tick -> newEntry)
+
+    valueStore.copy(
+      store =
+        if (updatedStore.size > 5) // always keep at least 5 entries
+          updatedStore.filter(pair => pair._1 > tick - valueStore.maxTickSpan)
+        else
+          updatedStore
+    )
+  }
 }
