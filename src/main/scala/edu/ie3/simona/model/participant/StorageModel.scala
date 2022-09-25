@@ -52,7 +52,13 @@ final case class StorageModel(
     ) {
 
   private val lowestEnergy = eStorage.multiply(dod).asType(classOf[Energy])
-  private val marginTolerance = 0.01d.asKiloWattHour
+
+  /** In order to avoid faulty flexibility options, we want to avoid offering
+    * charging/discharging that could last less than one second.
+    */
+  private val toleranceMargin = pMax
+    .multiply(Quantities.getQuantity(1, Units.SECOND))
+    .asType(classOf[Energy])
 
   override protected def calculateActivePower(
       data: StorageRelevantData
@@ -69,9 +75,9 @@ final case class StorageModel(
       determineCurrentState(lastState, data.currentTick)
 
     val chargingPossible =
-      currentStoredEnergy.isLessThan(eStorage.subtract(marginTolerance))
+      currentStoredEnergy.isLessThan(eStorage.subtract(toleranceMargin))
     val dischargingPossible =
-      currentStoredEnergy.isGreaterThan(lowestEnergy.add(marginTolerance))
+      currentStoredEnergy.isGreaterThan(lowestEnergy.add(toleranceMargin))
 
     ProvideMinMaxFlexOptions(
       uuid,
