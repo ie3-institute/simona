@@ -79,7 +79,7 @@ class GridAgent(
         .toZonedDateTime(simonaConfig.simona.time.endDateTime),
       simonaConfig.simona.runtime.participant,
       simonaConfig.simona.output.participant,
-      resolution,
+      3600L, // FIXME this is normally = resolution
       listener,
       log
     )
