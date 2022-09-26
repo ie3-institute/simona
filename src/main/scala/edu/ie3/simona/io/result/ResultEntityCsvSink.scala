@@ -41,8 +41,7 @@ final case class ResultEntityCsvSink private (
     resultEntityProcessor: ResultEntityProcessor,
     compressOutputFiles: Boolean,
     delimiter: String
-)
-    extends ResultEntitySink
+) extends ResultEntitySink
     with LazyLogging {
 
   private val logPrefix: String => String = (content: String) =>
@@ -93,9 +92,13 @@ final case class ResultEntityCsvSink private (
     *   a future with information on the I/O operation
     */
   private def writeHeader(): Unit = {
-    val text = resultEntityProcessor.getHeaderElements.view.map(StringUtils.camelCaseToSnakeCase).mkString(",")
+    val text = resultEntityProcessor.getHeaderElements.view
+      .map(StringUtils.camelCaseToSnakeCase)
+      .mkString(",")
 
     fileWriter.write(text)
+    // flush out the headline immediately
+    fileWriter.flush()
   }
 
   private def zipAndDel(outFileName: String): Future[lang.Boolean] = {
@@ -169,7 +172,7 @@ object ResultEntityCsvSink {
       delimiter
     )
 
-    if(!existedBefore)
+    if (!existedBefore)
       resultEntityCsvSink.writeHeader()
     resultEntityCsvSink
   }

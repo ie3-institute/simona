@@ -6,9 +6,8 @@
 
 package edu.ie3.simona.event.listener
 
-import java.io.{File, FileInputStream}
-import java.util.zip.GZIPInputStream
 import akka.actor.ActorSystem
+import akka.pattern.gracefulStop
 import akka.stream.Materializer
 import akka.testkit.{TestFSMRef, TestProbe}
 import com.typesafe.config.ConfigFactory
@@ -33,10 +32,12 @@ import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.util.io.FileIOUtils
 import org.scalatest.BeforeAndAfterEach
 
+import java.io.{File, FileInputStream}
+import java.util.zip.GZIPInputStream
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 import scala.io.Source
 import scala.language.postfixOps
 
@@ -178,8 +179,14 @@ class ResultEventListenerSpec
           )
         )
 
-        // wait until output file exists:
-        awaitCond(outputFile.exists(), interval = 500.millis)
+        // wait until output file exists (headers are flushed out immediately):
+        awaitCond(outputFile.exists(), interval = 500.millis, max = 5.seconds)
+
+        // stop listener so that result is flushed out
+        Await.ready(
+          gracefulStop(listenerRef, 5.seconds),
+          5.seconds
+        )
 
         // wait until all lines have been written out:
         awaitCond(
@@ -255,10 +262,16 @@ class ResultEventListenerSpec
           )
         )
 
-        // wait until all output files exist:
+        // wait until all output files exist (headers are flushed out immediately):
         awaitCond(
           outputFiles.values.map(_.exists()).forall(identity),
           interval = 500.millis
+        )
+
+        // stop listener so that result is flushed out
+        Await.ready(
+          gracefulStop(listenerRef, 5.seconds),
+          5.seconds
         )
 
         // wait until all lines have been written out:
@@ -490,6 +503,12 @@ class ResultEventListenerSpec
           Vector.empty[LineResult],
           Vector.empty[Transformer2WResult],
           Vector(resultB)
+        )
+
+        // stop listener so that result is flushed out
+        Await.ready(
+          gracefulStop(listener, 5.seconds),
+          5.seconds
         )
 
         /* Await that the result is written */

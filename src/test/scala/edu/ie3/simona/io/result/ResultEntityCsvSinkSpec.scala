@@ -55,11 +55,11 @@ class ResultEntityCsvSinkSpec
       val resultEntityProcessor = new ResultEntityProcessor(classOf[PvResult])
 
       val resultEntitySink =
-          ResultEntityCsvSink(
-            outFileName,
-            resultEntityProcessor,
-            outFileName.endsWith(".gz")
-          )
+        ResultEntityCsvSink(
+          outFileName,
+          resultEntityProcessor,
+          outFileName.endsWith(".gz")
+        )
 
       resultEntitySink.outfileName shouldBe outFileName
       resultEntitySink.delimiter shouldBe ","
@@ -156,11 +156,11 @@ class ResultEntityCsvSinkSpec
       )
 
       val resultEntitySink =
-          ResultEntityCsvSink(
-            outFileName,
-            resultEntityProcessor,
-            outFileName.endsWith(".gz")
-          )
+        ResultEntityCsvSink(
+          outFileName,
+          resultEntityProcessor,
+          outFileName.endsWith(".gz")
+        )
 
       resultEntitySink.handleResultEntity(dummyPvResult)
 
@@ -201,11 +201,11 @@ class ResultEntityCsvSinkSpec
       )
 
       val resultEntitySink =
-          ResultEntityCsvSink(
-            outFileName,
-            resultEntityProcessor,
-            outFileName.endsWith(".gz")
-          )
+        ResultEntityCsvSink(
+          outFileName,
+          resultEntityProcessor,
+          outFileName.endsWith(".gz")
+        )
 
       val exception = intercept[ProcessResultEventException] {
         resultEntitySink.handleResultEntity(dummyWecResult)
