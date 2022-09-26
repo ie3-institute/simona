@@ -238,7 +238,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
 
   def stopAllChildrenGracefully(
       simulationSuccessful: Boolean,
-      listenerDelay: FiniteDuration = 500.millis
+      listenerDelay: FiniteDuration = 2.minutes
   ): Unit = {
     gridAgents.foreach { case (gridAgentRef, _) =>
       context.unwatch(gridAgentRef)
