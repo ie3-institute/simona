@@ -118,11 +118,14 @@ object ResultEventListener extends Transformer3wResultSupport {
               )
               .flatMap { fileName =>
                 if (fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")) {
-                  ResultEntityCsvSink(
-                    fileName.replace(".gz", ""),
-                    new ResultEntityProcessor(resultClass),
-                    fileName.endsWith(".gz")
-                  ).map((resultClass, _))
+                  Future.successful(
+                    resultClass,
+                    ResultEntityCsvSink(
+                      fileName.replace(".gz", ""),
+                      new ResultEntityProcessor(resultClass),
+                      fileName.endsWith(".gz")
+                    )
+                  )
                 } else {
                   Future(
                     throw new ProcessResultEventException(
