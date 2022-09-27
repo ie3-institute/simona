@@ -17,7 +17,7 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideFlexOptions,
   ProvideMinMaxFlexOptions
 }
-import edu.ie3.util.quantities.QuantityUtils.{RichQuantity, RichQuantityDouble}
+import edu.ie3.util.quantities.QuantityUtils.RichQuantity
 import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
@@ -74,10 +74,8 @@ final case class StorageModel(
     val currentStoredEnergy =
       determineCurrentState(lastState, data.currentTick)
 
-    val chargingPossible =
-      currentStoredEnergy.isLessThan(eStorage.subtract(toleranceMargin))
-    val dischargingPossible =
-      currentStoredEnergy.isGreaterThan(lowestEnergy.add(toleranceMargin))
+    val chargingPossible = !isFull(currentStoredEnergy)
+    val dischargingPossible = !isEmpty(currentStoredEnergy)
 
     ProvideMinMaxFlexOptions(
       uuid,
@@ -91,40 +89,59 @@ final case class StorageModel(
       data: StorageRelevantData,
       lastState: StorageState,
       setPower: ComparableQuantity[Power]
-  ): (StorageState, Option[Long]) = {
+  ): (StorageState, FlexChangeIndicator) = {
     val currentStoredEnergy =
       determineCurrentState(lastState, data.currentTick)
 
     // net power after considering efficiency
-    val netPower = setPower
-      .multiply(eta)
-      .asType(classOf[Power])
-      .to(PowerSystemUnits.KILOWATT)
+    val netPower = {
+      val proposal = setPower
+        .multiply(eta)
+        .asType(classOf[Power])
+        .to(PowerSystemUnits.KILOWATT)
+
+      // if it's close to zero, set it to zero
+      if (QuantityUtil.isEquivalentAbs(zeroKW, proposal, 1e-9))
+        zeroKW
+      else
+        proposal
+    }
 
     val currentState =
       StorageState(currentStoredEnergy, netPower, data.currentTick)
 
-    val maybeAdditionalTick =
-      if (QuantityUtil.isEquivalentAbs(zeroKW, netPower, 1e-9)) {
-        // do nothing
+    // if the storage is at minimum or maximum charged energy AND we are charging
+    // or discharging, flex options will be different at the next activation
+    val isEmptyOrFull =
+      isEmpty(currentStoredEnergy) || isFull(currentStoredEnergy)
+    val isChargingOrDischarging =
+      !QuantityUtil.isEquivalentAbs(zeroKW, netPower, 0)
+
+    val activateAtNextTick = isEmptyOrFull && isChargingOrDischarging
+
+    // calculate the tick at which storage will be full or empty, if applicable
+    val maybeNextTick =
+      if (!isChargingOrDischarging) {
+        // we're at 0 kW, do nothing
         None
       } else if (netPower.isGreaterThan(zeroKW)) {
-        // charge
+        // we're charging, calculate tick at which we're full
         val energyToFull = eStorage.subtract(currentStoredEnergy)
         val timeToFull = energyToFull.divide(netPower).asType(classOf[Time])
         val ticksToFull =
           Math.round(timeToFull.to(Units.SECOND).getValue.doubleValue())
         Some(data.currentTick + ticksToFull)
       } else {
-        // discharge
+        // we're discharging, calculate tick at which we're at lowest energy allowed
         val energyToEmpty = currentStoredEnergy.subtract(lowestEnergy)
         val timeToEmpty =
           energyToEmpty.divide(netPower.multiply(-1)).asType(classOf[Time])
-        val ticksToEmpty = timeToEmpty.to(Units.SECOND).getValue.intValue()
+        val ticksToEmpty =
+          Math.round(timeToEmpty.to(Units.SECOND).getValue.doubleValue())
         Some(data.currentTick + ticksToEmpty)
       }
 
-    (currentState, maybeAdditionalTick)
+    (currentState, FlexChangeIndicator(activateAtNextTick, maybeNextTick))
   }
 
   private def determineCurrentState(
@@ -142,6 +159,24 @@ final case class StorageModel(
     // allow charges below dod though since batteries can start at 0 kWh
     zeroKWH.max(eStorage.min(newEnergy))
   }
+
+  /** @param storedEnergy
+    *   the stored energy amount to check
+    * @return
+    *   whether the given stored energy is greater than the maximum charged
+    *   energy allowed (minus a tolerance margin)
+    */
+  private def isFull(storedEnergy: ComparableQuantity[Energy]): Boolean =
+    storedEnergy.isGreaterThanOrEqualTo(eStorage.subtract(toleranceMargin))
+
+  /** @param storedEnergy
+    *   the stored energy amount to check
+    * @return
+    *   whether the given stored energy is less than the minimal charged energy
+    *   allowed (plus a tolerance margin)
+    */
+  private def isEmpty(storedEnergy: ComparableQuantity[Energy]): Boolean =
+    storedEnergy.isLessThanOrEqualTo(lowestEnergy.add(toleranceMargin))
 
 }
 
