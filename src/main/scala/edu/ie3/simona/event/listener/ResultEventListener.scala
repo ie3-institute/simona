@@ -6,15 +6,7 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.{
-  ActorRef,
-  FSM,
-  PoisonPill,
-  Props,
-  ReceiveTimeout,
-  Stash,
-  Status
-}
+import akka.actor._
 import akka.pattern.pipe
 import akka.stream.Materializer
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
@@ -27,15 +19,7 @@ import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
   PowerFlowResultEvent
 }
-import edu.ie3.simona.event.listener.ResultEventListener.{
-  AggregatedTransformer3wResult,
-  BaseData,
-  Init,
-  ResultEventListenerData,
-  SinkResponse,
-  Transformer3wKey,
-  UninitializedData
-}
+import edu.ie3.simona.event.listener.ResultEventListener._
 import edu.ie3.simona.exceptions.{
   FileHierarchyException,
   InitializationException,
