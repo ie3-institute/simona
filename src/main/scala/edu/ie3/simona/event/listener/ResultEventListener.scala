@@ -19,7 +19,15 @@ import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
   PowerFlowResultEvent
 }
-import edu.ie3.simona.event.listener.ResultEventListener._
+import edu.ie3.simona.event.listener.ResultEventListener.{
+  AggregatedTransformer3wResult,
+  BaseData,
+  Init,
+  ResultEventListenerData,
+  SinkResponse,
+  Transformer3wKey,
+  UninitializedData
+}
 import edu.ie3.simona.exceptions.{
   FileHierarchyException,
   InitializationException,
