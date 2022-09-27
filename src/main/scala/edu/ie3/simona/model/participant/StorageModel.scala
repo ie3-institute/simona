@@ -119,27 +119,27 @@ final case class StorageModel(
 
     val activateAtNextTick = isEmptyOrFull && isChargingOrDischarging
 
-    // calculate the tick at which storage will be full or empty, if applicable
-    val maybeNextTick =
+    // calculate the time span until we're full or empty, if applicable
+    val maybeTimeSpan =
       if (!isChargingOrDischarging) {
         // we're at 0 kW, do nothing
         None
       } else if (netPower.isGreaterThan(zeroKW)) {
-        // we're charging, calculate tick at which we're full
+        // we're charging, calculate time until we're full
         val energyToFull = eStorage.subtract(currentStoredEnergy)
-        val timeToFull = energyToFull.divide(netPower).asType(classOf[Time])
-        val ticksToFull =
-          Math.round(timeToFull.to(Units.SECOND).getValue.doubleValue())
-        Some(data.currentTick + ticksToFull)
+        Some(energyToFull.divide(netPower).asType(classOf[Time]))
       } else {
-        // we're discharging, calculate tick at which we're at lowest energy allowed
+        // we're discharging, calculate time until we're at lowest energy allowed
         val energyToEmpty = currentStoredEnergy.subtract(lowestEnergy)
-        val timeToEmpty =
-          energyToEmpty.divide(netPower.multiply(-1)).asType(classOf[Time])
-        val ticksToEmpty =
-          Math.round(timeToEmpty.to(Units.SECOND).getValue.doubleValue())
-        Some(data.currentTick + ticksToEmpty)
+        Some(energyToEmpty.divide(netPower.multiply(-1)).asType(classOf[Time]))
       }
+
+    // calculate the tick from time span
+    val maybeNextTick = maybeTimeSpan.map { timeSpan =>
+      val ticksToEmpty =
+        Math.round(timeSpan.to(Units.SECOND).getValue.doubleValue())
+      data.currentTick + ticksToEmpty
+    }
 
     (currentState, FlexChangeIndicator(activateAtNextTick, maybeNextTick))
   }
