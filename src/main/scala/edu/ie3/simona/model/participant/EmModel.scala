@@ -221,7 +221,7 @@ final case class EmModel private (
       data: EmRelevantData,
       lastState: ModelState.ConstantState.type,
       setPower: ComparableQuantity[Power]
-  ): (ModelState.ConstantState.type, Option[Long]) =
+  ): (ModelState.ConstantState.type, FlexChangeIndicator) =
     throw new NotImplementedError("EmModel cannot be managed")
 }
 
