@@ -111,18 +111,14 @@ abstract class SystemParticipant[CD <: CalcRelevantData, MS <: ModelState](
     * @param setPower
     *   power that has been set by EmAgent
     * @return
-    *   optionally updated relevant data and the next tick at which flex options
-    *   will change.
-    *
-    * TODO currently the model state data is usually saved within
-    * CalcRelevantData, which is less than ideal. But, this is why we optionally
-    * return an updated CD here.
+    *   updated relevant data and an indication at which circumstances flex
+    *   options will change next
     */
   def handleControlledPowerChange(
       data: CD,
       lastState: MS,
       setPower: ComparableQuantity[Power]
-  ): (MS, Option[Long])
+  ): (MS, FlexChangeIndicator)
 
   /** Get a partial function, that transfers the current active into reactive
     * power based on the participants properties and the given nodal voltage

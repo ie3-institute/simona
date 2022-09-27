@@ -108,6 +108,7 @@ object EmAgent {
       flexCorrespondences: Map[UUID, ValueStore[
         FlexCorrespondence
       ]], // TODO enhanced todo: MultiValueStore
+      activateAtNextTick: Set[UUID],
       actorRefToUuid: Map[ActorRef, UUID],
       connectedAgents: Map[UUID, (SystemParticipantInput, ActorRef)],
       schedulerStateData: EmSchedulerStateData,
@@ -230,6 +231,7 @@ class EmAgent(
         connectedAgents.map { case (_, _, sp) =>
           sp.getUuid -> ValueStore(resolution * 10)
         }.toMap,
+        Set.empty,
         connectedAgents.map { case (actor, _, sp) =>
           actor -> sp.getUuid
         }.toMap,
@@ -279,6 +281,14 @@ class EmAgent(
       stay() using baseStateData.copy(schedulerStateData = updatedStateData)
 
     case Event(
+          ChangingFlexOptions(modelUuid),
+          baseStateData: EmModelBaseStateData
+        ) =>
+      stay() using baseStateData.copy(activateAtNextTick =
+        baseStateData.activateAtNextTick + modelUuid
+      )
+
+    case Event(
           revokeTriggerMsg: RevokeTriggerMessage,
           baseStateData: EmModelBaseStateData
         ) =>
@@ -290,7 +300,11 @@ class EmAgent(
           TriggerWithIdMessage(ActivityStartTrigger(newTick), triggerId, _),
           baseStateData: EmModelBaseStateData
         ) =>
-      val expectedActors =
+      // here, participants that are changing their flex options at the current
+      // tick are activated and are sent flex options requests
+
+      // participants that have to be activated at this specific tick
+      val expectedAtThis =
         baseStateData.schedulerStateData.trigger.triggerQueue
           .get(newTick)
           .map {
@@ -302,14 +316,31 @@ class EmAgent(
           }
           .getOrElse(Map.empty)
 
-      // prepare map for expected flex options and expected results for this tick
-      val expectedParticipants =
-        expectedActors.map { case (_, uuid) => uuid }
+      // participants that have to be activated at any next tick
+      val expectedAtAnyNext =
+        baseStateData.activateAtNextTick
+          .flatMap { modelUuid =>
+            baseStateData.connectedAgents.get(modelUuid).map {
+              case (_, actor) =>
+                actor -> modelUuid
+            }
+          }
+          .filterNot {
+            // filter out duplicates here: we might have been scheduled
+            // for this tick anyways
+            case (actor, _) =>
+              expectedAtThis.contains(actor)
+          }
+          .toMap
 
-      val updatedReceivedFlexOptions = expectedParticipants.foldLeft(
+      // combining both
+      val expectedAll = expectedAtThis ++ expectedAtAnyNext
+
+      // prepare map for expected flex options and expected results for this tick
+      val updatedFlexCorrespondences = expectedAll.foldLeft(
         baseStateData.flexCorrespondences
-      ) { case (stores, uuid) =>
-        val participantValueStore = stores.getOrElse(
+      ) { case (correspondences, (_, uuid)) =>
+        val participantValueStore = correspondences.getOrElse(
           uuid,
           throw new RuntimeException(s"ValueStore for UUID $uuid not found")
         )
@@ -321,12 +352,24 @@ class EmAgent(
             FlexCorrespondence()
           )
 
-        stores.updated(uuid, updatedFlexOptionsStore)
+        correspondences.updated(uuid, updatedFlexOptionsStore)
       }
+
+      // add missing activation triggers
+      val updatedSchedulerData =
+        expectedAtAnyNext.foldLeft(baseStateData.schedulerStateData) {
+          case (schedulerData, (actor, _)) =>
+            scheduleTrigger(
+              ScheduleTriggerMessage(ActivityStartTrigger(newTick), actor),
+              schedulerData
+            )
+        }
 
       val updatedBaseStateData =
         baseStateData.copy(
-          flexCorrespondences = updatedReceivedFlexOptions
+          flexCorrespondences = updatedFlexCorrespondences,
+          activateAtNextTick = Set.empty,
+          schedulerStateData = updatedSchedulerData
         )
 
       // send out all ActivityStartTriggers
@@ -334,7 +377,7 @@ class EmAgent(
         setActiveTickAndSendTriggers(updatedBaseStateData, newTick, triggerId)
 
       // send out flex requests for all expected agents
-      expectedActors.foreach { case (actor, _) =>
+      expectedAll.foreach { case (actor, _) =>
         actor ! RequestFlexOptions
       }
 
@@ -517,18 +560,18 @@ class EmAgent(
 
       val updatedSchedulerStateData =
         issueCtrlMsgsComplete.foldLeft(baseStateData.schedulerStateData) {
-          case (stateData, (_, actor, issueCtrlMsg, dataTick)) =>
+          case (schedulerData, (_, actor, issueCtrlMsg, dataTick)) =>
             // activate the participants that have not been activated before
             val updatedSchedulerData =
               if (dataTick != tick) {
                 sendEligibleTrigger(
                   scheduleTrigger(
                     ScheduleTriggerMessage(ActivityStartTrigger(tick), actor),
-                    stateData
+                    schedulerData
                   )
                 )
               } else
-                stateData
+                schedulerData
 
             // send out flex control messages
             actor ! issueCtrlMsg

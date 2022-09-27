@@ -200,7 +200,8 @@ final case class WecModel(
       data: WecRelevantData,
       lastState: ConstantState.type,
       setPower: ComparableQuantity[Power]
-  ): (ConstantState.type, Option[Long]) = (lastState, None)
+  ): (ConstantState.type, FlexChangeIndicator) =
+    (lastState, FlexChangeIndicator())
 }
 
 /** Create valid [[WecModel]] by calling the apply function.
