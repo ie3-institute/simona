@@ -91,7 +91,8 @@ final case class FixedFeedInModel(
       data: FixedRelevantData.type,
       lastState: ConstantState.type,
       setPower: ComparableQuantity[Power]
-  ): (ConstantState.type, Option[Long]) = (lastState, None)
+  ): (ConstantState.type, FlexChangeIndicator) =
+    (lastState, FlexChangeIndicator())
 }
 
 object FixedFeedInModel extends LazyLogging {

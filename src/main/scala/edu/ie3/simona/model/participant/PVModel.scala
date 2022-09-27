@@ -786,7 +786,8 @@ final case class PVModel private (
       data: PVRelevantData,
       lastState: ConstantState.type,
       setPower: ComparableQuantity[Power]
-  ): (ConstantState.type, Option[Long]) = (lastState, None)
+  ): (ConstantState.type, FlexChangeIndicator) =
+    (lastState, FlexChangeIndicator())
 }
 
 object PVModel {

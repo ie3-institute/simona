@@ -10,7 +10,7 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.SystemParticipant
+import edu.ie3.simona.model.participant.{FlexChangeIndicator, SystemParticipant}
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideFlexOptions,
@@ -61,7 +61,8 @@ abstract class LoadModel[D <: LoadRelevantData](
       data: D,
       lastState: ConstantState.type,
       setPower: ComparableQuantity[Power]
-  ): (ConstantState.type, Option[Long]) = (lastState, None)
+  ): (ConstantState.type, FlexChangeIndicator) =
+    (lastState, FlexChangeIndicator())
 }
 
 case object LoadModel extends LazyLogging {

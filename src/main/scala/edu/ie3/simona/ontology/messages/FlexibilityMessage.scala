@@ -66,4 +66,11 @@ object FlexibilityMessage {
     * produced/consumed.
     */
   case object IssueNoCtrl extends IssueFlexControl
+
+  /** Message sent by system participant indicating that flex options will have
+    * changed with the next activation
+    * @param modelUuid
+    *   the uuid of the input model that references the system participant
+    */
+  case class ChangingFlexOptions(modelUuid: UUID) extends IssueFlexControl
 }
