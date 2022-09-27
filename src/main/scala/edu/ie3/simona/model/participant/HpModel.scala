@@ -170,7 +170,8 @@ final case class HpModel(
       data: HpData,
       lastState: ConstantState.type,
       setPower: ComparableQuantity[Power]
-  ): (ConstantState.type, Option[Long]) = ??? // TODO actual implementation
+  ): (ConstantState.type, FlexChangeIndicator) =
+    ??? // TODO actual implementation
 
 }
 

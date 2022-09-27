@@ -238,7 +238,7 @@ final case class BMModel(
       data: BMCalcRelevantData,
       lastState: BmState,
       setPower: ComparableQuantity[Power]
-  ): (BmState, Option[Long]) = (lastState, None)
+  ): (BmState, FlexChangeIndicator) = (lastState, FlexChangeIndicator())
 }
 
 object BMModel {

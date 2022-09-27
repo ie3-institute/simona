@@ -17,6 +17,7 @@ import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  ChangingFlexOptions,
   IssueNoCtrl,
   IssuePowerCtrl,
   ProvideMinMaxFlexOptions,
@@ -782,8 +783,404 @@ class EmAgentSelfOptSpec
           Some(Seq(ScheduleTriggerMessage(ActivityStartTrigger(800L), emAgent)))
         )
       )
-
     }
+
+    "handle ChangingFlexOptions indicator correctly" in {
+      val resultsProbe = TestProbe("ResultListener")
+
+      val emAgent = TestActorRef(
+        new EmAgent(
+          scheduler = scheduler.ref,
+          listener = Iterable(resultsProbe.ref)
+        )
+      )
+
+      val initId = 0
+
+      val pvAgent = TestProbe("PvAgent")
+      val evcsAgent = TestProbe("EvcsAgent")
+
+      val pvAgentInit =
+        InitializeParticipantAgentTrigger[ApparentPower, InitializeStateData[
+          ApparentPower
+        ]](mock[InitializeStateData[ApparentPower]])
+      val evcsAgentInit =
+        InitializeParticipantAgentTrigger[ApparentPower, InitializeStateData[
+          ApparentPower
+        ]](mock[InitializeStateData[ApparentPower]])
+
+      val connectedAgents = Seq(
+        (
+          pvAgent.ref,
+          pvAgentInit,
+          pvInput
+        ),
+        (
+          evcsAgent.ref,
+          evcsAgentInit,
+          evcsInput
+        )
+      )
+
+      scheduler.send(
+        emAgent,
+        TriggerWithIdMessage(
+          InitializeParticipantAgentTrigger[
+            ApparentPower,
+            EmAgentInitializeStateData
+          ](
+            EmAgentInitializeStateData(
+              inputModel = emInput,
+              modelConfig = modelConfig,
+              secondaryDataServices = None,
+              simulationStartDate = simulationStartDate,
+              simulationEndDate = simulationEndDate,
+              resolution = resolution,
+              requestVoltageDeviationThreshold =
+                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+              outputConfig = outputConfig,
+              primaryServiceProxy = primaryServiceProxy.ref,
+              connectedAgents = connectedAgents
+            )
+          ),
+          initId,
+          emAgent
+        )
+      )
+
+      val receivedPvInit = pvAgent
+        .expectMsgType[TriggerWithIdMessage]
+      receivedPvInit.trigger shouldBe pvAgentInit
+
+      val receivedEvcsInit = evcsAgent
+        .expectMsgType[TriggerWithIdMessage]
+      receivedEvcsInit.trigger shouldBe evcsAgentInit
+
+      pvAgent.send(
+        emAgent,
+        CompletionMessage(
+          receivedPvInit.triggerId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(0L),
+                pvAgent.ref
+              )
+            )
+          )
+        )
+      )
+
+      scheduler.expectNoMessage()
+
+      evcsAgent.send(
+        emAgent,
+        CompletionMessage(
+          receivedEvcsInit.triggerId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(0L),
+                evcsAgent.ref
+              )
+            )
+          )
+        )
+      )
+
+      scheduler.expectMsg(
+        CompletionMessage(
+          initId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(0L),
+                emAgent
+              )
+            )
+          )
+        )
+      )
+
+      // init done, start EmAgent
+      val activationId1 = 1L
+
+      scheduler.send(
+        emAgent,
+        TriggerWithIdMessage(
+          ActivityStartTrigger(0L),
+          activationId1,
+          emAgent
+        )
+      )
+
+      // expect activations and flex requests
+      val receivedPvActivation1 =
+        pvAgent.expectMsgType[TriggerWithIdMessage]
+      receivedPvActivation1.trigger shouldBe ActivityStartTrigger(0L)
+      receivedPvActivation1.receiverActor shouldBe pvAgent.ref
+
+      pvAgent.expectMsg(RequestFlexOptions)
+
+      val receivedEvcsActivation1 =
+        evcsAgent.expectMsgType[TriggerWithIdMessage]
+      receivedEvcsActivation1.trigger shouldBe ActivityStartTrigger(0L)
+      receivedEvcsActivation1.receiverActor shouldBe evcsAgent.ref
+
+      evcsAgent.expectMsg(RequestFlexOptions)
+
+      // send flex options
+      pvAgent.send(
+        emAgent,
+        ProvideMinMaxFlexOptions(
+          pvInput.getUuid,
+          Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
+          Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
+          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+        )
+      )
+
+      pvAgent.expectNoMessage()
+      evcsAgent.expectNoMessage()
+
+      evcsAgent.send(
+        emAgent,
+        ProvideMinMaxFlexOptions(
+          evcsInput.getUuid,
+          Quantities.getQuantity(2d, PowerSystemUnits.KILOWATT),
+          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT),
+          Quantities.getQuantity(11d, PowerSystemUnits.KILOWATT)
+        )
+      )
+
+      // receive flex control messages
+      pvAgent.expectMsg(IssueNoCtrl)
+      pvAgent.send(
+        emAgent,
+        ParticipantResultEvent(
+          new PvResult(
+            0L.toDateTime,
+            pvInput.getUuid,
+            Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
+            Quantities.getQuantity(-0.5d, PowerSystemUnits.KILOVAR)
+          )
+        )
+      )
+
+      evcsAgent.expectMsgType[IssuePowerCtrl] match {
+        case IssuePowerCtrl(setPower) =>
+          setPower should equalWithTolerance(5d.asKiloWatt, tolerance)
+      }
+
+      // sending ChangingFlexOptions indicator
+      evcsAgent.send(emAgent, ChangingFlexOptions(evcsInput.getUuid))
+
+      evcsAgent.send(
+        emAgent,
+        ParticipantResultEvent(
+          new EvcsResult(
+            0L.toDateTime,
+            evcsInput.getUuid,
+            Quantities.getQuantity(5d, PowerSystemUnits.KILOWATT),
+            Quantities.getQuantity(0.1d, PowerSystemUnits.KILOVAR)
+          )
+        )
+      )
+
+      // expect correct results
+      resultsProbe.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(emResult: EmResult) =>
+          emResult.getInputModel shouldBe emInput.getUuid
+          emResult.getTime shouldBe simulationStartDate
+          emResult.getP should equalWithTolerance(0d.asMegaWatt, tolerance)
+          emResult.getQ should equalWithTolerance(
+            (-.0004d).asMegaVar,
+            tolerance
+          )
+        case unexpected =>
+          fail(s"Received unexpected result $unexpected")
+      }
+
+      // send completions
+      pvAgent.send(
+        emAgent,
+        CompletionMessage(
+          receivedPvActivation1.triggerId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(300L),
+                pvAgent.ref
+              )
+            )
+          )
+        )
+      )
+
+      scheduler.expectNoMessage()
+
+      evcsAgent.send(
+        emAgent,
+        CompletionMessage(
+          receivedEvcsActivation1.triggerId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(600L),
+                evcsAgent.ref
+              )
+            )
+          )
+        )
+      )
+
+      // expect completion from EmAgent
+      scheduler.expectMsg(
+        CompletionMessage(
+          activationId1,
+          Some(Seq(ScheduleTriggerMessage(ActivityStartTrigger(300L), emAgent)))
+        )
+      )
+
+      // trigger EmAgent with next tick
+      val activationId2 = 1L
+
+      scheduler.send(
+        emAgent,
+        TriggerWithIdMessage(
+          ActivityStartTrigger(300L),
+          activationId2,
+          emAgent
+        )
+      )
+
+      // expect activations and flex requests.
+      // pv is scheduled regularly and evcs at any next tick
+      // thus, we expect activations for both
+      val receivedPvActivation2 =
+        pvAgent.expectMsgType[TriggerWithIdMessage]
+      receivedPvActivation2.trigger shouldBe ActivityStartTrigger(300L)
+      receivedPvActivation2.receiverActor shouldBe pvAgent.ref
+
+      // FLEX OPTIONS
+      pvAgent.expectMsg(RequestFlexOptions)
+
+      // send flex options again, now there's a cloud and thus less feed-in
+      pvAgent.send(
+        emAgent,
+        ProvideMinMaxFlexOptions(
+          pvInput.getUuid,
+          Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
+          Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
+          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+        )
+      )
+
+      val receivedEvcsActivation2 =
+        evcsAgent.expectMsgType[TriggerWithIdMessage]
+      receivedEvcsActivation2.trigger shouldBe ActivityStartTrigger(300L)
+      receivedEvcsActivation2.receiverActor shouldBe evcsAgent.ref
+
+      // expecting flex options request, since we asked for it last time
+      evcsAgent.expectMsg(RequestFlexOptions)
+
+      evcsAgent.send(
+        emAgent,
+        ProvideMinMaxFlexOptions(
+          evcsInput.getUuid,
+          Quantities.getQuantity(2d, PowerSystemUnits.KILOWATT),
+          Quantities.getQuantity(-11d, PowerSystemUnits.KILOWATT),
+          Quantities.getQuantity(11d, PowerSystemUnits.KILOWATT)
+        )
+      )
+
+      // FLEX CONTROL
+      pvAgent.expectMsg(IssueNoCtrl)
+
+      pvAgent.send(
+        emAgent,
+        ParticipantResultEvent(
+          new PvResult(
+            300L.toDateTime,
+            pvInput.getUuid,
+            Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
+            Quantities.getQuantity(-0.06d, PowerSystemUnits.KILOVAR)
+          )
+        )
+      )
+
+      pvAgent.send(
+        emAgent,
+        CompletionMessage(receivedPvActivation2.triggerId, None)
+      )
+
+      evcsAgent.expectMsgType[IssuePowerCtrl] match {
+        case IssuePowerCtrl(setPower) =>
+          setPower should equalWithTolerance(3d.asKiloWatt, tolerance)
+      }
+      evcsAgent.send(
+        emAgent,
+        RevokeTriggerMessage(
+          ActivityStartTrigger(600L),
+          evcsAgent.ref
+        )
+      )
+
+      evcsAgent.send(
+        emAgent,
+        ParticipantResultEvent(
+          new EvcsResult(
+            300L.toDateTime,
+            evcsInput.getUuid,
+            Quantities.getQuantity(3d, PowerSystemUnits.KILOWATT),
+            Quantities.getQuantity(0.06d, PowerSystemUnits.KILOVAR)
+          )
+        )
+      )
+
+      // expect correct results
+      resultsProbe.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(emResult: EmResult) =>
+          emResult.getInputModel shouldBe emInput.getUuid
+          emResult.getTime shouldBe 300L.toDateTime(simulationStartDate)
+          emResult.getP should equalWithTolerance(
+            0d.asMegaWatt,
+            tolerance
+          )
+          emResult.getQ should equalWithTolerance(
+            0d.asMegaVar,
+            tolerance
+          )
+        case unexpected =>
+          fail(s"Received unexpected result $unexpected")
+      }
+
+      // send completion
+      scheduler.expectNoMessage()
+
+      evcsAgent.send(
+        emAgent,
+        CompletionMessage(
+          receivedEvcsActivation2.triggerId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(800L),
+                evcsAgent.ref
+              )
+            )
+          )
+        )
+      )
+
+      scheduler.expectMsg(
+        CompletionMessage(
+          activationId2,
+          Some(Seq(ScheduleTriggerMessage(ActivityStartTrigger(800L), emAgent)))
+        )
+      )
+    }
+
   }
 
 }

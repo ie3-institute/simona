@@ -139,29 +139,31 @@ class StorageModelTest extends Specification {
         equals(result._1.chargingPower(), getQuantity(expPower, KILOWATT), TOLERANCE)
         result._1.tick() == startTick + 1
         equals(result._1.storedEnergy(), getQuantity(lastStored, KILOWATTHOUR), TOLERANCE)
-        result._2.defined == expScheduled
-        result._2.map(x -> x == startTick + 1 + expDelta).getOrElse( _ -> true)
+        def flexChangeIndication = result._2
+        flexChangeIndication.changesAtTick().defined == expScheduled
+        flexChangeIndication.changesAtTick().map(x -> x == startTick + 1 + expDelta).getOrElse( _ -> true)
+        flexChangeIndication.changesAtNextActivation() == expActiveNext
 
         where:
-        lastStored | setPower || expPower | expScheduled | expDelta
+        lastStored | setPower || expPower | expActiveNext | expScheduled | expDelta
         // no power
-        0          | 0        || 0        | false        | 0
-        50         | 0        || 0        | false        | 0
-        100        | 0        || 0        | false        | 0
+        0          | 0        || 0        | false         | false        | 0
+        50         | 0        || 0        | false         | false        | 0
+        100        | 0        || 0        | false         | false        | 0
         // charging on empty
-        0          | 1        || 0.9      | true         | 100*3600/0.9
-        0          | 2.5      || 2.25     | true         | 40*3600/0.9
-        0          | 5        || 4.5      | true         | 20*3600/0.9
-        0          | 10       || 9        | true         | 10*3600/0.9
+        0          | 1        || 0.9      | true          | true         | 100*3600/0.9
+        0          | 2.5      || 2.25     | true          | true         | 40*3600/0.9
+        0          | 5        || 4.5      | true          | true         | 20*3600/0.9
+        0          | 10       || 9        | true          | true         | 10*3600/0.9
         // charging on half full
-        50         | 5        || 4.5      | true         | 10*3600/0.9
-        50         | 10       || 9        | true         | 5*3600/0.9
+        50         | 5        || 4.5      | false         | true         | 10*3600/0.9
+        50         | 10       || 9        | false         | true         | 5*3600/0.9
         // discharging on half full
-        50         | -5       || -4.5     | true         | 6*3600/0.9
-        50         | -10      || -9       | true         | 3*3600/0.9
+        50         | -5       || -4.5     | false         | true         | 6*3600/0.9
+        50         | -10      || -9       | false         | true         | 3*3600/0.9
         // discharging on full
-        100        | -5       || -4.5     | true         | 16*3600/0.9
-        100        | -10      || -9       | true         | 8*3600/0.9
+        100        | -5       || -4.5     | true          | true         | 16*3600/0.9
+        100        | -10      || -9       | true          | true         | 8*3600/0.9
     }
 
 }
