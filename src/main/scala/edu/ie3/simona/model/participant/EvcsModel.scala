@@ -246,7 +246,7 @@ final case class EvcsModel(
       data: EvcsRelevantData,
       lastState: EvcsState,
       setPower: ComparableQuantity[Power]
-  ): (EvcsState, Option[Long]) = ??? // TODO actual implementation
+  ): (EvcsState, FlexChangeIndicator) = ??? // TODO actual implementation
 }
 
 object EvcsModel {

@@ -301,7 +301,8 @@ final case class ChpModel(
       data: ChpData,
       lastState: ConstantState.type,
       setPower: ComparableQuantity[Power]
-  ): (ConstantState.type, Option[Long]) = ??? // TODO actual implementation
+  ): (ConstantState.type, FlexChangeIndicator) =
+    ??? // TODO actual implementation
 }
 
 /** Create valid ChpModel by calling the apply function.

@@ -64,6 +64,7 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant
 }
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  ChangingFlexOptions,
   IssueFlexControl,
   IssueNoCtrl,
   IssuePowerCtrl,
@@ -737,7 +738,7 @@ protected trait ParticipantAgentFundamentals[
 
     val lastState = getLastOrInitialStateData(baseStateData, currentTick)
 
-    val (updatedState, maybeAdditionalTick) =
+    val (updatedState, flexChangeIndicator) =
       baseStateData.model.handleControlledPowerChange(
         relevantData,
         lastState,
@@ -759,36 +760,49 @@ protected trait ParticipantAgentFundamentals[
         result
       )
 
-    // add new tick and updated relevant data if applicable
-    val updatedStateData = maybeAdditionalTick
-      .map { additionalTick =>
-        val clearedAdditionalTicks =
-          flexStateData.scheduledTick
-            .map { obsoleteTick =>
-              // revoke old tick if it exists and is placed in the future
-              if (obsoleteTick > currentTick)
-                flexStateData.emAgent !
-                  RevokeTriggerMessage(
-                    ActivityStartTrigger(obsoleteTick),
-                    self
-                  )
+    // indicate to EmAgent if flex options are going to change at
+    // the next activation no matter the tick
+    if (flexChangeIndicator.changesAtNextActivation)
+      flexStateData.emAgent ! ChangingFlexOptions(baseStateData.modelUuid)
 
-              // remove from additionalTicks as well
+    // revoke old tick and remove it from state data, if applicable
+    val clearedBaseStateData =
+      flexStateData.scheduledTick
+        .map { obsoleteTick =>
+          // revoke old tick if it exists and is placed in the future
+          if (obsoleteTick > currentTick)
+            flexStateData.emAgent !
+              RevokeTriggerMessage(
+                ActivityStartTrigger(obsoleteTick),
+                self
+              )
+
+          // remove from additionalTicks and from flex state data
+          baseStateData.copy(
+            additionalActivationTicks =
               baseStateData.additionalActivationTicks.filterNot(
                 _ == obsoleteTick
-              )
-            }
-            .getOrElse(baseStateData.additionalActivationTicks)
+              ),
+            flexStateData = Some(
+              flexStateData.copy(scheduledTick = None)
+            )
+          )
+        }
+        .getOrElse(baseStateData)
 
+    // add new tick and updated relevant data, if applicable
+    val updatedStateData = flexChangeIndicator.changesAtTick
+      .map { additionalTick =>
         // save new tick
-        baseStateData.copy(
-          additionalActivationTicks = clearedAdditionalTicks :+ additionalTick,
-          flexStateData = Some( // old tick is overwritten if it existed
-            flexStateData.copy(scheduledTick = Some(additionalTick))
+        clearedBaseStateData.copy(
+          additionalActivationTicks =
+            clearedBaseStateData.additionalActivationTicks :+ additionalTick,
+          flexStateData = clearedBaseStateData.flexStateData.map(
+            _.copy(scheduledTick = Some(additionalTick))
           )
         )
       }
-      .getOrElse(baseStateData)
+      .getOrElse(clearedBaseStateData)
       .copy(
         stateDataStore = ValueStore.updateValueStore(
           baseStateData.stateDataStore,
