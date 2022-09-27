@@ -147,7 +147,7 @@ dependencies {
 
   /* Kafka */
   implementation group: 'org.apache.kafka', name: 'kafka-clients', version: '3.2.0'
-  implementation 'io.confluent:kafka-streams-avro-serde:7.2.1'
+  implementation 'io.confluent:kafka-streams-avro-serde:7.2.2'
   implementation "com.sksamuel.avro4s:avro4s-core_${scalaVersion}:4.1.0"
 
   implementation 'org.apache.commons:commons-math3:3.6.1' // apache commons math3
