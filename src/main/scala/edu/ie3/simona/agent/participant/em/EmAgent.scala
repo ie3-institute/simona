@@ -292,9 +292,12 @@ class EmAgent(
       // here, participants that are changing their flex options at the current
       // tick are activated and are sent flex options requests
 
+      val updatedSchedulerData =
+        scheduleActiveAtNextTick(baseStateData, newTick)
+
       // participants that have to be activated at this specific tick
-      val expectedAtThis =
-        baseStateData.schedulerStateData.trigger.triggerQueue
+      val expectedParticipants =
+        updatedSchedulerData.trigger.triggerQueue
           .get(newTick)
           .map {
             _.map(_.agent)
@@ -305,28 +308,8 @@ class EmAgent(
           }
           .getOrElse(Map.empty)
 
-      // participants that have to be activated at any next tick
-      val expectedAtAnyNext =
-        baseStateData.activateAtNextTick
-          .flatMap { modelUuid =>
-            baseStateData.connectedAgents.get(modelUuid).map {
-              case (_, actor) =>
-                actor -> modelUuid
-            }
-          }
-          .filterNot {
-            // filter out duplicates here: we might have been scheduled
-            // for this tick anyways
-            case (actor, _) =>
-              expectedAtThis.contains(actor)
-          }
-          .toMap
-
-      // combining both
-      val expectedAll = expectedAtThis ++ expectedAtAnyNext
-
       // prepare map for expected flex options and expected results for this tick
-      val updatedFlexCorrespondences = expectedAll.foldLeft(
+      val updatedFlexCorrespondences = expectedParticipants.foldLeft(
         baseStateData.flexCorrespondences
       ) { case (correspondences, (_, uuid)) =>
         val participantValueStore = correspondences.getOrElse(
@@ -334,6 +317,7 @@ class EmAgent(
           throw new RuntimeException(s"ValueStore for UUID $uuid not found")
         )
 
+        // add a fresh flex correspondence for the new tick
         val updatedFlexOptionsStore =
           ValueStore.updateValueStore(
             participantValueStore,
@@ -343,16 +327,6 @@ class EmAgent(
 
         correspondences.updated(uuid, updatedFlexOptionsStore)
       }
-
-      // add missing activation triggers
-      val updatedSchedulerData =
-        expectedAtAnyNext.foldLeft(baseStateData.schedulerStateData) {
-          case (schedulerData, (actor, _)) =>
-            scheduleTrigger(
-              ScheduleTriggerMessage(ActivityStartTrigger(newTick), actor),
-              schedulerData
-            )
-        }
 
       val updatedBaseStateData =
         baseStateData.copy(
@@ -366,7 +340,7 @@ class EmAgent(
         setActiveTickAndSendTriggers(updatedBaseStateData, newTick, triggerId)
 
       // send out flex requests for all expected agents
-      expectedAll.foreach { case (actor, _) =>
+      expectedParticipants.foreach { case (actor, _) =>
         actor ! RequestFlexOptions
       }
 
@@ -465,6 +439,48 @@ class EmAgent(
   when(Uninitialized) { handleUnitializedEm orElse handleUnitialized }
 
   when(Idle) { handleIdleEm orElse handleIdle }
+
+  /** Schedule those actors that requested to be activated any next tick
+    * @param baseStateData
+    *   The base state data containing the actors to be scheduled
+    * @param tick
+    *   The tick that the actors should be scheduled for
+    * @return
+    *   The updated scheduler state data
+    */
+  private def scheduleActiveAtNextTick(
+      baseStateData: EmModelBaseStateData,
+      tick: Long
+  ): EmSchedulerStateData = {
+    val alreadyScheduled =
+      baseStateData.schedulerStateData.trigger.triggerQueue
+        .get(tick)
+        .map(_.map(_.agent))
+        .getOrElse(Seq.empty)
+
+    // participants that have to be activated at any next tick
+    val expectedAtAnyNext =
+      baseStateData.activateAtNextTick
+        .flatMap { modelUuid =>
+          baseStateData.connectedAgents.get(modelUuid).map { case (_, actor) =>
+            actor
+          }
+        }
+        .filterNot {
+          // filter out duplicates here: we might have been scheduled
+          // for this tick anyways
+          alreadyScheduled.contains
+        }
+
+    // add missing activation triggers
+    expectedAtAnyNext.foldLeft(baseStateData.schedulerStateData) {
+      case (schedulerData, actor) =>
+        scheduleTrigger(
+          ScheduleTriggerMessage(ActivityStartTrigger(tick), actor),
+          schedulerData
+        )
+    }
+  }
 
   private def setActiveTickAndSendTriggers(
       baseStateData: EmModelBaseStateData,
