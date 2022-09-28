@@ -110,7 +110,7 @@ final case class EvcsModel(
     */
   def calculateNewScheduling(
       currentTick: Long,
-      startTime: ZonedDateTime,
+      simulationStartDate: ZonedDateTime,
       data: EvcsRelevantData
   ): Map[EvModel, Option[ChargingSchedule]] = {
     if (
@@ -125,7 +125,7 @@ final case class EvcsModel(
       scheduleByStrategy(
         strategy,
         currentTick,
-        startTime,
+        simulationStartDate,
         data.currentEvs,
         data.voltages
       )
@@ -137,19 +137,19 @@ final case class EvcsModel(
     *   Chosen charging strategy
     * @param currentTick
     *   Current simulation time
-    * @param simulationStart
-    *   Wall clock time of simulation start
+    * @param simulationStartDate
+    *   The simulation start time
     * @param evs
     *   Collection of currently apparent evs
     * @param voltages
-    *   Mapping from wall-clock time to nodal voltage
+    *   Mapping from simulation time to nodal voltage
     * @return
     *   A set of [[ChargingSchedule]]s
     */
   private def scheduleByStrategy(
       strategy: ChargingStrategy.Value,
       currentTick: Long,
-      simulationStart: ZonedDateTime,
+      simulationStartDate: ZonedDateTime,
       evs: Set[EvModel],
       voltages: Map[ZonedDateTime, ComparableQuantity[Dimensionless]]
   ): Map[EvModel, Option[ChargingSchedule]] = strategy match {
@@ -166,14 +166,14 @@ final case class EvcsModel(
     case ChargingStrategy.GRID_ORIENTED =>
       chargeGridOriented(
         currentTick,
-        simulationStart,
+        simulationStartDate,
         evs,
         voltages
       )
     case ChargingStrategy.MARKET_ORIENTED =>
       chargeMarketOriented(
         currentTick,
-        simulationStart,
+        simulationStartDate,
         evs
       )
   }
@@ -244,13 +244,13 @@ final case class EvcsModel(
     */
   def applySchedule(
       currentTick: Long,
-      startTime: ZonedDateTime,
+      simulationStartDate: ZonedDateTime,
       lastSchedulingTick: Long,
       data: EvcsRelevantData
   ): Set[(EvModel, Vector[EvResult], Vector[PowerEntry])] = if (
     data.schedule.nonEmpty
   ) {
-    val currentTime = startTime.plusSeconds(currentTick)
+    val currentTime = simulationStartDate.plusSeconds(currentTick)
     val voltage = data.voltages
       .filter { case (time, _) =>
         time.isBefore(currentTime) || time.isEqual(currentTime)
@@ -267,7 +267,7 @@ final case class EvcsModel(
           data,
           lastSchedulingTick,
           currentTick,
-          startTime,
+          simulationStartDate,
           voltage
         )
       )
@@ -290,8 +290,8 @@ final case class EvcsModel(
     *   Simulation time, when the last schedule has been applied
     * @param currentTick
     *   Current simulation time
-    * @param startTime
-    *   Wall-clock time of the simulation start
+    * @param simulationStartDate
+    *   Simulation start time
     * @param voltage
     *   Voltage magnitude of the connection node
     * @return
@@ -302,7 +302,7 @@ final case class EvcsModel(
       relevantData: EvcsRelevantData,
       lastSchedulingTick: Long,
       currentTick: Long,
-      startTime: ZonedDateTime,
+      simulationStartDate: ZonedDateTime,
       voltage: ComparableQuantity[Dimensionless]
   ): (EvModel, Vector[EvResult], Vector[PowerEntry]) = relevantData
     .getSchedule(ev)
@@ -312,7 +312,7 @@ final case class EvcsModel(
         _,
         lastSchedulingTick,
         currentTick,
-        startTime,
+        simulationStartDate,
         voltage
       )
     }
@@ -328,8 +328,8 @@ final case class EvcsModel(
     *   Last tick, that a schedule has been processed
     * @param currentTick
     *   Current time in Simulation
-    * @param simulationStart
-    *   Wall clock time of the simulation start
+    * @param simulationStartDate
+    *   Simulation start time
     * @param voltageMagnitude
     *   Current voltage magnitude at the connection node
     * @return
@@ -341,7 +341,7 @@ final case class EvcsModel(
       schedule: ChargingSchedule,
       lastSchedulingTick: Long,
       currentTick: Long,
-      simulationStart: ZonedDateTime,
+      simulationStartDate: ZonedDateTime,
       voltageMagnitude: ComparableQuantity[Dimensionless]
   ): (EvModel, Vector[EvResult], Vector[PowerEntry]) = {
     /* Determine charged energy in the charging interval */
@@ -351,7 +351,7 @@ final case class EvcsModel(
         schedule,
         lastSchedulingTick,
         currentTick,
-        simulationStart,
+        simulationStartDate,
         voltageMagnitude
       )
 
@@ -376,7 +376,7 @@ final case class EvcsModel(
     *   Last tick, when a schedule ended
     * @param currentTick
     *   Current time in simulation
-    * @param simulationStart
+    * @param simulationStartDate
     *   Start date time of the overall simulation
     * @param voltageMagnitude
     *   Current nodal voltage magnitude
@@ -388,7 +388,7 @@ final case class EvcsModel(
       schedule: ChargingSchedule,
       lastSchedulingTick: Long,
       currentTick: Long,
-      simulationStart: ZonedDateTime,
+      simulationStartDate: ZonedDateTime,
       voltageMagnitude: ComparableQuantity[Dimensionless]
   ): (ComparableQuantity[Energy], Vector[EvResult], Vector[PowerEntry]) =
     schedule.schedule.toSeq
@@ -441,7 +441,7 @@ final case class EvcsModel(
           .to(PERCENT)
 
         val result = new EvResult(
-          chargingWindowStart.toDateTime(simulationStart),
+          chargingWindowStart.toDateTime(simulationStartDate),
           ev.getUuid,
           p,
           q,
@@ -604,7 +604,7 @@ final case class EvcsModel(
     *
     * @param currentTick
     *   current tick of the request
-    * @param startTime
+    * @param simulationStartDate
     *   start time of the simulation to convert ticks to real time
     * @param data
     *   the evcs relevant data including the current parked ev, scheduling, and
@@ -614,7 +614,7 @@ final case class EvcsModel(
     */
   def calculateCurrentPriceSignalToCommunicateToEvs(
       currentTick: Long,
-      startTime: ZonedDateTime,
+      simulationStartDate: ZonedDateTime,
       data: EvcsRelevantData
   ): Option[Double] =
     // Only EvcsLocationType != Home and Work have prices
@@ -642,7 +642,7 @@ final case class EvcsModel(
           case ChargingStrategy.MARKET_ORIENTED =>
             calculateCurrentPriceMarketOriented(
               currentTick,
-              startTime,
+              simulationStartDate,
               lengthOfRelevantIntervalInSeconds
             )
           case _ => None

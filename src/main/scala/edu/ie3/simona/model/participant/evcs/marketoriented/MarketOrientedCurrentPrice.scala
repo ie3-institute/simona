@@ -29,7 +29,7 @@ object MarketOrientedCurrentPrice extends LazyLogging {
     * reference time (currently: next 24 hours).
     * @param currentTick
     *   the current tick the price signal is requested
-    * @param startTime
+    * @param simulationStartDate
     *   start time of the simulation to convert ticks to real times
     * @param timeLengthInSeconds
     *   time length of the interval to calculate the price signal for
@@ -38,11 +38,11 @@ object MarketOrientedCurrentPrice extends LazyLogging {
     */
   def calculateCurrentPriceMarketOriented(
       currentTick: Long,
-      startTime: ZonedDateTime,
+      simulationStartDate: ZonedDateTime,
       timeLengthInSeconds: Int
   ): Option[Double] = {
 
-    val currentTime = currentTick.toDateTime(startTime)
+    val currentTime = currentTick.toDateTime(simulationStartDate)
     val endTime = currentTime.plusSeconds(timeLengthInSeconds)
 
     /* Get time windows with predicted energy prices for the relevant time */
@@ -51,7 +51,7 @@ object MarketOrientedCurrentPrice extends LazyLogging {
         currentTime,
         currentTime.plusSeconds(timeLengthInSeconds),
         priceTimeTable,
-        startTime
+        simulationStartDate
       )
 
     /* Get time windows with predicted energy prices for next days as reference value */
@@ -60,7 +60,7 @@ object MarketOrientedCurrentPrice extends LazyLogging {
         currentTime,
         currentTime.plusDays(1), // must be <(=?) 7 days
         priceTimeTable,
-        startTime
+        simulationStartDate
       )
 
     val maxPriceOfReferenceTimeFrame: Option[PredictedPrice] =
@@ -83,7 +83,7 @@ object MarketOrientedCurrentPrice extends LazyLogging {
                 entry.price.multiply(
                   entry.start - min(
                     entry.end,
-                    startTime.until(endTime, ChronoUnit.SECONDS)
+                    simulationStartDate.until(endTime, ChronoUnit.SECONDS)
                   )
                 )
               )
