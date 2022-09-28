@@ -36,7 +36,6 @@ import edu.ie3.simona.exceptions.{
 import edu.ie3.simona.io.result._
 import edu.ie3.simona.logging.SimonaFSMActorLogging
 import edu.ie3.simona.ontology.messages.StopMessage
-import edu.ie3.simona.sim.SimonaSim.ServiceInitComplete
 import edu.ie3.simona.util.ResultFileHierarchy
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -76,13 +75,11 @@ object ResultEventListener extends Transformer3wResultSupport {
   ) extends ResultEventListenerData
 
   def props(
-      resultFileHierarchy: ResultFileHierarchy,
-      supervisor: ActorRef
+      resultFileHierarchy: ResultFileHierarchy
   ): Props =
     Props(
       new ResultEventListener(
-        resultFileHierarchy,
-        supervisor
+        resultFileHierarchy
       )
     )
 
@@ -117,17 +114,19 @@ object ResultEventListener extends Transformer3wResultSupport {
               )
               .flatMap { fileName =>
                 if (fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")) {
-                  Future.successful(
-                    resultClass,
-                    ResultEntityCsvSink(
-                      fileName.replace(".gz", ""),
-                      new ResultEntityProcessor(resultClass),
-                      fileName.endsWith(".gz")
+                  Future {
+                    (
+                      resultClass,
+                      ResultEntityCsvSink(
+                        fileName.replace(".gz", ""),
+                        new ResultEntityProcessor(resultClass),
+                        fileName.endsWith(".gz")
+                      )
                     )
-                  )
+                  }
                 } else {
-                  Future(
-                    throw new ProcessResultEventException(
+                  Future.failed(
+                    new ProcessResultEventException(
                       s"Invalid output file format for file $fileName provided. Currently only '.csv' or '.csv.gz' is supported!"
                     )
                   )
@@ -172,8 +171,7 @@ object ResultEventListener extends Transformer3wResultSupport {
 }
 
 class ResultEventListener(
-    resultFileHierarchy: ResultFileHierarchy,
-    supervisor: ActorRef
+    resultFileHierarchy: ResultFileHierarchy
 ) extends SimonaListener
     with FSM[AgentState, ResultEventListenerData]
     with SimonaFSMActorLogging
@@ -337,7 +335,6 @@ class ResultEventListener(
     case Event(SinkResponse(classToSink), _) =>
       // Sink Initialization succeeded
       log.debug("Initialization complete!")
-      supervisor ! ServiceInitComplete
 
       unstashAll()
       goto(Idle) using BaseData(classToSink)

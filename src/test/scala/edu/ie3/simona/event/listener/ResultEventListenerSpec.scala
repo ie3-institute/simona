@@ -145,8 +145,7 @@ class ResultEventListenerSpec
         val testProbe = TestProbe()
         val listener = testProbe.childActorOf(
           ResultEventListener.props(
-            fileHierarchy,
-            testProbe.ref
+            fileHierarchy
           )
         )
 
@@ -163,8 +162,7 @@ class ResultEventListenerSpec
         val listenerRef = system.actorOf(
           ResultEventListener
             .props(
-              specificOutputFileHierarchy,
-              testActor
+              specificOutputFileHierarchy
             )
         )
 
@@ -214,8 +212,7 @@ class ResultEventListenerSpec
         val listenerRef = system.actorOf(
           ResultEventListener
             .props(
-              specificOutputFileHierarchy,
-              testActor
+              specificOutputFileHierarchy
             )
         )
 
@@ -307,8 +304,7 @@ class ResultEventListenerSpec
         resultFileHierarchy(5, ".csv", Set(classOf[Transformer3WResult]))
       val listener = TestFSMRef(
         new ResultEventListener(
-          fileHierarchy,
-          testActor
+          fileHierarchy
         )
       )
 
@@ -543,8 +539,7 @@ class ResultEventListenerSpec
         val listenerRef = system.actorOf(
           ResultEventListener
             .props(
-              specificOutputFileHierarchy,
-              testActor
+              specificOutputFileHierarchy
             )
         )
         ResultSinkType.Csv(fileFormat = ".csv.gz")
