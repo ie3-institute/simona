@@ -71,6 +71,8 @@ class ResultEventListenerSpec
     classOf[LineResult]
   )
 
+  private val timeout = 10.seconds
+
   // the OutputFileHierarchy
   private def resultFileHierarchy(
       runId: Int,
@@ -178,19 +180,19 @@ class ResultEventListenerSpec
         )
 
         // wait until output file exists (headers are flushed out immediately):
-        awaitCond(outputFile.exists(), interval = 500.millis)
+        awaitCond(outputFile.exists(), interval = 500.millis, max = timeout)
 
         // stop listener so that result is flushed out
         Await.ready(
-          gracefulStop(listenerRef, 5.seconds),
-          5.seconds
+          gracefulStop(listenerRef, timeout),
+          timeout
         )
 
         // wait until all lines have been written out:
         awaitCond(
           getFileLinesLength(outputFile) == 2,
           interval = 500.millis,
-          max = 5.seconds
+          max = timeout
         )
 
         val resultFileSource = Source.fromFile(outputFile)
@@ -262,20 +264,21 @@ class ResultEventListenerSpec
         // wait until all output files exist (headers are flushed out immediately):
         awaitCond(
           outputFiles.values.map(_.exists()).forall(identity),
-          interval = 500.millis
+          interval = 500.millis,
+          max = timeout
         )
 
         // stop listener so that result is flushed out
         Await.ready(
-          gracefulStop(listenerRef, 5.seconds),
-          5.seconds
+          gracefulStop(listenerRef, timeout),
+          timeout
         )
 
         // wait until all lines have been written out:
         awaitCond(
           !outputFiles.values.exists(file => getFileLinesLength(file) < 2),
           interval = 500.millis,
-          max = 5.seconds
+          max = timeout
         )
 
         outputFiles.foreach { case (resultRowString, outputFile) =>
@@ -503,8 +506,8 @@ class ResultEventListenerSpec
 
         // stop listener so that result is flushed out
         Await.ready(
-          gracefulStop(listener, 5.seconds),
-          5.seconds
+          gracefulStop(listener, timeout),
+          timeout
         )
 
         /* Await that the result is written */
@@ -566,8 +569,8 @@ class ResultEventListenerSpec
         // this also triggers the compression of result files
         import akka.pattern._
         Await.ready(
-          gracefulStop(listenerRef, 5.seconds),
-          5.seconds
+          gracefulStop(listenerRef, timeout),
+          timeout
         )
 
         // shutdown the actor system
@@ -583,7 +586,7 @@ class ResultEventListenerSpec
               )
             )
           ).exists,
-          10.seconds
+          timeout
         )
 
         val resultFileSource = Source.fromInputStream(
