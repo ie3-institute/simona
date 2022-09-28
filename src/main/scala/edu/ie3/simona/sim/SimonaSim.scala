@@ -29,7 +29,6 @@ import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProx
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim.{
   EmergencyShutdownInitiated,
-  ServiceInitComplete,
   SimonaSimStateData
 }
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
@@ -70,7 +69,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
   /* start listener */
   // output listener
   val systemParticipantsListener: Seq[ActorRef] =
-    simonaSetup.systemParticipantsListener(context, self)
+    simonaSetup.systemParticipantsListener(context)
 
   // runtime event listener
   val runtimeEventListener: Seq[ActorRef] =
@@ -133,31 +132,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
   context.watch(weatherService)
   gridAgents.keySet.foreach(context.watch)
 
-  /* watch for the following services until their initialization is finished */
-  private val actorInitWaitingList = systemParticipantsListener
-
-  override def receive: Receive = {
-    // short circuit if we do not wait for any inits
-    if (actorInitWaitingList.isEmpty) simonaSimReceive(SimonaSimStateData())
-    else setup(SimonaSimStateData(), actorInitWaitingList)
-  }
-
-  def setup(
-      data: SimonaSim.SimonaSimStateData,
-      actorInitWaitingList: Seq[ActorRef]
-  ): Receive = {
-    case ServiceInitComplete =>
-      val updatedWaitingList =
-        actorInitWaitingList.filterNot(_.equals(sender()))
-      if (updatedWaitingList.isEmpty) {
-        unstashAll()
-        context become simonaSimReceive(data)
-      } else
-        setup(data, updatedWaitingList)
-
-    case _ =>
-      stash() // stash everything else away
-  }
+  override def receive: Receive = simonaSimReceive(SimonaSimStateData())
 
   def simonaSimReceive(data: SimonaSim.SimonaSimStateData): Receive = {
 
@@ -315,11 +290,6 @@ object SimonaSim {
     * triggered an emergency shutdown of the simulation system
     */
   case object EmergencyShutdownInitiated
-
-  /** Message to be used by a service to indicate that its initialization is
-    * complete
-    */
-  final case object ServiceInitComplete
 
   private[SimonaSim] final case class SimonaSimStateData(
       initSimSender: ActorRef = ActorRef.noSender
