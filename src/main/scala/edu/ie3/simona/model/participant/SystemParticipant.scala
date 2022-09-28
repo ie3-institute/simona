@@ -9,6 +9,7 @@ package edu.ie3.simona.model.participant
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
@@ -36,8 +37,10 @@ import javax.measure.quantity.{Dimensionless, Power}
   *   Rated power factor
   * @tparam CD
   *   Type of data, that is needed for model calculation
+  * @tparam MS
+  *   Type of model state data
   */
-abstract class SystemParticipant[CD <: CalcRelevantData](
+abstract class SystemParticipant[CD <: CalcRelevantData, MS <: ModelState](
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
@@ -92,6 +95,30 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     *   Active power
     */
   protected def calculateActivePower(data: CD): ComparableQuantity[Power]
+
+  /** @param data
+    * @param lastState
+    * @return
+    *   flex options
+    */
+  def determineFlexOptions(
+      data: CD,
+      lastState: MS
+  ): ProvideFlexOptions
+
+  /** @param data
+    * @param lastState
+    * @param setPower
+    *   power that has been set by EmAgent
+    * @return
+    *   updated relevant data and an indication at which circumstances flex
+    *   options will change next
+    */
+  def handleControlledPowerChange(
+      data: CD,
+      lastState: MS,
+      setPower: ComparableQuantity[Power]
+  ): (MS, FlexChangeIndicator)
 
   /** Get a partial function, that transfers the current active into reactive
     * power based on the participants properties and the given nodal voltage

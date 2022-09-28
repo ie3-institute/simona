@@ -6,18 +6,20 @@
 
 package edu.ie3.simona.model.participant
 
-import java.util.UUID
-
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.model.participant.HpModel._
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalHouse
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
+import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
-import javax.measure.quantity.{Power, Temperature, Time}
 import tech.units.indriya.ComparableQuantity
-import edu.ie3.simona.util.TickUtil.TickLong
+
+import java.util.UUID
+import javax.measure.quantity.{Power, Temperature, Time}
 
 /** Model of a heat pump (HP) with a [[ThermalHouse]] medium and its current
   * [[HpState]].
@@ -52,7 +54,7 @@ final case class HpModel(
     cosPhiRated: Double,
     pThermal: ComparableQuantity[Power],
     thermalHouse: ThermalHouse
-) extends SystemParticipant[HpData](
+) extends SystemParticipant[HpData, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -159,11 +161,23 @@ final case class HpModel(
     )
   }
 
+  override def determineFlexOptions(
+      data: HpData,
+      lastState: ConstantState.type
+  ): ProvideFlexOptions = ??? // TODO actual implementation
+
+  override def handleControlledPowerChange(
+      data: HpData,
+      lastState: ConstantState.type,
+      setPower: ComparableQuantity[Power]
+  ): (ConstantState.type, FlexChangeIndicator) =
+    ??? // TODO actual implementation
+
 }
 
 /** Create valid [[HpModel]] by calling the apply function.
   */
-case object HpModel {
+object HpModel {
 
   /** As the HpModel class is a dynamic model, it requires a state for its
     * calculations. The state contains all variables needed including the inner

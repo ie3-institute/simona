@@ -179,7 +179,8 @@ class FixedFeedInAgentModelCalculationSpec
               simulationEndDate,
               resolution,
               requestVoltageDeviationThreshold,
-              outputConfig
+              outputConfig,
+              maybeEmAgent
             ) =>
           inputModel shouldBe voltageSensitiveInput
           modelConfig shouldBe modelConfig
@@ -189,6 +190,7 @@ class FixedFeedInAgentModelCalculationSpec
           resolution shouldBe this.resolution
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
+          maybeEmAgent shouldBe None
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
       }
@@ -223,6 +225,8 @@ class FixedFeedInAgentModelCalculationSpec
               voltageValueStore,
               resultValueStore,
               requestValueStore,
+              _,
+              _,
               _
             ) =>
           /* Base state data */
@@ -311,8 +315,8 @@ class FixedFeedInAgentModelCalculationSpec
       )
 
       inside(fixedFeedAgent.stateData) {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
-          modelBaseStateData.requestValueStore shouldBe ValueStore[
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+          baseStateData.requestValueStore shouldBe ValueStore[
             ApparentPower
           ](
             resolution,
@@ -395,12 +399,8 @@ class FixedFeedInAgentModelCalculationSpec
 
       awaitAssert(fixedFeedAgent.stateName shouldBe Idle)
       inside(fixedFeedAgent.stateData) {
-        case participantModelBaseStateData: ParticipantModelBaseStateData[
-              _,
-              _,
-              _
-            ] =>
-          participantModelBaseStateData.resultValueStore.last(0L) match {
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+          baseStateData.resultValueStore.last(0L) match {
             case Some((tick, entry)) =>
               tick shouldBe 0L
               inside(entry) { case ApparentPower(p, q) =>

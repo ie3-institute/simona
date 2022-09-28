@@ -15,19 +15,13 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.evcs.EvcsModel.{
-  EvcsRelevantData,
-  PowerEntry
-}
+import edu.ie3.simona.model.participant.evcs.EvcsModel.{EvcsRelevantData, PowerEntry}
 import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedCharging
 import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedCurrentPrice.calculateCurrentPriceGridOriented
 import edu.ie3.simona.model.participant.evcs.marketoriented.MarketOrientedCharging
 import edu.ie3.simona.model.participant.evcs.marketoriented.MarketOrientedCurrentPrice.calculateCurrentPriceMarketOriented
-import edu.ie3.simona.model.participant.evcs.uncontrolled.{
-  ConstantPowerCharging,
-  MaximumPowerCharging
-}
-import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
+import edu.ie3.simona.model.participant.evcs.uncontrolled.{ConstantPowerCharging, MaximumPowerCharging}
+import edu.ie3.simona.model.participant.{CalcRelevantData, ModelState, SystemParticipant}
 import edu.ie3.simona.service.market.StaticMarketSource
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -697,22 +691,19 @@ object EvcsModel {
 
   /** Class that holds all relevant data for an Evcs model calculation
     *
-    * @param currentEvs
-    *   EVs that have been charging up until this tick. Can include EVs that are
-    *   departing
-    * @param schedule
-    *   the schedule determining when to load which EVs with which power
-    * @param voltages
-    *   Nodal voltage per known time instant
+    * @param evMovementsDataFrameLength
+    * the duration in ticks (= seconds) until next tick
     */
   final case class EvcsRelevantData(
-      currentEvs: Set[EvModel],
-      schedule: Map[EvModel, Option[ChargingSchedule]],
-      voltages: Map[ZonedDateTime, ComparableQuantity[Dimensionless]]
-  ) extends CalcRelevantData {
-    def getSchedule(ev: EvModel): Option[ChargingSchedule] =
-      schedule.getOrElse(ev, None)
-  }
+                                     evMovementsDataFrameLength: Long
+                                   ) extends CalcRelevantData
+
+  /** @param evs
+    * EVs that are staying at the charging station
+    */
+  final case class EvcsState(
+                              evs: Set[EvModel]
+                            ) extends ModelState
 
   /** Container class for apparent power
     *

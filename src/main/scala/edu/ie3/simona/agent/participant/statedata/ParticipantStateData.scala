@@ -52,6 +52,8 @@ object ParticipantStateData {
     *   power requests for the same tick are considered to be different
     * @param outputConfig
     *   Config for the output behaviour of simulation results
+    * @param maybeEmAgent
+    *   The EmAgent if this participant is em-controlled
     * @tparam I
     *   Type of input model to carry
     * @tparam C
@@ -73,7 +75,8 @@ object ParticipantStateData {
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: ParticipantNotifierConfig,
+      maybeEmAgent: Option[ActorRef]
   ) extends ParticipantStateData[PD]
 
   /** State data to use, when initializing the participant agent
@@ -117,7 +120,8 @@ object ParticipantStateData {
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: ParticipantNotifierConfig,
+      maybeEmAgent: Option[ActorRef] = None
   ) extends InitializeStateData[PD]
 
   /** StateData to be used, while waiting for registration replies

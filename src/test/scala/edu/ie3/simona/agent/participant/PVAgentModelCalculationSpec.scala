@@ -30,7 +30,6 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.model.participant.PVModel.PVRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -60,7 +59,6 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.PvInputTestData
 import edu.ie3.simona.util.ConfigUtil
-import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.{
   KILOWATT,
   MEGAVAR,
@@ -68,7 +66,6 @@ import edu.ie3.util.quantities.PowerSystemUnits.{
   PU
 }
 import edu.ie3.util.quantities.QuantityUtil
-import org.scalatest.PrivateMethodTester
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND}
 
@@ -85,7 +82,6 @@ class PVAgentModelCalculationSpec
         """.stripMargin)
       )
     )
-    with PrivateMethodTester
     with PvInputTestData {
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
@@ -276,7 +272,8 @@ class PVAgentModelCalculationSpec
               simulationEndDate,
               resolution,
               requestVoltageDeviationThreshold,
-              outputConfig
+              outputConfig,
+              maybeEmAgent
             ) =>
           inputModel shouldBe voltageSensitiveInput
           modelConfig shouldBe modelConfig
@@ -286,6 +283,7 @@ class PVAgentModelCalculationSpec
           resolution shouldBe this.resolution
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
+          maybeEmAgent shouldBe None
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
       }
@@ -314,6 +312,8 @@ class PVAgentModelCalculationSpec
                 voltageValueStore,
                 resultValueStore,
                 requestValueStore,
+                _,
+                _,
                 _
               ),
               awaitRegistrationResponsesFrom,
@@ -367,7 +367,7 @@ class PVAgentModelCalculationSpec
       /* ... as well as corresponding state and state data */
       pvAgent.stateName shouldBe Idle
       pvAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
             weatherService.ref -> Some(4711L)
@@ -446,8 +446,8 @@ class PVAgentModelCalculationSpec
       )
 
       inside(pvAgent.stateData) {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
-          modelBaseStateData.requestValueStore shouldBe ValueStore[
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+          baseStateData.requestValueStore shouldBe ValueStore[
             ApparentPower
           ](
             resolution * 10,
@@ -533,7 +533,7 @@ class PVAgentModelCalculationSpec
       pvAgent.stateName shouldBe HandleInformation
       pvAgent.stateData match {
         case DataCollectionStateData(
-              baseStateData: ParticipantModelBaseStateData[_, _, _],
+              baseStateData: ParticipantModelBaseStateData[_, _, _, _],
               expectedSenders,
               isYetTriggered
             ) =>
@@ -577,17 +577,12 @@ class PVAgentModelCalculationSpec
       )
       pvAgent.stateName shouldBe Idle
       pvAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* The store for calculation relevant data has been extended */
-          baseStateData.calcRelevantDateStore match {
+          baseStateData.receivedSecondaryDataStore match {
             case ValueStore(_, store) =>
               store shouldBe Map(
-                0L -> PVRelevantData(
-                  0L.toDateTime,
-                  3600L,
-                  weatherData.diffIrr,
-                  weatherData.dirIrr
-                )
+                0L -> Map(weatherService.ref -> weatherData)
               )
           }
 
@@ -683,7 +678,7 @@ class PVAgentModelCalculationSpec
       pvAgent.stateName shouldBe HandleInformation
       pvAgent.stateData match {
         case DataCollectionStateData(
-              baseStateData: ParticipantModelBaseStateData[_, _, _],
+              baseStateData: ParticipantModelBaseStateData[_, _, _, _],
               expectedSenders,
               isYetTriggered
             ) =>
@@ -729,17 +724,12 @@ class PVAgentModelCalculationSpec
       /* Expect the state change to idle with updated base state data */
       pvAgent.stateName shouldBe Idle
       pvAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* The store for calculation relevant data has been extended */
-          baseStateData.calcRelevantDateStore match {
+          baseStateData.receivedSecondaryDataStore match {
             case ValueStore(_, store) =>
               store shouldBe Map(
-                0L -> PVRelevantData(
-                  0L.toDateTime,
-                  3600L,
-                  weatherData.diffIrr,
-                  weatherData.dirIrr
-                )
+                0L -> Map(weatherService.ref -> weatherData)
               )
           }
 

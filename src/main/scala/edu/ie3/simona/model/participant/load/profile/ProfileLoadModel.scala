@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.model.participant.load.profile
 
-import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.datamodel.models.input.system.LoadInput
+import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference._
@@ -115,7 +115,7 @@ final case class ProfileLoadModel(
   }
 }
 
-case object ProfileLoadModel {
+object ProfileLoadModel {
 
   final case class ProfileRelevantData(date: ZonedDateTime)
       extends LoadRelevantData

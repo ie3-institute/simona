@@ -56,6 +56,17 @@ final case class ValueStore[+D](
   def last(): Option[(Long, D)] =
     store.maxByOption(_._1)
 
+  // TODO scaladoc
+  def get(tick: Long): Option[D] =
+    store.get(tick)
+
+  /** TODO scaladoc
+    * @param requestedTick
+    * @return
+    */
+  def getOrElse[D2 >: D](requestedTick: Long, default: => D2): D2 =
+    store.getOrElse(requestedTick, default)
+
   /** Acquires the stored information within the specified tick window
     *
     * @param requestStart
@@ -80,7 +91,7 @@ final case class ValueStore[+D](
     store.keySet.toSeq.sorted.containsSlice(neededTicks.toSeq.sorted)
 }
 
-case object ValueStore {
+object ValueStore {
 
   /** Create a default "empty" voltage value store which requires an initial
     * voltage value to be set for tick 0

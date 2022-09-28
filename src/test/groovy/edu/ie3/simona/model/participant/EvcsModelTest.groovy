@@ -143,11 +143,12 @@ class EvcsModelTest extends Specification {
 				Quantities.getQuantity(ev2StoredEnergy, KILOWATTHOUR),
 				200
 				)
-		Set mySet = new Set.Set2<EvModel>(ev1Model, ev2Model)
-		def data = new EvcsModel.EvcsRelevantData(durationTicks, mySet)
+		Set evSet = new Set.Set2<EvModel>(ev1Model, ev2Model)
+		def state = new EvcsModel.EvcsState(evSet)
+		def data = new EvcsModel.EvcsRelevantData(durationTicks)
 
 		when:
-		def res = evcsModel.calculateActivePowerAndEvSoc(data)
+		def res = evcsModel.calculateActivePowerAndEvSoc(data, state)
 
 		then:
 		QuantityUtil.isEquivalentAbs(res._1(), Quantities.getQuantity(solPower, KILOWATT))

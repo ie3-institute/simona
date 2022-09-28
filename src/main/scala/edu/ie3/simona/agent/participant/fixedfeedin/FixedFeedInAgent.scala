@@ -14,6 +14,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.config.SimonaConfig.FixedFeedInRuntimeConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.FixedFeedInModel
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 
 object FixedFeedInAgent {
   def props(
@@ -36,6 +37,7 @@ class FixedFeedInAgent(
 ) extends ParticipantAgent[
       ApparentPower,
       FixedRelevantData.type,
+      ConstantState.type,
       ParticipantStateData[ApparentPower],
       FixedFeedInInput,
       FixedFeedInRuntimeConfig,

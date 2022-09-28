@@ -6,19 +6,25 @@
 
 package edu.ie3.simona.model.participant
 
-import java.time.ZonedDateTime
-import java.util.UUID
-
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  ProvideFlexOptions,
+  ProvideMinMaxFlexOptions
+}
 import edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
-import javax.measure.quantity.Power
 import tech.units.indriya.ComparableQuantity
+
+import java.time.ZonedDateTime
+import java.util.UUID
+import javax.measure.quantity.Power
 
 /** Fixed feed generation model delivering constant power
   *
@@ -45,7 +51,7 @@ final case class FixedFeedInModel(
     qControl: QControl,
     sRated: ComparableQuantity[Power],
     cosPhiRated: Double
-) extends SystemParticipant[FixedRelevantData.type](
+) extends SystemParticipant[FixedRelevantData.type, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -71,9 +77,25 @@ final case class FixedFeedInModel(
       .multiply(cosPhiRated)
       .multiply(scalingFactor)
       .to(MEGAWATT)
+
+  override def determineFlexOptions(
+      data: FixedRelevantData.type,
+      lastState: ConstantState.type
+  ): ProvideFlexOptions = {
+    val power = calculateActivePower(data)
+
+    ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
+  }
+
+  override def handleControlledPowerChange(
+      data: FixedRelevantData.type,
+      lastState: ConstantState.type,
+      setPower: ComparableQuantity[Power]
+  ): (ConstantState.type, FlexChangeIndicator) =
+    (lastState, FlexChangeIndicator())
 }
 
-case object FixedFeedInModel extends LazyLogging {
+object FixedFeedInModel extends LazyLogging {
   def apply(
       inputModel: FixedFeedInInput,
       modelConfiguration: SimonaConfig.FixedFeedInRuntimeConfig,

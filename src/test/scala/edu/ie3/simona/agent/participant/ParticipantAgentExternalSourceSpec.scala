@@ -34,8 +34,9 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
-import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
+import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
@@ -98,7 +99,10 @@ class ParticipantAgentExternalSourceSpec
   when(mockInputModel.getId).thenReturn(testID)
   when(mockInputModel.getNode).thenReturn(mockNode)
   private val mockModel =
-    mock[SystemParticipant[CalcRelevantData.FixedRelevantData.type]]
+    mock[SystemParticipant[
+      CalcRelevantData.FixedRelevantData.type,
+      ConstantState.type
+    ]]
   when(mockModel.getUuid).thenReturn(testUUID)
   private val activeToReactivePowerFunction
       : ComparableQuantity[Power] => ComparableQuantity[Power] =
@@ -194,7 +198,8 @@ class ParticipantAgentExternalSourceSpec
               simulationEndDate,
               resolution,
               requestVoltageDeviationThreshold,
-              outputConfig
+              outputConfig,
+              maybeEmAgent
             ) =>
           inputModel shouldBe mockInputModel
           modelConfig shouldBe modelConfig
@@ -204,6 +209,7 @@ class ParticipantAgentExternalSourceSpec
           resolution shouldBe this.resolution
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
+          maybeEmAgent shouldBe None
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
       }
@@ -235,7 +241,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateName shouldBe Idle
       mockAgent.stateData match {
         case baseStateData: FromOutsideBaseStateData[SystemParticipant[
-              FixedRelevantData.type
+              FixedRelevantData.type,
+              ConstantState.type
             ], ApparentPower] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
@@ -406,7 +413,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateData match {
         case DataCollectionStateData(
               baseStateData: FromOutsideBaseStateData[SystemParticipant[
-                CalcRelevantData
+                CalcRelevantData,
+                ConstantState.type
               ], ApparentPower],
               expectedSenders,
               isYetTriggered
@@ -463,7 +471,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateName shouldBe Idle
       mockAgent.stateData match {
         case baseStateData: FromOutsideBaseStateData[SystemParticipant[
-              CalcRelevantData
+              CalcRelevantData,
+              ConstantState.type
             ], ApparentPower] =>
           /* The new data is apparent in the result value store */
           baseStateData.resultValueStore match {
@@ -545,7 +554,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateData match {
         case DataCollectionStateData(
               baseStateData: FromOutsideBaseStateData[SystemParticipant[
-                CalcRelevantData
+                CalcRelevantData,
+                ConstantState.type
               ], ApparentPower],
               expectedSenders,
               isYetTriggered
@@ -598,7 +608,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateName shouldBe Idle
       mockAgent.stateData match {
         case baseStateData: FromOutsideBaseStateData[SystemParticipant[
-              CalcRelevantData
+              CalcRelevantData,
+              ConstantState.type
             ], ApparentPower] =>
           /* The new data is apparent in the result value store */
           baseStateData.resultValueStore match {
@@ -723,7 +734,8 @@ class ParticipantAgentExternalSourceSpec
 
     "correctly determine the reactive power function when trivial reactive power is requested" in {
       val baseStateData: FromOutsideBaseStateData[SystemParticipant[
-        CalcRelevantData.FixedRelevantData.type
+        CalcRelevantData.FixedRelevantData.type,
+        ConstantState.type
       ], ApparentPower] = FromOutsideBaseStateData(
         mockModel,
         defaultSimulationStart,
@@ -753,7 +765,8 @@ class ParticipantAgentExternalSourceSpec
 
     "correctly determine the reactive power function from model when requested" in {
       val baseStateData: FromOutsideBaseStateData[SystemParticipant[
-        CalcRelevantData.FixedRelevantData.type
+        CalcRelevantData.FixedRelevantData.type,
+        ConstantState.type
       ], ApparentPower] = FromOutsideBaseStateData(
         mockModel,
         defaultSimulationStart,
