@@ -6,9 +6,13 @@
 
 package edu.ie3.simona.model.participant.evcs
 
+import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.simona.model.participant.evcs.ChargingSchedule.Entry
-import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsRelevantData
+import edu.ie3.simona.model.participant.evcs.EvcsModel.{
+  EvcsRelevantData,
+  EvcsState
+}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.simona.test.common.model.participant.EvcsTestData
@@ -16,6 +20,7 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.scalatest.prop.TableDrivenPropertyChecks
+import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.PERCENT
 
 import java.util.UUID
@@ -53,10 +58,9 @@ class EvcsModelSpec
           3600L,
           simulationStart,
           EvcsRelevantData(
-            Set(evModel),
-            Map.empty, // should be irrelevant
             Map.empty // should be irrelevant
-          )
+          ),
+          Set(evModel)
         )
 
         actualSchedule shouldBe Map(
@@ -87,10 +91,9 @@ class EvcsModelSpec
           3600L,
           simulationStart,
           EvcsRelevantData(
-            Set(evModel),
-            Map.empty, // should be irrelevant
             Map.empty // should be irrelevant
-          )
+          ),
+          Set(evModel)
         )
 
         actualSchedule shouldBe Map(
@@ -162,17 +165,20 @@ class EvcsModelSpec
               Seq(Entry(chargeStart, chargeEnd, power.asKiloWatt))
             )
 
-            val data = EvcsRelevantData(
+            val voltage =
+              Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE)
+
+            val state = EvcsState(
               Set(ev),
-              Map(ev -> Some(schedule)),
-              Map.empty
+              Map(ev -> Some(schedule))
             )
 
             val actualOutput = evcsModel.applySchedule(
               currentTick,
               simulationStart,
               lastCalcTick,
-              data
+              voltage,
+              state
             )
 
             val expectedChargeStart = math.max(chargeStart, lastCalcTick)

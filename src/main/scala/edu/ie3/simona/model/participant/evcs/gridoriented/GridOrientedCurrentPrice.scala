@@ -33,8 +33,8 @@ object GridOrientedCurrentPrice extends LazyLogging {
     * @param timeLength
     *   the time length of the considered window to calculate the average power
     *   for
-    * @param data
-    *   the evcs relevant data
+    * @param state
+    *   the evcs state
     * @return
     *   optional price signal between 0 and 1
     */
@@ -42,14 +42,14 @@ object GridOrientedCurrentPrice extends LazyLogging {
       evcsModel: EvcsModel,
       currentTick: Long,
       timeLength: Int,
-      data: EvcsModel.EvcsRelevantData
+      state: EvcsModel.EvcsState
   ): Option[Double] = {
 
-    if (data.currentEvs.isEmpty) {
+    if (state.evs.isEmpty) {
       Some(0d)
     } else {
       val scheduleEntries =
-        data.schedule.flatMap(_._2).flatMap(_.schedule).toSet
+        state.schedule.flatMap(_._2).flatMap(_.schedule).toSet
 
       /* Filter schedule for relevant interval */
       val filteredSchedule = scheduleEntries

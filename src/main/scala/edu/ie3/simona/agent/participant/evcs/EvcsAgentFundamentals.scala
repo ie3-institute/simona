@@ -9,7 +9,11 @@ package edu.ie3.simona.agent.participant.evcs
 import akka.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.EvcsInput
-import edu.ie3.datamodel.models.result.system.{EvResult,EvcsResult, SystemParticipantResult}
+import edu.ie3.datamodel.models.result.system.{
+  EvResult,
+  EvcsResult,
+  SystemParticipantResult
+}
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
@@ -18,18 +22,14 @@ import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent.neededServices
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
-import edu.ie3.simona.agent.participant.statedata.{
-  BaseStateData,
-  DataCollectionStateData,
-  ParticipantStateData
-}
-import edu.ie3.simona.agent.participant.statedata.BaseStateData. {
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexStateData,
   ParticipantModelBaseStateData
 }
-import edu.ie3.simona.agent.participant.statedata.{DataCollectionStateData, ParticipantStateData}
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.participant.statedata.{
+  BaseStateData,
+  ParticipantStateData
+}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.api.data.ev.model.EvModel
@@ -37,22 +37,20 @@ import edu.ie3.simona.api.data.ev.ontology.EvMovementsMessage.EvcsMovements
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.exceptions.agent.{AgentInitializationException, InconsistentStateException, InvalidRequestException}
+import edu.ie3.simona.exceptions.agent.{
+  AgentInitializationException,
+  InconsistentStateException,
+  InvalidRequestException
+}
+import edu.ie3.simona.model.participant.evcs.EvcsModel
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
+  EvcsState,
   PowerEntry
 }
-import edu.ie3.simona.model.participant.EvcsModel
-import edu.ie3.simona.model.participant.EvcsModel.{EvcsRelevantData, EvcsState}
-import edu.ie3.simona.ontology.messages.services.EvMessage.{
-  DepartedEvsResponse,
-  EvMovementData,
-  FreeLotsResponse
-}
-import edu.ie3.simona.ontology.messages.services.EvMessage.{DepartedEvsResponse, EvMovementData, FreeLotsResponse}
-import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvcsModel}
 import edu.ie3.simona.ontology.messages.PowerMessage.AssetPowerChangedMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage._
+import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import tech.units.indriya.ComparableQuantity
@@ -147,12 +145,13 @@ protected trait EvcsAgentFundamentals
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
-        resolution * 10,
+        resolution * 10, // FIXME probably need to increase this
         inputModel.getNode
           .getvTarget()
           .to(PU)
       ),
       ValueStore.forResult(resolution, 10),
+      ValueStore(resolution * 10),
       ValueStore(resolution * 10),
       ValueStore(resolution * 10),
       maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
@@ -172,7 +171,8 @@ protected trait EvcsAgentFundamentals
     modelConfig.chargingStrategy
   )
 
-  override protected def createInitialState(): EvcsState = EvcsState(Set.empty)
+  override protected def createInitialState(): EvcsState =
+    EvcsState(Set.empty, Map.empty)
 
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
@@ -183,9 +183,11 @@ protected trait EvcsAgentFundamentals
       ],
       tick: Long
   ): EvcsRelevantData = {
-    // TODO implement
-
-    throw new NotImplementedError()
+    val voltages = baseStateData.voltageValueStore.asMap
+      .map { case (tick, voltage) =>
+        tick.toDateTime(baseStateData.startDate) -> voltage
+      }
+    EvcsRelevantData(voltages)
   }
 
   override protected def calculateResult(
@@ -273,11 +275,11 @@ protected trait EvcsAgentFundamentals
             baseStateData,
             evcsData
           )
-        case (_, Some(CurrentPriceRequest)) =>
+        case (_, CurrentPriceRequest) =>
           handleCurrentPriceRequestAndGoIdle(
             currentTick,
             scheduler,
-            modelBaseStateData
+            baseStateData
           )
       }
       .getOrElse(
@@ -298,24 +300,24 @@ protected trait EvcsAgentFundamentals
   protected def handleFreeLotsRequest(
       tick: Long,
       modelBaseStateData: ParticipantModelBaseStateData[
-        _ <: ApparentPower,
-        _,
-        _,
-        _
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel
       ]
   ): Unit = {
     val evServiceRef = getService[ActorEvMovementsService](
       modelBaseStateData.services
     )
 
-    val (_, lastEvs, _, _) =
-      getTickIntervalAndLastState(tick, modelBaseStateData)
+    val lastState =
+      getLastOrInitialStateData(modelBaseStateData, tick - 1)
 
     val evcsModel = getEvcsModel(modelBaseStateData)
 
     evServiceRef ! FreeLotsResponse(
       evcsModel.uuid,
-      evcsModel.chargingPoints - lastEvs.evs.size
+      evcsModel.chargingPoints - lastState.evs.size
     )
   }
 
@@ -336,31 +338,25 @@ protected trait EvcsAgentFundamentals
       currentTick: Long,
       scheduler: ActorRef,
       modelBaseStateData: ParticipantModelBaseStateData[
-        _ <: ApparentPower,
-        _,
-        _
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel
       ]
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
     val evServiceRef = getService[ActorEvMovementsService](
       modelBaseStateData.services
     )
 
-    val (_, lastEvs, lastSchedule, voltages) =
-      getLastCalcRelevantData(currentTick, modelBaseStateData)
+    val lastState =
+      getLastOrInitialStateData(modelBaseStateData, currentTick - 1)
 
     val evcsModel = getEvcsModel(modelBaseStateData)
-
-    val relevantDataForCalculationOfCurrentPrice =
-      EvcsRelevantData(
-        lastEvs,
-        lastSchedule,
-        voltages
-      )
 
     evcsModel.calculateCurrentPriceSignalToCommunicateToEvs(
       currentTick,
       modelBaseStateData.startDate,
-      relevantDataForCalculationOfCurrentPrice
+      lastState
     ) match {
       case Some(price) =>
         evServiceRef ! CurrentPriceResponse(
@@ -416,8 +412,13 @@ protected trait EvcsAgentFundamentals
     val evServiceRef = getService[ActorEvMovementsService](
       modelBaseStateData.services
     )
-    val (lastSchedulingTick, lastState, lastSchedule, voltages) =
-      getTickIntervalAndLastState(currentTick, modelBaseStateData)
+
+    val (lastSchedulingTick, lastState) = modelBaseStateData.stateDataStore
+      .last(currentTick - 1)
+      .getOrElse(
+        (SimonaConstants.FIRST_TICK_IN_SIMULATION, createInitialState())
+      )
+
     val evcsModel = getEvcsModel(modelBaseStateData)
 
     /* Validate EV movements */
@@ -428,10 +429,12 @@ protected trait EvcsAgentFundamentals
     )
 
     /* Relevant data for EvcsModel to calculate new SoC for all EVs */
-    val relevantData =
-      EvcsRelevantData(
-        tickInterval
-      )
+    val voltage = modelBaseStateData.voltageValueStore
+      .last(currentTick)
+      .map { case (_, voltage) =>
+        voltage
+      }
+      .getOrElse(Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE))
 
     /* Update EV models according to the scheduling determined at last EvMovements Event and get EvResults
      * including charging costs */
@@ -440,7 +443,8 @@ protected trait EvcsAgentFundamentals
         currentTick,
         modelBaseStateData.startDate,
         lastSchedulingTick,
-        relevantDataForEvUpdates
+        voltage,
+        lastState
       )
       .unzip3
 
@@ -458,76 +462,65 @@ protected trait EvcsAgentFundamentals
     }
 
     /* Calculate evcs power for interval since last update, save for updating value store, and inform listeners */
-    val updatedResultValueStore = modelBaseStateData match {
-      case modelBaseStateData: ParticipantModelBaseStateData[
-            ApparentPower,
-            EvcsRelevantData,
-            EvcsModel
-          ] =>
-        determineResultsAnnounceUpdateValueStore(
-          powerEntries.flatten,
-          currentTick,
-          lastSchedulingTick,
-          modelBaseStateData
-        )
-      case _ =>
-        throw new InconsistentStateException(
-          "Wrong base state data"
-        )
-    }
+    val updatedResultValueStore =
+      determineResultsAnnounceUpdateValueStore(
+        powerEntries.flatten,
+        currentTick,
+        lastSchedulingTick,
+        modelBaseStateData
+      )
 
-    val updatedRelevantData = {
+    val updatedState = {
       /* if new EVs arrived, a new scheduling must be calculated. */
       if (arrivingEvs.nonEmpty) {
-        /* Update relevant data required for new scheduling */
-        val relevantDataForScheduling =
-          EvcsRelevantData(
-            stayingEvs ++ arrivingEvs,
-            Map.empty[EvModel, Option[ChargingSchedule]],
-            voltages
-          )
         /* Determine new schedule for charging the EVs */
+        val currentEvs = stayingEvs ++ arrivingEvs
+
+        val relevantData =
+          createCalcRelevantData(modelBaseStateData, currentTick)
+
         val newSchedule = evcsModel
           .calculateNewScheduling(
             currentTick,
             modelBaseStateData.startDate,
-            relevantDataForScheduling
+            relevantData,
+            currentEvs
           )
         /* Update relevant data with schedule */
-        relevantDataForScheduling.copy(
+        lastState.copy(
+          evs = currentEvs,
           schedule = newSchedule
         )
       }
       /* if no new EVs arrived, the previous scheduling is kept but filtered, only the current EVs are updated. */
       else {
         /* Filter out the single schedule entries, which do lay in the past and are already applied */
-        val updatedSchedules = lastSchedule.map { case (ev, maybeSchedule) =>
-          ev -> maybeSchedule.map(scheduleContainer =>
-            scheduleContainer.copy(schedule =
-              scheduleContainer.schedule.filter(_.tickStop >= currentTick)
+        val updatedSchedules = lastState.schedule.map {
+          case (ev, maybeSchedule) =>
+            ev -> maybeSchedule.map(scheduleContainer =>
+              scheduleContainer.copy(schedule =
+                scheduleContainer.schedule.filter(_.tickStop >= currentTick)
+              )
             )
-          )
         }
 
-        relevantDataForEvUpdates.copy(
-          currentEvs = stayingEvs,
-          schedule = updatedSchedules,
+        lastState.copy(
+          evs = stayingEvs,
+          schedule = updatedSchedules
           // filter(_.tickStop > currentTick)
           // is it possible to remove also the schedules that ended at currentTick? -> probably yes, test required
-          voltages = voltages
         )
       }
     }
 
     goToIdleWithUpdatedBaseStateData(
       scheduler,
-      modelBaseStateData.copy(stateDataStore = updatedStateStore),
+      modelBaseStateData,
       updatedResultValueStore,
-      updatedRelevantData
+      updatedState
     )
   }
 
-  private def getTickIntervalAndLastState(
   /** Update the calc relevant data value store and go to Idle using the updated
     * base state data
     *
@@ -537,58 +530,37 @@ protected trait EvcsAgentFundamentals
     *   The base state data of the collection state
     * @param updatedResultValueStore
     *   The updated result value store
-    * @param relevantData
-    *   Data, that have been relevant to this calculation
+    * @param state
+    *   The current state data
     * @return
     *   Desired state change
     */
   final def goToIdleWithUpdatedBaseStateData(
       scheduler: ActorRef,
       baseStateData: ParticipantModelBaseStateData[
-        _ <: ApparentPower,
-        _,
-        _
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel
       ],
       updatedResultValueStore: ValueStore[ApparentPower],
-      relevantData: EvcsRelevantData
+      state: EvcsState
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
 
     /* Update relevant data store */
-    val updatedRelevantDataStore: ValueStore[EvcsRelevantData] =
-      baseStateData match {
-        case data: ParticipantModelBaseStateData[
-              ApparentPower,
-              EvcsRelevantData,
-              EvcsModel
-            ] =>
-          ValueStore.updateValueStore(
-            data.calcRelevantDateStore,
-            currentTick,
-            relevantData
-          )
-        case _ =>
-          throw new InconsistentStateException(
-            "Cannot find calculation relevant data to update."
-          )
-      }
+    val updatedStateDataStore =
+      ValueStore.updateValueStore(
+        baseStateData.stateDataStore,
+        currentTick,
+        state
+      )
 
     /* Update the base state data with the updated result value store and relevant data store */
     val updatedBaseStateData =
-      baseStateData match {
-        case data: ParticipantModelBaseStateData[
-              ApparentPower,
-              EvcsRelevantData,
-              EvcsModel
-            ] =>
-          data.copy(
-            resultValueStore = updatedResultValueStore,
-            calcRelevantDateStore = updatedRelevantDataStore
-          )
-        case _ =>
-          throw new InconsistentStateException(
-            "Wrong base state data"
-          )
-      }
+      baseStateData.copy(
+        resultValueStore = updatedResultValueStore,
+        stateDataStore = updatedStateDataStore
+      )
 
     goToIdleReplyCompletionAndScheduleTriggerForNextAction(
       updatedBaseStateData,
@@ -637,6 +609,7 @@ protected trait EvcsAgentFundamentals
           case modelBaseStateData: ParticipantModelBaseStateData[
                 ApparentPower,
                 EvcsRelevantData,
+                EvcsState,
                 EvcsModel
               ] =>
             /* Active power is yet calculated, but reactive power needs update */
@@ -651,19 +624,10 @@ protected trait EvcsAgentFundamentals
                 lastResult.withReactivePower(nextReactivePower)
               )
 
-            /* ADDED: Update relevant data store with voltage information for this tick */
-            val updatedRelevantDataStore =
-              updateRelevantDataStoreWithVoltageInformation(
-                requestTick,
-                nodalVoltage,
-                modelBaseStateData
-              )
-
             val nextStateData =
               modelBaseStateData.copy(
                 requestValueStore = updatedRequestValueStore,
-                voltageValueStore = updatedVoltageValueStore,
-                calcRelevantDateStore = updatedRelevantDataStore
+                voltageValueStore = updatedVoltageValueStore
               )
 
             stay() using nextStateData replying AssetPowerChangedMessage(
@@ -689,26 +653,50 @@ protected trait EvcsAgentFundamentals
             case modelBaseStateData: ParticipantModelBaseStateData[
                   ApparentPower,
                   EvcsRelevantData,
+                  EvcsState,
                   EvcsModel
                 ] =>
-              /* Update result value store with power changes since last update */
-              val updatedResultValueStore: ValueStore[ApparentPower] =
-                calculatePowerSinceLastEventUpdateResultValueStoreAndInformListeners(
-                  requestTick,
-                  modelBaseStateData
+              /* Relevant data for EvcsModel to calculate new SoC for all EVs */
+              val voltage = modelBaseStateData.voltageValueStore
+                .last(requestTick)
+                .map { case (_, voltage) =>
+                  voltage
+                }
+                .getOrElse(
+                  Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE)
                 )
 
-              /* Update relevant data store with new voltage information */
-              val updatedRelevantDataStore =
-                updateRelevantDataStoreWithVoltageInformation(
+              val (lastSchedulingTick, lastState) =
+                modelBaseStateData.stateDataStore
+                  .last(requestTick - 1)
+                  .getOrElse(
+                    (
+                      SimonaConstants.FIRST_TICK_IN_SIMULATION,
+                      createInitialState()
+                    )
+                  )
+
+              val (_, _, powerEntries) =
+                modelBaseStateData.model
+                  .applySchedule(
+                    requestTick,
+                    modelBaseStateData.startDate,
+                    lastSchedulingTick,
+                    voltage,
+                    lastState
+                  )
+                  .unzip3
+
+              val updatedResultValueStore =
+                determineResultsAnnounceUpdateValueStore(
+                  powerEntries.flatten,
                   requestTick,
-                  nodalVoltage,
+                  lastSchedulingTick,
                   modelBaseStateData
                 )
 
               modelBaseStateData.copy(
-                resultValueStore = updatedResultValueStore,
-                calcRelevantDateStore = updatedRelevantDataStore
+                resultValueStore = updatedResultValueStore
               )
 
             case unexpectedStateData =>
@@ -745,58 +733,6 @@ protected trait EvcsAgentFundamentals
     }
   }
 
-  /** Update the calc relevant data store with new voltage information for the
-    * voltage memory. The voltage memory either gets a new entry or an existing
-    * entry might be updated. To limit the overall memory size, voltage
-    * information older than 3 weeks is removed.
-    * @param requestTick
-    *   the tick the voltage information belongs to
-    * @param nodalVoltage
-    *   the voltage at this tick
-    * @param modelBaseStateData
-    *   model base state data
-    * @return
-    *   updated calc relevant data store
-    */
-  private def updateRelevantDataStoreWithVoltageInformation(
-      requestTick: Long,
-      nodalVoltage: ComparableQuantity[Dimensionless],
-      modelBaseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
-        EvcsRelevantData,
-        EvcsModel
-      ]
-  ): ValueStore[EvcsRelevantData] = {
-
-    val (lastSchedulingTick, evs, schedule, voltages) =
-      getLastCalcRelevantData(
-        requestTick + 1,
-        modelBaseStateData
-      )
-
-    /* Add or update the voltage memory with the voltage for the current tick.
-     * Also remove voltage information that is older than 3 weeks to limit memory size. */
-    val updatedVoltages = voltages.filter(
-      _._1.isAfter(
-        requestTick.toDateTime(modelBaseStateData.startDate).minusWeeks(3)
-      )
-    ) + (requestTick.toDateTime(modelBaseStateData.startDate) -> nodalVoltage)
-
-    val updatedRelevantData =
-      EvcsRelevantData(
-        evs,
-        schedule,
-        updatedVoltages
-      )
-
-    ValueStore.updateValueStore(
-      modelBaseStateData.calcRelevantDateStore,
-      lastSchedulingTick, // update the value store at the tick where the schedule was calculated instead of a new one
-      updatedRelevantData
-    )
-
-  }
-
   /** Determine evcs results according to DEVS logic (in each tick, where
     * something relevant happens), announce them to listeners and update the
     * result value store.
@@ -820,6 +756,7 @@ protected trait EvcsAgentFundamentals
       modelBaseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         EvcsRelevantData,
+        EvcsState,
         EvcsModel
       ]
   ): ValueStore[ApparentPower] = {
@@ -879,88 +816,6 @@ protected trait EvcsAgentFundamentals
     }
   }
 
-  /** Calculate the power changes since the last update, which either happened
-    * at a power request or at EV movements update.
-    * @param requestTick
-    *   The tick, the request belongs to
-    * @param modelBaseStateData
-    *   The model base state data
-    * @return
-    *   updated result value store with added power changes since the last
-    *   request
-    */
-  @deprecated(
-    "Seems to be inefficient. Use 'determineResultsAnnounceUpdateValueStore' instead, if applicable."
-  )
-  private def calculatePowerSinceLastEventUpdateResultValueStoreAndInformListeners(
-      requestTick: Long,
-      modelBaseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
-        EvcsRelevantData,
-        EvcsModel
-      ]
-  ): ValueStore[ApparentPower] = {
-
-    /* The resultValueStore is updated, whenever a power request is processed or a EV movements happen, which lead
-     * to an updated schedule. Therefore, we always only need to consider the last schedule to determine the power
-     * updates.
-     */
-    val (lastSchedulingTick, _, lastSchedule, _) =
-      getLastCalcRelevantData(requestTick, modelBaseStateData)
-
-    /* Power updates are already in the resultValueStore until the tick of the last event. Determine this tick to
-     * know from where on new updates need to be written into the value store. This tick is either from the last update
-     * of the calcRelevantDataStore (= EvMovements Event) or requestValueStore (= Power Request).
-     */
-    val lastUpdateTick: Long = math.max(
-      lastSchedulingTick,
-      modelBaseStateData.requestValueStore
-        .lastKnownTick(requestTick - 1)
-        .getOrElse(0L)
-    )
-
-    /* Get EvcsModel */
-    val evcsModel = getEvcsModel(modelBaseStateData)
-
-    /* Get last known node voltage */
-    val voltage: ComparableQuantity[Dimensionless] =
-      getAndCheckNodalVoltage(modelBaseStateData, requestTick)
-
-    /* Calculate the power results according to the schedule from the lastUpdateTick until the current tick. */
-    val results: Set[(Long, ApparentPower)] = if (lastSchedule.nonEmpty) {
-      /* There is a schedule, which might include charging power changes. Calculate powers. */
-      evcsModel.calculatePowerForLastInterval(
-        lastSchedule.flatMap(_._2).toSet,
-        voltage,
-        requestTick,
-        lastUpdateTick
-      )
-    } else {
-      Set.empty
-    }
-
-    /* Save updates for result value store and announce to listeners for each power change */
-    val updatedResultValueStore: ValueStore[ApparentPower] = results.foldLeft(
-      modelBaseStateData.resultValueStore
-    )((valueStore, result) => {
-      /* Update resultValueStore with result */
-      val update = ValueStore.updateValueStore(
-        valueStore,
-        result._1,
-        result._2
-      )
-      /* Inform the listeners about new result */
-      announceSimulationResult(
-        modelBaseStateData,
-        result._1,
-        result._2
-      )(modelBaseStateData.outputConfig)
-      update
-    })
-
-    updatedResultValueStore
-  }
-
   /** Announce already constructed EvResults to listeners. Currently, the p and
     * q values are used to output the charged energy and charging costs.
     * @param evResults
@@ -975,45 +830,6 @@ protected trait EvcsAgentFundamentals
           listener.foreach(_ ! ParticipantResultEvent(result))
         })
       })
-  }
-
-  /** Get the last entry in the calc relevant data store BEFORE OR AT the
-    * current tick.
-    * @param currentTick
-    *   current tick
-    * @param modelBaseStateData
-    *   the model base state data
-    * @return
-    *   the entries in the calc relevant data store before or the requested tick
-    */
-  private def getLastCalcRelevantData(
-      currentTick: Long,
-      modelBaseStateData: ParticipantModelBaseStateData[
-        _ <: ApparentPower,
-        _,
-        _,
-        _
-      ]
-  ): (
-      Long,
-      Set[EvModel],
-      Map[EvModel, Option[ChargingSchedule]],
-      Map[ZonedDateTime, ComparableQuantity[Dimensionless]]
-  ) = {
-    modelBaseStateData.calcRelevantDateStore
-      .last(currentTick - 1) match {
-      case Some((lastTick, EvcsRelevantData(evs, schedule, voltages))) =>
-        (lastTick, evs, schedule, voltages)
-      case _ =>
-        /* At the first tick, we are not able to determine the data for the previous tick
-         * (since there is none). */
-        (
-          0,
-          Set.empty[EvModel],
-          Map.empty[EvModel, Option[ChargingSchedule]],
-          Map.empty
-        ) // createInitialState()
-    }
   }
 
   private def getEvcsModel(

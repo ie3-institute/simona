@@ -15,13 +15,26 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.evcs.EvcsModel.{EvcsRelevantData, PowerEntry}
+import edu.ie3.simona.model.participant.evcs.EvcsModel.{
+  EvcsRelevantData,
+  EvcsState,
+  PowerEntry
+}
 import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedCharging
 import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedCurrentPrice.calculateCurrentPriceGridOriented
 import edu.ie3.simona.model.participant.evcs.marketoriented.MarketOrientedCharging
 import edu.ie3.simona.model.participant.evcs.marketoriented.MarketOrientedCurrentPrice.calculateCurrentPriceMarketOriented
-import edu.ie3.simona.model.participant.evcs.uncontrolled.{ConstantPowerCharging, MaximumPowerCharging}
-import edu.ie3.simona.model.participant.{CalcRelevantData, ModelState, SystemParticipant}
+import edu.ie3.simona.model.participant.evcs.uncontrolled.{
+  ConstantPowerCharging,
+  MaximumPowerCharging
+}
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  FlexChangeIndicator,
+  ModelState,
+  SystemParticipant
+}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage
 import edu.ie3.simona.service.market.StaticMarketSource
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -76,7 +89,7 @@ final case class EvcsModel(
     chargingPoints: Int,
     locationType: EvcsLocationType,
     strategy: ChargingStrategy.Value
-) extends SystemParticipant[EvcsRelevantData](
+) extends SystemParticipant[EvcsRelevantData, EvcsState](
       uuid,
       id,
       operationInterval,
@@ -105,7 +118,8 @@ final case class EvcsModel(
   def calculateNewScheduling(
       currentTick: Long,
       simulationStartDate: ZonedDateTime,
-      data: EvcsRelevantData
+      data: EvcsRelevantData,
+      evs: Set[EvModel]
   ): Map[EvModel, Option[ChargingSchedule]] = {
     if (
       locationType == EvcsLocationType.CHARGING_HUB_TOWN || locationType == EvcsLocationType.CHARGING_HUB_HIGHWAY
@@ -113,14 +127,14 @@ final case class EvcsModel(
       /* Cars at charging hubs always charge eagerly */
       chargeWithMaximumPower(
         currentTick,
-        data.currentEvs
+        evs
       )
     } else
       scheduleByStrategy(
         strategy,
         currentTick,
         simulationStartDate,
-        data.currentEvs,
+        evs,
         data.voltages
       )
   }
@@ -231,8 +245,8 @@ final case class EvcsModel(
     *
     * @param currentTick
     *   current tick
-    * @param data
-    *   data containing the scheduling
+    * @param voltage
+    *   the current voltage
     * @return
     *   updated EVs and EvResults including charging prices
     */
@@ -240,25 +254,17 @@ final case class EvcsModel(
       currentTick: Long,
       simulationStartDate: ZonedDateTime,
       lastSchedulingTick: Long,
-      data: EvcsRelevantData
+      voltage: ComparableQuantity[Dimensionless],
+      state: EvcsState
   ): Set[(EvModel, Vector[EvResult], Vector[PowerEntry])] = if (
-    data.schedule.nonEmpty
+    state.schedule.nonEmpty
   ) {
-    val currentTime = simulationStartDate.plusSeconds(currentTick)
-    val voltage = data.voltages
-      .filter { case (time, _) =>
-        time.isBefore(currentTime) || time.isEqual(currentTime)
-      }
-      .values
-      .maxOption
-      .getOrElse(Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE))
-
     /* Apply schedules asynchronously */
-    data.currentEvs.par
+    state.evs.par
       .map(
         applyScheduleToEv(
           _,
-          data,
+          state,
           lastSchedulingTick,
           currentTick,
           simulationStartDate,
@@ -271,7 +277,7 @@ final case class EvcsModel(
       "There are EVs parked at this charging station, but there was no scheduling since the last" +
         "update. Probably the EVs already finished charging."
     )
-    data.currentEvs.map { ev => (ev, Vector.empty, Vector.empty) }
+    state.evs.map { ev => (ev, Vector.empty, Vector.empty) }
   }
 
   /** Fish for the schedule, that applies for the concrete ev and apply it.
@@ -293,12 +299,12 @@ final case class EvcsModel(
     */
   private def applyScheduleToEv(
       ev: EvModel,
-      relevantData: EvcsRelevantData,
+      state: EvcsState,
       lastSchedulingTick: Long,
       currentTick: Long,
       simulationStartDate: ZonedDateTime,
       voltage: ComparableQuantity[Dimensionless]
-  ): (EvModel, Vector[EvResult], Vector[PowerEntry]) = relevantData
+  ): (EvModel, Vector[EvResult], Vector[PowerEntry]) = state
     .getSchedule(ev)
     .map {
       chargeEv(
@@ -600,16 +606,15 @@ final case class EvcsModel(
     *   current tick of the request
     * @param simulationStartDate
     *   start time of the simulation to convert ticks to real time
-    * @param data
-    *   the evcs relevant data including the current parked ev, scheduling, and
-    *   voltages
+    * @param state
+    *   the evcs state data including the current parked evs and scheduling
     * @return
     *   the current price signal of the evcs
     */
   def calculateCurrentPriceSignalToCommunicateToEvs(
       currentTick: Long,
       simulationStartDate: ZonedDateTime,
-      data: EvcsRelevantData
+      state: EvcsState
   ): Option[Double] =
     // Only EvcsLocationType != Home and Work have prices
     this.locationType match {
@@ -631,7 +636,7 @@ final case class EvcsModel(
               this,
               currentTick,
               lengthOfRelevantIntervalInSeconds,
-              data
+              state
             )
           case ChargingStrategy.MARKET_ORIENTED =>
             calculateCurrentPriceMarketOriented(
@@ -685,25 +690,45 @@ final case class EvcsModel(
       data: EvcsRelevantData
   ): ComparableQuantity[Power] =
     throw new NotImplementedError("Use calculatePowerAndEvSoc() instead.")
+
+  override def determineFlexOptions(
+      data: EvcsRelevantData,
+      lastState: EvcsState
+  ): FlexibilityMessage.ProvideFlexOptions = ???
+
+  override def handleControlledPowerChange(
+      data: EvcsRelevantData,
+      lastState: EvcsState,
+      setPower: ComparableQuantity[Power]
+  ): (EvcsState, FlexChangeIndicator) = ???
 }
 
 object EvcsModel {
 
   /** Class that holds all relevant data for an Evcs model calculation
     *
-    * @param evMovementsDataFrameLength
-    * the duration in ticks (= seconds) until next tick
+    * @param voltages
+    *   Nodal voltage per known time instant
     */
   final case class EvcsRelevantData(
-                                     evMovementsDataFrameLength: Long
-                                   ) extends CalcRelevantData
+      voltages: Map[ZonedDateTime, ComparableQuantity[Dimensionless]]
+  ) extends CalcRelevantData
 
-  /** @param evs
-    * EVs that are staying at the charging station
+  /** Class that represents the state of the charging station at a given point
+    * in time
+    *
+    * @param evs
+    *   EVs that are staying at the charging station
+    * @param schedule
+    *   the schedule determining when to load which EVs with which power
     */
   final case class EvcsState(
-                              evs: Set[EvModel]
-                            ) extends ModelState
+      evs: Set[EvModel],
+      schedule: Map[EvModel, Option[ChargingSchedule]]
+  ) extends ModelState {
+    def getSchedule(ev: EvModel): Option[ChargingSchedule] =
+      schedule.getOrElse(ev, None)
+  }
 
   /** Container class for apparent power
     *

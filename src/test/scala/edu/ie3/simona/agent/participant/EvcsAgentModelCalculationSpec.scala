@@ -30,8 +30,7 @@ import edu.ie3.simona.api.data.ev.ontology.builder.EvcsMovementsBuilder
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.evcs.ChargingSchedule
-import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsRelevantData
-import edu.ie3.simona.model.participant.EvcsModel.EvcsState
+import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsState
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
@@ -546,7 +545,7 @@ class EvcsAgentModelCalculationSpec
             case ValueStore(_, store) =>
               store.keys should contain only 0L
               store.get(0L) match {
-                case Some(EvcsRelevantData(currentEvs, schedule, voltages)) =>
+                case Some(EvcsState(currentEvs, schedule)) =>
                   currentEvs should contain theSameElementsAs Set(evA, evB)
 
                   schedule.values.flatten should contain allOf (
@@ -575,12 +574,8 @@ class EvcsAgentModelCalculationSpec
                       )
                     )
                   )
-                  voltages shouldBe empty
                 case None => fail("Entry for tick 0 expected.")
               }
-              /*store shouldBe Map(
-                0L -> EvcsState(Set(evA, evB))
-              )*/
           }
 
           /* The store for simulation results has been extended */
@@ -702,7 +697,7 @@ class EvcsAgentModelCalculationSpec
             case ValueStore(_, store) =>
               store.keys should contain only 0L
               store.get(0L) match {
-                case Some(EvcsRelevantData(currentEvs, schedule, voltages)) =>
+                case Some(EvcsState(currentEvs, schedule)) =>
                   currentEvs should contain theSameElementsAs Set(evA, evB)
                   schedule.values.flatten should contain allOf (
                     ChargingSchedule(
@@ -728,12 +723,8 @@ class EvcsAgentModelCalculationSpec
                       )
                     )
                   )
-                  voltages shouldBe empty
                 case None => fail("Entry for tick 0 expected.")
               }
-              /*store shouldBe Map(
-                0L -> EvcsState(Set(evA, evB))
-              )*/
           }
 
           /* The store for simulation results has been extended */

@@ -89,6 +89,9 @@ final case class ValueStore[+D](
     */
   def allTicksAvailable(neededTicks: Array[Long]): Boolean =
     store.keySet.toSeq.sorted.containsSlice(neededTicks.toSeq.sorted)
+
+  def asMap: Map[Long, D] =
+    store
 }
 
 object ValueStore {
