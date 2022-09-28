@@ -180,7 +180,7 @@ class ResultEventListenerSpec
         )
 
         // wait until output file exists (headers are flushed out immediately):
-        awaitCond(outputFile.exists(), interval = 500.millis, max = 5.seconds)
+        awaitCond(outputFile.exists(), interval = 500.millis)
 
         // stop listener so that result is flushed out
         Await.ready(
