@@ -8,93 +8,112 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
+import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.QuantityUtil
 import spock.lang.Shared
 import spock.lang.Specification
+import tech.units.indriya.quantity.Quantities
 
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static tech.units.indriya.quantity.Quantities.getQuantity
 
 class CylindricalThermalStorageTest extends Specification {
 
-	@Shared
-	CylindricalStorageInput storageInput
+    @Shared
+    CylindricalStorageInput storageInput
+    @Shared
+    static final Double TOLERANCE = 0.0001
 
-	def setupSpec() {
-		storageInput = new CylindricalStorageInput(
-				UUID.randomUUID(),
-				"ThermalStorage",
-				null,
-				getQuantity(100, StandardUnits.VOLUME),
-				getQuantity(20, StandardUnits.VOLUME),
-				getQuantity(30, StandardUnits.TEMPERATURE),
-				getQuantity(40, StandardUnits.TEMPERATURE),
-				getQuantity(1.15, StandardUnits.SPECIFIC_HEAT_CAPACITY))
-	}
+    def setupSpec() {
+        storageInput = new CylindricalStorageInput(
+                UUID.randomUUID(),
+                "ThermalStorage",
+                null,
+                getQuantity(100, StandardUnits.VOLUME),
+                getQuantity(20, StandardUnits.VOLUME),
+                getQuantity(30, StandardUnits.TEMPERATURE),
+                getQuantity(40, StandardUnits.TEMPERATURE),
+                getQuantity(1.15, StandardUnits.SPECIFIC_HEAT_CAPACITY))
+    }
 
-	static def buildThermalStorage(CylindricalStorageInput storageInput, Double volume) {
-		def storedEnergy = CylindricalThermalStorage.volumeToEnergy(getQuantity(volume, StandardUnits.VOLUME), storageInput.c, storageInput.inletTemp, storageInput.returnTemp)
-		def thermalStorage = CylindricalThermalStorage.apply(storageInput, storedEnergy)
-		return thermalStorage
-	}
+    static def buildThermalStorage(CylindricalStorageInput storageInput, Double volume) {
+        def storedEnergy = CylindricalThermalStorage.volumeToEnergy(getQuantity(volume, StandardUnits.VOLUME), storageInput.c, storageInput.inletTemp, storageInput.returnTemp)
+        def thermalStorage = CylindricalThermalStorage.apply(storageInput, storedEnergy)
+        return thermalStorage
+    }
 
-	static def vol2Energy(CylindricalThermalStorage storage, Double volume) {
-		return CylindricalThermalStorage.volumeToEnergy(getQuantity(volume, StandardUnits.VOLUME),storage.c(), storage.inletTemp(), storage.returnTemp())
-	}
+    def vol2Energy(Double volume) {
+        return CylindricalThermalStorage.volumeToEnergy(getQuantity(volume, StandardUnits.VOLUME), storageInput.c, storageInput.inletTemp, storageInput.returnTemp)
+    }
 
-	def "Check storage level operations:"() {
-		given:
-		def storage = buildThermalStorage(storageInput, 70)
+    def "Check storage level operations:"() {
+        given:
+        def storage = buildThermalStorage(storageInput, 70)
 
-		when:
-		def initialLevel = storage._storedEnergy()
-		storage._storedEnergy_$eq(vol2Energy(storage, 50))
-		def newLevel1 = storage._storedEnergy()
-		def surplus = storage.tryToStoreAndReturnRemainder(vol2Energy(storage, 55)).get()
-		def newLevel2 = storage._storedEnergy()
-		def isCovering = storage.isDemandCoveredByStorage(getQuantity(5, KILOWATTHOUR))
-		def lack = storage.tryToTakeAndReturnLack(vol2Energy(storage, 95)).get()
-		def newLevel3 = storage._storedEnergy()
-		def notCovering = storage.isDemandCoveredByStorage(getQuantity(1, KILOWATTHOUR))
+        when:
+        def initialLevel = storage._storedEnergy()
+        storage._storedEnergy_$eq(vol2Energy(50))
+        def newLevel1 = storage._storedEnergy()
+        def surplus = storage.tryToStoreAndReturnRemainder(vol2Energy(55)).get()
+        def newLevel2 = storage._storedEnergy()
+        def isCovering = storage.isDemandCoveredByStorage(getQuantity(5, KILOWATTHOUR))
+        def lack = storage.tryToTakeAndReturnLack(vol2Energy(95)).get()
+        def newLevel3 = storage._storedEnergy()
+        def notCovering = storage.isDemandCoveredByStorage(getQuantity(1, KILOWATTHOUR))
 
-		then:
-		initialLevel == vol2Energy(storage, 70)
-		newLevel1 == vol2Energy(storage, 50)
-		surplus == vol2Energy(storage, 5)
-		newLevel2 == vol2Energy(storage, 100)
-		lack == vol2Energy(storage, 15)
-		newLevel3 == vol2Energy(storage, 20)
-		isCovering
-		!notCovering
-	}
+        then:
+        initialLevel == vol2Energy(70)
+        newLevel1 == vol2Energy(50)
+        surplus == vol2Energy(5)
+        newLevel2 == vol2Energy(100)
+        lack == vol2Energy(15)
+        newLevel3 == vol2Energy(20)
+        isCovering
+        !notCovering
+    }
 
-	def "Check converting methods:"() {
-		given:
-		def storage = buildThermalStorage(storageInput, 70)
+    def "Check converting methods:"() {
+        given:
+        def storage = buildThermalStorage(storageInput, 70)
 
-		when:
-		def usableThermalEnergy = storage.usableThermalEnergy()
-		def volumeFromUsableEnergy = CylindricalThermalStorage.energyToVolume(usableThermalEnergy, storage.c(), storage.inletTemp(), storage.returnTemp())
+        when:
+        def usableThermalEnergy = storage.usableThermalEnergy()
 
+        then:
+        usableThermalEnergy == getQuantity(5 * 115, KILOWATTHOUR)
+    }
 
-		then:
-		usableThermalEnergy == getQuantity(5 * 115, KILOWATTHOUR)
-		volumeFromUsableEnergy == getQuantity(50, StandardUnits.VOLUME)
-	}
+    def "Check apply, validation and build method:"() {
+        when:
+        def storage = buildThermalStorage(storageInput, 70)
 
-	def "Check apply, validation and build method:"() {
-		when:
-		def storage = buildThermalStorage(storageInput, 70)
+        then:
+        storage.uuid() == storageInput.uuid
+        storage.id() == storageInput.id
+        storage.operatorInput() == storageInput.operator
+        storage.operationTime() == storageInput.operationTime
+        storage.bus() == storageInput.thermalBus
+    }
 
-		then:
-		storage.uuid() == storageInput.uuid
-		storage.id() == storageInput.id
-		storage.operatorInput() == storageInput.operator
-		storage.operationTime() == storageInput.operationTime
-		storage.bus() == storageInput.thermalBus
-		storage.storageVolumeLvlMax() == storageInput.storageVolumeLvl
-		storage.storageVolumeLvlMin() == storageInput.storageVolumeLvlMin
-		storage.inletTemp() == storageInput.inletTemp
-		storage.returnTemp() == storageInput.returnTemp
-		storage.c() == storageInput.c
-	}
+    def "Check mutable state update:"() {
+        when:
+        def storage = buildThermalStorage(storageInput, 70)
+        def lastState = new ThermalStorage.ThermalStorageState(tick, Quantities.getQuantity(storedEnergy, KILOWATTHOUR), Quantities.getQuantity(qDot, KILOWATT))
+        def result = storage.updateState(newTick, Quantities.getQuantity(newQDot, KILOWATT), lastState)
+
+        then:
+        QuantityUtil.equals(result._1().storedEnergy(), Quantities.getQuantity(expectedStoredEnergy, KILOWATTHOUR), TOLERANCE)
+        result._2() == expectedNextTick
+
+        where:
+        tick | storedEnergy | qDot  | newTick | newQDot || expectedStoredEnergy | expectedNextTick
+        0L   | 250.0        | 10.0  | 3600L   | 42.0    || 260.0                | 79885L
+        0L   | 250.0        | 10.0  | 3600L   | -42.0   || 260.0                | 6171L
+        0L   | 250.0        | -10.0 | 3600L   | 42.0    || 240.0                | 81600L
+        0L   | 250.0        | -10.0 | 3600L   | -42.0   || 240.0                | 4457L
+        0L   | 250.0        | 10.0  | 3600L   | 0.0     || 260.0                | Long.MAX_VALUE
+        0L   | 250.0        | -10.0 | 3600L   | 0.0     || 240.0                | Long.MAX_VALUE
+        0L   | 1000.0       | 149.0 | 3600L   | 5000.0  || 1149.0               | 3600L
+        0L   | 240.0        | -9.0  | 3600L   | -5000.0 || 231.0                | 3600L
+    }
 }

@@ -6,8 +6,10 @@
 
 package edu.ie3.simona.model.thermal
 
+import breeze.linalg.max
+
 import java.util.UUID
-import edu.ie3.datamodel.models.OperationTime
+import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
@@ -17,9 +19,10 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
 import edu.ie3.util.quantities.interfaces.SpecificHeatCapacity
 
-import javax.measure.quantity.{Energy, Temperature, Volume}
+import javax.measure.quantity.{Energy, Power, Temperature, Time, Volume}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
 /** A cylindrical thermal storage used for implementations, which require a
   * mutable storage. <p> <strong>Important:</strong> The field storageLvl is a
@@ -57,6 +60,63 @@ final case class CylindricalThermalStorage(
       bus
     )
     with MutableStorage {
+
+  /** Updates the given last state. Based on the then set thermal influx, the
+    * current state is calculated. Positive values of influx are consider to
+    * flow into the storage. Additionally, the tick, when the next threshold is
+    * reached, is calculated as well.
+    *
+    * @param tick
+    *   Tick, where this change happens
+    * @param qDot
+    *   Influx
+    * @param lastState
+    *   Last known state
+    * @return
+    *   The updated state as well as the tick, when a threshold is reached
+    */
+  def updateState(
+      tick: Long,
+      qDot: ComparableQuantity[Power],
+      lastState: ThermalStorageState
+  ): (ThermalStorageState, Long) = {
+    /* Determine new state based on time difference and given state */
+    val energyBalance = lastState.qDot
+      .multiply(Quantities.getQuantity(tick - lastState.tick, Units.SECOND))
+      .asType(classOf[Energy])
+    val newEnergy = lastState.storedEnergy add energyBalance
+    val updatedEnergy =
+      if (newEnergy.isGreaterThan(maxEnergyThreshold))
+        maxEnergyThreshold
+      else if (newEnergy.isLessThan(minEnergyThreshold))
+        minEnergyThreshold
+      else
+        newEnergy
+
+    /* Determine, when a threshold is reached */
+    val duration =
+      if (
+        qDot.isGreaterThan(
+          Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
+        )
+      ) {
+        ((maxEnergyThreshold subtract updatedEnergy) divide qDot) asType classOf[
+          Time
+        ] to Units.SECOND
+      } else if (
+        qDot.isLessThan(
+          Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
+        )
+      ) {
+        ((updatedEnergy subtract minEnergyThreshold) divide qDot.multiply(
+          -1
+        )) asType classOf[Time] to Units.SECOND
+      } else {
+        return (ThermalStorageState(tick, updatedEnergy, qDot), Long.MaxValue)
+      }
+    val nextTick = tick + max(duration.getValue.longValue(), 0L)
+    (ThermalStorageState(tick, updatedEnergy, qDot), nextTick)
+  }
 
   override def usableThermalEnergy: ComparableQuantity[Energy] =
     _storedEnergy.subtract(minEnergyThreshold)
