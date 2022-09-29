@@ -14,6 +14,7 @@ import tech.units.indriya.ComparableQuantity
   * [[ThermalStorage]] (look [[self]]). <p> <strong>Important:</strong> The
   * field storedEnergy is a variable and set to 0kWh by default.
   */
+@deprecated("Use thermal storage state instead")
 trait MutableStorage {
   self: ThermalStorage =>
 

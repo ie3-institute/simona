@@ -86,22 +86,9 @@ final case class ThermalGrid(
       Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT)
     ) { case ((currentStoredEnergy, currentRemainingCapacity), storage) =>
       storage match {
-        case cylindricalStorage @ CylindricalThermalStorage(
-              _,
-              _,
-              _,
-              _,
-              _,
-              storageVolumeLvlMax,
-              _,
-              inletTemp,
-              returnTemp,
-              c,
-              _
-            ) =>
+        case cylindricalStorage: CylindricalThermalStorage =>
           val usableEnergy = cylindricalStorage.usableThermalEnergy
-          val remaining = CylindricalThermalStorage
-            .volumeToEnergy(storageVolumeLvlMax, c, inletTemp, returnTemp)
+          val remaining = cylindricalStorage.maxEnergyThreshold
             .subtract(usableEnergy)
           (
             currentStoredEnergy.add(usableEnergy),
@@ -212,7 +199,7 @@ final case class ThermalGrid(
     ) { case ((updatedHouseStates, shortestTick, fullHouses), house) =>
       houseState.get(house.uuid) match {
         case Some(houseState: ThermalHouseState) =>
-          val share = shares.getOrElse(house.uuid, 0)
+          val share = shares.getOrElse(house.uuid, 0.0)
           house.updateState(
             tick,
             houseState,
@@ -291,7 +278,10 @@ final case class ThermalGrid(
           )
       }
     }.toMap
-    val totalDemand = houseDemands.values.reduce(_ + _)
+    val totalDemand =
+      houseDemands.values.foldLeft(ThermalEnergyDemand.noDemand) {
+        case (d, houseDemand) => d + houseDemand
+      }
     houseDemands.map { case (uuid, ThermalEnergyDemand(required, _)) =>
       uuid -> required
         .divide(totalDemand.required)

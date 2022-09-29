@@ -13,6 +13,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
   ThermalBusInput
 }
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
 import edu.ie3.util.quantities.interfaces.SpecificHeatCapacity
 
@@ -34,16 +35,10 @@ import tech.units.indriya.quantity.Quantities
   *   Operation time
   * @param bus
   *   Thermal bus input
-  * @param storageVolumeLvlMax
-  *   Maximal volume
-  * @param storageVolumeLvlMin
-  *   Minimal volume (can be greater than zero)
-  * @param inletTemp
-  *   Inlet temperature
-  * @param returnTemp
-  *   Return temperature
-  * @param c
-  *   Specific heat capacity
+  * @param minEnergyThreshold
+  *   Minimum permissible energy stored in the storage
+  * @param maxEnergyThreshold
+  *   Maximum permissible energy stored in the storage
   */
 final case class CylindricalThermalStorage(
     uuid: UUID,
@@ -51,11 +46,8 @@ final case class CylindricalThermalStorage(
     operatorInput: OperatorInput,
     operationTime: OperationTime,
     bus: ThermalBusInput,
-    storageVolumeLvlMax: ComparableQuantity[Volume],
-    storageVolumeLvlMin: ComparableQuantity[Volume],
-    inletTemp: ComparableQuantity[Temperature],
-    returnTemp: ComparableQuantity[Temperature],
-    c: ComparableQuantity[SpecificHeatCapacity],
+    minEnergyThreshold: ComparableQuantity[Energy],
+    maxEnergyThreshold: ComparableQuantity[Energy],
     override protected var _storedEnergy: ComparableQuantity[Energy]
 ) extends ThermalStorage(
       uuid,
@@ -65,22 +57,6 @@ final case class CylindricalThermalStorage(
       bus
     )
     with MutableStorage {
-
-  private def minEnergyThreshold: ComparableQuantity[Energy] =
-    CylindricalThermalStorage.volumeToEnergy(
-      storageVolumeLvlMin,
-      c,
-      inletTemp,
-      returnTemp
-    )
-
-  private def maxEnergyThreshold: ComparableQuantity[Energy] =
-    CylindricalThermalStorage.volumeToEnergy(
-      storageVolumeLvlMax,
-      c,
-      inletTemp,
-      returnTemp
-    )
 
   override def usableThermalEnergy: ComparableQuantity[Energy] =
     _storedEnergy.subtract(minEnergyThreshold)
@@ -130,20 +106,33 @@ case object CylindricalThermalStorage {
       input: CylindricalStorageInput,
       initialStoredEnergy: ComparableQuantity[Energy] =
         Quantities.getQuantity(0, KILOWATTHOUR)
-  ): CylindricalThermalStorage =
+  ): CylindricalThermalStorage = {
+    val minEnergyThreshold: ComparableQuantity[Energy] =
+      CylindricalThermalStorage.volumeToEnergy(
+        input.getStorageVolumeLvlMin,
+        input.getC,
+        input.getInletTemp,
+        input.getReturnTemp
+      )
+
+    val maxEnergyThreshold: ComparableQuantity[Energy] =
+      CylindricalThermalStorage.volumeToEnergy(
+        input.getStorageVolumeLvl,
+        input.getC,
+        input.getInletTemp,
+        input.getReturnTemp
+      )
     new CylindricalThermalStorage(
       input.getUuid,
       input.getId,
       input.getOperator,
       input.getOperationTime,
       input.getThermalBus,
-      input.getStorageVolumeLvl,
-      input.getStorageVolumeLvlMin,
-      input.getInletTemp,
-      input.getReturnTemp,
-      input.getC,
+      minEnergyThreshold,
+      maxEnergyThreshold,
       initialStoredEnergy
     )
+  }
 
   /** Equation from docs for the relation between needed volume and energy.
     *
@@ -168,28 +157,4 @@ case object CylindricalThermalStorage {
       .multiply(c)
       .multiply(returnTemp.subtract(inletTemp))
       .asType(classOf[Energy])
-
-  /** Equation from docs for the relation between stored heat and volume change.
-    *
-    * @param energy
-    *   available energy
-    * @param c
-    *   Specific heat capacity
-    * @param inletTemp
-    *   Inlet temperature
-    * @param returnTemp
-    *   Return temperature
-    * @return
-    *   volume
-    */
-  def energyToVolume(
-      energy: ComparableQuantity[Energy],
-      c: ComparableQuantity[SpecificHeatCapacity],
-      inletTemp: ComparableQuantity[Temperature],
-      returnTemp: ComparableQuantity[Temperature]
-  ): ComparableQuantity[Volume] =
-    energy
-      .divide(c.multiply(returnTemp.subtract(inletTemp)))
-      .asType(classOf[Volume])
-
 }
