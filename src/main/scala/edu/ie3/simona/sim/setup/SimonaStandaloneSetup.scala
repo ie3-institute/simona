@@ -6,10 +6,7 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.typed.scaladsl.adapter.{
-  ClassicActorContextOps,
-  TypedActorRefOps
-}
+import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, ActorSystem}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
@@ -253,12 +250,15 @@ class SimonaStandaloneSetup(
           index.toString
         )
       }
-      .toSeq :+ context.simonaActorOf(
-      ResultEventListener.props(
-        resultFileHierarchy,
-        simonaSim
+      .toSeq :+ context
+      .spawn(
+        ResultEventListener(
+          resultFileHierarchy,
+          simonaSim.toTyped
+        ),
+        ResultEventListener.getClass.getSimpleName
       )
-    )
+      .toClassic
   }
 
   def buildSubGridToActorRefMap(

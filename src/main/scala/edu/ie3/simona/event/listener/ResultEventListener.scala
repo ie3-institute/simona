@@ -1,64 +1,50 @@
 /*
- * © 2020. TU Dortmund University,
+ * © 2022. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.{ActorRef, FSM, Props, Stash, Status}
-import akka.pattern.pipe
+import akka.actor.typed.{Behavior, ActorRef}
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.stream.Materializer
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.agent.state.AgentState
-import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
   PowerFlowResultEvent
 }
-import edu.ie3.simona.event.listener.ResultEventListener.{
-  AggregatedTransformer3wResult,
-  BaseData,
-  Init,
-  ResultEventListenerData,
-  SinkResponse,
-  Transformer3wKey,
-  UninitializedData
+import edu.ie3.simona.io.result.{
+  ResultEntityCsvSink,
+  ResultEntityInfluxDbSink,
+  ResultEntityKafkaSink,
+  ResultEntitySink,
+  ResultSinkType
 }
+import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.exceptions.{
   FileHierarchyException,
-  InitializationException,
   ProcessResultEventException
 }
-import edu.ie3.simona.io.result._
-import edu.ie3.simona.logging.SimonaFSMActorLogging
-import edu.ie3.simona.sim.SimonaSim.ServiceInitComplete
-import edu.ie3.simona.util.ResultFileHierarchy
 
-import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 object ResultEventListener extends Transformer3wResultSupport {
 
   /** Internal [[ResultEventListenerData]]
     */
-  sealed trait ResultEventListenerData
-
-  /** Data for state [[Uninitialized]]
-    */
-  private final case object UninitializedData extends ResultEventListenerData
-
-  private final case object Init
+  sealed trait ResultEventListenerData extends ResultEvent
+  
+  private final case object Init extends ResultEvent
 
   private final case class SinkResponse(
       response: Map[Class[_], ResultEntitySink]
-  )
+  ) extends ResultEvent
 
   /** [[ResultEventListener]] base data containing all information the listener
     * needs
@@ -74,17 +60,6 @@ object ResultEventListener extends Transformer3wResultSupport {
         AggregatedTransformer3wResult
       ] = Map.empty
   ) extends ResultEventListenerData
-
-  def props(
-      resultFileHierarchy: ResultFileHierarchy,
-      supervisor: ActorRef
-  ): Props =
-    Props(
-      new ResultEventListener(
-        resultFileHierarchy,
-        supervisor
-      )
-    )
 
   /** Initialize the sinks for this listener based on the provided collection
     * with the model names as strings. It generates one sink for each model
@@ -166,33 +141,6 @@ object ResultEventListener extends Transformer3wResultSupport {
         )
     }
   }
-}
-
-class ResultEventListener(
-    resultFileHierarchy: ResultFileHierarchy,
-    supervisor: ActorRef
-) extends SimonaListener
-    with FSM[AgentState, ResultEventListenerData]
-    with SimonaFSMActorLogging
-    with Stash {
-
-  implicit private val materializer: Materializer = Materializer(context)
-
-  override def preStart(): Unit = {
-    log.debug("Starting initialization!")
-    resultFileHierarchy.resultSinkType match {
-      case _: ResultSinkType.Kafka =>
-        log.debug("NodeResults will be processed by a Kafka sink.")
-      case _ =>
-        log.debug(
-          s"Events that will be processed: {}",
-          resultFileHierarchy.resultEntitiesToConsider
-            .map(_.getSimpleName)
-            .mkString(",")
-        )
-    }
-    self ! Init
-  }
 
   /** Handle the given result and possibly update the state data
     *
@@ -205,9 +153,10 @@ class ResultEventListener(
     */
   private def handleResult(
       resultEntity: ResultEntity,
-      baseData: BaseData
+      baseData: BaseData,
+      context: ActorContext[ResultEvent]
   ): BaseData = {
-    handOverToSink(resultEntity, baseData.classToSink)
+    handOverToSink(resultEntity, baseData.classToSink, context)
     baseData
   }
 
@@ -224,12 +173,17 @@ class ResultEventListener(
     */
   private def handlePartialTransformer3wResult(
       result: PartialTransformer3wResult,
-      baseData: ResultEventListener.BaseData
+      baseData: BaseData,
+      context: ActorContext[ResultEvent]
   ): BaseData = {
     val enhancedResults =
-      registerPartialTransformer3wResult(result, baseData.threeWindingResults)
+      registerPartialTransformer3wResult(
+        result,
+        baseData.threeWindingResults,
+        context
+      )
     val uncompletedResults =
-      flushComprehensiveResults(enhancedResults, baseData.classToSink)
+      flushComprehensiveResults(enhancedResults, baseData.classToSink, context)
     baseData.copy(threeWindingResults = uncompletedResults)
   }
 
@@ -245,7 +199,8 @@ class ResultEventListener(
     */
   private def registerPartialTransformer3wResult(
       result: PartialTransformer3wResult,
-      threeWindingResults: Map[Transformer3wKey, AggregatedTransformer3wResult]
+      threeWindingResults: Map[Transformer3wKey, AggregatedTransformer3wResult],
+      context: ActorContext[ResultEvent]
   ): Map[Transformer3wKey, AggregatedTransformer3wResult] = {
     val resultKey = Transformer3wKey(result.input, result.time)
     val partialTransformer3wResult =
@@ -257,7 +212,7 @@ class ResultEventListener(
       partialTransformer3wResult.add(result) match {
         case Success(value) => value
         case Failure(exception) =>
-          log.warning(
+          context.log.warn(
             "Cannot handle the given result:\n\t{}",
             exception.getMessage
           )
@@ -279,13 +234,14 @@ class ResultEventListener(
     */
   private def flushComprehensiveResults(
       results: Map[Transformer3wKey, AggregatedTransformer3wResult],
-      classToSink: Map[Class[_], ResultEntitySink]
+      classToSink: Map[Class[_], ResultEntitySink],
+      context: ActorContext[ResultEvent]
   ): Map[Transformer3wKey, AggregatedTransformer3wResult] = {
     val comprehensiveResults = results.filter(_._2.ready)
     comprehensiveResults.map(_._2.consolidate).foreach {
-      case Success(result) => handOverToSink(result, classToSink)
+      case Success(result) => handOverToSink(result, classToSink, context)
       case Failure(exception) =>
-        log.warning("Cannot consolidate / write result.\n\t{}", exception)
+        context.log.warn("Cannot consolidate / write result.\n\t{}", exception)
     }
     results.removedAll(comprehensiveResults.keys)
   }
@@ -300,7 +256,8 @@ class ResultEventListener(
     */
   private def handOverToSink(
       resultEntity: ResultEntity,
-      classToSink: Map[Class[_], ResultEntitySink]
+      classToSink: Map[Class[_], ResultEntitySink],
+      context: ActorContext[ResultEvent]
   ): Unit =
     Try {
       classToSink
@@ -308,108 +265,106 @@ class ResultEventListener(
         .foreach(_.handleResultEntity(resultEntity))
     } match {
       case Failure(exception) =>
-        log.error(exception, "Error while writing result event: ")
+        context.log.error("Error while writing result event: ", exception)
       case Success(_) =>
     }
 
-  startWith(Uninitialized, UninitializedData)
-
-  when(Uninitialized) {
-
-    case Event(_: ResultEvent, _) =>
-      stash()
-      stay()
-
-    case Event(Init, _) =>
-      Future
-        .sequence(
-          ResultEventListener.initializeSinks(
-            resultFileHierarchy
-          )
-        )
-        .map(result => SinkResponse(result.toMap))
-        .pipeTo(self)
-      stay()
-
-    case Event(SinkResponse(classToSink), _) =>
-      // Sink Initialization succeeded
-      log.debug("Initialization complete!")
-      supervisor ! ServiceInitComplete
-
-      unstashAll()
-      goto(Idle) using BaseData(classToSink)
-
-    case Event(Status.Failure(ex), _) =>
-      throw new InitializationException("Unable to setup SimonaSim.", ex)
+  def apply(
+      resultFileHierarchy: ResultFileHierarchy,
+      supervisor: ActorRef[ResultEvent]
+  ): Behavior[ResultEvent] = {
+    initialize(Init, resultFileHierarchy, supervisor)
   }
 
-  when(Idle) {
-    case Event(
-          ParticipantResultEvent(systemParticipantResult),
-          baseData: BaseData
-        ) =>
-      val updateBaseData = handleResult(systemParticipantResult, baseData)
-      stay() using updateBaseData
-
-    case Event(
-          PowerFlowResultEvent(
-            nodeResults,
-            switchResults,
-            lineResults,
-            transformer2wResults,
-            transformer3wResults
-          ),
-          baseData: BaseData
-        ) =>
-      val updatedBaseData =
-        (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults)
-          .foldLeft(baseData) {
-            case (currentBaseData, resultEntity: ResultEntity) =>
-              handleResult(resultEntity, currentBaseData)
-            case (
-                  currentBaseData,
-                  partialTransformerResult: PartialTransformer3wResult
-                ) =>
-              handlePartialTransformer3wResult(
-                partialTransformerResult,
-                currentBaseData
+  private def initialize(
+      resultEvent: ResultEvent,
+      resultFileHierarchy: ResultFileHierarchy,
+      supervisor: ActorRef[ResultEvent]
+  ): Behavior[ResultEvent] = {
+    Behaviors.withStash(10) { buffer =>
+      Behaviors.receivePartial[ResultEvent] {
+        case (ctx, Init) =>
+          implicit val materializer: Materializer = Materializer(ctx)
+          ctx.log.debug("Starting initialization!")
+          resultFileHierarchy.resultSinkType match {
+            case _: ResultSinkType.Kafka =>
+              ctx.log.debug("NodeResults will be processed by a Kafka sink.")
+            case _ =>
+              ctx.log.debug(
+                s"Events that will be processed: {}",
+                resultFileHierarchy.resultEntitiesToConsider
+                  .map(_.getSimpleName)
+                  .mkString(",")
               )
           }
-      stay() using updatedBaseData
-  }
 
-  onTermination { case StopEvent(_, _, baseData: BaseData) =>
-    // wait until all I/O has finished
-    log.debug(
-      "Shutdown initiated.\n\tThe following three winding results are not comprehensive and are not " +
-        "handled in sinks:{}\n\tWaiting until writing result data is completed ...",
-      baseData.threeWindingResults.keys
-        .map { case Transformer3wKey(model, zdt) =>
-          s"model '$model' at $zdt"
-        }
-        .mkString("\n\t\t")
-    )
+          val sinkResponse: Future[SinkResponse] = Future
+            .sequence(
+              ResultEventListener.initializeSinks(
+                resultFileHierarchy
+              )
+            )
+            .map(result => SinkResponse(result.toMap))
 
-    // close sinks concurrently to speed up closing (closing calls might be blocking)
-    Await.ready(
-      Future.sequence(
-        baseData.classToSink.valuesIterator.map(sink =>
-          Future {
-            sink.close()
+          sinkResponse.onComplete { response =>
+            initialize(response.get, resultFileHierarchy, supervisor)
           }
-        )
-      ),
-      Duration(100, TimeUnit.MINUTES)
-    )
+          Behaviors.same
 
-    log.debug("Result I/O completed.")
+        case (ctx, SinkResponse(classToSink)) =>
+          // Sink Initialization succeeded
+          ctx.log.debug("Initialization complete!")
 
-    log.debug("Shutdown.")
+          // TODO: does not work
+          // supervisor ! ServiceInitComplete
+
+          buffer.unstashAll(
+            initialize(resultEvent, resultFileHierarchy, supervisor)
+          )
+          idle(BaseData(classToSink))
+
+        case (_, other: ResultEvent) =>
+          buffer.stash(other)
+          Behaviors.same
+      }
+    }
   }
 
-  whenUnhandled { case event =>
-    log.error(s"Unhandled event $event in state $stateName.")
-    stay()
+  private def idle(baseData: BaseData): Behavior[ResultEvent] =
+    Behaviors.receive { case (ctx, event) =>
+      (event, baseData) match {
+        case (ParticipantResultEvent(systemParticipantResult), baseData) =>
+          val updatedBaseData =
+            handleResult(systemParticipantResult, baseData, ctx)
+          idle(updatedBaseData)
 
-  }
+        case (
+              PowerFlowResultEvent(
+                nodeResults,
+                switchResults,
+                lineResults,
+                transformer2wResults,
+                transformer3wResults
+              ),
+              baseData
+            ) =>
+          val updatedBaseData =
+            (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults)
+              .foldLeft(baseData) {
+                case (currentBaseData, resultEntity: ResultEntity) =>
+                  handleResult(resultEntity, currentBaseData, ctx)
+                case (
+                      currentBaseData,
+                      partialTransformerResult: PartialTransformer3wResult
+                    ) =>
+                  handlePartialTransformer3wResult(
+                    partialTransformerResult,
+                    currentBaseData,
+                    ctx
+                  )
+              }
+          idle(updatedBaseData)
+      }
+    }
+
 }
