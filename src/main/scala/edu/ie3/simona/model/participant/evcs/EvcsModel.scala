@@ -7,10 +7,10 @@
 package edu.ie3.simona.model.participant.evcs
 
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.datamodel.models.ElectricCurrentType
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.result.system.EvResult
-import edu.ie3.datamodel.models.{ElectricCurrentType, StandardUnits}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.SystemComponent
@@ -35,11 +35,12 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant
 }
 import edu.ie3.simona.ontology.messages.FlexibilityMessage
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.service.market.StaticMarketSource
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.quantities.QuantityUtils.RichQuantity
+import edu.ie3.util.quantities.QuantityUtils.{RichQuantity, RichQuantityDouble}
 import edu.ie3.util.quantities.interfaces.Currency
 import edu.ie3.util.scala.OperationInterval
 import tech.units.indriya.ComparableQuantity
@@ -64,6 +65,8 @@ import scala.util.{Failure, Success}
   *   Interval, in which the system is in operation
   * @param scalingFactor
   *   Scaling the output of the system
+  * @param simulationStartDate
+  *   The start date of the simulation
   * @param qControl
   *   Type of reactive power control
   * @param sRated
@@ -82,6 +85,7 @@ final case class EvcsModel(
     id: String,
     operationInterval: OperationInterval,
     scalingFactor: Double,
+    simulationStartDate: ZonedDateTime,
     qControl: QControl,
     sRated: ComparableQuantity[Power],
     currentType: ElectricCurrentType,
@@ -108,16 +112,12 @@ final case class EvcsModel(
     * station until their departure. The scheduling depends on the chosen
     * strategy.
     *
-    * @param currentTick
-    *   current tick
     * @param data
     *   data including the current EVs parked at the charging station
     * @return
     *   scheduling for charging the EVs
     */
   def calculateNewScheduling(
-      currentTick: Long,
-      simulationStartDate: ZonedDateTime,
       data: EvcsRelevantData,
       evs: Set[EvModel]
   ): Map[EvModel, Option[ChargingSchedule]] = {
@@ -126,13 +126,13 @@ final case class EvcsModel(
     ) {
       /* Cars at charging hubs always charge eagerly */
       chargeWithMaximumPower(
-        currentTick,
+        data.tick,
         evs
       )
     } else
       scheduleByStrategy(
         strategy,
-        currentTick,
+        data.tick,
         simulationStartDate,
         evs,
         data.voltages
@@ -186,60 +186,6 @@ final case class EvcsModel(
       )
   }
 
-  /** Calculate the apparent power changes in the given time interval for all
-    * apparent EVs.
-    *
-    * @param schedule
-    *   The charging schedule realized in the given time interval
-    * @param voltage
-    *   The last known voltage
-    * @param requestTick
-    *   The tick of the request, representing the end of the time interval
-    * @param lastUpdateTick
-    *   The tick of the last update, representing the start of the time interval
-    * @return
-    *   Set of tuples of tick and apparent power
-    */
-  def calculatePowerForLastInterval(
-      schedule: Set[ChargingSchedule],
-      voltage: ComparableQuantity[Dimensionless],
-      requestTick: Long,
-      lastUpdateTick: Long
-  ): Set[(Long, ApparentPower)] = {
-    val scheduleEntries = schedule.flatMap(_.schedule)
-
-    /* Filter schedule for updates relevant for this interval */
-    val filteredSchedule = scheduleEntries
-      .filter(_.tickStop >= lastUpdateTick)
-      .filter(_.tickStart <= requestTick)
-
-    /* Get all ticks with changes in a sorted vector */
-    val allTicks = getAllTicksOfSchedule(filteredSchedule)
-
-    val results = allTicks.map { tick =>
-      val activePower = filteredSchedule
-        .foldLeft(
-          Quantities.getQuantity(0, KILOWATT)
-        )((p, entry) => {
-          if (entry.tickStart <= tick && entry.tickStop > tick)
-            p.add(entry.chargingPower)
-          else p
-        })
-        .to(MEGAWATT)
-
-      val reactivePower =
-        calculateReactivePower(activePower, voltage).to(MEGAVAR)
-
-      (tick, ApparentPower(activePower, reactivePower))
-
-    }
-
-    /* INCLUDE startTick of interval, EXCLUDE endTick of interval,
-     * because in this endTick new EVs could arrive in the next step if this function was called while processing
-     * an EvMovements update. */
-    results.filter(_._1 >= lastUpdateTick).filter(_._1 < requestTick)
-  }
-
   /** Update EVs for the timeframe since the last scheduling and calculate
     * equivalent results
     *
@@ -252,8 +198,6 @@ final case class EvcsModel(
     */
   def applySchedule(
       currentTick: Long,
-      simulationStartDate: ZonedDateTime,
-      lastSchedulingTick: Long,
       voltage: ComparableQuantity[Dimensionless],
       state: EvcsState
   ): Set[(EvModel, Vector[EvResult], Vector[PowerEntry])] = if (
@@ -265,7 +209,7 @@ final case class EvcsModel(
         applyScheduleToEv(
           _,
           state,
-          lastSchedulingTick,
+          state.tick,
           currentTick,
           simulationStartDate,
           voltage
@@ -284,8 +228,8 @@ final case class EvcsModel(
     *
     * @param ev
     *   Car model
-    * @param relevantData
-    *   Data, that is relevant for calculation
+    * @param state
+    *   The state data containing the schedule
     * @param lastSchedulingTick
     *   Simulation time, when the last schedule has been applied
     * @param currentTick
@@ -604,8 +548,6 @@ final case class EvcsModel(
     *
     * @param currentTick
     *   current tick of the request
-    * @param simulationStartDate
-    *   start time of the simulation to convert ticks to real time
     * @param state
     *   the evcs state data including the current parked evs and scheduling
     * @return
@@ -613,7 +555,6 @@ final case class EvcsModel(
     */
   def calculateCurrentPriceSignalToCommunicateToEvs(
       currentTick: Long,
-      simulationStartDate: ZonedDateTime,
       state: EvcsState
   ): Option[Double] =
     // Only EvcsLocationType != Home and Work have prices
@@ -707,10 +648,13 @@ object EvcsModel {
 
   /** Class that holds all relevant data for an Evcs model calculation
     *
+    * @param tick
+    *   The current tick
     * @param voltages
     *   Nodal voltage per known time instant
     */
   final case class EvcsRelevantData(
+      tick: Long,
       voltages: Map[ZonedDateTime, ComparableQuantity[Dimensionless]]
   ) extends CalcRelevantData
 
@@ -721,10 +665,13 @@ object EvcsModel {
     *   EVs that are staying at the charging station
     * @param schedule
     *   the schedule determining when to load which EVs with which power
+    * @param tick
+    *   The tick that the data has been calculated for
     */
   final case class EvcsState(
       evs: Set[EvModel],
-      schedule: Map[EvModel, Option[ChargingSchedule]]
+      schedule: Map[EvModel, Option[ChargingSchedule]],
+      tick: Long
   ) extends ModelState {
     def getSchedule(ev: EvModel): Option[ChargingSchedule] =
       schedule.getOrElse(ev, None)
@@ -761,6 +708,7 @@ object EvcsModel {
       inputModel.getId,
       operationInterval,
       scalingFactor,
+      simulationStartDate,
       QControl(inputModel.getqCharacteristics),
       inputModel.getType.getsRated,
       inputModel.getType.getElectricCurrentType,
@@ -781,6 +729,8 @@ object EvcsModel {
     *   the operation interval of the model
     * @param scalingFactor
     *   the scaling factor of the power output
+    * @param simulationStartDate
+    *   The start date of the simulation
     * @param qControl
     *   the q control this model is using
     * @param sRated
@@ -801,6 +751,7 @@ object EvcsModel {
       id: String,
       operationInterval: OperationInterval,
       scalingFactor: Double,
+      simulationStartDate: ZonedDateTime,
       qControl: QControl,
       sRated: ComparableQuantity[Power],
       currentType: ElectricCurrentType,
@@ -814,6 +765,7 @@ object EvcsModel {
       id,
       operationInterval,
       scalingFactor,
+      simulationStartDate,
       qControl,
       sRated,
       currentType,

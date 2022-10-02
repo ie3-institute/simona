@@ -172,7 +172,7 @@ protected trait EvcsAgentFundamentals
   )
 
   override protected def createInitialState(): EvcsState =
-    EvcsState(Set.empty, Map.empty)
+    EvcsState(Set.empty, Map.empty, SimonaConstants.FIRST_TICK_IN_SIMULATION)
 
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
@@ -187,7 +187,7 @@ protected trait EvcsAgentFundamentals
       .map { case (tick, voltage) =>
         tick.toDateTime(baseStateData.startDate) -> voltage
       }
-    EvcsRelevantData(voltages)
+    EvcsRelevantData(tick, voltages)
   }
 
   override protected def calculateResult(
@@ -355,7 +355,6 @@ protected trait EvcsAgentFundamentals
 
     evcsModel.calculateCurrentPriceSignalToCommunicateToEvs(
       currentTick,
-      modelBaseStateData.startDate,
       lastState
     ) match {
       case Some(price) =>
@@ -413,11 +412,7 @@ protected trait EvcsAgentFundamentals
       modelBaseStateData.services
     )
 
-    val (lastSchedulingTick, lastState) = modelBaseStateData.stateDataStore
-      .last(currentTick - 1)
-      .getOrElse(
-        (SimonaConstants.FIRST_TICK_IN_SIMULATION, createInitialState())
-      )
+    val lastState = getLastOrInitialStateData(modelBaseStateData, currentTick)
 
     val evcsModel = getEvcsModel(modelBaseStateData)
 
@@ -441,8 +436,6 @@ protected trait EvcsAgentFundamentals
     val (updatedEvs, evResults, powerEntries) = evcsModel
       .applySchedule(
         currentTick,
-        modelBaseStateData.startDate,
-        lastSchedulingTick,
         voltage,
         lastState
       )
@@ -466,7 +459,7 @@ protected trait EvcsAgentFundamentals
       determineResultsAnnounceUpdateValueStore(
         powerEntries.flatten,
         currentTick,
-        lastSchedulingTick,
+        lastState.tick,
         modelBaseStateData
       )
 
@@ -481,15 +474,14 @@ protected trait EvcsAgentFundamentals
 
         val newSchedule = evcsModel
           .calculateNewScheduling(
-            currentTick,
-            modelBaseStateData.startDate,
             relevantData,
             currentEvs
           )
         /* Update relevant data with schedule */
         lastState.copy(
           evs = currentEvs,
-          schedule = newSchedule
+          schedule = newSchedule,
+          tick = currentTick
         )
       }
       /* if no new EVs arrived, the previous scheduling is kept but filtered, only the current EVs are updated. */
@@ -506,9 +498,10 @@ protected trait EvcsAgentFundamentals
 
         lastState.copy(
           evs = stayingEvs,
-          schedule = updatedSchedules
+          schedule = updatedSchedules,
           // filter(_.tickStop > currentTick)
           // is it possible to remove also the schedules that ended at currentTick? -> probably yes, test required
+          tick = currentTick
         )
       }
     }
@@ -666,22 +659,13 @@ protected trait EvcsAgentFundamentals
                   Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE)
                 )
 
-              val (lastSchedulingTick, lastState) =
-                modelBaseStateData.stateDataStore
-                  .last(requestTick - 1)
-                  .getOrElse(
-                    (
-                      SimonaConstants.FIRST_TICK_IN_SIMULATION,
-                      createInitialState()
-                    )
-                  )
+              val lastState =
+                getLastOrInitialStateData(modelBaseStateData, requestTick)
 
               val (_, _, powerEntries) =
                 modelBaseStateData.model
                   .applySchedule(
                     requestTick,
-                    modelBaseStateData.startDate,
-                    lastSchedulingTick,
                     voltage,
                     lastState
                   )
@@ -691,7 +675,7 @@ protected trait EvcsAgentFundamentals
                 determineResultsAnnounceUpdateValueStore(
                   powerEntries.flatten,
                   requestTick,
-                  lastSchedulingTick,
+                  lastState.tick,
                   modelBaseStateData
                 )
 

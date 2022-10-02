@@ -17,7 +17,6 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.simona.test.common.model.participant.EvcsTestData
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.scalatest.prop.TableDrivenPropertyChecks
 import tech.units.indriya.quantity.Quantities
@@ -31,8 +30,7 @@ class EvcsModelSpec
     with TableDrivenPropertyChecks
     with EvcsTestData {
 
-  private val simulationStart =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+  private val simulationStart = evcsStandardModel.simulationStartDate
 
   "An EVCS model" should {
 
@@ -55,9 +53,8 @@ class EvcsModelSpec
         )
 
         val actualSchedule = evcsModel.calculateNewScheduling(
-          3600L,
-          simulationStart,
           EvcsRelevantData(
+            3600L,
             Map.empty // should be irrelevant
           ),
           Set(evModel)
@@ -88,9 +85,8 @@ class EvcsModelSpec
         )
 
         val actualSchedule = evcsModel.calculateNewScheduling(
-          3600L,
-          simulationStart,
           EvcsRelevantData(
+            3600L,
             Map.empty // should be irrelevant
           ),
           Set(evModel)
@@ -170,13 +166,12 @@ class EvcsModelSpec
 
             val state = EvcsState(
               Set(ev),
-              Map(ev -> Some(schedule))
+              Map(ev -> Some(schedule)),
+              lastCalcTick
             )
 
             val actualOutput = evcsModel.applySchedule(
               currentTick,
-              simulationStart,
-              lastCalcTick,
               voltage,
               state
             )

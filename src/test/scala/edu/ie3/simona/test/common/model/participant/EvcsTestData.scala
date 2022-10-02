@@ -11,6 +11,7 @@ import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationTyp
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.evcs.{ChargingStrategy, EvcsModel}
+import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import tech.units.indriya.quantity.Quantities
@@ -23,6 +24,7 @@ trait EvcsTestData {
     "Evcs Model Test",
     OperationInterval(0L, 31536000L),
     1.0,
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
     QControl.apply(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
     Quantities.getQuantity(100, PowerSystemUnits.KILOVOLTAMPERE),
     ElectricCurrentType.AC,

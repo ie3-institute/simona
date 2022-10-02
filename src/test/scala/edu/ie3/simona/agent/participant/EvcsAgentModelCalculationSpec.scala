@@ -545,7 +545,7 @@ class EvcsAgentModelCalculationSpec
             case ValueStore(_, store) =>
               store.keys should contain only 0L
               store.get(0L) match {
-                case Some(EvcsState(currentEvs, schedule)) =>
+                case Some(EvcsState(currentEvs, schedule, tick)) =>
                   currentEvs should contain theSameElementsAs Set(evA, evB)
 
                   schedule.values.flatten should contain allOf (
@@ -574,6 +574,8 @@ class EvcsAgentModelCalculationSpec
                       )
                     )
                   )
+
+                  tick shouldBe 0L
                 case None => fail("Entry for tick 0 expected.")
               }
           }
@@ -697,7 +699,7 @@ class EvcsAgentModelCalculationSpec
             case ValueStore(_, store) =>
               store.keys should contain only 0L
               store.get(0L) match {
-                case Some(EvcsState(currentEvs, schedule)) =>
+                case Some(EvcsState(currentEvs, schedule, tick)) =>
                   currentEvs should contain theSameElementsAs Set(evA, evB)
                   schedule.values.flatten should contain allOf (
                     ChargingSchedule(
@@ -723,6 +725,8 @@ class EvcsAgentModelCalculationSpec
                       )
                     )
                   )
+
+                  tick shouldBe 0L
                 case None => fail("Entry for tick 0 expected.")
               }
           }
