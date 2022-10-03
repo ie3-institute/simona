@@ -38,11 +38,12 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.service.market.StaticMarketSource
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.{RichQuantity, RichQuantityDouble}
 import edu.ie3.util.quantities.interfaces.Currency
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{PERCENT, SECOND}
@@ -50,7 +51,7 @@ import tech.units.indriya.unit.Units.{PERCENT, SECOND}
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Energy, Power}
+import javax.measure.quantity.{Dimensionless, Energy, Power, Time}
 import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success}
@@ -107,6 +108,8 @@ final case class EvcsModel(
     with ConstantPowerCharging
     with GridOrientedCharging
     with MarketOrientedCharging {
+
+  private val lowestEvSoc = 0.2 // TODO config param
 
   /** Determine scheduling for charging the EVs currently parked at the charging
     * station until their departure. The scheduling depends on the chosen
@@ -635,13 +638,197 @@ final case class EvcsModel(
   override def determineFlexOptions(
       data: EvcsRelevantData,
       lastState: EvcsState
-  ): FlexibilityMessage.ProvideFlexOptions = ???
+  ): FlexibilityMessage.ProvideFlexOptions = {
+
+    val currentEvs = determineCurrentState(data, lastState)
+
+    val preferredScheduling = calculateNewScheduling(data, currentEvs)
+
+    val preferredPower = preferredScheduling.values.flatten.foldLeft(zeroKW) {
+      case (sum, ChargingSchedule(_, schedule)) =>
+        val power =
+          schedule.headOption.map(_.chargingPower).getOrElse(0d.asKiloWatt)
+        sum.add(power)
+    }
+
+    val (maxCharging, maxDischarging) =
+      preferredScheduling.foldLeft((zeroKW, zeroKW)) {
+        case ((chargingSum, dischargingSum), (ev, _)) =>
+          val maxPower = getMaxAvailableChargingPower(ev)
+
+          val maxCharging =
+            if (isChargeable(ev))
+              maxPower
+            else
+              0d.asKiloWatt
+
+          val maxDischarging =
+            if (isDischargeable(ev))
+              maxPower.multiply(-1)
+            else
+              0d.asKiloWatt
+
+          (chargingSum.add(maxCharging), dischargingSum.add(maxDischarging))
+      }
+
+    ProvideMinMaxFlexOptions(
+      uuid,
+      preferredPower,
+      maxCharging,
+      maxDischarging
+    )
+  }
 
   override def handleControlledPowerChange(
       data: EvcsRelevantData,
       lastState: EvcsState,
       setPower: ComparableQuantity[Power]
-  ): (EvcsState, FlexChangeIndicator) = ???
+  ): (EvcsState, FlexChangeIndicator) = {
+    val currentEvs = determineCurrentState(data, lastState)
+
+    if (QuantityUtil.isEquivalentAbs(zeroKW, setPower, 0))
+      return (
+        lastState.copy(
+          evs = currentEvs,
+          schedule = currentEvs.map(_ -> None).toMap,
+          tick = data.tick
+        ),
+        FlexChangeIndicator()
+      )
+
+    val (applicableEvs, otherEvs) = currentEvs.partition { ev =>
+      if (setPower.isGreaterThan(zeroKW))
+        isChargeable(ev)
+      else
+        isDischargeable(ev)
+    }
+
+    val chargingSchedule = applicableEvs.map { ev =>
+      val power = setPower.divide(applicableEvs.size)
+
+      val timeUntilFullOrEmpty =
+        if (setPower.isGreaterThan(zeroKW)) {
+          ev.getEStorage
+            .subtract(ev.getStoredEnergy)
+            .divide(power)
+            .asType(classOf[Time])
+        } else {
+          ev.getStoredEnergy
+            .subtract(ev.getEStorage.multiply(lowestEvSoc))
+            .divide(power.multiply(-1))
+            .asType(classOf[Time])
+        }
+
+      val ticksUntilFullOrEmpty = Math.round(
+        timeUntilFullOrEmpty.to(SECOND).getValue.doubleValue
+      )
+
+      val endTick =
+        Math.min(data.tick + ticksUntilFullOrEmpty, ev.getDepartureTick)
+
+      (
+        ev,
+        ChargingSchedule(
+          ev,
+          Seq(ChargingSchedule.Entry(data.tick, endTick, power))
+        ),
+        endTick,
+        isFull(ev) || isEmpty(ev)
+      )
+    }
+
+    val nextScheduledTick = chargingSchedule.map { case (_, _, endTick, _) =>
+      endTick
+    }.minOption
+
+    val scheduleAtNextActivation = chargingSchedule
+      .map { case (_, _, _, scheduleAtNext) =>
+        scheduleAtNext
+      }
+      .reduceOption(_ || _)
+      .getOrElse(false)
+
+    val allSchedules = chargingSchedule.map { case (ev, schedule, _, _) =>
+      ev -> Some(schedule)
+    }.toMap ++ otherEvs.map(_ -> None).toMap
+
+    (
+      EvcsState(
+        evs = allSchedules.keys.toSet,
+        schedule = allSchedules,
+        tick = data.tick
+      ),
+      FlexChangeIndicator(
+        scheduleAtNextActivation,
+        nextScheduledTick
+      )
+    )
+  }
+
+  private def determineCurrentState(
+      data: EvcsRelevantData,
+      lastState: EvcsState
+  ): Set[EvModel] = {
+    // determine current state
+    val currentTime = data.tick.toDateTime(simulationStartDate)
+    val voltage = data.voltages
+      .filter { case (time, _) =>
+        time.isBefore(currentTime) || time.isEqual(currentTime)
+      }
+      .maxByOption { case (date, _) =>
+        date
+      }
+      .map { case (_, voltage) =>
+        voltage
+      }
+      .getOrElse(Quantities.getQuantity(1d, PU))
+
+    applySchedule(data.tick, voltage, lastState).map { case (ev, _, _) =>
+      ev
+    }
+  }
+
+  private def isChargeable(
+      ev: EvModel
+  ): Boolean =
+    ev.getStoredEnergy.isLessThan(
+      ev.getEStorage.subtract(calcToleranceMargin(ev))
+    )
+
+  private def isDischargeable(
+      ev: EvModel
+  ): Boolean =
+    ev.getStoredEnergy.isGreaterThan(
+      ev.getEStorage.multiply(lowestEvSoc).add(calcToleranceMargin(ev))
+    )
+
+  /** @param ev
+    *   the ev whose stored energy is to be checked
+    * @return
+    *   whether the given ev's stored energy is greater than the maximum charged
+    *   energy allowed (minus a tolerance margin)
+    */
+  private def isFull(ev: EvModel): Boolean =
+    ev.getStoredEnergy.isGreaterThanOrEqualTo(
+      ev.getEStorage.subtract(calcToleranceMargin(ev))
+    )
+
+  /** @param ev
+    *   the ev whose stored energy is to be checked
+    * @return
+    *   whether the given ev's stored energy is less than the minimal charged
+    *   energy allowed (plus a tolerance margin)
+    */
+  private def isEmpty(ev: EvModel): Boolean =
+    ev.getStoredEnergy.isLessThanOrEqualTo(
+      ev.getEStorage.add(calcToleranceMargin(ev))
+    )
+
+  private def calcToleranceMargin(ev: EvModel): ComparableQuantity[Energy] =
+    getMaxAvailableChargingPower(ev)
+      .multiply(Quantities.getQuantity(1, SECOND))
+      .asType(classOf[Energy])
+
 }
 
 object EvcsModel {
