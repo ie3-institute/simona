@@ -13,11 +13,13 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
   EvcsState
 }
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.simona.test.common.model.participant.EvcsTestData
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.scalatest.prop.TableDrivenPropertyChecks
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.PERCENT
@@ -220,6 +222,128 @@ class EvcsModelSpec
               case unexpected => fail(s"Unexpected PowerEntries: $unexpected")
             }
 
+        }
+
+      }
+    }
+
+    "handle flexibility correctly" when {
+      val evcsModel =
+        evcsStandardModel.copy(strategy = ChargingStrategy.CONSTANT_POWER)
+
+      "determining current state" in {
+        val currentTick = 7200L
+
+        val data = EvcsRelevantData(
+          currentTick,
+          Map.empty
+        )
+
+        val cases = Table(
+          (
+            "lastStored1",
+            "lastStored2",
+            "lastPower2",
+            "expectedPRef",
+            "expectedPMin",
+            "expectedPMax"
+          ),
+
+          /* 1: empty */
+          // 2: empty
+          (0.0, 0.0, 0.0, 15.0, 0.0, 15.0),
+          // 2: mid-way full (charged to 7.5 kWh)
+          (0.0, 0.0, 5.0, 15.0, -5.0, 15.0),
+          // 2: mid-way full (set to 7.5 kWh)
+          (0.0, 7.5, 0.0, 15.0, -5.0, 15.0),
+          // 2: almost full (12.5 kWh)
+          (0.0, 5.0, 5.0, 12.5, -5.0, 15.0),
+          // 2: full (set)
+          (0.0, 15.0, 0.0, 10.0, -5.0, 10.0),
+
+          /* 1: mid-way full (set to 5 kWh) */
+          // 2: empty
+          (5.0, 0.0, 0.0, 10.0, -10.0, 15.0),
+          // 2: mid-way full (charged to 7.5 kWh)
+          (5.0, 0.0, 5.0, 10.0, -15.0, 15.0),
+          // 2: mid-way full (set to 7.5 kWh)
+          (5.0, 7.5, 0.0, 10.0, -15.0, 15.0),
+          // 2: almost full (12.5 kWh)
+          (5.0, 5.0, 5.0, 7.5, -15.0, 15.0),
+          // 2: full (set)
+          (5.0, 15.0, 0.0, 5.0, -15.0, 10.0),
+
+          /* 1: full (set to 10 kWh) */
+          // 2: empty
+          (10.0, 0.0, 0.0, 5.0, -10.0, 5.0),
+          // 2: mid-way full (charged to 7.5 kWh)
+          (10.0, 0.0, 5.0, 5.0, -15.0, 5.0),
+          // 2: mid-way full (set to 7.5 kWh)
+          (10.0, 7.5, 0.0, 5.0, -15.0, 5.0),
+          // 2: almost full (12.5 kWh)
+          (10.0, 5.0, 5.0, 2.5, -15.0, 5.0),
+          // 2: full (set)
+          (10.0, 15.0, 0.0, 0.0, -15.0, 0.0)
+        )
+
+        forAll(cases) {
+          (
+              lastStored1,
+              lastStored2,
+              lastPower2,
+              expectedPRef,
+              expectedPMin,
+              expectedPMax
+          ) =>
+            val ev1 = new MockEvModel(
+              UUID.randomUUID(),
+              "Mock EV 1",
+              10.0.asKiloWatt, // AC is relevant,
+              20.0.asKiloWatt, // DC is not
+              10.0.asKiloWattHour,
+              lastStored1.asKiloWattHour,
+              10800L
+            )
+
+            val schedule1 = ChargingSchedule(
+              ev1,
+              Seq(ChargingSchedule.Entry(3600L, 7200L, zeroKW))
+            )
+
+            val ev2 = new MockEvModel(
+              UUID.randomUUID(),
+              "Mock EV 2",
+              5.0.asKiloWatt, // AC is relevant,
+              10.0.asKiloWatt, // DC is not
+              15.0.asKiloWattHour,
+              lastStored2.asKiloWattHour,
+              10800L
+            )
+
+            val schedule2 = ChargingSchedule(
+              ev1,
+              Seq(ChargingSchedule.Entry(0L, 5400L, lastPower2.asKiloWatt))
+            )
+
+            evcsModel.determineFlexOptions(
+              data,
+              EvcsState(
+                Set(ev1, ev2),
+                Map(ev1 -> Some(schedule1), ev2 -> Some(schedule2)),
+                0L
+              )
+            ) match {
+              case ProvideMinMaxFlexOptions(
+                    modelUuid,
+                    refPower,
+                    minPower,
+                    maxPower
+                  ) =>
+                modelUuid shouldBe evcsModel.getUuid
+                refPower should equalWithTolerance(expectedPRef.asKiloWatt)
+                minPower should equalWithTolerance(expectedPMin.asKiloWatt)
+                maxPower should equalWithTolerance(expectedPMax.asKiloWatt)
+            }
         }
 
       }
