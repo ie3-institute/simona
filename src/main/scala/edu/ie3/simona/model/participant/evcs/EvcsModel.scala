@@ -647,7 +647,12 @@ final case class EvcsModel(
     val preferredPower = preferredScheduling.values.flatten.foldLeft(zeroKW) {
       case (sum, ChargingSchedule(_, schedule)) =>
         val power =
-          schedule.headOption.map(_.chargingPower).getOrElse(0d.asKiloWatt)
+          schedule
+            .find { case ChargingSchedule.Entry(tickStart, tickStop, _) =>
+              tickStart <= data.tick && tickStop > data.tick
+            }
+            .map(_.chargingPower)
+            .getOrElse(0d.asKiloWatt)
         sum.add(power)
     }
 
@@ -674,8 +679,8 @@ final case class EvcsModel(
     ProvideMinMaxFlexOptions(
       uuid,
       preferredPower,
-      maxCharging,
-      maxDischarging
+      maxDischarging,
+      maxCharging
     )
   }
 
