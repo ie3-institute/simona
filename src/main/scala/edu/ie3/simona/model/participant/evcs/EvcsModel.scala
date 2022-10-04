@@ -662,13 +662,13 @@ final case class EvcsModel(
           val maxPower = getMaxAvailableChargingPower(ev)
 
           val maxCharging =
-            if (isChargeable(ev))
+            if (!isFull(ev))
               maxPower
             else
               0d.asKiloWatt
 
           val maxDischarging =
-            if (isDischargeable(ev))
+            if (!isEmpty(ev))
               maxPower.multiply(-1)
             else
               0d.asKiloWatt
@@ -684,6 +684,8 @@ final case class EvcsModel(
     )
   }
 
+  // TODO sometimes we issue too early nextTicks, since remaining power might be added to remaining non-full vehicles
+  // (minor) TODO? if IssueNoControl is sent, there might be a different result than anticipated when calculating flex options (strat is not used)
   override def handleControlledPowerChange(
       data: EvcsRelevantData,
       lastState: EvcsState,
@@ -703,48 +705,13 @@ final case class EvcsModel(
 
     val (applicableEvs, otherEvs) = currentEvs.partition { ev =>
       if (setPower.isGreaterThan(zeroKW))
-        isChargeable(ev)
+        !isFull(ev)
       else
-        isDischargeable(ev)
+        !isEmpty(ev)
     }
 
-    val chargingSchedule = applicableEvs.map { ev =>
-      val power = setPower.divide(applicableEvs.size)
-
-      val timeUntilFullOrEmpty =
-        if (setPower.isGreaterThan(zeroKW)) {
-          ev.getEStorage
-            .subtract(ev.getStoredEnergy)
-            .divide(power)
-            .asType(classOf[Time])
-        } else {
-          ev.getStoredEnergy
-            .subtract(ev.getEStorage.multiply(lowestEvSoc))
-            .divide(power.multiply(-1))
-            .asType(classOf[Time])
-        }
-
-      val ticksUntilFullOrEmpty = Math.round(
-        timeUntilFullOrEmpty.to(SECOND).getValue.doubleValue
-      )
-
-      val endTick =
-        Math.min(data.tick + ticksUntilFullOrEmpty, ev.getDepartureTick)
-
-      (
-        ev,
-        ChargingSchedule(
-          ev,
-          Seq(ChargingSchedule.Entry(data.tick, endTick, power))
-        ),
-        endTick,
-        isFull(ev) || isEmpty(ev)
-      )
-    }
-
-    val nextScheduledTick = chargingSchedule.map { case (_, _, endTick, _) =>
-      endTick
-    }.minOption
+    val chargingSchedule =
+      createScheduleWithSetPower(data.tick, applicableEvs, setPower)
 
     val scheduleAtNextActivation = chargingSchedule
       .map { case (_, _, _, scheduleAtNext) =>
@@ -752,6 +719,10 @@ final case class EvcsModel(
       }
       .reduceOption(_ || _)
       .getOrElse(false)
+
+    val nextScheduledTick = chargingSchedule.map { case (_, _, endTick, _) =>
+      endTick
+    }.minOption
 
     val allSchedules = chargingSchedule.map { case (ev, schedule, _, _) =>
       ev -> Some(schedule)
@@ -793,19 +764,107 @@ final case class EvcsModel(
     }
   }
 
-  private def isChargeable(
-      ev: EvModel
-  ): Boolean =
-    ev.getStoredEnergy.isLessThan(
-      ev.getEStorage.subtract(calcToleranceMargin(ev))
-    )
+  private def createScheduleWithSetPower(
+      currentTick: Long,
+      evs: Set[EvModel],
+      setPower: ComparableQuantity[Power]
+  ): Set[(EvModel, ChargingSchedule, Long, Boolean)] = {
+    val proposedPower = setPower.divide(evs.size)
 
-  private def isDischargeable(
-      ev: EvModel
-  ): Boolean =
-    ev.getStoredEnergy.isGreaterThan(
-      ev.getEStorage.multiply(lowestEvSoc).add(calcToleranceMargin(ev))
+    val (exceedingPowerEvs, fittingPowerEvs) = evs.partition { ev =>
+      if (setPower.isGreaterThan(zeroKW))
+        proposedPower.isGreaterThan(getMaxAvailableChargingPower(ev))
+      else
+        proposedPower.isLessThan(getMaxAvailableChargingPower(ev).multiply(-1))
+    }
+
+    if (exceedingPowerEvs.isEmpty) {
+      // end of recursion, rest of charging power fits to all
+
+      fittingPowerEvs.map { ev =>
+        val chargingTicks = calculateChargingDuration(ev, proposedPower)
+        val endTick = Math.min(currentTick + chargingTicks, ev.getDepartureTick)
+
+        (
+          ev,
+          ChargingSchedule(
+            ev,
+            Seq(ChargingSchedule.Entry(currentTick, endTick, proposedPower))
+          ),
+          endTick,
+          isFull(ev) || isEmpty(ev)
+        )
+      }
+    } else {
+      // not all evs can be charged with proposed power
+
+      // charge all exceeded evs with their respective maximum power
+      val maxCharged = exceedingPowerEvs.map { ev =>
+        val maxPower = getMaxAvailableChargingPower(ev)
+        val power =
+          if (setPower.isGreaterThan(zeroKW))
+            maxPower
+          else
+            maxPower.multiply(-1)
+
+        val chargingTicks = calculateChargingDuration(ev, power)
+        val endTick = Math.min(currentTick + chargingTicks, ev.getDepartureTick)
+
+        (ev, power, endTick)
+      }
+
+      // if there's evs left whose max power has not been exceeded, go on with the recursion
+      val nextIterationResults = if (fittingPowerEvs.nonEmpty) {
+
+        // sum up allocated power
+        val chargingPowerSum = maxCharged.foldLeft(zeroKW) {
+          case (powerSum, (_, chargingPower, _)) =>
+            powerSum.add(chargingPower)
+        }
+
+        // go into the next recursion step with the remaining power
+        createScheduleWithSetPower(
+          currentTick,
+          fittingPowerEvs,
+          setPower.subtract(chargingPowerSum)
+        )
+      } else Set.empty
+
+      maxCharged.map { case (ev, power, endTick) =>
+        (
+          ev,
+          ChargingSchedule(
+            ev,
+            Seq(ChargingSchedule.Entry(currentTick, endTick, power))
+          ),
+          endTick,
+          isFull(ev) || isEmpty(ev)
+        )
+      } ++ nextIterationResults
+    }
+
+  }
+
+  private def calculateChargingDuration(
+      ev: EvModel,
+      power: ComparableQuantity[Power]
+  ): Long = {
+    val timeUntilFullOrEmpty =
+      if (power.isGreaterThan(zeroKW))
+        ev.getEStorage
+          .subtract(ev.getStoredEnergy)
+          .divide(power)
+          .asType(classOf[Time])
+      else
+        ev.getStoredEnergy
+          .subtract(ev.getEStorage.multiply(lowestEvSoc))
+          .divide(power.multiply(-1))
+          .asType(classOf[Time])
+
+    Math.round(
+      timeUntilFullOrEmpty.to(SECOND).getValue.doubleValue
     )
+  }
 
   /** @param ev
     *   the ev whose stored energy is to be checked
@@ -826,7 +885,7 @@ final case class EvcsModel(
     */
   private def isEmpty(ev: EvModel): Boolean =
     ev.getStoredEnergy.isLessThanOrEqualTo(
-      ev.getEStorage.add(calcToleranceMargin(ev))
+      ev.getEStorage.multiply(lowestEvSoc).add(calcToleranceMargin(ev))
     )
 
   private def calcToleranceMargin(ev: EvModel): ComparableQuantity[Energy] =
