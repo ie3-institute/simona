@@ -8,6 +8,7 @@ package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
+import edu.ie3.simona.model.participant.FlexChangeIndicator
 import edu.ie3.simona.model.participant.evcs.ChargingSchedule.Entry
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
@@ -18,6 +19,7 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.simona.test.common.model.participant.EvcsTestData
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -231,7 +233,7 @@ class EvcsModelSpec
       val evcsModel =
         evcsStandardModel.copy(strategy = ChargingStrategy.CONSTANT_POWER)
 
-      "determining current state" in {
+      "calculate flex options for two evs correctly" in {
         val currentTick = 7200L
 
         val data = EvcsRelevantData(
@@ -347,6 +349,154 @@ class EvcsModelSpec
         }
 
       }
+
+      "handle controlled power change for two evs correctly" in {
+        val currentTick = 3600L
+
+        val data = EvcsRelevantData(
+          currentTick,
+          Map.empty
+        )
+
+        val cases = Table(
+          (
+            "stored1",
+            "stored2",
+            "setPower",
+            "expPowerAndTick1",
+            "expPowerAndTick2",
+            "expNextActivation",
+            "expNextTick"
+          ),
+
+          /* setPower is 0 kWh */
+          (0.0, 0.0, 0.0, N, N, false, N),
+          (10.0, 5.0, 0.0, N, N, false, N),
+          (5.0, 15.0, 0.0, N, N, false, N),
+          (10.0, 15.0, 0.0, N, N, false, N),
+
+          /* setPower is positive (charging) */
+          (0.0, 0.0, 4.0, S(2.0, 7200L), S(2.0, 10800L), true, S(7200L)),
+          (5.0, 0.0, 4.0, S(2.0, 7200L), S(2.0, 10800L), true, S(7200L)),
+          (0.0, 7.5, 4.0, S(2.0, 7200L), S(2.0, 10800L), true, S(7200L)),
+          (9.0, 0.0, 4.0, S(2.0, 5400L), S(2.0, 10800L), true, S(5400L)),
+          (5.0, 14.0, 4.0, S(2.0, 7200L), S(2.0, 5400L), false, S(5400L)),
+          (9.0, 14.0, 4.0, S(2.0, 5400L), S(2.0, 5400L), false, S(5400L)),
+          (10.0, 14.0, 4.0, N, S(4.0, 4500L), false, S(4500L)),
+          (6.0, 15.0, 4.0, S(4.0, 7200L), N, false, S(7200L)),
+
+          /* setPower is set to > (ev2 * 2) (charging) */
+          (0.0, 0.0, 13.0, S(8.0, 7200L), S(5.0, 10800L), true, S(7200L)),
+          (7.0, 0.0, 11.0, S(6.0, 5400L), S(5.0, 10800L), true, S(5400L)),
+          (0.0, 5.0, 15.0, S(10.0, 7200L), S(5.0, 10800L), true, S(7200L)),
+          (0.0, 12.5, 15.0, S(10.0, 7200L), S(5.0, 5400L), true, S(5400L)),
+          (0.0, 0.0, 15.0, S(10.0, 7200L), S(5.0, 10800L), true, S(7200L)),
+          (5.0, 7.5, 15.0, S(10.0, 5400L), S(5.0, 9000L), false, S(5400L)),
+
+          /* setPower is negative (discharging) */
+          (10.0, 15.0, -4.0, S(-2.0, 7200L), S(-2.0, 10800L), true, S(7200L)),
+          (5.0, 15.0, -4.0, S(-2.0, 7200L), S(-2.0, 10800L), true, S(7200L)),
+          (10.0, 7.5, -4.0, S(-2.0, 7200L), S(-2.0, 10800L), true, S(7200L)),
+          (3.0, 15.0, -4.0, S(-2.0, 5400L), S(-2.0, 10800L), true, S(5400L)),
+          (5.0, 4.0, -4.0, S(-2.0, 7200L), S(-2.0, 5400L), false, S(5400L)),
+          (3.0, 4.0, -4.0, S(-2.0, 5400L), S(-2.0, 5400L), false, S(5400L)),
+          (0.0, 4.0, -4.0, N, S(-4.0, 4500L), false, S(4500L)),
+          (6.0, 0.0, -4.0, S(-4.0, 7200L), N, false, S(7200L)),
+
+          /* setPower is set to > (ev2 * 2) (discharging) */
+          (10.0, 15.0, -13.0, S(-8.0, 7200L), S(-5.0, 10800L), true, S(7200L)),
+          (5.0, 15.0, -11.0, S(-6.0, 5400L), S(-5.0, 10800L), true, S(5400L)),
+          (10.0, 8.0, -15.0, S(-10.0, 6480L), S(-5.0, 7200L), true, S(6480L)),
+          (10.0, 5.5, -15.0, S(-10.0, 6480L), S(-5.0, 5400L), true, S(5400L)),
+          (10.0, 15.0, -15.0, S(-10.0, 6480L), S(-5.0, 10800L), true, S(6480L)),
+          (7.0, 10.5, -15.0, S(-10.0, 5400L), S(-5.0, 9000L), false, S(5400L))
+        )
+
+        forAll(cases) {
+          (
+              stored1: Double,
+              stored2: Double,
+              setPower: Double,
+              expPowerAndTick1: Option[(Double, Long)],
+              expPowerAndTick2: Option[(Double, Long)],
+              expNextActivation: Boolean,
+              expNextTick: Option[Long]
+          ) =>
+            val ev1 = new MockEvModel(
+              UUID.randomUUID(),
+              "Mock EV 1",
+              10.0.asKiloWatt, // AC is relevant,
+              20.0.asKiloWatt, // DC is not
+              10.0.asKiloWattHour,
+              stored1.asKiloWattHour,
+              7200L
+            )
+
+            val ev2 = new MockEvModel(
+              UUID.randomUUID(),
+              "Mock EV 2",
+              5.0.asKiloWatt, // AC is relevant,
+              10.0.asKiloWatt, // DC is not
+              15.0.asKiloWattHour,
+              stored2.asKiloWattHour,
+              10800L
+            )
+
+            evcsModel.handleControlledPowerChange(
+              data,
+              EvcsState(
+                Set(ev1, ev2),
+                Map(ev1 -> None, ev2 -> None),
+                0L
+              ),
+              setPower.asKiloWatt
+            ) match {
+              case (
+                    EvcsState(actualEvs, actualSchedules, actualTick),
+                    FlexChangeIndicator(actualNextActivation, actualNextTick)
+                  ) =>
+                // evs have not changed here since no schedules were given as input
+                actualEvs shouldBe Set(ev1, ev2)
+
+                actualSchedules.getOrElse(ev1, None).map {
+                  case ChargingSchedule(_, entries) =>
+                    entries.size shouldBe 1
+                    val entry = entries.headOption
+                      .getOrElse(fail("No charging schedule entry for ev1"))
+                    entry.tickStart shouldBe currentTick
+
+                    (
+                      entry.chargingPower.to(KILOWATT).getValue.doubleValue(),
+                      entry.tickStop
+                    )
+                } shouldBe expPowerAndTick1
+                actualSchedules.getOrElse(ev2, None).map {
+                  case ChargingSchedule(_, entries) =>
+                    entries.size shouldBe 1
+                    val entry = entries.headOption
+                      .getOrElse(fail("No charging schedule entry for ev2"))
+                    entry.tickStart shouldBe currentTick
+
+                    (
+                      entry.chargingPower.to(KILOWATT).getValue.doubleValue(),
+                      entry.tickStop
+                    )
+                } shouldBe expPowerAndTick2
+
+                actualTick shouldBe currentTick
+
+                actualNextActivation shouldBe expNextActivation
+                actualNextTick shouldBe expNextTick
+            }
+        }
+
+      }
     }
   }
+
+  /** Shortcut for Some type to make case tables more concise */
+  def S[T](value: T): Some[T] = Some(value)
+
+  /** Shortcut for None type to make case tables more concise */
+  def N: None.type = None
 }
