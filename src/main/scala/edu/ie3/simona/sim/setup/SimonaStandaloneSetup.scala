@@ -6,7 +6,10 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.scaladsl.adapter.{
+  ClassicActorContextOps,
+  TypedActorRefOps
+}
 import akka.actor.{ActorContext, ActorRef, ActorSystem}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
@@ -237,8 +240,7 @@ class SimonaStandaloneSetup(
   }
 
   override def systemParticipantsListener(
-      context: ActorContext,
-      simonaSim: ActorRef
+      context: ActorContext
   ): Seq[ActorRef] = {
     // append ResultEventListener as well to write raw output files
     ArgsParser
@@ -253,8 +255,7 @@ class SimonaStandaloneSetup(
       .toSeq :+ context
       .spawn(
         ResultEventListener(
-          resultFileHierarchy,
-          simonaSim.toTyped
+          resultFileHierarchy
         ),
         ResultEventListener.getClass.getSimpleName
       )

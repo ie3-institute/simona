@@ -6,12 +6,13 @@
 
 package edu.ie3.simona.event.listener
 
-import java.io.{File, FileInputStream}
-import java.util.zip.GZIPInputStream
-import akka.actor.ActorSystem
+import akka.actor.testkit.typed.scaladsl.{
+  ActorTestKit,
+  ScalaTestWithActorTestKit
+}
 import akka.stream.Materializer
-import akka.testkit.{TestFSMRef, TestProbe}
-import com.typesafe.config.ConfigFactory
+import akka.testkit.TestKit.awaitCond
+import com.typesafe.config.ConfigValueFactory
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
@@ -26,37 +27,34 @@ import edu.ie3.simona.event.ResultEvent.{
   PowerFlowResultEvent
 }
 import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
+import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.test.common.result.PowerFlowResultData
-import edu.ie3.simona.test.common.{AgentSpec, IOTestCommons, UnitSpec}
+import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.util.io.FileIOUtils
-import org.scalatest.BeforeAndAfterEach
+import org.scalatest.{BeforeAndAfterEach, PrivateMethodTester}
 
+import java.io.{File, FileInputStream}
+import java.util.zip.GZIPInputStream
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
 import scala.io.Source
 import scala.language.postfixOps
 
 class ResultEventListenerSpec
-    extends AgentSpec(
-      ActorSystem(
-        "ResultEventListenerSpec",
-        ConfigFactory
-          .parseString(
-            """
-            |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-            |akka.loglevel="DEBUG"
-            |akka.coordinated-shutdown.phases.actor-system-terminate.timeout = 500s
-        """.stripMargin
-          )
+    extends ScalaTestWithActorTestKit(
+      ActorTestKit.ApplicationTestConfig.withValue(
+        "akka.actor.testkit.typed.filter-leeway",
+        ConfigValueFactory.fromAnyRef("10s")
       )
     )
     with UnitSpec
     with IOTestCommons
     with BeforeAndAfterEach
+    with PrivateMethodTester
     with PowerFlowResultData
     with ThreeWindingResultTestData
     with Transformer3wResultSupport {
@@ -69,6 +67,8 @@ class ResultEventListenerSpec
     classOf[SwitchResult],
     classOf[LineResult]
   )
+
+  private val timeoutDuration: Duration = 180.seconds
 
   // the OutputFileHierarchy
   private def resultFileHierarchy(
@@ -141,17 +141,15 @@ class ResultEventListenerSpec
       "check if actor dies when it should die" in {
         val fileHierarchy =
           resultFileHierarchy(2, ".ttt", Set(classOf[Transformer3WResult]))
-        val testProbe = TestProbe()
-        val listener = testProbe.childActorOf(
-          ResultEventListener.props(
-            fileHierarchy,
-            testProbe.ref
+        val testProbe = testKit.createTestProbe("testProbe")
+        val listener = testKit.spawn(
+          ResultEventListener(
+            fileHierarchy
           )
         )
 
-        testProbe watch listener
-        testProbe expectTerminated (listener, 2 seconds)
-
+        listener.tell(StopMessage(true))
+        testProbe expectTerminated (listener, 10 seconds)
       }
     }
 
@@ -159,12 +157,10 @@ class ResultEventListenerSpec
       "process a valid participants result correctly" in {
         val specificOutputFileHierarchy = resultFileHierarchy(3, ".csv")
 
-        val listenerRef = system.actorOf(
-          ResultEventListener
-            .props(
-              specificOutputFileHierarchy,
-              testActor
-            )
+        val listenerRef = testKit.spawn(
+          ResultEventListener(
+            specificOutputFileHierarchy
+          )
         )
 
         listenerRef ! ParticipantResultEvent(dummyPvResult)
@@ -178,14 +174,21 @@ class ResultEventListenerSpec
           )
         )
 
-        // wait until output file exists:
-        awaitCond(outputFile.exists(), interval = 500.millis)
+        // wait until output file exists (headers are flushed out immediately):
+        awaitCond(
+          outputFile.exists(),
+          interval = 500.millis,
+          max = timeoutDuration
+        )
+
+        // stop listener so that result is flushed out
+        testKit.stop(listenerRef, 1.minute)
 
         // wait until all lines have been written out:
         awaitCond(
           getFileLinesLength(outputFile) == 2,
           interval = 500.millis,
-          max = 5.seconds
+          max = timeoutDuration
         )
 
         val resultFileSource = Source.fromFile(outputFile)
@@ -204,12 +207,10 @@ class ResultEventListenerSpec
 
       "process a valid power flow result correctly" in {
         val specificOutputFileHierarchy = resultFileHierarchy(4, ".csv")
-        val listenerRef = system.actorOf(
-          ResultEventListener
-            .props(
-              specificOutputFileHierarchy,
-              testActor
-            )
+        val listenerRef = testKit.spawn(
+          ResultEventListener(
+            specificOutputFileHierarchy
+          )
         )
 
         listenerRef ! PowerFlowResultEvent(
@@ -255,17 +256,21 @@ class ResultEventListenerSpec
           )
         )
 
-        // wait until all output files exist:
+        // wait until all output files exist (headers are flushed out immediately):
         awaitCond(
           outputFiles.values.map(_.exists()).forall(identity),
-          interval = 500.millis
+          interval = 500.millis,
+          max = timeoutDuration
         )
+
+        // stop listener so that result is flushed out
+        testKit.stop(listenerRef, 1.minute)
 
         // wait until all lines have been written out:
         awaitCond(
           !outputFiles.values.exists(file => getFileLinesLength(file) < 2),
           interval = 500.millis,
-          max = 5.seconds
+          max = timeoutDuration
         )
 
         outputFiles.foreach { case (resultRowString, outputFile) =>
@@ -292,16 +297,15 @@ class ResultEventListenerSpec
         )
       val fileHierarchy =
         resultFileHierarchy(5, ".csv", Set(classOf[Transformer3WResult]))
-      val listener = TestFSMRef(
-        new ResultEventListener(
-          fileHierarchy,
-          testActor
+      val listener = testKit.spawn(
+        ResultEventListener(
+          fileHierarchy
         )
       )
 
       "register a fresh entry, when nothing yet is apparent" in {
         val actual =
-          listener.underlyingActor invokePrivate registerPartialTransformer3wResult(
+          listener invokePrivate registerPartialTransformer3wResult(
             resultA,
             Map.empty[Transformer3wKey, AggregatedTransformer3wResult]
           )
@@ -327,7 +331,7 @@ class ResultEventListenerSpec
         )
 
         val actual =
-          listener.underlyingActor invokePrivate registerPartialTransformer3wResult(
+          listener invokePrivate registerPartialTransformer3wResult(
             resultA,
             results
           )
@@ -353,7 +357,7 @@ class ResultEventListenerSpec
         )
 
         val actual =
-          listener.underlyingActor invokePrivate registerPartialTransformer3wResult(
+          listener invokePrivate registerPartialTransformer3wResult(
             resultB,
             results
           )
@@ -409,7 +413,7 @@ class ResultEventListenerSpec
           )
         )
         val actual =
-          listener.underlyingActor invokePrivate flushComprehensiveResults(
+          listener invokePrivate flushComprehensiveResults(
             results,
             sinks
           )
@@ -437,7 +441,7 @@ class ResultEventListenerSpec
           )
         )
         val actual =
-          listener.underlyingActor invokePrivate flushComprehensiveResults(
+          listener invokePrivate flushComprehensiveResults(
             results,
             sinks
           )
@@ -460,7 +464,8 @@ class ResultEventListenerSpec
         /* The result file is created at start up and only contains a head line. */
         awaitCond(
           outputFile.exists(),
-          interval = 500.millis
+          interval = 500.millis,
+          max = timeoutDuration
         )
         getFileLinesLength(outputFile) shouldBe 1
 
@@ -492,10 +497,14 @@ class ResultEventListenerSpec
           Vector(resultB)
         )
 
+        // stop listener so that result is flushed out
+        testKit.stop(listener, 1.minute)
+
         /* Await that the result is written */
         awaitCond(
           getFileLinesLength(outputFile) == 2,
-          interval = 500.millis
+          interval = 500.millis,
+          max = timeoutDuration
         )
         /* Check the result */
         val resultFileSource = Source.fromFile(outputFile)
@@ -521,12 +530,10 @@ class ResultEventListenerSpec
     "shutting down" should {
       "shutdown and compress the data when requested to do so without any errors" in {
         val specificOutputFileHierarchy = resultFileHierarchy(6, ".csv.gz")
-        val listenerRef = system.actorOf(
-          ResultEventListener
-            .props(
-              specificOutputFileHierarchy,
-              testActor
-            )
+        val listenerRef = testKit.spawn(
+          ResultEventListener(
+            specificOutputFileHierarchy
+          )
         )
         ResultSinkType.Csv(fileFormat = ".csv.gz")
 
@@ -544,20 +551,20 @@ class ResultEventListenerSpec
           )
         )
 
-        awaitCond(outputFile.exists(), interval = 500.millis)
+        awaitCond(
+          outputFile.exists(),
+          interval = 500.millis,
+          max = timeoutDuration
+        )
 
         // graceful shutdown should wait until existing messages within an actor are fully processed
         // otherwise it might happen, that the shutdown is triggered even before the just send ParticipantResultEvent
         // reached the listener
         // this also triggers the compression of result files
-        import akka.pattern._
-        Await.ready(
-          gracefulStop(listenerRef, 5.seconds),
-          5.seconds
-        )
+        testKit.stop(listenerRef, 1.minute)
 
         // shutdown the actor system
-        Await.ready(system.terminate(), 1.minute)
+        system.terminate()
 
         // wait until file exists
         awaitCond(
@@ -569,7 +576,7 @@ class ResultEventListenerSpec
               )
             )
           ).exists,
-          10.seconds
+          timeoutDuration
         )
 
         val resultFileSource = Source.fromInputStream(

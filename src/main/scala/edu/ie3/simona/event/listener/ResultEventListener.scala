@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.typed.{Behavior, ActorRef}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import akka.actor.typed.{Behavior, PostStop}
 import akka.stream.Materializer
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
@@ -17,34 +17,29 @@ import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
   PowerFlowResultEvent
 }
-import edu.ie3.simona.io.result.{
-  ResultEntityCsvSink,
-  ResultEntityInfluxDbSink,
-  ResultEntityKafkaSink,
-  ResultEntitySink,
-  ResultSinkType
-}
-import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.exceptions.{
   FileHierarchyException,
   ProcessResultEventException
 }
+import edu.ie3.simona.io.result._
+import edu.ie3.simona.ontology.messages.StopMessage
+import edu.ie3.simona.util.ResultFileHierarchy
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 
 object ResultEventListener extends Transformer3wResultSupport {
+  private final case class SinkResponse(
+      response: Map[Class[_], ResultEntitySink]
+  ) extends ResultEvent
+
+  private final case object Stop extends ResultEvent
 
   /** Internal [[ResultEventListenerData]]
     */
   sealed trait ResultEventListenerData extends ResultEvent
-  
-  private final case object Init extends ResultEvent
-
-  private final case class SinkResponse(
-      response: Map[Class[_], ResultEntitySink]
-  ) extends ResultEvent
 
   /** [[ResultEventListener]] base data containing all information the listener
     * needs
@@ -92,14 +87,19 @@ object ResultEventListener extends Transformer3wResultSupport {
               )
               .flatMap { fileName =>
                 if (fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")) {
-                  ResultEntityCsvSink(
-                    fileName.replace(".gz", ""),
-                    new ResultEntityProcessor(resultClass),
-                    fileName.endsWith(".gz")
-                  ).map((resultClass, _))
+                  Future {
+                    (
+                      resultClass,
+                      ResultEntityCsvSink(
+                        fileName.replace(".gz", ""),
+                        new ResultEntityProcessor(resultClass),
+                        fileName.endsWith(".gz")
+                      )
+                    )
+                  }
                 } else {
-                  Future(
-                    throw new ProcessResultEventException(
+                  Future.failed(
+                    new ProcessResultEventException(
                       s"Invalid output file format for file $fileName provided. Currently only '.csv' or '.csv.gz' is supported!"
                     )
                   )
@@ -173,7 +173,7 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def handlePartialTransformer3wResult(
       result: PartialTransformer3wResult,
-      baseData: BaseData,
+      baseData: ResultEventListener.BaseData,
       context: ActorContext[ResultEvent]
   ): BaseData = {
     val enhancedResults =
@@ -270,101 +270,117 @@ object ResultEventListener extends Transformer3wResultSupport {
     }
 
   def apply(
-      resultFileHierarchy: ResultFileHierarchy,
-      supervisor: ActorRef[ResultEvent]
+      resultFileHierarchy: ResultFileHierarchy
   ): Behavior[ResultEvent] = {
-    initialize(Init, resultFileHierarchy, supervisor)
-  }
 
-  private def initialize(
-      resultEvent: ResultEvent,
-      resultFileHierarchy: ResultFileHierarchy,
-      supervisor: ActorRef[ResultEvent]
-  ): Behavior[ResultEvent] = {
-    Behaviors.withStash(10) { buffer =>
-      Behaviors.receivePartial[ResultEvent] {
-        case (ctx, Init) =>
-          implicit val materializer: Materializer = Materializer(ctx)
-          ctx.log.debug("Starting initialization!")
-          resultFileHierarchy.resultSinkType match {
-            case _: ResultSinkType.Kafka =>
-              ctx.log.debug("NodeResults will be processed by a Kafka sink.")
-            case _ =>
-              ctx.log.debug(
-                s"Events that will be processed: {}",
-                resultFileHierarchy.resultEntitiesToConsider
-                  .map(_.getSimpleName)
-                  .mkString(",")
-              )
-          }
+    Behaviors.setup[ResultEvent] { context: ActorContext[ResultEvent] =>
+      implicit val materializer: Materializer = Materializer(context)
 
-          val sinkResponse: Future[SinkResponse] = Future
-            .sequence(
-              ResultEventListener.initializeSinks(
-                resultFileHierarchy
-              )
-            )
-            .map(result => SinkResponse(result.toMap))
-
-          sinkResponse.onComplete { response =>
-            initialize(response.get, resultFileHierarchy, supervisor)
-          }
-          Behaviors.same
-
-        case (ctx, SinkResponse(classToSink)) =>
-          // Sink Initialization succeeded
-          ctx.log.debug("Initialization complete!")
-
-          // TODO: does not work
-          // supervisor ! ServiceInitComplete
-
-          buffer.unstashAll(
-            initialize(resultEvent, resultFileHierarchy, supervisor)
+      context.log.debug("Starting initialization!")
+      resultFileHierarchy.resultSinkType match {
+        case _: ResultSinkType.Kafka =>
+          context.log.debug("NodeResults will be processed by a Kafka sink.")
+        case _ =>
+          context.log.debug(
+            s"Events that will be processed: {}",
+            resultFileHierarchy.resultEntitiesToConsider
+              .map(_.getSimpleName)
+              .mkString(",")
           )
-          idle(BaseData(classToSink))
-
-        case (_, other: ResultEvent) =>
-          buffer.stash(other)
-          Behaviors.same
       }
+
+      val sinkResponse: SinkResponse = Await.result(
+        Future
+          .sequence(
+            ResultEventListener.initializeSinks(
+              resultFileHierarchy
+            )
+          )
+          .map(result => SinkResponse(result.toMap)),
+        1.hour
+      )
+
+      context.log.debug("Initialization complete!")
+
+      idle(BaseData(sinkResponse.response))
     }
   }
 
   private def idle(baseData: BaseData): Behavior[ResultEvent] =
-    Behaviors.receive { case (ctx, event) =>
-      (event, baseData) match {
-        case (ParticipantResultEvent(systemParticipantResult), baseData) =>
-          val updatedBaseData =
-            handleResult(systemParticipantResult, baseData, ctx)
-          idle(updatedBaseData)
+    Behaviors
+      .receive[ResultEvent] { case (ctx, event) =>
+        (event, baseData) match {
+          case (ParticipantResultEvent(systemParticipantResult), baseData) =>
+            val updatedBaseData =
+              handleResult(systemParticipantResult, baseData, ctx)
+            idle(updatedBaseData)
 
-        case (
-              PowerFlowResultEvent(
-                nodeResults,
-                switchResults,
-                lineResults,
-                transformer2wResults,
-                transformer3wResults
-              ),
-              baseData
-            ) =>
-          val updatedBaseData =
-            (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults)
-              .foldLeft(baseData) {
-                case (currentBaseData, resultEntity: ResultEntity) =>
-                  handleResult(resultEntity, currentBaseData, ctx)
-                case (
+          case (
+                PowerFlowResultEvent(
+                  nodeResults,
+                  switchResults,
+                  lineResults,
+                  transformer2wResults,
+                  transformer3wResults
+                ),
+                baseData
+              ) =>
+            val updatedBaseData =
+              (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults)
+                .foldLeft(baseData) {
+                  case (currentBaseData, resultEntity: ResultEntity) =>
+                    handleResult(resultEntity, currentBaseData, ctx)
+                  case (
+                        currentBaseData,
+                        partialTransformerResult: PartialTransformer3wResult
+                      ) =>
+                    handlePartialTransformer3wResult(
+                      partialTransformerResult,
                       currentBaseData,
-                      partialTransformerResult: PartialTransformer3wResult
-                    ) =>
-                  handlePartialTransformer3wResult(
-                    partialTransformerResult,
-                    currentBaseData,
-                    ctx
-                  )
-              }
-          idle(updatedBaseData)
+                      ctx
+                    )
+                }
+            idle(updatedBaseData)
+
+          case (StopMessage(_), _) =>
+            // set ReceiveTimeout message to be sent if no message has been received for 5 seconds
+            ctx.setReceiveTimeout(5.seconds, Stop)
+            Behaviors.same
+
+          case (Stop, _) =>
+            // there have been no messages for 5 seconds, let's end this
+            Behaviors.stopped
+        }
       }
-    }
+      .receiveSignal { case (ctx, PostStop) =>
+        // wait until all I/O has finished
+        ctx.log.debug(
+          "Shutdown initiated.\n\tThe following three winding results are not comprehensive and are not " +
+            "handled in sinks:{}\n\tWaiting until writing result data is completed ...",
+          baseData.threeWindingResults.keys
+            .map { case Transformer3wKey(model, zdt) =>
+              s"model '$model' at $zdt"
+            }
+            .mkString("\n\t\t")
+        )
+
+        // close sinks concurrently to speed up closing (closing calls might be blocking)
+        Await.ready(
+          Future.sequence(
+            baseData.classToSink.valuesIterator.map(sink =>
+              Future {
+                sink.close()
+              }
+            )
+          ),
+          5.minutes
+        )
+
+        ctx.log.debug("Result I/O completed.")
+
+        ctx.log.debug("Shutdown.")
+
+        Behaviors.same
+      }
 
 }
