@@ -177,7 +177,7 @@ final case class HpModel(
       hpData.currentTimeTick,
       newActivePower,
       newThermalPower,
-      thermalGridState
+      thermalGridState._1
     )
   }
 }

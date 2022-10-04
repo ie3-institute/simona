@@ -129,14 +129,14 @@ final case class ThermalGrid(
       state: ThermalGridState,
       ambientTemperature: ComparableQuantity[Temperature],
       qDot: ComparableQuantity[Power]
-  ): ThermalGridState = if (
+  ): (ThermalGridState, Long) = if (
     qDot.isGreaterThan(
       Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
     )
   )
     handleInfeed(tick, ambientTemperature, state, qDot)
   else
-    handleConsumption(tick, ambientTemperature, state, qDot)
+    (handleConsumption(tick, ambientTemperature, state, qDot), -1L)
 
   /** Handles the case, when a grid has infeed. First, heat up all the houses to
     * their maximum temperature, then fill up the storages
@@ -156,28 +156,32 @@ final case class ThermalGrid(
       ambientTemperature: ComparableQuantity[Temperature],
       state: ThermalGridState,
       qDot: ComparableQuantity[Power]
-  ): ThermalGridState = {
+  ): (ThermalGridState, Long) = {
     /* There is energy fed into the grid. Disperse it along the appliances */
     val shutOffStorageStates = storages.flatMap { storage =>
       state.storageStates
         .get(storage.getUuid)
         .map(previousState =>
-          storage -> storage.updateState(
-            tick,
-            Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN),
-            previousState
-          )
+          storage.getUuid -> storage
+            .updateState(
+              tick,
+              Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN),
+              previousState
+            )
+            ._1
         )
     }.toMap
 
     /* Get the demand of the houses and calculate shares */
+    // TODO: What if the infeed is too small and the house constantly looses energy?
     val (updatedHouseState, nextTick) =
       heatUpHouses(tick, ambientTemperature, state.houseStates, qDot)
 
     /* Fill up the storages */
-    // TODO
+    val (updatedStorageState, veryNextTick) =
+      fillUpStorages(nextTick, shutOffStorageStates, qDot)
 
-    ThermalGridState(updatedHouseState, Map.empty[UUID, ThermalStorageState])
+    (ThermalGridState(updatedHouseState, updatedStorageState), veryNextTick)
   }
 
   /** Recursively heat up all the houses, until all upper boundaries are reached
@@ -302,6 +306,40 @@ final case class ThermalGrid(
         .getValue
         .doubleValue()
     }
+  }
+
+  /** Fills up all the storages given starting with the one, that can
+    * accommodate the most energy
+    * @param tick
+    *   Tick, when the fill up starts
+    * @param storageStates
+    *   Map from storage UUID to storage state
+    * @param qDot
+    *   Current heat balance
+    * @return
+    *   A mapping from storage uuid to state as well as the tick, when the last
+    *   storage is empty
+    */
+  def fillUpStorages(
+      tick: Long,
+      storageStates: Map[UUID, ThermalStorageState],
+      qDot: ComparableQuantity[Power]
+  ): (Map[UUID, ThermalStorageState], Long) = {
+    storages
+      .flatMap(storage =>
+        storageStates.get(storage.getUuid).map(state => storage -> state)
+      )
+      .toList
+      .sortBy { case (storage, state) =>
+        storage.getMaxEnergyThreshold.subtract(state.storedEnergy)
+      }
+      .reverse // Sort storages by their absolute remaining capacity (very empty storages first)
+      .foldLeft(Map.empty[UUID, ThermalStorageState], tick) {
+        case ((states, currentNextTick), (storage, state)) =>
+          val (nextState, nextTick) =
+            storage.updateState(currentNextTick, qDot, state)
+          (states + (storage.getUuid -> nextState), nextTick)
+      }
   }
 
   /** Handle consumption (or no infeed) from thermal grid
