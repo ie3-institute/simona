@@ -336,7 +336,7 @@ object ThermalHouse {
       thermalInfeed: ComparableQuantity[Power]
   ) extends ThermalModelState
 
-  def startingState(house: ThermalHouse): ThermalModelState =
+  def startingState(house: ThermalHouse): ThermalHouseState =
     ThermalHouseState(
       -1L,
       house.targetTemperature,
@@ -347,9 +347,9 @@ object ThermalHouse {
     val tick: Long
   }
   object ThermalHouseThreshold {
-    case class LowerTemperatureReached(override val tick: Long)
+    final case class LowerTemperatureReached(override val tick: Long)
         extends ThermalHouseThreshold
-    case class UpperTemperatureReached(override val tick: Long)
+    final case class UpperTemperatureReached(override val tick: Long)
         extends ThermalHouseThreshold
   }
 }

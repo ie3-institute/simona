@@ -57,7 +57,9 @@ final case class CylindricalThermalStorage(
       id,
       operatorInput,
       operationTime,
-      bus
+      bus,
+      minEnergyThreshold,
+      maxEnergyThreshold
     )
     with MutableStorage {
 
@@ -75,7 +77,7 @@ final case class CylindricalThermalStorage(
     * @return
     *   The updated state as well as the tick, when a threshold is reached
     */
-  def updateState(
+  override def updateState(
       tick: Long,
       qDot: ComparableQuantity[Power],
       lastState: ThermalStorageState
@@ -148,6 +150,12 @@ final case class CylindricalThermalStorage(
     }
     Option.empty
   }
+
+  override def startingState: ThermalStorageState = ThermalStorageState(
+    -1L,
+    getMinEnergyThreshold,
+    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+  )
 }
 
 case object CylindricalThermalStorage {

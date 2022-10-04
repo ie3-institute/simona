@@ -22,6 +22,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   LowerTemperatureReached,
   UpperTemperatureReached
 }
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import tech.units.indriya.ComparableQuantity
@@ -66,7 +67,7 @@ final case class ThermalGrid(
     val houseDemand =
       houses.foldLeft(ThermalEnergyDemand.noDemand) {
         case (currentDemand, house) =>
-          state.partState.get(house.uuid) match {
+          state.houseStates.get(house.uuid) match {
             case Some(houseState: ThermalHouseState) =>
               currentDemand + house.energyDemand(
                 tick,
@@ -157,16 +158,26 @@ final case class ThermalGrid(
       qDot: ComparableQuantity[Power]
   ): ThermalGridState = {
     /* There is energy fed into the grid. Disperse it along the appliances */
-    // TODO: qDot = 0 for all storages in first iteration
+    val shutOffStorageStates = storages.flatMap { storage =>
+      state.storageStates
+        .get(storage.getUuid)
+        .map(previousState =>
+          storage -> storage.updateState(
+            tick,
+            Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN),
+            previousState
+          )
+        )
+    }.toMap
 
     /* Get the demand of the houses and calculate shares */
     val (updatedHouseState, nextTick) =
-      heatUpHouses(tick, ambientTemperature, state.partState, qDot)
+      heatUpHouses(tick, ambientTemperature, state.houseStates, qDot)
 
     /* Fill up the storages */
     // TODO
 
-    ThermalGridState(updatedHouseState)
+    ThermalGridState(updatedHouseState, Map.empty[UUID, ThermalStorageState])
   }
 
   /** Recursively heat up all the houses, until all upper boundaries are reached
@@ -192,7 +203,7 @@ final case class ThermalGrid(
       houseState: Map[UUID, ThermalModelState],
       qDot: ComparableQuantity[Power],
       updatedState: Option[Map[UUID, ThermalModelState]] = None
-  ): (Map[UUID, ThermalModelState], Long) = {
+  ): (Map[UUID, ThermalHouseState], Long) = {
     val shares = houseShares(tick, ambientTemperature, houseState)
     houses.foldLeft(
       (Map.empty[UUID, ThermalHouseState], Long.MaxValue, Set.empty[UUID])
@@ -233,8 +244,9 @@ final case class ThermalGrid(
         if (housesWithCapacity.isEmpty) {
           /* All houses are filled up, return the first updated state and the tick, where the last house is full */
           updatedState match {
-            case Some(state) => (state, shortestTick)
-            case None        => (updatedHouseStates, shortestTick)
+            case Some(state: Map[UUID, ThermalHouseState]) =>
+              (state, shortestTick)
+            case Some(_) | None => (updatedHouseStates, shortestTick)
           }
         } else {
           heatUpHouses(
@@ -325,7 +337,7 @@ final case class ThermalGrid(
   )(implicit startDateTime: ZonedDateTime): Seq[ResultEntity] = {
     val results = Seq.empty[ResultEntity]
 
-    state.partState.foreach {
+    state.houseStates.foreach {
       case (uuid, ThermalHouseState(tick, innerTemperature, thermalInfeed)) =>
         results :+ new ThermalHouseResult(
           tick.toDateTime,
@@ -364,15 +376,21 @@ object ThermalGrid {
   }
 
   /** Current state of a grid
-    * @param partState
+    * @param houseStates
     *   Mapping from model uuid to it's state
     */
-  final case class ThermalGridState(partState: Map[UUID, ThermalModelState])
+  final case class ThermalGridState(
+      houseStates: Map[UUID, ThermalHouseState],
+      storageStates: Map[UUID, ThermalStorageState]
+  )
 
   def startingState(thermalGrid: ThermalGrid): ThermalGridState =
     ThermalGridState(
       thermalGrid.houses
         .map(house => house.uuid -> ThermalHouse.startingState(house))
+        .toMap,
+      thermalGrid.storages
+        .map(storage => storage.getUuid -> storage.startingState)
         .toMap
     )
 
