@@ -287,7 +287,7 @@ final case class ThermalHouse(
       state: ThermalHouseState,
       ambientTemperature: ComparableQuantity[Temperature],
       qDot: ComparableQuantity[Power]
-  ): (ThermalModelState, ThermalHouseThreshold) = {
+  ): (ThermalHouseState, Option[ThermalHouseThreshold]) = {
     val duration = state.tick.durationUntil(tick)
     val updatedInnerTemperature = newInnerTemperature(
       state.thermalInfeed,
@@ -296,13 +296,15 @@ final case class ThermalHouse(
       ambientTemperature
     )
 
+    // TODO: Calculate next reached threshold
+
     (
       state.copy(
         tick = tick,
         innerTemperature = updatedInnerTemperature,
         thermalInfeed = qDot
       ),
-      LowerTemperatureReached(Long.MaxValue)
+      None
     )
   }
 }

@@ -15,7 +15,14 @@ import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
   ThermalBusInput
 }
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalHouseThreshold.{
+  StorageEmpty,
+  StorageFull
+}
+import edu.ie3.simona.model.thermal.ThermalStorage.{
+  ThermalStorageState,
+  ThermalStorageThreshold
+}
 import edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
 import edu.ie3.util.quantities.interfaces.SpecificHeatCapacity
 
@@ -81,7 +88,7 @@ final case class CylindricalThermalStorage(
       tick: Long,
       qDot: ComparableQuantity[Power],
       lastState: ThermalStorageState
-  ): (ThermalStorageState, Long) = {
+  ): (ThermalStorageState, Option[ThermalStorageThreshold]) = {
     /* Determine new state based on time difference and given state */
     val energyBalance = lastState.qDot
       .multiply(Quantities.getQuantity(tick - lastState.tick, Units.SECOND))
@@ -96,28 +103,31 @@ final case class CylindricalThermalStorage(
         newEnergy
 
     /* Determine, when a threshold is reached */
-    val duration =
+    val nextThreshold =
       if (
         qDot.isGreaterThan(
           Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
         )
       ) {
-        ((maxEnergyThreshold subtract updatedEnergy) divide qDot) asType classOf[
-          Time
-        ] to Units.SECOND
+        val duration =
+          ((maxEnergyThreshold subtract updatedEnergy) divide qDot) asType classOf[
+            Time
+          ] to Units.SECOND
+        Some(StorageFull(tick + max(duration.getValue.longValue(), 0L)))
       } else if (
         qDot.isLessThan(
           Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
         )
       ) {
-        ((updatedEnergy subtract minEnergyThreshold) divide qDot.multiply(
-          -1
-        )) asType classOf[Time] to Units.SECOND
+        val duration =
+          ((updatedEnergy subtract minEnergyThreshold) divide qDot.multiply(
+            -1
+          )) asType classOf[Time] to Units.SECOND
+        Some(StorageEmpty(tick + max(duration.getValue.longValue(), 0L)))
       } else {
-        return (ThermalStorageState(tick, updatedEnergy, qDot), Long.MaxValue)
+        return (ThermalStorageState(tick, updatedEnergy, qDot), None)
       }
-    val nextTick = tick + max(duration.getValue.longValue(), 0L)
-    (ThermalStorageState(tick, updatedEnergy, qDot), nextTick)
+    (ThermalStorageState(tick, updatedEnergy, qDot), nextThreshold)
   }
 
   override def usableThermalEnergy: ComparableQuantity[Energy] =
