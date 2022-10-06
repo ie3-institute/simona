@@ -157,7 +157,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     Quantities.getQuantity(110.0, KILOVOLT)
   )
 
-  private val line1 = new LineInput(
+  protected val line1 = new LineInput(
     UUID.fromString("b6dff9c3-cebb-4aea-9f12-0556bdbf35dc"),
     "LTG_HS_NET1_Station_3-HS_NET1_Station_4",
     OperatorInput.NO_OPERATOR_ASSIGNED,
@@ -171,7 +171,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
   )
 
-  private val line2 = new LineInput(
+  protected val line2 = new LineInput(
     UUID.fromString("c15ec4ad-3ff3-43f0-bc72-ee9a76f53afd"),
     "LTG_HS_NET1_Station_3-HS_NET1_Station_2",
     OperatorInput.NO_OPERATOR_ASSIGNED,
@@ -185,7 +185,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
   )
 
-  private val line3 = new LineInput(
+  protected val line3 = new LineInput(
     UUID.fromString("8440825c-24c9-4b3d-9e94-a6bfb9643a6b"),
     "LTG_HS_NET1_Station_1-HS_NET1_Station_2",
     OperatorInput.NO_OPERATOR_ASSIGNED,
@@ -199,7 +199,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
   )
 
-  private val line4 = new LineInput(
+  protected val line4 = new LineInput(
     UUID.fromString("e0ca3891-1757-4dea-ac9d-8f1194da453e"),
     "LTG_HS_NET1_Station_1-HS_NET1_Station_3",
     OperatorInput.NO_OPERATOR_ASSIGNED,
@@ -213,7 +213,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
   )
 
-  private val line5 = new LineInput(
+  protected val line5 = new LineInput(
     UUID.fromString("147ae685-4fc7-406c-aca6-afb2bc6e19fc"),
     "LTG_HS_NET1_Station_4-HS_NET1_Station_1",
     OperatorInput.NO_OPERATOR_ASSIGNED,
@@ -246,7 +246,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     5
   )
 
-  private val transformer1 = new Transformer2WInput(
+  protected val transformer1 = new Transformer2WInput(
     UUID.fromString("6e9d912b-b652-471b-84d2-6ed571e53a7b"),
     "HöS-Trafo_S2",
     OperatorInput.NO_OPERATOR_ASSIGNED,
@@ -258,7 +258,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     0,
     false
   )
-  private val transformer2 = new Transformer2WInput(
+  protected val transformer2 = new Transformer2WInput(
     UUID.fromString("ceccd8cb-29dc-45d6-8a13-4b0033c5f1ef"),
     "HöS-Trafo_S1",
     OperatorInput.NO_OPERATOR_ASSIGNED,

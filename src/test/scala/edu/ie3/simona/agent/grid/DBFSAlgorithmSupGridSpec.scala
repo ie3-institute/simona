@@ -13,7 +13,6 @@ import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
-import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
@@ -68,7 +67,7 @@ class DBFSAlgorithmSupGridSpec
   private val scheduler: TestProbe = TestProbe("scheduler")
   private val primaryService: TestProbe = TestProbe("primaryService")
   private val weatherService: TestProbe = TestProbe("weatherService")
-  private val hvActor: TestProbe = TestProbe("hvActor")
+  private val hvGrid: TestProbe = TestProbe("hvGrid")
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
@@ -93,7 +92,7 @@ class DBFSAlgorithmSupGridSpec
       val triggerId = 0
 
       val subnetGatesToActorRef: Map[SubGridGate, ActorRef] =
-        ehvSubGridGates.map(gate => gate -> hvActor.ref).toMap
+        ehvSubGridGates.map(gate => gate -> hvGrid.ref).toMap
 
       val gridAgentInitData =
         GridAgentInitData(
@@ -112,18 +111,19 @@ class DBFSAlgorithmSupGridSpec
         )
       )
 
-      scheduler.expectMsgPF() {
-        case CompletionMessage(
-              triggerId,
-              Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
-            ) =>
-          triggerId shouldBe 0
-          triggerToBeScheduled shouldBe ActivityStartTrigger(3600)
-        case x =>
-          fail(
-            s"Invalid message received when expecting a completion message after an init trigger. Message was $x"
+      scheduler.expectMsg(
+        CompletionMessage(
+          0,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(3600),
+                superiorGridAgentFSM
+              )
+            )
           )
-      }
+        )
+      )
 
     }
 
@@ -141,18 +141,19 @@ class DBFSAlgorithmSupGridSpec
       )
 
       // we expect a completion message
-      scheduler.expectMsgPF() {
-        case CompletionMessage(
-              triggerId,
-              Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
-            ) =>
-          triggerId shouldBe 1
-          triggerToBeScheduled shouldBe StartGridSimulationTrigger(3600)
-        case x =>
-          fail(
-            s"Invalid message received when expecting a completion message after a start activity trigger. Message was $x"
+      scheduler.expectMsg(
+        CompletionMessage(
+          1,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                StartGridSimulationTrigger(3600),
+                superiorGridAgentFSM
+              )
+            )
           )
-      }
+        )
+      )
 
     }
 
@@ -176,7 +177,7 @@ class DBFSAlgorithmSupGridSpec
           )
 
           // we expect a request for grid power values here for sweepNo $sweepNo
-          hvActor.expectMsgPF() {
+          hvGrid.expectMsgPF() {
             case requestGridPowerMessage: RequestGridPowerMessage =>
               requestGridPowerMessage.currentSweepNo shouldBe sweepNo
               requestGridPowerMessage.nodeUuids should contain allElementsOf requestedConnectionNodeUuids
@@ -190,8 +191,8 @@ class DBFSAlgorithmSupGridSpec
           // we return with a fake grid power message
           // / as we are using the ask pattern, we cannot send it to the grid agent directly but have to send it to the
           // / ask sender
-          hvActor.send(
-            hvActor.lastSender,
+          hvGrid.send(
+            hvGrid.lastSender,
             ProvideGridPowerMessage(
               requestedConnectionNodeUuids.map { uuid =>
                 ExchangePower(
@@ -209,7 +210,7 @@ class DBFSAlgorithmSupGridSpec
             case CompletionMessage(
                   2,
                   Some(
-                    Vector(
+                    Seq(
                       ScheduleTriggerMessage(
                         StartGridSimulationTrigger(3600),
                         _
@@ -221,7 +222,7 @@ class DBFSAlgorithmSupGridSpec
             case CompletionMessage(
                   3,
                   Some(
-                    Vector(
+                    Seq(
                       ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
                     )
                   )
@@ -235,13 +236,15 @@ class DBFSAlgorithmSupGridSpec
                       value.getvAng().getValue shouldBe 0
                   }
 
+                  // due to the fact that the used grid does not contain anything besides the one ehv node
+                  // we do not expect any results for the following elements
                   powerFlowResultEvent.lineResults shouldBe empty
                   powerFlowResultEvent.switchResults shouldBe empty
                   powerFlowResultEvent.transformer2wResults shouldBe empty
                   powerFlowResultEvent.transformer3wResults shouldBe empty
               }
 
-              hvActor.expectMsg(FinishGridSimulationTrigger(3600))
+              hvGrid.expectMsg(FinishGridSimulationTrigger(3600))
 
             case x =>
               fail(
@@ -297,18 +300,19 @@ class DBFSAlgorithmSupGridSpec
         )
 
         // we expect a completion message
-        scheduler.expectMsgPF() {
-          case CompletionMessage(
-                triggerId,
-                Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
-              ) =>
-            triggerId shouldBe 1
-            triggerToBeScheduled shouldBe StartGridSimulationTrigger(3600)
-          case x =>
-            fail(
-              s"Invalid message received when expecting a completion message after a start activity trigger. Message was $x"
+        scheduler.expectMsg(
+          CompletionMessage(
+            1,
+            Some(
+              Seq(
+                ScheduleTriggerMessage(
+                  StartGridSimulationTrigger(3600),
+                  superiorGridAgentFSM
+                )
+              )
             )
-        }
+          )
+        )
 
         // go on with testing the sweep behaviour
         for (sweepNo <- 0 to maxNumberOfTestSweeps) {
@@ -328,7 +332,7 @@ class DBFSAlgorithmSupGridSpec
           )
 
           // we expect a request for grid power values here for sweepNo $sweepNo
-          hvActor.expectMsgPF() {
+          hvGrid.expectMsgPF() {
             case requestGridPowerMessage: RequestGridPowerMessage =>
               requestGridPowerMessage.currentSweepNo shouldBe sweepNo
               requestGridPowerMessage.nodeUuids should contain allElementsOf requestedConnectionNodeUuids
@@ -341,8 +345,8 @@ class DBFSAlgorithmSupGridSpec
           // we return with a fake grid power message
           // / as we are using the ask pattern, we cannot send it to the grid agent directly but have to send it to the
           // / ask sender
-          hvActor.send(
-            hvActor.lastSender,
+          hvGrid.send(
+            hvGrid.lastSender,
             ProvideGridPowerMessage(
               requestedConnectionNodeUuids.map { uuid =>
                 ExchangePower(
@@ -362,7 +366,7 @@ class DBFSAlgorithmSupGridSpec
             case CompletionMessage(
                   _,
                   Some(
-                    Vector(
+                    Seq(
                       ScheduleTriggerMessage(
                         StartGridSimulationTrigger(3600),
                         _
@@ -375,7 +379,7 @@ class DBFSAlgorithmSupGridSpec
             case CompletionMessage(
                   _,
                   Some(
-                    Vector(
+                    Seq(
                       ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
                     )
                   )
@@ -389,13 +393,15 @@ class DBFSAlgorithmSupGridSpec
                       value.getvAng().getValue shouldBe 0
                   }
 
+                  // due to the fact that the used grid does not contain anything besides the one ehv node
+                  // we do not expect any results for the following elements
                   powerFlowResultEvent.lineResults shouldBe empty
                   powerFlowResultEvent.switchResults shouldBe empty
                   powerFlowResultEvent.transformer2wResults shouldBe empty
                   powerFlowResultEvent.transformer3wResults shouldBe empty
               }
 
-              hvActor.expectMsg(FinishGridSimulationTrigger(3600))
+              hvGrid.expectMsg(FinishGridSimulationTrigger(3600))
 
             case x =>
               fail(

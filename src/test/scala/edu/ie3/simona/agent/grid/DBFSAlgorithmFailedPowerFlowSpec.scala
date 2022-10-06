@@ -6,37 +6,25 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.pattern.ask
+import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestProbe}
-import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.DBFSAlgorithmCenGridSpec.{
-  InferiorGA,
-  SuperiorGA
-}
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
-import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   FailedPowerFlow,
-  ProvideGridPowerMessage,
-  RequestGridPowerMessage
+  ProvideGridPowerMessage
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
+import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import edu.ie3.simona.ontology.messages.VoltageMessage.{
-  ProvideSlackVoltageMessage,
-  RequestSlackVoltageMessage
-}
 import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
   FinishGridSimulationTrigger,
@@ -44,19 +32,11 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   StartGridSimulationTrigger
 }
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
-import edu.ie3.simona.test.common.{
-  ConfigTestData,
-  TestKitWithShutdown,
-  UnitSpec
-}
+import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import tech.units.indriya.quantity.Quantities
 
-import java.util.UUID
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
-import scala.concurrent.Await
 
 class DBFSAlgorithmFailedPowerFlowSpec
     extends TestKitWithShutdown(
@@ -69,7 +49,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
         """.stripMargin)
       )
     )
-    with UnitSpec
+    with DBFSGridAgents
     with ConfigTestData
     with ImplicitSender
     with DbfsTestGrid {
@@ -109,7 +89,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
     s"initialize itself when it receives a $InitializeGridAgentTrigger with corresponding data" in {
       val triggerId = 0
 
-      // this subnet has 1 superior grid (HöS) and 3 inferior grids (MS). Map the gates to test probes accordingly
+      // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
       val subGridGateToActorRef = hvSubGridGatesPF.map {
         case gate if gate.getInferiorSubGrid == hvGridContainerPF.getSubnet =>
           gate -> superiorGridAgent.ref
@@ -128,24 +108,24 @@ class DBFSAlgorithmFailedPowerFlowSpec
         )
 
       // send init data to agent and expect a CompletionMessage
-      implicit val timeout: Timeout = 3 seconds
-      val actualInitReply =
-        Await.result(
-          centerGridAgent ? TriggerWithIdMessage(
-            InitializeGridAgentTrigger(gridAgentInitData),
-            triggerId,
-            centerGridAgent
-          ),
-          timeout.duration
+      scheduler.send(
+        centerGridAgent,
+        TriggerWithIdMessage(
+          InitializeGridAgentTrigger(gridAgentInitData),
+          triggerId,
+          centerGridAgent
         )
+      )
 
-      actualInitReply shouldBe CompletionMessage(
-        0,
-        Some(
-          Vector(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(3600),
-              centerGridAgent
+      scheduler.expectMsg(
+        CompletionMessage(
+          0,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(3600),
+                centerGridAgent
+              )
             )
           )
         )
@@ -168,18 +148,19 @@ class DBFSAlgorithmFailedPowerFlowSpec
       )
 
       // we expect a completion message
-      scheduler.expectMsgPF() {
-        case CompletionMessage(
-              triggerId,
-              Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
-            ) =>
-          triggerId shouldBe 1
-          triggerToBeScheduled shouldBe StartGridSimulationTrigger(3600)
-        case x =>
-          fail(
-            s"Invalid message received when expecting a completion message after activity start trigger. Message was $x"
+      scheduler.expectMsg(
+        CompletionMessage(
+          1,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                StartGridSimulationTrigger(3600),
+                centerGridAgent
+              )
+            )
           )
-      }
+        )
+      )
     }
 
     s"start the simulation when a $StartGridSimulationTrigger is sent, handle failed power flow if it occurs" in {
@@ -204,7 +185,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       val slackVoltageRequestSender =
         superiorGridAgent.expectSlackVoltageRequest(sweepNo)
 
-      // normally the inferior grid agent ask for the slack voltage as well to do their power flow calculation
+      // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculation
       // we simulate this behaviour now by doing the same for our inferior grid agent
       inferiorGridAgent.requestSlackVoltage(centerGridAgent, sweepNo)
 
@@ -256,41 +237,38 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // hence we ask for them and expect a corresponding response
       superiorGridAgent.requestGridPower(centerGridAgent, sweepNo)
 
-      // the requested power is to high for the grid to handle, therefor the superior grid agent
-      // receives a failed power flow message
+      // the requested power is to high for the grid to handle, therefore the superior grid agent
+      // receives a FailedPowerFlow message
       superiorGridAgent.gaProbe.expectMsg(FailedPowerFlow)
 
-      // normally the slack node would send a FinishGridSimulationTrigger to itself and to all
+      // normally the slack node would send a FinishGridSimulationTrigger to all
       // connected inferior grids, because the slack node is just a mock, we imitate this behavior
       superiorGridAgent.gaProbe.send(
         centerGridAgent,
         FinishGridSimulationTrigger(3600)
       )
 
-      // after a FinishGridSimulationTrigger is send the inferior grids themself will send the Trigger
-      // to their connected inferior grids, therefor the inferior grid agent should receive a
-      // FinishGridSimulationTrigger
+      // after a FinishGridSimulationTrigger is send the inferior grids, they themselves will send the
+      // Trigger forward the trigger to their connected inferior grids. Therefore the inferior grid
+      // agent should receive a FinishGridSimulationTrigger
       inferiorGridAgent.gaProbe.expectMsg(FinishGridSimulationTrigger(3600))
 
       // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a CompletionMessage
-      scheduler.expectMsgPF(30.seconds) {
-        case CompletionMessage(
-              _,
-              Some(
-                Vector(
-                  ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
-                )
+      scheduler.expectMsg(
+        CompletionMessage(
+          2,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(7200),
+                centerGridAgent
               )
-            ) =>
-          // after doing cleanup stuff, our agent should go back to idle again
-          // because of the failed power flow the result listener should receive no message
-          resultListener.expectNoMessage()
-
-        case x =>
-          fail(
-            s"Invalid message received when expecting a completion message for simulate grid! Message was $x"
+            )
           )
-      }
+        )
+      )
+
+      resultListener.expectNoMessage()
     }
 
   }
