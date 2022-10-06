@@ -20,7 +20,15 @@ extensions = [
     'sphinx.ext.intersphinx',
     'hoverxref.extension',
     'sphinxcontrib.bibtex',
+    'sphinx_math_dollar'
 ]
+
+mathjax_config = {
+    'tex2jax': {
+      'inlineMath': [ ['$','$']],
+      'displayMath': [ ['$$','$$']],
+    },
+}
 
 templates_path = ['_templates']
 exclude_trees = ['.build']

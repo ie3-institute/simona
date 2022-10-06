@@ -30,27 +30,22 @@ To calculate the overall feed in of the pv unit, the sum of the direct radiation
 
 **Caution:** all angles are given in radian!
 
-The azimuth angle $\alpha_E$ starts at negative values in the East and moves over 0° (South) towards positive values in the West. [Source](https://www.photovoltaik.org/wissen/azimutwinkel)
+The azimuth angle $\alpha_{E}$ starts at negative values in the East and moves over 0° (South) towards positive values in the West. [Source](https://www.photovoltaik.org/wissen/azimutwinkel)
 
 #### Declination Angle
 
 The declination angle $\delta$ (in radian!) is the day angle that represents the position of the earth in relation to the sun. To calculate this angle, we need to calculate the day angle $J$. The day angle in radian is represented by:
 
-$$
-J = 2 \pi(\frac{n-1}{365})
-
-$$
+$$J = 2 \pi(\frac{n-1}{365})$$
 
 *with*\
 **n** = number of the day in the year (e.g. 1 January = 1, 20 February = 51)
 
 Based on $J$ the declination angle $\delta$ (in radian!) can be calculated as follows:
 
-$$
-\delta = 0.006918 - 0.399912 \cdot cos(J) + 0.070257 \cdot
+\begin{eqnarray*}\delta = 0.006918 - 0.399912 \cdot cos(J) + 0.070257 \cdot
 sin(J) \\ - 0.006758 \cdot cos(2\cdot J) + 0.000907 \cdot sin(2 \cdot J) \\ - 0.002697 \cdot cos(3 \cdot J) + 0.00148 \cdot sin(3 \cdot J)
-
-$$
+\end{eqnarray*}
 
 **References:**
 
@@ -63,44 +58,30 @@ $$
 
 The hour angle is a conceptual description of the rotation of the earth around its polar axis. It starts with a negative value in the morning, arrives at 0° at noon (solar time) and ends with a positive value in the evening. The hour angle (in radian!) is calculated as follows
 
-$$
-\omega = ((12 - ST) \cdot 15) \cdot (\frac{\pi}{180})
-
-$$
+$$\omega = ((12 - ST) \cdot 15) \cdot (\frac{\pi}{180})$$
 
 Since outside German literature the hour angle is defined as negative in the morning, we use the following adaption:
 
-$$
-\omega = ((ST - 12) \cdot 15) \cdot (\frac{\pi}{180})
-
-$$
+$$\omega = ((ST - 12) \cdot 15) \cdot (\frac{\pi}{180})$$
 
 *with*\
 **ST** = local solar time (standard time, in hours)
 
-$$
-ST = LMT + ET
-
-$$
+$$ST = LMT + ET$$
 
 *with*\
 **LMT** = local mean time (in minutes)\
 **ET** = equation of time (in minutes)
 
-$$
-LMT = CET - 4 \cdot (15 - \lambda)
-
-$$
+$$LMT = CET - 4 \cdot (15 - \lambda)$$
 
 *with*\
 **CET** = central eastern time\
 **λ** = longitude of the location of the PV panel
 
-$$
-ET = 0.0066 + 7.3525 \cdot cos(J + 1.4992378274631293) \\ +
+\begin{eqnarray*}ET = 0.0066 + 7.3525 \cdot cos(J + 1.4992378274631293) \\ +
 9.9359 \cdot cos(2 \cdot J + 1.9006635554218247) \\ + 0.3387 \cdot cos(3 \cdot J + 1.8360863730980346)
-
-$$
+\end{eqnarray*}
 
 *with*\
 **J** = day angle (in radian!)
@@ -119,15 +100,9 @@ $$
 
 The hour angles at sunrise and sunset are very useful quantities to know. These two values have the same absolute value, however the sunrise angle ($\omega_{SR}$) is positive and the sunset angle ($\omega_{S}$) is negative. Both can be calculated from:
 
-$$
-\omega_{SR}=\cos^{-1}(-\tan (\phi) \cdot \tan (\delta))
+$$\omega_{SR}=\cos^{-1}(-\tan (\phi) \cdot \tan (\delta))$$
 
-$$
-
-$$
-\omega_{SS}=-\omega_{SR}
-
-$$
+$$\omega_{SS}=-\omega_{SR}$$
 
 *with*\
 **$\delta$** = the declination angle
@@ -142,10 +117,7 @@ $$
 
 Represents the angle between the horizontal and the line to the sun, that is, the complement of the zenith angle.
 
-$$
-sin(\alpha_{s}) = sin (\phi) \cdot sin (\delta) + cos (\delta) \cdot cos (\omega) \cdot cos (\phi)
-
-$$
+$$sin(\alpha_{s}) = sin (\phi) \cdot sin (\delta) + cos (\delta) \cdot cos (\omega) \cdot cos (\phi)$$
 
 *with*\
 **$\delta$** = the declination angle\
@@ -163,10 +135,7 @@ $$
 
 Represents the angle between the vertical and the line to the sun, that is, the angle of incidence of beam radiation on a horizontal surface.
 
-$$
-\theta_{z} = (\frac{\pi}{2}) - \alpha_{s}
-
-$$
+$$\theta_{z} = (\frac{\pi}{2}) - \alpha_{s}$$
 
 *with*\
 **$\alpha_s$** = solar altitude angle
@@ -178,7 +147,7 @@ See Solar Altitude Angle
 
 The angle of incidence is the angle between the Sun\'s rays and the PV panel. It can be calculated as follows:
 
-$$
+\begin{eqnarray*}
 \theta_{g} = \arccos(\sin(\delta) \cdot \sin(\phi) \cdot
 \cos(\gamma_{e}) \\ - \sin(\delta) \cdot \cos(\phi) \cdot
 \sin(\gamma_{e}) \cdot \cos(\alpha_{e}) \\ +
@@ -187,8 +156,7 @@ $$
 \cdot \cos(\alpha_{e}) \cdot \cos(\omega) \\ +
 cos(\delta) \cdot sin(\gamma_{e}) \cdot sin(\alpha_{e}) \cdot
 sin(\omega))
-
-$$
+\end{eqnarray*}
 
 *with*\
 **$\alpha_e$** = sun azimuth\
@@ -211,12 +179,10 @@ Calculating the air mass ratio by dividing the radius of the earth with approx. 
 
 $$
 airmassratio = (\frac{6371 km}{9 km}) = 707.8\overline{8}
-
 $$
 
 $$
 airmass = \sqrt{(707.8\overline{8} \cdot \cos({\theta_z}))^2 +2 \cdot 707.8\overline{8} +1)} - 707.8\overline{8} \cdot \cos{(\theta_z)})
-
 $$
 
 **References:**
@@ -230,16 +196,14 @@ $$
 
 The extraterrestrial radiation $I_0$ is calculated by multiplying the eccentricity correction factor
 
-$$
+\begin{eqnarray*}
 e = 1.00011 + 0.034221 \cdot \cos(J) + 0.001280 \cdot \sin(J) \\ + 0.000719 \cdot \cos(2 \cdot J) + 0.000077 \cdot \sin(2 \cdot J)
-
-$$
+\end{eqnarray*}
 
 with the solar constant
 
 $$
 G_{SC} = 1367 {\frac{W}{m^2}}
-
 $$
 
 *with*\
@@ -254,14 +218,13 @@ $$
 
 #### Beam Radiation on Sloped Surface
 
-For our use case, $\omega_2$ is normally set to the hour angle one hour after $\omega_1$. Within one hour distance to sunrise/sunset, we adjust $\omega_1$ and $\omega_2$ accordingly:
+For our use case, $\omega_{2}$ is normally set to the hour angle one hour after $\omega_{1}$. Within one hour distance to sunrise/sunset, we adjust $\omega_{1}$ and $\omega_{2}$ accordingly:
 
-$$
-(\omega_1, \omega_2) = \begin{cases}
-(\omega_{SR}, \omega_{SR} + \Delta\omega), & \text{for } (\omega_{SR}-\frac{\Delta \omega}{2}) < \omega < \omega_{SR} \\ (\omega, \omega+ \Delta\omega), & \text{for } \omega_{SR} \le \omega \le (\omega_{SS}- \Delta\omega) \\ (\omega_{SS}-\Delta\omega,\omega_{SS}), & \text{for }(\omega_{SR}-\Delta\omega) < \omega < (\omega_{SS}-\frac{\Delta\omega}{2})
+\begin{eqnarray*}
+(\omega_{1}, \omega_{2}) = \begin{cases}
+(\omega_{SR}, \omega_{SR} + \Delta\omega), & \text{for}  (\omega_{SR}-\frac{\Delta \omega}{2}) < \omega < \omega_{SR} \\ (\omega, \omega+ \Delta\omega), & \text{for } \omega_{SR} \le \omega \le (\omega_{SS}- \Delta\omega) \\ (\omega_{SS}-\Delta\omega,\omega_{SS}), & \text{for }(\omega_{SR}-\Delta\omega) < \omega < (\omega_{SS}-\frac{\Delta\omega}{2})
 \end{cases}
-
-$$
+\end{eqnarray*}
 
 *with*\
 **$\omega$** = hour angle\
@@ -271,24 +234,21 @@ $$
 
 From here on, formulas from given reference below are used:
 
-$$
+\begin{eqnarray*}
 a = (\sin(\delta) \cdot \sin(\phi) \cdot \cos(\gamma_{e})
 \sin(\delta) \cdot \cos(\phi) \cdot \sin(\gamma_{e}) \cdot
 \cos(\alpha_{e})) \cdot (\omega_{2} - \omega_{1}) \\ + (\cos(\delta) \cdot \cos(\phi) \cdot \cos(\gamma_{e}) +
 \cos(\delta) \cdot \sin(\phi) \cdot \sin(\gamma\_{e}) \cdot
 \cos(\alpha_{e})) \cdot (\sin(\omega_{2}) \\ -
 \sin(\omega_{1}))  - (\cos(\delta) \cdot \sin(\gamma_{e}) \cdot \sin(\alpha_{e})) \cdot (\cos(\omega_{2}) - \cos(\omega_{1}))
-
-$$
+\end{eqnarray*}
 
 $$
 b = (\cos(\phi) \cdot \cos(\delta)) \cdot (\sin(\omega_{2}) - \sin(\omega_{1})) + (\sin(\phi) \cdot \sin(\delta)) \cdot (\omega_{2} - \omega_{1})
-
 $$
 
 $$
 E_{dir,S} = E_{dir,H} \cdot \frac{a}{b}
-
 $$
 
 **Please note:** $\frac{1}{180}\pi$ is omitted from these formulas, as we are already working with data in *radians*.
@@ -316,14 +276,12 @@ A cloud index is defined by
 
 $$
 \epsilon = \frac{\frac{E_{dif,H} + E_{dir,H}}{E_{dif,H}} + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}{1 + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}
-
 $$
 
 Calculating a brightness index
 
 $$
 \Delta = m \cdot \frac{E_{dif,H}}{I_{0}}
-
 $$
 
 **Perez Fij coefficients (Myers 2017):**
@@ -346,36 +304,30 @@ In order to calculate indexes representing the horizon brightness and the bright
 
 $$
 F_{11}(x) = -0.0161 \cdot x^3 + 0.1840 \cdot x^2 - 0.3806 \cdot x + 0.2324
-
 $$
 
 $$
 F_{12}(x) = 0.0134 \cdot x^4 - 0.1938 \cdot x^3 + 0.8410 \cdot x^2 - 1.4018 \cdot x + 1.3579
-
 $$
 
 $$
 F_{13}(x) = 0.0032 \cdot x^3 - 0.028 \cdot x^2 - 0.0056
 \cdot x - 0.0385
-
 $$
 
 $$
 F_{21}(x) = -0.0048 \cdot x^3 + 0.0536 \cdot x^2 - 0.1049
 \cdot x + 0.0034
-
 $$
 
 $$
 F_{22}(x) = 0.0012 \cdot x^3 - 0.0067 \cdot x^2 + 0.0091
 \cdot x - 0.0269
-
 $$
 
 $$
 F_{23}(x) = 0.0052 \cdot x^3 - 0.0971 \cdot x^2 + 0.2856
 \cdot x - 0.1389
-
 $$
 
 Horizon brightness index:
@@ -383,7 +335,6 @@ Horizon brightness index:
 $$
 F_{1} = F_{11}(x) + F_{12}(x) \cdot \Delta + F_{13}(x)
 \cdot \theta_{z}
-
 $$
 
 Sun ambient brightness index:
@@ -391,21 +342,18 @@ Sun ambient brightness index:
 $$
 F_{2} = F_{21}(x) + F_{22}(x) \cdot \Delta + F_{23}(x)
 \cdot \theta_{z}
-
 $$
 
 Using the factors
 
 $$
 a = max(0, \cos(\theta_{g}))
-
 $$
 
 and
 
 $$
 b = max(0.087, \sin(\alpha_{s}))
-
 $$
 
 the diffuse radiation can be calculated:
@@ -414,16 +362,15 @@ $$
 E_{dif,S} = E_{dif,H} \cdot (\frac{1}{2} \cdot (1 +
 cos(\gamma_{e})) \cdot (1- F_{1}) + \frac{a}{b} \cdot F_{1} +
 F_{2} \cdot \sin(\gamma_{e}))
-
 $$
 
 *with*\
-**$\theta_z$** = zenith angle\
-**$\theta_g$** = angle of incidence\
-**$\alpha_s$** = solar altitude angle\
-**$\alpha_z$** = sun azimuth\
-**$\gamma_e$** = slope angle of the surface\
-**$I_0$** = Extraterrestrial Radiation\
+**$\theta_{z}$** = zenith angle\
+**$\theta_{g}$** = angle of incidence\
+**$\alpha_{s}$** = solar altitude angle\
+**$\alpha_{z}$** = sun azimuth\
+**$\gamma_{e}$** = slope angle of the surface\
+**$I_{0}$** = Extraterrestrial Radiation\
 **$m$** = air mass\
 **$E_{dir,H}$** = direct radiation (horizontal surface)\
 **$E_{dif,H}$** = diffuse radiation (horizontal surface)
@@ -441,7 +388,6 @@ $$
 $$
 E_{ref,S} = E_{Ges,H} \cdot \frac{\rho}{2} \cdot (1-
 \cos(\gamma_{e}))
-
 $$
 
 *with*\
@@ -461,7 +407,6 @@ Received energy is calculated as the sum of all three types of irradiation.
 
 $$
 E_{total} = E_{dir,S} + E_{dif,S} + E_{ref,S}
-
 $$
 
 *with*\
@@ -469,6 +414,6 @@ $$
 **$E_{dif,S}$** = Diffuse radiation\
 **$E_{ref,S}$** = Reflected radiation
 
-A generator correction factor (depending on month surface slope $\gamma_e$) and a temperature correction factor (depending on month) multiplied on top.
+A generator correction factor (depending on month surface slope $\gamma_{e}$) and a temperature correction factor (depending on month) multiplied on top.
 
 It is checked whether proposed output exceeds maximum ($p_{max}$), in which case a warning is logged. If output falls below activation threshold, it is set to 0.
