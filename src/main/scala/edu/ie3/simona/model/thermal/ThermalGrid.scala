@@ -27,17 +27,13 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   LowerTemperatureReached,
   UpperTemperatureReached
 }
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalHouseThreshold.{
-  StorageEmpty,
-  StorageFull
-}
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalHouseThreshold.StorageEmpty
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.util.TickUtil.TickLong
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
-import java.util.UUID
 import javax.measure.quantity.{Energy, Power, Temperature}
 import scala.jdk.CollectionConverters.SetHasAsScala
 
@@ -181,7 +177,7 @@ final case class ThermalGrid(
           ._1
       }
 
-    /* Get the demand of the houses and calculate shares */
+    /* Heat up the house, until any threshold is met */
     house.zip(state.houseState).map { case (house, houseState) =>
       house.updateState(
         tick,
@@ -195,103 +191,19 @@ final case class ThermalGrid(
           ) =>
         /* There is a house apparent, but the thermal influx is not enough to compensate the losses. Take energy from
          * storage */
-        storage
-          .zip(shutOffStorageState)
-          .map { case (storage, previousState) =>
-            val dischargeQDot = storage.getChargingPower.multiply(
-              -1
+        HandleTooLowInfeed(
+          tick,
+          houseThresholdTick,
+          state.houseState.getOrElse(
+            throw new InconsistentStateException(
+              "Unable to get house state, although this place can only be reached, if state was found earlier."
             )
-            storage.updateState(
-              houseThresholdTick,
-              dischargeQDot,
-              previousState
-            ) match {
-              case (
-                    emptiedStorageState,
-                    Some(StorageEmpty(storageEmptyTick))
-                  ) =>
-                /* Update house state with added energy from storage */
-                house.zip(state.houseState).map { case (house, houseState) =>
-                  house.updateState(
-                    tick,
-                    houseState,
-                    ambientTemperature,
-                    dischargeQDot.multiply(-1)
-                  )
-                } match {
-                  case Some(
-                        (
-                          refreshedHouseState,
-                          Some(UpperTemperatureReached(veryNextTick))
-                        )
-                      ) =>
-                    /* The house is will be all heated up. Wait until it is cold again. */
-                    house.map(
-                      _.updateState(
-                        veryNextTick,
-                        refreshedHouseState,
-                        ambientTemperature,
-                        qDot
-                      )
-                    ) match {
-                      case Some(
-                            (
-                              refreshedHouseState,
-                              Some(LowerTemperatureReached(veryNextTick))
-                            )
-                          ) =>
-                        /* The house is all heated up. Wait until it is cold again. */
-                        (
-                          ThermalGridState(
-                            Some(refreshedHouseState),
-                            Some(emptiedStorageState)
-                          ),
-                          Some(ThermalGridEmpty(veryNextTick))
-                        )
-                      case _ =>
-                        throw new InconsistentStateException(
-                          "Exceptional state found."
-                        )
-                    }
-
-                  case Some(
-                        (
-                          refreshedHouseState,
-                          Some(LowerTemperatureReached(houseColdTick))
-                        )
-                      ) =>
-                    /* Storage will be empty, house will be cold. So grid in total is empty */
-                    (
-                      ThermalGridState(
-                        Some(refreshedHouseState),
-                        Some(emptiedStorageState)
-                      ),
-                      Some(
-                        ThermalGridEmpty(min(houseColdTick, storageEmptyTick))
-                      )
-                    )
-                  case Some((refreshedHouseState, None)) =>
-                    /* Storage is empty, but the house is in perfect balance. Next tick is when the storage is empty. */
-                    (
-                      ThermalGridState(
-                        Some(refreshedHouseState),
-                        Some(emptiedStorageState)
-                      ),
-                      Some(ThermalGridEmpty(storageEmptyTick))
-                    )
-                }
-            }
-          }
-          .getOrElse {
-            /* There is no storage and the house is cold, so the grid is empty in total */
-            (
-              ThermalGridState(
-                Some(coldHouseState),
-                state.storageState
-              ),
-              Some(ThermalGridEmpty(houseThresholdTick))
-            )
-          }
+          ),
+          shutOffStorageState,
+          coldHouseState,
+          ambientTemperature,
+          qDot
+        )
       case Some(
             (
               updatedHouseState,
@@ -299,47 +211,255 @@ final case class ThermalGrid(
             )
           ) =>
         /* There is a house and the house is heated up to the maximum temperature. Fill the storage */
-        val updatedStorageState = storage.zip(shutOffStorageState).map {
-          case (storage, previousState) =>
-            storage.updateState(
-              houseThresholdTick,
-              qDot,
-              previousState
-            )
-        }
-        val reason: Option[ThermalGridThreshold] = updatedStorageState match {
-          case Some((_, Some(thermalStorageThreshold))) =>
-            /* Some storage threshold is reached */
-            Some(ThermalGridFilledUp(thermalStorageThreshold.tick))
-          case Some((_, None)) =>
-            /* Storage can load until eternity */
-            None
-          case None =>
-            /* There is no storage. Grid is fully filled up, when the house is filled up */
-            Some(ThermalGridFilledUp(houseThresholdTick))
-        }
-        (
-          ThermalGridState(
-            Some(updatedHouseState),
-            updatedStorageState.map(_._1)
-          ),
-          reason
+        handleSurplusInfeed(
+          shutOffStorageState,
+          houseThresholdTick,
+          updatedHouseState,
+          qDot
         )
       case Some((updatedHouseState, None)) =>
         /* The house neither does heat up nor cool down, will stay in this state forever */
         (ThermalGridState(Some(updatedHouseState), state.storageState), None)
       case None =>
         /* There is no house at all. Fill up the storage directly, if one is apparent. */
-        val updatedStorageState = storage.zip(shutOffStorageState).map {
-          case (storage, previousState) =>
-            storage.updateState(
-              tick,
-              qDot,
-              previousState
-            )
-        }
+        val updatedStorageState =
+          takeOrPushToStorage(tick, shutOffStorageState, qDot)
         (ThermalGridState(None, updatedStorageState.map(_._1)), None)
     }
+  }
+
+  private def takeOrPushToStorage(
+      tick: Long,
+      storageState: Option[ThermalStorageState],
+      qDot: ComparableQuantity[Power]
+  ): Option[
+    (ThermalStorageState, Option[ThermalStorage.ThermalStorageThreshold])
+  ] = storage.zip(storageState).map { case (storage, previousState) =>
+    storage.updateState(
+      tick,
+      qDot,
+      previousState
+    )
+  }
+
+  /** Handle too low infeed into the thermal grid resulting in a house, that
+    * reaches it's lowest temperature boundary. Try to heat up the use, by
+    * topping up the infeed of the grid with the maximum discharge power of the
+    * thermal storage if one is apparent.
+    *
+    * @param initialTick
+    *   Initial tick, when the new too low infeed has been set
+    * @param coldHouseTick
+    *   Tick in which the houses reaches it's lowest temperature boundary
+    * @param initialHouseState
+    *   State of the house, when too low infeed started
+    * @param initialStorageState
+    *   State of the storage, when too low infeed started
+    * @param coldHouseState
+    *   State of the cold house
+    * @param ambientTemperature
+    *   Ambient temperature
+    * @param qDot
+    *   (Too low) thermal influx
+    * @return
+    *   The thermal grid state after all countermeasures as well as the
+    *   threshold, that is reached then
+    */
+  private def HandleTooLowInfeed(
+      initialTick: Long,
+      coldHouseTick: Long,
+      initialHouseState: ThermalHouseState,
+      initialStorageState: Option[ThermalStorageState],
+      coldHouseState: ThermalHouseState,
+      ambientTemperature: ComparableQuantity[Temperature],
+      qDot: ComparableQuantity[Power]
+  ): (ThermalGridState, Some[ThermalGridThreshold]) = storage
+    .zip(initialStorageState)
+    .map { case (storage, previousState) =>
+      val dischargeQDot = storage.getChargingPower.multiply(
+        -1
+      )
+
+      /* If a storage is apparent, discharge it with the maximum possible power to top up the external influx */
+      storage.updateState(
+        coldHouseTick,
+        dischargeQDot,
+        previousState
+      ) match {
+        case (
+              emptiedStorageState,
+              Some(StorageEmpty(storageEmptyTick))
+            ) =>
+          /* Update house state with added energy from storage */
+          heatHouseWithAdditionalInfeedFromStorage(
+            initialTick,
+            initialHouseState,
+            storageEmptyTick,
+            emptiedStorageState,
+            ambientTemperature,
+            qDot,
+            dischargeQDot.multiply(-1)
+          )
+        case (_, unsupportedThreshold) =>
+          throw new IllegalStateException(
+            s"The given threshold '$unsupportedThreshold' is not supported after discharging the thermal storage."
+          )
+      }
+    }
+    .getOrElse {
+      /* There is no storage and the house is cold, so the grid is empty in total */
+      (
+        ThermalGridState(
+          Some(coldHouseState),
+          initialStorageState
+        ),
+        Some(ThermalGridEmpty(coldHouseTick))
+      )
+    }
+
+  /** Heat up the house with the additional help of discharging the storage. If
+    * discharging helped to heat up the house to the maximum level, wait until
+    * the house has reached the lowest boundary once again.
+    * @param initialTick
+    *   Initial tick, when too low external influx started
+    * @param initialHouseState
+    *   State of the house at that tick
+    * @param emptyStorageTick
+    *   Tick in which the storage will be empty
+    * @param emptyStorageState
+    *   State of the empty storage
+    * @param ambientTemperature
+    *   Ambient temperature
+    * @param qDot
+    *   (Too low) thermal influx
+    * @param qDotStorage
+    *   Thermal influx from storage
+    * @return
+    *   The state of the grid and the threshold, that has been reached
+    */
+  private def heatHouseWithAdditionalInfeedFromStorage(
+      initialTick: Long,
+      initialHouseState: ThermalHouseState,
+      emptyStorageTick: Long,
+      emptyStorageState: ThermalStorageState,
+      ambientTemperature: ComparableQuantity[Temperature],
+      qDot: ComparableQuantity[Power],
+      qDotStorage: ComparableQuantity[Power]
+  ): (ThermalGridState, Some[ThermalGridThreshold]) =
+    house.map(_ -> initialHouseState).map { case (house, houseState) =>
+      house.updateState(
+        initialTick,
+        houseState,
+        ambientTemperature,
+        qDotStorage.add(qDot)
+      )
+    } match {
+      case Some(
+            (
+              refreshedHouseState,
+              Some(UpperTemperatureReached(veryNextTick))
+            )
+          ) =>
+        /* The house is will be all heated up. Wait until it is cold again. */
+        house.map(
+          _.updateState(
+            veryNextTick,
+            refreshedHouseState,
+            ambientTemperature,
+            qDot
+          )
+        ) match {
+          case Some(
+                (
+                  refreshedHouseState,
+                  Some(LowerTemperatureReached(veryNextTick))
+                )
+              ) =>
+            /* The house is all heated up. Wait until it is cold again. */
+            (
+              ThermalGridState(
+                Some(refreshedHouseState),
+                Some(emptyStorageState)
+              ),
+              Some(ThermalGridEmpty(veryNextTick))
+            )
+          case _ =>
+            throw new InconsistentStateException(
+              "Exceptional state found."
+            )
+        }
+
+      case Some(
+            (
+              refreshedHouseState,
+              Some(LowerTemperatureReached(houseColdTick))
+            )
+          ) =>
+        /* Storage will be empty, house will be cold. So grid in total is empty */
+        (
+          ThermalGridState(
+            Some(refreshedHouseState),
+            Some(emptyStorageState)
+          ),
+          Some(
+            ThermalGridEmpty(min(houseColdTick, emptyStorageTick))
+          )
+        )
+      case Some((refreshedHouseState, None)) =>
+        /* Storage is empty, but the house is in perfect balance. Next tick is when the storage is empty. */
+        (
+          ThermalGridState(
+            Some(refreshedHouseState),
+            Some(emptyStorageState)
+          ),
+          Some(ThermalGridEmpty(emptyStorageTick))
+        )
+      case None =>
+        throw new InconsistentStateException(
+          "Error while handling too low thermal infeed. No house found, although this place can only be reached with a house."
+        )
+    }
+
+  /** Handle the additional infeed, after the house has been heated up until the
+    * maximum temperature has been reached
+    * @param initialStorageState
+    *   Initial state of the storage
+    * @param hotHouseTick
+    *   Tick, in which the house has reached it's maximum temperature
+    * @param hotHouseState
+    *   State of the heated up house
+    * @param qDot
+    *   Thermal influx
+    * @return
+    *   State of the grid after storing the remainder energy and the threshold
+    *   that has been reached
+    */
+  private def handleSurplusInfeed(
+      initialStorageState: Option[ThermalStorageState],
+      hotHouseTick: Long,
+      hotHouseState: ThermalHouseState,
+      qDot: ComparableQuantity[Power]
+  ): (ThermalGridState, Option[ThermalGridThreshold]) = {
+    val updatedStorageState =
+      takeOrPushToStorage(hotHouseTick, initialStorageState, qDot)
+    val reason: Option[ThermalGridThreshold] = updatedStorageState match {
+      case Some((_, Some(thermalStorageThreshold))) =>
+        /* Some storage threshold is reached */
+        Some(ThermalGridFilledUp(thermalStorageThreshold.tick))
+      case Some((_, None)) =>
+        /* Storage can load until eternity */
+        None
+      case None =>
+        /* There is no storage. Grid is fully filled up, when the house is filled up */
+        Some(ThermalGridFilledUp(hotHouseTick))
+    }
+    (
+      ThermalGridState(
+        Some(hotHouseState),
+        updatedStorageState.map(_._1)
+      ),
+      reason
+    )
   }
 
   /** Handle consumption (or no infeed) from thermal grid
