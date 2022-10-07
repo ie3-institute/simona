@@ -27,7 +27,10 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   LowerTemperatureReached,
   UpperTemperatureReached
 }
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalHouseThreshold.StorageEmpty
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
+  StorageEmpty,
+  StorageFull
+}
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.util.TickUtil.TickLong
 import tech.units.indriya.ComparableQuantity
@@ -479,7 +482,79 @@ final case class ThermalGrid(
       ambientTemperature: ComparableQuantity[Temperature],
       state: ThermalGridState,
       qDot: ComparableQuantity[Power]
-  ): (ThermalGridState, Option[ThermalGridThreshold]) = ???
+  ): (ThermalGridState, Option[ThermalGridThreshold]) = {
+    /* House will be left with no influx in all cases. Determine if and when a threshold is reached */
+    val maybeUpdatedHouseState =
+      house.zip(state.houseState).map { case (house, houseState) =>
+        house.updateState(
+          tick,
+          houseState,
+          ambientTemperature,
+          Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_IN)
+        )
+      }
+
+    /* Update the state of the storage */
+    val maybeUpdatedStorageState =
+      storage.zip(state.storageState).map { case (storage, storageState) =>
+        storage.updateState(tick, qDot, storageState)
+      }
+
+    (
+      maybeUpdatedHouseState.flatMap(_._2),
+      maybeUpdatedStorageState.flatMap(_._2)
+    ) match {
+      case (None, None) =>
+        /* There is no house and no storage, nothing has changed */
+        (ThermalGridState(None, None), None)
+      case (_, Some(StorageFull(_))) =>
+        throw new IllegalStateException(
+          "When discharging from storage, upper threshold cannot be reached!"
+        )
+      case (Some(LowerTemperatureReached(coldHouseTick)), None) =>
+        /* The house is cold sometime, but the storage is in perfect balance. Take energy from the storage to heat up the house */
+        HandleTooLowInfeed(
+          tick,
+          coldHouseTick,
+          state.houseState.getOrElse(
+            throw new IllegalStateException(
+              "This place can only be reached if a house state has been found earlier"
+            )
+          ),
+          maybeUpdatedStorageState.map(_._1),
+          maybeUpdatedHouseState
+            .map(_._1)
+            .getOrElse(
+              throw new IllegalStateException(
+                "This place can only be reached if a house state has been found earlier"
+              )
+            ),
+          ambientTemperature,
+          Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_IN)
+        )
+      case (
+            Some(LowerTemperatureReached(houseTick)),
+            Some(StorageEmpty(storageTick))
+          ) =>
+        /* Storage and house will be empty */
+        (
+          ThermalGridState(
+            maybeUpdatedHouseState.map(_._1),
+            maybeUpdatedStorageState.map(_._1)
+          ),
+          Some(ThermalGridEmpty(min(houseTick, storageTick)))
+        )
+      case _ =>
+        /* Irrelevant case, that won't lead to any additional triggering */
+        (
+          ThermalGridState(
+            maybeUpdatedHouseState.map(_._1),
+            maybeUpdatedStorageState.map(_._1)
+          ),
+          None
+        )
+    }
+  }
 
   /** Convert the given state of the thermal grid into result models of it's
     * constituent models

@@ -79,7 +79,7 @@ object ThermalStorage {
   sealed trait ThermalStorageThreshold {
     val tick: Long
   }
-  object ThermalHouseThreshold {
+  object ThermalStorageThreshold {
     final case class StorageEmpty(override val tick: Long)
         extends ThermalStorageThreshold
     final case class StorageFull(override val tick: Long)
