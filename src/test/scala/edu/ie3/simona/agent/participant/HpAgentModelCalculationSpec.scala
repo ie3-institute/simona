@@ -601,8 +601,7 @@ class HpAgentModelCalculationSpec
                     Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
                   )
 
-                  thermalGridState.houseState.size shouldBe 1
-                  thermalGridState.houseState.get(thermalHouse.getUuid) match {
+                  thermalGridState.houseState match {
                     case Some(ThermalHouseState(_, innerTemperature, _)) =>
                       innerTemperature should equalWithTolerance(
                         Quantities.getQuantity(
@@ -795,8 +794,8 @@ class HpAgentModelCalculationSpec
                   qDot should equalWithTolerance(
                     Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
                   )
-                  thermalGridState.houseState.size shouldBe 1
-                  thermalGridState.houseState.get(thermalHouse.getUuid) match {
+
+                  thermalGridState.houseState match {
                     case Some(ThermalHouseState(_, innerTemperature, _)) =>
                       innerTemperature should equalWithTolerance(
                         Quantities.getQuantity(

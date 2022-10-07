@@ -15,7 +15,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
   ThermalBusInput
 }
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalHouseThreshold.{
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,
   StorageFull
 }

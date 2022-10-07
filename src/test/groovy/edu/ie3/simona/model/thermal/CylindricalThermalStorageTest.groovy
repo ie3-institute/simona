@@ -8,7 +8,6 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtil
 import spock.lang.Shared
 import spock.lang.Specification
@@ -103,17 +102,33 @@ class CylindricalThermalStorageTest extends Specification {
 
         then:
         QuantityUtil.equals(result._1().storedEnergy(), Quantities.getQuantity(expectedStoredEnergy, KILOWATTHOUR), TOLERANCE)
-        result._2() == expectedNextTick
+        result._2.defined
+        result._2.get() == expectedThreshold
 
         where:
-        tick | storedEnergy | qDot  | newTick | newQDot || expectedStoredEnergy | expectedNextTick
-        0L   | 250.0        | 10.0  | 3600L   | 42.0    || 260.0                | 79885L
-        0L   | 250.0        | 10.0  | 3600L   | -42.0   || 260.0                | 6171L
-        0L   | 250.0        | -10.0 | 3600L   | 42.0    || 240.0                | 81600L
-        0L   | 250.0        | -10.0 | 3600L   | -42.0   || 240.0                | 4457L
-        0L   | 250.0        | 10.0  | 3600L   | 0.0     || 260.0                | Long.MAX_VALUE
-        0L   | 250.0        | -10.0 | 3600L   | 0.0     || 240.0                | Long.MAX_VALUE
-        0L   | 1000.0       | 149.0 | 3600L   | 5000.0  || 1149.0               | 3600L
-        0L   | 240.0        | -9.0  | 3600L   | -5000.0 || 231.0                | 3600L
+        tick | storedEnergy | qDot  | newTick | newQDot || expectedStoredEnergy | expectedThreshold
+        0L   | 250.0        | 10.0  | 3600L   | 42.0    || 260.0                | new ThermalStorage.ThermalStorageThreshold.StorageFull(79885L)
+        0L   | 250.0        | 10.0  | 3600L   | -42.0   || 260.0                | new ThermalStorage.ThermalStorageThreshold.StorageEmpty(6171L)
+        0L   | 250.0        | -10.0 | 3600L   | 42.0    || 240.0                | new ThermalStorage.ThermalStorageThreshold.StorageFull(81600L)
+        0L   | 250.0        | -10.0 | 3600L   | -42.0   || 240.0                | new ThermalStorage.ThermalStorageThreshold.StorageEmpty(4457L)
+        0L   | 250.0        | -10.0 | 3600L   | -42.0   || 240.0                | new ThermalStorage.ThermalStorageThreshold.StorageEmpty(4457L)
+        0L   | 1000.0       | 149.0 | 3600L   | 5000.0  || 1149.0               | new ThermalStorage.ThermalStorageThreshold.StorageFull(3600L)
+        0L   | 240.0        | -9.0  | 3600L   | -5000.0 || 231.0                | new ThermalStorage.ThermalStorageThreshold.StorageEmpty(3600L)
+    }
+
+    def "Check mutable state update, if no threshold is reached:"() {
+        when:
+        def storage = buildThermalStorage(storageInput, 70)
+        def lastState = new ThermalStorage.ThermalStorageState(tick, Quantities.getQuantity(storedEnergy, KILOWATTHOUR), Quantities.getQuantity(qDot, KILOWATT))
+        def result = storage.updateState(newTick, Quantities.getQuantity(newQDot, KILOWATT), lastState)
+
+        then:
+        QuantityUtil.equals(result._1().storedEnergy(), Quantities.getQuantity(expectedStoredEnergy, KILOWATTHOUR), TOLERANCE)
+        result._2.empty
+
+        where:
+        tick | storedEnergy | qDot  | newTick | newQDot || expectedStoredEnergy
+        0L   | 250.0        | 10.0  | 3600L   | 0.0     || 260.0
+        0L   | 250.0        | -10.0 | 3600L   | 0.0     || 240.0
     }
 }
