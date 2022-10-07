@@ -1,0 +1,27 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+if (house apparent?) then (yes)
+  :Set qDot = 0 and\ncalculate next threshold;
+else (no)
+endif
+if (storage apparent?) then (yes)
+  :Discharge storage and calculate next threshold;
+else (no)
+endif
+if (storage is full?) then (yes)
+  :<font color=red>Throw exception</font>;
+else if (house reaches lower temperature) then (yes)
+  if (storage in balance?) then (yes)
+    :Top up from storage;
+  else if (storage gets empty?) then (yes)
+    :Determine what happens earlier;
+  else
+    note right: No threshold\nwill be reached
+  endif
+endif
+:Return thermal grid state and grid threshold;
+stop
+
+@enduml

@@ -194,7 +194,7 @@ final case class ThermalGrid(
           ) =>
         /* There is a house apparent, but the thermal influx is not enough to compensate the losses. Take energy from
          * storage */
-        HandleTooLowInfeed(
+        handleTooLowInfeed(
           tick,
           houseThresholdTick,
           state.houseState.getOrElse(
@@ -268,7 +268,7 @@ final case class ThermalGrid(
     *   The thermal grid state after all countermeasures as well as the
     *   threshold, that is reached then
     */
-  private def HandleTooLowInfeed(
+  private def handleTooLowInfeed(
       initialTick: Long,
       coldHouseTick: Long,
       initialHouseState: ThermalHouseState,
@@ -513,7 +513,7 @@ final case class ThermalGrid(
         )
       case (Some(LowerTemperatureReached(coldHouseTick)), None) =>
         /* The house is cold sometime, but the storage is in perfect balance. Take energy from the storage to heat up the house */
-        HandleTooLowInfeed(
+        handleTooLowInfeed(
           tick,
           coldHouseTick,
           state.houseState.getOrElse(
