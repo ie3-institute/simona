@@ -36,6 +36,8 @@ import tech.units.indriya.quantity.Quantities
   *   Minimum permissible energy stored in the storage
   * @param maxEnergyThreshold
   *   Maximum permissible energy stored in the storage
+  * @param chargingPower
+  *   Thermal power, that can be charged / discharged
   */
 abstract class ThermalStorage(
     uuid: UUID,
@@ -44,7 +46,8 @@ abstract class ThermalStorage(
     operationTime: OperationTime,
     bus: ThermalBusInput,
     minEnergyThreshold: ComparableQuantity[Energy],
-    maxEnergyThreshold: ComparableQuantity[Energy]
+    maxEnergyThreshold: ComparableQuantity[Energy],
+    chargingPower: ComparableQuantity[Power]
 ) {
   protected val zeroEnergy: ComparableQuantity[Energy] =
     DefaultQuantities.zeroKWH
@@ -54,6 +57,8 @@ abstract class ThermalStorage(
   def getMinEnergyThreshold: ComparableQuantity[Energy] = minEnergyThreshold
 
   def getMaxEnergyThreshold: ComparableQuantity[Energy] = maxEnergyThreshold
+
+  def getChargingPower: ComparableQuantity[Power] = chargingPower
 
   def startingState: ThermalStorageState
 

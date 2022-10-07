@@ -198,9 +198,9 @@ final case class ThermalGrid(
         storage
           .zip(shutOffStorageState)
           .map { case (storage, previousState) =>
-            val dischargeQDot = qDot.multiply(
+            val dischargeQDot = storage.getChargingPower.multiply(
               -1
-            ) // TODO: Define maximum charge / discharge power
+            )
             storage.updateState(
               houseThresholdTick,
               dischargeQDot,

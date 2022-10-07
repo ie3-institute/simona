@@ -49,6 +49,8 @@ import tech.units.indriya.unit.Units
   *   Minimum permissible energy stored in the storage
   * @param maxEnergyThreshold
   *   Maximum permissible energy stored in the storage
+  * @param chargingPower
+  *   Thermal power, that can be charged / discharged
   */
 final case class CylindricalThermalStorage(
     uuid: UUID,
@@ -58,6 +60,7 @@ final case class CylindricalThermalStorage(
     bus: ThermalBusInput,
     minEnergyThreshold: ComparableQuantity[Energy],
     maxEnergyThreshold: ComparableQuantity[Energy],
+    chargingPower: ComparableQuantity[Power],
     override protected var _storedEnergy: ComparableQuantity[Energy]
 ) extends ThermalStorage(
       uuid,
@@ -66,7 +69,8 @@ final case class CylindricalThermalStorage(
       operationTime,
       bus,
       minEnergyThreshold,
-      maxEnergyThreshold
+      maxEnergyThreshold,
+      chargingPower
     )
     with MutableStorage {
 
@@ -200,6 +204,15 @@ case object CylindricalThermalStorage {
         input.getInletTemp,
         input.getReturnTemp
       )
+
+    /* TODO: Currently, the input model does not define any maximum charge power. Assume, that the usable energy can
+     *   be charged / discharged within the interval of an hour */
+    val chargingPower = maxEnergyThreshold
+      .subtract(minEnergyThreshold)
+      .divide(Quantities.getQuantity(1d, Units.HOUR))
+      .asType(classOf[Power])
+      .to(StandardUnits.ACTIVE_POWER_IN)
+
     new CylindricalThermalStorage(
       input.getUuid,
       input.getId,
@@ -208,6 +221,7 @@ case object CylindricalThermalStorage {
       input.getThermalBus,
       minEnergyThreshold,
       maxEnergyThreshold,
+      chargingPower,
       initialStoredEnergy
     )
   }
