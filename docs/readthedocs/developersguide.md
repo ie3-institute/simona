@@ -10,6 +10,10 @@ The convention for merging into the developer branch is that it needs to pass al
 
 Please use the following naming convention for feature branches, “&lt;initials-or-username&lt;/#&lt;issue-number&lt;-&lt;descriptive-feature-branch-name&lt;”. E.g.: ab/#issue123-update-docs   
 
+## Models
+
+{doc}`This page <https://github.com/ie3-institute/simona/blob/da5ec110b8c52536e7e6db093e5e32b028649e19/docs/readthedocs/models>`  gives an overview of the available models in SIMONA.
+
 ## Protocols
 
 ```{eval-rst}

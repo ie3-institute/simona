@@ -14,7 +14,7 @@ This page gives an overview of the available models in *SIMONA*.
    models/switch_model
    models/two_winding_transformer_model
    models/three_winding_transformer_model
-   models/voltage_levels
+   models/reference_system
 ```
 
 ## System Participant Related Models
