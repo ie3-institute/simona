@@ -11,7 +11,11 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.datamodel.models.result.thermal.ThermalHouseResult
+import edu.ie3.datamodel.models.result.thermal.{
+  CylindricalStorageResult,
+  ThermalHouseResult,
+  ThermalStorageResult
+}
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridThreshold.{
   ThermalGridEmpty,
@@ -37,7 +41,7 @@ import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
-import javax.measure.quantity.{Energy, Power, Temperature}
+import javax.measure.quantity.{Dimensionless, Energy, Power, Temperature}
 import scala.jdk.CollectionConverters.SetHasAsScala
 
 /** Calculation model for a thermal grid. It is assumed, that all elements are
@@ -568,22 +572,44 @@ final case class ThermalGrid(
   def results(
       state: ThermalGridState
   )(implicit startDateTime: ZonedDateTime): Seq[ResultEntity] = {
-    val results = Seq.empty[ResultEntity]
+    val houseResults = house
+      .zip(state.houseState)
+      .map {
+        case (
+              thermalHouse,
+              ThermalHouseState(tick, innerTemperature, thermalInfeed)
+            ) =>
+          Seq.empty[ResultEntity] :+ new ThermalHouseResult(
+            tick.toDateTime,
+            thermalHouse.uuid,
+            thermalInfeed,
+            innerTemperature
+          )
+      }
+      .getOrElse(Seq.empty[ResultEntity])
 
-    house.zip(state.houseState).map {
-      case (
-            thermalHouse,
-            ThermalHouseState(tick, innerTemperature, thermalInfeed)
-          ) =>
-        results :+ new ThermalHouseResult(
-          tick.toDateTime,
-          thermalHouse.uuid,
-          thermalInfeed,
-          innerTemperature
-        )
-    }
-
-    results
+    storage
+      .zip(state.storageState)
+      .map {
+        case (
+              storage: CylindricalThermalStorage,
+              ThermalStorageState(tick, storedEnergy, qDot)
+            ) =>
+          houseResults :+ new CylindricalStorageResult(
+            tick.toDateTime,
+            storage.uuid,
+            storedEnergy,
+            qDot,
+            storage.maxEnergyThreshold
+              .divide(storedEnergy)
+              .asType(classOf[Dimensionless])
+          )
+        case _ =>
+          throw new NotImplementedError(
+            s"Result handling for storage type '${storage.getClass.getSimpleName}' not supported."
+          )
+      }
+      .getOrElse(houseResults)
   }
 }
 
