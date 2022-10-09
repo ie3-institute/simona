@@ -665,9 +665,15 @@ object ThermalGrid {
         possible: ComparableQuantity[Energy]
     ): ThermalEnergyDemand = {
       if (possible.isLessThan(required))
-        new ThermalEnergyDemand(possible, possible)
+        new ThermalEnergyDemand(
+          possible.to(StandardUnits.ENERGY_RESULT),
+          possible.to(StandardUnits.ENERGY_RESULT)
+        )
       else
-        new ThermalEnergyDemand(required, possible)
+        new ThermalEnergyDemand(
+          required.to(StandardUnits.ENERGY_RESULT),
+          possible.to(StandardUnits.ENERGY_RESULT)
+        )
     }
 
     def noDemand: ThermalEnergyDemand = ThermalEnergyDemand(
