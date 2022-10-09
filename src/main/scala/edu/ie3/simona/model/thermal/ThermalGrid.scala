@@ -13,8 +13,7 @@ import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.thermal.{
   CylindricalStorageResult,
-  ThermalHouseResult,
-  ThermalStorageResult
+  ThermalHouseResult
 }
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridThreshold.{
@@ -165,7 +164,7 @@ final case class ThermalGrid(
     * @return
     *   Updated thermal grid state
     */
-  private def handleInfeed(
+  def handleInfeed(
       tick: Long,
       ambientTemperature: ComparableQuantity[Temperature],
       state: ThermalGridState,
@@ -494,7 +493,7 @@ final case class ThermalGrid(
           tick,
           houseState,
           ambientTemperature,
-          Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_IN)
+          Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
         )
       }
 
