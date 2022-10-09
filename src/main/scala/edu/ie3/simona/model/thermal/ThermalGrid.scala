@@ -89,9 +89,9 @@ final case class ThermalGrid(
       storage
         .zip(state.storageState)
         .map {
-          case (cylindricalStorage: CylindricalThermalStorage, state) =>
-            val usableEnergy = cylindricalStorage.usableThermalEnergy
-            val remaining = cylindricalStorage.maxEnergyThreshold
+          case (storage, state) =>
+            val usableEnergy = state.storedEnergy
+            val remaining = storage.getMaxEnergyThreshold
               .subtract(usableEnergy)
             (
               usableEnergy,
@@ -117,7 +117,7 @@ final case class ThermalGrid(
       else
         storedEnergy
     val finallyRemaining =
-      remainingCapacity.add(storedEnergy.subtract(usedEnergy))
+      remainingCapacity.add(usedEnergy)
 
     ThermalEnergyDemand(
       houseDemand.required.subtract(usedEnergy),
@@ -228,9 +228,17 @@ final case class ThermalGrid(
         (ThermalGridState(Some(updatedHouseState), state.storageState), None)
       case None =>
         /* There is no house at all. Fill up the storage directly, if one is apparent. */
-        val updatedStorageState =
-          takeOrPushToStorage(tick, shutOffStorageState, qDot)
-        (ThermalGridState(None, updatedStorageState.map(_._1)), None)
+        takeOrPushToStorage(tick, shutOffStorageState, qDot) match {
+          case Some((updatedStorageState, Some(StorageFull(storageTick)))) =>
+            (
+              ThermalGridState(None, Some(updatedStorageState)),
+              Some(ThermalGridFilledUp(storageTick))
+            )
+          case _ =>
+            throw new InconsistentStateException(
+              "Found inconsistent state after filling storage"
+            )
+        }
     }
   }
 
@@ -546,6 +554,12 @@ final case class ThermalGrid(
             maybeUpdatedStorageState.map(_._1)
           ),
           Some(ThermalGridEmpty(min(houseTick, storageTick)))
+        )
+      case (None, Some(StorageEmpty(storageEmptyTick))) =>
+        /* There is only a storage in this grid */
+        (
+          ThermalGridState(None, maybeUpdatedStorageState.map(_._1)),
+          Some(ThermalGridEmpty(storageEmptyTick))
         )
       case _ =>
         /* Irrelevant case, that won't lead to any additional triggering */
