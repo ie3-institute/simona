@@ -51,6 +51,11 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         Set.empty[ThermalStorageInput].asJava
       )
     )
+    val ambientTemperature = Quantities.getQuantity(12d, Units.CELSIUS)
+    val qDotInfeed =
+      Quantities.getQuantity(15d, StandardUnits.ACTIVE_POWER_IN)
+    val qDotConsumption =
+      Quantities.getQuantity(-42d, StandardUnits.ACTIVE_POWER_IN)
 
     "requesting the starting state" should {
       "deliver proper results" in {
@@ -88,7 +93,6 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
     "determining the energy demand" should {
       "exactly be the demand of the house" in {
         val tick = 10800 // after three house
-        val ambientTemperature = Quantities.getQuantity(12d, Units.CELSIUS)
         val houseDemand = thermalHouse.energyDemand(
           tick,
           ambientTemperature,
@@ -115,7 +119,6 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       "deliver the house state by just letting it cool down, if just no infeed is given" in {
         val tick = 0L
         val gridState = ThermalGrid.startingState(thermalGrid)
-        val ambientTemperature = Quantities.getQuantity(12d, Units.CELSIUS)
         val externalQDot =
           Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
 
@@ -146,16 +149,13 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       "not withdraw energy from the house, if actual consumption is given" in {
         val tick = 0L // after three house
         val gridState = ThermalGrid.startingState(thermalGrid)
-        val ambientTemperature = Quantities.getQuantity(12d, Units.CELSIUS)
-        val externalQDot =
-          Quantities.getQuantity(-42d, StandardUnits.ACTIVE_POWER_RESULT)
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
             tick,
             ambientTemperature,
             gridState,
-            externalQDot
+            qDotConsumption
           )
 
         updatedGridState match {
@@ -181,16 +181,13 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       "solely heat up the house" in {
         val tick = 0L
         val gridState = ThermalGrid.startingState(thermalGrid)
-        val ambientTemperature = Quantities.getQuantity(12d, Units.CELSIUS)
-        val externalQDot =
-          Quantities.getQuantity(15d, StandardUnits.ACTIVE_POWER_IN)
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid.handleInfeed(
             tick,
             ambientTemperature,
             gridState,
-            externalQDot
+            qDotInfeed
           )
 
         updatedGridState match {
@@ -203,10 +200,91 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
               Quantities.getQuantity(18.9999d, Units.CELSIUS),
               1e-3
             )
-            qDot should equalWithTolerance(externalQDot)
+            qDot should equalWithTolerance(qDotInfeed)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(ThermalGridFilledUp(7372L))
+      }
+    }
+
+    "updating the grid state dependent on the given thermal infeed" should {
+      "deliver proper result, if energy is fed into the grid" in {
+        thermalGrid.updateState(
+          0L,
+          ThermalGrid.startingState(thermalGrid),
+          ambientTemperature,
+          qDotInfeed
+        ) match {
+          case (
+                ThermalGridState(
+                  Some(ThermalHouseState(tick, innerTemperature, qDot)),
+                  None
+                ),
+                Some(ThermalGridFilledUp(thresholdTick))
+              ) =>
+            tick shouldBe 0L
+            innerTemperature should equalWithTolerance(
+              Quantities.getQuantity(18.9999d, Units.CELSIUS),
+              1e-3
+            )
+            qDot should equalWithTolerance(qDotInfeed)
+            thresholdTick shouldBe 7372L
+          case _ => fail("Thermal grid state updated failed")
+        }
+      }
+
+      "deliver proper result, if energy is consumed from the grid" in {
+        thermalGrid.updateState(
+          0L,
+          ThermalGrid.startingState(thermalGrid),
+          ambientTemperature,
+          qDotConsumption
+        ) match {
+          case (
+                ThermalGridState(
+                  Some(ThermalHouseState(tick, innerTemperature, qDot)),
+                  None
+                ),
+                Some(ThermalGridEmpty(thresholdTick))
+              ) =>
+            tick shouldBe 0L
+            innerTemperature should equalWithTolerance(
+              Quantities.getQuantity(18.9999d, Units.CELSIUS),
+              1e-3
+            )
+            qDot should equalWithTolerance(
+              Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
+            )
+            thresholdTick shouldBe 154284L
+          case _ => fail("Thermal grid state updated failed")
+        }
+      }
+
+      "deliver proper result, if energy is neither consumed from nor fed into the grid" in {
+        thermalGrid.updateState(
+          0L,
+          ThermalGrid.startingState(thermalGrid),
+          ambientTemperature,
+          Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
+        ) match {
+          case (
+                ThermalGridState(
+                  Some(ThermalHouseState(tick, innerTemperature, qDot)),
+                  None
+                ),
+                Some(ThermalGridEmpty(thresholdTick))
+              ) =>
+            tick shouldBe 0L
+            innerTemperature should equalWithTolerance(
+              Quantities.getQuantity(18.9999d, Units.CELSIUS),
+              1e-3
+            )
+            qDot should equalWithTolerance(
+              Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
+            )
+            thresholdTick shouldBe 154284L
+          case _ => fail("Thermal grid state updated failed")
+        }
       }
     }
   }

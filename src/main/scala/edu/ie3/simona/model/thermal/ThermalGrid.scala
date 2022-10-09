@@ -88,20 +88,14 @@ final case class ThermalGrid(
     val (storedEnergy, remainingCapacity) = {
       storage
         .zip(state.storageState)
-        .map {
-          case (storage, state) =>
-            val usableEnergy = state.storedEnergy
-            val remaining = storage.getMaxEnergyThreshold
-              .subtract(usableEnergy)
-            (
-              usableEnergy,
-              remaining
-            )
-          case _ =>
-            (
-              Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT),
-              Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT)
-            )
+        .map { case (storage, state) =>
+          val usableEnergy = state.storedEnergy
+          val remaining = storage.getMaxEnergyThreshold
+            .subtract(usableEnergy)
+          (
+            usableEnergy,
+            remaining
+          )
         }
         .getOrElse(
           (
@@ -516,8 +510,14 @@ final case class ThermalGrid(
       maybeUpdatedStorageState.flatMap(_._2)
     ) match {
       case (None, None) =>
-        /* There is no house and no storage, nothing has changed */
-        (ThermalGridState(None, None), None)
+        /* Neither house, nor storage will reach any boundary */
+        (
+          ThermalGridState(
+            maybeUpdatedHouseState.map(_._1),
+            maybeUpdatedStorageState.map(_._1)
+          ),
+          None
+        )
       case (_, Some(StorageFull(_))) =>
         throw new IllegalStateException(
           "When discharging from storage, upper threshold cannot be reached!"
