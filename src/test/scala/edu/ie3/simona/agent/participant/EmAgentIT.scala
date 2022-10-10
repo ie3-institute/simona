@@ -17,7 +17,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.em.EmAgent
 import edu.ie3.simona.agent.participant.em.EmAgent.EmAgentInitializeStateData
 import edu.ie3.simona.agent.participant.load.LoadAgent.FixedLoadAgent
-import edu.ie3.simona.agent.participant.pv.PVAgent
+import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.config.SimonaConfig.{
@@ -116,7 +116,7 @@ class EmAgentIT
         "LoadAgent"
       )
       val pvAgent = TestActorRef(
-        new PVAgent(
+        new PvAgent(
           scheduler = emAgent,
           listener = Iterable(resultsListener.ref)
         ),
