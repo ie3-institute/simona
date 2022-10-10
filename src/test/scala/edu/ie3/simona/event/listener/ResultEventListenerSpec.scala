@@ -33,7 +33,6 @@ import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.util.io.FileIOUtils
-import org.scalatest.BeforeAndAfterEach
 
 import java.io.{File, FileInputStream}
 import java.util.zip.GZIPInputStream
