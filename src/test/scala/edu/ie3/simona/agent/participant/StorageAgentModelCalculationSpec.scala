@@ -27,7 +27,7 @@ import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
-  ChangingFlexOptions,
+  FlexCtrlCompletion,
   IssuePowerCtrl,
   ProvideFlexOptions,
   ProvideMinMaxFlexOptions,
@@ -39,16 +39,12 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
-  RevokeTriggerMessage,
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger
-}
+import edu.ie3.simona.ontology.trigger.Trigger.InitializeParticipantAgentTrigger
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.StorageInputTestData
 import edu.ie3.simona.util.ConfigUtil
@@ -109,17 +105,17 @@ class StorageAgentModelCalculationSpec
   "A storage agent with model calculation depending on no secondary data service" should {
 
     "end in correct state with correct state data after initialisation" in {
+      val emAgent = TestProbe("EmAgentProbe")
+
       val storageAgent = TestFSMRef(
         new StorageAgent(
-          scheduler = scheduler.ref,
+          scheduler = emAgent.ref,
           listener = systemListener
         )
       )
 
-      val emAgent = TestProbe("EmAgentProbe")
-
       val triggerId = 0
-      scheduler.send(
+      emAgent.send(
         storageAgent,
         TriggerWithIdMessage(
           InitializeParticipantAgentTrigger[
@@ -183,12 +179,17 @@ class StorageAgentModelCalculationSpec
       /* Refuse registration */
       primaryServiceProxy.send(storageAgent, RegistrationFailedMessage)
 
-      scheduler.expectMsg(
+      emAgent.expectMsg(
+        ScheduleTriggerMessage(
+          RequestFlexOptions(0L),
+          storageAgent
+        )
+      )
+
+      emAgent.expectMsg(
         CompletionMessage(
           triggerId,
-          Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(0L), storageAgent))
-          )
+          None
         )
       )
 
@@ -236,17 +237,17 @@ class StorageAgentModelCalculationSpec
     }
 
     "answer with zero power, if asked directly after initialisation" in {
+      val emAgent = TestProbe("EmAgentProbe")
+
       val storageAgent = TestFSMRef(
         new StorageAgent(
-          scheduler = scheduler.ref,
+          scheduler = emAgent.ref,
           listener = systemListener
         )
       )
 
-      val emAgent = TestProbe("EmAgentProbe")
-
       val triggerId = 0
-      scheduler.send(
+      emAgent.send(
         storageAgent,
         TriggerWithIdMessage(
           InitializeParticipantAgentTrigger[
@@ -280,8 +281,15 @@ class StorageAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(storageAgent, RegistrationFailedMessage)
 
+      emAgent.expectMsg(
+        ScheduleTriggerMessage(
+          RequestFlexOptions(0L),
+          storageAgent
+        )
+      )
+
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      emAgent.expectMsgType[CompletionMessage]
 
       storageAgent.stateName shouldBe Idle
       /* State data has already been tested */
@@ -363,6 +371,13 @@ class StorageAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(storageAgent, RegistrationFailedMessage)
 
+      emAgent.expectMsg(
+        ScheduleTriggerMessage(
+          RequestFlexOptions(0L),
+          storageAgent
+        )
+      )
+
       /* I am not interested in the CompletionMessage */
       emAgent.expectMsgType[CompletionMessage]
       awaitAssert(storageAgent.stateName shouldBe Idle)
@@ -370,25 +385,10 @@ class StorageAgentModelCalculationSpec
 
       /* TICK 0 (expected activation)
          - charging with pMax (12.961 kW)
-         - expecting ChangingFlexOptions indicator (charging from empty)
+         - expecting changing flex options indicator (charging from empty)
        */
 
-      val activityStart1 = 1
-      emAgent.send(
-        storageAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(0L),
-          activityStart1,
-          storageAgent
-        )
-      )
-
-      // Expect nothing at scheduler
-      emAgent.expectNoMessage()
-
-      awaitAssert(storageAgent.stateName shouldBe Idle)
-
-      emAgent.send(storageAgent, RequestFlexOptions)
+      emAgent.send(storageAgent, RequestFlexOptions(0L))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -403,9 +403,21 @@ class StorageAgentModelCalculationSpec
           maxPower shouldBe storageInput.getType.getpMax()
       }
 
-      emAgent.send(storageAgent, IssuePowerCtrl(storageInput.getType.getpMax()))
+      emAgent.send(
+        storageAgent,
+        IssuePowerCtrl(0L, storageInput.getType.getpMax())
+      )
 
-      emAgent.expectMsg(ChangingFlexOptions(storageInput.getUuid))
+      // next potential activation at fully charged battery:
+      // net power = 12.961kW * 0.92 = 11.92412kW
+      // time to charge fully ~= 16.7727262054h = 60382 ticks (rounded)
+      emAgent.expectMsg(
+        FlexCtrlCompletion(
+          modelUuid = storageInput.getUuid,
+          requestAtNextActivation = true,
+          requestAtTick = Some(60382L)
+        )
+      )
 
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
@@ -419,40 +431,13 @@ class StorageAgentModelCalculationSpec
           )
       }
 
-      // next potential activation at fully charged battery:
-      // net power = 12.961kW * 0.92 = 11.92412kW
-      // time to charge fully ~= 16.7727262054h = 60382 ticks (rounded)
-      emAgent.expectMsg(
-        CompletionMessage(
-          activityStart1,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(60382), storageAgent)
-            )
-          )
-        )
-      )
-
       /* TICK 28800 (unplanned activation)
          - charging with 9 kW
-         - expecting RevokeTriggerMessage
+         - expecting trigger revoke
        */
 
-      val activityStart2 = 2
-      emAgent.send(
-        storageAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(28800L),
-          activityStart2,
-          storageAgent
-        )
-      )
-
-      // Expect nothing at scheduler
-      emAgent.expectNoMessage()
-
       // Re-request flex options, since we've been asked to
-      emAgent.send(storageAgent, RequestFlexOptions)
+      emAgent.send(storageAgent, RequestFlexOptions(28800L))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -467,10 +452,18 @@ class StorageAgentModelCalculationSpec
           maxPower shouldBe storageInput.getType.getpMax()
       }
 
-      emAgent.send(storageAgent, IssuePowerCtrl(9.asKiloWatt))
+      emAgent.send(storageAgent, IssuePowerCtrl(28800L, 9.asKiloWatt))
 
+      // after 8 hours, we're at about half full storage: 95.39296 kWh
+      // net power = 9kW * 0.92 = 8.28kW
+      // time to charge fully ~= 12.6337004831h = 45481 ticks (rounded) from now
+      // current tick is 28800, thus: 28800 + 45481 = 74281
       emAgent.expectMsg(
-        RevokeTriggerMessage(ActivityStartTrigger(60382), storageAgent)
+        FlexCtrlCompletion(
+          modelUuid = storageInput.getUuid,
+          revokeRequestAtTick = Some(60382),
+          requestAtTick = Some(74281)
+        )
       )
 
       emAgent.expectMsgType[ParticipantResultEvent] match {
@@ -485,46 +478,26 @@ class StorageAgentModelCalculationSpec
           )
       }
 
-      // after 8 hours, we're at about half full storage: 95.39296 kWh
-      // net power = 9kW * 0.92 = 8.28kW
-      // time to charge fully ~= 12.6337004831h = 45481 ticks (rounded) from now
-      // current tick is 28800, thus: 28800 + 45481 = 74281
-      emAgent.expectMsg(
-        CompletionMessage(
-          activityStart2,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(74281), storageAgent)
-            )
-          )
-        )
-      )
-
       /* TICK 36000 (unplanned activation)
          - discharging with pMax (-12.961 kW)
-         - expecting RevokeTriggerMessage
+         - expecting trigger revoke
        */
 
-      val activityStart3 = 3
       emAgent.send(
         storageAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(36000L),
-          activityStart3,
-          storageAgent
-        )
+        IssuePowerCtrl(36000L, storageInput.getType.getpMax().multiply(-1))
       )
 
-      // Expect nothing at scheduler
-      emAgent.expectNoMessage()
-
-      emAgent.send(
-        storageAgent,
-        IssuePowerCtrl(storageInput.getType.getpMax().multiply(-1))
-      )
-
+      // after 2 hours, we're at: 111.95296 kWh
+      // net power = -12.961kW * 0.92 = -11.92412kW
+      // time to discharge until lowest energy (40 kWh) ~= 6.03423648873h = 21723 ticks (rounded) from now
+      // current tick is 36000, thus: 36000 + 21723 = 57723
       emAgent.expectMsg(
-        RevokeTriggerMessage(ActivityStartTrigger(74281), storageAgent)
+        FlexCtrlCompletion(
+          modelUuid = storageInput.getUuid,
+          revokeRequestAtTick = Some(74281L),
+          requestAtTick = Some(57723)
+        )
       )
 
       emAgent.expectMsgType[ParticipantResultEvent] match {
@@ -539,43 +512,23 @@ class StorageAgentModelCalculationSpec
           )
       }
 
-      // after 2 hours, we're at: 111.95296 kWh
-      // net power = -12.961kW * 0.92 = -11.92412kW
-      // time to discharge until lowest energy (40 kWh) ~= 6.03423648873h = 21723 ticks (rounded) from now
-      // current tick is 36000, thus: 36000 + 21723 = 57723
-      emAgent.expectMsg(
-        CompletionMessage(
-          activityStart3,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(57723), storageAgent)
-            )
-          )
-        )
-      )
-
       /* TICK 43200 (unplanned activation)
          - charging with 12 kW
-         - expecting RevokeTriggerMessage
+         - expecting trigger revoke
        */
 
-      val activityStart4 = 4
-      emAgent.send(
-        storageAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(43200),
-          activityStart4,
-          storageAgent
-        )
-      )
+      emAgent.send(storageAgent, IssuePowerCtrl(43200L, 12.asKiloWatt))
 
-      // Expect nothing at scheduler
-      emAgent.expectNoMessage()
-
-      emAgent.send(storageAgent, IssuePowerCtrl(12.asKiloWatt))
-
+      // after 2 hours, we're at: 88.10472 kWh
+      // net power = 12 * 0.92 = 11.04 kW
+      // time to charge until full ~= 10.135442029h = 36488 ticks (rounded) from now
+      // current tick is 43200, thus: 43200 + 36488 = 79688
       emAgent.expectMsg(
-        RevokeTriggerMessage(ActivityStartTrigger(57723), storageAgent)
+        FlexCtrlCompletion(
+          modelUuid = storageInput.getUuid,
+          revokeRequestAtTick = Some(57723L),
+          requestAtTick = Some(79688L)
+        )
       )
 
       emAgent.expectMsgType[ParticipantResultEvent] match {
@@ -590,41 +543,13 @@ class StorageAgentModelCalculationSpec
           )
       }
 
-      // after 2 hours, we're at: 88.10472 kWh
-      // net power = 12 * 0.92 = 11.04 kW
-      // time to charge until full ~= 10.135442029h = 36488 ticks (rounded) from now
-      // current tick is 43200, thus: 43200 + 36488 = 79688
-      emAgent.expectMsg(
-        CompletionMessage(
-          activityStart4,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(79688), storageAgent)
-            )
-          )
-        )
-      )
-
       /* TICK 79688 (expected activation)
          - discharging with 12 kW
-         - expecting ChangingFlexOptions indicator (discharging from full)
+         - expecting changing flex options indicator (discharging from full)
        */
 
-      val activityStart5 = 5
-      emAgent.send(
-        storageAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(79688),
-          activityStart5,
-          storageAgent
-        )
-      )
-
-      // Expect nothing at scheduler
-      emAgent.expectNoMessage()
-
       // Request flex options
-      emAgent.send(storageAgent, RequestFlexOptions)
+      emAgent.send(storageAgent, RequestFlexOptions(79688L))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -639,9 +564,19 @@ class StorageAgentModelCalculationSpec
           maxPower shouldBe 0d.asKiloWatt
       }
 
-      emAgent.send(storageAgent, IssuePowerCtrl((-12).asKiloWatt))
+      emAgent.send(storageAgent, IssuePowerCtrl(79688L, (-12).asKiloWatt))
 
-      emAgent.expectMsg(ChangingFlexOptions(storageInput.getUuid))
+      // we're full now at 200 kWh
+      // net power = -12 * 0.92 = -11.04 kW
+      // time to discharge until lowest energy ~= 14.4927536232h = 52174 ticks (rounded) from now
+      // current tick is 79688, thus: 79688 + 52174 = 131862
+      emAgent.expectMsg(
+        FlexCtrlCompletion(
+          modelUuid = storageInput.getUuid,
+          requestAtNextActivation = true,
+          requestAtTick = Some(131862L)
+        )
+      )
 
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
@@ -655,41 +590,13 @@ class StorageAgentModelCalculationSpec
           )
       }
 
-      // we're full now at 200 kWh
-      // net power = -12 * 0.92 = -11.04 kW
-      // time to discharge until lowest energy ~= 14.4927536232h = 52174 ticks (rounded) from now
-      // current tick is 79688, thus: 79688 + 52174 = 131862
-      emAgent.expectMsg(
-        CompletionMessage(
-          activityStart5,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(131862), storageAgent)
-            )
-          )
-        )
-      )
-
       /* TICK 131862 (expected activation)
          - no charging
-         - expecting no ChangingFlexOptions indicator
+         - expecting no changing flex options indicator
        */
 
-      val activityStart6 = 6
-      emAgent.send(
-        storageAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(131862),
-          activityStart6,
-          storageAgent
-        )
-      )
-
-      // Expect nothing at scheduler
-      emAgent.expectNoMessage()
-
       // Request flex options
-      emAgent.send(storageAgent, RequestFlexOptions)
+      emAgent.send(storageAgent, RequestFlexOptions(131862L))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -704,7 +611,14 @@ class StorageAgentModelCalculationSpec
           maxPower shouldBe storageInput.getType.getpMax()
       }
 
-      emAgent.send(storageAgent, IssuePowerCtrl(0.asKiloWatt))
+      emAgent.send(storageAgent, IssuePowerCtrl(131862L, 0.asKiloWatt))
+
+      // we're not charging or discharging, no new expected tick
+      emAgent.expectMsg(
+        FlexCtrlCompletion(
+          modelUuid = storageInput.getUuid
+        )
+      )
 
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
@@ -718,13 +632,6 @@ class StorageAgentModelCalculationSpec
           )
       }
 
-      // we're not charging or discharging, no new expected tick
-      emAgent.expectMsg(
-        CompletionMessage(
-          activityStart6,
-          None
-        )
-      )
     }
 
   }
