@@ -55,7 +55,7 @@ class DBFSAlgorithmCenGridSpec
         """.stripMargin)
       )
     )
-    with DBFSGridAgents
+    with DBFSMockGridAgents
     with ConfigTestData
     with ImplicitSender
     with DbfsTestGrid {

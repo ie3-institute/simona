@@ -49,7 +49,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
         """.stripMargin)
       )
     )
-    with DBFSGridAgents
+    with DBFSMockGridAgents
     with ConfigTestData
     with ImplicitSender
     with DbfsTestGrid {
@@ -248,9 +248,9 @@ class DBFSAlgorithmFailedPowerFlowSpec
         FinishGridSimulationTrigger(3600)
       )
 
-      // after a FinishGridSimulationTrigger is send the inferior grids, they themselves will send the
-      // Trigger forward the trigger to their connected inferior grids. Therefore the inferior grid
-      // agent should receive a FinishGridSimulationTrigger
+      // after a FinishGridSimulationTrigger is send to the inferior grids, they themselves will
+      // forward the trigger to their connected inferior grids. Therefore the inferior grid agent
+      // should receive a FinishGridSimulationTrigger
       inferiorGridAgent.gaProbe.expectMsg(FinishGridSimulationTrigger(3600))
 
       // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a CompletionMessage

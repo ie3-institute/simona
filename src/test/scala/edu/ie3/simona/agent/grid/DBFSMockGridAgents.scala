@@ -23,7 +23,11 @@ import edu.ie3.simona.test.common.UnitSpec
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
 
-trait DBFSGridAgents extends UnitSpec {
+/** Provide mock grid agents for testing the DBFSAlgorithm. These agents are an
+  * agent for inferior grids and an agent for superior grids. Each grid agent
+  * consists of a TestProbe and a sequence of grid nodes.
+  */
+trait DBFSMockGridAgents extends UnitSpec {
   private val floatPrecision: Double = 0.00000000001
 
   sealed trait GAActorAndModel {
