@@ -172,15 +172,15 @@ class EmModelSpec
           actualResults should have size expectedResult.size
 
           val expectedResultMap = expectedResult.toMap
-          actualResults.foreach { case (uuid, msg) =>
+          actualResults.foreach { case (uuid, power) =>
             val expectedRes: Double = expectedResultMap.getOrElse(
               uuid,
               fail(
-                s"Actual control message $msg for model $uuid is not part of the expected"
+                s"Actual control message $power for model $uuid is not part of the expected"
               )
             )
 
-            msg.setPower
+            power
               .to(PowerSystemUnits.KILOWATT)
               .getValue
               .doubleValue() should ===(expectedRes +- 1e-6d)
