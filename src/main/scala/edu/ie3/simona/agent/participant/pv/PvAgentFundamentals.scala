@@ -231,13 +231,11 @@ protected trait PvAgentFundamentals
   ): ApparentPower = {
     val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
 
-    val reactivePower = baseStateData.model match {
-      case model: PvModel =>
-        model.calculateReactivePower(
-          activePower,
-          voltage
-        )
-    }
+    val reactivePower =
+      baseStateData.model.calculateReactivePower(
+        activePower,
+        voltage
+      )
 
     ApparentPower(activePower, reactivePower)
   }
@@ -293,25 +291,17 @@ protected trait PvAgentFundamentals
     val voltage =
       getAndCheckNodalVoltage(baseStateData, currentTick)
 
-    val result =
-      baseStateData.model match {
-        case pvModel: PvModel =>
-          val relevantData =
-            createCalcRelevantData(
-              baseStateData,
-              currentTick
-            )
+    val relevantData =
+      createCalcRelevantData(
+        baseStateData,
+        currentTick
+      )
 
-          pvModel.calculatePower(
-            currentTick,
-            voltage,
-            relevantData
-          )
-        case unsupportedModel =>
-          throw new InconsistentStateException(
-            s"Wrong model: $unsupportedModel!"
-          )
-      }
+    val result = baseStateData.model.calculatePower(
+      currentTick,
+      voltage,
+      relevantData
+    )
 
     updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
       scheduler,
