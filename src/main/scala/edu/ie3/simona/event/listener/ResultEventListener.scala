@@ -24,6 +24,7 @@ import edu.ie3.simona.exceptions.{
 import edu.ie3.simona.io.result._
 import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.util.ResultFileHierarchy
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
@@ -31,6 +32,8 @@ import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 
 object ResultEventListener extends Transformer3wResultSupport {
+  private var log: Logger = LoggerFactory.getLogger(this.getClass)
+
   private final case class SinkResponse(
       response: Map[Class[_], ResultEntitySink]
   ) extends ResultEvent
@@ -153,10 +156,9 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def handleResult(
       resultEntity: ResultEntity,
-      baseData: BaseData,
-      context: ActorContext[ResultEvent]
+      baseData: BaseData
   ): BaseData = {
-    handOverToSink(resultEntity, baseData.classToSink, context)
+    handOverToSink(resultEntity, baseData.classToSink)
     baseData
   }
 
@@ -173,17 +175,15 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def handlePartialTransformer3wResult(
       result: PartialTransformer3wResult,
-      baseData: ResultEventListener.BaseData,
-      context: ActorContext[ResultEvent]
+      baseData: ResultEventListener.BaseData
   ): BaseData = {
     val enhancedResults =
       registerPartialTransformer3wResult(
         result,
-        baseData.threeWindingResults,
-        context
+        baseData.threeWindingResults
       )
     val uncompletedResults =
-      flushComprehensiveResults(enhancedResults, baseData.classToSink, context)
+      flushComprehensiveResults(enhancedResults, baseData.classToSink)
     baseData.copy(threeWindingResults = uncompletedResults)
   }
 
@@ -199,8 +199,7 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def registerPartialTransformer3wResult(
       result: PartialTransformer3wResult,
-      threeWindingResults: Map[Transformer3wKey, AggregatedTransformer3wResult],
-      context: ActorContext[ResultEvent]
+      threeWindingResults: Map[Transformer3wKey, AggregatedTransformer3wResult]
   ): Map[Transformer3wKey, AggregatedTransformer3wResult] = {
     val resultKey = Transformer3wKey(result.input, result.time)
     val partialTransformer3wResult =
@@ -212,7 +211,7 @@ object ResultEventListener extends Transformer3wResultSupport {
       partialTransformer3wResult.add(result) match {
         case Success(value) => value
         case Failure(exception) =>
-          context.log.warn(
+          log.warn(
             "Cannot handle the given result:\n\t{}",
             exception.getMessage
           )
@@ -234,14 +233,13 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def flushComprehensiveResults(
       results: Map[Transformer3wKey, AggregatedTransformer3wResult],
-      classToSink: Map[Class[_], ResultEntitySink],
-      context: ActorContext[ResultEvent]
+      classToSink: Map[Class[_], ResultEntitySink]
   ): Map[Transformer3wKey, AggregatedTransformer3wResult] = {
     val comprehensiveResults = results.filter(_._2.ready)
     comprehensiveResults.map(_._2.consolidate).foreach {
-      case Success(result) => handOverToSink(result, classToSink, context)
+      case Success(result) => handOverToSink(result, classToSink)
       case Failure(exception) =>
-        context.log.warn("Cannot consolidate / write result.\n\t{}", exception)
+        log.warn("Cannot consolidate / write result.\n\t{}", exception)
     }
     results.removedAll(comprehensiveResults.keys)
   }
@@ -256,8 +254,7 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def handOverToSink(
       resultEntity: ResultEntity,
-      classToSink: Map[Class[_], ResultEntitySink],
-      context: ActorContext[ResultEvent]
+      classToSink: Map[Class[_], ResultEntitySink]
   ): Unit =
     Try {
       classToSink
@@ -265,7 +262,7 @@ object ResultEventListener extends Transformer3wResultSupport {
         .foreach(_.handleResultEntity(resultEntity))
     } match {
       case Failure(exception) =>
-        context.log.error("Error while writing result event: ", exception)
+        log.error("Error while writing result event: ", exception)
       case Success(_) =>
     }
 
@@ -274,6 +271,7 @@ object ResultEventListener extends Transformer3wResultSupport {
   ): Behavior[ResultEvent] = {
 
     Behaviors.setup[ResultEvent] { context: ActorContext[ResultEvent] =>
+      this.log = context.log
       implicit val materializer: Materializer = Materializer(context)
 
       context.log.debug("Starting initialization!")
@@ -312,7 +310,7 @@ object ResultEventListener extends Transformer3wResultSupport {
         (event, baseData) match {
           case (ParticipantResultEvent(systemParticipantResult), baseData) =>
             val updatedBaseData =
-              handleResult(systemParticipantResult, baseData, ctx)
+              handleResult(systemParticipantResult, baseData)
             idle(updatedBaseData)
 
           case (
@@ -329,15 +327,14 @@ object ResultEventListener extends Transformer3wResultSupport {
               (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults)
                 .foldLeft(baseData) {
                   case (currentBaseData, resultEntity: ResultEntity) =>
-                    handleResult(resultEntity, currentBaseData, ctx)
+                    handleResult(resultEntity, currentBaseData)
                   case (
                         currentBaseData,
                         partialTransformerResult: PartialTransformer3wResult
                       ) =>
                     handlePartialTransformer3wResult(
                       partialTransformerResult,
-                      currentBaseData,
-                      ctx
+                      currentBaseData
                     )
                 }
             idle(updatedBaseData)

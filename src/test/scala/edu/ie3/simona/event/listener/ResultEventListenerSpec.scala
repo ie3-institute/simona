@@ -33,7 +33,7 @@ import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.util.io.FileIOUtils
-import org.scalatest.{BeforeAndAfterEach, PrivateMethodTester}
+import org.scalatest.BeforeAndAfterEach
 
 import java.io.{File, FileInputStream}
 import java.util.zip.GZIPInputStream
@@ -54,7 +54,6 @@ class ResultEventListenerSpec
     with UnitSpec
     with IOTestCommons
     with BeforeAndAfterEach
-    with PrivateMethodTester
     with PowerFlowResultData
     with ThreeWindingResultTestData
     with Transformer3wResultSupport {
@@ -305,7 +304,7 @@ class ResultEventListenerSpec
 
       "register a fresh entry, when nothing yet is apparent" in {
         val actual =
-          listener invokePrivate registerPartialTransformer3wResult(
+          ResultEventListener invokePrivate registerPartialTransformer3wResult(
             resultA,
             Map.empty[Transformer3wKey, AggregatedTransformer3wResult]
           )
@@ -331,7 +330,7 @@ class ResultEventListenerSpec
         )
 
         val actual =
-          listener invokePrivate registerPartialTransformer3wResult(
+          ResultEventListener invokePrivate registerPartialTransformer3wResult(
             resultA,
             results
           )
@@ -357,7 +356,7 @@ class ResultEventListenerSpec
         )
 
         val actual =
-          listener invokePrivate registerPartialTransformer3wResult(
+          ResultEventListener invokePrivate registerPartialTransformer3wResult(
             resultB,
             results
           )
@@ -413,7 +412,7 @@ class ResultEventListenerSpec
           )
         )
         val actual =
-          listener invokePrivate flushComprehensiveResults(
+          ResultEventListener invokePrivate flushComprehensiveResults(
             results,
             sinks
           )
@@ -441,7 +440,7 @@ class ResultEventListenerSpec
           )
         )
         val actual =
-          listener invokePrivate flushComprehensiveResults(
+          ResultEventListener invokePrivate flushComprehensiveResults(
             results,
             sinks
           )
