@@ -292,29 +292,50 @@ final case class ThermalGrid(
           .possible
         val resultingDemand = house
           .energyDemand(coldHouseTick, ambientTemperature, coldHouseState)
-          .required
+          .possible
 
-        /* Determine, how the energy did evolve and how high the thermal losses are */
-        val energyBalance = initialDemand.subtract(resultingDemand)
+        /* Determine, how the energy did evolve and how high the effective thermal losses are (after consideration of
+         * positive, external influx */
         val duration =
           Quantities.getQuantity(coldHouseTick - initialTick, Units.SECOND)
-        val externalEnergy = qDot.multiply(duration).asType(classOf[Energy])
-        val loss = energyBalance
-          .subtract(externalEnergy)
+        val effectiveLoss = resultingDemand
+          .subtract(initialDemand)
           .divide(duration)
           .asType(classOf[Power])
+          .to(StandardUnits.ACTIVE_POWER_IN)
+
+        if (
+          effectiveLoss.isLessThan(
+            Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+          )
+        )
+          throw new InconsistentStateException(
+            "House loss is positive (actually a gain), this cannot happen with too low infeed."
+          )
 
         storage.zip(initialStorageState) match {
           case Some((str, strState)) =>
             /* Determine the available energy in the storage and the duration, when the needed energy matches exactly
              * the available energy */
-            val availableEnergy = strState.storedEnergy
-            val targetDuration = availableEnergy
-              .subtract(initialDemand)
-              .divide(loss.subtract(qDot))
-              .asType(classOf[Time])
+            val availableEnergy =
+              strState.storedEnergy.subtract(str.getMinEnergyThreshold)
+            if (
+              availableEnergy.isLessThanOrEqualTo(
+                Quantities.getQuantity(0d, StandardUnits.ENERGY_IN)
+              )
+            ) {
+              /* There is no energy available to take from storage. Nothing can be changed */
+              return (
+                ThermalGridState(Some(initialHouseState), initialStorageState),
+                Some(ThermalGridEmpty(coldHouseTick))
+              )
+            }
             val targetDischargePower =
-              availableEnergy.divide(targetDuration).asType(classOf[Power])
+              effectiveLoss
+                .multiply(availableEnergy)
+                .divide(availableEnergy.subtract(initialDemand))
+                .asType(classOf[Power])
+                .to(StandardUnits.ACTIVE_POWER_IN)
 
             /* Check, if this is possible and curtail power if needed */
             val dischargeQDot =
@@ -330,7 +351,7 @@ final case class ThermalGrid(
               qDot.add(dischargeQDot)
             )
             val (reCalculatedStorageState, storageThreshold) =
-              str.updateState(initialTick, qDot.multiply(-1), strState)
+              str.updateState(initialTick, dischargeQDot.multiply(-1), strState)
 
             val gridThreshold = (houseThreshold, storageThreshold) match {
               case (

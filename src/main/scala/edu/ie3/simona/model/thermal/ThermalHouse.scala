@@ -138,8 +138,7 @@ final case class ThermalHouse(
     val temperatureDifference =
       targetTemperature
         .to(Units.KELVIN)
-        .subtract(startTemperature)
-        .to(Units.KELVIN)
+        .subtract(startTemperature.to(Units.KELVIN))
     ethCapa
       .multiply(temperatureDifference)
       .asType(classOf[Energy])
@@ -342,15 +341,14 @@ final case class ThermalHouse(
       ambientTemperature: ComparableQuantity[Temperature]
   ): Option[ThermalHouseThreshold] = {
     val artificialDuration = Quantities.getQuantity(1d, Units.HOUR)
-    val resultingQDot = qDotExternal.subtract(
-      calcThermalEnergyLoss(
-        innerTemperature,
-        ambientTemperature,
-        artificialDuration
-      ).divide(artificialDuration)
-        .asType(classOf[Power])
-        .to(PowerSystemUnits.KILOWATT)
-    )
+    val loss = calcThermalEnergyLoss(
+      innerTemperature,
+      ambientTemperature,
+      artificialDuration
+    ).divide(artificialDuration)
+      .asType(classOf[Power])
+      .to(PowerSystemUnits.KILOWATT)
+    val resultingQDot = qDotExternal.subtract(loss)
     if (
       resultingQDot.isLessThan(
         Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)

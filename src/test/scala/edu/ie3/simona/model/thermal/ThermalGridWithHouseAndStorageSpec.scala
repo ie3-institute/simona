@@ -195,21 +195,74 @@ class ThermalGridWithHouseAndStorageSpec
         )
       val initialTick = 0L
       val coldHouseTick = 3600L
-      val initialHouseState = expectedHouseStartingState
-      val initialStorageState = Some(expectedStorageStartingState)
-      val coldHouseState = expectedHouseStartingState.copy(innerTemperature =
-        thermalHouse.lowerBoundaryTemperature
-      )
       val ambientTemperature = Quantities.getQuantity(12d, Units.CELSIUS)
+      val initialHouseState = expectedHouseStartingState
+      val initialStorageState = expectedStorageStartingState
 
-      "deliver correct state, if there is no external infeed at all" in {
+      "deliver correct state, if there is no external infeed at all and no sufficient stored energy" in {
         val qDot = Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+        val coldHouseState = thermalHouse
+          .updateState(
+            coldHouseTick,
+            initialHouseState,
+            ambientTemperature,
+            qDot
+          )
+          ._1
 
         thermalGrid.handleTooLowInfeed(
           initialTick,
           coldHouseTick,
           initialHouseState,
-          initialStorageState,
+          Some(initialStorageState),
+          coldHouseState,
+          ambientTemperature,
+          qDot
+        ) match {
+          case (
+                ThermalGridState(
+                  Some(
+                    ThermalHouseState(houseTick, innerTemperature, qDotHouse)
+                  ),
+                  Some(
+                    ThermalStorageState(storageTick, storedEnergy, qDotStorage)
+                  )
+                ),
+                Some(ThermalGridEmpty(gridEmptyTick))
+              ) =>
+            houseTick shouldBe initialHouseState.tick
+            innerTemperature should equalWithTolerance(
+              initialHouseState.innerTemperature
+            )
+            qDotHouse should equalWithTolerance(initialHouseState.qDot)
+
+            storageTick shouldBe initialStorageState.tick
+            storedEnergy shouldBe initialStorageState.storedEnergy
+            qDotStorage shouldBe initialStorageState.qDot
+
+            gridEmptyTick shouldBe coldHouseTick
+        }
+      }
+
+      "deliver correct state, if there is no external infeed at all and sufficient stored energy" in {
+        val qDot = Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+        val coldHouseState = thermalHouse
+          .updateState(
+            coldHouseTick,
+            initialHouseState,
+            ambientTemperature,
+            qDot
+          )
+          ._1
+        val loadedStorageState = initialStorageState.copy(storedEnergy =
+          Quantities.getQuantity(430d, StandardUnits.ENERGY_IN)
+        )
+
+        thermalGrid.handleTooLowInfeed(
+          initialTick,
+          coldHouseTick,
+          initialHouseState,
+          Some(loadedStorageState),
           coldHouseState,
           ambientTemperature,
           qDot
@@ -226,9 +279,54 @@ class ThermalGridWithHouseAndStorageSpec
                 Some(ThermalGridEmpty(gridEmptyTick))
               ) =>
             houseTick shouldBe initialTick
-            storageTick shouldBe initialTick
+            innerTemperature should equalWithTolerance(
+              Quantities.getQuantity(18.9999935, Units.CELSIUS),
+              1e-6
+            )
+            qDotHouse should equalWithTolerance(
+              Quantities.getQuantity(0.4117649, StandardUnits.ACTIVE_POWER_IN),
+              1e-6
+            )
 
-            gridEmptyTick shouldBe 0L
+            storageTick shouldBe initialTick
+            storedEnergy shouldBe loadedStorageState.storedEnergy
+            qDotStorage should equalWithTolerance(
+              Quantities.getQuantity(-0.4117649, StandardUnits.ACTIVE_POWER_IN),
+              1e-6
+            )
+
+            gridEmptyTick shouldBe 2108560L
+        }
+      }
+
+      "deliver correct state, if there is too less external infeed and sufficient stored energy" in {
+        val qDot = Quantities.getQuantity(0.2d, StandardUnits.ACTIVE_POWER_IN)
+        val coldHouseState = thermalHouse
+          .updateState(
+            coldHouseTick,
+            initialHouseState,
+            ambientTemperature,
+            qDot
+          )
+          ._1
+        val loadedStorageState = initialStorageState.copy(storedEnergy =
+          Quantities.getQuantity(430d, StandardUnits.ENERGY_IN)
+        )
+
+        thermalGrid.handleTooLowInfeed(
+          initialTick,
+          coldHouseTick,
+          initialHouseState,
+          Some(loadedStorageState),
+          coldHouseState,
+          ambientTemperature,
+          qDot
+        ) match {
+          case (
+                ThermalGridState(_, _),
+                Some(ThermalGridEmpty(gridEmptyTick))
+              ) =>
+            gridEmptyTick shouldBe 772583
         }
       }
     }
