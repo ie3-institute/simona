@@ -20,7 +20,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.fixedfeedin.FixedFeedInAgent
 import edu.ie3.simona.agent.participant.load.LoadAgent
-import edu.ie3.simona.agent.participant.pv.PVAgent
+import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.wec.WecAgent
@@ -249,7 +249,7 @@ class GridAgentController(
         maybeEmAgent
       )
     case input: PvInput =>
-      buildPV(
+      buildPv(
         input,
         participantConfigUtil.getOrDefault[PvRuntimeConfig](
           input.getUuid
@@ -442,7 +442,7 @@ class GridAgentController(
     * later initialization of the agent.
     *
     * @param pvInput
-    *   PV input model to derive information from
+    *   Pv input model to derive information from
     * @param modelConfiguration
     *   User-provided configuration for this specific load model
     * @param primaryServiceProxy
@@ -462,10 +462,10 @@ class GridAgentController(
     * @param maybeEmAgent
     *   The EmAgent if this participant is em-controlled
     * @return
-    *   A pair of [[PVAgent]] 's [[ActorRef]] as well as the equivalent
+    *   A pair of [[PvAgent]] 's [[ActorRef]] as well as the equivalent
     *   [[InitializeParticipantAgentTrigger]] to sent for initialization
     */
-  private def buildPV(
+  private def buildPv(
       pvInput: PvInput,
       modelConfiguration: PvRuntimeConfig,
       primaryServiceProxy: ActorRef,
@@ -486,7 +486,7 @@ class GridAgentController(
   ) =
     (
       gridAgentContext.simonaActorOf(
-        PVAgent.props(
+        PvAgent.props(
           maybeEmAgent.getOrElse(environmentRefs.scheduler),
           listener
         ),

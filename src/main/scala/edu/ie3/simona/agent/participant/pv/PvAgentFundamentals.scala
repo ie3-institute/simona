@@ -21,7 +21,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 }
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.pv.PVAgent.neededServices
+import edu.ie3.simona.agent.participant.pv.PvAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexStateData,
   ParticipantModelBaseStateData
@@ -37,8 +37,8 @@ import edu.ie3.simona.exceptions.agent.{
   InvalidRequestException
 }
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.PVModel.PVRelevantData
-import edu.ie3.simona.model.participant.{ModelState, PVModel}
+import edu.ie3.simona.model.participant.PvModel.PvRelevantData
+import edu.ie3.simona.model.participant.{ModelState, PvModel}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherService.FALLBACK_WEATHER_STEM_DISTANCE
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -50,17 +50,17 @@ import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.{ClassTag, classTag}
 
-protected trait PVAgentFundamentals
+protected trait PvAgentFundamentals
     extends ParticipantAgentFundamentals[
       ApparentPower,
-      PVRelevantData,
+      PvRelevantData,
       ConstantState.type,
       ParticipantStateData[ApparentPower],
       PvInput,
       PvRuntimeConfig,
-      PVModel
+      PvModel
     ] {
-  this: PVAgent =>
+  this: PvAgent =>
   override protected val pdClassTag: ClassTag[ApparentPower] =
     classTag[ApparentPower]
   override val alternativeResult: ApparentPower = ZERO_POWER
@@ -101,9 +101,9 @@ protected trait PVAgentFundamentals
       maybeEmAgent: Option[ActorRef]
   ): ParticipantModelBaseStateData[
     ApparentPower,
-    PVRelevantData,
+    PvRelevantData,
     ConstantState.type,
-    PVModel
+    PvModel
   ] = {
     /* Check for needed services */
     if (
@@ -112,7 +112,7 @@ protected trait PVAgentFundamentals
       )
     )
       throw new AgentInitializationException(
-        s"PVAgent cannot be initialized without a weather service!"
+        s"PvAgent cannot be initialized without a weather service!"
       )
 
     /* Build the calculation model */
@@ -152,7 +152,7 @@ protected trait PVAgentFundamentals
       modelConfig: PvRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
-  ): PVModel = PVModel(
+  ): PvModel = PvModel(
     inputModel,
     modelConfig.scaling,
     simulationStartDate,
@@ -165,12 +165,12 @@ protected trait PVAgentFundamentals
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
-        PVRelevantData,
+        PvRelevantData,
         ConstantState.type,
-        PVModel
+        PvModel
       ],
       tick: Long
-  ): PVRelevantData = {
+  ): PvRelevantData = {
     /* convert current tick to a datetime */
     implicit val startDateTime: ZonedDateTime =
       baseStateData.startDate
@@ -211,7 +211,7 @@ protected trait PVAgentFundamentals
           )
         )
 
-    PVRelevantData(
+    PvRelevantData(
       dateTime,
       tickInterval,
       weatherData.diffIrr,
@@ -222,9 +222,9 @@ protected trait PVAgentFundamentals
   override protected def calculateResult(
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
-        PVRelevantData,
+        PvRelevantData,
         ConstantState.type,
-        PVModel
+        PvModel
       ],
       currentTick: Long,
       activePower: ComparableQuantity[Power]
@@ -232,7 +232,7 @@ protected trait PVAgentFundamentals
     val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
 
     val reactivePower = baseStateData.model match {
-      case model: PVModel =>
+      case model: PvModel =>
         model.calculateReactivePower(
           activePower,
           voltage
@@ -250,15 +250,15 @@ protected trait PVAgentFundamentals
       Long,
       ParticipantModelBaseStateData[
         ApparentPower,
-        PVRelevantData,
+        PvRelevantData,
         ConstantState.type,
-        PVModel
+        PvModel
       ],
       ComparableQuantity[Dimensionless]
   ) => ApparentPower =
     (_, _, _) =>
       throw new InvalidRequestException(
-        "PV model cannot be run without secondary data."
+        "Pv model cannot be run without secondary data."
       )
 
   /** Calculate the power output of the participant utilising secondary data.
@@ -283,9 +283,9 @@ protected trait PVAgentFundamentals
   override def calculatePowerWithSecondaryDataAndGoToIdle(
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
-        PVRelevantData,
+        PvRelevantData,
         ConstantState.type,
-        PVModel
+        PvModel
       ],
       currentTick: Long,
       scheduler: ActorRef
@@ -295,7 +295,7 @@ protected trait PVAgentFundamentals
 
     val result =
       baseStateData.model match {
-        case pvModel: PVModel =>
+        case pvModel: PvModel =>
           val relevantData =
             createCalcRelevantData(
               baseStateData,
