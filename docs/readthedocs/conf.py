@@ -19,16 +19,10 @@ extensions = [
     'sphinxcontrib.plantuml',
     'sphinx.ext.intersphinx',
     'hoverxref.extension',
-    'sphinxcontrib.bibtex',
-    'sphinx_math_dollar'
+    'sphinxcontrib.bibtex'
 ]
 
-mathjax_config = {
-    'tex2jax': {
-      'inlineMath': [ ['$','$']],
-      'displayMath': [ ['$$','$$']],
-    },
-}
+myst_enable_extensions = ["dollarmath", "amsmath"]
 
 templates_path = ['_templates']
 exclude_trees = ['.build']
