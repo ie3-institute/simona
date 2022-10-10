@@ -53,7 +53,6 @@ class ResultEventListenerSpec
     )
     with UnitSpec
     with IOTestCommons
-    with BeforeAndAfterEach
     with PowerFlowResultData
     with ThreeWindingResultTestData
     with Transformer3wResultSupport {
@@ -67,7 +66,7 @@ class ResultEventListenerSpec
     classOf[LineResult]
   )
 
-  private val timeoutDuration: Duration = 5.minute
+  private val timeoutDuration: Duration = 30.seconds
 
   // the OutputFileHierarchy
   private def resultFileHierarchy(
