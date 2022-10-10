@@ -14,16 +14,16 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
-import edu.ie3.simona.model.participant.PVModel
-import edu.ie3.simona.model.participant.PVModel.PVRelevantData
+import edu.ie3.simona.model.participant.PvModel
+import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 
-object PVAgent {
+object PvAgent {
   def props(
       scheduler: ActorRef,
       listener: Iterable[ActorRef]
   ): Props =
     Props(
-      new PVAgent(
+      new PvAgent(
         scheduler,
         listener
       )
@@ -41,20 +41,20 @@ object PVAgent {
   * @param listener
   *   List of listeners interested in results
   */
-class PVAgent(
+class PvAgent(
     scheduler: ActorRef,
     override val listener: Iterable[ActorRef]
 ) extends ParticipantAgent[
       ApparentPower,
-      PVRelevantData,
+      PvRelevantData,
       ParticipantStateData[ApparentPower],
       PvInput,
       PvRuntimeConfig,
-      PVModel
+      PvModel
     ](
       scheduler
     )
-    with PVAgentFundamentals {
+    with PvAgentFundamentals {
 
   /*
    * "Hey, SIMONA! What is handled in ParticipantAgent?"
