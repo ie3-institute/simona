@@ -243,7 +243,7 @@ class ParticipantAgentMock(
         ConstantState.type,
         SystemParticipant[FixedRelevantData.type, ConstantState.type]
       ],
-      currentTick: Long,
+      tick: Long,
       activePower: ComparableQuantity[Power]
   ): ApparentPower =
     ApparentPower(0d.asMegaWatt, 0d.asMegaWatt)

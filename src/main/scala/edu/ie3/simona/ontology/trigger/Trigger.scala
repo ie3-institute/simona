@@ -13,7 +13,7 @@ import edu.ie3.simona.api.ExtSimAdapter.InitExtSimAdapter
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.util.SimonaConstants
 
-sealed trait Trigger {
+trait Trigger {
   def tick: Long
 }
 

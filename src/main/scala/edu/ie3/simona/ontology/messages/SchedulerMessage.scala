@@ -43,18 +43,6 @@ object SchedulerMessage {
       actorToBeScheduled: ActorRef
   ) extends SchedulerMessage
 
-  /** Revoke a trigger for given actor that had been scheduled before.
-    *
-    * @param trigger
-    *   The trigger to revoke
-    * @param actor
-    *   The actor for which the trigger should be revoked
-    */
-  final case class RevokeTriggerMessage(
-      trigger: Trigger,
-      actor: ActorRef
-  ) extends SchedulerMessage
-
   /** Confirm the end of an action e.g. fsm state transitions for one tick to
     * and ONLY to the [[SimScheduler]]
     *
