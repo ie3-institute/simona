@@ -67,7 +67,7 @@ class ResultEventListenerSpec
     classOf[LineResult]
   )
 
-  private val timeoutDuration: Duration = 30.seconds
+  private val timeoutDuration: Duration = 5.minute
 
   // the OutputFileHierarchy
   private def resultFileHierarchy(
