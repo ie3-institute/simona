@@ -55,7 +55,7 @@ class PvModelIT extends Specification implements PvModelITHelper {
 		// if locale is not set hard coded to US, quantity parsing will return invalid values
 		setDefault(US)
 
-		pvModels = getPvModels()
+		pvModels = createPvModels()
 		weatherMap = getWeatherData()
 		resultsMap = getResultsData()
 	}
@@ -124,7 +124,7 @@ trait PvModelITHelper {
 		return CSV_FORMAT.parse(br)
 	}
 
-	HashMap<String, PvModel> getPvModels() {
+	HashMap<String, PvModel> createPvModels() {
 		"load the grid input data from the corresponding resources folder"
 
 		def csvGridSource = CsvGridSource.readGrid("it_grid", ";",
