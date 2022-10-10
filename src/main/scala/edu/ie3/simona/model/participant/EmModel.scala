@@ -18,10 +18,7 @@ import edu.ie3.simona.model.participant.EmModel.{
   zeroApparentPower
 }
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
-  IssuePowerCtrl,
-  ProvideMinMaxFlexOptions
-}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.QuantityUtil
@@ -53,7 +50,7 @@ final case class EmModel private (
     */
   def determineDeviceControl(
       flexOptions: Seq[(SystemParticipantInput, ProvideMinMaxFlexOptions)]
-  ): Seq[(UUID, IssuePowerCtrl)] = {
+  ): Seq[(UUID, ComparableQuantity[Power])] = {
 
     val suggestedPower =
       flexOptions
@@ -83,7 +80,7 @@ final case class EmModel private (
       val orderedParticipants = Seq(evcsOpt, storageOpt, heatPumpOpt).flatten
 
       orderedParticipants.foldLeft(
-        (Seq.empty[(UUID, IssuePowerCtrl)], Option(suggestedPower))
+        (Seq.empty[(UUID, ComparableQuantity[Power])], Option(suggestedPower))
       ) {
         case (
               (issueCtrlMsgs, Some(remainingExcessPower)),
@@ -104,9 +101,7 @@ final case class EmModel private (
             // we cannot cover the excess feed-in with just this flexibility,
             // thus use all of the flexibility
             (
-              issueCtrlMsgs :+ (spi.getUuid, IssuePowerCtrl(
-                flexOption.maxPower
-              )),
+              issueCtrlMsgs :+ (spi.getUuid, flexOption.maxPower),
               Some(remainingExcessPower.subtract(differenceNoControl))
             )
           } else {
@@ -116,7 +111,7 @@ final case class EmModel private (
               flexOption.referencePower.subtract(remainingExcessPower)
 
             (
-              issueCtrlMsgs :+ (spi.getUuid, IssuePowerCtrl(powerCtrl)),
+              issueCtrlMsgs :+ (spi.getUuid, powerCtrl),
               None
             )
           }
@@ -133,7 +128,7 @@ final case class EmModel private (
       val orderedParticipants = Seq(storageOpt, evcsOpt, heatPumpOpt).flatten
 
       orderedParticipants.foldLeft(
-        (Seq.empty[(UUID, IssuePowerCtrl)], Option(suggestedPower))
+        (Seq.empty[(UUID, ComparableQuantity[Power])], Option(suggestedPower))
       ) {
         case (
               (issueCtrlMsgs, Some(remainingExcessPower)),
@@ -154,9 +149,7 @@ final case class EmModel private (
             // we cannot cover the excess load with just this flexibility,
             // thus use all of the flexibility
             (
-              issueCtrlMsgs :+ (spi.getUuid, IssuePowerCtrl(
-                flexOption.minPower
-              )),
+              issueCtrlMsgs :+ (spi.getUuid, flexOption.minPower),
               Some(remainingExcessPower.subtract(differenceNoControl))
             )
           } else {
@@ -166,7 +159,7 @@ final case class EmModel private (
               flexOption.referencePower.subtract(remainingExcessPower)
 
             (
-              issueCtrlMsgs :+ (spi.getUuid, IssuePowerCtrl(powerCtrl)),
+              issueCtrlMsgs :+ (spi.getUuid, powerCtrl),
               None
             )
           }

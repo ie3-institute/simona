@@ -6,29 +6,53 @@
 
 package edu.ie3.simona.agent.participant.em
 
-import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
+import akka.actor.ActorRef
+import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.{
+  FlexTriggerData,
+  TriggerData
+}
+import edu.ie3.simona.ontology.trigger.Trigger
 import edu.ie3.simona.scheduler.SimSchedulerStateData.ScheduledTrigger
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.util.scala.collection.mutable.{CountingMap, PriorityMultiQueue}
+import edu.ie3.util.scala.collection.mutable.PriorityMultiQueue
 
+import java.util.UUID
 import scala.collection.mutable
 
 /** Class holding scheduling state data a [[EmAgent]] needs
   *
   * @param trigger
   *   state data about trigger
-  * @param mainTrigger
-  *   tick -> trigger id received from main scheduler
+  * @param mainTriggerId
+  *   trigger id received from main scheduler
   * @param nowInTicks
   *   the current tick of the simulation
   */
 private[em] final case class EmSchedulerStateData(
     trigger: TriggerData = TriggerData(),
+    flexTrigger: FlexTriggerData,
     nowInTicks: Long = SimonaConstants.INIT_SIM_TICK,
-    mainTrigger: Map[Long, Option[Long]] = Map.empty[Long, Option[Long]]
+    mainTriggerId: Option[Long] = None
 )
 
 object EmSchedulerStateData {
+
+  def apply(
+      triggerData: TriggerData,
+      uuidToActorRef: Map[UUID, ActorRef]
+  ): EmSchedulerStateData = {
+    val actorRefToUuid = uuidToActorRef.map { case (uuid, actor) =>
+      actor -> uuid
+    }
+
+    new EmSchedulerStateData(
+      trigger = triggerData,
+      flexTrigger = FlexTriggerData(
+        actorRefToUuid,
+        uuidToActorRef
+      )
+    )
+  }
 
   /** Holds information about [[edu.ie3.simona.ontology.trigger.Trigger]] that
     * has been scheduled, trigger to be scheduled as well as trigger that are
@@ -38,18 +62,28 @@ object EmSchedulerStateData {
     *   no of triggers that has been scheduled for now
     * @param triggerQueue
     *   holds trigger that needs to be scheduled in ascending tick order
-    * @param triggerIdToScheduledTriggerMap
+    * @param awaitedTriggerMap
     *   the triggerId mapped on its trigger for fast access
-    * @param awaitingResponseMap
-    *   maps a specific tick to all triggers that are not completed yet
     */
   private[em] final case class TriggerData(
       triggerIdCounter: Int = 0,
       triggerQueue: PriorityMultiQueue[Long, ScheduledTrigger] =
         PriorityMultiQueue.empty[Long, ScheduledTrigger],
-      triggerIdToScheduledTriggerMap: mutable.Map[Long, ScheduledTrigger] =
-        mutable.Map
-          .empty[Long, ScheduledTrigger],
-      awaitingResponseMap: CountingMap[Long] = CountingMap.empty[Long]
+      awaitedTriggerMap: mutable.Map[Long, ScheduledTrigger] =
+        mutable.Map.empty[Long, ScheduledTrigger]
+  )
+
+  private[em] final case class FlexTriggerData(
+      actorRefToUuid: Map[ActorRef, UUID],
+      uuidToActorRef: Map[UUID, ActorRef],
+      triggerQueue: PriorityMultiQueue[Long, ScheduledFlexTrigger] =
+        PriorityMultiQueue.empty,
+      awaitedFlexCompletions: mutable.Set[UUID] = mutable.Set.empty,
+      activateAtNextTick: mutable.Set[UUID] = mutable.Set.empty
+  )
+
+  private[em] final case class ScheduledFlexTrigger(
+      trigger: Trigger,
+      modelUuid: UUID
   )
 }
