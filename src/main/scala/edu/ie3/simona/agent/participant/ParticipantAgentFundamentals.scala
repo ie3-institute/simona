@@ -64,11 +64,12 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant
 }
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
-  ChangingFlexOptions,
+  FlexCtrlCompletion,
   IssueFlexControl,
   IssueNoCtrl,
   IssuePowerCtrl,
-  ProvideMinMaxFlexOptions
+  ProvideMinMaxFlexOptions,
+  RequestFlexOptions
 }
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -77,7 +78,6 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   IllegalTriggerMessage,
-  RevokeTriggerMessage,
   ScheduleTriggerMessage
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
@@ -293,6 +293,14 @@ protected trait ParticipantAgentFundamentals[
       /* Register for services */
       val awaitRegistrationResponsesFrom =
         registerForServices(inputModel, services)
+
+      // always request flex options for first sim tick
+      maybeEmAgent.foreach {
+        _ ! ScheduleTriggerMessage(
+          RequestFlexOptions(0L),
+          self
+        )
+      }
 
       val baseStateData = determineModelBaseStateData(
         inputModel,
@@ -632,11 +640,12 @@ protected trait ParticipantAgentFundamentals[
   }
 
   override protected def handleFlexRequest(
-      participantStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
+      participantStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+      tick: Long
   ): ParticipantModelBaseStateData[PD, CD, MS, M] = {
     val updatedBaseStateData = calculateFlexOptions(
       participantStateData,
-      currentTick
+      tick
     )
 
     val updatedFlexData = updatedBaseStateData.flexStateData.getOrElse(
@@ -658,7 +667,7 @@ protected trait ParticipantAgentFundamentals[
 
   override protected def calculateFlexOptions(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      currentTick: Long
+      tick: Long
   ): ParticipantModelBaseStateData[PD, CD, MS, M] = {
 
     implicit val startDateTime: ZonedDateTime = baseStateData.startDate
@@ -666,10 +675,10 @@ protected trait ParticipantAgentFundamentals[
     val relevantData =
       createCalcRelevantData(
         baseStateData,
-        currentTick
+        tick
       )
 
-    val lastState = getLastOrInitialStateData(baseStateData, currentTick)
+    val lastState = getLastOrInitialStateData(baseStateData, tick)
 
     val flexOptions =
       baseStateData.model.determineFlexOptions(relevantData, lastState)
@@ -685,7 +694,7 @@ protected trait ParticipantAgentFundamentals[
               maxPower
             ) =>
           new FlexOptionsResult(
-            currentTick.toDateTime,
+            tick.toDateTime,
             modelUuid,
             referencePower,
             minPower,
@@ -701,7 +710,7 @@ protected trait ParticipantAgentFundamentals[
         data.copy(flexOptionsStore =
           ValueStore.updateValueStore(
             data.flexOptionsStore,
-            currentTick,
+            tick,
             flexOptions
           )
         )
@@ -711,7 +720,6 @@ protected trait ParticipantAgentFundamentals[
 
   override protected def handleFlexCtrl(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      currentTick: Long,
       flexCtrl: IssueFlexControl,
       scheduler: ActorRef
   ): State = {
@@ -727,16 +735,16 @@ protected trait ParticipantAgentFundamentals[
 
     val result = calculateResult(
       baseStateData,
-      currentTick,
+      flexCtrl.tick,
       resultingActivePower
     )
 
     val relevantData = createCalcRelevantData(
       baseStateData,
-      currentTick
+      flexCtrl.tick
     )
 
-    val lastState = getLastOrInitialStateData(baseStateData, currentTick)
+    val lastState = getLastOrInitialStateData(baseStateData, flexCtrl.tick)
 
     val (updatedState, flexChangeIndicator) =
       baseStateData.model.handleControlledPowerChange(
@@ -748,7 +756,7 @@ protected trait ParticipantAgentFundamentals[
     // announce last result to listeners
     announceSimulationResult(
       baseStateData,
-      currentTick,
+      flexCtrl.tick,
       result
     )(baseStateData.outputConfig)
 
@@ -756,49 +764,36 @@ protected trait ParticipantAgentFundamentals[
     val updatedResultsStore =
       ValueStore.updateValueStore(
         baseStateData.resultValueStore,
-        currentTick,
+        flexCtrl.tick,
         result
       )
 
-    // indicate to EmAgent if flex options are going to change at
-    // the next activation no matter the tick
-    if (flexChangeIndicator.changesAtNextActivation)
-      flexStateData.emAgent ! ChangingFlexOptions(baseStateData.modelUuid)
-
     // revoke old tick and remove it from state data, if applicable
-    val clearedBaseStateData =
-      flexStateData.scheduledTick
-        .map { obsoleteTick =>
+    val revokeRequest =
+      flexStateData.scheduledRequest
+        .filter {
           // revoke old tick if it exists and is placed in the future
-          if (obsoleteTick > currentTick)
-            flexStateData.emAgent !
-              RevokeTriggerMessage(
-                ActivityStartTrigger(obsoleteTick),
-                self
-              )
-
-          // remove from additionalTicks and from flex state data
-          baseStateData.copy(
-            additionalActivationTicks =
-              baseStateData.additionalActivationTicks.filterNot(
-                _ == obsoleteTick
-              ),
-            flexStateData = Some(
-              flexStateData.copy(scheduledTick = None)
-            )
-          )
+          _ > flexCtrl.tick
         }
-        .getOrElse(baseStateData)
+
+    // remove from additionalTicks and from flex state data
+    val clearedBaseStateData =
+      if (revokeRequest.nonEmpty)
+        baseStateData.copy(
+          flexStateData = Some(
+            flexStateData.copy(scheduledRequest = None)
+          )
+        )
+      else
+        baseStateData
 
     // add new tick and updated relevant data, if applicable
     val updatedStateData = flexChangeIndicator.changesAtTick
-      .map { additionalTick =>
+      .map { requestTick =>
         // save new tick
         clearedBaseStateData.copy(
-          additionalActivationTicks =
-            clearedBaseStateData.additionalActivationTicks :+ additionalTick,
           flexStateData = clearedBaseStateData.flexStateData.map(
-            _.copy(scheduledTick = Some(additionalTick))
+            _.copy(scheduledRequest = Some(requestTick))
           )
         )
       }
@@ -806,23 +801,34 @@ protected trait ParticipantAgentFundamentals[
       .copy(
         stateDataStore = ValueStore.updateValueStore(
           baseStateData.stateDataStore,
-          currentTick,
+          flexCtrl.tick,
           updatedState
         ),
         resultValueStore = updatedResultsStore
       )
 
+    flexStateData.emAgent ! FlexCtrlCompletion(
+      baseStateData.modelUuid,
+      revokeRequest,
+      flexChangeIndicator.changesAtNextActivation,
+      flexChangeIndicator.changesAtTick
+    )
+
     // announce current result to EmAgent
     flexStateData.emAgent ! buildResultEvent(
       updatedStateData,
-      currentTick,
+      flexCtrl.tick,
       result
     )
 
-    goToIdleReplyCompletionAndScheduleTriggerForNextAction(
-      updatedStateData,
-      scheduler
-    )
+    if (currentTickDefined) {
+      // if we've received ActivityStartTrigger, send completion
+      goToIdleReplyCompletionAndScheduleTriggerForNextAction(
+        updatedStateData,
+        scheduler
+      )
+    } else
+      stay() using updatedStateData
   }
 
   protected def determineResultingFlexPower(
@@ -840,7 +846,7 @@ protected trait ParticipantAgentFundamentals[
     flexOptions match {
       case ProvideMinMaxFlexOptions(_, pRef, pMin, pMax) =>
         flexCtrl match {
-          case IssuePowerCtrl(setPower) =>
+          case IssuePowerCtrl(_, setPower) =>
             // sanity check: setPower is in range of latest flex options
             if (setPower.isLessThan(pMin))
               throw new RuntimeException(
@@ -854,7 +860,7 @@ protected trait ParticipantAgentFundamentals[
             // override, take setPower
             setPower
 
-          case IssueNoCtrl =>
+          case IssueNoCtrl(_) =>
             // no override, take reference power
             pRef
         }
@@ -960,14 +966,14 @@ protected trait ParticipantAgentFundamentals[
 
   protected def getLastOrInitialStateData(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      currentTick: Long
+      tick: Long
   ): MS =
     ConstantState match {
       case constantState: MS =>
         constantState
       case _ =>
         baseStateData.stateDataStore
-          .last(currentTick)
+          .last(tick)
           .map { case (_, lastState) =>
             lastState
           }
