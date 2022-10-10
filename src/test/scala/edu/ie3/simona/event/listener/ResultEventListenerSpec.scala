@@ -67,7 +67,7 @@ class ResultEventListenerSpec
     classOf[LineResult]
   )
 
-  private val timeoutDuration: Duration = 180.seconds
+  private val timeoutDuration: Duration = 30.seconds
 
   // the OutputFileHierarchy
   private def resultFileHierarchy(
@@ -497,7 +497,7 @@ class ResultEventListenerSpec
         )
 
         // stop listener so that result is flushed out
-        testKit.stop(listener, 1.minute)
+        testKit.stop(listener, 10.seconds)
 
         /* Await that the result is written */
         awaitCond(
