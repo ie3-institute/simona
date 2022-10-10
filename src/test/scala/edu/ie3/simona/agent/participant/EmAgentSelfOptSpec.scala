@@ -17,7 +17,7 @@ import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
-  ChangingFlexOptions,
+  FlexCtrlCompletion,
   IssueNoCtrl,
   IssuePowerCtrl,
   ProvideMinMaxFlexOptions,
@@ -25,7 +25,6 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
-  RevokeTriggerMessage,
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
@@ -156,14 +155,7 @@ class EmAgentSelfOptSpec
         emAgent,
         CompletionMessage(
           receivedEvcsInit.triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(0L),
-                evcsAgent.ref
-              )
-            )
-          )
+          None
         )
       )
 
@@ -180,6 +172,12 @@ class EmAgentSelfOptSpec
           )
         )
       )
+
+      // we receive ev arrivals at the first tick
+      emAgent ! ScheduleTriggerMessage(ActivityStartTrigger(0L), evcsAgent.ref)
+
+      // no additional scheduling message, since tick 0 has already been scheduled
+      scheduler.expectNoMessage()
 
       // init done, start EmAgent
       val activationId1 = 1L
@@ -199,14 +197,14 @@ class EmAgentSelfOptSpec
       receivedPvActivation1.trigger shouldBe ActivityStartTrigger(0L)
       receivedPvActivation1.receiverActor shouldBe pvAgent.ref
 
-      pvAgent.expectMsg(RequestFlexOptions)
+      pvAgent.expectMsg(RequestFlexOptions(0L))
 
       val receivedEvcsActivation1 =
         evcsAgent.expectMsgType[TriggerWithIdMessage]
       receivedEvcsActivation1.trigger shouldBe ActivityStartTrigger(0L)
       receivedEvcsActivation1.receiverActor shouldBe evcsAgent.ref
 
-      evcsAgent.expectMsg(RequestFlexOptions)
+      evcsAgent.expectMsg(RequestFlexOptions(0L))
 
       // send flex options
       pvAgent.send(
@@ -233,7 +231,7 @@ class EmAgentSelfOptSpec
       )
 
       // receive flex control messages
-      pvAgent.expectMsg(IssueNoCtrl)
+      pvAgent.expectMsg(IssueNoCtrl(0L))
       pvAgent.send(
         emAgent,
         ParticipantResultEvent(
@@ -247,7 +245,7 @@ class EmAgentSelfOptSpec
       )
 
       evcsAgent.expectMsgType[IssuePowerCtrl] match {
-        case IssuePowerCtrl(setPower) =>
+        case IssuePowerCtrl(0L, setPower) =>
           setPower should equalWithTolerance(5d.asKiloWatt, tolerance)
       }
       evcsAgent.send(
@@ -279,6 +277,13 @@ class EmAgentSelfOptSpec
       // send completions
       pvAgent.send(
         emAgent,
+        FlexCtrlCompletion(
+          pvInput.getUuid
+        )
+      )
+
+      pvAgent.send(
+        emAgent,
         CompletionMessage(
           receivedPvActivation1.triggerId,
           Some(
@@ -292,20 +297,21 @@ class EmAgentSelfOptSpec
         )
       )
 
+      evcsAgent.send(
+        emAgent,
+        FlexCtrlCompletion(
+          evcsInput.getUuid,
+          requestAtTick = Some(300L)
+        )
+      )
+
       scheduler.expectNoMessage()
 
       evcsAgent.send(
         emAgent,
         CompletionMessage(
           receivedEvcsActivation1.triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(300L),
-                evcsAgent.ref
-              )
-            )
-          )
+          None
         )
       )
 
@@ -334,12 +340,7 @@ class EmAgentSelfOptSpec
       // thus 1 does not get activated
       pvAgent.expectNoMessage()
 
-      val receivedEvcsActivation2 =
-        evcsAgent.expectMsgType[TriggerWithIdMessage]
-      receivedEvcsActivation2.trigger shouldBe ActivityStartTrigger(300L)
-      receivedEvcsActivation2.receiverActor shouldBe evcsAgent.ref
-
-      evcsAgent.expectMsg(RequestFlexOptions)
+      evcsAgent.expectMsg(RequestFlexOptions(300L))
 
       // send flex options again, ev is fully charged
       evcsAgent.send(
@@ -353,9 +354,7 @@ class EmAgentSelfOptSpec
       )
 
       // receive flex control messages
-      pvAgent.expectNoMessage()
-
-      evcsAgent.expectMsg(IssueNoCtrl)
+      evcsAgent.expectMsg(IssueNoCtrl(300L))
       evcsAgent.send(
         emAgent,
         ParticipantResultEvent(
@@ -367,6 +366,8 @@ class EmAgentSelfOptSpec
           )
         )
       )
+
+      pvAgent.expectNoMessage()
 
       // expect correct results
       resultsProbe.expectMsgType[ParticipantResultEvent] match {
@@ -390,7 +391,9 @@ class EmAgentSelfOptSpec
 
       evcsAgent.send(
         emAgent,
-        CompletionMessage(receivedEvcsActivation2.triggerId, None)
+        FlexCtrlCompletion(
+          evcsInput.getUuid
+        )
       )
 
       // expect completion from EmAgent
@@ -495,14 +498,7 @@ class EmAgentSelfOptSpec
         emAgent,
         CompletionMessage(
           receivedEvcsInit.triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(0L),
-                evcsAgent.ref
-              )
-            )
-          )
+          None
         )
       )
 
@@ -519,6 +515,9 @@ class EmAgentSelfOptSpec
           )
         )
       )
+
+      // we receive ev arrivals at the first tick
+      emAgent ! ScheduleTriggerMessage(ActivityStartTrigger(0L), evcsAgent.ref)
 
       // init done, start EmAgent
       val activationId1 = 1L
@@ -538,14 +537,14 @@ class EmAgentSelfOptSpec
       receivedPvActivation1.trigger shouldBe ActivityStartTrigger(0L)
       receivedPvActivation1.receiverActor shouldBe pvAgent.ref
 
-      pvAgent.expectMsg(RequestFlexOptions)
+      pvAgent.expectMsg(RequestFlexOptions(0L))
 
       val receivedEvcsActivation1 =
         evcsAgent.expectMsgType[TriggerWithIdMessage]
       receivedEvcsActivation1.trigger shouldBe ActivityStartTrigger(0L)
       receivedEvcsActivation1.receiverActor shouldBe evcsAgent.ref
 
-      evcsAgent.expectMsg(RequestFlexOptions)
+      evcsAgent.expectMsg(RequestFlexOptions(0L))
 
       // send flex options
       pvAgent.send(
@@ -572,7 +571,7 @@ class EmAgentSelfOptSpec
       )
 
       // receive flex control messages
-      pvAgent.expectMsg(IssueNoCtrl)
+      pvAgent.expectMsg(IssueNoCtrl(0L))
       pvAgent.send(
         emAgent,
         ParticipantResultEvent(
@@ -586,7 +585,7 @@ class EmAgentSelfOptSpec
       )
 
       evcsAgent.expectMsgType[IssuePowerCtrl] match {
-        case IssuePowerCtrl(setPower) =>
+        case IssuePowerCtrl(0L, setPower) =>
           setPower should equalWithTolerance(5d.asKiloWatt, tolerance)
       }
       evcsAgent.send(
@@ -616,6 +615,14 @@ class EmAgentSelfOptSpec
       }
 
       // send completions
+
+      pvAgent.send(
+        emAgent,
+        FlexCtrlCompletion(
+          pvInput.getUuid
+        )
+      )
+
       pvAgent.send(
         emAgent,
         CompletionMessage(
@@ -631,20 +638,21 @@ class EmAgentSelfOptSpec
         )
       )
 
+      evcsAgent.send(
+        emAgent,
+        FlexCtrlCompletion(
+          evcsInput.getUuid,
+          requestAtTick = Some(600L)
+        )
+      )
+
       scheduler.expectNoMessage()
 
       evcsAgent.send(
         emAgent,
         CompletionMessage(
           receivedEvcsActivation1.triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(600L),
-                evcsAgent.ref
-              )
-            )
-          )
+          None
         )
       )
 
@@ -678,7 +686,7 @@ class EmAgentSelfOptSpec
       receivedPvActivation2.trigger shouldBe ActivityStartTrigger(300L)
       receivedPvActivation2.receiverActor shouldBe pvAgent.ref
 
-      pvAgent.expectMsg(RequestFlexOptions)
+      pvAgent.expectMsg(RequestFlexOptions(300L))
 
       // send flex options again, now there's a cloud and thus less feed-in
       pvAgent.send(
@@ -692,7 +700,7 @@ class EmAgentSelfOptSpec
       )
 
       // receive flex control messages
-      pvAgent.expectMsg(IssueNoCtrl)
+      pvAgent.expectMsg(IssueNoCtrl(300L))
 
       pvAgent.send(
         emAgent,
@@ -708,24 +716,30 @@ class EmAgentSelfOptSpec
 
       pvAgent.send(
         emAgent,
+        FlexCtrlCompletion(
+          pvInput.getUuid
+        )
+      )
+
+      pvAgent.send(
+        emAgent,
         CompletionMessage(receivedPvActivation2.triggerId, None)
       )
 
-      // evcs is now activated too
-      val receivedEvcsActivation2 =
-        evcsAgent.expectMsgType[TriggerWithIdMessage]
-      receivedEvcsActivation2.trigger shouldBe ActivityStartTrigger(300L)
-      receivedEvcsActivation2.receiverActor shouldBe evcsAgent.ref
-
+      // evcs is now sent control too
       evcsAgent.expectMsgType[IssuePowerCtrl] match {
-        case IssuePowerCtrl(setPower) =>
+        case IssuePowerCtrl(300L, setPower) =>
           setPower should equalWithTolerance(3d.asKiloWatt, tolerance)
       }
+
+      scheduler.expectNoMessage()
+
       evcsAgent.send(
         emAgent,
-        RevokeTriggerMessage(
-          ActivityStartTrigger(600L),
-          evcsAgent.ref
+        FlexCtrlCompletion(
+          modelUuid = evcsInput.getUuid,
+          revokeRequestAtTick = Some(600L),
+          requestAtTick = Some(800L)
         )
       )
 
@@ -757,24 +771,6 @@ class EmAgentSelfOptSpec
         case unexpected =>
           fail(s"Received unexpected result $unexpected")
       }
-
-      // send completion
-      scheduler.expectNoMessage()
-
-      evcsAgent.send(
-        emAgent,
-        CompletionMessage(
-          receivedEvcsActivation2.triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(800L),
-                evcsAgent.ref
-              )
-            )
-          )
-        )
-      )
 
       // expect completion from EmAgent with new tick (800) instead of revoked tick (600)
       scheduler.expectMsg(
@@ -877,14 +873,7 @@ class EmAgentSelfOptSpec
         emAgent,
         CompletionMessage(
           receivedEvcsInit.triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(0L),
-                evcsAgent.ref
-              )
-            )
-          )
+          None
         )
       )
 
@@ -901,6 +890,9 @@ class EmAgentSelfOptSpec
           )
         )
       )
+
+      // we receive ev arrivals at the first tick
+      emAgent ! ScheduleTriggerMessage(ActivityStartTrigger(0L), evcsAgent.ref)
 
       // init done, start EmAgent
       val activationId1 = 1L
@@ -920,14 +912,14 @@ class EmAgentSelfOptSpec
       receivedPvActivation1.trigger shouldBe ActivityStartTrigger(0L)
       receivedPvActivation1.receiverActor shouldBe pvAgent.ref
 
-      pvAgent.expectMsg(RequestFlexOptions)
+      pvAgent.expectMsg(RequestFlexOptions(0L))
 
       val receivedEvcsActivation1 =
         evcsAgent.expectMsgType[TriggerWithIdMessage]
       receivedEvcsActivation1.trigger shouldBe ActivityStartTrigger(0L)
       receivedEvcsActivation1.receiverActor shouldBe evcsAgent.ref
 
-      evcsAgent.expectMsg(RequestFlexOptions)
+      evcsAgent.expectMsg(RequestFlexOptions(0L))
 
       // send flex options
       pvAgent.send(
@@ -954,7 +946,7 @@ class EmAgentSelfOptSpec
       )
 
       // receive flex control messages
-      pvAgent.expectMsg(IssueNoCtrl)
+      pvAgent.expectMsg(IssueNoCtrl(0L))
       pvAgent.send(
         emAgent,
         ParticipantResultEvent(
@@ -968,12 +960,9 @@ class EmAgentSelfOptSpec
       )
 
       evcsAgent.expectMsgType[IssuePowerCtrl] match {
-        case IssuePowerCtrl(setPower) =>
+        case IssuePowerCtrl(0L, setPower) =>
           setPower should equalWithTolerance(5d.asKiloWatt, tolerance)
       }
-
-      // sending ChangingFlexOptions indicator
-      evcsAgent.send(emAgent, ChangingFlexOptions(evcsInput.getUuid))
 
       evcsAgent.send(
         emAgent,
@@ -1004,6 +993,13 @@ class EmAgentSelfOptSpec
       // send completions
       pvAgent.send(
         emAgent,
+        FlexCtrlCompletion(
+          pvInput.getUuid
+        )
+      )
+
+      pvAgent.send(
+        emAgent,
         CompletionMessage(
           receivedPvActivation1.triggerId,
           Some(
@@ -1017,20 +1013,23 @@ class EmAgentSelfOptSpec
         )
       )
 
+      // sending ChangingFlexOptions indicator
+      evcsAgent.send(
+        emAgent,
+        FlexCtrlCompletion(
+          modelUuid = evcsInput.getUuid,
+          requestAtNextActivation = true,
+          requestAtTick = Some(600L)
+        )
+      )
+
       scheduler.expectNoMessage()
 
       evcsAgent.send(
         emAgent,
         CompletionMessage(
           receivedEvcsActivation1.triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(600L),
-                evcsAgent.ref
-              )
-            )
-          )
+          None
         )
       )
 
@@ -1063,7 +1062,7 @@ class EmAgentSelfOptSpec
       receivedPvActivation2.receiverActor shouldBe pvAgent.ref
 
       // FLEX OPTIONS
-      pvAgent.expectMsg(RequestFlexOptions)
+      pvAgent.expectMsg(RequestFlexOptions(300L))
 
       // send flex options again, now there's a cloud and thus less feed-in
       pvAgent.send(
@@ -1076,13 +1075,8 @@ class EmAgentSelfOptSpec
         )
       )
 
-      val receivedEvcsActivation2 =
-        evcsAgent.expectMsgType[TriggerWithIdMessage]
-      receivedEvcsActivation2.trigger shouldBe ActivityStartTrigger(300L)
-      receivedEvcsActivation2.receiverActor shouldBe evcsAgent.ref
-
       // expecting flex options request, since we asked for it last time
-      evcsAgent.expectMsg(RequestFlexOptions)
+      evcsAgent.expectMsg(RequestFlexOptions(300L))
 
       evcsAgent.send(
         emAgent,
@@ -1095,7 +1089,7 @@ class EmAgentSelfOptSpec
       )
 
       // FLEX CONTROL
-      pvAgent.expectMsg(IssueNoCtrl)
+      pvAgent.expectMsg(IssueNoCtrl(300L))
 
       pvAgent.send(
         emAgent,
@@ -1111,18 +1105,25 @@ class EmAgentSelfOptSpec
 
       pvAgent.send(
         emAgent,
+        FlexCtrlCompletion(
+          pvInput.getUuid
+        )
+      )
+
+      pvAgent.send(
+        emAgent,
         CompletionMessage(receivedPvActivation2.triggerId, None)
       )
 
       evcsAgent.expectMsgType[IssuePowerCtrl] match {
-        case IssuePowerCtrl(setPower) =>
+        case IssuePowerCtrl(300L, setPower) =>
           setPower should equalWithTolerance(3d.asKiloWatt, tolerance)
       }
       evcsAgent.send(
         emAgent,
-        RevokeTriggerMessage(
-          ActivityStartTrigger(600L),
-          evcsAgent.ref
+        FlexCtrlCompletion(
+          modelUuid = evcsInput.getUuid,
+          revokeRequestAtTick = Some(600)
         )
       )
 
@@ -1155,28 +1156,10 @@ class EmAgentSelfOptSpec
           fail(s"Received unexpected result $unexpected")
       }
 
-      // send completion
-      scheduler.expectNoMessage()
-
-      evcsAgent.send(
-        emAgent,
-        CompletionMessage(
-          receivedEvcsActivation2.triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(800L),
-                evcsAgent.ref
-              )
-            )
-          )
-        )
-      )
-
       scheduler.expectMsg(
         CompletionMessage(
           activationId2,
-          Some(Seq(ScheduleTriggerMessage(ActivityStartTrigger(800L), emAgent)))
+          None
         )
       )
     }
