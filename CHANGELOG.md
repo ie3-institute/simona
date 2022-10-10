@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renaming sub-package directories [#141](https://github.com/ie3-institute/simona/issues/141)
 - Updated authors in AUTHORS.md [#301](https://github.com/ie3-institute/simona/issues/301)
 - Added faster data structures to SimScheduler [#282](https://github.com/ie3-institute/simona/issues/282)
+- Adaption of abbreviations in PVModel and adjacent classes to naming convention [#326](https://github.com/ie3-institute/simona/issues/326)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)

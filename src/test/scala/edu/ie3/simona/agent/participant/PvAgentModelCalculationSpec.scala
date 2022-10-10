@@ -16,7 +16,7 @@ import edu.ie3.datamodel.models.input.system.characteristic.QV
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
-import edu.ie3.simona.agent.participant.pv.PVAgent
+import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
@@ -74,10 +74,10 @@ import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND}
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 
-class PVAgentModelCalculationSpec
+class PvAgentModelCalculationSpec
     extends ParticipantAgentSpec(
       ActorSystem(
-        "PVAgentSpec",
+        "PvAgentSpec",
         ConfigFactory
           .parseString("""
             |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
@@ -132,7 +132,7 @@ class PVAgentModelCalculationSpec
   "A pv agent with model calculation depending on no secondary data service" should {
     "be instantiated correctly" in {
       val pvAgent = TestFSMRef(
-        new PVAgent(
+        new PvAgent(
           scheduler = scheduler.ref,
           listener = systemListener
         )
@@ -151,7 +151,7 @@ class PVAgentModelCalculationSpec
 
     "fail initialisation and stay in uninitialized state" in {
       val pvAgent = TestFSMRef(
-        new PVAgent(
+        new PvAgent(
           scheduler = scheduler.ref,
           listener = systemListener
         )
@@ -211,7 +211,7 @@ class PVAgentModelCalculationSpec
   "A pv agent with model calculation depending on one secondary data service" should {
     "be instantiated correctly" in {
       val pvAgent = TestFSMRef(
-        new PVAgent(
+        new PvAgent(
           scheduler = scheduler.ref,
           listener = systemListener
         )
@@ -230,7 +230,7 @@ class PVAgentModelCalculationSpec
 
     "end in correct state with correct state data after initialisation" in {
       val pvAgent = TestFSMRef(
-        new PVAgent(
+        new PvAgent(
           scheduler = scheduler.ref,
           listener = systemListener
         )
@@ -390,7 +390,7 @@ class PVAgentModelCalculationSpec
 
     "answer with zero power, if asked directly after initialisation" in {
       val pvAgent = TestFSMRef(
-        new PVAgent(
+        new PvAgent(
           scheduler = scheduler.ref,
           listener = systemListener
         )
@@ -476,7 +476,7 @@ class PVAgentModelCalculationSpec
 
     "do correct transitions faced to new data in Idle" in {
       val pvAgent = TestFSMRef(
-        new PVAgent(
+        new PvAgent(
           scheduler = scheduler.ref,
           listener = systemListener
         )
@@ -625,7 +625,7 @@ class PVAgentModelCalculationSpec
 
     "do correct transitions triggered for activation in idle" in {
       val pvAgent = TestFSMRef(
-        new PVAgent(
+        new PvAgent(
           scheduler = scheduler.ref,
           listener = systemListener
         )
@@ -772,7 +772,7 @@ class PVAgentModelCalculationSpec
 
     "does not provide power if data is awaited in an earlier tick, but answers it, if all expected data is there" in {
       val pvAgent = TestFSMRef(
-        new PVAgent(
+        new PvAgent(
           scheduler = scheduler.ref,
           listener = systemListener
         )
@@ -877,7 +877,7 @@ class PVAgentModelCalculationSpec
     }
 
     val pvAgent = TestFSMRef(
-      new PVAgent(
+      new PvAgent(
         scheduler = scheduler.ref,
         listener = systemListener
       )

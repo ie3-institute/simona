@@ -232,14 +232,15 @@ object BaseStateData {
     override val modelUuid: UUID = model.getUuid
   }
 
-  /** @param scheduledTick
-    *   Currently scheduled tick. There can only only be one scheduled tick at a
-    *   time
+  /** @param scheduledRequest
+    *   Tick of a request that is currently scheduled with EmAgent. There can
+    *   only only be one scheduled tick at a time. First tick (0) is always
+    *   requested.
     */
   final case class FlexStateData(
       emAgent: ActorRef,
       flexOptionsStore: ValueStore[ProvideFlexOptions],
-      scheduledTick: Option[Long] = None
+      scheduledRequest: Option[Long] = Some(0L)
   )
 
   /** Updates the base state data with the given value stores

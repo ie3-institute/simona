@@ -6,28 +6,32 @@
 
 package edu.ie3.simona.ontology.messages
 
+import edu.ie3.simona.ontology.trigger.Trigger
 import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
 import javax.measure.quantity.Power
 
-trait FlexibilityMessage {}
+// TODO adapt scaladoc
+sealed trait FlexibilityMessage
 
 object FlexibilityMessage {
 
   /** EmAgent requests flexibility options from connected agents
     */
-  case object RequestFlexOptions
+  final case class RequestFlexOptions(tick: Long)
+      extends FlexibilityMessage
+      with Trigger
 
   /** Connected agents provide flex options
     */
-  trait ProvideFlexOptions {
+  trait ProvideFlexOptions extends FlexibilityMessage {
     val modelUuid: UUID
   }
 
   /** EmAgent issues flexibility control
     */
-  trait IssueFlexControl
+  trait IssueFlexControl extends FlexibilityMessage with Trigger
 
   /** Provides flexibility options of a system participant using reference,
     * minimum and maximum power. All powers can be negative, signifying a
@@ -58,6 +62,7 @@ object FlexibilityMessage {
     *   negative: producing
     */
   final case class IssuePowerCtrl(
+      tick: Long,
       setPower: ComparableQuantity[Power]
   ) extends IssueFlexControl
 
@@ -65,12 +70,24 @@ object FlexibilityMessage {
     * that no power target is set and the reference power shall be
     * produced/consumed.
     */
-  case object IssueNoCtrl extends IssueFlexControl
+  final case class IssueNoCtrl(tick: Long) extends IssueFlexControl
 
-  /** Message sent by system participant indicating that flex options will have
-    * changed with the next activation
-    * @param modelUuid
-    *   the uuid of the input model that references the system participant
+  /** @param modelUuid
+    *   model uuid of participant agent who received flex options request or
+    *   issue power control
+    * @param revokeRequestAtTick
+    *   tick for which the participant agent's flex options request should be
+    *   revoked
+    * @param requestAtNextActivation
+    *   whether to request flex options at the very next activation of EmAgent
+    * @param requestAtTick
+    *   tick at which flex options are foreseen to have changed
     */
-  case class ChangingFlexOptions(modelUuid: UUID) extends IssueFlexControl
+  final case class FlexCtrlCompletion(
+      modelUuid: UUID,
+      revokeRequestAtTick: Option[Long] = None,
+      requestAtNextActivation: Boolean = false,
+      requestAtTick: Option[Long] = None
+  ) extends FlexibilityMessage
+
 }

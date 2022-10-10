@@ -9,7 +9,7 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.PVModel.PVRelevantData
+import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideFlexOptions,
@@ -33,7 +33,7 @@ import javax.measure.Quantity
 import javax.measure.quantity._
 import scala.math._
 
-final case class PVModel private (
+final case class PvModel private (
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
@@ -49,7 +49,7 @@ final case class PVModel private (
     private val gammaE: ComparableQuantity[Angle],
     private val moduleSurface: Quantity[Area] =
       Quantities.getQuantity(1d, SQUARE_METRE)
-) extends SystemParticipant[PVRelevantData, ConstantState.type](
+) extends SystemParticipant[PvRelevantData, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -86,9 +86,9 @@ final case class PVModel private (
     *   Active power
     */
   override protected def calculateActivePower(
-      data: PVRelevantData
+      data: PvRelevantData
   ): ComparableQuantity[Power] = {
-    // === PV Panel Base Data  === //
+    // === Pv Panel Base Data  === //
     val latInRad = getQuantity(toRadians(lat), RADIAN) // latitude of location
     val locInRad = getQuantity(toRadians(lon), RADIAN) // longitude of location
 
@@ -774,7 +774,7 @@ final case class PVModel private (
   }
 
   override def determineFlexOptions(
-      data: PVRelevantData,
+      data: PvRelevantData,
       lastState: ConstantState.type
   ): ProvideFlexOptions = {
     val power = calculateActivePower(data)
@@ -783,14 +783,14 @@ final case class PVModel private (
   }
 
   override def handleControlledPowerChange(
-      data: PVRelevantData,
+      data: PvRelevantData,
       lastState: ConstantState.type,
       setPower: ComparableQuantity[Power]
   ): (ConstantState.type, FlexChangeIndicator) =
     (lastState, FlexChangeIndicator())
 }
 
-object PVModel {
+object PvModel {
 
   /** Class that holds all relevant data for a pv model calculation
     *
@@ -804,7 +804,7 @@ object PVModel {
     * @param dirIrradiance
     *   direct solar irradiance
     */
-  final case class PVRelevantData(
+  final case class PvRelevantData(
       dateTime: ZonedDateTime,
       weatherDataFrameLength: Long,
       diffIrradiance: ComparableQuantity[Irradiance],
@@ -816,7 +816,7 @@ object PVModel {
       scalingFactor: Double,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
-  ): PVModel = {
+  ): PvModel = {
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
@@ -847,7 +847,7 @@ object PVModel {
     model
   }
 
-  /** Default factory method to create an PVModel instance. This constructor
+  /** Default factory method to create an PvModel instance. This constructor
     * ensures, that the angles passed in are converted to radian as required by
     * the model.
     *
@@ -896,8 +896,8 @@ object PVModel {
       alphaE: ComparableQuantity[Angle],
       gammaE: ComparableQuantity[Angle],
       moduleSurface: Quantity[Area] = Quantities.getQuantity(1d, SQUARE_METRE)
-  ): PVModel = {
-    val model = new PVModel(
+  ): PvModel = {
+    val model = new PvModel(
       uuid,
       id,
       operationInterval,

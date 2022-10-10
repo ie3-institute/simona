@@ -103,7 +103,7 @@ trait StorageAgentFundamentals
       model,
       services,
       outputConfig,
-      Array(0L), // schedule one activation for first tick
+      Array.empty,
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
@@ -116,7 +116,9 @@ trait StorageAgentFundamentals
       ValueStore(resolution * 10),
       ValueStore(resolution * 10),
       ValueStore(resolution * 10),
-      maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
+      maybeEmAgent.map(
+        FlexStateData(_, ValueStore(resolution * 10))
+      ) // TODO
     )
   }
 
