@@ -29,7 +29,7 @@ ext {
   akkaVersion = '2.6.20'
   jtsVersion = '1.19.0'
   tscfgVersion = '1.0.2'
-  scapegoatVersion = '1.4.16'
+  scapegoatVersion = '1.4.17'
 
   testContainerVersion = '0.40.10'
 
