@@ -209,7 +209,7 @@ simona.gridConfig.refSystems = [
 
 The reference system contains a list of voltage levels. Each element includes the nominal apparent power, the nominal voltage and the separate configuration of each voltage level. The voltage level configuration is composed of the identifier and the nominal voltage.
 
-Further typical voltage levels which can be used in the simulation and the configuration of individual reference systems are described in the documentation of [reference system](/simona_public/docs/readthedocs/models/reference_system/).
+Further typical voltage levels which can be used in the simulation and the configuration of individual reference systems are described in the documentation of [reference system](https://simona.readthedocs.io/en/latest/models/reference_system.html).
 
 ## Power flow configuration 
 
