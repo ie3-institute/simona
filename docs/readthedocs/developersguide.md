@@ -12,7 +12,7 @@ Please use the following naming convention for feature branches, “&lt;initials
 
 ## Models
 
-{doc}`This page <https://github.com/ie3-institute/simona/blob/da5ec110b8c52536e7e6db093e5e32b028649e19/docs/readthedocs/models>`  gives an overview of the available models in SIMONA.
+[This page](/docs/readthedocs/models) gives an overview of the available models in SIMONA.
 
 ## Protocols
 
