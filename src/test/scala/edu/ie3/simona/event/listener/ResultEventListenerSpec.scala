@@ -108,7 +108,7 @@ class ResultEventListenerSpec
 
   override protected def afterAll(): Unit = {
     // cleanup
-    FileIOUtils.deleteRecursively(testTmpDir)
+    //FileIOUtils.deleteRecursively(testTmpDir)
     super.afterAll()
   }
 
