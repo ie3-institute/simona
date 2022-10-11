@@ -12,7 +12,7 @@ Please use the following naming convention for feature branches, “&lt;initials
 
 ## Models
 
-{doc}`This page <simona:models>` gives an overview of the available models in SIMONA.
+[This page](models) gives an overview of the available models in SIMONA.
 
 ## Protocols
 
