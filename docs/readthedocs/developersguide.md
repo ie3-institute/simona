@@ -12,7 +12,7 @@ Please use the following naming convention for feature branches, “&lt;initials
 
 ## Models
 
-[This page](/docs/readthedocs/models) gives an overview of the available models in SIMONA.
+[This page](/simona_public/docs/readthedocs/models) gives an overview of the available models in SIMONA.
 
 ## Protocols
 
