@@ -43,10 +43,12 @@ plantuml = 'plantuml'
 # Intersphinx for references to external ReadTheDocs
 intersphinx_mapping = {
     'psdm': ('https://powersystemdatamodel.readthedocs.io/en/latest/', None),
+    'simona':('', None)
 }
 
 hoverxref_intersphinx = [
     "psdm",
+    "simona"
 ]
 
 # BibTex options
