@@ -108,7 +108,7 @@ class ResultEventListenerSpec
 
   override protected def afterAll(): Unit = {
     // cleanup
-    // FileIOUtils.deleteRecursively(testTmpDir)
+    FileIOUtils.deleteRecursively(testTmpDir)
     super.afterAll()
   }
 
@@ -179,7 +179,7 @@ class ResultEventListenerSpec
         )
 
         // stop listener so that result is flushed out
-        testKit.stop(listenerRef, 1.minute)
+        listenerRef ! StopMessage(true)
 
         // wait until all lines have been written out:
         awaitCond(
@@ -261,7 +261,7 @@ class ResultEventListenerSpec
         )
 
         // stop listener so that result is flushed out
-        testKit.stop(listenerRef, 1.minute)
+        listenerRef ! StopMessage(true)
 
         // wait until all lines have been written out:
         awaitCond(
@@ -495,7 +495,7 @@ class ResultEventListenerSpec
         )
 
         // stop listener so that result is flushed out
-        testKit.stop(listener, 10.seconds)
+        listener ! StopMessage(true)
 
         /* Await that the result is written */
         awaitCond(
@@ -558,7 +558,7 @@ class ResultEventListenerSpec
         // otherwise it might happen, that the shutdown is triggered even before the just send ParticipantResultEvent
         // reached the listener
         // this also triggers the compression of result files
-        testKit.stop(listenerRef, 1.minute)
+        listenerRef ! StopMessage(true)
 
         // shutdown the actor system
         system.terminate()
