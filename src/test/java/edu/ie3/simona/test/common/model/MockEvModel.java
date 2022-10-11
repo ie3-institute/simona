@@ -97,6 +97,10 @@ public class MockEvModel implements EvModel {
     return new MockEvModel(uuid, id, sRatedAC, sRatedDC, eStorage, newStoredEnergy, departureTick);
   }
 
+  public MockEvModel copyWithDeparture(Long departureTick) {
+    return new MockEvModel(uuid, id, sRatedAC, sRatedDC, eStorage, storedEnergy, departureTick);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;

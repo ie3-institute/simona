@@ -8,6 +8,7 @@ package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
+import edu.ie3.simona.api.data.ev.ontology.builder.EvcsMovementsBuilder
 import edu.ie3.simona.model.participant.FlexChangeIndicator
 import edu.ie3.simona.model.participant.evcs.ChargingSchedule.Entry
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
@@ -59,6 +60,7 @@ class EvcsModelSpec
         val actualSchedule = evcsModel.calculateNewScheduling(
           EvcsRelevantData(
             3600L,
+            new EvcsMovementsBuilder().build(),
             Map.empty // should be irrelevant
           ),
           Set(evModel)
@@ -91,6 +93,7 @@ class EvcsModelSpec
         val actualSchedule = evcsModel.calculateNewScheduling(
           EvcsRelevantData(
             3600L,
+            new EvcsMovementsBuilder().build(),
             Map.empty // should be irrelevant
           ),
           Set(evModel)
@@ -238,6 +241,7 @@ class EvcsModelSpec
 
         val data = EvcsRelevantData(
           currentTick,
+          new EvcsMovementsBuilder().build(),
           Map.empty
         )
 
@@ -355,6 +359,7 @@ class EvcsModelSpec
 
         val data = EvcsRelevantData(
           currentTick,
+          new EvcsMovementsBuilder().build(),
           Map.empty
         )
 

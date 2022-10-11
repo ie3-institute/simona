@@ -28,9 +28,11 @@ import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.api.data.ev.ontology.builder.EvcsMovementsBuilder
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
+import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.evcs.ChargingSchedule
 import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsState
+import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
@@ -39,6 +41,7 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   IllegalTriggerMessage,
+  ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
 import edu.ie3.simona.ontology.messages.services.EvMessage._
@@ -56,6 +59,7 @@ import edu.ie3.simona.test.common.EvTestData
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import tech.units.indriya.quantity.Quantities
 
 import java.time.temporal.ChronoUnit
@@ -1128,4 +1132,348 @@ class EvcsAgentModelCalculationSpec
       }
     }
   }
+
+  "An evcs agent with model calculation controlled by an EmAgent" should {
+
+    "be initialized correctly" in {
+      val emAgent = TestProbe("EmAgentProbe")
+
+      val evcsAgent = TestFSMRef(
+        new EvcsAgent(
+          scheduler = emAgent.ref,
+          listener = systemListener
+        )
+      )
+
+      val triggerId = 0
+      emAgent.send(
+        evcsAgent,
+        TriggerWithIdMessage(
+          InitializeParticipantAgentTrigger[
+            ApparentPower,
+            ParticipantInitializeStateData[
+              EvcsInput,
+              EvcsRuntimeConfig,
+              ApparentPower
+            ]
+          ](
+            ParticipantInitializeStateData(
+              inputModel = voltageSensitiveInput,
+              modelConfig = modelConfig,
+              secondaryDataServices = withServices,
+              simulationStartDate = simulationStartDate,
+              simulationEndDate = simulationEndDate,
+              resolution = resolution,
+              requestVoltageDeviationThreshold =
+                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+              outputConfig = defaultOutputConfig,
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = Some(emAgent.ref)
+            )
+          ),
+          triggerId,
+          evcsAgent
+        )
+      )
+
+      /* Actor should ask for registration with primary service */
+      primaryServiceProxy.expectMsg(
+        PrimaryServiceRegistrationMessage(voltageSensitiveInput.getUuid)
+      )
+      /* State should be information handling and having correct state data */
+      evcsAgent.stateName shouldBe HandleInformation
+      evcsAgent.stateData match {
+        case ParticipantInitializingStateData(
+              inputModel,
+              modelConfig,
+              secondaryDataServices,
+              simulationStartDate,
+              simulationEndDate,
+              resolution,
+              requestVoltageDeviationThreshold,
+              outputConfig,
+              maybeEmAgent
+            ) =>
+          inputModel shouldBe voltageSensitiveInput
+          modelConfig shouldBe modelConfig
+          secondaryDataServices shouldBe withServices
+          simulationStartDate shouldBe simulationStartDate
+          simulationEndDate shouldBe simulationEndDate
+          resolution shouldBe resolution
+          requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
+          outputConfig shouldBe defaultOutputConfig
+          maybeEmAgent shouldBe Some(emAgent.ref)
+        case unsuitableStateData =>
+          fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
+      }
+
+      /* Refuse registration */
+      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+
+      emAgent.expectMsg(
+        ScheduleTriggerMessage(
+          RequestFlexOptions(0L),
+          evcsAgent
+        )
+      )
+
+      evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
+
+      evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
+
+      emAgent.expectMsg(
+        CompletionMessage(
+          triggerId,
+          None
+        )
+      )
+
+      /* ... as well as corresponding state and state data */
+      evcsAgent.stateName shouldBe Idle
+      evcsAgent.stateData match {
+        case ParticipantModelBaseStateData(
+              startDate,
+              endDate,
+              _,
+              services,
+              outputConfig,
+              additionalActivationTicks,
+              foreseenDataTicks,
+              _,
+              voltageValueStore,
+              resultValueStore,
+              requestValueStore,
+              _,
+              _,
+              _
+            ) =>
+          /* Base state data */
+          startDate shouldBe simulationStartDate
+          endDate shouldBe simulationEndDate
+          services shouldBe withServices
+          outputConfig shouldBe defaultOutputConfig
+          additionalActivationTicks shouldBe Array.emptyLongArray
+          foreseenDataTicks shouldBe Map(evService.ref -> None)
+          voltageValueStore shouldBe ValueStore(
+            resolution * 10,
+            Map(0L -> Quantities.getQuantity(1d, PU))
+          )
+          resultValueStore shouldBe ValueStore(
+            resolution * 10
+          )
+          requestValueStore shouldBe ValueStore[ApparentPower](
+            resolution * 10
+          )
+        case unrecognized =>
+          fail(
+            s"Did not find expected state data $ParticipantModelBaseStateData, but $unrecognized"
+          )
+      }
+    }
+
+  }
+
+  "provide correct flex options when in Idle" in {
+    val emAgent = TestProbe("EmAgentProbe")
+
+    val evcsAgent = TestFSMRef(
+      new EvcsAgent(
+        scheduler = emAgent.ref,
+        listener = systemListener
+      )
+    )
+
+    val triggerId = 0
+    emAgent.send(
+      evcsAgent,
+      TriggerWithIdMessage(
+        InitializeParticipantAgentTrigger[
+          ApparentPower,
+          ParticipantInitializeStateData[
+            EvcsInput,
+            EvcsRuntimeConfig,
+            ApparentPower
+          ]
+        ](
+          ParticipantInitializeStateData(
+            inputModel = voltageSensitiveInput,
+            modelConfig = modelConfig,
+            secondaryDataServices = withServices,
+            simulationStartDate = simulationStartDate,
+            simulationEndDate = simulationEndDate,
+            resolution = resolution,
+            requestVoltageDeviationThreshold =
+              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+            outputConfig = defaultOutputConfig,
+            primaryServiceProxy = primaryServiceProxy.ref,
+            maybeEmAgent = Some(emAgent.ref)
+          )
+        ),
+        triggerId,
+        evcsAgent
+      )
+    )
+
+    /* Actor should ask for registration with primary service */
+    primaryServiceProxy.expectMsg(
+      PrimaryServiceRegistrationMessage(voltageSensitiveInput.getUuid)
+    )
+    /* State should be information handling and having correct state data */
+    evcsAgent.stateName shouldBe HandleInformation
+    evcsAgent.stateData match {
+      case ParticipantInitializingStateData(
+            inputModel,
+            modelConfig,
+            secondaryDataServices,
+            simulationStartDate,
+            simulationEndDate,
+            resolution,
+            requestVoltageDeviationThreshold,
+            outputConfig,
+            maybeEmAgent
+          ) =>
+        inputModel shouldBe voltageSensitiveInput
+        modelConfig shouldBe modelConfig
+        secondaryDataServices shouldBe withServices
+        simulationStartDate shouldBe simulationStartDate
+        simulationEndDate shouldBe simulationEndDate
+        resolution shouldBe resolution
+        requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
+        outputConfig shouldBe defaultOutputConfig
+        maybeEmAgent shouldBe Some(emAgent.ref)
+      case unsuitableStateData =>
+        fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
+    }
+
+    /* Refuse registration */
+    primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+
+    emAgent.expectMsg(
+      ScheduleTriggerMessage(
+        RequestFlexOptions(0L),
+        evcsAgent
+      )
+    )
+
+    evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
+
+    evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
+
+    emAgent.expectMsg(
+      CompletionMessage(
+        triggerId,
+        None
+      )
+    )
+
+    /* TICK 0 (expected activation)
+       - currently no cars
+     */
+
+    emAgent.send(evcsAgent, RequestFlexOptions(0L))
+
+    emAgent.expectMsgType[ProvideFlexOptions] match {
+      case ProvideMinMaxFlexOptions(
+            modelUuid,
+            referencePower,
+            minPower,
+            maxPower
+          ) =>
+        modelUuid shouldBe evcsInputModel.getUuid
+        referencePower shouldBe 0d.asKiloWatt
+        minPower shouldBe 0d.asKiloWatt
+        maxPower shouldBe 0d.asKiloWatt
+    }
+
+    emAgent.send(
+      evcsAgent,
+      IssueNoCtrl(0L)
+    )
+
+    // next potential activation at fully charged battery:
+    // net power = 12.961kW * 0.92 = 11.92412kW
+    // time to charge fully ~= 16.7727262054h = 60382 ticks (rounded)
+    emAgent.expectMsg(
+      FlexCtrlCompletion(
+        modelUuid = evcsInputModel.getUuid
+      )
+    )
+
+    emAgent.expectMsgType[ParticipantResultEvent] match {
+      case result =>
+        result.systemParticipantResult.getP should equalWithTolerance(
+          0.asKiloWatt,
+          testingTolerance
+        )
+        result.systemParticipantResult.getQ should equalWithTolerance(
+          0.asMegaVar,
+          testingTolerance
+        )
+    }
+
+    /* TICK 900
+       - charging with 9 kW
+     */
+
+    val activation1 = 1L
+    val evArr = evA.copyWithDeparture(4500L)
+
+    emAgent.send(
+      evcsAgent,
+      TriggerWithIdMessage(ActivityStartTrigger(900L), activation1, evcsAgent)
+    )
+
+    emAgent.send(evcsAgent, RequestFlexOptions(900L))
+
+    evService.send(
+      evcsAgent,
+      ProvideEvDataMessage(
+        900L,
+        EvMovementData(
+          new EvcsMovementsBuilder().addArrival(evArr).build()
+        )
+      )
+    )
+
+    emAgent.expectMsgType[ProvideFlexOptions] match {
+      case ProvideMinMaxFlexOptions(
+            modelUuid,
+            referencePower,
+            minPower,
+            maxPower
+          ) =>
+        modelUuid shouldBe evcsInputModel.getUuid
+        referencePower shouldBe evArr.getSRatedAC
+        minPower shouldBe 0d.asKiloWatt // battery is empty
+        maxPower shouldBe evArr.getSRatedAC
+    }
+
+    emAgent.send(evcsAgent, IssuePowerCtrl(900L, 9.asKiloWatt))
+
+    // after 8 hours, we're at about half full storage: 95.39296 kWh
+    // net power = 9kW * 0.92 = 8.28kW
+    // time to charge fully ~= 12.6337004831h = 45481 ticks (rounded) from now
+    // current tick is 28800, thus: 28800 + 45481 = 74281
+    emAgent.expectMsg(
+      FlexCtrlCompletion(
+        modelUuid = evcsInputModel.getUuid,
+        requestAtNextActivation = true,
+        requestAtTick = Some(4500L)
+      )
+    )
+
+    emAgent.expectMsgType[ParticipantResultEvent] match {
+      case result =>
+        result.systemParticipantResult.getP should equalWithTolerance(
+          9.asKiloWatt,
+          testingTolerance
+        )
+        result.systemParticipantResult.getQ should equalWithTolerance(
+          0.asMegaVar,
+          testingTolerance
+        )
+    }
+
+  }
+
 }

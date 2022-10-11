@@ -63,14 +63,7 @@ import edu.ie3.simona.model.participant.{
   ModelState,
   SystemParticipant
 }
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
-  FlexCtrlCompletion,
-  IssueFlexControl,
-  IssueNoCtrl,
-  IssuePowerCtrl,
-  ProvideMinMaxFlexOptions,
-  RequestFlexOptions
-}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage
@@ -745,6 +738,8 @@ protected trait ParticipantAgentFundamentals[
     )
 
     val lastState = getLastOrInitialStateData(baseStateData, flexCtrl.tick)
+
+    // TODO override somehow and send out departed evs, write out ev results
 
     val (updatedState, flexChangeIndicator) =
       baseStateData.model.handleControlledPowerChange(
