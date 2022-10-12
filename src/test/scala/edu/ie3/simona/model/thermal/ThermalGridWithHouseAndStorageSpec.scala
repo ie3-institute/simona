@@ -210,7 +210,7 @@ class ThermalGridWithHouseAndStorageSpec
           )
           ._1
 
-        thermalGrid.handleTooLowInfeed(
+        thermalGrid invokePrivate handleTooLowInfeed(
           initialTick,
           coldHouseTick,
           initialHouseState,
@@ -258,7 +258,7 @@ class ThermalGridWithHouseAndStorageSpec
           Quantities.getQuantity(430d, StandardUnits.ENERGY_IN)
         )
 
-        thermalGrid.handleTooLowInfeed(
+        thermalGrid invokePrivate handleTooLowInfeed(
           initialTick,
           coldHouseTick,
           initialHouseState,
@@ -313,7 +313,7 @@ class ThermalGridWithHouseAndStorageSpec
           Quantities.getQuantity(430d, StandardUnits.ENERGY_IN)
         )
 
-        thermalGrid.handleTooLowInfeed(
+        thermalGrid invokePrivate handleTooLowInfeed(
           initialTick,
           coldHouseTick,
           initialHouseState,
@@ -337,9 +337,16 @@ class ThermalGridWithHouseAndStorageSpec
           Symbol("handleConsumption")
         )
 
-      "heat house from storage, if there is no infeed at all" in {
+      "heat house from storage, if storage is in balance" in {
         val tick = 0L
-        val gridState = ThermalGrid.startingState(thermalGrid)
+        val initialGridState = ThermalGrid.startingState(thermalGrid)
+        val initialLoading =
+          Quantities.getQuantity(430d, StandardUnits.ENERGY_IN)
+        val gridState = initialGridState.copy(storageState =
+          initialGridState.storageState.map(storageState =>
+            storageState.copy(storedEnergy = initialLoading)
+          )
+        )
         val externalQDot =
           Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
 
@@ -354,7 +361,55 @@ class ThermalGridWithHouseAndStorageSpec
         updatedGridState match {
           case ThermalGridState(
                 Some(ThermalHouseState(houseTick, innerTemperature, qDotHouse)),
-                Some(ThermalStorageState(tick, storedEnergy, qDotStorage))
+                Some(
+                  ThermalStorageState(storageTick, storedEnergy, qDotStorage)
+                )
+              ) =>
+            houseTick shouldBe 0L
+            innerTemperature should equalWithTolerance(
+              Quantities.getQuantity(18.9999d, Units.CELSIUS),
+              1e-3
+            )
+            qDotHouse should equalWithTolerance(
+              Quantities.getQuantity(0.41176456, StandardUnits.ACTIVE_POWER_IN),
+              1e-6
+            )
+
+            storageTick shouldBe 0L
+            storedEnergy should equalWithTolerance(initialLoading)
+            qDotStorage should equalWithTolerance(qDotHouse.multiply(-1))
+          case _ => fail("Thermal grid state has been calculated wrong.")
+        }
+        reachedThreshold shouldBe Some(ThermalGridEmpty(2108571L))
+      }
+
+      "take energy from storage, if there is acutal consumption" in {
+        val tick = 0L
+        val initialGridState = ThermalGrid.startingState(thermalGrid)
+        val initialLoading =
+          Quantities.getQuantity(430d, StandardUnits.ENERGY_IN)
+        val gridState = initialGridState.copy(storageState =
+          initialGridState.storageState.map(storageState =>
+            storageState.copy(storedEnergy = initialLoading)
+          )
+        )
+        val externalQDot =
+          Quantities.getQuantity(-0.2d, StandardUnits.ACTIVE_POWER_RESULT)
+
+        val (updatedGridState, reachedThreshold) =
+          thermalGrid invokePrivate handleConsumption(
+            tick,
+            ambientTemperature,
+            gridState,
+            externalQDot
+          )
+
+        updatedGridState match {
+          case ThermalGridState(
+                Some(ThermalHouseState(houseTick, innerTemperature, qDotHouse)),
+                Some(
+                  ThermalStorageState(storageTick, storedEnergy, qDotStorage)
+                )
               ) =>
             houseTick shouldBe 0L
             innerTemperature should equalWithTolerance(
@@ -364,182 +419,115 @@ class ThermalGridWithHouseAndStorageSpec
             qDotHouse should equalWithTolerance(
               Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
             )
-            qDotHouse should equalWithTolerance(externalQDot)
+
+            storageTick shouldBe 0L
+            storedEnergy should equalWithTolerance(initialLoading)
+            qDotStorage should equalWithTolerance(externalQDot)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
-        reachedThreshold shouldBe Some(ThermalGridEmpty(154284L))
+        reachedThreshold shouldBe Some(ThermalGridEmpty(3600L))
       }
-
-//      "deliver the house state by just letting it cool down, if just no infeed is given" in {
-//        val tick = 0L
-//        val gridState = ThermalGrid.startingState(thermalGrid)
-//        val externalQDot =
-//          Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
-//
-//        val (updatedGridState, reachedThreshold) =
-//          thermalGrid invokePrivate handleConsumption(
-//            tick,
-//            ambientTemperature,
-//            gridState,
-//            externalQDot
-//          )
-//
-//        updatedGridState match {
-//          case ThermalGridState(
-//                Some(ThermalHouseState(tick, innerTemperature, qDot)),
-//                None
-//              ) =>
-//            tick shouldBe 0L
-//            innerTemperature should equalWithTolerance(
-//              Quantities.getQuantity(18.9999d, Units.CELSIUS),
-//              1e-3
-//            )
-//            qDot should equalWithTolerance(externalQDot)
-//          case _ => fail("Thermal grid state has been calculated wrong.")
-//        }
-//        reachedThreshold shouldBe Some(ThermalGridEmpty(154284L))
-//      }
-//
-//      "not withdraw energy from the house, if actual consumption is given" in {
-//        val tick = 0L // after three house
-//        val gridState = ThermalGrid.startingState(thermalGrid)
-//
-//        val (updatedGridState, reachedThreshold) =
-//          thermalGrid invokePrivate handleConsumption(
-//            tick,
-//            ambientTemperature,
-//            gridState,
-//            qDotConsumption
-//          )
-//
-//        updatedGridState match {
-//          case ThermalGridState(
-//                Some(ThermalHouseState(tick, innerTemperature, qDot)),
-//                None
-//              ) =>
-//            tick shouldBe 0L
-//            innerTemperature should equalWithTolerance(
-//              Quantities.getQuantity(18.9999d, Units.CELSIUS),
-//              1e-3
-//            )
-//            qDot should equalWithTolerance(
-//              Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
-//            )
-//          case _ => fail("Thermal grid state has been calculated wrong.")
-//        }
-//        reachedThreshold shouldBe Some(ThermalGridEmpty(154284L))
-//      }
     }
 
-//    "handling thermal infeed into the grid" should {
-//      "solely heat up the house" in {
-//        val tick = 0L
-//        val gridState = ThermalGrid.startingState(thermalGrid)
-//
-//        val (updatedGridState, reachedThreshold) =
-//          thermalGrid.handleInfeed(
-//            tick,
-//            ambientTemperature,
-//            gridState,
-//            qDotInfeed
-//          )
-//
-//        updatedGridState match {
-//          case ThermalGridState(
-//                Some(ThermalHouseState(tick, innerTemperature, qDot)),
-//                None
-//              ) =>
-//            tick shouldBe 0L
-//            innerTemperature should equalWithTolerance(
-//              Quantities.getQuantity(18.9999d, Units.CELSIUS),
-//              1e-3
-//            )
-//            qDot should equalWithTolerance(qDotInfeed)
-//          case _ => fail("Thermal grid state has been calculated wrong.")
-//        }
-//        reachedThreshold shouldBe Some(ThermalGridFilledUp(7372L))
-//      }
-//    }
-//
-//    "updating the grid state dependent on the given thermal infeed" should {
-//      "deliver proper result, if energy is fed into the grid" in {
-//        thermalGrid.updateState(
-//          0L,
-//          ThermalGrid.startingState(thermalGrid),
-//          ambientTemperature,
-//          qDotInfeed
-//        ) match {
-//          case (
-//                ThermalGridState(
-//                  Some(ThermalHouseState(tick, innerTemperature, qDot)),
-//                  None
-//                ),
-//                Some(ThermalGridFilledUp(thresholdTick))
-//              ) =>
-//            tick shouldBe 0L
-//            innerTemperature should equalWithTolerance(
-//              Quantities.getQuantity(18.9999d, Units.CELSIUS),
-//              1e-3
-//            )
-//            qDot should equalWithTolerance(qDotInfeed)
-//            thresholdTick shouldBe 7372L
-//          case _ => fail("Thermal grid state updated failed")
-//        }
-//      }
-//
-//      "deliver proper result, if energy is consumed from the grid" in {
-//        thermalGrid.updateState(
-//          0L,
-//          ThermalGrid.startingState(thermalGrid),
-//          ambientTemperature,
-//          qDotConsumption
-//        ) match {
-//          case (
-//                ThermalGridState(
-//                  Some(ThermalHouseState(tick, innerTemperature, qDot)),
-//                  None
-//                ),
-//                Some(ThermalGridEmpty(thresholdTick))
-//              ) =>
-//            tick shouldBe 0L
-//            innerTemperature should equalWithTolerance(
-//              Quantities.getQuantity(18.9999d, Units.CELSIUS),
-//              1e-3
-//            )
-//            qDot should equalWithTolerance(
-//              Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
-//            )
-//            thresholdTick shouldBe 154284L
-//          case _ => fail("Thermal grid state updated failed")
-//        }
-//      }
-//
-//      "deliver proper result, if energy is neither consumed from nor fed into the grid" in {
-//        thermalGrid.updateState(
-//          0L,
-//          ThermalGrid.startingState(thermalGrid),
-//          ambientTemperature,
-//          Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
-//        ) match {
-//          case (
-//                ThermalGridState(
-//                  Some(ThermalHouseState(tick, innerTemperature, qDot)),
-//                  None
-//                ),
-//                Some(ThermalGridEmpty(thresholdTick))
-//              ) =>
-//            tick shouldBe 0L
-//            innerTemperature should equalWithTolerance(
-//              Quantities.getQuantity(18.9999d, Units.CELSIUS),
-//              1e-3
-//            )
-//            qDot should equalWithTolerance(
-//              Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
-//            )
-//            thresholdTick shouldBe 154284L
-//          case _ => fail("Thermal grid state updated failed")
-//        }
-//      }
-//    }
+    "handling thermal infeed into the grid" should {
+      val handleInfeed =
+        PrivateMethod[(ThermalGridState, Option[ThermalGridThreshold])](
+          Symbol("handleInfeed")
+        )
+
+      "heat house from storage, if there is no infeed" in {
+        val tick = 0L
+        val initialGridState = ThermalGrid.startingState(thermalGrid)
+        val initialLoading =
+          Quantities.getQuantity(430d, StandardUnits.ENERGY_IN)
+        val gridState = initialGridState.copy(storageState =
+          initialGridState.storageState.map(storageState =>
+            storageState.copy(storedEnergy = initialLoading)
+          )
+        )
+        val externalQDot =
+          Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+
+        val (updatedGridState, reachedThreshold) =
+          thermalGrid invokePrivate handleInfeed(
+            tick,
+            ambientTemperature,
+            gridState,
+            externalQDot
+          )
+
+        updatedGridState match {
+          case ThermalGridState(
+                Some(ThermalHouseState(houseTick, innerTemperature, qDotHouse)),
+                Some(
+                  ThermalStorageState(storageTick, storedEnergy, qDotStorage)
+                )
+              ) =>
+            houseTick shouldBe 0L
+            innerTemperature should equalWithTolerance(
+              Quantities.getQuantity(18.9999d, Units.CELSIUS),
+              1e-3
+            )
+            qDotHouse should equalWithTolerance(
+              Quantities.getQuantity(0.41176456, StandardUnits.ACTIVE_POWER_IN),
+              1e-6
+            )
+
+            storageTick shouldBe 0L
+            storedEnergy should equalWithTolerance(initialLoading)
+            qDotStorage should equalWithTolerance(qDotHouse.multiply(-1))
+          case _ => fail("Thermal grid state has been calculated wrong.")
+        }
+        reachedThreshold shouldBe Some(ThermalGridEmpty(2108571L))
+      }
+
+      "heat house from storage, if there is too low infeed" in {
+        val tick = 0L
+        val initialGridState = ThermalGrid.startingState(thermalGrid)
+        val initialLoading =
+          Quantities.getQuantity(430d, StandardUnits.ENERGY_IN)
+        val gridState = initialGridState.copy(storageState =
+          initialGridState.storageState.map(storageState =>
+            storageState.copy(storedEnergy = initialLoading)
+          )
+        )
+        val externalQDot =
+          Quantities.getQuantity(0.2d, StandardUnits.ACTIVE_POWER_IN)
+
+        val (updatedGridState, reachedThreshold) =
+          thermalGrid invokePrivate handleInfeed(
+            tick,
+            ambientTemperature,
+            gridState,
+            externalQDot
+          )
+
+        updatedGridState match {
+          case ThermalGridState(
+                Some(ThermalHouseState(houseTick, innerTemperature, qDotHouse)),
+                Some(
+                  ThermalStorageState(storageTick, storedEnergy, qDotStorage)
+                )
+              ) =>
+            houseTick shouldBe 0L
+            innerTemperature should equalWithTolerance(
+              Quantities.getQuantity(18.9999d, Units.CELSIUS),
+              1e-3
+            )
+            qDotHouse should equalWithTolerance(
+              Quantities.getQuantity(0.3764703, StandardUnits.ACTIVE_POWER_IN),
+              1e-6
+            )
+
+            storageTick shouldBe 0L
+            storedEnergy should equalWithTolerance(initialLoading)
+            qDotStorage should equalWithTolerance(
+              qDotHouse.subtract(externalQDot).multiply(-1)
+            )
+          case _ => fail("Thermal grid state has been calculated wrong.")
+        }
+        reachedThreshold shouldBe Some(ThermalGridEmpty(4440005L))
+      }
+    }
   }
 }

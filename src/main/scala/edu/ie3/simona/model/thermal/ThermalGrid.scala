@@ -274,7 +274,7 @@ final case class ThermalGrid(
     *   The thermal grid state after all countermeasures as well as the
     *   threshold, that is reached then
     */
-  def handleTooLowInfeed(
+  private def handleTooLowInfeed(
       initialTick: Long,
       coldHouseTick: Long,
       initialHouseState: ThermalHouseState,
