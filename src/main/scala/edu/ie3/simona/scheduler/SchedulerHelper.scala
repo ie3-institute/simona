@@ -455,7 +455,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     /* notify listeners */
     notifyListener(
       Done(
-        endTick,
+        stateData.time.nowInTicks,
         totalSimDuration,
         stateData.runtime.noOfFailedPF,
         errorInSim
