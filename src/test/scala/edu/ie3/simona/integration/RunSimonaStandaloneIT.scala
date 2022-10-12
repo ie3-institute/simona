@@ -178,7 +178,7 @@ class RunSimonaStandaloneIT
         dones.size shouldBe 1
         dones.headOption.foreach {
           case Done(tick, _, noOfFailedPF, errorInSim) =>
-            tick shouldBe 7200
+            tick shouldBe 7201
             errorInSim shouldBe false
             noOfFailedPF shouldBe 0
           case invalidEvent =>
