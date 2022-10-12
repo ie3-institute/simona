@@ -97,7 +97,7 @@ If you are using IntelliJ IDEA as your IDE, this is how setting the command line
 
 
 If you want to change specific parameters of the simulation, you can create a custom configuration file.
-For a detailed description on how to do that and all the various configuration parameters you can adjust, see /config/config.
+For a detailed description on how to do that and all the various configuration parameters you can adjust, see [configuration](config).
 
 
 ### Model and Grid Data
@@ -108,7 +108,7 @@ Within SIMONA we use the PowerSystemDataModel (PSDM) for modeling the system com
 Before the data can be utilized for a simulation run, make sure to convert them to the PSDM.
 For more information on the PSDM visit the [docs](https://powersystemdatamodel.readthedocs.io/en/latest/index.html) and for an example of how the converted data looks like you can take a look at an example grid at ``./input/samples/vn_simona/fullGrid``.
 The example grids are provided as csv files. You can choose to use a different data source for your own grid.
-For more information on supported sources, check out the /config/config section.
+Supported data sources are: influxdb1x, csv, sql, couchbase.
 Include your grid and its specification by referencing the folder path, where all the converted grid data is located, within your custom configuration file.
 
 
@@ -117,15 +117,14 @@ Include your grid and its specification by referencing the folder path, where al
 
 Besides a configuration and the actual grid and grid participants, SIMONA also expects weather data.
 There is an option to use sample weather data, but if you want sensible results, definitely consider supplying suitable data.
-Find information on the expected data format and different supported sources at /config/config.
+Information on the expected data format and different supported sources are given in the input parameters section of the [configuration](config) file.
 
 
 ## Simulation Outputs
 
 
-The raw simulation outputs get written according to the settings, specified in the simulation configuration.
-There are different types of output formats. More in depth information can be found at the /config/config section.
-As for the example configuration, the results will be written as csv files into the specified output folder.
+The raw simulation outputs get written according to the settings, specified in the output parameters section of the simulation [configuration](config).
+There are different types of output formats. As for the example configuration, the results will be written as csv files into the specified output folder.
 Within the folder you can find the following subfolders:
 
 ### configs
