@@ -9,13 +9,15 @@ package edu.ie3.simona.logging.logback
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder
 import ch.qos.logback.classic.filter.ThresholdFilter
-import ch.qos.logback.classic.spi.{ILoggingEvent, LoggingEvent}
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.rolling.RollingFileAppender
 import ch.qos.logback.core.FileAppender
+import ch.qos.logback.core.filter.Filter
 import com.typesafe.scalalogging.LazyLogging
 import org.slf4j.LoggerFactory
 
 import java.io.File
-import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.jdk.CollectionConverters._
 
 object LogbackConfiguration extends LazyLogging {
 
@@ -26,13 +28,29 @@ object LogbackConfiguration extends LazyLogging {
         val log = logPath.concat(File.separator).concat("simona.log")
         // stop all appenders
         rootLogger.iteratorForAppenders().asScala.foreach(_.stop())
+        /* Identify the filters of existing rolling file appender */
+        val fileLoggerFilterList = rootLogger
+          .iteratorForAppenders()
+          .asScala
+          .find(_.getName == "RF")
+          .map(_.getCopyOfAttachedFiltersList.asScala.toSeq)
         rootLogger.addAppender(
-          fileAppender(log, "simona-default", "INFO", loggerContext)
+          fileAppender(
+            log,
+            "simona-default",
+            fileLoggerFilterList,
+            loggerContext
+          )
         )
         logger.info(
           "\n   _____ ______  _______  _   _____       ___    ____ \n  / ___//  _/  |/  / __ \\/ | / /   |     |__ \\  / __ \\\n  \\__ \\ / // /|_/ / / / /  |/ / /| |     __/ / / / / /\n ___/ // // /  / / /_/ / /|  / ___ |    / __/_/ /_/ / \n/____/___/_/  /_/\\____/_/ |_/_/  |_|   /____(_)____/  \n                                                      "
         ) // start all other appenders again
-        rootLogger.iteratorForAppenders().asScala.foreach(_.start())
+        rootLogger.iteratorForAppenders().asScala.foreach {
+          case rf: RollingFileAppender[_] =>
+            rf.getTriggeringPolicy.start()
+            rf.start()
+          case appender => appender.start()
+        }
       case factory =>
         logger.error(
           s"Cannot configure simulation run logger! Invalid factory: $factory"
@@ -44,7 +62,7 @@ object LogbackConfiguration extends LazyLogging {
   private def fileAppender(
       logPath: String,
       appenderName: String,
-      thresholdFilterLevel: String,
+      maybeFilterList: Option[Seq[Filter[ILoggingEvent]]],
       loggerContext: LoggerContext
   ): FileAppender[ILoggingEvent] = {
 
@@ -58,10 +76,15 @@ object LogbackConfiguration extends LazyLogging {
     fileAppender.setEncoder(layoutEncoder)
     fileAppender.setContext(loggerContext)
     fileAppender.setName(appenderName)
-    val filter = new ThresholdFilter()
-    filter.setLevel(thresholdFilterLevel)
-    filter.start()
-    fileAppender.addFilter(filter)
+    /* If applicable, apply the filters from existing file logger else log with "INFO"-Level */
+    maybeFilterList match {
+      case Some(filterList) => filterList.foreach(fileAppender.addFilter)
+      case None =>
+        val filter = new ThresholdFilter()
+        filter.setLevel("INFO")
+        filter.start()
+        fileAppender.addFilter(filter)
+    }
     fileAppender.start()
 
     fileAppender
