@@ -15,7 +15,9 @@ import edu.ie3.simona.api.data.ev.ontology.{
   EvMovementsMessage,
   ExtEvMessage,
   ProvideEvcsFreeLots,
-  RequestEvcsFreeLots
+  RequestEvcsFreeLots,
+  ProvideCurrentPrices,
+  RequestCurrentPrices
 }
 import edu.ie3.simona.api.data.ontology.ExtDataMessage
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
@@ -56,7 +58,8 @@ object ExtEvDataService {
       uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
       extEvMessage: Option[ExtEvMessage] = None,
       freeLots: Map[UUID, Option[Int]] = Map.empty,
-      evModelResponses: Map[UUID, Option[List[EvModel]]] = Map.empty
+      evModelResponses: Map[UUID, Option[List[EvModel]]] = Map.empty,
+      currentPrices: Map[UUID, Option[Double]] = Map.empty
   ) extends ServiceBaseStateData
 
   final case class InitExtEvData(
@@ -192,6 +195,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
     ) match {
       case _: RequestEvcsFreeLots =>
         requestFreeLots(tick)
+      case _: RequestCurrentPrices =>
+        requestCurrentPrices(tick)
       case evMovementsMessage: EvMovementsMessage =>
         sendEvMovements(tick, evMovementsMessage.getMovements)
     }
@@ -219,6 +224,41 @@ class ExtEvDataService(override val scheduler: ActorRef)
         freeLots = freeLots
       ),
       None
+    )
+  }
+
+  private def requestCurrentPrices(tick: Long)(implicit
+      serviceStateData: ExtEvStateData
+  ): (ExtEvStateData, Option[Seq[ScheduleTriggerMessage]]) = {
+    val scheduleTriggerMsgs =
+      serviceStateData.uuidToActorRef.map { case (_, evcsActor) =>
+        evcsActor ! ProvideEvDataMessage(
+          tick,
+          CurrentPriceRequest
+        )
+
+        // schedule activation of participant
+        ScheduleTriggerMessage(
+          ActivityStartTrigger(tick),
+          evcsActor
+        )
+      }
+
+    val currentPrices: Map[UUID, Option[Double]] =
+      serviceStateData.uuidToActorRef.map { case (evcs, _) =>
+        evcs -> None
+      }
+
+    // if there are no evcs, we're sending response right away
+    if (currentPrices.isEmpty)
+      serviceStateData.extEvData.queueExtResponseMsg(new ProvideCurrentPrices())
+
+    (
+      serviceStateData.copy(
+        extEvMessage = None,
+        currentPrices = currentPrices
+      ),
+      Option.when(scheduleTriggerMsgs.nonEmpty)(scheduleTriggerMsgs.toSeq)
     )
   }
 
@@ -299,7 +339,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
         val updatedResponses = serviceStateData.evModelResponses +
           (evcs -> Some(evModels.toList))
 
-        if (updatedResponses.values.toSeq.contains(None)) {
+        if (updatedResponses.exists { case (_, resp) => resp.isEmpty }) {
           // responses are still incomplete
           serviceStateData.copy(
             evModelResponses = updatedResponses
@@ -320,7 +360,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
         val updatedFreeLots = serviceStateData.freeLots +
           (evcs -> Some(freeLots))
 
-        if (updatedFreeLots.values.toSeq.contains(None)) {
+        if (updatedFreeLots.exists { case (_, resp) => resp.isEmpty }) {
           // responses are still incomplete
           serviceStateData.copy(
             freeLots = updatedFreeLots
@@ -340,6 +380,32 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
           serviceStateData.copy(
             freeLots = Map.empty
+          )
+        }
+      case CurrentPriceResponse(evcs, currentPrice) =>
+        val updatedCurrentPrices = serviceStateData.currentPrices +
+          (evcs -> Some(currentPrice))
+
+        if (updatedCurrentPrices.exists { case (_, resp) => resp.isEmpty }) {
+          // responses are still incomplete
+          serviceStateData.copy(
+            currentPrices = updatedCurrentPrices
+          )
+        } else {
+          // all responses received, forward them to external simulation in a bundle
+          val currentPricesResponse = updatedCurrentPrices.flatMap {
+            case (evcs, Some(currentPrice)) =>
+              Some(evcs -> java.lang.Double.valueOf(currentPrice))
+            case _ =>
+              None
+          }
+
+          serviceStateData.extEvData.queueExtResponseMsg(
+            new ProvideCurrentPrices(currentPricesResponse.asJava)
+          )
+
+          serviceStateData.copy(
+            currentPrices = Map.empty
           )
         }
     }

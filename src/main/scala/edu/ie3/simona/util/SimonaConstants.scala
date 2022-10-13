@@ -29,5 +29,6 @@ object SimonaConstants {
     * in population
     */
   val PARALLELISM_WINDOW = 0L
-
+  // TODO: NSteffan: Changed from 0L to 1L, with 0 the MobiltiySimulator didn't work(?)
+  // SP: it works with 0, but double check this?
 }
