@@ -108,7 +108,7 @@ Within SIMONA we use the PowerSystemDataModel (PSDM) for modeling the system com
 Before the data can be utilized for a simulation run, make sure to convert them to the PSDM.
 For more information on the PSDM visit the [docs](https://powersystemdatamodel.readthedocs.io/en/latest/index.html) and for an example of how the converted data looks like you can take a look at an example grid at ``./input/samples/vn_simona/fullGrid``.
 The example grids are provided as csv files. You can choose to use a different data source for your own grid.
-Supported data sources are: influxdb1x, csv, sql, couchbase.
+For more information on supported sources, check out the [configuration](config).
 Include your grid and its specification by referencing the folder path, where all the converted grid data is located, within your custom configuration file.
 
 
