@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant.evcs
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.{ElectricCurrentType, StandardUnits}
+import edu.ie3.datamodel.models.ElectricCurrentType
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.result.system.EvResult
@@ -574,7 +574,7 @@ final case class EvcsModel(
       lastState: EvcsState
   ): FlexibilityMessage.ProvideFlexOptions = {
 
-    val currentEvs = determineCurrentState(data, lastState)
+    val (currentEvs, _) = determineCurrentState(data, lastState)
 
     val preferredScheduling = calculateNewScheduling(data, currentEvs)
 
@@ -599,13 +599,13 @@ final case class EvcsModel(
             if (!isFull(ev))
               maxPower
             else
-              0d.asKiloWatt
+              zeroKW
 
           val maxDischarging =
             if (!isEmpty(ev))
               maxPower.multiply(-1)
             else
-              0d.asKiloWatt
+              zeroKW
 
           (chargingSum.add(maxCharging), dischargingSum.add(maxDischarging))
       }
@@ -625,18 +625,20 @@ final case class EvcsModel(
       lastState: EvcsState,
       setPower: ComparableQuantity[Power]
   ): (EvcsState, FlexChangeIndicator) = {
-    val currentEvs = determineCurrentState(data, lastState)
+    val (currentEvs, departingEvs) = determineCurrentState(data, lastState)
 
     if (QuantityUtil.isEquivalentAbs(zeroKW, setPower, 0))
       return (
-        lastState.copy(
+        EvcsState(
           evs = currentEvs,
           schedule = currentEvs.map(_ -> None).toMap,
+          departingEvs = departingEvs,
           tick = data.tick
         ),
         FlexChangeIndicator()
       )
 
+    // applicable evs can be charged/discharged, other evs cannot
     val (applicableEvs, otherEvs) = currentEvs.partition { ev =>
       if (setPower.isGreaterThan(zeroKW))
         !isFull(ev)
@@ -666,6 +668,7 @@ final case class EvcsModel(
       EvcsState(
         evs = allSchedules.keys.toSet,
         schedule = allSchedules,
+        departingEvs = departingEvs,
         tick = data.tick
       ),
       FlexChangeIndicator(
@@ -680,6 +683,9 @@ final case class EvcsModel(
       evs: Set[EvModel],
       setPower: ComparableQuantity[Power]
   ): Set[(EvModel, ChargingSchedule, Long, Boolean)] = {
+
+    if (evs.isEmpty) return Set.empty
+
     val proposedPower = setPower.divide(evs.size)
 
     val (exceedingPowerEvs, fittingPowerEvs) = evs.partition { ev =>
@@ -807,7 +813,7 @@ final case class EvcsModel(
   private def determineCurrentState(
       data: EvcsRelevantData,
       lastState: EvcsState
-  ): Set[EvModel] = {
+  ): (Set[EvModel], Set[EvModel]) = {
 
     /* Validate EV movements */
     validateEvMovements(
@@ -835,10 +841,10 @@ final case class EvcsModel(
         ev
     }
 
-    val (arrivingEvs, stayingEvs, _) =
+    val (arrivingEvs, stayingEvs, departingEvs) =
       evsByMovementType(updatedEvs, data.movements)
 
-    stayingEvs ++ arrivingEvs
+    (stayingEvs ++ arrivingEvs, departingEvs)
   }
 
   /** Checks whether received EV movement data is consistent with charging
@@ -910,12 +916,16 @@ object EvcsModel {
     *   EVs that are staying at the charging station
     * @param schedule
     *   the schedule determining when to load which EVs with which power
+    * @param departingEvs
+    *   EVs that have been staying up until now and can be returned to the ev
+    *   service
     * @param tick
     *   The tick that the data has been calculated for
     */
   final case class EvcsState(
       evs: Set[EvModel],
       schedule: Map[EvModel, Option[ChargingSchedule]],
+      departingEvs: Set[EvModel] = Set.empty,
       tick: Long
   ) extends ModelState {
     def getSchedule(ev: EvModel): Option[ChargingSchedule] =

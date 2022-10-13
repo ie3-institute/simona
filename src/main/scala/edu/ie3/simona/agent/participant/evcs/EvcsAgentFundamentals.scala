@@ -170,7 +170,12 @@ protected trait EvcsAgentFundamentals
   )
 
   override protected def createInitialState(): EvcsState =
-    EvcsState(Set.empty, Map.empty, SimonaConstants.FIRST_TICK_IN_SIMULATION)
+    EvcsState(
+      Set.empty,
+      Map.empty,
+      Set.empty,
+      SimonaConstants.FIRST_TICK_IN_SIMULATION
+    )
 
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
@@ -721,6 +726,80 @@ protected trait EvcsAgentFundamentals
             )
         }
     }
+  }
+
+  override def handleCalculatedResult(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel
+      ],
+      tick: Long
+  ): ParticipantModelBaseStateData[
+    ApparentPower,
+    EvcsRelevantData,
+    EvcsState,
+    EvcsModel
+  ] = {
+    val currentState = getLastOrInitialStateData(baseStateData, tick)
+
+    // send out departing evs
+    val evServiceRef = getService[ActorEvMovementsService](
+      baseStateData.services
+    )
+
+    if (currentState.departingEvs.nonEmpty) {
+      evServiceRef ! DepartedEvsResponse(
+        baseStateData.model.uuid,
+        currentState.departingEvs
+      )
+    }
+
+    // calculate results from last schedule
+    baseStateData.stateDataStore
+      .last(tick - 1)
+      .map { case (lastTick, lastState) =>
+        val voltage = baseStateData.voltageValueStore
+          .last(tick - 1)
+          .map { case (_, voltage) =>
+            voltage
+          }
+          .getOrElse(
+            Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE)
+          )
+
+        val (_, evResults, powerEntries) =
+          baseStateData.model
+            .applySchedule(
+              lastTick,
+              voltage,
+              lastState
+            )
+            .unzip3
+
+        // Write ev results
+        announceEvResultsToListeners(evResults)
+
+        val updatedResultValueStore =
+          determineResultsAnnounceUpdateValueStore(
+            powerEntries.flatten,
+            tick,
+            lastTick,
+            baseStateData
+          )
+
+        baseStateData.copy(
+          resultValueStore = updatedResultValueStore
+        ): ParticipantModelBaseStateData[
+          ApparentPower,
+          EvcsRelevantData,
+          EvcsState,
+          EvcsModel
+        ]
+      }
+      .getOrElse(baseStateData)
+
   }
 
   /** Determine evcs results according to DEVS logic (in each tick, where

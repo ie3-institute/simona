@@ -174,6 +174,7 @@ class EvcsModelSpec
             val state = EvcsState(
               Set(ev),
               Map(ev -> Some(schedule)),
+              Set.empty,
               lastCalcTick
             )
 
@@ -336,6 +337,7 @@ class EvcsModelSpec
               EvcsState(
                 Set(ev1, ev2),
                 Map(ev1 -> Some(schedule1), ev2 -> Some(schedule2)),
+                Set.empty,
                 0L
               )
             ) match {
@@ -452,12 +454,13 @@ class EvcsModelSpec
               EvcsState(
                 Set(ev1, ev2),
                 Map(ev1 -> None, ev2 -> None),
+                Set.empty,
                 0L
               ),
               setPower.asKiloWatt
             ) match {
               case (
-                    EvcsState(actualEvs, actualSchedules, actualTick),
+                    EvcsState(actualEvs, actualSchedules, _, actualTick),
                     FlexChangeIndicator(actualNextActivation, actualNextTick)
                   ) =>
                 // evs have not changed here since no schedules were given as input

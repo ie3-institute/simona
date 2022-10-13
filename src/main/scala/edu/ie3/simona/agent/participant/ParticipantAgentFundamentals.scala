@@ -739,28 +739,11 @@ protected trait ParticipantAgentFundamentals[
 
     val lastState = getLastOrInitialStateData(baseStateData, flexCtrl.tick)
 
-    // TODO override somehow and send out departed evs, write out ev results
-
     val (updatedState, flexChangeIndicator) =
       baseStateData.model.handleControlledPowerChange(
         relevantData,
         lastState,
         resultingActivePower
-      )
-
-    // announce last result to listeners
-    announceSimulationResult(
-      baseStateData,
-      flexCtrl.tick,
-      result
-    )(baseStateData.outputConfig)
-
-    /* Update the value stores */
-    val updatedResultsStore =
-      ValueStore.updateValueStore(
-        baseStateData.resultValueStore,
-        flexCtrl.tick,
-        result
       )
 
     // revoke old tick and remove it from state data, if applicable
@@ -783,24 +766,35 @@ protected trait ParticipantAgentFundamentals[
         baseStateData
 
     // add new tick and updated relevant data, if applicable
-    val updatedStateData = flexChangeIndicator.changesAtTick
-      .map { requestTick =>
-        // save new tick
-        clearedBaseStateData.copy(
-          flexStateData = clearedBaseStateData.flexStateData.map(
-            _.copy(scheduledRequest = Some(requestTick))
+    val updatedStateData: ParticipantModelBaseStateData[PD, CD, MS, M] =
+      flexChangeIndicator.changesAtTick
+        .map { requestTick =>
+          // save new tick
+          clearedBaseStateData.copy(
+            flexStateData = clearedBaseStateData.flexStateData.map(
+              _.copy(scheduledRequest = Some(requestTick))
+            )
+          )
+        }
+        .getOrElse(clearedBaseStateData)
+        .copy(
+          stateDataStore = ValueStore.updateValueStore(
+            baseStateData.stateDataStore,
+            flexCtrl.tick,
+            updatedState
+          ),
+          resultValueStore = ValueStore.updateValueStore(
+            baseStateData.resultValueStore,
+            flexCtrl.tick,
+            result
           )
         )
-      }
-      .getOrElse(clearedBaseStateData)
-      .copy(
-        stateDataStore = ValueStore.updateValueStore(
-          baseStateData.stateDataStore,
-          flexCtrl.tick,
-          updatedState
-        ),
-        resultValueStore = updatedResultsStore
-      )
+
+    // Send out results etc.
+    val stateDataWithResults = handleCalculatedResult(
+      updatedStateData,
+      flexCtrl.tick
+    )
 
     flexStateData.emAgent ! FlexCtrlCompletion(
       baseStateData.modelUuid,
@@ -811,7 +805,7 @@ protected trait ParticipantAgentFundamentals[
 
     // announce current result to EmAgent
     flexStateData.emAgent ! buildResultEvent(
-      updatedStateData,
+      stateDataWithResults,
       flexCtrl.tick,
       result
     )
@@ -819,11 +813,11 @@ protected trait ParticipantAgentFundamentals[
     if (currentTickDefined) {
       // if we've received ActivityStartTrigger, send completion
       goToIdleReplyCompletionAndScheduleTriggerForNextAction(
-        updatedStateData,
+        stateDataWithResults,
         scheduler
       )
     } else
-      stay() using updatedStateData
+      stay() using stateDataWithResults
   }
 
   protected def determineResultingFlexPower(
@@ -865,6 +859,30 @@ protected trait ParticipantAgentFundamentals[
           s"Unknown/unfitting flex messages $unknownFlexOpt"
         )
     }
+  }
+
+  /** Additional actions on a new calculated simulation result
+    *
+    * @param baseStateData
+    *   The updated base state data
+    * @param tick
+    *   the current tick
+    */
+  protected def handleCalculatedResult(
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+      tick: Long
+  ): ParticipantModelBaseStateData[PD, CD, MS, M] = {
+
+    baseStateData.resultValueStore.get(tick).foreach { result =>
+      // announce last result to listeners
+      announceSimulationResult(
+        baseStateData,
+        tick,
+        result
+      )(baseStateData.outputConfig)
+    }
+
+    baseStateData
   }
 
   /** Determining the active to reactive power function to apply
