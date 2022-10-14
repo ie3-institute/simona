@@ -143,7 +143,7 @@ object ParticipantStateData {
       +PD <: PrimaryDataWithApparentPower[PD]
   ](
       baseStateData: BaseStateData[PD],
-      pendingResponses: Vector[ActorRef],
+      pendingResponses: Seq[ActorRef],
       foreseenNextDataTicks: Map[ActorRef, Long] = Map.empty
   ) extends ParticipantStateData[PD]
 }

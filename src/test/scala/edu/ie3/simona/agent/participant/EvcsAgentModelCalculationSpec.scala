@@ -277,9 +277,12 @@ class EvcsAgentModelCalculationSpec
       primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
 
       /* Expect a registration message */
-      evService.expectMsg(
-        RegisterForEvDataMessage(evcsInputModel.getUuid)
-      )
+      evService.expectMsgPF() {
+        case RegisterForEvDataMessage(uuid, scheduleFunc) =>
+          uuid shouldBe evcsInputModel.getUuid
+          scheduleFunc(3L) shouldBe
+            ScheduleTriggerMessage(ActivityStartTrigger(3L), evcsAgent)
+      }
 
       /* ... as well as corresponding state and state data */
       evcsAgent.stateName shouldBe HandleInformation
@@ -398,9 +401,12 @@ class EvcsAgentModelCalculationSpec
       primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
 
       /* Expect a registration message */
-      evService.expectMsg(
-        RegisterForEvDataMessage(evcsInputModel.getUuid)
-      )
+      evService.expectMsgPF() {
+        case RegisterForEvDataMessage(uuid, scheduleFunc) =>
+          uuid shouldBe evcsInputModel.getUuid
+          scheduleFunc(3L) shouldBe
+            ScheduleTriggerMessage(ActivityStartTrigger(3L), evcsAgent)
+      }
       evService.send(evcsAgent, RegistrationSuccessfulMessage(Some(900L)))
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -1217,8 +1223,15 @@ class EvcsAgentModelCalculationSpec
         )
       )
 
-      evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
-
+      evService.expectMsgPF() {
+        case RegisterForEvDataMessage(uuid, scheduleFunc) =>
+          uuid shouldBe evcsInputModel.getUuid
+          scheduleFunc(3L) shouldBe
+            ScheduleTriggerMessage(
+              ScheduleTriggerMessage(ActivityStartTrigger(3L), evcsAgent),
+              emAgent.ref
+            )
+      }
       evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
 
       emAgent.expectMsg(
@@ -1353,8 +1366,15 @@ class EvcsAgentModelCalculationSpec
         )
       )
 
-      evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
-
+      evService.expectMsgPF() {
+        case RegisterForEvDataMessage(uuid, scheduleFunc) =>
+          uuid shouldBe evcsInputModel.getUuid
+          scheduleFunc(4L) shouldBe
+            ScheduleTriggerMessage(
+              ScheduleTriggerMessage(ActivityStartTrigger(4L), evcsAgent),
+              emAgent.ref
+            )
+      }
       evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
 
       emAgent.expectMsg(
