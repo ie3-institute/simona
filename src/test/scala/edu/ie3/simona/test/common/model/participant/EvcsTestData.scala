@@ -31,6 +31,7 @@ trait EvcsTestData {
     0.95d,
     4,
     EvcsLocationType.HOME,
+    vehicle2grid = true,
     ChargingStrategy.MAX_POWER
   )
 }

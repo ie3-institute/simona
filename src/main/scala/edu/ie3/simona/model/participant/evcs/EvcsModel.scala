@@ -96,6 +96,7 @@ final case class EvcsModel(
     cosPhiRated: Double,
     chargingPoints: Int,
     locationType: EvcsLocationType,
+    vehicle2grid: Boolean,
     strategy: ChargingStrategy.Value
 ) extends SystemParticipant[EvcsRelevantData, EvcsState](
       uuid,
@@ -602,7 +603,7 @@ final case class EvcsModel(
               zeroKW
 
           val maxDischarging =
-            if (!isEmpty(ev))
+            if (!isEmpty(ev) && vehicle2grid)
               maxPower.multiply(-1)
             else
               zeroKW
@@ -970,6 +971,7 @@ object EvcsModel {
       inputModel.getCosPhiRated,
       inputModel.getChargingPoints,
       inputModel.getLocationType,
+      inputModel.getV2gSupport,
       ChargingStrategy(chargingStrategy)
     )
   }
@@ -1013,6 +1015,7 @@ object EvcsModel {
       cosPhiRated: Double,
       chargingPoints: Int,
       locationType: EvcsLocationType,
+      vehicle2grid: Boolean,
       chargingStrategy: ChargingStrategy.Value
   ): EvcsModel = {
     val model = new EvcsModel(
@@ -1027,6 +1030,7 @@ object EvcsModel {
       cosPhiRated,
       chargingPoints,
       locationType,
+      vehicle2grid,
       chargingStrategy
     )
 

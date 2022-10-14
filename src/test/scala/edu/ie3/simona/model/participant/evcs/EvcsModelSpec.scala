@@ -37,6 +37,7 @@ class EvcsModelSpec
 
   private val simulationStart = evcsStandardModel.simulationStartDate
 
+  // TODO some conditions/functions have not been tested yet
   "An EVCS model" should {
 
     "calculate new schedules correctly" when {
@@ -352,6 +353,58 @@ class EvcsModelSpec
                 minPower should equalWithTolerance(expectedPMin.asKiloWatt)
                 maxPower should equalWithTolerance(expectedPMax.asKiloWatt)
             }
+        }
+
+      }
+
+      "calculate flex options for an evcs without vehicle2grid correctly" in {
+        val evcsModel = evcsStandardModel.copy(
+          vehicle2grid = false,
+          strategy = ChargingStrategy.CONSTANT_POWER
+        )
+
+        val currentTick = 7200L
+
+        val data = EvcsRelevantData(
+          currentTick,
+          new EvcsMovementsBuilder().build(),
+          Map.empty
+        )
+
+        val ev1 = new MockEvModel(
+          UUID.randomUUID(),
+          "Mock EV 1",
+          10.0.asKiloWatt, // AC is relevant,
+          20.0.asKiloWatt, // DC is not
+          10.0.asKiloWattHour,
+          0.0.asKiloWattHour,
+          10800L
+        )
+
+        val schedule1 = ChargingSchedule(
+          ev1,
+          Seq(ChargingSchedule.Entry(3600L, 7200L, 5.0.asKiloWatt))
+        )
+
+        evcsModel.determineFlexOptions(
+          data,
+          EvcsState(
+            Set(ev1),
+            Map(ev1 -> Some(schedule1)),
+            Set.empty,
+            0L
+          )
+        ) match {
+          case ProvideMinMaxFlexOptions(
+                modelUuid,
+                refPower,
+                minPower,
+                maxPower
+              ) =>
+            modelUuid shouldBe evcsModel.getUuid
+            refPower should equalWithTolerance(5.0.asKiloWatt) // one hour left
+            minPower should equalWithTolerance(zeroKW) // no v2g allowed!
+            maxPower should equalWithTolerance(ev1.getSRatedAC)
         }
 
       }
