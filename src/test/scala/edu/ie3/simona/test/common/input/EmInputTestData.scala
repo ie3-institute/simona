@@ -33,7 +33,8 @@ trait EmInputTestData extends NodeInputTestData with PvInputTestData {
     ChargingPointTypeUtils.ChargingStationType2,
     2,
     0.95,
-    EvcsLocationType.HOME
+    EvcsLocationType.HOME,
+    true
   )
 
   protected val emInput = new EmInput(
