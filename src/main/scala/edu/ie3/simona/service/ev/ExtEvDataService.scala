@@ -27,7 +27,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
-import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData
@@ -55,7 +54,8 @@ object ExtEvDataService {
 
   final case class ExtEvStateData(
       extEvData: ExtEvData,
-      uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
+      uuidToActorRef: Map[UUID, (ActorRef, Long => ScheduleTriggerMessage)] =
+        Map.empty,
       extEvMessage: Option[ExtEvMessage] = None,
       freeLots: Map[UUID, Option[Int]] = Map.empty,
       evModelResponses: Map[UUID, Option[List[EvModel]]] = Map.empty,
@@ -66,7 +66,6 @@ object ExtEvDataService {
       extEvData: ExtEvData
   ) extends InitializeServiceStateData
 
-  val FALLBACK_EV_MOVEMENTS_STEM_DISTANCE: Long = 3600L
 }
 
 class ExtEvDataService(override val scheduler: ActorRef)
@@ -116,8 +115,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
       serviceStateData: ExtEvStateData
   ): Try[ExtEvStateData] =
     registrationMessage match {
-      case RegisterForEvDataMessage(evcs) =>
-        Success(handleRegistrationRequest(sender(), evcs))
+      case RegisterForEvDataMessage(evcs, scheduleFunc) =>
+        Success(handleRegistrationRequest(sender(), evcs, scheduleFunc))
       case invalidMessage =>
         Failure(
           InvalidRegistrationRequestException(
@@ -134,6 +133,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
     *   the agent that wants to be registered
     * @param evcs
     *   the charging station
+    * @param scheduleFunc
+    *   function providing the proper ScheduleTriggerMessage for a given tick
     * @param serviceStateData
     *   the current service state data of this service
     * @return
@@ -142,7 +143,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
     */
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef,
-      evcs: UUID
+      evcs: UUID,
+      scheduleFunc: Long => ScheduleTriggerMessage
   )(implicit
       serviceStateData: ExtEvStateData
   ): ExtEvStateData = {
@@ -159,7 +161,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
         serviceStateData.copy(
           uuidToActorRef =
-            serviceStateData.uuidToActorRef + (evcs -> agentToBeRegistered)
+            serviceStateData.uuidToActorRef + (evcs -> (agentToBeRegistered, scheduleFunc))
         )
       case Some(_) =>
         // actor is already registered, do nothing
@@ -205,7 +207,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
   private def requestFreeLots(tick: Long)(implicit
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Seq[ScheduleTriggerMessage]]) = {
-    serviceStateData.uuidToActorRef.foreach { case (_, evcsActor) =>
+    serviceStateData.uuidToActorRef.values.foreach { case (evcsActor, _) =>
       evcsActor ! EvFreeLotsRequest(tick)
     }
 
@@ -231,17 +233,15 @@ class ExtEvDataService(override val scheduler: ActorRef)
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Seq[ScheduleTriggerMessage]]) = {
     val scheduleTriggerMsgs =
-      serviceStateData.uuidToActorRef.map { case (_, evcsActor) =>
-        evcsActor ! ProvideEvDataMessage(
-          tick,
-          CurrentPriceRequest
-        )
+      serviceStateData.uuidToActorRef.map {
+        case (_, (evcsActor, scheduleFunc)) =>
+          evcsActor ! ProvideEvDataMessage(
+            tick,
+            CurrentPriceRequest
+          )
 
-        // schedule activation of participant
-        ScheduleTriggerMessage(
-          ActivityStartTrigger(tick),
-          evcsActor
-        )
+          // schedule activation of participant
+          scheduleFunc(tick)
       }
 
     val currentPrices: Map[UUID, Option[Double]] =
@@ -271,8 +271,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
     val filteredPositionData =
       evMovements.asScala.flatMap { case (evcs, movements) =>
         serviceStateData.uuidToActorRef.get(evcs) match {
-          case Some(evcsActor) =>
-            Some(evcs, evcsActor, movements)
+          case Some((evcsActor, scheduleFunc)) =>
+            Some(evcs, evcsActor, scheduleFunc, movements)
           case None =>
             log.warning(
               "A corresponding actor ref for UUID {} could not be found",
@@ -283,21 +283,18 @@ class ExtEvDataService(override val scheduler: ActorRef)
       }
 
     val scheduleTriggerMsgs =
-      filteredPositionData.map { case (_, evcsActor, movements) =>
+      filteredPositionData.map { case (_, evcsActor, scheduleFunc, movements) =>
         evcsActor ! ProvideEvDataMessage(
           tick,
           EvMovementData(movements)
         )
 
         // schedule activation of participant
-        ScheduleTriggerMessage(
-          ActivityStartTrigger(tick),
-          evcsActor
-        )
+        scheduleFunc(tick)
       }
 
     val departingVehicles: Map[UUID, Option[List[EvModel]]] =
-      filteredPositionData.flatMap { case (evcs, _, movements) =>
+      filteredPositionData.flatMap { case (evcs, _, _, movements) =>
         val containsDeparture = !movements.getDepartures.isEmpty
 
         // only when positions message contains departure,

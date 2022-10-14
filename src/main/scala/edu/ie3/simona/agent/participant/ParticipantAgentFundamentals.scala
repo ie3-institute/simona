@@ -285,7 +285,7 @@ protected trait ParticipantAgentFundamentals[
     try {
       /* Register for services */
       val awaitRegistrationResponsesFrom =
-        registerForServices(inputModel, services)
+        registerForServices(inputModel, services, self, maybeEmAgent)
 
       // always request flex options for first sim tick
       maybeEmAgent.foreach {
