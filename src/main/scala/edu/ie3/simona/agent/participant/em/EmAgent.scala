@@ -38,7 +38,6 @@ import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
-  RevokeTriggerMessage,
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
@@ -108,9 +107,7 @@ object EmAgent {
       flexCorrespondences: Map[UUID, ValueStore[
         FlexCorrespondence
       ]], // TODO enhanced todo: MultiValueStore
-      activateAtNextTick: Set[UUID],
-      actorRefToUuid: Map[ActorRef, UUID],
-      connectedAgents: Map[UUID, (SystemParticipantInput, ActorRef)],
+      participantInput: Map[UUID, SystemParticipantInput],
       schedulerStateData: EmSchedulerStateData,
       stateDataStore: ValueStore[ConstantState.type],
       flexStateData: Option[FlexStateData]
@@ -231,24 +228,26 @@ class EmAgent(
         connectedAgents.map { case (_, _, sp) =>
           sp.getUuid -> ValueStore(resolution * 10)
         }.toMap,
-        Set.empty,
-        connectedAgents.map { case (actor, _, sp) =>
-          actor -> sp.getUuid
+        connectedAgents.map { case (_, _, sp) =>
+          sp.getUuid -> sp
         }.toMap,
-        connectedAgents.map { case (actor, _, sp) =>
-          sp.getUuid -> (sp, actor)
-        }.toMap,
-        EmSchedulerStateData(trigger = triggerData),
+        EmSchedulerStateData(
+          triggerData,
+          connectedAgents.map { case (actor, _, sp) =>
+            sp.getUuid -> actor
+          }.toMap
+        ),
         ValueStore(0),
         None
       )
 
-      setActiveTickAndSendTriggers(
+      val updatedBaseStateData = setActiveTickAndSendTriggers(
         baseStateData,
         SimonaConstants.INIT_SIM_TICK,
         triggerId
       )
 
+      goto(Idle) using updatedBaseStateData
   }
 
   private val handleIdleEm: StateFunction = {
@@ -256,6 +255,21 @@ class EmAgent(
           triggerToSchedule: ScheduleTriggerMessage,
           baseStateData: EmModelBaseStateData
         ) =>
+      val nextScheduledTickOpt = getNextScheduledTick(
+        baseStateData.schedulerStateData
+      )
+
+      // FIXME it'd be better if we also revoked the "last next tick", because that one could also be revoked before it is reached
+      nextScheduledTickOpt.foreach { nextScheduledTick =>
+        if (triggerToSchedule.trigger.tick < nextScheduledTick) {
+          // we need to schedule an activation for the trigger tick
+          scheduler ! ScheduleTriggerMessage(
+            ActivityStartTrigger(triggerToSchedule.trigger.tick),
+            self
+          )
+        }
+      }
+
       stay() using
         baseStateData.copy(schedulerStateData =
           sendEligibleTrigger(
@@ -268,7 +282,7 @@ class EmAgent(
           baseStateData: EmModelBaseStateData
         ) =>
       // there can be new triggers for the current tick, which need to be sent out immediately
-      val updatedStateData =
+      val updatedSchedulerData =
         maybeTicksCompleted(
           sendEligibleTrigger(
             handleCompletionMessage(
@@ -278,23 +292,19 @@ class EmAgent(
           )
         )
 
-      stay() using baseStateData.copy(schedulerStateData = updatedStateData)
+      stay() using baseStateData.copy(schedulerStateData = updatedSchedulerData)
 
     case Event(
-          ChangingFlexOptions(modelUuid),
+          flexCompletion: FlexCtrlCompletion,
           baseStateData: EmModelBaseStateData
         ) =>
-      stay() using baseStateData.copy(activateAtNextTick =
-        baseStateData.activateAtNextTick + modelUuid
+      val updatedSchedulerData = maybeTicksCompleted(
+        handleFlexCompletionMessage(
+          flexCompletion,
+          baseStateData.schedulerStateData
+        )
       )
-
-    case Event(
-          revokeTriggerMsg: RevokeTriggerMessage,
-          baseStateData: EmModelBaseStateData
-        ) =>
-      stay() using baseStateData.copy(schedulerStateData =
-        revokeTrigger(revokeTriggerMsg, baseStateData.schedulerStateData)
-      )
+      stay() using baseStateData.copy(schedulerStateData = updatedSchedulerData)
 
     case Event(
           TriggerWithIdMessage(ActivityStartTrigger(newTick), triggerId, _),
@@ -303,48 +313,47 @@ class EmAgent(
       // here, participants that are changing their flex options at the current
       // tick are activated and are sent flex options requests
 
+      // schedule flex options request for those agents that need to be activated at the very next tick
+      val schedulerDataWithNext =
+        scheduleFlexRequestAtNextTick(baseStateData.schedulerStateData, newTick)
+
       // participants that have to be activated at this specific tick
-      val expectedAtThis =
-        baseStateData.schedulerStateData.trigger.triggerQueue
+      val expectedActivations =
+        schedulerDataWithNext.trigger.triggerQueue
           .get(newTick)
           .map {
             _.map(_.agent)
               .flatMap(actor =>
-                baseStateData.actorRefToUuid.get(actor).map(actor -> _)
+                baseStateData.schedulerStateData.flexTrigger.actorRefToUuid
+                  .get(actor)
               )
-              .toMap
           }
-          .getOrElse(Map.empty)
+          .getOrElse(Seq.empty)
 
-      // participants that have to be activated at any next tick
-      val expectedAtAnyNext =
-        baseStateData.activateAtNextTick
-          .flatMap { modelUuid =>
-            baseStateData.connectedAgents.get(modelUuid).map {
-              case (_, actor) =>
-                actor -> modelUuid
-            }
-          }
-          .filterNot {
-            // filter out duplicates here: we might have been scheduled
-            // for this tick anyways
-            case (actor, _) =>
-              expectedAtThis.contains(actor)
-          }
-          .toMap
+      // schedule flex options request for those agents that have just scheduled activations so far
+      val updatedFlexTrigger = scheduleFlexRequestsOnce(
+        schedulerDataWithNext.flexTrigger,
+        expectedActivations.toSet,
+        newTick
+      )
 
-      // combining both
-      val expectedAll = expectedAtThis ++ expectedAtAnyNext
+      val expectedRequests = updatedFlexTrigger.triggerQueue
+        .get(newTick)
+        .map {
+          _.map(_.modelUuid)
+        }
+        .getOrElse(Seq.empty)
 
       // prepare map for expected flex options and expected results for this tick
-      val updatedFlexCorrespondences = expectedAll.foldLeft(
+      val updatedFlexCorrespondences = expectedRequests.foldLeft(
         baseStateData.flexCorrespondences
-      ) { case (correspondences, (_, uuid)) =>
+      ) { case (correspondences, uuid) =>
         val participantValueStore = correspondences.getOrElse(
           uuid,
           throw new RuntimeException(s"ValueStore for UUID $uuid not found")
         )
 
+        // add a fresh flex correspondence for the new tick
         val updatedFlexOptionsStore =
           ValueStore.updateValueStore(
             participantValueStore,
@@ -355,33 +364,24 @@ class EmAgent(
         correspondences.updated(uuid, updatedFlexOptionsStore)
       }
 
-      // add missing activation triggers
-      val updatedSchedulerData =
-        expectedAtAnyNext.foldLeft(baseStateData.schedulerStateData) {
-          case (schedulerData, (actor, _)) =>
-            scheduleTrigger(
-              ScheduleTriggerMessage(ActivityStartTrigger(newTick), actor),
-              schedulerData
-            )
-        }
-
       val updatedBaseStateData =
         baseStateData.copy(
           flexCorrespondences = updatedFlexCorrespondences,
-          activateAtNextTick = Set.empty,
-          schedulerStateData = updatedSchedulerData
+          schedulerStateData =
+            schedulerDataWithNext.copy(flexTrigger = updatedFlexTrigger)
         )
 
-      // send out all ActivityStartTriggers
-      val nextState =
-        setActiveTickAndSendTriggers(updatedBaseStateData, newTick, triggerId)
+      // if we don't have anything to do, complete right away
+      // FIXME this is only necessary until we revoke triggers with main scheduler
+      if (expectedRequests.isEmpty)
+        maybeTicksCompleted(baseStateData.schedulerStateData)
 
-      // send out flex requests for all expected agents
-      expectedAll.foreach { case (actor, _) =>
-        actor ! RequestFlexOptions
-      }
-
-      nextState
+      // send out all ActivityStartTriggers and RequestFlexOptions
+      goto(Idle) using setActiveTickAndSendTriggers(
+        updatedBaseStateData,
+        newTick,
+        triggerId
+      )
 
     case Event(
           flexOptions: ProvideFlexOptions,
@@ -458,7 +458,7 @@ class EmAgent(
       // check if all results received
       val flexData = extractFlexData(updatedBaseStateData)
       val resultsReceived = !flexData.exists {
-        case (_, _, correspondence, dataTick)
+        case (_, correspondence, dataTick)
             if dataTick == tick && !correspondence.hasResults =>
           true
         case _ => false
@@ -481,14 +481,13 @@ class EmAgent(
       baseStateData: EmModelBaseStateData,
       newTick: Long,
       triggerId: Long
-  ): State = {
+  ): EmModelBaseStateData = {
     val updatedStateData = baseStateData.schedulerStateData.copy(
       nowInTicks = newTick,
-      mainTrigger = baseStateData.schedulerStateData.mainTrigger +
-        (newTick -> Some(triggerId))
+      mainTriggerId = Some(triggerId)
     )
 
-    goto(Idle) using baseStateData.copy(schedulerStateData =
+    baseStateData.copy(schedulerStateData =
       sendEligibleTrigger(updatedStateData)
     )
   }
@@ -502,7 +501,7 @@ class EmAgent(
 
     // check if expected flex answers for this tick arrived
     val flexAnswersReceived = !flexData.exists {
-      case (_, _, correspondence, dataTick)
+      case (_, correspondence, dataTick)
           if dataTick == tick && !correspondence.hasOptions =>
         true
       case _ => false
@@ -511,9 +510,8 @@ class EmAgent(
     if (flexAnswersReceived) {
       // All flex options and all results have been received.
 
-      val flexStratInput = flexData.flatMap {
-        case (spi, _, flexOptionsOpt, _) =>
-          flexOptionsOpt.receivedFlexOptions.map(spi -> _)
+      val flexStratInput = flexData.flatMap { case (spi, correspondence, _) =>
+        correspondence.receivedFlexOptions.map(spi -> _)
       }
 
       // TODO sanity checks before strat calculation
@@ -529,17 +527,20 @@ class EmAgent(
       // TODO sanity checks after strat calculation
 
       val issueCtrlMsgsComplete = flexData.flatMap {
-        case (spi, actor, correspondence, dataTick) =>
+        case (spi, correspondence, dataTick) =>
           issueCtrlMsgs
             .find { case (uuid, _) =>
               uuid.equals(spi.getUuid)
+            }
+            .map { case (uuid, power) =>
+              uuid -> IssuePowerCtrl(tick, power)
             }
             .orElse {
               // no power ctrl message has been set for this participant.
               // still send a no-control-msg instead, if...
 
               // ... a response is expected for this tick
-              val currentlyActivated = dataTick == tick
+              val currentlyRequested = dataTick == tick
 
               // ... flex control has been issued for this participant at
               // an earlier tick
@@ -549,39 +550,31 @@ class EmAgent(
                   case _                       => false
                 })
 
-              Option.when(currentlyActivated || flexControlCancelled)(
-                spi.getUuid -> IssueNoCtrl
+              Option.when(currentlyRequested || flexControlCancelled)(
+                spi.getUuid -> IssueNoCtrl(tick)
               )
             }
             .map { case (uuid, flexCtrl) =>
-              (uuid, actor, flexCtrl, dataTick)
+              (uuid, flexCtrl, dataTick)
             }
       }
 
-      val updatedSchedulerStateData =
-        issueCtrlMsgsComplete.foldLeft(baseStateData.schedulerStateData) {
-          case (schedulerData, (_, actor, issueCtrlMsg, dataTick)) =>
-            // activate the participants that have not been activated before
-            val updatedSchedulerData =
-              if (dataTick != tick) {
-                sendEligibleTrigger(
-                  scheduleTrigger(
-                    ScheduleTriggerMessage(ActivityStartTrigger(tick), actor),
-                    schedulerData
-                  )
-                )
-              } else
-                schedulerData
+      val updatedFlexTrigger = issueCtrlMsgsComplete.foldLeft(
+        baseStateData.schedulerStateData.flexTrigger
+      ) { case (flexTrigger, (uuid, issueCtrlMsg, _)) =>
+        // send out flex control messages
+        scheduleFlexTrigger(flexTrigger, issueCtrlMsg, uuid)
+      }
 
-            // send out flex control messages
-            actor ! issueCtrlMsg
-
-            updatedSchedulerData
-        }
+      val updatedScheduledStateData = sendEligibleTrigger(
+        baseStateData.schedulerStateData.copy(
+          flexTrigger = updatedFlexTrigger
+        )
+      )
 
       // create updated value stores for participants that are receiving control msgs
       val updatedValueStores = issueCtrlMsgsComplete.flatMap {
-        case (uuid, _, issueFlex, _) =>
+        case (uuid, issueFlex, _) =>
           baseStateData.flexCorrespondences.get(uuid).flatMap { store =>
             store.last().map { case (_, correspondence) =>
               // since we expect a new result with potentially changed reactive power, empty the last result
@@ -609,7 +602,7 @@ class EmAgent(
 
       val updatedBaseStateData = baseStateData.copy(
         flexCorrespondences = updatedCorrespondences,
-        schedulerStateData = updatedSchedulerStateData
+        schedulerStateData = updatedScheduledStateData
       )
 
       stay() using updatedBaseStateData
@@ -619,10 +612,10 @@ class EmAgent(
   }
 
   private def extractFlexData(baseStateData: EmModelBaseStateData): Iterable[
-    (SystemParticipantInput, ActorRef, FlexCorrespondence, Long)
+    (SystemParticipantInput, FlexCorrespondence, Long)
   ] =
     baseStateData.flexCorrespondences.map { case (uuid, store) =>
-      val (spi, actor) = baseStateData.connectedAgents.getOrElse(
+      val spi = baseStateData.participantInput.getOrElse(
         uuid,
         throw new RuntimeException(
           s"There's no flex options store for $uuid whatsoever"
@@ -636,7 +629,7 @@ class EmAgent(
           )
         )
 
-      (spi, actor, correspondence, dataTick)
+      (spi, correspondence, dataTick)
     }
 
   private def calculatePower(

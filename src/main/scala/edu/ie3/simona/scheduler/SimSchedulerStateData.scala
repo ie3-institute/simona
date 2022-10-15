@@ -61,7 +61,8 @@ object SimSchedulerStateData {
       initStarted: Boolean = false,
       scheduleStarted: Boolean = false,
       initSender: ActorRef = Actor.noSender,
-      noOfFailedPF: Int = 0
+      noOfFailedPF: Int = 0,
+      priorityPhase: Boolean = true
   )
 
   /** Holds information about [[edu.ie3.simona.ontology.trigger.Trigger]] that
@@ -81,6 +82,8 @@ object SimSchedulerStateData {
       triggerIdCounter: Int = 0,
       triggerQueue: PriorityMultiQueue[Long, ScheduledTrigger] =
         PriorityMultiQueue.empty[Long, ScheduledTrigger],
+      priorityTriggerQueue: PriorityMultiQueue[Long, ScheduledTrigger] =
+        PriorityMultiQueue.empty,
       triggerIdToScheduledTriggerMap: mutable.Map[Long, ScheduledTrigger] =
         mutable.Map.empty[Long, ScheduledTrigger],
       awaitingResponseMap: CountingMap[Long] = CountingMap.empty[Long]

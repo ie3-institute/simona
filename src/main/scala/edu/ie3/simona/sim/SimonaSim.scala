@@ -108,7 +108,8 @@ class SimonaSim(simonaSetup: SimonaSetup)
     case (actor, initTrigger) =>
       scheduler ! ScheduleTriggerMessage(
         initTrigger,
-        actor
+        actor,
+        priority = true
       )
   }
 

@@ -38,7 +38,8 @@ trait EmInputTestData
     ChargingPointTypeUtils.ChargingStationType2,
     2,
     0.95,
-    EvcsLocationType.HOME
+    EvcsLocationType.HOME,
+    true
   )
 
   protected val householdStorageTypeInput = new StorageTypeInput(

@@ -833,6 +833,230 @@ class SimSchedulerSpec
 
       checkTerminationHandling(simScheduler, resultEventListener)
     }
+
+    "work with priorities correctly" in {
+      val (simScheduler, resultEventListener) = setupScheduler()
+
+      val triggeredAgent1 = TestProbe()
+      val initTrigger1 = createMockInitTrigger()
+      simScheduler ! ScheduleTriggerMessage(
+        initTrigger1,
+        triggeredAgent1.ref
+      )
+
+      val triggeredAgent2 = TestProbe()
+      val initTrigger2 = createMockInitTrigger()
+      simScheduler !
+        ScheduleTriggerMessage(
+          initTrigger2,
+          triggeredAgent2.ref,
+          priority = true
+        )
+
+      triggeredAgent1.expectNoMessage()
+      triggeredAgent2.expectNoMessage()
+
+      simScheduler ! InitSimMessage
+
+      resultEventListener.expectMsg(Initializing)
+
+      val receivedTrigger2 =
+        triggeredAgent2.expectMsgType[TriggerWithIdMessage]
+      receivedTrigger2.trigger shouldBe initTrigger2
+      receivedTrigger2.receiverActor shouldBe triggeredAgent2.ref
+
+      triggeredAgent1.expectNoMessage()
+
+      resultEventListener.expectNoMessage()
+
+      triggeredAgent2.send(
+        simScheduler,
+        CompletionMessage(
+          receivedTrigger2.triggerId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(0L),
+                triggeredAgent2.ref,
+                priority = true
+              )
+            )
+          )
+        )
+      )
+
+      triggeredAgent1.expectInitAndComplete(
+        simScheduler,
+        resultEventListener,
+        Seq(0L)
+      )
+
+      resultEventListener.expectMsgType[InitComplete]
+
+      simScheduler ! StartScheduleMessage(Some(3600L))
+      resultEventListener.expectMsg(Simulating(0L, 3600L))
+
+      // start with prio
+      triggeredAgent2.expectAstAndComplete(
+        simScheduler,
+        resultEventListener,
+        0L,
+        Seq(0L),
+        priority = true
+      )
+
+      triggeredAgent1.expectNoMessage()
+
+      triggeredAgent2.expectAstAndComplete(
+        simScheduler,
+        resultEventListener,
+        0L,
+        Seq(900L),
+        priority = true
+      )
+
+      // switch to regular
+      triggeredAgent1.expectAstAndComplete(
+        simScheduler,
+        resultEventListener,
+        0L,
+        Seq(900L)
+      )
+
+      // tick 900 prio
+      triggeredAgent1.expectNoMessage()
+      triggeredAgent2.expectAstAndComplete(
+        simScheduler,
+        resultEventListener,
+        900L,
+        Seq(1800L),
+        priority = true
+      )
+
+      // regular
+      triggeredAgent1.expectAstAndComplete(
+        simScheduler,
+        resultEventListener,
+        900L,
+        Seq(900L)
+      )
+
+      triggeredAgent1.expectAstAndComplete(
+        simScheduler,
+        resultEventListener,
+        900L,
+        Seq(901L)
+      )
+
+      resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 900L
+
+      // tick 901, only regular
+      triggeredAgent1.expectAstAndComplete(
+        simScheduler,
+        resultEventListener,
+        901L,
+        Seq(1801L),
+        priority = true
+      )
+
+      // tick 1800, prio
+      triggeredAgent2.expectAstAndComplete(
+        simScheduler,
+        resultEventListener,
+        1800L,
+        Seq.empty
+      )
+
+      resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 1800L
+
+      // tick 1801, prio
+      triggeredAgent1.expectAstAndComplete(
+        simScheduler,
+        resultEventListener,
+        1801L,
+        Seq.empty
+      )
+
+      resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 2700L
+      resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 3600L
+      resultEventListener.expectMsgType[Ready].tick shouldBe 3600L
+      val doneMsg = resultEventListener.expectMsgType[Done]
+      doneMsg.tick shouldBe 3600L
+      doneMsg.noOfFailedPF shouldBe 0
+      doneMsg.errorInSim shouldBe false
+    }
+
+    "work with priorities correctly when scheduling no prio trigger for tick 0" in {
+      val (simScheduler, resultEventListener) = setupScheduler()
+
+      val triggeredAgent1 = TestProbe()
+      val initTrigger1 = createMockInitTrigger()
+      simScheduler ! ScheduleTriggerMessage(
+        initTrigger1,
+        triggeredAgent1.ref
+      )
+
+      val triggeredAgent2 = TestProbe()
+      val initTrigger2 = createMockInitTrigger()
+      simScheduler !
+        ScheduleTriggerMessage(
+          initTrigger2,
+          triggeredAgent2.ref,
+          priority = true
+        )
+
+      triggeredAgent1.expectNoMessage()
+      triggeredAgent2.expectNoMessage()
+
+      simScheduler ! InitSimMessage
+
+      resultEventListener.expectMsg(Initializing)
+
+      triggeredAgent2.expectInitAndComplete(
+        simScheduler,
+        resultEventListener,
+        Seq(900L),
+        priority = true
+      )
+
+      triggeredAgent1.expectInitAndComplete(
+        simScheduler,
+        resultEventListener,
+        Seq(0L)
+      )
+
+      resultEventListener.expectMsgType[InitComplete]
+
+      simScheduler ! StartScheduleMessage(Some(3600L))
+      resultEventListener.expectMsg(Simulating(0L, 3600L))
+
+      // start with regular
+      triggeredAgent1.expectAstAndComplete(
+        simScheduler,
+        resultEventListener,
+        0L,
+        Seq(900L)
+      )
+
+      // tick 900 prio
+      triggeredAgent1.expectNoMessage()
+      triggeredAgent2.expectAstAndComplete(
+        simScheduler,
+        resultEventListener,
+        900L,
+        Seq.empty
+      )
+
+      // regular
+      triggeredAgent1.expectAstAndComplete(
+        simScheduler,
+        resultEventListener,
+        900L,
+        Seq.empty
+      )
+
+    }
+
   }
 
   def createMockInitTrigger(): InitializeTrigger = {
@@ -878,33 +1102,38 @@ object SimSchedulerSpec extends UnitSpec {
     def expectInitAndComplete(
         simScheduler: TestActorRef[SimScheduler],
         resultEventListener: TestProbe,
-        newTicks: Seq[Long] = Seq.empty
+        newTicks: Seq[Long] = Seq.empty,
+        priority: Boolean = false
     ): Unit =
       expectTriggerAndComplete[InitializeTrigger](
         simScheduler,
         resultEventListener,
         SimonaConstants.INIT_SIM_TICK,
-        newTicks
+        newTicks,
+        priority
       )
 
     def expectAstAndComplete(
         simScheduler: TestActorRef[SimScheduler],
         resultEventListener: TestProbe,
         expectedTick: Long,
-        newTicks: Seq[Long] = Seq.empty
+        newTicks: Seq[Long] = Seq.empty,
+        priority: Boolean = false
     ): Unit =
       expectTriggerAndComplete[ActivityStartTrigger](
         simScheduler,
         resultEventListener,
         expectedTick,
-        newTicks
+        newTicks,
+        priority
       )
 
     private def expectTriggerAndComplete[T <: Trigger](
         simScheduler: TestActorRef[SimScheduler],
         resultEventListener: TestProbe,
         expectedTick: Long,
-        newTicks: Seq[Long] = Seq.empty
+        newTicks: Seq[Long] = Seq.empty,
+        priority: Boolean = false
     )(implicit tag: ClassTag[T]): Unit = {
       val receivedTrigger =
         triggeredAgent.expectMsgType[TriggerWithIdMessage]
@@ -926,7 +1155,8 @@ object SimSchedulerSpec extends UnitSpec {
           newTicks.map(tick =>
             ScheduleTriggerMessage(
               ActivityStartTrigger(tick),
-              triggeredAgent.ref
+              triggeredAgent.ref,
+              priority
             )
           )
         )

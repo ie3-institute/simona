@@ -134,7 +134,8 @@ class WeatherServiceSpec
                 case Some(
                       ScheduleTriggerMessage(
                         ActivityStartTrigger(nextTick),
-                        actorRef
+                        actorRef,
+                        _
                       )
                     ) =>
                   nextTick shouldBe 0

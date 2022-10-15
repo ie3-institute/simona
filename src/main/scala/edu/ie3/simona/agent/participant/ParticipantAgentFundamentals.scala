@@ -63,13 +63,7 @@ import edu.ie3.simona.model.participant.{
   ModelState,
   SystemParticipant
 }
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
-  ChangingFlexOptions,
-  IssueFlexControl,
-  IssueNoCtrl,
-  IssuePowerCtrl,
-  ProvideMinMaxFlexOptions
-}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage
@@ -77,7 +71,6 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   IllegalTriggerMessage,
-  RevokeTriggerMessage,
   ScheduleTriggerMessage
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
@@ -292,7 +285,15 @@ protected trait ParticipantAgentFundamentals[
     try {
       /* Register for services */
       val awaitRegistrationResponsesFrom =
-        registerForServices(inputModel, services)
+        registerForServices(inputModel, services, self, maybeEmAgent)
+
+      // always request flex options for first sim tick
+      maybeEmAgent.foreach {
+        _ ! ScheduleTriggerMessage(
+          RequestFlexOptions(0L),
+          self
+        )
+      }
 
       val baseStateData = determineModelBaseStateData(
         inputModel,
@@ -632,11 +633,12 @@ protected trait ParticipantAgentFundamentals[
   }
 
   override protected def handleFlexRequest(
-      participantStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
+      participantStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+      tick: Long
   ): ParticipantModelBaseStateData[PD, CD, MS, M] = {
     val updatedBaseStateData = calculateFlexOptions(
       participantStateData,
-      currentTick
+      tick
     )
 
     val updatedFlexData = updatedBaseStateData.flexStateData.getOrElse(
@@ -658,7 +660,7 @@ protected trait ParticipantAgentFundamentals[
 
   override protected def calculateFlexOptions(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      currentTick: Long
+      tick: Long
   ): ParticipantModelBaseStateData[PD, CD, MS, M] = {
 
     implicit val startDateTime: ZonedDateTime = baseStateData.startDate
@@ -666,10 +668,10 @@ protected trait ParticipantAgentFundamentals[
     val relevantData =
       createCalcRelevantData(
         baseStateData,
-        currentTick
+        tick
       )
 
-    val lastState = getLastOrInitialStateData(baseStateData, currentTick)
+    val lastState = getLastOrInitialStateData(baseStateData, tick)
 
     val flexOptions =
       baseStateData.model.determineFlexOptions(relevantData, lastState)
@@ -685,7 +687,7 @@ protected trait ParticipantAgentFundamentals[
               maxPower
             ) =>
           new FlexOptionsResult(
-            currentTick.toDateTime,
+            tick.toDateTime,
             modelUuid,
             referencePower,
             minPower,
@@ -701,7 +703,7 @@ protected trait ParticipantAgentFundamentals[
         data.copy(flexOptionsStore =
           ValueStore.updateValueStore(
             data.flexOptionsStore,
-            currentTick,
+            tick,
             flexOptions
           )
         )
@@ -711,7 +713,6 @@ protected trait ParticipantAgentFundamentals[
 
   override protected def handleFlexCtrl(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      currentTick: Long,
       flexCtrl: IssueFlexControl,
       scheduler: ActorRef
   ): State = {
@@ -727,16 +728,16 @@ protected trait ParticipantAgentFundamentals[
 
     val result = calculateResult(
       baseStateData,
-      currentTick,
+      flexCtrl.tick,
       resultingActivePower
     )
 
     val relevantData = createCalcRelevantData(
       baseStateData,
-      currentTick
+      flexCtrl.tick
     )
 
-    val lastState = getLastOrInitialStateData(baseStateData, currentTick)
+    val lastState = getLastOrInitialStateData(baseStateData, flexCtrl.tick)
 
     val (updatedState, flexChangeIndicator) =
       baseStateData.model.handleControlledPowerChange(
@@ -745,84 +746,78 @@ protected trait ParticipantAgentFundamentals[
         resultingActivePower
       )
 
-    // announce last result to listeners
-    announceSimulationResult(
-      baseStateData,
-      currentTick,
-      result
-    )(baseStateData.outputConfig)
-
-    /* Update the value stores */
-    val updatedResultsStore =
-      ValueStore.updateValueStore(
-        baseStateData.resultValueStore,
-        currentTick,
-        result
-      )
-
-    // indicate to EmAgent if flex options are going to change at
-    // the next activation no matter the tick
-    if (flexChangeIndicator.changesAtNextActivation)
-      flexStateData.emAgent ! ChangingFlexOptions(baseStateData.modelUuid)
-
     // revoke old tick and remove it from state data, if applicable
-    val clearedBaseStateData =
-      flexStateData.scheduledTick
-        .map { obsoleteTick =>
+    val revokeRequest =
+      flexStateData.scheduledRequest
+        .filter {
           // revoke old tick if it exists and is placed in the future
-          if (obsoleteTick > currentTick)
-            flexStateData.emAgent !
-              RevokeTriggerMessage(
-                ActivityStartTrigger(obsoleteTick),
-                self
-              )
+          _ > flexCtrl.tick
+        }
 
-          // remove from additionalTicks and from flex state data
-          baseStateData.copy(
-            additionalActivationTicks =
-              baseStateData.additionalActivationTicks.filterNot(
-                _ == obsoleteTick
-              ),
-            flexStateData = Some(
-              flexStateData.copy(scheduledTick = None)
+    // remove from additionalTicks and from flex state data
+    val clearedBaseStateData =
+      if (revokeRequest.nonEmpty)
+        baseStateData.copy(
+          flexStateData = Some(
+            flexStateData.copy(scheduledRequest = None)
+          )
+        )
+      else
+        baseStateData
+
+    // add new tick and updated relevant data, if applicable
+    val updatedStateData: ParticipantModelBaseStateData[PD, CD, MS, M] =
+      flexChangeIndicator.changesAtTick
+        .map { requestTick =>
+          // save new tick
+          clearedBaseStateData.copy(
+            flexStateData = clearedBaseStateData.flexStateData.map(
+              _.copy(scheduledRequest = Some(requestTick))
             )
           )
         }
-        .getOrElse(baseStateData)
-
-    // add new tick and updated relevant data, if applicable
-    val updatedStateData = flexChangeIndicator.changesAtTick
-      .map { additionalTick =>
-        // save new tick
-        clearedBaseStateData.copy(
-          additionalActivationTicks =
-            clearedBaseStateData.additionalActivationTicks :+ additionalTick,
-          flexStateData = clearedBaseStateData.flexStateData.map(
-            _.copy(scheduledTick = Some(additionalTick))
+        .getOrElse(clearedBaseStateData)
+        .copy(
+          stateDataStore = ValueStore.updateValueStore(
+            baseStateData.stateDataStore,
+            flexCtrl.tick,
+            updatedState
+          ),
+          resultValueStore = ValueStore.updateValueStore(
+            baseStateData.resultValueStore,
+            flexCtrl.tick,
+            result
           )
         )
-      }
-      .getOrElse(clearedBaseStateData)
-      .copy(
-        stateDataStore = ValueStore.updateValueStore(
-          baseStateData.stateDataStore,
-          currentTick,
-          updatedState
-        ),
-        resultValueStore = updatedResultsStore
-      )
+
+    // Send out results etc.
+    val stateDataWithResults = handleCalculatedResult(
+      updatedStateData,
+      flexCtrl.tick
+    )
+
+    flexStateData.emAgent ! FlexCtrlCompletion(
+      baseStateData.modelUuid,
+      revokeRequest,
+      flexChangeIndicator.changesAtNextActivation,
+      flexChangeIndicator.changesAtTick
+    )
 
     // announce current result to EmAgent
     flexStateData.emAgent ! buildResultEvent(
-      updatedStateData,
-      currentTick,
+      stateDataWithResults,
+      flexCtrl.tick,
       result
     )
 
-    goToIdleReplyCompletionAndScheduleTriggerForNextAction(
-      updatedStateData,
-      scheduler
-    )
+    if (currentTickDefined) {
+      // if we've received ActivityStartTrigger, send completion
+      goToIdleReplyCompletionAndScheduleTriggerForNextAction(
+        stateDataWithResults,
+        scheduler
+      )
+    } else
+      stay() using stateDataWithResults
   }
 
   protected def determineResultingFlexPower(
@@ -840,7 +835,7 @@ protected trait ParticipantAgentFundamentals[
     flexOptions match {
       case ProvideMinMaxFlexOptions(_, pRef, pMin, pMax) =>
         flexCtrl match {
-          case IssuePowerCtrl(setPower) =>
+          case IssuePowerCtrl(_, setPower) =>
             // sanity check: setPower is in range of latest flex options
             if (setPower.isLessThan(pMin))
               throw new RuntimeException(
@@ -854,7 +849,7 @@ protected trait ParticipantAgentFundamentals[
             // override, take setPower
             setPower
 
-          case IssueNoCtrl =>
+          case IssueNoCtrl(_) =>
             // no override, take reference power
             pRef
         }
@@ -864,6 +859,30 @@ protected trait ParticipantAgentFundamentals[
           s"Unknown/unfitting flex messages $unknownFlexOpt"
         )
     }
+  }
+
+  /** Additional actions on a new calculated simulation result
+    *
+    * @param baseStateData
+    *   The updated base state data
+    * @param tick
+    *   the current tick
+    */
+  protected def handleCalculatedResult(
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+      tick: Long
+  ): ParticipantModelBaseStateData[PD, CD, MS, M] = {
+
+    baseStateData.resultValueStore.get(tick).foreach { result =>
+      // announce last result to listeners
+      announceSimulationResult(
+        baseStateData,
+        tick,
+        result
+      )(baseStateData.outputConfig)
+    }
+
+    baseStateData
   }
 
   /** Determining the active to reactive power function to apply
@@ -960,14 +979,14 @@ protected trait ParticipantAgentFundamentals[
 
   protected def getLastOrInitialStateData(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      currentTick: Long
+      tick: Long
   ): MS =
     ConstantState match {
       case constantState: MS =>
         constantState
       case _ =>
         baseStateData.stateDataStore
-          .last(currentTick)
+          .last(tick)
           .map { case (_, lastState) =>
             lastState
           }
@@ -1107,8 +1126,6 @@ protected trait ParticipantAgentFundamentals[
       fInPu: ComparableQuantity[Dimensionless],
       alternativeResult: PD
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
-    log.debug(s"Received asset power request for tick {}", requestTick)
-
     /* Check, if there is any calculation foreseen for this tick. If so, wait with the response. */
     val activationExpected =
       baseStateData.additionalActivationTicks.exists(_ < requestTick)
@@ -1116,15 +1133,18 @@ protected trait ParticipantAgentFundamentals[
       baseStateData.foreseenDataTicks.values.flatten.exists(_ < requestTick)
     if (activationExpected || dataExpected) {
       log.debug(
-        s"I got a request for power from '{}' for tick '{}', but I'm still waiting for new" +
-          s" results before this tick. Waiting with the response.",
+        s"Received power request from '{}' for tick '{}', but I'm still waiting for new results before " +
+          s"this tick. Waiting with the response.",
         sender(),
         requestTick
       )
       stash()
       stay() using baseStateData
     } else {
-
+      log.debug(
+        s"Received power request for tick '{}' and I'm able to answer it.",
+        requestTick
+      )
       /* Update the voltage value store */
       val nodalVoltage = Quantities.getQuantity(
         sqrt(
@@ -1148,6 +1168,7 @@ protected trait ParticipantAgentFundamentals[
         baseStateData.requestValueStore.last(requestTick)
 
       /* === Check if this request has already been answered with same tick and nodal voltage === */
+      log.debug("Answering the power request for tick {}.", requestTick)
       determineFastReply(
         baseStateData,
         mostRecentRequest,

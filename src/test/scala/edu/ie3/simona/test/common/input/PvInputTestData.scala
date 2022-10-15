@@ -17,7 +17,7 @@ import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
 
-/** Simple test data to be used in tests for PVModel. Should be extended as
+/** Simple test data to be used in tests for PvModel. Should be extended as
   * needed.
   */
 trait PvInputTestData
@@ -38,7 +38,7 @@ trait PvInputTestData
 
   protected val pvInput = new PvInput(
     UUID.randomUUID(),
-    "Dummy_PVModel",
+    "Dummy_PvModel",
     new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvA,

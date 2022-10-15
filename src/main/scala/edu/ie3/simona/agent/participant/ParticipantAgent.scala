@@ -175,12 +175,8 @@ abstract class ParticipantAgent[
         modelBaseStateData.foreseenDataTicks
       )
 
-      if (modelBaseStateData.isEmManaged) {
-        goto(Idle) using updatedBaseStateData
-      } else {
-        self ! StartCalculationTrigger(currentTick)
-        goto(Calculate) using updatedBaseStateData
-      }
+      self ! StartCalculationTrigger(currentTick)
+      goto(Calculate) using updatedBaseStateData
 
     case Event(
           TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId, _),
@@ -236,15 +232,15 @@ abstract class ParticipantAgent[
       finalizeTickAfterPF(baseStateData, tick)
 
     case Event(
-          RequestFlexOptions,
+          RequestFlexOptions(tick),
           baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
         ) =>
-      val updatedStateData = handleFlexRequest(baseStateData)
+      val updatedStateData = handleFlexRequest(baseStateData, tick)
 
       stay() using updatedStateData
 
     case Event(
-          RequestFlexOptions,
+          RequestFlexOptions(tick),
           DataCollectionStateData(baseStateData, data, _)
         ) =>
       val participantStateData =
@@ -273,7 +269,8 @@ abstract class ParticipantAgent[
       val updatedStateData = handleFlexRequest(
         participantStateData.copy(
           receivedSecondaryDataStore = updatedReceivedSecondaryData
-        )
+        ),
+        tick
       )
 
       stay() using updatedStateData
@@ -282,7 +279,7 @@ abstract class ParticipantAgent[
           flexCtrl: IssueFlexControl,
           baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
         ) =>
-      handleFlexCtrl(baseStateData, currentTick, flexCtrl, scheduler)
+      handleFlexCtrl(baseStateData, flexCtrl, scheduler)
   }
 
   protected val handleHandleInformation: StateFunction = {
@@ -440,7 +437,7 @@ abstract class ParticipantAgent[
       stay()
 
     case Event(
-          RequestFlexOptions,
+          _: RequestFlexOptions,
           _: DataCollectionStateData[PD]
         ) =>
       stash()
@@ -482,8 +479,8 @@ abstract class ParticipantAgent[
       /* At least parts of the needed data has been received or it is an additional activation, that has been triggered.
        * Anyways, the calculation routine has also to take care of filling up missing data. */
       calculatePowerWithSecondaryDataAndGoToIdle(
-        participantStateData.copy(receivedSecondaryDataStore =
-          updatedReceivedSecondaryData
+        participantStateData.copy(
+          receivedSecondaryDataStore = updatedReceivedSecondaryData
         ),
         currentTick,
         scheduler
@@ -794,12 +791,13 @@ abstract class ParticipantAgent[
   protected def createInitialState(): MS
 
   protected def handleFlexRequest(
-      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+      tick: Long
   ): ParticipantModelBaseStateData[PD, CD, MS, M]
 
   protected def calculateFlexOptions(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      currentTick: Long
+      tick: Long
   ): ParticipantModelBaseStateData[PD, CD, MS, M]
 
   protected def createCalcRelevantData(
@@ -809,14 +807,13 @@ abstract class ParticipantAgent[
 
   protected def handleFlexCtrl(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      currentTick: Long,
       flexCtrl: IssueFlexControl,
       scheduler: ActorRef
   ): State
 
   protected def calculateResult(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      currentTick: Long,
+      tick: Long,
       activePower: ComparableQuantity[Power]
   ): PD
 

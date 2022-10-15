@@ -7,12 +7,19 @@
 package edu.ie3.simona.agent.participant.em
 
 import akka.actor.{ActorRef, ActorSystem}
-import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
-import edu.ie3.simona.ontology.messages.SchedulerMessage
+import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.{
+  FlexTriggerData,
+  ScheduledFlexTrigger,
+  TriggerData
+}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  FlexCtrlCompletion,
+  RequestFlexOptions
+}
+import edu.ie3.simona.ontology.messages.{FlexibilityMessage, SchedulerMessage}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   IllegalTriggerMessage,
-  RevokeTriggerMessage,
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
@@ -20,9 +27,8 @@ import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.ontology.trigger.Trigger
 import edu.ie3.simona.scheduler.SimSchedulerStateData.ScheduledTrigger
 import edu.ie3.simona.util.SimonaConstants.PARALLELISM_WINDOW
-import edu.ie3.util.scala.collection.mutable.CountingMap
 
-import scala.collection.mutable
+import java.util.UUID
 
 /** Main functionalities of scheduling within [[EmAgent]]
   */
@@ -32,35 +38,6 @@ trait EmSchedulerHelper {
   protected final implicit val system: ActorSystem = context.system
 
   protected val parallelWindow: Long = PARALLELISM_WINDOW
-
-  /** Send out all trigger that are eligible to be send for the current state of
-    * the state data
-    *
-    * @param triggerData
-    *   the trigger data that should be updated
-    * @param nowInTicks
-    *   the current tick
-    * @return
-    *   conditionally modified trigger data with updated trigger information
-    */
-  protected def sendEligibleTrigger(
-      triggerData: TriggerData,
-      nowInTicks: Long
-  ): TriggerData = {
-    triggerData.triggerQueue.pollTo(nowInTicks).foreach {
-      case scheduledTrigger @ ScheduledTrigger(triggerWithIdMessage, actor) =>
-        // track that we wait for a response for this tick
-        triggerData.awaitingResponseMap.add(triggerWithIdMessage.trigger.tick)
-
-        // track the trigger id with the scheduled trigger
-        triggerData.triggerIdToScheduledTriggerMap +=
-          triggerWithIdMessage.triggerId -> scheduledTrigger
-
-        actor ! triggerWithIdMessage
-    }
-
-    triggerData
-  }
 
   /** Main method to handle all [[CompletionMessage]]s received by the
     * scheduler. Based on the received completion message, the provided
@@ -99,73 +76,64 @@ trait EmSchedulerHelper {
 
     val triggerId = completionMessage.triggerId
 
-    val (
-      updatedAwaitingResponseMap,
-      updatedTriggerIdToScheduledTriggerMap
-    ) = updateAwaitingResponseAndTriggerIdToScheduledTriggerMap(
-      triggerId,
-      triggerData.awaitingResponseMap,
-      triggerData.triggerIdToScheduledTriggerMap
-    ).getOrElse {
-      log.error(
-        s"Received bad completion notice $completionMessage"
-      )
-      (
-        triggerData.awaitingResponseMap,
-        triggerData.triggerIdToScheduledTriggerMap
+    if (!triggerData.awaitedTriggerMap.contains(triggerId)) {
+      log.warning(
+        "Trigger id {} has not been awaited in trigger map {}",
+        triggerId,
+        triggerData.awaitedTriggerMap
       )
     }
 
+    val updatedAwaitedTriggerMap = triggerData.awaitedTriggerMap -= triggerId
+
     triggerData.copy(
-      awaitingResponseMap = updatedAwaitingResponseMap,
-      triggerIdToScheduledTriggerMap = updatedTriggerIdToScheduledTriggerMap
+      awaitedTriggerMap = updatedAwaitedTriggerMap
     )
   }
 
-  /** Updates awaitingResponse and triggerIdToScheduledTriggerMap with the
-    * provided data if the provided triggerId is valid
-    *
-    * @param triggerId
-    *   the trigger id that should be processed
-    * @param awaitingResponseMap
-    *   the mapping of ticks to scheduled trigger that are send out and a
-    *   completion message has not been received yet
-    * @param triggerIdToScheduledTriggerMap
-    *   the mapping of the trigger id to the send out trigger
-    * @return
-    *   either a tuple with an updated awaiting response map and updated trigger
-    *   id to scheduled trigger map or none if the provided trigger id is
-    *   invalid
-    */
-  private def updateAwaitingResponseAndTriggerIdToScheduledTriggerMap(
-      triggerId: Long,
-      awaitingResponseMap: CountingMap[Long],
-      triggerIdToScheduledTriggerMap: mutable.Map[Long, ScheduledTrigger]
-  ): Option[
-    (
-        CountingMap[Long],
-        mutable.Map[Long, ScheduledTrigger]
-    )
-  ] = {
-    triggerIdToScheduledTriggerMap.get(triggerId) match {
-      case None =>
-        None
-      case Some(scheduledTrigger) =>
-        val tick = scheduledTrigger.triggerWithIdMessage.trigger.tick
-        if (awaitingResponseMap.contains(tick)) {
+  protected final def handleFlexCompletionMessage(
+      completionMessage: FlexCtrlCompletion,
+      triggerData: FlexTriggerData
+  ): FlexTriggerData = {
 
-          awaitingResponseMap.subtract(tick)
-
-          triggerIdToScheduledTriggerMap -= triggerId
-
-          Some(
-            awaitingResponseMap,
-            triggerIdToScheduledTriggerMap
-          )
-        } else {
-          None
-        }
+    // revoke trigger if applicable
+    completionMessage.revokeRequestAtTick.foreach { revokeTick =>
+      triggerData.triggerQueue.remove(
+        revokeTick,
+        scheduledTrigger =>
+          scheduledTrigger.trigger == RequestFlexOptions(revokeTick) &&
+            scheduledTrigger.modelUuid == completionMessage.modelUuid
+      )
     }
+
+    // mark participant to be activated at next tick if applicable
+    if (completionMessage.requestAtNextActivation)
+      triggerData.activateAtNextTick += completionMessage.modelUuid
+
+    // schedule new flex requests, if applicable
+    completionMessage.requestAtTick
+      .foreach(newTick =>
+        scheduleFlexTrigger(
+          triggerData,
+          RequestFlexOptions(newTick),
+          completionMessage.modelUuid
+        )
+      )
+
+    if (
+      !triggerData.awaitedFlexCompletions.contains(completionMessage.modelUuid)
+    ) {
+      log.warning(
+        "Completion for UUID {} has not been awaited in completions map {}",
+        completionMessage.modelUuid,
+        triggerData.awaitedFlexCompletions
+      )
+    }
+
+    // remove from awaited flex completions
+    triggerData.awaitedFlexCompletions -= completionMessage.modelUuid
+
+    triggerData
   }
 
   /** Adds the provided trigger to the trigger queue to schedule it at the
@@ -191,30 +159,6 @@ trait EmSchedulerHelper {
       triggerData,
       nowInTicks
     )
-
-  /** Removes the provided trigger from the trigger queue
-    *
-    * @param revokeTriggerMsg
-    *   The [[RevokeTriggerMessage]] containing the trigger to remove
-    * @param triggerData
-    *   The trigger data that should be updated
-    * @return
-    *   The state data with updated trigger data
-    */
-  protected final def revokeTrigger(
-      revokeTriggerMsg: RevokeTriggerMessage,
-      triggerData: TriggerData
-  ): TriggerData = {
-    triggerData.triggerQueue.remove(
-      revokeTriggerMsg.trigger.tick,
-      scheduledTrigger =>
-        scheduledTrigger.agent.equals(revokeTriggerMsg.actor) &&
-          scheduledTrigger.triggerWithIdMessage.trigger.equals(
-            revokeTriggerMsg.trigger
-          )
-    )
-    triggerData
-  }
 
   /** Adds the provided trigger to the trigger queue to schedule it at the
     * requested tick
@@ -274,12 +218,79 @@ trait EmSchedulerHelper {
     }
   }
 
+  protected def scheduleFlexRequestsOnce(
+      flexTrigger: FlexTriggerData,
+      participantUuids: Set[UUID],
+      tick: Long
+  ): FlexTriggerData = {
+    val alreadyScheduled =
+      flexTrigger.triggerQueue
+        .get(tick)
+        .getOrElse(Seq.empty)
+        .map(_.modelUuid)
+
+    // participants that have to be activated at any next tick
+    val filteredUuids =
+      participantUuids
+        .filterNot {
+          // filter out duplicates here: we might have been scheduled
+          // for this tick anyways
+          alreadyScheduled.contains
+        }
+
+    // add missing activation triggers
+    val updatedFlexTrigger =
+      filteredUuids.foldLeft(flexTrigger) { case (schedulerData, modelUuid) =>
+        scheduleFlexTrigger(
+          schedulerData,
+          RequestFlexOptions(tick),
+          modelUuid
+        )
+      }
+
+    updatedFlexTrigger
+  }
+
+  protected def scheduleFlexTrigger(
+      flexTrigger: FlexTriggerData,
+      trigger: Trigger with FlexibilityMessage,
+      modelUuid: UUID
+  ): FlexTriggerData = {
+    flexTrigger.triggerQueue.add(
+      trigger.tick,
+      ScheduledFlexTrigger(
+        trigger,
+        modelUuid
+      )
+    )
+    flexTrigger
+  }
+
   protected def sendEligibleTrigger(
       stateData: EmSchedulerStateData
-  ): EmSchedulerStateData =
-    stateData.copy(
-      trigger = sendEligibleTrigger(stateData.trigger, stateData.nowInTicks)
-    )
+  ): EmSchedulerStateData = {
+
+    // it's important that ActivityStartTriggers are sent out before flex triggers!
+    stateData.trigger.triggerQueue.pollTo(stateData.nowInTicks).foreach {
+      case scheduledTrigger @ ScheduledTrigger(triggerWithIdMessage, actor) =>
+        // track the trigger id with the scheduled trigger
+        stateData.trigger.awaitedTriggerMap +=
+          triggerWithIdMessage.triggerId -> scheduledTrigger
+
+        actor ! triggerWithIdMessage
+    }
+
+    stateData.flexTrigger.triggerQueue.pollTo(stateData.nowInTicks).foreach {
+      case ScheduledFlexTrigger(trigger, modelUuid) =>
+        val actor = stateData.flexTrigger.uuidToActorRef(modelUuid)
+
+        stateData.flexTrigger.awaitedFlexCompletions += modelUuid
+
+        actor ! trigger
+    }
+
+    stateData
+  }
 
   protected final def handleCompletionMessage(
       completionMessage: CompletionMessage,
@@ -293,28 +304,72 @@ trait EmSchedulerHelper {
       )
     )
 
-  protected final def scheduleTrigger(
-      triggerMessage: SchedulerMessage.ScheduleTriggerMessage,
+  protected final def handleFlexCompletionMessage(
+      completionMessage: FlexCtrlCompletion,
       stateData: EmSchedulerStateData
   ): EmSchedulerStateData =
     stateData.copy(
-      trigger = scheduleTrigger(
-        triggerMessage,
-        stateData.trigger,
-        stateData.nowInTicks
+      flexTrigger = handleFlexCompletionMessage(
+        completionMessage,
+        stateData.flexTrigger
       )
     )
 
-  protected final def revokeTrigger(
-      revokeTriggerMsg: RevokeTriggerMessage,
+  protected final def scheduleTrigger(
+      triggerMessage: SchedulerMessage.ScheduleTriggerMessage,
       stateData: EmSchedulerStateData
+  ): EmSchedulerStateData = {
+    triggerMessage.trigger match {
+      case flexMessage: FlexibilityMessage =>
+        val uuid = stateData.flexTrigger.actorRefToUuid(
+          triggerMessage.actorToBeScheduled
+        )
+        stateData.copy(
+          flexTrigger = scheduleFlexTrigger(
+            stateData.flexTrigger,
+            flexMessage,
+            uuid
+          )
+        )
+      case trigger =>
+        stateData.copy(
+          trigger = scheduleTrigger(
+            trigger,
+            triggerMessage.actorToBeScheduled,
+            stateData.trigger,
+            stateData.nowInTicks
+          )
+        )
+    }
+
+  }
+
+  /** Schedule those actors that requested to be activated at the very next tick
+    *
+    * @param stateData
+    *   The state data containing the actors to be scheduled
+    * @param tick
+    *   The tick that the actors should be scheduled for
+    * @return
+    *   The updated scheduler state data
+    */
+  protected def scheduleFlexRequestAtNextTick(
+      stateData: EmSchedulerStateData,
+      tick: Long
   ): EmSchedulerStateData =
-    stateData.copy(
-      trigger = revokeTrigger(
-        revokeTriggerMsg,
-        stateData.trigger
+    if (stateData.flexTrigger.activateAtNextTick.nonEmpty) {
+      val updatedFlexTrigger = scheduleFlexRequestsOnce(
+        stateData.flexTrigger,
+        stateData.flexTrigger.activateAtNextTick.toSet,
+        tick
       )
-    )
+
+      // remove all, they should only be scheduled once
+      updatedFlexTrigger.activateAtNextTick.clear()
+
+      stateData.copy(flexTrigger = updatedFlexTrigger)
+    } else
+      stateData
 
   /** Maybe send completion message to main scheduler
     * @param stateData
@@ -325,59 +380,55 @@ trait EmSchedulerHelper {
   protected def maybeTicksCompleted(
       stateData: EmSchedulerStateData
   ): EmSchedulerStateData = {
-    val completedMainTicks =
-      stateData.mainTrigger
-        .flatMap {
-          case (mainTick, Some(triggerId)) =>
-            // since we only want to have main ticks that have already been triggered, we can unpack the trigger id
-            Some((mainTick, triggerId))
-          case _ =>
-            // scheduled tick has been sent to main, but has not been triggered yet.
-            // so, it can't be completed yet either.
-            None
-        }
-        .filter { case (mainTick, _) =>
-          stateData.trigger.awaitingResponseMap.minKeyOption match {
-            case Some(head) =>
-              // main ticks that have been triggered and completed (no more awaited completion messages).
-              // we do not check whether trigger has been init or not, as non-init-triggers are sent
-              // only after init-triggers are sent
-              mainTick < head
-            case None =>
-              // we're not waiting for any ticks any more, so all remaining main ticks are good to go
-              true
-          }
-        }
 
-    completedMainTicks.foldLeft(stateData) {
-      case (currentStateData, (mainTick, mainTriggerId)) =>
-        val nextTick =
-          currentStateData.trigger.triggerQueue.keySet.collectFirst {
-            // first tick that has not been scheduled with main scheduler.
-            case tick if !currentStateData.mainTrigger.contains(tick) =>
-              tick
-          }
+    // since participants that are scheduled with an ActivityStartTrigger are also
+    // scheduled for a flex options request, checking flex options is enough here
+    val nextOpt = getNextScheduledTick(stateData)
 
-        val nextTriggerOpt = nextTick.map(tick =>
-          Seq(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(tick),
-              self
+    val allSent = nextOpt.forall(_ > stateData.nowInTicks)
+    val allCompleted =
+      stateData.trigger.awaitedTriggerMap.isEmpty &&
+        stateData.flexTrigger.awaitedFlexCompletions.isEmpty
+
+    (allSent, allCompleted, stateData.mainTriggerId) match {
+      case (true, true, Some(mainTriggerId)) =>
+        val nextTriggerOpt =
+          nextOpt.map(tick =>
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(tick),
+                self
+              )
             )
           )
-        )
 
         scheduler ! CompletionMessage(
           mainTriggerId,
           nextTriggerOpt
         )
 
-        currentStateData.copy(
-          mainTrigger = currentStateData.mainTrigger
-            - mainTick
-            ++ nextTick.map(tick => (tick, None))
+        stateData.copy(
+          mainTriggerId = None
         )
+      case _ => stateData
     }
+
   }
 
+  protected def getNextScheduledTick(
+      stateData: EmSchedulerStateData
+  ): Option[Long] = {
+
+    val nextTickOpt = stateData.trigger.triggerQueue.headKeyOption
+    val nextFlexTickOpt = stateData.flexTrigger.triggerQueue.headKeyOption
+
+    (nextTickOpt, nextFlexTickOpt) match {
+      case (Some(nextTick), Some(nextFlexTick)) =>
+        Some(math.min(nextTick, nextFlexTick))
+      case (Some(_), _) => nextTickOpt
+      case (_, Some(_)) => nextFlexTickOpt
+      case _            => None
+    }
+
+  }
 }

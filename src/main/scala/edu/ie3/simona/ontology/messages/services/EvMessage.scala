@@ -9,6 +9,7 @@ package edu.ie3.simona.ontology.messages.services
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology.EvMovementsMessage.EvcsMovements
+import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
   ServiceRegistrationMessage
@@ -25,9 +26,12 @@ object EvMessage {
     *
     * @param evcs
     *   the charging station
+    * @param scheduleFunc
+    *   function providing the proper ScheduleTriggerMessage for a given tick
     */
   final case class RegisterForEvDataMessage(
-      evcs: UUID
+      evcs: UUID,
+      scheduleFunc: Long => ScheduleTriggerMessage
   ) extends EvMessage
       with ServiceRegistrationMessage
 
@@ -58,6 +62,8 @@ object EvMessage {
       tick: Long
   )
 
+  final case object CurrentPriceRequest extends EvData
+
   /** Hold EV movements for one Evcs
     *
     * @param movements
@@ -77,5 +83,10 @@ object EvMessage {
   final case class DepartedEvsResponse(
       evcs: UUID,
       evModels: Set[EvModel]
+  ) extends EvResponseMessage
+
+  final case class CurrentPriceResponse(
+      evcs: UUID,
+      currentPrice: Double
   ) extends EvResponseMessage
 }
