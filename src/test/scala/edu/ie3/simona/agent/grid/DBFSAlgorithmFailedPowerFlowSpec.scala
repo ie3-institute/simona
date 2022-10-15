@@ -9,6 +9,7 @@ package edu.ie3.simona.agent.grid
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
+import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
@@ -103,6 +104,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       val gridAgentInitData =
         GridAgentInitData(
           hvGridContainerPF,
+          Seq.empty[ThermalGrid],
           subGridGateToActorRef,
           RefSystem("2000 MVA", "110 kV")
         )
