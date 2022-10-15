@@ -243,7 +243,8 @@ class PrimaryServiceWorkerSpec
                 case Some(
                       ScheduleTriggerMessage(
                         ActivityStartTrigger(triggerTick),
-                        actorToBeScheduled
+                        actorToBeScheduled,
+                        _
                       )
                     ) =>
                   triggerTick shouldBe 900L

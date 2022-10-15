@@ -69,15 +69,26 @@ class SimScheduler(
       // set init sender
       val startSender = sender()
 
+      // if there's no prio triggers upfront, go to regular triggers
+      val updatedStateData =
+        if (stateData.trigger.priorityTriggerQueue.isEmpty)
+          stateData.copy(
+            stateData.runtime.copy(
+              priorityPhase = false
+            )
+          )
+        else
+          stateData
+
       // initializing process
       val initStartTime = System.nanoTime
-      sendEligibleTrigger(stateData)
+      sendEligibleTrigger(updatedStateData)
 
       context become schedulerReceive(
-        stateData.copy(
-          runtime = stateData.runtime
+        updatedStateData.copy(
+          runtime = updatedStateData.runtime
             .copy(initStarted = true, initSender = startSender),
-          time = stateData.time.copy(
+          time = updatedStateData.time.copy(
             initStartTime = initStartTime
           )
         )

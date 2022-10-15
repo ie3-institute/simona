@@ -58,8 +58,11 @@ trait SchedulerHelper extends SimonaActorLogging {
       stateData: SchedulerStateData
   ): SchedulerStateData =
     stateData.copy(
-      trigger =
-        sendEligibleTrigger(stateData.trigger, stateData.time.nowInTicks)
+      trigger = sendEligibleTrigger(
+        stateData.trigger,
+        stateData.time.nowInTicks,
+        stateData.runtime.priorityPhase
+      )
     )
 
   /** Send out all trigger that are eligible to be send for the current state of
@@ -75,10 +78,17 @@ trait SchedulerHelper extends SimonaActorLogging {
     */
   protected def sendEligibleTrigger(
       triggerData: TriggerData,
-      nowInTicks: Long
+      nowInTicks: Long,
+      priorityPhase: Boolean
   ): TriggerData = {
 
-    triggerData.triggerQueue.pollTo(nowInTicks).foreach {
+    val queue =
+      if (priorityPhase)
+        triggerData.priorityTriggerQueue
+      else
+        triggerData.triggerQueue
+
+    queue.pollTo(nowInTicks).foreach {
       case scheduledTrigger @ ScheduledTrigger(triggerWithIdMessage, actor) =>
         // track that we wait for a response for this tick
         triggerData.awaitingResponseMap.add(triggerWithIdMessage.trigger.tick)
@@ -132,7 +142,7 @@ trait SchedulerHelper extends SimonaActorLogging {
 
           /* if we do not exceed nowInSeconds + parallelWindow OR do not wait on any responses we can send out new triggers */
           if (
-            canWeSendTrigger(
+            canWeAdvanceInTime(
               stateData.trigger.awaitingResponseMap,
               nowInTicks,
               parallelWindow
@@ -151,18 +161,29 @@ trait SchedulerHelper extends SimonaActorLogging {
 
             /* if we do not exceed (nowInTicks+1) + parallelWindow OR do not wait on any responses, we can move on in time by one tick */
             if (
-              nowInTicks <= endTick && canWeSendTrigger(
+              nowInTicks <= endTick && canWeAdvanceInTime(
                 updatedStateData.trigger.awaitingResponseMap,
                 nowInTicks + 1,
                 parallelWindow
               )
             ) {
-              doSimStep(
-                updatedStateData.copy(
-                  time = updatedStateData.time
-                    .copy(nowInTicks = nowInTicks + 1)
-                )
-              )
+              val nextStateData =
+                if (stateData.runtime.priorityPhase) {
+                  updatedStateData.copy(
+                    runtime = updatedStateData.runtime.copy(
+                      priorityPhase = false
+                    )
+                  )
+                } else
+                  updatedStateData.copy(
+                    time = updatedStateData.time
+                      .copy(nowInTicks = nowInTicks + 1),
+                    runtime = updatedStateData.runtime.copy(
+                      priorityPhase = true
+                    )
+                  )
+
+              doSimStep(nextStateData)
             } else {
               /* we cannot move on in time for (nowInTicks+1), return updated data */
               updatedStateData
@@ -295,7 +316,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     * @return
     *   true if trigger can be send, false otherwise
     */
-  private def canWeSendTrigger(
+  private def canWeAdvanceInTime(
       awaitingResponseMap: CountingMap[Long],
       nowInTicks: Long,
       parallelWindow: Long
@@ -334,6 +355,9 @@ trait SchedulerHelper extends SimonaActorLogging {
       && !awaitingResponseMap.contains(nowInTicks)
       && noScheduledTriggersForCurrentTick(
         stateData.trigger.triggerQueue,
+        nowInTicks
+      ) && noScheduledTriggersForCurrentTick(
+        stateData.trigger.priorityTriggerQueue,
         nowInTicks
       )
       && stateData.event.lastCheckWindowPassedTick < nowInTicks
@@ -379,6 +403,9 @@ trait SchedulerHelper extends SimonaActorLogging {
       && noScheduledTriggersForCurrentTick(
         stateData.trigger.triggerQueue,
         nowInTicks
+      ) && noScheduledTriggersForCurrentTick(
+        stateData.trigger.priorityTriggerQueue,
+        nowInTicks
       )
     ) {
       /* ready! - notify listener */
@@ -419,6 +446,9 @@ trait SchedulerHelper extends SimonaActorLogging {
       stateData.trigger.awaitingResponseMap.isEmpty && noScheduledTriggersForCurrentTick(
         stateData.trigger.triggerQueue,
         stateData.time.nowInTicks
+      ) && noScheduledTriggersForCurrentTick(
+        stateData.trigger.priorityTriggerQueue,
+        stateData.time.nowInTicks
       )
     ) {
       finishSimulation(stateData)
@@ -449,6 +479,9 @@ trait SchedulerHelper extends SimonaActorLogging {
 
     /* unwatch all agents that have triggered themselves as the simulation will shutdown now */
     stateData.trigger.triggerQueue.allValues.foreach(trig =>
+      context.unwatch(trig.agent)
+    )
+    stateData.trigger.priorityTriggerQueue.allValues.foreach(trig =>
       context.unwatch(trig.agent)
     )
 
@@ -532,7 +565,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     if (stateData.runtime.initComplete && stateData.runtime.scheduleStarted)
       doSimStep(stateData)
     else if (!stateData.runtime.initComplete && stateData.runtime.initStarted)
-      sendEligibleTrigger(stateData)
+      doSimStep(stateData)
     else
       stateData
   }
@@ -631,10 +664,14 @@ trait SchedulerHelper extends SimonaActorLogging {
           /* we are @ the init tick (SimonaSim#initTick), if no init triggers are in the queue and in the await map
            * anymore we're done with the init process, hence we check for this case */
           val initDone =
-            isInitDone(updatedAwaitingResponseMap, triggerData.triggerQueue)
+            isInitDone(
+              updatedAwaitingResponseMap,
+              triggerData.triggerQueue,
+              triggerData.priorityTriggerQueue
+            )
 
           /* steps to be carried out when init is done */
-          val updateTime = if (initDone) {
+          val updatedStateData = if (initDone) {
             val initDuration = calcDuration(
               stateData.time.initStartTime.toDouble
             )
@@ -647,20 +684,23 @@ trait SchedulerHelper extends SimonaActorLogging {
               self ! StartScheduleMessage()
 
             /* Advance time, if init is done */
-            stateData.time.copy(nowInTicks = stateData.time.nowInTicks + 1)
+            stateData.copy(
+              time =
+                stateData.time.copy(nowInTicks = stateData.time.nowInTicks + 1),
+              runtime = stateData.runtime.copy(priorityPhase = true)
+            )
           } else {
-            stateData.time
+            stateData
           }
 
           // set initComplete to initDone value
-          stateData.copy(
-            runtime = stateData.runtime.copy(initComplete = initDone),
+          updatedStateData.copy(
+            runtime = updatedStateData.runtime.copy(initComplete = initDone),
             trigger = triggerData.copy(
               awaitingResponseMap = updatedAwaitingResponseMap,
               triggerIdToScheduledTriggerMap =
                 updatedTriggerIdToScheduledTriggerMap
-            ),
-            time = updateTime
+            )
           )
         }
     }
@@ -729,10 +769,14 @@ trait SchedulerHelper extends SimonaActorLogging {
     */
   private def isInitDone(
       awaitingResponseMap: CountingMap[Long],
-      triggerQueue: PriorityMultiQueue[Long, ScheduledTrigger]
+      triggerQueue: PriorityMultiQueue[Long, ScheduledTrigger],
+      priorityTriggerQueue: PriorityMultiQueue[Long, ScheduledTrigger]
   ): Boolean =
     !awaitingResponseMap.contains(SimonaConstants.INIT_SIM_TICK) &&
-      !triggerQueue.headKeyOption.contains(SimonaConstants.INIT_SIM_TICK)
+      !triggerQueue.headKeyOption.contains(SimonaConstants.INIT_SIM_TICK) &&
+      !priorityTriggerQueue.headKeyOption.contains(
+        SimonaConstants.INIT_SIM_TICK
+      )
 
   /** Calculate the duration between a given start time and the current system
     * time in milliseconds
@@ -764,6 +808,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     scheduleTrigger(
       triggerMessage.trigger,
       triggerMessage.actorToBeScheduled,
+      triggerMessage.priority,
       stateData
     )
 
@@ -782,6 +827,7 @@ trait SchedulerHelper extends SimonaActorLogging {
   protected final def scheduleTrigger(
       trigger: Trigger,
       actorToBeScheduled: ActorRef,
+      priority: Boolean,
       stateData: SchedulerStateData
   ): SchedulerStateData = {
 
@@ -808,8 +854,14 @@ trait SchedulerHelper extends SimonaActorLogging {
           actorToBeScheduled
         )
 
+      val queue =
+        if (priority)
+          stateData.trigger.priorityTriggerQueue
+        else
+          stateData.trigger.triggerQueue
+
       /* update trigger queue */
-      stateData.trigger.triggerQueue.add(
+      queue.add(
         trigger.tick,
         ScheduledTrigger(
           triggerWithIdMessage,
