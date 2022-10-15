@@ -40,7 +40,8 @@ object SchedulerMessage {
     */
   final case class ScheduleTriggerMessage(
       trigger: Trigger,
-      actorToBeScheduled: ActorRef
+      actorToBeScheduled: ActorRef,
+      priority: Boolean = false
   ) extends SchedulerMessage
 
   /** Confirm the end of an action e.g. fsm state transitions for one tick to
