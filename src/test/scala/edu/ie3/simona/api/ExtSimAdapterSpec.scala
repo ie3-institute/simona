@@ -82,7 +82,8 @@ class ExtSimAdapterSpec
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(INIT_SIM_TICK),
-                extSimAdapter
+                extSimAdapter,
+                priority = true
               )
             )
           )
@@ -153,7 +154,8 @@ class ExtSimAdapterSpec
             Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(nextTick),
-                extSimAdapter
+                extSimAdapter,
+                priority = true
               )
             )
           )
@@ -214,7 +216,8 @@ class ExtSimAdapterSpec
       scheduler.expectMsg(
         ScheduleTriggerMessage(
           ActivityStartTrigger(tick),
-          dataService.ref
+          dataService.ref,
+          priority = true
         )
       )
       dataService.expectNoMessage()
