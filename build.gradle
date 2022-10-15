@@ -28,10 +28,10 @@ ext {
   scalaBinaryVersion = '2.13.8'
   akkaVersion = '2.6.20'
   jtsVersion = '1.19.0'
-  tscfgVersion = '1.0.0'
-  scapegoatVersion = '1.4.16'
+  tscfgVersion = '1.0.2'
+  scapegoatVersion = '1.4.17'
 
-  testContainerVersion = '0.40.10'
+  testContainerVersion = '0.40.11'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
 }
@@ -59,7 +59,7 @@ configurations {
 
 repositories {
   mavenCentral() // searches in Sonatype's central repository
-  maven { url 'https://www.jitpack.io' } // allows github repos as dependencies
+  maven { url 'https://jitpack.io' } // allows github repos as dependencies
   maven { url 'https://oss.sonatype.org/content/repositories/snapshots' } // sonatype snapshot repo
   maven { url "https://packages.confluent.io/maven" } // confluent repo (kafka)
 }
@@ -100,10 +100,10 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // akka scala logging
-  implementation "ch.qos.logback:logback-classic:1.4.1"
+  implementation "ch.qos.logback:logback-classic:1.4.4"
 
   /* testing */
-  testImplementation 'org.spockframework:spock-core:2.2-groovy-4.0'
+  testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
   testImplementation 'org.scalatestplus:mockito-3-4_2.13:3.2.10.0'
   implementation 'org.mockito:mockito-core:4.8.0' // mocking framework
   testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.14"

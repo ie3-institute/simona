@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add troubleshooting section to Users guide [#160](https://github.com/ie3-institute/simona/issues/160)
 - Added Kafka sink for results [#24](https://github.com/ie3-institute/simona/issues/24)
 - Added Kafka sink for runtime events, re-implemented RuntimeEventListener in akka typed [#242](https://github.com/ie3-institute/simona/issues/242)
+- Added listeners to DBFS tests to check the result output and check the handling of failed power flows [#269](https://github.com/ie3-institute/simona/issues/269)
 - Instantiation of Heat Pump Agents [#253](https://github.com/ie3-institute/simona/issues/253)
 - Output of accompanying thermal result models
 
@@ -47,6 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renaming sub-package directories [#141](https://github.com/ie3-institute/simona/issues/141)
 - Updated authors in AUTHORS.md [#301](https://github.com/ie3-institute/simona/issues/301)
 - Added faster data structures to SimScheduler [#282](https://github.com/ie3-institute/simona/issues/282)
+- Adaption of abbreviations in PVModel and adjacent classes to naming convention [#326](https://github.com/ie3-institute/simona/issues/326)
+- Fixed Latex equations [#264](https://github.com/ie3-institute/simona/issues/264)
+- Documentation of the simulation configuration [#334](https://github.com/ie3-institute/simona/issues/334)
 - Use `ThermalGrid` to calculate thermal environment of a heat pump [#315](https://github.com/ie3-institute/simona/issues/315)
 
 ### Fixed
