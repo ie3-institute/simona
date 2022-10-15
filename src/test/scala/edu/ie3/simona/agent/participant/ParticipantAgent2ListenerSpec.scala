@@ -18,7 +18,6 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -37,7 +36,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeParticipantAgentTrigger
 }
 import edu.ie3.simona.test.ParticipantAgentSpec
-import edu.ie3.simona.test.common.{AgentSpec, DefaultTestData}
+import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits.{
   KILOWATT,
   MEGAVAR,
@@ -126,7 +125,8 @@ class ParticipantAgent2ListenerSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           0,
@@ -210,7 +210,8 @@ class ParticipantAgent2ListenerSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           0,
@@ -281,7 +282,8 @@ class ParticipantAgent2ListenerSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           0,
@@ -373,7 +375,8 @@ class ParticipantAgent2ListenerSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           0,

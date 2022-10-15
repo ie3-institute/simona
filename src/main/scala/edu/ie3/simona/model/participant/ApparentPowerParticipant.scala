@@ -11,8 +11,8 @@ import tech.units.indriya.ComparableQuantity
 
 import javax.measure.quantity.Dimensionless
 
-trait ApparentPowerParticipant[CD <: CalcRelevantData] {
-  this: SystemParticipant[CD, ApparentPower] =>
+trait ApparentPowerParticipant[CD <: CalcRelevantData, MS <: ModelState] {
+  this: SystemParticipant[CD, ApparentPower, MS] =>
   override def calculatePower(
       tick: Long,
       voltage: ComparableQuantity[Dimensionless],

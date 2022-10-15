@@ -14,7 +14,10 @@ import breeze.numerics.{ceil, floor, pow, sqrt}
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.datamodel.models.result.system.SystemParticipantResult
+import edu.ie3.datamodel.models.result.system.{
+  FlexOptionsResult,
+  SystemParticipantResult
+}
 import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
@@ -29,6 +32,7 @@ import edu.ie3.simona.agent.participant.data.Data.SecondaryData.DateTime
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
+  FlexStateData,
   FromOutsideBaseStateData,
   ParticipantModelBaseStateData
 }
@@ -50,6 +54,7 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
+  FlexOptionsResultEvent,
   ParticipantResultEvent,
   ThermalResultEvent
 }
@@ -61,7 +66,13 @@ import edu.ie3.simona.exceptions.agent.{
   InvalidRequestException
 }
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
-import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
+import edu.ie3.simona.model.participant.ModelState.ConstantState
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  ModelState,
+  SystemParticipant
+}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage
@@ -79,13 +90,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.ontology.trigger.Trigger.ParticipantTrigger.StartCalculationTrigger
 import edu.ie3.simona.service.ServiceStateData.ServiceActivationBaseStateData
 import edu.ie3.simona.util.TickUtil._
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KILOVARHOUR,
-  KILOWATTHOUR,
-  MEGAVAR,
-  MEGAWATT,
-  PU
-}
+import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.{QuantityUtil => PsuQuantityUtil}
 import edu.ie3.util.scala.quantities.QuantityUtil
 import tech.units.indriya.ComparableQuantity
@@ -103,12 +108,13 @@ import scala.util.{Failure, Success, Try}
 protected trait ParticipantAgentFundamentals[
     PD <: PrimaryDataWithApparentPower[PD],
     CD <: CalcRelevantData,
+    MS <: ModelState,
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
     MC <: SimonaConfig.BaseRuntimeConfig,
-    M <: SystemParticipant[CD, PD]
-] extends ServiceRegistration[PD, CD, D, I, MC, M] {
-  this: ParticipantAgent[PD, CD, D, I, MC, M] =>
+    M <: SystemParticipant[CD, PD, MS]
+] extends ServiceRegistration[PD, CD, MS, D, I, MC, M] {
+  this: ParticipantAgent[PD, CD, MS, D, I, MC, M] =>
   protected val pdClassTag: ClassTag[PD]
   protected implicit val timeout: util.Timeout = Timeout(10, TimeUnit.SECONDS)
 
@@ -282,12 +288,21 @@ protected trait ParticipantAgentFundamentals[
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      scheduler: ActorRef
+      scheduler: ActorRef,
+      maybeEmAgent: Option[ActorRef]
   ): FSM.State[AgentState, ParticipantStateData[PD]] =
     try {
       /* Register for services */
       val awaitRegistrationResponsesFrom =
         registerForServices(inputModel.electricalInputModel, services)
+
+      // always request flex options for first sim tick
+      maybeEmAgent.foreach {
+        _ ! ScheduleTriggerMessage(
+          RequestFlexOptions(0L),
+          self
+        )
+      }
 
       val baseStateData = determineModelBaseStateData(
         inputModel,
@@ -297,7 +312,8 @@ protected trait ParticipantAgentFundamentals[
         simulationEndDate,
         resolution,
         requestVoltageDeviationThreshold,
-        outputConfig
+        outputConfig,
+        maybeEmAgent
       )
 
       /* If we do have registered with secondary data providers, wait for their responses. If not, the agent does not
@@ -339,8 +355,9 @@ protected trait ParticipantAgentFundamentals[
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig
-  ): ParticipantModelBaseStateData[PD, CD, M]
+      outputConfig: NotifierConfig,
+      maybeEmAgent: Option[ActorRef]
+  ): ParticipantModelBaseStateData[PD, CD, MS, M]
 
   /** Determine all ticks between the operation start and end of the
     * participant, that are at a full hour or integer multiples of the data's
@@ -604,7 +621,12 @@ protected trait ParticipantAgentFundamentals[
               throw exception
           }
 
-        case _: BaseStateData.ModelBaseStateData[_, _, _] =>
+        case modelStateData: BaseStateData.ModelBaseStateData[_, _, _, _]
+            if modelStateData.isEmManaged =>
+          // if we're managed by EM, go to Idle and wait for further messages
+          unstashAll()
+          goto(Idle) using stateData
+        case _: BaseStateData.ModelBaseStateData[_, _, _, _] =>
           /* Go to calculation state and send a trigger for this to myself as well */
           self ! StartCalculationTrigger(currentTick)
           goto(Calculate) using stateData
@@ -617,6 +639,259 @@ protected trait ParticipantAgentFundamentals[
       /* We sill have to wait - either for data or activation */
       stay() using stateData
     }
+  }
+
+  override protected def handleFlexRequest(
+      participantStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+      tick: Long
+  ): ParticipantModelBaseStateData[PD, CD, MS, M] = {
+    val updatedBaseStateData = calculateFlexOptions(
+      participantStateData,
+      tick
+    )
+
+    val updatedFlexData = updatedBaseStateData.flexStateData.getOrElse(
+      throw new InconsistentStateException("Flex state data is missing!")
+    )
+
+    val (_, newestFlexOptions) = updatedFlexData.flexOptionsStore
+      .last()
+      .getOrElse(
+        throw new RuntimeException(
+          "Flex options have not been calculated by agent!"
+        )
+      )
+
+    updatedFlexData.emAgent ! newestFlexOptions
+
+    updatedBaseStateData
+  }
+
+  override protected def calculateFlexOptions(
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+      tick: Long
+  ): ParticipantModelBaseStateData[PD, CD, MS, M] = {
+
+    implicit val startDateTime: ZonedDateTime = baseStateData.startDate
+
+    val relevantData =
+      createCalcRelevantData(
+        baseStateData,
+        tick
+      )
+
+    val lastState = getLastOrInitialStateData(baseStateData, tick)
+
+    val flexOptions =
+      baseStateData.model.determineFlexOptions(relevantData, lastState)
+
+    // announce flex options (we can do this right away, since this
+    // does not include reactive power which could change later
+    if (baseStateData.outputConfig.simulationResultInfo) {
+      val flexResult = flexOptions match {
+        case ProvideMinMaxFlexOptions(
+              modelUuid,
+              referencePower,
+              minPower,
+              maxPower
+            ) =>
+          new FlexOptionsResult(
+            tick.toDateTime,
+            modelUuid,
+            referencePower,
+            minPower,
+            maxPower
+          )
+      }
+
+      notifyListener(FlexOptionsResultEvent(flexResult))
+    }
+
+    baseStateData.copy(
+      flexStateData = baseStateData.flexStateData.map(data =>
+        data.copy(flexOptionsStore =
+          ValueStore.updateValueStore(
+            data.flexOptionsStore,
+            tick,
+            flexOptions
+          )
+        )
+      )
+    )
+  }
+
+  override protected def handleFlexCtrl(
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+      flexCtrl: IssueFlexControl,
+      scheduler: ActorRef
+  ): State = {
+
+    val flexStateData = baseStateData.flexStateData.getOrElse(
+      throw new IllegalStateException(
+        s"Received $flexCtrl, but participant agent is not in EM mode"
+      )
+    )
+
+    val resultingActivePower =
+      determineResultingFlexPower(flexStateData, flexCtrl)
+
+    val result = calculateResult(
+      baseStateData,
+      flexCtrl.tick,
+      resultingActivePower
+    )
+
+    val relevantData = createCalcRelevantData(
+      baseStateData,
+      flexCtrl.tick
+    )
+
+    val lastState = getLastOrInitialStateData(baseStateData, flexCtrl.tick)
+
+    val (updatedState, flexChangeIndicator) =
+      baseStateData.model.handleControlledPowerChange(
+        relevantData,
+        lastState,
+        resultingActivePower
+      )
+
+    // revoke old tick and remove it from state data, if applicable
+    val revokeRequest =
+      flexStateData.scheduledRequest
+        .filter {
+          // revoke old tick if it exists and is placed in the future
+          _ > flexCtrl.tick
+        }
+
+    // remove from additionalTicks and from flex state data
+    val clearedBaseStateData =
+      if (revokeRequest.nonEmpty)
+        baseStateData.copy(
+          flexStateData = Some(
+            flexStateData.copy(scheduledRequest = None)
+          )
+        )
+      else
+        baseStateData
+
+    // add new tick and updated relevant data, if applicable
+    val updatedStateData: ParticipantModelBaseStateData[PD, CD, MS, M] =
+      flexChangeIndicator.changesAtTick
+        .map { requestTick =>
+          // save new tick
+          clearedBaseStateData.copy(
+            flexStateData = clearedBaseStateData.flexStateData.map(
+              _.copy(scheduledRequest = Some(requestTick))
+            )
+          )
+        }
+        .getOrElse(clearedBaseStateData)
+        .copy(
+          stateDataStore = ValueStore.updateValueStore(
+            baseStateData.stateDataStore,
+            flexCtrl.tick,
+            updatedState
+          ),
+          resultValueStore = ValueStore.updateValueStore(
+            baseStateData.resultValueStore,
+            flexCtrl.tick,
+            result
+          )
+        )
+
+    // Send out results etc.
+    val stateDataWithResults = handleCalculatedResult(
+      updatedStateData,
+      flexCtrl.tick
+    )
+
+    flexStateData.emAgent ! FlexCtrlCompletion(
+      baseStateData.modelUuid,
+      revokeRequest,
+      flexChangeIndicator.changesAtNextActivation,
+      flexChangeIndicator.changesAtTick
+    )
+
+    // announce current result to EmAgent
+    flexStateData.emAgent ! buildResultEvent(
+      stateDataWithResults,
+      flexCtrl.tick,
+      result
+    )
+
+    if (currentTickDefined) {
+      // if we've received ActivityStartTrigger, send completion
+      goToIdleReplyCompletionAndScheduleTriggerForNextAction(
+        stateDataWithResults,
+        scheduler
+      )
+    } else
+      stay() using stateDataWithResults
+  }
+
+  protected def determineResultingFlexPower(
+      flexStateData: FlexStateData,
+      flexCtrl: IssueFlexControl
+  ): ComparableQuantity[Power] = {
+    val (_, flexOptions) = flexStateData.flexOptionsStore
+      .last()
+      .getOrElse(
+        throw new IllegalStateException(
+          "Flex options have not been calculated before."
+        )
+      )
+
+    flexOptions match {
+      case ProvideMinMaxFlexOptions(_, pRef, pMin, pMax) =>
+        flexCtrl match {
+          case IssuePowerCtrl(_, setPower) =>
+            // sanity check: setPower is in range of latest flex options
+            if (setPower.isLessThan(pMin))
+              throw new RuntimeException(
+                s"The set power $setPower must not be lower than the minimum power $pMin!"
+              )
+            if (setPower.isGreaterThan(pMax)) {
+              throw new RuntimeException(
+                s"The set power $setPower must not be greater than the maximum power $pMax!"
+              )
+            }
+            // override, take setPower
+            setPower
+
+          case IssueNoCtrl(_) =>
+            // no override, take reference power
+            pRef
+        }
+
+      case unknownFlexOpt =>
+        throw new IllegalStateException(
+          s"Unknown/unfitting flex messages $unknownFlexOpt"
+        )
+    }
+  }
+
+  /** Additional actions on a new calculated simulation result
+    *
+    * @param baseStateData
+    *   The updated base state data
+    * @param tick
+    *   the current tick
+    */
+  protected def handleCalculatedResult(
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+      tick: Long
+  ): ParticipantModelBaseStateData[PD, CD, MS, M] = {
+
+    baseStateData.resultValueStore.get(tick).foreach { result =>
+      // announce last result to listeners
+      announceSimulationResult(
+        baseStateData,
+        tick,
+        AccompaniedSimulationResult(result)
+      )(baseStateData.outputConfig)
+    }
+
+    baseStateData
   }
 
   /** Determining the active to reactive power function to apply
@@ -710,6 +985,22 @@ protected trait ParticipantAgentFundamentals[
           )
       }
       .map(_.asInstanceOf[PD])
+
+  protected def getLastOrInitialStateData(
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+      tick: Long
+  ): MS =
+    ConstantState match {
+      case constantState: MS =>
+        constantState
+      case _ =>
+        baseStateData.stateDataStore
+          .last(tick)
+          .map { case (_, lastState) =>
+            lastState
+          }
+          .getOrElse(createInitialState())
+    }
 
   /** Change over to [[Idle]] state and reply completion to the scheduler. By
     * doing so, also schedule an [[ActivityStartTrigger]] for the next upcoming
@@ -844,8 +1135,6 @@ protected trait ParticipantAgentFundamentals[
       fInPu: ComparableQuantity[Dimensionless],
       alternativeResult: PD
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
-    log.debug(s"Received asset power request for tick {}", requestTick)
-
     /* Check, if there is any calculation foreseen for this tick. If so, wait with the response. */
     val activationExpected =
       baseStateData.additionalActivationTicks.exists(_ < requestTick)
@@ -853,8 +1142,8 @@ protected trait ParticipantAgentFundamentals[
       baseStateData.foreseenDataTicks.values.flatten.exists(_ < requestTick)
     if (activationExpected || dataExpected) {
       log.debug(
-        s"I got a request for power from '{}' for tick '{}', but I'm still waiting for new" +
-          s" results before this tick. Waiting with the response.",
+        s"Received power request from '{}' for tick '{}', but I'm still waiting for new results before " +
+          s"this tick. Waiting with the response.",
         sender(),
         requestTick
       )
@@ -955,7 +1244,12 @@ protected trait ParticipantAgentFundamentals[
                 latestProvidedValues.q
               )
             )
-          case modelBaseStateData: ParticipantModelBaseStateData[PD, CD, M] =>
+          case modelBaseStateData: ParticipantModelBaseStateData[
+                PD,
+                CD,
+                MS,
+                M
+              ] =>
             /* Check, if the last request has been made with the same nodal voltage. If not, recalculate the reactive
              * power. */
             lastNodalVoltage match {
@@ -1030,7 +1324,12 @@ protected trait ParticipantAgentFundamentals[
           if lastRequestTick == requestTick =>
         /* Repetitive request for the same tick, but with different voltage */
         baseStateData match {
-          case modelBaseStateData: ParticipantModelBaseStateData[PD, CD, M] =>
+          case modelBaseStateData: ParticipantModelBaseStateData[
+                PD,
+                CD,
+                MS,
+                M
+              ] =>
             /* Active power is yet calculated, but reactive power needs update */
             val nextReactivePower = modelBaseStateData.model
               .calculateReactivePower(lastResult.p, nodalVoltage)
@@ -1307,7 +1606,7 @@ protected trait ParticipantAgentFundamentals[
     /* Determine, how the single model would transfer the active into reactive power */
     val activeToReactivePowerFunction = baseStateData match {
       case _: FromOutsideBaseStateData[M, PD] => None
-      case modelBaseStateData: ParticipantModelBaseStateData[PD, CD, M] =>
+      case modelBaseStateData: ParticipantModelBaseStateData[PD, CD, MS, M] =>
         Some(
           modelBaseStateData.model.activeToReactivePowerFunc(nodalVoltage)
         )
@@ -1401,13 +1700,13 @@ protected trait ParticipantAgentFundamentals[
     *   [[Idle]] with updated result values
     */
   override def calculatePowerWithoutSecondaryDataAndGoToIdle(
-      baseStateData: ParticipantModelBaseStateData[PD, CD, M],
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
       currentTick: Long,
       scheduler: ActorRef,
       nodalVoltage: ComparableQuantity[Dimensionless],
       calculateModelPowerFunc: (
           Long,
-          ParticipantModelBaseStateData[PD, CD, M],
+          ParticipantModelBaseStateData[PD, CD, MS, M],
           ComparableQuantity[Dimensionless]
       ) => PD
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
@@ -1456,7 +1755,7 @@ protected trait ParticipantAgentFundamentals[
     * @param outputConfig
     *   Configuration of the output behaviour
     */
-  def announceSimulationResult(
+  protected def announceSimulationResult(
       baseStateData: BaseStateData[PD],
       tick: Long,
       result: AccompaniedSimulationResult[PD]
@@ -1470,8 +1769,8 @@ protected trait ParticipantAgentFundamentals[
         .foreach(notifyListener(_))
     }
 
-  /** Update the result and calc relevant data value stores, inform all
-    * registered listeners and go to Idle using the updated base state data
+  /** Update the result value store, inform all registered listeners and go to
+    * Idle using the updated base state data
     *
     * @param scheduler
     *   Actor reference of the scheduler
@@ -1479,8 +1778,6 @@ protected trait ParticipantAgentFundamentals[
     *   The base state data of the collection state
     * @param result
     *   Result of simulation
-    * @param relevantData
-    *   Data, that have been relevant to this calculation
     * @return
     *   Desired state change
     */
@@ -1497,19 +1794,6 @@ protected trait ParticipantAgentFundamentals[
         currentTick,
         result.primaryData
       )
-    val updatedRelevantDataStore =
-      baseStateData match {
-        case data: BaseStateData.ModelBaseStateData[_, _, _] =>
-          ValueStore.updateValueStore(
-            data.calcRelevantDateStore,
-            currentTick,
-            relevantData
-          )
-        case _ =>
-          throw new InconsistentStateException(
-            "Cannot find calculation relevant data to update."
-          )
-      }
 
     /* Inform the listeners about new result */
     announceSimulationResult(
@@ -1521,11 +1805,8 @@ protected trait ParticipantAgentFundamentals[
     /* Update the base state data */
     val baseStateDateWithUpdatedResults =
       baseStateData match {
-        case data: ParticipantModelBaseStateData[PD, CD, M] =>
-          data.copy(
-            resultValueStore = updatedValueStore,
-            calcRelevantDateStore = updatedRelevantDataStore
-          )
+        case data: ParticipantModelBaseStateData[PD, CD, MS, M] =>
+          data.copy(resultValueStore = updatedValueStore)
         case _ =>
           throw new InconsistentStateException(
             "Wrong base state data"

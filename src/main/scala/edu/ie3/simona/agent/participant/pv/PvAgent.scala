@@ -14,6 +14,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.PvModel
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 
@@ -47,6 +48,7 @@ class PvAgent(
 ) extends ParticipantAgent[
       ApparentPower,
       PvRelevantData,
+      ConstantState.type,
       ParticipantStateData[ApparentPower],
       PvInput,
       PvRuntimeConfig,

@@ -165,7 +165,8 @@ class HpAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           triggerId,
@@ -245,7 +246,8 @@ class HpAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           triggerId,
@@ -268,7 +270,8 @@ class HpAgentModelCalculationSpec
               defaultSimulationEnd,
               resolution,
               requestVoltageDeviationThreshold,
-              outputConfig
+              outputConfig,
+              _
             ) =>
           inputModel shouldBe WithHeatInputContainer(hpInput, thermalGrid)
           modelConfig shouldBe modelConfig
@@ -306,6 +309,9 @@ class HpAgentModelCalculationSpec
                 voltageValueStore,
                 resultValueStore,
                 requestValueStore,
+                _,
+                _,
+                _,
                 _
               ),
               awaitRegistrationResponsesFrom,
@@ -361,7 +367,7 @@ class HpAgentModelCalculationSpec
       /* ... as well as corresponding state and state data */
       hpAgent.stateName shouldBe Idle
       hpAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
             weatherService.ref -> Some(4711L)
@@ -404,7 +410,8 @@ class HpAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           triggerId,
@@ -441,7 +448,7 @@ class HpAgentModelCalculationSpec
       )
 
       inside(hpAgent.stateData) {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           modelBaseStateData.requestValueStore shouldBe ValueStore[
             ApparentPowerAndHeat
           ](
@@ -492,7 +499,8 @@ class HpAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           initialiseTriggerId,
@@ -530,7 +538,7 @@ class HpAgentModelCalculationSpec
       hpAgent.stateName shouldBe HandleInformation
       hpAgent.stateData match {
         case DataCollectionStateData(
-              baseStateData: ParticipantModelBaseStateData[_, _, _],
+              baseStateData: ParticipantModelBaseStateData[_, _, _, _],
               expectedSenders,
               isYetTriggered
             ) =>
@@ -574,7 +582,7 @@ class HpAgentModelCalculationSpec
       )
       hpAgent.stateName shouldBe Idle
       hpAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* The store for calculation relevant data has been extended */
           baseStateData.calcRelevantDateStore match {
             case ValueStore(_, store) =>
@@ -688,7 +696,8 @@ class HpAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           initialiseTriggerId,
@@ -722,7 +731,7 @@ class HpAgentModelCalculationSpec
       hpAgent.stateName shouldBe HandleInformation
       hpAgent.stateData match {
         case DataCollectionStateData(
-              baseStateData: ParticipantModelBaseStateData[_, _, _],
+              baseStateData: ParticipantModelBaseStateData[_, _, _, _],
               expectedSenders,
               isYetTriggered
             ) =>
@@ -768,7 +777,7 @@ class HpAgentModelCalculationSpec
       /* Expect the state change to idle with updated base state data */
       hpAgent.stateName shouldBe Idle
       hpAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* The store for calculation relevant data has been extended */
           baseStateData.calcRelevantDateStore match {
             case ValueStore(_, store) =>
@@ -882,7 +891,8 @@ class HpAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           0L,
@@ -989,7 +999,8 @@ class HpAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           0L,

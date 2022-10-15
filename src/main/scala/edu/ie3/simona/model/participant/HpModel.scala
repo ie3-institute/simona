@@ -6,22 +6,23 @@
 
 package edu.ie3.simona.model.participant
 
-import java.util.UUID
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.HpModel._
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalHouse}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
-
-import javax.measure.quantity.{Power, Temperature}
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
+import java.util.UUID
+import javax.measure.quantity.{Power, Temperature}
 
 /** Model of a heat pump (HP) with a [[ThermalHouse]] medium and its current
   * [[HpState]].
@@ -57,7 +58,11 @@ final case class HpModel(
     cosPhiRated: Double,
     pThermal: ComparableQuantity[Power],
     thermalGrid: ThermalGrid
-) extends SystemParticipant[HpRelevantData, ApparentPowerAndHeat](
+) extends SystemParticipant[
+      HpRelevantData,
+      ApparentPowerAndHeat,
+      ConstantState.type
+    ](
       uuid,
       id,
       operationInterval,
@@ -66,7 +71,7 @@ final case class HpModel(
       sRated,
       cosPhiRated
     )
-    with ApparentPowerAndHeatParticipant[HpRelevantData] {
+    with ApparentPowerAndHeatParticipant[HpRelevantData, ConstantState.type] {
 
   private val pRated: ComparableQuantity[Power] =
     sRated
@@ -180,11 +185,24 @@ final case class HpModel(
       thermalGridState._1
     )
   }
+
+  override def determineFlexOptions(
+      data: HpRelevantData,
+      lastState: ConstantState.type
+  ): ProvideFlexOptions = ??? // TODO actual implementation
+
+  override def handleControlledPowerChange(
+      data: HpRelevantData,
+      lastState: ConstantState.type,
+      setPower: ComparableQuantity[Power]
+  ): (ConstantState.type, FlexChangeIndicator) =
+    ??? // TODO actual implementation
+
 }
 
 /** Create valid [[HpModel]] by calling the apply function.
   */
-case object HpModel {
+object HpModel {
 
   def apply(
       inputModel: HpInput,

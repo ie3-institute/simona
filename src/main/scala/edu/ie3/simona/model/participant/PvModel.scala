@@ -9,10 +9,16 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  ProvideFlexOptions,
+  ProvideMinMaxFlexOptions
+}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.quantities.interfaces.{Irradiance, Irradiation}
 import edu.ie3.util.scala.OperationInterval
 import tech.units.indriya.ComparableQuantity
@@ -44,7 +50,7 @@ final case class PvModel private (
     private val gammaE: ComparableQuantity[Angle],
     private val moduleSurface: Quantity[Area] =
       Quantities.getQuantity(1d, SQUARE_METRE)
-) extends SystemParticipant[PvRelevantData, ApparentPower](
+) extends SystemParticipant[PvRelevantData, ApparentPower, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -53,7 +59,7 @@ final case class PvModel private (
       sRated,
       cosPhiRated
     )
-    with ApparentPowerParticipant[PvRelevantData] {
+    with ApparentPowerParticipant[PvRelevantData, ConstantState.type] {
 
   /** Override sMax as the power output of a pv unit could become easily up to
     * 10% higher than the sRated value found in the technical sheets
@@ -161,7 +167,7 @@ final case class PvModel private (
       eTotal,
       data.dateTime,
       irradiationSTC
-    )
+    ).multiply(scalingFactor)
   }
 
   /** Calculates the position of the earth in relation to the sun (day angle)
@@ -768,9 +774,25 @@ final case class PvModel private (
       Quantities.getQuantity(0d, MEGAWATT)
     else proposal
   }
+
+  override def determineFlexOptions(
+      data: PvRelevantData,
+      lastState: ConstantState.type
+  ): ProvideFlexOptions = {
+    val power = calculateActivePower(data)
+
+    ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
+  }
+
+  override def handleControlledPowerChange(
+      data: PvRelevantData,
+      lastState: ConstantState.type,
+      setPower: ComparableQuantity[Power]
+  ): (ConstantState.type, FlexChangeIndicator) =
+    (lastState, FlexChangeIndicator())
 }
 
-case object PvModel {
+object PvModel {
 
   /** Class that holds all relevant data for a pv model calculation
     *

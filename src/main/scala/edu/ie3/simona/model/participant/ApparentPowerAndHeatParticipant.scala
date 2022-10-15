@@ -13,8 +13,11 @@ import tech.units.indriya.quantity.Quantities
 
 import javax.measure.quantity.{Dimensionless, Power}
 
-trait ApparentPowerAndHeatParticipant[CD <: CalcRelevantData] {
-  this: SystemParticipant[CD, ApparentPowerAndHeat] =>
+trait ApparentPowerAndHeatParticipant[
+    CD <: CalcRelevantData,
+    MS <: ModelState
+] {
+  this: SystemParticipant[CD, ApparentPowerAndHeat, MS] =>
   override def calculatePower(
       tick: Long,
       voltage: ComparableQuantity[Dimensionless],

@@ -14,6 +14,7 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent._
+import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
@@ -21,10 +22,9 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData._
-import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.participant.statedata.{
-  DataCollectionStateData,
+  BaseStateData,
   ParticipantStateData
 }
 import edu.ie3.simona.agent.participant.wec.WecAgent.neededServices
@@ -38,27 +38,25 @@ import edu.ie3.simona.exceptions.agent.{
   InvalidRequestException
 }
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
-import edu.ie3.simona.model.participant.WecModel
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.WecModel.WecRelevantData
+import edu.ie3.simona.model.participant.{ModelState, WecModel}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.util.quantities.EmptyQuantity
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.scala.quantities.QuantityUtil
-
-import javax.measure.quantity.{Dimensionless, Energy, Power}
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.PASCAL
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.{ClassTag, classTag}
-import scala.util.{Failure, Success}
 
 protected trait WecAgentFundamentals
     extends ParticipantAgentFundamentals[
       ApparentPower,
       WecRelevantData,
+      ConstantState.type,
       ParticipantStateData[ApparentPower],
       WecInput,
       WecRuntimeConfig,
@@ -101,8 +99,14 @@ protected trait WecAgentFundamentals
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig
-  ): ParticipantModelBaseStateData[ApparentPower, WecRelevantData, WecModel] = {
+      outputConfig: NotifierConfig,
+      maybeEmAgent: Option[ActorRef]
+  ): ParticipantModelBaseStateData[
+    ApparentPower,
+    WecRelevantData,
+    ConstantState.type,
+    WecModel
+  ] = {
     /* Check for needed services */
     if (
       !services.exists(serviceDefinitions =>
@@ -122,7 +126,12 @@ protected trait WecAgentFundamentals
         simulationEndDate
       )
 
-    ParticipantModelBaseStateData[ApparentPower, WecRelevantData, WecModel](
+    ParticipantModelBaseStateData[
+      ApparentPower,
+      WecRelevantData,
+      ConstantState.type,
+      WecModel
+    ](
       simulationStartDate,
       simulationEndDate,
       model,
@@ -139,7 +148,10 @@ protected trait WecAgentFundamentals
       ),
       ValueStore.forResult(resolution, 10),
       ValueStore(resolution * 10),
-      ValueStore(resolution * 10)
+      ValueStore(resolution * 10),
+      ValueStore(resolution * 10),
+      ValueStore(0),
+      maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
     )
   }
 
@@ -155,13 +167,81 @@ protected trait WecAgentFundamentals
     simulationEndDate
   )
 
+  override protected def createInitialState(): ModelState.ConstantState.type =
+    ConstantState
+
+  override protected def createCalcRelevantData(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        WecRelevantData,
+        ConstantState.type,
+        WecModel
+      ],
+      tick: Long
+  ): WecRelevantData = {
+    // take the last weather data, not necessarily the one for the current tick:
+    // we might receive flex control messages for irregular ticks
+    val (_, secondaryData) = baseStateData.receivedSecondaryDataStore
+      .last(tick)
+      .getOrElse(
+        throw new InconsistentStateException(
+          s"The model ${baseStateData.model} was not provided with any secondary data so far."
+        )
+      )
+
+    val weatherData =
+      secondaryData
+        .collectFirst {
+          // filter secondary data for weather data
+          case (_, data: WeatherData) => data
+        }
+        .getOrElse(
+          throw new InconsistentStateException(
+            s"The model ${baseStateData.model} was not provided with needed weather data."
+          )
+        )
+
+    WecRelevantData(
+      weatherData.windVel,
+      weatherData.temp,
+      EmptyQuantity
+        .of(PASCAL) // weather data does not support air pressure
+    )
+  }
+
+  override protected def calculateResult(
+      baseStateData: BaseStateData.ParticipantModelBaseStateData[
+        ApparentPower,
+        WecRelevantData,
+        ConstantState.type,
+        WecModel
+      ],
+      currentTick: Long,
+      activePower: ComparableQuantity[Power]
+  ): ApparentPower = {
+    val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
+
+    val reactivePower =
+      baseStateData.model.calculateReactivePower(
+        activePower,
+        voltage
+      )
+
+    ApparentPower(activePower, reactivePower)
+  }
+
   /** Partial function, that is able to transfer
     * [[ParticipantModelBaseStateData]] (holding the actual calculation model)
     * into a pair of active and reactive power
     */
   override val calculateModelPowerFunc: (
       Long,
-      ParticipantModelBaseStateData[ApparentPower, WecRelevantData, WecModel],
+      ParticipantModelBaseStateData[
+        ApparentPower,
+        WecRelevantData,
+        ConstantState.type,
+        WecModel
+      ],
       ComparableQuantity[Dimensionless]
   ) => ApparentPower =
     (
@@ -169,6 +249,7 @@ protected trait WecAgentFundamentals
         _: ParticipantModelBaseStateData[
           ApparentPower,
           WecRelevantData,
+          ConstantState.type,
           WecModel
         ],
         _: ComparableQuantity[Dimensionless]
@@ -187,8 +268,8 @@ protected trait WecAgentFundamentals
     * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
     * scheduler and using update result values.</p>
     *
-    * @param collectionStateData
-    *   State data with collected, comprehensive secondary data.
+    * @param baseStateData
+    *   The base state data with collected secondary data
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
@@ -197,63 +278,35 @@ protected trait WecAgentFundamentals
     *   [[Idle]] with updated result values
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
-      collectionStateData: DataCollectionStateData[ApparentPower],
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        WecRelevantData,
+        ConstantState.type,
+        WecModel
+      ],
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
-    implicit val startDateTime: ZonedDateTime =
-      collectionStateData.baseStateData.startDate
+    implicit val startDateTime: ZonedDateTime = baseStateData.startDate
 
     val voltage =
-      getAndCheckNodalVoltage(collectionStateData.baseStateData, currentTick)
+      getAndCheckNodalVoltage(baseStateData, currentTick)
 
-    val (result, relevantData) =
-      collectionStateData.baseStateData match {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
-          modelBaseStateData.model match {
-            case wecModel: WecModel =>
-              /* extract weather data from secondary data, which should have been requested and received before */
-              val weatherData =
-                collectionStateData.data
-                  .collectFirst {
-                    // filter secondary data for weather data
-                    case (_, Some(data: WeatherData)) => data
-                  }
-                  .getOrElse(
-                    throw new InconsistentStateException(
-                      s"The model ${modelBaseStateData.model} was not provided with needed weather data."
-                    )
-                  )
+    val relevantData =
+      createCalcRelevantData(
+        baseStateData,
+        currentTick
+      )
 
-              val relevantData =
-                WecRelevantData(
-                  weatherData.windVel,
-                  weatherData.temp,
-                  EmptyQuantity
-                    .of(PASCAL) // weather data does not support air pressure
-                )
-
-              val power = wecModel.calculatePower(
-                currentTick,
-                voltage,
-                relevantData
-              )
-
-              (power, relevantData)
-            case unsupportedModel =>
-              throw new InconsistentStateException(
-                s"Wrong model: $unsupportedModel!"
-              )
-          }
-        case _ =>
-          throw new InconsistentStateException(
-            "Cannot find a model for model calculation."
-          )
-      }
+    val result = baseStateData.model.calculatePower(
+      currentTick,
+      voltage,
+      relevantData
+    )
 
     updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
       scheduler,
-      collectionStateData.baseStateData,
+      baseStateData,
       AccompaniedSimulationResult(result),
       relevantData
     )

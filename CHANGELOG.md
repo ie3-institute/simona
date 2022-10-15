@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Kafka sink for results [#24](https://github.com/ie3-institute/simona/issues/24)
 - Added Kafka sink for runtime events, re-implemented RuntimeEventListener in akka typed [#242](https://github.com/ie3-institute/simona/issues/242)
 - Added listeners to DBFS tests to check the result output and check the handling of failed power flows [#269](https://github.com/ie3-institute/simona/issues/269)
+- Added capability of SystemParticipants to handle flexibility requests regarding self-optimization [#308](https://github.com/ie3-institute/simona/issues/308)
 - Instantiation of Heat Pump Agents [#253](https://github.com/ie3-institute/simona/issues/253)
 - Output of accompanying thermal result models
 

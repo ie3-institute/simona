@@ -23,11 +23,9 @@ import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
   InconsistentStateException
 }
-import edu.ie3.simona.model.participant.CalcRelevantData.{
-  FixedRelevantData,
-  LoadRelevantData
-}
-import edu.ie3.simona.model.participant.{FixedFeedInModel, SystemParticipant}
+import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
+import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
 import edu.ie3.simona.model.participant.load.{FixedLoadModel, LoadReference}
@@ -594,6 +592,7 @@ class ParticipantAgentFundamentalsSpec
       val baseStateData = ParticipantModelBaseStateData[
         ApparentPower,
         FixedLoadRelevantData.type,
+        ConstantState.type,
         FixedLoadModel
       ](
         simulationStartDate,
@@ -617,7 +616,10 @@ class ParticipantAgentFundamentalsSpec
           .forVoltage(901L, Quantities.getQuantity(1d, PowerSystemUnits.PU)),
         ValueStore(901L),
         ValueStore(901L),
-        ValueStore(901L)
+        ValueStore(901L),
+        ValueStore(901L),
+        ValueStore(901L),
+        None
       )
 
       ParticipantAgent.getAndCheckNodalVoltage(
@@ -631,6 +633,7 @@ class ParticipantAgentFundamentalsSpec
       val baseStateData = ParticipantModelBaseStateData[
         ApparentPower,
         FixedLoadRelevantData.type,
+        ConstantState.type,
         FixedLoadModel
       ](
         simulationStartDate,
@@ -653,7 +656,10 @@ class ParticipantAgentFundamentalsSpec
         ValueStore(901L),
         ValueStore(901L),
         ValueStore(901L),
-        ValueStore(901L)
+        ValueStore(901L),
+        ValueStore(901L),
+        ValueStore(901L),
+        None
       )
 
       intercept[InconsistentStateException] {
@@ -681,16 +687,25 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,
-    SystemParticipant[FixedRelevantData.type, ApparentPower]
+    ConstantState.type,
+    SystemParticipant[FixedRelevantData.type, ApparentPower, ConstantState.type]
   ] = {
-    val modelMock =
-      mock[SystemParticipant[FixedRelevantData.type, ApparentPower]]
+    val modelMock = mock[SystemParticipant[
+      FixedRelevantData.type,
+      ApparentPower,
+      ConstantState.type
+    ]]
     when(modelMock.getUuid).thenReturn(UUID.randomUUID())
 
     ParticipantModelBaseStateData[
       ApparentPower,
       FixedRelevantData.type,
-      SystemParticipant[FixedRelevantData.type, ApparentPower]
+      ConstantState.type,
+      SystemParticipant[
+        FixedRelevantData.type,
+        ApparentPower,
+        ConstantState.type
+      ]
     ](
       TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
       TimeUtil.withDefaults.toZonedDateTime("2020-01-01 23:59:00"),
@@ -706,7 +721,10 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
       ValueStore(0L),
       ValueStore(0L),
       ValueStore(0L),
-      ValueStore(0L)
+      ValueStore(0L),
+      ValueStore(0L),
+      ValueStore(0L),
+      None
     )
   }
 }

@@ -6,20 +6,22 @@
 
 package edu.ie3.simona.model.participant
 
-import java.time.ZonedDateTime
-import java.util.UUID
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
 import edu.ie3.util.scala.OperationInterval
-
-import javax.measure.quantity.Power
 import tech.units.indriya.ComparableQuantity
+
+import java.time.ZonedDateTime
+import java.util.UUID
+import javax.measure.quantity.Power
 
 /** Fixed feed generation model delivering constant power
   *
@@ -46,7 +48,11 @@ final case class FixedFeedInModel(
     qControl: QControl,
     sRated: ComparableQuantity[Power],
     cosPhiRated: Double
-) extends SystemParticipant[FixedRelevantData.type, ApparentPower](
+) extends SystemParticipant[
+      FixedRelevantData.type,
+      ApparentPower,
+      ConstantState.type
+    ](
       uuid,
       id,
       operationInterval,
@@ -55,7 +61,7 @@ final case class FixedFeedInModel(
       sRated,
       cosPhiRated
     )
-    with ApparentPowerParticipant[FixedRelevantData.type] {
+    with ApparentPowerParticipant[FixedRelevantData.type, ConstantState.type] {
 
   /** Calculate the active power behaviour of the model
     *
@@ -73,9 +79,22 @@ final case class FixedFeedInModel(
       .multiply(cosPhiRated)
       .multiply(scalingFactor)
       .to(MEGAWATT)
+
+  override def determineFlexOptions(
+      data: FixedRelevantData.type,
+      lastState: ConstantState.type
+  ): ProvideFlexOptions =
+    ProvideFlexOptions.noFlexOption(uuid, calculateActivePower(data))
+
+  override def handleControlledPowerChange(
+      data: FixedRelevantData.type,
+      lastState: ConstantState.type,
+      setPower: ComparableQuantity[Power]
+  ): (ConstantState.type, FlexChangeIndicator) =
+    (lastState, FlexChangeIndicator())
 }
 
-case object FixedFeedInModel extends LazyLogging {
+object FixedFeedInModel extends LazyLogging {
   def apply(
       inputModel: FixedFeedInInput,
       modelConfiguration: SimonaConfig.FixedFeedInRuntimeConfig,

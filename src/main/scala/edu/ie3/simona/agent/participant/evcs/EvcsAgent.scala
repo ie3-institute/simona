@@ -8,10 +8,6 @@ package edu.ie3.simona.agent.participant.evcs
 
 import akka.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.EvcsInput
-import edu.ie3.simona.agent.participant.{
-  ParticipantAgent,
-  ParticipantAgentFundamentals
-}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
@@ -20,10 +16,14 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.participant.{
+  ParticipantAgent,
+  ParticipantAgentFundamentals
+}
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.EvcsModel
-import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
+import edu.ie3.simona.model.participant.EvcsModel.{EvcsRelevantData, EvcsState}
 import edu.ie3.simona.ontology.messages.services.EvMessage.EvFreeLotsRequest
 import tech.units.indriya.ComparableQuantity
 
@@ -52,6 +52,7 @@ class EvcsAgent(
 ) extends ParticipantAgent[
       ApparentPower,
       EvcsRelevantData,
+      EvcsState,
       ParticipantStateData[ApparentPower],
       EvcsInput,
       EvcsRuntimeConfig,
@@ -66,6 +67,7 @@ class EvcsAgent(
           modelBaseStateData: ParticipantModelBaseStateData[
             ApparentPower,
             EvcsRelevantData,
+            EvcsState,
             EvcsModel
           ]
         ) =>

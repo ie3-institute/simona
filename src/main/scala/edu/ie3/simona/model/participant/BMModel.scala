@@ -7,9 +7,14 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.model.participant.BMModel.BMCalcRelevantData
+import edu.ie3.simona.model.participant.BMModel.{BMCalcRelevantData, BmState}
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  ProvideFlexOptions,
+  ProvideMinMaxFlexOptions
+}
 import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.quantities.interfaces.{DimensionlessRate, EnergyPrice}
 import edu.ie3.util.scala.OperationInterval
 import tech.units.indriya.ComparableQuantity
@@ -36,7 +41,7 @@ final case class BMModel(
     private val opex: ComparableQuantity[EnergyPrice],
     private val feedInTariff: ComparableQuantity[EnergyPrice],
     private val loadGradient: ComparableQuantity[DimensionlessRate]
-) extends SystemParticipant[BMCalcRelevantData, ApparentPower](
+) extends SystemParticipant[BMCalcRelevantData, ApparentPower, BmState](
       uuid,
       id,
       operationInterval,
@@ -45,7 +50,7 @@ final case class BMModel(
       sRated,
       cosPhi
     )
-    with ApparentPowerParticipant[BMCalcRelevantData] {
+    with ApparentPowerParticipant[BMCalcRelevantData, BmState] {
 
   /** Saves power output of last cycle. Needed for load gradient
     */
@@ -220,9 +225,26 @@ final case class BMModel(
         }
     }
   }
+
+  override def determineFlexOptions(
+      data: BMCalcRelevantData,
+      lastState: BmState
+  ): ProvideFlexOptions = {
+    val power = calculateActivePower(data)
+
+    ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
+  }
+
+  override def handleControlledPowerChange(
+      data: BMCalcRelevantData,
+      lastState: BmState,
+      setPower: ComparableQuantity[Power]
+  ): (BmState, FlexChangeIndicator) = (lastState, FlexChangeIndicator())
 }
 
-case object BMModel {
+object BMModel {
+
+  case class BmState() extends ModelState
 
   /** Data, that is needed for model calculations with the biomass model
     *

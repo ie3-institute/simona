@@ -35,8 +35,9 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
-import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
+import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
@@ -99,9 +100,11 @@ class ParticipantAgentExternalSourceSpec
   when(mockInputModel.getId).thenReturn(testID)
   when(mockInputModel.getNode).thenReturn(mockNode)
   private val mockModel =
-    mock[
-      SystemParticipant[CalcRelevantData.FixedRelevantData.type, ApparentPower]
-    ]
+    mock[SystemParticipant[
+      CalcRelevantData.FixedRelevantData.type,
+      ApparentPower,
+      ConstantState.type
+    ]]
   when(mockModel.getUuid).thenReturn(testUUID)
   private val activeToReactivePowerFunction
       : ComparableQuantity[Power] => ComparableQuantity[Power] =
@@ -173,7 +176,8 @@ class ParticipantAgentExternalSourceSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           triggerId,
@@ -197,7 +201,8 @@ class ParticipantAgentExternalSourceSpec
               simulationEndDate,
               resolution,
               requestVoltageDeviationThreshold,
-              outputConfig
+              outputConfig,
+              maybeEmAgent
             ) =>
           inputModel shouldBe SimpleInputContainer(mockInputModel)
           modelConfig shouldBe modelConfig
@@ -207,6 +212,7 @@ class ParticipantAgentExternalSourceSpec
           resolution shouldBe this.resolution
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
+          maybeEmAgent shouldBe None
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
       }
@@ -239,7 +245,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateData match {
         case baseStateData: FromOutsideBaseStateData[SystemParticipant[
               FixedRelevantData.type,
-              ApparentPower
+              ApparentPower,
+              ConstantState.type
             ], ApparentPower] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
@@ -281,7 +288,8 @@ class ParticipantAgentExternalSourceSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           triggerId,
@@ -373,7 +381,8 @@ class ParticipantAgentExternalSourceSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           initialiseTriggerId,
@@ -411,7 +420,8 @@ class ParticipantAgentExternalSourceSpec
         case DataCollectionStateData(
               baseStateData: FromOutsideBaseStateData[SystemParticipant[
                 CalcRelevantData,
-                ApparentPower
+                ApparentPower,
+                ConstantState.type
               ], ApparentPower],
               expectedSenders,
               isYetTriggered
@@ -469,7 +479,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateData match {
         case baseStateData: FromOutsideBaseStateData[SystemParticipant[
               CalcRelevantData,
-              ApparentPower
+              ApparentPower,
+              ConstantState.type
             ], ApparentPower] =>
           /* The new data is apparent in the result value store */
           baseStateData.resultValueStore match {
@@ -517,7 +528,8 @@ class ParticipantAgentExternalSourceSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           initialiseTriggerId,
@@ -552,7 +564,8 @@ class ParticipantAgentExternalSourceSpec
         case DataCollectionStateData(
               baseStateData: FromOutsideBaseStateData[SystemParticipant[
                 CalcRelevantData,
-                ApparentPower
+                ApparentPower,
+                ConstantState.type
               ], ApparentPower],
               expectedSenders,
               isYetTriggered
@@ -606,7 +619,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateData match {
         case baseStateData: FromOutsideBaseStateData[SystemParticipant[
               CalcRelevantData,
-              ApparentPower
+              ApparentPower,
+              ConstantState.type
             ], ApparentPower] =>
           /* The new data is apparent in the result value store */
           baseStateData.resultValueStore match {
@@ -654,7 +668,8 @@ class ParticipantAgentExternalSourceSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           0L,
@@ -732,10 +747,12 @@ class ParticipantAgentExternalSourceSpec
     "correctly determine the reactive power function when trivial reactive power is requested" in {
       val baseStateData: FromOutsideBaseStateData[SystemParticipant[
         CalcRelevantData.FixedRelevantData.type,
-        ApparentPower
+        ApparentPower,
+        ConstantState.type
       ], ApparentPower] = FromOutsideBaseStateData[SystemParticipant[
         CalcRelevantData.FixedRelevantData.type,
-        ApparentPower
+        ApparentPower,
+        ConstantState.type
       ], ApparentPower](
         mockModel,
         defaultSimulationStart,
@@ -766,10 +783,12 @@ class ParticipantAgentExternalSourceSpec
     "correctly determine the reactive power function from model when requested" in {
       val baseStateData: FromOutsideBaseStateData[SystemParticipant[
         CalcRelevantData.FixedRelevantData.type,
-        ApparentPower
+        ApparentPower,
+        ConstantState.type
       ], ApparentPower] = FromOutsideBaseStateData[SystemParticipant[
         CalcRelevantData.FixedRelevantData.type,
-        ApparentPower
+        ApparentPower,
+        ConstantState.type
       ], ApparentPower](
         mockModel,
         defaultSimulationStart,
@@ -820,7 +839,8 @@ class ParticipantAgentExternalSourceSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           0,

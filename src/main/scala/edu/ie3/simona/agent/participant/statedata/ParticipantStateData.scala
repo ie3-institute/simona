@@ -9,8 +9,8 @@ package edu.ie3.simona.agent.participant.statedata
 import akka.actor.ActorRef
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
-import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
+import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -53,6 +53,8 @@ object ParticipantStateData {
     *   power requests for the same tick are considered to be different
     * @param outputConfig
     *   Config for the output behaviour of simulation results
+    * @param maybeEmAgent
+    *   The EmAgent if this participant is em-controlled
     * @tparam I
     *   Type of input model to carry
     * @tparam C
@@ -74,7 +76,8 @@ object ParticipantStateData {
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig
+      outputConfig: NotifierConfig,
+      maybeEmAgent: Option[ActorRef]
   ) extends ParticipantStateData[PD]
 
   /** State data to use, when initializing the participant agent
@@ -118,7 +121,8 @@ object ParticipantStateData {
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig
+      outputConfig: NotifierConfig,
+      maybeEmAgent: Option[ActorRef] = None
   ) extends InitializeStateData[PD]
 
   object ParticipantInitializeStateData {
@@ -137,7 +141,8 @@ object ParticipantStateData {
         simulationEndDate: ZonedDateTime,
         resolution: Long,
         requestVoltageDeviationThreshold: Double,
-        outputConfig: NotifierConfig
+        outputConfig: NotifierConfig,
+        maybeEmAgent: Option[ActorRef]
     ): ParticipantInitializeStateData[I, C, PD] =
       new ParticipantInitializeStateData[I, C, PD](
         SimpleInputContainer(inputModel),
@@ -148,7 +153,8 @@ object ParticipantStateData {
         simulationEndDate,
         resolution,
         requestVoltageDeviationThreshold,
-        outputConfig
+        outputConfig,
+        maybeEmAgent
       )
 
     def apply[
@@ -167,7 +173,8 @@ object ParticipantStateData {
         simulationEndDate: ZonedDateTime,
         resolution: Long,
         requestVoltageDeviationThreshold: Double,
-        outputConfig: NotifierConfig
+        outputConfig: NotifierConfig,
+        maybeEmAgent: Option[ActorRef]
     ): ParticipantInitializeStateData[I, C, PD] =
       new ParticipantInitializeStateData[I, C, PD](
         WithHeatInputContainer(inputModel, thermalGrid),
@@ -178,7 +185,8 @@ object ParticipantStateData {
         simulationEndDate,
         resolution,
         requestVoltageDeviationThreshold,
-        outputConfig
+        outputConfig,
+        maybeEmAgent
       )
   }
 

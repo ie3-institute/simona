@@ -20,12 +20,12 @@ import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent.neededServices
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
-import edu.ie3.simona.agent.participant.statedata.{
-  DataCollectionStateData,
-  ParticipantStateData
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
+  FlexStateData,
+  ParticipantModelBaseStateData
 }
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.api.data.ev.model.EvModel
@@ -39,7 +39,7 @@ import edu.ie3.simona.exceptions.agent.{
 }
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.EvcsModel
-import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
+import edu.ie3.simona.model.participant.EvcsModel.{EvcsRelevantData, EvcsState}
 import edu.ie3.simona.ontology.messages.services.EvMessage.{
   DepartedEvsResponse,
   EvMovementData,
@@ -51,7 +51,7 @@ import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.Dimensionless
+import javax.measure.quantity.{Dimensionless, Power}
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.reflect.{ClassTag, classTag}
 
@@ -59,6 +59,7 @@ protected trait EvcsAgentFundamentals
     extends ParticipantAgentFundamentals[
       ApparentPower,
       EvcsRelevantData,
+      EvcsState,
       ParticipantStateData[ApparentPower],
       EvcsInput,
       EvcsRuntimeConfig,
@@ -100,10 +101,12 @@ protected trait EvcsAgentFundamentals
       simulationEndDate: ZonedDateTime,
       timeBin: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig
+      outputConfig: NotifierConfig,
+      maybeEmAgent: Option[ActorRef]
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
+    EvcsState,
     EvcsModel
   ] = {
     /* Check for needed services */
@@ -124,7 +127,8 @@ protected trait EvcsAgentFundamentals
       simulationEndDate,
       timeBin,
       requestVoltageDeviationThreshold,
-      outputConfig
+      outputConfig,
+      maybeEmAgent
     )
   }
 
@@ -158,10 +162,12 @@ protected trait EvcsAgentFundamentals
       simulationEndDate: ZonedDateTime,
       timeBin: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig
+      outputConfig: NotifierConfig,
+      maybeEmAgent: Option[ActorRef]
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
+    EvcsState,
     EvcsModel
   ] = {
 
@@ -174,7 +180,12 @@ protected trait EvcsAgentFundamentals
         simulationEndDate
       )
 
-    ParticipantModelBaseStateData[ApparentPower, EvcsRelevantData, EvcsModel](
+    ParticipantModelBaseStateData[
+      ApparentPower,
+      EvcsRelevantData,
+      EvcsState,
+      EvcsModel
+    ](
       simulationStartDate,
       simulationEndDate,
       model,
@@ -191,7 +202,10 @@ protected trait EvcsAgentFundamentals
       ),
       ValueStore.forResult(timeBin, 10),
       ValueStore(timeBin * 10),
-      ValueStore(timeBin * 10)
+      ValueStore(timeBin * 10),
+      ValueStore(timeBin * 10),
+      ValueStore(timeBin * 10),
+      maybeEmAgent.map(FlexStateData(_, ValueStore(timeBin * 10)))
     )
   }
 
@@ -207,13 +221,57 @@ protected trait EvcsAgentFundamentals
     simulationEndDate
   )
 
+  override protected def createInitialState(): EvcsState = EvcsState(Set.empty)
+
+  override protected def createCalcRelevantData(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel
+      ],
+      tick: Long
+  ): EvcsRelevantData = {
+    // TODO implement
+
+    throw new NotImplementedError()
+  }
+
+  override protected def calculateResult(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel
+      ],
+      currentTick: Long,
+      activePower: ComparableQuantity[Power]
+  ): ApparentPower = {
+    val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
+
+    val reactivePower = baseStateData.model match {
+      case model: EvcsModel =>
+        model.calculateReactivePower(
+          activePower,
+          voltage
+        )
+    }
+
+    ApparentPower(activePower, reactivePower)
+  }
+
   /** Partial function, that is able to transfer
     * [[ParticipantModelBaseStateData]] (holding the actual calculation model)
     * into a pair of active and reactive power
     */
   override val calculateModelPowerFunc: (
       Long,
-      ParticipantModelBaseStateData[ApparentPower, EvcsRelevantData, EvcsModel],
+      ParticipantModelBaseStateData[
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel
+      ],
       ComparableQuantity[Dimensionless]
   ) => ApparentPower =
     (_, _, _) =>
@@ -231,8 +289,8 @@ protected trait EvcsAgentFundamentals
     * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
     * scheduler and using update result values.</p>
     *
-    * @param collectionStateData
-    *   State data with collected, comprehensive secondary data.
+    * @param baseStateData
+    *   The base state data with collected secondary data
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
@@ -241,42 +299,36 @@ protected trait EvcsAgentFundamentals
     *   [[Idle]] with updated result values
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
-      collectionStateData: DataCollectionStateData[ApparentPower],
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel
+      ],
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
-    implicit val startDateTime: ZonedDateTime =
-      collectionStateData.baseStateData.startDate
+    implicit val startDateTime: ZonedDateTime = baseStateData.startDate
 
-    collectionStateData.baseStateData match {
-      case modelBaseStateData: ParticipantModelBaseStateData[
-            ApparentPower,
-            _,
-            _
-          ] =>
-        /* extract EV data from secondary data, which should have been requested and received before */
-        collectionStateData.data
-          .collectFirst {
-            // filter secondary data for EV movements data
-            case (_, Some(evcsData: EvMovementData)) =>
-              handleEvMovementsAndGoIdle(
-                currentTick,
-                scheduler,
-                modelBaseStateData,
-                evcsData
-              )
-          }
-          .getOrElse(
-            throw new InconsistentStateException(
-              s"The model ${modelBaseStateData.model} was not provided with needed EV data."
-            )
+    /* extract EV data from secondary data, which should have been requested and received before */
+    baseStateData.receivedSecondaryDataStore
+      .getOrElse(currentTick, Map.empty)
+      .collectFirst {
+        // filter secondary data for EV movements data
+        case (_, evcsData: EvMovementData) =>
+          handleEvMovementsAndGoIdle(
+            currentTick,
+            scheduler,
+            baseStateData,
+            evcsData
           )
-
-      case _ =>
+      }
+      .getOrElse(
         throw new InconsistentStateException(
-          "Cannot find a model for model calculation."
+          s"The model ${baseStateData.model} was not provided with needed EV data."
         )
-    }
+      )
+
   }
 
   /** Returns the number of free parking lots based on the last available state
@@ -291,6 +343,7 @@ protected trait EvcsAgentFundamentals
       modelBaseStateData: ParticipantModelBaseStateData[
         _ <: ApparentPower,
         _,
+        _,
         _
       ]
   ): Unit = {
@@ -299,13 +352,13 @@ protected trait EvcsAgentFundamentals
     )
 
     val (_, lastEvs) =
-      getTickIntervalAndLastEvs(tick, modelBaseStateData)
+      getTickIntervalAndLastState(tick, modelBaseStateData)
 
     val evcsModel = getEvcsModel(modelBaseStateData)
 
     evServiceRef ! FreeLotsResponse(
       evcsModel.uuid,
-      evcsModel.chargingPoints - lastEvs.size
+      evcsModel.chargingPoints - lastEvs.evs.size
     )
   }
 
@@ -328,9 +381,10 @@ protected trait EvcsAgentFundamentals
       currentTick: Long,
       scheduler: ActorRef,
       modelBaseStateData: ParticipantModelBaseStateData[
-        _ <: ApparentPower,
-        _,
-        _
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel
       ],
       evcsMovementsData: EvMovementData
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
@@ -338,8 +392,8 @@ protected trait EvcsAgentFundamentals
       modelBaseStateData.services
     )
 
-    val (tickInterval, lastEvs) =
-      getTickIntervalAndLastEvs(currentTick, modelBaseStateData)
+    val (tickInterval, lastState) =
+      getTickIntervalAndLastState(currentTick, modelBaseStateData)
 
     val evcsModel = getEvcsModel(modelBaseStateData)
 
@@ -347,7 +401,7 @@ protected trait EvcsAgentFundamentals
       getAndCheckNodalVoltage(modelBaseStateData, currentTick)
 
     validateEvMovements(
-      lastEvs,
+      lastState.evs,
       evcsMovementsData.movements,
       evcsModel.chargingPoints
     )
@@ -355,20 +409,20 @@ protected trait EvcsAgentFundamentals
     // calculate power with evs that have been parked up until now
     val relevantData =
       EvcsRelevantData(
-        tickInterval,
-        lastEvs
+        tickInterval
       )
 
-    val (power, evModelsCalculated) =
+    val (power, updatedState) =
       evcsModel.calculatePowerAndEvSoc(
         currentTick,
         voltage,
-        relevantData
+        relevantData,
+        lastState
       )
 
     {
       val departedEvs = calculateDepartedEvs(
-        evModelsCalculated,
+        updatedState.evs,
         evcsMovementsData.movements
       )
       if (departedEvs.nonEmpty) {
@@ -380,44 +434,49 @@ protected trait EvcsAgentFundamentals
     }
 
     val stayingEvs = calculateStayingEvs(
-      lastEvs,
+      updatedState.evs,
       evcsMovementsData.movements
     )
-    val updatedRelevantData = relevantData.copy(
-      currentEvs = stayingEvs
+
+    val updatedStateStore = ValueStore.updateValueStore(
+      modelBaseStateData.stateDataStore,
+      currentTick,
+      EvcsState(evs = stayingEvs)
     )
 
     updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
       scheduler,
-      modelBaseStateData,
+      modelBaseStateData.copy(stateDataStore = updatedStateStore),
       AccompaniedSimulationResult(power),
-      updatedRelevantData
+      relevantData
     )
   }
 
-  private def getTickIntervalAndLastEvs(
+  private def getTickIntervalAndLastState(
       currentTick: Long,
       modelBaseStateData: ParticipantModelBaseStateData[
         _ <: ApparentPower,
         _,
+        _,
         _
       ]
-  ): (Long, Set[EvModel]) = {
-    modelBaseStateData.calcRelevantDateStore
+  ): (Long, EvcsState) = {
+    modelBaseStateData.stateDataStore
       .last(currentTick - 1) match {
-      case Some((tick, EvcsRelevantData(_, evs))) =>
-        (currentTick - tick, evs)
+      case Some((tick, state: EvcsState)) =>
+        (currentTick - tick, state)
       case _ =>
         /* At the first tick, we are not able to determine the tick interval from last tick
          * (since there is none). Then we use a fall back ev stem distance.
          * As no evs are charging then, the tick interval should be ignored anyway. */
-        (FALLBACK_EV_MOVEMENTS_STEM_DISTANCE, Set.empty[EvModel])
+        (FALLBACK_EV_MOVEMENTS_STEM_DISTANCE, createInitialState())
     }
   }
 
   private def getEvcsModel(
       modelBaseStateData: ParticipantModelBaseStateData[
         _ <: ApparentPower,
+        _,
         _,
         _
       ]

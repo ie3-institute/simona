@@ -18,19 +18,13 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  CollectRegistrationConfirmMessages,
-  ParticipantInitializeStateData,
-  ParticipantInitializingStateData,
-  ParticipantUninitializedStateData,
-  SimpleInputContainer
-}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.api.data.ev.ontology.builder.EvcsMovementsBuilder
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
+import edu.ie3.simona.model.participant.EvcsModel.EvcsState
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
@@ -41,14 +35,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   IllegalTriggerMessage,
   TriggerWithIdMessage
 }
-import edu.ie3.simona.ontology.messages.services.EvMessage.{
-  DepartedEvsResponse,
-  EvFreeLotsRequest,
-  EvMovementData,
-  FreeLotsResponse,
-  ProvideEvDataMessage,
-  RegisterForEvDataMessage
-}
+import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
@@ -58,7 +45,6 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
   InitializeParticipantAgentTrigger
 }
-import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DISTANCE
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.EvTestData
 import edu.ie3.simona.test.common.input.EvcsInputTestData
@@ -152,7 +138,8 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           triggerId,
@@ -231,7 +218,8 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           triggerId,
@@ -254,7 +242,8 @@ class EvcsAgentModelCalculationSpec
               simulationEndDate,
               timeBin,
               requestVoltageDeviationThreshold,
-              outputConfig
+              outputConfig,
+              maybeEmAgent
             ) =>
           inputModel shouldBe SimpleInputContainer(evcsInputModel)
           modelConfig shouldBe modelConfig
@@ -264,6 +253,7 @@ class EvcsAgentModelCalculationSpec
           timeBin shouldBe this.resolution
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
+          maybeEmAgent shouldBe None
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
       }
@@ -292,6 +282,9 @@ class EvcsAgentModelCalculationSpec
                 voltageValueStore,
                 resultValueStore,
                 requestValueStore,
+                _,
+                _,
+                _,
                 _
               ),
               awaitRegistrationResponsesFrom,
@@ -338,7 +331,7 @@ class EvcsAgentModelCalculationSpec
       /* ... as well as corresponding state and state data */
       evcsAgent.stateName shouldBe Idle
       evcsAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(evService.ref -> None)
         case _ =>
@@ -378,7 +371,8 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           triggerId,
@@ -415,8 +409,8 @@ class EvcsAgentModelCalculationSpec
       )
 
       inside(evcsAgent.stateData) {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
-          modelBaseStateData.requestValueStore shouldBe ValueStore[
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+          baseStateData.requestValueStore shouldBe ValueStore[
             ApparentPower
           ](
             resolution * 10,
@@ -464,7 +458,8 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           initialiseTriggerId,
@@ -499,7 +494,7 @@ class EvcsAgentModelCalculationSpec
       evcsAgent.stateName shouldBe HandleInformation
       evcsAgent.stateData match {
         case DataCollectionStateData(
-              baseStateData: ParticipantModelBaseStateData[_, _, _],
+              baseStateData: ParticipantModelBaseStateData[_, _, _, _],
               expectedSenders,
               isYetTriggered
             ) =>
@@ -536,15 +531,12 @@ class EvcsAgentModelCalculationSpec
       )
       evcsAgent.stateName shouldBe Idle
       evcsAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* The store for calculation relevant data has been extended */
-          baseStateData.calcRelevantDateStore match {
+          baseStateData.stateDataStore match {
             case ValueStore(_, store) =>
               store shouldBe Map(
-                0L -> EvcsRelevantData(
-                  FALLBACK_EV_MOVEMENTS_STEM_DISTANCE,
-                  Set(evA, evB)
-                )
+                0L -> EvcsState(Set(evA, evB))
               )
           }
 
@@ -606,7 +598,8 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           initialiseTriggerId,
@@ -641,7 +634,7 @@ class EvcsAgentModelCalculationSpec
       evcsAgent.stateName shouldBe HandleInformation
       evcsAgent.stateData match {
         case DataCollectionStateData(
-              baseStateData: ParticipantModelBaseStateData[_, _, _],
+              baseStateData: ParticipantModelBaseStateData[_, _, _, _],
               expectedSenders,
               isYetTriggered
             ) =>
@@ -676,15 +669,12 @@ class EvcsAgentModelCalculationSpec
       )
       evcsAgent.stateName shouldBe Idle
       evcsAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* The store for calculation relevant data has been extended */
-          baseStateData.calcRelevantDateStore match {
+          baseStateData.stateDataStore match {
             case ValueStore(_, store) =>
               store shouldBe Map(
-                0L -> EvcsRelevantData(
-                  FALLBACK_EV_MOVEMENTS_STEM_DISTANCE,
-                  Set(evA, evB)
-                )
+                0L -> EvcsState(Set(evA, evB))
               )
           }
 
@@ -746,7 +736,8 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           initialiseTriggerId,
@@ -815,7 +806,8 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           initialiseTriggerId,
@@ -918,7 +910,8 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              maybeEmAgent = None
             )
           ),
           initialiseTriggerId,

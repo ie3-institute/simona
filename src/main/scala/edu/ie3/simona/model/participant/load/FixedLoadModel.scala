@@ -78,11 +78,10 @@ final case class FixedLoadModel(
   override protected def calculateActivePower(
       data: FixedLoadRelevantData.type = FixedLoadRelevantData
   ): ComparableQuantity[Power] = activePower.multiply(scalingFactor)
-
 }
 
-case object FixedLoadModel {
-  object FixedLoadRelevantData extends LoadRelevantData
+object FixedLoadModel {
+  case object FixedLoadRelevantData extends LoadRelevantData
 
   def apply(
       input: LoadInput,

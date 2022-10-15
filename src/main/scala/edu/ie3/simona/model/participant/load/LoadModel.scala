@@ -9,22 +9,23 @@ package edu.ie3.simona.model.participant.load
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
+import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.{
   ApparentPowerParticipant,
+  FlexChangeIndicator,
   SystemParticipant
 }
-import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
-import edu.ie3.simona.model.participant.load.random.RandomLoadModel
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  ProvideFlexOptions,
+  ProvideMinMaxFlexOptions
+}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.MEGAVOLTAMPERE
 import edu.ie3.util.scala.OperationInterval
 import tech.units.indriya.ComparableQuantity
 
-import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Energy, Power}
 
@@ -41,7 +42,7 @@ abstract class LoadModel[D <: LoadRelevantData](
     qControl: QControl,
     sRated: ComparableQuantity[Power],
     cosPhiRated: Double
-) extends SystemParticipant[D, ApparentPower](
+) extends SystemParticipant[D, ApparentPower, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -50,7 +51,25 @@ abstract class LoadModel[D <: LoadRelevantData](
       sRated,
       cosPhiRated
     )
-    with ApparentPowerParticipant[D]
+    with ApparentPowerParticipant[D, ConstantState.type] {
+
+  override def determineFlexOptions(
+      data: D,
+      lastState: ConstantState.type
+  ): ProvideFlexOptions = {
+    val power = calculateActivePower(data)
+
+    // no flexibility
+    ProvideMinMaxFlexOptions(uuid, power, power, power)
+  }
+
+  override def handleControlledPowerChange(
+      data: D,
+      lastState: ConstantState.type,
+      setPower: ComparableQuantity[Power]
+  ): (ConstantState.type, FlexChangeIndicator) =
+    (lastState, FlexChangeIndicator())
+}
 
 case object LoadModel extends LazyLogging {
 

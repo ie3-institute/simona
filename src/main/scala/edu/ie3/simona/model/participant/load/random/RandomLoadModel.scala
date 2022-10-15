@@ -159,7 +159,7 @@ final case class RandomLoadModel(
   }
 }
 
-case object RandomLoadModel {
+object RandomLoadModel {
 
   final case class RandomRelevantData(date: ZonedDateTime)
       extends LoadRelevantData

@@ -7,18 +7,22 @@
 package edu.ie3.simona.agent.participant.statedata
 
 import akka.actor.ActorRef
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  ModelState,
+  SystemParticipant
+}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
+import javax.measure.quantity.Dimensionless
 
 /** Trait to denote the common properties to all basic state data in participant
   * agents
@@ -90,7 +94,8 @@ object BaseStateData {
   trait ModelBaseStateData[
       +PD <: PrimaryDataWithApparentPower[PD],
       CD <: CalcRelevantData,
-      +M <: SystemParticipant[_ <: CalcRelevantData, PD]
+      MS <: ModelState,
+      +M <: SystemParticipant[_ <: CalcRelevantData, PD, MS]
   ] extends BaseStateData[PD] {
 
     /** The physical system model
@@ -101,9 +106,19 @@ object BaseStateData {
       */
     val services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]]
 
+    val calcRelevantDateStore: ValueStore[CalcRelevantData]
+
     /** Stores all data that are relevant to model calculation
       */
-    val calcRelevantDateStore: ValueStore[CalcRelevantData]
+    val receivedSecondaryDataStore: ValueStore[
+      Map[ActorRef, _ <: SecondaryData]
+    ]
+
+    val stateDataStore: ValueStore[MS]
+
+    val flexStateData: Option[FlexStateData]
+
+    def isEmManaged: Boolean = flexStateData.nonEmpty
   }
 
   /** Basic state data, when the agent is supposed to only provide external data
@@ -135,7 +150,8 @@ object BaseStateData {
     */
   final case class FromOutsideBaseStateData[M <: SystemParticipant[
     _ <: CalcRelevantData,
-    P
+    P,
+    _
   ], +P <: PrimaryDataWithApparentPower[P]](
       model: M,
       override val startDate: ZonedDateTime,
@@ -189,7 +205,8 @@ object BaseStateData {
   final case class ParticipantModelBaseStateData[
       +PD <: PrimaryDataWithApparentPower[PD],
       CD <: CalcRelevantData,
-      +M <: SystemParticipant[_ <: CalcRelevantData, PD]
+      MS <: ModelState,
+      M <: SystemParticipant[_ <: CalcRelevantData, PD, MS]
   ](
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
@@ -206,13 +223,29 @@ object BaseStateData {
       ],
       override val resultValueStore: ValueStore[PD],
       override val requestValueStore: ValueStore[PD],
-      override val calcRelevantDateStore: ValueStore[CD]
-  ) extends ModelBaseStateData[PD, CD, M] {
+      override val calcRelevantDateStore: ValueStore[CD],
+      override val receivedSecondaryDataStore: ValueStore[
+        Map[ActorRef, _ <: SecondaryData]
+      ],
+      override val stateDataStore: ValueStore[MS],
+      override val flexStateData: Option[FlexStateData]
+  ) extends ModelBaseStateData[PD, CD, MS, M] {
 
     /** Unique identifier of the simulation model
       */
     override val modelUuid: UUID = model.getUuid
   }
+
+  /** @param scheduledRequest
+    *   Tick of a request that is currently scheduled with EmAgent. There can
+    *   only only be one scheduled tick at a time. First tick (0) is always
+    *   requested.
+    */
+  final case class FlexStateData(
+      emAgent: ActorRef,
+      flexOptionsStore: ValueStore[ProvideFlexOptions],
+      scheduledRequest: Option[Long] = Some(0L)
+  )
 
   /** Updates the base state data with the given value stores
     *
@@ -250,7 +283,7 @@ object BaseStateData {
           additionalActivationTicks = updatedAdditionalActivationTicks,
           foreseenDataTicks = updatedForeseenTicks
         )
-      case model: ParticipantModelBaseStateData[PD, _, _] =>
+      case model: ParticipantModelBaseStateData[PD, _, _, _] =>
         model.copy(
           resultValueStore = updatedResultValueStore,
           requestValueStore = updatedRequestValueStore,

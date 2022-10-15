@@ -18,20 +18,25 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  ModelState,
+  SystemParticipant
+}
 import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 
 trait ServiceRegistration[
     PD <: PrimaryDataWithApparentPower[PD],
     CD <: CalcRelevantData,
+    MS <: ModelState,
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
     MC <: SimonaConfig.BaseRuntimeConfig,
-    M <: SystemParticipant[CD, PD]
+    M <: SystemParticipant[CD, PD, MS]
 ] {
-  this: ParticipantAgent[PD, CD, D, I, MC, M] =>
+  this: ParticipantAgent[PD, CD, MS, D, I, MC, M] =>
 
   /** Registers the agent for the needed services and collects all actor
     * references, with which the actor has been registered

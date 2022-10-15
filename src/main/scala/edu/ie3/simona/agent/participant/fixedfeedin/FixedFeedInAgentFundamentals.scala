@@ -13,18 +13,19 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult
 }
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.participant.data.Data.SecondaryData
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
-import edu.ie3.simona.agent.participant.statedata.{
-  DataCollectionStateData,
-  ParticipantStateData
-}
+import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
 }
+import edu.ie3.simona.agent.participant.data.Data.SecondaryData
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
+  FlexStateData,
+  ParticipantModelBaseStateData
+}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
@@ -35,30 +36,23 @@ import edu.ie3.simona.exceptions.agent.{
   InvalidRequestException
 }
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
-import edu.ie3.simona.model.participant.FixedFeedInModel
+import edu.ie3.simona.model.participant.ModelState.ConstantState
+import edu.ie3.simona.model.participant.{FixedFeedInModel, ModelState}
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KILOVARHOUR,
-  KILOWATTHOUR,
-  MEGAVAR,
-  MEGAWATT,
-  PU
-}
-import edu.ie3.util.scala.quantities.QuantityUtil
+import edu.ie3.util.quantities.PowerSystemUnits.PU
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Energy, Power}
+import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.{ClassTag, classTag}
-import scala.util.{Failure, Success}
 
 protected trait FixedFeedInAgentFundamentals
     extends ParticipantAgentFundamentals[
       ApparentPower,
       FixedRelevantData.type,
+      ConstantState.type,
       ParticipantStateData[ApparentPower],
       FixedFeedInInput,
       FixedFeedInRuntimeConfig,
@@ -101,10 +95,12 @@ protected trait FixedFeedInAgentFundamentals
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig
+      outputConfig: NotifierConfig,
+      maybeEmAgent: Option[ActorRef]
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,
+    ConstantState.type,
     FixedFeedInModel
   ] = {
     /* Build the calculation model */
@@ -136,6 +132,7 @@ protected trait FixedFeedInAgentFundamentals
     ParticipantModelBaseStateData[
       ApparentPower,
       FixedRelevantData.type,
+      ConstantState.type,
       FixedFeedInModel
     ](
       simulationStartDate,
@@ -154,7 +151,10 @@ protected trait FixedFeedInAgentFundamentals
       ),
       ValueStore.forResult(resolution, 2),
       ValueStore(resolution),
-      ValueStore(resolution)
+      ValueStore(resolution),
+      ValueStore(resolution),
+      ValueStore(0),
+      maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
     )
   }
 
@@ -170,11 +170,49 @@ protected trait FixedFeedInAgentFundamentals
     simulationEndDate
   )
 
+  override protected def createInitialState(): ModelState.ConstantState.type =
+    ConstantState // TODO
+
+  override protected def createCalcRelevantData(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedRelevantData.type,
+        ConstantState.type,
+        FixedFeedInModel
+      ],
+      tick: Long
+  ): FixedRelevantData.type =
+    FixedRelevantData
+
+  override protected def calculateResult(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedRelevantData.type,
+        ConstantState.type,
+        FixedFeedInModel
+      ],
+      currentTick: Long,
+      activePower: ComparableQuantity[Power]
+  ): ApparentPower = {
+    val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
+
+    val reactivePower = baseStateData.model match {
+      case model: FixedFeedInModel =>
+        model.calculateReactivePower(
+          activePower,
+          voltage
+        )
+    }
+
+    ApparentPower(activePower, reactivePower)
+  }
+
   override val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[
         ApparentPower,
         FixedRelevantData.type,
+        ConstantState.type,
         FixedFeedInModel
       ],
       ComparableQuantity[Dimensionless]
@@ -183,6 +221,7 @@ protected trait FixedFeedInAgentFundamentals
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         FixedRelevantData.type,
+        ConstantState.type,
         FixedFeedInModel
       ],
       voltage: ComparableQuantity[Dimensionless]
@@ -206,8 +245,8 @@ protected trait FixedFeedInAgentFundamentals
     * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
     * scheduler and using update result values.</p>
     *
-    * @param collectionStateData
-    *   State data with collected, comprehensive secondary data.
+    * @param baseStateData
+    *   The base state data with collected secondary data
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
@@ -216,7 +255,12 @@ protected trait FixedFeedInAgentFundamentals
     *   [[Idle]] with updated result values
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
-      collectionStateData: DataCollectionStateData[ApparentPower],
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedRelevantData.type,
+        ConstantState.type,
+        FixedFeedInModel
+      ],
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =

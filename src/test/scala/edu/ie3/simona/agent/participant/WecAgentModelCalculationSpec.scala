@@ -30,6 +30,7 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.WecRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.WecModel
 import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -68,10 +69,10 @@ import edu.ie3.util.quantities.PowerSystemUnits.{
   MEGAWATT,
   PU
 }
-import edu.ie3.util.quantities.{EmptyQuantity, QuantityUtil}
+import edu.ie3.util.quantities.QuantityUtil
 import org.scalatest.PrivateMethodTester
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND, PASCAL}
+import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND}
 
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
@@ -180,7 +181,8 @@ class WecAgentModelCalculationSpec
               outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
-              )
+              ),
+              maybeEmAgent = None
             )
           ),
           triggerId,
@@ -268,7 +270,8 @@ class WecAgentModelCalculationSpec
               outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
-              )
+              ),
+              maybeEmAgent = None
             )
           ),
           triggerId,
@@ -299,6 +302,9 @@ class WecAgentModelCalculationSpec
                 voltageValueStore,
                 resultValueStore,
                 requestValueStore,
+                _,
+                _,
+                _,
                 _
               ),
               awaitRegistrationResponsesFrom,
@@ -351,6 +357,7 @@ class WecAgentModelCalculationSpec
         case baseStateData: ParticipantModelBaseStateData[
               ApparentPower,
               WecRelevantData,
+              ConstantState.type,
               WecModel
             ] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
@@ -397,7 +404,8 @@ class WecAgentModelCalculationSpec
               outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
-              )
+              ),
+              maybeEmAgent = None
             )
           ),
           triggerId,
@@ -435,6 +443,7 @@ class WecAgentModelCalculationSpec
         case modelBaseStateData: ParticipantModelBaseStateData[
               ApparentPower,
               WecRelevantData,
+              ConstantState.type,
               WecModel
             ] =>
           modelBaseStateData.requestValueStore shouldBe ValueStore[
@@ -488,7 +497,8 @@ class WecAgentModelCalculationSpec
               outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
-              )
+              ),
+              maybeEmAgent = None
             )
           ),
           initialiseTriggerId,
@@ -529,6 +539,7 @@ class WecAgentModelCalculationSpec
               baseStateData: ParticipantModelBaseStateData[
                 ApparentPower,
                 WecRelevantData,
+                ConstantState.type,
                 WecModel
               ],
               expectedSenders,
@@ -577,17 +588,14 @@ class WecAgentModelCalculationSpec
         case baseStateData: ParticipantModelBaseStateData[
               ApparentPower,
               WecRelevantData,
+              ConstantState.type,
               WecModel
             ] =>
           /* The store for calculation relevant data has been extended */
-          baseStateData.calcRelevantDateStore match {
+          baseStateData.receivedSecondaryDataStore match {
             case ValueStore(_, store) =>
               store shouldBe Map(
-                900L -> WecRelevantData(
-                  weatherData.windVel,
-                  weatherData.temp,
-                  EmptyQuantity.of(PASCAL)
-                )
+                900L -> Map(weatherService.ref -> weatherData)
               )
           }
 
@@ -652,7 +660,8 @@ class WecAgentModelCalculationSpec
               outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
-              )
+              ),
+              maybeEmAgent = None
             )
           ),
           initialiseTriggerId,
@@ -689,6 +698,7 @@ class WecAgentModelCalculationSpec
               baseStateData: ParticipantModelBaseStateData[
                 ApparentPower,
                 WecRelevantData,
+                ConstantState.type,
                 WecModel
               ],
               expectedSenders,
@@ -739,17 +749,14 @@ class WecAgentModelCalculationSpec
         case baseStateData: ParticipantModelBaseStateData[
               ApparentPower,
               WecRelevantData,
+              ConstantState.type,
               WecModel
             ] =>
           /* The store for calculation relevant data has been extended */
-          baseStateData.calcRelevantDateStore match {
+          baseStateData.receivedSecondaryDataStore match {
             case ValueStore(_, store) =>
               store shouldBe Map(
-                900L -> WecRelevantData(
-                  weatherData.windVel,
-                  weatherData.temp,
-                  EmptyQuantity.of(PASCAL)
-                )
+                900L -> Map(weatherService.ref -> weatherData)
               )
           }
 
@@ -814,7 +821,8 @@ class WecAgentModelCalculationSpec
               outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
-              )
+              ),
+              maybeEmAgent = None
             )
           ),
           0L,
@@ -923,7 +931,8 @@ class WecAgentModelCalculationSpec
               outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
-              )
+              ),
+              maybeEmAgent = None
             )
           ),
           0L,
