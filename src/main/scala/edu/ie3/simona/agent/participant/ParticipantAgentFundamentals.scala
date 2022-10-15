@@ -1778,6 +1778,8 @@ protected trait ParticipantAgentFundamentals[
     *   The base state data of the collection state
     * @param result
     *   Result of simulation
+    * @param relevantData
+    *   Data, that have been relevant to this calculation
     * @return
     *   Desired state change
     */
@@ -1794,6 +1796,19 @@ protected trait ParticipantAgentFundamentals[
         currentTick,
         result.primaryData
       )
+    val updatedRelevantDataStore =
+      baseStateData match {
+        case data: BaseStateData.ModelBaseStateData[_, _, _, _] =>
+          ValueStore.updateValueStore(
+            data.calcRelevantDateStore,
+            currentTick,
+            relevantData
+          )
+        case _ =>
+          throw new InconsistentStateException(
+            "Cannot find calculation relevant data to update."
+          )
+      }
 
     /* Inform the listeners about new result */
     announceSimulationResult(
@@ -1806,7 +1821,10 @@ protected trait ParticipantAgentFundamentals[
     val baseStateDateWithUpdatedResults =
       baseStateData match {
         case data: ParticipantModelBaseStateData[PD, CD, MS, M] =>
-          data.copy(resultValueStore = updatedValueStore)
+          data.copy(
+            resultValueStore = updatedValueStore,
+            calcRelevantDateStore = updatedRelevantDataStore
+          )
         case _ =>
           throw new InconsistentStateException(
             "Wrong base state data"
