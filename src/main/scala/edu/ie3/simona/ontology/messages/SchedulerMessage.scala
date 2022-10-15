@@ -43,7 +43,8 @@ object SchedulerMessage {
     */
   final case class ScheduleTriggerMessage(
       trigger: Trigger,
-      actorToBeScheduled: ActorRef
+      actorToBeScheduled: ActorRef,
+      priority: Boolean = false
   ) extends SchedulerMessage
       with Trigger {
     override def tick: Long = trigger.tick
