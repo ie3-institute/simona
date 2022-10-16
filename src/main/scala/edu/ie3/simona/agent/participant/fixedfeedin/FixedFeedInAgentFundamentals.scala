@@ -40,7 +40,11 @@ import edu.ie3.simona.exceptions.agent.{
 }
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.{FixedFeedInModel, ModelState}
+import edu.ie3.simona.model.participant.{
+  FixedFeedInModel,
+  FlexChangeIndicator,
+  ModelState
+}
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.quantities.PowerSystemUnits.PU
@@ -194,27 +198,48 @@ protected trait FixedFeedInAgentFundamentals
   ): FixedRelevantData.type =
     FixedRelevantData
 
-  override protected def calculateResult(
+  /** Handle an active power change by flex control.
+    * @param tick
+    *   Tick, in which control is issued
+    * @param baseStateData
+    *   Base state data of the agent
+    * @param data
+    *   Calculation relevant data
+    * @param lastState
+    *   Last known model state
+    * @param setPower
+    *   Setpoint active power
+    * @return
+    *   Updated model state, a result model and a [[FlexChangeIndicator]]
+    */
+  def handleControlledPowerChange(
+      tick: Long,
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         FixedRelevantData.type,
         ConstantState.type,
         FixedFeedInModel
       ],
-      currentTick: Long,
-      activePower: ComparableQuantity[Power]
-  ): ApparentPower = {
+      data: FixedRelevantData.type,
+      lastState: ConstantState.type,
+      setPower: ComparableQuantity[Power]
+  ): (ConstantState.type, ApparentPower, FlexChangeIndicator) = {
+    /* Calculate result */
     val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
 
     val reactivePower = baseStateData.model match {
       case model: FixedFeedInModel =>
         model.calculateReactivePower(
-          activePower,
+          setPower,
           voltage
         )
     }
+    val result = ApparentPower(setPower, reactivePower)
 
-    ApparentPower(activePower, reactivePower)
+    /* Handle the request within the model */
+    val (updatedState, flexChangeIndicator) =
+      baseStateData.model.handleControlledPowerChange(data, lastState, setPower)
+    (updatedState, result, flexChangeIndicator)
   }
 
   override val calculateModelPowerFunc: (

@@ -36,6 +36,7 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.participant.{
   CalcRelevantData,
+  FlexChangeIndicator,
   ModelState,
   SystemParticipant
 }
@@ -794,11 +795,27 @@ abstract class ParticipantAgent[
       scheduler: ActorRef
   ): State
 
-  protected def calculateResult(
-      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+  /** Handle an active power change by flex control.
+    * @param tick
+    *   Tick, in which control is issued
+    * @param baseStateData
+    *   Base state data of the agent
+    * @param data
+    *   Calculation relevant data
+    * @param lastState
+    *   Last known model state
+    * @param setPower
+    *   Setpoint active power
+    * @return
+    *   Updated model state, a result model and a [[FlexChangeIndicator]]
+    */
+  def handleControlledPowerChange(
       tick: Long,
-      activePower: ComparableQuantity[Power]
-  ): PD
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+      data: CD,
+      lastState: MS,
+      setPower: ComparableQuantity[Power]
+  ): (MS, PD, FlexChangeIndicator)
 
   /** Determining the reply to an
     * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]],

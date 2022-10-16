@@ -16,7 +16,10 @@ import edu.ie3.datamodel.models.result.system.{
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower,
+  ApparentPowerAndHeat
+}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.hp.HpAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
@@ -45,8 +48,9 @@ import edu.ie3.simona.exceptions.agent.{
   InvalidRequestException
 }
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
-import edu.ie3.simona.model.participant.HpModel
+import edu.ie3.simona.model.participant.{FlexChangeIndicator, HpModel}
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.thermal.ThermalGrid
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.util.quantities.PowerSystemUnits.PU
@@ -115,16 +119,32 @@ trait HpAgentFundamentals
     ThermalGrid.startingState(thermalGrid)
   )
 
-  override protected def calculateResult(
-      baseStateData: BaseStateData.ParticipantModelBaseStateData[
+  /** Handle an active power change by flex control.
+    * @param tick
+    *   Tick, in which control is issued
+    * @param baseStateData
+    *   Base state data of the agent
+    * @param data
+    *   Calculation relevant data
+    * @param lastState
+    *   Last known model state
+    * @param setPower
+    *   Setpoint active power
+    * @return
+    *   Updated model state, a result model and a [[FlexChangeIndicator]]
+    */
+  def handleControlledPowerChange(
+      tick: Long,
+      baseStateData: ParticipantModelBaseStateData[
         ApparentPowerAndHeat,
         HpRelevantData,
         HpState,
         HpModel
       ],
-      tick: Long,
-      activePower: ComparableQuantity[Power]
-  ): ApparentPowerAndHeat = {
+      data: HpRelevantData,
+      lastState: HpState,
+      setPower: ComparableQuantity[Power]
+  ): (HpState, ApparentPowerAndHeat, FlexChangeIndicator) = {
     /* Determine needed information */
     val voltage =
       getAndCheckNodalVoltage(baseStateData, currentTick)
@@ -154,16 +174,18 @@ trait HpAgentFundamentals
       modelState,
       baseStateData,
       voltage,
-      Some(activePower)
+      Some(setPower)
     )
 
     /* Calculate power results */
-    baseStateData.model.calculatePower(
+    val result = baseStateData.model.calculatePower(
       currentTick,
       voltage,
       Some(updatedState),
       relevantData
     )
+
+    (updatedState, result, FlexChangeIndicator())
   }
 
   /** Abstractly calculate the power output of the participant utilising

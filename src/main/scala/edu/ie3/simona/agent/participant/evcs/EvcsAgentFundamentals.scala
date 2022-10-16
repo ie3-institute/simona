@@ -41,7 +41,7 @@ import edu.ie3.simona.exceptions.agent.{
   InvalidRequestException
 }
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
-import edu.ie3.simona.model.participant.EvcsModel
+import edu.ie3.simona.model.participant.{EvcsModel, FlexChangeIndicator}
 import edu.ie3.simona.model.participant.EvcsModel.{EvcsRelevantData, EvcsState}
 import edu.ie3.simona.ontology.messages.services.EvMessage.{
   DepartedEvsResponse,
@@ -247,27 +247,48 @@ protected trait EvcsAgentFundamentals
     throw new NotImplementedError()
   }
 
-  override protected def calculateResult(
+  /** Handle an active power change by flex control.
+    * @param tick
+    *   Tick, in which control is issued
+    * @param baseStateData
+    *   Base state data of the agent
+    * @param data
+    *   Calculation relevant data
+    * @param lastState
+    *   Last known model state
+    * @param setPower
+    *   Setpoint active power
+    * @return
+    *   Updated model state, a result model and a [[FlexChangeIndicator]]
+    */
+  def handleControlledPowerChange(
+      tick: Long,
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         EvcsRelevantData,
         EvcsState,
         EvcsModel
       ],
-      currentTick: Long,
-      activePower: ComparableQuantity[Power]
-  ): ApparentPower = {
+      data: EvcsRelevantData,
+      lastState: EvcsState,
+      setPower: ComparableQuantity[Power]
+  ): (EvcsState, ApparentPower, FlexChangeIndicator) = {
+    /* Calculate the power */
     val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
 
     val reactivePower = baseStateData.model match {
       case model: EvcsModel =>
         model.calculateReactivePower(
-          activePower,
+          setPower,
           voltage
         )
     }
+    val result = ApparentPower(setPower, reactivePower)
 
-    ApparentPower(activePower, reactivePower)
+    /* Handle the request within the model */
+    val (updatedState, flexChangeIndicator) =
+      baseStateData.model.handleControlledPowerChange(data, lastState, setPower)
+    (updatedState, result, flexChangeIndicator)
   }
 
   /** Partial function, that is able to transfer

@@ -12,18 +12,10 @@ import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
-import edu.ie3.simona.agent.participant.statedata.{
-  BaseStateData,
-  ParticipantStateData
-}
-import edu.ie3.simona.agent.state.AgentState
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
 import edu.ie3.simona.model.participant.HpModel
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
-import edu.ie3.simona.model.participant.ModelState.ConstantState
-import tech.units.indriya.ComparableQuantity
-
-import javax.measure.quantity.Dimensionless
 
 object HpAgent {
   def props(

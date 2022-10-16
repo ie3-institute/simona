@@ -42,7 +42,11 @@ import edu.ie3.simona.exceptions.agent.{
 }
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.{ModelState, PvModel}
+import edu.ie3.simona.model.participant.{
+  FlexChangeIndicator,
+  ModelState,
+  PvModel
+}
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherService.FALLBACK_WEATHER_STEM_DISTANCE
@@ -237,25 +241,48 @@ protected trait PvAgentFundamentals
     )
   }
 
-  override protected def calculateResult(
+  /** Handle an active power change by flex control.
+    * @param tick
+    *   Tick, in which control is issued
+    * @param baseStateData
+    *   Base state data of the agent
+    * @param data
+    *   Calculation relevant data
+    * @param lastState
+    *   Last known model state
+    * @param setPower
+    *   Setpoint active power
+    * @return
+    *   Updated model state, a result model and a [[FlexChangeIndicator]]
+    */
+  def handleControlledPowerChange(
+      tick: Long,
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         PvRelevantData,
         ConstantState.type,
         PvModel
       ],
-      currentTick: Long,
-      activePower: ComparableQuantity[Power]
-  ): ApparentPower = {
+      data: PvRelevantData,
+      lastState: ConstantState.type,
+      setPower: ComparableQuantity[Power]
+  ): (ConstantState.type, ApparentPower, FlexChangeIndicator) = {
+    /* Calculate result */
     val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
 
-    val reactivePower =
-      baseStateData.model.calculateReactivePower(
-        activePower,
-        voltage
-      )
+    val reactivePower = baseStateData.model match {
+      case model: PvModel =>
+        model.calculateReactivePower(
+          setPower,
+          voltage
+        )
+    }
+    val result = ApparentPower(setPower, reactivePower)
 
-    ApparentPower(activePower, reactivePower)
+    /* Handle the request within the model */
+    val (updatedState, flexChangeIndicator) =
+      baseStateData.model.handleControlledPowerChange(data, lastState, setPower)
+    (updatedState, result, flexChangeIndicator)
   }
 
   /** Partial function, that is able to transfer

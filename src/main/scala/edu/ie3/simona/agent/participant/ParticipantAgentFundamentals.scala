@@ -725,34 +725,28 @@ protected trait ParticipantAgentFundamentals[
       flexCtrl: IssueFlexControl,
       scheduler: ActorRef
   ): State = {
-
+    /* Collect all needed information */
     val flexStateData = baseStateData.flexStateData.getOrElse(
       throw new IllegalStateException(
         s"Received $flexCtrl, but participant agent is not in EM mode"
       )
     )
-
-    val resultingActivePower =
-      determineResultingFlexPower(flexStateData, flexCtrl)
-
-    val result = calculateResult(
-      baseStateData,
-      flexCtrl.tick,
-      resultingActivePower
-    )
-
     val relevantData = createCalcRelevantData(
       baseStateData,
       flexCtrl.tick
     )
-
     val lastState = getLastOrInitialStateData(baseStateData, flexCtrl.tick)
+    val setPointActivePower =
+      determineResultingFlexPower(flexStateData, flexCtrl)
 
-    val (updatedState, flexChangeIndicator) =
-      baseStateData.model.handleControlledPowerChange(
+    /* Handle the flex signal */
+    val (updatedState, result, flexChangeIndicator) =
+      handleControlledPowerChange(
+        flexCtrl.tick,
+        baseStateData,
         relevantData,
         lastState,
-        resultingActivePower
+        setPointActivePower
       )
 
     // revoke old tick and remove it from state data, if applicable

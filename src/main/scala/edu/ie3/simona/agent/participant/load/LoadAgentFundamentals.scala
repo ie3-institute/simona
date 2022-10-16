@@ -37,7 +37,7 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
-import edu.ie3.simona.model.participant.ModelState
+import edu.ie3.simona.model.participant.{FlexChangeIndicator, ModelState}
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
@@ -213,27 +213,48 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
   ): ModelState.ConstantState.type =
     ConstantState // TODO
 
-  override protected def calculateResult(
+  /** Handle an active power change by flex control.
+    * @param tick
+    *   Tick, in which control is issued
+    * @param baseStateData
+    *   Base state data of the agent
+    * @param data
+    *   Calculation relevant data
+    * @param lastState
+    *   Last known model state
+    * @param setPower
+    *   Setpoint active power
+    * @return
+    *   Updated model state, a result model and a [[FlexChangeIndicator]]
+    */
+  def handleControlledPowerChange(
+      tick: Long,
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         LD,
         ConstantState.type,
         LM
       ],
-      currentTick: Long,
-      activePower: ComparableQuantity[Power]
-  ): ApparentPower = {
+      data: LD,
+      lastState: ConstantState.type,
+      setPower: ComparableQuantity[Power]
+  ): (ConstantState.type, ApparentPower, FlexChangeIndicator) = {
+    /* Calculate result */
     val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
 
     val reactivePower = baseStateData.model match {
       case model: LM =>
         model.calculateReactivePower(
-          activePower,
+          setPower,
           voltage
         )
     }
+    val result = ApparentPower(setPower, reactivePower)
 
-    ApparentPower(activePower, reactivePower)
+    /* Handle the request within the model */
+    val (updatedState, flexChangeIndicator) =
+      baseStateData.model.handleControlledPowerChange(data, lastState, setPower)
+    (updatedState, result, flexChangeIndicator)
   }
 
   /** Calculate the power output of the participant utilising secondary data.

@@ -149,11 +149,12 @@ abstract class SystemParticipant[
     *   updated relevant data and an indication at which circumstances flex
     *   options will change next
     */
+  @deprecated("Use method of agent")
   def handleControlledPowerChange(
       data: CD,
       lastState: MS,
       setPower: ComparableQuantity[Power]
-  ): (MS, FlexChangeIndicator)
+  ): (MS, PD, FlexChangeIndicator)
 
   /** Get a partial function, that transfers the current active into reactive
     * power based on the participants properties and the given nodal voltage
