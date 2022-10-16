@@ -12,7 +12,7 @@ import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.input.system.`type`.HpTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
-import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
+import edu.ie3.simona.model.participant.HpModel.{HpRelevantData}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalHouse}
@@ -96,7 +96,7 @@ trait HpModelTestData {
     None
   )
 
-  protected def hpData(hpState: HpState): HpRelevantData =
-    HpRelevantData(hpState, 7200, Quantities.getQuantity(10, Units.CELSIUS))
+  protected def hpData: HpRelevantData =
+    HpRelevantData(7200, Quantities.getQuantity(10, Units.CELSIUS))
 
 }

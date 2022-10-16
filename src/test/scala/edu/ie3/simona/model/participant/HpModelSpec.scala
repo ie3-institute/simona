@@ -171,12 +171,12 @@ class HpModelSpec
               expectedActivePower,
               expectedInnerTemperature
           ) =>
-            val data = hpData(state)
+            val data = hpData
             val house = thermalHouse(18, 22)
             val grid = thermalGrid(house)
             val hp = hpModel(grid)
 
-            hp.calculateNextState(data) match {
+            hp.calculateNextState(state, data) match {
               case HpState(
                     isRunning,
                     lastTimeTick,

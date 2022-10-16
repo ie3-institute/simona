@@ -589,40 +589,10 @@ class HpAgentModelCalculationSpec
               store.get(0L) match {
                 case Some(
                       HpRelevantData(
-                        HpState(
-                          isRunning,
-                          lastTimeTick,
-                          activePower,
-                          qDot,
-                          thermalGridState
-                        ),
                         currentTimeTick,
                         ambientTemperature
                       )
                     ) =>
-                  isRunning shouldBe false
-                  lastTimeTick shouldBe 0L
-                  activePower should equalWithTolerance(
-                    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-                  )
-                  qDot should equalWithTolerance(
-                    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-                  )
-
-                  thermalGridState.houseState match {
-                    case Some(ThermalHouseState(_, innerTemperature, _)) =>
-                      innerTemperature should equalWithTolerance(
-                        Quantities.getQuantity(
-                          20.9999769069444444444444444444444,
-                          StandardUnits.TEMPERATURE
-                        )
-                      )
-                    case None =>
-                      fail(
-                        s"Expected to get a result for thermal house '${inputModel.getUuid}'"
-                      )
-                  }
-
                   currentTimeTick shouldBe 0L
                   ambientTemperature should equalWithTolerance(
                     Quantities.getQuantity(1.815, StandardUnits.TEMPERATURE)
@@ -630,6 +600,44 @@ class HpAgentModelCalculationSpec
                 case None =>
                   fail("Did expect to get hp relevant data for tick 0L")
               }
+          }
+
+          baseStateData.stateDataStore.last(0L) match {
+            case Some(
+                  (
+                    _,
+                    HpState(
+                      isRunning,
+                      lastTimeTick,
+                      activePower,
+                      qDot,
+                      thermalGridState
+                    )
+                  )
+                ) =>
+              isRunning shouldBe false
+              lastTimeTick shouldBe 0L
+              activePower should equalWithTolerance(
+                Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+              )
+              qDot should equalWithTolerance(
+                Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+              )
+
+              thermalGridState.houseState match {
+                case Some(ThermalHouseState(_, innerTemperature, _)) =>
+                  innerTemperature should equalWithTolerance(
+                    Quantities.getQuantity(
+                      20.9999769069444444444444444444444,
+                      StandardUnits.TEMPERATURE
+                    )
+                  )
+                case None =>
+                  fail(
+                    s"Expected to get a result for thermal house '${inputModel.getUuid}'"
+                  )
+              }
+            case None => fail("Expected to get a model state")
           }
 
           /* The store for simulation results has been extended */
@@ -784,40 +792,10 @@ class HpAgentModelCalculationSpec
               store.get(0L) match {
                 case Some(
                       HpRelevantData(
-                        HpState(
-                          isRunning,
-                          lastTimeTick,
-                          activePower,
-                          qDot,
-                          thermalGridState
-                        ),
                         currentTimeTick,
                         ambientTemperature
                       )
                     ) =>
-                  isRunning shouldBe false
-                  lastTimeTick shouldBe 0L
-                  activePower should equalWithTolerance(
-                    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-                  )
-                  qDot should equalWithTolerance(
-                    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-                  )
-
-                  thermalGridState.houseState match {
-                    case Some(ThermalHouseState(_, innerTemperature, _)) =>
-                      innerTemperature should equalWithTolerance(
-                        Quantities.getQuantity(
-                          20.9999769069444444444444444444444,
-                          StandardUnits.TEMPERATURE
-                        )
-                      )
-                    case None =>
-                      fail(
-                        s"Expected to get a result for thermal house '${inputModel.getUuid}'"
-                      )
-                  }
-
                   currentTimeTick shouldBe 0L
                   ambientTemperature should equalWithTolerance(
                     Quantities.getQuantity(1.815, StandardUnits.TEMPERATURE)
@@ -825,6 +803,44 @@ class HpAgentModelCalculationSpec
                 case None =>
                   fail("Did expect to get hp relevant data for tick 0L")
               }
+          }
+
+          baseStateData.stateDataStore.last(0L) match {
+            case Some(
+                  (
+                    _,
+                    HpState(
+                      isRunning,
+                      lastTimeTick,
+                      activePower,
+                      qDot,
+                      thermalGridState
+                    )
+                  )
+                ) =>
+              isRunning shouldBe false
+              lastTimeTick shouldBe 0L
+              activePower should equalWithTolerance(
+                Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+              )
+              qDot should equalWithTolerance(
+                Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+              )
+
+              thermalGridState.houseState match {
+                case Some(ThermalHouseState(_, innerTemperature, _)) =>
+                  innerTemperature should equalWithTolerance(
+                    Quantities.getQuantity(
+                      20.9999769069444444444444444444444,
+                      StandardUnits.TEMPERATURE
+                    )
+                  )
+                case None =>
+                  fail(
+                    s"Expected to get a result for thermal house '${inputModel.getUuid}'"
+                  )
+              }
+            case None => fail("Expected to get a model state.")
           }
 
           /* The store for simulation results has been extended */

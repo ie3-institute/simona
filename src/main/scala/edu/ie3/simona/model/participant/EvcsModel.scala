@@ -235,6 +235,7 @@ final case class EvcsModel(
     *   Active power
     */
   override protected def calculateActivePower(
+      maybeModelState: Option[EvcsState],
       data: EvcsRelevantData
   ): ComparableQuantity[Power] =
     throw new NotImplementedError("Use calculatePowerAndEvSoc() instead.")

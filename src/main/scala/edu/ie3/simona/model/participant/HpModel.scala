@@ -9,9 +9,9 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
+import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.HpModel._
-import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalHouse}
@@ -61,7 +61,7 @@ final case class HpModel(
 ) extends SystemParticipant[
       HpRelevantData,
       ApparentPowerAndHeat,
-      ConstantState.type
+      HpState
     ](
       uuid,
       id,
@@ -71,7 +71,7 @@ final case class HpModel(
       sRated,
       cosPhiRated
     )
-    with ApparentPowerAndHeatParticipant[HpRelevantData, ConstantState.type] {
+    with ApparentPowerAndHeatParticipant[HpRelevantData, HpState] {
 
   private val pRated: ComparableQuantity[Power] =
     sRated
@@ -85,17 +85,23 @@ final case class HpModel(
     * [[HpModel.calculateNextState]]. This state then is fed into the power
     * calculation logic by <i>hpData</i>.
     *
-    * @param hpData
+    * @param maybeModelState
+    *   Current state of the heat pump
+    * @param relevantData
     *   data of heat pump including state of the heat pump
     * @return
     *   active power
     */
   override protected def calculateActivePower(
-      hpData: HpRelevantData
-  ): ComparableQuantity[Power] = {
-    hpData.hpState = calculateNextState(hpData)
-    hpData.hpState.activePower
-  }
+      maybeModelState: Option[HpState],
+      relevantData: HpRelevantData
+  ): ComparableQuantity[Power] = maybeModelState
+    .map(_.activePower)
+    .getOrElse(
+      throw new InconsistentStateException(
+        "Cannot calculate heat pump active power without model state"
+      )
+    )
 
   /** "Calculate" the heat output of the heat pump. The hp's state is already
     * updated, because the calculation of apparent power in
@@ -103,30 +109,44 @@ final case class HpModel(
     * extract the information
     * @param tick
     *   Current simulation time for the calculation
+    * @param maybeModelState
+    *   Current state of the heat pump
     * @param data
-    *   Needed calculation relevant data
+    *   Relevant (external) data for calculation
     * @return
     *   The heat, that is produced in that instant
     */
   override def calculateHeat(
       tick: Long,
+      maybeModelState: Option[HpState],
       data: HpRelevantData
   ): ComparableQuantity[Power] =
-    data.hpState.qDot.to(StandardUnits.ACTIVE_POWER_RESULT)
+    maybeModelState
+      .map(_.qDot.to(StandardUnits.ACTIVE_POWER_RESULT))
+      .getOrElse(
+        throw new InconsistentStateException(
+          "Cannot calculate heat of a heat pump without model state"
+        )
+      )
 
   /** Given a [[HpRelevantData]] object, containing the [[HpState]], other
     * values and the current time tick, this function calculates the heat pump's
     * next state To get the actual active power of this state use
     * [[calculateActivePower]] with the generated state
     *
-    * @param hpData
-    *   data of heat pump including state of the heat pump
+    * @param state
+    *   Current state of the heat pump
+    * @param relevantData
+    *   data of heat pump including
     * @return
     *   next [[HpState]]
     */
-  def calculateNextState(hpData: HpRelevantData): HpState = {
-    val turnOn = operatesInNextState(hpData)
-    calcState(hpData, turnOn)
+  def calculateNextState(
+      state: HpState,
+      relevantData: HpRelevantData
+  ): HpState = {
+    val turnOn = operatesInNextState(state, relevantData)
+    calcState(state, relevantData, turnOn)
   }
 
   /** Depending on the input, this function decides whether the heat pump will
@@ -135,43 +155,56 @@ final case class HpModel(
     * met or the heat pump currently is in operation and the grid is able to
     * handle additional energy
     *
+    * @param state
+    *   Current state of the heat pump
+    * @param relevantData
+    *   Relevant (external) data
     * @return
     *   boolean defining if heat pump runs in next time step
     */
-  def operatesInNextState(hpData: HpRelevantData): Boolean =
-    hpData match {
-      case HpRelevantData(hpState, currentTimeTick, ambientTemperature) =>
+  def operatesInNextState(
+      state: HpState,
+      relevantData: HpRelevantData
+  ): Boolean =
+    relevantData match {
+      case HpRelevantData(currentTimeTick, ambientTemperature) =>
         val demand = thermalGrid.energyDemand(
           currentTimeTick,
           ambientTemperature,
-          hpState.thermalGridState
+          state.thermalGridState
         )
-        demand.hasRequiredDemand || (hpState.isRunning && demand.hasAdditionalDemand)
+        demand.hasRequiredDemand || (state.isRunning && demand.hasAdditionalDemand)
     }
 
   /** Calculate state depending on whether heat pump is needed or not. Also
     * calculate inner temperature change of thermal house and update its inner
     * temperature.
     *
-    * @param hpData
+    * @param state
+    *   Current state of the heat pump
+    * @param relevantData
     *   data of heat pump including state of the heat pump
     * @param isRunning
     *   determines whether the heat pump is running or not
     * @return
     *   next [[HpState]]
     */
-  private def calcState(hpData: HpRelevantData, isRunning: Boolean): HpState = {
+  private def calcState(
+      state: HpState,
+      relevantData: HpRelevantData,
+      isRunning: Boolean
+  ): HpState = {
     val (newActivePower, newThermalPower) =
       if (isRunning)
         (pRated, pThermal.multiply(scalingFactor))
       else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
 
     /* Push thermal energy to the thermal grid and get it's updated state in return */
-    val thermalGridState = hpData match {
-      case HpRelevantData(hpState, currentTimeTick, ambientTemperature) =>
+    val thermalGridState = relevantData match {
+      case HpRelevantData(currentTimeTick, ambientTemperature) =>
         thermalGrid.updateState(
           currentTimeTick,
-          hpState.thermalGridState,
+          state.thermalGridState,
           ambientTemperature,
           newThermalPower
         )
@@ -179,7 +212,7 @@ final case class HpModel(
 
     HpState(
       isRunning,
-      hpData.currentTimeTick,
+      relevantData.currentTimeTick,
       newActivePower,
       newThermalPower,
       thermalGridState._1
@@ -188,14 +221,14 @@ final case class HpModel(
 
   override def determineFlexOptions(
       data: HpRelevantData,
-      lastState: ConstantState.type
+      lastState: HpState
   ): ProvideFlexOptions = ??? // TODO actual implementation
 
   override def handleControlledPowerChange(
       data: HpRelevantData,
-      lastState: ConstantState.type,
+      lastState: HpState,
       setPower: ComparableQuantity[Power]
-  ): (ConstantState.type, FlexChangeIndicator) =
+  ): (HpState, FlexChangeIndicator) =
     ??? // TODO actual implementation
 
 }
@@ -258,7 +291,7 @@ object HpModel {
       activePower: ComparableQuantity[Power],
       qDot: ComparableQuantity[Power],
       thermalGridState: ThermalGridState
-  )
+  ) extends ModelState
 
   /** Main data required for simulation/calculation, containing a [[HpState]]
     * and the current time tick. <p> [[HpRelevantData.currentTimeTick]] and
@@ -266,13 +299,12 @@ object HpModel {
     * calculation. One time tick represents one second (3600 time ticks = 1
     * hour).
     *
-    * @param hpState
-    *   a [[HpState]]
     * @param currentTimeTick
     *   contains current time tick
+    * @param ambientTemperature
+    *   Ambient temperature
     */
   final case class HpRelevantData(
-      var hpState: HpState,
       currentTimeTick: Long,
       ambientTemperature: ComparableQuantity[Temperature]
   ) extends CalcRelevantData

@@ -21,12 +21,16 @@ trait ApparentPowerAndHeatParticipant[
   override def calculatePower(
       tick: Long,
       voltage: ComparableQuantity[Dimensionless],
+      maybeModelState: Option[MS],
       data: CD
   ): ApparentPowerAndHeat = {
-    val apparentPower = calculateApparentPower(tick, voltage, data)
+    val apparentPower =
+      calculateApparentPower(tick, voltage, maybeModelState, data)
     val heat =
       if (isInOperation(tick))
-        calculateHeat(tick, data).to(StandardUnits.ACTIVE_POWER_RESULT)
+        calculateHeat(tick, maybeModelState, data).to(
+          StandardUnits.ACTIVE_POWER_RESULT
+        )
       else
         Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
 
@@ -37,10 +41,16 @@ trait ApparentPowerAndHeatParticipant[
     * are understood as consumption and negative as production
     * @param tick
     *   Current instant in simulation time
+    * @param maybeModelState
+    *   Current state of the model
     * @param data
     *   Needed calculation relevant data
     * @return
     *   Heat production or consumption of the asset
     */
-  def calculateHeat(tick: Long, data: CD): ComparableQuantity[Power]
+  def calculateHeat(
+      tick: Long,
+      maybeModelState: Option[MS],
+      data: CD
+  ): ComparableQuantity[Power]
 }

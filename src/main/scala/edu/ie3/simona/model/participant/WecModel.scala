@@ -100,6 +100,7 @@ final case class WecModel(
     *   active power output
     */
   override protected def calculateActivePower(
+      maybeModelState: Option[ConstantState.type],
       wecData: WecRelevantData
   ): ComparableQuantity[Power] = {
     val activePower = determinePower(wecData).to(MEGAWATT)
@@ -193,7 +194,7 @@ final case class WecModel(
       data: WecRelevantData,
       lastState: ConstantState.type
   ): ProvideFlexOptions = {
-    val power = calculateActivePower(data)
+    val power = calculateActivePower(Some(ConstantState), data)
 
     ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
   }

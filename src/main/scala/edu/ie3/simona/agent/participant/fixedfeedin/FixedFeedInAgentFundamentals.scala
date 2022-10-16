@@ -14,7 +14,10 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
-import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
+import edu.ie3.simona.agent.participant.{
+  ParticipantAgentFundamentals,
+  StatelessParticipantAgentFundamentals
+}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
@@ -49,7 +52,7 @@ import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.{ClassTag, classTag}
 
 protected trait FixedFeedInAgentFundamentals
-    extends ParticipantAgentFundamentals[
+    extends StatelessParticipantAgentFundamentals[
       ApparentPower,
       FixedRelevantData.type,
       ConstantState.type,
@@ -170,7 +173,14 @@ protected trait FixedFeedInAgentFundamentals
     simulationEndDate
   )
 
-  override protected def createInitialState(): ModelState.ConstantState.type =
+  override protected def createInitialState(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedRelevantData.type,
+        ConstantState.type,
+        FixedFeedInModel
+      ]
+  ): ModelState.ConstantState.type =
     ConstantState // TODO
 
   override protected def createCalcRelevantData(
@@ -228,7 +238,7 @@ protected trait FixedFeedInAgentFundamentals
   ) =>
     baseStateData.model match {
       case fixedModel: FixedFeedInModel =>
-        fixedModel.calculatePower(currentTick, voltage, FixedRelevantData)
+        fixedModel.calculatePower(currentTick, voltage, None, FixedRelevantData)
       case unsupportedModel =>
         throw new InconsistentStateException(
           s"The model $unsupportedModel is not supported!"
@@ -247,6 +257,8 @@ protected trait FixedFeedInAgentFundamentals
     *
     * @param baseStateData
     *   The base state data with collected secondary data
+    * @param maybeLastModelState
+    *   Optional last model state
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
@@ -261,6 +273,7 @@ protected trait FixedFeedInAgentFundamentals
         ConstantState.type,
         FixedFeedInModel
       ],
+      maybeLastModelState: Option[ConstantState.type],
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =

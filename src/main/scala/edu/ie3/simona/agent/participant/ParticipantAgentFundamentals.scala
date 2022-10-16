@@ -999,7 +999,7 @@ protected trait ParticipantAgentFundamentals[
           .map { case (_, lastState) =>
             lastState
           }
-          .getOrElse(createInitialState())
+          .getOrElse(createInitialState(baseStateData))
     }
 
   /** Change over to [[Idle]] state and reply completion to the scheduler. By
@@ -1684,63 +1684,6 @@ protected trait ParticipantAgentFundamentals[
       case ApparentPower(p, q) =>
         stay() using nextStateData replying AssetPowerChangedMessage(p, q)
     }
-  }
-
-  /** Calculate the power output of the participant without needing any
-    * secondary data. The next state is [[Idle]], sending a
-    * [[CompletionMessage]] to scheduler and using update result values.
-    *
-    * @param baseStateData
-    *   Base state data to update
-    * @param currentTick
-    *   Tick, the trigger belongs to
-    * @param scheduler
-    *   [[ActorRef]] to the scheduler in the simulation
-    * @return
-    *   [[Idle]] with updated result values
-    */
-  override def calculatePowerWithoutSecondaryDataAndGoToIdle(
-      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      currentTick: Long,
-      scheduler: ActorRef,
-      nodalVoltage: ComparableQuantity[Dimensionless],
-      calculateModelPowerFunc: (
-          Long,
-          ParticipantModelBaseStateData[PD, CD, MS, M],
-          ComparableQuantity[Dimensionless]
-      ) => PD
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
-    val result =
-      calculateModelPowerFunc(currentTick, baseStateData, nodalVoltage)
-
-    val updatedResultValueStore =
-      ValueStore.updateValueStore(
-        baseStateData.resultValueStore,
-        currentTick,
-        result
-      )
-
-    /* Inform the listeners about new result */
-    announceSimulationResult(
-      baseStateData,
-      currentTick,
-      AccompaniedSimulationResult(result)
-    )(baseStateData.outputConfig)
-
-    /* In this case, without secondary data, the agent has been triggered by an ActivityStartTrigger by itself,
-     * therefore pop the next one */
-    val baseStateDataWithUpdatedResultStore = BaseStateData.updateBaseStateData(
-      baseStateData,
-      updatedResultValueStore,
-      baseStateData.requestValueStore,
-      baseStateData.voltageValueStore,
-      baseStateData.additionalActivationTicks,
-      baseStateData.foreseenDataTicks
-    )
-    goToIdleReplyCompletionAndScheduleTriggerForNextAction(
-      baseStateDataWithUpdatedResultStore,
-      scheduler
-    )
   }
 
   /** Notify listeners about a new simulation result of the participant agent,

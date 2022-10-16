@@ -10,6 +10,7 @@ import de.lmu.ifi.dbs.elki.math.statistics.distribution.GeneralizedExtremeValueD
 import de.lmu.ifi.dbs.elki.utilities.random.RandomFactory
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference._
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
@@ -95,6 +96,7 @@ final case class RandomLoadModel(
     */
   @tailrec
   override protected def calculateActivePower(
+      maybeModelState: Option[ConstantState.type],
       data: RandomRelevantData
   ): ComparableQuantity[Power] = {
     val gev = getGevDistribution(data.date)
@@ -102,7 +104,7 @@ final case class RandomLoadModel(
     /* Get a next random power (in kW) */
     val randomPower = gev.nextRandom()
     if (randomPower < 0)
-      calculateActivePower(data)
+      calculateActivePower(maybeModelState, data)
     else {
       val profilePower = Quantities.getQuantity(randomPower, KILOWATT)
       val activePower = reference match {

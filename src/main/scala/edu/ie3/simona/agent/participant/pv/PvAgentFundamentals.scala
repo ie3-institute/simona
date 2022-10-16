@@ -14,7 +14,10 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
-import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
+import edu.ie3.simona.agent.participant.{
+  ParticipantAgentFundamentals,
+  StatelessParticipantAgentFundamentals
+}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
@@ -53,7 +56,7 @@ import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.{ClassTag, classTag}
 
 protected trait PvAgentFundamentals
-    extends ParticipantAgentFundamentals[
+    extends StatelessParticipantAgentFundamentals[
       ApparentPower,
       PvRelevantData,
       ConstantState.type,
@@ -167,7 +170,14 @@ protected trait PvAgentFundamentals
     simulationEndDate
   )
 
-  override protected def createInitialState(): ModelState.ConstantState.type =
+  override protected def createInitialState(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        PvRelevantData,
+        ConstantState.type,
+        PvModel
+      ]
+  ): ModelState.ConstantState.type =
     ConstantState
 
   override protected def createCalcRelevantData(
@@ -279,6 +289,8 @@ protected trait PvAgentFundamentals
     *
     * @param baseStateData
     *   The base state data with collected secondary data
+    * @param maybeLastModelState
+    *   Optional last model state
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
@@ -293,6 +305,7 @@ protected trait PvAgentFundamentals
         ConstantState.type,
         PvModel
       ],
+      maybeLastModelState: Option[ConstantState.type],
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
@@ -308,6 +321,7 @@ protected trait PvAgentFundamentals
     val result = baseStateData.model.calculatePower(
       currentTick,
       voltage,
+      None,
       relevantData
     )
 

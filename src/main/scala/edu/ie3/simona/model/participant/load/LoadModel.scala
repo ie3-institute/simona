@@ -57,7 +57,7 @@ abstract class LoadModel[D <: LoadRelevantData](
       data: D,
       lastState: ConstantState.type
   ): ProvideFlexOptions = {
-    val power = calculateActivePower(data)
+    val power = calculateActivePower(Some(lastState), data)
 
     // no flexibility
     ProvideMinMaxFlexOptions(uuid, power, power, power)

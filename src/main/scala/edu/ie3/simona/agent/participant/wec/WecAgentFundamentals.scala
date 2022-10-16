@@ -14,7 +14,10 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent._
-import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
+import edu.ie3.simona.agent.participant.{
+  ParticipantAgentFundamentals,
+  StatelessParticipantAgentFundamentals
+}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
@@ -53,7 +56,7 @@ import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.{ClassTag, classTag}
 
 protected trait WecAgentFundamentals
-    extends ParticipantAgentFundamentals[
+    extends StatelessParticipantAgentFundamentals[
       ApparentPower,
       WecRelevantData,
       ConstantState.type,
@@ -167,7 +170,14 @@ protected trait WecAgentFundamentals
     simulationEndDate
   )
 
-  override protected def createInitialState(): ModelState.ConstantState.type =
+  override protected def createInitialState(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        WecRelevantData,
+        ConstantState.type,
+        WecModel
+      ]
+  ): ModelState.ConstantState.type =
     ConstantState
 
   override protected def createCalcRelevantData(
@@ -270,6 +280,8 @@ protected trait WecAgentFundamentals
     *
     * @param baseStateData
     *   The base state data with collected secondary data
+    * @param maybeLastModelState
+    *   Optional last model state
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
@@ -284,6 +296,7 @@ protected trait WecAgentFundamentals
         ConstantState.type,
         WecModel
       ],
+      maybeLastModelState: Option[ConstantState.type],
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
@@ -301,6 +314,7 @@ protected trait WecAgentFundamentals
     val result = baseStateData.model.calculatePower(
       currentTick,
       voltage,
+      None,
       relevantData
     )
 

@@ -14,7 +14,10 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
-import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
+import edu.ie3.simona.agent.participant.{
+  ParticipantAgentFundamentals,
+  StatelessParticipantAgentFundamentals
+}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
@@ -56,7 +59,7 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.reflect.{ClassTag, classTag}
 
 protected trait EvcsAgentFundamentals
-    extends ParticipantAgentFundamentals[
+    extends StatelessParticipantAgentFundamentals[
       ApparentPower,
       EvcsRelevantData,
       EvcsState,
@@ -221,7 +224,14 @@ protected trait EvcsAgentFundamentals
     simulationEndDate
   )
 
-  override protected def createInitialState(): EvcsState = EvcsState(Set.empty)
+  override protected def createInitialState(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel
+      ]
+  ): EvcsState = EvcsState(Set.empty)
 
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
@@ -291,6 +301,8 @@ protected trait EvcsAgentFundamentals
     *
     * @param baseStateData
     *   The base state data with collected secondary data
+    * @param maybeLastModelState
+    *   Optional last model state
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
@@ -305,6 +317,7 @@ protected trait EvcsAgentFundamentals
         EvcsState,
         EvcsModel
       ],
+      maybeLastModelState: Option[EvcsState],
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
@@ -341,10 +354,10 @@ protected trait EvcsAgentFundamentals
   protected def handleFreeLotsRequest(
       tick: Long,
       modelBaseStateData: ParticipantModelBaseStateData[
-        _ <: ApparentPower,
-        _,
-        _,
-        _
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel
       ]
   ): Unit = {
     val evServiceRef = getService[ActorEvMovementsService](
@@ -455,10 +468,10 @@ protected trait EvcsAgentFundamentals
   private def getTickIntervalAndLastState(
       currentTick: Long,
       modelBaseStateData: ParticipantModelBaseStateData[
-        _ <: ApparentPower,
-        _,
-        _,
-        _
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel
       ]
   ): (Long, EvcsState) = {
     modelBaseStateData.stateDataStore
@@ -469,7 +482,10 @@ protected trait EvcsAgentFundamentals
         /* At the first tick, we are not able to determine the tick interval from last tick
          * (since there is none). Then we use a fall back ev stem distance.
          * As no evs are charging then, the tick interval should be ignored anyway. */
-        (FALLBACK_EV_MOVEMENTS_STEM_DISTANCE, createInitialState())
+        (
+          FALLBACK_EV_MOVEMENTS_STEM_DISTANCE,
+          createInitialState(modelBaseStateData)
+        )
     }
   }
 

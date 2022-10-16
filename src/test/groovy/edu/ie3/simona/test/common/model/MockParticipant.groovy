@@ -7,6 +7,7 @@ import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage
 import edu.ie3.util.scala.OperationInterval
+import scala.Option
 import scala.Tuple2
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
@@ -37,13 +38,14 @@ class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryDa
                 cosPhiRated
         )
     }
+
     @Override
-    Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
-        return super.calculateApparentPower(tick, voltage, data)
+    Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, Option<ModelState> maybeModelState, CalcRelevantData data) {
+        return super.calculateApparentPower(tick, voltage, maybeModelState, data)
     }
 
     @Override
-    ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
+    ComparableQuantity<Power> calculateActivePower(Option<ModelState> maybeModelState, CalcRelevantData data) {
         return Quantities.getQuantity(0, MEGAWATT)
     }
 

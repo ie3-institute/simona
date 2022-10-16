@@ -6,17 +6,24 @@
 
 package edu.ie3.simona.agent.participant.hp
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.{ActorRef, FSM, Props}
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.participant.statedata.{
+  BaseStateData,
+  ParticipantStateData
+}
+import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
 import edu.ie3.simona.model.participant.HpModel
-import edu.ie3.simona.model.participant.HpModel.HpRelevantData
+import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.participant.ModelState.ConstantState
+import tech.units.indriya.ComparableQuantity
+
+import javax.measure.quantity.Dimensionless
 
 object HpAgent {
   def props(
@@ -41,7 +48,7 @@ class HpAgent(
 ) extends ParticipantAgent[
       ApparentPowerAndHeat,
       HpRelevantData,
-      ConstantState.type,
+      HpState,
       ParticipantStateData[
         ApparentPowerAndHeat
       ],

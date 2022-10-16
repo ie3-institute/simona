@@ -451,12 +451,14 @@ abstract class ParticipantAgent[
       /* Model calculation without any secondary data needed */
       val voltage = getAndCheckNodalVoltage(modelBaseStateData, currentTick)
 
+      val maybeLastModelState =
+        modelBaseStateData.stateDataStore.get(currentTick)
       calculatePowerWithoutSecondaryDataAndGoToIdle(
         modelBaseStateData,
+        maybeLastModelState,
         currentTick,
         scheduler,
-        voltage,
-        calculateModelPowerFunc
+        voltage
       )
 
     case Event(
@@ -477,10 +479,13 @@ abstract class ParticipantAgent[
 
       /* At least parts of the needed data has been received or it is an additional activation, that has been triggered.
        * Anyways, the calculation routine has also to take care of filling up missing data. */
+      val maybeLastModelState =
+        participantStateData.stateDataStore.get(currentTick)
       calculatePowerWithSecondaryDataAndGoToIdle(
         participantStateData.copy(
           receivedSecondaryDataStore = updatedReceivedSecondaryData
         ),
+        maybeLastModelState,
         currentTick,
         scheduler
       )
@@ -707,16 +712,6 @@ abstract class ParticipantAgent[
       outputConfig: NotifierConfig
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
-  /** Partial function, that is able to transfer
-    * [[ParticipantModelBaseStateData]] (holding the actual calculation model)
-    * into a pair of active and reactive power
-    */
-  val calculateModelPowerFunc: (
-      Long,
-      ParticipantModelBaseStateData[PD, CD, MS, M],
-      ComparableQuantity[Dimensionless]
-  ) => PD
-
   /** Abstractly calculate the power output of the participant without needing
     * any secondary data. The next state is [[Idle]], sending a
     * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
@@ -725,28 +720,23 @@ abstract class ParticipantAgent[
     *
     * @param baseStateData
     *   Base state data to update
+    * @param maybeLastModelState
+    *   The current model state, before updating it
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
     *   [[ActorRef]] to the scheduler in the simulation
     * @param nodalVoltage
     *   Current nodal voltage
-    * @param calculateModelPowerFunc
-    *   Function, that transfer the current tick, the state data and the nodal
-    *   voltage to participants power exchange with the grid
     * @return
     *   [[Idle]] with updated result values
     */
   def calculatePowerWithoutSecondaryDataAndGoToIdle(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+      maybeLastModelState: Option[MS],
       currentTick: Long,
       scheduler: ActorRef,
-      nodalVoltage: ComparableQuantity[Dimensionless],
-      calculateModelPowerFunc: (
-          Long,
-          ParticipantModelBaseStateData[PD, CD, MS, M],
-          ComparableQuantity[Dimensionless]
-      ) => PD
+      nodalVoltage: ComparableQuantity[Dimensionless]
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Abstractly calculate the power output of the participant utilising
@@ -762,6 +752,9 @@ abstract class ParticipantAgent[
     *
     * @param baseStateData
     *   The base state data with collected secondary data
+    * @param maybeLastModelState
+    *   The current model state, before applying changes by externally received
+    *   data
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
@@ -771,11 +764,14 @@ abstract class ParticipantAgent[
     */
   def calculatePowerWithSecondaryDataAndGoToIdle(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+      maybeLastModelState: Option[MS],
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
-  protected def createInitialState(): MS
+  protected def createInitialState(
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
+  ): MS
 
   protected def handleFlexRequest(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],

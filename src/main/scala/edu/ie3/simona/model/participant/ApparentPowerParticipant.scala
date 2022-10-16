@@ -16,6 +16,8 @@ trait ApparentPowerParticipant[CD <: CalcRelevantData, MS <: ModelState] {
   override def calculatePower(
       tick: Long,
       voltage: ComparableQuantity[Dimensionless],
+      maybeModelState: Option[MS],
       data: CD
-  ): ApparentPower = calculateApparentPower(tick, voltage, data)
+  ): ApparentPower =
+    calculateApparentPower(tick, voltage, maybeModelState, data)
 }

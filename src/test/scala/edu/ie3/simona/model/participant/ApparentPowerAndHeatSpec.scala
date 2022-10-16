@@ -29,6 +29,7 @@ class ApparentPowerAndHeatSpec extends UnitSpec {
         ApparentPowerAndHeatMock.calculatePower(
           50L,
           Quantities.getQuantity(1.0, StandardUnits.VOLTAGE_MAGNITUDE),
+          Some(ConstantState),
           FixedRelevantData
         ) match {
           case ApparentPowerAndHeat(p, q, qDot) =>
@@ -49,6 +50,7 @@ class ApparentPowerAndHeatSpec extends UnitSpec {
         ApparentPowerAndHeatMock.calculatePower(
           10L,
           Quantities.getQuantity(1.0, StandardUnits.VOLTAGE_MAGNITUDE),
+          Some(ConstantState),
           FixedRelevantData
         ) match {
           case ApparentPowerAndHeat(p, q, qDot) =>
@@ -100,6 +102,7 @@ object ApparentPowerAndHeatSpec {
       */
     override def calculateHeat(
         tick: Long,
+        maybeModelState: Option[ConstantState.type],
         data: CalcRelevantData.FixedRelevantData.type
     ): ComparableQuantity[Power] =
       Quantities.getQuantity(42d, StandardUnits.ACTIVE_POWER_RESULT)
@@ -112,6 +115,7 @@ object ApparentPowerAndHeatSpec {
       *   Active power
       */
     override protected def calculateActivePower(
+        maybeModelState: Option[ConstantState.type],
         data: CalcRelevantData.FixedRelevantData.type
     ): ComparableQuantity[Power] =
       Quantities.getQuantity(43d, StandardUnits.ACTIVE_POWER_RESULT)
@@ -125,7 +129,10 @@ object ApparentPowerAndHeatSpec {
         data: CalcRelevantData.FixedRelevantData.type,
         lastState: ModelState.ConstantState.type
     ): FlexibilityMessage.ProvideFlexOptions =
-      ProvideFlexOptions.noFlexOption(this.getUuid, calculateActivePower(data))
+      ProvideFlexOptions.noFlexOption(
+        this.getUuid,
+        calculateActivePower(Some(ConstantState), data)
+      )
 
     /** @param data
       * @param lastState

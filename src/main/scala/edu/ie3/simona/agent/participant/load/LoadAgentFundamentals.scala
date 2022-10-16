@@ -14,7 +14,10 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
-import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
+import edu.ie3.simona.agent.participant.{
+  ParticipantAgentFundamentals,
+  StatelessParticipantAgentFundamentals
+}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
@@ -62,7 +65,7 @@ import scala.reflect.{ClassTag, classTag}
 
 protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
   LD
-]] extends ParticipantAgentFundamentals[
+]] extends StatelessParticipantAgentFundamentals[
       ApparentPower,
       LD,
       ConstantState.type,
@@ -200,7 +203,14 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       reference: LoadReference
   ): LM
 
-  override protected def createInitialState(): ModelState.ConstantState.type =
+  override protected def createInitialState(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        LD,
+        ConstantState.type,
+        LM
+      ]
+  ): ModelState.ConstantState.type =
     ConstantState // TODO
 
   override protected def calculateResult(
@@ -238,6 +248,8 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     *
     * @param baseStateData
     *   The base state data with collected secondary data
+    * @param maybeLastModelState
+    *   Optional last model state
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
@@ -252,6 +264,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
         ConstantState.type,
         LM
       ],
+      maybeLastModelState: Option[ConstantState.type],
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
@@ -364,7 +377,12 @@ object LoadAgentFundamentals {
         ],
         voltage: ComparableQuantity[Dimensionless]
     ) =>
-      baseStateData.model.calculatePower(tick, voltage, FixedLoadRelevantData)
+      baseStateData.model.calculatePower(
+        tick,
+        voltage,
+        None,
+        FixedLoadRelevantData
+      )
   }
 
   trait ProfileLoadAgentFundamentals
@@ -417,6 +435,7 @@ object LoadAgentFundamentals {
       baseStateData.model.calculatePower(
         currentTick,
         voltage,
+        None,
         profileRelevantData
       )
     }
@@ -472,6 +491,7 @@ object LoadAgentFundamentals {
       baseStateData.model.calculatePower(
         currentTick,
         voltage,
+        None,
         profileRelevantData
       )
     }

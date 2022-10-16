@@ -81,6 +81,7 @@ final case class ChpModel(
     *   active power
     */
   override protected def calculateActivePower(
+      maybeModelState: Option[ConstantState.type],
       chpData: ChpData
   ): ComparableQuantity[Power] =
     chpData.chpState.activePower

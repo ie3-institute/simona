@@ -68,7 +68,7 @@ class ParticipantAgentMock(
         ConstantState.type
       ]
     ](scheduler)
-    with ParticipantAgentFundamentals[
+    with StatelessParticipantAgentFundamentals[
       ApparentPower,
       FixedRelevantData.type,
       ConstantState.type,
@@ -136,6 +136,7 @@ class ParticipantAgentMock(
           ConstantState.type
         ]
       ],
+      maybeModelState: Option[ConstantState.type],
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
@@ -264,7 +265,18 @@ class ParticipantAgentMock(
     mockModel
   }
 
-  override protected def createInitialState(): ModelState.ConstantState.type =
+  override protected def createInitialState(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedRelevantData.type,
+        ConstantState.type,
+        SystemParticipant[
+          FixedRelevantData.type,
+          ApparentPower,
+          ConstantState.type
+        ]
+      ]
+  ): ModelState.ConstantState.type =
     ConstantState
 
   override protected def createCalcRelevantData(

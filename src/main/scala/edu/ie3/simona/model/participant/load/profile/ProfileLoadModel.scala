@@ -9,6 +9,7 @@ package edu.ie3.simona.model.participant.load.profile
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference._
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
@@ -89,6 +90,7 @@ final case class ProfileLoadModel(
     *   Active power
     */
   override protected def calculateActivePower(
+      maybeModelState: Option[ConstantState.type],
       data: ProfileRelevantData
   ): ComparableQuantity[Power] = {
     /* The power comes in W and is delivered all 15 minutes */
