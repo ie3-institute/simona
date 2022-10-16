@@ -32,7 +32,12 @@ import edu.ie3.simona.exceptions.agent.InvalidRequestException
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
-import edu.ie3.simona.model.participant.{ModelState, SystemParticipant}
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  FlexChangeIndicator,
+  ModelState,
+  SystemParticipant
+}
 import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT, PU}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.mockito.ArgumentMatchers.any
@@ -294,22 +299,6 @@ class ParticipantAgentMock(
   ): FixedRelevantData.type =
     FixedRelevantData
 
-  override protected def calculateResult(
-      baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
-        FixedRelevantData.type,
-        ConstantState.type,
-        SystemParticipant[
-          FixedRelevantData.type,
-          ApparentPower,
-          ConstantState.type
-        ]
-      ],
-      tick: Long,
-      activePower: ComparableQuantity[Power]
-  ): ApparentPower =
-    ApparentPower(0d.asMegaWatt, 0d.asMegaWatt)
-
   /** To clean up agent value stores after power flow convergence. This is
     * necessary for agents whose results are time dependent e.g. storage agents
     * @param baseStateData
@@ -376,6 +365,45 @@ class ParticipantAgentMock(
       result.p,
       result.q
     ) {}
+
+  /** Handle an active power change by flex control.
+    *
+    * @param tick
+    *   Tick, in which control is issued
+    * @param baseStateData
+    *   Base state data of the agent
+    * @param data
+    *   Calculation relevant data
+    * @param lastState
+    *   Last known model state
+    * @param setPower
+    *   Setpoint active power
+    * @return
+    *   Updated model state, a result model and a [[FlexChangeIndicator]]
+    */
+  override def handleControlledPowerChange(
+      tick: Long,
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        CalcRelevantData.FixedRelevantData.type,
+        ModelState.ConstantState.type,
+        SystemParticipant[
+          CalcRelevantData.FixedRelevantData.type,
+          ApparentPower,
+          ModelState.ConstantState.type
+        ]
+      ],
+      data: CalcRelevantData.FixedRelevantData.type,
+      lastState: ModelState.ConstantState.type,
+      setPower: ComparableQuantity[Power]
+  ): (ModelState.ConstantState.type, ApparentPower, FlexChangeIndicator) = (
+    ConstantState,
+    ApparentPower(
+      Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN),
+      Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_IN)
+    ),
+    FlexChangeIndicator()
+  )
 }
 
 case object ParticipantAgentMock {

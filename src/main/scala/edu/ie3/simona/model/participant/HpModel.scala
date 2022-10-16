@@ -13,12 +13,19 @@ import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.HpModel._
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalGridState,
+  ThermalGridThreshold
+}
 import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalHouse}
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  ProvideFlexOptions,
+  ProvideMinMaxFlexOptions
+}
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
 import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -200,7 +207,7 @@ final case class HpModel(
       else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
 
     /* Push thermal energy to the thermal grid and get it's updated state in return */
-    val thermalGridState = relevantData match {
+    val (thermalGridState, maybeThreshold) = relevantData match {
       case HpRelevantData(currentTimeTick, ambientTemperature) =>
         thermalGrid.updateState(
           currentTimeTick,
@@ -215,22 +222,71 @@ final case class HpModel(
       relevantData.currentTimeTick,
       newActivePower,
       newThermalPower,
-      thermalGridState._1
+      thermalGridState,
+      maybeThreshold
     )
   }
 
   override def determineFlexOptions(
       data: HpRelevantData,
       lastState: HpState
-  ): ProvideFlexOptions = ??? // TODO actual implementation
+  ): ProvideFlexOptions = {
+    /* Role up the state until the given tick */
+    val updatedState = calcState(lastState, data, lastState.isRunning)
 
+    ProvideMinMaxFlexOptions(
+      uuid,
+      updatedState.activePower,
+      Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN),
+      updatedState.activePower.to(StandardUnits.ACTIVE_POWER_IN)
+    )
+  }
+
+  /** Handle a controlled power change. If the requested active power is greater
+    * than 50 % of the rated electrical power switch on the heat pump, otherwise
+    * switch it off. If it is already in the requested state, return old state
+    * and next trigger information, otherwise, update the state with new
+    * operating state and give back the next tick in which something will
+    * change.
+    *
+    * @param data
+    *   Relevant data for model calculation
+    * @param lastState
+    *   The last known model state
+    * @param setPower
+    *   power that has been set by EmAgent
+    * @return
+    *   updated relevant data and an indication at which circumstances flex
+    *   options will change next
+    */
   override def handleControlledPowerChange(
       data: HpRelevantData,
       lastState: HpState,
       setPower: ComparableQuantity[Power]
-  ): (HpState, FlexChangeIndicator) =
-    ??? // TODO actual implementation
+  ): (HpState, FlexChangeIndicator) = {
+    /* If the setpoint value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
+    val turnOn =
+      setPower.isGreaterThan(sRated.multiply(cosPhiRated).multiply(0.5))
 
+    if (lastState.isRunning == turnOn)
+      (
+        lastState,
+        FlexChangeIndicator(
+          changesAtNextActivation = true,
+          lastState.maybeThermalThreshold.map(_.tick)
+        )
+      )
+    else {
+      val updatedState = calcState(lastState, data, turnOn)
+      (
+        updatedState,
+        FlexChangeIndicator(
+          changesAtNextActivation = true,
+          updatedState.maybeThermalThreshold.map(_.tick)
+        )
+      )
+    }
+  }
 }
 
 /** Create valid [[HpModel]] by calling the apply function.
@@ -284,13 +340,17 @@ object HpModel {
     *   result heat power
     * @param thermalGridState
     *   Currently applicable state of the thermal grid
+    * @param maybeThermalThreshold
+    *   An optional threshold of the thermal grid, indicating the next state
+    *   change
     */
   final case class HpState(
       isRunning: Boolean,
       lastTimeTick: Long,
       activePower: ComparableQuantity[Power],
       qDot: ComparableQuantity[Power],
-      thermalGridState: ThermalGridState
+      thermalGridState: ThermalGridState,
+      maybeThermalThreshold: Option[ThermalGridThreshold]
   ) extends ModelState
 
   /** Main data required for simulation/calculation, containing a [[HpState]]

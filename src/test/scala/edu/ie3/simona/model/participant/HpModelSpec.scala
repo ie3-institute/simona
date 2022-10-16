@@ -37,7 +37,8 @@ class HpModelSpec
               0,
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              thermalState(17)
+              thermalState(17),
+              None
             ),
             7200,
             true,
@@ -50,7 +51,8 @@ class HpModelSpec
               0,
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              thermalState(18)
+              thermalState(18),
+              None
             ),
             7200,
             true,
@@ -63,7 +65,8 @@ class HpModelSpec
               0,
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              thermalState(20)
+              thermalState(20),
+              None
             ),
             7200,
             true,
@@ -76,7 +79,8 @@ class HpModelSpec
               0,
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              thermalState(22)
+              thermalState(22),
+              None
             ),
             7200,
             false,
@@ -89,7 +93,8 @@ class HpModelSpec
               0,
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              thermalState(23)
+              thermalState(23),
+              None
             ),
             7200,
             false,
@@ -102,7 +107,8 @@ class HpModelSpec
               0,
               Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
-              thermalState(17)
+              thermalState(17),
+              None
             ),
             7200,
             true,
@@ -115,7 +121,8 @@ class HpModelSpec
               0,
               Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
-              thermalState(18)
+              thermalState(18),
+              None
             ),
             7200,
             true,
@@ -128,7 +135,8 @@ class HpModelSpec
               0,
               Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
-              thermalState(20)
+              thermalState(20),
+              None
             ),
             7200,
             true,
@@ -141,7 +149,8 @@ class HpModelSpec
               0,
               Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
-              thermalState(22)
+              thermalState(22),
+              None
             ),
             7200,
             true,
@@ -154,7 +163,8 @@ class HpModelSpec
               0,
               Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
-              thermalState(25)
+              thermalState(25),
+              None
             ),
             7200,
             false,
@@ -182,7 +192,8 @@ class HpModelSpec
                     lastTimeTick,
                     activePower,
                     _,
-                    ThermalGridState(Some(thermalHouseState), _)
+                    ThermalGridState(Some(thermalHouseState), _),
+                    maybeThreshold
                   ) =>
                 isRunning shouldBe expectedRunningState
                 lastTimeTick shouldBe expectedTick
@@ -199,6 +210,8 @@ class HpModelSpec
                     Units.CELSIUS
                   )
                 )
+
+                maybeThreshold shouldBe None
             }
         }
       }

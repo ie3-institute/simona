@@ -134,8 +134,6 @@ protected trait StatefulParticipantAgentFundamentals[
     *   Base state data of the agent
     * @param nodalVoltage
     *   Current nodal voltage of the agent
-    * @param setPointPower
-    *   Optional setpoint power
     * @return
     *   The updated state at given tick under consideration of calculation
     *   relevant data
@@ -144,7 +142,6 @@ protected trait StatefulParticipantAgentFundamentals[
       tick: Long,
       modelState: MS,
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      nodalVoltage: ComparableQuantity[Dimensionless],
-      setPointPower: Option[ComparableQuantity[Power]] = None
+      nodalVoltage: ComparableQuantity[Dimensionless]
   ): MS
 }

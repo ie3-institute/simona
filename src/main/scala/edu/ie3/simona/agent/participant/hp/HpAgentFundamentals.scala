@@ -116,7 +116,8 @@ trait HpAgentFundamentals
     -1,
     Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
     Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
-    ThermalGrid.startingState(thermalGrid)
+    ThermalGrid.startingState(thermalGrid),
+    None
   )
 
   /** Handle an active power change by flex control.
@@ -168,14 +169,9 @@ trait HpAgentFundamentals
         )
     }
 
-    /* Update model state with setpoint power */
-    val updatedState = updateState(
-      currentTick,
-      modelState,
-      baseStateData,
-      voltage,
-      Some(setPower)
-    )
+    /* Handle the control request */
+    val (updatedState, flexChangeIndicator) = baseStateData.model
+      .handleControlledPowerChange(relevantData, modelState, setPower)
 
     /* Calculate power results */
     val result = baseStateData.model.calculatePower(
@@ -185,7 +181,7 @@ trait HpAgentFundamentals
       relevantData
     )
 
-    (updatedState, result, FlexChangeIndicator())
+    (updatedState, result, flexChangeIndicator)
   }
 
   /** Abstractly calculate the power output of the participant utilising
@@ -276,8 +272,6 @@ trait HpAgentFundamentals
     *   Base state data of the agent
     * @param nodalVoltage
     *   Current nodal voltage of the agent
-    * @param setPointPower
-    *   Optional setpoint power
     * @return
     *   The updated state at given tick under consideration of calculation
     *   relevant data
@@ -291,8 +285,7 @@ trait HpAgentFundamentals
         HpState,
         HpModel
       ],
-      nodalVoltage: ComparableQuantity[Dimensionless],
-      setPointPower: Option[ComparableQuantity[Power]] = None
+      nodalVoltage: ComparableQuantity[Dimensionless]
   ): HpState = {
     baseStateData.calcRelevantDateStore.last(tick) match {
       case Some((_, hpRelevantData)) =>
