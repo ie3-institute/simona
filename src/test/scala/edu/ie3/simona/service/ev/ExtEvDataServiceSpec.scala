@@ -11,16 +11,7 @@ import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.api.data.ev.ExtEvData
 import edu.ie3.simona.api.data.ev.model.EvModel
-import edu.ie3.simona.api.data.ev.ontology.EvMovementsMessage.EvcsMovements
-import edu.ie3.simona.api.data.ev.ontology.builder.{
-  EvMovementsMessageBuilder,
-  EvcsMovementsBuilder
-}
-import edu.ie3.simona.api.data.ev.ontology.{
-  AllDepartedEvsResponse,
-  ProvideEvcsFreeLots,
-  RequestEvcsFreeLots
-}
+import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -28,14 +19,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
-import edu.ie3.simona.ontology.messages.services.EvMessage.{
-  DepartedEvsResponse,
-  EvFreeLotsRequest,
-  EvMovementData,
-  FreeLotsResponse,
-  ProvideEvDataMessage,
-  RegisterForEvDataMessage
-}
+import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
@@ -232,407 +216,6 @@ class ExtEvDataServiceSpec
       scheduler.expectNoMessage()
     }
 
-    "handle ev movements provisions correctly and forward them to the correct evcs" in {
-      val evService = TestActorRef(
-        new ExtEvDataService(
-          scheduler.ref
-        )
-      )
-
-      val extData = extEvData(evService)
-
-      scheduler.send(
-        evService,
-        TriggerWithIdMessage(
-          InitializeServiceTrigger(
-            InitExtEvData(
-              extData
-            )
-          ),
-          1L,
-          evService
-        )
-      )
-      scheduler.expectMsgType[CompletionMessage]
-
-      val evcs1 = TestProbe("evcs1")
-      val evcs2 = TestProbe("evcs2")
-
-      evcs1.send(
-        evService,
-        RegisterForEvDataMessage(evcs1UUID)
-      )
-      evcs1.expectMsgType[RegistrationSuccessfulMessage]
-
-      evcs2.send(
-        evService,
-        RegisterForEvDataMessage(evcs2UUID)
-      )
-      evcs2.expectMsgType[RegistrationSuccessfulMessage]
-
-      extData.sendExtMsg(
-        new EvMovementsMessageBuilder()
-          .addArrival(evcs1UUID, evA)
-          .addArrival(evcs2UUID, evB)
-          .build()
-      )
-
-      // ev service should receive movements msg at this moment
-      // scheduler receive schedule msg
-      extSimAdapter.expectMsg(new ScheduleDataServiceMessage(evService))
-
-      val tick = 0L
-      val triggerId = 2L
-
-      // we trigger ev service
-      scheduler.send(
-        evService,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(
-            tick
-          ),
-          triggerId,
-          evService
-        )
-      )
-
-      evcs1.expectMsg(
-        ProvideEvDataMessage(
-          tick,
-          EvMovementData(
-            new EvcsMovementsBuilder().addArrival(evA).build()
-          )
-        )
-      )
-
-      evcs2.expectMsg(
-        ProvideEvDataMessage(
-          tick,
-          EvMovementData(
-            new EvcsMovementsBuilder().addArrival(evB).build()
-          )
-        )
-      )
-
-      scheduler.expectMsg(
-        CompletionMessage(
-          triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(tick),
-                evcs1.ref
-              ),
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(tick),
-                evcs2.ref
-              )
-            )
-          )
-        )
-      )
-
-      // AllDepartedEvsResponse should be sent right away, since no evs departed
-      awaitCond(
-        !extData.receiveTriggerQueue.isEmpty,
-        max = 3.seconds,
-        message = "No message received"
-      )
-      extData.receiveTriggerQueue.size() shouldBe 1
-      extData.receiveTriggerQueue.take() shouldBe new AllDepartedEvsResponse()
-    }
-
-    "handle ev movements provisions correctly and return departed evs" in {
-      val evService = TestActorRef(
-        new ExtEvDataService(
-          scheduler.ref
-        )
-      )
-
-      val extData = extEvData(evService)
-
-      scheduler.send(
-        evService,
-        TriggerWithIdMessage(
-          InitializeServiceTrigger(
-            InitExtEvData(
-              extData
-            )
-          ),
-          1L,
-          evService
-        )
-      )
-      scheduler.expectMsgType[CompletionMessage]
-
-      val evcs1 = TestProbe("evcs1")
-      val evcs2 = TestProbe("evcs1")
-
-      evcs1.send(
-        evService,
-        RegisterForEvDataMessage(evcs1UUID)
-      )
-      evcs1.expectMsgType[RegistrationSuccessfulMessage]
-
-      evcs2.send(
-        evService,
-        RegisterForEvDataMessage(evcs2UUID)
-      )
-      evcs2.expectMsgType[RegistrationSuccessfulMessage]
-
-      // first tick, arrivals
-      extData.sendExtMsg(
-        new EvMovementsMessageBuilder()
-          .addArrival(evcs1UUID, evA)
-          .addArrival(evcs2UUID, evB)
-          .build()
-      )
-
-      // ev service should receive movements msg at this moment
-      // scheduler receive schedule msg
-      extSimAdapter.expectMsg(new ScheduleDataServiceMessage(evService))
-
-      val tick = 0L
-      val triggerId = 2L
-
-      // we trigger ev service
-      scheduler.send(
-        evService,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(
-            tick
-          ),
-          triggerId,
-          evService
-        )
-      )
-
-      evcs1.expectMsg(
-        ProvideEvDataMessage(
-          tick,
-          EvMovementData(
-            new EvcsMovements(
-              List.empty[UUID].asJava,
-              List[EvModel](evA).asJava
-            )
-          )
-        )
-      )
-      evcs2.expectMsg(
-        ProvideEvDataMessage(
-          tick,
-          EvMovementData(
-            new EvcsMovementsBuilder().addArrival(evB).build()
-          )
-        )
-      )
-
-      scheduler.expectMsg(
-        CompletionMessage(
-          triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(tick),
-                evcs1.ref
-              ),
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(tick),
-                evcs2.ref
-              )
-            )
-          )
-        )
-      )
-
-      // AllDepartedEvsResponse should be sent right away, since no evs departed
-      awaitCond(
-        !extData.receiveTriggerQueue.isEmpty,
-        max = 3.seconds,
-        message = "No message received"
-      )
-      extData.receiveTriggerQueue.size() shouldBe 1
-      extData.receiveTriggerQueue.take() shouldBe new AllDepartedEvsResponse()
-
-      // next tick, departures
-      extData.sendExtMsg(
-        new EvMovementsMessageBuilder()
-          .addDeparture(evcs1UUID, evA.getUuid)
-          .addDeparture(evcs2UUID, evB.getUuid)
-          .build()
-      )
-
-      // ev service should receive movements msg at this moment
-      // scheduler receive schedule msg
-      extSimAdapter.expectMsg(new ScheduleDataServiceMessage(evService))
-
-      val tick2 = 900L
-      val triggerId2 = 2L
-
-      // we trigger ev service
-      scheduler.send(
-        evService,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(
-            tick2
-          ),
-          triggerId2,
-          evService
-        )
-      )
-
-      evcs1.expectMsg(
-        ProvideEvDataMessage(
-          tick2,
-          EvMovementData(
-            new EvcsMovementsBuilder().addDeparture(evA.getUuid).build()
-          )
-        )
-      )
-      evcs2.expectMsg(
-        ProvideEvDataMessage(
-          tick2,
-          EvMovementData(
-            new EvcsMovementsBuilder().addDeparture(evB.getUuid).build()
-          )
-        )
-      )
-
-      scheduler.expectMsgType[CompletionMessage]
-
-      extData.receiveTriggerQueue shouldBe empty
-
-      // return evs to ev service
-      val updatedEvA = evA.copyWith(
-        Quantities.getQuantity(6, PowerSystemUnits.KILOWATTHOUR)
-      )
-
-      evcs1.send(
-        evService,
-        DepartedEvsResponse(
-          evcs1UUID,
-          Set(updatedEvA)
-        )
-      )
-
-      // nothing should happen yet, waiting for second departed ev
-      extData.receiveTriggerQueue shouldBe empty
-
-      val updatedEvB = evB.copyWith(
-        Quantities.getQuantity(4, PowerSystemUnits.KILOWATTHOUR)
-      )
-
-      evcs2.send(
-        evService,
-        DepartedEvsResponse(
-          evcs2UUID,
-          Set(updatedEvB)
-        )
-      )
-
-      // ev service should recognize that all evs that are expected are returned,
-      // thus should send AllDepartedEvsResponse
-      awaitCond(
-        !extData.receiveTriggerQueue.isEmpty,
-        max = 3.seconds,
-        message = "No message received"
-      )
-      extData.receiveTriggerQueue.size() shouldBe 1
-      extData.receiveTriggerQueue.take() shouldBe new AllDepartedEvsResponse(
-        List[EvModel](updatedEvA, updatedEvB).asJava
-      )
-    }
-
-    "skip a movements provision from an evcs that is not registered" in {
-      val evService = TestActorRef(
-        new ExtEvDataService(
-          scheduler.ref
-        )
-      )
-
-      val extData = extEvData(evService)
-
-      scheduler.send(
-        evService,
-        TriggerWithIdMessage(
-          InitializeServiceTrigger(
-            InitExtEvData(
-              extData
-            )
-          ),
-          1L,
-          evService
-        )
-      )
-      scheduler.expectMsgType[CompletionMessage]
-
-      val evcs1 = TestProbe("evcs1")
-
-      evcs1.send(
-        evService,
-        RegisterForEvDataMessage(evcs1UUID)
-      )
-      evcs1.expectMsgType[RegistrationSuccessfulMessage]
-
-      extData.sendExtMsg(
-        new EvMovementsMessageBuilder()
-          .addArrival(evcs1UUID, evA)
-          .addDeparture(evcs2UUID, evB.getUuid)
-          .build()
-      )
-
-      // ev service should receive movements msg at this moment
-      // scheduler receive schedule msg
-      extSimAdapter.expectMsgType[ScheduleDataServiceMessage]
-
-      val tick = 0L
-      val triggerId = 2L
-
-      // we trigger ev service
-      scheduler.send(
-        evService,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(
-            tick
-          ),
-          triggerId,
-          evService
-        )
-      )
-
-      evcs1.expectMsg(
-        ProvideEvDataMessage(
-          tick,
-          EvMovementData(
-            new EvcsMovementsBuilder().addArrival(evA).build()
-          )
-        )
-      )
-
-      scheduler.expectMsg(
-        CompletionMessage(
-          triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(tick),
-                evcs1.ref
-              )
-            )
-          )
-        )
-      )
-
-      // AllDepartedEvsResponse should be sent right away, since no evs departed (evcs2 was skipped)
-      awaitCond(
-        !extData.receiveTriggerQueue.isEmpty,
-        max = 3.seconds,
-        message = "No message received"
-      )
-      extData.receiveTriggerQueue.size() shouldBe 1
-      extData.receiveTriggerQueue.take() shouldBe new AllDepartedEvsResponse()
-    }
-
     "handle free lots requests correctly and forward them to the correct evcs" in {
       val evService = TestActorRef(
         new ExtEvDataService(
@@ -676,7 +259,7 @@ class ExtEvDataServiceSpec
       )
 
       // ev service should receive request at this moment
-      // scheduler receives schedule msg
+      // scheduler should receive schedule msg
       extSimAdapter.expectMsg(new ScheduleDataServiceMessage(evService))
 
       val tick = 0L
@@ -806,6 +389,315 @@ class ExtEvDataServiceSpec
       )
       extData.receiveTriggerQueue.size() shouldBe 1
       extData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots()
+
+    }
+
+    "handle ev departure requests correctly and return departed evs" in {
+      val evService = TestActorRef(
+        new ExtEvDataService(
+          scheduler.ref
+        )
+      )
+
+      val extData = extEvData(evService)
+
+      scheduler.send(
+        evService,
+        TriggerWithIdMessage(
+          InitializeServiceTrigger(
+            InitExtEvData(
+              extData
+            )
+          ),
+          1L,
+          evService
+        )
+      )
+      scheduler.expectMsgType[CompletionMessage]
+
+      val evcs1 = TestProbe("evcs1")
+      val evcs2 = TestProbe("evcs1")
+
+      evcs1.send(
+        evService,
+        RegisterForEvDataMessage(evcs1UUID)
+      )
+      evcs1.expectMsgType[RegistrationSuccessfulMessage]
+
+      evcs2.send(
+        evService,
+        RegisterForEvDataMessage(evcs2UUID)
+      )
+      evcs2.expectMsgType[RegistrationSuccessfulMessage]
+
+      val departures = Map(
+        evcs1UUID -> List(evA.getUuid).asJava,
+        evcs2UUID -> List(evB.getUuid).asJava
+      ).asJava
+
+      extData.sendExtMsg(
+        new RequestDepartingEvs(departures)
+      )
+
+      // ev service should receive departure msg at this moment
+      // scheduler should receive schedule msg
+      extSimAdapter.expectMsg(new ScheduleDataServiceMessage(evService))
+
+      val tick = 0L
+      val triggerId = 2L
+
+      // we trigger ev service
+      scheduler.send(
+        evService,
+        TriggerWithIdMessage(
+          ActivityStartTrigger(
+            tick
+          ),
+          triggerId,
+          evService
+        )
+      )
+
+      evcs1.expectMsg(
+        DepartingEvsRequest(tick, Seq(evA.getUuid))
+      )
+      evcs2.expectMsg(
+        DepartingEvsRequest(tick, Seq(evB.getUuid))
+      )
+
+      scheduler.expectMsg(
+        CompletionMessage(
+          triggerId,
+          None
+        )
+      )
+
+      // return evs to ev service
+      val updatedEvA = evA.copyWith(
+        Quantities.getQuantity(6, PowerSystemUnits.KILOWATTHOUR)
+      )
+
+      evcs1.send(
+        evService,
+        DepartingEvsResponse(
+          evcs1UUID,
+          Set(updatedEvA)
+        )
+      )
+
+      // nothing should happen yet, waiting for second departed ev
+      extData.receiveTriggerQueue shouldBe empty
+
+      val updatedEvB = evB.copyWith(
+        Quantities.getQuantity(4, PowerSystemUnits.KILOWATTHOUR)
+      )
+
+      evcs2.send(
+        evService,
+        DepartingEvsResponse(
+          evcs2UUID,
+          Set(updatedEvB)
+        )
+      )
+
+      // ev service should recognize that all evs that are expected are returned,
+      // thus should send AllDepartedEvsResponse
+      awaitCond(
+        !extData.receiveTriggerQueue.isEmpty,
+        max = 3.seconds,
+        message = "No message received"
+      )
+      extData.receiveTriggerQueue.size() shouldBe 1
+      extData.receiveTriggerQueue.take() shouldBe new ProvideDepartingEvs(
+        List[EvModel](updatedEvA, updatedEvB).asJava
+      )
+    }
+
+    "handle ev arrivals correctly and forward them to the correct evcs" in {
+      val evService = TestActorRef(
+        new ExtEvDataService(
+          scheduler.ref
+        )
+      )
+
+      val extData = extEvData(evService)
+
+      scheduler.send(
+        evService,
+        TriggerWithIdMessage(
+          InitializeServiceTrigger(
+            InitExtEvData(
+              extData
+            )
+          ),
+          1L,
+          evService
+        )
+      )
+      scheduler.expectMsgType[CompletionMessage]
+
+      val evcs1 = TestProbe("evcs1")
+      val evcs2 = TestProbe("evcs2")
+
+      evcs1.send(
+        evService,
+        RegisterForEvDataMessage(evcs1UUID)
+      )
+      evcs1.expectMsgType[RegistrationSuccessfulMessage]
+
+      evcs2.send(
+        evService,
+        RegisterForEvDataMessage(evcs2UUID)
+      )
+      evcs2.expectMsgType[RegistrationSuccessfulMessage]
+
+      val arrivals = Map(
+        evcs1UUID -> List[EvModel](evA).asJava,
+        evcs2UUID -> List[EvModel](evB).asJava
+      ).asJava
+
+      extData.sendExtMsg(
+        new ProvideArrivingEvs(arrivals)
+      )
+
+      // ev service should receive movements msg at this moment
+      // scheduler receive schedule msg
+      extSimAdapter.expectMsg(new ScheduleDataServiceMessage(evService))
+
+      val tick = 0L
+      val triggerId = 2L
+
+      // we trigger ev service
+      scheduler.send(
+        evService,
+        TriggerWithIdMessage(
+          ActivityStartTrigger(
+            tick
+          ),
+          triggerId,
+          evService
+        )
+      )
+
+      evcs1.expectMsg(
+        ProvideEvDataMessage(
+          tick,
+          ArrivingEvsData(Seq(evA))
+        )
+      )
+      evcs2.expectMsg(
+        ProvideEvDataMessage(
+          tick,
+          ArrivingEvsData(Seq(evB))
+        )
+      )
+
+      scheduler.expectMsg(
+        CompletionMessage(
+          triggerId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(tick),
+                evcs1.ref
+              ),
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(tick),
+                evcs2.ref
+              )
+            )
+          )
+        )
+      )
+
+      // no response expected
+      extData.receiveTriggerQueue shouldBe empty
+    }
+
+    "skip a movements provision from an evcs that is not registered" in {
+      val evService = TestActorRef(
+        new ExtEvDataService(
+          scheduler.ref
+        )
+      )
+
+      val extData = extEvData(evService)
+
+      scheduler.send(
+        evService,
+        TriggerWithIdMessage(
+          InitializeServiceTrigger(
+            InitExtEvData(
+              extData
+            )
+          ),
+          1L,
+          evService
+        )
+      )
+      scheduler.expectMsgType[CompletionMessage]
+
+      val evcs1 = TestProbe("evcs1")
+
+      evcs1.send(
+        evService,
+        RegisterForEvDataMessage(evcs1UUID)
+      )
+      evcs1.expectMsgType[RegistrationSuccessfulMessage]
+
+      val arrivals = Map(
+        evcs1UUID -> List[EvModel](evA).asJava,
+        evcs2UUID -> List[EvModel](evB).asJava
+      ).asJava
+
+      extData.sendExtMsg(
+        new ProvideArrivingEvs(arrivals)
+      )
+
+      // ev service should receive movements msg at this moment
+      // scheduler should receive schedule msg
+      extSimAdapter.expectMsgType[ScheduleDataServiceMessage]
+
+      val tick = 0L
+      val triggerId = 2L
+
+      // we trigger ev service
+      scheduler.send(
+        evService,
+        TriggerWithIdMessage(
+          ActivityStartTrigger(
+            tick
+          ),
+          triggerId,
+          evService
+        )
+      )
+
+      evcs1.expectMsg(
+        ProvideEvDataMessage(
+          tick,
+          ArrivingEvsData(
+            Seq(evA)
+          )
+        )
+      )
+
+      scheduler.expectMsg(
+        CompletionMessage(
+          triggerId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(tick),
+                evcs1.ref
+              )
+            )
+          )
+        )
+      )
+
+      // no response expected
+      extData.receiveTriggerQueue shouldBe empty
     }
   }
 }
