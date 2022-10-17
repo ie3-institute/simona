@@ -12,12 +12,12 @@ import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology.EvMovementsMessage.EvcsMovements
 import edu.ie3.simona.api.data.ev.ontology.{
   AllDepartedEvsResponse,
+  EvDataMessageFromExt,
   EvMovementsMessage,
-  ExtEvMessage,
   ProvideEvcsFreeLots,
   RequestEvcsFreeLots
 }
-import edu.ie3.simona.api.data.ontology.ExtDataMessage
+import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.SchedulerMessage
@@ -54,7 +54,7 @@ object ExtEvDataService {
   final case class ExtEvStateData(
       extEvData: ExtEvData,
       uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
-      extEvMessage: Option[ExtEvMessage] = None,
+      evDataMessageFromExt: Option[EvDataMessageFromExt] = None,
       freeLots: Map[UUID, Option[Int]] = Map.empty,
       evModelResponses: Map[UUID, Option[List[EvModel]]] = Map.empty
   ) extends ServiceBaseStateData
@@ -185,7 +185,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       ExtEvStateData,
       Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
   ) = {
-    serviceStateData.extEvMessage.getOrElse(
+    serviceStateData.evDataMessageFromExt.getOrElse(
       throw ServiceException(
         "ExtEvDataActor was triggered without ExtEvMessage available"
       )
@@ -193,7 +193,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       case _: RequestEvcsFreeLots =>
         requestFreeLots(tick)
       case evMovementsMessage: EvMovementsMessage =>
-        sendEvMovements(tick, evMovementsMessage.getMovements)
+        sendEvMovements(tick, evMovementsMessage.movements)
     }
   }
 
@@ -215,7 +215,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
     (
       serviceStateData.copy(
-        extEvMessage = None,
+        evDataMessageFromExt = None,
         freeLots = freeLots
       ),
       None
@@ -258,7 +258,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
     val departingVehicles: Map[UUID, Option[List[EvModel]]] =
       filteredPositionData.flatMap { case (evcs, _, movements) =>
-        val containsDeparture = !movements.getDepartures.isEmpty
+        val containsDeparture = !movements.departures.isEmpty
 
         // only when positions message contains departure,
         // we want to wait for the departed vehicles
@@ -274,7 +274,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
     (
       serviceStateData.copy(
-        extEvMessage = None,
+        evDataMessageFromExt = None,
         evModelResponses = departingVehicles
       ),
       Option.when(scheduleTriggerMsgs.nonEmpty)(scheduleTriggerMsgs.toSeq)
@@ -282,12 +282,12 @@ class ExtEvDataService(override val scheduler: ActorRef)
   }
 
   override protected def handleDataMessage(
-      extMsg: ExtDataMessage
+      extMsg: DataMessageFromExt
   )(implicit serviceStateData: ExtEvStateData): ExtEvStateData =
     extMsg match {
-      case extEvMessage: ExtEvMessage =>
+      case evDataMessageFromExt: EvDataMessageFromExt =>
         serviceStateData.copy(
-          extEvMessage = Some(extEvMessage)
+          evDataMessageFromExt = Some(evDataMessageFromExt)
         )
     }
 

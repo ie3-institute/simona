@@ -435,7 +435,7 @@ protected trait EvcsAgentFundamentals
   ): Set[EvModel] =
     calculatedEvs.filter { ev =>
       // EV has been parked up until now and has now departed
-      evcsMovements.getDepartures.contains(ev.getUuid)
+      evcsMovements.departures.contains(ev.getUuid)
     }
 
   private def calculateStayingEvs(
@@ -445,9 +445,9 @@ protected trait EvcsAgentFundamentals
     // If we say that a car departs at t, it means that it stays parked up to and including t.
     calculatedEvs.filter { ev =>
       // Evs that have been parked here and have not departed
-      !evcsMovements.getDepartures.contains(ev.getUuid)
+      !evcsMovements.departures.contains(ev.getUuid)
     } ++ // new evs
-      evcsMovements.getArrivals.asScala.filter { ev =>
+      evcsMovements.arrivals.asScala.filter { ev =>
         !calculatedEvs.exists(_.getUuid == ev.getUuid)
       }
 
@@ -467,14 +467,14 @@ protected trait EvcsAgentFundamentals
       evMovementsData: EvcsMovements,
       chargingPoints: Int
   ): Unit = {
-    evMovementsData.getDepartures.asScala.foreach { ev =>
+    evMovementsData.departures.asScala.foreach { ev =>
       if (!lastEvs.exists(_.getUuid == ev))
         log.warning(
           s"EV $ev should depart from this station (according to external simulation), but has not been parked here."
         )
     }
 
-    evMovementsData.getArrivals.asScala.foreach { ev =>
+    evMovementsData.arrivals.asScala.foreach { ev =>
       if (lastEvs.exists(_.getUuid == ev.getUuid))
         log.warning(
           s"EV ${ev.getId} should arrive at this station (according to external simulation), but is already parked here."
@@ -483,9 +483,9 @@ protected trait EvcsAgentFundamentals
 
     val newCount =
       lastEvs.count { ev =>
-        !evMovementsData.getDepartures.contains(ev.getUuid)
+        !evMovementsData.departures.contains(ev.getUuid)
       } +
-        evMovementsData.getArrivals.asScala.count { ev =>
+        evMovementsData.arrivals.asScala.count { ev =>
           !lastEvs.exists(_.getUuid == ev.getUuid)
         }
 
