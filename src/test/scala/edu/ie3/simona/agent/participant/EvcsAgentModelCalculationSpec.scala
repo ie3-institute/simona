@@ -26,7 +26,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
-import edu.ie3.simona.api.data.ev.ontology.builder.EvcsMovementsBuilder
+
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
@@ -41,9 +41,8 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   TriggerWithIdMessage
 }
 import edu.ie3.simona.ontology.messages.services.EvMessage.{
-  DepartedEvsResponse,
+  DepartingEvsResponse,
   EvFreeLotsRequest,
-  EvMovementData,
   FreeLotsResponse,
   ProvideEvDataMessage,
   RegisterForEvDataMessage
@@ -980,7 +979,7 @@ class EvcsAgentModelCalculationSpec
         )
       )
       evService.expectMsg(
-        DepartedEvsResponse(
+        DepartingEvsResponse(
           evcsInputModel.getUuid,
           Set(
             evA.copyWith(
@@ -1013,7 +1012,7 @@ class EvcsAgentModelCalculationSpec
         )
       )
       evService.expectMsg(
-        DepartedEvsResponse(
+        DepartingEvsResponse(
           evcsInputModel.getUuid,
           Set(
             evB.copyWith(
