@@ -26,7 +26,6 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
-import edu.ie3.simona.api.data.ev.ontology.builder.EvcsMovementsBuilder
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
@@ -499,13 +498,11 @@ class EvcsAgentModelCalculationSpec
       /* State data is tested in another test */
 
       /* Send out new data */
-      val evMovementData = EvMovementData(
-        new EvcsMovementsBuilder().addArrival(evA).addArrival(evB).build()
-      )
+      val arrivingEvsData = ArrivingEvsData(Seq(evA, evB))
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(0L, evMovementData, None)
+        ProvideEvDataMessage(0L, arrivingEvsData, None)
       )
 
       /* Find yourself in corresponding state and state data */
@@ -521,7 +518,7 @@ class EvcsAgentModelCalculationSpec
 
           /* The yet sent data is also registered */
           expectedSenders shouldBe Map(
-            evService.ref -> Some(evMovementData)
+            evService.ref -> Some(arrivingEvsData)
           )
 
           /* It is not yet triggered */
@@ -555,7 +552,7 @@ class EvcsAgentModelCalculationSpec
             case ValueStore(_, store) =>
               store.keys should contain only 0L
               store.get(0L) match {
-                case Some(EvcsState(currentEvs, schedule, _, tick)) =>
+                case Some(EvcsState(currentEvs, schedule, tick)) =>
                   currentEvs should contain theSameElementsAs Set(evA, evB)
 
                   schedule.values.flatten should contain allOf (
@@ -687,13 +684,11 @@ class EvcsAgentModelCalculationSpec
       }
 
       /* Send out new data */
-      val evMovementData = EvMovementData(
-        new EvcsMovementsBuilder().addArrival(evA).addArrival(evB).build()
-      )
+      val arrivingEvsData = ArrivingEvsData(Seq(evA, evB))
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(0L, evMovementData)
+        ProvideEvDataMessage(0L, arrivingEvsData)
       )
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
@@ -709,7 +704,7 @@ class EvcsAgentModelCalculationSpec
             case ValueStore(_, store) =>
               store.keys should contain only 0L
               store.get(0L) match {
-                case Some(EvcsState(currentEvs, schedule, _, tick)) =>
+                case Some(EvcsState(currentEvs, schedule, tick)) =>
                   currentEvs should contain theSameElementsAs Set(evA, evB)
                   schedule.values.flatten should contain allOf (
                     ChargingSchedule(
@@ -893,9 +888,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           0L,
-          EvMovementData(
-            new EvcsMovementsBuilder().addArrival(evA).build()
-          )
+          ArrivingEvsData(Seq(evA))
         )
       )
 
@@ -982,9 +975,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           0L,
-          EvMovementData(
-            new EvcsMovementsBuilder().addArrival(evA).build()
-          )
+          ArrivingEvsData(Seq(evA))
         )
       )
       scheduler.send(
@@ -998,28 +989,14 @@ class EvcsAgentModelCalculationSpec
       scheduler.expectMsg(CompletionMessage(3L))
 
       /* ... for tick 3600 */
+
+      // departures first
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
-          3600L,
-          EvMovementData(
-            new EvcsMovementsBuilder()
-              .addDeparture(evA.getUuid)
-              .addArrival(evB)
-              .build()
-          )
-        )
+        DepartingEvsRequest(3600L, Seq(evA.getUuid))
       )
-      scheduler.send(
-        evcsAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(3600L),
-          4L,
-          evcsAgent
-        )
-      )
-      evService.expectMsgType[DepartedEvsResponse] match {
-        case DepartedEvsResponse(evcs, evModels) =>
+      evService.expectMsgType[DepartingEvsResponse] match {
+        case DepartingEvsResponse(evcs, evModels) =>
           evcs shouldBe evcsInputModel.getUuid
           evModels should have size 1
           evModels.headOption match {
@@ -1033,31 +1010,35 @@ class EvcsAgentModelCalculationSpec
             case None => fail("Expected to get at least one ev.")
           }
       }
-      scheduler.expectMsg(CompletionMessage(4L))
 
-      /* ... for tick 7200 */
+      // arrivals second
       evService.send(
         evcsAgent,
         ProvideEvDataMessage(
-          7200L,
-          EvMovementData(
-            new EvcsMovementsBuilder()
-              .addDeparture(evB.getUuid)
-              .addArrival(evA)
-              .build()
-          )
+          3600L,
+          ArrivingEvsData(Seq(evB))
         )
       )
+
       scheduler.send(
         evcsAgent,
         TriggerWithIdMessage(
-          ActivityStartTrigger(7200L),
-          5L,
+          ActivityStartTrigger(3600L),
+          4L,
           evcsAgent
         )
       )
-      evService.expectMsgType[DepartedEvsResponse] match {
-        case DepartedEvsResponse(evcs, evModels) =>
+      scheduler.expectMsg(CompletionMessage(4L))
+
+      /* ... for tick 7200 */
+
+      // departures first
+      evService.send(
+        evcsAgent,
+        DepartingEvsRequest(7200L, Seq(evB.getUuid))
+      )
+      evService.expectMsgType[DepartingEvsResponse] match {
+        case DepartingEvsResponse(evcs, evModels) =>
           evcs shouldBe evcsInputModel.getUuid
           evModels should have size 1
           evModels.headOption match {
@@ -1070,6 +1051,23 @@ class EvcsAgentModelCalculationSpec
             case None => fail("Expected to get at least one ev.")
           }
       }
+
+      evService.send(
+        evcsAgent,
+        ProvideEvDataMessage(
+          7200L,
+          ArrivingEvsData(Seq(evA))
+        )
+      )
+      scheduler.send(
+        evcsAgent,
+        TriggerWithIdMessage(
+          ActivityStartTrigger(7200L),
+          5L,
+          evcsAgent
+        )
+      )
+
       scheduler.expectMsg(CompletionMessage(5L))
 
       /* Ask the agent for average power in tick 7500 */
@@ -1449,9 +1447,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           900L,
-          EvMovementData(
-            new EvcsMovementsBuilder().addArrival(ev900).build()
-          )
+          ArrivingEvsData(Seq(ev900))
         )
       )
 
@@ -1498,6 +1494,24 @@ class EvcsAgentModelCalculationSpec
          - charging with 11 kW
        */
 
+      // departure first
+      evService.send(
+        evcsAgent,
+        DepartingEvsRequest(4500L, Seq(ev900.getUuid))
+      )
+
+      evService.expectMsgPF() { case DepartingEvsResponse(uuid, evs) =>
+        evs.size shouldBe 1
+        uuid shouldBe evcsInputModel.getUuid
+        evs.headOption.foreach { ev =>
+          ev.getUuid shouldBe ev900.getUuid
+          ev.getStoredEnergy should equalWithTolerance(
+            9.asKiloWattHour,
+            testingTolerance
+          )
+        }
+      }
+
       val ev4500 = evB.copyWithDeparture(72000L)
 
       val activation2 = 2L
@@ -1517,12 +1531,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           4500L,
-          EvMovementData(
-            new EvcsMovementsBuilder()
-              .addDeparture(ev900.getUuid)
-              .addArrival(ev4500)
-              .build()
-          )
+          ArrivingEvsData(Seq(ev4500))
         )
       )
 
@@ -1540,18 +1549,6 @@ class EvcsAgentModelCalculationSpec
       }
 
       emAgent.send(evcsAgent, IssueNoCtrl(4500L))
-
-      evService.expectMsgPF() { case DepartedEvsResponse(uuid, evs) =>
-        evs.size shouldBe 1
-        uuid shouldBe evcsInputModel.getUuid
-        evs.headOption.foreach { ev =>
-          ev.getUuid shouldBe ev900.getUuid
-          ev.getStoredEnergy should equalWithTolerance(
-            9.asKiloWattHour,
-            testingTolerance
-          )
-        }
-      }
 
       // we currently have an empty battery in ev4500
       // time to charge fully ~= 7.2727273h = 26182 ticks (rounded) from now
@@ -1653,11 +1650,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           11700L,
-          EvMovementData(
-            new EvcsMovementsBuilder()
-              .addArrival(ev11700)
-              .build()
-          )
+          ArrivingEvsData(Seq(ev11700))
         )
       )
 
@@ -1905,31 +1898,26 @@ class EvcsAgentModelCalculationSpec
          - charging with 4 kW
        */
 
-      val activation4 = 3L
-
-      emAgent.send(
+      // departure first
+      evService.send(
         evcsAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(36000L),
-          activation4,
-          evcsAgent
-        )
+        DepartingEvsRequest(36000, Seq(ev900.getUuid))
       )
+
+      evService.expectMsgPF() { case DepartingEvsResponse(uuid, evs) =>
+        evs.size shouldBe 1
+        uuid shouldBe evcsInputModel.getUuid
+        evs.headOption.foreach { ev =>
+          ev.getUuid shouldBe ev11700.getUuid
+          ev.getStoredEnergy should equalWithTolerance(
+            11.6.asKiloWattHour,
+            testingTolerance
+          )
+        }
+      }
 
       // sending flex request at very next activated tick
       emAgent.send(evcsAgent, RequestFlexOptions(36000L))
-
-      evService.send(
-        evcsAgent,
-        ProvideEvDataMessage(
-          36000L,
-          EvMovementData(
-            new EvcsMovementsBuilder()
-              .addDeparture(ev11700.getUuid)
-              .build()
-          )
-        )
-      )
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1945,18 +1933,6 @@ class EvcsAgentModelCalculationSpec
       }
 
       emAgent.send(evcsAgent, IssuePowerCtrl(36000L, 4.asKiloWatt))
-
-      evService.expectMsgPF() { case DepartedEvsResponse(uuid, evs) =>
-        evs.size shouldBe 1
-        uuid shouldBe evcsInputModel.getUuid
-        evs.headOption.foreach { ev =>
-          ev.getUuid shouldBe ev11700.getUuid
-          ev.getStoredEnergy should equalWithTolerance(
-            11.6.asKiloWattHour,
-            testingTolerance
-          )
-        }
-      }
 
       // ev11700 is now at 16 kWh
       // ev11700: time to charge fully = 16 h = 57600 ticks from now
@@ -1983,7 +1959,6 @@ class EvcsAgentModelCalculationSpec
           )
       }
 
-      emAgent.expectMsg(CompletionMessage(activation4, None))
     }
 
   }
