@@ -13,14 +13,12 @@ import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationTyp
 import edu.ie3.datamodel.models.result.system.EvResult
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.api.data.ev.model.EvModel
-import edu.ie3.simona.api.data.ev.ontology.EvMovementsMessage.EvcsMovements
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
   EvcsState,
-  PowerEntry,
-  evsByMovementType
+  PowerEntry
 }
 import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedCharging
 import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedCurrentPrice.calculateCurrentPriceGridOriented
@@ -56,7 +54,6 @@ import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Energy, Power, Time}
 import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
-import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success}
 
 /** EV charging station model
@@ -575,7 +572,7 @@ final case class EvcsModel(
       lastState: EvcsState
   ): FlexibilityMessage.ProvideFlexOptions = {
 
-    val (currentEvs, _) = determineCurrentState(data, lastState)
+    val currentEvs = determineCurrentState(data, lastState)
 
     val preferredScheduling = calculateNewScheduling(data, currentEvs)
 
@@ -626,14 +623,13 @@ final case class EvcsModel(
       lastState: EvcsState,
       setPower: ComparableQuantity[Power]
   ): (EvcsState, FlexChangeIndicator) = {
-    val (currentEvs, departingEvs) = determineCurrentState(data, lastState)
+    val currentEvs = determineCurrentState(data, lastState)
 
     if (QuantityUtil.isEquivalentAbs(zeroKW, setPower, 0))
       return (
         EvcsState(
           evs = currentEvs,
           schedule = currentEvs.map(_ -> None).toMap,
-          departingEvs = departingEvs,
           tick = data.tick
         ),
         FlexChangeIndicator()
@@ -669,7 +665,6 @@ final case class EvcsModel(
       EvcsState(
         evs = allSchedules.keys.toSet,
         schedule = allSchedules,
-        departingEvs = departingEvs,
         tick = data.tick
       ),
       FlexChangeIndicator(
@@ -811,80 +806,97 @@ final case class EvcsModel(
       .multiply(Quantities.getQuantity(1, SECOND))
       .asType(classOf[Energy])
 
-  private def determineCurrentState(
+  /** Determines the current state of staying and arriving EVs.
+    *
+    * @param data
+    *   the EvcsRelevantData containing arriving EVs, the current tick etc.
+    * @param lastState
+    *   the last known state of the EVCS. Could be the state at the current
+    *   tick.
+    * @return
+    *   The EVs currently parked at the EVCS, including the arriving EVs
+    */
+  def determineCurrentState(
       data: EvcsRelevantData,
       lastState: EvcsState
-  ): (Set[EvModel], Set[EvModel]) = {
+  ): Set[EvModel] = {
+    // if last state is from before current tick, determine current state
+    val currentEVs = if (lastState.tick < data.tick) {
 
-    /* Validate EV movements */
-    validateEvMovements(
+      val currentTime = data.tick.toDateTime(simulationStartDate)
+      val voltage = data.voltages
+        .filter { case (time, _) =>
+          time.isBefore(currentTime) || time.isEqual(currentTime)
+        }
+        .maxByOption { case (date, _) =>
+          date
+        }
+        .map { case (_, voltage) =>
+          voltage
+        }
+        .getOrElse(Quantities.getQuantity(1d, PU))
+
+      applySchedule(data.tick, voltage, lastState).map { case (ev, _, _) =>
+        ev
+      }
+    } else
+      lastState.evs
+
+    validateArrivals(
       lastState.evs,
-      data.movements,
+      data.arrivals,
       chargingPoints
     )
 
-    // determine current state
-    val currentTime = data.tick.toDateTime(simulationStartDate)
-    val voltage = data.voltages
-      .filter { case (time, _) =>
-        time.isBefore(currentTime) || time.isEqual(currentTime)
-      }
-      .maxByOption { case (date, _) =>
-        date
-      }
-      .map { case (_, voltage) =>
-        voltage
-      }
-      .getOrElse(Quantities.getQuantity(1d, PU))
-
-    val updatedEvs = applySchedule(data.tick, voltage, lastState).map {
-      case (ev, _, _) =>
-        ev
-    }
-
-    val (arrivingEvs, stayingEvs, departingEvs) =
-      evsByMovementType(updatedEvs, data.movements)
-
-    (stayingEvs ++ arrivingEvs, departingEvs)
+    currentEVs ++ data.arrivals
   }
 
-  /** Checks whether received EV movement data is consistent with charging
-    * station specifications and currently connected EVs. Only logs warnings,
-    * does not throw exceptions.
+  /** Checks whether requested departing EVs are consistent with currently
+    * connected EVs. Only logs warnings, does not throw exceptions.
     *
     * @param lastEvs
     *   EVs of the last tick
-    * @param evMovementsData
-    *   received EV movement data
-    * @param chargingPoints
-    *   max number of charging points available at this CS
+    * @param departures
+    *   Departing EVs at the current tick
     */
-  def validateEvMovements(
-      lastEvs: Set[EvModel],
-      evMovementsData: EvcsMovements,
-      chargingPoints: Int
-  ): Unit = {
-    evMovementsData.getDepartures.asScala.foreach { ev =>
+  def validateDepartures(lastEvs: Set[EvModel], departures: Seq[UUID]): Unit = {
+    departures.foreach { ev =>
       if (!lastEvs.exists(_.getUuid == ev))
         logger.warn(
           s"EV $ev should depart from this station (according to external simulation), but has not been parked here."
         )
     }
 
-    evMovementsData.getArrivals.asScala.foreach { ev =>
+  }
+
+  /** Checks whether provided arriving EVs are consistent with charging station
+    * specifications and currently connected EVs. Only logs warnings, does not
+    * throw exceptions.
+    *
+    * @param lastEvs
+    *   EVs of the last tick
+    * @param arrivals
+    *   Arriving EVs at the current tick
+    * @param chargingPoints
+    *   max number of charging points available at this CS
+    */
+  def validateArrivals(
+      lastEvs: Set[EvModel],
+      arrivals: Seq[EvModel],
+      chargingPoints: Int
+  ): Unit = {
+
+    arrivals.foreach { ev =>
       if (lastEvs.exists(_.getUuid == ev.getUuid))
         logger.warn(
           s"EV ${ev.getId} should arrive at this station (according to external simulation), but is already parked here."
         )
     }
 
-    val newCount =
-      lastEvs.count { ev =>
-        !evMovementsData.getDepartures.contains(ev.getUuid)
-      } +
-        evMovementsData.getArrivals.asScala.count { ev =>
-          !lastEvs.exists(_.getUuid == ev.getUuid)
-        }
+    val newCount = lastEvs.size +
+      arrivals.count { ev =>
+        !lastEvs.exists(_.getUuid == ev.getUuid)
+      }
 
     if (newCount > chargingPoints)
       logger.warn(
@@ -900,13 +912,14 @@ object EvcsModel {
     *
     * @param tick
     *   The current tick
-    * @param movements
+    * @param arrivals
+    *   The evs arriving at the current tick
     * @param voltages
     *   Nodal voltage per known time instant
     */
   final case class EvcsRelevantData(
       tick: Long,
-      movements: EvcsMovements,
+      arrivals: Seq[EvModel],
       voltages: Map[ZonedDateTime, ComparableQuantity[Dimensionless]]
   ) extends CalcRelevantData
 
@@ -917,16 +930,12 @@ object EvcsModel {
     *   EVs that are staying at the charging station
     * @param schedule
     *   the schedule determining when to load which EVs with which power
-    * @param departingEvs
-    *   EVs that have been staying up until now and can be returned to the ev
-    *   service
     * @param tick
     *   The tick that the data has been calculated for
     */
   final case class EvcsState(
       evs: Set[EvModel],
       schedule: Map[EvModel, Option[ChargingSchedule]],
-      departingEvs: Set[EvModel] = Set.empty,
       tick: Long
   ) extends ModelState {
     def getSchedule(ev: EvModel): Option[ChargingSchedule] =
@@ -1037,28 +1046,5 @@ object EvcsModel {
     model.enable()
 
     model
-  }
-
-  /** Determine, which cars arrive, stay or depart
-    *
-    * @param evs
-    *   Collection of all apparent evs
-    * @param movements
-    *   Collection of all movements to be applied
-    * @return
-    *   Sets of arriving, staying and departing cars
-    */
-  def evsByMovementType(
-      evs: Set[EvModel],
-      movements: EvcsMovements
-  ): (Set[EvModel], Set[EvModel], Set[EvModel]) = {
-    val (departing, staying) = evs.partition { ev =>
-      movements.getDepartures.contains(ev.getUuid)
-    }
-    val arriving =
-      movements.getArrivals.asScala.filter { ev =>
-        !evs.exists(_.getUuid == ev.getUuid)
-      }.toSet
-    (arriving, staying, departing)
   }
 }

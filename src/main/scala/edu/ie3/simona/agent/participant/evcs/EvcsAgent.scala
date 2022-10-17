@@ -27,7 +27,11 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
   EvcsState
 }
-import edu.ie3.simona.ontology.messages.services.EvMessage.EvFreeLotsRequest
+import edu.ie3.simona.ontology.messages.services.EvMessage.{
+  CurrentPriceRequest,
+  DepartingEvsRequest,
+  EvFreeLotsRequest
+}
 import tech.units.indriya.ComparableQuantity
 
 import javax.measure.quantity.Power
@@ -76,6 +80,31 @@ class EvcsAgent(
         ) =>
       handleFreeLotsRequest(tick, modelBaseStateData)
       stay()
+
+    case Event(
+          CurrentPriceRequest(tick),
+          modelBaseStateData: ParticipantModelBaseStateData[
+            ApparentPower,
+            EvcsRelevantData,
+            EvcsState,
+            EvcsModel
+          ]
+        ) =>
+      handleCurrentPriceRequest(tick, modelBaseStateData)
+      stay()
+
+    case Event(
+          DepartingEvsRequest(tick, departingEvs),
+          modelBaseStateData: ParticipantModelBaseStateData[
+            ApparentPower,
+            EvcsRelevantData,
+            EvcsState,
+            EvcsModel
+          ]
+        ) =>
+      val updatedStateData =
+        handleDepartingEvsRequest(tick, departingEvs, modelBaseStateData)
+      stay() using updatedStateData
   }
 
   /** Determine the average result within the given tick window
