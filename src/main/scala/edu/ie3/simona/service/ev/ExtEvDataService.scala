@@ -43,7 +43,7 @@ object ExtEvDataService {
       extEvData: ExtEvData,
       uuidToActorRef: Map[UUID, (ActorRef, Long => ScheduleTriggerMessage)] =
         Map.empty,
-      extEvMessage: Option[DataMessageFromExt] = None,
+      extEvMessage: Option[EvDataMessageFromExt] = None,
       freeLots: Map[UUID, Option[Int]] = Map.empty,
       currentPrices: Map[UUID, Option[Double]] = Map.empty,
       departingEvResponses: Map[UUID, Option[Seq[EvModel]]] = Map.empty
