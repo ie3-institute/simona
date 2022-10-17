@@ -274,8 +274,8 @@ class EmAgentIT
       )
 
       /* TICK 0
-         LOAD: 0.0002686 MW
-         PV: -0.005685 MW
+         LOAD: 0.000269 MW
+         PV:  -0.005685 MW
          STORAGE: SOC 0 %
          -> charge with 5 kW
          -> remaining -0.0004161 MW
@@ -330,9 +330,9 @@ class EmAgentIT
       )
 
       /* TICK 7200
-         LOAD: 0.0002686 MW (unchanged)
-         PV: -0.003797 MW
-         STORAGE: SOC 63,3 %
+         LOAD: 0.000269 MW (unchanged)
+         PV:  -0.003797 MW
+         STORAGE: SOC 63.3 %
          -> charge with 3.5282 kW
          -> remaining 0 MW
        */
@@ -386,8 +386,8 @@ class EmAgentIT
       )
 
       /* TICK 13107
-         LOAD: 0.0002686 MW (unchanged)
-         PV: -0.003797 MW (unchanged)
+         LOAD: 0.000269 MW (unchanged)
+         PV:  -0.003797 MW (unchanged)
          STORAGE: SOC 100 %
          -> charge with 0 kW
          -> remaining -0.003528 MW
@@ -428,8 +428,8 @@ class EmAgentIT
       )
 
       /* TICK 14400
-         LOAD: 0.0002686 MW (unchanged)
-         PV: -0.00006565 MW
+         LOAD: 0.000269 MW (unchanged)
+         PV:  -0.000066 MW
          STORAGE: SOC 100 %
          -> charge with -0.202956 kW
          -> remaining 0 MW
