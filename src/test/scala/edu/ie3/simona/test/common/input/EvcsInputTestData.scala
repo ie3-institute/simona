@@ -36,7 +36,8 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     ChargingPointTypeUtils.ChargingStationType2,
     2,
     0.95,
-    EvcsLocationType.HOME
+    EvcsLocationType.HOME,
+    true
   )
 
   protected val simonaConfig: SimonaConfig =
