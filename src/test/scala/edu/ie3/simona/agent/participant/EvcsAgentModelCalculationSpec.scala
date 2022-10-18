@@ -18,44 +18,18 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  CollectRegistrationConfirmMessages,
-  ParticipantInitializeStateData,
-  ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
-}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{CollectRegistrationConfirmMessages, ParticipantInitializeStateData, ParticipantInitializingStateData, ParticipantUninitializedStateData}
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
-
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  IllegalTriggerMessage,
-  TriggerWithIdMessage
-}
-import edu.ie3.simona.ontology.messages.services.EvMessage.{
-  DepartingEvsResponse,
-  EvFreeLotsRequest,
-  FreeLotsResponse,
-  ProvideEvDataMessage,
-  RegisterForEvDataMessage
-}
+import edu.ie3.simona.ontology.messages.PowerMessage.{AssetPowerChangedMessage, AssetPowerUnchangedMessage, RequestAssetPowerMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, IllegalTriggerMessage, TriggerWithIdMessage}
+import edu.ie3.simona.ontology.messages.services.EvMessage.{ArrivingEvsData, DepartingEvsResponse, EvFreeLotsRequest, FreeLotsResponse, ProvideEvDataMessage, RegisterForEvDataMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage
-}
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationFailedMessage, RegistrationSuccessfulMessage}
+import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeParticipantAgentTrigger}
 import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DISTANCE
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.EvTestData
@@ -484,13 +458,11 @@ class EvcsAgentModelCalculationSpec
       /* State data is tested in another test */
 
       /* Send out new data */
-      val evMovementData = EvMovementData(
-        new EvcsMovementsBuilder().addArrival(evA).addArrival(evB).build()
-      )
+      val arrivingEvsData = ArrivingEvsData(Seq(evA, evB))
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(0L, evMovementData)
+        ProvideEvDataMessage(0L, arrivingEvsData)
       )
 
       /* Find yourself in corresponding state and state data */
@@ -506,7 +478,7 @@ class EvcsAgentModelCalculationSpec
 
           /* The yet sent data is also registered */
           expectedSenders shouldBe Map(
-            evService.ref -> Some(evMovementData)
+            evService.ref -> Some(arrivingEvsData)
           )
 
           /* It is not yet triggered */
@@ -658,13 +630,11 @@ class EvcsAgentModelCalculationSpec
       }
 
       /* Send out new data */
-      val evMovementData = EvMovementData(
-        new EvcsMovementsBuilder().addArrival(evA).addArrival(evB).build()
-      )
+      val arrivingEvsData = ArrivingEvsData(Seq(evA, evB))
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(0L, evMovementData)
+        ProvideEvDataMessage(0L, arrivingEvsData)
       )
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
@@ -853,9 +823,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           0L,
-          EvMovementData(
-            new EvcsMovementsBuilder().addArrival(evA).build()
-          )
+          ArrivingEvsData(Seq(evA))
         )
       )
 
@@ -942,9 +910,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           0L,
-          EvMovementData(
-            new EvcsMovementsBuilder().addArrival(evA).build()
-          )
+          ArrivingEvsData(Seq(evA))
         )
       )
       scheduler.send(
