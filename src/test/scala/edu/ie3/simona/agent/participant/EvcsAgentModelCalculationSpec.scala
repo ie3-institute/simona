@@ -18,18 +18,45 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{CollectRegistrationConfirmMessages, ParticipantInitializeStateData, ParticipantInitializingStateData, ParticipantUninitializedStateData}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
+  CollectRegistrationConfirmMessages,
+  ParticipantInitializeStateData,
+  ParticipantInitializingStateData,
+  ParticipantUninitializedStateData
+}
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
-import edu.ie3.simona.ontology.messages.PowerMessage.{AssetPowerChangedMessage, AssetPowerUnchangedMessage, RequestAssetPowerMessage}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, IllegalTriggerMessage, TriggerWithIdMessage}
-import edu.ie3.simona.ontology.messages.services.EvMessage.{ArrivingEvsData, DepartingEvsResponse, EvFreeLotsRequest, FreeLotsResponse, ProvideEvDataMessage, RegisterForEvDataMessage}
+import edu.ie3.simona.ontology.messages.PowerMessage.{
+  AssetPowerChangedMessage,
+  AssetPowerUnchangedMessage,
+  RequestAssetPowerMessage
+}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  CompletionMessage,
+  IllegalTriggerMessage,
+  TriggerWithIdMessage
+}
+import edu.ie3.simona.ontology.messages.services.EvMessage.{
+  ArrivingEvsData,
+  DepartingEvsRequest,
+  DepartingEvsResponse,
+  EvFreeLotsRequest,
+  FreeLotsResponse,
+  ProvideEvDataMessage,
+  RegisterForEvDataMessage
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationFailedMessage, RegistrationSuccessfulMessage}
-import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeParticipantAgentTrigger}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage
+}
+import edu.ie3.simona.ontology.trigger.Trigger.{
+  ActivityStartTrigger,
+  InitializeParticipantAgentTrigger
+}
 import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DISTANCE
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.EvTestData
@@ -924,25 +951,11 @@ class EvcsAgentModelCalculationSpec
       scheduler.expectMsg(CompletionMessage(3L))
 
       /* ... for tick 3600 */
+
+      // departures first
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(
-          3600L,
-          EvMovementData(
-            new EvcsMovementsBuilder()
-              .addDeparture(evA.getUuid)
-              .addArrival(evB)
-              .build()
-          )
-        )
-      )
-      scheduler.send(
-        evcsAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(3600L),
-          4L,
-          evcsAgent
-        )
+        DepartingEvsRequest(3600L, Seq(evA.getUuid))
       )
       evService.expectMsg(
         DepartingEvsResponse(
@@ -954,28 +967,32 @@ class EvcsAgentModelCalculationSpec
           )
         )
       )
-      scheduler.expectMsg(CompletionMessage(4L))
 
-      /* ... for tick 7200 */
+      // arrivals second
       evService.send(
         evcsAgent,
         ProvideEvDataMessage(
-          7200L,
-          EvMovementData(
-            new EvcsMovementsBuilder()
-              .addDeparture(evB.getUuid)
-              .addArrival(evA)
-              .build()
-          )
+          3600L,
+          ArrivingEvsData(Seq(evB))
         )
       )
+
       scheduler.send(
         evcsAgent,
         TriggerWithIdMessage(
-          ActivityStartTrigger(7200L),
-          5L,
+          ActivityStartTrigger(3600L),
+          4L,
           evcsAgent
         )
+      )
+      scheduler.expectMsg(CompletionMessage(4L))
+
+      /* ... for tick 7200 */
+
+      // departures first
+      evService.send(
+        evcsAgent,
+        DepartingEvsRequest(7200L, Seq(evB.getUuid))
       )
       evService.expectMsg(
         DepartingEvsResponse(
@@ -987,6 +1004,23 @@ class EvcsAgentModelCalculationSpec
           )
         )
       )
+
+      evService.send(
+        evcsAgent,
+        ProvideEvDataMessage(
+          7200L,
+          ArrivingEvsData(Seq(evA))
+        )
+      )
+      scheduler.send(
+        evcsAgent,
+        TriggerWithIdMessage(
+          ActivityStartTrigger(7200L),
+          5L,
+          evcsAgent
+        )
+      )
+
       scheduler.expectMsg(CompletionMessage(5L))
 
       /* Ask the agent for average power in tick 7500 */

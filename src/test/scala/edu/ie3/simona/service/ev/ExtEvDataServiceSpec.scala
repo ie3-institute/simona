@@ -33,7 +33,7 @@ import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
+import scala.jdk.CollectionConverters._
 
 class ExtEvDataServiceSpec
     extends TestKitWithShutdown(
@@ -389,7 +389,6 @@ class ExtEvDataServiceSpec
       )
       extData.receiveTriggerQueue.size() shouldBe 1
       extData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots()
-
     }
 
     "handle ev departure requests correctly and return departed evs" in {
@@ -585,6 +584,7 @@ class ExtEvDataServiceSpec
           ArrivingEvsData(Seq(evA))
         )
       )
+
       evcs2.expectMsg(
         ProvideEvDataMessage(
           tick,

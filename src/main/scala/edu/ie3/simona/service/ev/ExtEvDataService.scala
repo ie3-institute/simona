@@ -50,7 +50,7 @@ object ExtEvDataService {
   final case class ExtEvStateData(
       extEvData: ExtEvData,
       uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
-      evDataMessageFromExt: Option[EvDataMessageFromExt] = None,
+      extEvMessage: Option[EvDataMessageFromExt] = None,
       freeLots: Map[UUID, Option[Int]] = Map.empty,
       departingEvResponses: Map[UUID, Option[Seq[EvModel]]] = Map.empty
   ) extends ServiceBaseStateData
@@ -181,7 +181,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       ExtEvStateData,
       Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
   ) = {
-    serviceStateData.evDataMessageFromExt.getOrElse(
+    serviceStateData.extEvMessage.getOrElse(
       throw ServiceException(
         "ExtEvDataActor was triggered without ExtEvMessage available"
       )
@@ -213,7 +213,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
     (
       serviceStateData.copy(
-        evDataMessageFromExt = None,
+        extEvMessage = None,
         freeLots = freeLots
       ),
       None
@@ -251,7 +251,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
     (
       serviceStateData.copy(
-        evDataMessageFromExt = None,
+        extEvMessage = None,
         departingEvResponses = departingEvResponses
       ),
       None
@@ -294,7 +294,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
     (
       serviceStateData.copy(
-        evDataMessageFromExt = None
+        extEvMessage = None
       ),
       Option.when(scheduleTriggerMsgs.nonEmpty)(scheduleTriggerMsgs.toSeq)
     )
@@ -304,9 +304,9 @@ class ExtEvDataService(override val scheduler: ActorRef)
       extMsg: DataMessageFromExt
   )(implicit serviceStateData: ExtEvStateData): ExtEvStateData =
     extMsg match {
-      case evDataMessageFromExt: EvDataMessageFromExt =>
+      case extEvMessage: EvDataMessageFromExt =>
         serviceStateData.copy(
-          evDataMessageFromExt = Some(evDataMessageFromExt)
+          extEvMessage = Some(extEvMessage)
         )
     }
 

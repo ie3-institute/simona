@@ -8,18 +8,26 @@ package edu.ie3.simona.agent.participant.evcs
 
 import akka.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.EvcsInput
-import edu.ie3.simona.agent.participant.{ParticipantAgent, ParticipantAgentFundamentals}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ApparentPower, ZERO_POWER}
+import edu.ie3.simona.agent.participant.{
+  ParticipantAgent,
+  ParticipantAgentFundamentals
+}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower,
+  ZERO_POWER
+}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.state.AgentState.Idle
-import edu.ie3.simona.api.data.ev.ontology.RequestDepartingEvs
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.EvcsModel
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
-import edu.ie3.simona.ontology.messages.services.EvMessage.{DepartingEvsRequest, EvFreeLotsRequest}
+import edu.ie3.simona.ontology.messages.services.EvMessage.{
+  DepartingEvsRequest,
+  EvFreeLotsRequest
+}
 import tech.units.indriya.ComparableQuantity
 
 import javax.measure.quantity.Power
@@ -67,17 +75,17 @@ class EvcsAgent(
       handleFreeLotsRequest(tick, modelBaseStateData)
       stay()
     case Event(
-    DepartingEvsRequest(tick, departingEvs),
-    modelBaseStateData: ParticipantModelBaseStateData[
-      ApparentPower,
-      EvcsRelevantData,
-      EvcsModel
-    ]
-    ) =>
-      handleDeparturesAndGoIdle(tick, modelBaseStateData, departingEvs)
+          DepartingEvsRequest(tick, departingEvs),
+          modelBaseStateData: ParticipantModelBaseStateData[
+            ApparentPower,
+            EvcsRelevantData,
+            EvcsModel
+          ]
+        ) =>
+      val updatedStateData =
+        handleDepartingEvsRequest(tick, modelBaseStateData, departingEvs)
+      stay() using updatedStateData
   }
-
-}
 
   /** Determine the average result within the given tick window
     *

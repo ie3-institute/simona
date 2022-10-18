@@ -8,9 +8,11 @@ package edu.ie3.simona.agent.participant.evcs
 
 import akka.actor.{ActorRef, FSM}
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.EvcsInput
-import edu.ie3.datamodel.models.result.system.{EvcsResult, SystemParticipantResult}
+import edu.ie3.datamodel.models.result.system.{
+  EvcsResult,
+  SystemParticipantResult
+}
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
@@ -20,27 +22,34 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
-import edu.ie3.simona.agent.participant.statedata.{DataCollectionStateData, ParticipantStateData}
+import edu.ie3.simona.agent.participant.statedata.{
+  DataCollectionStateData,
+  ParticipantStateData
+}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.api.data.ev.model.EvModel
-import edu.ie3.simona.api.data.ev.ontology.{ProvideArrivingEvs, ProvideDepartingEvs}
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.exceptions.agent.{AgentInitializationException, InconsistentStateException, InvalidRequestException}
+import edu.ie3.simona.exceptions.agent.{
+  AgentInitializationException,
+  InconsistentStateException,
+  InvalidRequestException
+}
 import edu.ie3.simona.model.participant.EvcsModel
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
-import edu.ie3.simona.ontology.messages.services.EvMessage.{ArrivingEvsData, DepartingEvsRequest, DepartingEvsResponse, FreeLotsResponse}
+import edu.ie3.simona.ontology.messages.services.EvMessage.{
+  ArrivingEvsData,
+  DepartingEvsResponse,
+  FreeLotsResponse
+}
 import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DISTANCE
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.Dimensionless
-import scala.collection.Seq
-import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.reflect.{ClassTag, classTag}
 
 protected trait EvcsAgentFundamentals
@@ -58,38 +67,38 @@ protected trait EvcsAgentFundamentals
     classTag[ApparentPower]
 
   /** Determines the needed base state data in dependence of the foreseen
-   * simulation mode of the agent.
-   *
-   * @param inputModel
-   * Input model definition
-   * @param modelConfig
-   * Configuration of the model
-   * @param services
-   * Optional collection of services to register with
-   * @param simulationStartDate
-   * Real world time date time, when the simulation starts
-   * @param simulationEndDate
-   * Real world time date time, when the simulation ends
-   * @param timeBin
-   * Agents regular time bin it wants to be triggered e.g one hour
-   * @param requestVoltageDeviationThreshold
-   * Threshold, after which two nodal voltage magnitudes from participant
-   * power requests for the same tick are considered to be different
-   * @param outputConfig
-   * Config of the output behaviour for simulation results
-   * @return
-   * A [[ParticipantModelBaseStateData]] that reflects the behaviour based on
-   * the data source definition
-   */
+    * simulation mode of the agent.
+    *
+    * @param inputModel
+    *   Input model definition
+    * @param modelConfig
+    *   Configuration of the model
+    * @param services
+    *   Optional collection of services to register with
+    * @param simulationStartDate
+    *   Real world time date time, when the simulation starts
+    * @param simulationEndDate
+    *   Real world time date time, when the simulation ends
+    * @param timeBin
+    *   Agents regular time bin it wants to be triggered e.g one hour
+    * @param requestVoltageDeviationThreshold
+    *   Threshold, after which two nodal voltage magnitudes from participant
+    *   power requests for the same tick are considered to be different
+    * @param outputConfig
+    *   Config of the output behaviour for simulation results
+    * @return
+    *   A [[ParticipantModelBaseStateData]] that reflects the behaviour based on
+    *   the data source definition
+    */
   override def determineModelBaseStateData(
-    inputModel: EvcsInput,
-    modelConfig: EvcsRuntimeConfig,
-    services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
-    simulationStartDate: ZonedDateTime,
-    simulationEndDate: ZonedDateTime,
-    timeBin: Long,
-    requestVoltageDeviationThreshold: Double,
-    outputConfig: ParticipantNotifierConfig
+      inputModel: EvcsInput,
+      modelConfig: EvcsRuntimeConfig,
+      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      simulationStartDate: ZonedDateTime,
+      simulationEndDate: ZonedDateTime,
+      timeBin: Long,
+      requestVoltageDeviationThreshold: Double,
+      outputConfig: ParticipantNotifierConfig
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
@@ -118,36 +127,36 @@ protected trait EvcsAgentFundamentals
   }
 
   /** Determine needed base state data for model calculation simulation mode.
-   *
-   * @param inputModel
-   * Input model
-   * @param modelConfig
-   * Configuration for the model
-   * @param servicesOpt
-   * [[Option]] on a vector of [[SecondaryDataService]] s
-   * @param simulationStartDate
-   * Real world time date time, when the simulation starts
-   * @param simulationEndDate
-   * Real world time date time, when the simulation ends
-   * @param timeBin
-   * Agents regular time bin it wants to be triggered e.g one hour
-   * @param requestVoltageDeviationThreshold
-   * Threshold, after which two nodal voltage magnitudes from participant
-   * power requests for the same tick are considered to be different
-   * @param outputConfig
-   * Config of the output behaviour for simulation results
-   * @return
-   * Needed base state data for model calculation
-   */
+    *
+    * @param inputModel
+    *   Input model
+    * @param modelConfig
+    *   Configuration for the model
+    * @param servicesOpt
+    *   [[Option]] on a vector of [[SecondaryDataService]] s
+    * @param simulationStartDate
+    *   Real world time date time, when the simulation starts
+    * @param simulationEndDate
+    *   Real world time date time, when the simulation ends
+    * @param timeBin
+    *   Agents regular time bin it wants to be triggered e.g one hour
+    * @param requestVoltageDeviationThreshold
+    *   Threshold, after which two nodal voltage magnitudes from participant
+    *   power requests for the same tick are considered to be different
+    * @param outputConfig
+    *   Config of the output behaviour for simulation results
+    * @return
+    *   Needed base state data for model calculation
+    */
   def baseStateDataForModelCalculation(
-    inputModel: EvcsInput,
-    modelConfig: EvcsRuntimeConfig,
-    servicesOpt: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
-    simulationStartDate: ZonedDateTime,
-    simulationEndDate: ZonedDateTime,
-    timeBin: Long,
-    requestVoltageDeviationThreshold: Double,
-    outputConfig: ParticipantNotifierConfig
+      inputModel: EvcsInput,
+      modelConfig: EvcsRuntimeConfig,
+      servicesOpt: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      simulationStartDate: ZonedDateTime,
+      simulationEndDate: ZonedDateTime,
+      timeBin: Long,
+      requestVoltageDeviationThreshold: Double,
+      outputConfig: ParticipantNotifierConfig
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
@@ -185,10 +194,10 @@ protected trait EvcsAgentFundamentals
   }
 
   override def buildModel(
-    inputModel: EvcsInput,
-    modelConfig: EvcsRuntimeConfig,
-    simulationStartDate: ZonedDateTime,
-    simulationEndDate: ZonedDateTime
+      inputModel: EvcsInput,
+      modelConfig: EvcsRuntimeConfig,
+      simulationStartDate: ZonedDateTime,
+      simulationEndDate: ZonedDateTime
   ): EvcsModel = EvcsModel(
     inputModel,
     modelConfig.scaling,
@@ -197,66 +206,64 @@ protected trait EvcsAgentFundamentals
   )
 
   /** Partial function, that is able to transfer
-   * [[ParticipantModelBaseStateData]] (holding the actual calculation model)
-   * into a pair of active and reactive power
-   */
+    * [[ParticipantModelBaseStateData]] (holding the actual calculation model)
+    * into a pair of active and reactive power
+    */
   override val calculateModelPowerFunc: (
-    Long,
+      Long,
       ParticipantModelBaseStateData[ApparentPower, EvcsRelevantData, EvcsModel],
       ComparableQuantity[Dimensionless]
-    ) => ApparentPower =
+  ) => ApparentPower =
     (_, _, _) =>
       throw new InvalidRequestException(
         "Evcs model cannot be run without secondary data."
       )
 
   /** Calculate the power output of the participant utilising secondary data.
-   * However, it might appear, that not the complete set of secondary data is
-   * available for the given tick. This might especially be true, if the actor
-   * has been additionally activated. This method thereby has to try and fill
-   * up missing data with the last known data, as this is still supposed to be
-   * valid. The secondary data therefore is put to the calculation relevant
-   * data store. <p>The next state is [[Idle]], sending a
-   * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
-   * scheduler and using update result values.</p>
-   *
-   * @param collectionStateData
-   * State data with collected, comprehensive secondary data.
-   * @param currentTick
-   * Tick, the trigger belongs to
-   * @param scheduler
-   * [[ActorRef]] to the scheduler in the simulation
-   * @return
-   * [[Idle]] with updated result values
-   */
+    * However, it might appear, that not the complete set of secondary data is
+    * available for the given tick. This might especially be true, if the actor
+    * has been additionally activated. This method thereby has to try and fill
+    * up missing data with the last known data, as this is still supposed to be
+    * valid. The secondary data therefore is put to the calculation relevant
+    * data store. <p>The next state is [[Idle]], sending a
+    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
+    * scheduler and using update result values.</p>
+    *
+    * @param collectionStateData
+    *   State data with collected, comprehensive secondary data.
+    * @param currentTick
+    *   Tick, the trigger belongs to
+    * @param scheduler
+    *   [[ActorRef]] to the scheduler in the simulation
+    * @return
+    *   [[Idle]] with updated result values
+    */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
-    collectionStateData: DataCollectionStateData[ApparentPower],
-    currentTick: Long,
-    scheduler: ActorRef
+      collectionStateData: DataCollectionStateData[ApparentPower],
+      currentTick: Long,
+      scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
     implicit val startDateTime: ZonedDateTime =
       collectionStateData.baseStateData.startDate
 
     collectionStateData.baseStateData match {
       case modelBaseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
-        _,
-        _
-      ] =>
+            ApparentPower,
+            EvcsRelevantData,
+            EvcsModel
+          ] =>
         /* extract EV data from secondary data, which should have been requested and received before */
         collectionStateData.data.values
           .collectFirst {
             // filter secondary data for arriving EVs data
             case Some(arrivingEvs: ArrivingEvsData) =>
-              handleArrivingsAndGoIdle(
+              handleArrivingEvsAndGoIdle(
                 currentTick,
                 scheduler,
                 modelBaseStateData,
-                arrivingEvs)
-
+                arrivingEvs.arrivals
+              )
           }
-
-
           .getOrElse(
             throw new InconsistentStateException(
               s"The model ${modelBaseStateData.model} was not provided with needed EV data."
@@ -271,20 +278,19 @@ protected trait EvcsAgentFundamentals
   }
 
   /** Returns the number of free parking lots based on the last available state
-   * data.
-   *
-   * @param tick
-   * The tick that free lots have been requested for
-   * @param modelBaseStateData
-   * The state data
-   */
+    * data.
+    * @param tick
+    *   The tick that free lots have been requested for
+    * @param modelBaseStateData
+    *   The state data
+    */
   protected def handleFreeLotsRequest(
-    tick: Long,
-    modelBaseStateData: ParticipantModelBaseStateData[
-      _ <: ApparentPower,
-      _,
-      _
-    ]
+      tick: Long,
+      modelBaseStateData: ParticipantModelBaseStateData[
+        _ <: ApparentPower,
+        _,
+        _
+      ]
   ): Unit = {
     val evServiceRef = getService[ActorEvMovementsService](
       modelBaseStateData.services
@@ -301,32 +307,44 @@ protected trait EvcsAgentFundamentals
     )
   }
 
-  /**
-   *
-   */
-  protected def handleDeparturesAndGoIdle(
-    currentTick: Long,
-    modelBaseStateData: ParticipantModelBaseStateData[
-      _ <: ApparentPower,
-      _,
-      _
-    ],
-    departingEvs: Seq[UUID]
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
+  /** Handle a request for returning those EVs that are departing at the current
+    * tick. SOC and results are calculated and corresponding listeners are
+    * informed.
+    *
+    * @param tick
+    *   The current simulation tick
+    * @param modelBaseStateData
+    *   The current Base state data
+    * @param requestedDepartingEvs
+    *   The UUIDs of EVs that are requested to be returned
+    */
+  protected def handleDepartingEvsRequest(
+      tick: Long,
+      modelBaseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsModel
+      ],
+      requestedDepartingEvs: Seq[UUID]
+  ): ParticipantModelBaseStateData[
+    ApparentPower,
+    EvcsRelevantData,
+    EvcsModel
+  ] = {
 
     val evServiceRef = getService[ActorEvMovementsService](
       modelBaseStateData.services
     )
 
     val (tickInterval, lastEvs) =
-      getTickIntervalAndLastEvs(currentTick, modelBaseStateData)
+      getTickIntervalAndLastEvs(tick, modelBaseStateData)
+
+    validateDepartures(lastEvs, requestedDepartingEvs)
 
     val evcsModel = getEvcsModel(modelBaseStateData)
 
     val voltage =
-      getAndCheckNodalVoltage(modelBaseStateData, currentTick)
-
-    validateDepartures(lastEvs, departingEvs)
+      getAndCheckNodalVoltage(modelBaseStateData, tick)
 
     // calculate power with evs that have been parked up until now
     val relevantData =
@@ -335,59 +353,37 @@ protected trait EvcsAgentFundamentals
         lastEvs
       )
 
-    val (power, evModelsCalculated) =
+    val (result, evModelsCalculated) =
       evcsModel.calculatePowerAndEvSoc(
-        currentTick,
+        tick,
         voltage,
         relevantData
       )
 
-
-    val (departedEvs, stayingEvs) =
+    val (departingEvs, stayingEvs) =
       evModelsCalculated.partition { ev =>
         // EV has been parked up until now and has now departed
-        departingEvs.contains(ev.getUuid)
+        requestedDepartingEvs.contains(ev.getUuid)
       }
-
-    if (departedEvs.nonEmpty) {
-      evServiceRef ! DepartingEvsResponse(
-        evcsModel.uuid,
-        departedEvs
-      )
-    }
-
 
     val updatedRelevantData = relevantData.copy(
       currentEvs = stayingEvs
     )
 
-    /* Update the value stores */
-    val updatedValueStore =
-      ValueStore.updateValueStore(
-        modelBaseStateData.resultValueStore,
-        currentTick,
-        power
+    if (departingEvs.nonEmpty) {
+      evServiceRef ! DepartingEvsResponse(
+        evcsModel.uuid,
+        departingEvs
       )
-    val updatedRelevantDataStore =
-      ValueStore.updateValueStore(
-        modelBaseStateData.calcRelevantDateStore,
-        currentTick,
-        relevantData
-      )
-
-    /* Inform the listeners about new result */
-    announceSimulationResult(
-      modelBaseStateData,
-      currentTick,
-      power
-    )(modelBaseStateData.outputConfig)
+    }
 
     /* Update the base state data */
-    stay() using
-      modelBaseStateData.copy(
-        resultValueStore = updatedValueStore,
-        calcRelevantDateStore = updatedRelevantDataStore
-      )
+    updateValueStoresInformListeners(
+      modelBaseStateData,
+      tick,
+      result,
+      updatedRelevantData
+    )
   }
 
   /** Handles a evcs movements message that contains information on arriving and
@@ -395,78 +391,151 @@ protected trait EvcsAgentFundamentals
     * parked evs, calculates resulting charging power. Sends completion message
     * to scheduler without scheduling new activations.
     *
-    * @param currentTick
+    * @param tick
     *   The current tick that has been triggered
     * @param scheduler
     *   The scheduler ref
     * @param modelBaseStateData
     *   The state data
-    * @param departingEvs
-    *   The movement data on departingEvs that has been received
     * @param arrivingEvs
     *   The movement data on arrivingEvs that has been received
     * @return
     *   [[Idle]] with updated result values
     */
-  private def handleArrivingsAndGoIdle(
-      currentTick: Long,
+  private def handleArrivingEvsAndGoIdle(
+      tick: Long,
       scheduler: ActorRef,
       modelBaseStateData: ParticipantModelBaseStateData[
-        _ <: ApparentPower,
-        _,
-        _
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsModel
       ],
-      arrivingEvs: ArrivingEvsData
+      arrivingEvs: Seq[EvModel]
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
-
-    val evServiceRef = getService[ActorEvMovementsService](
-      modelBaseStateData.services
-    )
-
-
-    val (tickInterval, lastEvs) =
-      getTickIntervalAndLastEvs(currentTick, modelBaseStateData)
-
-    if (tickInterval == 0)
-
 
     val evcsModel = getEvcsModel(modelBaseStateData)
 
-    val voltage =
-      getAndCheckNodalVoltage(modelBaseStateData, currentTick)
+    val (tickInterval, lastEvs) =
+      getTickIntervalAndLastEvs(tick, modelBaseStateData)
 
-    validateArrivals(lastEvs, arrivingEvs.arrivals, evcsModel.chargingPoints)
+    validateArrivals(lastEvs, arrivingEvs, evcsModel.chargingPoints)
 
-
-    // calculate power with evs that have been parked up until now
     val relevantData =
       EvcsRelevantData(
         tickInterval,
         lastEvs
       )
 
-    val (power, evModelsCalculated) =
-      evcsModel.calculatePowerAndEvSoc(
-        currentTick,
-        voltage,
-        relevantData
-      )
+    val updatedStateData =
+      if (tickInterval > 0) {
+        // if we haven't had any departing EVs for this tick,
+        // this also means that we have not caught up with
+        // calculating the current SOC
 
+        val voltage =
+          getAndCheckNodalVoltage(modelBaseStateData, tick)
 
+        // calculate power with evs that have been parked up until now
+        val (result, evModelsCalculated) =
+          evcsModel.calculatePowerAndEvSoc(
+            tick,
+            voltage,
+            relevantData
+          )
 
-    val updatedRelevantData = relevantData.copy(
-      currentEvs = stayingEvs
-    )
+        val updatedRelevantData = relevantData.copy(
+          currentEvs = evModelsCalculated ++ arrivingEvs
+        )
 
-    updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
-      scheduler,
-      modelBaseStateData,
-      power,
-      updatedRelevantData
+        updateValueStoresInformListeners(
+          modelBaseStateData,
+          tick,
+          result,
+          updatedRelevantData
+        )
+      } else {
+        // if some EVs were departing at the current tick,
+        // we're already up-to-date in that regard
+
+        val updatedRelevantData = relevantData.copy(
+          currentEvs = lastEvs ++ arrivingEvs
+        )
+
+        val updatedRelevantDataStore =
+          ValueStore.updateValueStore(
+            modelBaseStateData.calcRelevantDateStore,
+            tick,
+            updatedRelevantData
+          )
+
+        modelBaseStateData.copy(
+          calcRelevantDateStore = updatedRelevantDataStore
+        )
+      }
+
+    goToIdleReplyCompletionAndScheduleTriggerForNextAction(
+      updatedStateData,
+      scheduler
     )
   }
 
-private def getTickIntervalAndLastEvs(
+  /** Update the result and calc relevant data value stores and inform all
+    * registered listeners
+    *
+    * @param baseStateData
+    *   The base state data of the collection state
+    * @param tick
+    *   The current tick
+    * @param result
+    *   Result of simulation
+    * @param relevantData
+    *   Data, that have been relevant to this calculation
+    * @return
+    *   Desired state change
+    */
+  private final def updateValueStoresInformListeners(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsModel
+      ],
+      tick: Long,
+      result: ApparentPower,
+      relevantData: EvcsRelevantData
+  ): ParticipantModelBaseStateData[
+    ApparentPower,
+    EvcsRelevantData,
+    EvcsModel
+  ] = {
+    /* Update the value stores */
+    val updatedValueStore =
+      ValueStore.updateValueStore(
+        baseStateData.resultValueStore,
+        tick,
+        result
+      )
+    val updatedRelevantDataStore =
+      ValueStore.updateValueStore(
+        baseStateData.calcRelevantDateStore,
+        tick,
+        relevantData
+      )
+
+    /* Inform the listeners about new result */
+    announceSimulationResult(
+      baseStateData,
+      tick,
+      result
+    )(baseStateData.outputConfig)
+
+    /* Update the base state data */
+    baseStateData.copy(
+      resultValueStore = updatedValueStore,
+      calcRelevantDateStore = updatedRelevantDataStore
+    )
+  }
+
+  private def getTickIntervalAndLastEvs(
       currentTick: Long,
       modelBaseStateData: ParticipantModelBaseStateData[
         _ <: ApparentPower,
@@ -502,54 +571,6 @@ private def getTickIntervalAndLastEvs(
         )
     }
 
-
-  /** Checks whether received EV movement data is consistent with charging
-    * station specifications and currently connected EVs. Only logs warnings,
-    * does not throw exceptions.
-    *
-    * @param lastEvs
-    *   EVs of the last tick
-    * @param departingEvs
-    *   The movement data on departingEvs that has been received
-    * @param arrivingEvs
-    *   The movement data on arrivingEvs that has been received
-    * @param chargingPoints
-    *   max number of charging points available at this CS
-    */
-  private def validateEvMovements(
-      lastEvs: Set[EvModel],
-      departingEvs: ProvideDepartingEvs,
-      arrivingEvs: ProvideArrivingEvs,
-      chargingPoints: Int
-  ): Unit = {
-    departingEvs.departedEvs.asScala.foreach { ev =>
-      if (!lastEvs.exists(_.getUuid == ev.getUuid))
-        log.warning(
-          s"EV $ev should depart from this station (according to external simulation), but has not been parked here."
-        )
-    }
-
-    arrivingEvs.arrivals.get(UUID).asScala.foreach { ev =>
-      if (lastEvs.exists(_.getUuid == ev.getUuid))
-        log.warning(
-          s"EV ${ev.getId} should arrive at this station (according to external simulation), but is already parked here."
-        )
-    }
-
-    val newCount =
-      lastEvs.count { ev =>
-        !departingEvs.departedEvs.contains(ev.getUuid)
-      } +
-        arrivingEvs.arrivals.get(UUID).asScala.count { ev =>
-          !lastEvs.exists(_.getUuid == ev.getUuid)
-        }
-
-    if (newCount > chargingPoints)
-      log.warning(
-        "More EVs are parking at this station than physically possible."
-      )
-  }
-
   /** Determines the correct result.
     *
     * @param uuid
@@ -581,7 +602,10 @@ private def getTickIntervalAndLastEvs(
     * @param departures
     *   Departing EVs at the current tick
     */
-  def validateDepartures(lastEvs: Set[EvModel], departures: Seq[UUID]): Unit = {
+  protected def validateDepartures(
+      lastEvs: Set[EvModel],
+      departures: Seq[UUID]
+  ): Unit = {
     departures.foreach { ev =>
       if (!lastEvs.exists(_.getUuid == ev))
         logger.warn(
@@ -601,7 +625,7 @@ private def getTickIntervalAndLastEvs(
     * @param chargingPoints
     *   max number of charging points available at this CS
     */
-  def validateArrivals(
+  protected def validateArrivals(
       lastEvs: Set[EvModel],
       arrivals: Seq[EvModel],
       chargingPoints: Int
