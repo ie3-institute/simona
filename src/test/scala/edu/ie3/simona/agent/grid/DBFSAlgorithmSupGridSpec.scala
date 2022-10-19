@@ -7,12 +7,13 @@
 package edu.ie3.simona.agent.grid
 
 import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.ImplicitSender
+import akka.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
+import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.PowerMessage.{
@@ -40,6 +41,7 @@ import edu.ie3.util.quantities.PowerSystemUnits._
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
+import scala.concurrent.duration.DurationInt
 
 /** Test to ensure the functions that a [[GridAgent]] in superior position
   * should be able to do if the DBFSAlgorithm is used. The scheduler, the
@@ -62,12 +64,19 @@ class DBFSAlgorithmSupGridSpec
     with ImplicitSender
     with DbfsTestGrid {
 
+  private val scheduler: TestProbe = TestProbe("scheduler")
+  private val primaryService: TestProbe = TestProbe("primaryService")
+  private val weatherService: TestProbe = TestProbe("weatherService")
+  private val hvGrid: TestProbe = TestProbe("hvGrid")
+
   private val environmentRefs = EnvironmentRefs(
-    scheduler = self,
-    primaryServiceProxy = self,
-    weather = self,
+    scheduler = scheduler.ref,
+    primaryServiceProxy = primaryService.ref,
+    weather = weatherService.ref,
     evDataService = None
   )
+
+  val resultListener: TestProbe = TestProbe("resultListener")
 
   "A GridAgent actor in superior position with async test" should {
 
@@ -75,17 +84,15 @@ class DBFSAlgorithmSupGridSpec
       GridAgent.props(
         environmentRefs,
         simonaConfig,
-        listener = Iterable.empty[ActorRef]
+        listener = Iterable(resultListener.ref)
       )
     )
 
     s"initialize itself when it receives a $InitializeGridAgentTrigger with corresponding data" in {
       val triggerId = 0
 
-      val hsActorRef = this.testActor
-
       val subnetGatesToActorRef: Map[SubGridGate, ActorRef] =
-        ehvSubGridGates.map(gate => gate -> hsActorRef).toMap
+        ehvSubGridGates.map(gate => gate -> hvGrid.ref).toMap
 
       val gridAgentInitData =
         GridAgentInitData(
@@ -95,50 +102,58 @@ class DBFSAlgorithmSupGridSpec
         )
 
       // send init data to agent
-      superiorGridAgentFSM ! TriggerWithIdMessage(
-        InitializeGridAgentTrigger(gridAgentInitData),
-        triggerId,
-        superiorGridAgentFSM
+      scheduler.send(
+        superiorGridAgentFSM,
+        TriggerWithIdMessage(
+          InitializeGridAgentTrigger(gridAgentInitData),
+          triggerId,
+          superiorGridAgentFSM
+        )
       )
 
-      expectMsgPF() {
-        case CompletionMessage(
-              triggerId,
-              Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
-            ) =>
-          triggerId shouldBe 0
-          triggerToBeScheduled shouldBe ActivityStartTrigger(3600)
-        case x =>
-          fail(
-            s"Invalid message received when expecting a completion message after an init trigger. Message was $x"
+      scheduler.expectMsg(
+        CompletionMessage(
+          0,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(3600),
+                superiorGridAgentFSM
+              )
+            )
           )
-      }
+        )
+      )
 
     }
 
     s"go to $SimulateGrid when it receives an activity start trigger" in {
-
       val activityStartTriggerId = 1
 
-      superiorGridAgentFSM ! TriggerWithIdMessage(
-        ActivityStartTrigger(3600),
-        activityStartTriggerId,
-        superiorGridAgentFSM
+      // send init data to agent
+      scheduler.send(
+        superiorGridAgentFSM,
+        TriggerWithIdMessage(
+          ActivityStartTrigger(3600),
+          activityStartTriggerId,
+          superiorGridAgentFSM
+        )
       )
 
       // we expect a completion message
-      expectMsgPF() {
-        case CompletionMessage(
-              triggerId,
-              Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
-            ) =>
-          triggerId shouldBe 1
-          triggerToBeScheduled shouldBe StartGridSimulationTrigger(3600)
-        case x =>
-          fail(
-            s"Invalid message received when expecting a completion message after a start activity trigger. Message was $x"
+      scheduler.expectMsg(
+        CompletionMessage(
+          1,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                StartGridSimulationTrigger(3600),
+                superiorGridAgentFSM
+              )
+            )
           )
-      }
+        )
+      )
 
     }
 
@@ -152,14 +167,17 @@ class DBFSAlgorithmSupGridSpec
             Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
 
           // send the start grid simulation trigger
-          superiorGridAgentFSM ! TriggerWithIdMessage(
-            StartGridSimulationTrigger(3600),
-            startGridSimulationTriggerId,
-            superiorGridAgentFSM
+          scheduler.send(
+            superiorGridAgentFSM,
+            TriggerWithIdMessage(
+              StartGridSimulationTrigger(3600),
+              startGridSimulationTriggerId,
+              superiorGridAgentFSM
+            )
           )
 
           // we expect a request for grid power values here for sweepNo $sweepNo
-          expectMsgPF() {
+          hvGrid.expectMsgPF() {
             case requestGridPowerMessage: RequestGridPowerMessage =>
               requestGridPowerMessage.currentSweepNo shouldBe sweepNo
               requestGridPowerMessage.nodeUuids should contain allElementsOf requestedConnectionNodeUuids
@@ -173,24 +191,26 @@ class DBFSAlgorithmSupGridSpec
           // we return with a fake grid power message
           // / as we are using the ask pattern, we cannot send it to the grid agent directly but have to send it to the
           // / ask sender
-          val askSender = lastSender
-          askSender ! ProvideGridPowerMessage(
-            requestedConnectionNodeUuids.map { uuid =>
-              ExchangePower(
-                uuid,
-                Quantities.getQuantity(0, KILOWATT),
-                Quantities.getQuantity(0, KILOVAR)
-              )
-            }
+          hvGrid.send(
+            hvGrid.lastSender,
+            ProvideGridPowerMessage(
+              requestedConnectionNodeUuids.map { uuid =>
+                ExchangePower(
+                  uuid,
+                  Quantities.getQuantity(0, KILOWATT),
+                  Quantities.getQuantity(0, KILOVAR)
+                )
+              }
+            )
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid
           // and waits until the newly scheduled StartGridSimulationTrigger is send
-          expectMsgPF() {
+          scheduler.expectMsgPF() {
             case CompletionMessage(
                   2,
                   Some(
-                    Vector(
+                    Seq(
                       ScheduleTriggerMessage(
                         StartGridSimulationTrigger(3600),
                         _
@@ -198,23 +218,34 @@ class DBFSAlgorithmSupGridSpec
                     )
                   )
                 ) =>
-            case FinishGridSimulationTrigger(3600) =>
-              // we expect another completion message when the agent is in SimulateGrid again
-              expectMsgPF() {
-                case CompletionMessage(
-                      3,
-                      Some(
-                        Vector(
-                          ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
-                        )
-                      )
-                    ) =>
-                // agent should be in Idle again
-                case x =>
-                  fail(
-                    s"Invalid message received when expecting a completion message for simulate grid after cleanup! Message was $x"
+            // we expect another completion message when the agent is in SimulateGrid again
+            case CompletionMessage(
+                  3,
+                  Some(
+                    Seq(
+                      ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
+                    )
                   )
+                ) =>
+              // agent should be in Idle again and listener should contain power flow result data
+              resultListener.expectMsgPF() {
+                case powerFlowResultEvent: PowerFlowResultEvent =>
+                  powerFlowResultEvent.nodeResults.headOption match {
+                    case Some(value) =>
+                      value.getvMag().getValue shouldBe 1
+                      value.getvAng().getValue shouldBe 0
+                  }
+
+                  // due to the fact that the used grid does not contain anything besides the one ehv node
+                  // we do not expect any results for the following elements
+                  powerFlowResultEvent.lineResults shouldBe empty
+                  powerFlowResultEvent.switchResults shouldBe empty
+                  powerFlowResultEvent.transformer2wResults shouldBe empty
+                  powerFlowResultEvent.transformer3wResults shouldBe empty
               }
+
+              hvGrid.expectMsg(FinishGridSimulationTrigger(3600))
+
             case x =>
               fail(
                 s"Invalid message received when expecting a completion message for simulate grid! Message was $x"
@@ -259,25 +290,29 @@ class DBFSAlgorithmSupGridSpec
         // bring agent in simulate grid state
         val activityStartTriggerId = 1
 
-        superiorGridAgentFSM ! TriggerWithIdMessage(
-          ActivityStartTrigger(3600),
-          activityStartTriggerId,
-          superiorGridAgentFSM
+        scheduler.send(
+          superiorGridAgentFSM,
+          TriggerWithIdMessage(
+            ActivityStartTrigger(3600),
+            activityStartTriggerId,
+            superiorGridAgentFSM
+          )
         )
 
         // we expect a completion message
-        expectMsgPF() {
-          case CompletionMessage(
-                triggerId,
-                Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
-              ) =>
-            triggerId shouldBe 1
-            triggerToBeScheduled shouldBe StartGridSimulationTrigger(3600)
-          case x =>
-            fail(
-              s"Invalid message received when expecting a completion message after a start activity trigger. Message was $x"
+        scheduler.expectMsg(
+          CompletionMessage(
+            1,
+            Some(
+              Seq(
+                ScheduleTriggerMessage(
+                  StartGridSimulationTrigger(3600),
+                  superiorGridAgentFSM
+                )
+              )
             )
-        }
+          )
+        )
 
         // go on with testing the sweep behaviour
         for (sweepNo <- 0 to maxNumberOfTestSweeps) {
@@ -287,14 +322,17 @@ class DBFSAlgorithmSupGridSpec
             Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
 
           // send the start grid simulation trigger
-          superiorGridAgentFSM ! TriggerWithIdMessage(
-            StartGridSimulationTrigger(3600),
-            startGridSimulationTriggerId,
-            superiorGridAgentFSM
+          scheduler.send(
+            superiorGridAgentFSM,
+            TriggerWithIdMessage(
+              StartGridSimulationTrigger(3600),
+              startGridSimulationTriggerId,
+              superiorGridAgentFSM
+            )
           )
 
           // we expect a request for grid power values here for sweepNo $sweepNo
-          expectMsgPF() {
+          hvGrid.expectMsgPF() {
             case requestGridPowerMessage: RequestGridPowerMessage =>
               requestGridPowerMessage.currentSweepNo shouldBe sweepNo
               requestGridPowerMessage.nodeUuids should contain allElementsOf requestedConnectionNodeUuids
@@ -307,26 +345,28 @@ class DBFSAlgorithmSupGridSpec
           // we return with a fake grid power message
           // / as we are using the ask pattern, we cannot send it to the grid agent directly but have to send it to the
           // / ask sender
-          val askSender = lastSender
-          askSender ! ProvideGridPowerMessage(
-            requestedConnectionNodeUuids.map { uuid =>
-              ExchangePower(
-                uuid,
-                deviations(sweepNo)._1,
-                deviations(sweepNo)._2
-              )
-            }
+          hvGrid.send(
+            hvGrid.lastSender,
+            ProvideGridPowerMessage(
+              requestedConnectionNodeUuids.map { uuid =>
+                ExchangePower(
+                  uuid,
+                  deviations(sweepNo)._1,
+                  deviations(sweepNo)._2
+                )
+              }
+            )
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid
           // and waits until the newly scheduled StartGridSimulationTrigger is send
 
           // Simulate Grid
-          expectMsgPF() {
+          scheduler.expectMsgPF(30.seconds) {
             case CompletionMessage(
                   _,
                   Some(
-                    Vector(
+                    Seq(
                       ScheduleTriggerMessage(
                         StartGridSimulationTrigger(3600),
                         _
@@ -334,24 +374,35 @@ class DBFSAlgorithmSupGridSpec
                     )
                   )
                 ) =>
-            case FinishGridSimulationTrigger(3600) =>
-              // when we received a FinishGridSimulationTrigger (as inferior grid agent)
-              // we expect another completion message then as well (scheduler view)
-              expectMsgPF() {
-                case CompletionMessage(
-                      _,
-                      Some(
-                        Vector(
-                          ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
-                        )
-                      )
-                    ) =>
-                // after doing cleanup stuff, our agent should go back to idle again
-                case x =>
-                  fail(
-                    s"Invalid message received when expecting a completion message for simulate grid after cleanup! Message was $x"
+            // when we received a FinishGridSimulationTrigger (as inferior grid agent)
+            // we expect another completion message then as well (scheduler view)
+            case CompletionMessage(
+                  _,
+                  Some(
+                    Seq(
+                      ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
+                    )
                   )
+                ) =>
+              // after doing cleanup stuff, our agent should go back to idle again and listener should contain power flow result data
+              resultListener.expectMsgPF() {
+                case powerFlowResultEvent: PowerFlowResultEvent =>
+                  powerFlowResultEvent.nodeResults.headOption match {
+                    case Some(value) =>
+                      value.getvMag().getValue shouldBe 1
+                      value.getvAng().getValue shouldBe 0
+                  }
+
+                  // due to the fact that the used grid does not contain anything besides the one ehv node
+                  // we do not expect any results for the following elements
+                  powerFlowResultEvent.lineResults shouldBe empty
+                  powerFlowResultEvent.switchResults shouldBe empty
+                  powerFlowResultEvent.transformer2wResults shouldBe empty
+                  powerFlowResultEvent.transformer3wResults shouldBe empty
               }
+
+              hvGrid.expectMsg(FinishGridSimulationTrigger(3600))
+
             case x =>
               fail(
                 s"Invalid message received when expecting a completion message for simulate grid! Message was $x"
