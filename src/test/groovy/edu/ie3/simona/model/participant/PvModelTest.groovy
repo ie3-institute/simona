@@ -33,10 +33,9 @@ import java.time.ZonedDateTime
 
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static tech.units.indriya.quantity.Quantities.getQuantity
-import static tech.units.indriya.unit.Units.*
 
 /**
- * Test class that tries to cover all special cases of the current implementation of the PVModel
+ * Test class that tries to cover all special cases of the current implementation of the PvModel
  *
  * Some of these test cases are taken from the examples of
  * Duffie, J. A., & Beckman, W. A. (2013). Solar engineering of thermal processes (4th ed.). Hoboken, N.J.: John Wiley & Sons.
@@ -46,10 +45,10 @@ import static tech.units.indriya.unit.Units.*
  *
  */
 
-class PVModelTest extends Specification {
+class PvModelTest extends Specification {
 
 	@Shared
-	PVModel pvModel
+	PvModel pvModel
 
 	@Shared
 	GeometryFactory geometryFactory
@@ -57,13 +56,13 @@ class PVModelTest extends Specification {
 	def setupSpec() {
 
 		// build the NodeInputModel (which defines the location of the pv input model)
-		/// the NodeInputModel needs a GeoReference for the PV to work
+		/// the NodeInputModel needs a GeoReference for the Pv to work
 		geometryFactory = new GeometryFactory()
 		Point p = geometryFactory.createPoint(
 				new Coordinate(13.2491, 53.457909))
 		NodeInput nodeInput = new NodeInput(
 				UUID.fromString("85f8b517-8a2d-4c20-86c6-3ff3c5823e6d"),
-				"NodeInputModel for PVModel Test",
+				"NodeInputModel for PvModel Test",
 				OperatorInput.NO_OPERATOR_ASSIGNED,
 				OperationTime.notLimited(),
 				getQuantity(1, PU),
@@ -74,10 +73,10 @@ class PVModelTest extends Specification {
 				)
 
 
-		// build the PVInputModel
+		// build the PvInputModel
 		PvInput pvInput = new PvInput(
 				UUID.fromString("adb4eb23-1dd6-4406-a5e7-02e1e4c9dead"),
-				"PV Model Test",
+				"Pv Model Test",
 				OperatorInput.NO_OPERATOR_ASSIGNED,
 				OperationTime.notLimited(),
 				nodeInput,
@@ -93,9 +92,9 @@ class PVModelTest extends Specification {
 				0.8999999761581421
 				)
 
-		// build the PVModel
+		// build the PvModel
 		double scalingFactor = 1.0d
-		pvModel = PVModel.apply(
+		pvModel = PvModel.apply(
 				pvInput.getUuid(),
 				pvInput.getId(),
 				OperationInterval.apply(0L, 86400L),
@@ -113,12 +112,12 @@ class PVModelTest extends Specification {
 				)
 	}
 
-	def "A PVModel should have sMax set to be 10% higher than its sRated"() {
+	def "A PvModel should have sMax set to be 10% higher than its sRated"() {
 		expect:
 		pvModel.sMax() == (pvModel.sRated() * 1.1)
 	}
 
-	def "A PVModel should provide reactive power up to 110% of it's rated apparent power"() {
+	def "A PvModel should provide reactive power up to 110% of it's rated apparent power"() {
 		given: "default adjusted voltage"
 		Quantity adjustedVoltage = getQuantity(1, PU) // needed for method call but not applicable for cosphi_p
 
@@ -362,9 +361,9 @@ class PVModelTest extends Specification {
 		//https://www.sku.ac.ir/Datafiles/BookLibrary/45/John%20A.%20Duffie,%20William%20A.%20Beckman(auth.)-Solar%20Engineering%20of%20Thermal%20Processes,%20Fourth%20Edition%20(2013).pdf
 
 		given:
-		//Inclination of the PV system in degrees (tilted from the horizontal)
+		//Inclination of the Pv system in degrees (tilted from the horizontal)
 		Quantity<Angle> gammaE = getQuantity(Math.toRadians(slope), RADIAN)
-		//Inclination of the PV system in degrees (Inclined in a compass direction)(South 0◦; West 90◦; East -90◦)
+		//Inclination of the Pv system in degrees (Inclined in a compass direction)(South 0◦; West 90◦; East -90◦)
 		Quantity<Angle> alphaE = getQuantity(Math.toRadians(azimuth), RADIAN)
 		//Latitude in Radian
 		Quantity<Angle> latitudeInRad = getQuantity(Math.toRadians(latitudeInDeg), RADIAN)
@@ -404,7 +403,7 @@ class PVModelTest extends Specification {
 	def "Calculate the estimate diffuse radiation eDifS"() {
 
 		given:
-		//Inclination of the PV system in degrees (tilted from the horizontal)
+		//Inclination of the Pv system in degrees (tilted from the horizontal)
 		Quantity<Angle> gammaE = getQuantity(Math.toRadians(slope), RADIAN)
 		// 1 MJ/m^2 = 277,778 Wh/m^2
 		// 0.244 MJ/m^2 = 67.777778 Wh/m^2
@@ -435,7 +434,7 @@ class PVModelTest extends Specification {
 
 		given:
 		"- Beam radiation and diffuse bean radiation on horizontal surface"
-		//Inclination of the PV system in degrees (tilted from the horizontal)
+		//Inclination of the Pv system in degrees (tilted from the horizontal)
 		Quantity<Angle> gammaE = getQuantity(Math.toRadians(slope), RADIAN)
 		// 1 MJ/m^2 = 277,778 Wh/m^2
 		// 0.244 MJ/m^2 = 67.777778 Wh/m^2
