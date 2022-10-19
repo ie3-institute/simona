@@ -38,10 +38,10 @@ import static tech.units.indriya.unit.Units.*
  * It uses 8 pv models located in GER.
  *
  */
-class PVModelIT extends Specification implements PVModelITHelper {
+class PvModelIT extends Specification implements PvModelITHelper {
 
 	@Shared
-	HashMap<String, PVModel> pvModels
+	HashMap<String, PvModel> pvModels
 
 	@Shared
 	HashMap<ZonedDateTime, HashMap<String, WeatherMessage.WeatherData>> weatherMap
@@ -55,7 +55,7 @@ class PVModelIT extends Specification implements PVModelITHelper {
 		// if locale is not set hard coded to US, quantity parsing will return invalid values
 		setDefault(US)
 
-		pvModels = getPVModels()
+		pvModels = createPvModels()
 		weatherMap = getWeatherData()
 		resultsMap = getResultsData()
 	}
@@ -84,11 +84,11 @@ class PVModelIT extends Specification implements PVModelITHelper {
 
 			int modelI = 0
 			for (String modelId : modelIds) {
-				PVModel model = pvModels.get(modelId)
+				PvModel model = pvModels.get(modelId)
 
 				"build the needed data"
 				WeatherMessage.WeatherData weather = modelToWeatherMap.get(modelId)
-				PVModel.PVRelevantData neededData = new PVModel.PVRelevantData(dateTime,3600L, weather.diffIrr() as ComparableQuantity<Irradiance>, weather.dirIrr() as ComparableQuantity<Irradiance>)
+				PvModel.PvRelevantData neededData = new PvModel.PvRelevantData(dateTime,3600L, weather.diffIrr() as ComparableQuantity<Irradiance>, weather.dirIrr() as ComparableQuantity<Irradiance>)
 				ComparableQuantity<Dimensionless> voltage = getQuantity(1.414213562, PU)
 
 				"collect the results and calculate the difference between the provided results and the calculated ones"
@@ -112,7 +112,7 @@ class PVModelIT extends Specification implements PVModelITHelper {
 	}
 }
 
-trait PVModelITHelper {
+trait PvModelITHelper {
 	private static final CSV_FORMAT = CSVFormat.DEFAULT.builder().setHeader().build()
 
 	Iterable<CSVRecord> getCsvRecords(String fileName) {
@@ -124,7 +124,7 @@ trait PVModelITHelper {
 		return CSV_FORMAT.parse(br)
 	}
 
-	HashMap<String, PVModel> getPVModels() {
+	HashMap<String, PvModel> createPvModels() {
 		"load the grid input data from the corresponding resources folder"
 
 		def csvGridSource = CsvGridSource.readGrid("it_grid", ";",
@@ -134,9 +134,9 @@ trait PVModelITHelper {
 		def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2011-01-01 00:00:00")
 		def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2012-01-01 00:00:00")
 
-		HashMap<String, PVModel> pvModels = new HashMap<>()
+		HashMap<String, PvModel> pvModels = new HashMap<>()
 		for (PvInput inputModel : csvGridSource.get().getSystemParticipants().getPvPlants()) {
-			PVModel model = PVModel.apply(
+			PvModel model = PvModel.apply(
 					inputModel.getUuid(),
 					inputModel.getId(),
 					SystemComponent.determineOperationInterval(
