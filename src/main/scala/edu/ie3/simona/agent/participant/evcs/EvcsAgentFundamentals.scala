@@ -362,7 +362,7 @@ protected trait EvcsAgentFundamentals
 
     val (departingEvs, stayingEvs) =
       evModelsCalculated.partition { ev =>
-        // EV has been parked up until now and has now departed
+        // EV has been parked up until now and is now departing
         requestedDepartingEvs.contains(ev.getUuid)
       }
 
