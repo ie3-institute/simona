@@ -33,7 +33,7 @@ It is useful to look at a real wind turbine for the visualization of some parame
 
 ###### Rotor area
 
-The Enercon E-82 has a three-bladed rotor with a diameter of 82m. A rotors swept area is a circle, therefore it is calculated as follows: $A = \pi \cdot r^2$. The swept area (rotorArea) of the Enercon E-82 is $5281.02\:{m^2} = \pi \cdot (\frac{82\:m}{2})^2$.
+The Enercon E-82 has a three-bladed rotor with a diameter of 82 m. A rotors swept area is a circle, therefore it is calculated as follows: $A = \pi \cdot r^2$. The swept area (rotorArea) of the Enercon E-82 is $5281.02\:{m^2} = \pi \cdot (\frac{82\:m}{2})^2$.
 
 ###### Betz curve
 
