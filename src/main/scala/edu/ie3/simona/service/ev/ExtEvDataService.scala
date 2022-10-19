@@ -245,12 +245,12 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
   private def requestDepartingEvs(
       tick: Long,
-      allDepartingEvs: java.util.Map[UUID, java.util.List[UUID]]
+      requestedDepartingEvs: java.util.Map[UUID, java.util.List[UUID]]
   )(implicit
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Seq[ScheduleTriggerMessage]]) = {
 
-    allDepartingEvs.asScala.foreach { case (evcs, departingEvs) =>
+    requestedDepartingEvs.asScala.foreach { case (evcs, departingEvs) =>
       serviceStateData.uuidToActorRef.get(evcs) match {
         case Some((evcsActor, _)) =>
           evcsActor ! DepartingEvsRequest(tick, departingEvs.asScala.toSeq)
@@ -269,7 +269,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
     // if there are no departing evs during this tick,
     // we're sending response right away
-    if (departingEvResponses.isEmpty)
+    if (requestedDepartingEvs.isEmpty)
       serviceStateData.extEvData.queueExtResponseMsg(new ProvideDepartingEvs())
 
     (
@@ -283,13 +283,13 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
   private def handleArrivingEvs(
       tick: Long,
-      allArrivingEvs: java.util.Map[UUID, java.util.List[EvModel]]
+      arrivingEvs: java.util.Map[UUID, java.util.List[EvModel]]
   )(implicit
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Seq[ScheduleTriggerMessage]]) = {
 
     val scheduleTriggerMsgs =
-      allArrivingEvs.asScala.flatMap { case (evcs, arrivingEvs) =>
+      arrivingEvs.asScala.flatMap { case (evcs, arrivingEvs) =>
         serviceStateData.uuidToActorRef.get(evcs) match {
           case Some((evcsActor, scheduleFunc)) =>
             evcsActor ! ProvideEvDataMessage(
