@@ -132,6 +132,7 @@ class ExtEvDataServiceSpec
   }
 
   "An idle ev movements service" must {
+    // TODO enhance with tests for cases where no EVCS are applicable and answer is sent right away
     "handle duplicate registrations correctly" in {
       val evService = TestActorRef(
         new ExtEvDataService(
