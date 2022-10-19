@@ -96,9 +96,10 @@ trait HpAgentFundamentals
       HpState,
       ComparableQuantity[Dimensionless]
   ) => ApparentPowerAndHeat =
-    throw new InvalidRequestException(
-      "Heat pump model cannot be run without secondary data."
-    )
+    (_, _, _, _) =>
+      throw new InvalidRequestException(
+        "Heat pump model cannot be run without secondary data."
+      )
 
   override protected def createInitialState(
       baseStateData: BaseStateData.ParticipantModelBaseStateData[
@@ -229,7 +230,13 @@ trait HpAgentFundamentals
 
         /* Determine the next state */
         val updatedState =
-          updateState(currentTick, modelState, baseStateData, voltage)
+          updateState(
+            currentTick,
+            modelState,
+            relevantData,
+            voltage,
+            baseStateData.model
+          )
 
         /* Calculate power results */
         val power = baseStateData.model.calculatePower(
@@ -268,10 +275,12 @@ trait HpAgentFundamentals
     *   Tick to update state for
     * @param modelState
     *   Last known model state
-    * @param baseStateData
-    *   Base state data of the agent
+    * @param calcRelevantData
+    *   Data, relevant for calculation
     * @param nodalVoltage
     *   Current nodal voltage of the agent
+    * @param model
+    *   Model for calculation
     * @return
     *   The updated state at given tick under consideration of calculation
     *   relevant data
@@ -279,23 +288,10 @@ trait HpAgentFundamentals
   protected override def updateState(
       tick: Long,
       modelState: HpState,
-      baseStateData: ParticipantModelBaseStateData[
-        ApparentPowerAndHeat,
-        HpRelevantData,
-        HpState,
-        HpModel
-      ],
-      nodalVoltage: ComparableQuantity[Dimensionless]
-  ): HpState = {
-    baseStateData.calcRelevantDateStore.last(tick) match {
-      case Some((_, hpRelevantData)) =>
-        baseStateData.model.calculateNextState(modelState, hpRelevantData)
-      case None =>
-        throw new InconsistentStateException(
-          s"Unable to calculate the next state of heat pump in tick $tick without calculation relevant data."
-        )
-    }
-  }
+      calcRelevantData: HpRelevantData,
+      nodalVoltage: ComparableQuantity[Dimensionless],
+      model: HpModel
+  ): HpState = model.calculateNextState(modelState, calcRelevantData)
 
   /** Abstract definition, individual implementations found in individual agent
     * fundamental classes
@@ -330,6 +326,15 @@ trait HpAgentFundamentals
           simulationStartDate,
           simulationEndDate
         )
+
+        /* Determine a proper starting model state and safe it into the base state data */
+        val startingModelState = startingState(model.thermalGrid)
+        val stateDataStore = ValueStore.updateValueStore(
+          ValueStore(resolution * 10),
+          -1L,
+          startingModelState
+        )
+
         ParticipantModelBaseStateData[
           ApparentPowerAndHeat,
           HpRelevantData,
@@ -354,7 +359,7 @@ trait HpAgentFundamentals
           ValueStore(resolution * 10),
           ValueStore(resolution * 10),
           ValueStore(resolution * 10),
-          ValueStore(resolution * 10),
+          stateDataStore,
           maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
         )
       case unsupported =>

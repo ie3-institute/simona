@@ -308,7 +308,9 @@ class GridAgentController(
           buildHp(
             hpInput,
             thermalGrid,
-            participantConfigUtil.getOrDefault(hpInput.getUuid),
+            participantConfigUtil.getOrDefault[HpRuntimeConfig](
+              hpInput.getUuid
+            ),
             environmentRefs.primaryServiceProxy,
             environmentRefs.weather,
             requestVoltageDeviationThreshold,

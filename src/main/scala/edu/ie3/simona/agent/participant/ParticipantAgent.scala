@@ -481,7 +481,7 @@ abstract class ParticipantAgent[
       /* At least parts of the needed data has been received or it is an additional activation, that has been triggered.
        * Anyways, the calculation routine has also to take care of filling up missing data. */
       val maybeLastModelState =
-        participantStateData.stateDataStore.get(currentTick)
+        participantStateData.stateDataStore.last(currentTick).map(_._2)
       calculatePowerWithSecondaryDataAndGoToIdle(
         participantStateData.copy(
           receivedSecondaryDataStore = updatedReceivedSecondaryData

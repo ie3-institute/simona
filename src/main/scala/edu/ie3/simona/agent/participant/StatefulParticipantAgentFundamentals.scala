@@ -76,8 +76,17 @@ protected trait StatefulParticipantAgentFundamentals[
   ): FSM.State[AgentState, ParticipantStateData[PD]] =
     maybeLastModelState match {
       case Some(modelState) =>
+        val calcRelevantData =
+          createCalcRelevantData(baseStateData, currentTick)
+
         val updatedState =
-          updateState(currentTick, modelState, baseStateData, nodalVoltage)
+          updateState(
+            currentTick,
+            modelState,
+            calcRelevantData,
+            nodalVoltage,
+            baseStateData.model
+          )
 
         val result = calculateModelPowerFunc(
           currentTick,
@@ -130,10 +139,12 @@ protected trait StatefulParticipantAgentFundamentals[
     *   Tick to update state for
     * @param modelState
     *   Last known model state
-    * @param baseStateData
-    *   Base state data of the agent
+    * @param calcRelevantData
+    *   Data, relevant for calculation
     * @param nodalVoltage
     *   Current nodal voltage of the agent
+    * @param model
+    *   Model for calculation
     * @return
     *   The updated state at given tick under consideration of calculation
     *   relevant data
@@ -141,7 +152,8 @@ protected trait StatefulParticipantAgentFundamentals[
   protected def updateState(
       tick: Long,
       modelState: MS,
-      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      nodalVoltage: ComparableQuantity[Dimensionless]
+      calcRelevantData: CD,
+      nodalVoltage: ComparableQuantity[Dimensionless],
+      model: M
   ): MS
 }
