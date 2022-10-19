@@ -505,16 +505,17 @@ class EmAgent(
       newTick: Long
   ): Option[ScheduleTriggerMessage] = {
     // FIXME it'd be better if we also revoked the former next tick, because that one could also be revoked before it is reached
-    val nextScheduledTickOpt = getNextScheduledTick(
-      schedulerStateData
-    )
+
+    val isCurrentlyInactive = schedulerStateData.mainTriggerId.isEmpty
 
     // this defaults to true if no next tick is scheduled
-    val scheduleNextTrigger = nextScheduledTickOpt.forall { nextScheduledTick =>
+    val scheduleNextTrigger = getNextScheduledTick(
+      schedulerStateData
+    ).forall { nextScheduledTick =>
       newTick < nextScheduledTick
     }
 
-    Option.when(scheduleNextTrigger) {
+    Option.when(isCurrentlyInactive && scheduleNextTrigger) {
       ScheduleTriggerMessage(
         ActivityStartTrigger(newTick),
         self
