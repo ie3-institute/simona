@@ -47,6 +47,7 @@ object SchedulerMessage {
       priority: Boolean = false
   ) extends SchedulerMessage
       with Trigger {
+    // FIXME this currently only works as intended for triggers scheduled for the current tick
     override def tick: Long = trigger.tick
   }
 
