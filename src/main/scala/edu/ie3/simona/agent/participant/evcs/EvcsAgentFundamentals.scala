@@ -336,6 +336,7 @@ protected trait EvcsAgentFundamentals
       modelBaseStateData.services
     )
 
+    // retrieve the last updated set of parked EVs
     val (tickInterval, lastEvs) =
       getTickIntervalAndLastEvs(tick, modelBaseStateData)
 
@@ -386,10 +387,10 @@ protected trait EvcsAgentFundamentals
     )
   }
 
-  /** Handles a evcs movements message that contains information on arriving and
-    * departing vehicles. After applying the movements to the last known set of
-    * parked evs, calculates resulting charging power. Sends completion message
-    * to scheduler without scheduling new activations.
+  /** Handles EV arrivals as part of ExtEvDataService secondary data. After
+    * adding the arriving EVs to the set of staying evs, resulting charging
+    * power is calculated. A completion message is sent to scheduler without
+    * scheduling new activations.
     *
     * @param tick
     *   The current tick that has been triggered
@@ -415,6 +416,8 @@ protected trait EvcsAgentFundamentals
 
     val evcsModel = getEvcsModel(modelBaseStateData)
 
+    // retrieve the last updated set of parked EVs, which could stem from
+    // the current tick if there were departures for this tick as well
     val (tickInterval, lastEvs) =
       getTickIntervalAndLastEvs(tick, modelBaseStateData)
 
