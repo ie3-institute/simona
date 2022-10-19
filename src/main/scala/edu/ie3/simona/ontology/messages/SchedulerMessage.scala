@@ -31,7 +31,10 @@ object SchedulerMessage {
   ) extends SchedulerMessage
 
   /** schedule a new trigger TO the [[SimScheduler]]. This message should send
-    * only to the [[SimScheduler]]
+    * only to the [[SimScheduler]].
+    *
+    * Interface Trigger is extended so that ScheduleTriggerMessages can be
+    * stacked.
     *
     * @param trigger
     *   to schedule
@@ -42,6 +45,10 @@ object SchedulerMessage {
       trigger: Trigger,
       actorToBeScheduled: ActorRef
   ) extends SchedulerMessage
+      with Trigger {
+    // FIXME this currently only works as intended for triggers scheduled for the current tick
+    override def tick: Long = trigger.tick
+  }
 
   /** Revoke a trigger for given actor that had been scheduled before.
     *

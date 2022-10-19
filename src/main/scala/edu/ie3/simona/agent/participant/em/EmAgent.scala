@@ -241,28 +241,47 @@ class EmAgent(
 
   private val handleIdleEm: StateFunction = {
     case Event(
-          triggerToSchedule: ScheduleTriggerMessage,
+          scheduleTriggerMessage: ScheduleTriggerMessage,
           baseStateData: EmModelBaseStateData
         ) =>
-      val nextScheduledTickOpt = getNextScheduledTick(
-        baseStateData.schedulerStateData
-      )
+      createNextTriggerIfApplicable(
+        baseStateData.schedulerStateData,
+        scheduleTriggerMessage.trigger.tick
+      ) foreach (scheduler ! _)
 
-      // FIXME it'd be better if we also revoked the "last next tick", because that one could also be revoked before it is reached
-      nextScheduledTickOpt.foreach { nextScheduledTick =>
-        if (triggerToSchedule.trigger.tick < nextScheduledTick) {
-          // we need to schedule an activation for the trigger tick
-          scheduler ! ScheduleTriggerMessage(
-            ActivityStartTrigger(triggerToSchedule.trigger.tick),
-            self
+      stay() using
+        baseStateData.copy(schedulerStateData =
+          sendEligibleTrigger(
+            scheduleTrigger(
+              scheduleTriggerMessage,
+              baseStateData.schedulerStateData
+            )
           )
-        }
+        )
+
+    case Event(
+          TriggerWithIdMessage(
+            scheduleTriggerMessage: ScheduleTriggerMessage,
+            triggerId,
+            _
+          ),
+          baseStateData: EmModelBaseStateData
+        ) =>
+      createNextTriggerIfApplicable(
+        baseStateData.schedulerStateData,
+        scheduleTriggerMessage.trigger.tick
+      ) foreach { stm =>
+        // since we've been sent a trigger, we need to complete it as well
+        scheduler ! CompletionMessage(triggerId, Some(Seq(stm)))
       }
 
       stay() using
         baseStateData.copy(schedulerStateData =
           sendEligibleTrigger(
-            scheduleTrigger(triggerToSchedule, baseStateData.schedulerStateData)
+            scheduleTrigger(
+              scheduleTriggerMessage,
+              baseStateData.schedulerStateData
+            )
           )
         )
 
@@ -479,6 +498,28 @@ class EmAgent(
     baseStateData.copy(schedulerStateData =
       sendEligibleTrigger(updatedStateData)
     )
+  }
+
+  protected def createNextTriggerIfApplicable(
+      schedulerStateData: EmSchedulerStateData,
+      newTick: Long
+  ): Option[ScheduleTriggerMessage] = {
+    // FIXME it'd be better if we also revoked the former next tick, because that one could also be revoked before it is reached
+    val nextScheduledTickOpt = getNextScheduledTick(
+      schedulerStateData
+    )
+
+    // this defaults to true if no next tick is scheduled
+    val scheduleNextTrigger = nextScheduledTickOpt.forall { nextScheduledTick =>
+      newTick < nextScheduledTick
+    }
+
+    Option.when(scheduleNextTrigger) {
+      ScheduleTriggerMessage(
+        ActivityStartTrigger(newTick),
+        self
+      )
+    }
   }
 
   private def maybeIssueFlexControl(
