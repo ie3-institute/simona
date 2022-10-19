@@ -8,7 +8,6 @@ package edu.ie3.simona.ontology.messages.services
 
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.api.data.ev.model.EvModel
-import edu.ie3.simona.api.data.ev.ontology.EvMovementsMessage.EvcsMovements
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
   ServiceRegistrationMessage
@@ -58,13 +57,23 @@ object EvMessage {
       tick: Long
   )
 
-  /** Hold EV movements for one Evcs
+  /** Requests EV models of departing EVs with given UUIDs
     *
-    * @param movements
-    *   arrivals/departures of EVs
+    * @param tick
+    *   The latest tick that the data is requested for
+    * @param departingEvs
+    *   The UUIDs of EVs that are requested
     */
-  final case class EvMovementData(
-      movements: EvcsMovements
+  final case class DepartingEvsRequest(tick: Long, departingEvs: Seq[UUID])
+
+  /** Holds arrivals for one charging station
+    *
+    * @param arrivals
+    *   EVs arriving at the charging station
+    */
+
+  final case class ArrivingEvsData(
+      arrivals: Seq[EvModel]
   ) extends EvData {}
 
   trait EvResponseMessage extends EvMessage
@@ -74,7 +83,7 @@ object EvMessage {
       freeLots: Int
   ) extends EvResponseMessage
 
-  final case class DepartedEvsResponse(
+  final case class DepartingEvsResponse(
       evcs: UUID,
       evModels: Set[EvModel]
   ) extends EvResponseMessage

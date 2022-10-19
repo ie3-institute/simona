@@ -611,7 +611,8 @@ class HpAgentModelCalculationSpec
                       lastTimeTick,
                       activePower,
                       qDot,
-                      thermalGridState
+                      thermalGridState,
+                      maybeThermalThreshold
                     )
                   )
                 ) =>
@@ -814,7 +815,8 @@ class HpAgentModelCalculationSpec
                       lastTimeTick,
                       activePower,
                       qDot,
-                      thermalGridState
+                      thermalGridState,
+                      maybeThermalThreshold
                     )
                   )
                 ) =>
