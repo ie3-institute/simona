@@ -36,6 +36,8 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageFull
 }
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.quantities.QuantityUtil
+import edu.ie3.util.quantities.QuantityUtils.RichQuantity
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
@@ -330,18 +332,28 @@ final case class ThermalGrid(
                 Some(ThermalGridEmpty(coldHouseTick))
               )
             }
-            val targetDischargePower =
-              effectiveLoss
-                .multiply(availableEnergy)
-                .divide(availableEnergy.subtract(initialDemand))
-                .asType(classOf[Power])
-                .to(StandardUnits.ACTIVE_POWER_IN)
-
-            /* Check, if this is possible and curtail power if needed */
             val dischargeQDot =
-              if (targetDischargePower.isGreaterThan(str.getChargingPower))
+              if (
+                QuantityUtil.isEquivalentAbs(
+                  availableEnergy,
+                  initialDemand,
+                  1e-3
+                )
+              ) {
+                /* Could lead to numerical instability (division by zero) */
                 str.getChargingPower
-              else targetDischargePower
+              } else if (initialDemand.isGreaterThan(availableEnergy)) {
+                /* Too less available energy in storage to catch up with losses and already needed energy. Discharge as
+                 * fast as possible */
+                str.getChargingPower
+              } else {
+                effectiveLoss
+                  .multiply(availableEnergy)
+                  .divide(availableEnergy.subtract(initialDemand))
+                  .asType(classOf[Power])
+                  .to(StandardUnits.ACTIVE_POWER_IN)
+                  .min(str.getChargingPower)
+              }
 
             /* Re-calculate the house state with the additional influx from storage */
             val (reCalculatedHouseState, houseThreshold) = house.updateState(
@@ -364,15 +376,10 @@ final case class ThermalGrid(
                     Some(UpperTemperatureReached(houseTick)),
                     Some(StorageEmpty(storageTick))
                   ) =>
-                /* House can be heated up. The next threshold is reached, when the house is cold again. */
-                if (storageTick < houseTick)
-                  throw new InconsistentStateException(
-                    "The storage is not meant to be empty before the house is hot."
-                  )
-
+                val houseHotOrStorageEmptyTick = min(storageTick, houseTick)
                 house
                   .updateState(
-                    houseTick,
+                    houseHotOrStorageEmptyTick,
                     reCalculatedHouseState,
                     ambientTemperature,
                     Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
@@ -507,7 +514,10 @@ final case class ThermalGrid(
         throw new IllegalStateException(
           "When discharging from storage, upper threshold cannot be reached!"
         )
-      case (Some(LowerTemperatureReached(coldHouseTick)), None) =>
+      case (Some(LowerTemperatureReached(coldHouseTick)), None)
+          if qDot.isGreaterThan(
+            Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+          ) =>
         /* The house is cold sometime, but the storage is in perfect balance. Take energy from the storage to heat up the house */
         handleTooLowInfeed(
           tick,
@@ -527,6 +537,15 @@ final case class ThermalGrid(
             ),
           ambientTemperature,
           Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+        )
+      case (Some(LowerTemperatureReached(_)), None) =>
+        /* The house is cooling down, but this is okay (we have no infeed). Most likely the house is too hot anyways. */
+        (
+          ThermalGridState(
+            maybeUpdatedHouseState.map(_._1),
+            maybeUpdatedStorageState.map(_._1)
+          ),
+          None
         )
       case (
             Some(LowerTemperatureReached(houseTick)),

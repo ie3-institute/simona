@@ -249,4 +249,5 @@ case object CylindricalThermalStorage {
       .multiply(c)
       .multiply(returnTemp.subtract(inletTemp))
       .asType(classOf[Energy])
+      .to(StandardUnits.ENERGY_IN)
 }
