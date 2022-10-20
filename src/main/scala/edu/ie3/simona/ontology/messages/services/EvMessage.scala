@@ -8,6 +8,7 @@ package edu.ie3.simona.ontology.messages.services
 
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.api.data.ev.model.EvModel
+import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
   ServiceRegistrationMessage
@@ -24,9 +25,12 @@ object EvMessage {
     *
     * @param evcs
     *   the charging station
+    * @param scheduleFunc
+    *   function providing the proper ScheduleTriggerMessage for a given tick
     */
   final case class RegisterForEvDataMessage(
-      evcs: UUID
+      evcs: UUID,
+      scheduleFunc: Long => ScheduleTriggerMessage
   ) extends EvMessage
       with ServiceRegistrationMessage
 
@@ -50,12 +54,18 @@ object EvMessage {
       with ProvisionMessage[EvData]
 
   /** Requests number of free lots from evcs
+    *
     * @param tick
     *   The latest tick that the data is requested for
     */
-  final case class EvFreeLotsRequest(
-      tick: Long
-  )
+  final case class EvFreeLotsRequest(tick: Long)
+
+  /** Requests the current charging price
+    *
+    * @param tick
+    *   The latest tick that the data is requested for
+    */
+  final case class CurrentPriceRequest(tick: Long)
 
   /** Requests EV models of departing EVs with given UUIDs
     *
@@ -71,7 +81,6 @@ object EvMessage {
     * @param arrivals
     *   EVs arriving at the charging station
     */
-
   final case class ArrivingEvsData(
       arrivals: Seq[EvModel]
   ) extends EvData {}
@@ -86,5 +95,10 @@ object EvMessage {
   final case class DepartingEvsResponse(
       evcs: UUID,
       evModels: Set[EvModel]
+  ) extends EvResponseMessage
+
+  final case class CurrentPriceResponse(
+      evcs: UUID,
+      currentPrice: Double
   ) extends EvResponseMessage
 }

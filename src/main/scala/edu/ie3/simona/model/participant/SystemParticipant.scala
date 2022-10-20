@@ -216,7 +216,10 @@ abstract class SystemParticipant[
         KILOVOLTAMPERE
       )
 
-      if (apparentPower.isGreaterThan(sMax)) {
+      // tolerance for double inaccuracies
+      val sMaxWithTolerance = sMax.multiply(1.00001d)
+
+      if (apparentPower.isGreaterThan(sMaxWithTolerance)) {
         logger.warn(
           s"The var characteristics \'$qControl\' of model \'$id\' ($uuid) imposes an apparent " +
             s"power (= $apparentPower) that exceeds " +

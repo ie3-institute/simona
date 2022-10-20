@@ -47,9 +47,9 @@ object WeatherService {
       scheduler: ActorRef,
       startDateTime: ZonedDateTime,
       simulationEnd: ZonedDateTime,
-      amountOfInterpolationCoordinates: Int = 4,
+      amountOfInterpolationCoordinates: Int = 8,
       maxInterpolationCoordinateDistance: Quantity[Length] =
-        Quantities.getQuantity(28, PowerSystemUnits.KILOMETRE)
+        Quantities.getQuantity(56, PowerSystemUnits.KILOMETRE)
   ): Props =
     Props(
       new WeatherService(

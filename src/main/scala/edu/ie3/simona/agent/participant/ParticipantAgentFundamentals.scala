@@ -294,7 +294,12 @@ protected trait ParticipantAgentFundamentals[
     try {
       /* Register for services */
       val awaitRegistrationResponsesFrom =
-        registerForServices(inputModel.electricalInputModel, services)
+        registerForServices(
+          inputModel.electricalInputModel,
+          services,
+          self,
+          maybeEmAgent
+        )
 
       // always request flex options for first sim tick
       maybeEmAgent.foreach {
@@ -1144,7 +1149,10 @@ protected trait ParticipantAgentFundamentals[
       stash()
       stay() using baseStateData
     } else {
-
+      log.debug(
+        s"Received power request for tick '{}' and I'm able to answer it.",
+        requestTick
+      )
       /* Update the voltage value store */
       val nodalVoltage = Quantities.getQuantity(
         sqrt(
@@ -1168,6 +1176,7 @@ protected trait ParticipantAgentFundamentals[
         baseStateData.requestValueStore.last(requestTick)
 
       /* === Check if this request has already been answered with same tick and nodal voltage === */
+      log.debug("Answering the power request for tick {}.", requestTick)
       determineFastReply(
         baseStateData,
         mostRecentRequest,

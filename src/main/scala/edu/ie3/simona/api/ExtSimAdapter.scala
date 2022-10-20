@@ -71,7 +71,8 @@ final case class ExtSimAdapter(scheduler: ActorRef)
           Seq(
             ScheduleTriggerMessage(
               ActivityStartTrigger(INIT_SIM_TICK),
-              self
+              self,
+              priority = true
             )
           )
         )

@@ -99,6 +99,8 @@ object ParticipantStateData {
     *   power requests for the same tick are considered to be different
     * @param outputConfig
     *   Config for the output behaviour of simulation results
+    * @param maybeEmAgent
+    *   The EmAgent if this participant is em-controlled
     * @tparam I
     *   Type of input model to carry
     * @tparam C
@@ -207,7 +209,7 @@ object ParticipantStateData {
       +PD <: PrimaryDataWithApparentPower[PD]
   ](
       baseStateData: BaseStateData[PD],
-      pendingResponses: Vector[ActorRef],
+      pendingResponses: Seq[ActorRef],
       foreseenNextDataTicks: Map[ActorRef, Long] = Map.empty
   ) extends ParticipantStateData[PD]
 

@@ -9,23 +9,15 @@ package edu.ie3.simona.service.ev
 import akka.actor.{ActorRef, Props}
 import edu.ie3.simona.api.data.ev.ExtEvData
 import edu.ie3.simona.api.data.ev.model.EvModel
-import edu.ie3.simona.api.data.ev.ontology.{
-  EvDataMessageFromExt,
-  ProvideArrivingEvs,
-  ProvideDepartingEvs,
-  ProvideEvcsFreeLots,
-  RequestDepartingEvs,
-  RequestEvcsFreeLots
-}
+import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
-import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
+import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
-import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData
@@ -49,9 +41,11 @@ object ExtEvDataService {
 
   final case class ExtEvStateData(
       extEvData: ExtEvData,
-      uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
+      uuidToActorRef: Map[UUID, (ActorRef, Long => ScheduleTriggerMessage)] =
+        Map.empty,
       extEvMessage: Option[EvDataMessageFromExt] = None,
       freeLots: Map[UUID, Option[Int]] = Map.empty,
+      currentPrices: Map[UUID, Option[Double]] = Map.empty,
       departingEvResponses: Map[UUID, Option[Seq[EvModel]]] = Map.empty
   ) extends ServiceBaseStateData
 
@@ -59,7 +53,6 @@ object ExtEvDataService {
       extEvData: ExtEvData
   ) extends InitializeServiceStateData
 
-  val FALLBACK_EV_MOVEMENTS_STEM_DISTANCE: Long = 3600L
 }
 
 class ExtEvDataService(override val scheduler: ActorRef)
@@ -109,8 +102,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
       serviceStateData: ExtEvStateData
   ): Try[ExtEvStateData] =
     registrationMessage match {
-      case RegisterForEvDataMessage(evcs) =>
-        Success(handleRegistrationRequest(sender(), evcs))
+      case RegisterForEvDataMessage(evcs, scheduleFunc) =>
+        Success(handleRegistrationRequest(sender(), evcs, scheduleFunc))
       case invalidMessage =>
         Failure(
           InvalidRegistrationRequestException(
@@ -127,6 +120,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
     *   the agent that wants to be registered
     * @param evcs
     *   the charging station
+    * @param scheduleFunc
+    *   function providing the proper ScheduleTriggerMessage for a given tick
     * @param serviceStateData
     *   the current service state data of this service
     * @return
@@ -135,7 +130,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
     */
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef,
-      evcs: UUID
+      evcs: UUID,
+      scheduleFunc: Long => ScheduleTriggerMessage
   )(implicit
       serviceStateData: ExtEvStateData
   ): ExtEvStateData = {
@@ -152,7 +148,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
         serviceStateData.copy(
           uuidToActorRef =
-            serviceStateData.uuidToActorRef + (evcs -> agentToBeRegistered)
+            serviceStateData.uuidToActorRef + (evcs -> (agentToBeRegistered, scheduleFunc))
         )
       case Some(_) =>
         // actor is already registered, do nothing
@@ -188,6 +184,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
     ) match {
       case _: RequestEvcsFreeLots =>
         requestFreeLots(tick)
+      case _: RequestCurrentPrices =>
+        requestCurrentPrices(tick)
       case departingEvsRequest: RequestDepartingEvs =>
         requestDepartingEvs(tick, departingEvsRequest.departures)
       case arrivingEvsProvision: ProvideArrivingEvs =>
@@ -198,7 +196,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
   private def requestFreeLots(tick: Long)(implicit
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Seq[ScheduleTriggerMessage]]) = {
-    serviceStateData.uuidToActorRef.foreach { case (_, evcsActor) =>
+    serviceStateData.uuidToActorRef.values.foreach { case (evcsActor, _) =>
       evcsActor ! EvFreeLotsRequest(tick)
     }
 
@@ -220,6 +218,31 @@ class ExtEvDataService(override val scheduler: ActorRef)
     )
   }
 
+  private def requestCurrentPrices(tick: Long)(implicit
+      serviceStateData: ExtEvStateData
+  ): (ExtEvStateData, Option[Seq[ScheduleTriggerMessage]]) = {
+    serviceStateData.uuidToActorRef.values.foreach { case (evcsActor, _) =>
+      evcsActor ! CurrentPriceRequest(tick)
+    }
+
+    val currentPrices: Map[UUID, Option[Double]] =
+      serviceStateData.uuidToActorRef.map { case (evcs, _) =>
+        evcs -> None
+      }
+
+    // if there are no evcs, we're sending response right away
+    if (currentPrices.isEmpty)
+      serviceStateData.extEvData.queueExtResponseMsg(new ProvideCurrentPrices())
+
+    (
+      serviceStateData.copy(
+        extEvMessage = None,
+        currentPrices = currentPrices
+      ),
+      None
+    )
+  }
+
   private def requestDepartingEvs(
       tick: Long,
       requestedDepartingEvs: java.util.Map[UUID, java.util.List[UUID]]
@@ -229,7 +252,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
     requestedDepartingEvs.asScala.foreach { case (evcs, departingEvs) =>
       serviceStateData.uuidToActorRef.get(evcs) match {
-        case Some(evcsActor) =>
+        case Some((evcsActor, _)) =>
           evcsActor ! DepartingEvsRequest(tick, departingEvs.asScala.toSeq)
         case None =>
           log.warning(
@@ -260,27 +283,22 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
   private def handleArrivingEvs(
       tick: Long,
-      allArrivingEvs: java.util.Map[UUID, java.util.List[EvModel]]
+      arrivingEvs: java.util.Map[UUID, java.util.List[EvModel]]
   )(implicit
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Seq[ScheduleTriggerMessage]]) = {
 
     val scheduleTriggerMsgs =
-      allArrivingEvs.asScala.flatMap { case (evcs, arrivingEvs) =>
+      arrivingEvs.asScala.flatMap { case (evcs, arrivingEvs) =>
         serviceStateData.uuidToActorRef.get(evcs) match {
-          case Some(evcsActor) =>
+          case Some((evcsActor, scheduleFunc)) =>
             evcsActor ! ProvideEvDataMessage(
               tick,
               ArrivingEvsData(arrivingEvs.asScala.toSeq)
             )
 
             // schedule activation of participant
-            Some(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(tick),
-                evcsActor
-              )
-            )
+            Some(scheduleFunc(tick))
 
           case None =>
             log.warning(
@@ -318,7 +336,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
         val updatedResponses = serviceStateData.departingEvResponses +
           (evcs -> Some(evModels.toList))
 
-        if (updatedResponses.values.toSeq.contains(None)) {
+        if (updatedResponses.exists { case (_, resp) => resp.isEmpty }) {
           // responses are still incomplete
           serviceStateData.copy(
             departingEvResponses = updatedResponses
@@ -335,11 +353,37 @@ class ExtEvDataService(override val scheduler: ActorRef)
             departingEvResponses = Map.empty
           )
         }
+      case CurrentPriceResponse(evcs, currentPrice) =>
+        val updatedCurrentPrices = serviceStateData.currentPrices +
+          (evcs -> Some(currentPrice))
+
+        if (updatedCurrentPrices.exists { case (_, resp) => resp.isEmpty }) {
+          // responses are still incomplete
+          serviceStateData.copy(
+            currentPrices = updatedCurrentPrices
+          )
+        } else {
+          // all responses received, forward them to external simulation in a bundle
+          val currentPricesResponse = updatedCurrentPrices.flatMap {
+            case (evcs, Some(currentPrice)) =>
+              Some(evcs -> java.lang.Double.valueOf(currentPrice))
+            case _ =>
+              None
+          }
+
+          serviceStateData.extEvData.queueExtResponseMsg(
+            new ProvideCurrentPrices(currentPricesResponse.asJava)
+          )
+
+          serviceStateData.copy(
+            currentPrices = Map.empty
+          )
+        }
       case FreeLotsResponse(evcs, freeLots) =>
         val updatedFreeLots = serviceStateData.freeLots +
           (evcs -> Some(freeLots))
 
-        if (updatedFreeLots.values.toSeq.contains(None)) {
+        if (updatedFreeLots.exists { case (_, resp) => resp.isEmpty }) {
           // responses are still incomplete
           serviceStateData.copy(
             freeLots = updatedFreeLots

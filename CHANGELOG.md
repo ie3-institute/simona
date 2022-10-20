@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added capability of SystemParticipants to handle flexibility requests regarding self-optimization [#308](https://github.com/ie3-institute/simona/issues/308)
 - Instantiation of Heat Pump Agents [#253](https://github.com/ie3-institute/simona/issues/253)
 - Output of accompanying thermal result models
+- Implementation of Energy Management Agents [#204](https://github.com/ie3-institute/simona/issues/204)
 
 ### Changed
 - Re-organizing test resources into their respective packages [#105](https://github.com/ie3-institute/simona/issues/105)

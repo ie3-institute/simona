@@ -24,8 +24,10 @@ import edu.ie3.simona.model.participant.{
   ModelState,
   SystemParticipant
 }
+import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
+import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 
 trait ServiceRegistration[
     PD <: PrimaryDataWithApparentPower[PD],
@@ -45,20 +47,31 @@ trait ServiceRegistration[
     *   Input model definition
     * @param services
     *   Definition of where to get what
+    * @param agentRef
+    *   The participant agent actor
+    * @param maybeEmAgent
+    *   The EmAgent if the participant is controlled by an EMS
     * @return
     *   a vector of actor references to wait for responses
     */
   def registerForServices(
       inputModel: I,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]]
-  ): Vector[ActorRef] =
+      services: Option[Seq[SecondaryDataService[_ <: SecondaryData]]],
+      agentRef: ActorRef,
+      maybeEmAgent: Option[ActorRef]
+  ): Seq[ActorRef] =
     services
       .map(sources =>
         sources.flatMap(service =>
-          registerForSecondaryService(service, inputModel)
+          registerForSecondaryService(
+            service,
+            inputModel,
+            agentRef,
+            maybeEmAgent
+          )
         )
       )
-      .getOrElse(Vector.empty[ActorRef])
+      .getOrElse(Seq.empty[ActorRef])
 
   /** Register for the distinct secondary service
     *
@@ -66,6 +79,10 @@ trait ServiceRegistration[
     *   Definition of the service
     * @param inputModel
     *   Input model that is interested in the information
+    * @param agentRef
+    *   The participant agent actor
+    * @param maybeEmAgent
+    *   The EmAgent if the participant is controlled by an EMS
     * @tparam S
     *   Type of the secondary data, that is awaited
     * @return
@@ -76,7 +93,9 @@ trait ServiceRegistration[
       S <: SecondaryData
   ](
       serviceDefinition: SecondaryDataService[S],
-      inputModel: I
+      inputModel: I,
+      agentRef: ActorRef,
+      maybeEmAgent: Option[ActorRef]
   ): Option[ActorRef] = serviceDefinition match {
     case SecondaryDataService.ActorPriceService(_) =>
       log.debug(
@@ -84,12 +103,12 @@ trait ServiceRegistration[
         ActorPriceService
       )
       None
-    case ActorWeatherService(actorRef) =>
-      registerForWeather(actorRef, inputModel)
-      Some(actorRef)
-    case ActorEvMovementsService(actorRef) =>
-      registerForEvMovements(actorRef, inputModel)
-      Some(actorRef)
+    case ActorWeatherService(serviceRef) =>
+      registerForWeather(serviceRef, inputModel)
+      Some(serviceRef)
+    case ActorEvMovementsService(serviceRef) =>
+      registerForEvMovements(serviceRef, inputModel, agentRef, maybeEmAgent)
+      Some(serviceRef)
   }
 
   /** Register for the weather service
@@ -122,19 +141,42 @@ trait ServiceRegistration[
 
   /** Register for the EV movement service
     *
-    * @param actorRef
+    * @param serviceRef
     *   Actor reference of the EV movements service
     * @param inputModel
     *   Input model of the simulation mode
+    * @param maybeEmAgent
+    *   The EmAgent if the participant is controlled by an EMS
     * @return
     */
   private def registerForEvMovements(
-      actorRef: ActorRef,
-      inputModel: I
+      serviceRef: ActorRef,
+      inputModel: I,
+      evcsRef: ActorRef,
+      maybeEmAgent: Option[ActorRef]
   ): Unit = {
     inputModel match {
       case evcsInput: EvcsInput =>
-        actorRef ! RegisterForEvDataMessage(evcsInput.getUuid)
+        val scheduleParticipant = (tick: Long) =>
+          ScheduleTriggerMessage(
+            ActivityStartTrigger(
+              tick
+            ),
+            evcsRef
+          )
+
+        // when using an EmAgent, activation schedules have to be stacked
+        val scheduleFunc = (tick: Long) =>
+          maybeEmAgent
+            .map { emAgent =>
+              ScheduleTriggerMessage(
+                scheduleParticipant(tick),
+                emAgent
+              )
+            }
+            .getOrElse(scheduleParticipant(tick))
+
+        serviceRef ! RegisterForEvDataMessage(evcsInput.getUuid, scheduleFunc)
       case _ =>
         throw new ServiceRegistrationException(
           s"Cannot register for EV movements information at node ${inputModel.getNode.getId} " +

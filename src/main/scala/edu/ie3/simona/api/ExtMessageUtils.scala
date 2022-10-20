@@ -27,7 +27,11 @@ object ExtMessageUtils {
       val newTriggers =
         Option.when(!extCompl.newTriggers.isEmpty) {
           extCompl.newTriggers.asScala.map { tick =>
-            ScheduleTriggerMessage(ActivityStartTrigger(tick), triggerActor)
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(tick),
+              triggerActor,
+              priority = true
+            )
           }.toSeq
         }
 
@@ -44,7 +48,8 @@ object ExtMessageUtils {
     def toSimona(tick: Long): ScheduleTriggerMessage =
       ScheduleTriggerMessage(
         ActivityStartTrigger(tick),
-        sched.getDataService
+        sched.getDataService,
+        priority = true
       )
   }
 }

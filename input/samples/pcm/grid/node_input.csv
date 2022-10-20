@@ -1,0 +1,3 @@
+uuid,geo_position,id,operates_from,operates_until,operator,slack,subnet,v_rated,v_target,volt_lvl
+6478bfc5-ff3f-48bb-ad15-c980b6dec350,"{"type":"Point","coordinates":[7.4116482,51.4843281],"crs":{"type":"name","properties":{"name":"EPSG:0"}}}",node_a,,,,true,1,110.0,1.0,HS
+2a5e9609-b66c-428d-a67a-a1437130ffb0,"{"type":"Point","coordinates":[7.4116482,51.4843281],"crs":{"type":"name","properties":{"name":"EPSG:0"}}}",node_b,,,,false,2,20.0,1.0,MS

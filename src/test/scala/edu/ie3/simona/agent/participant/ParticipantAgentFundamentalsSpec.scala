@@ -269,7 +269,8 @@ class ParticipantAgentFundamentalsSpec
             case Some(
                   ScheduleTriggerMessage(
                     ActivityStartTrigger(tick),
-                    actorToBeScheduled
+                    actorToBeScheduled,
+                    _
                   )
                 ) =>
               tick shouldBe 0L
@@ -300,7 +301,8 @@ class ParticipantAgentFundamentalsSpec
             case Some(
                   ScheduleTriggerMessage(
                     ActivityStartTrigger(tick),
-                    actorToBeScheduled
+                    actorToBeScheduled,
+                    _
                   )
                 ) =>
               tick shouldBe 0L
@@ -334,7 +336,8 @@ class ParticipantAgentFundamentalsSpec
             case Some(
                   ScheduleTriggerMessage(
                     ActivityStartTrigger(tick),
-                    actorToBeScheduled
+                    actorToBeScheduled,
+                    _
                   )
                 ) =>
               tick shouldBe 0L

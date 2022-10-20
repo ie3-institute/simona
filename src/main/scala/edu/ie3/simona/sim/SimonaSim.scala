@@ -16,7 +16,6 @@ import akka.actor.{
   SupervisorStrategy,
   Terminated
 }
-import akka.pattern.after
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
@@ -30,14 +29,11 @@ import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProx
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim.{
   EmergencyShutdownInitiated,
-  ServiceInitComplete,
   SimonaSimStateData
 }
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
-import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
 /** Main entrance point to a simona simulation as top level actor. This actors
@@ -73,7 +69,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
   /* start listener */
   // output listener
   val systemParticipantsListener: Seq[ActorRef] =
-    simonaSetup.systemParticipantsListener(context, self)
+    simonaSetup.systemParticipantsListener(context)
 
   // runtime event listener
   val runtimeEventListener: Seq[ActorRef] =
@@ -112,7 +108,8 @@ class SimonaSim(simonaSetup: SimonaSetup)
     case (actor, initTrigger) =>
       scheduler ! ScheduleTriggerMessage(
         initTrigger,
-        actor
+        actor,
+        priority = true
       )
   }
 
@@ -136,31 +133,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
   context.watch(weatherService)
   gridAgents.keySet.foreach(context.watch)
 
-  /* watch for the following services until their initialization is finished */
-  private val actorInitWaitingList = systemParticipantsListener
-
-  override def receive: Receive = {
-    // short circuit if we do not wait for any inits
-    if (actorInitWaitingList.isEmpty) simonaSimReceive(SimonaSimStateData())
-    else setup(SimonaSimStateData(), actorInitWaitingList)
-  }
-
-  def setup(
-      data: SimonaSim.SimonaSimStateData,
-      actorInitWaitingList: Seq[ActorRef]
-  ): Receive = {
-    case ServiceInitComplete =>
-      val updatedWaitingList =
-        actorInitWaitingList.filterNot(_.equals(sender()))
-      if (updatedWaitingList.isEmpty) {
-        unstashAll()
-        context become simonaSimReceive(data)
-      } else
-        setup(data, updatedWaitingList)
-
-    case _ =>
-      stash() // stash everything else away
-  }
+  override def receive: Receive = simonaSimReceive(SimonaSimStateData())
 
   def simonaSimReceive(data: SimonaSim.SimonaSimStateData): Receive = {
 
@@ -197,8 +170,12 @@ class SimonaSim(simonaSetup: SimonaSetup)
       // stop all children
       stopAllChildrenGracefully(simulationSuccessful)
 
-      // inform initSimMessage Sender
-      data.initSimSender ! msg
+      // wait for listeners and send final message to parent
+      context become waitingForListener(
+        data.initSimSender,
+        simulationSuccessful,
+        systemParticipantsListener
+      )
 
     case EmergencyShutdownInitiated =>
       logger.debug(
@@ -217,8 +194,12 @@ class SimonaSim(simonaSetup: SimonaSetup)
       // stop all children
       stopAllChildrenGracefully(simulationSuccessful = false)
 
-      // inform initSimMessage Sender
-      data.initSimSender ! SimulationFailureMessage
+      // wait for listeners and send final message to parent
+      context become waitingForListener(
+        data.initSimSender,
+        successful = false,
+        systemParticipantsListener
+      )
   }
 
   def emergencyShutdownReceive: Receive = {
@@ -236,9 +217,41 @@ class SimonaSim(simonaSetup: SimonaSetup)
       )
   }
 
+  def waitingForListener(
+      initSimSender: ActorRef,
+      successful: Boolean,
+      remainingListeners: Seq[ActorRef]
+  ): Receive = {
+    case Terminated(actor) if remainingListeners.contains(actor) =>
+      val updatedRemainingListeners = remainingListeners.filterNot(_ == actor)
+
+      logger.debug(
+        "Listener {} has been terminated. Remaining listeners: {}",
+        actor,
+        updatedRemainingListeners
+      )
+
+      if (updatedRemainingListeners.isEmpty) {
+        logger.info(
+          "The last remaining result listener has been terminated. Exiting."
+        )
+
+        val msg =
+          if (successful) SimulationSuccessfulMessage
+          else SimulationFailureMessage
+        // inform initSimMessage Sender
+        initSimSender ! msg
+      }
+
+      context become waitingForListener(
+        initSimSender,
+        successful,
+        updatedRemainingListeners
+      )
+  }
+
   def stopAllChildrenGracefully(
-      simulationSuccessful: Boolean,
-      listenerDelay: FiniteDuration = 500.millis
+      simulationSuccessful: Boolean
   ): Unit = {
     gridAgents.foreach { case (gridAgentRef, _) =>
       context.unwatch(gridAgentRef)
@@ -260,18 +273,14 @@ class SimonaSim(simonaSetup: SimonaSetup)
       context.stop(ref)
     }
 
-    /* Stop listeners with a delay */
-    logger.debug("Waiting for {} to stop the listeners.", listenerDelay)
-    Await.ready(
-      after(listenerDelay, using = context.system.scheduler)(Future {
-        systemParticipantsListener.foreach(context.unwatch)
-        systemParticipantsListener.foreach(context.stop)
-
-        runtimeEventListener.foreach(context.unwatch)
-        runtimeEventListener.foreach(context.stop)
-      }),
-      listenerDelay + 500.millis
+    // do not unwatch the result listeners, as we're waiting for their termination
+    systemParticipantsListener.foreach(
+      _ ! StopMessage(simulationSuccessful)
     )
+
+    runtimeEventListener.foreach(context.unwatch)
+    runtimeEventListener.foreach(context.stop)
+
     logger.debug("Stopping all listeners requested.")
   }
 }
@@ -282,11 +291,6 @@ object SimonaSim {
     * triggered an emergency shutdown of the simulation system
     */
   case object EmergencyShutdownInitiated
-
-  /** Message to be used by a service to indicate that its initialization is
-    * complete
-    */
-  final case object ServiceInitComplete
 
   private[SimonaSim] final case class SimonaSimStateData(
       initSimSender: ActorRef = ActorRef.noSender
