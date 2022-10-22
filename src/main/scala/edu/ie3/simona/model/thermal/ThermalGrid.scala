@@ -235,6 +235,7 @@ final case class ThermalGrid(
           maybeStorageThreshold
       case (None, Some(_)) => maybeStorageThreshold
       case (Some(_), None) => maybeHouseThreshold
+      case _               => None
     }
 
   /** Handle consumption (or no infeed) from thermal grid

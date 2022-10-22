@@ -176,25 +176,25 @@ class ThermalGridWithStorageOnlySpec
 
     "updating the grid state dependent on the given thermal infeed" should {
       "deliver proper result, if energy is fed into the grid" in {
-        thermalGrid.updateState(
+        val (updatedState, nextThreshold) = thermalGrid.updateState(
           0L,
           ThermalGrid.startingState(thermalGrid),
           ambientTemperature,
           qDotInfeed
-        ) match {
-          case (
-                ThermalGridState(
-                  None,
-                  Some(ThermalStorageState(tick, storedEnergy, qDot))
-                ),
-                Some(StorageEmpty(thresholdTick))
+        )
+
+        nextThreshold shouldBe Some(StorageFull(220800L))
+
+        updatedState match {
+          case ThermalGridState(
+                None,
+                Some(ThermalStorageState(tick, storedEnergy, qDot))
               ) =>
             tick shouldBe 0L
             storedEnergy should equalWithTolerance(
               Quantities.getQuantity(230d, StandardUnits.ENERGY_IN)
             )
             qDot should equalWithTolerance(qDotInfeed)
-            thresholdTick shouldBe 220800L
           case _ => fail("Thermal grid state updated failed")
         }
       }
@@ -221,7 +221,7 @@ class ThermalGridWithStorageOnlySpec
                   None,
                   Some(ThermalStorageState(tick, storedEnergy, qDot))
                 ),
-                Some(StorageFull(thresholdTick))
+                Some(StorageEmpty(thresholdTick))
               ) =>
             tick shouldBe 0L
             storedEnergy should equalWithTolerance(
