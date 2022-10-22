@@ -975,7 +975,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           0L,
-          ArrivingEvsData(Seq(evA))
+          ArrivingEvsData(Seq(evA.copyWithDeparture(3600L)))
         )
       )
       scheduler.send(
@@ -1003,8 +1003,7 @@ class EvcsAgentModelCalculationSpec
             case Some(evModel) =>
               evModel.getUuid shouldBe evA.getUuid
               evModel.getStoredEnergy should equalWithTolerance(
-                Quantities
-                  .getQuantity(0.6111111, PowerSystemUnits.KILOWATTHOUR),
+                11d.asKiloWattHour,
                 testingTolerance
               )
             case None => fail("Expected to get at least one ev.")
@@ -1016,7 +1015,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           3600L,
-          ArrivingEvsData(Seq(evB))
+          ArrivingEvsData(Seq(evB.copyWithDeparture(7200L)))
         )
       )
 
@@ -1045,7 +1044,7 @@ class EvcsAgentModelCalculationSpec
             case Some(evModel) =>
               evModel.getUuid shouldBe evB.getUuid
               evModel.getStoredEnergy should equalWithTolerance(
-                0.asKiloWattHour,
+                11d.asKiloWattHour,
                 testingTolerance
               )
             case None => fail("Expected to get at least one ev.")
@@ -1056,7 +1055,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           7200L,
-          ArrivingEvsData(Seq(evA))
+          ArrivingEvsData(Seq(evA.copyWithDeparture(10800L)))
         )
       )
       scheduler.send(
