@@ -259,22 +259,23 @@ trait StorageAgentFundamentals
       data: StorageRelevantData,
       lastState: StorageState,
       setPower: ComparableQuantity[Power]
-  ): (StorageState, ApparentPower, FlexChangeIndicator) =
-    throw new NotImplementedException("Implementation missing")
-//  Calculation of result:
-//  {
-//    val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
-//
-//    val reactivePower = baseStateData.model match {
-//      case model: StorageModel =>
-//        model.calculateReactivePower(
-//          activePower,
-//          voltage
-//        )
-//    }
-//
-//    ApparentPower(activePower, reactivePower)
-//  }
+  ): (StorageState, ApparentPower, FlexChangeIndicator) = {
+    val (updatedState, flexChangeIndicator) =
+      baseStateData.model.handleControlledPowerChange(data, lastState, setPower)
+
+    val voltage = getAndCheckNodalVoltage(baseStateData, tick)
+    val reactivePower = baseStateData.model match {
+      case model: StorageModel =>
+        model.calculateReactivePower(
+          setPower,
+          voltage
+        )
+    }
+
+    // TODO: Actually change state and calculate the next tick, when something happens
+
+    (updatedState, ApparentPower(setPower, reactivePower), flexChangeIndicator)
+  }
 
   /** Update the last known model state with the given external, relevant data
     *

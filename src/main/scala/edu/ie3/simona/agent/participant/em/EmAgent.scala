@@ -40,12 +40,7 @@ import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
-import edu.ie3.simona.model.participant.{
-  CalcRelevantData,
-  EmModel,
-  FlexChangeIndicator,
-  ModelState
-}
+import edu.ie3.simona.model.participant.{CalcRelevantData, EmModel}
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._

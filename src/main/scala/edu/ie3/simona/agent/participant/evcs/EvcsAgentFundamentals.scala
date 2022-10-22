@@ -303,7 +303,7 @@ protected trait EvcsAgentFundamentals
       setPower: ComparableQuantity[Power]
   ): (EvcsState, ApparentPower, FlexChangeIndicator) = {
     /* Calculate the power */
-    val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
+    val voltage = getAndCheckNodalVoltage(baseStateData, tick)
 
     val reactivePower = baseStateData.model match {
       case model: EvcsModel =>
