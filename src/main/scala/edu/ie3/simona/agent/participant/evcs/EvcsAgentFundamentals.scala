@@ -11,7 +11,6 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.result.system.{
-  EvResult,
   EvcsResult,
   SystemParticipantResult
 }
@@ -51,13 +50,12 @@ import edu.ie3.simona.ontology.messages.services.EvMessage.{
 import edu.ie3.simona.model.participant.evcs.EvcsModel
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
-  EvcsState,
-  PowerEntry
+  EvcsState
 }
 import edu.ie3.simona.ontology.messages.PowerMessage.AssetPowerChangedMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
@@ -76,8 +74,7 @@ protected trait EvcsAgentFundamentals
       EvcsInput,
       EvcsRuntimeConfig,
       EvcsModel
-    ]
-    with LazyLogging {
+    ] {
   this: EvcsAgent =>
   override protected val pdClassTag: ClassTag[ApparentPower] =
     classTag[ApparentPower]
@@ -515,20 +512,10 @@ protected trait EvcsAgentFundamentals
 
     baseStateData.model.validateDepartures(lastState.evs, requestedDepartingEvs)
 
-    val voltage = baseStateData.voltageValueStore
-      .last(tick)
-      .map { case (_, voltage) =>
-        voltage
-      }
-      .getOrElse(Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE))
-
-    val (updatedEvs, evResults, powerEntries) = baseStateData.model
-      .applySchedule(
-        tick,
-        voltage,
-        lastState
-      )
-      .unzip3
+    val updatedEvs = baseStateData.model.applySchedule(
+      lastState,
+      tick
+    )
 
     val (departingEvs, stayingEvs) = updatedEvs.partition { ev =>
       requestedDepartingEvs.contains(ev.getUuid)
@@ -542,13 +529,19 @@ protected trait EvcsAgentFundamentals
       )
     }
 
+    val voltage = baseStateData.voltageValueStore
+      .last(tick)
+      .map { case (_, voltage) =>
+        voltage
+      }
+      .getOrElse(Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE))
+
     /* Calculate evcs power for interval since last update, save for updating value store, and inform listeners */
     val updatedResultValueStore =
       determineResultsAnnounceUpdateValueStore(
-        powerEntries.flatten,
-        evResults.toSeq.flatten,
+        lastState,
         tick,
-        lastState.tick,
+        voltage,
         baseStateData
       )
 
@@ -730,9 +723,11 @@ protected trait EvcsAgentFundamentals
                   EvcsState,
                   EvcsModel
                 ] =>
-              // FIXME this is still incomplete
+              // FIXME this is still incomplete ?
 
-              /* Relevant data for EvcsModel to calculate new SoC for all EVs */
+              val lastState =
+                getLastOrInitialStateData(modelBaseStateData, requestTick)
+
               val voltage = modelBaseStateData.voltageValueStore
                 .last(requestTick)
                 .map { case (_, voltage) =>
@@ -742,24 +737,11 @@ protected trait EvcsAgentFundamentals
                   Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE)
                 )
 
-              val lastState =
-                getLastOrInitialStateData(modelBaseStateData, requestTick)
-
-              val (_, evResults, powerEntries) =
-                modelBaseStateData.model
-                  .applySchedule(
-                    requestTick,
-                    voltage,
-                    lastState
-                  )
-                  .unzip3
-
               val updatedResultValueStore =
                 determineResultsAnnounceUpdateValueStore(
-                  powerEntries.flatten,
-                  evResults.toSeq.flatten,
+                  lastState,
                   requestTick,
-                  lastState.tick,
+                  voltage,
                   modelBaseStateData
                 )
 
@@ -829,21 +811,11 @@ protected trait EvcsAgentFundamentals
             Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE)
           )
 
-        val (_, evResults, powerEntries) =
-          baseStateData.model
-            .applySchedule(
-              lastTick,
-              voltage,
-              lastState
-            )
-            .unzip3
-
         val updatedResultValueStore =
           determineResultsAnnounceUpdateValueStore(
-            powerEntries.flatten,
-            evResults.toSeq.flatten,
+            lastState,
             tick,
-            lastTick,
+            voltage,
             baseStateData
           )
 
@@ -860,29 +832,24 @@ protected trait EvcsAgentFundamentals
 
   }
 
-  /** Determine evcs results according to DEVS logic (in each tick, where
-    * something relevant happens), announce them to listeners and update the
-    * result value store.
+  /** Determine evcs results, announce them to listeners and update the result
+    * value store.
     *
-    * @param powerEntries
-    *   Set of [[PowerEntry]]s determined, while applying the schedule to each
-    *   ev
-    * @param evResults
-    *   EV results to send out
-    * @param requestTick
-    *   Tick, where the result is requested
-    * @param lastSchedulingTick
-    *   Last tick, when a schedule has been applied
+    * @param lastState
+    *   The state (including schedule) to calculate results for
+    * @param tick
+    *   The tick up to which results should be calculated for
+    * @param voltage
+    *   The voltage magnitude used for reactive power calculation
     * @param modelBaseStateData
     *   Model base state data
     * @return
     *   The updated result value store
     */
   private def determineResultsAnnounceUpdateValueStore(
-      powerEntries: Set[PowerEntry],
-      evResults: Seq[EvResult],
-      requestTick: Long,
-      lastSchedulingTick: Long,
+      lastState: EvcsState,
+      tick: Long,
+      voltage: ComparableQuantity[Dimensionless],
       modelBaseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         EvcsRelevantData,
@@ -891,62 +858,30 @@ protected trait EvcsAgentFundamentals
       ]
   ): ValueStore[ApparentPower] = {
 
+    val (evResults, evcsResults) = modelBaseStateData.model.createResults(
+      lastState,
+      tick,
+      voltage
+    )
+
     // send out EV results
     evResults.foreach { result =>
       listener.foreach(_ ! ParticipantResultEvent(result))
     }
 
-    /* Power updates are already in the resultValueStore until the tick of the last event. Determine this tick to
-     * know from where on new updates need to be written into the value store.
-     */
-    val lastUpdateTick = math.max(
-      lastSchedulingTick,
-      modelBaseStateData.resultValueStore
-        .lastKnownTick(requestTick - 1)
-        .getOrElse(0L)
-    )
-
-    /* Get applicable power values */
-    val filteredPowerEntries = powerEntries.filter {
-      case PowerEntry(start, end, _) =>
-        end >= lastUpdateTick && start <= requestTick
-    }
-
-    val tickToApparentPower =
-      filteredPowerEntries.map(_.start).toSeq.distinct.sorted.map { tick =>
-        /* An power entry might start before the actual time frame of interest, thereby correct this */
-        val powerTick = math.max(tick, lastUpdateTick)
-        val power = filteredPowerEntries
-          .filter { case PowerEntry(start, end, _) =>
-            tick >= start && tick < end
-          }
-          .map { case PowerEntry(_, _, power) =>
-            (power.p, power.q)
-          }
-          .foldLeft(
-            Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
-            Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT)
-          ) { case ((p, q), (currentP, currentQ)) =>
-            (p.add(currentP), q.add(currentQ))
-          } match {
-          case (p, q) => ApparentPower(p, q)
-        }
-        powerTick -> power
-      }
-
-    tickToApparentPower.foldLeft(modelBaseStateData.resultValueStore) {
-      case (resultValueStore, (tick, apparentPower)) =>
+    evcsResults.foldLeft(modelBaseStateData.resultValueStore) {
+      case (resultValueStore, result) =>
         /* Inform the listeners about new result */
-        announceSimulationResult(
-          modelBaseStateData,
-          tick,
-          AccompaniedSimulationResult(apparentPower)
-        )(modelBaseStateData.outputConfig)
+        if (modelBaseStateData.outputConfig.simulationResultInfo)
+          notifyListener(
+            ParticipantResultEvent(result)
+          )
+
         /* Update resultValueStore with result */
         ValueStore.updateValueStore(
           resultValueStore,
-          tick,
-          apparentPower
+          result.getTime.toTick(modelBaseStateData.startDate),
+          ApparentPower(result.getP, result.getQ)
         )
     }
   }
@@ -973,59 +908,4 @@ protected trait EvcsAgentFundamentals
       result.p,
       result.q
     )
-
-  /** Checks whether requested departing EVs are consistent with currently
-    * connected EVs. Only logs warnings, does not throw exceptions.
-    *
-    * @param lastEvs
-    *   EVs of the last tick
-    * @param departures
-    *   Departing EVs at the current tick
-    */
-  protected def validateDepartures(
-      lastEvs: Set[EvModel],
-      departures: Seq[UUID]
-  ): Unit = {
-    departures.foreach { ev =>
-      if (!lastEvs.exists(_.getUuid == ev))
-        logger.warn(
-          s"EV $ev should depart from this station (according to external simulation), but has not been parked here."
-        )
-    }
-  }
-
-  /** Checks whether provided arriving EVs are consistent with charging station
-    * specifications and currently connected EVs. Only logs warnings, does not
-    * throw exceptions.
-    *
-    * @param lastEvs
-    *   EVs of the last tick
-    * @param arrivals
-    *   Arriving EVs at the current tick
-    * @param chargingPoints
-    *   max number of charging points available at this CS
-    */
-  protected def validateArrivals(
-      lastEvs: Set[EvModel],
-      arrivals: Seq[EvModel],
-      chargingPoints: Int
-  ): Unit = {
-
-    arrivals.foreach { ev =>
-      if (lastEvs.exists(_.getUuid == ev.getUuid))
-        logger.warn(
-          s"EV ${ev.getId} should arrive at this station (according to external simulation), but is already parked here."
-        )
-    }
-
-    val newCount = lastEvs.size +
-      arrivals.count { ev =>
-        !lastEvs.exists(_.getUuid == ev.getUuid)
-      }
-
-    if (newCount > chargingPoints)
-      logger.warn(
-        "More EVs are parking at this station than physically possible."
-      )
-  }
 }
