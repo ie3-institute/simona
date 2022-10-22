@@ -13,11 +13,12 @@ import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.HpModel._
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.thermal.ThermalGrid.{
-  ThermalGridState,
-  ThermalGridThreshold
+import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
+import edu.ie3.simona.model.thermal.{
+  ThermalGrid,
+  ThermalHouse,
+  ThermalThreshold
 }
-import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalHouse}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideFlexOptions,
   ProvideMinMaxFlexOptions
@@ -350,7 +351,7 @@ object HpModel {
       activePower: ComparableQuantity[Power],
       qDot: ComparableQuantity[Power],
       thermalGridState: ThermalGridState,
-      maybeThermalThreshold: Option[ThermalGridThreshold]
+      maybeThermalThreshold: Option[ThermalThreshold]
   ) extends ModelState
 
   /** Main data required for simulation/calculation, containing a [[HpState]]

@@ -629,7 +629,7 @@ protected trait EvcsAgentFundamentals
     announceSimulationResult(
       baseStateData,
       tick,
-      AccompaniedSimulationResult(result)
+      result
     )(baseStateData.outputConfig)
 
     /* Update the base state data */
