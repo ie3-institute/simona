@@ -384,7 +384,7 @@ protected trait EvcsAgentFundamentals
     updateValueStoresInformListeners(
       modelBaseStateData,
       tick,
-      result,
+      AccompaniedSimulationResult(result),
       updatedRelevantData
     )
   }
@@ -505,7 +505,7 @@ protected trait EvcsAgentFundamentals
         EvcsModel
       ],
       tick: Long,
-      result: ApparentPower,
+      result: AccompaniedSimulationResult[ApparentPower],
       relevantData: EvcsRelevantData
   ): ParticipantModelBaseStateData[
     ApparentPower,
@@ -517,7 +517,7 @@ protected trait EvcsAgentFundamentals
       ValueStore.updateValueStore(
         baseStateData.resultValueStore,
         tick,
-        result
+        result.primaryData
       )
     val updatedRelevantDataStore =
       ValueStore.updateValueStore(

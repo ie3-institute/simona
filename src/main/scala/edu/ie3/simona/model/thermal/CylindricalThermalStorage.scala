@@ -92,7 +92,7 @@ final case class CylindricalThermalStorage(
       tick: Long,
       qDot: ComparableQuantity[Power],
       lastState: ThermalStorageState
-  ): (ThermalStorageState, Option[ThermalStorageThreshold]) = {
+  ): (ThermalStorageState, Option[ThermalThreshold]) = {
     /* Determine new state based on time difference and given state */
     val energyBalance = lastState.qDot
       .multiply(Quantities.getQuantity(tick - lastState.tick, Units.SECOND))
