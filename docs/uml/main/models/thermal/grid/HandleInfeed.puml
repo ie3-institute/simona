@@ -2,34 +2,14 @@
 'https://plantuml.com/activity-diagram-beta
 
 start
-:Set qDot = 0 for all storages;
 if (house apparent?) then (no)
   :Fill storage;
-else (yes)
-  :Heat the house;
-  if (house reaches lower temperature?) then (yes)
-      if (storage apparent?) then (yes)
-        package "Top up from storage" {
-          :Heat house with external influx\nand maximum discharge of\nstorage from initial state;
-          if (house reaches upper temperature?) then (yes)
-            :Wait with external influx\nuntil house is cold again;
-          else if (house reaches lower temperature?) then (yes)
-            :Determine tick, what\nhappens earlier (cold\nhouse, empty storage);
-            note right: Still ins-\nufficient\ninflux
-          else
-            :Determine tick,\nwhen storage is\nempty;
-            note right: House is in\nperfect balance
-          endif
-        }
-      else (no)
-      endif
-  else if (house reaches upper temperature?) then (yes)
-    :Fill storage afterwards;
-  else
-    note right: House is in\nperfect balance
-  endif
+else if (house below upper temp?) then (yes)
+    :Heat the house;
+else if (storage apparent?) then (yes)
+:Fill storage;
 endif
-:Return updated states and reached threshold;
+:Return updated state and reached threshold;
 stop
 
 @enduml

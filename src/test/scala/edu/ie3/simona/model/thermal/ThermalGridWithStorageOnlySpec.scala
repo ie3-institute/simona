@@ -11,17 +11,12 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalHouseInput,
   ThermalStorageInput
 }
-import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridThreshold.{
-  ThermalGridEmpty,
-  ThermalGridFilledUp
-}
-import edu.ie3.simona.model.thermal.ThermalGrid.{
-  ThermalGridState,
-  ThermalGridThreshold
-}
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
+import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.StorageFull
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
+  StorageEmpty,
+  StorageFull
+}
 import edu.ie3.simona.test.common.UnitSpec
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
@@ -82,30 +77,6 @@ class ThermalGridWithStorageOnlySpec
       }
     }
 
-    "trying to push to storage" should {
-      "return correct result" in {
-        val takeOrPushToStorage = PrivateMethod[Option[
-          (ThermalStorageState, Option[ThermalStorage.ThermalStorageThreshold])
-        ]](Symbol("takeOrPushToStorage"))
-
-        thermalGrid invokePrivate takeOrPushToStorage(
-          42L,
-          ThermalGrid.startingState(thermalGrid).storageState,
-          qDotInfeed
-        ) match {
-          case Some((ThermalStorageState(tick, storedEnergy, qDot), reason)) =>
-            tick shouldBe 42L
-            storedEnergy shouldBe Quantities.getQuantity(
-              230d,
-              StandardUnits.ENERGY_IN
-            )
-            qDot shouldBe qDotInfeed
-            reason shouldBe Some(StorageFull(220842L))
-          case _ => fail("Expected an updated storage state")
-        }
-      }
-    }
-
     "determining the energy demand" should {
       "deliver the capabilities of the storage" in {
         val tick = 10800 // after three hours
@@ -127,7 +98,7 @@ class ThermalGridWithStorageOnlySpec
 
     "handling thermal energy consumption from grid" should {
       val handleConsumption =
-        PrivateMethod[(ThermalGridState, Option[ThermalGridThreshold])](
+        PrivateMethod[(ThermalGridState, Option[ThermalThreshold])](
           Symbol("handleConsumption")
         )
 
@@ -165,13 +136,13 @@ class ThermalGridWithStorageOnlySpec
             qDot should equalWithTolerance(qDotConsumption)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
-        reachedThreshold shouldBe Some(ThermalGridEmpty(3600L))
+        reachedThreshold shouldBe Some(StorageEmpty(3600L))
       }
     }
 
     "handling thermal infeed into the grid" should {
       val handleInfeed =
-        PrivateMethod[(ThermalGridState, Option[ThermalGridThreshold])](
+        PrivateMethod[(ThermalGridState, Option[ThermalThreshold])](
           Symbol("handleInfeed")
         )
 
@@ -199,31 +170,31 @@ class ThermalGridWithStorageOnlySpec
             qDot should equalWithTolerance(qDotInfeed)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
-        reachedThreshold shouldBe Some(ThermalGridFilledUp(220800L))
+        reachedThreshold shouldBe Some(StorageFull(220800L))
       }
     }
 
     "updating the grid state dependent on the given thermal infeed" should {
       "deliver proper result, if energy is fed into the grid" in {
-        thermalGrid.updateState(
+        val (updatedState, nextThreshold) = thermalGrid.updateState(
           0L,
           ThermalGrid.startingState(thermalGrid),
           ambientTemperature,
           qDotInfeed
-        ) match {
-          case (
-                ThermalGridState(
-                  None,
-                  Some(ThermalStorageState(tick, storedEnergy, qDot))
-                ),
-                Some(ThermalGridFilledUp(thresholdTick))
+        )
+
+        nextThreshold shouldBe Some(StorageFull(220800L))
+
+        updatedState match {
+          case ThermalGridState(
+                None,
+                Some(ThermalStorageState(tick, storedEnergy, qDot))
               ) =>
             tick shouldBe 0L
             storedEnergy should equalWithTolerance(
               Quantities.getQuantity(230d, StandardUnits.ENERGY_IN)
             )
             qDot should equalWithTolerance(qDotInfeed)
-            thresholdTick shouldBe 220800L
           case _ => fail("Thermal grid state updated failed")
         }
       }
@@ -250,7 +221,7 @@ class ThermalGridWithStorageOnlySpec
                   None,
                   Some(ThermalStorageState(tick, storedEnergy, qDot))
                 ),
-                Some(ThermalGridEmpty(thresholdTick))
+                Some(StorageEmpty(thresholdTick))
               ) =>
             tick shouldBe 0L
             storedEnergy should equalWithTolerance(
