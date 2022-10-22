@@ -178,16 +178,15 @@ class EvcsModelSpec
             )
 
             val actualOutput = evcsModel.applySchedule(
-              currentTick,
-              voltage,
-              state
+              state,
+              currentTick
             )
 
             val expectedChargeStart = math.max(chargeStart, lastCalcTick)
             val expectedChargeEnd = math.min(chargeEnd, currentTick)
 
             actualOutput should have size 1
-            val (actualEv, actualResults, actualPowerEntries) =
+            val actualEv =
               actualOutput.headOption.getOrElse(
                 fail("No charging schedule provided.")
               )
@@ -201,31 +200,6 @@ class EvcsModelSpec
               expectedStored.asKiloWattHour
             )
             actualEv.getDepartureTick shouldBe ev.getDepartureTick
-
-            actualResults match {
-              case Seq(evResult) =>
-                evResult.getTime shouldBe expectedChargeStart.toDateTime(
-                  simulationStart
-                )
-                evResult.getInputModel shouldBe ev.getUuid
-                evResult.getP should equalWithTolerance(power.asKiloWatt)
-                // soc at the start
-                evResult.getSoc shouldBe ev.getStoredEnergy
-                  .divide(ev.getEStorage)
-                  .asType(classOf[Dimensionless])
-                  .to(PERCENT)
-
-              case unexpected => fail(s"Unexpected EvResults: $unexpected")
-            }
-
-            actualPowerEntries match {
-              case Seq(entry) =>
-                entry.start shouldBe expectedChargeStart
-                entry.end shouldBe expectedChargeEnd
-                entry.power.p shouldBe power.asKiloWatt
-
-              case unexpected => fail(s"Unexpected PowerEntries: $unexpected")
-            }
 
         }
 

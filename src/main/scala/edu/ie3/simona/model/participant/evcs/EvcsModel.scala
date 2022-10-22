@@ -11,14 +11,12 @@ import edu.ie3.datamodel.models.ElectricCurrentType
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.result.system.{EvResult, EvcsResult}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
-  EvcsState,
-  PowerEntry
+  EvcsState
 }
 import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedCharging
 import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedCurrentPrice.calculateCurrentPriceGridOriented
@@ -192,23 +190,19 @@ final case class EvcsModel(
       )
   }
 
-  /** Update EVs for the timeframe since the last scheduling and calculate
-    * equivalent results
+  /** Update EVs for the timeframe since the last scheduling
     *
+    * @param state
+    *   the last state
     * @param currentTick
     *   current tick
-    * @param voltage
-    *   the current voltage
     * @return
-    *   updated EVs and EvResults including charging prices
+    *   updated EVs
     */
   def applySchedule(
-      currentTick: Long,
-      voltage: ComparableQuantity[Dimensionless],
-      state: EvcsState
-  ): Set[(EvModel, Seq[EvResult], Seq[PowerEntry])] = if (
-    state.schedule.nonEmpty
-  ) {
+      state: EvcsState,
+      currentTick: Long
+  ): Set[EvModel] = if (state.schedule.nonEmpty) {
     /* Apply schedules asynchronously */
     state.evs.par
       .map(ev =>
@@ -219,12 +213,10 @@ final case class EvcsModel(
               ev,
               _,
               state.tick,
-              currentTick,
-              simulationStartDate,
-              voltage
+              currentTick
             )
           }
-          .getOrElse(ev, Seq.empty, Seq.empty)
+          .getOrElse(ev)
       )
       .seq
   } else {
@@ -232,7 +224,7 @@ final case class EvcsModel(
       "There are EVs parked at this charging station, but there was no scheduling since the last" +
         "update. Probably the EVs already finished charging."
     )
-    state.evs.map { ev => (ev, Seq.empty, Seq.empty) }
+    state.evs
   }
 
   /** Charge the given EV under consideration a applicable schedule
@@ -245,93 +237,41 @@ final case class EvcsModel(
     *   Last tick, that a schedule has been processed
     * @param currentTick
     *   Current time in Simulation
-    * @param simulationStartDate
-    *   Simulation start time
-    * @param voltageMagnitude
-    *   Current voltage magnitude at the connection node
     * @return
-    *   The charged energy and intermediate charging results for a given
-    *   electric vehicle
+    *   The charged EV
     */
   private def chargeEv(
       ev: EvModel,
       schedule: ChargingSchedule,
       lastSchedulingTick: Long,
-      currentTick: Long,
-      simulationStartDate: ZonedDateTime,
-      voltageMagnitude: ComparableQuantity[Dimensionless]
-  ): (EvModel, Seq[EvResult], Seq[PowerEntry]) = {
+      currentTick: Long
+  ): EvModel = {
     /* Determine charged energy in the charging interval */
-    val (chargedEnergySinceLastScheduling, evResults, powerEntries) =
+    val chargedEnergySinceLastScheduling =
       schedule.schedule.toSeq
         .filter { case ChargingSchedule.Entry(tickStart, tickStop, _) =>
           /* Filter for entries, that end after the last schedule application (that slice is not yet fully applied)
            * and that start before the current tick */
-          tickStop >= lastSchedulingTick && tickStart < currentTick
+          tickStop > lastSchedulingTick && tickStart < currentTick
         }
         .sortBy(_.tickStart)
-        .foldLeft(
-          (
-            Quantities.getQuantity(0, KILOWATTHOUR),
-            Seq.empty[EvResult],
-            Seq.empty[PowerEntry]
-          )
-        ) { case ((accumulatedEnergy, results, powerEntries), scheduleEntry) =>
-          /* Only the timeframe from the start of last scheduling update and current tick must be considered */
-          val (chargingWindowStart, chargingWindowEnd) =
-            actualChargingWindow(
+        .foldLeft(0d.asKiloWattHour) {
+          case (accumulatedEnergy, scheduleEntry) =>
+            /* Only the timeframe from the start of last scheduling update and current tick must be considered */
+            val trimmedEntry = trimScheduleEntry(
               scheduleEntry,
               lastSchedulingTick,
               currentTick
             )
 
-          /* Determine the energy charged within this slice of the schedule and accumulate it */
-          val chargedEnergyInThisScheduleEntry =
-            chargedEnergyInScheduleSlice(
-              scheduleEntry,
-              chargingWindowStart,
-              chargingWindowEnd
+            /* Determine the energy charged within this slice of the schedule and accumulate it */
+            accumulatedEnergy.add(
+              chargedEnergyInScheduleSlice(trimmedEntry)
             )
-          val totalChargedEnergy = accumulatedEnergy.add(
-            chargedEnergyInThisScheduleEntry
-          )
-
-          val p = scheduleEntry.chargingPower
-          val q = calculateReactivePower(
-            scheduleEntry.chargingPower,
-            voltageMagnitude
-          )
-          val power = PowerEntry(
-            chargingWindowStart,
-            chargingWindowEnd,
-            ApparentPower(p, q)
-          )
-          val soc = ev.getStoredEnergy
-            .add(accumulatedEnergy)
-            .divide(ev.getEStorage)
-            .asType(classOf[Dimensionless])
-            .to(PERCENT)
-
-          val result = new EvResult(
-            chargingWindowStart.toDateTime(simulationStartDate),
-            ev.getUuid,
-            p,
-            q,
-            soc
-          )
-          (
-            totalChargedEnergy,
-            results :+ result,
-            powerEntries :+ power
-          )
         }
     /* Update EV with the charged energy during the charging interval */
-    (
-      ev.copyWith(
-        ev.getStoredEnergy.add(chargedEnergySinceLastScheduling)
-      ),
-      evResults,
-      powerEntries
+    ev.copyWith(
+      ev.getStoredEnergy.add(chargedEnergySinceLastScheduling)
     )
   }
 
@@ -369,21 +309,11 @@ final case class EvcsModel(
         schedule.unsorted
           .map { entry =>
             // trim down entries to the currently considered window of the charging schedule
-            val (chargingWindowStart, chargingWindowEnd) = {
-              // TODO adapt method to return entry
-              actualChargingWindow(
-                entry,
-                lastTick,
-                currentTick
-              )
-            }
-
-            evUuid ->
-              ChargingSchedule.Entry(
-                chargingWindowStart,
-                chargingWindowEnd,
-                entry.chargingPower
-              )
+            evUuid -> trimScheduleEntry(
+              entry,
+              lastTick,
+              currentTick
+            )
           }
       }
       .groupBy { case _ -> entry =>
@@ -458,16 +388,9 @@ final case class EvcsModel(
               )
 
               // update EV
-              val chargedEnergyInThisScheduleEntry =
-                chargedEnergyInScheduleSlice(
-                  entry,
-                  entry.tickStart,
-                  entry.tickStop
-                )
               val newEvStoredEnergy = ev.getStoredEnergy.add(
-                chargedEnergyInThisScheduleEntry
+                chargedEnergyInScheduleSlice(entry)
               )
-
               val newEv = ev.copyWith(newEvStoredEnergy)
 
               (
@@ -542,40 +465,33 @@ final case class EvcsModel(
     * @param currentTick
     *   The current tick
     * @return
-    *   The actual start and end of the charging window
+    *   A trimmed version of given scheduleEntry
     */
-  private def actualChargingWindow(
+  private def trimScheduleEntry(
       scheduleEntry: ChargingSchedule.Entry,
       lastSchedulingTick: Long,
       currentTick: Long
-  ): (Long, Long) = {
-    (
-      math.max(scheduleEntry.tickStart, lastSchedulingTick),
-      math.min(scheduleEntry.tickStop, currentTick)
+  ): ChargingSchedule.Entry =
+    scheduleEntry.copy(
+      tickStart = math.max(scheduleEntry.tickStart, lastSchedulingTick),
+      tickStop = math.min(scheduleEntry.tickStop, currentTick)
     )
-  }
 
-  /** Determine the energy, that has been charged during one slice of a
-    * schedule.
+  /** Determine the energy, that has been charged during the schedule entry time
+    * interval.
     *
     * @param scheduleEntry
     *   Definition of the schedule slice
-    * @param chargingWindowStart
-    *   Start of the charging window
-    * @param chargingWindowEnd
-    *   End of the charging window
     * @return
     *   The energy charged during this slice
     */
   private def chargedEnergyInScheduleSlice(
-      scheduleEntry: ChargingSchedule.Entry,
-      chargingWindowStart: Long,
-      chargingWindowEnd: Long
+      scheduleEntry: ChargingSchedule.Entry
   ): ComparableQuantity[Energy] =
     scheduleEntry.chargingPower
       .multiply(
         Quantities.getQuantity(
-          (chargingWindowEnd - chargingWindowStart).toDouble,
+          (scheduleEntry.tickStop - scheduleEntry.tickStart).toDouble,
           SECOND
         )
       )
@@ -1018,26 +934,11 @@ final case class EvcsModel(
       lastState: EvcsState
   ): Set[EvModel] = {
     // if last state is from before current tick, determine current state
-    val currentEVs = if (lastState.tick < data.tick) {
-
-      val currentTime = data.tick.toDateTime(simulationStartDate)
-      val voltage = data.voltages
-        .filter { case (time, _) =>
-          time.isBefore(currentTime) || time.isEqual(currentTime)
-        }
-        .maxByOption { case (date, _) =>
-          date
-        }
-        .map { case (_, voltage) =>
-          voltage
-        }
-        .getOrElse(Quantities.getQuantity(1d, PU))
-
-      applySchedule(data.tick, voltage, lastState).map { case (ev, _, _) =>
-        ev
-      }
-    } else
-      lastState.evs
+    val currentEVs =
+      if (lastState.tick < data.tick)
+        applySchedule(lastState, data.tick)
+      else
+        lastState.evs
 
     validateArrivals(
       lastState.evs,
@@ -1138,17 +1039,6 @@ object EvcsModel {
     def getSchedule(ev: EvModel): Option[ChargingSchedule] =
       schedule.getOrElse(ev, None)
   }
-
-  /** Container class for apparent power
-    *
-    * @param start
-    *   Begin of the entry
-    * @param end
-    *   End of the entry
-    * @param power
-    *   apparent power
-    */
-  final case class PowerEntry(start: Long, end: Long, power: ApparentPower)
 
   def apply(
       inputModel: EvcsInput,
