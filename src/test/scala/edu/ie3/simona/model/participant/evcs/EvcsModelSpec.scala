@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant.evcs
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.simona.model.participant.FlexChangeIndicator
 import edu.ie3.simona.model.participant.evcs.ChargingSchedule.Entry
@@ -23,11 +22,8 @@ import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.scalatest.prop.TableDrivenPropertyChecks
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.PERCENT
 
 import java.util.UUID
-import javax.measure.quantity.Dimensionless
 
 class EvcsModelSpec
     extends UnitSpec
@@ -168,9 +164,6 @@ class EvcsModelSpec
               Seq(Entry(chargeStart, chargeEnd, power.asKiloWatt))
             )
 
-            val voltage =
-              Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE)
-
             val state = EvcsState(
               Set(ev),
               Map(ev -> Some(schedule)),
@@ -181,9 +174,6 @@ class EvcsModelSpec
               state,
               currentTick
             )
-
-            val expectedChargeStart = math.max(chargeStart, lastCalcTick)
-            val expectedChargeEnd = math.min(chargeEnd, currentTick)
 
             actualOutput should have size 1
             val actualEv =
