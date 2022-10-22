@@ -10,7 +10,7 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.ElectricCurrentType
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
-import edu.ie3.datamodel.models.result.system.EvResult
+import edu.ie3.datamodel.models.result.system.{EvResult, EvcsResult}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.SystemComponent
@@ -53,6 +53,8 @@ import java.time.temporal.ChronoUnit
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Energy, Power, Time}
 import scala.annotation.tailrec
+import scala.collection.SortedMap
+import scala.collection.immutable.SortedSet
 import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success}
 
@@ -330,6 +332,201 @@ final case class EvcsModel(
       ),
       evResults,
       powerEntries
+    )
+  }
+
+  def createResults(
+      lastState: EvcsState,
+      currentTick: Long,
+      voltageMagnitude: ComparableQuantity[Dimensionless]
+  ): (Iterable[EvResult], Iterable[EvcsResult]) = {
+
+    val lastTick = lastState.tick
+
+    val lastEvMap = lastState.evs.map(ev => ev.getUuid -> ev).toMap
+
+    val prefilteredSchedules = lastState.schedule.values.flatten
+      .map { case schedule @ ChargingSchedule(_, entries) =>
+        val filteredEntries = entries
+          .filter { case ChargingSchedule.Entry(tickStart, tickStop, _) =>
+            /* Filter for entries, that end after the last schedule application
+               and that start before the current tick.
+               Entries that end at lastTick are not included because schedule
+               intervals are open at the right hand side.
+               Entries that start at currentTick are not included because these
+               will be calculated with the next state.
+             */
+            tickStop > lastTick && tickStart < currentTick
+          }
+
+        schedule.copy(
+          schedule = filteredEntries
+        )
+      }
+
+    val entriesByStartTick = prefilteredSchedules
+      .flatMap { case ChargingSchedule(evUuid, schedule) =>
+        schedule.unsorted
+          .map { entry =>
+            // trim down entries to the currently considered window of the charging schedule
+            val (chargingWindowStart, chargingWindowEnd) = {
+              // TODO adapt method to return entry
+              actualChargingWindow(
+                entry,
+                lastTick,
+                currentTick
+              )
+            }
+
+            evUuid ->
+              ChargingSchedule.Entry(
+                chargingWindowStart,
+                chargingWindowEnd,
+                entry.chargingPower
+              )
+          }
+      }
+      .groupBy { case _ -> entry =>
+        entry.tickStart
+      }
+      .to(SortedMap)
+
+    val startAndStopTicks = prefilteredSchedules
+      .flatMap { case ChargingSchedule(_, schedule) =>
+        schedule.unsorted.flatMap {
+          case ChargingSchedule.Entry(start, stop, _) =>
+            Iterable(start, stop)
+        }
+      }
+      .filter(tick => tick >= lastTick && tick < currentTick)
+      .to(SortedSet)
+      // the last tick needs to be included,
+      // the current tick excluded
+      .incl(lastTick)
+      .excl(currentTick)
+
+    // in order to create 0kW entries for EVs that do not
+    // start charging right away at lastTick, create mock
+    // schedule entries that end before lastTick
+    val startingSchedules = lastEvMap.keys.map {
+      _ -> ChargingSchedule.Entry(lastTick, lastTick, 0d.asKiloWatt)
+    }
+
+    val (_, _, evResults, evcsResults) =
+      startAndStopTicks.foldLeft(
+        lastEvMap,
+        startingSchedules,
+        Seq.empty[EvResult],
+        Seq.empty[EvcsResult]
+      ) { case ((evMap, lastActiveEntries, evResults, evcsResults), tick) =>
+        val time = tick.toDateTime(simulationStartDate)
+
+        val (stillActive, endedEntries) = lastActiveEntries.partition {
+          case (_, entry) =>
+            entry.tickStop > tick
+        }
+
+        val newActiveEntries =
+          entriesByStartTick.getOrElse(tick, Iterable.empty).toMap
+
+        val noChargingEvResults =
+          endedEntries
+            .filterNot { case evUuid -> _ =>
+              newActiveEntries.contains(evUuid)
+            }
+            .map { case evUuid -> _ =>
+              val ev = evMap(evUuid)
+
+              createEvResult(
+                ev,
+                tick,
+                0d.asKiloWatt,
+                voltageMagnitude
+              )
+            }
+
+        val (updatedEvMap, chargingEvResults) =
+          newActiveEntries.foldLeft(evMap, Seq.empty[EvResult]) {
+            case ((evMap, results), evUuid -> entry) =>
+              val ev = evMap(evUuid)
+
+              val result = createEvResult(
+                ev,
+                entry.tickStart,
+                entry.chargingPower,
+                voltageMagnitude
+              )
+
+              // update EV
+              val chargedEnergyInThisScheduleEntry =
+                chargedEnergyInScheduleSlice(
+                  entry,
+                  entry.tickStart,
+                  entry.tickStop
+                )
+              val newEvStoredEnergy = ev.getStoredEnergy.add(
+                chargedEnergyInThisScheduleEntry
+              )
+
+              val newEv = ev.copyWith(newEvStoredEnergy)
+
+              (
+                evMap.updated(evUuid, newEv),
+                results.appended(result)
+              )
+          }
+
+        val currentActiveEntries = stillActive ++ newActiveEntries
+
+        val evcsP = currentActiveEntries.foldLeft(0d.asKiloWatt) {
+          case (powerSum, _ -> entry) =>
+            powerSum.add(entry.chargingPower)
+        }
+
+        val evcsQ = calculateReactivePower(
+          evcsP,
+          voltageMagnitude
+        )
+
+        val evcsResult = new EvcsResult(
+          time,
+          uuid,
+          evcsP,
+          evcsQ
+        )
+
+        (
+          updatedEvMap,
+          currentActiveEntries,
+          evResults ++ chargingEvResults ++ noChargingEvResults,
+          evcsResults :+ evcsResult
+        )
+      }
+
+    (evResults, evcsResults)
+  }
+
+  private def createEvResult(
+      ev: EvModel,
+      tick: Long,
+      p: ComparableQuantity[Power],
+      voltageMagnitude: ComparableQuantity[Dimensionless]
+  ) = {
+    val q = calculateReactivePower(
+      p,
+      voltageMagnitude
+    )
+    val soc = ev.getStoredEnergy
+      .divide(ev.getEStorage)
+      .asType(classOf[Dimensionless])
+      .to(PERCENT)
+
+    new EvResult(
+      tick.toDateTime(simulationStartDate),
+      ev.getUuid,
+      p,
+      q,
+      soc
     )
   }
 

@@ -232,6 +232,219 @@ class EvcsModelSpec
       }
     }
 
+    "calculate results correctly" when {
+
+      "one EV is parked and charging" in {
+
+        val ev = new MockEvModel(
+          UUID.randomUUID(),
+          "TestEv1",
+          5.0.asKiloWatt, // using AC charging here
+          10.0.asKiloWatt,
+          10.0.asKiloWattHour,
+          0d.asKiloWattHour,
+          7200L // is ignored here
+        )
+
+        val schedule = ChargingSchedule(
+          ev,
+          Seq(
+            Entry(3600L, 5400L, 2d.asKiloWatt),
+            Entry(7200L, 9000L, 4d.asKiloWatt)
+          )
+        )
+
+        // tick, p in kW
+        val generalEvResults =
+          Seq(
+            (0L, 0d),
+            (3600L, 2d),
+            (5400L, 0d),
+            (7200L, 4d),
+            (9000L, 0d)
+          )
+
+        val cases = Table(
+          (
+            "lastTick",
+            "currentTick",
+            "firstResultIndex",
+            "lastResultIndex"
+          ),
+          (1800L, 10800L, 0, 5),
+          (3600L, 10000L, 1, 5),
+          (2700L, 9000L, 0, 4),
+          (3600L, 9000L, 1, 4),
+          (3660L, 9000L, 1, 4),
+          (5400L, 9001L, 2, 5),
+          (5400L, 8999L, 2, 4),
+          (8999L, 9000L, 3, 4),
+          (8999L, 9060L, 3, 5)
+        )
+
+        forAll(cases) {
+          (
+              lastTick,
+              currentTick,
+              firstResultIndex,
+              lastResultIndex
+          ) =>
+            val lastState = EvcsState(
+              Set(ev),
+              Map(ev -> Some(schedule)),
+              lastTick
+            )
+
+            val (actualEvResults, actualEvcsResults) =
+              evcsStandardModel.createResults(
+                lastState,
+                currentTick,
+                1d.asPu
+              )
+
+            val (_, firstPower) = generalEvResults(firstResultIndex)
+
+            val expectedEvResults = generalEvResults
+              .slice(firstResultIndex + 1, lastResultIndex)
+              .prepended(lastTick, firstPower)
+
+            actualEvResults should have size expectedEvResults.size
+            actualEvResults.zip(expectedEvResults).foreach {
+              case (actual, (startTick, p)) =>
+                actual.getTime shouldBe startTick.toDateTime(simulationStart)
+                actual.getInputModel shouldBe ev.getUuid
+                actual.getP should beEquivalentTo(p.asKiloWatt)
+                actual.getQ should beEquivalentTo(zeroKW)
+            }
+
+            actualEvcsResults should have size expectedEvResults.size
+            actualEvcsResults.zip(expectedEvResults).foreach {
+              case (actual, (startTick, p)) =>
+                actual.getTime shouldBe startTick.toDateTime(simulationStart)
+                actual.getInputModel shouldBe evcsStandardModel.getUuid
+                actual.getP should beEquivalentTo(p.asKiloWatt)
+                actual.getQ should beEquivalentTo(zeroKW)
+            }
+        }
+
+      }
+
+      "two EVs are parked and charging" in {
+
+        val ev1 = new MockEvModel(
+          UUID.randomUUID(),
+          "TestEv1",
+          5.0.asKiloWatt, // using AC charging here
+          10.0.asKiloWatt,
+          10.0.asKiloWattHour,
+          0d.asKiloWattHour,
+          7200L // is ignored here
+        )
+
+        val ev2 = new MockEvModel(
+          UUID.randomUUID(),
+          "TestEv2",
+          5.0.asKiloWatt, // using AC charging here
+          10.0.asKiloWatt,
+          10.0.asKiloWattHour,
+          0d.asKiloWattHour,
+          7200L // is ignored here
+        )
+
+        val schedule1 = ChargingSchedule(
+          ev1,
+          Seq(
+            Entry(3600L, 7200L, 2d.asKiloWatt),
+            Entry(9000L, 14400L, 3d.asKiloWatt)
+          )
+        )
+
+        val schedule2 = ChargingSchedule(
+          ev2,
+          Seq(
+            Entry(5400L, 9000L, 2d.asKiloWatt)
+          )
+        )
+
+        val lastTick = 1800L
+        val currentTick = 10800L
+
+        val lastState = EvcsState(
+          Set(ev1, ev2),
+          Map(ev1 -> Some(schedule1), ev2 -> Some(schedule2)),
+          lastTick
+        )
+
+        val (actualEvResults, actualEvcsResults) =
+          evcsStandardModel.createResults(
+            lastState,
+            currentTick,
+            1d.asPu
+          )
+
+        // tick, p in kW, soc in %
+        val expectedEv1Results =
+          Seq(
+            (1800L, 0d, 0d),
+            (3600L, 2d, 0d),
+            (7200L, 0d, 20d),
+            (9000L, 3d, 20d)
+          )
+
+        // tick, p in kW, soc in %
+        val expectedEv2Results =
+          Seq(
+            (1800L, 0d, 0d),
+            (5400L, 2d, 0d),
+            (9000L, 0d, 20d)
+          )
+
+        // tick, p in kW
+        val expectedEvcsResults =
+          Seq(
+            (1800L, 0d),
+            (3600L, 2d),
+            (5400L, 4d),
+            (7200L, 2d),
+            (9000L, 3d)
+          )
+
+        actualEvResults should have size expectedEv1Results.size + expectedEv2Results.size
+
+        val actualEv1Results =
+          actualEvResults.filter(_.getInputModel == ev1.getUuid)
+        actualEv1Results should have size expectedEv1Results.size
+        actualEv1Results.zip(expectedEv1Results).foreach {
+          case (actual, (startTick, p, soc)) =>
+            actual.getTime shouldBe startTick.toDateTime(simulationStart)
+            actual.getP should beEquivalentTo(p.asKiloWatt)
+            actual.getQ should beEquivalentTo(zeroKW)
+            actual.getSoc should beEquivalentTo(soc.asPercent)
+        }
+
+        val actualEv2Results =
+          actualEvResults.filter(_.getInputModel == ev2.getUuid)
+        actualEv2Results should have size expectedEv2Results.size
+        actualEv2Results.zip(expectedEv2Results).foreach {
+          case (actual, (startTick, p, soc)) =>
+            actual.getTime shouldBe startTick.toDateTime(simulationStart)
+            actual.getP should beEquivalentTo(p.asKiloWatt)
+            actual.getQ should beEquivalentTo(zeroKW)
+            actual.getSoc should beEquivalentTo(soc.asPercent)
+        }
+
+        actualEvcsResults should have size expectedEvcsResults.size
+        actualEvcsResults.zip(expectedEvcsResults).foreach {
+          case (actual, (startTick, p)) =>
+            actual.getTime shouldBe startTick.toDateTime(simulationStart)
+            actual.getInputModel shouldBe evcsStandardModel.getUuid
+            actual.getP should beEquivalentTo(p.asKiloWatt)
+            actual.getQ should beEquivalentTo(zeroKW)
+        }
+      }
+
+    }
+
     "handle flexibility correctly" when {
       val evcsModel =
         evcsStandardModel.copy(strategy = ChargingStrategy.CONSTANT_POWER)
