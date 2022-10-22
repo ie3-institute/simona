@@ -7,26 +7,45 @@
 package edu.ie3.simona.test.common.input
 
 import edu.ie3.datamodel.models.input.OperatorInput
-import edu.ie3.datamodel.models.input.system.`type`.StorageTypeInput
+import edu.ie3.datamodel.models.input.container.ThermalGrid
+import edu.ie3.datamodel.models.input.system.`type`.{
+  HpTypeInput,
+  StorageTypeInput
+}
 import edu.ie3.datamodel.models.input.system.`type`.chargingpoint.ChargingPointTypeUtils
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
-import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.datamodel.models.input.system.{EmInput, EvcsInput, StorageInput}
-import edu.ie3.datamodel.models.{ControlStrategy, OperationTime}
+import edu.ie3.datamodel.models.input.system.characteristic.{
+  CosPhiFixed,
+  ReactivePowerCharacteristic
+}
+import edu.ie3.datamodel.models.input.system.{
+  EmInput,
+  EvcsInput,
+  HpInput,
+  StorageInput
+}
+import edu.ie3.datamodel.models.input.thermal.{
+  ThermalHouseInput,
+  ThermalStorageInput
+}
+import edu.ie3.datamodel.models.{ControlStrategy, OperationTime, StandardUnits}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
+import edu.ie3.simona.test.common.model.participant.HpTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
 import java.util.UUID
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 trait EmInputTestData
     extends NodeInputTestData
     with PvInputTestData
-    with LoadInputTestData {
+    with LoadInputTestData
+    with HpTestData {
 
   protected val evcsInput = new EvcsInput(
     UUID.randomUUID(),
@@ -102,4 +121,41 @@ trait EmInputTestData
       emInput.getUuid
     )
 
+  protected val adaptedTypeInput = new HpTypeInput(
+    UUID.fromString("9802bf35-2a4e-4ff5-be9b-cd9e6a78dcd6"),
+    "hp type",
+    Quantities.getQuantity(0.0, StandardUnits.CAPEX),
+    Quantities.getQuantity(0.0, StandardUnits.ENERGY_PRICE),
+    Quantities.getQuantity(5.0, StandardUnits.ACTIVE_POWER_IN),
+    0.97,
+    Quantities.getQuantity(7.5, StandardUnits.ACTIVE_POWER_IN)
+  )
+
+  protected val adaptedHpInputModel = new HpInput(
+    UUID.fromString("7832dea4-8703-4b37-8752-e67b86e957df"),
+    "test hp",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    nodeInput,
+    thermalBusInput,
+    ReactivePowerCharacteristic.parse("cosPhiFixed:{(0.00,0.98)}"),
+    adaptedTypeInput
+  )
+
+  /* Set inner temperature of house a bit lower */
+  val adaptedThermalHouse = new ThermalHouseInput(
+    UUID.fromString("91940626-bdd0-41cf-96dd-47c94c86b20e"),
+    "thermal house",
+    thermalBusInput,
+    Quantities.getQuantity(0.325, StandardUnits.THERMAL_TRANSMISSION),
+    Quantities.getQuantity(75, StandardUnits.HEAT_CAPACITY),
+    Quantities.getQuantity(20.3, StandardUnits.TEMPERATURE),
+    Quantities.getQuantity(22.0, StandardUnits.TEMPERATURE),
+    Quantities.getQuantity(20.0, StandardUnits.TEMPERATURE)
+  )
+  val adaptedThermalGrid = new ThermalGrid(
+    thermalBusInput,
+    Seq(adaptedThermalHouse).asJava,
+    Seq.empty[ThermalStorageInput].asJava
+  )
 }

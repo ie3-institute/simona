@@ -6,27 +6,48 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.input.system.{LoadInput, PvInput, StorageInput}
+import edu.ie3.datamodel.models.input.container.ThermalGrid
+import edu.ie3.datamodel.models.input.system.{
+  HpInput,
+  LoadInput,
+  PvInput,
+  StorageInput,
+  SystemParticipantInput
+}
+import edu.ie3.datamodel.models.input.thermal.{
+  ThermalHouseInput,
+  ThermalStorageInput
+}
 import edu.ie3.datamodel.models.result.system.EmResult
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower,
+  ApparentPowerAndHeat
+}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.em.EmAgent
 import edu.ie3.simona.agent.participant.em.EmAgent.EmAgentInitializeStateData
+import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.load.LoadAgent.FixedLoadAgent
 import edu.ie3.simona.agent.participant.pv.PvAgent
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.storage.StorageAgent
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.{
+  HpRuntimeConfig,
   LoadRuntimeConfig,
   PvRuntimeConfig,
   StorageRuntimeConfig
 }
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
+import edu.ie3.simona.model.participant.{HpModel, ModelState, PvModel}
+import edu.ie3.simona.model.participant.load.FixedLoadModel
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   ScheduleTriggerMessage,
@@ -65,7 +86,7 @@ class EmAgentIT
           .parseString("""
           |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
           |akka.loglevel="DEBUG"
-""".stripMargin)
+          """.stripMargin)
       )
     )
     with EmInputTestData
@@ -92,87 +113,508 @@ class EmAgentIT
 
   private val tolerance = 1e-10d
 
-  "An em agent and connected load, pv and storage agents" should {
-    "be initialized correctly and run through some activations" in {
-      val resultsListener = TestProbe("ResultListener")
-      val primaryServiceProxy = TestProbe("PrimaryServiceProxy")
-      val weatherService = TestProbe("WeatherService")
+  "An em agent" when {
+    "having load, pv and storage agents connected" should {
+      "be initialized correctly and run through some activations" in {
+        val resultsListener = TestProbe("ResultListener")
+        val primaryServiceProxy = TestProbe("PrimaryServiceProxy")
+        val weatherService = TestProbe("WeatherService")
 
-      val emAgent = TestActorRef(
-        new EmAgent(
-          scheduler = scheduler.ref,
-          listener = Iterable(resultsListener.ref)
-        ),
-        "EmAgent"
-      )
+        val emAgent = TestActorRef(
+          new EmAgent(
+            scheduler = scheduler.ref,
+            listener = Iterable(resultsListener.ref)
+          ),
+          "EmAgent"
+        )
 
-      val initId = 0
+        val initId = 0
 
-      val loadAgent = TestActorRef(
-        new FixedLoadAgent(
-          scheduler = emAgent,
-          listener = Iterable(resultsListener.ref)
-        ),
-        "LoadAgent"
-      )
-      val pvAgent = TestActorRef(
-        new PvAgent(
-          scheduler = emAgent,
-          listener = Iterable(resultsListener.ref)
-        ),
-        "PvAgent"
-      )
-      val storageAgent = TestActorRef(
-        new StorageAgent(
-          scheduler = emAgent,
-          listener = Iterable(resultsListener.ref)
-        ),
-        "StorageAgent"
-      )
+        val loadAgent = TestActorRef(
+          new FixedLoadAgent(
+            scheduler = emAgent,
+            listener = Iterable(resultsListener.ref)
+          ),
+          "LoadAgent"
+        )
+        val pvAgent = TestActorRef(
+          new PvAgent(
+            scheduler = emAgent,
+            listener = Iterable(resultsListener.ref)
+          ),
+          "PvAgent"
+        )
+        val storageAgent = TestActorRef(
+          new StorageAgent(
+            scheduler = emAgent,
+            listener = Iterable(resultsListener.ref)
+          ),
+          "StorageAgent"
+        )
 
-      val loadAgentInit =
-        InitializeParticipantAgentTrigger[
-          ApparentPower,
-          ParticipantInitializeStateData[
-            LoadInput,
-            LoadRuntimeConfig,
-            ApparentPower
-          ]
-        ](
-          ParticipantInitializeStateData(
-            loadInput,
-            LoadRuntimeConfig(
-              calculateMissingReactivePowerWithModel = true,
-              scaling = 1d,
-              modelBehaviour = "fix",
-              reference = "power",
-              uuids = List.empty
+        val loadAgentInit =
+          InitializeParticipantAgentTrigger[
+            ApparentPower,
+            ParticipantInitializeStateData[
+              LoadInput,
+              LoadRuntimeConfig,
+              ApparentPower
+            ]
+          ](
+            ParticipantInitializeStateData(
+              loadInput,
+              LoadRuntimeConfig(
+                calculateMissingReactivePowerWithModel = true,
+                scaling = 1d,
+                modelBehaviour = "fix",
+                reference = "power",
+                uuids = List.empty
+              ),
+              primaryServiceProxy.ref,
+              None,
+              simulationStartDate,
+              simulationEndDate,
+              resolution,
+              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+              outputConfigOff,
+              Some(emAgent)
+            )
+          )
+        val pvAgentInit =
+          InitializeParticipantAgentTrigger[
+            ApparentPower,
+            ParticipantInitializeStateData[
+              PvInput,
+              PvRuntimeConfig,
+              ApparentPower
+            ]
+          ](
+            ParticipantInitializeStateData(
+              pvInput,
+              PvRuntimeConfig(
+                calculateMissingReactivePowerWithModel = true,
+                scaling = 2d,
+                uuids = List.empty
+              ),
+              primaryServiceProxy.ref,
+              Some(Vector(ActorWeatherService(weatherService.ref))),
+              simulationStartDate,
+              simulationEndDate,
+              resolution,
+              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+              outputConfigOff,
+              Some(emAgent)
+            )
+          )
+        val storageAgentInit =
+          InitializeParticipantAgentTrigger[
+            ApparentPower,
+            ParticipantInitializeStateData[
+              StorageInput,
+              StorageRuntimeConfig,
+              ApparentPower
+            ]
+          ](
+            ParticipantInitializeStateData(
+              householdStorageInput,
+              StorageRuntimeConfig(
+                calculateMissingReactivePowerWithModel = true,
+                scaling = 1d,
+                uuids = List.empty
+              ),
+              primaryServiceProxy.ref,
+              None,
+              simulationStartDate,
+              simulationEndDate,
+              resolution,
+              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+              outputConfigOff,
+              Some(emAgent)
+            )
+          )
+
+        val connectedAgents = Seq(
+          (loadAgent, loadAgentInit, loadInput),
+          (pvAgent, pvAgentInit, pvInput),
+          (storageAgent, storageAgentInit, householdStorageInput)
+        )
+
+        scheduler.send(
+          emAgent,
+          TriggerWithIdMessage(
+            InitializeParticipantAgentTrigger[
+              ApparentPower,
+              EmAgentInitializeStateData
+            ](
+              EmAgentInitializeStateData(
+                inputModel = emInput,
+                modelConfig = modelConfig,
+                secondaryDataServices = None,
+                simulationStartDate = simulationStartDate,
+                simulationEndDate = simulationEndDate,
+                resolution = resolution,
+                requestVoltageDeviationThreshold =
+                  simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                outputConfig = outputConfigOn,
+                primaryServiceProxy = primaryServiceProxy.ref,
+                connectedAgents = connectedAgents
+              )
             ),
-            primaryServiceProxy.ref,
-            None,
-            simulationStartDate,
-            simulationEndDate,
-            resolution,
-            simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-            outputConfigOff,
-            Some(emAgent)
+            initId,
+            emAgent
           )
         )
-      val pvAgentInit =
-        InitializeParticipantAgentTrigger[
-          ApparentPower,
-          ParticipantInitializeStateData[
-            PvInput,
-            PvRuntimeConfig,
-            ApparentPower
-          ]
-        ](
+
+        // receive and deal with primary registration messages
+        Range(0, 3)
+          .map(_ =>
+            primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
+          )
+          .map(
+            _.inputModelUuid
+          ) should contain allOf (loadInput.getUuid, pvInput.getUuid, householdStorageInput.getUuid)
+
+        primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+        primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
+        primaryServiceProxy.send(storageAgent, RegistrationFailedMessage)
+
+        // deal with weather service registration
+        weatherService.expectMsg(
+          RegisterForWeatherMessage(
+            pvInput.getNode.getGeoPosition.getY,
+            pvInput.getNode.getGeoPosition.getX
+          )
+        )
+
+        weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(0L)))
+
+        scheduler.expectMsg(
+          CompletionMessage(
+            initId,
+            Some(Seq(ScheduleTriggerMessage(ActivityStartTrigger(0L), emAgent)))
+          )
+        )
+
+        /* TICK 0
+         LOAD: 0.000269 MW
+         PV:  -0.005685 MW
+         STORAGE: SOC 0 %
+         -> charge with 5 kW
+         -> remaining -0.0004161 MW
+         */
+
+        val activationId1 = 1
+
+        scheduler.send(
+          emAgent,
+          TriggerWithIdMessage(
+            ActivityStartTrigger(0L),
+            activationId1,
+            emAgent
+          )
+        )
+
+        weatherService.send(
+          pvAgent,
+          ProvideWeatherMessage(
+            0L,
+            WeatherData(
+              Quantities.getQuantity(400d, StandardUnits.SOLAR_IRRADIANCE),
+              Quantities.getQuantity(200d, StandardUnits.SOLAR_IRRADIANCE),
+              Quantities.getQuantity(0d, CELSIUS),
+              Quantities.getQuantity(0d, METRE_PER_SECOND)
+            ),
+            Some(7200L)
+          )
+        )
+
+        resultsListener.expectMsgType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 0L.toDateTime
+            emResult.getP should equalWithTolerance(
+              (-0.000416087825).asMegaWatt,
+              tolerance
+            )
+            emResult.getQ should equalWithTolerance(
+              0.0000882855367.asMegaVar,
+              tolerance
+            )
+        }
+
+        scheduler.expectMsg(
+          CompletionMessage(
+            activationId1,
+            Some(
+              List(ScheduleTriggerMessage(ActivityStartTrigger(7200L), emAgent))
+            )
+          )
+        )
+
+        /* TICK 7200
+         LOAD: 0.000269 MW (unchanged)
+         PV:  -0.003797 MW
+         STORAGE: SOC 63.3 %
+         -> charge with 3.5282 kW
+         -> remaining 0 MW
+         */
+
+        val activationId2 = 2
+
+        scheduler.send(
+          emAgent,
+          TriggerWithIdMessage(
+            ActivityStartTrigger(7200L),
+            activationId2,
+            emAgent
+          )
+        )
+
+        weatherService.send(
+          pvAgent,
+          ProvideWeatherMessage(
+            7200L,
+            WeatherData(
+              Quantities.getQuantity(300d, StandardUnits.SOLAR_IRRADIANCE),
+              Quantities.getQuantity(500d, StandardUnits.SOLAR_IRRADIANCE),
+              Quantities.getQuantity(0d, CELSIUS),
+              Quantities.getQuantity(0d, METRE_PER_SECOND)
+            ),
+            Some(14400L)
+          )
+        )
+
+        resultsListener.expectMsgType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 7200L.toDateTime
+            emResult.getP should equalWithTolerance(
+              0.asMegaWatt,
+              tolerance
+            )
+            emResult.getQ should equalWithTolerance(
+              0.0000882855367.asMegaVar,
+              tolerance
+            )
+        }
+
+        scheduler.expectMsg(
+          CompletionMessage(
+            activationId2,
+            Some(
+              List(
+                ScheduleTriggerMessage(ActivityStartTrigger(13107L), emAgent)
+              )
+            )
+          )
+        )
+
+        /* TICK 13107
+         LOAD: 0.000269 MW (unchanged)
+         PV:  -0.003797 MW (unchanged)
+         STORAGE: SOC 100 %
+         -> charge with 0 kW
+         -> remaining -0.003528 MW
+         */
+
+        val activationId3 = 3
+
+        scheduler.send(
+          emAgent,
+          TriggerWithIdMessage(
+            ActivityStartTrigger(13107L),
+            activationId3,
+            emAgent
+          )
+        )
+
+        resultsListener.expectMsgType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 13107L.toDateTime
+            emResult.getP should equalWithTolerance(
+              (-0.0035281545552).asMegaWatt,
+              tolerance
+            )
+            emResult.getQ should equalWithTolerance(
+              0.0000882855367.asMegaVar,
+              tolerance
+            )
+        }
+
+        scheduler.expectMsg(
+          CompletionMessage(
+            activationId3,
+            Some(
+              List(
+                ScheduleTriggerMessage(ActivityStartTrigger(14400L), emAgent)
+              )
+            )
+          )
+        )
+
+        /* TICK 14400
+         LOAD: 0.000269 MW (unchanged)
+         PV:  -0.000066 MW
+         STORAGE: SOC 100 %
+         -> charge with -0.202956 kW
+         -> remaining 0 MW
+         */
+
+        val activationId4 = 4
+
+        scheduler.send(
+          emAgent,
+          TriggerWithIdMessage(
+            ActivityStartTrigger(14400L),
+            activationId4,
+            emAgent
+          )
+        )
+
+        // it got cloudy now...
+        weatherService.send(
+          pvAgent,
+          ProvideWeatherMessage(
+            14400L,
+            WeatherData(
+              Quantities.getQuantity(5d, StandardUnits.SOLAR_IRRADIANCE),
+              Quantities.getQuantity(5d, StandardUnits.SOLAR_IRRADIANCE),
+              Quantities.getQuantity(0d, CELSIUS),
+              Quantities.getQuantity(0d, METRE_PER_SECOND)
+            ),
+            Some(21600L)
+          )
+        )
+
+        resultsListener.expectMsgType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 14400L.toDateTime
+            emResult.getP should equalWithTolerance(
+              0.asMegaWatt,
+              tolerance
+            )
+            emResult.getQ should equalWithTolerance(
+              0.000088285537.asMegaVar,
+              tolerance
+            )
+        }
+
+        scheduler.expectMsg(
+          CompletionMessage(
+            activationId4,
+            Some(
+              List(
+                ScheduleTriggerMessage(ActivityStartTrigger(21600L), emAgent)
+              )
+            )
+          )
+        )
+      }
+    }
+
+    "having load, pv and heat pump agents connected" should {
+      "be initialized correctly and run through some activations" in {
+        val resultsListener = TestProbe("ResultListener")
+        val primaryServiceProxy = TestProbe("PrimaryServiceProxy")
+        val weatherService = TestProbe("WeatherService")
+
+        val emAgent = TestActorRef(
+          new EmAgent(
+            scheduler = scheduler.ref,
+            listener = Iterable(resultsListener.ref)
+          ),
+          "EmAgent"
+        )
+
+        val initId = 0
+
+        val loadAgent = TestActorRef(
+          new FixedLoadAgent(
+            scheduler = emAgent,
+            listener = Iterable(resultsListener.ref)
+          ),
+          "LoadAgent"
+        )
+        val pvAgent = TestActorRef(
+          new PvAgent(
+            scheduler = emAgent,
+            listener = Iterable(resultsListener.ref)
+          ),
+          "PvAgent"
+        )
+        val heatPumpAgent = TestActorRef(
+          new HpAgent(
+            scheduler = emAgent,
+            listener = Iterable(resultsListener.ref)
+          ),
+          "HeatPumpAgent"
+        )
+
+        val loadAgentInit =
+          InitializeParticipantAgentTrigger[
+            ApparentPower,
+            ParticipantInitializeStateData[
+              LoadInput,
+              LoadRuntimeConfig,
+              ApparentPower
+            ]
+          ](
+            ParticipantInitializeStateData(
+              loadInput,
+              LoadRuntimeConfig(
+                calculateMissingReactivePowerWithModel = true,
+                scaling = 1d,
+                modelBehaviour = "fix",
+                reference = "power",
+                uuids = List.empty
+              ),
+              primaryServiceProxy.ref,
+              None,
+              simulationStartDate,
+              simulationEndDate,
+              resolution,
+              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+              outputConfigOff,
+              Some(emAgent)
+            )
+          )
+        val pvAgentInit =
+          InitializeParticipantAgentTrigger[
+            ApparentPower,
+            ParticipantInitializeStateData[
+              PvInput,
+              PvRuntimeConfig,
+              ApparentPower
+            ]
+          ](
+            ParticipantInitializeStateData(
+              pvInput,
+              PvRuntimeConfig(
+                calculateMissingReactivePowerWithModel = true,
+                scaling = 2d,
+                uuids = List.empty
+              ),
+              primaryServiceProxy.ref,
+              Some(Vector(ActorWeatherService(weatherService.ref))),
+              simulationStartDate,
+              simulationEndDate,
+              resolution,
+              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+              outputConfigOff,
+              Some(emAgent)
+            )
+          )
+
+        val hpInitData = InitializeParticipantAgentTrigger(
           ParticipantInitializeStateData(
-            pvInput,
-            PvRuntimeConfig(
+            adaptedHpInputModel,
+            adaptedThermalGrid,
+            HpRuntimeConfig(
               calculateMissingReactivePowerWithModel = true,
-              scaling = 2d,
-              uuids = List.empty
+              1.0,
+              List.empty[String]
             ),
             primaryServiceProxy.ref,
             Some(Vector(ActorWeatherService(weatherService.ref))),
@@ -184,305 +626,350 @@ class EmAgentIT
             Some(emAgent)
           )
         )
-      val storageAgentInit =
-        InitializeParticipantAgentTrigger[
-          ApparentPower,
-          ParticipantInitializeStateData[
-            StorageInput,
-            StorageRuntimeConfig,
-            ApparentPower
-          ]
+
+        val connectedAgents = Seq[
+          (
+              ActorRef,
+              InitializeParticipantAgentTrigger[_, _],
+              SystemParticipantInput
+          )
         ](
-          ParticipantInitializeStateData(
-            householdStorageInput,
-            StorageRuntimeConfig(
-              calculateMissingReactivePowerWithModel = true,
-              scaling = 1d,
-              uuids = List.empty
+          (loadAgent, loadAgentInit, loadInput),
+          (pvAgent, pvAgentInit, pvInput),
+          (heatPumpAgent, hpInitData, hpInputModel)
+        )
+
+        val weatherDependentAgents = Seq(pvAgent, heatPumpAgent)
+
+        scheduler.send(
+          emAgent,
+          TriggerWithIdMessage(
+            InitializeParticipantAgentTrigger[
+              ApparentPower,
+              EmAgentInitializeStateData
+            ](
+              EmAgentInitializeStateData(
+                inputModel = emInput,
+                modelConfig = modelConfig,
+                secondaryDataServices = None,
+                simulationStartDate = simulationStartDate,
+                simulationEndDate = simulationEndDate,
+                resolution = resolution,
+                requestVoltageDeviationThreshold =
+                  simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                outputConfig = outputConfigOn,
+                primaryServiceProxy = primaryServiceProxy.ref,
+                connectedAgents = connectedAgents
+              )
             ),
-            primaryServiceProxy.ref,
-            None,
-            simulationStartDate,
-            simulationEndDate,
-            resolution,
-            simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-            outputConfigOff,
-            Some(emAgent)
+            initId,
+            emAgent
           )
         )
 
-      val connectedAgents = Seq(
-        (loadAgent, loadAgentInit, loadInput),
-        (pvAgent, pvAgentInit, pvInput),
-        (storageAgent, storageAgentInit, householdStorageInput)
-      )
+        // receive and deal with primary registration messages
+        Range(0, 3)
+          .map(_ =>
+            primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
+          )
+          .map(
+            _.inputModelUuid
+          ) should contain allOf (loadInput.getUuid, pvInput.getUuid, hpInputModel.getUuid)
 
-      scheduler.send(
-        emAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            EmAgentInitializeStateData
-          ](
-            EmAgentInitializeStateData(
-              inputModel = emInput,
-              modelConfig = modelConfig,
-              secondaryDataServices = None,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = outputConfigOn,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              connectedAgents = connectedAgents
-            )
-          ),
-          initId,
-          emAgent
+        primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+        primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
+        primaryServiceProxy.send(heatPumpAgent, RegistrationFailedMessage)
+
+        // deal with weather service registration
+        weatherService.expectMsg(
+          RegisterForWeatherMessage(
+            pvInput.getNode.getGeoPosition.getY,
+            pvInput.getNode.getGeoPosition.getX
+          )
         )
-      )
-
-      // receive and deal with primary registration messages
-      Range(0, 3)
-        .map(_ =>
-          primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
+        weatherService.expectMsg(
+          RegisterForWeatherMessage(
+            hpInputModel.getNode.getGeoPosition.getY,
+            hpInputModel.getNode.getGeoPosition.getX
+          )
         )
-        .map(
-          _.inputModelUuid
-        ) should contain allOf (loadInput.getUuid, pvInput.getUuid, householdStorageInput.getUuid)
 
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
-      primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
-      primaryServiceProxy.send(storageAgent, RegistrationFailedMessage)
+        weatherDependentAgents.foreach { wda =>
+          weatherService.send(wda, RegistrationSuccessfulMessage(Some(0L)))
+        }
 
-      // deal with weather service registration
-      weatherService.expectMsg(
-        RegisterForWeatherMessage(
-          pvInput.getNode.getGeoPosition.getY,
-          pvInput.getNode.getGeoPosition.getX
+        scheduler.expectMsg(
+          CompletionMessage(
+            initId,
+            Some(Seq(ScheduleTriggerMessage(ActivityStartTrigger(0L), emAgent)))
+          )
         )
-      )
 
-      weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(0L)))
-
-      scheduler.expectMsg(
-        CompletionMessage(
-          initId,
-          Some(Seq(ScheduleTriggerMessage(ActivityStartTrigger(0L), emAgent)))
-        )
-      )
-
-      /* TICK 0
+        /* TICK 0
          LOAD: 0.000269 MW
          PV:  -0.005685 MW
-         STORAGE: SOC 0 %
-         -> charge with 5 kW
-         -> remaining -0.0004161 MW
-       */
+         Heat pump: off, can be turned on or stay off
+         -> set point ~3.5 kW (bigger than 50 % rated apparent power): turned on
+         -> remaining -0.000566 MW
+         */
 
-      val activationId1 = 1
+        val activationId1 = 1
 
-      scheduler.send(
-        emAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(0L),
-          activationId1,
-          emAgent
-        )
-      )
-
-      weatherService.send(
-        pvAgent,
-        ProvideWeatherMessage(
-          0L,
-          WeatherData(
-            Quantities.getQuantity(400d, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(200d, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0d, CELSIUS),
-            Quantities.getQuantity(0d, METRE_PER_SECOND)
-          ),
-          Some(7200L)
-        )
-      )
-
-      resultsListener.expectMsgType[ParticipantResultEvent] match {
-        case ParticipantResultEvent(emResult: EmResult) =>
-          emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 0L.toDateTime
-          emResult.getP should equalWithTolerance(
-            (-0.000416087825).asMegaWatt,
-            tolerance
-          )
-          emResult.getQ should equalWithTolerance(
-            0.0000882855367.asMegaVar,
-            tolerance
-          )
-      }
-
-      scheduler.expectMsg(
-        CompletionMessage(
-          activationId1,
-          Some(
-            List(ScheduleTriggerMessage(ActivityStartTrigger(7200L), emAgent))
+        scheduler.send(
+          emAgent,
+          TriggerWithIdMessage(
+            ActivityStartTrigger(0L),
+            activationId1,
+            emAgent
           )
         )
-      )
 
-      /* TICK 7200
+        weatherDependentAgents.foreach { wda =>
+          weatherService.send(
+            wda,
+            ProvideWeatherMessage(
+              0L,
+              WeatherData(
+                Quantities.getQuantity(400d, StandardUnits.SOLAR_IRRADIANCE),
+                Quantities.getQuantity(200d, StandardUnits.SOLAR_IRRADIANCE),
+                Quantities.getQuantity(0d, CELSIUS),
+                Quantities.getQuantity(0d, METRE_PER_SECOND)
+              ),
+              Some(7200L)
+            )
+          )
+        }
+
+        resultsListener.expectMsgType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 0L.toDateTime
+            emResult.getP should equalWithTolerance(
+              (-0.000566087824).asMegaWatt,
+              tolerance
+            )
+            emResult.getQ should equalWithTolerance(
+              0.001073120041.asMegaVar,
+              tolerance
+            )
+        }
+
+        scheduler.expectMsg(
+          CompletionMessage(
+            activationId1,
+            Some(
+              List(ScheduleTriggerMessage(ActivityStartTrigger(7200L), emAgent))
+            )
+          )
+        )
+
+        /* TICK 7200
          LOAD: 0.000269 MW (unchanged)
          PV:  -0.003797 MW
-         STORAGE: SOC 63.3 %
-         -> charge with 3.5282 kW
+         Heat pump: running (turned on from last request), can be turned on and stay off
+         -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
          -> remaining 0 MW
-       */
+         */
 
-      val activationId2 = 2
+        val activationId2 = 2
 
-      scheduler.send(
-        emAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(7200L),
-          activationId2,
-          emAgent
-        )
-      )
-
-      weatherService.send(
-        pvAgent,
-        ProvideWeatherMessage(
-          7200L,
-          WeatherData(
-            Quantities.getQuantity(300d, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(500d, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0d, CELSIUS),
-            Quantities.getQuantity(0d, METRE_PER_SECOND)
-          ),
-          Some(14400L)
-        )
-      )
-
-      resultsListener.expectMsgType[ParticipantResultEvent] match {
-        case ParticipantResultEvent(emResult: EmResult) =>
-          emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 7200L.toDateTime
-          emResult.getP should equalWithTolerance(
-            0.asMegaWatt,
-            tolerance
-          )
-          emResult.getQ should equalWithTolerance(
-            0.0000882855367.asMegaVar,
-            tolerance
-          )
-      }
-
-      scheduler.expectMsg(
-        CompletionMessage(
-          activationId2,
-          Some(
-            List(ScheduleTriggerMessage(ActivityStartTrigger(13107L), emAgent))
+        scheduler.send(
+          emAgent,
+          TriggerWithIdMessage(
+            ActivityStartTrigger(7200L),
+            activationId2,
+            emAgent
           )
         )
-      )
 
-      /* TICK 13107
-         LOAD: 0.000269 MW (unchanged)
-         PV:  -0.003797 MW (unchanged)
-         STORAGE: SOC 100 %
-         -> charge with 0 kW
-         -> remaining -0.003528 MW
-       */
+        weatherDependentAgents.foreach { wda =>
+          weatherService.send(
+            wda,
+            ProvideWeatherMessage(
+              7200L,
+              WeatherData(
+                Quantities.getQuantity(300d, StandardUnits.SOLAR_IRRADIANCE),
+                Quantities.getQuantity(500d, StandardUnits.SOLAR_IRRADIANCE),
+                Quantities.getQuantity(0d, CELSIUS),
+                Quantities.getQuantity(0d, METRE_PER_SECOND)
+              ),
+              Some(14400L)
+            )
+          )
+        }
 
-      val activationId3 = 3
+        resultsListener.expectMsgType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 7200L.toDateTime
+            emResult.getP should equalWithTolerance(
+              0.00132184544484.asMegaWatt,
+              tolerance
+            )
+            emResult.getQ should equalWithTolerance(
+              0.001073120041.asMegaVar,
+              tolerance
+            )
+        }
 
-      scheduler.send(
-        emAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(13107L),
-          activationId3,
-          emAgent
+        scheduler.expectMsg(
+          CompletionMessage(
+            activationId2,
+            Some(
+              List(
+                ScheduleTriggerMessage(ActivityStartTrigger(14400L), emAgent)
+              )
+            )
+          )
         )
-      )
 
-      resultsListener.expectMsgType[ParticipantResultEvent] match {
-        case ParticipantResultEvent(emResult: EmResult) =>
-          emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 13107L.toDateTime
-          emResult.getP should equalWithTolerance(
-            (-0.0035281545552).asMegaWatt,
-            tolerance
-          )
-          emResult.getQ should equalWithTolerance(
-            0.0000882855367.asMegaVar,
-            tolerance
-          )
-      }
-
-      scheduler.expectMsg(
-        CompletionMessage(
-          activationId3,
-          Some(
-            List(ScheduleTriggerMessage(ActivityStartTrigger(14400L), emAgent))
-          )
-        )
-      )
-
-      /* TICK 14400
+        /* TICK 14400
          LOAD: 0.000269 MW (unchanged)
          PV:  -0.000066 MW
-         STORAGE: SOC 100 %
-         -> charge with -0.202956 kW
+         Heat pump: Is running, can still run or be turned off
+         -> flex signal is 0 MW: Heat pump is turned off
          -> remaining 0 MW
-       */
+         */
 
-      val activationId4 = 4
+        val activationId3 = 3
 
-      scheduler.send(
-        emAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(14400L),
-          activationId4,
-          emAgent
-        )
-      )
-
-      // it got cloudy now...
-      weatherService.send(
-        pvAgent,
-        ProvideWeatherMessage(
-          14400L,
-          WeatherData(
-            Quantities.getQuantity(5d, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(5d, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0d, CELSIUS),
-            Quantities.getQuantity(0d, METRE_PER_SECOND)
-          ),
-          Some(21600L)
-        )
-      )
-
-      resultsListener.expectMsgType[ParticipantResultEvent] match {
-        case ParticipantResultEvent(emResult: EmResult) =>
-          emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 14400L.toDateTime
-          emResult.getP should equalWithTolerance(
-            0.asMegaWatt,
-            tolerance
+        scheduler.send(
+          emAgent,
+          TriggerWithIdMessage(
+            ActivityStartTrigger(14400L),
+            activationId3,
+            emAgent
           )
-          emResult.getQ should equalWithTolerance(
-            0.000088285537.asMegaVar,
-            tolerance
+        )
+
+        // it got cloudy now...
+        weatherDependentAgents.foreach { wda =>
+          weatherService.send(
+            wda,
+            ProvideWeatherMessage(
+              14400L,
+              WeatherData(
+                Quantities.getQuantity(5d, StandardUnits.SOLAR_IRRADIANCE),
+                Quantities.getQuantity(5d, StandardUnits.SOLAR_IRRADIANCE),
+                Quantities.getQuantity(0d, CELSIUS),
+                Quantities.getQuantity(0d, METRE_PER_SECOND)
+              ),
+              Some(21600L)
+            )
           )
+        }
+
+        resultsListener.expectMsgType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 14400L.toDateTime
+            emResult.getP should equalWithTolerance(
+              0.000202956264.asMegaWatt,
+              tolerance
+            )
+            emResult.getQ should equalWithTolerance(
+              0.000088285537.asMegaVar,
+              tolerance
+            )
+        }
+
+        scheduler.expectMsg(
+          CompletionMessage(
+            activationId3,
+            Some(
+              List(
+                ScheduleTriggerMessage(ActivityStartTrigger(21600L), emAgent)
+              )
+            )
+          )
+        )
+
+        /* Just spool forward */
+
+        val activationId4 = 4
+
+        scheduler.send(
+          emAgent,
+          TriggerWithIdMessage(
+            ActivityStartTrigger(21600L),
+            activationId4,
+            emAgent
+          )
+        )
+
+        // it got cloudy now...
+        weatherDependentAgents.foreach { wda =>
+          weatherService.send(
+            wda,
+            ProvideWeatherMessage(
+              21600L,
+              WeatherData(
+                Quantities.getQuantity(5d, StandardUnits.SOLAR_IRRADIANCE),
+                Quantities.getQuantity(5d, StandardUnits.SOLAR_IRRADIANCE),
+                Quantities.getQuantity(0d, CELSIUS),
+                Quantities.getQuantity(0d, METRE_PER_SECOND)
+              ),
+              Some(28800L)
+            )
+          )
+        }
+
+        resultsListener.expectMsgType[ParticipantResultEvent]
+
+        scheduler.expectMsg(
+          CompletionMessage(
+            activationId4,
+            Some(
+              List(
+                ScheduleTriggerMessage(ActivityStartTrigger(28612L), emAgent)
+              )
+            )
+          )
+        )
+
+        /* TICK 28612
+         LOAD: 0.000269 MW (unchanged)
+         PV:  -0.000066 MW (unchanged)
+         Heat pump: Is turned off and has to be turned on
+         -> flex signal is no control
+         */
+
+        val activationId5 = 5
+
+        scheduler.send(
+          emAgent,
+          TriggerWithIdMessage(
+            ActivityStartTrigger(28612L),
+            activationId5,
+            emAgent
+          )
+        )
+
+        resultsListener.expectMsgType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 28612L.toDateTime
+            emResult.getP should equalWithTolerance(
+              0.0050867679996.asMegaWatt,
+              tolerance
+            )
+            emResult.getQ should equalWithTolerance(
+              0.001073120040.asMegaVar,
+              tolerance
+            )
+        }
+
+        scheduler.expectMsg(
+          CompletionMessage(
+            activationId5,
+            Some(
+              List(
+                ScheduleTriggerMessage(ActivityStartTrigger(28800L), emAgent)
+              )
+            )
+          )
+        )
       }
-
-      scheduler.expectMsg(
-        CompletionMessage(
-          activationId4,
-          Some(
-            List(ScheduleTriggerMessage(ActivityStartTrigger(21600L), emAgent))
-          )
-        )
-      )
     }
   }
 }

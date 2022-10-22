@@ -12,7 +12,7 @@ import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.input.system.`type`.HpTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
-import edu.ie3.simona.model.participant.HpModel.{HpRelevantData}
+import edu.ie3.simona.model.participant.HpModel.HpRelevantData
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalHouse}

@@ -15,13 +15,24 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.evcs.EvcsModel.{EvcsRelevantData, EvcsState}
+import edu.ie3.simona.model.participant.evcs.EvcsModel.{
+  EvcsRelevantData,
+  EvcsState
+}
 import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedCharging
 import edu.ie3.simona.model.participant.evcs.gridoriented.GridOrientedCurrentPrice.calculateCurrentPriceGridOriented
 import edu.ie3.simona.model.participant.evcs.marketoriented.MarketOrientedCharging
 import edu.ie3.simona.model.participant.evcs.marketoriented.MarketOrientedCurrentPrice.calculateCurrentPriceMarketOriented
-import edu.ie3.simona.model.participant.evcs.uncontrolled.{ConstantPowerCharging, MaximumPowerCharging}
-import edu.ie3.simona.model.participant.{CalcRelevantData, FlexChangeIndicator, ModelState, SystemParticipant}
+import edu.ie3.simona.model.participant.evcs.uncontrolled.{
+  ConstantPowerCharging,
+  MaximumPowerCharging
+}
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  FlexChangeIndicator,
+  ModelState,
+  SystemParticipant
+}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.service.market.StaticMarketSource

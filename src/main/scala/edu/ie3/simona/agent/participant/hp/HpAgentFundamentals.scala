@@ -149,24 +149,24 @@ trait HpAgentFundamentals
   ): (HpState, ApparentPowerAndHeat, FlexChangeIndicator) = {
     /* Determine needed information */
     val voltage =
-      getAndCheckNodalVoltage(baseStateData, currentTick)
-    val relevantData = createCalcRelevantData(baseStateData, currentTick)
+      getAndCheckNodalVoltage(baseStateData, tick)
+    val relevantData = createCalcRelevantData(baseStateData, tick)
 
-    val modelState = baseStateData.stateDataStore.last(currentTick) match {
-      case Some((lastTick, _)) if lastTick == currentTick =>
+    val modelState = baseStateData.stateDataStore.last(tick) match {
+      case Some((lastTick, _)) if lastTick == tick =>
         /* We already updated the state for this tick, take the one before */
-        baseStateData.stateDataStore.last(currentTick - 1) match {
+        baseStateData.stateDataStore.last(tick - 1) match {
           case Some((_, earlierModelState)) => earlierModelState
           case None =>
             throw new InconsistentStateException(
-              s"Unable to get state for heat pump '${baseStateData.model.getUuid}' in tick ${currentTick - 1}."
+              s"Unable to get state for heat pump '${baseStateData.model.getUuid}' in tick ${tick - 1}."
             )
         }
       case Some((_, lastModelState)) =>
         lastModelState
       case None =>
         throw new InconsistentStateException(
-          s"Unable to get state for heat pump '${baseStateData.model.getUuid}' in tick $currentTick."
+          s"Unable to get state for heat pump '${baseStateData.model.getUuid}' in tick $tick."
         )
     }
 
@@ -176,7 +176,7 @@ trait HpAgentFundamentals
 
     /* Calculate power results */
     val result = baseStateData.model.calculatePower(
-      currentTick,
+      tick,
       voltage,
       Some(updatedState),
       relevantData
@@ -382,13 +382,20 @@ trait HpAgentFundamentals
     /* extract weather data from secondary data, which should have been requested and received before */
     val weatherData =
       baseStateData.receivedSecondaryDataStore
-        .get(currentTick)
-        .flatMap(receivedValues =>
+        .last(tick)
+        .flatMap { case (receivedTick, receivedValues) =>
+          // FIXME: This fallback should check if the activation comes from an internal event. Only then it's valid to
+          //   take previously received values
+          if (receivedTick != tick)
+            log.debug(
+              s"The model ${baseStateData.model.getUuid} needs to do calculations with values received " +
+                s"in tick $receivedTick, as no weather data has been received in tick $tick."
+            )
           receivedValues.collectFirst {
             // filter secondary data for weather data
             case (_, data: WeatherData) => data
           }
-        )
+        }
         .getOrElse(
           throw new InconsistentStateException(
             s"The model ${baseStateData.model} was not provided with needed weather data."
@@ -396,7 +403,7 @@ trait HpAgentFundamentals
         )
 
     HpRelevantData(
-      currentTick,
+      tick,
       weatherData.temp
     )
   }

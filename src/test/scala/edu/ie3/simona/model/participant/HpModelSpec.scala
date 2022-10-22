@@ -23,8 +23,6 @@ class HpModelSpec
     with TableDrivenPropertyChecks
     with HpModelTestData {
   "Testing the heat pump model" when {
-    val testingTolerance = 0.0001
-
     "calculating the next state with different states" should {
       "deliver correct tick, power and running state" in {
         val cases = Table(

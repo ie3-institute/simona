@@ -87,7 +87,7 @@ class HpAgentModelCalculationSpec
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
 
   /* Alter the input model to have a voltage sensitive reactive power calculation */
-  val hpInput: HpInput = inputModel
+  val hpInput: HpInput = hpInputModel
 
   private val testingTolerance = 1e-6 // Equality on the basis of 1 W
   private val simonaConfig: SimonaConfig = SimonaConfig(
@@ -635,7 +635,7 @@ class HpAgentModelCalculationSpec
                   )
                 case None =>
                   fail(
-                    s"Expected to get a result for thermal house '${inputModel.getUuid}'"
+                    s"Expected to get a result for thermal house '${hpInputModel.getUuid}'"
                   )
               }
             case None => fail("Expected to get a model state")
@@ -839,7 +839,7 @@ class HpAgentModelCalculationSpec
                   )
                 case None =>
                   fail(
-                    s"Expected to get a result for thermal house '${inputModel.getUuid}'"
+                    s"Expected to get a result for thermal house '${hpInputModel.getUuid}'"
                   )
               }
             case None => fail("Expected to get a model state.")

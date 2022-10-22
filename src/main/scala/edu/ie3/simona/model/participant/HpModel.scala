@@ -232,14 +232,35 @@ final case class HpModel(
       data: HpRelevantData,
       lastState: HpState
   ): ProvideFlexOptions = {
-    /* Role up the state until the given tick */
-    val updatedState = calcState(lastState, data, lastState.isRunning)
+    /* Determine the operating state in the given tick */
+    val updatedState = calculateNextState(lastState, data)
+
+    /* Determine the options we have */
+    val thermalEnergyDemand = thermalGrid.energyDemand(
+      data.currentTimeTick,
+      data.ambientTemperature,
+      lastState.thermalGridState
+    )
+    val canOperate =
+      thermalEnergyDemand.hasRequiredDemand || thermalEnergyDemand.hasAdditionalDemand
+    val canBeOutOfOperation = !thermalEnergyDemand.hasRequiredDemand
+
+    val lowerBoundary =
+      if (canBeOutOfOperation)
+        Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+      else
+        updatedState.activePower.to(StandardUnits.ACTIVE_POWER_IN)
+    val upperBoundary =
+      if (canOperate)
+        sRated.multiply(cosPhiRated).to(StandardUnits.ACTIVE_POWER_IN)
+      else
+        Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
 
     ProvideMinMaxFlexOptions(
       uuid,
       updatedState.activePower,
-      Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN),
-      updatedState.activePower.to(StandardUnits.ACTIVE_POWER_IN)
+      lowerBoundary,
+      upperBoundary
     )
   }
 
