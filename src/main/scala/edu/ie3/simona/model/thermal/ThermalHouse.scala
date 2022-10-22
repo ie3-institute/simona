@@ -24,7 +24,7 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.interfaces.{HeatCapacity, ThermalConductance}
 
 import javax.measure.quantity.{Energy, Power, Temperature, Time}
-import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.{ComparableQuantity, quantity}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 import tech.units.indriya.unit.Units.HOUR
@@ -354,8 +354,8 @@ final case class ThermalHouse(
       /* House has more losses than gain */
       val nextTick = nextActivation(
         tick,
-        lowerBoundaryTemperature,
         innerTemperature,
+        lowerBoundaryTemperature,
         resultingQDot
       )
       Some(HouseTemperatureLowerBoundaryReached(nextTick))
@@ -380,11 +380,11 @@ final case class ThermalHouse(
 
   private def nextActivation(
       tick: Long,
-      currentTemperature: ComparableQuantity[Temperature],
-      targetTemperature: ComparableQuantity[Temperature],
+      higherTemperature: ComparableQuantity[Temperature],
+      lowerTemperature: ComparableQuantity[Temperature],
       qDot: ComparableQuantity[Power]
   ): Long = {
-    val flexibleEnergy = energy(targetTemperature, currentTemperature)
+    val flexibleEnergy = energy(higherTemperature, lowerTemperature)
     if (
       flexibleEnergy.isLessThan(
         Quantities.getQuantity(0d, StandardUnits.ENERGY_IN)
@@ -393,7 +393,7 @@ final case class ThermalHouse(
       tick
     else {
       val duration = flexibleEnergy
-        .divide(qDot)
+        .divide(qDot.multiply(math.signum(qDot.getValue.doubleValue())))
         .asType(classOf[Time])
         .to(Units.SECOND)
         .getValue
