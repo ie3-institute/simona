@@ -14,20 +14,17 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalHouseInput
 }
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
-import edu.ie3.simona.model.thermal.ThermalHouse.{
-  ThermalHouseState,
-  ThermalHouseThreshold
-}
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
-  LowerTemperatureReached,
-  UpperTemperatureReached
+  HouseTemperatureLowerBoundaryReached,
+  HouseTemperatureUpperBoundaryReached
 }
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.interfaces.{HeatCapacity, ThermalConductance}
 
 import javax.measure.quantity.{Energy, Power, Temperature, Time}
-import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.{ComparableQuantity, quantity}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 import tech.units.indriya.unit.Units.HOUR
@@ -299,7 +296,7 @@ final case class ThermalHouse(
       state: ThermalHouseState,
       ambientTemperature: ComparableQuantity[Temperature],
       qDot: ComparableQuantity[Power]
-  ): (ThermalHouseState, Option[ThermalHouseThreshold]) = {
+  ): (ThermalHouseState, Option[ThermalThreshold]) = {
     val duration = state.tick.durationUntil(tick)
     val updatedInnerTemperature = newInnerTemperature(
       state.qDot,
@@ -339,7 +336,7 @@ final case class ThermalHouse(
       qDotExternal: ComparableQuantity[Power],
       innerTemperature: ComparableQuantity[Temperature],
       ambientTemperature: ComparableQuantity[Temperature]
-  ): Option[ThermalHouseThreshold] = {
+  ): Option[ThermalThreshold] = {
     val artificialDuration = Quantities.getQuantity(1d, Units.HOUR)
     val loss = calcThermalEnergyLoss(
       innerTemperature,
@@ -355,32 +352,53 @@ final case class ThermalHouse(
       )
     ) {
       /* House has more losses than gain */
-      val remainingEnergy =
-        energy(lowerBoundaryTemperature, innerTemperature)
-      val duration = remainingEnergy
-        .divide(resultingQDot)
-        .asType(classOf[Time])
-        .to(Units.SECOND)
-        .getValue
-        .longValue()
-      Some(LowerTemperatureReached(tick + duration))
+      val nextTick = nextActivation(
+        tick,
+        innerTemperature,
+        lowerBoundaryTemperature,
+        resultingQDot
+      )
+      Some(HouseTemperatureLowerBoundaryReached(nextTick))
     } else if (
       resultingQDot.isGreaterThan(
         Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
       )
     ) {
       /* House has more gain than losses */
-      val missingEnergy = energy(upperBoundaryTemperature, innerTemperature)
-      val duration = missingEnergy
-        .divide(resultingQDot)
+      val nextTick = nextActivation(
+        tick,
+        upperBoundaryTemperature,
+        innerTemperature,
+        resultingQDot
+      )
+      Some(HouseTemperatureUpperBoundaryReached(nextTick))
+    } else {
+      /* House is in perfect balance */
+      None
+    }
+  }
+
+  private def nextActivation(
+      tick: Long,
+      higherTemperature: ComparableQuantity[Temperature],
+      lowerTemperature: ComparableQuantity[Temperature],
+      qDot: ComparableQuantity[Power]
+  ): Long = {
+    val flexibleEnergy = energy(higherTemperature, lowerTemperature)
+    if (
+      flexibleEnergy.isLessThan(
+        Quantities.getQuantity(0d, StandardUnits.ENERGY_IN)
+      )
+    )
+      tick
+    else {
+      val duration = flexibleEnergy
+        .divide(qDot.multiply(math.signum(qDot.getValue.doubleValue())))
         .asType(classOf[Time])
         .to(Units.SECOND)
         .getValue
         .longValue()
-      Some(UpperTemperatureReached(tick + duration))
-    } else {
-      /* House is in perfect balance */
-      None
+      tick + duration
     }
   }
 }
@@ -421,13 +439,12 @@ object ThermalHouse {
       Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
     )
 
-  sealed trait ThermalHouseThreshold {
-    val tick: Long
-  }
   object ThermalHouseThreshold {
-    final case class LowerTemperatureReached(override val tick: Long)
-        extends ThermalHouseThreshold
-    final case class UpperTemperatureReached(override val tick: Long)
-        extends ThermalHouseThreshold
+    final case class HouseTemperatureLowerBoundaryReached(
+        override val tick: Long
+    ) extends ThermalThreshold
+    final case class HouseTemperatureUpperBoundaryReached(
+        override val tick: Long
+    ) extends ThermalThreshold
   }
 }

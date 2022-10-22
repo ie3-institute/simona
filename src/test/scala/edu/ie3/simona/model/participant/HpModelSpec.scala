@@ -8,6 +8,10 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.model.participant.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
+  HouseTemperatureLowerBoundaryReached,
+  HouseTemperatureUpperBoundaryReached
+}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -29,7 +33,8 @@ class HpModelSpec
             "expectedTick",
             "expectedRunningState",
             "expectedActivePower",
-            "expectedInnerTemperature"
+            "expectedInnerTemperature",
+            "expectedNextThreshold"
           ),
           (
             HpState(
@@ -43,7 +48,8 @@ class HpModelSpec
             7200,
             true,
             95,
-            15.6
+            15.6,
+            Some(HouseTemperatureUpperBoundaryReached(31710L))
           ),
           (
             HpState(
@@ -57,7 +63,8 @@ class HpModelSpec
             7200,
             true,
             95,
-            16.4
+            16.4,
+            Some(HouseTemperatureUpperBoundaryReached(30641L))
           ),
           (
             HpState(
@@ -71,7 +78,8 @@ class HpModelSpec
             7200,
             true,
             95,
-            18.0
+            18.0,
+            Some(HouseTemperatureUpperBoundaryReached(27771L))
           ),
           (
             HpState(
@@ -85,7 +93,8 @@ class HpModelSpec
             7200,
             false,
             0,
-            19.6
+            19.6,
+            Some(HouseTemperatureLowerBoundaryReached(13200L))
           ),
           (
             HpState(
@@ -99,7 +108,8 @@ class HpModelSpec
             7200,
             false,
             0,
-            20.4
+            20.4,
+            Some(HouseTemperatureLowerBoundaryReached(15507L))
           ),
           (
             HpState(
@@ -113,7 +123,8 @@ class HpModelSpec
             7200,
             true,
             95,
-            15.6
+            15.6,
+            Some(HouseTemperatureUpperBoundaryReached(31710L))
           ),
           (
             HpState(
@@ -127,7 +138,8 @@ class HpModelSpec
             7200,
             true,
             95,
-            16.4
+            16.4,
+            Some(HouseTemperatureUpperBoundaryReached(30641L))
           ),
           (
             HpState(
@@ -141,7 +153,8 @@ class HpModelSpec
             7200,
             true,
             95,
-            18.0
+            18.0,
+            Some(HouseTemperatureUpperBoundaryReached(27771L))
           ),
           (
             HpState(
@@ -155,7 +168,8 @@ class HpModelSpec
             7200,
             true,
             95,
-            19.6
+            19.6,
+            Some(HouseTemperatureUpperBoundaryReached(23200L))
           ),
           (
             HpState(
@@ -169,7 +183,8 @@ class HpModelSpec
             7200,
             false,
             0,
-            22.0
+            22.0,
+            Some(HouseTemperatureLowerBoundaryReached(19200L))
           )
         )
 
@@ -179,7 +194,8 @@ class HpModelSpec
               expectedTick,
               expectedRunningState,
               expectedActivePower,
-              expectedInnerTemperature
+              expectedInnerTemperature,
+              expectedNextThreshold
           ) =>
             val data = hpData
             val house = thermalHouse(18, 22)
@@ -211,7 +227,7 @@ class HpModelSpec
                   )
                 )
 
-                maybeThreshold shouldBe None
+                maybeThreshold shouldBe expectedNextThreshold
             }
         }
       }

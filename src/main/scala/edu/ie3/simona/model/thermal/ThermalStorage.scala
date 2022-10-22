@@ -7,18 +7,14 @@
 package edu.ie3.simona.model.thermal
 
 import java.util.UUID
-import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
+import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
-import edu.ie3.simona.model.thermal.ThermalStorage.{
-  ThermalStorageState,
-  ThermalStorageThreshold
-}
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.util.scala.quantities.DefaultQuantities
 
 import javax.measure.quantity.{Energy, Power}
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
 
 /** Thermal storage model.
   *
@@ -66,7 +62,7 @@ abstract class ThermalStorage(
       tick: Long,
       qDot: ComparableQuantity[Power],
       lastState: ThermalStorageState
-  ): (ThermalStorageState, Option[ThermalStorageThreshold])
+  ): (ThermalStorageState, Option[ThermalThreshold])
 }
 
 object ThermalStorage {
@@ -76,13 +72,10 @@ object ThermalStorage {
       qDot: ComparableQuantity[Power]
   )
 
-  sealed trait ThermalStorageThreshold {
-    val tick: Long
-  }
   object ThermalStorageThreshold {
     final case class StorageEmpty(override val tick: Long)
-        extends ThermalStorageThreshold
+        extends ThermalThreshold
     final case class StorageFull(override val tick: Long)
-        extends ThermalStorageThreshold
+        extends ThermalThreshold
   }
 }
