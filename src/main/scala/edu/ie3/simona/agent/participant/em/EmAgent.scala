@@ -332,75 +332,86 @@ class EmAgent(
       // here, participants that are changing their flex options at the current
       // tick are activated and are sent flex options requests
 
-      // schedule flex options request for those agents that need to be activated at the very next tick
-      val schedulerDataWithNext =
-        scheduleFlexRequestAtNextTick(baseStateData.schedulerStateData, newTick)
+      // FIXME this is only necessary until we revoke triggers with main scheduler
+      if (baseStateData.schedulerStateData.mainTriggerId.nonEmpty) {
+        scheduler ! CompletionMessage(triggerId, None)
+        stay() using baseStateData
 
-      // participants that have to be activated at this specific tick
-      val expectedActivations =
-        schedulerDataWithNext.trigger.triggerQueue
+      } else {
+
+        // schedule flex options request for those agents that need to be activated at the very next tick
+        val schedulerDataWithNext =
+          scheduleFlexRequestAtNextTick(
+            baseStateData.schedulerStateData,
+            newTick
+          )
+
+        // participants that have to be activated at this specific tick
+        val expectedActivations =
+          schedulerDataWithNext.trigger.triggerQueue
+            .get(newTick)
+            .map {
+              _.map(_.agent)
+                .flatMap(actor =>
+                  baseStateData.schedulerStateData.flexTrigger.actorRefToUuid
+                    .get(actor)
+                )
+            }
+            .getOrElse(Seq.empty)
+
+        // schedule flex options request for those agents that have just scheduled activations so far
+        val updatedFlexTrigger = scheduleFlexRequestsOnce(
+          schedulerDataWithNext.flexTrigger,
+          expectedActivations.toSet,
+          newTick
+        )
+
+        val expectedRequests = updatedFlexTrigger.triggerQueue
           .get(newTick)
           .map {
-            _.map(_.agent)
-              .flatMap(actor =>
-                baseStateData.schedulerStateData.flexTrigger.actorRefToUuid
-                  .get(actor)
-              )
+            _.map(_.modelUuid)
           }
           .getOrElse(Seq.empty)
 
-      // schedule flex options request for those agents that have just scheduled activations so far
-      val updatedFlexTrigger = scheduleFlexRequestsOnce(
-        schedulerDataWithNext.flexTrigger,
-        expectedActivations.toSet,
-        newTick
-      )
-
-      val expectedRequests = updatedFlexTrigger.triggerQueue
-        .get(newTick)
-        .map {
-          _.map(_.modelUuid)
-        }
-        .getOrElse(Seq.empty)
-
-      // prepare map for expected flex options and expected results for this tick
-      val updatedFlexCorrespondences = expectedRequests.foldLeft(
-        baseStateData.flexCorrespondences
-      ) { case (correspondences, uuid) =>
-        val participantValueStore = correspondences.getOrElse(
-          uuid,
-          throw new RuntimeException(s"ValueStore for UUID $uuid not found")
-        )
-
-        // add a fresh flex correspondence for the new tick
-        val updatedFlexOptionsStore =
-          ValueStore.updateValueStore(
-            participantValueStore,
-            newTick,
-            FlexCorrespondence()
+        // prepare map for expected flex options and expected results for this tick
+        val updatedFlexCorrespondences = expectedRequests.foldLeft(
+          baseStateData.flexCorrespondences
+        ) { case (correspondences, uuid) =>
+          val participantValueStore = correspondences.getOrElse(
+            uuid,
+            throw new RuntimeException(s"ValueStore for UUID $uuid not found")
           )
 
-        correspondences.updated(uuid, updatedFlexOptionsStore)
-      }
+          // add a fresh flex correspondence for the new tick
+          val updatedFlexOptionsStore =
+            ValueStore.updateValueStore(
+              participantValueStore,
+              newTick,
+              FlexCorrespondence()
+            )
 
-      val updatedBaseStateData =
-        baseStateData.copy(
-          flexCorrespondences = updatedFlexCorrespondences,
-          schedulerStateData =
-            schedulerDataWithNext.copy(flexTrigger = updatedFlexTrigger)
+          correspondences.updated(uuid, updatedFlexOptionsStore)
+        }
+
+        val updatedBaseStateData =
+          baseStateData.copy(
+            flexCorrespondences = updatedFlexCorrespondences,
+            schedulerStateData =
+              schedulerDataWithNext.copy(flexTrigger = updatedFlexTrigger)
+          )
+
+        // if we don't have anything to do, complete right away
+        // FIXME this is only necessary until we revoke triggers with main scheduler
+        if (expectedRequests.isEmpty)
+          maybeTicksCompleted(baseStateData.schedulerStateData)
+
+        // send out all ActivityStartTriggers and RequestFlexOptions
+        goto(Idle) using setActiveTickAndSendTriggers(
+          updatedBaseStateData,
+          newTick,
+          triggerId
         )
-
-      // if we don't have anything to do, complete right away
-      // FIXME this is only necessary until we revoke triggers with main scheduler
-      if (expectedRequests.isEmpty)
-        maybeTicksCompleted(baseStateData.schedulerStateData)
-
-      // send out all ActivityStartTriggers and RequestFlexOptions
-      goto(Idle) using setActiveTickAndSendTriggers(
-        updatedBaseStateData,
-        newTick,
-        triggerId
-      )
+      }
 
     case Event(
           flexOptions: ProvideFlexOptions,
