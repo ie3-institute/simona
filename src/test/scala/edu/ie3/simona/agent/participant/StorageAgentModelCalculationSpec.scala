@@ -16,7 +16,8 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantInitializeStateData,
-  ParticipantInitializingStateData
+  ParticipantInitializingStateData,
+  SimpleInputContainer
 }
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.state.AgentState.Idle
@@ -163,7 +164,7 @@ class StorageAgentModelCalculationSpec
               outputConfig,
               maybeEmAgent
             ) =>
-          inputModel shouldBe voltageSensitiveInput
+          inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe services
           simulationStartDate shouldBe simulationStartDate
@@ -350,7 +351,7 @@ class StorageAgentModelCalculationSpec
             ]
           ](
             ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
+              inputModel = SimpleInputContainer(voltageSensitiveInput),
               modelConfig = modelConfig,
               secondaryDataServices = services,
               simulationStartDate = simulationStartDate,

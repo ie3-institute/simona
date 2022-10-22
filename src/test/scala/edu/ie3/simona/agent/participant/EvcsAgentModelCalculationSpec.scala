@@ -1210,7 +1210,7 @@ class EvcsAgentModelCalculationSpec
               outputConfig,
               maybeEmAgent
             ) =>
-          inputModel shouldBe voltageSensitiveInput
+          inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe withServices
           simulationStartDate shouldBe simulationStartDate
@@ -1318,7 +1318,7 @@ class EvcsAgentModelCalculationSpec
             ]
           ](
             ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
+              inputModel = SimpleInputContainer(voltageSensitiveInput),
               modelConfig = modelConfig,
               secondaryDataServices = withServices,
               simulationStartDate = simulationStartDate,
@@ -1354,7 +1354,7 @@ class EvcsAgentModelCalculationSpec
               outputConfig,
               maybeEmAgent
             ) =>
-          inputModel shouldBe voltageSensitiveInput
+          inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe withServices
           simulationStartDate shouldBe simulationStartDate

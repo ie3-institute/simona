@@ -15,6 +15,7 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.TimeUtil
+import scala.Option
 import spock.lang.Specification
 import tech.units.indriya.quantity.Quantities
 
@@ -68,6 +69,6 @@ class FixedFeedModelTest extends Specification {
 				)
 
 		then:
-		abs((actualModel.calculateActivePower(CalcRelevantData.FixedRelevantData$.MODULE$)).subtract(expectedPower).to(MEGAWATT).value.doubleValue()) < testingTolerance
+		abs((actualModel.calculateActivePower(Option.apply(ModelState.ConstantState$), CalcRelevantData.FixedRelevantData$.MODULE$)).subtract(expectedPower).to(MEGAWATT).value.doubleValue()) < testingTolerance
 	}
 }

@@ -13,9 +13,11 @@ import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.participant.ModelState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.util.TimeUtil
+import scala.Option
 import spock.lang.Specification
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
@@ -110,7 +112,7 @@ class ProfileLoadModelTest extends Specification {
 
 		when:
 		def max = relevantData.stream().mapToDouble({ data ->
-			dut.calculateActivePower(data).to(MEGAWATT).value.doubleValue()
+			dut.calculateActivePower(Option.apply(ModelState.ConstantState$), data).to(MEGAWATT).value.doubleValue()
 		}).max().getAsDouble()
 
 		then:
@@ -144,7 +146,7 @@ class ProfileLoadModelTest extends Specification {
 
 		when:
 		def max = relevantDatas.stream().mapToDouble({ relevantData ->
-			dut.calculateActivePower(relevantData).to(MEGAWATT).value.doubleValue()
+			dut.calculateActivePower(Option.apply(ModelState.ConstantState$), relevantData).to(MEGAWATT).value.doubleValue()
 		}).max().getAsDouble()
 
 		then:
@@ -188,7 +190,7 @@ class ProfileLoadModelTest extends Specification {
 
 		when:
 		def annualEnergy = relevantDatas.stream().mapToDouble({ relevantData ->
-			((dut.calculateActivePower(relevantData) * Quantities.getQuantity(15d, MINUTE)) as ComparableQuantity<Energy>).to(KILOWATTHOUR).value.doubleValue()
+			((dut.calculateActivePower(Option.apply(ModelState.ConstantState$), relevantData) * Quantities.getQuantity(15d, MINUTE)) as ComparableQuantity<Energy>).to(KILOWATTHOUR).value.doubleValue()
 		}).sum()
 
 		then:
@@ -227,7 +229,7 @@ class ProfileLoadModelTest extends Specification {
 
 		when:
 		def annualEnergy = relevantDatas.stream().mapToDouble({ relevantData ->
-			((dut.calculateActivePower(relevantData) * Quantities.getQuantity(15d, MINUTE)) as ComparableQuantity<Energy>).to(KILOWATTHOUR).value.doubleValue()
+			((dut.calculateActivePower(Option.apply(ModelState.ConstantState$), relevantData) * Quantities.getQuantity(15d, MINUTE)) as ComparableQuantity<Energy>).to(KILOWATTHOUR).value.doubleValue()
 		}).sum()
 
 		then:

@@ -9,10 +9,10 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.type.BmTypeInput
-import edu.ie3.simona.model.participant.BMModel
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.quantities.interfaces.EnergyPrice
 import edu.ie3.util.scala.OperationInterval
+import scala.Option
 import scala.Some
 import spock.lang.Shared
 import spock.lang.Specification
@@ -235,7 +235,7 @@ class BMModelTest extends Specification {
 		bmModel._lastPower = new Some(Quantities.getQuantity(lastPower, KILOWATT))
 
 		when: "the power from the grid is calculated"
-		def powerCalc = bmModel.calculateActivePower(relevantData)
+		def powerCalc = bmModel.calculateActivePower(Option.apply(ModelState.ConstantState$), relevantData)
 
 		then: "compare in watts"
 		Math.abs(powerCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(powerSol, KILOWATT).toSystemUnit().getValue().doubleValue()) < 1e-12

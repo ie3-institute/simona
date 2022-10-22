@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant.storage
 
 import akka.actor.ActorRef
+import edu.ie3.datamodel.exceptions.NotImplementedException
 import edu.ie3.datamodel.models.input.system.StorageInput
 import edu.ie3.datamodel.models.result.system.{
   StorageResult,
@@ -258,7 +259,8 @@ trait StorageAgentFundamentals
       data: StorageRelevantData,
       lastState: StorageState,
       setPower: ComparableQuantity[Power]
-  ): (StorageState, ApparentPower, FlexChangeIndicator) = ???
+  ): (StorageState, ApparentPower, FlexChangeIndicator) =
+    throw new NotImplementedException("Implementation missing")
 //  Calculation of result:
 //  {
 //    val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)

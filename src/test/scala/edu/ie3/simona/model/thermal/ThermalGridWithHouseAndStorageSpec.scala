@@ -371,7 +371,7 @@ class ThermalGridWithHouseAndStorageSpec
               1e-3
             )
             qDotHouse should equalWithTolerance(
-              Quantities.getQuantity(0.41176456, StandardUnits.ACTIVE_POWER_IN),
+              Quantities.getQuantity(0.0, StandardUnits.ACTIVE_POWER_RESULT),
               1e-6
             )
 

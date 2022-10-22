@@ -14,8 +14,10 @@ import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.participant.ModelState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.TimeUtil
+import scala.Option
 import spock.lang.Specification
 import tech.units.indriya.quantity.Quantities
 
@@ -98,7 +100,7 @@ class FixedLoadModelTest extends Specification {
 
 		then:
 		for (cnt in 0..10000) {
-			abs((dut.calculateActivePower(FixedLoadModel.FixedLoadRelevantData$.MODULE$)).subtract(expectedPower).to(MEGAWATT).value.doubleValue()) < testingTolerance
+			abs((dut.calculateActivePower(Option.apply(ModelState.ConstantState$), FixedLoadModel.FixedLoadRelevantData$.MODULE$)).subtract(expectedPower).to(MEGAWATT).value.doubleValue()) < testingTolerance
 		}
 
 		where:
@@ -124,7 +126,7 @@ class FixedLoadModelTest extends Specification {
 					reference
 					)
 
-			abs((dut.calculateActivePower(relevantData)).subtract(expectedPower * scale).to(MEGAWATT).value.doubleValue()) < testingTolerance
+			abs((dut.calculateActivePower(Option.apply(ModelState.ConstantState$), relevantData)).subtract(expectedPower * scale).to(MEGAWATT).value.doubleValue()) < testingTolerance
 		}
 
 		where:

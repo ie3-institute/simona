@@ -13,10 +13,12 @@ import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.participant.ModelState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
 import edu.ie3.simona.model.participant.load.random.RandomLoadParameters
 import edu.ie3.util.TimeUtil
+import scala.Option
 import spock.lang.Specification
 import tech.units.indriya.quantity.Quantities
 
@@ -144,7 +146,7 @@ class RandomLoadModelTest extends Specification {
 				{ runCnt ->
 					relevantDatas.parallelStream().mapToDouble(
 							{ relevantData ->
-								(dut.calculateActivePower(relevantData) * Quantities.getQuantity(15d, MINUTE)).asType(Energy).to(KILOWATTHOUR).value.doubleValue()
+								(dut.calculateActivePower(Option.apply(ModelState.ConstantState$), relevantData) * Quantities.getQuantity(15d, MINUTE)).asType(Energy).to(KILOWATTHOUR).value.doubleValue()
 							}).sum()
 				}).average().orElse(0d)
 
@@ -173,7 +175,7 @@ class RandomLoadModelTest extends Specification {
 		when:
 		def powers = (0..10).parallelStream().flatMap({ runCnt ->
 			relevantDatas.stream().parallel().map({ data ->
-				dut.calculateActivePower(data).to(WATT).getValue().doubleValue()
+				dut.calculateActivePower(Option.apply(ModelState.ConstantState$), data).to(WATT).getValue().doubleValue()
 			})
 		}).sorted().toArray() as Double[]
 		def quantilePower = get95Quantile(powers)

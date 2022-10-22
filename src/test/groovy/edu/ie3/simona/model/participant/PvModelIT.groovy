@@ -16,6 +16,7 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.interfaces.Irradiance
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVRecord
+import scala.Option
 import spock.lang.Shared
 import spock.lang.Specification
 import tech.units.indriya.ComparableQuantity
@@ -92,7 +93,7 @@ class PvModelIT extends Specification implements PvModelITHelper {
 				ComparableQuantity<Dimensionless> voltage = getQuantity(1.414213562, PU)
 
 				"collect the results and calculate the difference between the provided results and the calculated ones"
-				double calc = model.calculatePower(0L, voltage, neededData).p().getValue().doubleValue()
+				double calc = model.calculatePower(0L, voltage, Option.apply(ModelState.ConstantState$),  neededData).p().getValue().doubleValue()
 				double sol = resultsMap.get(dateTime).get(modelId).getValue().doubleValue()
 
 				testRes.add(Math.abs(calc - sol))
