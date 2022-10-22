@@ -71,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed deprecations from `CsvGridSource` and added `TestGridFactory` [#304](https://github.com/ie3-institute/simona/issues/304)
 - Fixed config of vn_146_lv_small [#290](https://github.com/ie3-institute/simona/issues/290)
 - Adapted to changes of EvcsInput in PSDM [#377](https://github.com/ie3-institute/simona/pull/377)
+- Fix breaking SIMONA caused by changes in simonaAPI [#384] (https://github.com/ie3-institute/simona/issues/384)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)
