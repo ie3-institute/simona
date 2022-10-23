@@ -270,6 +270,7 @@ class ParticipantAgentFundamentalsSpec
                   ScheduleTriggerMessage(
                     ActivityStartTrigger(tick),
                     actorToBeScheduled,
+                    _,
                     _
                   )
                 ) =>
@@ -302,6 +303,7 @@ class ParticipantAgentFundamentalsSpec
                   ScheduleTriggerMessage(
                     ActivityStartTrigger(tick),
                     actorToBeScheduled,
+                    _,
                     _
                   )
                 ) =>
@@ -337,6 +339,7 @@ class ParticipantAgentFundamentalsSpec
                   ScheduleTriggerMessage(
                     ActivityStartTrigger(tick),
                     actorToBeScheduled,
+                    _,
                     _
                   )
                 ) =>

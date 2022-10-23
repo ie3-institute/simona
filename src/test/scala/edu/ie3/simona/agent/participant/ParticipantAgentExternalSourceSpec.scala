@@ -230,6 +230,7 @@ class ParticipantAgentExternalSourceSpec
                 case ScheduleTriggerMessage(
                       ActivityStartTrigger(tick),
                       actorToBeScheduled,
+                      _,
                       _
                     ) =>
                   tick == 4711L && actorToBeScheduled == mockAgent
