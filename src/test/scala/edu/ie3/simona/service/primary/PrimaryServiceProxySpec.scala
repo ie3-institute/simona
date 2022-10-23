@@ -486,7 +486,8 @@ class PrimaryServiceProxySpec
                       timePattern
                     )
                   ),
-                  actorToBeScheduled
+                  actorToBeScheduled,
+                  _
                 ) =>
               actualTimeSeriesUuid shouldBe uuidPq
               actualSimulationStart shouldBe simulationStart
