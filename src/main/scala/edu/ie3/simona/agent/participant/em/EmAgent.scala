@@ -267,13 +267,13 @@ class EmAgent(
           ),
           baseStateData: EmModelBaseStateData
         ) =>
-      createNextTriggerIfApplicable(
+      val maybeNextTrigger = createNextTriggerIfApplicable(
         baseStateData.schedulerStateData,
         scheduleTriggerMessage.trigger.tick
-      ) foreach { stm =>
-        // since we've been sent a trigger, we need to complete it as well
-        scheduler ! CompletionMessage(triggerId, Some(Seq(stm)))
-      }
+      )
+
+      // since we've been sent a trigger, we need to complete it as well
+      scheduler ! CompletionMessage(triggerId, maybeNextTrigger.map(Seq(_)))
 
       stay() using
         baseStateData.copy(schedulerStateData =
