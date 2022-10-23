@@ -515,23 +515,36 @@ class EmAgent(
       schedulerStateData: EmSchedulerStateData,
       newTick: Long
   ): Option[ScheduleTriggerMessage] = {
-    // FIXME it'd be better if we also revoked the former next tick, because that one could also be revoked before it is reached
-
     val isCurrentlyInactive = schedulerStateData.mainTriggerId.isEmpty
 
-    // this defaults to true if no next tick is scheduled
-    val scheduleNextTrigger = getNextScheduledTick(
+    val maybeNextScheduledTick = getNextScheduledTick(
       schedulerStateData
-    ).forall { nextScheduledTick =>
+    )
+
+    // only revoke next scheduled tick if it exists and is later than new tick
+    val maybeTickToRevoke = maybeNextScheduledTick.filter { nextScheduledTick =>
       newTick < nextScheduledTick
     }
 
-    Option.when(isCurrentlyInactive && scheduleNextTrigger) {
+    // schedule new tick if we're inactive and
+    //   - there is no scheduled next tick or
+    //   - the new tick is earlier than the scheduled next tick
+    val scheduleNewTick =
+      isCurrentlyInactive && (maybeNextScheduledTick.isEmpty || maybeTickToRevoke.nonEmpty)
+
+    Option.when(scheduleNewTick) {
+      val maybeRevokeTrigger =
+        maybeTickToRevoke.map(revokeTick =>
+          (ActivityStartTrigger(revokeTick), self)
+        )
+
       ScheduleTriggerMessage(
         ActivityStartTrigger(newTick),
-        self
+        self,
+        maybeRevokeTrigger
       )
     }
+
   }
 
   private def maybeIssueFlexControl(
