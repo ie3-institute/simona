@@ -244,6 +244,7 @@ class PrimaryServiceWorkerSpec
                       ScheduleTriggerMessage(
                         ActivityStartTrigger(triggerTick),
                         actorToBeScheduled,
+                        _,
                         _
                       )
                     ) =>

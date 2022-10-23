@@ -135,6 +135,7 @@ class WeatherServiceSpec
                       ScheduleTriggerMessage(
                         ActivityStartTrigger(nextTick),
                         actorRef,
+                        _,
                         _
                       )
                     ) =>

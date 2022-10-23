@@ -171,7 +171,8 @@ trait ServiceRegistration[
             .map { emAgent =>
               ScheduleTriggerMessage(
                 scheduleParticipant(tick),
-                emAgent
+                emAgent,
+                priority = true
               )
             }
             .getOrElse(scheduleParticipant(tick))
