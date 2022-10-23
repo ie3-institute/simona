@@ -321,14 +321,17 @@ class EmAgent(
       // here, participants that are changing their flex options at the current
       // tick are activated and are sent flex options requests
 
-      // FIXME this is only necessary until we revoke triggers with main scheduler
       if (baseStateData.schedulerStateData.mainTriggerId.nonEmpty) {
+        log.error(
+          s"EmAgent $self is already active at $newTick with ${baseStateData.schedulerStateData.mainTriggerId} (new triggerId $triggerId)"
+        )
+
         scheduler ! CompletionMessage(triggerId, None)
         stay() using baseStateData
 
       } else {
 
-        // schedule flex options request for those agents that need to be activated at the very next tick
+        // schedule flex options request for those agents that need to be activated at the next activated tick
         val schedulerDataWithNext =
           scheduleFlexRequestAtNextTick(
             baseStateData.schedulerStateData,
@@ -389,10 +392,9 @@ class EmAgent(
               schedulerDataWithNext.copy(flexTrigger = updatedFlexTrigger)
           )
 
-        // if we don't have anything to do, complete right away
-        // FIXME this is only necessary until we revoke triggers with main scheduler
+        // we should not get triggered without any scheduled triggers for the new tick
         if (expectedRequests.isEmpty)
-          maybeTicksCompleted(baseStateData.schedulerStateData)
+          log.error(s"No requests for $self at $newTick")
 
         // send out all ActivityStartTriggers and RequestFlexOptions
         goto(Idle) using setActiveTickAndSendTriggers(
