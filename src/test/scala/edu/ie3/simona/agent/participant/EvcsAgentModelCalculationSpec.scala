@@ -1226,7 +1226,8 @@ class EvcsAgentModelCalculationSpec
           scheduleFunc(3L) shouldBe
             ScheduleTriggerMessage(
               ScheduleTriggerMessage(ActivityStartTrigger(3L), evcsAgent),
-              emAgent.ref
+              emAgent.ref,
+              priority = true
             )
       }
       evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
@@ -1369,7 +1370,8 @@ class EvcsAgentModelCalculationSpec
           scheduleFunc(4L) shouldBe
             ScheduleTriggerMessage(
               ScheduleTriggerMessage(ActivityStartTrigger(4L), evcsAgent),
-              emAgent.ref
+              emAgent.ref,
+              priority = true
             )
       }
       evService.send(evcsAgent, RegistrationSuccessfulMessage(None))

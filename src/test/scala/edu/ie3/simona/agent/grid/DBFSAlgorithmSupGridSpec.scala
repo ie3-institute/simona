@@ -214,6 +214,7 @@ class DBFSAlgorithmSupGridSpec
                       ScheduleTriggerMessage(
                         StartGridSimulationTrigger(3600),
                         _,
+                        _,
                         _
                       )
                     )
@@ -224,7 +225,12 @@ class DBFSAlgorithmSupGridSpec
                   3,
                   Some(
                     Seq(
-                      ScheduleTriggerMessage(ActivityStartTrigger(7200), _, _)
+                      ScheduleTriggerMessage(
+                        ActivityStartTrigger(7200),
+                        _,
+                        _,
+                        _
+                      )
                     )
                   )
                 ) =>
@@ -371,6 +377,7 @@ class DBFSAlgorithmSupGridSpec
                       ScheduleTriggerMessage(
                         StartGridSimulationTrigger(3600),
                         _,
+                        _,
                         _
                       )
                     )
@@ -382,7 +389,12 @@ class DBFSAlgorithmSupGridSpec
                   _,
                   Some(
                     Seq(
-                      ScheduleTriggerMessage(ActivityStartTrigger(7200), _, _)
+                      ScheduleTriggerMessage(
+                        ActivityStartTrigger(7200),
+                        _,
+                        _,
+                        _
+                      )
                     )
                   )
                 ) =>

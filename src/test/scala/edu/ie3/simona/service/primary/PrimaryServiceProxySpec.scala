@@ -487,6 +487,7 @@ class PrimaryServiceProxySpec
                     )
                   ),
                   actorToBeScheduled,
+                  _,
                   _
                 ) =>
               actualTimeSeriesUuid shouldBe uuidPq
