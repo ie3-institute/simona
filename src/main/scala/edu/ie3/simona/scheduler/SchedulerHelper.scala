@@ -908,6 +908,13 @@ trait SchedulerHelper extends SimonaActorLogging {
           scheduledTrigger.agent == actor
     )
 
+    stateData.trigger.priorityTriggerQueue.remove(
+      trigger.tick,
+      scheduledTrigger =>
+        scheduledTrigger.triggerWithIdMessage.trigger == trigger &&
+          scheduledTrigger.agent == actor
+    )
+
     stateData
   }
 
