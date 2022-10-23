@@ -40,27 +40,18 @@ object SchedulerMessage {
     *   to schedule
     * @param actorToBeScheduled
     *   the agent that should receive the trigger
+    * @param revokeTrigger
+    *   Trigger to be revoked for given actor, if applicable
     */
   final case class ScheduleTriggerMessage(
       trigger: Trigger,
-      actorToBeScheduled: ActorRef
+      actorToBeScheduled: ActorRef,
+      revokeTrigger: Option[(Trigger, ActorRef)] = None
   ) extends SchedulerMessage
       with Trigger {
     // FIXME this currently only works as intended for triggers scheduled for the current tick
     override def tick: Long = trigger.tick
   }
-
-  /** Revoke a trigger for given actor that had been scheduled before.
-    *
-    * @param trigger
-    *   The trigger to revoke
-    * @param actor
-    *   The actor for which the trigger should be revoked
-    */
-  final case class RevokeTriggerMessage(
-      trigger: Trigger,
-      actor: ActorRef
-  ) extends SchedulerMessage
 
   /** Confirm the end of an action e.g. fsm state transitions for one tick to
     * and ONLY to the [[SimScheduler]]

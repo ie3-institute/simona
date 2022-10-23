@@ -760,12 +760,19 @@ trait SchedulerHelper extends SimonaActorLogging {
   protected final def scheduleTrigger(
       triggerMessage: ScheduleTriggerMessage,
       stateData: SchedulerStateData
-  ): SchedulerStateData =
+  ): SchedulerStateData = {
+    val updatedStateData = triggerMessage.revokeTrigger
+      .map { case (trigger, actor) =>
+        revokeTrigger(trigger, actor, stateData)
+      }
+      .getOrElse(stateData)
+
     scheduleTrigger(
       triggerMessage.trigger,
       triggerMessage.actorToBeScheduled,
-      stateData
+      updatedStateData
     )
+  }
 
   /** Adds the provided trigger to the trigger queue to schedule it at the
     * requested tick
@@ -825,6 +832,31 @@ trait SchedulerHelper extends SimonaActorLogging {
       )
     }
 
+  }
+
+  protected def revokeTrigger(
+      trigger: Trigger,
+      actor: ActorRef,
+      stateData: SchedulerStateData
+  ): SchedulerStateData = {
+
+    // sanity check
+
+    if (trigger.tick <= stateData.time.nowInTicks)
+      log.warning(
+        s"Trying to revoke a trigger for a tick (${trigger.tick}) earlier or equal to now (${stateData.time.nowInTicks})"
+      )
+
+    // just remove trigger from both priority and regular queue
+
+    stateData.trigger.triggerQueue.remove(
+      trigger.tick,
+      scheduledTrigger =>
+        scheduledTrigger.triggerWithIdMessage.trigger == trigger &&
+          scheduledTrigger.agent == actor
+    )
+
+    stateData
   }
 
 }

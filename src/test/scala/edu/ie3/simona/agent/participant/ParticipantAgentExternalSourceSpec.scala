@@ -223,7 +223,8 @@ class ParticipantAgentExternalSourceSpec
               triggers.exists {
                 case ScheduleTriggerMessage(
                       ActivityStartTrigger(tick),
-                      actorToBeScheduled
+                      actorToBeScheduled,
+                      _
                     ) =>
                   tick == 4711L && actorToBeScheduled == mockAgent
               } shouldBe true
