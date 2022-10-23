@@ -40,10 +40,13 @@ object SchedulerMessage {
     *   to schedule
     * @param actorToBeScheduled
     *   the agent that should receive the trigger
+    * @param revokeTrigger
+    *   Trigger to be revoked for given actor, if applicable
     */
   final case class ScheduleTriggerMessage(
       trigger: Trigger,
       actorToBeScheduled: ActorRef,
+      revokeTrigger: Option[(Trigger, ActorRef)] = None,
       priority: Boolean = false
   ) extends SchedulerMessage
       with Trigger {
