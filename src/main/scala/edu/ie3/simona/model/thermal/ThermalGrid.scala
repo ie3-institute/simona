@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.thermal
 
-import breeze.linalg.min
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
@@ -21,22 +20,16 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalGridState
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
-  HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureUpperBoundaryReached
-}
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
-  StorageEmpty,
-  StorageFull
-}
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.HouseTemperatureUpperBoundaryReached
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.StorageEmpty
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.quantities.QuantityUtil
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
-import javax.measure.quantity.{Dimensionless, Energy, Power, Temperature, Time}
+import javax.measure.quantity.{Dimensionless, Energy, Power, Temperature}
 import scala.jdk.CollectionConverters.SetHasAsScala
 
 /** Calculation model for a thermal grid. It is assumed, that all elements are
@@ -162,6 +155,22 @@ final case class ThermalGrid(
   ): (ThermalGridState, Option[ThermalThreshold]) =
     house.zip(state.houseState) match {
       case Some((thermalHouse, lastHouseState)) =>
+        /* Set thermal power exchange with storage to zero */
+        // TODO: We would need to issue a storage result model here...
+        val zeroStorageState = storage.zip(state.storageState) match {
+          case Some((thermalStorage, storageState)) =>
+            Some(
+              thermalStorage
+                .updateState(
+                  tick,
+                  Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN),
+                  storageState
+                )
+                ._1
+            )
+          case _ => state.storageState
+        }
+
         thermalHouse.updateState(
           tick,
           lastHouseState,
@@ -178,7 +187,7 @@ final case class ThermalGrid(
                 ambientTemperature,
                 Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
               )
-            storage.zip(state.storageState) match {
+            storage.zip(zeroStorageState) match {
               case Some((thermalStorage, storageState)) =>
                 val (updatedStorageState, maybeStorageThreshold) =
                   thermalStorage.updateState(tick, qDot, storageState)
@@ -273,18 +282,101 @@ final case class ThermalGrid(
         storage.updateState(tick, qDot, storageState)
       }
 
+    val (revisedHouseState, revisedStorageState) =
+      reviseInfeedFromStorage(
+        tick,
+        maybeUpdatedHouseState,
+        maybeUpdatedStorageState,
+        state.houseState,
+        state.storageState,
+        ambientTemperature,
+        qDot
+      )
+
     val nextThreshold = determineMostRecentThreshold(
-      maybeUpdatedHouseState.flatMap(_._2),
-      maybeUpdatedStorageState.flatMap(_._2)
+      revisedHouseState.flatMap(_._2),
+      revisedStorageState.flatMap(_._2)
     )
 
     (
       state.copy(
-        houseState = maybeUpdatedHouseState.map(_._1),
-        storageState = maybeUpdatedStorageState.map(_._1)
+        houseState = revisedHouseState.map(_._1),
+        storageState = revisedStorageState.map(_._1)
       ),
       nextThreshold
     )
+  }
+
+  /** Check, if the storage can heat the house. This is only done, if <ul>
+    * <li>The house has reached it's lower temperature boundary</li> <li>There
+    * is no infeed from external</li> <li>The storage is not empty itself</li>
+    * </ul>
+    * @param tick
+    *   The current tick
+    * @param maybeHouseState
+    *   Optional thermal house state
+    * @param maybeStorageState
+    *   Optional thermal storage state
+    * @param formerHouseState
+    *   Previous thermal house state before a first update was performed
+    * @param formerStorageState
+    *   Previous thermal storage state before a first update was performed
+    * @param ambientTemperature
+    *   Ambient temperature
+    * @param qDot
+    *   Thermal influx
+    * @return
+    *   Options to revised thermal house and storage state
+    */
+  private def reviseInfeedFromStorage(
+      tick: Long,
+      maybeHouseState: Option[(ThermalHouseState, Option[ThermalThreshold])],
+      maybeStorageState: Option[
+        (ThermalStorageState, Option[ThermalThreshold])
+      ],
+      formerHouseState: Option[ThermalHouseState],
+      formerStorageState: Option[ThermalStorageState],
+      ambientTemperature: ComparableQuantity[Temperature],
+      qDot: ComparableQuantity[Power]
+  ): (
+      Option[(ThermalHouseState, Option[ThermalThreshold])],
+      Option[(ThermalStorageState, Option[ThermalThreshold])]
+  ) = house.zip(maybeHouseState).zip(storage.zip(maybeStorageState)) match {
+    case Some(
+          (
+            (thermalHouse, (houseState, _)),
+            (thermalStorage, (_, maybeStorageThreshold))
+          )
+        )
+        if QuantityUtil.isEquivalentAbs(
+          qDot.to(StandardUnits.ACTIVE_POWER_IN),
+          Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN),
+          10e-3
+        ) && thermalHouse.isInnerTemperatureTooLow(
+          houseState.innerTemperature
+        ) && !maybeStorageThreshold.contains(StorageEmpty(tick)) =>
+      /* Storage is meant to heat the house only, if there is no infeed from external (+/- 10 W) and the house is cold */
+      val revisedStorageState = thermalStorage.updateState(
+        tick,
+        thermalStorage.getChargingPower.multiply(-1),
+        formerStorageState.getOrElse(
+          throw new InconsistentStateException(
+            "Impossible to find no storage state"
+          )
+        )
+      )
+      val revisedHouseState = thermalHouse.updateState(
+        tick,
+        formerHouseState.getOrElse(
+          throw new InconsistentStateException(
+            "Impossible to find no house state"
+          )
+        ),
+        ambientTemperature,
+        thermalStorage.getChargingPower
+      )
+      (Some(revisedHouseState), Some(revisedStorageState))
+    case _ => (maybeHouseState, maybeStorageState)
   }
 
   /** Convert the given state of the thermal grid into result models of it's
