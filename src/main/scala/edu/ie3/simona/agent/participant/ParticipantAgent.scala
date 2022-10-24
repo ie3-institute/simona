@@ -175,8 +175,12 @@ abstract class ParticipantAgent[
         modelBaseStateData.foreseenDataTicks
       )
 
-      self ! StartCalculationTrigger(currentTick)
-      goto(Calculate) using updatedBaseStateData
+      if (modelBaseStateData.isEmManaged)
+        goto(Idle) using updatedBaseStateData
+      else {
+        self ! StartCalculationTrigger(currentTick)
+        goto(Calculate) using updatedBaseStateData
+      }
 
     case Event(
           TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId, _),
