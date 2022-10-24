@@ -17,12 +17,11 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideFlexOptions,
   ProvideMinMaxFlexOptions
 }
-import edu.ie3.util.quantities.QuantityUtils.RichQuantity
+import edu.ie3.util.quantities.QuantityUtils.{RichQuantity, RichQuantityDouble}
 import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
@@ -57,7 +56,7 @@ final case class StorageModel(
     * charging/discharging that could last less than one second.
     */
   private val toleranceMargin = pMax
-    .multiply(Quantities.getQuantity(1, Units.SECOND))
+    .multiply(1d.asSecond)
     .asType(classOf[Energy])
 
   override protected def calculateActivePower(
@@ -150,7 +149,7 @@ final case class StorageModel(
   ): ComparableQuantity[Energy] = {
     val timespan = currentTick - lastState.tick
     val energyChange = lastState.chargingPower
-      .multiply(Quantities.getQuantity(timespan, Units.SECOND))
+      .multiply(timespan.asSecond)
       .asType(classOf[Energy])
 
     val newEnergy = lastState.storedEnergy.add(energyChange)
