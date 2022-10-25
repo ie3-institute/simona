@@ -69,6 +69,6 @@ class FixedFeedModelTest extends Specification {
 				)
 
 		then:
-		abs((actualModel.calculateActivePower(Option.apply(ModelState.ConstantState$), CalcRelevantData.FixedRelevantData$.MODULE$)).subtract(expectedPower).to(MEGAWATT).value.doubleValue()) < testingTolerance
+		abs((actualModel.calculateActivePower(ModelState.ConstantState$.MODULE$, CalcRelevantData.FixedRelevantData$.MODULE$)).subtract(expectedPower).to(MEGAWATT).value.doubleValue()) < testingTolerance
 	}
 }

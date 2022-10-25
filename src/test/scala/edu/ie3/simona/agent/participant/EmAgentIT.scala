@@ -535,21 +535,21 @@ class EmAgentIT
             scheduler = emAgent,
             listener = Iterable(resultsListener.ref)
           ),
-          "LoadAgent"
+          "LoadAgent1"
         )
         val pvAgent = TestActorRef(
           new PvAgent(
             scheduler = emAgent,
             listener = Iterable(resultsListener.ref)
           ),
-          "PvAgent"
+          "PvAgent1"
         )
         val heatPumpAgent = TestActorRef(
           new HpAgent(
             scheduler = emAgent,
             listener = Iterable(resultsListener.ref)
           ),
-          "HeatPumpAgent"
+          "HeatPumpAgent1"
         )
 
         val loadAgentInit =

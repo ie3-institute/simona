@@ -90,7 +90,7 @@ final case class ProfileLoadModel(
     *   Active power
     */
   override protected def calculateActivePower(
-      maybeModelState: Option[ConstantState.type],
+      modelState: ConstantState.type,
       data: ProfileRelevantData
   ): ComparableQuantity[Power] = {
     /* The power comes in W and is delivered all 15 minutes */

@@ -88,7 +88,7 @@ final case class PvModel private (
     *   Active power
     */
   override protected def calculateActivePower(
-      maybeModelState: Option[ConstantState.type],
+      modelState: ConstantState.type,
       data: PvRelevantData
   ): ComparableQuantity[Power] = {
     // === Pv Panel Base Data  === //
@@ -780,7 +780,7 @@ final case class PvModel private (
       data: PvRelevantData,
       lastState: ConstantState.type
   ): ProvideFlexOptions = {
-    val power = calculateActivePower(Some(ConstantState), data)
+    val power = calculateActivePower(ConstantState, data)
 
     ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
   }

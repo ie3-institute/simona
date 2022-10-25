@@ -100,7 +100,7 @@ class FixedLoadModelTest extends Specification {
 
 		then:
 		for (cnt in 0..10000) {
-			abs((dut.calculateActivePower(Option.apply(ModelState.ConstantState$), FixedLoadModel.FixedLoadRelevantData$.MODULE$)).subtract(expectedPower).to(MEGAWATT).value.doubleValue()) < testingTolerance
+			abs((dut.calculateActivePower(ModelState.ConstantState$.MODULE$, FixedLoadModel.FixedLoadRelevantData$.MODULE$)).subtract(expectedPower).to(MEGAWATT).value.doubleValue()) < testingTolerance
 		}
 
 		where:
@@ -126,7 +126,7 @@ class FixedLoadModelTest extends Specification {
 					reference
 					)
 
-			abs((dut.calculateActivePower(Option.apply(ModelState.ConstantState$), relevantData)).subtract(expectedPower * scale).to(MEGAWATT).value.doubleValue()) < testingTolerance
+			abs((dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData)).subtract(expectedPower * scale).to(MEGAWATT).value.doubleValue()) < testingTolerance
 		}
 
 		where:

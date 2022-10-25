@@ -101,15 +101,9 @@ final case class HpModel(
     *   active power
     */
   override protected def calculateActivePower(
-      maybeModelState: Option[HpState],
+      modelState: HpState,
       relevantData: HpRelevantData
-  ): ComparableQuantity[Power] = maybeModelState
-    .map(_.activePower)
-    .getOrElse(
-      throw new InconsistentStateException(
-        "Cannot calculate heat pump active power without model state"
-      )
-    )
+  ): ComparableQuantity[Power] = modelState.activePower
 
   /** "Calculate" the heat output of the heat pump. The hp's state is already
     * updated, because the calculation of apparent power in
@@ -126,16 +120,10 @@ final case class HpModel(
     */
   override def calculateHeat(
       tick: Long,
-      maybeModelState: Option[HpState],
+      modelState: HpState,
       data: HpRelevantData
   ): ComparableQuantity[Power] =
-    maybeModelState
-      .map(_.qDot.to(StandardUnits.ACTIVE_POWER_RESULT))
-      .getOrElse(
-        throw new InconsistentStateException(
-          "Cannot calculate heat of a heat pump without model state"
-        )
-      )
+    modelState.qDot.to(StandardUnits.ACTIVE_POWER_RESULT)
 
   /** Given a [[HpRelevantData]] object, containing the [[HpState]], other
     * values and the current time tick, this function calculates the heat pump's

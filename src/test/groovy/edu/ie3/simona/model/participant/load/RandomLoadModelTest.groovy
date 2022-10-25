@@ -146,7 +146,7 @@ class RandomLoadModelTest extends Specification {
 				{ runCnt ->
 					relevantDatas.parallelStream().mapToDouble(
 							{ relevantData ->
-								(dut.calculateActivePower(Option.apply(ModelState.ConstantState$), relevantData) * Quantities.getQuantity(15d, MINUTE)).asType(Energy).to(KILOWATTHOUR).value.doubleValue()
+								(dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData) * Quantities.getQuantity(15d, MINUTE)).asType(Energy).to(KILOWATTHOUR).value.doubleValue()
 							}).sum()
 				}).average().orElse(0d)
 
@@ -175,7 +175,7 @@ class RandomLoadModelTest extends Specification {
 		when:
 		def powers = (0..10).parallelStream().flatMap({ runCnt ->
 			relevantDatas.stream().parallel().map({ data ->
-				dut.calculateActivePower(Option.apply(ModelState.ConstantState$), data).to(WATT).getValue().doubleValue()
+				dut.calculateActivePower(ModelState.ConstantState$.MODULE$, data).to(WATT).getValue().doubleValue()
 			})
 		}).sorted().toArray() as Double[]
 		def quantilePower = get95Quantile(powers)

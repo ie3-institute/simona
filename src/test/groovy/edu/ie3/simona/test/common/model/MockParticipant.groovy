@@ -40,12 +40,12 @@ class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryDa
     }
 
     @Override
-    Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, Option<ModelState> maybeModelState, CalcRelevantData data) {
+    Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, ModelState maybeModelState, CalcRelevantData data) {
         return super.calculateApparentPower(tick, voltage, maybeModelState, data)
     }
 
     @Override
-    ComparableQuantity<Power> calculateActivePower(Option<ModelState> maybeModelState, CalcRelevantData data) {
+    ComparableQuantity<Power> calculateActivePower(ModelState maybeModelState, CalcRelevantData data) {
         return Quantities.getQuantity(0, MEGAWATT)
     }
 

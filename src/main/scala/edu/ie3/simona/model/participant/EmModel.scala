@@ -178,7 +178,7 @@ final case class EmModel private (
   override def calculatePower(
       tick: Long,
       voltage: ComparableQuantity[Dimensionless],
-      maybeModelState: Option[ConstantState.type],
+      modelState: ConstantState.type,
       data: EmRelevantData
   ): ApparentPower =
     data.flexCorrespondences
@@ -201,7 +201,7 @@ final case class EmModel private (
       .getOrElse(zeroApparentPower)
 
   override protected def calculateActivePower(
-      maybeModelState: Option[ConstantState.type],
+      modelState: ConstantState.type,
       data: EmRelevantData
   ): ComparableQuantity[Power] =
     throw new NotImplementedError("Use calculatePower directly")

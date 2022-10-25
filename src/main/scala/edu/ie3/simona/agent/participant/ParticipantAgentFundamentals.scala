@@ -893,6 +893,105 @@ protected trait ParticipantAgentFundamentals[
     baseStateData
   }
 
+  /** Calculate the power output of the participant without needing any
+    * secondary data. The next state is [[Idle]], sending a
+    * [[CompletionMessage]] to scheduler and using update result values.
+    *
+    * @param baseStateData
+    *   Base state data to update
+    * @param lastModelState
+    *   The current model state, before updating it
+    * @param currentTick
+    *   Tick, the trigger belongs to
+    * @param scheduler
+    *   [[ActorRef]] to the scheduler in the simulation
+    * @return
+    *   [[Idle]] with updated result values
+    */
+  override def calculatePowerWithoutSecondaryDataAndGoToIdle(
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+      lastModelState: MS,
+      currentTick: Long,
+      scheduler: ActorRef,
+      nodalVoltage: ComparableQuantity[Dimensionless]
+  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+    val calcRelevantData =
+      createCalcRelevantData(baseStateData, currentTick)
+
+    val updatedState =
+      updateState(
+        currentTick,
+        lastModelState,
+        calcRelevantData,
+        nodalVoltage,
+        baseStateData.model
+      )
+
+    val result = calculateModelPowerFunc(
+      currentTick,
+      baseStateData,
+      updatedState,
+      nodalVoltage
+    )
+
+    val updatedResultValueStore =
+      ValueStore.updateValueStore(
+        baseStateData.resultValueStore,
+        currentTick,
+        result
+      )
+
+    /* Inform the listeners about new result */
+    announceSimulationResult(
+      baseStateData,
+      currentTick,
+      AccompaniedSimulationResult(result)
+    )(baseStateData.outputConfig)
+
+    val updatedStateDataStore = ValueStore.updateValueStore(
+      baseStateData.stateDataStore,
+      currentTick,
+      updatedState
+    )
+
+    /* In this case, without secondary data, the agent has been triggered by an ActivityStartTrigger by itself,
+     * therefore pop the next one */
+    val baseStateDataWithUpdatedResultStore =
+      baseStateData.copy(
+        resultValueStore = updatedResultValueStore,
+        stateDataStore = updatedStateDataStore
+      )
+
+    goToIdleReplyCompletionAndScheduleTriggerForNextAction(
+      baseStateDataWithUpdatedResultStore,
+      scheduler
+    )
+  }
+
+  /** Update the last known model state with the given external, relevant data
+    *
+    * @param tick
+    *   Tick to update state for
+    * @param modelState
+    *   Last known model state
+    * @param calcRelevantData
+    *   Data, relevant for calculation
+    * @param nodalVoltage
+    *   Current nodal voltage of the agent
+    * @param model
+    *   Model for calculation
+    * @return
+    *   The updated state at given tick under consideration of calculation
+    *   relevant data
+    */
+  protected def updateState(
+      tick: Long,
+      modelState: MS,
+      calcRelevantData: CD,
+      nodalVoltage: ComparableQuantity[Dimensionless],
+      model: M
+  ): MS
+
   /** Determining the active to reactive power function to apply
     *
     * @param tick
@@ -984,22 +1083,6 @@ protected trait ParticipantAgentFundamentals[
           )
       }
       .map(_.asInstanceOf[PD])
-
-  protected def getLastOrInitialStateData(
-      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      tick: Long
-  ): MS =
-    ConstantState match {
-      case constantState: MS =>
-        constantState
-      case _ =>
-        baseStateData.stateDataStore
-          .last(tick)
-          .map { case (_, lastState) =>
-            lastState
-          }
-          .getOrElse(createInitialState(baseStateData))
-    }
 
   /** Change over to [[Idle]] state and reply completion to the scheduler. By
     * doing so, also schedule an [[ActivityStartTrigger]] for the next upcoming

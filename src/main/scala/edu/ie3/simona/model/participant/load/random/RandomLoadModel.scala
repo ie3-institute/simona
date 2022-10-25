@@ -96,7 +96,7 @@ final case class RandomLoadModel(
     */
   @tailrec
   override protected def calculateActivePower(
-      maybeModelState: Option[ConstantState.type],
+      modelState: ConstantState.type,
       data: RandomRelevantData
   ): ComparableQuantity[Power] = {
     val gev = getGevDistribution(data.date)
@@ -104,7 +104,7 @@ final case class RandomLoadModel(
     /* Get a next random power (in kW) */
     val randomPower = gev.nextRandom()
     if (randomPower < 0)
-      calculateActivePower(maybeModelState, data)
+      calculateActivePower(modelState, data)
     else {
       val profilePower = Quantities.getQuantity(randomPower, KILOWATT)
       val activePower = reference match {

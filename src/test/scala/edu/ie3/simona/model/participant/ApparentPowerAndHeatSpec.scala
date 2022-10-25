@@ -29,7 +29,7 @@ class ApparentPowerAndHeatSpec extends UnitSpec {
         ApparentPowerAndHeatMock.calculatePower(
           50L,
           Quantities.getQuantity(1.0, StandardUnits.VOLTAGE_MAGNITUDE),
-          Some(ConstantState),
+          ConstantState,
           FixedRelevantData
         ) match {
           case ApparentPowerAndHeat(p, q, qDot) =>
@@ -50,7 +50,7 @@ class ApparentPowerAndHeatSpec extends UnitSpec {
         ApparentPowerAndHeatMock.calculatePower(
           10L,
           Quantities.getQuantity(1.0, StandardUnits.VOLTAGE_MAGNITUDE),
-          Some(ConstantState),
+          ConstantState,
           FixedRelevantData
         ) match {
           case ApparentPowerAndHeat(p, q, qDot) =>
@@ -102,7 +102,7 @@ object ApparentPowerAndHeatSpec {
       */
     override def calculateHeat(
         tick: Long,
-        maybeModelState: Option[ConstantState.type],
+        modelState: ConstantState.type,
         data: CalcRelevantData.FixedRelevantData.type
     ): ComparableQuantity[Power] =
       Quantities.getQuantity(42d, StandardUnits.ACTIVE_POWER_RESULT)
@@ -115,7 +115,7 @@ object ApparentPowerAndHeatSpec {
       *   Active power
       */
     override protected def calculateActivePower(
-        maybeModelState: Option[ConstantState.type],
+        modelState: ConstantState.type,
         data: CalcRelevantData.FixedRelevantData.type
     ): ComparableQuantity[Power] =
       Quantities.getQuantity(43d, StandardUnits.ACTIVE_POWER_RESULT)
@@ -131,7 +131,7 @@ object ApparentPowerAndHeatSpec {
     ): FlexibilityMessage.ProvideFlexOptions =
       ProvideFlexOptions.noFlexOption(
         this.getUuid,
-        calculateActivePower(Some(ConstantState), data)
+        calculateActivePower(ConstantState, data)
       )
 
     /** @param data

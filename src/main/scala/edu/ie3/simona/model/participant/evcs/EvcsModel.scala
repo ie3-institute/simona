@@ -685,7 +685,7 @@ final case class EvcsModel(
   override def calculatePower(
       tick: Long,
       voltage: ComparableQuantity[Dimensionless],
-      maybeModelState: Option[EvcsState],
+      modelState: EvcsState,
       data: EvcsRelevantData
   ): ApparentPower = ???
 
@@ -699,7 +699,7 @@ final case class EvcsModel(
     *   Active power
     */
   override protected def calculateActivePower(
-      maybeModelState: Option[EvcsState],
+      modelState: EvcsState,
       data: EvcsRelevantData
   ): ComparableQuantity[Power] =
     throw new NotImplementedError("Use calculatePowerAndEvSoc() instead.")

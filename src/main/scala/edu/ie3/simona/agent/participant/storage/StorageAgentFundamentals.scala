@@ -15,10 +15,7 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
-import edu.ie3.simona.agent.participant.{
-  ParticipantAgentFundamentals,
-  StatefulParticipantAgentFundamentals
-}
+import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
@@ -60,7 +57,7 @@ import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.{ClassTag, classTag}
 
 trait StorageAgentFundamentals
-    extends StatefulParticipantAgentFundamentals[
+    extends ParticipantAgentFundamentals[
       ApparentPower,
       StorageRelevantData,
       StorageState,
@@ -197,7 +194,7 @@ trait StorageAgentFundamentals
         StorageState,
         StorageModel
       ],
-      maybeModelState: Option[StorageState],
+      modelState: StorageState,
       currentTick: Long,
       scheduler: ActorRef
   ): State =

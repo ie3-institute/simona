@@ -93,7 +93,7 @@ class PvModelIT extends Specification implements PvModelITHelper {
 				ComparableQuantity<Dimensionless> voltage = getQuantity(1.414213562, PU)
 
 				"collect the results and calculate the difference between the provided results and the calculated ones"
-				double calc = model.calculatePower(0L, voltage, Option.apply(ModelState.ConstantState$),  neededData).p().getValue().doubleValue()
+				double calc = model.calculatePower(0L, voltage, ModelState.ConstantState$.MODULE$,  neededData).p().getValue().doubleValue()
 				double sol = resultsMap.get(dateTime).get(modelId).getValue().doubleValue()
 
 				testRes.add(Math.abs(calc - sol))

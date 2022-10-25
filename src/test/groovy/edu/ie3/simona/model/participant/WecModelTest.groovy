@@ -110,7 +110,7 @@ class WecModelTest extends Specification {
 				getQuantity(20, CELSIUS), getQuantity(101325, PASCAL))
 
 		when:
-		def result = wecModel.calculateActivePower(Option.apply(ModelState.ConstantState$), wecData).to(WATT)
+		def result = wecModel.calculateActivePower(ModelState.ConstantState$.MODULE$, wecData).to(WATT)
 		def expected = getQuantity(power, WATT)
 
 		then:
@@ -140,7 +140,7 @@ class WecModelTest extends Specification {
 				getQuantity(temperature, CELSIUS), getQuantity(101325, PASCAL))
 
 		when:
-		def result = wecModel.calculateActivePower(Option.apply(ModelState.ConstantState$), wecData).to(WATT)
+		def result = wecModel.calculateActivePower(ModelState.ConstantState$.MODULE$, wecData).to(WATT)
 		def expected = getQuantity(power, WATT)
 
 		then:

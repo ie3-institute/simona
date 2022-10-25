@@ -72,7 +72,7 @@ final case class FixedFeedInModel(
     *   Active power
     */
   override protected def calculateActivePower(
-      maybeModelState: Option[ConstantState.type],
+      modelState: ConstantState.type,
       data: FixedRelevantData.type = FixedRelevantData
   ): ComparableQuantity[Power] =
     sRated
@@ -87,7 +87,7 @@ final case class FixedFeedInModel(
   ): ProvideFlexOptions =
     ProvideFlexOptions.noFlexOption(
       uuid,
-      calculateActivePower(Some(ConstantState), data)
+      calculateActivePower(ConstantState, data)
     )
 
   override def handleControlledPowerChange(

@@ -73,7 +73,7 @@ abstract class SystemParticipant[
     *   Regarded instant in simulation
     * @param voltage
     *   Nodal voltage magnitude
-    * @param maybeModelState
+    * @param modelState
     *   Current state of the model
     * @param data
     *   Further needed, secondary data
@@ -83,7 +83,7 @@ abstract class SystemParticipant[
   def calculatePower(
       tick: Long,
       voltage: ComparableQuantity[Dimensionless],
-      maybeModelState: Option[MS],
+      modelState: MS,
       data: CD
   ): PD
 
@@ -101,11 +101,11 @@ abstract class SystemParticipant[
   protected def calculateApparentPower(
       tick: Long,
       voltage: ComparableQuantity[Dimensionless],
-      maybeModelState: Option[MS],
+      modelState: MS,
       data: CD
   ): ApparentPower = {
     if (isInOperation(tick)) {
-      val activePower = calculateActivePower(maybeModelState, data).to(MEGAWATT)
+      val activePower = calculateActivePower(modelState, data).to(MEGAWATT)
       val reactivePower =
         calculateReactivePower(activePower, voltage).to(MEGAVAR)
       ApparentPower(activePower, reactivePower)
@@ -119,7 +119,7 @@ abstract class SystemParticipant[
 
   /** Calculate the active power behaviour of the model
     *
-    * @param maybeModelState
+    * @param modelState
     *   Current state of the model
     * @param data
     *   Further needed, secondary data
@@ -127,7 +127,7 @@ abstract class SystemParticipant[
     *   Active power
     */
   protected def calculateActivePower(
-      maybeModelState: Option[MS],
+      modelState: MS,
       data: CD
   ): ComparableQuantity[Power]
 

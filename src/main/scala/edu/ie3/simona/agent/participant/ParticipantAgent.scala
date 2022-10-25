@@ -34,6 +34,7 @@ import edu.ie3.simona.agent.{SimonaAgent, ValueStore}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.{
   CalcRelevantData,
   FlexChangeIndicator,
@@ -98,6 +99,17 @@ abstract class ParticipantAgent[
     extends SimonaAgent[ParticipantStateData[PD]] {
 
   val alternativeResult: PD
+
+  /** Partial function, that is able to transfer
+    * [[ParticipantModelBaseStateData]] (holding the actual calculation model)
+    * into a pair of active and reactive power
+    */
+  protected val calculateModelPowerFunc: (
+      Long,
+      ParticipantModelBaseStateData[PD, CD, MS, M],
+      MS,
+      ComparableQuantity[Dimensionless]
+  ) => PD
 
   protected val handleUnitialized: StateFunction = {
     /* Initialize the agent */
@@ -452,11 +464,12 @@ abstract class ParticipantAgent[
       /* Model calculation without any secondary data needed */
       val voltage = getAndCheckNodalVoltage(modelBaseStateData, currentTick)
 
-      val maybeLastModelState =
-        modelBaseStateData.stateDataStore.get(currentTick)
+      val lastModelState =
+        getLastOrInitialStateData(modelBaseStateData, currentTick)
+
       calculatePowerWithoutSecondaryDataAndGoToIdle(
         modelBaseStateData,
-        maybeLastModelState,
+        lastModelState,
         currentTick,
         scheduler,
         voltage
@@ -480,13 +493,13 @@ abstract class ParticipantAgent[
 
       /* At least parts of the needed data has been received or it is an additional activation, that has been triggered.
        * Anyways, the calculation routine has also to take care of filling up missing data. */
-      val maybeLastModelState =
-        participantStateData.stateDataStore.last(currentTick).map(_._2)
+      val lastModelState =
+        getLastOrInitialStateData(participantStateData, currentTick)
       calculatePowerWithSecondaryDataAndGoToIdle(
         participantStateData.copy(
           receivedSecondaryDataStore = updatedReceivedSecondaryData
         ),
-        maybeLastModelState,
+        lastModelState,
         currentTick,
         scheduler
       )
@@ -676,6 +689,22 @@ abstract class ParticipantAgent[
     }
   }
 
+  protected def getLastOrInitialStateData(
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+      tick: Long
+  ): MS =
+    ConstantState match {
+      case constantState: MS =>
+        constantState
+      case _ =>
+        baseStateData.stateDataStore
+          .last(tick)
+          .map { case (_, lastState) =>
+            lastState
+          }
+          .getOrElse(createInitialState(baseStateData))
+    }
+
   /** Handle an incoming data provision message in Idle, try to figure out who's
     * about to send information in this tick as well. Map together all senders
     * with their yet apparent information.
@@ -733,7 +762,7 @@ abstract class ParticipantAgent[
     *
     * @param baseStateData
     *   Base state data to update
-    * @param maybeLastModelState
+    * @param lastModelState
     *   The current model state, before updating it
     * @param currentTick
     *   Tick, the trigger belongs to
@@ -746,7 +775,7 @@ abstract class ParticipantAgent[
     */
   def calculatePowerWithoutSecondaryDataAndGoToIdle(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      maybeLastModelState: Option[MS],
+      lastModelState: MS,
       currentTick: Long,
       scheduler: ActorRef,
       nodalVoltage: ComparableQuantity[Dimensionless]
@@ -765,7 +794,7 @@ abstract class ParticipantAgent[
     *
     * @param baseStateData
     *   The base state data with collected secondary data
-    * @param maybeLastModelState
+    * @param lastModelState
     *   The current model state, before applying changes by externally received
     *   data
     * @param currentTick
@@ -777,7 +806,7 @@ abstract class ParticipantAgent[
     */
   def calculatePowerWithSecondaryDataAndGoToIdle(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      maybeLastModelState: Option[MS],
+      lastModelState: MS,
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]]

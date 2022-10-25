@@ -34,7 +34,7 @@ import edu.ie3.simona.ontology.messages.services.EvMessage.{
 }
 import tech.units.indriya.ComparableQuantity
 
-import javax.measure.quantity.Power
+import javax.measure.quantity.{Dimensionless, Power}
 
 object EvcsAgent {
   def props(

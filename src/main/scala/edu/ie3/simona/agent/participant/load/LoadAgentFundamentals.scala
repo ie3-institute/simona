@@ -14,10 +14,7 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
-import edu.ie3.simona.agent.participant.{
-  ParticipantAgentFundamentals,
-  StatelessParticipantAgentFundamentals
-}
+import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
@@ -37,7 +34,12 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
-import edu.ie3.simona.model.participant.{FlexChangeIndicator, ModelState}
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  FixedFeedInModel,
+  FlexChangeIndicator,
+  ModelState
+}
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
@@ -65,7 +67,7 @@ import scala.reflect.{ClassTag, classTag}
 
 protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
   LD
-]] extends StatelessParticipantAgentFundamentals[
+]] extends ParticipantAgentFundamentals[
       ApparentPower,
       LD,
       ConstantState.type,
@@ -284,7 +286,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
         ConstantState.type,
         LM
       ],
-      maybeLastModelState: Option[ConstantState.type],
+      lastModelState: ConstantState.type,
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
@@ -386,6 +388,7 @@ object LoadAgentFundamentals {
           ConstantState.type,
           FixedLoadModel
         ],
+        ConstantState.type,
         ComparableQuantity[Dimensionless]
     ) => ApparentPower = (
         tick: Long,
@@ -395,14 +398,39 @@ object LoadAgentFundamentals {
           ConstantState.type,
           FixedLoadModel
         ],
+        ConstantState,
         voltage: ComparableQuantity[Dimensionless]
     ) =>
       baseStateData.model.calculatePower(
         tick,
         voltage,
-        None,
+        ConstantState,
         FixedLoadRelevantData
       )
+
+    /** Update the last known model state with the given external, relevant data
+      *
+      * @param tick
+      *   Tick to update state for
+      * @param modelState
+      *   Last known model state
+      * @param calcRelevantData
+      *   Data, relevant for calculation
+      * @param nodalVoltage
+      *   Current nodal voltage of the agent
+      * @param model
+      *   Model for calculation
+      * @return
+      *   The updated state at given tick under consideration of calculation
+      *   relevant data
+      */
+    override protected def updateState(
+        tick: Long,
+        modelState: ModelState.ConstantState.type,
+        calcRelevantData: FixedLoadRelevantData.type,
+        nodalVoltage: ComparableQuantity[Dimensionless],
+        model: FixedLoadModel
+    ): ModelState.ConstantState.type = modelState
   }
 
   trait ProfileLoadAgentFundamentals
@@ -447,18 +475,43 @@ object LoadAgentFundamentals {
           ConstantState.type,
           ProfileLoadModel
         ],
+        ConstantState.type,
         ComparableQuantity[Dimensionless]
-    ) => ApparentPower = (tick, baseStateData, voltage) => {
+    ) => ApparentPower = (tick, baseStateData, _, voltage) => {
       val profileRelevantData =
         createCalcRelevantData(baseStateData, tick)
 
       baseStateData.model.calculatePower(
         currentTick,
         voltage,
-        None,
+        ConstantState,
         profileRelevantData
       )
     }
+
+    /** Update the last known model state with the given external, relevant data
+      *
+      * @param tick
+      *   Tick to update state for
+      * @param modelState
+      *   Last known model state
+      * @param calcRelevantData
+      *   Data, relevant for calculation
+      * @param nodalVoltage
+      *   Current nodal voltage of the agent
+      * @param model
+      *   Model for calculation
+      * @return
+      *   The updated state at given tick under consideration of calculation
+      *   relevant data
+      */
+    override protected def updateState(
+        tick: Long,
+        modelState: ModelState.ConstantState.type,
+        calcRelevantData: ProfileRelevantData,
+        nodalVoltage: ComparableQuantity[Dimensionless],
+        model: ProfileLoadModel
+    ): ModelState.ConstantState.type = modelState
   }
 
   trait RandomLoadAgentFundamentals
@@ -503,17 +556,42 @@ object LoadAgentFundamentals {
           ConstantState.type,
           RandomLoadModel
         ],
+        ConstantState.type,
         ComparableQuantity[Dimensionless]
-    ) => ApparentPower = (tick, baseStateData, voltage) => {
+    ) => ApparentPower = (tick, baseStateData, _, voltage) => {
       val profileRelevantData =
         createCalcRelevantData(baseStateData, tick)
 
       baseStateData.model.calculatePower(
         currentTick,
         voltage,
-        None,
+        ConstantState,
         profileRelevantData
       )
     }
+
+    /** Update the last known model state with the given external, relevant data
+      *
+      * @param tick
+      *   Tick to update state for
+      * @param modelState
+      *   Last known model state
+      * @param calcRelevantData
+      *   Data, relevant for calculation
+      * @param nodalVoltage
+      *   Current nodal voltage of the agent
+      * @param model
+      *   Model for calculation
+      * @return
+      *   The updated state at given tick under consideration of calculation
+      *   relevant data
+      */
+    override protected def updateState(
+        tick: Long,
+        modelState: ModelState.ConstantState.type,
+        calcRelevantData: RandomRelevantData,
+        nodalVoltage: ComparableQuantity[Dimensionless],
+        model: RandomLoadModel
+    ): ModelState.ConstantState.type = modelState
   }
 }

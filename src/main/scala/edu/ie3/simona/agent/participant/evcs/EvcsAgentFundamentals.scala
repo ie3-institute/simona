@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.participant.evcs
 
 import akka.actor.{ActorRef, FSM}
-import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.result.system.{
@@ -16,7 +15,7 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
-import edu.ie3.simona.agent.participant.StatelessParticipantAgentFundamentals
+import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
@@ -31,7 +30,6 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputMode
 import edu.ie3.simona.agent.participant.statedata.BaseStateData
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
-import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -40,7 +38,6 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException
 }
-import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.FlexChangeIndicator
 import edu.ie3.simona.ontology.messages.services.EvMessage.{
   ArrivingEvsData,
@@ -66,7 +63,7 @@ import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.{ClassTag, classTag}
 
 protected trait EvcsAgentFundamentals
-    extends StatelessParticipantAgentFundamentals[
+    extends ParticipantAgentFundamentals[
       ApparentPower,
       EvcsRelevantData,
       EvcsState,
@@ -328,9 +325,10 @@ protected trait EvcsAgentFundamentals
         EvcsState,
         EvcsModel
       ],
+      EvcsState,
       ComparableQuantity[Dimensionless]
   ) => ApparentPower =
-    (_, _, _) =>
+    (_, _, _, _) =>
       throw new InvalidRequestException(
         "Evcs model cannot be run without secondary data."
       )
@@ -363,7 +361,7 @@ protected trait EvcsAgentFundamentals
         EvcsState,
         EvcsModel
       ],
-      maybeLastModelState: Option[EvcsState],
+      lastModelState: EvcsState,
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
@@ -907,4 +905,28 @@ protected trait EvcsAgentFundamentals
       result.p,
       result.q
     )
+
+  /** Update the last known model state with the given external, relevant data
+    *
+    * @param tick
+    *   Tick to update state for
+    * @param modelState
+    *   Last known model state
+    * @param calcRelevantData
+    *   Data, relevant for calculation
+    * @param nodalVoltage
+    *   Current nodal voltage of the agent
+    * @param model
+    *   Model for calculation
+    * @return
+    *   The updated state at given tick under consideration of calculation
+    *   relevant data
+    */
+  override protected def updateState(
+      tick: Long,
+      modelState: EvcsState,
+      calcRelevantData: EvcsRelevantData,
+      nodalVoltage: ComparableQuantity[Dimensionless],
+      model: EvcsModel
+  ): EvcsState = modelState
 }

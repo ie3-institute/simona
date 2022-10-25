@@ -34,10 +34,7 @@ import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
   ParticipantStateData
 }
-import edu.ie3.simona.agent.participant.{
-  ParticipantAgentFundamentals,
-  StatefulParticipantAgentFundamentals
-}
+import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
@@ -63,7 +60,7 @@ import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.{ClassTag, classTag}
 
 trait HpAgentFundamentals
-    extends StatefulParticipantAgentFundamentals[
+    extends ParticipantAgentFundamentals[
       ApparentPowerAndHeat,
       HpRelevantData,
       HpState,
@@ -178,7 +175,7 @@ trait HpAgentFundamentals
     val result = baseStateData.model.calculatePower(
       tick,
       voltage,
-      Some(updatedState),
+      updatedState,
       relevantData
     )
 
@@ -214,60 +211,54 @@ trait HpAgentFundamentals
         HpState,
         HpModel
       ],
-      maybeLastModelState: Option[HpState],
+      lastModelState: HpState,
       currentTick: Long,
       scheduler: ActorRef
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] =
-    maybeLastModelState match {
-      case Some(modelState) =>
-        implicit val startDateTime: ZonedDateTime =
-          baseStateData.startDate
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] = {
+    implicit val startDateTime: ZonedDateTime =
+      baseStateData.startDate
 
-        /* Determine needed information */
-        val voltage =
-          getAndCheckNodalVoltage(baseStateData, currentTick)
-        val relevantData = createCalcRelevantData(baseStateData, currentTick)
+    /* Determine needed information */
+    val voltage =
+      getAndCheckNodalVoltage(baseStateData, currentTick)
+    val relevantData = createCalcRelevantData(baseStateData, currentTick)
 
-        /* Determine the next state */
-        val updatedState =
-          updateState(
-            currentTick,
-            modelState,
-            relevantData,
-            voltage,
-            baseStateData.model
-          )
+    /* Determine the next state */
+    val updatedState =
+      updateState(
+        currentTick,
+        lastModelState,
+        relevantData,
+        voltage,
+        baseStateData.model
+      )
 
-        /* Calculate power results */
-        val power = baseStateData.model.calculatePower(
-          currentTick,
-          voltage,
-          Some(updatedState),
-          relevantData
-        )
-        val accompanyingResults = baseStateData.model.thermalGrid.results(
-          modelState.thermalGridState
-        )(baseStateData.startDate)
-        val result = AccompaniedSimulationResult(power, accompanyingResults)
+    /* Calculate power results */
+    val power = baseStateData.model.calculatePower(
+      currentTick,
+      voltage,
+      updatedState,
+      relevantData
+    )
+    val accompanyingResults = baseStateData.model.thermalGrid.results(
+      lastModelState.thermalGridState
+    )(baseStateData.startDate)
+    val result = AccompaniedSimulationResult(power, accompanyingResults)
 
-        val updatedStateDataStore = ValueStore.updateValueStore(
-          baseStateData.stateDataStore,
-          currentTick,
-          updatedState
-        )
-        val updatedBaseStateData =
-          baseStateData.copy(stateDataStore = updatedStateDataStore)
-        updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
-          scheduler,
-          updatedBaseStateData,
-          result,
-          relevantData
-        )
-      case None =>
-        throw new InconsistentStateException(
-          s"Cannot calculate heat pump model without model state. (tick = $currentTick)"
-        )
-    }
+    val updatedStateDataStore = ValueStore.updateValueStore(
+      baseStateData.stateDataStore,
+      currentTick,
+      updatedState
+    )
+    val updatedBaseStateData =
+      baseStateData.copy(stateDataStore = updatedStateDataStore)
+    updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
+      scheduler,
+      updatedBaseStateData,
+      result,
+      relevantData
+    )
+  }
 
   /** Update the last known model state with the given external, relevant data
     *

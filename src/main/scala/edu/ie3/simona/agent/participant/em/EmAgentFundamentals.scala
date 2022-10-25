@@ -12,10 +12,7 @@ import edu.ie3.datamodel.models.result.system.{
   EmResult,
   SystemParticipantResult
 }
-import edu.ie3.simona.agent.participant.{
-  ParticipantAgentFundamentals,
-  StatefulParticipantAgentFundamentals
-}
+import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
@@ -48,7 +45,7 @@ import scala.reflect.{ClassTag, classTag}
 /** TODO unused methods
   */
 trait EmAgentFundamentals
-    extends StatefulParticipantAgentFundamentals[
+    extends ParticipantAgentFundamentals[
       ApparentPower,
       EmRelevantData,
       ConstantState.type,
@@ -203,7 +200,7 @@ trait EmAgentFundamentals
         ConstantState.type,
         EmModel
       ],
-      maybeModelState: Option[ConstantState.type],
+      modelState: ConstantState.type,
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =

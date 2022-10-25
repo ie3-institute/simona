@@ -14,10 +14,7 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
-import edu.ie3.simona.agent.participant.{
-  ParticipantAgentFundamentals,
-  StatelessParticipantAgentFundamentals
-}
+import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
@@ -43,6 +40,8 @@ import edu.ie3.simona.exceptions.agent.{
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  FixedFeedInModel,
   FlexChangeIndicator,
   ModelState,
   PvModel
@@ -60,7 +59,7 @@ import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.{ClassTag, classTag}
 
 protected trait PvAgentFundamentals
-    extends StatelessParticipantAgentFundamentals[
+    extends ParticipantAgentFundamentals[
       ApparentPower,
       PvRelevantData,
       ConstantState.type,
@@ -296,9 +295,10 @@ protected trait PvAgentFundamentals
         ConstantState.type,
         PvModel
       ],
+      ConstantState.type,
       ComparableQuantity[Dimensionless]
   ) => ApparentPower =
-    (_, _, _) =>
+    (_, _, _, _) =>
       throw new InvalidRequestException(
         "Pv model cannot be run without secondary data."
       )
@@ -331,7 +331,7 @@ protected trait PvAgentFundamentals
         ConstantState.type,
         PvModel
       ],
-      maybeLastModelState: Option[ConstantState.type],
+      lastModelState: ConstantState.type,
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
@@ -347,7 +347,7 @@ protected trait PvAgentFundamentals
     val result = baseStateData.model.calculatePower(
       currentTick,
       voltage,
-      None,
+      ConstantState,
       relevantData
     )
 
@@ -410,4 +410,28 @@ protected trait PvAgentFundamentals
       result.p,
       result.q
     )
+
+  /** Update the last known model state with the given external, relevant data
+    *
+    * @param tick
+    *   Tick to update state for
+    * @param modelState
+    *   Last known model state
+    * @param calcRelevantData
+    *   Data, relevant for calculation
+    * @param nodalVoltage
+    *   Current nodal voltage of the agent
+    * @param model
+    *   Model for calculation
+    * @return
+    *   The updated state at given tick under consideration of calculation
+    *   relevant data
+    */
+  override protected def updateState(
+      tick: Long,
+      modelState: ModelState.ConstantState.type,
+      calcRelevantData: PvRelevantData,
+      nodalVoltage: ComparableQuantity[Dimensionless],
+      model: PvModel
+  ): ModelState.ConstantState.type = modelState
 }

@@ -73,7 +73,7 @@ class ParticipantAgentMock(
         ConstantState.type
       ]
     ](scheduler)
-    with StatelessParticipantAgentFundamentals[
+    with ParticipantAgentFundamentals[
       ApparentPower,
       FixedRelevantData.type,
       ConstantState.type,
@@ -106,8 +106,9 @@ class ParticipantAgentMock(
           ConstantState.type
         ]
       ],
+      ConstantState.type,
       ComparableQuantity[Dimensionless]
-  ) => ApparentPower = (_, _, _) =>
+  ) => ApparentPower = (_, _, _, _) =>
     // output different from default (0, 0)
     ApparentPower(
       Quantities.getQuantity(2, MEGAWATT),
@@ -141,7 +142,7 @@ class ParticipantAgentMock(
           ConstantState.type
         ]
       ],
-      maybeModelState: Option[ConstantState.type],
+      modelState: ConstantState.type,
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
@@ -403,6 +404,34 @@ class ParticipantAgentMock(
     ),
     FlexChangeIndicator()
   )
+
+  /** Update the last known model state with the given external, relevant data
+    *
+    * @param tick
+    *   Tick to update state for
+    * @param modelState
+    *   Last known model state
+    * @param calcRelevantData
+    *   Data, relevant for calculation
+    * @param nodalVoltage
+    *   Current nodal voltage of the agent
+    * @param model
+    *   Model for calculation
+    * @return
+    *   The updated state at given tick under consideration of calculation
+    *   relevant data
+    */
+  override protected def updateState(
+      tick: Long,
+      modelState: ModelState.ConstantState.type,
+      calcRelevantData: CalcRelevantData.FixedRelevantData.type,
+      nodalVoltage: ComparableQuantity[Dimensionless],
+      model: SystemParticipant[
+        CalcRelevantData.FixedRelevantData.type,
+        ApparentPower,
+        ModelState.ConstantState.type
+      ]
+  ): ModelState.ConstantState.type = modelState
 }
 
 case object ParticipantAgentMock {

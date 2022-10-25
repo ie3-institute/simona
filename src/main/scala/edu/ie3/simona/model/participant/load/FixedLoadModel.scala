@@ -77,7 +77,7 @@ final case class FixedLoadModel(
     *   Active power
     */
   override protected def calculateActivePower(
-      maybeModelState: Option[ConstantState.type],
+      modelState: ConstantState.type,
       data: FixedLoadRelevantData.type = FixedLoadRelevantData
   ): ComparableQuantity[Power] = activePower.multiply(scalingFactor)
 }

@@ -235,7 +235,7 @@ class BMModelTest extends Specification {
 		bmModel._lastPower = new Some(Quantities.getQuantity(lastPower, KILOWATT))
 
 		when: "the power from the grid is calculated"
-		def powerCalc = bmModel.calculateActivePower(Option.apply(ModelState.ConstantState$), relevantData)
+		def powerCalc = bmModel.calculateActivePower(new BMModel.BmState(), relevantData)
 
 		then: "compare in watts"
 		Math.abs(powerCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(powerSol, KILOWATT).toSystemUnit().getValue().doubleValue()) < 1e-12

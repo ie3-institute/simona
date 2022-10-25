@@ -26,7 +26,8 @@ import edu.ie3.simona.agent.participant.em.EmAgent.{
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexStateData,
-  ModelBaseStateData
+  ModelBaseStateData,
+  ParticipantModelBaseStateData
 }
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
@@ -719,12 +720,10 @@ class EmAgent(
 
     val tick = baseStateData.schedulerStateData.nowInTicks
 
-    val maybeLastState = baseStateData.stateDataStore.last(tick).map(_._2)
-
     val result = baseStateData.model.calculatePower(
       tick,
       voltage,
-      maybeLastState,
+      ConstantState,
       relevantData
     )
 

@@ -217,7 +217,7 @@ class EmModelSpec
         model.calculatePower(
           0L,
           1d.asPu,
-          Some(ConstantState),
+          ConstantState,
           EmRelevantData(flexCorrespondences)
         )
 

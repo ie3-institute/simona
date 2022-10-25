@@ -21,14 +21,14 @@ trait ApparentPowerAndHeatParticipant[
   override def calculatePower(
       tick: Long,
       voltage: ComparableQuantity[Dimensionless],
-      maybeModelState: Option[MS],
+      modelState: MS,
       data: CD
   ): ApparentPowerAndHeat = {
     val apparentPower =
-      calculateApparentPower(tick, voltage, maybeModelState, data)
+      calculateApparentPower(tick, voltage, modelState, data)
     val heat =
       if (isInOperation(tick))
-        calculateHeat(tick, maybeModelState, data).to(
+        calculateHeat(tick, modelState, data).to(
           StandardUnits.ACTIVE_POWER_RESULT
         )
       else
@@ -50,7 +50,7 @@ trait ApparentPowerAndHeatParticipant[
     */
   def calculateHeat(
       tick: Long,
-      maybeModelState: Option[MS],
+      modelState: MS,
       data: CD
   ): ComparableQuantity[Power]
 }

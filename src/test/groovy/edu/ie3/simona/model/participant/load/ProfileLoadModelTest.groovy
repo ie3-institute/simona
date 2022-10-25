@@ -112,7 +112,7 @@ class ProfileLoadModelTest extends Specification {
 
 		when:
 		def max = relevantData.stream().mapToDouble({ data ->
-			dut.calculateActivePower(Option.apply(ModelState.ConstantState$), data).to(MEGAWATT).value.doubleValue()
+			dut.calculateActivePower(ModelState.ConstantState$.MODULE$, data).to(MEGAWATT).value.doubleValue()
 		}).max().getAsDouble()
 
 		then:
@@ -146,7 +146,7 @@ class ProfileLoadModelTest extends Specification {
 
 		when:
 		def max = relevantDatas.stream().mapToDouble({ relevantData ->
-			dut.calculateActivePower(Option.apply(ModelState.ConstantState$), relevantData).to(MEGAWATT).value.doubleValue()
+			dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData).to(MEGAWATT).value.doubleValue()
 		}).max().getAsDouble()
 
 		then:
@@ -190,7 +190,7 @@ class ProfileLoadModelTest extends Specification {
 
 		when:
 		def annualEnergy = relevantDatas.stream().mapToDouble({ relevantData ->
-			((dut.calculateActivePower(Option.apply(ModelState.ConstantState$), relevantData) * Quantities.getQuantity(15d, MINUTE)) as ComparableQuantity<Energy>).to(KILOWATTHOUR).value.doubleValue()
+			((dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData) * Quantities.getQuantity(15d, MINUTE)) as ComparableQuantity<Energy>).to(KILOWATTHOUR).value.doubleValue()
 		}).sum()
 
 		then:
@@ -229,7 +229,7 @@ class ProfileLoadModelTest extends Specification {
 
 		when:
 		def annualEnergy = relevantDatas.stream().mapToDouble({ relevantData ->
-			((dut.calculateActivePower(Option.apply(ModelState.ConstantState$), relevantData) * Quantities.getQuantity(15d, MINUTE)) as ComparableQuantity<Energy>).to(KILOWATTHOUR).value.doubleValue()
+			((dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData) * Quantities.getQuantity(15d, MINUTE)) as ComparableQuantity<Energy>).to(KILOWATTHOUR).value.doubleValue()
 		}).sum()
 
 		then:

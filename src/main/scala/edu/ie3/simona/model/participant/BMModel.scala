@@ -59,10 +59,10 @@ final case class BMModel(
   override def calculatePower(
       tick: Long,
       voltage: ComparableQuantity[Dimensionless],
-      maybeModelState: Option[BmState],
+      modelState: BmState,
       data: BMCalcRelevantData
   ): ApparentPower = {
-    val result = super.calculatePower(tick, voltage, None, data)
+    val result = super.calculatePower(tick, voltage, modelState, data)
     _lastPower = Some(result.p)
 
     result
@@ -76,7 +76,7 @@ final case class BMModel(
     *   Active power
     */
   override protected def calculateActivePower(
-      maybeModelState: Option[BmState],
+      modelState: BmState,
       data: BMCalcRelevantData
   ): ComparableQuantity[Power] = {
     // Calculate heat demand //
@@ -232,7 +232,7 @@ final case class BMModel(
       data: BMCalcRelevantData,
       lastState: BmState
   ): ProvideFlexOptions = {
-    val power = calculateActivePower(Some(lastState), data)
+    val power = calculateActivePower(lastState, data)
 
     ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
   }

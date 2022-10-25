@@ -77,12 +77,12 @@ final case class StorageModel(
   override def calculatePower(
       tick: Long,
       voltage: ComparableQuantity[Dimensionless],
-      maybeModelState: Option[StorageState],
+      modelState: StorageState,
       data: StorageRelevantData
   ): ApparentPower = ???
 
   override protected def calculateActivePower(
-      maybeModelState: Option[StorageState],
+      modelState: StorageState,
       data: StorageRelevantData
   ): ComparableQuantity[Power] =
     throw new NotImplementedError(
