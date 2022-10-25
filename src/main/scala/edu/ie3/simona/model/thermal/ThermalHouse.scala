@@ -14,7 +14,10 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalHouseInput
 }
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
+import edu.ie3.simona.model.thermal.ThermalHouse.{
+  ThermalHouseState,
+  temperatureTolerance
+}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
   HouseTemperatureUpperBoundaryReached
@@ -105,13 +108,13 @@ final case class ThermalHouse(
 
     /* Determine the needed energy */
     val requiredEnergy =
-      if (innerTemperature.isLessThanOrEqualTo(lowerBoundaryTemperature)) {
+      if (isInnerTemperatureTooLow(innerTemperature)) {
         energy(targetTemperature, innerTemperature)
       } else
         Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT)
 
     val possibleEnergy =
-      if (innerTemperature.isLessThan(upperBoundaryTemperature)) {
+      if (!isInnerTemperatureTooHigh(innerTemperature)) {
         energy(upperBoundaryTemperature, innerTemperature)
       } else
         Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT)
@@ -150,7 +153,9 @@ final case class ThermalHouse(
   def isInnerTemperatureTooHigh(
       innerTemperature: ComparableQuantity[Temperature]
   ): Boolean =
-    innerTemperature.isGreaterThan(upperBoundaryTemperature)
+    innerTemperature.isGreaterThan(
+      upperBoundaryTemperature.subtract(temperatureTolerance)
+    )
 
   /** Check if inner temperature is lower than preferred minimum temperature
     *
@@ -160,7 +165,9 @@ final case class ThermalHouse(
   def isInnerTemperatureTooLow(
       innerTemperature: ComparableQuantity[Temperature]
   ): Boolean =
-    innerTemperature.isLessThan(lowerBoundaryTemperature)
+    innerTemperature.isLessThan(
+      lowerBoundaryTemperature.add(temperatureTolerance)
+    )
 
   /** Calculate the new inner temperature of the thermal house.
     *
@@ -404,6 +411,9 @@ final case class ThermalHouse(
 }
 
 object ThermalHouse {
+  protected final def temperatureTolerance: ComparableQuantity[Temperature] =
+    Quantities.getQuantity(0.01, Units.KELVIN)
+
   def apply(input: ThermalHouseInput): ThermalHouse = new ThermalHouse(
     input.getUuid,
     input.getId,

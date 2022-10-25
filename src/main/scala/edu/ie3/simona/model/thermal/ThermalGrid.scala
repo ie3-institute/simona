@@ -328,7 +328,7 @@ final case class ThermalGrid(
     * @return
     *   Options to revised thermal house and storage state
     */
-  private def reviseInfeedFromStorage(
+  def reviseInfeedFromStorage(
       tick: Long,
       maybeHouseState: Option[(ThermalHouseState, Option[ThermalThreshold])],
       maybeStorageState: Option[

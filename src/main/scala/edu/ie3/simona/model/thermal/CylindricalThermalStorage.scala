@@ -97,6 +97,7 @@ final case class CylindricalThermalStorage(
     val energyBalance = lastState.qDot
       .multiply(Quantities.getQuantity(tick - lastState.tick, Units.SECOND))
       .asType(classOf[Energy])
+      .to(StandardUnits.ENERGY_IN)
     val newEnergy = lastState.storedEnergy add energyBalance
     val updatedEnergy =
       if (newEnergy.isGreaterThan(maxEnergyThreshold))
