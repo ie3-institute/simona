@@ -214,7 +214,6 @@ protected trait EvcsAgentFundamentals
       ValueStore(resolution * 10),
       ValueStore(resolution * 10),
       ValueStore(resolution * 10),
-      ValueStore(resolution * 10),
       maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
     )
   }

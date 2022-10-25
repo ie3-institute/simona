@@ -311,7 +311,6 @@ class HpAgentModelCalculationSpec
                 requestValueStore,
                 _,
                 _,
-                _,
                 _
               ),
               awaitRegistrationResponsesFrom,
@@ -583,25 +582,6 @@ class HpAgentModelCalculationSpec
       hpAgent.stateName shouldBe Idle
       hpAgent.stateData match {
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
-          /* The store for calculation relevant data has been extended */
-          baseStateData.calcRelevantDateStore match {
-            case ValueStore(_, store) =>
-              store.get(0L) match {
-                case Some(
-                      HpRelevantData(
-                        currentTimeTick,
-                        ambientTemperature
-                      )
-                    ) =>
-                  currentTimeTick shouldBe 0L
-                  ambientTemperature should equalWithTolerance(
-                    Quantities.getQuantity(1.815, StandardUnits.TEMPERATURE)
-                  )
-                case None =>
-                  fail("Did expect to get hp relevant data for tick 0L")
-              }
-          }
-
           baseStateData.stateDataStore.last(0L) match {
             case Some(
                   (
@@ -787,25 +767,6 @@ class HpAgentModelCalculationSpec
       hpAgent.stateName shouldBe Idle
       hpAgent.stateData match {
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
-          /* The store for calculation relevant data has been extended */
-          baseStateData.calcRelevantDateStore match {
-            case ValueStore(_, store) =>
-              store.get(0L) match {
-                case Some(
-                      HpRelevantData(
-                        currentTimeTick,
-                        ambientTemperature
-                      )
-                    ) =>
-                  currentTimeTick shouldBe 0L
-                  ambientTemperature should equalWithTolerance(
-                    Quantities.getQuantity(1.815, StandardUnits.TEMPERATURE)
-                  )
-                case None =>
-                  fail("Did expect to get hp relevant data for tick 0L")
-              }
-          }
-
           baseStateData.stateDataStore.last(0L) match {
             case Some(
                   (

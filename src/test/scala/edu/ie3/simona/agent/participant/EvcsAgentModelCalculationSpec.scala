@@ -306,7 +306,6 @@ class EvcsAgentModelCalculationSpec
                 requestValueStore,
                 _,
                 _,
-                _,
                 _
               ),
               awaitRegistrationResponsesFrom,
@@ -1265,7 +1264,6 @@ class EvcsAgentModelCalculationSpec
               voltageValueStore,
               resultValueStore,
               requestValueStore,
-              _,
               _,
               _,
               _

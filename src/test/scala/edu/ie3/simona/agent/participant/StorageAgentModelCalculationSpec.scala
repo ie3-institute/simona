@@ -211,7 +211,6 @@ class StorageAgentModelCalculationSpec
               requestValueStore,
               _,
               _,
-              _,
               _
             ) =>
           /* Base state data */

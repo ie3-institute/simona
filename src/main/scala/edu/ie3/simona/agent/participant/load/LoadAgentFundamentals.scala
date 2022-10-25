@@ -176,7 +176,6 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       ValueStore(resolution),
       ValueStore(resolution),
       ValueStore(resolution),
-      ValueStore(0),
       maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
     )
   }

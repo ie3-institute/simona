@@ -229,7 +229,6 @@ class FixedFeedInAgentModelCalculationSpec
               requestValueStore,
               _,
               _,
-              _,
               _
             ) =>
           /* Base state data */

@@ -525,7 +525,7 @@ class EmAgentIT
             scheduler = scheduler.ref,
             listener = Iterable(resultsListener.ref)
           ),
-          "EmAgent"
+          "EmAgent1"
         )
 
         val initId = 0

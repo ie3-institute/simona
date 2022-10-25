@@ -304,7 +304,6 @@ class WecAgentModelCalculationSpec
                 requestValueStore,
                 _,
                 _,
-                _,
                 _
               ),
               awaitRegistrationResponsesFrom,

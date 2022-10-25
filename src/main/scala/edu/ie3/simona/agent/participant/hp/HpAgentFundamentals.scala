@@ -358,7 +358,6 @@ trait HpAgentFundamentals
           ValueStore.forResult(resolution, 10),
           ValueStore(resolution * 10),
           ValueStore(resolution * 10),
-          ValueStore(resolution * 10),
           stateDataStore,
           maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
         )

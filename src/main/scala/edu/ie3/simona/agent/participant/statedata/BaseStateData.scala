@@ -106,8 +106,6 @@ object BaseStateData {
       */
     val services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]]
 
-    val calcRelevantDateStore: ValueStore[CalcRelevantData]
-
     /** Stores all data that are relevant to model calculation
       */
     val receivedSecondaryDataStore: ValueStore[
@@ -223,7 +221,6 @@ object BaseStateData {
       ],
       override val resultValueStore: ValueStore[PD],
       override val requestValueStore: ValueStore[PD],
-      override val calcRelevantDateStore: ValueStore[CD],
       override val receivedSecondaryDataStore: ValueStore[
         Map[ActorRef, _ <: SecondaryData]
       ],

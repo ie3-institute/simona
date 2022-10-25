@@ -320,7 +320,6 @@ class PvAgentModelCalculationSpec
                 requestValueStore,
                 _,
                 _,
-                _,
                 _
               ),
               awaitRegistrationResponsesFrom,

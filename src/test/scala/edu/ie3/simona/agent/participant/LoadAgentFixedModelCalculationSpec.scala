@@ -217,7 +217,6 @@ class LoadAgentFixedModelCalculationSpec
               requestValueStore,
               _,
               _,
-              _,
               _
             ) =>
           /* Base state data */

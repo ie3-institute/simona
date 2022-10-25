@@ -63,15 +63,19 @@ FromOutsideBaseStateData <|.. FromOutsideBaseStateData
 
 Class ParticipantModelBaseStateData {
     + ZonedDateTime: startDate
+    + ZonedDateTime: endDate
     + SystemParticipant: model
     + Option[Vector[SecondaryDataSource]]: services
-    + PrimaryDataSource[ApparentPower]: externalDataSource
-    + Array[Long]: dataTicks
-    + Long: maxTickSpan
+    + NotifierConfig: outputConfig
+    + Array[Long]: additionalActivationTicks
+    + Map[ActorRef, Option[Long]]: foreseenDataTicks
+    + Double: requestVoltageDeviationThreshold
     + ValueStore[ComparableQuantity[Dimensionless]]: voltageValueStore
     + ValueStore[P]: resultValueStore
     + ValueStore[P]: requestValueStore
-    + ValueStore[CalcRelevantData]: calcRelevantDataStore
+    + ValueStore[Map[ActorRef, _ <: SecondaryData]]: receivedSecondaryDataStore
+    + ValueStore[MS]: stateDataStore
+    + Option[FlexStateData]: flexStateData
 }
 ModelBaseStateData <|.. ParticipantModelBaseStateData
 

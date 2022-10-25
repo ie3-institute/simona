@@ -621,7 +621,6 @@ class ParticipantAgentFundamentalsSpec
         ValueStore(901L),
         ValueStore(901L),
         ValueStore(901L),
-        ValueStore(901L),
         None
       )
 
@@ -656,7 +655,6 @@ class ParticipantAgentFundamentalsSpec
         Array(0L, 900L, 1800L),
         Map.empty,
         1e-12,
-        ValueStore(901L),
         ValueStore(901L),
         ValueStore(901L),
         ValueStore(901L),
@@ -721,7 +719,6 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
       additionalActivationTicks,
       foreseenDataTicks,
       0d,
-      ValueStore(0L),
       ValueStore(0L),
       ValueStore(0L),
       ValueStore(0L),

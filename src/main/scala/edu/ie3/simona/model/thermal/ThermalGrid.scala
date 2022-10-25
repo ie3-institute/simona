@@ -74,24 +74,37 @@ final case class ThermalGrid(
       .getOrElse(ThermalEnergyDemand.noDemand)
 
     /* Then go over the storages, see what they can provide and what they might be able to charge */
-    val remainingCapacity = {
+    val (storedEnergy, remainingCapacity) = {
       storage
         .zip(state.storageState)
         .map { case (storage, state) =>
           val usableEnergy = state.storedEnergy
-          storage.getMaxEnergyThreshold
+          val remaining = storage.getMaxEnergyThreshold
             .subtract(usableEnergy)
+          (
+            usableEnergy,
+            remaining
+          )
         }
         .getOrElse(
           (
+            Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT),
             Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT)
           )
         )
     }
 
+    val usedEnergy =
+      if (storedEnergy.isGreaterThanOrEqualTo(houseDemand.required))
+        houseDemand.required
+      else
+        storedEnergy
+    val finallyRemaining =
+      remainingCapacity.add(usedEnergy)
+
     ThermalEnergyDemand(
-      houseDemand.required,
-      houseDemand.possible.add(remainingCapacity)
+      houseDemand.required.subtract(usedEnergy),
+      houseDemand.possible.add(finallyRemaining)
     )
   }
 

@@ -157,7 +157,6 @@ protected trait WecAgentFundamentals
       ValueStore(resolution * 10),
       ValueStore(resolution * 10),
       ValueStore(resolution * 10),
-      ValueStore(0),
       maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
     )
   }

@@ -232,7 +232,6 @@ class ParticipantAgentMock(
       ValueStore(resolution),
       ValueStore(resolution),
       ValueStore(resolution),
-      ValueStore(resolution),
       None
     )
   }
