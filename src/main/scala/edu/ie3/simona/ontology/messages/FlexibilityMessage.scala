@@ -35,7 +35,7 @@ object FlexibilityMessage {
         uuid: UUID,
         power: ComparableQuantity[Power]
     ): ProvideMinMaxFlexOptions =
-      ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
+      ProvideMinMaxFlexOptions(uuid, power, power, power)
   }
 
   /** EmAgent issues flexibility control
