@@ -706,32 +706,40 @@ protected trait EvcsAgentFundamentals
     // calculate results from last schedule
     baseStateData.stateDataStore
       .last(currentTick - 1)
-      .map { case (_, lastState) =>
-        val voltage = baseStateData.voltageValueStore
-          .last(currentTick - 1)
-          .map { case (_, voltage) =>
-            voltage
-          }
-          .getOrElse(
-            Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE)
-          )
-
-        val updatedResultValueStore =
-          determineResultsAnnounceUpdateValueStore(
-            lastState,
-            currentTick,
-            voltage,
+      .map { case (lastTick, lastState) =>
+        baseStateData.resultValueStore.get(lastTick) match {
+          case Some(_) =>
+            // We already have a result for this tick, likely
+            // because EVs already departed at this tick.
+            // Thus, skip recalculating and sending out results.
             baseStateData
-          )
+          case None =>
+            val voltage = baseStateData.voltageValueStore
+              .last(currentTick - 1)
+              .map { case (_, voltage) =>
+                voltage
+              }
+              .getOrElse(
+                Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE)
+              )
 
-        baseStateData.copy(
-          resultValueStore = updatedResultValueStore
-        ): ParticipantModelBaseStateData[
-          ApparentPower,
-          EvcsRelevantData,
-          EvcsState,
-          EvcsModel
-        ]
+            val updatedResultValueStore =
+              determineResultsAnnounceUpdateValueStore(
+                lastState,
+                currentTick,
+                voltage,
+                baseStateData
+              )
+
+            baseStateData.copy(
+              resultValueStore = updatedResultValueStore
+            ): ParticipantModelBaseStateData[
+              ApparentPower,
+              EvcsRelevantData,
+              EvcsState,
+              EvcsModel
+            ]
+        }
       }
       .getOrElse(baseStateData)
 
