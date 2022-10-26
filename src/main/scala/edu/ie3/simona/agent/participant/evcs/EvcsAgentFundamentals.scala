@@ -682,6 +682,7 @@ protected trait EvcsAgentFundamentals
         EvcsState,
         EvcsModel
       ],
+      result: ApparentPower,
       tick: Long
   ): ParticipantModelBaseStateData[
     ApparentPower,
