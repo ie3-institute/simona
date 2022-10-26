@@ -675,6 +675,18 @@ protected trait EvcsAgentFundamentals
     }
   }
 
+  /** Speciality with EVCS: result are always calculated up until the current
+    * tick. Thus, the result received as a parameter is discarded.
+    *
+    * @param baseStateData
+    *   The base state data
+    * @param result
+    *   Is ignored here, result up until this tick are calculated
+    * @param currentTick
+    *   the current tick
+    * @return
+    *   updated base state data
+    */
   override def handleCalculatedResult(
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
@@ -683,7 +695,7 @@ protected trait EvcsAgentFundamentals
         EvcsModel
       ],
       result: ApparentPower,
-      tick: Long
+      currentTick: Long
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
@@ -693,10 +705,10 @@ protected trait EvcsAgentFundamentals
 
     // calculate results from last schedule
     baseStateData.stateDataStore
-      .last(tick - 1)
-      .map { case (lastTick, lastState) =>
+      .last(currentTick - 1)
+      .map { case (_, lastState) =>
         val voltage = baseStateData.voltageValueStore
-          .last(tick - 1)
+          .last(currentTick - 1)
           .map { case (_, voltage) =>
             voltage
           }
@@ -707,7 +719,7 @@ protected trait EvcsAgentFundamentals
         val updatedResultValueStore =
           determineResultsAnnounceUpdateValueStore(
             lastState,
-            tick,
+            currentTick,
             voltage,
             baseStateData
           )
@@ -730,7 +742,7 @@ protected trait EvcsAgentFundamentals
     *
     * @param lastState
     *   The state (including schedule) to calculate results for
-    * @param tick
+    * @param currentTick
     *   The tick up to which results should be calculated for
     * @param voltage
     *   The voltage magnitude used for reactive power calculation
@@ -741,7 +753,7 @@ protected trait EvcsAgentFundamentals
     */
   private def determineResultsAnnounceUpdateValueStore(
       lastState: EvcsState,
-      tick: Long,
+      currentTick: Long,
       voltage: ComparableQuantity[Dimensionless],
       modelBaseStateData: ParticipantModelBaseStateData[
         ApparentPower,
@@ -753,7 +765,7 @@ protected trait EvcsAgentFundamentals
 
     val (evResults, evcsResults) = modelBaseStateData.model.createResults(
       lastState,
-      tick,
+      currentTick,
       voltage
     )
 
