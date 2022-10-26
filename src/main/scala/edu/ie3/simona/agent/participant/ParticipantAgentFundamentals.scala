@@ -25,7 +25,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   EnrichableData,
   PrimaryDataWithApparentPower
 }
-import edu.ie3.simona.agent.participant.data.Data.SecondaryData.DateTime
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
@@ -108,26 +107,6 @@ protected trait ParticipantAgentFundamentals[
   this: ParticipantAgent[PD, CD, MS, D, I, MC, M] =>
   protected val pdClassTag: ClassTag[PD]
   protected implicit val timeout: util.Timeout = Timeout(10, TimeUnit.SECONDS)
-
-  /** Tries to extract the DateTime value from the base state data and verifies,
-    * that it is there
-    *
-    * @param baseStateData
-    *   base state data to derive information from
-    * @return
-    *   valid DateTime value
-    */
-  def getAndCheckDateTime(
-      baseStateData: DataCollectionStateData[_]
-  ): ZonedDateTime = {
-    baseStateData.extract[DateTime]() match {
-      case Some(dateTime) => dateTime.dateTime
-      case None =>
-        throw new RuntimeException(
-          "Did not receive expected information about the date time!"
-        )
-    }
-  }
 
   override def initializeParticipantForPrimaryDataReplay(
       inputModel: I,
