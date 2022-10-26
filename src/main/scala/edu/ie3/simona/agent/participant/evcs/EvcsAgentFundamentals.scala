@@ -675,6 +675,18 @@ protected trait EvcsAgentFundamentals
     }
   }
 
+  /** Speciality with EVCS: result are always calculated up until the current
+    * tick. Thus, the result received as a parameter is discarded.
+    *
+    * @param baseStateData
+    *   The base state data
+    * @param result
+    *   Is ignored here, result up until this tick are calculated
+    * @param currentTick
+    *   the current tick
+    * @return
+    *   updated base state data
+    */
   override def handleCalculatedResult(
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
@@ -682,7 +694,8 @@ protected trait EvcsAgentFundamentals
         EvcsState,
         EvcsModel
       ],
-      tick: Long
+      result: ApparentPower,
+      currentTick: Long
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
@@ -692,33 +705,41 @@ protected trait EvcsAgentFundamentals
 
     // calculate results from last schedule
     baseStateData.stateDataStore
-      .last(tick - 1)
+      .last(currentTick - 1)
       .map { case (lastTick, lastState) =>
-        val voltage = baseStateData.voltageValueStore
-          .last(tick - 1)
-          .map { case (_, voltage) =>
-            voltage
-          }
-          .getOrElse(
-            Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE)
-          )
-
-        val updatedResultValueStore =
-          determineResultsAnnounceUpdateValueStore(
-            lastState,
-            tick,
-            voltage,
+        baseStateData.resultValueStore.get(lastTick) match {
+          case Some(_) =>
+            // We already have a result for this tick, likely
+            // because EVs already departed at this tick.
+            // Thus, skip recalculating and sending out results.
             baseStateData
-          )
+          case None =>
+            val voltage = baseStateData.voltageValueStore
+              .last(currentTick - 1)
+              .map { case (_, voltage) =>
+                voltage
+              }
+              .getOrElse(
+                Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE)
+              )
 
-        baseStateData.copy(
-          resultValueStore = updatedResultValueStore
-        ): ParticipantModelBaseStateData[
-          ApparentPower,
-          EvcsRelevantData,
-          EvcsState,
-          EvcsModel
-        ]
+            val updatedResultValueStore =
+              determineResultsAnnounceUpdateValueStore(
+                lastState,
+                currentTick,
+                voltage,
+                baseStateData
+              )
+
+            baseStateData.copy(
+              resultValueStore = updatedResultValueStore
+            ): ParticipantModelBaseStateData[
+              ApparentPower,
+              EvcsRelevantData,
+              EvcsState,
+              EvcsModel
+            ]
+        }
       }
       .getOrElse(baseStateData)
 
@@ -729,7 +750,7 @@ protected trait EvcsAgentFundamentals
     *
     * @param lastState
     *   The state (including schedule) to calculate results for
-    * @param tick
+    * @param currentTick
     *   The tick up to which results should be calculated for
     * @param voltage
     *   The voltage magnitude used for reactive power calculation
@@ -740,7 +761,7 @@ protected trait EvcsAgentFundamentals
     */
   private def determineResultsAnnounceUpdateValueStore(
       lastState: EvcsState,
-      tick: Long,
+      currentTick: Long,
       voltage: ComparableQuantity[Dimensionless],
       modelBaseStateData: ParticipantModelBaseStateData[
         ApparentPower,
@@ -752,7 +773,7 @@ protected trait EvcsAgentFundamentals
 
     val (evResults, evcsResults) = modelBaseStateData.model.createResults(
       lastState,
-      tick,
+      currentTick,
       voltage
     )
 
