@@ -163,7 +163,8 @@ protected trait EvcsAgentFundamentals
     modelConfig.scaling,
     simulationStartDate,
     simulationEndDate,
-    modelConfig.chargingStrategy
+    modelConfig.chargingStrategy,
+    modelConfig.lowestEvSoc
   )
 
   override protected def createInitialState(): EvcsState =
