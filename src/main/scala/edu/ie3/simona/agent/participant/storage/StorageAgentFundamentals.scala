@@ -30,6 +30,7 @@ import edu.ie3.simona.agent.participant.statedata.{
   ParticipantStateData
 }
 import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
+import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
@@ -41,10 +42,12 @@ import edu.ie3.simona.model.participant.StorageModel.{
   StorageState
 }
 import edu.ie3.simona.util.SimonaConstants
+import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -228,7 +231,74 @@ trait StorageAgentFundamentals
     uuid,
     result.p,
     result.q,
-    (-1d).asPercent // FIXME
+    (-1d).asPercent // dummy value
   )
+
+  /** Additional actions on a new calculated simulation result. Overridden here
+    * because SOC needs to be calculated.
+    *
+    * @param baseStateData
+    *   The base state data
+    * @param result
+    *   that has been calculated for the current tick
+    * @param currentTick
+    *   the current tick
+    * @return
+    *   updated base state data
+    */
+  override protected def handleCalculatedResult(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        StorageRelevantData,
+        StorageState,
+        StorageModel
+      ],
+      result: ApparentPower,
+      currentTick: Long
+  ): ParticipantModelBaseStateData[
+    ApparentPower,
+    StorageRelevantData,
+    StorageState,
+    StorageModel
+  ] = {
+
+    // announce last result to listeners
+    if (baseStateData.outputConfig.simulationResultInfo) {
+      val uuid = baseStateData.modelUuid
+      val dateTime = currentTick.toDateTime(baseStateData.startDate)
+
+      val storedEnergy = baseStateData.stateDataStore
+        .get(currentTick)
+        .getOrElse(
+          throw new IllegalStateException(
+            s"State data for current tick $currentTick should be available."
+          )
+        )
+        .storedEnergy
+
+      val soc = storedEnergy
+        .divide(baseStateData.model.eStorage)
+        .asType(classOf[Dimensionless])
+        .to(Units.PERCENT)
+
+      val storageResult = new StorageResult(
+        dateTime,
+        uuid,
+        result.p,
+        result.q,
+        soc
+      )
+
+      notifyListener(ParticipantResultEvent(storageResult))
+    }
+
+    baseStateData.copy(
+      resultValueStore = ValueStore.updateValueStore(
+        baseStateData.resultValueStore,
+        currentTick,
+        result
+      )
+    )
+  }
 
 }
