@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adaption of abbreviations in PVModel and adjacent classes to naming convention [#326](https://github.com/ie3-institute/simona/issues/326)
 - Fixed Latex equations [#264](https://github.com/ie3-institute/simona/issues/264)
 - Documentation of the simulation configuration [#334](https://github.com/ie3-institute/simona/issues/334)
-- Replacement of end tick by current tick within the simulation scheduler [#159](https://github.com/ie3-institute/simona/issues/159)
+- Adapted entry in Done message and deleted parallel window [#159](https://github.com/ie3-institute/simona/issues/159)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)

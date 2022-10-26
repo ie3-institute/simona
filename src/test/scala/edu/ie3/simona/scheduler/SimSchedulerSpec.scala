@@ -287,7 +287,7 @@ class SimSchedulerSpec
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 3600L
       resultEventListener.expectMsgType[Ready].tick shouldBe 3600L
       val doneMsg = resultEventListener.expectMsgType[Done]
-      doneMsg.tick shouldBe 3601L
+      doneMsg.tick shouldBe 3600L
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
@@ -335,7 +335,7 @@ class SimSchedulerSpec
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 3600L
       resultEventListener.expectMsgType[Ready].tick shouldBe 3600L
       val doneMsg = resultEventListener.expectMsgType[Done]
-      doneMsg.tick shouldBe 3601L
+      doneMsg.tick shouldBe 3600L
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
@@ -385,7 +385,7 @@ class SimSchedulerSpec
       // no ready msg here
 
       val doneMsg = resultEventListener.expectMsgType[Done]
-      doneMsg.tick shouldBe 3601L
+      doneMsg.tick shouldBe 3600L
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
@@ -453,7 +453,7 @@ class SimSchedulerSpec
       resultEventListener.expectMsgType[Ready].tick shouldBe 7200L
 
       val doneMsg = resultEventListener.expectMsgType[Done]
-      doneMsg.tick shouldBe 7201L
+      doneMsg.tick shouldBe 7200L
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
@@ -506,7 +506,7 @@ class SimSchedulerSpec
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 3600L
       resultEventListener.expectMsgType[Ready].tick shouldBe 3600L
       val doneMsg = resultEventListener.expectMsgType[Done]
-      doneMsg.tick shouldBe 3601L
+      doneMsg.tick shouldBe 3600L
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
@@ -585,7 +585,7 @@ class SimSchedulerSpec
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 10L
       resultEventListener.expectMsgType[Ready].tick shouldBe 10L
       val doneMsg = resultEventListener.expectMsgType[Done]
-      doneMsg.tick shouldBe 11L
+      doneMsg.tick shouldBe 10L
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
@@ -727,7 +727,7 @@ class SimSchedulerSpec
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 3600L
 
       val doneMsg = resultEventListener.expectMsgType[Done]
-      doneMsg.tick shouldBe 3601L
+      doneMsg.tick shouldBe 3600L
       doneMsg.noOfFailedPF shouldBe 3
       doneMsg.errorInSim shouldBe false
 

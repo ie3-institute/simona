@@ -7,6 +7,7 @@
 package edu.ie3.simona.scheduler
 
 import akka.actor.ActorRef
+import breeze.linalg.min
 import edu.ie3.simona.event.RuntimeEvent.{
   CheckWindowPassed,
   Done,
@@ -46,8 +47,6 @@ trait SchedulerHelper extends SimonaActorLogging {
       TimeUtil.withDefaults.toZonedDateTime(simonaTimeConfig.startDateTime),
       TimeUtil.withDefaults.toZonedDateTime(simonaTimeConfig.endDateTime)
     )
-
-  private val parallelWindow = SimonaConstants.PARALLELISM_WINDOW
 
   // if currentTick % checkWindowTick == 0 and all completionMessages have been
   // received for currentTick, a CheckWindowPassed RuntimeEvent is issued
@@ -130,12 +129,11 @@ trait SchedulerHelper extends SimonaActorLogging {
         /* we do not want to pause the schedule, go on with normal schedule handling  */
         if (notFinishedAndTriggerAvailable(nowInTicks, stateData)) {
 
-          /* if we do not exceed nowInSeconds + parallelWindow OR do not wait on any responses we can send out new triggers */
+          /* if we do not exceed nowInSeconds OR do not wait on any responses we can send out new triggers */
           if (
             canWeSendTrigger(
               stateData.trigger.awaitingResponseMap,
-              nowInTicks,
-              parallelWindow
+              nowInTicks
             )
           ) {
 
@@ -149,12 +147,11 @@ trait SchedulerHelper extends SimonaActorLogging {
               eligibleTriggerSendStateData.time.nowInTicks
             )
 
-            /* if we do not exceed (nowInTicks+1) + parallelWindow OR do not wait on any responses, we can move on in time by one tick */
+            /* if we do not exceed (nowInTicks+1) OR do not wait on any responses, we can move on in time by one tick */
             if (
               nowInTicks <= endTick && canWeSendTrigger(
                 updatedStateData.trigger.awaitingResponseMap,
-                nowInTicks + 1,
-                parallelWindow
+                nowInTicks + 1
               )
             ) {
               doSimStep(
@@ -182,7 +179,7 @@ trait SchedulerHelper extends SimonaActorLogging {
           val stateDataAfterCheckWindow = maybeCheckWindowPassed(
             stateData,
             schedulerReadyCheckWindow,
-            nowInTicks - parallelWindow) */
+            nowInTicks) */
 
           maybeFinishSimulation(stateData)
         }
@@ -283,26 +280,23 @@ trait SchedulerHelper extends SimonaActorLogging {
       stateData.trigger.triggerQueue.headKeyOption.exists(_ <= endTick)
 
   /** Checks if we can move on in time in the schedule by comparing the awaiting
-    * response map data with the current tick and the parallelWindow data
+    * response map data with the current tick
     *
     * @param awaitingResponseMap
     *   the map containing all information about triggers we still wait for
     *   completion messages
     * @param nowInTicks
     *   the current tick
-    * @param parallelWindow
-    *   the parallel window tick information
     * @return
     *   true if trigger can be send, false otherwise
     */
   private def canWeSendTrigger(
       awaitingResponseMap: CountingMap[Long],
-      nowInTicks: Long,
-      parallelWindow: Long
+      nowInTicks: Long
   ): Boolean =
     awaitingResponseMap.minKeyOption match {
       case Some(minKey) =>
-        nowInTicks - minKey <= parallelWindow
+        nowInTicks - minKey <= 0L
       case None =>
         true // map empty, no completions awaited
     }
@@ -452,21 +446,31 @@ trait SchedulerHelper extends SimonaActorLogging {
       context.unwatch(trig.agent)
     )
 
-    /* notify listeners */
-    notifyListener(
-      Done(
-        stateData.time.nowInTicks,
-        totalSimDuration,
-        stateData.runtime.noOfFailedPF,
-        errorInSim
-      )
-    )
-
     /* notify start sender */
     if (errorInSim) {
       stateData.runtime.initSender ! SimulationFailureMessage
+
+      /* notify listeners */
+      notifyListener(
+        Done(
+          stateData.time.nowInTicks,
+          totalSimDuration,
+          stateData.runtime.noOfFailedPF,
+          errorInSim
+        )
+      )
     } else {
       stateData.runtime.initSender ! SimulationSuccessfulMessage
+
+      /* notify listeners */
+      notifyListener(
+        Done(
+          min(stateData.time.nowInTicks, endTick),
+          totalSimDuration,
+          stateData.runtime.noOfFailedPF,
+          errorInSim
+        )
+      )
     }
 
     /* disable schedule */
@@ -614,18 +618,17 @@ trait SchedulerHelper extends SimonaActorLogging {
 
           /* if there are no triggers left to send and we are only receiving completion messages, we still might
            * pass a ready check window, this call is to ensure that for the last tick of the simulation a CheckWindowPassed()
-           * is issued lastTick % schedulerReadyCheckWindow == 0, parallel window does not account for last tick */
+           * is issued lastTick % schedulerReadyCheckWindow == 0 */
           maybeCheckWindowPassed(
             updatedStateData,
             schedulerReadyCheckWindow,
             stateData.time.nowInTicks - 1
           )
-          /* if resolution == schedulerCheckWindow we need to subtract the parallel window for the current tick as we might
-           * move on in time already will still receiving completion messages for nowInTicks - parallelWindow */
+
           maybeCheckWindowPassed(
             updatedStateData,
             schedulerReadyCheckWindow,
-            stateData.time.nowInTicks - parallelWindow
+            stateData.time.nowInTicks
           )
         } else {
           /* we are @ the init tick (SimonaSim#initTick), if no init triggers are in the queue and in the await map
@@ -789,7 +792,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     context.watch(actorToBeScheduled)
 
     // if the tick of this trigger is too much in the past, we cannot schedule it
-    if (stateData.time.nowInTicks - trigger.tick > parallelWindow) {
+    if (stateData.time.nowInTicks - trigger.tick > 0L) {
       actorToBeScheduled ! IllegalTriggerMessage(
         s"Cannot schedule an event $trigger at tick ${trigger.tick} when 'nowInSeconds' is at ${stateData.time.nowInTicks}!",
         actorToBeScheduled
