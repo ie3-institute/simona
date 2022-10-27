@@ -270,7 +270,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
     // if there are no departing evs during this tick,
     // we're sending response right away
-    if (requestedDepartingEvs.isEmpty)
+    if (departingEvResponses.isEmpty)
       serviceStateData.extEvData.queueExtResponseMsg(new ProvideDepartingEvs())
 
     (

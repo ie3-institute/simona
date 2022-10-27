@@ -163,7 +163,14 @@ protected trait FixedFeedInAgentFundamentals
     simulationEndDate
   )
 
-  override protected def createInitialState(): ModelState.ConstantState.type =
+  override protected def createInitialState(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedRelevantData.type,
+        ConstantState.type,
+        FixedFeedInModel
+      ]
+  ): ModelState.ConstantState.type =
     ConstantState // TODO
 
   override protected def createCalcRelevantData(
