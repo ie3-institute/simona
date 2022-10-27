@@ -220,11 +220,7 @@ protected trait EvcsAgentFundamentals
         EvcsState,
         EvcsModel
       ]
-  ): EvcsState = {
-    // TODO implement
-
-    throw new NotImplementedError()
-  }
+  ): EvcsState = EvcsState(Set.empty)
 
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
