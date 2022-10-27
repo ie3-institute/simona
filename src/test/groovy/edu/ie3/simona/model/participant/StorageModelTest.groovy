@@ -65,7 +65,8 @@ class StorageModelTest extends Specification {
     def buildStorageModel() {
         return StorageModel.apply(inputModel, 1,
                 TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
-                TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00"))
+                TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00"),
+                0)
     }
 
     def "Calculate flex options"() {
