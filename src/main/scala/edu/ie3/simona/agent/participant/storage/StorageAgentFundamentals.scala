@@ -134,7 +134,8 @@ trait StorageAgentFundamentals
     inputModel,
     modelConfig.scaling,
     simulationStartDate,
-    simulationEndDate
+    simulationEndDate,
+    modelConfig.initialSoc
   )
 
   override protected def createInitialState(
@@ -145,7 +146,7 @@ trait StorageAgentFundamentals
         StorageModel
       ]
   ): StorageState = StorageState(
-    zeroKWH,
+    baseStateData.model.eStorage.multiply(baseStateData.model.initialSoc),
     zeroKW,
     SimonaConstants.INIT_SIM_TICK
   )

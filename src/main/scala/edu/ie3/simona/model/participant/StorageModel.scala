@@ -39,7 +39,8 @@ final case class StorageModel(
     eStorage: ComparableQuantity[Energy],
     pMax: ComparableQuantity[Power],
     eta: ComparableQuantity[Dimensionless],
-    dod: ComparableQuantity[Dimensionless]
+    dod: ComparableQuantity[Dimensionless],
+    initialSoc: Double // TODO this is ugly and should be solved in a different way, as this value is only used outside the model
 ) extends SystemParticipant[StorageRelevantData, StorageState](
       uuid,
       id,
@@ -195,7 +196,8 @@ object StorageModel {
       inputModel: StorageInput,
       scalingFactor: Double,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
+      initialSoc: Double
   ): StorageModel = {
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
@@ -217,7 +219,8 @@ object StorageModel {
       inputModel.getType.geteStorage,
       inputModel.getType.getpMax,
       inputModel.getType.getEta,
-      inputModel.getType.getDod
+      inputModel.getType.getDod,
+      initialSoc
     )
     // TODO include activePowerGradient, lifeTime, lifeCycle ?
 

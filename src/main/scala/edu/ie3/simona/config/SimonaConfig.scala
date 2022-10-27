@@ -678,7 +678,8 @@ object SimonaConfig {
   final case class StorageRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: scala.Boolean,
       override val scaling: scala.Double,
-      override val uuids: scala.List[java.lang.String]
+      override val uuids: scala.List[java.lang.String],
+      initialSoc: scala.Double
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -691,6 +692,8 @@ object SimonaConfig {
         $tsCfgValidator: $TsCfgValidator
     ): SimonaConfig.StorageRuntimeConfig = {
       SimonaConfig.StorageRuntimeConfig(
+        initialSoc =
+          if (c.hasPathOrNull("initialSoc")) c.getDouble("initialSoc") else 0,
         calculateMissingReactivePowerWithModel = $_reqBln(
           parentPath,
           c,
