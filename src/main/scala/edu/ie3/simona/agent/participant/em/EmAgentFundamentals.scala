@@ -125,7 +125,14 @@ trait EmAgentFundamentals
       "Not implemented"
     )
 
-  override protected def createInitialState(): ModelState.ConstantState.type =
+  override protected def createInitialState(
+      baseStateData: BaseStateData.ParticipantModelBaseStateData[
+        ApparentPower,
+        EmRelevantData,
+        ModelState.ConstantState.type,
+        EmModel
+      ]
+  ): ModelState.ConstantState.type =
     ConstantState
 
   override protected def createCalcRelevantData(
