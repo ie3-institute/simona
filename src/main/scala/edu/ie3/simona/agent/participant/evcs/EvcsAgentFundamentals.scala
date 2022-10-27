@@ -167,12 +167,18 @@ protected trait EvcsAgentFundamentals
     modelConfig.lowestEvSoc
   )
 
-  override protected def createInitialState(): EvcsState =
-    EvcsState(
-      Set.empty,
-      Map.empty,
-      SimonaConstants.FIRST_TICK_IN_SIMULATION
-    )
+  override protected def createInitialState(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel
+      ]
+  ): EvcsState = EvcsState(
+    Set.empty,
+    Map.empty,
+    SimonaConstants.FIRST_TICK_IN_SIMULATION
+  )
 
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[

@@ -198,7 +198,14 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       reference: LoadReference
   ): LM
 
-  override protected def createInitialState(): ModelState.ConstantState.type =
+  override protected def createInitialState(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        LD,
+        ConstantState.type,
+        LM
+      ]
+  ): ModelState.ConstantState.type =
     ConstantState // TODO
 
   override protected def calculateResult(

@@ -159,7 +159,14 @@ protected trait WecAgentFundamentals
     simulationEndDate
   )
 
-  override protected def createInitialState(): ModelState.ConstantState.type =
+  override protected def createInitialState(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        WecRelevantData,
+        ConstantState.type,
+        WecModel
+      ]
+  ): ModelState.ConstantState.type =
     ConstantState
 
   override protected def createCalcRelevantData(
