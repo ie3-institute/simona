@@ -222,7 +222,17 @@ class ParticipantAgentMock(
     mockModel
   }
 
-  override protected def createInitialState(): ModelState.ConstantState.type =
+  override protected def createInitialState(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedRelevantData.type,
+        ConstantState.type,
+        SystemParticipant[
+          FixedRelevantData.type,
+          ConstantState.type
+        ]
+      ]
+  ): ModelState.ConstantState.type =
     ConstantState
 
   override protected def createCalcRelevantData(

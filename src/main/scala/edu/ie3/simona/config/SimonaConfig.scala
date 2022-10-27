@@ -191,7 +191,8 @@ object SimonaConfig {
       override val calculateMissingReactivePowerWithModel: scala.Boolean,
       override val scaling: scala.Double,
       override val uuids: scala.List[java.lang.String],
-      chargingStrategy: java.lang.String
+      chargingStrategy: java.lang.String,
+      lowestEvSoc: scala.Double
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -208,6 +209,9 @@ object SimonaConfig {
           if (c.hasPathOrNull("chargingStrategy"))
             c.getString("chargingStrategy")
           else "maxPower",
+        lowestEvSoc =
+          if (c.hasPathOrNull("lowestEvSoc")) c.getDouble("lowestEvSoc")
+          else 0.2,
         calculateMissingReactivePowerWithModel = $_reqBln(
           parentPath,
           c,

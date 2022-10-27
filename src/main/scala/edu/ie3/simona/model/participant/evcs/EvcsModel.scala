@@ -36,10 +36,10 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.service.market.StaticMarketSource
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.{RichQuantity, RichQuantityDouble}
 import edu.ie3.util.quantities.interfaces.Currency
+import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import tech.units.indriya.ComparableQuantity
@@ -94,7 +94,8 @@ final case class EvcsModel(
     chargingPoints: Int,
     locationType: EvcsLocationType,
     vehicle2grid: Boolean,
-    strategy: ChargingStrategy.Value
+    strategy: ChargingStrategy.Value,
+    lowestEvSoc: Double
 ) extends SystemParticipant[EvcsRelevantData, EvcsState](
       uuid,
       id,
@@ -109,8 +110,6 @@ final case class EvcsModel(
     with ConstantPowerCharging
     with GridOrientedCharging
     with MarketOrientedCharging {
-
-  private val lowestEvSoc = 0.2 // TODO config param
 
   /** Determine scheduling for charging the EVs currently parked at the charging
     * station until their departure. The scheduling depends on the chosen
@@ -1045,7 +1044,8 @@ object EvcsModel {
       scalingFactor: Double,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
-      chargingStrategy: String
+      chargingStrategy: String,
+      lowestEvSoc: Double
   ): EvcsModel = {
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
@@ -1068,7 +1068,8 @@ object EvcsModel {
       inputModel.getChargingPoints,
       inputModel.getLocationType,
       inputModel.getV2gSupport,
-      ChargingStrategy(chargingStrategy)
+      ChargingStrategy(chargingStrategy),
+      lowestEvSoc
     )
   }
 
@@ -1112,7 +1113,8 @@ object EvcsModel {
       chargingPoints: Int,
       locationType: EvcsLocationType,
       vehicle2grid: Boolean,
-      chargingStrategy: ChargingStrategy.Value
+      chargingStrategy: ChargingStrategy.Value,
+      lowestEvSoc: Double
   ): EvcsModel = {
     val model = new EvcsModel(
       uuid,
@@ -1127,7 +1129,8 @@ object EvcsModel {
       chargingPoints,
       locationType,
       vehicle2grid,
-      chargingStrategy
+      chargingStrategy,
+      lowestEvSoc
     )
 
     model.enable()
