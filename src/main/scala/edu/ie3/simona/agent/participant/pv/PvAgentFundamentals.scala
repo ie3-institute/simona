@@ -159,7 +159,14 @@ protected trait PvAgentFundamentals
     simulationEndDate
   )
 
-  override protected def createInitialState(): ModelState.ConstantState.type =
+  override protected def createInitialState(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        PvRelevantData,
+        ConstantState.type,
+        PvModel
+      ]
+  ): ModelState.ConstantState.type =
     ConstantState
 
   override protected def createCalcRelevantData(

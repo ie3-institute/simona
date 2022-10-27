@@ -975,7 +975,7 @@ protected trait ParticipantAgentFundamentals[
           .map { case (_, lastState) =>
             lastState
           }
-          .getOrElse(createInitialState())
+          .getOrElse(createInitialState(baseStateData))
     }
 
   /** Change over to [[Idle]] state and reply completion to the scheduler. By

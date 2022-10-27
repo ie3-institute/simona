@@ -198,7 +198,8 @@ class EmAgentIT
             StorageRuntimeConfig(
               calculateMissingReactivePowerWithModel = true,
               scaling = 1d,
-              uuids = List.empty
+              uuids = List.empty,
+              initialSoc = 0d
             ),
             primaryServiceProxy.ref,
             None,
