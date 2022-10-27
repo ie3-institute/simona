@@ -1156,7 +1156,7 @@ object SimSchedulerSpec extends UnitSpec {
             ScheduleTriggerMessage(
               ActivityStartTrigger(tick),
               triggeredAgent.ref,
-              priority
+              priority = priority
             )
           )
         )

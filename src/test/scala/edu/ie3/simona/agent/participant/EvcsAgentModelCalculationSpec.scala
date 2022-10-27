@@ -12,6 +12,7 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV
+import edu.ie3.datamodel.models.result.system.{EvResult, EvcsResult}
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
@@ -22,7 +23,10 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
-import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
+import edu.ie3.simona.event.ResultEvent.{
+  FlexOptionsResultEvent,
+  ParticipantResultEvent
+}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.evcs.ChargingSchedule
 import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsState
@@ -59,6 +63,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.EvTestData
 import edu.ie3.simona.test.common.input.EvcsInputTestData
+import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -113,7 +118,7 @@ class EvcsAgentModelCalculationSpec
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = scheduler.ref,
-          listener = systemListener
+          listener = Iterable.empty
         )
       )
       evcsAgent.stateName shouldBe Uninitialized
@@ -131,7 +136,7 @@ class EvcsAgentModelCalculationSpec
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = scheduler.ref,
-          listener = systemListener
+          listener = Iterable.empty
         )
       )
 
@@ -192,7 +197,7 @@ class EvcsAgentModelCalculationSpec
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = scheduler.ref,
-          listener = systemListener
+          listener = Iterable.empty
         )
       )
 
@@ -211,7 +216,7 @@ class EvcsAgentModelCalculationSpec
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = scheduler.ref,
-          listener = systemListener
+          listener = Iterable.empty
         )
       )
 
@@ -366,7 +371,7 @@ class EvcsAgentModelCalculationSpec
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = scheduler.ref,
-          listener = systemListener
+          listener = Iterable.empty
         )
       )
 
@@ -456,7 +461,7 @@ class EvcsAgentModelCalculationSpec
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = scheduler.ref,
-          listener = systemListener
+          listener = Iterable.empty
         )
       )
 
@@ -611,7 +616,7 @@ class EvcsAgentModelCalculationSpec
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = scheduler.ref,
-          listener = systemListener
+          listener = Iterable.empty
         )
       )
 
@@ -761,7 +766,7 @@ class EvcsAgentModelCalculationSpec
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = scheduler.ref,
-          listener = systemListener
+          listener = Iterable.empty
         )
       )
 
@@ -831,7 +836,7 @@ class EvcsAgentModelCalculationSpec
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = scheduler.ref,
-          listener = systemListener
+          listener = Iterable.empty
         )
       )
 
@@ -932,7 +937,7 @@ class EvcsAgentModelCalculationSpec
     val evcsAgent = TestFSMRef(
       new EvcsAgent(
         scheduler = scheduler.ref,
-        listener = systemListener
+        listener = Iterable.empty
       )
     )
 
@@ -1155,7 +1160,7 @@ class EvcsAgentModelCalculationSpec
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = emAgent.ref,
-          listener = systemListener
+          listener = Iterable.empty
         )
       )
 
@@ -1237,7 +1242,8 @@ class EvcsAgentModelCalculationSpec
           scheduleFunc(3L) shouldBe
             ScheduleTriggerMessage(
               ScheduleTriggerMessage(ActivityStartTrigger(3L), evcsAgent),
-              emAgent.ref
+              emAgent.ref,
+              priority = true
             )
       }
       evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
@@ -1294,11 +1300,12 @@ class EvcsAgentModelCalculationSpec
 
     "provide correct flex options when in Idle" in {
       val emAgent = TestProbe("EmAgentProbe")
+      val resultListener = TestProbe("ResultListener")
 
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = emAgent.ref,
-          listener = systemListener
+          listener = Iterable(resultListener.ref)
         )
       )
 
@@ -1323,7 +1330,7 @@ class EvcsAgentModelCalculationSpec
               resolution = resolution,
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
+              outputConfig = simResultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
               maybeEmAgent = Some(emAgent.ref)
             )
@@ -1358,7 +1365,7 @@ class EvcsAgentModelCalculationSpec
           simulationEndDate shouldBe simulationEndDate
           resolution shouldBe resolution
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
-          outputConfig shouldBe defaultOutputConfig
+          outputConfig shouldBe simResultOutputConfig
           maybeEmAgent shouldBe Some(emAgent.ref)
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
@@ -1380,7 +1387,8 @@ class EvcsAgentModelCalculationSpec
           scheduleFunc(4L) shouldBe
             ScheduleTriggerMessage(
               ScheduleTriggerMessage(ActivityStartTrigger(4L), evcsAgent),
-              emAgent.ref
+              emAgent.ref,
+              priority = true
             )
       }
       evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
@@ -1411,6 +1419,14 @@ class EvcsAgentModelCalculationSpec
           maxPower shouldBe 0d.asKiloWatt
       }
 
+      resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
+        flexResult.getInputModel shouldBe evcsInputModel.getUuid
+        flexResult.getTime shouldBe 0L.toDateTime
+        flexResult.getpRef should beEquivalentTo(0d.asKiloWatt)
+        flexResult.getpMin should beEquivalentTo(0d.asKiloWatt)
+        flexResult.getpMax should beEquivalentTo(0d.asKiloWatt)
+      }
+
       emAgent.send(
         evcsAgent,
         IssueNoCtrl(0L)
@@ -1436,6 +1452,9 @@ class EvcsAgentModelCalculationSpec
             testingTolerance
           )
       }
+
+      // results arrive after next activation
+      resultListener.expectNoMessage()
 
       /* TICK 900
          - ev 900 arrives
@@ -1474,6 +1493,14 @@ class EvcsAgentModelCalculationSpec
           maxPower shouldBe ev900.getSRatedAC
       }
 
+      resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
+        flexResult.getInputModel shouldBe evcsInputModel.getUuid
+        flexResult.getTime shouldBe 900L.toDateTime
+        flexResult.getpRef should beEquivalentTo(ev900.getSRatedAC)
+        flexResult.getpMin should beEquivalentTo(0d.asKiloWatt)
+        flexResult.getpMax should beEquivalentTo(ev900.getSRatedAC)
+      }
+
       emAgent.send(evcsAgent, IssuePowerCtrl(900L, 9.asKiloWatt))
 
       // at 4500 ev is departing
@@ -1499,6 +1526,15 @@ class EvcsAgentModelCalculationSpec
 
       emAgent.expectMsg(CompletionMessage(activation1, None))
 
+      // result of tick 0
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: EvcsResult) =>
+          result.getInputModel shouldBe evcsInputModel.getUuid
+          result.getTime shouldBe 0L.toDateTime
+          result.getP should beEquivalentTo(0d.asMegaWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
+
       /* TICK 4500
          - ev900 departs, ev4500 arrives
          - charging with 11 kW
@@ -1520,6 +1556,24 @@ class EvcsAgentModelCalculationSpec
             testingTolerance
           )
         }
+      }
+
+      // results arrive right after departure request
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: EvResult) =>
+          result.getInputModel shouldBe ev900.getUuid
+          result.getTime shouldBe 900L.toDateTime
+          result.getP should beEquivalentTo(9d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+          result.getSoc should beEquivalentTo(0d.asPercent)
+      }
+
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: EvcsResult) =>
+          result.getInputModel shouldBe evcsInputModel.getUuid
+          result.getTime shouldBe 900L.toDateTime
+          result.getP should beEquivalentTo(9d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
       }
 
       val ev4500 = evB.copyWithDeparture(72000L)
@@ -1558,6 +1612,14 @@ class EvcsAgentModelCalculationSpec
           maxPower shouldBe ev4500.getSRatedAC
       }
 
+      resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
+        flexResult.getInputModel shouldBe evcsInputModel.getUuid
+        flexResult.getTime shouldBe 4500L.toDateTime
+        flexResult.getpRef should beEquivalentTo(ev4500.getSRatedAC)
+        flexResult.getpMin should beEquivalentTo(0d.asKiloWatt)
+        flexResult.getpMax should beEquivalentTo(ev4500.getSRatedAC)
+      }
+
       emAgent.send(evcsAgent, IssueNoCtrl(4500L))
 
       // we currently have an empty battery in ev4500
@@ -1585,6 +1647,9 @@ class EvcsAgentModelCalculationSpec
 
       emAgent.expectMsg(CompletionMessage(activation2, None))
 
+      // already sent out after EV departed
+      resultListener.expectNoMessage()
+
       /* TICK 8100
          - flex control changes
          - charging with 10 kW
@@ -1604,6 +1669,14 @@ class EvcsAgentModelCalculationSpec
           referencePower shouldBe ev4500.getSRatedAC
           minPower shouldBe 0d.asKiloWatt // battery is still below lowest soc for discharging
           maxPower shouldBe ev4500.getSRatedAC
+      }
+
+      resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
+        flexResult.getInputModel shouldBe evcsInputModel.getUuid
+        flexResult.getTime shouldBe 8100L.toDateTime
+        flexResult.getpRef should beEquivalentTo(ev4500.getSRatedAC)
+        flexResult.getpMin should beEquivalentTo(0d.asKiloWatt)
+        flexResult.getpMax should beEquivalentTo(ev4500.getSRatedAC)
       }
 
       emAgent.send(evcsAgent, IssuePowerCtrl(8100L, 10.asKiloWatt))
@@ -1635,6 +1708,23 @@ class EvcsAgentModelCalculationSpec
           )
       }
 
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: EvResult) =>
+          result.getInputModel shouldBe ev4500.getUuid
+          result.getTime shouldBe 4500L.toDateTime
+          result.getP should beEquivalentTo(11d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+          result.getSoc should beEquivalentTo(0d.asPercent)
+      }
+
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: EvcsResult) =>
+          result.getInputModel shouldBe evcsInputModel.getUuid
+          result.getTime shouldBe 4500L.toDateTime
+          result.getP should beEquivalentTo(11d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
+
       /* TICK 11700
          - ev11700 arrives
          - charging with 16 kW
@@ -1664,6 +1754,9 @@ class EvcsAgentModelCalculationSpec
         )
       )
 
+      val combinedChargingPower =
+        ev11700.getSRatedAC.add(ev4500.getSRatedAC)
+
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
               modelUuid,
@@ -1671,15 +1764,22 @@ class EvcsAgentModelCalculationSpec
               minPower,
               maxPower
             ) =>
-          val combinedChargingPower =
-            ev11700.getSRatedAC.add(ev4500.getSRatedAC)
-
           modelUuid shouldBe evcsInputModel.getUuid
           referencePower shouldBe combinedChargingPower
           minPower shouldBe ev4500.getSRatedAC.multiply(
             -1
           ) // battery of earlier ev is above lowest soc now
           maxPower shouldBe combinedChargingPower
+      }
+
+      resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
+        flexResult.getInputModel shouldBe evcsInputModel.getUuid
+        flexResult.getTime shouldBe 11700L.toDateTime
+        flexResult.getpRef should beEquivalentTo(combinedChargingPower)
+        flexResult.getpMin should beEquivalentTo(
+          ev4500.getSRatedAC.multiply(-1)
+        )
+        flexResult.getpMax should beEquivalentTo(combinedChargingPower)
       }
 
       emAgent.send(evcsAgent, IssuePowerCtrl(11700L, 16.asKiloWatt))
@@ -1716,6 +1816,23 @@ class EvcsAgentModelCalculationSpec
 
       emAgent.expectMsg(CompletionMessage(activation3, None))
 
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: EvResult) =>
+          result.getInputModel shouldBe ev4500.getUuid
+          result.getTime shouldBe 8100L.toDateTime
+          result.getP should beEquivalentTo(10d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+          result.getSoc should beEquivalentTo(13.75d.asPercent)
+      }
+
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: EvcsResult) =>
+          result.getInputModel shouldBe evcsInputModel.getUuid
+          result.getTime shouldBe 8100L.toDateTime
+          result.getP should beEquivalentTo(10d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
+
       /* TICK 18000
          - flex control changes
          - discharging with 20 kW
@@ -1731,15 +1848,24 @@ class EvcsAgentModelCalculationSpec
               minPower,
               maxPower
             ) =>
-          val combinedChargingPower =
-            ev11700.getSRatedAC.add(ev4500.getSRatedAC)
-
           modelUuid shouldBe evcsInputModel.getUuid
           referencePower shouldBe combinedChargingPower
           minPower shouldBe combinedChargingPower.multiply(
             -1
           ) // battery of both evs is above lowest soc now
           maxPower shouldBe combinedChargingPower
+      }
+
+      resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
+        flexResult.getInputModel shouldBe evcsInputModel.getUuid
+        flexResult.getTime shouldBe 18000L.toDateTime
+        flexResult.getpRef should beEquivalentTo(combinedChargingPower)
+        flexResult.getpMin should beEquivalentTo(
+          combinedChargingPower.multiply(
+            -1
+          )
+        )
+        flexResult.getpMax should beEquivalentTo(combinedChargingPower)
       }
 
       emAgent.send(evcsAgent, IssuePowerCtrl(18000L, (-20).asKiloWatt))
@@ -1771,6 +1897,33 @@ class EvcsAgentModelCalculationSpec
           )
       }
 
+      Range(0, 2)
+        .map { _ =>
+          resultListener.expectMsgType[ParticipantResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(result: EvResult)
+              if result.getInputModel == ev4500.getUuid =>
+            result.getTime shouldBe 11700L.toDateTime
+            result.getP should beEquivalentTo(8d.asKiloWatt)
+            result.getQ should beEquivalentTo(0d.asMegaVar)
+            result.getSoc should beEquivalentTo(26.25d.asPercent)
+          case ParticipantResultEvent(result: EvResult)
+              if result.getInputModel == ev11700.getUuid =>
+            result.getTime shouldBe 11700L.toDateTime
+            result.getP should beEquivalentTo(8d.asKiloWatt)
+            result.getQ should beEquivalentTo(0d.asMegaVar)
+            result.getSoc should beEquivalentTo(0d.asPercent)
+        }
+
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: EvcsResult) =>
+          result.getInputModel shouldBe evcsInputModel.getUuid
+          result.getTime shouldBe 11700L.toDateTime
+          result.getP should beEquivalentTo(16d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
+
       /* TICK 18864
          - ev11700 at lowest soc
          - discharging with 10 kW
@@ -1785,15 +1938,24 @@ class EvcsAgentModelCalculationSpec
               minPower,
               maxPower
             ) =>
-          val combinedChargingPower =
-            ev11700.getSRatedAC.add(ev4500.getSRatedAC)
-
           modelUuid shouldBe evcsInputModel.getUuid
           referencePower shouldBe combinedChargingPower
           minPower shouldBe ev4500.getSRatedAC.multiply(
             -1
           ) // battery of ev11700 is below lowest soc now
           maxPower shouldBe combinedChargingPower
+      }
+
+      resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
+        flexResult.getInputModel shouldBe evcsInputModel.getUuid
+        flexResult.getTime shouldBe 18864L.toDateTime
+        flexResult.getpRef should beEquivalentTo(combinedChargingPower)
+        flexResult.getpMin should beEquivalentTo(
+          ev4500.getSRatedAC.multiply(
+            -1
+          )
+        )
+        flexResult.getpMax should beEquivalentTo(combinedChargingPower)
       }
 
       emAgent.send(evcsAgent, IssuePowerCtrl(18864L, (-10).asKiloWatt))
@@ -1821,6 +1983,33 @@ class EvcsAgentModelCalculationSpec
             0.asMegaVar,
             testingTolerance
           )
+      }
+
+      Range(0, 2)
+        .map { _ =>
+          resultListener.expectMsgType[ParticipantResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(result: EvResult)
+              if result.getInputModel == ev4500.getUuid =>
+            result.getTime shouldBe 18000L.toDateTime
+            result.getP should beEquivalentTo((-10d).asKiloWatt)
+            result.getQ should beEquivalentTo(0d.asMegaVar)
+            result.getSoc should beEquivalentTo(43.75d.asPercent)
+          case ParticipantResultEvent(result: EvResult)
+              if result.getInputModel == ev11700.getUuid =>
+            result.getTime shouldBe 18000L.toDateTime
+            result.getP should beEquivalentTo((-10d).asKiloWatt)
+            result.getQ should beEquivalentTo(0d.asMegaVar)
+            result.getSoc should beEquivalentTo(24.137931034483d.asPercent)
+        }
+
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: EvcsResult) =>
+          result.getInputModel shouldBe evcsInputModel.getUuid
+          result.getTime shouldBe 18000L.toDateTime
+          result.getP should beEquivalentTo((-20d).asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
       }
 
       /* TICK 21600
@@ -1856,6 +2045,33 @@ class EvcsAgentModelCalculationSpec
           )
       }
 
+      Range(0, 2)
+        .map { _ =>
+          resultListener.expectMsgType[ParticipantResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(result: EvResult)
+              if result.getInputModel == ev4500.getUuid =>
+            result.getTime shouldBe 18864L.toDateTime
+            result.getP should beEquivalentTo((-10d).asKiloWatt)
+            result.getQ should beEquivalentTo(0d.asMegaVar)
+            result.getSoc should beEquivalentTo(40.75d.asPercent)
+          case ParticipantResultEvent(result: EvResult)
+              if result.getInputModel == ev11700.getUuid =>
+            result.getTime shouldBe 18864L.toDateTime
+            result.getP should beEquivalentTo(0d.asKiloWatt)
+            result.getQ should beEquivalentTo(0d.asMegaVar)
+            result.getSoc should beEquivalentTo(20d.asPercent)
+        }
+
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: EvcsResult) =>
+          result.getInputModel shouldBe evcsInputModel.getUuid
+          result.getTime shouldBe 18864L.toDateTime
+          result.getP should beEquivalentTo((-10d).asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
+
       /* TICK 25200
          - both evs at lowest soc
          - no power
@@ -1870,13 +2086,18 @@ class EvcsAgentModelCalculationSpec
               minPower,
               maxPower
             ) =>
-          val combinedChargingPower =
-            ev11700.getSRatedAC.add(ev4500.getSRatedAC)
-
           modelUuid shouldBe evcsInputModel.getUuid
           referencePower shouldBe combinedChargingPower
           minPower shouldBe 0.asKiloWatt // both at lowest soc
           maxPower shouldBe combinedChargingPower
+      }
+
+      resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
+        flexResult.getInputModel shouldBe evcsInputModel.getUuid
+        flexResult.getTime shouldBe 25200L.toDateTime
+        flexResult.getpRef should beEquivalentTo(combinedChargingPower)
+        flexResult.getpMin should beEquivalentTo(0.asKiloWatt)
+        flexResult.getpMax should beEquivalentTo(combinedChargingPower)
       }
 
       emAgent.send(evcsAgent, IssuePowerCtrl(25200L, 0.asKiloWatt))
@@ -1903,6 +2124,33 @@ class EvcsAgentModelCalculationSpec
           )
       }
 
+      Range(0, 2)
+        .map { _ =>
+          resultListener.expectMsgType[ParticipantResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(result: EvResult)
+              if result.getInputModel == ev4500.getUuid =>
+            result.getTime shouldBe 21600L.toDateTime
+            result.getP should beEquivalentTo((-9d).asKiloWatt)
+            result.getQ should beEquivalentTo(0d.asMegaVar)
+            result.getSoc should beEquivalentTo(31.25d.asPercent)
+          case ParticipantResultEvent(result: EvResult)
+              if result.getInputModel == ev11700.getUuid =>
+            result.getTime shouldBe 21600L.toDateTime
+            result.getP should beEquivalentTo(0d.asKiloWatt)
+            result.getQ should beEquivalentTo(0d.asMegaVar)
+            result.getSoc should beEquivalentTo(20d.asPercent)
+        }
+
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: EvcsResult) =>
+          result.getInputModel shouldBe evcsInputModel.getUuid
+          result.getTime shouldBe 21600L.toDateTime
+          result.getP should beEquivalentTo((-9d).asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
+
       /* TICK 36000
          - ev11700 departs
          - charging with 4 kW
@@ -1911,7 +2159,7 @@ class EvcsAgentModelCalculationSpec
       // departure first
       evService.send(
         evcsAgent,
-        DepartingEvsRequest(36000, Seq(ev900.getUuid))
+        DepartingEvsRequest(36000L, Seq(ev900.getUuid))
       )
 
       evService.expectMsgPF() { case DepartingEvsResponse(uuid, evs) =>
@@ -1924,6 +2172,33 @@ class EvcsAgentModelCalculationSpec
             testingTolerance
           )
         }
+      }
+
+      Range(0, 2)
+        .map { _ =>
+          resultListener.expectMsgType[ParticipantResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(result: EvResult)
+              if result.getInputModel == ev4500.getUuid =>
+            result.getTime shouldBe 25200L.toDateTime
+            result.getP should beEquivalentTo(0d.asKiloWatt)
+            result.getQ should beEquivalentTo(0d.asMegaVar)
+            result.getSoc should beEquivalentTo(20d.asPercent)
+          case ParticipantResultEvent(result: EvResult)
+              if result.getInputModel == ev11700.getUuid =>
+            result.getTime shouldBe 25200L.toDateTime
+            result.getP should beEquivalentTo(0d.asKiloWatt)
+            result.getQ should beEquivalentTo(0d.asMegaVar)
+            result.getSoc should beEquivalentTo(20d.asPercent)
+        }
+
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: EvcsResult) =>
+          result.getInputModel shouldBe evcsInputModel.getUuid
+          result.getTime shouldBe 25200L.toDateTime
+          result.getP should beEquivalentTo(0d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
       }
 
       // sending flex request at very next activated tick
@@ -1940,6 +2215,14 @@ class EvcsAgentModelCalculationSpec
           referencePower shouldBe ev4500.getSRatedAC
           minPower shouldBe 0.asKiloWatt
           maxPower shouldBe ev4500.getSRatedAC
+      }
+
+      resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
+        flexResult.getInputModel shouldBe evcsInputModel.getUuid
+        flexResult.getTime shouldBe 36000L.toDateTime
+        flexResult.getpRef should beEquivalentTo(ev4500.getSRatedAC)
+        flexResult.getpMin should beEquivalentTo(0.asKiloWatt)
+        flexResult.getpMax should beEquivalentTo(ev4500.getSRatedAC)
       }
 
       emAgent.send(evcsAgent, IssuePowerCtrl(36000L, 4.asKiloWatt))

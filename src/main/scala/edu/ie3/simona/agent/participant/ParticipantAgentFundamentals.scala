@@ -28,7 +28,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   EnrichableData,
   PrimaryDataWithApparentPower
 }
-import edu.ie3.simona.agent.participant.data.Data.SecondaryData.DateTime
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
@@ -117,26 +116,6 @@ protected trait ParticipantAgentFundamentals[
   this: ParticipantAgent[PD, CD, MS, D, I, MC, M] =>
   protected val pdClassTag: ClassTag[PD]
   protected implicit val timeout: util.Timeout = Timeout(10, TimeUnit.SECONDS)
-
-  /** Tries to extract the DateTime value from the base state data and verifies,
-    * that it is there
-    *
-    * @param baseStateData
-    *   base state data to derive information from
-    * @return
-    *   valid DateTime value
-    */
-  def getAndCheckDateTime(
-      baseStateData: DataCollectionStateData[_]
-  ): ZonedDateTime = {
-    baseStateData.extract[DateTime]() match {
-      case Some(dateTime) => dateTime.dateTime
-      case None =>
-        throw new RuntimeException(
-          "Did not receive expected information about the date time!"
-        )
-    }
-  }
 
   override def initializeParticipantForPrimaryDataReplay(
       inputModel: InputModelContainer[I],
@@ -790,17 +769,13 @@ protected trait ParticipantAgentFundamentals[
             baseStateData.stateDataStore,
             flexCtrl.tick,
             updatedState
-          ),
-          resultValueStore = ValueStore.updateValueStore(
-            baseStateData.resultValueStore,
-            flexCtrl.tick,
-            result
           )
         )
 
     // Send out results etc.
     val stateDataWithResults = handleCalculatedResult(
       updatedStateData,
+      result,
       flexCtrl.tick
     )
 
@@ -869,52 +844,63 @@ protected trait ParticipantAgentFundamentals[
     }
   }
 
-  /** Additional actions on a new calculated simulation result
+  /** Additional actions on a new calculated simulation result. Typically: Send
+    * out result to listeners and save result in corresponding ValueStore
     *
     * @param baseStateData
-    *   The updated base state data
-    * @param tick
+    *   The base state data
+    * @param result
+    *   that has been calculated for the current tick
+    * @param currentTick
     *   the current tick
+    * @return
+    *   updated base state data
     */
   protected def handleCalculatedResult(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      tick: Long
+      result: PD,
+      currentTick: Long
   ): ParticipantModelBaseStateData[PD, CD, MS, M] = {
 
-    baseStateData.resultValueStore.get(tick).foreach { result =>
-      // announce last result to listeners
-      announceSimulationResult(
-        baseStateData,
-        tick,
-        AccompaniedSimulationResult(result)
-      )(baseStateData.outputConfig)
-    }
+    // announce last result to listeners
+    announceSimulationResult(
+      baseStateData,
+      currentTick,
+      AccompaniedSimulationResult(result)
+    )(baseStateData.outputConfig)
 
-    baseStateData
+    baseStateData.copy(
+      resultValueStore = ValueStore.updateValueStore(
+        baseStateData.resultValueStore,
+        currentTick,
+        result
+      )
+    )
   }
+
 
   /** Calculate the power output of the participant without needing any
     * secondary data. The next state is [[Idle]], sending a
     * [[CompletionMessage]] to scheduler and using update result values.
     *
     * @param baseStateData
-    *   Base state data to update
+    * Base state data to update
     * @param lastModelState
-    *   The current model state, before updating it
+    * The current model state, before updating it
     * @param currentTick
-    *   Tick, the trigger belongs to
+    * Tick, the trigger belongs to
     * @param scheduler
-    *   [[ActorRef]] to the scheduler in the simulation
+    * [[ActorRef]] to the scheduler in the simulation
     * @return
-    *   [[Idle]] with updated result values
+    * [[Idle]] with updated result values
     */
   override def calculatePowerWithoutSecondaryDataAndGoToIdle(
-      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      lastModelState: MS,
-      currentTick: Long,
-      scheduler: ActorRef,
-      nodalVoltage: ComparableQuantity[Dimensionless]
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+                                                              baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+                                                              lastModelState: MS,
+                                                              currentTick: Long,
+                                                              scheduler: ActorRef,
+                                                              nodalVoltage: ComparableQuantity[Dimensionless]
+                                                            ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     val calcRelevantData =
       createCalcRelevantData(baseStateData, currentTick)
 

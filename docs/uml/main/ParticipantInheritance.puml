@@ -21,7 +21,6 @@
  Notifier <|-- SimonaAgent
 
  interface ParticipantAgentFundamentals<D extends ParticipantStateData> {
-    + getAndCheckDateTime(...): ParticipantServiceCollectionStateData
     + getSecondaryDataTicks(...): Array[Long]
     + getAndCheckNodalVoltage(...): ComparableQuantity[Dimensionless]
     + initializeParticipant(...): FSM.State[AgentState, ParticipantStateData]

@@ -250,26 +250,27 @@ class ExtEvDataService(override val scheduler: ActorRef)
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Seq[ScheduleTriggerMessage]]) = {
 
-    requestedDepartingEvs.asScala.foreach { case (evcs, departingEvs) =>
-      serviceStateData.uuidToActorRef.get(evcs) match {
-        case Some((evcsActor, _)) =>
-          evcsActor ! DepartingEvsRequest(tick, departingEvs.asScala.toSeq)
-        case None =>
-          log.warning(
-            "A corresponding actor ref for UUID {} could not be found",
-            evcs
-          )
-      }
-    }
-
     val departingEvResponses: Map[UUID, Option[Seq[EvModel]]] =
-      serviceStateData.uuidToActorRef.map { case (evcs, _) =>
-        evcs -> None
-      }
+      requestedDepartingEvs.asScala.flatMap { case (evcs, departingEvs) =>
+        serviceStateData.uuidToActorRef.get(evcs) match {
+          case Some((evcsActor, _)) =>
+            evcsActor ! DepartingEvsRequest(tick, departingEvs.asScala.toSeq)
+
+            Some(evcs -> None)
+
+          case None =>
+            log.warning(
+              "A corresponding actor ref for UUID {} could not be found",
+              evcs
+            )
+
+            None
+        }
+      }.toMap
 
     // if there are no departing evs during this tick,
     // we're sending response right away
-    if (requestedDepartingEvs.isEmpty)
+    if (departingEvResponses.isEmpty)
       serviceStateData.extEvData.queueExtResponseMsg(new ProvideDepartingEvs())
 
     (

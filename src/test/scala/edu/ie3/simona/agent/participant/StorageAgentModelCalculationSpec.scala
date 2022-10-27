@@ -11,6 +11,7 @@ import akka.testkit.{TestFSMRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.StorageInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV
+import edu.ie3.datamodel.models.result.system.StorageResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
@@ -24,8 +25,11 @@ import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
-import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
+import edu.ie3.simona.event.ResultEvent.{
+  FlexOptionsResultEvent,
+  ParticipantResultEvent
+}
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   FlexCtrlCompletion,
@@ -49,6 +53,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.InitializeParticipantAgentTrigger
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.StorageInputTestData
 import edu.ie3.simona.util.ConfigUtil
+import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -80,8 +85,6 @@ class StorageAgentModelCalculationSpec
     .qCharacteristics(new QV("qV:{(0.95,-0.625),(1.05,0.625)}"))
     .build()
 
-  private val testingTolerance = 1e-6 // Equality on the basis of 1 W
-
   /* Assign this test to receive the result events from agent */
   override val systemListener: Iterable[ActorRef] = Vector(self)
 
@@ -90,9 +93,9 @@ class StorageAgentModelCalculationSpec
       LoadModelBehaviour.FIX,
       LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
     )
-  private val defaultOutputConfig = NotifierConfig(
-    simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
+  private val outputConfig = NotifierConfig(
+    simulationResultInfo = true,
+    powerRequestReply = false
   )
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
@@ -111,7 +114,7 @@ class StorageAgentModelCalculationSpec
       val storageAgent = TestFSMRef(
         new StorageAgent(
           scheduler = emAgent.ref,
-          listener = systemListener
+          listener = Iterable.empty
         )
       )
 
@@ -136,7 +139,7 @@ class StorageAgentModelCalculationSpec
               resolution = resolution,
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
+              outputConfig = outputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
               maybeEmAgent = Some(emAgent.ref)
             )
@@ -171,7 +174,7 @@ class StorageAgentModelCalculationSpec
           simulationEndDate shouldBe simulationEndDate
           resolution shouldBe resolution
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
-          outputConfig shouldBe defaultOutputConfig
+          outputConfig shouldBe outputConfig
           maybeEmAgent shouldBe Some(emAgent.ref)
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
@@ -217,7 +220,7 @@ class StorageAgentModelCalculationSpec
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
           services shouldBe None
-          outputConfig shouldBe defaultOutputConfig
+          outputConfig shouldBe outputConfig
           additionalActivationTicks shouldBe Array.emptyLongArray
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
@@ -243,7 +246,7 @@ class StorageAgentModelCalculationSpec
       val storageAgent = TestFSMRef(
         new StorageAgent(
           scheduler = emAgent.ref,
-          listener = systemListener
+          listener = Iterable.empty
         )
       )
 
@@ -268,7 +271,7 @@ class StorageAgentModelCalculationSpec
               resolution = resolution,
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
+              outputConfig = outputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
               maybeEmAgent = Some(emAgent.ref)
             )
@@ -329,11 +332,12 @@ class StorageAgentModelCalculationSpec
 
     "provide correct flex options when in Idle" in {
       val emAgent = TestProbe("EmAgentProbe")
+      val resultListener = TestProbe("ResultListener")
 
       val storageAgent = TestFSMRef(
         new StorageAgent(
           scheduler = emAgent.ref,
-          listener = systemListener
+          listener = Iterable(resultListener.ref)
         )
       )
 
@@ -358,7 +362,7 @@ class StorageAgentModelCalculationSpec
               resolution = resolution,
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
+              outputConfig = outputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
               maybeEmAgent = Some(emAgent.ref)
             )
@@ -401,7 +405,15 @@ class StorageAgentModelCalculationSpec
           modelUuid shouldBe storageInput.getUuid
           referencePower shouldBe 0d.asKiloWatt
           minPower shouldBe 0d.asKiloWatt
-          maxPower shouldBe storageInput.getType.getpMax()
+          maxPower shouldBe storageInput.getType.getpMax
+      }
+
+      resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
+        flexResult.getInputModel shouldBe storageInput.getUuid
+        flexResult.getTime shouldBe 0L.toDateTime(simulationStartDate)
+        flexResult.getpRef should beEquivalentTo(0d.asKiloWatt)
+        flexResult.getpMin should beEquivalentTo(0d.asKiloWatt)
+        flexResult.getpMax should beEquivalentTo(storageInput.getType.getpMax)
       }
 
       emAgent.send(
@@ -420,16 +432,19 @@ class StorageAgentModelCalculationSpec
         )
       )
 
-      emAgent.expectMsgType[ParticipantResultEvent] match {
-        case result =>
-          result.systemParticipantResult.getP should equalWithTolerance(
-            storageInput.getType.getpMax(),
-            testingTolerance
-          )
-          result.systemParticipantResult.getQ should equalWithTolerance(
-            0.asMegaVar,
-            testingTolerance
-          )
+      emAgent.expectMsgPF() {
+        case ParticipantResultEvent(result: StorageResult) =>
+          result.getP should beEquivalentTo(storageInput.getType.getpMax())
+          result.getQ should beEquivalentTo(0.asMegaVar)
+      }
+
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: StorageResult) =>
+          result.getInputModel shouldBe storageInput.getUuid
+          result.getTime shouldBe 0L.toDateTime(simulationStartDate)
+          result.getP should beEquivalentTo(storageInput.getType.getpMax)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+          result.getSoc should beEquivalentTo(0d.asPercent)
       }
 
       /* TICK 28800 (unplanned activation)
@@ -453,6 +468,16 @@ class StorageAgentModelCalculationSpec
           maxPower shouldBe storageInput.getType.getpMax()
       }
 
+      resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
+        flexResult.getInputModel shouldBe storageInput.getUuid
+        flexResult.getTime shouldBe 28800L.toDateTime(simulationStartDate)
+        flexResult.getpRef should beEquivalentTo(0d.asKiloWatt)
+        flexResult.getpMin should beEquivalentTo(
+          storageInput.getType.getpMax().multiply(-1)
+        )
+        flexResult.getpMax should beEquivalentTo(storageInput.getType.getpMax)
+      }
+
       emAgent.send(storageAgent, IssuePowerCtrl(28800L, 9.asKiloWatt))
 
       // after 8 hours, we're at about half full storage: 95.39296 kWh
@@ -462,21 +487,24 @@ class StorageAgentModelCalculationSpec
       emAgent.expectMsg(
         FlexCtrlCompletion(
           modelUuid = storageInput.getUuid,
-          revokeRequestAtTick = Some(60382),
-          requestAtTick = Some(74281)
+          revokeRequestAtTick = Some(60382L),
+          requestAtTick = Some(74281L)
         )
       )
 
-      emAgent.expectMsgType[ParticipantResultEvent] match {
-        case result =>
-          result.systemParticipantResult.getP should equalWithTolerance(
-            9.asKiloWatt,
-            testingTolerance
-          )
-          result.systemParticipantResult.getQ should equalWithTolerance(
-            0.asMegaVar,
-            testingTolerance
-          )
+      emAgent.expectMsgPF() {
+        case ParticipantResultEvent(result: StorageResult) =>
+          result.getP should beEquivalentTo(9d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
+
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: StorageResult) =>
+          result.getInputModel shouldBe storageInput.getUuid
+          result.getTime shouldBe 28800L.toDateTime(simulationStartDate)
+          result.getP should beEquivalentTo(9d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+          result.getSoc should beEquivalentTo(47.69648d.asPercent)
       }
 
       /* TICK 36000 (unplanned activation)
@@ -497,20 +525,27 @@ class StorageAgentModelCalculationSpec
         FlexCtrlCompletion(
           modelUuid = storageInput.getUuid,
           revokeRequestAtTick = Some(74281L),
-          requestAtTick = Some(57723)
+          requestAtTick = Some(57723L)
         )
       )
 
-      emAgent.expectMsgType[ParticipantResultEvent] match {
-        case result =>
-          result.systemParticipantResult.getP should equalWithTolerance(
-            storageInput.getType.getpMax().multiply(-1),
-            testingTolerance
+      emAgent.expectMsgPF() {
+        case ParticipantResultEvent(result: StorageResult) =>
+          result.getP should beEquivalentTo(
+            storageInput.getType.getpMax().multiply(-1)
           )
-          result.systemParticipantResult.getQ should equalWithTolerance(
-            0.asMegaVar,
-            testingTolerance
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
+
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: StorageResult) =>
+          result.getInputModel shouldBe storageInput.getUuid
+          result.getTime shouldBe 36000L.toDateTime(simulationStartDate)
+          result.getP should beEquivalentTo(
+            storageInput.getType.getpMax().multiply(-1)
           )
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+          result.getSoc should beEquivalentTo(55.97648d.asPercent)
       }
 
       /* TICK 43200 (unplanned activation)
@@ -532,16 +567,19 @@ class StorageAgentModelCalculationSpec
         )
       )
 
-      emAgent.expectMsgType[ParticipantResultEvent] match {
-        case result =>
-          result.systemParticipantResult.getP should equalWithTolerance(
-            12.asKiloWatt,
-            testingTolerance
-          )
-          result.systemParticipantResult.getQ should equalWithTolerance(
-            0.asMegaVar,
-            testingTolerance
-          )
+      emAgent.expectMsgPF() {
+        case ParticipantResultEvent(result: StorageResult) =>
+          result.getP should beEquivalentTo(12d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
+
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: StorageResult) =>
+          result.getInputModel shouldBe storageInput.getUuid
+          result.getTime shouldBe 43200L.toDateTime(simulationStartDate)
+          result.getP should beEquivalentTo(12d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+          result.getSoc should beEquivalentTo(44.05236d.asPercent)
       }
 
       /* TICK 79688 (expected activation)
@@ -565,6 +603,16 @@ class StorageAgentModelCalculationSpec
           maxPower shouldBe 0d.asKiloWatt
       }
 
+      resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
+        flexResult.getInputModel shouldBe storageInput.getUuid
+        flexResult.getTime shouldBe 79688L.toDateTime(simulationStartDate)
+        flexResult.getpRef should beEquivalentTo(0d.asKiloWatt)
+        flexResult.getpMin should beEquivalentTo(
+          storageInput.getType.getpMax().multiply(-1)
+        )
+        flexResult.getpMax should beEquivalentTo(0d.asKiloWatt)
+      }
+
       emAgent.send(storageAgent, IssuePowerCtrl(79688L, (-12).asKiloWatt))
 
       // we're full now at 200 kWh
@@ -579,16 +627,19 @@ class StorageAgentModelCalculationSpec
         )
       )
 
-      emAgent.expectMsgType[ParticipantResultEvent] match {
-        case result =>
-          result.systemParticipantResult.getP should equalWithTolerance(
-            (-12).asKiloWatt,
-            testingTolerance
-          )
-          result.systemParticipantResult.getQ should equalWithTolerance(
-            0.asMegaVar,
-            testingTolerance
-          )
+      emAgent.expectMsgPF() {
+        case ParticipantResultEvent(result: StorageResult) =>
+          result.getP should beEquivalentTo((-12d).asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
+
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: StorageResult) =>
+          result.getInputModel shouldBe storageInput.getUuid
+          result.getTime shouldBe 79688L.toDateTime(simulationStartDate)
+          result.getP should beEquivalentTo((-12d).asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+          result.getSoc should beEquivalentTo(100d.asPercent)
       }
 
       /* TICK 131862 (expected activation)
@@ -612,6 +663,14 @@ class StorageAgentModelCalculationSpec
           maxPower shouldBe storageInput.getType.getpMax()
       }
 
+      resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
+        flexResult.getInputModel shouldBe storageInput.getUuid
+        flexResult.getTime shouldBe 131862L.toDateTime(simulationStartDate)
+        flexResult.getpRef should beEquivalentTo(0d.asKiloWatt)
+        flexResult.getpMin should beEquivalentTo(0d.asKiloWatt)
+        flexResult.getpMax should beEquivalentTo(storageInput.getType.getpMax)
+      }
+
       emAgent.send(storageAgent, IssuePowerCtrl(131862L, 0.asKiloWatt))
 
       // we're not charging or discharging, no new expected tick
@@ -621,16 +680,19 @@ class StorageAgentModelCalculationSpec
         )
       )
 
-      emAgent.expectMsgType[ParticipantResultEvent] match {
-        case result =>
-          result.systemParticipantResult.getP should equalWithTolerance(
-            0.asKiloWatt,
-            testingTolerance
-          )
-          result.systemParticipantResult.getQ should equalWithTolerance(
-            0.asMegaVar,
-            testingTolerance
-          )
+      emAgent.expectMsgPF() {
+        case ParticipantResultEvent(result: StorageResult) =>
+          result.getP should beEquivalentTo(0d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
+
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: StorageResult) =>
+          result.getInputModel shouldBe storageInput.getUuid
+          result.getTime shouldBe 131862L.toDateTime(simulationStartDate)
+          result.getP should beEquivalentTo(0.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+          result.getSoc should beEquivalentTo(19.999866666667d.asPercent)
       }
 
     }
