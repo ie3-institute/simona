@@ -149,7 +149,9 @@ object SimonaConfig {
           if (c.hasPathOrNull("chargingStrategy"))
             c.getString("chargingStrategy")
           else "maxPower",
-        lowestEvSoc = $_reqDbl(parentPath, c, "lowestEvSoc", $tsCfgValidator),
+        lowestEvSoc =
+          if (c.hasPathOrNull("lowestEvSoc")) c.getDouble("lowestEvSoc")
+          else 0.2,
         calculateMissingReactivePowerWithModel = $_reqBln(
           parentPath,
           c,

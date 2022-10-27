@@ -111,8 +111,6 @@ final case class EvcsModel(
     with GridOrientedCharging
     with MarketOrientedCharging {
 
-//  private val lowestEvSoc = 0.2 // TODO config param
-
   /** Determine scheduling for charging the EVs currently parked at the charging
     * station until their departure. The scheduling depends on the chosen
     * strategy.
