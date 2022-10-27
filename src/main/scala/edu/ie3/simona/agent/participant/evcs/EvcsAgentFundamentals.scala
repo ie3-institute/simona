@@ -213,7 +213,18 @@ protected trait EvcsAgentFundamentals
     simulationEndDate
   )
 
-  override protected def createInitialState(): EvcsState = EvcsState(Set.empty)
+  override protected def createInitialState(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel
+      ]
+  ): EvcsState = {
+    // TODO implement
+
+    throw new NotImplementedError()
+  }
 
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
@@ -333,10 +344,10 @@ protected trait EvcsAgentFundamentals
   protected def handleFreeLotsRequest(
       tick: Long,
       modelBaseStateData: ParticipantModelBaseStateData[
-        _ <: ApparentPower,
-        _,
-        _,
-        _
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel
       ]
   ): Unit = {
     val evServiceRef = getService[ActorEvMovementsService](
@@ -584,14 +595,14 @@ protected trait EvcsAgentFundamentals
 
   private def getTickIntervalAndLastState(
       currentTick: Long,
-      modelBaseStateData: ParticipantModelBaseStateData[
-        _ <: ApparentPower,
-        _,
-        _,
-        _
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel
       ]
   ): (Long, EvcsState) = {
-    modelBaseStateData.stateDataStore
+    baseStateData.stateDataStore
       .last(currentTick) match {
       case Some((tick, state: EvcsState)) =>
         (currentTick - tick, state)
@@ -599,7 +610,7 @@ protected trait EvcsAgentFundamentals
         /* At the first tick, we are not able to determine the tick interval from last tick
          * (since there is none). Then we use a fall back ev stem distance.
          * As no evs are charging then, the tick interval should be ignored anyway. */
-        (FALLBACK_EV_MOVEMENTS_STEM_DISTANCE, createInitialState())
+        (FALLBACK_EV_MOVEMENTS_STEM_DISTANCE, createInitialState(baseStateData))
     }
   }
 

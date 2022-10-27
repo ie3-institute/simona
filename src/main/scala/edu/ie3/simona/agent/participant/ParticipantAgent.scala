@@ -784,7 +784,9 @@ abstract class ParticipantAgent[
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
-  protected def createInitialState(): MS
+  protected def createInitialState(
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
+  ): MS
 
   protected def handleFlexRequest(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
