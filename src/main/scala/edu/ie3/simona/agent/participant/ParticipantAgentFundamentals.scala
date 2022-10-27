@@ -878,29 +878,28 @@ protected trait ParticipantAgentFundamentals[
     )
   }
 
-
   /** Calculate the power output of the participant without needing any
     * secondary data. The next state is [[Idle]], sending a
     * [[CompletionMessage]] to scheduler and using update result values.
     *
     * @param baseStateData
-    * Base state data to update
+    *   Base state data to update
     * @param lastModelState
-    * The current model state, before updating it
+    *   The current model state, before updating it
     * @param currentTick
-    * Tick, the trigger belongs to
+    *   Tick, the trigger belongs to
     * @param scheduler
-    * [[ActorRef]] to the scheduler in the simulation
+    *   [[ActorRef]] to the scheduler in the simulation
     * @return
-    * [[Idle]] with updated result values
+    *   [[Idle]] with updated result values
     */
   override def calculatePowerWithoutSecondaryDataAndGoToIdle(
-                                                              baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-                                                              lastModelState: MS,
-                                                              currentTick: Long,
-                                                              scheduler: ActorRef,
-                                                              nodalVoltage: ComparableQuantity[Dimensionless]
-                                                            ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+      lastModelState: MS,
+      currentTick: Long,
+      scheduler: ActorRef,
+      nodalVoltage: ComparableQuantity[Dimensionless]
+  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     val calcRelevantData =
       createCalcRelevantData(baseStateData, currentTick)
 
