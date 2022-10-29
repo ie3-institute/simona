@@ -704,7 +704,7 @@ class GridAgentController(
   ) = (
     gridAgentContext.simonaActorOf(
       HpAgent.props(
-        environmentRefs.scheduler,
+        maybeEmAgent.getOrElse(environmentRefs.scheduler),
         listener
       ),
       hpInput.getId
