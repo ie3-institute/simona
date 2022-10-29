@@ -360,7 +360,8 @@ class GridAgentController(
         outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
         emParticipantMap,
         participantConfigUtil,
-        outputConfigUtil
+        outputConfigUtil,
+        thermalIslandGridsByBusId
       )
 
     case input: StorageInput =>
@@ -884,7 +885,8 @@ class GridAgentController(
       outputConfig: NotifierConfig,
       emParticipantMap: Map[UUID, SystemParticipantInput],
       participantConfigUtil: ConfigUtil.ParticipantConfigUtil,
-      outputConfigUtil: OutputConfigUtil
+      outputConfigUtil: OutputConfigUtil,
+      thermalIslandGridsByBusId: Map[UUID, ThermalGrid]
   ): (
       ActorRef,
       EmAgentInitializeStateData
@@ -912,7 +914,7 @@ class GridAgentController(
           participantConfigUtil,
           outputConfigUtil,
           sp,
-          Map.empty[UUID, ThermalGrid],
+          thermalIslandGridsByBusId,
           environmentRefs,
           emParticipantMap,
           Some(emAgentRef)
