@@ -60,7 +60,8 @@ final class ScalaNumberSystem extends DefaultNumberSystem {
     java2scala(super.log(scala2java(number)))
 
   override def narrow(number: Number): Number =
-    number.doubleValue() // FIXME hack: don't narrow anymore, turn everything into doubles
+    // FIXME hack: don't narrow anymore, turn everything into doubles
+    number.doubleValue()
 
   override def compare(x: Number, y: Number): Int =
     super.compare(scala2java(x), scala2java(y))
