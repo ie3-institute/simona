@@ -48,7 +48,7 @@ class WeatherSourceSpec extends UnitSpec {
         Quantities.getQuantity(5, PowerSystemUnits.KILOMETRE)
       ) match {
         case Failure(exception: ServiceException) =>
-          exception.getMessage shouldBe "There are not enough coordinates within the max coordinate distance of 5 km. Found 4 but need 5."
+          exception.getMessage shouldBe "There are not enough coordinates within the max coordinate distance of 5.0 km. Found 4 but need 5."
         case _ => fail("You shall not pass!")
       }
     }
