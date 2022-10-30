@@ -127,7 +127,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
      * Also register for services, where needed. */
     val lastTickInSimulation = simulationEndDate.toTick(simulationStartDate)
     val additionalActivationTicks = model match {
-      /* If no secondary data is needed (implicitly by fixed load model and random load model), add activation ticks for the simple model */
+      /* If no secondary data is needed (implicitly by fixed load model), add activation ticks for the simple model */
       case fixedLoadModel: FixedLoadModel =>
         /* As participant agents always return their last known operation point on request, it is sufficient
          * to let a fixed load model determine it's operation point on:
