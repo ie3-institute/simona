@@ -66,6 +66,7 @@ trait ConfigTestData {
       |    scaling = 1.0
       |    modelBehaviour = "fix"
       |    reference = "power"
+      |    resolutionRandomLoadProfile = 900
       |  }
       |  individualConfigs = []
       |}
