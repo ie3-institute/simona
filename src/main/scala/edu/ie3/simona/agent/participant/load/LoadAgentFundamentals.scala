@@ -127,7 +127,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
      * Also register for services, where needed. */
     val lastTickInSimulation = simulationEndDate.toTick(simulationStartDate)
     val additionalActivationTicks = model match {
-      /* If no secondary data is needed (implicitly by fixed load model), add activation ticks for the simple model */
+      /* If no secondary data is needed (implicitly by fixed load model and random load model), add activation ticks for the simple model */
       case fixedLoadModel: FixedLoadModel =>
         /* As participant agents always return their last known operation point on request, it is sufficient
          * to let a fixed load model determine it's operation point on:
@@ -147,6 +147,14 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
           LoadProfileStore.resolution.getSeconds,
           profileLoadModel.operationInterval.start,
           profileLoadModel.operationInterval.end
+        )
+      case randomLoadModel: RandomLoadModel =>
+        activationTicksInOperationTime(
+          simulationStartDate,
+          // TODO: Check if parameter should given via Config
+          900L,
+          randomLoadModel.operationInterval.start,
+          randomLoadModel.operationInterval.end
         )
       case _ =>
         Array.emptyLongArray
@@ -364,9 +372,9 @@ case object LoadAgentFundamentals {
     this: LoadAgent.RandomLoadAgent =>
 
     override def buildModel(
-        inputModel: LoadInput,
-        operationInterval: OperationInterval,
-        reference: LoadReference
+      inputModel: LoadInput,
+      operationInterval: OperationInterval,
+      reference: LoadReference
     ): RandomLoadModel = {
       val model = RandomLoadModel(inputModel, operationInterval, 1d, reference)
       model.enable()
