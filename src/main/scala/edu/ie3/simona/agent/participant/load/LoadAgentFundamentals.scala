@@ -151,8 +151,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       case randomLoadModel: RandomLoadModel =>
         activationTicksInOperationTime(
           simulationStartDate,
-          // TODO: Check if parameter should given via Config
-          900L,
+          modelConfig.resolutionRandomLoadProfile.toLong,
           randomLoadModel.operationInterval.start,
           randomLoadModel.operationInterval.end
         )
@@ -372,9 +371,9 @@ case object LoadAgentFundamentals {
     this: LoadAgent.RandomLoadAgent =>
 
     override def buildModel(
-      inputModel: LoadInput,
-      operationInterval: OperationInterval,
-      reference: LoadReference
+        inputModel: LoadInput,
+        operationInterval: OperationInterval,
+        reference: LoadReference
     ): RandomLoadModel = {
       val model = RandomLoadModel(inputModel, operationInterval, 1d, reference)
       model.enable()

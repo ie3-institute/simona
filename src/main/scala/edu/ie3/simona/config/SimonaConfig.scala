@@ -302,7 +302,8 @@ object SimonaConfig {
       override val scaling: scala.Double,
       override val uuids: scala.List[java.lang.String],
       modelBehaviour: java.lang.String,
-      reference: java.lang.String
+      reference: java.lang.String,
+      resolutionRandomLoadProfile: scala.Double
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -318,6 +319,12 @@ object SimonaConfig {
         modelBehaviour =
           $_reqStr(parentPath, c, "modelBehaviour", $tsCfgValidator),
         reference = $_reqStr(parentPath, c, "reference", $tsCfgValidator),
+        resolutionRandomLoadProfile = $_reqDbl(
+          parentPath,
+          c,
+          "resolutionRandomLoadProfile",
+          $tsCfgValidator
+        ),
         calculateMissingReactivePowerWithModel = $_reqBln(
           parentPath,
           c,
