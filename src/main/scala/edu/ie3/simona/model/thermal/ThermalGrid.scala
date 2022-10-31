@@ -22,7 +22,6 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.HouseTemperatureUpperBoundaryReached
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.StorageEmpty
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtil
 import tech.units.indriya.ComparableQuantity
@@ -345,7 +344,7 @@ final case class ThermalGrid(
     case Some(
           (
             (thermalHouse, (houseState, _)),
-            (thermalStorage, (_, maybeStorageThreshold))
+            (thermalStorage, (storageState, _))
           )
         )
         if QuantityUtil.isEquivalentAbs(
@@ -354,7 +353,7 @@ final case class ThermalGrid(
           10e-3
         ) && thermalHouse.isInnerTemperatureTooLow(
           houseState.innerTemperature
-        ) && !maybeStorageThreshold.contains(StorageEmpty(tick)) =>
+        ) && !thermalStorage.isEmpty(storageState.storedEnergy) =>
       /* Storage is meant to heat the house only, if there is no infeed from external (+/- 10 W) and the house is cold */
       val revisedStorageState = thermalStorage.updateState(
         tick,
