@@ -7,29 +7,25 @@
 package edu.ie3.simona.model.thermal
 
 import breeze.linalg.max
-
-import java.util.UUID
-import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
   ThermalBusInput
 }
+import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,
   StorageFull
 }
-import edu.ie3.simona.model.thermal.ThermalStorage.{
-  ThermalStorageState,
-  ThermalStorageThreshold
-}
 import edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
 import edu.ie3.util.quantities.interfaces.SpecificHeatCapacity
-
-import javax.measure.quantity.{Energy, Power, Temperature, Time, Volume}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
+
+import java.util.UUID
+import javax.measure.quantity._
 
 /** A cylindrical thermal storage used for implementations, which require a
   * mutable storage. <p> <strong>Important:</strong> The field storageLvl is a
@@ -100,9 +96,9 @@ final case class CylindricalThermalStorage(
       .to(StandardUnits.ENERGY_IN)
     val newEnergy = lastState.storedEnergy add energyBalance
     val updatedEnergy =
-      if (newEnergy.isGreaterThan(maxEnergyThreshold))
+      if (isFull(newEnergy))
         maxEnergyThreshold
-      else if (newEnergy.isLessThan(minEnergyThreshold))
+      else if (isEmpty(newEnergy))
         minEnergyThreshold
       else
         newEnergy
@@ -118,7 +114,8 @@ final case class CylindricalThermalStorage(
           ((maxEnergyThreshold subtract updatedEnergy) divide qDot) asType classOf[
             Time
           ] to Units.SECOND
-        Some(StorageFull(tick + max(duration.getValue.longValue(), 0L)))
+        val durationInTicks = Math.round(duration.getValue.doubleValue)
+        Some(StorageFull(tick + max(durationInTicks, 0L)))
       } else if (
         qDot.isLessThan(
           Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
@@ -128,7 +125,8 @@ final case class CylindricalThermalStorage(
           ((updatedEnergy subtract minEnergyThreshold) divide qDot.multiply(
             -1
           )) asType classOf[Time] to Units.SECOND
-        Some(StorageEmpty(tick + max(duration.getValue.longValue(), 0L)))
+        val durationInTicks = Math.round(duration.getValue.doubleValue)
+        Some(StorageEmpty(tick + max(durationInTicks, 0L)))
       } else {
         return (ThermalStorageState(tick, updatedEnergy, qDot), None)
       }

@@ -11,6 +11,7 @@ import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities
 
 import javax.measure.quantity.{Energy, Power}
@@ -48,6 +49,13 @@ abstract class ThermalStorage(
   protected val zeroEnergy: ComparableQuantity[Energy] =
     DefaultQuantities.zeroKWH
 
+  /** In order to avoid faulty flexibility options, we want to avoid offering
+    * charging/discharging that could last less than one second.
+    */
+  private val toleranceMargin = chargingPower
+    .multiply(1d.asSecond)
+    .asType(classOf[Energy])
+
   def getUuid: UUID = uuid
 
   def getMinEnergyThreshold: ComparableQuantity[Energy] = minEnergyThreshold
@@ -57,6 +65,12 @@ abstract class ThermalStorage(
   def getChargingPower: ComparableQuantity[Power] = chargingPower
 
   def startingState: ThermalStorageState
+
+  def isFull(energy: ComparableQuantity[Energy]): Boolean =
+    energy.isGreaterThan(maxEnergyThreshold.subtract(toleranceMargin))
+
+  def isEmpty(energy: ComparableQuantity[Energy]): Boolean =
+    energy.isLessThan(minEnergyThreshold.add(toleranceMargin))
 
   def updateState(
       tick: Long,
