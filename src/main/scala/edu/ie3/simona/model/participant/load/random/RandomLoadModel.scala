@@ -79,7 +79,6 @@ final case class RandomLoadModel(
       )
   }
 
-
   private val randomLoadParamStore = RandomLoadParamStore()
 
   type GevKey = (DayType.Value, Int)
@@ -146,7 +145,7 @@ final case class RandomLoadModel(
       case Some(foundIt) => foundIt
       case None          =>
         /* Instantiate new gev distribution, put it to storage and return it */
-        val randomFactory = RandomFactory.get((Math.random()*1000000).toInt)
+        val randomFactory = RandomFactory.get((Math.random() * 1000000).toInt)
         val gevParameters = randomLoadParamStore.parameters(dateTime)
         val newGev = new GeneralizedExtremeValueDistribution(
           gevParameters.my,
