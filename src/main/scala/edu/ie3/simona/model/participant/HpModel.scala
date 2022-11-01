@@ -268,25 +268,15 @@ final case class HpModel(
     /* If the setpoint value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
     val turnOn =
       setPower.isGreaterThan(sRated.multiply(cosPhiRated).multiply(0.5))
+    val updatedState = calcState(lastState, data, turnOn)
 
-    if (lastState.isRunning == turnOn)
-      (
-        lastState,
-        FlexChangeIndicator(
-          changesAtNextActivation = true,
-          lastState.maybeThermalThreshold.map(_.tick)
-        )
+    (
+      updatedState,
+      FlexChangeIndicator(
+        changesAtNextActivation = true,
+        updatedState.maybeThermalThreshold.map(_.tick)
       )
-    else {
-      val updatedState = calcState(lastState, data, turnOn)
-      (
-        updatedState,
-        FlexChangeIndicator(
-          changesAtNextActivation = true,
-          updatedState.maybeThermalThreshold.map(_.tick)
-        )
-      )
-    }
+    )
   }
 }
 
