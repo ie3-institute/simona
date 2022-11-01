@@ -9,7 +9,6 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
-import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.HpModel._
 import edu.ie3.simona.model.participant.control.QControl
@@ -93,7 +92,7 @@ final case class HpModel(
     * [[HpModel.calculateNextState]]. This state then is fed into the power
     * calculation logic by <i>hpData</i>.
     *
-    * @param maybeModelState
+    * @param modelState
     *   Current state of the heat pump
     * @param relevantData
     *   data of heat pump including state of the heat pump
@@ -111,7 +110,7 @@ final case class HpModel(
     * extract the information
     * @param tick
     *   Current simulation time for the calculation
-    * @param maybeModelState
+    * @param modelState
     *   Current state of the heat pump
     * @param data
     *   Relevant (external) data for calculation
