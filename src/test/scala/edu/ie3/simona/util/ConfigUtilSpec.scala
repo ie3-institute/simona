@@ -44,7 +44,6 @@ class ConfigUtilSpec
           |    scaling = 1.0
           |    modelBehaviour = "fix"
           |    reference = "power"
-          |    resolutionRandomLoadProfile = 900
           |    }
           |  individualConfigs = []
           |}""".stripMargin
@@ -68,8 +67,7 @@ class ConfigUtilSpec
                   scaling,
                   uuids,
                   modelBehaviour,
-                  reference,
-                  900L
+                  reference
                 )
               ) =>
             calculateMissingReactivePowerWithModel shouldBe false
@@ -102,7 +100,6 @@ class ConfigUtilSpec
           |      scaling = 1.3
           |      modelBehaviour = "profile"
           |      reference = "power"
-          |      resolutionRandomLoadProfile = 900
           |    }
           |  ]
           |}""".stripMargin
@@ -129,8 +126,7 @@ class ConfigUtilSpec
                   scaling,
                   uuids,
                   modelBehaviour,
-                  reference,
-                  resolutionRandomLoadProfile
+                  reference
                 )
               ) =>
             calculateMissingReactivePowerWithModel shouldBe false
@@ -155,7 +151,6 @@ class ConfigUtilSpec
           |    baseModelConfig.scaling = 1.3
           |    modelBehaviour = "profile"
           |    reference = "power"
-          |    resolutionRandomLoadProfile = 900
           |    }
           |  individualConfigs = [
           |    {
@@ -164,7 +159,6 @@ class ConfigUtilSpec
           |      scaling = 1.3
           |      modelBehaviour = "profile"
           |      reference = "power"
-          |      resolutionRandomLoadProfile = 900
           |    }
           |  ]
           |}""".stripMargin
@@ -203,7 +197,6 @@ class ConfigUtilSpec
           |    scaling = 1.3
           |    modelBehaviour = "profile"
           |    reference = "power"
-          |    resolutionRandomLoadProfile = 900
           |    }
           |  individualConfigs = [
           |    {
@@ -212,7 +205,6 @@ class ConfigUtilSpec
           |     scaling = 1.3
           |     modelBehaviour = "profile"
           |     reference = "power"
-          |     resolutionRandomLoadProfile = 900
           |  },
           |  {
           |    calculateMissingReactivePowerWithModel = false
@@ -220,7 +212,6 @@ class ConfigUtilSpec
           |    scaling = 1.5
           |    modelBehaviour = "random"
           |    reference = "energy"
-          |    resolutionRandomLoadProfile = 900
           |  }
           |  ]
           |}""".stripMargin
@@ -251,8 +242,7 @@ class ConfigUtilSpec
           1.3,
           List("49f250fa-41ff-4434-a083-79c98d260a76"),
           "profile",
-          "power",
-          900L
+          "power"
         )
       actual.getOrDefault[LoadRuntimeConfig](
         UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
@@ -262,8 +252,7 @@ class ConfigUtilSpec
           1.5,
           List("fb8f1443-1843-4ecd-a94a-59be8148397f"),
           "random",
-          "energy",
-          900L
+          "energy"
         )
     }
   }
@@ -492,7 +481,6 @@ class ConfigUtilSpec
           |    scaling = 1.0
           |    modelBehaviour = "profile"
           |    reference = "power"
-          |    resolutionRandomLoadProfile = 900
           |    }
           |  individualConfigs = [
           |    {
@@ -501,7 +489,6 @@ class ConfigUtilSpec
           |    scaling = 1.3
           |    modelBehaviour = "profile"
           |    reference = "power"
-          |    resolutionRandomLoadProfile = 900
           |  },
           |  {
           |    calculateMissingReactivePowerWithModel = false
@@ -509,7 +496,6 @@ class ConfigUtilSpec
           |    scaling = 1.5
           |    modelBehaviour = "profile"
           |    reference = "power"
-          |    resolutionRandomLoadProfile = 900
           |  }
           |  ]
           |}
@@ -564,8 +550,7 @@ class ConfigUtilSpec
           1.0,
           List("default"),
           "profile",
-          "power",
-          900L
+          "power"
         )
 
       // return default if a request for pv is done, but fixed feed is found
