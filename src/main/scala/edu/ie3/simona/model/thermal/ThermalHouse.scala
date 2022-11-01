@@ -359,26 +359,24 @@ final case class ThermalHouse(
       )
     ) {
       /* House has more losses than gain */
-      val nextTick = nextActivation(
+      nextActivation(
         tick,
         innerTemperature,
         lowerBoundaryTemperature,
         resultingQDot
-      )
-      Some(HouseTemperatureLowerBoundaryReached(nextTick))
+      ).map(HouseTemperatureLowerBoundaryReached)
     } else if (
       resultingQDot.isGreaterThan(
         Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
       )
     ) {
       /* House has more gain than losses */
-      val nextTick = nextActivation(
+      nextActivation(
         tick,
         upperBoundaryTemperature,
         innerTemperature,
         resultingQDot
-      )
-      Some(HouseTemperatureUpperBoundaryReached(nextTick))
+      ).map(HouseTemperatureUpperBoundaryReached)
     } else {
       /* House is in perfect balance */
       None
@@ -390,22 +388,24 @@ final case class ThermalHouse(
       higherTemperature: ComparableQuantity[Temperature],
       lowerTemperature: ComparableQuantity[Temperature],
       qDot: ComparableQuantity[Power]
-  ): Long = {
+  ): Option[Long] = {
     val flexibleEnergy = energy(higherTemperature, lowerTemperature)
     if (
       flexibleEnergy.isLessThan(
         Quantities.getQuantity(0d, StandardUnits.ENERGY_IN)
       )
     )
-      tick
+      None
     else {
-      val duration = flexibleEnergy
-        .divide(qDot.multiply(math.signum(qDot.getValue.doubleValue())))
-        .asType(classOf[Time])
-        .to(Units.SECOND)
-        .getValue
-        .longValue()
-      tick + duration
+      val duration = Math.round(
+        flexibleEnergy
+          .divide(qDot.multiply(math.signum(qDot.getValue.doubleValue)))
+          .asType(classOf[Time])
+          .to(Units.SECOND)
+          .getValue
+          .doubleValue
+      )
+      Some(tick + duration)
     }
   }
 }

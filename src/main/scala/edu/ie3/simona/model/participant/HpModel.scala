@@ -197,11 +197,11 @@ final case class HpModel(
 
     /* Push thermal energy to the thermal grid and get it's updated state in return */
     val (thermalGridState, maybeThreshold) = relevantData match {
-      case HpRelevantData(currentTimeTick, ambientTemperature) =>
+      case HpRelevantData(currentTimeTick, _) =>
         thermalGrid.updateState(
           currentTimeTick,
           state.thermalGridState,
-          ambientTemperature,
+          state.ambientTemperature,
           newThermalPower
         )
     }
@@ -209,6 +209,7 @@ final case class HpModel(
     HpState(
       isRunning,
       relevantData.currentTimeTick,
+      relevantData.ambientTemperature,
       newActivePower,
       newThermalPower,
       thermalGridState,
@@ -277,25 +278,15 @@ final case class HpModel(
     /* If the setpoint value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
     val turnOn =
       setPower.isGreaterThan(sRated.multiply(cosPhiRated).multiply(0.5))
+    val updatedState = calcState(lastState, data, turnOn)
 
-    if (lastState.isRunning == turnOn)
-      (
-        lastState,
-        FlexChangeIndicator(
-          changesAtNextActivation = true,
-          lastState.maybeThermalThreshold.map(_.tick)
-        )
+    (
+      updatedState,
+      FlexChangeIndicator(
+        changesAtNextActivation = true,
+        updatedState.maybeThermalThreshold.map(_.tick)
       )
-    else {
-      val updatedState = calcState(lastState, data, turnOn)
-      (
-        updatedState,
-        FlexChangeIndicator(
-          changesAtNextActivation = true,
-          updatedState.maybeThermalThreshold.map(_.tick)
-        )
-      )
-    }
+    )
   }
 }
 
@@ -344,6 +335,8 @@ object HpModel {
     *   indicates if CHP is turned on
     * @param lastTimeTick
     *   contains last time tick
+    * @param ambientTemperature
+    *   Ambient temperature
     * @param activePower
     *   result active power
     * @param qDot
@@ -357,6 +350,7 @@ object HpModel {
   final case class HpState(
       isRunning: Boolean,
       lastTimeTick: Long,
+      ambientTemperature: ComparableQuantity[Temperature],
       activePower: ComparableQuantity[Power],
       qDot: ComparableQuantity[Power],
       thermalGridState: ThermalGridState,
