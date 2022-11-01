@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.thermal
 
-import breeze.linalg.max
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
@@ -115,7 +114,10 @@ final case class CylindricalThermalStorage(
             Time
           ] to Units.SECOND
         val durationInTicks = Math.round(duration.getValue.doubleValue)
-        Some(StorageFull(tick + max(durationInTicks, 0L)))
+        if (durationInTicks <= 0L)
+          None
+        else
+          Some(StorageFull(tick + durationInTicks))
       } else if (
         qDot.isLessThan(
           Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
@@ -126,7 +128,10 @@ final case class CylindricalThermalStorage(
             -1
           )) asType classOf[Time] to Units.SECOND
         val durationInTicks = Math.round(duration.getValue.doubleValue)
-        Some(StorageEmpty(tick + max(durationInTicks, 0L)))
+        if (durationInTicks <= 0L)
+          None
+        else
+          Some(StorageEmpty(tick + durationInTicks))
       } else {
         return (ThermalStorageState(tick, updatedEnergy, qDot), None)
       }

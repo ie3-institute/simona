@@ -20,7 +20,6 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalGridState
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.HouseTemperatureUpperBoundaryReached
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtil
@@ -170,51 +169,59 @@ final case class ThermalGrid(
           case _ => state.storageState
         }
 
-        thermalHouse.updateState(
+        val (updatedHouseState, maybeHouseThreshold) = thermalHouse.updateState(
           tick,
           lastHouseState,
           ambientTemperature,
           qDot
-        ) match {
-          case (_, Some(HouseTemperatureUpperBoundaryReached(thresholdTick)))
-              if thresholdTick == tick =>
-            /* The house is already heated up fully, set back the infeed and put it into storage, if available */
-            val (updatedHouseState, maybeHouseThreshold) =
-              thermalHouse.updateState(
-                tick,
-                lastHouseState,
-                ambientTemperature,
-                Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+        )
+
+        if (
+          thermalHouse.isInnerTemperatureTooHigh(
+            updatedHouseState.innerTemperature
+          )
+        ) {
+          /* The house is already heated up fully, set back the infeed and put it into storage, if available */
+          val (fullHouseState, maybeFullHouseThreshold) =
+            thermalHouse.updateState(
+              tick,
+              lastHouseState,
+              ambientTemperature,
+              Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+            )
+          storage.zip(updatedStorageState) match {
+            case Some((thermalStorage, storageState)) =>
+              val (updatedStorageState, maybeStorageThreshold) =
+                thermalStorage.updateState(tick, qDot, storageState)
+
+              /* Both house and storage are updated. Determine what reaches the next threshold */
+              val nextThreshold = determineMostRecentThreshold(
+                maybeFullHouseThreshold,
+                maybeStorageThreshold
               )
-            storage.zip(updatedStorageState) match {
-              case Some((thermalStorage, storageState)) =>
-                val (updatedStorageState, maybeStorageThreshold) =
-                  thermalStorage.updateState(tick, qDot, storageState)
 
-                /* Both house and storage are updated. Determine what reaches the next threshold */
-                val nextThreshold = determineMostRecentThreshold(
-                  maybeHouseThreshold,
-                  maybeStorageThreshold
-                )
-
-                (
-                  state.copy(
-                    houseState = Some(updatedHouseState),
-                    storageState = Some(updatedStorageState)
-                  ),
-                  nextThreshold
-                )
-              case None =>
-                /* There is no storage, house determines the next activation */
-                (
-                  state.copy(houseState = Some(updatedHouseState)),
-                  maybeHouseThreshold
-                )
-            }
-          case (updatedState, maybeThreshold) =>
-            /* The house can handle the infeed */
-            (state.copy(houseState = Some(updatedState)), maybeThreshold)
+              (
+                state.copy(
+                  houseState = Some(fullHouseState),
+                  storageState = Some(updatedStorageState)
+                ),
+                nextThreshold
+              )
+            case None =>
+              /* There is no storage, house determines the next activation */
+              (
+                state.copy(houseState = Some(fullHouseState)),
+                maybeFullHouseThreshold
+              )
+          }
+        } else {
+          /* The house can handle the infeed */
+          (
+            state.copy(houseState = Some(updatedHouseState)),
+            maybeHouseThreshold
+          )
         }
+
       case None =>
         storage.zip(state.storageState) match {
           case Some((thermalStorage, storageState)) =>
