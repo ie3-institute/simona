@@ -151,7 +151,8 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       case randomLoadModel: RandomLoadModel =>
         activationTicksInOperationTime(
           simulationStartDate,
-          modelConfig.resolutionRandomLoadProfile.toLong,
+          // Resolution for random load profile time steps. E.g. 900L for quarter hourly, 3600L for hourly ones.
+          900L,
           randomLoadModel.operationInterval.start,
           randomLoadModel.operationInterval.end
         )
