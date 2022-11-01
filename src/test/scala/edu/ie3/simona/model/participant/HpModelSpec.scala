@@ -50,7 +50,7 @@ class HpModelSpec
             true,
             95,
             15.6,
-            Some(HouseTemperatureUpperBoundaryReached(31710L))
+            Some(HouseTemperatureUpperBoundaryReached(31711L))
           ),
           (
             HpState(
@@ -66,7 +66,7 @@ class HpModelSpec
             true,
             95,
             16.4,
-            Some(HouseTemperatureUpperBoundaryReached(30641L))
+            Some(HouseTemperatureUpperBoundaryReached(30642L))
           ),
           (
             HpState(
@@ -114,7 +114,7 @@ class HpModelSpec
             false,
             0,
             20.4,
-            Some(HouseTemperatureLowerBoundaryReached(15507L))
+            Some(HouseTemperatureLowerBoundaryReached(15508L))
           ),
           (
             HpState(
@@ -130,7 +130,7 @@ class HpModelSpec
             true,
             95,
             15.6,
-            Some(HouseTemperatureUpperBoundaryReached(31710L))
+            Some(HouseTemperatureUpperBoundaryReached(31711L))
           ),
           (
             HpState(
@@ -146,7 +146,7 @@ class HpModelSpec
             true,
             95,
             16.4,
-            Some(HouseTemperatureUpperBoundaryReached(30641L))
+            Some(HouseTemperatureUpperBoundaryReached(30642L))
           ),
           (
             HpState(

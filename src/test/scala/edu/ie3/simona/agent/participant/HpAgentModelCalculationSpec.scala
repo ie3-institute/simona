@@ -609,10 +609,11 @@ class HpAgentModelCalculationSpec
                     HpState(
                       isRunning,
                       lastTimeTick,
+                      _,
                       activePower,
                       qDot,
                       thermalGridState,
-                      maybeThermalThreshold
+                      _
                     )
                   )
                 ) =>
@@ -629,7 +630,7 @@ class HpAgentModelCalculationSpec
                 case Some(ThermalHouseState(_, innerTemperature, _)) =>
                   innerTemperature should equalWithTolerance(
                     Quantities.getQuantity(
-                      20.9999769069444444444444444444444,
+                      20.99998675925926,
                       StandardUnits.TEMPERATURE
                     )
                   )
@@ -813,10 +814,11 @@ class HpAgentModelCalculationSpec
                     HpState(
                       isRunning,
                       lastTimeTick,
+                      _,
                       activePower,
                       qDot,
                       thermalGridState,
-                      maybeThermalThreshold
+                      _
                     )
                   )
                 ) =>
@@ -833,7 +835,7 @@ class HpAgentModelCalculationSpec
                 case Some(ThermalHouseState(_, innerTemperature, _)) =>
                   innerTemperature should equalWithTolerance(
                     Quantities.getQuantity(
-                      20.9999769069444444444444444444444,
+                      20.99998675925926,
                       StandardUnits.TEMPERATURE
                     )
                   )
