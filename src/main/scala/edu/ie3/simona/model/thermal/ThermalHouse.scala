@@ -399,12 +399,14 @@ final case class ThermalHouse(
     )
       tick
     else {
-      val duration = flexibleEnergy
-        .divide(qDot.multiply(math.signum(qDot.getValue.doubleValue())))
-        .asType(classOf[Time])
-        .to(Units.SECOND)
-        .getValue
-        .longValue()
+      val duration = Math.round(
+        flexibleEnergy
+          .divide(qDot.multiply(math.signum(qDot.getValue.doubleValue)))
+          .asType(classOf[Time])
+          .to(Units.SECOND)
+          .getValue
+          .doubleValue
+      )
       tick + duration
     }
   }
