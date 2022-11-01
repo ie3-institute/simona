@@ -40,6 +40,7 @@ class HpModelSpec
             HpState(
               isRunning = false,
               0,
+              hpData.ambientTemperature,
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
               thermalState(17),
@@ -55,6 +56,7 @@ class HpModelSpec
             HpState(
               isRunning = false,
               0,
+              hpData.ambientTemperature,
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
               thermalState(18),
@@ -70,6 +72,7 @@ class HpModelSpec
             HpState(
               isRunning = false,
               0,
+              hpData.ambientTemperature,
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
               thermalState(20),
@@ -85,6 +88,7 @@ class HpModelSpec
             HpState(
               isRunning = false,
               0,
+              hpData.ambientTemperature,
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
               thermalState(22),
@@ -100,6 +104,7 @@ class HpModelSpec
             HpState(
               isRunning = false,
               0,
+              hpData.ambientTemperature,
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
               thermalState(23),
@@ -115,6 +120,7 @@ class HpModelSpec
             HpState(
               isRunning = true,
               0,
+              hpData.ambientTemperature,
               Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
               thermalState(17),
@@ -130,6 +136,7 @@ class HpModelSpec
             HpState(
               isRunning = true,
               0,
+              hpData.ambientTemperature,
               Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
               thermalState(18),
@@ -145,6 +152,7 @@ class HpModelSpec
             HpState(
               isRunning = true,
               0,
+              hpData.ambientTemperature,
               Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
               thermalState(20),
@@ -160,6 +168,7 @@ class HpModelSpec
             HpState(
               isRunning = true,
               0,
+              hpData.ambientTemperature,
               Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
               thermalState(22),
@@ -175,6 +184,7 @@ class HpModelSpec
             HpState(
               isRunning = true,
               0,
+              hpData.ambientTemperature,
               Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
               Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
               thermalState(25),
@@ -206,6 +216,7 @@ class HpModelSpec
               case HpState(
                     isRunning,
                     lastTimeTick,
+                    _,
                     activePower,
                     _,
                     ThermalGridState(Some(thermalHouseState), _),

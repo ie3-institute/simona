@@ -15,11 +15,9 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
+import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ApparentPowerAndHeat
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.hp.HpAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
@@ -34,10 +32,7 @@ import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
   ParticipantStateData
 }
-import edu.ie3.simona.agent.participant.{
-  ParticipantAgentFundamentals,
-  StatefulParticipantAgentFundamentals
-}
+import edu.ie3.simona.agent.participant.StatefulParticipantAgentFundamentals
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
@@ -48,14 +43,14 @@ import edu.ie3.simona.exceptions.agent.{
   InvalidRequestException
 }
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
-import edu.ie3.simona.model.participant.{FlexChangeIndicator, HpModel}
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
-import edu.ie3.simona.model.participant.ModelState.ConstantState
+import edu.ie3.simona.model.participant.{FlexChangeIndicator, HpModel}
 import edu.ie3.simona.model.thermal.ThermalGrid
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -115,6 +110,7 @@ trait HpAgentFundamentals
   ): HpState = HpState(
     isRunning = false,
     -1,
+    Quantities.getQuantity(10d, Units.CELSIUS), // TODO
     Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
     Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
     ThermalGrid.startingState(thermalGrid),
