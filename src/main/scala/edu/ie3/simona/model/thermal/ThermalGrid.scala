@@ -156,7 +156,7 @@ final case class ThermalGrid(
       case Some((thermalHouse, lastHouseState)) =>
         /* Set thermal power exchange with storage to zero */
         // TODO: We would need to issue a storage result model here...
-        val zeroStorageState = storage.zip(state.storageState) match {
+        val updatedStorageState = storage.zip(state.storageState) match {
           case Some((thermalStorage, storageState)) =>
             Some(
               thermalStorage
@@ -186,7 +186,7 @@ final case class ThermalGrid(
                 ambientTemperature,
                 Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
               )
-            storage.zip(zeroStorageState) match {
+            storage.zip(updatedStorageState) match {
               case Some((thermalStorage, storageState)) =>
                 val (updatedStorageState, maybeStorageThreshold) =
                   thermalStorage.updateState(tick, qDot, storageState)
