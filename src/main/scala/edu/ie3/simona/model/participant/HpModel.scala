@@ -93,7 +93,7 @@ final case class HpModel(
     * [[HpModel.calculateNextState]]. This state then is fed into the power
     * calculation logic by <i>hpData</i>.
     *
-    * @param modelState
+    * @param maybeModelState
     *   Current state of the heat pump
     * @param relevantData
     *   data of heat pump including state of the heat pump
@@ -117,7 +117,7 @@ final case class HpModel(
     * extract the information
     * @param tick
     *   Current simulation time for the calculation
-    * @param modelState
+    * @param maybeModelState
     *   Current state of the heat pump
     * @param data
     *   Relevant (external) data for calculation
