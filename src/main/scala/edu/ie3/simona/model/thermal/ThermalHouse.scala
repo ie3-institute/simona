@@ -356,7 +356,7 @@ final case class ThermalHouse(
     if (
       resultingQDot.isLessThan(
         Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
-      )
+      ) && !isInnerTemperatureTooLow(innerTemperature)
     ) {
       /* House has more losses than gain */
       nextActivation(
@@ -368,7 +368,7 @@ final case class ThermalHouse(
     } else if (
       resultingQDot.isGreaterThan(
         Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
-      )
+      ) && !isInnerTemperatureTooHigh(innerTemperature)
     ) {
       /* House has more gain than losses */
       nextActivation(
