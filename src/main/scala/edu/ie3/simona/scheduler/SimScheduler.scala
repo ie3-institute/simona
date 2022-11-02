@@ -6,12 +6,15 @@
 
 package edu.ie3.simona.scheduler
 
-import akka.actor.{Actor, ActorRef, Props, Terminated}
+import akka.actor.{Actor, ActorRef, Props, ReceiveTimeout, Terminated}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent.{Error, Initializing, Simulating}
 import edu.ie3.simona.event.notifier.Notifier
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
 import edu.ie3.simona.scheduler.SimSchedulerStateData.SchedulerStateData
+
+import scala.concurrent.duration.DurationInt
+import scala.language.postfixOps
 
 object SimScheduler {
 
@@ -65,6 +68,8 @@ class SimScheduler(
       /* initialize agents */
       // notify listeners
       notifyListener(Initializing)
+
+      context.setReceiveTimeout(1 minute)
 
       // set init sender
       val startSender = sender()
@@ -190,6 +195,11 @@ class SimScheduler(
       )
       stateData.runtime.initSender ! SimulationFailureMessage
       context.stop(self)
+
+    case ReceiveTimeout =>
+      log.warning(
+        "No messages received for one minute. Current state data: " + stateData
+      )
 
     /* all unhandled messages */
     case unhandledMessage =>

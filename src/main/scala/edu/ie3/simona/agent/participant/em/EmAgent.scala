@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.em
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.{ActorRef, Props, ReceiveTimeout}
 import edu.ie3.datamodel.models.input.system.{EmInput, SystemParticipantInput}
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
@@ -65,6 +65,8 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
+import scala.concurrent.duration.DurationInt
+import scala.language.postfixOps
 
 object EmAgent {
   def props(
@@ -201,6 +203,8 @@ class EmAgent(
           ),
           _: ParticipantUninitializedStateData[ApparentPower]
         ) =>
+      context.setReceiveTimeout(2 minutes)
+
       // sending init triggers
       val triggerData = connectedAgents.foldLeft(TriggerData()) {
         case (triggerData, (actor, initTrigger, _)) =>
@@ -517,6 +521,12 @@ class EmAgent(
         )
       else
         stay() using updatedBaseStateData
+
+    case Event(ReceiveTimeout, stateData) =>
+      log.warning(
+        "No messages received for two minutes. Current state data: " + stateData
+      )
+      stay()
   }
 
   when(Uninitialized) { handleUnitializedEm orElse handleUnitialized }
