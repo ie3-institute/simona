@@ -279,6 +279,15 @@ final case class HpModel(
       setPower.isGreaterThan(sRated.multiply(cosPhiRated).multiply(0.5))
     val updatedState = calcState(lastState, data, turnOn)
 
+    // TODO this can probably be removed if we can be sure it won't happen
+    if (
+      updatedState.maybeThermalThreshold.exists(_.tick <= data.currentTimeTick)
+    ) {
+      logger.error(
+        s"Scheduling HpModel $uuid for activation at tick ${updatedState.maybeThermalThreshold}, although current tick is ${data.currentTimeTick}"
+      )
+    }
+
     (
       updatedState,
       FlexChangeIndicator(
