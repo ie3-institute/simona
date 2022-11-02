@@ -38,7 +38,10 @@ import edu.ie3.simona.model.participant.load.profile.{
   LoadProfileStore,
   ProfileLoadModel
 }
-import edu.ie3.simona.model.participant.load.random.RandomLoadModel
+import edu.ie3.simona.model.participant.load.random.{
+  RandomLoadModel,
+  RandomLoadParamStore
+}
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
 import edu.ie3.simona.model.participant.load.{
   FixedLoadModel,
@@ -49,7 +52,6 @@ import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.scala.OperationInterval
-
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
@@ -143,8 +145,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       case randomLoadModel: RandomLoadModel =>
         activationTicksInOperationTime(
           simulationStartDate,
-          // Resolution for random load profile time steps. E.g. 900L for quarter hourly, 3600L for hourly ones.
-          900L,
+          RandomLoadParamStore.resolution.getSeconds,
           randomLoadModel.operationInterval.start,
           randomLoadModel.operationInterval.end
         )
