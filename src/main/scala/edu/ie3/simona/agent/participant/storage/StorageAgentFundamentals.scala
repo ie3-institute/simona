@@ -331,13 +331,10 @@ trait StorageAgentFundamentals
       baseStateData.model.handleControlledPowerChange(data, lastState, setPower)
 
     val voltage = getAndCheckNodalVoltage(baseStateData, tick)
-    val reactivePower = baseStateData.model match {
-      case model: StorageModel =>
-        model.calculateReactivePower(
-          setPower,
-          voltage
-        )
-    }
+    val reactivePower = baseStateData.model.calculateReactivePower(
+      setPower,
+      voltage
+    )
 
     // TODO: Actually change state and calculate the next tick, when something happens
 

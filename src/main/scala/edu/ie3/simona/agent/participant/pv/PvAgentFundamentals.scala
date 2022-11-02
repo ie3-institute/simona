@@ -266,15 +266,12 @@ protected trait PvAgentFundamentals
       setPower: ComparableQuantity[Power]
   ): (ConstantState.type, ApparentPower, FlexChangeIndicator) = {
     /* Calculate result */
-    val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
+    val voltage = getAndCheckNodalVoltage(baseStateData, tick)
 
-    val reactivePower = baseStateData.model match {
-      case model: PvModel =>
-        model.calculateReactivePower(
-          setPower,
-          voltage
-        )
-    }
+    val reactivePower = baseStateData.model.calculateReactivePower(
+      setPower,
+      voltage
+    )
     val result = ApparentPower(setPower, reactivePower)
 
     /* Handle the request within the model */
