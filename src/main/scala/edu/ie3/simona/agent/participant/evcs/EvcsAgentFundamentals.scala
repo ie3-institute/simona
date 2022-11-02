@@ -273,13 +273,10 @@ protected trait EvcsAgentFundamentals
     /* Calculate the power */
     val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
 
-    val reactivePower = baseStateData.model match {
-      case model: EvcsModel =>
-        model.calculateReactivePower(
-          setPower,
-          voltage
-        )
-    }
+    val reactivePower = baseStateData.model.calculateReactivePower(
+      setPower,
+      voltage
+    )
     val result = ApparentPower(setPower, reactivePower)
 
     /* Handle the request within the model */
