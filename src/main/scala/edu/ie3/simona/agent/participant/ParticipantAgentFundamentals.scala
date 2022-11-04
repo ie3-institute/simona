@@ -56,6 +56,7 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException
 }
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.{
   CalcRelevantData,
   ModelState,
