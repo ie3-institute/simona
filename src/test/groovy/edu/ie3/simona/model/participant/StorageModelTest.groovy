@@ -167,4 +167,60 @@ class StorageModelTest extends Specification {
         100        | -10      || -9       | true          | true         | 8*3600/0.9
     }
 
+    def "Handle the edge case of charging in tolerance margins"() {
+        given:
+        def storageModel = buildStorageModel()
+        def startTick = 1800L
+        def data = new StorageModel.StorageRelevantData(startTick + 1)
+        // margin is at ~ 20.0030864 kWh
+        def oldState = new StorageModel.StorageState(
+                getQuantity(20.001d, KILOWATTHOUR),
+                getQuantity(0d, KILOWATT),
+                startTick
+        )
+
+        when:
+        def result = storageModel.handleControlledPowerChange(
+                data,
+                oldState,
+                getQuantity(-5d, KILOWATT)
+        )
+
+        then:
+        equals(result._1.chargingPower(), getQuantity(0d, KILOWATT), TOLERANCE)
+        result._1.tick() == startTick + 1
+        equals(result._1.storedEnergy(), oldState.storedEnergy(), TOLERANCE)
+        def flexChangeIndication = result._2
+        !flexChangeIndication.changesAtTick().defined
+        flexChangeIndication.changesAtNextActivation()
+    }
+
+    def "Handle the edge case of discharging in tolerance margins"() {
+        given:
+        def storageModel = buildStorageModel()
+        def startTick = 1800L
+        def data = new StorageModel.StorageRelevantData(startTick + 1)
+        // margin is at ~ 99.9975 kWh
+        def oldState = new StorageModel.StorageState(
+                getQuantity(99.9990, KILOWATTHOUR),
+                getQuantity(0d, KILOWATT),
+                startTick
+        )
+
+        when:
+        def result = storageModel.handleControlledPowerChange(
+                data,
+                oldState,
+                getQuantity(9d, KILOWATT)
+        )
+
+        then:
+        equals(result._1.chargingPower(), getQuantity(0d, KILOWATT), TOLERANCE)
+        result._1.tick() == startTick + 1
+        equals(result._1.storedEnergy(), oldState.storedEnergy(), TOLERANCE)
+        def flexChangeIndication = result._2
+        !flexChangeIndication.changesAtTick().defined
+        flexChangeIndication.changesAtNextActivation()
+    }
+
 }
