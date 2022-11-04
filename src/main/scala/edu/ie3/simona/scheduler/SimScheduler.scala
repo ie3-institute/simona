@@ -13,7 +13,7 @@ import edu.ie3.simona.event.notifier.Notifier
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
 import edu.ie3.simona.scheduler.SimSchedulerStateData.SchedulerStateData
 
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt}
 import scala.language.postfixOps
 
 object SimScheduler {
@@ -197,6 +197,8 @@ class SimScheduler(
       context.stop(self)
 
     case ReceiveTimeout =>
+      // disable timeout again
+      context.setReceiveTimeout(Duration.Undefined)
       log.warning(
         "No messages received for one minute. Current state data: " + stateData
       )

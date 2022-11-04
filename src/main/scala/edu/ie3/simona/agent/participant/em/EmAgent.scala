@@ -65,7 +65,7 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt}
 import scala.language.postfixOps
 
 object EmAgent {
@@ -523,6 +523,8 @@ class EmAgent(
         stay() using updatedBaseStateData
 
     case Event(ReceiveTimeout, stateData) =>
+      // disable timeout again
+      context.setReceiveTimeout(Duration.Undefined)
       log.warning(
         "No messages received for two minutes. Current state data: " + stateData
       )
