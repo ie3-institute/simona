@@ -725,6 +725,15 @@ protected trait ParticipantAgentFundamentals[
         resultingActivePower
       )
 
+    // sanity check, simulation will hang if this matches
+    flexChangeIndicator.changesAtTick match {
+      case Some(changeAtTick) if changeAtTick <= flexCtrl.tick =>
+        log.error(
+          s"Scheduling agent ${self.path} (${baseStateData.modelUuid}) for activation at tick $changeAtTick, although current tick is ${flexCtrl.tick}"
+        )
+      case _ =>
+    }
+
     // revoke old tick and remove it from state data, if applicable
     val revokeRequest =
       flexStateData.scheduledRequest
