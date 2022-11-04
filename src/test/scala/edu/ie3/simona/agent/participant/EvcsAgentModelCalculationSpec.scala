@@ -1535,6 +1535,10 @@ class EvcsAgentModelCalculationSpec
         DepartingEvsRequest(4500L, Seq(ev900.getUuid))
       )
 
+      emAgent.expectMsg(
+        ScheduleTriggerMessage(RequestFlexOptions(4500L), evcsAgent)
+      )
+
       evService.expectMsgPF() { case DepartingEvsResponse(uuid, evs) =>
         evs.size shouldBe 1
         uuid shouldBe evcsInputModel.getUuid
@@ -2149,6 +2153,10 @@ class EvcsAgentModelCalculationSpec
       evService.send(
         evcsAgent,
         DepartingEvsRequest(36000L, Seq(ev900.getUuid))
+      )
+
+      emAgent.expectMsg(
+        ScheduleTriggerMessage(RequestFlexOptions(36000L), evcsAgent)
       )
 
       evService.expectMsgPF() { case DepartingEvsResponse(uuid, evs) =>
