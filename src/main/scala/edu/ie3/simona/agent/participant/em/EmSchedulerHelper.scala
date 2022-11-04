@@ -113,7 +113,7 @@ trait EmSchedulerHelper {
     // schedule new flex requests, if applicable
     completionMessage.requestAtTick
       .foreach(newTick =>
-        scheduleFlexTrigger(
+        scheduleFlexTriggerOnce(
           triggerData,
           RequestFlexOptions(newTick),
           completionMessage.modelUuid
@@ -222,47 +222,34 @@ trait EmSchedulerHelper {
       flexTrigger: FlexTriggerData,
       participantUuids: Set[UUID],
       tick: Long
-  ): FlexTriggerData = {
-    val alreadyScheduled =
-      flexTrigger.triggerQueue
-        .get(tick)
-        .getOrElse(Seq.empty)
-        .map(_.modelUuid)
+  ): FlexTriggerData =
+    participantUuids.foldLeft(flexTrigger) { case (schedulerData, modelUuid) =>
+      scheduleFlexTriggerOnce(
+        schedulerData,
+        RequestFlexOptions(tick),
+        modelUuid
+      )
+    }
 
-    // participants that have to be activated at any next tick
-    val filteredUuids =
-      participantUuids
-        .filterNot {
-          // filter out duplicates here: we might have been scheduled
-          // for this tick anyways
-          alreadyScheduled.contains
-        }
-
-    // add missing activation triggers
-    val updatedFlexTrigger =
-      filteredUuids.foldLeft(flexTrigger) { case (schedulerData, modelUuid) =>
-        scheduleFlexTrigger(
-          schedulerData,
-          RequestFlexOptions(tick),
-          modelUuid
-        )
-      }
-
-    updatedFlexTrigger
-  }
-
-  protected def scheduleFlexTrigger(
+  protected def scheduleFlexTriggerOnce(
       flexTrigger: FlexTriggerData,
       trigger: Trigger with FlexibilityMessage,
       modelUuid: UUID
   ): FlexTriggerData = {
-    flexTrigger.triggerQueue.add(
-      trigger.tick,
-      ScheduledFlexTrigger(
-        trigger,
-        modelUuid
+    val scheduledTrigger = ScheduledFlexTrigger(trigger, modelUuid)
+
+    val alreadyScheduled =
+      flexTrigger.triggerQueue
+        .get(trigger.tick)
+        .getOrElse(Seq.empty)
+        .contains(scheduledTrigger)
+
+    if (!alreadyScheduled)
+      flexTrigger.triggerQueue.add(
+        trigger.tick,
+        scheduledTrigger
       )
-    )
+
     flexTrigger
   }
 
@@ -325,7 +312,7 @@ trait EmSchedulerHelper {
           triggerMessage.actorToBeScheduled
         )
         stateData.copy(
-          flexTrigger = scheduleFlexTrigger(
+          flexTrigger = scheduleFlexTriggerOnce(
             stateData.flexTrigger,
             flexMessage,
             uuid
