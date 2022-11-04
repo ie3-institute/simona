@@ -620,7 +620,7 @@ class EmAgent(
         baseStateData.schedulerStateData.flexTrigger
       ) { case (flexTrigger, (uuid, issueCtrlMsg, _)) =>
         // send out flex control messages
-        scheduleFlexTrigger(flexTrigger, issueCtrlMsg, uuid)
+        scheduleFlexTriggerOnce(flexTrigger, issueCtrlMsg, uuid)
       }
 
       val updatedScheduledStateData = sendEligibleTrigger(
