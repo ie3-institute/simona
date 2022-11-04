@@ -52,7 +52,10 @@ final case class StorageModel(
       cosPhiRated
     ) {
 
-  private val lowestEnergy = eStorage.multiply(dod).asType(classOf[Energy])
+  private val minEnergy = eStorage
+    .multiply(dod)
+    .asType(classOf[Energy])
+    .to(PowerSystemUnits.KILOWATTHOUR)
 
   /** In order to avoid faulty flexibility options, we want to avoid offering
     * charging/discharging that could last less than one second.
@@ -60,6 +63,20 @@ final case class StorageModel(
   private val toleranceMargin = pMax
     .multiply(1d.asSecond)
     .asType(classOf[Energy])
+    .to(PowerSystemUnits.KILOWATTHOUR)
+
+  /** Minimal allowed energy with tolerance margin added
+    */
+  private val minEnergyWithMargin = minEnergy
+    .add(toleranceMargin.divide(eta).asType(classOf[Energy]))
+    .to(PowerSystemUnits.KILOWATTHOUR)
+
+  /** Maximum allowed energy with tolerance margin added
+    */
+  private val maxEnergyWithMargin =
+    eStorage
+      .subtract(toleranceMargin.multiply(eta).asType(classOf[Energy]))
+      .to(PowerSystemUnits.KILOWATTHOUR)
 
   /** Calculate the power behaviour based on the given data.
     *
@@ -67,7 +84,7 @@ final case class StorageModel(
     *   Regarded instant in simulation
     * @param voltage
     *   Nodal voltage magnitude
-    * @param maybeModelState
+    * @param modelState
     *   Current state of the model
     * @param data
     *   Further needed, secondary data
@@ -116,18 +133,30 @@ final case class StorageModel(
       determineCurrentState(lastState, data.currentTick)
 
     // net power after considering efficiency
-    val netPower = {
-      val proposal = setPower
-        .multiply(eta)
-        .asType(classOf[Power])
-        .to(PowerSystemUnits.KILOWATT)
-
-      // if it's close to zero, set it to zero
-      if (QuantityUtil.isEquivalentAbs(zeroKW, proposal, 1e-9))
+    val netPower =
+      if (QuantityUtil.isEquivalentAbs(zeroKW, setPower, 1e-9)) {
+        // if power is close to zero, set it to zero
         zeroKW
-      else
-        proposal
-    }
+      } else if (setPower.isGreaterThan(zeroKW)) {
+        if (isFull(currentStoredEnergy))
+          zeroKW // do not keep charging if we're already full
+        else
+          // multiply eta if we're charging
+          setPower
+            .multiply(eta)
+            .asType(classOf[Power])
+            .to(PowerSystemUnits.KILOWATT)
+      } else {
+        if (isEmpty(currentStoredEnergy))
+          zeroKW // do not keep discharging if we're already empty
+        else
+          // divide eta if we're discharging
+          // (draining the battery more than we get as output)
+          setPower
+            .multiply(eta) // FIXME this should be division
+            .asType(classOf[Power])
+            .to(PowerSystemUnits.KILOWATT)
+      }
 
     val currentState =
       StorageState(currentStoredEnergy, netPower, data.currentTick)
@@ -138,8 +167,16 @@ final case class StorageModel(
       isEmpty(currentStoredEnergy) || isFull(currentStoredEnergy)
     val isChargingOrDischarging =
       !QuantityUtil.isEquivalentAbs(zeroKW, netPower, 0)
+    // if we've been triggered just before we hit the minimum or maximum energy,
+    // and we're still discharging or charging respectively (happens in edge cases),
+    // we already set netPower to zero (see above) and also want to refresh flex options
+    // at the next activation
+    val hasObsoleteFlexOptions =
+      (isFull(currentStoredEnergy) && setPower.isGreaterThan(zeroKW)) ||
+        (isEmpty(currentStoredEnergy) && setPower.isLessThan(zeroKW))
 
-    val activateAtNextTick = isEmptyOrFull && isChargingOrDischarging
+    val activateAtNextTick =
+      (isEmptyOrFull && isChargingOrDischarging) || hasObsoleteFlexOptions
 
     // calculate the time span until we're full or empty, if applicable
     val maybeTimeSpan =
@@ -152,14 +189,14 @@ final case class StorageModel(
         Some(energyToFull.divide(netPower).asType(classOf[Time]))
       } else {
         // we're discharging, calculate time until we're at lowest energy allowed
-        val energyToEmpty = currentStoredEnergy.subtract(lowestEnergy)
+        val energyToEmpty = currentStoredEnergy.subtract(minEnergy)
         Some(energyToEmpty.divide(netPower.multiply(-1)).asType(classOf[Time]))
       }
 
     // calculate the tick from time span
     val maybeNextTick = maybeTimeSpan.map { timeSpan =>
       val ticksToEmpty =
-        Math.round(timeSpan.to(Units.SECOND).getValue.doubleValue())
+        Math.round(timeSpan.to(Units.SECOND).getValue.doubleValue)
       data.currentTick + ticksToEmpty
     }
 
@@ -189,7 +226,7 @@ final case class StorageModel(
     *   energy allowed (minus a tolerance margin)
     */
   private def isFull(storedEnergy: ComparableQuantity[Energy]): Boolean =
-    storedEnergy.isGreaterThanOrEqualTo(eStorage.subtract(toleranceMargin))
+    storedEnergy.isGreaterThanOrEqualTo(maxEnergyWithMargin)
 
   /** @param storedEnergy
     *   the stored energy amount to check
@@ -198,7 +235,7 @@ final case class StorageModel(
     *   allowed (plus a tolerance margin)
     */
   private def isEmpty(storedEnergy: ComparableQuantity[Energy]): Boolean =
-    storedEnergy.isLessThanOrEqualTo(lowestEnergy.add(toleranceMargin))
+    storedEnergy.isLessThanOrEqualTo(minEnergyWithMargin)
 }
 
 object StorageModel {
