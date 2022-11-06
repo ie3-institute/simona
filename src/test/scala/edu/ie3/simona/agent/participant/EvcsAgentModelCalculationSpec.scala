@@ -1488,7 +1488,7 @@ class EvcsAgentModelCalculationSpec
         flexResult.getpMax should beEquivalentTo(ev900.getSRatedAC)
       }
 
-      emAgent.send(evcsAgent, IssuePowerCtrl(900L, ev900.getSRatedAC))
+      emAgent.send(evcsAgent, IssueNoCtrl(900L))
 
       // at 4500 ev is departing
       emAgent.expectMsg(
@@ -1550,14 +1550,24 @@ class EvcsAgentModelCalculationSpec
       }
 
       // results arrive right after departure request
-      resultListener.expectMsgPF() {
-        case ParticipantResultEvent(result: EvResult) =>
-          result.getInputModel shouldBe ev900.getUuid
-          result.getTime shouldBe 900L.toDateTime
-          result.getP should beEquivalentTo(ev900.getSRatedAC)
-          result.getQ should beEquivalentTo(0d.asMegaVar)
-          result.getSoc should beEquivalentTo(0d.asPercent)
-      }
+      Range(0, 2)
+        .map { _ =>
+          resultListener.expectMsgType[ParticipantResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(result: EvResult)
+              if result.getTime.equals(900L.toDateTime) =>
+            result.getInputModel shouldBe ev900.getUuid
+            result.getP should beEquivalentTo(ev900.getSRatedAC)
+            result.getQ should beEquivalentTo(0d.asMegaVar)
+            result.getSoc should beEquivalentTo(0d.asPercent)
+          case ParticipantResultEvent(result: EvResult)
+              if result.getTime.equals(4500L.toDateTime) =>
+            result.getInputModel shouldBe ev900.getUuid
+            result.getP should beEquivalentTo(0d.asKiloWatt)
+            result.getQ should beEquivalentTo(0d.asMegaVar)
+            result.getSoc should beEquivalentTo(18.96551724137931d.asPercent)
+        }
 
       resultListener.expectMsgPF() {
         case ParticipantResultEvent(result: EvcsResult) =>

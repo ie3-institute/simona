@@ -333,7 +333,6 @@ final case class EvcsModel(
       // the current tick excluded
       .incl(lastTick)
       .excl(currentTick)
-    // FIXME departing EVs don't get final results
 
     // in order to create 0kW entries for EVs that do not
     // start charging right away at lastTick, create mock
@@ -342,7 +341,7 @@ final case class EvcsModel(
       _ -> ChargingSchedule.Entry(lastTick, lastTick, 0d.asKiloWatt)
     }
 
-    val (_, _, evResults, evcsResults) =
+    val (currentEvs, currentSchedules, evResults, evcsResults) =
       startAndStopTicks.foldLeft(
         lastEvMap,
         startingSchedules,
@@ -426,7 +425,26 @@ final case class EvcsModel(
         )
       }
 
-    (evResults, evcsResults)
+    // special case: also add EVs that are departing at current tick
+    // because they won't be included when the next results are created
+    val departingEvResults = currentSchedules
+      .map { case evUuid -> _ =>
+        currentEvs(evUuid)
+      }
+      .filter {
+        // only take those that are departing now
+        _.getDepartureTick.toLong == currentTick
+      }
+      .map {
+        createEvResult(
+          _,
+          currentTick,
+          0d.asKiloWatt,
+          voltageMagnitude
+        )
+      }
+
+    (evResults ++ departingEvResults, evcsResults)
   }
 
   private def createEvResult(
