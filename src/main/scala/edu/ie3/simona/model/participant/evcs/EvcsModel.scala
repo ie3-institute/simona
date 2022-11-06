@@ -265,7 +265,7 @@ final case class EvcsModel(
 
             /* Determine the energy charged within this slice of the schedule and accumulate it */
             accumulatedEnergy.add(
-              chargedEnergyInScheduleSlice(trimmedEntry)
+              chargedEnergyInScheduleEntry(trimmedEntry)
             )
         }
     /* Update EV with the charged energy during the charging interval */
@@ -388,7 +388,7 @@ final case class EvcsModel(
 
               // update EV
               val newEvStoredEnergy = ev.getStoredEnergy.add(
-                chargedEnergyInScheduleSlice(entry)
+                chargedEnergyInScheduleEntry(entry)
               )
               val newEv = ev.copyWith(newEvStoredEnergy)
 
@@ -499,11 +499,11 @@ final case class EvcsModel(
     * interval.
     *
     * @param scheduleEntry
-    *   Definition of the schedule slice
+    *   The schedule entry
     * @return
-    *   The energy charged during this slice
+    *   The energy charged during the time interval of the schedule entry
     */
-  private def chargedEnergyInScheduleSlice(
+  private def chargedEnergyInScheduleEntry(
       scheduleEntry: ChargingSchedule.Entry
   ): ComparableQuantity[Energy] =
     scheduleEntry.chargingPower
