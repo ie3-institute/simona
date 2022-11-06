@@ -1445,7 +1445,7 @@ class EvcsAgentModelCalculationSpec
 
       /* TICK 900
          - ev 900 arrives
-         - charging with 9 kW
+         - charging with 11 kW
        */
 
       val ev900 = evA.copyWithDeparture(4500L)
@@ -1476,7 +1476,7 @@ class EvcsAgentModelCalculationSpec
             ) =>
           modelUuid shouldBe evcsInputModel.getUuid
           referencePower shouldBe ev900.getSRatedAC
-          minPower shouldBe 0d.asKiloWatt // battery is empty
+          minPower shouldBe ev900.getSRatedAC // battery is empty
           maxPower shouldBe ev900.getSRatedAC
       }
 
@@ -1484,11 +1484,11 @@ class EvcsAgentModelCalculationSpec
         flexResult.getInputModel shouldBe evcsInputModel.getUuid
         flexResult.getTime shouldBe 900L.toDateTime
         flexResult.getpRef should beEquivalentTo(ev900.getSRatedAC)
-        flexResult.getpMin should beEquivalentTo(0d.asKiloWatt)
+        flexResult.getpMin should beEquivalentTo(ev900.getSRatedAC)
         flexResult.getpMax should beEquivalentTo(ev900.getSRatedAC)
       }
 
-      emAgent.send(evcsAgent, IssuePowerCtrl(900L, 9.asKiloWatt))
+      emAgent.send(evcsAgent, IssuePowerCtrl(900L, ev900.getSRatedAC))
 
       // at 4500 ev is departing
       emAgent.expectMsg(
@@ -1502,7 +1502,7 @@ class EvcsAgentModelCalculationSpec
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
           result.systemParticipantResult.getP should equalWithTolerance(
-            9.asKiloWatt,
+            ev900.getSRatedAC,
             testingTolerance
           )
           result.systemParticipantResult.getQ should equalWithTolerance(
@@ -1543,7 +1543,7 @@ class EvcsAgentModelCalculationSpec
         evs.headOption.foreach { ev =>
           ev.getUuid shouldBe ev900.getUuid
           ev.getStoredEnergy should equalWithTolerance(
-            9.asKiloWattHour,
+            11.asKiloWattHour,
             testingTolerance
           )
         }
@@ -1554,7 +1554,7 @@ class EvcsAgentModelCalculationSpec
         case ParticipantResultEvent(result: EvResult) =>
           result.getInputModel shouldBe ev900.getUuid
           result.getTime shouldBe 900L.toDateTime
-          result.getP should beEquivalentTo(9d.asKiloWatt)
+          result.getP should beEquivalentTo(ev900.getSRatedAC)
           result.getQ should beEquivalentTo(0d.asMegaVar)
           result.getSoc should beEquivalentTo(0d.asPercent)
       }
@@ -1563,7 +1563,7 @@ class EvcsAgentModelCalculationSpec
         case ParticipantResultEvent(result: EvcsResult) =>
           result.getInputModel shouldBe evcsInputModel.getUuid
           result.getTime shouldBe 900L.toDateTime
-          result.getP should beEquivalentTo(9d.asKiloWatt)
+          result.getP should beEquivalentTo(ev900.getSRatedAC)
           result.getQ should beEquivalentTo(0d.asMegaVar)
       }
 
@@ -1599,7 +1599,7 @@ class EvcsAgentModelCalculationSpec
             ) =>
           modelUuid shouldBe evcsInputModel.getUuid
           referencePower shouldBe ev4500.getSRatedAC
-          minPower shouldBe 0d.asKiloWatt // battery is empty
+          minPower shouldBe ev900.getSRatedAC // battery is empty
           maxPower shouldBe ev4500.getSRatedAC
       }
 
@@ -1607,20 +1607,20 @@ class EvcsAgentModelCalculationSpec
         flexResult.getInputModel shouldBe evcsInputModel.getUuid
         flexResult.getTime shouldBe 4500L.toDateTime
         flexResult.getpRef should beEquivalentTo(ev4500.getSRatedAC)
-        flexResult.getpMin should beEquivalentTo(0d.asKiloWatt)
+        flexResult.getpMin should beEquivalentTo(ev4500.getSRatedAC)
         flexResult.getpMax should beEquivalentTo(ev4500.getSRatedAC)
       }
 
       emAgent.send(evcsAgent, IssueNoCtrl(4500L))
 
       // we currently have an empty battery in ev4500
-      // time to charge fully ~= 7.2727273h = 26182 ticks (rounded) from now
-      // current tick is 4500, thus: 4500 + 26182 = 30682
+      // time to charge to minimal soc ~= 1.45454545455h = 5236 ticks (rounded) from now
+      // current tick is 4500, thus: 4500 + 5236 = 9736
       emAgent.expectMsg(
         FlexCtrlCompletion(
           modelUuid = evcsInputModel.getUuid,
           requestAtNextActivation = true,
-          requestAtTick = Some(30682L)
+          requestAtTick = Some(9736L)
         )
       )
 
@@ -1641,13 +1641,13 @@ class EvcsAgentModelCalculationSpec
       // already sent out after EV departed
       resultListener.expectNoMessage()
 
-      /* TICK 8100
+      /* TICK 9736
          - flex control changes
          - charging with 10 kW
        */
 
       // sending flex request at very next activated tick
-      emAgent.send(evcsAgent, RequestFlexOptions(8100L))
+      emAgent.send(evcsAgent, RequestFlexOptions(9736L))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1658,30 +1658,29 @@ class EvcsAgentModelCalculationSpec
             ) =>
           modelUuid shouldBe evcsInputModel.getUuid
           referencePower shouldBe ev4500.getSRatedAC
-          minPower shouldBe 0d.asKiloWatt // battery is still below lowest soc for discharging
+          minPower shouldBe 0d.asKiloWatt // battery is exactly at margin
           maxPower shouldBe ev4500.getSRatedAC
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
         flexResult.getInputModel shouldBe evcsInputModel.getUuid
-        flexResult.getTime shouldBe 8100L.toDateTime
+        flexResult.getTime shouldBe 9736L.toDateTime
         flexResult.getpRef should beEquivalentTo(ev4500.getSRatedAC)
         flexResult.getpMin should beEquivalentTo(0d.asKiloWatt)
         flexResult.getpMax should beEquivalentTo(ev4500.getSRatedAC)
       }
 
-      emAgent.send(evcsAgent, IssuePowerCtrl(8100L, 10.asKiloWatt))
+      emAgent.send(evcsAgent, IssuePowerCtrl(9736L, 10.asKiloWatt))
 
       evService.expectNoMessage()
 
-      // ev4500 is now at 11 kWh
-      // time to charge fully = 6.9 h = 24840 ticks from now
-      // current tick is 8100, thus: 8100 + 24840 = 32940
+      // ev4500 is now at 16 kWh
+      // time to charge fully = 6.4 h = 23040 ticks from now
+      // current tick is 9736, thus: 9736 + 23040 = 32776
       emAgent.expectMsg(
         FlexCtrlCompletion(
           modelUuid = evcsInputModel.getUuid,
-          requestAtTick = Some(32940L),
-          revokeRequestAtTick = Some(30682L),
+          requestAtTick = Some(32776L),
           requestAtNextActivation =
             true // since battery is still below lowest soc, it's still considered empty
         )
@@ -1721,7 +1720,8 @@ class EvcsAgentModelCalculationSpec
          - charging with 16 kW
        */
 
-      val ev11700 = evA.copyWithDeparture(36000L)
+      // with stored energy right at minimal SOC
+      val ev11700 = evA.copyWithDeparture(36000L).copyWith(11.6d.asKiloWattHour)
 
       val activation3 = 3L
 
@@ -1778,16 +1778,15 @@ class EvcsAgentModelCalculationSpec
       // no departing evs here
       evService.expectNoMessage()
 
-      // ev4500 is now at 21 kWh, ev11700 just arrived
-      // ev4500: time to charge fully = 7.375 h = 26550 ticks from now
-      // ev11700: time to charge fully = 7.25 h = 26100 ticks from now
-      // current tick is 11700, thus: 11700 + 26100 = 37800
-      // BUT: departing tick 36000 is earlier
+      // ev4500 is now at ~ 21.45555556 kWh, ev11700 just arrived with 11.6 kWh
+      // ev4500: time to charge fully ~= 7.3180556 h = 26345 ticks from now
+      // ev11700: time to charge fully = 5.8 h = 20880 ticks from now
+      // current tick is 11700, thus: 11700 + 20880 = 32580
       emAgent.expectMsg(
         FlexCtrlCompletion(
           modelUuid = evcsInputModel.getUuid,
-          requestAtTick = Some(36000L),
-          revokeRequestAtTick = Some(32940L),
+          requestAtTick = Some(32580L),
+          revokeRequestAtTick = Some(32776L),
           requestAtNextActivation =
             true // since battery is still below lowest soc, it's still considered empty
         )
@@ -1810,16 +1809,16 @@ class EvcsAgentModelCalculationSpec
       resultListener.expectMsgPF() {
         case ParticipantResultEvent(result: EvResult) =>
           result.getInputModel shouldBe ev4500.getUuid
-          result.getTime shouldBe 8100L.toDateTime
+          result.getTime shouldBe 9736L.toDateTime
           result.getP should beEquivalentTo(10d.asKiloWatt)
           result.getQ should beEquivalentTo(0d.asMegaVar)
-          result.getSoc should beEquivalentTo(13.75d.asPercent)
+          result.getSoc should beEquivalentTo(20d.asPercent, 1e-2)
       }
 
       resultListener.expectMsgPF() {
         case ParticipantResultEvent(result: EvcsResult) =>
           result.getInputModel shouldBe evcsInputModel.getUuid
-          result.getTime shouldBe 8100L.toDateTime
+          result.getTime shouldBe 9736L.toDateTime
           result.getP should beEquivalentTo(10d.asKiloWatt)
           result.getQ should beEquivalentTo(0d.asMegaVar)
       }
@@ -1864,15 +1863,15 @@ class EvcsAgentModelCalculationSpec
       // no departing evs here
       evService.expectNoMessage()
 
-      // ev4500 is now at 35 kWh, ev11700 at 14 kWh
-      // ev4500: time to discharge to lowest soc = 1.9 h = 6840 ticks from now
-      // ev11700: time to discharge fully = 0.24 h = 864 ticks from now
-      // current tick is 18000, thus: 18000 + 864 = 18864
+      // ev4500 is now at ~ 35.455556 kWh, ev11700 at 25.6 kWh
+      // ev4500: time to discharge to lowest soc ~= 1.9455556 h = 7004 ticks from now
+      // ev11700: time to discharge to lowest soc ~= 1.4 h = 5040 ticks from now
+      // current tick is 18000, thus: 18000 + 5040 = 23040
       emAgent.expectMsg(
         FlexCtrlCompletion(
           modelUuid = evcsInputModel.getUuid,
-          requestAtTick = Some(18864L),
-          revokeRequestAtTick = Some(36000L)
+          requestAtTick = Some(23040L),
+          revokeRequestAtTick = Some(32580L)
         )
       )
 
@@ -1898,13 +1897,13 @@ class EvcsAgentModelCalculationSpec
             result.getTime shouldBe 11700L.toDateTime
             result.getP should beEquivalentTo(8d.asKiloWatt)
             result.getQ should beEquivalentTo(0d.asMegaVar)
-            result.getSoc should beEquivalentTo(26.25d.asPercent)
+            result.getSoc should beEquivalentTo(26.819d.asPercent, 1e-2)
           case ParticipantResultEvent(result: EvResult)
               if result.getInputModel == ev11700.getUuid =>
             result.getTime shouldBe 11700L.toDateTime
             result.getP should beEquivalentTo(8d.asKiloWatt)
             result.getQ should beEquivalentTo(0d.asMegaVar)
-            result.getSoc should beEquivalentTo(0d.asPercent)
+            result.getSoc should beEquivalentTo(20.0d.asPercent)
         }
 
       resultListener.expectMsgPF() {
@@ -1915,12 +1914,12 @@ class EvcsAgentModelCalculationSpec
           result.getQ should beEquivalentTo(0d.asMegaVar)
       }
 
-      /* TICK 18864
+      /* TICK 23040
          - ev11700 at lowest soc
          - discharging with 10 kW
        */
 
-      emAgent.send(evcsAgent, RequestFlexOptions(18864L))
+      emAgent.send(evcsAgent, RequestFlexOptions(23040L))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1939,7 +1938,7 @@ class EvcsAgentModelCalculationSpec
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
         flexResult.getInputModel shouldBe evcsInputModel.getUuid
-        flexResult.getTime shouldBe 18864L.toDateTime
+        flexResult.getTime shouldBe 23040L.toDateTime
         flexResult.getpRef should beEquivalentTo(combinedChargingPower)
         flexResult.getpMin should beEquivalentTo(
           ev4500.getSRatedAC.multiply(
@@ -1949,18 +1948,18 @@ class EvcsAgentModelCalculationSpec
         flexResult.getpMax should beEquivalentTo(combinedChargingPower)
       }
 
-      emAgent.send(evcsAgent, IssuePowerCtrl(18864L, (-10).asKiloWatt))
+      emAgent.send(evcsAgent, IssuePowerCtrl(23040L, (-10).asKiloWatt))
 
       // no departing evs here
       evService.expectNoMessage()
 
-      // ev4500 is now at 32.6 kWh, ev11700 at 11.6 kWh (lowest soc)
-      // ev4500: time to discharge to lowest soc = 1.66 h = 5976 ticks from now
-      // current tick is 18864, thus: 18864 + 5976 = 24840
+      // ev4500 is now at 21.455556 kWh, ev11700 at 11.6 kWh (lowest soc)
+      // ev4500: time to discharge to lowest soc =  0.5455556 h = 1964 ticks from now
+      // current tick is 18864, thus: 23040 + 1964 = 25004
       emAgent.expectMsg(
         FlexCtrlCompletion(
           modelUuid = evcsInputModel.getUuid,
-          requestAtTick = Some(24840L)
+          requestAtTick = Some(25004L)
         )
       )
 
@@ -1986,13 +1985,13 @@ class EvcsAgentModelCalculationSpec
             result.getTime shouldBe 18000L.toDateTime
             result.getP should beEquivalentTo((-10d).asKiloWatt)
             result.getQ should beEquivalentTo(0d.asMegaVar)
-            result.getSoc should beEquivalentTo(43.75d.asPercent)
+            result.getSoc should beEquivalentTo(44.3194d.asPercent, 1e-2)
           case ParticipantResultEvent(result: EvResult)
               if result.getInputModel == ev11700.getUuid =>
             result.getTime shouldBe 18000L.toDateTime
             result.getP should beEquivalentTo((-10d).asKiloWatt)
             result.getQ should beEquivalentTo(0d.asMegaVar)
-            result.getSoc should beEquivalentTo(24.137931034483d.asPercent)
+            result.getSoc should beEquivalentTo(44.137931034d.asPercent, 1e-6)
         }
 
       resultListener.expectMsgPF() {
@@ -2003,72 +2002,12 @@ class EvcsAgentModelCalculationSpec
           result.getQ should beEquivalentTo(0d.asMegaVar)
       }
 
-      /* TICK 21600
-         - changing flex control
-         - discharging with 9 kW
-       */
-
-      emAgent.send(evcsAgent, IssuePowerCtrl(21600L, (-9).asKiloWatt))
-
-      // no departing evs here
-      evService.expectNoMessage()
-
-      // ev4500 is now at 25 kWh
-      // time to discharge to lowest soc = 1 h = 3600 ticks from now
-      // current tick is 18864, thus: 21600 + 3600 = 25200
-      emAgent.expectMsg(
-        FlexCtrlCompletion(
-          modelUuid = evcsInputModel.getUuid,
-          requestAtTick = Some(25200L),
-          revokeRequestAtTick = Some(24840L)
-        )
-      )
-
-      emAgent.expectMsgType[ParticipantResultEvent] match {
-        case result =>
-          result.systemParticipantResult.getP should equalWithTolerance(
-            (-9).asKiloWatt,
-            testingTolerance
-          )
-          result.systemParticipantResult.getQ should equalWithTolerance(
-            0.asMegaVar,
-            testingTolerance
-          )
-      }
-
-      Range(0, 2)
-        .map { _ =>
-          resultListener.expectMsgType[ParticipantResultEvent]
-        }
-        .foreach {
-          case ParticipantResultEvent(result: EvResult)
-              if result.getInputModel == ev4500.getUuid =>
-            result.getTime shouldBe 18864L.toDateTime
-            result.getP should beEquivalentTo((-10d).asKiloWatt)
-            result.getQ should beEquivalentTo(0d.asMegaVar)
-            result.getSoc should beEquivalentTo(40.75d.asPercent)
-          case ParticipantResultEvent(result: EvResult)
-              if result.getInputModel == ev11700.getUuid =>
-            result.getTime shouldBe 18864L.toDateTime
-            result.getP should beEquivalentTo(0d.asKiloWatt)
-            result.getQ should beEquivalentTo(0d.asMegaVar)
-            result.getSoc should beEquivalentTo(20d.asPercent)
-        }
-
-      resultListener.expectMsgPF() {
-        case ParticipantResultEvent(result: EvcsResult) =>
-          result.getInputModel shouldBe evcsInputModel.getUuid
-          result.getTime shouldBe 18864L.toDateTime
-          result.getP should beEquivalentTo((-10d).asKiloWatt)
-          result.getQ should beEquivalentTo(0d.asMegaVar)
-      }
-
-      /* TICK 25200
+      /* TICK 25004L
          - both evs at lowest soc
          - no power
        */
 
-      emAgent.send(evcsAgent, RequestFlexOptions(25200L))
+      emAgent.send(evcsAgent, RequestFlexOptions(25004L))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -2085,13 +2024,13 @@ class EvcsAgentModelCalculationSpec
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
         flexResult.getInputModel shouldBe evcsInputModel.getUuid
-        flexResult.getTime shouldBe 25200L.toDateTime
+        flexResult.getTime shouldBe 25004L.toDateTime
         flexResult.getpRef should beEquivalentTo(combinedChargingPower)
         flexResult.getpMin should beEquivalentTo(0.asKiloWatt)
         flexResult.getpMax should beEquivalentTo(combinedChargingPower)
       }
 
-      emAgent.send(evcsAgent, IssuePowerCtrl(25200L, 0.asKiloWatt))
+      emAgent.send(evcsAgent, IssuePowerCtrl(25004L, 0.asKiloWatt))
 
       // no departing evs here
       evService.expectNoMessage()
@@ -2122,13 +2061,13 @@ class EvcsAgentModelCalculationSpec
         .foreach {
           case ParticipantResultEvent(result: EvResult)
               if result.getInputModel == ev4500.getUuid =>
-            result.getTime shouldBe 21600L.toDateTime
-            result.getP should beEquivalentTo((-9d).asKiloWatt)
+            result.getTime shouldBe 23040L.toDateTime
+            result.getP should beEquivalentTo((-10d).asKiloWatt)
             result.getQ should beEquivalentTo(0d.asMegaVar)
-            result.getSoc should beEquivalentTo(31.25d.asPercent)
+            result.getSoc should beEquivalentTo(26.819445d.asPercent, 1e-2)
           case ParticipantResultEvent(result: EvResult)
               if result.getInputModel == ev11700.getUuid =>
-            result.getTime shouldBe 21600L.toDateTime
+            result.getTime shouldBe 23040L.toDateTime
             result.getP should beEquivalentTo(0d.asKiloWatt)
             result.getQ should beEquivalentTo(0d.asMegaVar)
             result.getSoc should beEquivalentTo(20d.asPercent)
@@ -2137,8 +2076,8 @@ class EvcsAgentModelCalculationSpec
       resultListener.expectMsgPF() {
         case ParticipantResultEvent(result: EvcsResult) =>
           result.getInputModel shouldBe evcsInputModel.getUuid
-          result.getTime shouldBe 21600L.toDateTime
-          result.getP should beEquivalentTo((-9d).asKiloWatt)
+          result.getTime shouldBe 23040L.toDateTime
+          result.getP should beEquivalentTo((-10d).asKiloWatt)
           result.getQ should beEquivalentTo(0d.asMegaVar)
       }
 
@@ -2176,13 +2115,13 @@ class EvcsAgentModelCalculationSpec
         .foreach {
           case ParticipantResultEvent(result: EvResult)
               if result.getInputModel == ev4500.getUuid =>
-            result.getTime shouldBe 25200L.toDateTime
+            result.getTime shouldBe 25004L.toDateTime
             result.getP should beEquivalentTo(0d.asKiloWatt)
             result.getQ should beEquivalentTo(0d.asMegaVar)
-            result.getSoc should beEquivalentTo(20d.asPercent)
+            result.getSoc should beEquivalentTo(20d.asPercent, 1e-2)
           case ParticipantResultEvent(result: EvResult)
               if result.getInputModel == ev11700.getUuid =>
-            result.getTime shouldBe 25200L.toDateTime
+            result.getTime shouldBe 25004L.toDateTime
             result.getP should beEquivalentTo(0d.asKiloWatt)
             result.getQ should beEquivalentTo(0d.asMegaVar)
             result.getSoc should beEquivalentTo(20d.asPercent)
@@ -2191,7 +2130,7 @@ class EvcsAgentModelCalculationSpec
       resultListener.expectMsgPF() {
         case ParticipantResultEvent(result: EvcsResult) =>
           result.getInputModel shouldBe evcsInputModel.getUuid
-          result.getTime shouldBe 25200L.toDateTime
+          result.getTime shouldBe 25004L.toDateTime
           result.getP should beEquivalentTo(0d.asKiloWatt)
           result.getQ should beEquivalentTo(0d.asMegaVar)
       }
