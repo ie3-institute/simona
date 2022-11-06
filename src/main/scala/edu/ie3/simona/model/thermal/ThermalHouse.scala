@@ -106,11 +106,25 @@ final case class ThermalHouse(
       ambientTemperature
     )
 
-    /* Determine the needed energy */
+    /* Determine, which temperature boundary triggers a needed energy to reach the temperature constraints */
+    val temperatureToTriggerRequiredEnergy =
+      if (
+        innerTemperature.isLessThanOrEqualTo(
+          state.innerTemperature
+        ) && state.qDot.isLessThanOrEqualTo(
+          Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+        )
+      )
+        lowerBoundaryTemperature
+      else targetTemperature
     val requiredEnergy =
-      if (isInnerTemperatureTooLow(innerTemperature)) {
-        energy(targetTemperature, innerTemperature)
-      } else
+      if (
+        isInnerTemperatureTooLow(
+          innerTemperature,
+          temperatureToTriggerRequiredEnergy
+        )
+      ) energy(targetTemperature, innerTemperature)
+      else
         Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT)
 
     val possibleEnergy =
@@ -163,10 +177,12 @@ final case class ThermalHouse(
     *   true, if inner temperature is too low
     */
   def isInnerTemperatureTooLow(
-      innerTemperature: ComparableQuantity[Temperature]
+      innerTemperature: ComparableQuantity[Temperature],
+      boundaryTemperature: ComparableQuantity[Temperature] =
+        lowerBoundaryTemperature
   ): Boolean =
     innerTemperature.isLessThan(
-      lowerBoundaryTemperature.add(temperatureTolerance)
+      boundaryTemperature.add(temperatureTolerance)
     )
 
   /** Calculate the new inner temperature of the thermal house.
