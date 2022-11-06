@@ -6,11 +6,18 @@
 
 package edu.ie3.simona.model.participant
 
+import edu.ie3.datamodel.models.StandardUnits
+import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.simona.model.participant.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
   HouseTemperatureUpperBoundaryReached
+}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  ProvideFlexOptions,
+  ProvideMinMaxFlexOptions
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -238,6 +245,51 @@ class HpModelSpec
 
                 maybeThreshold shouldBe expectedNextThreshold
             }
+        }
+      }
+    }
+
+    "determining the flexibility options" when {
+      "the house is heated up and storage has space" should {
+        "deliver positive flexibility" in {
+          val house = thermalHouse(18, 22)
+            .copy(
+              ethLosses = Quantities
+                .getQuantity(0.2, StandardUnits.THERMAL_TRANSMISSION)
+            )
+          val grid = thermalGrid(house, Some(thermalStorage))
+          val hp = hpModel(grid)
+          val relevantData = hpData.copy(currentTimeTick =
+            2763L
+          ) // Tick, at which the house is heated up
+          val lastState = HpState(
+            isRunning = true,
+            0,
+            hpData.ambientTemperature,
+            Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
+            Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
+            thermalState(21, 80, 20, 0),
+            Some(HouseTemperatureUpperBoundaryReached(7995L))
+          )
+
+          hp.determineFlexOptions(relevantData, lastState) match {
+            case ProvideMinMaxFlexOptions(
+                  modelUuid,
+                  referencePower,
+                  minPower,
+                  maxPower
+                ) =>
+              modelUuid shouldBe hp.uuid
+              referencePower should equalWithTolerance(
+                Quantities.getQuantity(95d, StandardUnits.ACTIVE_POWER_IN)
+              )
+              minPower should equalWithTolerance(
+                Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+              )
+              maxPower should equalWithTolerance(
+                Quantities.getQuantity(95d, StandardUnits.ACTIVE_POWER_IN)
+              )
+          }
         }
       }
     }

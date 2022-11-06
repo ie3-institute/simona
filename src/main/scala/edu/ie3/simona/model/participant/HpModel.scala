@@ -124,10 +124,9 @@ final case class HpModel(
   ): ComparableQuantity[Power] =
     modelState.qDot.to(StandardUnits.ACTIVE_POWER_RESULT)
 
-  /** Given a [[HpRelevantData]] object, containing the [[HpState]], other
-    * values and the current time tick, this function calculates the heat pump's
-    * next state To get the actual active power of this state use
-    * [[calculateActivePower]] with the generated state
+  /** Given a [[HpRelevantData]] object and the current [[HpState]], this
+    * function calculates the heat pump's next state To get the actual active
+    * power of this state use [[calculateActivePower]] with the generated state
     *
     * @param state
     *   Current state of the heat pump
@@ -227,7 +226,7 @@ final case class HpModel(
     val thermalEnergyDemand = thermalGrid.energyDemand(
       data.currentTimeTick,
       data.ambientTemperature,
-      lastState.thermalGridState
+      updatedState.thermalGridState
     )
     val canOperate =
       thermalEnergyDemand.hasRequiredDemand || thermalEnergyDemand.hasAdditionalDemand

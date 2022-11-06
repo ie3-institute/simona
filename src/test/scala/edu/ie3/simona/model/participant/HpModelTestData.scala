@@ -11,11 +11,20 @@ import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.input.system.`type`.HpTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
+import edu.ie3.datamodel.models.input.thermal.{
+  CylindricalStorageInput,
+  ThermalHouseInput
+}
 import edu.ie3.simona.model.participant.HpModel.HpRelevantData
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalHouse}
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
+import edu.ie3.simona.model.thermal.{
+  CylindricalThermalStorage,
+  ThermalGrid,
+  ThermalHouse,
+  ThermalStorage
+}
 import edu.ie3.util.quantities.PowerSystemUnits
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
@@ -56,13 +65,20 @@ trait HpModelTestData {
     thermalGrid
   )
 
-  protected def thermalGrid(thermalHouse: ThermalHouse): ThermalGrid =
+  protected def thermalGrid(
+      thermalHouse: ThermalHouse,
+      thermalStorage: Option[ThermalStorage] = None
+  ): ThermalGrid =
     ThermalGrid(
       Some(thermalHouse),
-      None
+      thermalStorage
     )
+
   private val thermHouseUuid: UUID =
     UUID.fromString("75a43a0f-7c20-45ca-9568-949b728804ca")
+
+  private val thermalStorageUuid: UUID =
+    UUID.fromString("d57ddc54-48bd-4c59-babf-330c7ba71a74")
 
   protected def thermalHouse(
       lowerTemperatureBoundary: Double,
@@ -83,17 +99,52 @@ trait HpModelTestData {
     )
   )
 
+  protected def thermalStorage: ThermalStorage = CylindricalThermalStorage(
+    thermalStorageUuid,
+    "thermal storage",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    null,
+    Quantities.getQuantity(20d, StandardUnits.ENERGY_IN),
+    Quantities.getQuantity(500d, StandardUnits.ENERGY_IN),
+    Quantities.getQuantity(10d, StandardUnits.ACTIVE_POWER_IN),
+    Quantities.getQuantity(0d, StandardUnits.ENERGY_IN)
+  )
+
   protected def thermalState(
-      temperature: Double
+      temperature: Double,
+      qDot: Double = 0d
   ): ThermalGridState = ThermalGridState(
     Some(
       ThermalHouseState(
         0L,
         Quantities.getQuantity(temperature, StandardUnits.TEMPERATURE),
-        Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+        Quantities.getQuantity(qDot, StandardUnits.ACTIVE_POWER_IN)
       )
     ),
     None
+  )
+
+  protected def thermalState(
+      temperature: Double,
+      qDotHouse: Double,
+      storedEnergy: Double,
+      qDotStorage: Double
+  ): ThermalGridState = ThermalGridState(
+    Some(
+      ThermalHouseState(
+        0L,
+        Quantities.getQuantity(temperature, StandardUnits.TEMPERATURE),
+        Quantities.getQuantity(qDotHouse, StandardUnits.ACTIVE_POWER_IN)
+      )
+    ),
+    Some(
+      ThermalStorageState(
+        0L,
+        Quantities.getQuantity(storedEnergy, StandardUnits.ENERGY_IN),
+        Quantities.getQuantity(qDotStorage, StandardUnits.ACTIVE_POWER_IN)
+      )
+    )
   )
 
   protected def hpData: HpRelevantData =
