@@ -216,6 +216,7 @@ final case class StorageModel(
 
     // don't allow under- or overcharge e.g. due to tick rounding error
     // allow charges below dod though since batteries can start at 0 kWh
+    // TODO don't allow SOCs below dod
     zeroKWH.max(eStorage.min(newEnergy))
   }
 
@@ -280,6 +281,7 @@ object StorageModel {
       inputModel.getType.getDod,
       initialSoc
     )
+    // TODO initialSoc >= dod must be true
     // TODO include activePowerGradient, lifeTime, lifeCycle ?
 
     model.enable()

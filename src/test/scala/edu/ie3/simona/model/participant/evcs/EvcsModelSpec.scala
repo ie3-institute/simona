@@ -207,7 +207,7 @@ class EvcsModelSpec
           10.0.asKiloWatt,
           10.0.asKiloWattHour,
           0d.asKiloWattHour,
-          7200L // is ignored here
+          10800L
         )
 
         val schedule = ChargingSchedule(
@@ -302,7 +302,7 @@ class EvcsModelSpec
           10.0.asKiloWatt,
           10.0.asKiloWattHour,
           0d.asKiloWattHour,
-          7200L // is ignored here
+          18000L
         )
 
         val ev2 = new MockEvModel(
@@ -312,7 +312,7 @@ class EvcsModelSpec
           10.0.asKiloWatt,
           10.0.asKiloWattHour,
           0d.asKiloWattHour,
-          7200L // is ignored here
+          18000L
         )
 
         val schedule1 = ChargingSchedule(
@@ -407,6 +407,79 @@ class EvcsModelSpec
         }
       }
 
+      "EV is departing at current tick" in {
+
+        val ev = new MockEvModel(
+          UUID.randomUUID(),
+          "TestEv",
+          5.0.asKiloWatt, // using AC charging here
+          10.0.asKiloWatt,
+          10.0.asKiloWattHour,
+          0d.asKiloWattHour,
+          7200L // equals the current tick
+        )
+
+        val schedule = ChargingSchedule(
+          ev,
+          Seq(
+            Entry(3600L, 7200L, 2d.asKiloWatt)
+          )
+        )
+
+        val lastTick = 1800L
+        val currentTick = 7200L
+
+        val lastState = EvcsState(
+          Set(ev),
+          Map(ev -> Some(schedule)),
+          lastTick
+        )
+
+        val (actualEvResults, actualEvcsResults) =
+          evcsStandardModel.createResults(
+            lastState,
+            currentTick,
+            1d.asPu
+          )
+
+        // tick, p in kW, soc in %
+        val expectedEvResults =
+          Seq(
+            (1800L, 0d, 0d),
+            (3600L, 2d, 0d),
+            // this result normally does not appear
+            // if EV does not depart at current tick
+            (7200L, 0d, 20d)
+          )
+
+        // tick, p in kW
+        val expectedEvcsResults =
+          Seq(
+            (1800L, 0d),
+            (3600L, 2d)
+          )
+
+        actualEvResults should have size expectedEvResults.size
+
+        actualEvResults should have size expectedEvResults.size
+        actualEvResults.zip(expectedEvResults).foreach {
+          case (actual, (startTick, p, soc)) =>
+            actual.getTime shouldBe startTick.toDateTime(simulationStart)
+            actual.getP should beEquivalentTo(p.asKiloWatt)
+            actual.getQ should beEquivalentTo(zeroKW)
+            actual.getSoc should beEquivalentTo(soc.asPercent)
+        }
+
+        actualEvcsResults should have size expectedEvcsResults.size
+        actualEvcsResults.zip(expectedEvcsResults).foreach {
+          case (actual, (startTick, p)) =>
+            actual.getTime shouldBe startTick.toDateTime(simulationStart)
+            actual.getInputModel shouldBe evcsStandardModel.getUuid
+            actual.getP should beEquivalentTo(p.asKiloWatt)
+            actual.getQ should beEquivalentTo(zeroKW)
+        }
+      }
+
     }
 
     "handle flexibility correctly" when {
@@ -434,19 +507,35 @@ class EvcsModelSpec
 
           /* 1: empty */
           // 2: empty
-          (0.0, 0.0, 0.0, 15.0, 0.0, 15.0),
+          (0.0, 0.0, 0.0, 15.0, 15.0, 15.0),
+          // 2: at lower margin
+          (0.0, 3.0, 0.0, 15.0, 10.0, 15.0),
           // 2: mid-way full (charged to 7.5 kWh)
-          (0.0, 0.0, 5.0, 15.0, -5.0, 15.0),
+          (0.0, 0.0, 5.0, 15.0, 10.0, 15.0),
           // 2: mid-way full (set to 7.5 kWh)
-          (0.0, 7.5, 0.0, 15.0, -5.0, 15.0),
+          (0.0, 7.5, 0.0, 15.0, 10.0, 15.0),
           // 2: almost full (12.5 kWh)
-          (0.0, 5.0, 5.0, 12.5, -5.0, 15.0),
+          (0.0, 5.0, 5.0, 12.5, 10.0, 15.0),
           // 2: full (set)
-          (0.0, 15.0, 0.0, 10.0, -5.0, 10.0),
+          (0.0, 15.0, 0.0, 10.0, 10.0, 10.0),
+
+          /* 1: at lower margin (set to 2 kWh) */
+          // 2: empty
+          (2.0, 0.0, 0.0, 13.0, 5.0, 15.0),
+          // 2: at lower margin
+          (2.0, 3.0, 0.0, 13.0, 0.0, 15.0),
+          // 2: mid-way full (charged to 7.5 kWh)
+          (2.0, 0.0, 5.0, 13.0, -5.0, 15.0),
+          // 2: mid-way full (set to 7.5 kWh)
+          (2.0, 7.5, 0.0, 13.0, -5.0, 15.0),
+          // 2: almost full (12.5 kWh)
+          (2.0, 5.0, 5.0, 10.5, -5.0, 15.0),
+          // 2: full (set)
+          (2.0, 15.0, 0.0, 8.0, -5.0, 10.0),
 
           /* 1: mid-way full (set to 5 kWh) */
           // 2: empty
-          (5.0, 0.0, 0.0, 10.0, -10.0, 15.0),
+          (5.0, 0.0, 0.0, 10.0, 5.0, 15.0),
           // 2: mid-way full (charged to 7.5 kWh)
           (5.0, 0.0, 5.0, 10.0, -15.0, 15.0),
           // 2: mid-way full (set to 7.5 kWh)
@@ -458,7 +547,7 @@ class EvcsModelSpec
 
           /* 1: full (set to 10 kWh) */
           // 2: empty
-          (10.0, 0.0, 0.0, 5.0, -10.0, 5.0),
+          (10.0, 0.0, 0.0, 5.0, 5.0, 5.0),
           // 2: mid-way full (charged to 7.5 kWh)
           (10.0, 0.0, 5.0, 5.0, -15.0, 5.0),
           // 2: mid-way full (set to 7.5 kWh)
@@ -609,21 +698,21 @@ class EvcsModelSpec
           (10.0, 15.0, 0.0, N, N, false, N),
 
           /* setPower is positive (charging) */
-          (0.0, 0.0, 4.0, S(2.0, 7200L), S(2.0, 10800L), true, S(7200L)),
-          (5.0, 0.0, 4.0, S(2.0, 7200L), S(2.0, 10800L), true, S(7200L)),
-          (0.0, 7.5, 4.0, S(2.0, 7200L), S(2.0, 10800L), true, S(7200L)),
-          (9.0, 0.0, 4.0, S(2.0, 5400L), S(2.0, 10800L), true, S(5400L)),
+          (0.0, 0.0, 4.0, S(2.0, 7200L), S(2.0, 9000L), true, S(7200L)),
+          (5.0, 0.0, 4.0, N, S(4.0, 6300L), true, S(6300L)),
+          (0.0, 7.5, 4.0, S(4.0, 5400L), N, true, S(5400L)),
+          (9.0, 0.0, 4.0, N, S(4.0, 6300L), true, S(6300L)),
           (5.0, 14.0, 4.0, S(2.0, 7200L), S(2.0, 5400L), false, S(5400L)),
           (9.0, 14.0, 4.0, S(2.0, 5400L), S(2.0, 5400L), false, S(5400L)),
           (10.0, 14.0, 4.0, N, S(4.0, 4500L), false, S(4500L)),
           (6.0, 15.0, 4.0, S(4.0, 7200L), N, false, S(7200L)),
 
           /* setPower is set to > (ev2 * 2) (charging) */
-          (0.0, 0.0, 13.0, S(8.0, 7200L), S(5.0, 10800L), true, S(7200L)),
-          (7.0, 0.0, 11.0, S(6.0, 5400L), S(5.0, 10800L), true, S(5400L)),
-          (0.0, 5.0, 15.0, S(10.0, 7200L), S(5.0, 10800L), true, S(7200L)),
-          (0.0, 12.5, 15.0, S(10.0, 7200L), S(5.0, 5400L), true, S(5400L)),
-          (0.0, 0.0, 15.0, S(10.0, 7200L), S(5.0, 10800L), true, S(7200L)),
+          (0.0, 0.0, 13.0, S(8.0, 4500L), S(5.0, 5760L), true, S(4500L)),
+          (7.0, 0.0, 11.0, S(6.0, 5400L), S(5.0, 5760L), true, S(5400L)),
+          (0.0, 5.0, 15.0, S(10.0, 4320L), S(5.0, 10800L), true, S(4320L)),
+          (0.0, 12.5, 15.0, S(10.0, 4320L), S(5.0, 5400L), true, S(4320L)),
+          (0.0, 0.0, 15.0, S(10.0, 4320L), S(5.0, 5760L), true, S(4320L)),
           (5.0, 7.5, 15.0, S(10.0, 5400L), S(5.0, 9000L), false, S(5400L)),
 
           /* setPower is negative (discharging) */
