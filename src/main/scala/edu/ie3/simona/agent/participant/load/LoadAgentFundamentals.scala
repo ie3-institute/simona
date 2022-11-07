@@ -47,7 +47,10 @@ import edu.ie3.simona.model.participant.load.profile.{
   LoadProfileStore,
   ProfileLoadModel
 }
-import edu.ie3.simona.model.participant.load.random.RandomLoadModel
+import edu.ie3.simona.model.participant.load.random.{
+  RandomLoadModel,
+  RandomLoadParamStore
+}
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
 import edu.ie3.simona.model.participant.load.{
   FixedLoadModel,
@@ -154,6 +157,13 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
           LoadProfileStore.resolution.getSeconds,
           profileLoadModel.operationInterval.start,
           profileLoadModel.operationInterval.end
+        )
+      case randomLoadModel: RandomLoadModel =>
+        activationTicksInOperationTime(
+          simulationStartDate,
+          RandomLoadParamStore.resolution.getSeconds,
+          randomLoadModel.operationInterval.start,
+          randomLoadModel.operationInterval.end
         )
       case _ =>
         Array.emptyLongArray

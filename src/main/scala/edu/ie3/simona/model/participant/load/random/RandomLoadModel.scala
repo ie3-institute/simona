@@ -27,6 +27,7 @@ import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
 import scala.annotation.tailrec
 import scala.collection.mutable
+import scala.util.Random
 
 /** A load model consuming energy followed by time resolved probability. The
   * referencing to rated active power maps the output's 95 % quantile to this
@@ -80,7 +81,6 @@ final case class RandomLoadModel(
       )
   }
 
-  private val randomFactory = RandomFactory.get(430431L)
   private val randomLoadParamStore = RandomLoadParamStore()
 
   type GevKey = (DayType.Value, Int)
@@ -148,6 +148,7 @@ final case class RandomLoadModel(
       case Some(foundIt) => foundIt
       case None          =>
         /* Instantiate new gev distribution, put it to storage and return it */
+        val randomFactory = RandomFactory.get(Random.nextLong())
         val gevParameters = randomLoadParamStore.parameters(dateTime)
         val newGev = new GeneralizedExtremeValueDistribution(
           gevParameters.my,
