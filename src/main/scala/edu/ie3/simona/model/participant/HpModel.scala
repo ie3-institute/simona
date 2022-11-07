@@ -226,7 +226,7 @@ final case class HpModel(
     val thermalEnergyDemand = thermalGrid.energyDemand(
       data.currentTimeTick,
       data.ambientTemperature,
-      updatedState.thermalGridState
+      lastState.thermalGridState
     )
     val canOperate =
       thermalEnergyDemand.hasRequiredDemand || thermalEnergyDemand.hasAdditionalDemand
