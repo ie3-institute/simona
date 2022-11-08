@@ -524,51 +524,6 @@ class DBFSAlgorithmCenGridSpec
           )
       }
 
-      // the three inferior grids should each receive a FinishGridSimulationTrigger
-      inferiorGrid11.expectFinishGridSimulationTrigger(
-        FinishGridSimulationTrigger(3600)
-      )
-
-      inferiorGrid12.expectFinishGridSimulationTrigger(
-        FinishGridSimulationTrigger(3600)
-      )
-
-      inferiorGrid13.expectFinishGridSimulationTrigger(
-        FinishGridSimulationTrigger(3600)
-      )
-
-    }
-  }
-}
-
-object DBFSAlgorithmCenGridSpec extends UnitSpec {
-  private val floatPrecision: Double = 0.00000000001
-
-  sealed trait GAActorAndModel {
-    val gaProbe: TestProbe
-    val nodeUuids: Seq[UUID]
-    def ref: ActorRef = gaProbe.ref
-  }
-
-  final case class InferiorGA(
-      override val gaProbe: TestProbe,
-      override val nodeUuids: Seq[UUID]
-  ) extends GAActorAndModel {
-
-    def expectFinishGridSimulationTrigger(
-        trigger: FinishGridSimulationTrigger
-    ): Unit = {
-      gaProbe.expectMsg(trigger)
-    }
-
-    def expectGridPowerRequest(): ActorRef = {
-      gaProbe
-        .expectMsgType[RequestGridPowerMessage]
-        .nodeUuids should contain allElementsOf nodeUuids
-
-      gaProbe.lastSender
-    }
-
       // after a FinishGridSimulationTrigger is send the inferior grids, they themselves will send the
       // Trigger forward the trigger to their connected inferior grids. Therefore the inferior grid
       // agent should receive a FinishGridSimulationTrigger
@@ -609,6 +564,5 @@ object DBFSAlgorithmCenGridSpec extends UnitSpec {
           )
       }
     }
-
   }
 }

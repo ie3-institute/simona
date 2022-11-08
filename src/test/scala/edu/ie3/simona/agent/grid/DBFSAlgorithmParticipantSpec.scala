@@ -11,40 +11,27 @@ import akka.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.DBFSAlgorithmParticipantSpec.SuperiorGA
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  ProvideGridPowerMessage,
-  RequestGridPowerMessage
-}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
+import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import edu.ie3.simona.ontology.messages.VoltageMessage.{
-  ProvideSlackVoltageMessage,
-  RequestSlackVoltageMessage
-}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.trigger.Trigger._
 import edu.ie3.simona.test.common.model.grid.DbfsTestGridWithParticipants
-import edu.ie3.simona.test.common.{
-  ConfigTestData,
-  TestKitWithShutdown,
-  UnitSpec
-}
+import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOVOLT, MEGAVAR, MEGAWATT}
 import tech.units.indriya.quantity.Quantities
 
-import java.util.UUID
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
@@ -59,7 +46,7 @@ class DBFSAlgorithmParticipantSpec
         """.stripMargin)
       )
     )
-    with UnitSpec
+    with DBFSMockGridAgents
     with ConfigTestData
     with ImplicitSender
     with DbfsTestGridWithParticipants {
@@ -407,75 +394,6 @@ class DBFSAlgorithmParticipantSpec
           )
       }
 
-    }
-  }
-}
-
-object DBFSAlgorithmParticipantSpec extends UnitSpec {
-  private val floatPrecision: Double = 0.00000000001
-
-  sealed trait GAActorAndModel {
-    val gaProbe: TestProbe
-    val nodeUuids: Seq[UUID]
-    def ref: ActorRef = gaProbe.ref
-  }
-
-  final case class SuperiorGA(
-      override val gaProbe: TestProbe,
-      override val nodeUuids: Seq[UUID]
-  ) extends GAActorAndModel {
-
-    def expectSlackVoltageRequest(expectedSweepNo: Int): ActorRef = {
-      inside(
-        gaProbe
-          .expectMsgType[RequestSlackVoltageMessage](180.seconds)
-      ) {
-        case RequestSlackVoltageMessage(msgSweepNo: Int, msgUuids: Seq[UUID]) =>
-          msgSweepNo shouldBe expectedSweepNo
-          msgUuids should have size nodeUuids.size
-          msgUuids should contain allElementsOf nodeUuids
-      }
-
-      gaProbe.lastSender
-    }
-
-    def expectGridPowerProvision(
-        expectedExchangedPowers: Seq[ExchangePower]
-    ): Unit = {
-      inside(gaProbe.expectMsgType[ProvideGridPowerMessage](180.seconds)) {
-        case ProvideGridPowerMessage(exchangedPower) =>
-          exchangedPower should have size expectedExchangedPowers.size
-
-          expectedExchangedPowers.foreach { expectedPower =>
-            exchangedPower.find(_.nodeUuid == expectedPower.nodeUuid) match {
-              case Some(ExchangePower(_, actualP, actualQ)) =>
-                actualP should equalWithTolerance(
-                  expectedPower.p,
-                  floatPrecision
-                )
-                actualQ should equalWithTolerance(
-                  expectedPower.q,
-                  floatPrecision
-                )
-              case None =>
-                fail(
-                  s"Expected ExchangePower with node UUID ${expectedPower.nodeUuid} " +
-                    s"was not included in ProvideGridPowerMessage."
-                )
-            }
-          }
-
-      }
-    }
-
-    def requestGridPower(receiver: ActorRef, sweepNo: Int): Unit = {
-      gaProbe.send(
-        receiver,
-        RequestGridPowerMessage(
-          sweepNo,
-          nodeUuids
-        )
-      )
     }
   }
 }
