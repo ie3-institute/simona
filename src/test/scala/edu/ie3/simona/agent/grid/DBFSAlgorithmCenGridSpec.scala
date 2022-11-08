@@ -6,34 +6,23 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.pattern.ask
+import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestProbe}
-import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.DBFSAlgorithmCenGridSpec.{
-  InferiorGA,
-  SuperiorGA
-}
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
+import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.RefSystem
+import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  ProvideGridPowerMessage,
-  RequestGridPowerMessage
-}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
+import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import edu.ie3.simona.ontology.messages.VoltageMessage.{
-  ProvideSlackVoltageMessage,
-  RequestSlackVoltageMessage
-}
 import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
   FinishGridSimulationTrigger,
@@ -41,17 +30,10 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   StartGridSimulationTrigger
 }
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
-import edu.ie3.simona.test.common.{
-  ConfigTestData,
-  TestKitWithShutdown,
-  UnitSpec
-}
+import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import tech.units.indriya.quantity.Quantities
 
-import java.util.UUID
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
 /** Test to ensure the functions that a [[GridAgent]] in center position should
@@ -73,7 +55,7 @@ class DBFSAlgorithmCenGridSpec
         """.stripMargin)
       )
     )
-    with UnitSpec
+    with DBFSMockGridAgents
     with ConfigTestData
     with ImplicitSender
     with DbfsTestGrid {
@@ -105,6 +87,8 @@ class DBFSAlgorithmCenGridSpec
     evDataService = None
   )
 
+  val resultListener: TestProbe = TestProbe("resultListener")
+
   "A GridAgent actor in center position with async test" should {
 
     val centerGridAgent =
@@ -112,14 +96,14 @@ class DBFSAlgorithmCenGridSpec
         GridAgent.props(
           environmentRefs,
           simonaConfig,
-          listener = Iterable.empty[ActorRef]
+          listener = Iterable(resultListener.ref)
         )
       )
 
     s"initialize itself when it receives a $InitializeGridAgentTrigger with corresponding data" in {
       val triggerId = 0
 
-      // this subnet has 1 superior grid (HöS) and 3 inferior grids (MS). Map the gates to test probes accordingly
+      // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
       val subGridGateToActorRef = hvSubGridGates.map {
         case gate if gate.getInferiorSubGrid == hvGridContainer.getSubnet =>
           gate -> superiorGridAgent.ref
@@ -140,24 +124,24 @@ class DBFSAlgorithmCenGridSpec
         )
 
       // send init data to agent and expect a CompletionMessage
-      implicit val timeout: Timeout = 3 seconds
-      val actualInitReply =
-        Await.result(
-          centerGridAgent ? TriggerWithIdMessage(
-            InitializeGridAgentTrigger(gridAgentInitData),
-            triggerId,
-            centerGridAgent
-          ),
-          timeout.duration
+      scheduler.send(
+        centerGridAgent,
+        TriggerWithIdMessage(
+          InitializeGridAgentTrigger(gridAgentInitData),
+          triggerId,
+          centerGridAgent
         )
+      )
 
-      actualInitReply shouldBe CompletionMessage(
-        0,
-        Some(
-          Vector(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(3600),
-              centerGridAgent
+      scheduler.expectMsg(
+        CompletionMessage(
+          0,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(3600),
+                centerGridAgent
+              )
             )
           )
         )
@@ -178,18 +162,19 @@ class DBFSAlgorithmCenGridSpec
         )
       )
 
-      scheduler.expectMsgPF() {
-        case CompletionMessage(
-              triggerId,
-              Some(Vector(ScheduleTriggerMessage(triggerToBeScheduled, _)))
-            ) =>
-          triggerId shouldBe 1
-          triggerToBeScheduled shouldBe StartGridSimulationTrigger(3600)
-        case x =>
-          fail(
-            s"Invalid message received when expecting a completion message after activity start trigger. Message was $x"
+      scheduler.expectMsg(
+        CompletionMessage(
+          1,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                StartGridSimulationTrigger(3600),
+                centerGridAgent
+              )
+            )
           )
-      }
+        )
+      )
     }
 
     s"start the simulation when a $StartGridSimulationTrigger is send" in {
@@ -500,10 +485,8 @@ class DBFSAlgorithmCenGridSpec
         )
       )
 
-      // normally the superior grid agent would check weather the power flow calculation converges and would
-      // send a CompletionMessage to the scheduler and a FinishGridSimulationTrigger to the inferior grid agent
-      // after the convergence
-      // (here we do it by hand)
+      // normally the slack node would send a FinishGridSimulationTrigger to all
+      // connected inferior grids, because the slack node is just a mock, we imitate this behavior
       superiorGridAgent.gaProbe.send(
         scheduler.ref,
         CompletionMessage(
@@ -586,101 +569,46 @@ object DBFSAlgorithmCenGridSpec extends UnitSpec {
       gaProbe.lastSender
     }
 
-    def expectSlackVoltageProvision(
-        expectedSweepNo: Int,
-        expectedExchangedVoltages: Seq[ExchangeVoltage]
-    ): Unit = {
-      inside(gaProbe.expectMsgType[ProvideSlackVoltageMessage]) {
-        case ProvideSlackVoltageMessage(sweepNo, exchangedVoltages) =>
-          sweepNo shouldBe expectedSweepNo
+      // after a FinishGridSimulationTrigger is send the inferior grids, they themselves will send the
+      // Trigger forward the trigger to their connected inferior grids. Therefore the inferior grid
+      // agent should receive a FinishGridSimulationTrigger
+      inferiorGrid11.gaProbe.expectMsg(FinishGridSimulationTrigger(3600))
+      inferiorGrid12.gaProbe.expectMsg(FinishGridSimulationTrigger(3600))
+      inferiorGrid13.gaProbe.expectMsg(FinishGridSimulationTrigger(3600))
 
-          exchangedVoltages.size shouldBe expectedExchangedVoltages.size
-          expectedExchangedVoltages.foreach { expectedVoltage =>
-            exchangedVoltages.find(
-              _.nodeUuid == expectedVoltage.nodeUuid
-            ) match {
-              case Some(ExchangeVoltage(_, actualE, actualF)) =>
-                actualE should equalWithTolerance(
-                  expectedVoltage.e,
-                  floatPrecision
-                )
-                actualF should equalWithTolerance(
-                  expectedVoltage.f,
-                  floatPrecision
-                )
-              case None =>
-                fail(
-                  s"Expected ExchangeVoltage with node UUID ${expectedVoltage.nodeUuid} " +
-                    s"was not included in ProvideSlackVoltageMessage."
-                )
-            }
-          }
-      }
-    }
-
-    def requestSlackVoltage(receiver: ActorRef, sweepNo: Int): Unit =
-      gaProbe.send(
-        receiver,
-        RequestSlackVoltageMessage(sweepNo, nodeUuids)
-      )
-  }
-
-  final case class SuperiorGA(
-      override val gaProbe: TestProbe,
-      override val nodeUuids: Seq[UUID]
-  ) extends GAActorAndModel {
-
-    def expectSlackVoltageRequest(expectedSweepNo: Int): ActorRef = {
-      inside(
-        gaProbe
-          .expectMsgType[RequestSlackVoltageMessage]
-      ) {
-        case RequestSlackVoltageMessage(msgSweepNo: Int, msgUuids: Seq[UUID]) =>
-          msgSweepNo shouldBe expectedSweepNo
-          msgUuids should have size nodeUuids.size
-          msgUuids should contain allElementsOf nodeUuids
-      }
-
-      gaProbe.lastSender
-    }
-
-    def expectGridPowerProvision(
-        expectedExchangedPowers: Seq[ExchangePower]
-    ): Unit = {
-      inside(gaProbe.expectMsgType[ProvideGridPowerMessage](10.seconds)) {
-        case ProvideGridPowerMessage(exchangedPower) =>
-          exchangedPower should have size expectedExchangedPowers.size
-
-          expectedExchangedPowers.foreach { expectedPower =>
-            exchangedPower.find(_.nodeUuid == expectedPower.nodeUuid) match {
-              case Some(ExchangePower(_, actualP, actualQ)) =>
-                actualP should equalWithTolerance(
-                  expectedPower.p,
-                  floatPrecision
-                )
-                actualQ should equalWithTolerance(
-                  expectedPower.q,
-                  floatPrecision
-                )
-              case None =>
-                fail(
-                  s"Expected ExchangePower with node UUID ${expectedPower.nodeUuid} " +
-                    s"was not included in ProvideGridPowerMessage."
-                )
-            }
-          }
-
-      }
-    }
-
-    def requestGridPower(receiver: ActorRef, sweepNo: Int): Unit = {
-      gaProbe.send(
-        receiver,
-        RequestGridPowerMessage(
-          sweepNo,
-          nodeUuids
+      // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a CompletionMessage
+      scheduler.expectMsg(
+        CompletionMessage(
+          2,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(7200),
+                centerGridAgent
+              )
+            )
+          )
         )
       )
+
+      resultListener.expectMsgPF() {
+        case powerFlowResultEvent: PowerFlowResultEvent =>
+          // we expect results for 4 nodes, 5 lines and 2 transformer2ws
+          powerFlowResultEvent.nodeResults.size shouldBe 4
+          powerFlowResultEvent.lineResults.size shouldBe 5
+          powerFlowResultEvent.transformer2wResults.size shouldBe 2
+
+          // due to the fact that the used grid does not contain any switches or transformer3ws
+          // we do not expect any results for the following elements
+          powerFlowResultEvent.transformer3wResults shouldBe empty
+          powerFlowResultEvent.switchResults shouldBe empty
+
+        case x =>
+          fail(
+            s"Invalid message received when expecting a PowerFlowResultEvent message for simulate grid! Message was $x"
+          )
+      }
     }
+
   }
 }

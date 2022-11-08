@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add troubleshooting section to Users guide [#160](https://github.com/ie3-institute/simona/issues/160)
 - Added Kafka sink for results [#24](https://github.com/ie3-institute/simona/issues/24)
 - Added Kafka sink for runtime events, re-implemented RuntimeEventListener in akka typed [#242](https://github.com/ie3-institute/simona/issues/242)
+- Added listeners to DBFS tests to check the result output and check the handling of failed power flows [#269](https://github.com/ie3-institute/simona/issues/269)
 - Added DBFS test with participant load and added testing for FinishGridSimulationTrigger [#281](https://github.com/ie3-institute/simona/issues/281)
 
 ### Changed
