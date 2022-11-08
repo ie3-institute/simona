@@ -70,6 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adapted to changes of EvcsInput in PSDM [#377](https://github.com/ie3-institute/simona/pull/377)
 - Fix breaking SIMONA caused by changes in simonaAPI [#384] (https://github.com/ie3-institute/simona/issues/384)
 - Fixed awaiting departed EVs in ExtEvDataService [#392](https://github.com/ie3-institute/simona/issues/392)
+- Fixed missing ModelBaseStateData generation for random load profiles [#399](https://github.com/ie3-institute/simona/issues/399)
+- Fixed non-random first days of random load profiles [#401](https://github.com/ie3-institute/simona/issues/401)
 - Fixed groovy formatting [#110](https://github.com/ie3-institute/simona/issues/110)
 
 ### Removed
