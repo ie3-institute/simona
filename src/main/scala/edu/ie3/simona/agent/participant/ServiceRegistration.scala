@@ -24,6 +24,7 @@ import edu.ie3.simona.model.participant.{
   ModelState,
   SystemParticipant
 }
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.RequestFlexOptions
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
@@ -157,7 +158,7 @@ trait ServiceRegistration[
   ): Unit = {
     inputModel match {
       case evcsInput: EvcsInput =>
-        val scheduleParticipant = (tick: Long) =>
+        val arrivalScheduleParticipant = (tick: Long) =>
           ScheduleTriggerMessage(
             ActivityStartTrigger(
               tick
@@ -166,17 +167,33 @@ trait ServiceRegistration[
           )
 
         // when using an EmAgent, activation schedules have to be stacked
-        val scheduleFunc = (tick: Long) =>
+        val arrivalScheduleFunc = (tick: Long) =>
           maybeEmAgent
             .map { emAgent =>
               ScheduleTriggerMessage(
-                scheduleParticipant(tick),
+                arrivalScheduleParticipant(tick),
                 emAgent
               )
             }
-            .getOrElse(scheduleParticipant(tick))
+            .getOrElse(arrivalScheduleParticipant(tick))
 
-        serviceRef ! RegisterForEvDataMessage(evcsInput.getUuid, scheduleFunc)
+        // FIXME this is quite cumbersome
+        val departureScheduleFunc = (tick: Long) =>
+          maybeEmAgent.map { emAgent =>
+            ScheduleTriggerMessage(
+              ScheduleTriggerMessage(
+                RequestFlexOptions(tick),
+                evcsRef
+              ),
+              emAgent
+            )
+          }
+
+        serviceRef ! RegisterForEvDataMessage(
+          evcsInput.getUuid,
+          departureScheduleFunc,
+          arrivalScheduleFunc
+        )
       case _ =>
         throw new ServiceRegistrationException(
           s"Cannot register for EV movements information at node ${inputModel.getNode.getId} " +
