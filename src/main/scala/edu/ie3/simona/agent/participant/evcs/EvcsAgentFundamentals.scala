@@ -462,10 +462,6 @@ protected trait EvcsAgentFundamentals
 
     val newState = EvcsState(stayingEvs, stayingSchedules, tick)
 
-    baseStateData.flexStateData.foreach(
-      _.emAgent ! ScheduleTriggerMessage(RequestFlexOptions(tick), self)
-    )
-
     baseStateData.copy(
       stateDataStore = ValueStore.updateValueStore(
         baseStateData.stateDataStore,

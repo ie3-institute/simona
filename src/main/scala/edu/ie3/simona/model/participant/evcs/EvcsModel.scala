@@ -862,9 +862,9 @@ final case class EvcsModel(
 
     if (evs.isEmpty) return (Set.empty, setPower)
 
-    if (QuantityUtil.isEquivalentAbs(setPower, zeroKW, 0d)) {
+    if (QuantityUtil.isEquivalentAbs(zeroKW, setPower, 1e-6)) {
       // No power left. Rest is not charging
-      return (evs.map { _ -> None }, setPower)
+      return (evs.map { _ -> None }, zeroKW)
     }
 
     val proposedPower = setPower.divide(evs.size)
