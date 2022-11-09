@@ -1245,7 +1245,8 @@ class EvcsAgentModelCalculationSpec
           departureScheduleFunc(3L) shouldBe Some(
             ScheduleTriggerMessage(
               ScheduleTriggerMessage(RequestFlexOptions(3L), evcsAgent),
-              emAgent.ref
+              emAgent.ref,
+              priority = true
             )
           )
           arrivalScheduleFunc(3L) shouldBe
@@ -1400,7 +1401,8 @@ class EvcsAgentModelCalculationSpec
           departureScheduleFunc(4L) shouldBe Some(
             ScheduleTriggerMessage(
               ScheduleTriggerMessage(RequestFlexOptions(4L), evcsAgent),
-              emAgent.ref
+              emAgent.ref,
+              priority = true
             )
           )
           arrivalScheduleFunc(4L) shouldBe
