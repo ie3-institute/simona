@@ -25,12 +25,17 @@ object EvMessage {
     *
     * @param evcs
     *   the charging station
-    * @param scheduleFunc
+    * @param departureScheduleFunc
     *   function providing the proper ScheduleTriggerMessage for a given tick
+    *   upon EV departures
+    * @param arrivalScheduleFunc
+    *   function providing the proper ScheduleTriggerMessage for a given tick
+    *   upon EV arrivals
     */
   final case class RegisterForEvDataMessage(
       evcs: UUID,
-      scheduleFunc: Long => ScheduleTriggerMessage
+      departureScheduleFunc: Long => Option[ScheduleTriggerMessage],
+      arrivalScheduleFunc: Long => ScheduleTriggerMessage
   ) extends EvMessage
       with ServiceRegistrationMessage
 
