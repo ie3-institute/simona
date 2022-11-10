@@ -617,17 +617,32 @@ class EmAgent(
               (spi, flexOption)
           }.toSeq
         )
-
-      // TODO sanity checks after strat calculation
+        .toMap
 
       val issueCtrlMsgsComplete = flexData.flatMap {
         case (spi, correspondence, dataTick) =>
           issueCtrlMsgs
-            .find { case (uuid, _) =>
-              uuid.equals(spi.getUuid)
-            }
-            .map { case (uuid, power) =>
-              uuid -> IssuePowerCtrl(tick, power)
+            .get(spi.getUuid)
+            .map { power =>
+              correspondence.receivedFlexOptions.getOrElse(
+                throw new RuntimeException(
+                  s"FlexOptions not found for ${spi.getUuid}"
+                )
+              ) match {
+                case ProvideMinMaxFlexOptions(uuid, _, minPower, maxPower) =>
+                  // sanity checks after strat calculation
+                  if (power.isLessThan(minPower))
+                    throw new RuntimeException(
+                      s"The set power $power for $uuid must not be lower than the minimum power $minPower!"
+                    )
+                  if (power.isGreaterThan(maxPower)) {
+                    throw new RuntimeException(
+                      s"The set power $power for $uuid must not be greater than the maximum power $maxPower!"
+                    )
+                  }
+              }
+
+              spi.getUuid -> IssuePowerCtrl(tick, power)
             }
             .orElse {
               // no power ctrl message has been set for this participant.

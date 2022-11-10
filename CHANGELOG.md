@@ -77,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed awaiting departed EVs in ExtEvDataService [#392](https://github.com/ie3-institute/simona/issues/392)
 - Fixed missing ModelBaseStateData generation for random load profiles [#399](https://github.com/ie3-institute/simona/issues/399)
 - Fixed non-random first days of random load profiles [#401](https://github.com/ie3-institute/simona/issues/401)
+- Fixed groovy formatting [#110](https://github.com/ie3-institute/simona/issues/110)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)
