@@ -41,8 +41,14 @@ object ExtEvDataService {
 
   final case class ExtEvStateData(
       extEvData: ExtEvData,
-      uuidToActorRef: Map[UUID, (ActorRef, Long => ScheduleTriggerMessage)] =
-        Map.empty,
+      uuidToActorRef: Map[
+        UUID,
+        (
+            ActorRef,
+            Long => Option[ScheduleTriggerMessage],
+            Long => ScheduleTriggerMessage
+        )
+      ] = Map.empty,
       extEvMessage: Option[EvDataMessageFromExt] = None,
       freeLots: Map[UUID, Option[Int]] = Map.empty,
       currentPrices: Map[UUID, Option[Double]] = Map.empty,
@@ -102,8 +108,19 @@ class ExtEvDataService(override val scheduler: ActorRef)
       serviceStateData: ExtEvStateData
   ): Try[ExtEvStateData] =
     registrationMessage match {
-      case RegisterForEvDataMessage(evcs, scheduleFunc) =>
-        Success(handleRegistrationRequest(sender(), evcs, scheduleFunc))
+      case RegisterForEvDataMessage(
+            evcs,
+            departureScheduleFunc,
+            arrivalScheduleFunc
+          ) =>
+        Success(
+          handleRegistrationRequest(
+            sender(),
+            evcs,
+            departureScheduleFunc,
+            arrivalScheduleFunc
+          )
+        )
       case invalidMessage =>
         Failure(
           InvalidRegistrationRequestException(
@@ -120,8 +137,12 @@ class ExtEvDataService(override val scheduler: ActorRef)
     *   the agent that wants to be registered
     * @param evcs
     *   the charging station
-    * @param scheduleFunc
+    * @param departureScheduleFunc
     *   function providing the proper ScheduleTriggerMessage for a given tick
+    *   upon EV departures
+    * @param arrivalScheduleFunc
+    *   function providing the proper ScheduleTriggerMessage for a given tick
+    *   upon EV arrivals
     * @param serviceStateData
     *   the current service state data of this service
     * @return
@@ -131,7 +152,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef,
       evcs: UUID,
-      scheduleFunc: Long => ScheduleTriggerMessage
+      departureScheduleFunc: Long => Option[ScheduleTriggerMessage],
+      arrivalScheduleFunc: Long => ScheduleTriggerMessage
   )(implicit
       serviceStateData: ExtEvStateData
   ): ExtEvStateData = {
@@ -148,7 +170,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
         serviceStateData.copy(
           uuidToActorRef =
-            serviceStateData.uuidToActorRef + (evcs -> (agentToBeRegistered, scheduleFunc))
+            serviceStateData.uuidToActorRef + (evcs -> (agentToBeRegistered, departureScheduleFunc, arrivalScheduleFunc))
         )
       case Some(_) =>
         // actor is already registered, do nothing
@@ -196,7 +218,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
   private def requestFreeLots(tick: Long)(implicit
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Seq[ScheduleTriggerMessage]]) = {
-    serviceStateData.uuidToActorRef.values.foreach { case (evcsActor, _) =>
+    serviceStateData.uuidToActorRef.values.foreach { case (evcsActor, _, _) =>
       evcsActor ! EvFreeLotsRequest(tick)
     }
 
@@ -221,7 +243,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
   private def requestCurrentPrices(tick: Long)(implicit
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Seq[ScheduleTriggerMessage]]) = {
-    serviceStateData.uuidToActorRef.values.foreach { case (evcsActor, _) =>
+    serviceStateData.uuidToActorRef.values.foreach { case (evcsActor, _, _) =>
       evcsActor ! CurrentPriceRequest(tick)
     }
 
@@ -250,13 +272,13 @@ class ExtEvDataService(override val scheduler: ActorRef)
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Seq[ScheduleTriggerMessage]]) = {
 
-    val departingEvResponses: Map[UUID, Option[Seq[EvModel]]] =
+    val evcsWithDepartures =
       requestedDepartingEvs.asScala.flatMap { case (evcs, departingEvs) =>
         serviceStateData.uuidToActorRef.get(evcs) match {
-          case Some((evcsActor, _)) =>
+          case Some((evcsActor, departureScheduleFunc, _)) =>
             evcsActor ! DepartingEvsRequest(tick, departingEvs.asScala.toSeq)
 
-            Some(evcs -> None)
+            Some(evcs, departureScheduleFunc)
 
           case None =>
             log.warning(
@@ -266,7 +288,17 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
             None
         }
+      }
+
+    val departingEvResponses: Map[UUID, Option[Seq[EvModel]]] =
+      evcsWithDepartures.map { case (evcs, _) =>
+        evcs -> None
       }.toMap
+
+    val scheduleTriggerMsgs = evcsWithDepartures.flatMap {
+      case (_, departureScheduleFunc) =>
+        departureScheduleFunc(tick)
+    }
 
     // if there are no departing evs during this tick,
     // we're sending response right away
@@ -278,7 +310,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
         extEvMessage = None,
         departingEvResponses = departingEvResponses
       ),
-      None
+      Option.when(scheduleTriggerMsgs.nonEmpty) { scheduleTriggerMsgs.toSeq }
     )
   }
 
@@ -292,14 +324,14 @@ class ExtEvDataService(override val scheduler: ActorRef)
     val scheduleTriggerMsgs =
       arrivingEvs.asScala.flatMap { case (evcs, arrivingEvs) =>
         serviceStateData.uuidToActorRef.get(evcs) match {
-          case Some((evcsActor, scheduleFunc)) =>
+          case Some((evcsActor, _, arrivalScheduleFunc)) =>
             evcsActor ! ProvideEvDataMessage(
               tick,
               ArrivingEvsData(arrivingEvs.asScala.toSeq)
             )
 
             // schedule activation of participant
-            Some(scheduleFunc(tick))
+            Some(arrivalScheduleFunc(tick))
 
           case None =>
             log.warning(

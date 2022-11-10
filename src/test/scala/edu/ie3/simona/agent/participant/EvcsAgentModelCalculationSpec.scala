@@ -282,9 +282,14 @@ class EvcsAgentModelCalculationSpec
 
       /* Expect a registration message */
       evService.expectMsgPF() {
-        case RegisterForEvDataMessage(uuid, scheduleFunc) =>
+        case RegisterForEvDataMessage(
+              uuid,
+              departureScheduleFunc,
+              arrivalScheduleFunc
+            ) =>
           uuid shouldBe evcsInputModel.getUuid
-          scheduleFunc(3L) shouldBe
+          departureScheduleFunc(3L) shouldBe None
+          arrivalScheduleFunc(3L) shouldBe
             ScheduleTriggerMessage(ActivityStartTrigger(3L), evcsAgent)
       }
 
@@ -406,9 +411,14 @@ class EvcsAgentModelCalculationSpec
 
       /* Expect a registration message */
       evService.expectMsgPF() {
-        case RegisterForEvDataMessage(uuid, scheduleFunc) =>
+        case RegisterForEvDataMessage(
+              uuid,
+              departureScheduleFunc,
+              arrivalScheduleFunc
+            ) =>
           uuid shouldBe evcsInputModel.getUuid
-          scheduleFunc(3L) shouldBe
+          departureScheduleFunc(3L) shouldBe None
+          arrivalScheduleFunc(3L) shouldBe
             ScheduleTriggerMessage(ActivityStartTrigger(3L), evcsAgent)
       }
       evService.send(evcsAgent, RegistrationSuccessfulMessage(Some(900L)))
@@ -1226,9 +1236,20 @@ class EvcsAgentModelCalculationSpec
       )
 
       evService.expectMsgPF() {
-        case RegisterForEvDataMessage(uuid, scheduleFunc) =>
+        case RegisterForEvDataMessage(
+              uuid,
+              departureScheduleFunc,
+              arrivalScheduleFunc
+            ) =>
           uuid shouldBe evcsInputModel.getUuid
-          scheduleFunc(3L) shouldBe
+          departureScheduleFunc(3L) shouldBe Some(
+            ScheduleTriggerMessage(
+              ScheduleTriggerMessage(RequestFlexOptions(3L), evcsAgent),
+              emAgent.ref,
+              priority = true
+            )
+          )
+          arrivalScheduleFunc(3L) shouldBe
             ScheduleTriggerMessage(
               ScheduleTriggerMessage(ActivityStartTrigger(3L), evcsAgent),
               emAgent.ref,
@@ -1371,9 +1392,20 @@ class EvcsAgentModelCalculationSpec
       )
 
       evService.expectMsgPF() {
-        case RegisterForEvDataMessage(uuid, scheduleFunc) =>
+        case RegisterForEvDataMessage(
+              uuid,
+              departureScheduleFunc,
+              arrivalScheduleFunc
+            ) =>
           uuid shouldBe evcsInputModel.getUuid
-          scheduleFunc(4L) shouldBe
+          departureScheduleFunc(4L) shouldBe Some(
+            ScheduleTriggerMessage(
+              ScheduleTriggerMessage(RequestFlexOptions(4L), evcsAgent),
+              emAgent.ref,
+              priority = true
+            )
+          )
+          arrivalScheduleFunc(4L) shouldBe
             ScheduleTriggerMessage(
               ScheduleTriggerMessage(ActivityStartTrigger(4L), evcsAgent),
               emAgent.ref,
@@ -1533,10 +1565,6 @@ class EvcsAgentModelCalculationSpec
       evService.send(
         evcsAgent,
         DepartingEvsRequest(4500L, Seq(ev900.getUuid))
-      )
-
-      emAgent.expectMsg(
-        ScheduleTriggerMessage(RequestFlexOptions(4500L), evcsAgent)
       )
 
       evService.expectMsgPF() { case DepartingEvsResponse(uuid, evs) =>
@@ -2102,10 +2130,6 @@ class EvcsAgentModelCalculationSpec
       evService.send(
         evcsAgent,
         DepartingEvsRequest(36000L, Seq(ev900.getUuid))
-      )
-
-      emAgent.expectMsg(
-        ScheduleTriggerMessage(RequestFlexOptions(36000L), evcsAgent)
       )
 
       evService.expectMsgPF() { case DepartingEvsResponse(uuid, evs) =>
