@@ -23,7 +23,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
-import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.ontology.trigger.Trigger
 import edu.ie3.simona.scheduler.SimSchedulerStateData.ScheduledTrigger
 import edu.ie3.simona.util.SimonaConstants.PARALLELISM_WINDOW
@@ -41,7 +40,7 @@ trait EmSchedulerHelper {
 
   /** Main method to handle all [[CompletionMessage]]s received by the
     * scheduler. Based on the received completion message, the provided
-    * triggerData is updated. In particular the awaitingResponseMap and the
+    * stateData is updated. In particular the awaitingResponseMap and the
     * triggerIdToScheduledTriggerMap are updated if the provided
     * [[CompletionMessage]] is valid. For an invalid message, the data is not
     * modified and the error is logged.
@@ -51,43 +50,43 @@ trait EmSchedulerHelper {
     *
     * @param completionMessage
     *   the completion message that should be processed
-    * @param inputTriggerData
-    *   the trigger data that should be updated
-    * @param nowInTicks
-    *   the current tick
+    * @param inputStateData
+    *   the scheduler state data that should be updated
     * @return
     *   trigger data with updated trigger and maybe updated runtime information
     */
   protected final def handleCompletionMessage(
       completionMessage: CompletionMessage,
-      inputTriggerData: TriggerData,
-      nowInTicks: Long
-  ): TriggerData = {
+      inputStateData: EmSchedulerStateData
+  ): EmSchedulerStateData = {
 
     /* schedule new triggers, if any */
-    val triggerData = completionMessage.newTriggers
+    val stateData = completionMessage.newTriggers
       .map(
-        _.foldLeft(inputTriggerData)((triggerData, newTrigger) =>
-          scheduleTrigger(newTrigger, triggerData, nowInTicks)
+        _.foldLeft(inputStateData)((stateData, newTrigger) =>
+          scheduleTrigger(newTrigger, stateData)
         )
       )
-      .getOrElse(inputTriggerData)
+      .getOrElse(inputStateData)
     /* after scheduling the new triggers, if any, we go on with either the same or updated state data */
 
     val triggerId = completionMessage.triggerId
 
-    if (!triggerData.awaitedTriggerMap.contains(triggerId)) {
+    if (!stateData.trigger.awaitedTriggerMap.contains(triggerId)) {
       log.warning(
         "Trigger id {} has not been awaited in trigger map {}",
         triggerId,
-        triggerData.awaitedTriggerMap
+        stateData.trigger.awaitedTriggerMap
       )
     }
 
-    val updatedAwaitedTriggerMap = triggerData.awaitedTriggerMap -= triggerId
+    val updatedAwaitedTriggerMap =
+      stateData.trigger.awaitedTriggerMap -= triggerId
 
-    triggerData.copy(
-      awaitedTriggerMap = updatedAwaitedTriggerMap
+    stateData.copy(
+      stateData.trigger.copy(
+        awaitedTriggerMap = updatedAwaitedTriggerMap
+      )
     )
   }
 
@@ -134,29 +133,44 @@ trait EmSchedulerHelper {
     triggerData
   }
 
-  /** Adds the provided trigger to the trigger queue to schedule it at the
-    * requested tick
+  /** Adds the provided trigger to the proper trigger queue to schedule it at
+    * the requested tick
     *
     * @param triggerMessage
     *   message containing trigger to be scheduled and it's receiver
-    * @param triggerData
-    *   the trigger data that should be updated
-    * @param nowInTicks
-    *   the current tick
+    * @param stateData
+    *   the scheduler state data that should be updated
     * @return
     *   a copy of the provided state data with updated trigger data
     */
   protected final def scheduleTrigger(
       triggerMessage: SchedulerMessage.ScheduleTriggerMessage,
-      triggerData: TriggerData,
-      nowInTicks: Long
-  ): TriggerData =
-    scheduleTrigger(
-      triggerMessage.trigger,
-      triggerMessage.actorToBeScheduled,
-      triggerData,
-      nowInTicks
-    )
+      stateData: EmSchedulerStateData
+  ): EmSchedulerStateData = {
+    triggerMessage.trigger match {
+      case flexMessage: FlexibilityMessage =>
+        val uuid = stateData.flexTrigger.actorRefToUuid(
+          triggerMessage.actorToBeScheduled
+        )
+        stateData.copy(
+          flexTrigger = scheduleFlexTriggerOnce(
+            stateData.flexTrigger,
+            flexMessage,
+            uuid
+          )
+        )
+      case trigger =>
+        stateData.copy(
+          trigger = scheduleTrigger(
+            trigger,
+            triggerMessage.actorToBeScheduled,
+            stateData.trigger,
+            stateData.nowInTicks
+          )
+        )
+    }
+
+  }
 
   /** Adds the provided trigger to the trigger queue to schedule it at the
     * requested tick
@@ -277,18 +291,6 @@ trait EmSchedulerHelper {
     stateData
   }
 
-  protected final def handleCompletionMessage(
-      completionMessage: CompletionMessage,
-      stateData: EmSchedulerStateData
-  ): EmSchedulerStateData =
-    stateData.copy(
-      trigger = handleCompletionMessage(
-        completionMessage,
-        stateData.trigger,
-        stateData.nowInTicks
-      )
-    )
-
   protected final def handleFlexCompletionMessage(
       completionMessage: FlexCtrlCompletion,
       stateData: EmSchedulerStateData
@@ -299,35 +301,6 @@ trait EmSchedulerHelper {
         stateData.flexTrigger
       )
     )
-
-  protected final def scheduleTrigger(
-      triggerMessage: SchedulerMessage.ScheduleTriggerMessage,
-      stateData: EmSchedulerStateData
-  ): EmSchedulerStateData = {
-    triggerMessage.trigger match {
-      case flexMessage: FlexibilityMessage =>
-        val uuid = stateData.flexTrigger.actorRefToUuid(
-          triggerMessage.actorToBeScheduled
-        )
-        stateData.copy(
-          flexTrigger = scheduleFlexTriggerOnce(
-            stateData.flexTrigger,
-            flexMessage,
-            uuid
-          )
-        )
-      case trigger =>
-        stateData.copy(
-          trigger = scheduleTrigger(
-            trigger,
-            triggerMessage.actorToBeScheduled,
-            stateData.trigger,
-            stateData.nowInTicks
-          )
-        )
-    }
-
-  }
 
   /** Schedule those actors that requested to be activated at the very next tick
     *
@@ -363,7 +336,8 @@ trait EmSchedulerHelper {
     *   updated state data
     */
   protected def maybeTicksCompleted(
-      stateData: EmSchedulerStateData
+      stateData: EmSchedulerStateData,
+      selfUuid: UUID
   ): EmSchedulerStateData = {
 
     // since participants that are scheduled with an ActivityStartTrigger are also
@@ -381,7 +355,7 @@ trait EmSchedulerHelper {
           nextOpt.map(tick =>
             Seq(
               ScheduleTriggerMessage(
-                ActivityStartTrigger(tick),
+                stateData.createMainTrigger(tick),
                 self
               )
             )
@@ -395,6 +369,17 @@ trait EmSchedulerHelper {
         stateData.copy(
           mainTriggerId = None
         )
+      case (true, true, None) =>
+        // if we've received a RequestFlexOptions message,
+        // we want to complete with FlexCtrlCompletion
+        scheduler ! FlexCtrlCompletion(
+          selfUuid,
+          requestAtNextActivation =
+            stateData.flexTrigger.activateAtNextTick.nonEmpty,
+          requestAtTick = nextOpt
+        )
+
+        stateData
       case _ => stateData
     }
 

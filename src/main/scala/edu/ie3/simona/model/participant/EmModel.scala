@@ -21,12 +21,11 @@ import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.QuantityUtil
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import edu.ie3.util.quantities.{QuantityUtil => PsuQuantityUtil}
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -44,14 +43,19 @@ final case class EmModel private (
       operationInterval,
       scalingFactor,
       qControl,
-      Quantities.getQuantity(0, PowerSystemUnits.KILOWATT), // FIXME dummy
+      zeroKW, // FIXME dummy
       0 // FIXME dummy
     ) {
 
   /** Determine the power of controllable devices such as storages
+    * @param flexOptions
+    *   The flex options per connected system participant
+    * @param target
+    *   The target power to aim for when utilizing flexibility
     */
   def determineDeviceControl(
-      flexOptions: Seq[(SystemParticipantInput, ProvideMinMaxFlexOptions)]
+      flexOptions: Seq[(SystemParticipantInput, ProvideMinMaxFlexOptions)],
+      target: ComparableQuantity[Power]
   ): Seq[(UUID, ComparableQuantity[Power])] = {
 
     val suggestedPower =
@@ -64,6 +68,8 @@ final case class EmModel private (
         }
         .getOrElse(throw new RuntimeException("No flexibilities provided"))
 
+    val targetDelta = suggestedPower.subtract(target)
+
     val evcsOpt = flexOptions.collectFirst { case flex @ (_: EvcsInput, _) =>
       flex
     }
@@ -75,14 +81,21 @@ final case class EmModel private (
     }
 
     if (
-      suggestedPower.isLessThan(QuantityUtil.zero(PowerSystemUnits.KILOWATT))
+      PsuQuantityUtil.isEquivalentAbs(
+        zeroKW,
+        targetDelta,
+        relativeTolerance
+      )
     ) {
-      // excess power, try to store it/increase load
+      Seq.empty
+    } else if (targetDelta.isLessThan(zeroKW)) {
+      // suggested power too low, try to store difference/increase load
 
+      // TODO configurable
       val orderedParticipants = Seq(evcsOpt, storageOpt, heatPumpOpt).flatten
 
       orderedParticipants.foldLeft(
-        (Seq.empty[(UUID, ComparableQuantity[Power])], Option(suggestedPower))
+        (Seq.empty[(UUID, ComparableQuantity[Power])], Option(targetDelta))
       ) {
         case (
               (issueCtrlMsgs, Some(remainingExcessPower)),
@@ -93,7 +106,7 @@ final case class EmModel private (
 
           if (
             PsuQuantityUtil.isEquivalentAbs(
-              QuantityUtil.zero(PowerSystemUnits.KILOWATT),
+              zeroKW,
               differenceNoControl,
               relativeTolerance
             )
@@ -127,10 +140,11 @@ final case class EmModel private (
     } else {
       // excess load, try to cover it with stored energy/by reducing load
 
+      // TODO configurable
       val orderedParticipants = Seq(storageOpt, evcsOpt, heatPumpOpt).flatten
 
       orderedParticipants.foldLeft(
-        (Seq.empty[(UUID, ComparableQuantity[Power])], Option(suggestedPower))
+        (Seq.empty[(UUID, ComparableQuantity[Power])], Option(targetDelta))
       ) {
         case (
               (issueCtrlMsgs, Some(remainingExcessPower)),
@@ -141,7 +155,7 @@ final case class EmModel private (
 
           if (
             PsuQuantityUtil.isEquivalentAbs(
-              QuantityUtil.zero(PowerSystemUnits.KILOWATT),
+              zeroKW,
               differenceNoControl,
               relativeTolerance
             )

@@ -628,7 +628,7 @@ protected trait ParticipantAgentFundamentals[
       .last()
       .getOrElse(
         throw new RuntimeException(
-          "Flex options have not been calculated by agent!"
+          s"Flex options have not been calculated by agent ${participantStateData.modelUuid}"
         )
       )
 
@@ -702,8 +702,19 @@ protected trait ParticipantAgentFundamentals[
       )
     )
 
+    val (_, flexOptions) = flexStateData.flexOptionsStore
+      .last()
+      .getOrElse(
+        throw new IllegalStateException(
+          "Flex options have not been calculated before."
+        )
+      )
+
     val resultingActivePower =
-      determineResultingFlexPower(flexStateData, flexCtrl)
+      determineResultingFlexPower(
+        flexOptions,
+        flexCtrl
+      )
 
     val result = calculateResult(
       baseStateData,
@@ -806,37 +817,22 @@ protected trait ParticipantAgentFundamentals[
   }
 
   protected def determineResultingFlexPower(
-      flexStateData: FlexStateData,
+      flexOptionsMsg: ProvideFlexOptions,
       flexCtrl: IssueFlexControl
-  ): ComparableQuantity[Power] = {
-    val (_, flexOptions) = flexStateData.flexOptionsStore
-      .last()
-      .getOrElse(
-        throw new IllegalStateException(
-          "Flex options have not been calculated before."
-        )
-      )
-
-    flexOptions match {
-      case ProvideMinMaxFlexOptions(_, pRef, pMin, pMax) =>
+  ): ComparableQuantity[Power] =
+    flexOptionsMsg match {
+      case flexOptions: ProvideMinMaxFlexOptions =>
         flexCtrl match {
           case IssuePowerCtrl(_, setPower) =>
             // sanity check: setPower is in range of latest flex options
-            if (setPower.isLessThan(pMin))
-              throw new RuntimeException(
-                s"The set power $setPower must not be lower than the minimum power $pMin!"
-              )
-            if (setPower.isGreaterThan(pMax)) {
-              throw new RuntimeException(
-                s"The set power $setPower must not be greater than the maximum power $pMax!"
-              )
-            }
+            checkSetPower(flexOptions, setPower)
+
             // override, take setPower
             setPower
 
           case IssueNoCtrl(_) =>
             // no override, take reference power
-            pRef
+            flexOptions.referencePower
         }
 
       case unknownFlexOpt =>
@@ -844,6 +840,20 @@ protected trait ParticipantAgentFundamentals[
           s"Unknown/unfitting flex messages $unknownFlexOpt"
         )
     }
+
+  override protected def checkSetPower(
+      flexOptions: ProvideMinMaxFlexOptions,
+      setPower: ComparableQuantity[Power]
+  ): Unit = {
+    if (setPower.isLessThan(flexOptions.minPower))
+      throw new RuntimeException(
+        s"The set power $setPower for ${flexOptions.modelUuid} must not be lower than the minimum power ${flexOptions.minPower}!"
+      )
+
+    if (setPower.isGreaterThan(flexOptions.maxPower))
+      throw new RuntimeException(
+        s"The set power $setPower for ${flexOptions.modelUuid} must not be greater than the maximum power ${flexOptions.maxPower}!"
+      )
   }
 
   /** Additional actions on a new calculated simulation result. Typically: Send

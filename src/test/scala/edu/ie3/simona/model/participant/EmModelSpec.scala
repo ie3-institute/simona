@@ -70,6 +70,7 @@ class EmModelSpec
 
       val cases = Table(
         (
+          "target",
           "loadPower",
           "pvPower",
           "evcsSuggested",
@@ -79,46 +80,57 @@ class EmModelSpec
           "storageMax",
           "expectedResult"
         ),
+
         /* excess feed-in */
         // excess is fully covered by parts of evcs flexibility
-        (0d, -5d, 2d, -11d, 11d, -2d, 2d, Seq((evcs, 5d))),
+        (0d, 0d, -5d, 2d, -11d, 11d, -2d, 2d, Seq((evcs, 5d))),
         // excess is fully covered by maximum evcs flexibility
-        (0d, -11d, 2d, -11d, 11d, -2d, 2d, Seq((evcs, 11d))),
+        (0d, 0d, -11d, 2d, -11d, 11d, -2d, 2d, Seq((evcs, 11d))),
         // excess is fully covered by max evcs and parts of storage flex
-        (1d, -13d, 2d, -11d, 11d, -2d, 2d, Seq((evcs, 11d), (strg, 1d))),
+        (0d, 1d, -13d, 2d, -11d, 11d, -2d, 2d, Seq((evcs, 11d), (strg, 1d))),
         // excess is fully covered by max evcs and max storage flex
-        (0d, -14d, 2d, -11d, 11d, -2d, 2d, Seq((evcs, 11d), (strg, 2d))),
+        (0d, 0d, -14d, 2d, -11d, 11d, -2d, 2d, Seq((evcs, 11d), (strg, 2d))),
         // excess is fully covered by max storage flex
-        (0d, -4d, 2d, 0d, 2d, -2d, 2d, Seq((strg, 2d))),
+        (0d, 0d, -4d, 2d, 0d, 2d, -2d, 2d, Seq((strg, 2d))),
         // excess is partly covered by max evcs and max storage flex, -2kW remains
-        (0d, -15d, 2d, -11d, 11d, -2d, 2d, Seq((evcs, 11d), (strg, 2d))),
+        (0d, 0d, -15d, 2d, -11d, 11d, -2d, 2d, Seq((evcs, 11d), (strg, 2d))),
         // excess is partly covered by max storage flex, -7kW remains
-        (0d, -14d, 2d, 0d, 2d, -5d, 5d, Seq((strg, 5d))),
+        (0d, 0d, -14d, 2d, 0d, 2d, -5d, 5d, Seq((strg, 5d))),
         // excess can't be covered because there is no flexibility
-        (0d, -5d, 2d, 2d, 2d, 0d, 0d, Seq.empty),
+        (0d, 0d, -5d, 2d, 2d, 2d, 0d, 0d, Seq.empty),
+
         /* excess load */
         // excess is fully covered by parts of storage flex
-        (5d, -1d, 0d, -11d, 11d, -5d, 5d, Seq((strg, -4d))),
+        (0d, 5d, -1d, 0d, -11d, 11d, -5d, 5d, Seq((strg, -4d))),
         // excess is fully covered by min storage flex
-        (6d, -1d, 0d, -11d, 11d, -5d, 5d, Seq((strg, -5d))),
+        (0d, 6d, -1d, 0d, -11d, 11d, -5d, 5d, Seq((strg, -5d))),
         // excess is fully covered by min storage and parts of evcs flex, charging power reduced
-        (5d, -1d, 3d, -11d, 11d, -5d, 5d, Seq((strg, -5d), (evcs, 1d))),
+        (0d, 5d, -1d, 3d, -11d, 11d, -5d, 5d, Seq((strg, -5d), (evcs, 1d))),
         // excess is fully covered by min storage and parts of evcs flex, vehicle-to-home
-        (5d, -1d, 5d, -11d, 11d, -2d, 2d, Seq((strg, -2d), (evcs, -2d))),
+        (0d, 5d, -1d, 5d, -11d, 11d, -2d, 2d, Seq((strg, -2d), (evcs, -2d))),
         // excess is fully covered by min storage and min evcs flex
-        (14d, -1d, 5d, -11d, 11d, -2d, 2d, Seq((strg, -2d), (evcs, -11d))),
+        (0d, 14d, -1d, 5d, -11d, 11d, -2d, 2d, Seq((strg, -2d), (evcs, -11d))),
         // excess is fully covered by min evcs flex
-        (12d, -1d, 2d, -11d, 11d, 0d, 0d, Seq((evcs, -11d))),
+        (0d, 12d, -1d, 2d, -11d, 11d, 0d, 0d, Seq((evcs, -11d))),
         // excess is partly covered by min evcs and min storage flex, 1kW remains
-        (15d, -1d, 2d, -11d, 11d, -2d, 2d, Seq((strg, -2d), (evcs, -11d))),
+        (0d, 15d, -1d, 2d, -11d, 11d, -2d, 2d, Seq((strg, -2d), (evcs, -11d))),
         // excess is partly covered by min evcs flex, 2kW remains
-        (14d, -1d, 4d, -11d, 11d, 0d, 0d, Seq((evcs, -11d))),
+        (0d, 14d, -1d, 4d, -11d, 11d, 0d, 0d, Seq((evcs, -11d))),
         // excess can't be covered because there is no flexibility
-        (5d, 0d, 2d, 2d, 2d, 0d, 0d, Seq.empty)
+        (0d, 5d, 0d, 2d, 2d, 2d, 0d, 0d, Seq.empty),
+
+        /* target unequal to zero */
+        // excess feed-in is fully covered by parts of evcs flexibility
+        (2d, 0d, -5d, 2d, -11d, 11d, -2d, 2d, Seq((evcs, 7d))),
+        // no excess
+        (-3d, 0d, -5d, 2d, -11d, 11d, -2d, 2d, Seq.empty),
+        // excess is fully covered by min storage and parts of evcs flex, vehicle-to-home
+        (-3d, 5d, -1d, 5d, -11d, 11d, -2d, 2d, Seq((strg, -2d), (evcs, -5d)))
       )
 
       forAll(cases) {
         (
+            target,
             loadPower,
             pvPower,
             evcsSuggested,
@@ -167,7 +179,8 @@ class EmModelSpec
             )
           )
 
-          val actualResults = model.determineDeviceControl(flexOptions)
+          val actualResults =
+            model.determineDeviceControl(flexOptions, target.asKiloWatt)
 
           actualResults should have size expectedResult.size
 

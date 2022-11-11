@@ -46,6 +46,7 @@ import edu.ie3.simona.model.participant.{
 }
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   IssueFlexControl,
+  ProvideMinMaxFlexOptions,
   RequestFlexOptions
 }
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage
@@ -65,6 +66,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
+import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.ClassTag
 
@@ -822,6 +824,11 @@ abstract class ParticipantAgent[
       tick: Long,
       activePower: ComparableQuantity[Power]
   ): PD
+
+  protected def checkSetPower(
+      flexOptions: ProvideMinMaxFlexOptions,
+      setPower: ComparableQuantity[Power]
+  ): Unit
 
   /** Determining the reply to an
     * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]],
