@@ -220,7 +220,7 @@ abstract class SystemParticipant[
       val sMaxWithTolerance = sMax.multiply(1.00001d)
 
       if (apparentPower.isGreaterThan(sMaxWithTolerance)) {
-        logger.warn(
+        logger.debug(
           s"The var characteristics \'$qControl\' of model \'$id\' ($uuid) imposes an apparent " +
             s"power (= $apparentPower) that exceeds " +
             s"rated apparent power specifications (= $sMax). " +
@@ -233,7 +233,7 @@ abstract class SystemParticipant[
           Math.pow(activePower.to(MEGAWATT).getValue.doubleValue, 2)
 
         if (powerSquaredDifference < 0) {
-          logger.warn(
+          logger.debug(
             s"Difference between sMax and active power is negative when limiting reactive power. " +
               s"Set reactive power to 0!"
           )
