@@ -12,10 +12,7 @@ import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  PrimaryDataWithApparentPower
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.em.EmAgent.{
@@ -26,17 +23,15 @@ import edu.ie3.simona.agent.participant.em.EmAgent.{
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexStateData,
-  ModelBaseStateData,
-  ParticipantModelBaseStateData
-}
-import edu.ie3.simona.agent.participant.statedata.{
-  BaseStateData,
-  InitializeStateData,
-  ParticipantStateData
+  ModelBaseStateData
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantUninitializedStateData,
   SimpleInputContainer
+}
+import edu.ie3.simona.agent.participant.statedata.{
+  InitializeStateData,
+  ParticipantStateData
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
@@ -44,9 +39,9 @@ import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
-import edu.ie3.simona.model.participant.{CalcRelevantData, EmModel}
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
+import edu.ie3.simona.model.participant.{CalcRelevantData, EmModel}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
@@ -64,7 +59,7 @@ import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
+import javax.measure.quantity.Dimensionless
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.language.postfixOps
 
@@ -266,6 +261,9 @@ class EmAgent(
       )
 
       goto(Idle) using updatedBaseStateData
+
+    case Event(ReceiveTimeout, stateData) =>
+      handleReceiveTimeout(stateData)
   }
 
   private val handleIdleEm: StateFunction = {
@@ -523,12 +521,7 @@ class EmAgent(
         stay() using updatedBaseStateData
 
     case Event(ReceiveTimeout, stateData) =>
-      // disable timeout again
-      context.setReceiveTimeout(Duration.Undefined)
-      log.warning(
-        "No messages received for two minutes. Current state data: " + stateData
-      )
-      stay()
+      handleReceiveTimeout(stateData)
   }
 
   when(Uninitialized) { handleUnitializedEm orElse handleUnitialized }
@@ -831,5 +824,17 @@ class EmAgent(
     // of the EmScheduler
     unstashAll()
     goto(Idle) using baseStateDateWithUpdatedResults
+  }
+
+  private def handleReceiveTimeout(
+      stateData: ParticipantStateData[ApparentPower]
+  ): State = {
+    // disable timeout again
+    context.setReceiveTimeout(Duration.Undefined)
+
+    log.warning(
+      "No messages received for two minutes. Current state data: " + stateData
+    )
+    stay()
   }
 }
