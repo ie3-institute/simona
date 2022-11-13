@@ -123,10 +123,8 @@ trait EmSchedulerHelper {
     if (
       !triggerData.awaitedFlexCompletions.contains(completionMessage.modelUuid)
     ) {
-      log.warning(
-        "Completion for UUID {} has not been awaited in completions map {}",
-        completionMessage.modelUuid,
-        triggerData.awaitedFlexCompletions
+      throw new RuntimeException(
+        s"Completion for UUID ${completionMessage.modelUuid} is not part of expected completions: ${triggerData.awaitedFlexCompletions}"
       )
     }
 
