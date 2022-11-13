@@ -780,18 +780,19 @@ protected trait ParticipantAgentFundamentals[
       flexCtrl.tick
     )
 
+    // announce current result to EmAgent before completion,
+    // since time could advance once all completions in
+    flexStateData.emAgent ! buildResultEvent(
+      stateDataWithResults,
+      flexCtrl.tick,
+      result
+    )
+
     flexStateData.emAgent ! FlexCtrlCompletion(
       baseStateData.modelUuid,
       revokeRequest,
       flexChangeIndicator.changesAtNextActivation,
       flexChangeIndicator.changesAtTick
-    )
-
-    // announce current result to EmAgent
-    flexStateData.emAgent ! buildResultEvent(
-      stateDataWithResults,
-      flexCtrl.tick,
-      result
     )
 
     if (currentTickDefined) {
