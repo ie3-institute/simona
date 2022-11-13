@@ -1453,15 +1453,6 @@ class EvcsAgentModelCalculationSpec
         IssueNoCtrl(0L)
       )
 
-      // next potential activation at fully charged battery:
-      // net power = 12.961kW * 0.92 = 11.92412kW
-      // time to charge fully ~= 16.7727262054h = 60382 ticks (rounded)
-      emAgent.expectMsg(
-        FlexCtrlCompletion(
-          modelUuid = evcsInputModel.getUuid
-        )
-      )
-
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
           result.systemParticipantResult.getP should equalWithTolerance(
@@ -1473,6 +1464,15 @@ class EvcsAgentModelCalculationSpec
             testingTolerance
           )
       }
+
+      // next potential activation at fully charged battery:
+      // net power = 12.961kW * 0.92 = 11.92412kW
+      // time to charge fully ~= 16.7727262054h = 60382 ticks (rounded)
+      emAgent.expectMsg(
+        FlexCtrlCompletion(
+          modelUuid = evcsInputModel.getUuid
+        )
+      )
 
       // results arrive after next activation
       resultListener.expectNoMessage()
@@ -1524,15 +1524,6 @@ class EvcsAgentModelCalculationSpec
 
       emAgent.send(evcsAgent, IssueNoCtrl(900L))
 
-      // at 4500 ev is departing
-      emAgent.expectMsg(
-        FlexCtrlCompletion(
-          modelUuid = evcsInputModel.getUuid,
-          requestAtNextActivation = true,
-          requestAtTick = Some(4500L)
-        )
-      )
-
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
           result.systemParticipantResult.getP should equalWithTolerance(
@@ -1544,6 +1535,15 @@ class EvcsAgentModelCalculationSpec
             testingTolerance
           )
       }
+
+      // at 4500 ev is departing
+      emAgent.expectMsg(
+        FlexCtrlCompletion(
+          modelUuid = evcsInputModel.getUuid,
+          requestAtNextActivation = true,
+          requestAtTick = Some(4500L)
+        )
+      )
 
       emAgent.expectMsg(CompletionMessage(activation1, None))
 
@@ -1653,17 +1653,6 @@ class EvcsAgentModelCalculationSpec
 
       emAgent.send(evcsAgent, IssueNoCtrl(4500L))
 
-      // we currently have an empty battery in ev4500
-      // time to charge to minimal soc ~= 1.45454545455h = 5236 ticks (rounded) from now
-      // current tick is 4500, thus: 4500 + 5236 = 9736
-      emAgent.expectMsg(
-        FlexCtrlCompletion(
-          modelUuid = evcsInputModel.getUuid,
-          requestAtNextActivation = true,
-          requestAtTick = Some(9736L)
-        )
-      )
-
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
           result.systemParticipantResult.getP should equalWithTolerance(
@@ -1675,6 +1664,17 @@ class EvcsAgentModelCalculationSpec
             testingTolerance
           )
       }
+
+      // we currently have an empty battery in ev4500
+      // time to charge to minimal soc ~= 1.45454545455h = 5236 ticks (rounded) from now
+      // current tick is 4500, thus: 4500 + 5236 = 9736
+      emAgent.expectMsg(
+        FlexCtrlCompletion(
+          modelUuid = evcsInputModel.getUuid,
+          requestAtNextActivation = true,
+          requestAtTick = Some(9736L)
+        )
+      )
 
       emAgent.expectMsg(CompletionMessage(activation2, None))
 
@@ -1714,18 +1714,6 @@ class EvcsAgentModelCalculationSpec
 
       evService.expectNoMessage()
 
-      // ev4500 is now at 16 kWh
-      // time to charge fully = 6.4 h = 23040 ticks from now
-      // current tick is 9736, thus: 9736 + 23040 = 32776
-      emAgent.expectMsg(
-        FlexCtrlCompletion(
-          modelUuid = evcsInputModel.getUuid,
-          requestAtTick = Some(32776L),
-          requestAtNextActivation =
-            true // since battery is still below lowest soc, it's still considered empty
-        )
-      )
-
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
           result.systemParticipantResult.getP should equalWithTolerance(
@@ -1737,6 +1725,18 @@ class EvcsAgentModelCalculationSpec
             testingTolerance
           )
       }
+
+      // ev4500 is now at 16 kWh
+      // time to charge fully = 6.4 h = 23040 ticks from now
+      // current tick is 9736, thus: 9736 + 23040 = 32776
+      emAgent.expectMsg(
+        FlexCtrlCompletion(
+          modelUuid = evcsInputModel.getUuid,
+          requestAtTick = Some(32776L),
+          requestAtNextActivation =
+            true // since battery is still below lowest soc, it's still considered empty
+        )
+      )
 
       resultListener.expectMsgPF() {
         case ParticipantResultEvent(result: EvResult) =>
@@ -1818,6 +1818,18 @@ class EvcsAgentModelCalculationSpec
       // no departing evs here
       evService.expectNoMessage()
 
+      emAgent.expectMsgType[ParticipantResultEvent] match {
+        case result =>
+          result.systemParticipantResult.getP should equalWithTolerance(
+            16.asKiloWatt,
+            testingTolerance
+          )
+          result.systemParticipantResult.getQ should equalWithTolerance(
+            0.asMegaVar,
+            testingTolerance
+          )
+      }
+
       // ev4500 is now at ~ 21.45555556 kWh, ev11700 just arrived with 11.6 kWh
       // ev4500: time to charge fully ~= 7.3180556 h = 26345 ticks from now
       // ev11700: time to charge fully = 5.8 h = 20880 ticks from now
@@ -1831,18 +1843,6 @@ class EvcsAgentModelCalculationSpec
             true // since battery is still below lowest soc, it's still considered empty
         )
       )
-
-      emAgent.expectMsgType[ParticipantResultEvent] match {
-        case result =>
-          result.systemParticipantResult.getP should equalWithTolerance(
-            16.asKiloWatt,
-            testingTolerance
-          )
-          result.systemParticipantResult.getQ should equalWithTolerance(
-            0.asMegaVar,
-            testingTolerance
-          )
-      }
 
       emAgent.expectMsg(CompletionMessage(activation3, None))
 
@@ -1903,18 +1903,6 @@ class EvcsAgentModelCalculationSpec
       // no departing evs here
       evService.expectNoMessage()
 
-      // ev4500 is now at ~ 35.455556 kWh, ev11700 at 25.6 kWh
-      // ev4500: time to discharge to lowest soc ~= 1.9455556 h = 7004 ticks from now
-      // ev11700: time to discharge to lowest soc ~= 1.4 h = 5040 ticks from now
-      // current tick is 18000, thus: 18000 + 5040 = 23040
-      emAgent.expectMsg(
-        FlexCtrlCompletion(
-          modelUuid = evcsInputModel.getUuid,
-          requestAtTick = Some(23040L),
-          revokeRequestAtTick = Some(32580L)
-        )
-      )
-
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
           result.systemParticipantResult.getP should equalWithTolerance(
@@ -1926,6 +1914,18 @@ class EvcsAgentModelCalculationSpec
             testingTolerance
           )
       }
+
+      // ev4500 is now at ~ 35.455556 kWh, ev11700 at 25.6 kWh
+      // ev4500: time to discharge to lowest soc ~= 1.9455556 h = 7004 ticks from now
+      // ev11700: time to discharge to lowest soc ~= 1.4 h = 5040 ticks from now
+      // current tick is 18000, thus: 18000 + 5040 = 23040
+      emAgent.expectMsg(
+        FlexCtrlCompletion(
+          modelUuid = evcsInputModel.getUuid,
+          requestAtTick = Some(23040L),
+          revokeRequestAtTick = Some(32580L)
+        )
+      )
 
       Range(0, 2)
         .map { _ =>
@@ -1993,16 +1993,6 @@ class EvcsAgentModelCalculationSpec
       // no departing evs here
       evService.expectNoMessage()
 
-      // ev4500 is now at 21.455556 kWh, ev11700 at 11.6 kWh (lowest soc)
-      // ev4500: time to discharge to lowest soc =  0.5455556 h = 1964 ticks from now
-      // current tick is 18864, thus: 23040 + 1964 = 25004
-      emAgent.expectMsg(
-        FlexCtrlCompletion(
-          modelUuid = evcsInputModel.getUuid,
-          requestAtTick = Some(25004L)
-        )
-      )
-
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
           result.systemParticipantResult.getP should equalWithTolerance(
@@ -2014,6 +2004,16 @@ class EvcsAgentModelCalculationSpec
             testingTolerance
           )
       }
+
+      // ev4500 is now at 21.455556 kWh, ev11700 at 11.6 kWh (lowest soc)
+      // ev4500: time to discharge to lowest soc =  0.5455556 h = 1964 ticks from now
+      // current tick is 18864, thus: 23040 + 1964 = 25004
+      emAgent.expectMsg(
+        FlexCtrlCompletion(
+          modelUuid = evcsInputModel.getUuid,
+          requestAtTick = Some(25004L)
+        )
+      )
 
       Range(0, 2)
         .map { _ =>
@@ -2075,13 +2075,6 @@ class EvcsAgentModelCalculationSpec
       // no departing evs here
       evService.expectNoMessage()
 
-      // no new activation
-      emAgent.expectMsg(
-        FlexCtrlCompletion(
-          modelUuid = evcsInputModel.getUuid
-        )
-      )
-
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
           result.systemParticipantResult.getP should equalWithTolerance(
@@ -2093,6 +2086,13 @@ class EvcsAgentModelCalculationSpec
             testingTolerance
           )
       }
+
+      // no new activation
+      emAgent.expectMsg(
+        FlexCtrlCompletion(
+          modelUuid = evcsInputModel.getUuid
+        )
+      )
 
       Range(0, 2)
         .map { _ =>
@@ -2197,6 +2197,18 @@ class EvcsAgentModelCalculationSpec
 
       emAgent.send(evcsAgent, IssuePowerCtrl(36000L, 4.asKiloWatt))
 
+      emAgent.expectMsgType[ParticipantResultEvent] match {
+        case result =>
+          result.systemParticipantResult.getP should equalWithTolerance(
+            4.asKiloWatt,
+            testingTolerance
+          )
+          result.systemParticipantResult.getQ should equalWithTolerance(
+            0.asMegaVar,
+            testingTolerance
+          )
+      }
+
       // ev11700 is now at 16 kWh
       // ev11700: time to charge fully = 16 h = 57600 ticks from now
       // current tick is 36000, thus: 36000 + 57600 = 93600
@@ -2209,18 +2221,6 @@ class EvcsAgentModelCalculationSpec
             true // since we're starting from lowest again
         )
       )
-
-      emAgent.expectMsgType[ParticipantResultEvent] match {
-        case result =>
-          result.systemParticipantResult.getP should equalWithTolerance(
-            4.asKiloWatt,
-            testingTolerance
-          )
-          result.systemParticipantResult.getQ should equalWithTolerance(
-            0.asMegaVar,
-            testingTolerance
-          )
-      }
 
     }
 
