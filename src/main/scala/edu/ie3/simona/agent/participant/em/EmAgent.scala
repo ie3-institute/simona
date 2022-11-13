@@ -462,7 +462,7 @@ class EmAgent(
 
       val updatedValueStore = ValueStore.updateValueStore(
         receivedFlexOptions,
-        tick,
+        resultTick,
         flexCorrespondence.copy(participantResult = Some(result))
       )
 
