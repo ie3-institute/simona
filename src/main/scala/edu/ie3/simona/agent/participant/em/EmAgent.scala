@@ -217,16 +217,16 @@ class EmAgent(
         Map.empty,
         requestVoltageDeviationThreshold,
         ValueStore.forVoltage(
-          resolution * 10,
+          resolution,
           inputModel.getNode
             .getvTarget()
             .to(PU)
         ),
-        ValueStore.forResult(resolution, 10),
-        ValueStore(resolution * 10),
+        ValueStore(resolution),
+        ValueStore(resolution),
         ValueStore(0),
         connectedAgents.map { case (_, _, sp) =>
-          sp.getUuid -> ValueStore(resolution * 10)
+          sp.getUuid -> ValueStore(resolution)
         }.toMap,
         connectedAgents.map { case (_, _, sp) =>
           sp.getUuid -> sp
