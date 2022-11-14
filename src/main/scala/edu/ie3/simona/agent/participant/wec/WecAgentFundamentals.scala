@@ -147,16 +147,16 @@ protected trait WecAgentFundamentals
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
-        resolution * 10,
+        resolution,
         inputModel.electricalInputModel.getNode
           .getvTarget()
           .to(PU)
       ),
-      ValueStore.forResult(resolution, 10),
-      ValueStore(resolution * 10),
-      ValueStore(resolution * 10),
-      ValueStore(resolution * 10),
-      maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
+      ValueStore(resolution),
+      ValueStore(resolution),
+      ValueStore(resolution),
+      ValueStore(resolution),
+      maybeEmAgent.map(FlexStateData(_, ValueStore(resolution)))
     )
   }
 

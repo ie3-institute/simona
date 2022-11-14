@@ -123,18 +123,18 @@ trait StorageAgentFundamentals
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
-        resolution * 10,
+        resolution,
         inputModel.electricalInputModel.getNode
           .getvTarget()
           .to(PowerSystemUnits.PU)
       ),
-      ValueStore.forResult(resolution, 10),
-      ValueStore(resolution * 10),
-      ValueStore(resolution * 10),
-      ValueStore(resolution * 10),
+      ValueStore(resolution),
+      ValueStore(resolution),
+      ValueStore(resolution),
+      ValueStore(resolution),
       maybeEmAgent.map(
-        FlexStateData(_, ValueStore(resolution * 10))
-      ) // TODO
+        FlexStateData(_, ValueStore(resolution))
+      )
     )
   }
 

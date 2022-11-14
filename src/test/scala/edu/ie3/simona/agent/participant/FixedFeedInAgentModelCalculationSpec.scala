@@ -242,10 +242,7 @@ class FixedFeedInAgentModelCalculationSpec
             resolution,
             Map(0L -> Quantities.getQuantity(1d, PU))
           )
-          resultValueStore shouldBe ValueStore.forResult(
-            resolution,
-            2
-          )
+          resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPower](
             resolution
           )

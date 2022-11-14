@@ -49,9 +49,7 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
   EvcsState
 }
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.RequestFlexOptions
 import edu.ie3.simona.ontology.messages.PowerMessage.AssetPowerChangedMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
@@ -204,16 +202,16 @@ protected trait EvcsAgentFundamentals
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
-        resolution * 10, // FIXME probably need to increase this for grid oriented scheduling
+        resolution, // FIXME probably need to increase this for grid oriented scheduling
         inputModel.electricalInputModel.getNode
           .getvTarget()
           .to(PU)
       ),
-      ValueStore.forResult(resolution, 10),
-      ValueStore(resolution * 10),
-      ValueStore(resolution * 10),
-      ValueStore(resolution * 10),
-      maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
+      ValueStore(resolution),
+      ValueStore(resolution),
+      ValueStore(resolution),
+      ValueStore(resolution),
+      maybeEmAgent.map(FlexStateData(_, ValueStore(resolution)))
     )
   }
 
