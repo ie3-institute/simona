@@ -10,6 +10,7 @@ import edu.ie3.simona.util.SimonaConstants
 import tech.units.indriya.ComparableQuantity
 
 import javax.measure.quantity.Dimensionless
+import scala.collection.SortedSet
 
 /** Represents a value store to hold data of former ticks
   *
@@ -148,8 +149,25 @@ object ValueStore {
       valueStore: ValueStore[D],
       tick: Long,
       newEntry: D
-  ): ValueStore[D] = valueStore.copy(
-    store = (valueStore.store + (tick -> newEntry))
-      .filter(pair => pair._1 > tick - valueStore.maxTickSpan)
-  )
+  ): ValueStore[D] = {
+    val updatedStore = valueStore.store + (tick -> newEntry)
+
+    // always keep at least 3 entries
+    val minKeep = 3
+
+    valueStore.copy(
+      store = if (updatedStore.size > minKeep) {
+        val (rest, keep) =
+          updatedStore.keySet.to(SortedSet).splitAt(updatedStore.size - minKeep)
+        val restPruned = rest.filter(_ > tick - valueStore.maxTickSpan)
+
+        val allTicks = restPruned ++ keep
+
+        updatedStore.filter { case (tick, _) =>
+          allTicks.contains(tick)
+        }
+      } else
+        updatedStore
+    )
+  }
 }
