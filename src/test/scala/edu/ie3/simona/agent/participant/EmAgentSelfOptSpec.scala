@@ -359,7 +359,7 @@ class EmAgentSelfOptSpec
         emAgent,
         ParticipantResultEvent(
           new EvcsResult(
-            0L.toDateTime,
+            300L.toDateTime,
             evcsInput.getUuid,
             Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT),
             Quantities.getQuantity(0d, PowerSystemUnits.KILOVAR)
