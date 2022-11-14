@@ -1094,7 +1094,7 @@ class EvcsAgentModelCalculationSpec
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
           p should equalWithTolerance(
-            Quantities.getQuantity(0.00044d, MEGAWATT),
+            Quantities.getQuantity(0.00572d, MEGAWATT),
             testingTolerance
           )
           q should equalWithTolerance(
@@ -1118,7 +1118,7 @@ class EvcsAgentModelCalculationSpec
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
           p should equalWithTolerance(
-            Quantities.getQuantity(0.00044d, MEGAWATT),
+            Quantities.getQuantity(0.00572d, MEGAWATT),
             testingTolerance
           )
           q should equalWithTolerance(
@@ -1140,7 +1140,7 @@ class EvcsAgentModelCalculationSpec
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
           p should equalWithTolerance(
-            Quantities.getQuantity(0.00044d, MEGAWATT),
+            Quantities.getQuantity(0.00572d, MEGAWATT),
             testingTolerance
           )
           q should equalWithTolerance(
@@ -1290,14 +1290,14 @@ class EvcsAgentModelCalculationSpec
           additionalActivationTicks shouldBe Array.emptyLongArray
           foreseenDataTicks shouldBe Map(evService.ref -> None)
           voltageValueStore shouldBe ValueStore(
-            resolution * 10,
+            resolution,
             Map(0L -> Quantities.getQuantity(1d, PU))
           )
           resultValueStore shouldBe ValueStore(
-            resolution * 10
+            resolution
           )
           requestValueStore shouldBe ValueStore[ApparentPower](
-            resolution * 10
+            resolution
           )
         case unrecognized =>
           fail(
