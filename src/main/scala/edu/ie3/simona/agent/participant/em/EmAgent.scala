@@ -41,7 +41,7 @@ import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.{CalcRelevantData, EmModel}
+import edu.ie3.simona.model.participant.EmModel
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
@@ -107,7 +107,6 @@ object EmAgent {
       additionalActivationTicks: Array[Long],
       foreseenDataTicks: Map[ActorRef, Option[Long]],
       requestVoltageDeviationThreshold: Double,
-      calcRelevantDateStore: ValueStore[CalcRelevantData],
       voltageValueStore: ValueStore[
         ComparableQuantity[Dimensionless]
       ],
@@ -228,7 +227,6 @@ class EmAgent(
         Array.empty,
         Map.empty,
         requestVoltageDeviationThreshold,
-        ValueStore(resolution * 10),
         ValueStore.forVoltage(
           resolution,
           inputModel.getNode
