@@ -28,7 +28,7 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.integration.common.IntegrationSpecCommon
-import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
+import edu.ie3.simona.model.participant.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -331,12 +331,12 @@ class HpAgentModelCalculationSpec
           additionalActivationTicks shouldBe Array.emptyLongArray
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
-            resolution * 10,
+            resolution,
             Map(0L -> Quantities.getQuantity(1d, PU))
           )
-          resultValueStore shouldBe ValueStore.forResult(resolution, 10)
+          resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPowerAndHeat](
-            resolution * 10
+            resolution
           )
 
           /* Additional information */
@@ -451,7 +451,7 @@ class HpAgentModelCalculationSpec
           modelBaseStateData.requestValueStore shouldBe ValueStore[
             ApparentPowerAndHeat
           ](
-            resolution * 10,
+            resolution,
             Map(
               0L -> ApparentPowerAndHeat(
                 Quantities.getQuantity(0d, MEGAWATT),

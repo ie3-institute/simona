@@ -193,7 +193,7 @@ trait HpAgentFundamentals
     *
     * @param baseStateData
     *   State data with collected secondary data.
-    * @param maybeLastModelState
+    * @param lastModelState
     *   Optional last model state
     * @param currentTick
     *   Tick, the trigger belongs to
@@ -319,7 +319,7 @@ trait HpAgentFundamentals
         /* Determine a proper starting model state and safe it into the base state data */
         val startingModelState = startingState(model.thermalGrid)
         val stateDataStore = ValueStore.updateValueStore(
-          ValueStore(resolution * 10),
+          ValueStore(resolution),
           -1L,
           startingModelState
         )
@@ -339,16 +339,16 @@ trait HpAgentFundamentals
           Map.empty,
           requestVoltageDeviationThreshold,
           ValueStore.forVoltage(
-            resolution * 10,
+            resolution,
             inputModel.electricalInputModel.getNode
               .getvTarget()
               .to(PU)
           ),
-          ValueStore.forResult(resolution, 10),
-          ValueStore(resolution * 10),
-          ValueStore(resolution * 10),
+          ValueStore(resolution),
+          ValueStore(resolution),
+          ValueStore(resolution),
           stateDataStore,
-          maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
+          maybeEmAgent.map(FlexStateData(_, ValueStore(resolution)))
         )
       case unsupported =>
         throw new AgentInitializationException(
