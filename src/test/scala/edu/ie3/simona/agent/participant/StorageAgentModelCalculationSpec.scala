@@ -223,14 +223,14 @@ class StorageAgentModelCalculationSpec
           additionalActivationTicks shouldBe Array.emptyLongArray
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
-            resolution * 10,
+            resolution,
             Map(0L -> Quantities.getQuantity(1d, PU))
           )
           resultValueStore shouldBe ValueStore(
-            resolution * 10
+            resolution
           )
           requestValueStore shouldBe ValueStore[ApparentPower](
-            resolution * 10
+            resolution
           )
         case unrecognized =>
           fail(
@@ -314,7 +314,7 @@ class StorageAgentModelCalculationSpec
           modelBaseStateData.requestValueStore shouldBe ValueStore[
             ApparentPower
           ](
-            resolution * 10,
+            resolution,
             Map(
               0L -> ApparentPower(
                 Quantities.getQuantity(0d, MEGAWATT),
