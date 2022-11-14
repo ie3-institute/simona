@@ -149,10 +149,13 @@ object ValueStore {
   ): ValueStore[D] = {
     val updatedStore = valueStore.store + (tick -> newEntry)
 
+    // always keep at least 3 entries
+    val minKeep = 3
+
     valueStore.copy(
-      store = if (updatedStore.size > 5) { // always keep at least 5 entries
+      store = if (updatedStore.size > minKeep) {
         val (rest, keep) =
-          updatedStore.keySet.to(SortedSet).splitAt(updatedStore.size - 5)
+          updatedStore.keySet.to(SortedSet).splitAt(updatedStore.size - minKeep)
         val restPruned = rest.filter(_ > tick - valueStore.maxTickSpan)
 
         val allTicks = restPruned ++ keep
