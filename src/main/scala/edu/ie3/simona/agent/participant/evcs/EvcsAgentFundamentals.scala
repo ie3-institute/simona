@@ -80,7 +80,7 @@ protected trait EvcsAgentFundamentals
     *   Real world time date time, when the simulation starts
     * @param simulationEndDate
     *   Real world time date time, when the simulation ends
-    * @param timeBin
+    * @param resolution
     *   Agents regular time bin it wants to be triggered e.g one hour
     * @param requestVoltageDeviationThreshold
     *   Threshold, after which two nodal voltage magnitudes from participant
@@ -97,7 +97,7 @@ protected trait EvcsAgentFundamentals
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
-      timeBin: Long,
+      resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
       maybeEmAgent: Option[ActorRef]
@@ -123,7 +123,7 @@ protected trait EvcsAgentFundamentals
       services,
       simulationStartDate,
       simulationEndDate,
-      timeBin,
+      resolution,
       requestVoltageDeviationThreshold,
       outputConfig,
       maybeEmAgent
@@ -142,7 +142,7 @@ protected trait EvcsAgentFundamentals
     *   Real world time date time, when the simulation starts
     * @param simulationEndDate
     *   Real world time date time, when the simulation ends
-    * @param timeBin
+    * @param resolution
     *   Agents regular time bin it wants to be triggered e.g one hour
     * @param requestVoltageDeviationThreshold
     *   Threshold, after which two nodal voltage magnitudes from participant
@@ -158,7 +158,7 @@ protected trait EvcsAgentFundamentals
       servicesOpt: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
-      timeBin: Long,
+      resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
       maybeEmAgent: Option[ActorRef]
@@ -188,16 +188,16 @@ protected trait EvcsAgentFundamentals
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
-        timeBin * 10,
+        resolution, // FIXME probably need to increase this for grid oriented scheduling
         inputModel.getNode
           .getvTarget()
           .to(PU)
       ),
-      ValueStore.forResult(timeBin, 10),
-      ValueStore(timeBin * 10),
-      ValueStore(timeBin * 10),
-      ValueStore(timeBin * 10),
-      maybeEmAgent.map(FlexStateData(_, ValueStore(timeBin * 10)))
+      ValueStore(resolution),
+      ValueStore(resolution),
+      ValueStore(resolution),
+      ValueStore(resolution),
+      maybeEmAgent.map(FlexStateData(_, ValueStore(resolution)))
     )
   }
 

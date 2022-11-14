@@ -69,10 +69,10 @@ import edu.ie3.util.quantities.PowerSystemUnits.{
   MEGAWATT,
   PU
 }
-import edu.ie3.util.quantities.{EmptyQuantity, QuantityUtil}
+import edu.ie3.util.quantities.QuantityUtil
 import org.scalatest.PrivateMethodTester
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND, PASCAL}
+import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND}
 
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
@@ -318,11 +318,11 @@ class WecAgentModelCalculationSpec
           additionalActivationTicks shouldBe Array.emptyLongArray
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
-            resolution * 10,
+            resolution,
             Map(0L -> Quantities.getQuantity(1d, PU))
           )
-          resultValueStore shouldBe ValueStore.forResult(resolution, 10)
-          requestValueStore shouldBe ValueStore[ApparentPower](resolution * 10)
+          resultValueStore shouldBe ValueStore(resolution)
+          requestValueStore shouldBe ValueStore[ApparentPower](resolution)
 
           /* Additional information */
           awaitRegistrationResponsesFrom shouldBe Vector(weatherService.ref)
@@ -445,7 +445,7 @@ class WecAgentModelCalculationSpec
           modelBaseStateData.requestValueStore shouldBe ValueStore[
             ApparentPower
           ](
-            resolution * 10,
+            resolution,
             Map(
               0L -> ApparentPower(
                 Quantities.getQuantity(0d, MEGAWATT),
