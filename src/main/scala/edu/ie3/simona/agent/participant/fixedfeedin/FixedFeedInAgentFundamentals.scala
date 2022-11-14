@@ -143,11 +143,11 @@ protected trait FixedFeedInAgentFundamentals
           .getvTarget()
           .to(PU)
       ),
-      ValueStore.forResult(resolution, 2),
+      ValueStore(resolution),
       ValueStore(resolution),
       ValueStore(resolution),
       ValueStore(0),
-      maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
+      maybeEmAgent.map(FlexStateData(_, ValueStore(resolution)))
     )
   }
 
