@@ -1094,7 +1094,7 @@ class EvcsAgentModelCalculationSpec
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
           p should equalWithTolerance(
-            Quantities.getQuantity(0.00572d, MEGAWATT),
+            Quantities.getQuantity(0.00044d, MEGAWATT),
             testingTolerance
           )
           q should equalWithTolerance(
@@ -1118,7 +1118,7 @@ class EvcsAgentModelCalculationSpec
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
           p should equalWithTolerance(
-            Quantities.getQuantity(0.00572d, MEGAWATT),
+            Quantities.getQuantity(0.00044d, MEGAWATT),
             testingTolerance
           )
           q should equalWithTolerance(
@@ -1140,7 +1140,7 @@ class EvcsAgentModelCalculationSpec
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
           p should equalWithTolerance(
-            Quantities.getQuantity(0.00572d, MEGAWATT),
+            Quantities.getQuantity(0.00044d, MEGAWATT),
             testingTolerance
           )
           q should equalWithTolerance(
