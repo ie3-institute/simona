@@ -331,11 +331,11 @@ class EvcsAgentModelCalculationSpec
           additionalActivationTicks shouldBe Array.emptyLongArray
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
-            resolution * 10,
+            resolution,
             Map(0L -> Quantities.getQuantity(1d, PU))
           )
-          resultValueStore shouldBe ValueStore.forResult(resolution, 10)
-          requestValueStore shouldBe ValueStore[ApparentPower](resolution * 10)
+          resultValueStore shouldBe ValueStore(resolution)
+          requestValueStore shouldBe ValueStore[ApparentPower](resolution)
 
           /* Additional information */
           awaitRegistrationResponsesFrom shouldBe Vector(evService.ref)
@@ -446,7 +446,7 @@ class EvcsAgentModelCalculationSpec
           baseStateData.requestValueStore shouldBe ValueStore[
             ApparentPower
           ](
-            resolution * 10,
+            resolution,
             Map(
               0L -> ApparentPower(
                 Quantities.getQuantity(0d, MEGAWATT),
@@ -1094,7 +1094,7 @@ class EvcsAgentModelCalculationSpec
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
           p should equalWithTolerance(
-            Quantities.getQuantity(0.011d, MEGAWATT),
+            Quantities.getQuantity(0.00044d, MEGAWATT),
             testingTolerance
           )
           q should equalWithTolerance(
@@ -1118,7 +1118,7 @@ class EvcsAgentModelCalculationSpec
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
           p should equalWithTolerance(
-            Quantities.getQuantity(0.011d, MEGAWATT),
+            Quantities.getQuantity(0.00044d, MEGAWATT),
             testingTolerance
           )
           q should equalWithTolerance(
@@ -1140,7 +1140,7 @@ class EvcsAgentModelCalculationSpec
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
           p should equalWithTolerance(
-            Quantities.getQuantity(0.011d, MEGAWATT),
+            Quantities.getQuantity(0.00044d, MEGAWATT),
             testingTolerance
           )
           q should equalWithTolerance(

@@ -142,16 +142,16 @@ protected trait EvcsAgentFundamentals
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
-        resolution * 10, // FIXME probably need to increase this for grid oriented scheduling
+        resolution, // FIXME probably need to increase this for grid oriented scheduling
         inputModel.getNode
           .getvTarget()
           .to(PU)
       ),
-      ValueStore.forResult(resolution, 10),
-      ValueStore(resolution * 10),
-      ValueStore(resolution * 10),
-      ValueStore(resolution * 10),
-      maybeEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
+      ValueStore(resolution),
+      ValueStore(resolution),
+      ValueStore(resolution),
+      ValueStore(resolution),
+      maybeEmAgent.map(FlexStateData(_, ValueStore(resolution)))
     )
   }
 
