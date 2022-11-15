@@ -38,7 +38,10 @@ import edu.ie3.simona.model.participant.load.profile.{
   LoadProfileStore,
   ProfileLoadModel
 }
-import edu.ie3.simona.model.participant.load.random.RandomLoadModel
+import edu.ie3.simona.model.participant.load.random.{
+  RandomLoadModel,
+  RandomLoadParamStore
+}
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
 import edu.ie3.simona.model.participant.load.{
   FixedLoadModel,
@@ -47,23 +50,14 @@ import edu.ie3.simona.model.participant.load.{
 }
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil._
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KILOVARHOUR,
-  KILOWATTHOUR,
-  MEGAVAR,
-  MEGAWATT,
-  PU
-}
+import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.QuantityUtil
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Energy, Power}
+import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.{ClassTag, classTag}
-import scala.util.{Failure, Success}
 
 protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
   LD
@@ -147,6 +141,13 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
           LoadProfileStore.resolution.getSeconds,
           profileLoadModel.operationInterval.start,
           profileLoadModel.operationInterval.end
+        )
+      case randomLoadModel: RandomLoadModel =>
+        activationTicksInOperationTime(
+          simulationStartDate,
+          RandomLoadParamStore.resolution.getSeconds,
+          randomLoadModel.operationInterval.start,
+          randomLoadModel.operationInterval.end
         )
       case _ =>
         Array.emptyLongArray
