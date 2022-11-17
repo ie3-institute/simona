@@ -1188,6 +1188,7 @@ object SimonaConfig {
               SimonaConfig.Simona.Input.Weather.Datasource.CouchbaseParams
             ],
             csvParams: scala.Option[SimonaConfig.BaseCsvParams],
+            distance: scala.Double,
             influxDb1xParams: scala.Option[
               SimonaConfig.Simona.Input.Weather.Datasource.InfluxDb1xParams
             ],
@@ -1453,6 +1454,9 @@ object SimonaConfig {
                     )
                   )
                 else None,
+              distance =
+                if (c.hasPathOrNull("distance")) c.getDouble("distance")
+                else 10000,
               influxDb1xParams =
                 if (c.hasPathOrNull("influxDb1xParams"))
                   scala.Some(

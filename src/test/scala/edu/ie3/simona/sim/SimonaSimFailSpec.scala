@@ -181,6 +181,7 @@ object SimonaSimFailSpec {
             ),
             None,
             None,
+            10000.0,
             None,
             None,
             None,

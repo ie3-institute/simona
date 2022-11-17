@@ -901,6 +901,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               ),
               None,
               None,
+              10000,
               None,
               Some(360L),
               Some(

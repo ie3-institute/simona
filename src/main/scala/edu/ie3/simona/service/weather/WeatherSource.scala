@@ -38,6 +38,7 @@ import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.locationtech.jts.geom.{Coordinate, Point}
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -49,6 +50,7 @@ import scala.util.{Failure, Success, Try}
 
 trait WeatherSource {
   protected val idCoordinateSource: IdCoordinateSource
+  protected val distance: ComparableQuantity[Length]
 
   /** Determine the relevant coordinates around the queried one together with
     * their weighting factors in averaging
@@ -111,7 +113,7 @@ trait WeatherSource {
 
     /* Go and get the nearest coordinates, that are known to the weather source */
     val nearestCoords = idCoordinateSource
-      .getNearestCoordinates(queryPoint, amountOfInterpolationCoords)
+      .getNearestCoordinates(queryPoint, amountOfInterpolationCoords, distance)
       .asScala
 
     nearestCoords.find(coordinateDistance =>
@@ -336,6 +338,8 @@ object WeatherSource {
     val timestampPattern: Option[String] = weatherDataSourceCfg.timestampPattern
     val scheme: String = weatherDataSourceCfg.scheme
     val resolution: Option[Long] = weatherDataSourceCfg.resolution
+    val distance: ComparableQuantity[Length] =
+      Quantities.getQuantity(weatherDataSourceCfg.distance, Units.METRE)
 
     // check that only one source is defined
     if (definedWeatherSources.size > 1)
@@ -356,7 +360,8 @@ object WeatherSource {
               coordinateSourceFunction,
               timestampPattern,
               scheme,
-              resolution
+              resolution,
+              distance
             )(simulationStart)
         case Some(Some(params: CouchbaseParams)) =>
           checkCouchbaseParams(params)
@@ -366,7 +371,8 @@ object WeatherSource {
               coordinateSourceFunction,
               timestampPattern,
               scheme,
-              resolution
+              resolution,
+              distance
             )(simulationStart)
         case Some(Some(params @ InfluxDb1xParams(database, _, url))) =>
           checkInfluxDb1xParams("WeatherSource", url, database)
@@ -376,7 +382,8 @@ object WeatherSource {
               coordinateSourceFunction,
               timestampPattern,
               scheme,
-              resolution
+              resolution,
+              distance
             )(simulationStart)
         case Some(Some(params: SqlParams)) =>
           checkSqlParams(params)
@@ -386,7 +393,8 @@ object WeatherSource {
               coordinateSourceFunction,
               timestampPattern,
               scheme,
-              resolution
+              resolution,
+              distance
             )(simulationStart)
         case Some(Some(_: SampleParams)) =>
           // sample weather, no check required

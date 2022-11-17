@@ -18,10 +18,13 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import org.locationtech.jts.geom.Point
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
 import java.util
-import java.util.Optional
+import java.util.{Collection, List, Optional, SortedSet}
+import javax.measure.quantity.Length
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 import scala.util.{Failure, Success}
@@ -312,6 +315,8 @@ case object WeatherSourceSpec {
   case object DummyWeatherSource extends WeatherSource {
     override protected val idCoordinateSource: IdCoordinateSource =
       DummyIdCoordinateSource
+    override protected val distance: ComparableQuantity[Length] =
+      Quantities.getQuantity(30000, Units.METRE)
 
     /** Get the weather data for the given tick as a weighted average taking
       * into account the given weighting of weather coordinates.
@@ -378,5 +383,33 @@ case object WeatherSourceSpec {
 
     override def getAllCoordinates: util.Collection[Point] =
       idToCoordinate.values.toVector.asJava
+
+    def getNearestCoordinates(
+        coordinate: Point,
+        n: Int,
+        distance: ComparableQuantity[Length]
+    ): util.List[CoordinateDistance] = {
+      val points: Set[Point] = coordinateToId.keySet
+
+      val deltas: Array[Double] = calculateXYDelta(coordinate, distance)
+
+      val xMin: Double = coordinate.getX - deltas(0)
+      val xMax: Double = coordinate.getX + deltas(0)
+      val yMin: Double = coordinate.getY - deltas(1)
+      val yMax: Double = coordinate.getY + deltas(1)
+
+      val reducedPoints: Set[Point] = points.flatMap { point =>
+        val x: Double = point.getX
+        val y: Double = point.getY
+
+        if (xMin <= x && x <= xMax && yMin <= y && y <= yMax) {
+          Some(point)
+        } else {
+          None
+        }
+      }
+
+      getNearestCoordinates(coordinate, n, reducedPoints.asJava)
+    }
   }
 }
