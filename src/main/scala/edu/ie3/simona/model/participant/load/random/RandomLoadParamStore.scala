@@ -7,8 +7,7 @@
 package edu.ie3.simona.model.participant.load.random
 
 import java.io.{InputStreamReader, Reader}
-import java.time.ZonedDateTime
-
+import java.time.{Duration, ZonedDateTime}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.exceptions.FileIOException
 import edu.ie3.simona.model.participant.load.DayType
@@ -44,6 +43,7 @@ final case class RandomLoadParamStore private (reader: Reader) {
 }
 
 case object RandomLoadParamStore extends LazyLogging {
+  val resolution: Duration = Duration.ofMinutes(15)
 
   /** Default value store, that uses information from a file
     * 'random_load_parameters.csv' placed in the resources folder of the project
