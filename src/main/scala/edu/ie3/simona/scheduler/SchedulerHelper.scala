@@ -7,7 +7,6 @@
 package edu.ie3.simona.scheduler
 
 import akka.actor.ActorRef
-import breeze.linalg.min
 import edu.ie3.simona.event.RuntimeEvent.{
   CheckWindowPassed,
   Done,
@@ -294,12 +293,7 @@ trait SchedulerHelper extends SimonaActorLogging {
       awaitingResponseMap: CountingMap[Long],
       nowInTicks: Long
   ): Boolean =
-    awaitingResponseMap.minKeyOption match {
-      case Some(minKey) =>
-        nowInTicks - minKey <= 0L
-      case None =>
-        true // map empty, no completions awaited
-    }
+    awaitingResponseMap.isEmpty
 
   /** Checks if the provided state data and the current tick is eligible to
     * issue a [[CheckWindowPassed]] event
@@ -453,7 +447,7 @@ trait SchedulerHelper extends SimonaActorLogging {
       /* notify listeners */
       notifyListener(
         Done(
-          stateData.time.nowInTicks,
+          Math.min(stateData.time.nowInTicks, endTick),
           totalSimDuration,
           stateData.runtime.noOfFailedPF,
           errorInSim
@@ -465,7 +459,7 @@ trait SchedulerHelper extends SimonaActorLogging {
       /* notify listeners */
       notifyListener(
         Done(
-          min(stateData.time.nowInTicks, endTick),
+          Math.min(stateData.time.nowInTicks, endTick),
           totalSimDuration,
           stateData.runtime.noOfFailedPF,
           errorInSim
@@ -792,7 +786,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     context.watch(actorToBeScheduled)
 
     // if the tick of this trigger is too much in the past, we cannot schedule it
-    if (stateData.time.nowInTicks - trigger.tick > 0L) {
+    if (stateData.time.nowInTicks > trigger.tick) {
       actorToBeScheduled ! IllegalTriggerMessage(
         s"Cannot schedule an event $trigger at tick ${trigger.tick} when 'nowInSeconds' is at ${stateData.time.nowInTicks}!",
         actorToBeScheduled
