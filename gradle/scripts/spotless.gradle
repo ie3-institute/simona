@@ -16,11 +16,10 @@ spotless {
 
   /* cf. https://github.com/diffplug/spotless/tree/master/plugin-gradle */
   groovy {
-    target '**.groovy', 'Jenkinsfile'
-    licenseHeader "#!groovy\n\n" + ie3LicHead, "////////////////////////////////"
+    licenseHeader ie3LicHead
     // the Groovy Eclipse formatter extends the Java Eclipse formatter,
     // so it formats Java files by default (unless `excludeJava` is used).
-    greclipse()
+    greclipse().configFile('greclipse.properties')
     indentWithSpaces 2
   }
 
