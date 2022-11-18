@@ -293,7 +293,12 @@ trait SchedulerHelper extends SimonaActorLogging {
       awaitingResponseMap: CountingMap[Long],
       nowInTicks: Long
   ): Boolean =
-    awaitingResponseMap.isEmpty
+    awaitingResponseMap.minKeyOption match {
+      case Some(minKey) =>
+        nowInTicks <= minKey
+      case None =>
+        true // map empty, no completions awaited
+    }
 
   /** Checks if the provided state data and the current tick is eligible to
     * issue a [[CheckWindowPassed]] event
