@@ -37,7 +37,8 @@ class EmModelSpec
       emInput,
       modelConfig,
       simulationStartDate,
-      simulationEndDate
+      simulationEndDate,
+      PrioritizedFlexStrat // is not tested here
     )
 
     model.enable()

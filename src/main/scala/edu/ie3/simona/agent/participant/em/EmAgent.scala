@@ -40,7 +40,7 @@ import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.participant.em.EmModel.EmRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.em.EmModel
+import edu.ie3.simona.model.participant.em.{EmModel, EmModelStrat}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
@@ -85,6 +85,7 @@ object EmAgent {
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
+      modelStrategy: EmModelStrat,
       connectedAgents: Seq[
         (
             ActorRef,
@@ -188,6 +189,7 @@ class EmAgent(
                 resolution,
                 requestVoltageDeviationThreshold,
                 outputConfig,
+                modelStrategy,
                 connectedAgents,
                 maybeParentEmAgent
               )
@@ -209,11 +211,12 @@ class EmAgent(
           )
       }
 
-      val model = buildModel(
+      val model = EmModel(
         inputModel,
         modelConfig,
         simulationStartDate,
-        simulationEndDate
+        simulationEndDate,
+        modelStrategy
       )
 
       val baseStateData = EmModelBaseStateData(

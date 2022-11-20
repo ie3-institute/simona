@@ -16,6 +16,7 @@ import edu.ie3.simona.agent.participant.em.EmAgent.EmAgentInitializeStateData
 import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.model.participant.em.PrioritizedFlexStrat
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
@@ -111,6 +112,7 @@ class EmAgentSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
+              modelStrategy = PrioritizedFlexStrat,
               primaryServiceProxy = primaryServiceProxy.ref,
               connectedAgents = connectedAgents
             )
@@ -452,6 +454,7 @@ class EmAgentSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
+              modelStrategy = PrioritizedFlexStrat,
               primaryServiceProxy = primaryServiceProxy.ref,
               connectedAgents = connectedAgents
             )
@@ -827,6 +830,7 @@ class EmAgentSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
+              modelStrategy = PrioritizedFlexStrat,
               primaryServiceProxy = primaryServiceProxy.ref,
               connectedAgents = connectedAgents
             )
@@ -1208,6 +1212,7 @@ class EmAgentSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
+              modelStrategy = PrioritizedFlexStrat,
               connectedAgents = connectedAgents,
               maybeParentEmAgent = Some(parentEmAgent.ref) // em-controlled
             )

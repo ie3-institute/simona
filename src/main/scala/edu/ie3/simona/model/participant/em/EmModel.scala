@@ -120,7 +120,8 @@ object EmModel {
       inputModel: EmInput,
       modelConfig: EmRuntimeConfig,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
+      modelStrategy: EmModelStrat
   ): EmModel = {
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
@@ -136,7 +137,7 @@ object EmModel {
       operationInterval,
       modelConfig.scaling,
       QControl(inputModel.getqCharacteristics),
-      PrioritizedFlexStrat // TODO configurable
+      modelStrategy
     )
 
     model.enable()

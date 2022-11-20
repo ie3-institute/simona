@@ -40,6 +40,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.InitializeParticipantAgentTrigger
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.agent.participant.storage.StorageAgent
+import edu.ie3.simona.model.participant.em.PrioritizedFlexStrat
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -851,6 +852,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
+        PrioritizedFlexStrat,
         connectedAgents
       )
     )
