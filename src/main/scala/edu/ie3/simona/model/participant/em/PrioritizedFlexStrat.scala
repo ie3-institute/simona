@@ -4,71 +4,54 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant
+package edu.ie3.simona.model.participant.em
 
-import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.input.system._
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.agent.participant.em.EmAgent.FlexCorrespondence
-import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
-import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.EmModel.{
-  EmRelevantData,
-  relativeTolerance,
-  zeroApparentPower
+import edu.ie3.datamodel.models.input.system.{
+  EvcsInput,
+  HpInput,
+  StorageInput,
+  SystemParticipantInput
 }
-import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.ontology.messages.FlexibilityMessage
+import edu.ie3.simona.model.participant.em.EmModel.relativeTolerance
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.util.scala.OperationInterval
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-import edu.ie3.util.quantities.{QuantityUtil => PsuQuantityUtil}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
+import edu.ie3.util.quantities.{QuantityUtil => PsuQuantityUtil}
+import tech.units.indriya.ComparableQuantity
 
-import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
+import javax.measure.quantity.Power
 
-final case class EmModel private (
-    uuid: UUID,
-    id: String,
-    operationInterval: OperationInterval,
-    scalingFactor: Double,
-    qControl: QControl
-) extends SystemParticipant[EmRelevantData, ConstantState.type](
-      uuid,
-      id,
-      operationInterval,
-      scalingFactor,
-      qControl,
-      zeroKW, // FIXME dummy
-      0 // FIXME dummy
-    ) {
+object PrioritizedFlexStrat extends EmModelStrat {
 
-  /** Determine the power of controllable devices such as storages
+  /** Determine the power of controllable devices by using flexibility according
+    * to a prioritized list of device types. This means that e.g. flexibility of
+    * storages is used before flexibility of heat pumps is used. Priority lists
+    * can differ depending on whether positive or negative flexibility needs to
+    * be used.
+    *
     * @param flexOptions
     *   The flex options per connected system participant
     * @param target
     *   The target power to aim for when utilizing flexibility
+    * @return
+    *   Power set points for devices, if applicable
     */
-  def determineDeviceControl(
-      flexOptions: Seq[(SystemParticipantInput, ProvideMinMaxFlexOptions)],
+  override def determineDeviceControl(
+      flexOptions: Seq[(_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)],
       target: ComparableQuantity[Power]
   ): Seq[(UUID, ComparableQuantity[Power])] = {
 
-    val suggestedPower =
+    val totalRefPower =
       flexOptions
-        .map { case (_, ProvideMinMaxFlexOptions(_, suggestedPower, _, _)) =>
-          suggestedPower
+        .map { case (_, ProvideMinMaxFlexOptions(_, refPower, _, _)) =>
+          refPower
         }
         .reduceOption { (power1, power2) =>
           power1.add(power2)
         }
         .getOrElse(throw new RuntimeException("No flexibilities provided"))
 
-    val targetDelta = suggestedPower.subtract(target)
+    val targetDelta = totalRefPower.subtract(target)
 
     val evcsOpt = flexOptions.collectFirst { case flex @ (_: EvcsInput, _) =>
       flex
@@ -187,91 +170,6 @@ final case class EmModel private (
       }
     }
 
-  }
-
-  override def calculatePower(
-      tick: Long,
-      voltage: ComparableQuantity[Dimensionless],
-      data: EmRelevantData
-  ): ApparentPower =
-    data.flexCorrespondences
-      .map { correspondence =>
-        correspondence.participantResult
-          .map(res => ApparentPower(res.getP, res.getQ))
-          .getOrElse(
-            throw new RuntimeException(s"No result received in $correspondence")
-          )
-      }
-      .reduceOption { (power1, power2) =>
-        ApparentPower(power1.p.add(power2.p), power1.q.add(power2.q))
-      }
-      .map { power =>
-        ApparentPower(
-          power.p.to(StandardUnits.ACTIVE_POWER_RESULT),
-          power.q.to(StandardUnits.REACTIVE_POWER_RESULT)
-        )
-      }
-      .getOrElse(zeroApparentPower)
-
-  override protected def calculateActivePower(
-      data: EmRelevantData
-  ): ComparableQuantity[Power] =
-    throw new NotImplementedError("Use calculatePower directly")
-
-  override def determineFlexOptions(
-      data: EmRelevantData,
-      lastState: ModelState.ConstantState.type
-  ): FlexibilityMessage.ProvideFlexOptions =
-    throw new NotImplementedError("EmModel cannot be managed")
-
-  override def handleControlledPowerChange(
-      data: EmRelevantData,
-      lastState: ModelState.ConstantState.type,
-      setPower: ComparableQuantity[Power]
-  ): (ModelState.ConstantState.type, FlexChangeIndicator) =
-    throw new NotImplementedError("EmModel cannot be managed")
-}
-
-object EmModel {
-
-  private val relativeTolerance = 1e-6d
-
-  private val zeroApparentPower = ApparentPower(
-    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
-    Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT)
-  )
-
-  /** Class that holds all relevant data for Energy Management calculation
-    */
-  final case class EmRelevantData(
-      flexCorrespondences: Iterable[FlexCorrespondence]
-  ) extends CalcRelevantData
-
-  def apply(
-      inputModel: EmInput,
-      modelConfig: EmRuntimeConfig,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
-  ): EmModel = {
-    /* Determine the operation interval */
-    val operationInterval: OperationInterval =
-      SystemComponent.determineOperationInterval(
-        simulationStartDate,
-        simulationEndDate,
-        inputModel.getOperationTime
-      )
-
-    val model = new EmModel(
-      inputModel.getUuid,
-      inputModel.getId,
-      operationInterval,
-      modelConfig.scaling,
-      QControl(inputModel.getqCharacteristics)
-    )
-
-    model.enable()
-
-    model
   }
 
 }
