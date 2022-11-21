@@ -245,7 +245,7 @@ class DBFSAlgorithmParticipantSpec
         firstSweepNo
       )
 
-      // the gridAgentWithParticipants have received an AssetPowerChangedMessage
+      // the gridAgentWithParticipants has received an AssetPowerChangedMessage
       // before requesting power from the superiorGrid
       superiorGridAgent.expectGridPowerProvision(
         Seq(
@@ -285,7 +285,7 @@ class DBFSAlgorithmParticipantSpec
         )
       )
 
-      // here the gridAgentWithParticipants have received a second AssetPowerUnchangedMessage
+      // here the gridAgentWithParticipants has received a second AssetPowerUnchangedMessage
       // we expect that the GridAgent unstashes the messages and return a value for our power request
       superiorGridAgent.expectGridPowerProvision(
         Seq(
@@ -297,7 +297,7 @@ class DBFSAlgorithmParticipantSpec
         )
       )
 
-      // normally the superior grid agent would check weather the power flow calculation converges and would
+      // normally the superior grid agent would check whether the power flow calculation converges and would
       // send a CompletionMessage to the scheduler and a FinishGridSimulationTrigger to the inferior grid agent
       // after the convergence
       // (here we do it by hand)
