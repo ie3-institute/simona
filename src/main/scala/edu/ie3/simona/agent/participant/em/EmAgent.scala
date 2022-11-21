@@ -713,6 +713,8 @@ class EmAgent(
             )
 
           case None =>
+            // if we're self-optimizing, we want to reach 0 kW always.
+            // TODO we might also use csv time series data points as targets
             determineAndSchedulePowerControl(baseStateData, flexData)
 
         }
