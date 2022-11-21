@@ -316,7 +316,7 @@ case object WeatherSourceSpec {
     override protected val idCoordinateSource: IdCoordinateSource =
       DummyIdCoordinateSource
     override protected val distance: ComparableQuantity[Length] =
-      Quantities.getQuantity(30000, Units.METRE)
+      Quantities.getQuantity(400000, Units.METRE)
 
     /** Get the weather data for the given tick as a weighted average taking
       * into account the given weighting of weather coordinates.
