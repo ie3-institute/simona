@@ -532,5 +532,6 @@ class DBFSAlgorithmCenGridSpec
           )
       }
     }
+
   }
 }
