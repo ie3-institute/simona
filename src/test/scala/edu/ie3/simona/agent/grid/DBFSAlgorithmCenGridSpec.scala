@@ -488,41 +488,9 @@ class DBFSAlgorithmCenGridSpec
       // normally the slack node would send a FinishGridSimulationTrigger to all
       // connected inferior grids, because the slack node is just a mock, we imitate this behavior
       superiorGridAgent.gaProbe.send(
-        scheduler.ref,
-        CompletionMessage(
-          startGridSimulationTriggerId + secondSweepNo,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(7200),
-                superiorGridAgent.gaProbe.ref
-              )
-            )
-          )
-        )
-      )
-
-      superiorGridAgent.gaProbe.send(
         centerGridAgent,
         FinishGridSimulationTrigger(3600)
       )
-
-      scheduler.expectMsgPF() {
-        case CompletionMessage(
-              triggerId,
-              Some(Seq(message: ScheduleTriggerMessage))
-            ) =>
-          triggerId shouldBe 3
-          message shouldBe ScheduleTriggerMessage(
-            ActivityStartTrigger(7200),
-            superiorGridAgent.gaProbe.ref
-          )
-
-        case x =>
-          fail(
-            s"Invalid message received when expecting a completion message for simulate grid after cleanup! Message was $x"
-          )
-      }
 
       // after a FinishGridSimulationTrigger is send the inferior grids, they themselves will send the
       // Trigger forward the trigger to their connected inferior grids. Therefore the inferior grid

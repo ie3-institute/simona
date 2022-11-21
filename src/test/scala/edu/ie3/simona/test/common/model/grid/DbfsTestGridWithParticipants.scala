@@ -15,25 +15,13 @@ import edu.ie3.datamodel.models.input.container.{
   SystemParticipants
 }
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.datamodel.models.input.system.{
-  BmInput,
-  ChpInput,
-  EmInput,
-  EvInput,
-  EvcsInput,
-  FixedFeedInInput,
-  HpInput,
-  LoadInput,
-  PvInput,
-  StorageInput,
-  WecInput
-}
+import edu.ie3.datamodel.models.input.system._
 import edu.ie3.datamodel.models.input.{
   MeasurementUnitInput,
   NodeInput,
   OperatorInput
 }
-import edu.ie3.datamodel.models.profile.{BdewStandardLoadProfile, LoadProfile}
+import edu.ie3.datamodel.models.profile.LoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.util.TestGridFactory
 import edu.ie3.util.quantities.PowerSystemUnits._
@@ -51,10 +39,10 @@ import scala.jdk.CollectionConverters._
   * lines, nodes and transformers.
   */
 trait DbfsTestGridWithParticipants extends SubGridGateMokka {
-  // 2 HS nodes, 1 slack HöS node
+  // 2 hv nodes, 1 slack ehv node
   protected val node1 = new NodeInput(
     UUID.fromString("78c5d473-e01b-44c4-afd2-e4ff3c4a5d7c"),
-    "HS_NET1_Station_1",
+    "HV_NET1_Station_1",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
     Quantities.getQuantity(1.0, PU),
@@ -66,7 +54,7 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
 
   protected val supNodeA = new NodeInput(
     UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"),
-    "HS_NET1_Station_1_380",
+    "HV_NET1_Station_1_380",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
     Quantities.getQuantity(1.0, PU),
@@ -76,10 +64,10 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
     1000
   )
 
-  // 1 transformer from HS to HöS
+  // 1 transformer from hv to ehv
   private val trafoType = new Transformer2WTypeInput(
     UUID.randomUUID(),
-    "HöS-HS_1",
+    "EHV-HV_1",
     Quantities.getQuantity(5.415, OHM),
     Quantities.getQuantity(108.165, OHM),
     Quantities.getQuantity(200000.0, KILOVOLTAMPERE),
@@ -97,7 +85,7 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
 
   private val transformer1 = new Transformer2WInput(
     UUID.fromString("6e9d912b-b652-471b-84d2-6ed571e53a7b"),
-    "HöS-Trafo_S2",
+    "EHV-Trafo_S2",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
     supNodeA,
