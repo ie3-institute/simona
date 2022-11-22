@@ -24,11 +24,11 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
   "Validating the configs" when {
     "validating the simona config" when {
       "Checking date input" should {
-        val checkDateTime = PrivateMethod[Unit](Symbol("checkDateTime"))
+        val checkTimeConfig = PrivateMethod[Unit](Symbol("checkTimeConfig"))
 
         "let valid input pass" in {
           noException shouldBe thrownBy {
-            ConfigFailFast invokePrivate checkDateTime(
+            ConfigFailFast invokePrivate checkTimeConfig(
               new Time(
                 "2020-06-18 13:41:00",
                 None,
@@ -41,7 +41,38 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "identify invalid input" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast invokePrivate checkDateTime(
+            ConfigFailFast invokePrivate checkTimeConfig(
+              new Time(
+                "2020-06-18 13:41:00",
+                None,
+                "2020-07-18 13:41:00",
+                true
+              )
+            )
+          }.getMessage shouldBe "Invalid time configuration." +
+            "Please ensure that the start time of the simulation is before the end time."
+        }
+      }
+
+      "Checking date string" should {
+        val createDateTime = PrivateMethod[Unit](Symbol("createDateTime"))
+
+        "let valid input pass" in {
+          noException shouldBe thrownBy {
+            ConfigFailFast invokePrivate createDateTime(
+              new Time(
+                "2020-06-18 13:41:00",
+                None,
+                "2020-05-18 13:41:00",
+                true
+              )
+            )
+          }
+        }
+
+        "identify invalid input" in {
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate createDateTime(
               new Time(
                 "2020-06-18 13:41:00",
                 None,
@@ -49,7 +80,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 true
               )
             )
-          }.getMessage shouldBe "Invalid dateTimeString for config parameter simonaConfig.simona.time.startDateTime: total non-sense. Please " +
+          }.getMessage shouldBe "Invalid dateTimeString: total non-sense. Please " +
             "ensure that your date/time parameter match the following pattern: ‘yyyy-MM-dd HH:mm:ss'"
         }
       }

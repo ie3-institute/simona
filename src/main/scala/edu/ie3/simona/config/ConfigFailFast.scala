@@ -30,6 +30,8 @@ import edu.ie3.util.{StringUtils, TimeUtil}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
+import java.time.ZonedDateTime
+import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
@@ -106,7 +108,7 @@ case object ConfigFailFast extends LazyLogging {
   def check(simonaConfig: SimonaConfig): Unit = {
 
     /* check date and time */
-    checkDateTime(simonaConfig.simona.time)
+    checkTimeConfig(simonaConfig.simona.time)
 
     // check if the provided combinations of refSystems provided are valid
     val refSystems = simonaConfig.simona.gridConfig.refSystems
@@ -203,24 +205,37 @@ case object ConfigFailFast extends LazyLogging {
     * @param timeConfig
     *   the time config
     */
-  private def checkDateTime(
+  private def checkTimeConfig(
       timeConfig: SimonaConfig.Simona.Time
   ): Unit = {
 
-    // check if the provided date/time values match the SimonaConstants definition for date/time
-    val timeAndDates = Map(
-      "simonaConfig.simona.time.startDateTime" -> timeConfig.startDateTime,
-      "simonaConfig.simona.time.endDateTime" -> timeConfig.endDateTime
-    )
-    timeAndDates.foreach { case (configParameter, dateTimeString) =>
-      Try {
-        TimeUtil.withDefaults.toZonedDateTime(dateTimeString)
-      }.getOrElse(
-        throw new InvalidConfigParameterException(
-          s"Invalid dateTimeString for config parameter $configParameter: $dateTimeString. " +
-            s"Please ensure that your date/time parameter match the following pattern: ‘yyyy-MM-dd HH:mm:ss'"
-        )
+    val startDate = createDateTime(timeConfig.startDateTime)
+    val endDate = createDateTime(timeConfig.endDateTime)
+
+    if (startDate.isAfter(endDate))
+      throw new InvalidConfigParameterException(
+        s"Invalid time configuration." +
+          s"Please ensure that the start time of the simulation is before the end time."
       )
+  }
+
+  /** Check for valid dateTime string
+    *
+    * @param dateTimeString
+    *   the dateTimeString that should be checked
+    */
+  private def createDateTime(
+      dateTimeString: String
+  ): ZonedDateTime = {
+    try {
+      TimeUtil.withDefaults.toZonedDateTime(dateTimeString)
+    } catch {
+      case e: DateTimeParseException =>
+        throw new InvalidConfigParameterException(
+          s"Invalid dateTimeString: $dateTimeString. " +
+            s"Please ensure that your date/time parameter match the following pattern: ‘yyyy-MM-dd HH:mm:ss'",
+          e
+        )
     }
   }
 
