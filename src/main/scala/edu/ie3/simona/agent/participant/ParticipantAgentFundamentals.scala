@@ -28,7 +28,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
-  FlexStateData,
   FromOutsideBaseStateData,
   ParticipantModelBaseStateData
 }
@@ -76,6 +75,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
   RegistrationResponseMessage
 }
+import edu.ie3.simona.ontology.trigger.Trigger
 import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.ontology.trigger.Trigger.ParticipantTrigger.StartCalculationTrigger
 import edu.ie3.simona.service.ServiceStateData.ServiceActivationBaseStateData
@@ -259,12 +259,18 @@ protected trait ParticipantAgentFundamentals[
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
       scheduler: ActorRef,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[ActorRef],
+      scheduleTriggerFunc: Trigger => ScheduleTriggerMessage
   ): FSM.State[AgentState, ParticipantStateData[PD]] =
     try {
       /* Register for services */
       val awaitRegistrationResponsesFrom =
-        registerForServices(inputModel, services, self, maybeEmAgent)
+        registerForServices(
+          inputModel,
+          services,
+          scheduleTriggerFunc,
+          maybeEmAgent.nonEmpty
+        )
 
       // always request flex options for first sim tick
       maybeEmAgent.foreach {

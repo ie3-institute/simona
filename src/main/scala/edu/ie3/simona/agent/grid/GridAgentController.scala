@@ -41,6 +41,7 @@ import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.model.participant.em.PrioritizedFlexStrat
+import edu.ie3.simona.ontology.trigger.Trigger
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -401,27 +402,31 @@ class GridAgentController(
         SimonaConfig.FixedFeedInRuntimeConfig,
         ApparentPower
       ]
-  ) = (
-    gridAgentContext.simonaActorOf(
+  ) = {
+    val actor = gridAgentContext.simonaActorOf(
       FixedFeedInAgent.props(
         maybeEmAgent.getOrElse(environmentRefs.scheduler),
         listener // TODO this needs to be a param
       ),
       fixedFeedInInput.getId
-    ),
-    ParticipantInitializeStateData(
-      fixedFeedInInput,
-      modelConfiguration,
-      primaryServiceProxy,
-      None,
-      simulationStartDate,
-      simulationEndDate,
-      resolution,
-      requestVoltageDeviationThreshold,
-      outputConfig,
-      maybeEmAgent
     )
-  )
+    (
+      actor,
+      ParticipantInitializeStateData(
+        fixedFeedInInput,
+        modelConfiguration,
+        primaryServiceProxy,
+        None,
+        simulationStartDate,
+        simulationEndDate,
+        resolution,
+        requestVoltageDeviationThreshold,
+        outputConfig,
+        maybeEmAgent,
+        scheduleTriggerFunc(actor, maybeEmAgent)
+      )
+    )
+  }
 
   /** Creates a load agent and determines the needed additional information for
     * later initialization of the agent.
@@ -467,28 +472,32 @@ class GridAgentController(
         SimonaConfig.LoadRuntimeConfig,
         ApparentPower
       ]
-  ) = (
-    gridAgentContext.simonaActorOf(
+  ) = {
+    val actor = gridAgentContext.simonaActorOf(
       LoadAgent.props(
         maybeEmAgent.getOrElse(environmentRefs.scheduler),
         listener,
         modelConfiguration
       ),
       loadInput.getId
-    ),
-    ParticipantInitializeStateData(
-      loadInput,
-      modelConfiguration,
-      primaryServiceProxy,
-      None,
-      simulationStartDate,
-      simulationEndDate,
-      resolution,
-      requestVoltageDeviationThreshold,
-      outputConfig,
-      maybeEmAgent
     )
-  )
+    (
+      actor,
+      ParticipantInitializeStateData(
+        loadInput,
+        modelConfiguration,
+        primaryServiceProxy,
+        None,
+        simulationStartDate,
+        simulationEndDate,
+        resolution,
+        requestVoltageDeviationThreshold,
+        outputConfig,
+        maybeEmAgent,
+        scheduleTriggerFunc(actor, maybeEmAgent)
+      )
+    )
+  }
 
   /** Creates a pv agent and determines the needed additional information for
     * later initialization of the agent.
@@ -535,15 +544,16 @@ class GridAgentController(
         SimonaConfig.PvRuntimeConfig,
         ApparentPower
       ]
-  ) =
-    (
-      gridAgentContext.simonaActorOf(
-        PvAgent.props(
-          maybeEmAgent.getOrElse(environmentRefs.scheduler),
-          listener
-        ),
-        pvInput.getId
+  ) = {
+    val actor = gridAgentContext.simonaActorOf(
+      PvAgent.props(
+        maybeEmAgent.getOrElse(environmentRefs.scheduler),
+        listener
       ),
+      pvInput.getId
+    )
+    (
+      actor,
       ParticipantInitializeStateData(
         pvInput,
         modelConfiguration,
@@ -554,9 +564,11 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        maybeEmAgent
+        maybeEmAgent,
+        scheduleTriggerFunc(actor, maybeEmAgent)
       )
     )
+  }
 
   /** Creates an Evcs agent and determines the needed additional information for
     * later initialization of the agent.
@@ -612,14 +624,16 @@ class GridAgentController(
       )
     )
 
-    (
-      gridAgentContext.simonaActorOf(
-        EvcsAgent.props(
-          maybeEmAgent.getOrElse(environmentRefs.scheduler),
-          listener
-        ),
-        s"EvcsAgent_${evcsInput.getUuid}"
+    val actor = gridAgentContext.simonaActorOf(
+      EvcsAgent.props(
+        maybeEmAgent.getOrElse(environmentRefs.scheduler),
+        listener
       ),
+      evcsInput.getId
+    )
+
+    (
+      actor,
       ParticipantInitializeStateData(
         evcsInput,
         modelConfiguration,
@@ -630,7 +644,8 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        maybeEmAgent
+        maybeEmAgent,
+        scheduleTriggerFunc(actor, maybeEmAgent)
       )
     )
   }
@@ -680,15 +695,17 @@ class GridAgentController(
         SimonaConfig.WecRuntimeConfig,
         ApparentPower
       ]
-  ) =
-    (
-      gridAgentContext.simonaActorOf(
-        WecAgent.props(
-          maybeEmAgent.getOrElse(environmentRefs.scheduler),
-          listener
-        ),
-        wecInput.getId
+  ) = {
+    val actor = gridAgentContext.simonaActorOf(
+      WecAgent.props(
+        maybeEmAgent.getOrElse(environmentRefs.scheduler),
+        listener
       ),
+      wecInput.getId
+    )
+
+    (
+      actor,
       ParticipantInitializeStateData(
         wecInput,
         modelConfiguration,
@@ -699,9 +716,11 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        maybeEmAgent
+        maybeEmAgent,
+        scheduleTriggerFunc(actor, maybeEmAgent)
       )
     )
+  }
 
   /** Creates a storage agent and determines the needed additional information
     * for later initialization of the agent.
@@ -745,15 +764,17 @@ class GridAgentController(
         SimonaConfig.StorageRuntimeConfig,
         ApparentPower
       ]
-  ) =
-    (
-      gridAgentContext.simonaActorOf(
-        StorageAgent.props(
-          maybeEmAgent.getOrElse(environmentRefs.scheduler),
-          listener
-        ),
-        storageInput.getId
+  ) = {
+    val actor = gridAgentContext.simonaActorOf(
+      StorageAgent.props(
+        maybeEmAgent.getOrElse(environmentRefs.scheduler),
+        listener
       ),
+      storageInput.getId
+    )
+
+    (
+      actor,
       ParticipantInitializeStateData(
         storageInput,
         modelConfiguration,
@@ -764,9 +785,11 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        maybeEmAgent
+        maybeEmAgent,
+        scheduleTriggerFunc(actor, maybeEmAgent)
       )
     )
+  }
 
   /** Builds an [[EmAgent]] from given input
     *
@@ -881,4 +904,27 @@ class GridAgentController(
     )
   }
 
+  private def scheduleTriggerFunc(
+      participantRef: ActorRef,
+      maybeEmAgent: Option[ActorRef]
+  ): Trigger => ScheduleTriggerMessage = {
+    val scheduleTriggerFunc = (trigger: Trigger) =>
+      ScheduleTriggerMessage(
+        trigger,
+        participantRef
+      )
+
+    // TODO take into account central EmAgent, if applicable
+    // when using an EmAgent, activation schedules have to be stacked
+    (trigger: Trigger) =>
+      maybeEmAgent
+        .map { emAgent =>
+          ScheduleTriggerMessage(
+            scheduleTriggerFunc(trigger),
+            emAgent,
+            priority = true
+          )
+        }
+        .getOrElse(scheduleTriggerFunc(trigger))
+  }
 }
