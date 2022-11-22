@@ -82,7 +82,7 @@ class DBFSAlgorithmParticipantSpec
       val triggerId = 0
       val loadAgentTriggerId = 1
 
-      // this subnet has 1 superior grid (EHV) and 3 inferior grids (MV). Map the gates to test probes accordingly
+      // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
       val subGridGateToActorRef: Map[SubGridGate, ActorRef] =
         hvSubGridGates.map { gate =>
           gate -> superiorGridAgent.ref
@@ -276,10 +276,10 @@ class DBFSAlgorithmParticipantSpec
         ProvideSlackVoltageMessage(
           secondSweepNo,
           Seq(
-            ExchangeVoltage( // this one should currently be ignored anyways
+            ExchangeVoltage(
               supNodeA.getUuid,
-              Quantities.getQuantity(380, KILOVOLT),
-              Quantities.getQuantity(0, KILOVOLT)
+              Quantities.getQuantity(374.2269461446, KILOVOLT),
+              Quantities.getQuantity(65.9863075134, KILOVOLT)
             )
           )
         )
@@ -297,39 +297,8 @@ class DBFSAlgorithmParticipantSpec
         )
       )
 
-      // normally the superior grid agent would check whether the power flow calculation converges and would
-      // send a CompletionMessage to the scheduler and a FinishGridSimulationTrigger to the inferior grid agent
-      // after the convergence
+      // normally the superior grid agent would send a FinishGridSimulationTrigger to the inferior grid agent after the convergence
       // (here we do it by hand)
-      superiorGridAgent.gaProbe.send(
-        scheduler.ref,
-        CompletionMessage(
-          5,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(7200L),
-                superiorGridAgent.gaProbe.ref
-              )
-            )
-          )
-        )
-      )
-
-      scheduler.expectMsg(
-        CompletionMessage(
-          5,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(7200L),
-                superiorGridAgent.gaProbe.ref
-              )
-            )
-          )
-        )
-      )
-
       superiorGridAgent.gaProbe.send(
         gridAgentWithParticipants,
         FinishGridSimulationTrigger(3600L)
