@@ -28,4 +28,9 @@ trait EmModelStrat {
       flexOptions: Seq[(_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)],
       target: ComparableQuantity[Power]
   ): Seq[(UUID, ComparableQuantity[Power])]
+
+  def adaptFlexOptions(
+      spi: SystemParticipantInput,
+      flexOptions: ProvideMinMaxFlexOptions
+  ): ProvideMinMaxFlexOptions
 }

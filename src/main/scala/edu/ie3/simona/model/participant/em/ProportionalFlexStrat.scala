@@ -146,4 +146,10 @@ object ProportionalFlexStrat extends EmModelStrat {
       }
     }
   }
+
+  override def adaptFlexOptions(
+      spi: SystemParticipantInput,
+      flexOptions: ProvideMinMaxFlexOptions
+  ): ProvideMinMaxFlexOptions =
+    flexOptions
 }

@@ -7,13 +7,7 @@
 package edu.ie3.simona.agent.participant.em
 
 import akka.actor.{ActorRef, Props}
-import edu.ie3.datamodel.models.input.system.{
-  EmInput,
-  EvcsInput,
-  HpInput,
-  StorageInput,
-  SystemParticipantInput
-}
+import edu.ie3.datamodel.models.input.system.{EmInput, SystemParticipantInput}
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent
@@ -38,9 +32,13 @@ import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
-import edu.ie3.simona.model.participant.em.EmModel.EmRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.em.{EmModel, EmModelStrat}
+import edu.ie3.simona.model.participant.em.EmModel.EmRelevantData
+import edu.ie3.simona.model.participant.em.{
+  EmAggregateSimpleSum,
+  EmModel,
+  EmModelStrat
+}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
@@ -657,48 +655,30 @@ class EmAgent(
           case Some(flexStateData) =>
             // this EmAgent is itself EM-controlled
 
-            // TODO configurable
-            val controllableAssets: Seq[Class[_ <: SystemParticipantInput]] =
-              Seq(classOf[HpInput], classOf[StorageInput], classOf[EvcsInput])
-
-            val aggregateFlexOptions = flexData
+            val flexOptionsInput = flexData
               .flatMap { case (spi, correspondence, _) =>
                 correspondence.receivedFlexOptions.map((spi, _))
               }
               .collect { case (spi, flexOption: ProvideMinMaxFlexOptions) =>
-                (spi, flexOption)
-              }
-              .foldLeft(
-                ProvideMinMaxFlexOptions(
-                  baseStateData.modelUuid,
-                  zeroKW,
-                  zeroKW,
-                  zeroKW
-                )
-              ) {
-                case (
-                      ProvideMinMaxFlexOptions(uuid, sumRef, sumMin, sumMax),
-                      (spi, ProvideMinMaxFlexOptions(_, addRef, addMin, addMax))
-                    ) =>
-                  if (controllableAssets.contains(spi.getClass)) {
-                    ProvideMinMaxFlexOptions(
-                      uuid,
-                      referencePower = sumRef.add(addRef),
-                      minPower = sumMin.add(addMin),
-                      maxPower = sumMax.add(addMax)
-                    )
-                  } else {
-                    // if we're not flexible, only add ref power to all
-                    ProvideMinMaxFlexOptions(
-                      uuid,
-                      referencePower = sumRef.add(addRef),
-                      minPower = sumMin.add(addRef),
-                      maxPower = sumMax.add(addRef)
-                    )
-                  }
+                // adapt flex options, e.g. of devices that are
+                // not controllable by the strategy of this EM
+                baseStateData.model.modelStrategy
+                  .adaptFlexOptions(spi, flexOption)
               }
 
-            flexStateData.emAgent ! aggregateFlexOptions
+            val (ref, min, max) =
+              EmAggregateSimpleSum.aggregateFlexOptions(
+                flexOptionsInput
+              )
+
+            val flexMessage = ProvideMinMaxFlexOptions(
+              baseStateData.modelUuid,
+              ref,
+              min,
+              max
+            )
+
+            flexStateData.emAgent ! flexMessage
 
             baseStateData.copy(
               flexStateData = Some(
@@ -706,7 +686,7 @@ class EmAgent(
                   flexOptionsStore = ValueStore.updateValueStore(
                     flexStateData.flexOptionsStore,
                     tick,
-                    aggregateFlexOptions
+                    flexMessage
                   )
                 )
               )

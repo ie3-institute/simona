@@ -172,4 +172,25 @@ object PrioritizedFlexStrat extends EmModelStrat {
 
   }
 
+  // TODO provide test
+  override def adaptFlexOptions(
+      spi: SystemParticipantInput,
+      flexOptions: ProvideMinMaxFlexOptions
+  ): ProvideMinMaxFlexOptions = {
+    // only heat pumps, battery storages and charging
+    // stations are controlled by this strategy
+    // TODO configurable
+    val controllableAssets: Seq[Class[_ <: SystemParticipantInput]] =
+      Seq(classOf[HpInput], classOf[StorageInput], classOf[EvcsInput])
+
+    if (controllableAssets.contains(spi.getClass))
+      flexOptions
+    else {
+      // device is not controllable by this EmAgent
+      flexOptions.copy(
+        minPower = flexOptions.referencePower,
+        maxPower = flexOptions.referencePower
+      )
+    }
+  }
 }
