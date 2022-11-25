@@ -9,6 +9,8 @@ package edu.ie3.simona.agent.participant.em
 import akka.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.{EmInput, SystemParticipantInput}
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
+import edu.ie3.datamodel.models.timeseries.individual.IndividualTimeSeries
+import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
@@ -18,7 +20,8 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.em.EmAgent.{
   EmAgentInitializeStateData,
   EmModelBaseStateData,
-  FlexCorrespondence
+  FlexCorrespondence,
+  FlexTimeSeries
 }
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
@@ -28,6 +31,7 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
 import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantUninitializedStateData
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
@@ -50,14 +54,19 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeParticipantAgentTrigger
 }
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.simona.util.TickUtil.RichZonedDateTime
+import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.PU
+import edu.ie3.util.scala.io.FlexSignalFromExcel
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
+import scala.compat.java8.OptionConverters.RichOptionalGeneric
+import scala.jdk.CollectionConverters._
+import scala.util.{Failure, Success}
 
 object EmAgent {
   def props(
@@ -91,7 +100,8 @@ object EmAgent {
             SystemParticipantInput
         )
       ],
-      maybeParentEmAgent: Option[ActorRef] = None
+      maybeParentEmAgent: Option[ActorRef] = None,
+      maybeRootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm]
   ) extends InitializeStateData[ApparentPower]
 
   final case class EmModelBaseStateData(
@@ -117,7 +127,8 @@ object EmAgent {
       participantInput: Map[UUID, SystemParticipantInput],
       schedulerStateData: EmSchedulerStateData,
       stateDataStore: ValueStore[ConstantState.type],
-      flexStateData: Option[FlexStateData]
+      flexStateData: Option[FlexStateData],
+      flexTimeSeries: Option[FlexTimeSeries]
   ) extends ModelBaseStateData[
         ApparentPower,
         EmRelevantData,
@@ -146,6 +157,13 @@ object EmAgent {
         None
       )
   }
+
+  case class FlexTimeSeries(
+      timeSeries: IndividualTimeSeries[PValue],
+      minValue: ComparableQuantity[Power],
+      maxValue: ComparableQuantity[Power],
+      threshold: Double
+  )
 
 }
 
@@ -189,7 +207,8 @@ class EmAgent(
                 outputConfig,
                 modelStrategy,
                 connectedAgents,
-                maybeParentEmAgent
+                maybeParentEmAgent,
+                maybeRootEmConfig
               )
             ),
             triggerId,
@@ -216,6 +235,33 @@ class EmAgent(
         simulationEndDate,
         modelStrategy
       )
+
+      val maybeFlexTimeseries = maybeRootEmConfig.map { config =>
+        val timeSeriesType =
+          FlexSignalFromExcel.TimeSeriesType(config.timeSeriesType)
+        val timeSeries = FlexSignalFromExcel
+          .flexSignals(config.filePath, config.nodeId, timeSeriesType) match {
+          case Success(timeSeries) => timeSeries
+          case Failure(exception)  => throw exception
+        }
+
+        val allValues =
+          timeSeries.getEntries.asScala.flatMap(_.getValue.getP.asScala)
+        val maybeMinValue = allValues.minByOption(
+          _.to(PowerSystemUnits.MEGAWATT).getValue.doubleValue
+        )
+        val maybeMaxValue = allValues.maxByOption(
+          _.to(PowerSystemUnits.MEGAWATT).getValue.doubleValue
+        )
+
+        val (minValue, maxValue) = maybeMinValue
+          .zip(maybeMaxValue)
+          .getOrElse(
+            throw new RuntimeException(s"Time series for $config is empty")
+          )
+
+        FlexTimeSeries(timeSeries, minValue, maxValue, config.threshold)
+      }
 
       val baseStateData = EmModelBaseStateData(
         simulationStartDate,
@@ -252,7 +298,8 @@ class EmAgent(
               .getOrElse(ActivityStartTrigger(tick))
         ),
         ValueStore(0),
-        maybeParentEmAgent.map(FlexStateData(_, ValueStore(resolution * 10)))
+        maybeParentEmAgent.map(FlexStateData(_, ValueStore(resolution * 10))),
+        maybeFlexTimeseries
       )
 
       val updatedBaseStateData = setActiveTickAndSendTriggers(
@@ -693,9 +740,83 @@ class EmAgent(
             )
 
           case None =>
-            // if we're self-optimizing, we want to reach 0 kW always.
-            // TODO we might also use csv time series data points as targets
-            determineAndSchedulePowerControl(baseStateData, flexData)
+            // if we're not EM-controlled ourselves, we're determining the set points
+            // either via flex time series or as 0 kW
+            val setPower = baseStateData.flexTimeSeries match {
+              case Some(flexTimeSeries) =>
+                // round current time to 3 hrs
+                val currentDateTime = tick.toDateTime(baseStateData.startDate)
+                val currentHour = currentDateTime.getHour
+                val roundedHour = currentHour - currentHour % 3
+                val roundedDateTime = currentDateTime
+                  .withHour(roundedHour)
+                  .withMinute(0)
+                  .withSecond(0)
+                  .withNano(0)
+
+                // retrieve target power
+                val flexSetPower = flexTimeSeries.timeSeries
+                  .getTimeBasedValue(roundedDateTime)
+                  .asScala
+                  .getOrElse(
+                    throw new RuntimeException(
+                      s"Could not retrieve value for $roundedDateTime"
+                    )
+                  )
+                  .getValue
+                  .getP
+                  .asScala
+                  .getOrElse(
+                    throw new RuntimeException(
+                      s"No value set for $roundedDateTime"
+                    )
+                  )
+
+                val minThreshold =
+                  flexTimeSeries.minValue.multiply(flexTimeSeries.threshold)
+                val maxThreshold =
+                  flexTimeSeries.maxValue.multiply(flexTimeSeries.threshold)
+
+                // if target power is below threshold, issue no control
+                if (
+                  flexSetPower.isGreaterThanOrEqualTo(
+                    minThreshold
+                  ) && flexSetPower.isLessThanOrEqualTo(maxThreshold)
+                ) {
+                  val flexOptionsInput = flexData
+                    .flatMap { case (spi, correspondence, _) =>
+                      correspondence.receivedFlexOptions.map((spi, _))
+                    }
+                    .collect {
+                      case (spi, flexOption: ProvideMinMaxFlexOptions) =>
+                        // adapt flex options, e.g. of devices that are
+                        // not controllable by the strategy of this EM
+                        baseStateData.model.modelStrategy
+                          .adaptFlexOptions(spi, flexOption)
+                    }
+
+                  // sum up min power
+                  val (ref, _, _) =
+                    EmAggregateSimpleSum.aggregateFlexOptions(
+                      flexOptionsInput
+                    )
+
+                  ref
+                } else {
+                  if (flexSetPower.isLessThan(minThreshold))
+                    minThreshold
+                  else
+                    maxThreshold
+                }
+
+              case None => zeroKW
+            }
+
+            determineAndSchedulePowerControl(
+              baseStateData,
+              flexData,
+              targetPower = setPower
+            )
 
         }
 
