@@ -217,8 +217,10 @@ class GridAgentController(
             participant,
             environmentRefs,
             emParticipantMap,
-            None // FIXME
-          ) // introduce to environment
+            maybeRootEmAgent =
+              None // FIXME actually create EmAgent if applicable
+          )
+        // introduce to environment
         introduceAgentToEnvironment(
           actorRef,
           InitializeParticipantAgentTrigger[PrimaryData, InitializeStateData[
@@ -239,7 +241,8 @@ class GridAgentController(
       participantInputModel: SystemParticipantInput,
       environmentRefs: EnvironmentRefs,
       emParticipantMap: Map[UUID, SystemParticipantInput],
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[ActorRef] = None,
+      maybeRootEmAgent: Option[ActorRef] = None
   ): (
       ActorRef,
       InitializeStateData[_ <: PrimaryData]
@@ -256,7 +259,8 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.FixedFeedIn),
-        maybeEmAgent
+        maybeEmAgent,
+        maybeRootEmAgent
       )
     case input: LoadInput =>
       buildLoad(
@@ -270,7 +274,8 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Load),
-        maybeEmAgent
+        maybeEmAgent,
+        maybeRootEmAgent
       )
     case input: PvInput =>
       buildPv(
@@ -285,7 +290,8 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.PvPlant),
-        maybeEmAgent
+        maybeEmAgent,
+        maybeRootEmAgent
       )
     case input: WecInput =>
       buildWec(
@@ -300,7 +306,8 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Wec),
-        maybeEmAgent
+        maybeEmAgent,
+        maybeRootEmAgent
       )
     case input: EvcsInput =>
       buildEvcs(
@@ -319,7 +326,8 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs),
-        maybeEmAgent
+        maybeEmAgent,
+        maybeRootEmAgent
       )
 
     case emInput: EmInput =>
@@ -332,7 +340,8 @@ class GridAgentController(
         outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
         emParticipantMap,
         participantConfigUtil,
-        outputConfigUtil
+        outputConfigUtil,
+        maybeRootEmAgent
       )
 
     case input: StorageInput =>
@@ -347,7 +356,8 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Storage),
-        maybeEmAgent
+        maybeEmAgent,
+        maybeRootEmAgent
       )
 
     case input: SystemParticipantInput =>
@@ -394,7 +404,8 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[ActorRef],
+      maybeRootEmAgent: Option[ActorRef]
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -423,7 +434,7 @@ class GridAgentController(
         requestVoltageDeviationThreshold,
         outputConfig,
         maybeEmAgent,
-        scheduleTriggerFunc(actor, maybeEmAgent)
+        scheduleTriggerFunc(actor, Seq(maybeEmAgent, maybeRootEmAgent).flatten)
       )
     )
   }
@@ -464,7 +475,8 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[ActorRef],
+      maybeRootEmAgent: Option[ActorRef]
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -494,7 +506,7 @@ class GridAgentController(
         requestVoltageDeviationThreshold,
         outputConfig,
         maybeEmAgent,
-        scheduleTriggerFunc(actor, maybeEmAgent)
+        scheduleTriggerFunc(actor, Seq(maybeEmAgent, maybeRootEmAgent).flatten)
       )
     )
   }
@@ -536,7 +548,8 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[ActorRef],
+      maybeRootEmAgent: Option[ActorRef]
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -565,7 +578,7 @@ class GridAgentController(
         requestVoltageDeviationThreshold,
         outputConfig,
         maybeEmAgent,
-        scheduleTriggerFunc(actor, maybeEmAgent)
+        scheduleTriggerFunc(actor, Seq(maybeEmAgent, maybeRootEmAgent).flatten)
       )
     )
   }
@@ -607,7 +620,8 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[ActorRef],
+      maybeRootEmAgent: Option[ActorRef]
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -645,7 +659,7 @@ class GridAgentController(
         requestVoltageDeviationThreshold,
         outputConfig,
         maybeEmAgent,
-        scheduleTriggerFunc(actor, maybeEmAgent)
+        scheduleTriggerFunc(actor, Seq(maybeEmAgent, maybeRootEmAgent).flatten)
       )
     )
   }
@@ -687,7 +701,8 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[ActorRef],
+      maybeRootEmAgent: Option[ActorRef]
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -717,7 +732,7 @@ class GridAgentController(
         requestVoltageDeviationThreshold,
         outputConfig,
         maybeEmAgent,
-        scheduleTriggerFunc(actor, maybeEmAgent)
+        scheduleTriggerFunc(actor, Seq(maybeEmAgent, maybeRootEmAgent).flatten)
       )
     )
   }
@@ -756,7 +771,8 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[ActorRef],
+      maybeRootEmAgent: Option[ActorRef]
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -786,7 +802,7 @@ class GridAgentController(
         requestVoltageDeviationThreshold,
         outputConfig,
         maybeEmAgent,
-        scheduleTriggerFunc(actor, maybeEmAgent)
+        scheduleTriggerFunc(actor, Seq(maybeEmAgent, maybeRootEmAgent).flatten)
       )
     )
   }
@@ -819,7 +835,8 @@ class GridAgentController(
       outputConfig: ParticipantNotifierConfig,
       emParticipantMap: Map[UUID, SystemParticipantInput],
       participantConfigUtil: ConfigUtil.ParticipantConfigUtil,
-      outputConfigUtil: BaseOutputConfigUtil
+      outputConfigUtil: BaseOutputConfigUtil,
+      maybeRootEmAgent: Option[ActorRef]
   ): (
       ActorRef,
       EmAgentInitializeStateData
@@ -849,7 +866,8 @@ class GridAgentController(
           sp,
           environmentRefs,
           emParticipantMap,
-          Some(emAgentRef)
+          Some(emAgentRef),
+          maybeRootEmAgent
         )
 
         val initTrigger =
@@ -904,9 +922,17 @@ class GridAgentController(
     )
   }
 
+  /** @param participantRef
+    *   an ActorRef to the participant agent
+    * @param emAgentHierarchy
+    *   EmAgents in their hierarchy from bottom (controlling agents directly) to
+    *   top (root EmAgent)
+    * @return
+    *   A function that creates a [[ScheduleTriggerMessage]] for some trigger
+    */
   private def scheduleTriggerFunc(
       participantRef: ActorRef,
-      maybeEmAgent: Option[ActorRef]
+      emAgentHierarchy: Seq[ActorRef]
   ): Trigger => ScheduleTriggerMessage = {
     val scheduleTriggerFunc = (trigger: Trigger) =>
       ScheduleTriggerMessage(
@@ -914,17 +940,14 @@ class GridAgentController(
         participantRef
       )
 
-    // TODO take into account central EmAgent, if applicable
-    // when using an EmAgent, activation schedules have to be stacked
-    (trigger: Trigger) =>
-      maybeEmAgent
-        .map { emAgent =>
-          ScheduleTriggerMessage(
-            scheduleTriggerFunc(trigger),
-            emAgent,
-            priority = true
-          )
-        }
-        .getOrElse(scheduleTriggerFunc(trigger))
+    // when using EmAgent(s), activation schedules have to be stacked
+    emAgentHierarchy.foldLeft(scheduleTriggerFunc) { case (lastFunc, emAgent) =>
+      (trigger: Trigger) =>
+        ScheduleTriggerMessage(
+          lastFunc(trigger),
+          emAgent,
+          priority = true // this just works on SimScheduler
+        )
+    }
   }
 }
