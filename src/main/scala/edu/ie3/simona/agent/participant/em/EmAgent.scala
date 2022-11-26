@@ -49,6 +49,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
+import edu.ie3.simona.ontology.trigger.Trigger
 import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
   InitializeParticipantAgentTrigger
@@ -292,10 +293,7 @@ class EmAgent(
           connectedAgents.map { case (actor, _, sp) =>
             sp.getUuid -> actor
           }.toMap,
-          tick =>
-            maybeParentEmAgent
-              .map { _ => RequestFlexOptions(tick) }
-              .getOrElse(ActivityStartTrigger(tick))
+          tick => createActivationTrigger(tick, maybeParentEmAgent.isDefined)
         ),
         ValueStore(0),
         maybeParentEmAgent.map(FlexStateData(_, ValueStore(resolution * 10))),
@@ -318,7 +316,8 @@ class EmAgent(
         ) =>
       createNextTriggerIfApplicable(
         baseStateData.schedulerStateData,
-        scheduleTriggerMessage.trigger.tick
+        scheduleTriggerMessage.trigger.tick,
+        baseStateData.flexStateData.isDefined
       ) foreach (scheduler ! _)
 
       stay() using
@@ -341,7 +340,8 @@ class EmAgent(
         ) =>
       val maybeNextTrigger = createNextTriggerIfApplicable(
         baseStateData.schedulerStateData,
-        scheduleTriggerMessage.trigger.tick
+        scheduleTriggerMessage.trigger.tick,
+        baseStateData.flexStateData.isDefined
       )
 
       // since we've been sent a trigger, we need to complete it as well
@@ -645,7 +645,8 @@ class EmAgent(
 
   protected def createNextTriggerIfApplicable(
       schedulerStateData: EmSchedulerStateData,
-      newTick: Long
+      newTick: Long,
+      hasParentEm: Boolean
   ): Option[ScheduleTriggerMessage] = {
     val isCurrentlyInactive = schedulerStateData.mainTriggerId.isEmpty
 
@@ -659,10 +660,12 @@ class EmAgent(
     }
 
     // schedule new tick if we're inactive and
-    //   - there is no scheduled next tick or
-    //   - the new tick is earlier than the scheduled next tick
+    //   - there is no scheduled next tick or the new tick is earlier than the scheduled next tick
+    //   - we're not EM-controlled ourselves (parent EmAgent automatically schedules RFO with the STM)
     val scheduleNewTick =
-      isCurrentlyInactive && (maybeNextScheduledTick.isEmpty || maybeTickToRevoke.nonEmpty)
+      isCurrentlyInactive &&
+        (maybeNextScheduledTick.isEmpty || maybeTickToRevoke.nonEmpty) &&
+        !hasParentEm
 
     Option.when(scheduleNewTick) {
       val maybeRevokeTrigger =
@@ -1056,4 +1059,20 @@ class EmAgent(
     unstashAll()
     goto(Idle) using baseStateDateWithUpdatedResults
   }
+
+  /** Create trigger for this agent depending on whether it is controlled by a
+    * parent EmAgent
+    * @param tick
+    *   the tick to create a trigger for
+    * @param hasParentEm
+    *   whether this EmAgent has a parent EmAgent
+    * @return
+    *   A trigger that this EmAgent would like to be activated with
+    */
+  private def createActivationTrigger(
+      tick: Long,
+      hasParentEm: Boolean
+  ): Trigger = Option
+    .when(hasParentEm)(RequestFlexOptions(tick))
+    .getOrElse(ActivityStartTrigger(tick))
 }
