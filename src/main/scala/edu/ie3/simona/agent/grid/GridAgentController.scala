@@ -9,12 +9,16 @@ package edu.ie3.simona.agent.grid
 import akka.actor.{ActorContext, ActorRef}
 import akka.event.LoggingAdapter
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.datamodel.models.ControlStrategy
+import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.container.{
   SubGridContainer,
   SystemParticipants
 }
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.datamodel.models.input.system._
+import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
+import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
@@ -33,16 +37,20 @@ import edu.ie3.simona.agent.participant.load.LoadAgent
 import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
+import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
+import edu.ie3.simona.model.participant.em.PrioritizedFlexStrat
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
+import edu.ie3.simona.ontology.trigger.Trigger
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeParticipantAgentTrigger
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
-import edu.ie3.simona.agent.participant.storage.StorageAgent
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -77,6 +85,7 @@ class GridAgentController(
     simulationStartDate: ZonedDateTime,
     simulationEndDate: ZonedDateTime,
     participantsConfig: SimonaConfig.Simona.Runtime.Participant,
+    rootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm],
     outputConfig: SimonaConfig.Simona.Output.Participant,
     resolution: Long,
     listener: Iterable[ActorRef],
@@ -97,7 +106,8 @@ class GridAgentController(
       subGridContainer.getSystemParticipants,
       systemParticipants,
       thermalIslandGridsByBusId,
-      environmentRefs
+      environmentRefs,
+      rootEmConfig
     )
   }
 
@@ -191,7 +201,8 @@ class GridAgentController(
       allParticipants: SystemParticipants,
       filteredParticipants: Vector[SystemParticipantInput],
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
-      environmentRefs: EnvironmentRefs
+      environmentRefs: EnvironmentRefs,
+      rootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm]
   ): Map[UUID, Set[ActorRef]] = {
     /* Prepare the config util for the participant models, which (possibly) utilizes as map to speed up the initialization
      * phase */
@@ -210,8 +221,63 @@ class GridAgentController(
       .map(sp => sp.getUuid -> sp)
       .toMap
 
-    filteredParticipants
-      .map(participant => {
+    val (emInputs, otherInputs) = filteredParticipants.partition {
+      case _: EmInput => true
+      case _          => false
+    }
+
+    if (rootEmConfig.isDefined && emInputs.nonEmpty) {
+      val mockRootEmInput = new EmInput(
+        UUID.randomUUID(),
+        "Root EmAgent",
+        new NodeInput(
+          UUID.randomUUID(),
+          "Mock node for root EmAgent",
+          1d.asPu,
+          false,
+          new GeometryFactory().createPoint(new Coordinate()),
+          GermanVoltageLevelUtils.LV,
+          0
+        ),
+        new CosPhiFixed("cosPhiFixed:{(0.00,0.90)}"),
+        emInputs.map(_.getUuid).toArray,
+        ControlStrategy.DefaultControlStrategies.NO_CONTROL_STRATEGY
+      )
+
+      val completeEmParticipantMap =
+        emParticipantMap ++ emInputs.map(sp => sp.getUuid -> sp)
+
+      val (actorRef, initData) = buildEm(
+        mockRootEmInput,
+        EmRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          1d,
+          List.empty
+        ),
+        environmentRefs.primaryServiceProxy,
+        environmentRefs.weather,
+        participantsConfig.requestVoltageDeviationThreshold,
+        outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
+        completeEmParticipantMap,
+        participantConfigUtil,
+        outputConfigUtil,
+        thermalIslandGridsByBusId,
+        rootEmConfig = rootEmConfig
+      )
+
+      // introduce to environment
+      introduceAgentToEnvironment(
+        actorRef,
+        InitializeParticipantAgentTrigger[PrimaryData, InitializeStateData[
+          PrimaryData
+        ]](initData)
+      )
+    }
+
+    rootEmConfig
+      .map(_ => otherInputs)
+      .getOrElse(filteredParticipants)
+      .map { participant =>
         val node = participant.getNode
         val (actorRef, initStateData) =
           // build
@@ -222,9 +288,9 @@ class GridAgentController(
             participant,
             thermalIslandGridsByBusId,
             environmentRefs,
-            emParticipantMap,
-            None // FIXME
-          ) // introduce to environment
+            emParticipantMap
+          )
+        // introduce to environment
         introduceAgentToEnvironment(
           actorRef,
           InitializeParticipantAgentTrigger[PrimaryData, InitializeStateData[
@@ -233,7 +299,7 @@ class GridAgentController(
         )
         // return uuid to actorRef
         node.getUuid -> actorRef
-      })
+      }
       .toSet[(UUID, ActorRef)]
       .groupMap(entry => entry._1)(entry => entry._2)
   }
@@ -246,7 +312,7 @@ class GridAgentController(
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs,
       emParticipantMap: Map[UUID, SystemParticipantInput],
-      maybeEmAgent: Option[ActorRef]
+      emAgentHierarchy: Seq[ActorRef] = Seq.empty
   ): (
       ActorRef,
       InitializeStateData[_ <: PrimaryData]
@@ -263,7 +329,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.FixedFeedIn),
-        maybeEmAgent
+        emAgentHierarchy
       )
     case input: LoadInput =>
       buildLoad(
@@ -277,7 +343,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Load),
-        maybeEmAgent
+        emAgentHierarchy
       )
     case input: PvInput =>
       buildPv(
@@ -292,7 +358,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.PvPlant),
-        maybeEmAgent
+        emAgentHierarchy
       )
     case input: WecInput =>
       buildWec(
@@ -307,7 +373,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Wec),
-        maybeEmAgent
+        emAgentHierarchy
       )
     case input: EvcsInput =>
       buildEvcs(
@@ -326,7 +392,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs),
-        maybeEmAgent
+        emAgentHierarchy
       )
 
     case hpInput: HpInput =>
@@ -342,7 +408,7 @@ class GridAgentController(
             environmentRefs.weather,
             requestVoltageDeviationThreshold,
             outputConfigUtil.getOrDefault(NotifierIdentifier.Hp),
-            maybeEmAgent
+            emAgentHierarchy
           )
         case None =>
           throw new GridAgentInitializationException(
@@ -361,7 +427,8 @@ class GridAgentController(
         emParticipantMap,
         participantConfigUtil,
         outputConfigUtil,
-        thermalIslandGridsByBusId
+        thermalIslandGridsByBusId,
+        emAgentHierarchy
       )
 
     case input: StorageInput =>
@@ -376,7 +443,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Storage),
-        maybeEmAgent
+        emAgentHierarchy
       )
 
     case input: SystemParticipantInput =>
@@ -408,8 +475,8 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
-    * @param maybeEmAgent
-    *   The EmAgent if this participant is em-controlled
+    * @param emAgentHierarchy
+    *   The EmAgent hierarchy from parent EmAgent to root EmAgent
     * @return
     *   A pair of [[FixedFeedInAgent]] 's [[ActorRef]] as well as the equivalent
     *   [[InitializeParticipantAgentTrigger]] to sent for initialization
@@ -423,7 +490,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      emAgentHierarchy: Seq[ActorRef] = Seq.empty
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -431,27 +498,31 @@ class GridAgentController(
         SimonaConfig.FixedFeedInRuntimeConfig,
         ApparentPower
       ]
-  ) = (
-    gridAgentContext.simonaActorOf(
+  ) = {
+    val actor = gridAgentContext.simonaActorOf(
       FixedFeedInAgent.props(
-        maybeEmAgent.getOrElse(environmentRefs.scheduler),
+        emAgentHierarchy.headOption.getOrElse(environmentRefs.scheduler),
         listener // TODO this needs to be a param
       ),
       fixedFeedInInput.getId
-    ),
-    ParticipantInitializeStateData(
-      fixedFeedInInput,
-      modelConfiguration,
-      primaryServiceProxy,
-      None,
-      simulationStartDate,
-      simulationEndDate,
-      resolution,
-      requestVoltageDeviationThreshold,
-      outputConfig,
-      maybeEmAgent
     )
-  )
+    (
+      actor,
+      ParticipantInitializeStateData(
+        fixedFeedInInput,
+        modelConfiguration,
+        primaryServiceProxy,
+        None,
+        simulationStartDate,
+        simulationEndDate,
+        resolution,
+        requestVoltageDeviationThreshold,
+        outputConfig,
+        emAgentHierarchy.headOption,
+        scheduleTriggerFunc(actor, emAgentHierarchy)
+      )
+    )
+  }
 
   /** Creates a load agent and determines the needed additional information for
     * later initialization of the agent.
@@ -472,8 +543,8 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
-    * @param maybeEmAgent
-    *   The EmAgent if this participant is em-controlled
+    * @param emAgentHierarchy
+    *   The EmAgent hierarchy from parent EmAgent to root EmAgent
     * @return
     *   A pair of [[FixedFeedInAgent]] 's [[ActorRef]] as well as the equivalent
     * @return
@@ -489,7 +560,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      emAgentHierarchy: Seq[ActorRef] = Seq.empty
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -497,28 +568,32 @@ class GridAgentController(
         SimonaConfig.LoadRuntimeConfig,
         ApparentPower
       ]
-  ) = (
-    gridAgentContext.simonaActorOf(
+  ) = {
+    val actor = gridAgentContext.simonaActorOf(
       LoadAgent.props(
-        maybeEmAgent.getOrElse(environmentRefs.scheduler),
+        emAgentHierarchy.headOption.getOrElse(environmentRefs.scheduler),
         listener,
         modelConfiguration
       ),
       loadInput.getId
-    ),
-    ParticipantInitializeStateData(
-      loadInput,
-      modelConfiguration,
-      primaryServiceProxy,
-      None,
-      simulationStartDate,
-      simulationEndDate,
-      resolution,
-      requestVoltageDeviationThreshold,
-      outputConfig,
-      maybeEmAgent
     )
-  )
+    (
+      actor,
+      ParticipantInitializeStateData(
+        loadInput,
+        modelConfiguration,
+        primaryServiceProxy,
+        None,
+        simulationStartDate,
+        simulationEndDate,
+        resolution,
+        requestVoltageDeviationThreshold,
+        outputConfig,
+        emAgentHierarchy.headOption,
+        scheduleTriggerFunc(actor, emAgentHierarchy)
+      )
+    )
+  }
 
   /** Creates a pv agent and determines the needed additional information for
     * later initialization of the agent.
@@ -541,8 +616,8 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
-    * @param maybeEmAgent
-    *   The EmAgent if this participant is em-controlled
+    * @param emAgentHierarchy
+    *   The EmAgent hierarchy from parent EmAgent to root EmAgent
     * @return
     *   A pair of [[PvAgent]] 's [[ActorRef]] as well as the equivalent
     *   [[InitializeParticipantAgentTrigger]] to sent for initialization
@@ -557,7 +632,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      emAgentHierarchy: Seq[ActorRef] = Seq.empty
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -565,15 +640,16 @@ class GridAgentController(
         SimonaConfig.PvRuntimeConfig,
         ApparentPower
       ]
-  ) =
-    (
-      gridAgentContext.simonaActorOf(
-        PvAgent.props(
-          maybeEmAgent.getOrElse(environmentRefs.scheduler),
-          listener
-        ),
-        pvInput.getId
+  ) = {
+    val actor = gridAgentContext.simonaActorOf(
+      PvAgent.props(
+        emAgentHierarchy.headOption.getOrElse(environmentRefs.scheduler),
+        listener
       ),
+      pvInput.getId
+    )
+    (
+      actor,
       ParticipantInitializeStateData(
         pvInput,
         modelConfiguration,
@@ -584,9 +660,11 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        maybeEmAgent
+        emAgentHierarchy.headOption,
+        scheduleTriggerFunc(actor, emAgentHierarchy)
       )
     )
+  }
 
   /** Creates an Evcs agent and determines the needed additional information for
     * later initialization of the agent.
@@ -609,8 +687,8 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
-    * @param maybeEmAgent
-    *   The EmAgent if this participant is em-controlled
+    * @param emAgentHierarchy
+    *   The EmAgent hierarchy from parent EmAgent to root EmAgent
     * @return
     *   A pair of [[EvcsAgent]] 's [[ActorRef]] as well as the equivalent
     *   [[InitializeParticipantAgentTrigger]] to sent for initialization
@@ -625,7 +703,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      emAgentHierarchy: Seq[ActorRef] = Seq.empty
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -642,14 +720,16 @@ class GridAgentController(
       )
     )
 
-    (
-      gridAgentContext.simonaActorOf(
-        EvcsAgent.props(
-          maybeEmAgent.getOrElse(environmentRefs.scheduler),
-          listener
-        ),
-        s"EvcsAgent_${evcsInput.getUuid}"
+    val actor = gridAgentContext.simonaActorOf(
+      EvcsAgent.props(
+        emAgentHierarchy.headOption.getOrElse(environmentRefs.scheduler),
+        listener
       ),
+      evcsInput.getId
+    )
+
+    (
+      actor,
       ParticipantInitializeStateData(
         evcsInput,
         modelConfiguration,
@@ -660,12 +740,14 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        maybeEmAgent
+        emAgentHierarchy.headOption,
+        scheduleTriggerFunc(actor, emAgentHierarchy)
       )
     )
   }
 
   /** Builds an [[HpAgent]] from given input
+    *
     * @param hpInput
     *   Input model
     * @param thermalGrid
@@ -680,8 +762,8 @@ class GridAgentController(
     *   Permissible voltage magnitude deviation to consider being equal
     * @param outputConfig
     *   Configuration for output notification
-    * @param maybeEmAgent
-    *   The EmAgent if this participant is em-controlled
+    * @param emAgentHierarchy
+    *   The EmAgent hierarchy from parent EmAgent to root EmAgent
     * @return
     *   A tuple of actor reference and [[ParticipantInitializeStateData]]
     */
@@ -693,7 +775,7 @@ class GridAgentController(
       weatherService: ActorRef,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      emAgentHierarchy: Seq[ActorRef] = Seq.empty
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -701,28 +783,32 @@ class GridAgentController(
         HpRuntimeConfig,
         ApparentPowerAndHeat
       ]
-  ) = (
-    gridAgentContext.simonaActorOf(
+  ) = {
+    val actor = gridAgentContext.simonaActorOf(
       HpAgent.props(
-        maybeEmAgent.getOrElse(environmentRefs.scheduler),
+        emAgentHierarchy.headOption.getOrElse(environmentRefs.scheduler),
         listener
       ),
       hpInput.getId
-    ),
-    ParticipantInitializeStateData(
-      hpInput,
-      thermalGrid,
-      modelConfiguration,
-      primaryServiceProxy,
-      Some(Vector(ActorWeatherService(weatherService))),
-      simulationStartDate,
-      simulationEndDate,
-      resolution,
-      requestVoltageDeviationThreshold,
-      outputConfig,
-      maybeEmAgent
     )
-  )
+    (
+      actor,
+      ParticipantInitializeStateData(
+        hpInput,
+        thermalGrid,
+        modelConfiguration,
+        primaryServiceProxy,
+        Some(Vector(ActorWeatherService(weatherService))),
+        simulationStartDate,
+        simulationEndDate,
+        resolution,
+        requestVoltageDeviationThreshold,
+        outputConfig,
+        emAgentHierarchy.headOption,
+        scheduleTriggerFunc(actor, emAgentHierarchy)
+      )
+    )
+  }
 
   /** Creates a wec agent and determines the needed additional information for
     * later initialization of the agent.
@@ -745,8 +831,8 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
-    * @param maybeEmAgent
-    *   The EmAgent if this participant is em-controlled
+    * @param emAgentHierarchy
+    *   The EmAgent hierarchy from parent EmAgent to root EmAgent
     * @return
     *   A pair of [[WecAgent]] 's [[ActorRef]] as well as the equivalent
     *   [[InitializeParticipantAgentTrigger]] to sent for initialization
@@ -761,7 +847,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      emAgentHierarchy: Seq[ActorRef] = Seq.empty
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -769,15 +855,17 @@ class GridAgentController(
         SimonaConfig.WecRuntimeConfig,
         ApparentPower
       ]
-  ) =
-    (
-      gridAgentContext.simonaActorOf(
-        WecAgent.props(
-          maybeEmAgent.getOrElse(environmentRefs.scheduler),
-          listener
-        ),
-        wecInput.getId
+  ) = {
+    val actor = gridAgentContext.simonaActorOf(
+      WecAgent.props(
+        emAgentHierarchy.headOption.getOrElse(environmentRefs.scheduler),
+        listener
       ),
+      wecInput.getId
+    )
+
+    (
+      actor,
       ParticipantInitializeStateData(
         wecInput,
         modelConfiguration,
@@ -788,9 +876,11 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        maybeEmAgent
+        emAgentHierarchy.headOption,
+        scheduleTriggerFunc(actor, emAgentHierarchy)
       )
     )
+  }
 
   /** Creates a storage agent and determines the needed additional information
     * for later initialization of the agent.
@@ -811,8 +901,8 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
-    * @param maybeEmAgent
-    *   The EmAgent if this participant is em-controlled
+    * @param emAgentHierarchy
+    *   The EmAgent hierarchy from parent EmAgent to root EmAgent
     * @return
     *   A pair of [[StorageAgent]] 's [[ActorRef]] as well as the equivalent
     *   [[InitializeParticipantAgentTrigger]] to sent for initialization
@@ -826,7 +916,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      emAgentHierarchy: Seq[ActorRef] = Seq.empty
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -834,15 +924,17 @@ class GridAgentController(
         SimonaConfig.StorageRuntimeConfig,
         ApparentPower
       ]
-  ) =
-    (
-      gridAgentContext.simonaActorOf(
-        StorageAgent.props(
-          maybeEmAgent.getOrElse(environmentRefs.scheduler),
-          listener
-        ),
-        storageInput.getId
+  ) = {
+    val actor = gridAgentContext.simonaActorOf(
+      StorageAgent.props(
+        emAgentHierarchy.headOption.getOrElse(environmentRefs.scheduler),
+        listener
       ),
+      storageInput.getId
+    )
+
+    (
+      actor,
       ParticipantInitializeStateData(
         storageInput,
         modelConfiguration,
@@ -853,9 +945,11 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        maybeEmAgent
+        emAgentHierarchy.headOption,
+        scheduleTriggerFunc(actor, emAgentHierarchy)
       )
     )
+  }
 
   /** Builds an [[EmAgent]] from given input
     *
@@ -886,14 +980,16 @@ class GridAgentController(
       emParticipantMap: Map[UUID, SystemParticipantInput],
       participantConfigUtil: ConfigUtil.ParticipantConfigUtil,
       outputConfigUtil: OutputConfigUtil,
-      thermalIslandGridsByBusId: Map[UUID, ThermalGrid]
+      thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
+      emAgentHierarchy: Seq[ActorRef] = Seq.empty,
+      rootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm] = None
   ): (
       ActorRef,
       EmAgentInitializeStateData
   ) = {
     val emAgentRef = gridAgentContext.simonaActorOf(
       EmAgent.props(
-        environmentRefs.scheduler,
+        emAgentHierarchy.headOption.getOrElse(environmentRefs.scheduler),
         listener
       ),
       emInput.getId
@@ -917,7 +1013,7 @@ class GridAgentController(
           thermalIslandGridsByBusId,
           environmentRefs,
           emParticipantMap,
-          Some(emAgentRef)
+          emAgentHierarchy.prepended(emAgentRef)
         )
 
         val initTrigger =
@@ -943,7 +1039,10 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        connectedAgents
+        PrioritizedFlexStrat,
+        connectedAgents,
+        emAgentHierarchy.headOption,
+        rootEmConfig
       )
     )
   }
@@ -971,4 +1070,32 @@ class GridAgentController(
     )
   }
 
+  /** @param participantRef
+    *   an ActorRef to the participant agent
+    * @param emAgentHierarchy
+    *   EmAgents in their hierarchy from bottom (controlling agents directly) to
+    *   top (root EmAgent)
+    * @return
+    *   A function that creates a [[ScheduleTriggerMessage]] for some trigger
+    */
+  private def scheduleTriggerFunc(
+      participantRef: ActorRef,
+      emAgentHierarchy: Seq[ActorRef]
+  ): Trigger => ScheduleTriggerMessage = {
+    val scheduleTriggerFunc = (trigger: Trigger) =>
+      ScheduleTriggerMessage(
+        trigger,
+        participantRef
+      )
+
+    // when using EmAgent(s), activation schedules have to be stacked
+    emAgentHierarchy.foldLeft(scheduleTriggerFunc) { case (lastFunc, emAgent) =>
+      (trigger: Trigger) =>
+        ScheduleTriggerMessage(
+          lastFunc(trigger),
+          emAgent,
+          priority = true // this just works on SimScheduler
+        )
+    }
+  }
 }

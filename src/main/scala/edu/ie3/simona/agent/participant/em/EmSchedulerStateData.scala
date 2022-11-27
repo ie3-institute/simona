@@ -23,6 +23,8 @@ import scala.collection.mutable
   *
   * @param trigger
   *   state data about trigger
+  * @param createMainTrigger
+  *   Function that creates a trigger for this EmAgent with given tick
   * @param mainTriggerId
   *   trigger id received from main scheduler
   * @param nowInTicks
@@ -31,6 +33,7 @@ import scala.collection.mutable
 private[em] final case class EmSchedulerStateData(
     trigger: TriggerData = TriggerData(),
     flexTrigger: FlexTriggerData,
+    createMainTrigger: Long => Trigger,
     nowInTicks: Long = SimonaConstants.INIT_SIM_TICK,
     mainTriggerId: Option[Long] = None
 )
@@ -39,7 +42,8 @@ object EmSchedulerStateData {
 
   def apply(
       triggerData: TriggerData,
-      uuidToActorRef: Map[UUID, ActorRef]
+      uuidToActorRef: Map[UUID, ActorRef],
+      createMainTrigger: Long => Trigger
   ): EmSchedulerStateData = {
     val actorRefToUuid = uuidToActorRef.map { case (uuid, actor) =>
       actor -> uuid
@@ -50,7 +54,8 @@ object EmSchedulerStateData {
       flexTrigger = FlexTriggerData(
         actorRefToUuid,
         uuidToActorRef
-      )
+      ),
+      createMainTrigger
     )
   }
 

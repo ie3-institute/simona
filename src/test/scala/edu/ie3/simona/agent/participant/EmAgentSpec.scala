@@ -16,13 +16,8 @@ import edu.ie3.simona.agent.participant.em.EmAgent.EmAgentInitializeStateData
 import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
-  FlexCtrlCompletion,
-  IssueNoCtrl,
-  IssuePowerCtrl,
-  ProvideMinMaxFlexOptions,
-  RequestFlexOptions
-}
+import edu.ie3.simona.model.participant.em.PrioritizedFlexStrat
+import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   ScheduleTriggerMessage,
@@ -36,14 +31,12 @@ import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.scalatestplus.mockito.MockitoSugar
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 
-class EmAgentSelfOptSpec
+class EmAgentSpec
     extends ParticipantAgentSpec(
       ActorSystem(
         "EmAgentSelfOptSpec",
@@ -72,7 +65,7 @@ class EmAgentSelfOptSpec
 
   private val tolerance = 1e-10d
 
-  "An em agent" should {
+  "A self-optimizing EM agent" should {
     "be initialized correctly and run through some activations" in {
       val resultsProbe = TestProbe("ResultListener")
 
@@ -119,6 +112,7 @@ class EmAgentSelfOptSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
+              modelStrategy = PrioritizedFlexStrat,
               primaryServiceProxy = primaryServiceProxy.ref,
               connectedAgents = connectedAgents
             )
@@ -211,9 +205,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           pvInput.getUuid,
-          Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+          (-5d).asKiloWatt,
+          (-5d).asKiloWatt,
+          0d.asKiloWatt
         )
       )
 
@@ -224,9 +218,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           evcsInput.getUuid,
-          Quantities.getQuantity(2d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(-11d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(11d, PowerSystemUnits.KILOWATT)
+          2d.asKiloWatt,
+          (-11d).asKiloWatt,
+          11d.asKiloWatt
         )
       )
 
@@ -238,8 +232,8 @@ class EmAgentSelfOptSpec
           new PvResult(
             0L.toDateTime,
             pvInput.getUuid,
-            Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
-            Quantities.getQuantity(-0.5d, PowerSystemUnits.KILOVAR)
+            (-5d).asKiloWatt,
+            (-0.5d).asKiloVar
           )
         )
       )
@@ -254,8 +248,8 @@ class EmAgentSelfOptSpec
           new EvcsResult(
             0L.toDateTime,
             evcsInput.getUuid,
-            Quantities.getQuantity(5d, PowerSystemUnits.KILOWATT),
-            Quantities.getQuantity(0.1d, PowerSystemUnits.KILOVAR)
+            5d.asKiloWatt,
+            0.1d.asKiloVar
           )
         )
       )
@@ -347,9 +341,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           evcsInput.getUuid,
-          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(-11d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+          0d.asKiloWatt,
+          (-11d).asKiloWatt,
+          0d.asKiloWatt
         )
       )
 
@@ -361,8 +355,8 @@ class EmAgentSelfOptSpec
           new EvcsResult(
             300L.toDateTime,
             evcsInput.getUuid,
-            Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT),
-            Quantities.getQuantity(0d, PowerSystemUnits.KILOVAR)
+            0d.asKiloWatt,
+            0d.asKiloVar
           )
         )
       )
@@ -460,6 +454,7 @@ class EmAgentSelfOptSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
+              modelStrategy = PrioritizedFlexStrat,
               primaryServiceProxy = primaryServiceProxy.ref,
               connectedAgents = connectedAgents
             )
@@ -551,9 +546,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           pvInput.getUuid,
-          Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+          (-5d).asKiloWatt,
+          (-5d).asKiloWatt,
+          0d.asKiloWatt
         )
       )
 
@@ -564,9 +559,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           evcsInput.getUuid,
-          Quantities.getQuantity(2d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(-11d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(11d, PowerSystemUnits.KILOWATT)
+          2d.asKiloWatt,
+          (-11d).asKiloWatt,
+          11d.asKiloWatt
         )
       )
 
@@ -578,8 +573,8 @@ class EmAgentSelfOptSpec
           new PvResult(
             0L.toDateTime,
             pvInput.getUuid,
-            Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
-            Quantities.getQuantity(-0.5d, PowerSystemUnits.KILOVAR)
+            (-5d).asKiloWatt,
+            (-0.5d).asKiloVar
           )
         )
       )
@@ -594,8 +589,8 @@ class EmAgentSelfOptSpec
           new EvcsResult(
             0L.toDateTime,
             evcsInput.getUuid,
-            Quantities.getQuantity(5d, PowerSystemUnits.KILOWATT),
-            Quantities.getQuantity(0.1d, PowerSystemUnits.KILOVAR)
+            5d.asKiloWatt,
+            0.1d.asKiloVar
           )
         )
       )
@@ -693,9 +688,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           pvInput.getUuid,
-          Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+          (-3d).asKiloWatt,
+          (-3d).asKiloWatt,
+          0d.asKiloWatt
         )
       )
 
@@ -708,8 +703,8 @@ class EmAgentSelfOptSpec
           new PvResult(
             300L.toDateTime,
             pvInput.getUuid,
-            Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
-            Quantities.getQuantity(-0.06d, PowerSystemUnits.KILOVAR)
+            (-3d).asKiloWatt,
+            (-0.06d).asKiloVar
           )
         )
       )
@@ -749,8 +744,8 @@ class EmAgentSelfOptSpec
           new EvcsResult(
             300L.toDateTime,
             evcsInput.getUuid,
-            Quantities.getQuantity(3d, PowerSystemUnits.KILOWATT),
-            Quantities.getQuantity(0.06d, PowerSystemUnits.KILOVAR)
+            3d.asKiloWatt,
+            0.06d.asKiloVar
           )
         )
       )
@@ -835,6 +830,7 @@ class EmAgentSelfOptSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
+              modelStrategy = PrioritizedFlexStrat,
               primaryServiceProxy = primaryServiceProxy.ref,
               connectedAgents = connectedAgents
             )
@@ -926,9 +922,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           pvInput.getUuid,
-          Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+          (-5d).asKiloWatt,
+          (-5d).asKiloWatt,
+          0d.asKiloWatt
         )
       )
 
@@ -939,9 +935,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           evcsInput.getUuid,
-          Quantities.getQuantity(2d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(11d, PowerSystemUnits.KILOWATT)
+          2d.asKiloWatt,
+          0d.asKiloWatt,
+          11d.asKiloWatt
         )
       )
 
@@ -953,8 +949,8 @@ class EmAgentSelfOptSpec
           new PvResult(
             0L.toDateTime,
             pvInput.getUuid,
-            Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
-            Quantities.getQuantity(-0.5d, PowerSystemUnits.KILOVAR)
+            (-5d).asKiloWatt,
+            (-0.5d).asKiloVar
           )
         )
       )
@@ -970,8 +966,8 @@ class EmAgentSelfOptSpec
           new EvcsResult(
             0L.toDateTime,
             evcsInput.getUuid,
-            Quantities.getQuantity(5d, PowerSystemUnits.KILOWATT),
-            Quantities.getQuantity(0.1d, PowerSystemUnits.KILOVAR)
+            5d.asKiloWatt,
+            0.1d.asKiloVar
           )
         )
       )
@@ -1069,9 +1065,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           pvInput.getUuid,
-          Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+          (-3d).asKiloWatt,
+          (-3d).asKiloWatt,
+          0d.asKiloWatt
         )
       )
 
@@ -1082,9 +1078,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           evcsInput.getUuid,
-          Quantities.getQuantity(2d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(-11d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(11d, PowerSystemUnits.KILOWATT)
+          2d.asKiloWatt,
+          (-11d).asKiloWatt,
+          11d.asKiloWatt
         )
       )
 
@@ -1097,8 +1093,8 @@ class EmAgentSelfOptSpec
           new PvResult(
             300L.toDateTime,
             pvInput.getUuid,
-            Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
-            Quantities.getQuantity(-0.06d, PowerSystemUnits.KILOVAR)
+            (-3d).asKiloWatt,
+            (-0.06d).asKiloVar
           )
         )
       )
@@ -1133,8 +1129,8 @@ class EmAgentSelfOptSpec
           new EvcsResult(
             300L.toDateTime,
             evcsInput.getUuid,
-            Quantities.getQuantity(3d, PowerSystemUnits.KILOWATT),
-            Quantities.getQuantity(0.06d, PowerSystemUnits.KILOVAR)
+            3d.asKiloWatt,
+            0.06d.asKiloVar
           )
         )
       )
@@ -1164,6 +1160,271 @@ class EmAgentSelfOptSpec
       )
     }
 
+  }
+
+  "An EM-controlled EM agent" should {
+    "be initialized correctly and run through some activations" in {
+      val resultsProbe = TestProbe("ResultListener")
+
+      val parentEmAgent = TestProbe("ParentEmAgent")
+
+      val emAgent = TestActorRef(
+        new EmAgent(
+          scheduler = parentEmAgent.ref,
+          listener = Iterable(resultsProbe.ref)
+        )
+      )
+
+      val initId = 0
+
+      val pvAgent = TestProbe("PvAgent")
+      val evcsAgent = TestProbe("EvcsAgent")
+
+      val pvAgentInit =
+        InitializeParticipantAgentTrigger[ApparentPower, InitializeStateData[
+          ApparentPower
+        ]](mock[InitializeStateData[ApparentPower]])
+      val evcsAgentInit =
+        InitializeParticipantAgentTrigger[ApparentPower, InitializeStateData[
+          ApparentPower
+        ]](mock[InitializeStateData[ApparentPower]])
+
+      val connectedAgents = Seq(
+        (pvAgent.ref, pvAgentInit, pvInput),
+        (evcsAgent.ref, evcsAgentInit, evcsInput)
+      )
+
+      scheduler.send(
+        emAgent,
+        TriggerWithIdMessage(
+          InitializeParticipantAgentTrigger[
+            ApparentPower,
+            EmAgentInitializeStateData
+          ](
+            EmAgentInitializeStateData(
+              inputModel = emInput,
+              modelConfig = modelConfig,
+              secondaryDataServices = None,
+              simulationStartDate = simulationStartDate,
+              simulationEndDate = simulationEndDate,
+              resolution = resolution,
+              requestVoltageDeviationThreshold =
+                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+              outputConfig = outputConfig,
+              primaryServiceProxy = primaryServiceProxy.ref,
+              modelStrategy = PrioritizedFlexStrat,
+              connectedAgents = connectedAgents,
+              maybeParentEmAgent = Some(parentEmAgent.ref) // em-controlled
+            )
+          ),
+          initId,
+          emAgent
+        )
+      )
+
+      val receivedPvInit = pvAgent.expectMsgType[TriggerWithIdMessage]
+      receivedPvInit.trigger shouldBe pvAgentInit
+
+      val receivedEvcsInit = evcsAgent.expectMsgType[TriggerWithIdMessage]
+      receivedEvcsInit.trigger shouldBe evcsAgentInit
+
+      pvAgent.send(
+        emAgent,
+        ScheduleTriggerMessage(
+          RequestFlexOptions(0L),
+          pvAgent.ref
+        )
+      )
+
+      pvAgent.send(
+        emAgent,
+        CompletionMessage(
+          receivedPvInit.triggerId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(0L),
+                pvAgent.ref
+              )
+            )
+          )
+        )
+      )
+
+      evcsAgent.send(
+        emAgent,
+        ScheduleTriggerMessage(
+          RequestFlexOptions(0L),
+          evcsAgent.ref
+        )
+      )
+
+      parentEmAgent.expectNoMessage()
+
+      evcsAgent.send(
+        emAgent,
+        CompletionMessage(
+          receivedEvcsInit.triggerId,
+          None
+        )
+      )
+
+      parentEmAgent.expectMsg(
+        CompletionMessage(
+          initId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                RequestFlexOptions(0L),
+                emAgent
+              )
+            )
+          )
+        )
+      )
+
+      // no arrivals for EVCS yet
+
+      // init done, start EmAgent
+      parentEmAgent.send(
+        emAgent,
+        RequestFlexOptions(0L)
+      )
+
+      // expect activations and flex requests
+      val receivedPvActivation1 =
+        pvAgent.expectMsgType[TriggerWithIdMessage]
+      receivedPvActivation1.trigger shouldBe ActivityStartTrigger(0L)
+      receivedPvActivation1.receiverActor shouldBe pvAgent.ref
+
+      pvAgent.expectMsg(RequestFlexOptions(0L))
+
+      evcsAgent.expectMsg(RequestFlexOptions(0L))
+
+      // send flex options
+      pvAgent.send(
+        emAgent,
+        ProvideMinMaxFlexOptions(
+          pvInput.getUuid,
+          (-5d).asKiloWatt,
+          (-5d).asKiloWatt,
+          0d.asKiloWatt
+        )
+      )
+
+      evcsAgent.send(
+        emAgent,
+        ProvideMinMaxFlexOptions(
+          evcsInput.getUuid,
+          2d.asKiloWatt,
+          (-11d).asKiloWatt,
+          11d.asKiloWatt
+        )
+      )
+
+      parentEmAgent.expectMsgType[ProvideFlexOptions] match {
+        case ProvideMinMaxFlexOptions(
+              modelUuid,
+              referencePower,
+              minPower,
+              maxPower
+            ) =>
+          modelUuid shouldBe emInput.getUuid
+          referencePower shouldBe (-3d).asKiloWatt
+          minPower shouldBe (-16d).asKiloWatt
+          maxPower shouldBe 6d.asKiloWatt // hint: PV is not flexible
+      }
+
+      // issue power control and expect EmAgent to distribute it
+      parentEmAgent.send(emAgent, IssuePowerCtrl(0L, 6d.asKiloWatt))
+
+      // expect issue power control
+      pvAgent.expectMsg(IssueNoCtrl(0L))
+
+      pvAgent.send(
+        emAgent,
+        ParticipantResultEvent(
+          new PvResult(
+            0L.toDateTime,
+            pvInput.getUuid,
+            (-5d).asKiloWatt,
+            (-0.5d).asKiloVar
+          )
+        )
+      )
+      pvAgent.send(
+        emAgent,
+        FlexCtrlCompletion(pvInput.getUuid)
+      )
+      pvAgent.send(
+        emAgent,
+        CompletionMessage(
+          receivedPvActivation1.triggerId,
+          Some(
+            Seq(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(600L),
+                pvAgent.ref
+              )
+            )
+          )
+        )
+      )
+
+      evcsAgent.expectMsgType[IssuePowerCtrl] match {
+        case IssuePowerCtrl(0L, setPower) =>
+          setPower should equalWithTolerance(11d.asKiloWatt, tolerance)
+      }
+
+      evcsAgent.send(
+        emAgent,
+        ParticipantResultEvent(
+          new EvcsResult(
+            0L.toDateTime,
+            evcsInput.getUuid,
+            11d.asKiloWatt,
+            1.1d.asKiloVar
+          )
+        )
+      )
+      evcsAgent.send(
+        emAgent,
+        FlexCtrlCompletion(
+          evcsInput.getUuid,
+          requestAtTick = Some(300L)
+        )
+      )
+
+      // expect correct results
+      parentEmAgent.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(emResult: EmResult) =>
+          emResult.getInputModel shouldBe emInput.getUuid
+          emResult.getTime shouldBe simulationStartDate
+          emResult.getP should beEquivalentTo(6d.asKiloWatt, tolerance)
+          emResult.getQ should beEquivalentTo(0.6d.asKiloVar, tolerance)
+        case unexpected =>
+          fail(s"Received unexpected result $unexpected")
+      }
+
+      // expect correct results
+      resultsProbe.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(emResult: EmResult) =>
+          emResult.getInputModel shouldBe emInput.getUuid
+          emResult.getTime shouldBe simulationStartDate
+          emResult.getP should beEquivalentTo(6d.asKiloWatt, tolerance)
+          emResult.getQ should beEquivalentTo(0.6d.asKiloVar, tolerance)
+        case unexpected =>
+          fail(s"Received unexpected result $unexpected")
+      }
+
+      parentEmAgent.expectMsg(
+        FlexCtrlCompletion(
+          emInput.getUuid,
+          requestAtTick = Some(300L)
+        )
+      )
+
+    }
   }
 
 }

@@ -28,13 +28,11 @@ import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InvalidRequestException
-import edu.ie3.simona.model.participant.EmModel.EmRelevantData
+import edu.ie3.simona.model.participant.em.EmModel.EmRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.{
-  EmModel,
-  FlexChangeIndicator,
-  ModelState
-}
+import edu.ie3.simona.model.participant.{FlexChangeIndicator, ModelState}
+import edu.ie3.simona.model.participant.ModelState
+import edu.ie3.simona.model.participant.em.{EmModel, PrioritizedFlexStrat}
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
@@ -108,7 +106,8 @@ trait EmAgentFundamentals
     inputModel.electricalInputModel,
     modelConfig,
     simulationStartDate,
-    simulationEndDate
+    simulationEndDate,
+    PrioritizedFlexStrat
   )
 
   /** Abstract definition, individual implementations found in individual agent

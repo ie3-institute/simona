@@ -177,7 +177,7 @@ class ParticipantAgentExternalSourceSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(mockAgent)
             )
           ),
           triggerId,
@@ -202,7 +202,8 @@ class ParticipantAgentExternalSourceSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent
+              maybeEmAgent,
+              _
             ) =>
           inputModel shouldBe SimpleInputContainer(mockInputModel)
           modelConfig shouldBe modelConfig
@@ -291,7 +292,7 @@ class ParticipantAgentExternalSourceSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(mockAgent)
             )
           ),
           triggerId,
@@ -384,7 +385,7 @@ class ParticipantAgentExternalSourceSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(mockAgent)
             )
           ),
           initialiseTriggerId,
@@ -531,7 +532,7 @@ class ParticipantAgentExternalSourceSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(mockAgent)
             )
           ),
           initialiseTriggerId,
@@ -671,7 +672,7 @@ class ParticipantAgentExternalSourceSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(mockAgent)
             )
           ),
           0L,
@@ -842,7 +843,7 @@ class ParticipantAgentExternalSourceSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(mockAgent)
             )
           ),
           0,

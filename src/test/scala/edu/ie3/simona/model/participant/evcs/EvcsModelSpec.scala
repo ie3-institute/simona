@@ -17,6 +17,7 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOpti
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.simona.test.common.model.participant.EvcsTestData
+import edu.ie3.simona.test.helper.TableDrivenHelper
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -28,6 +29,7 @@ import java.util.UUID
 class EvcsModelSpec
     extends UnitSpec
     with TableDrivenPropertyChecks
+    with TableDrivenHelper
     with EvcsTestData {
 
   private val simulationStart = evcsStandardModel.simulationStartDate
@@ -816,9 +818,4 @@ class EvcsModelSpec
     }
   }
 
-  /** Shortcut for Some type to make case tables more concise */
-  def S[T](value: T): Some[T] = Some(value)
-
-  /** Shortcut for None type to make case tables more concise */
-  def N: None.type = None
 }

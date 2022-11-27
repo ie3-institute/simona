@@ -182,7 +182,7 @@ class WecAgentModelCalculationSpec
                 simulationResultInfo = false,
                 powerRequestReply = false
               ),
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
           ),
           triggerId,
@@ -271,7 +271,7 @@ class WecAgentModelCalculationSpec
                 simulationResultInfo = false,
                 powerRequestReply = false
               ),
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
           ),
           triggerId,
@@ -404,7 +404,7 @@ class WecAgentModelCalculationSpec
                 simulationResultInfo = false,
                 powerRequestReply = false
               ),
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
           ),
           triggerId,
@@ -497,7 +497,7 @@ class WecAgentModelCalculationSpec
                 simulationResultInfo = false,
                 powerRequestReply = false
               ),
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
           ),
           initialiseTriggerId,
@@ -660,7 +660,7 @@ class WecAgentModelCalculationSpec
                 simulationResultInfo = false,
                 powerRequestReply = false
               ),
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
           ),
           initialiseTriggerId,
@@ -821,7 +821,7 @@ class WecAgentModelCalculationSpec
                 simulationResultInfo = false,
                 powerRequestReply = false
               ),
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
           ),
           0L,
@@ -931,7 +931,7 @@ class WecAgentModelCalculationSpec
                 simulationResultInfo = false,
                 powerRequestReply = false
               ),
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
           ),
           0L,

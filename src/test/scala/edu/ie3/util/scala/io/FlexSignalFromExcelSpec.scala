@@ -8,45 +8,41 @@ package edu.ie3.util.scala.io
 
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.io.FlexSignalFromExcel.TimeSeriesType
+import org.scalatest.prop.TableDrivenPropertyChecks
 
 import scala.util.{Failure, Success}
 
-class FlexSignalFromExcelSpec extends UnitSpec {
+class FlexSignalFromExcelSpec extends UnitSpec with TableDrivenPropertyChecks {
   "Reading flexibility signal from file" should {
     val file = getClass.getResource("flexSignal.xlsx").getFile
-    val resultTrial = FlexSignalFromExcel.flexSignals(file)
 
-    "be successful" in {
-      resultTrial.isSuccess shouldBe true
+    val nodeIds = Seq("node0", "node1")
+    val combinations = nodeIds.flatMap { nodeId =>
+      TimeSeriesType.values.map { seriesType => (nodeId, seriesType) }
     }
 
-    "provide the correct nodes" in {
-      resultTrial match {
-        case Success(result) =>
-          result.keys should contain allOf ("node0", "node1")
-        case Failure(exception) =>
-          fail(
-            "Reading flex signal from excel file failed with the following exception.",
-            exception
-          )
-      }
-    }
+    val cases = Table(
+      ("nodeId", "timeSeriesType"),
+      combinations: _*
+    )
 
     "provide all expected time series with correct amount of entries" in {
-      resultTrial match {
-        case Success(result) =>
-          result.foreach { case (_, tsTypeToTs) =>
-            tsTypeToTs.keys should contain allElementsOf TimeSeriesType.values
-            tsTypeToTs.values.foreach(timeSeries =>
-              timeSeries.getEntries.size() shouldBe 8
+
+      forAll(cases) { case (nodeId, timeSeriesType) =>
+        val resultTrial =
+          FlexSignalFromExcel.flexSignals(file, nodeId, timeSeriesType)
+
+        resultTrial match {
+          case Success(timeSeries) =>
+            timeSeries.getEntries.size() shouldBe 8
+          case Failure(exception) =>
+            fail(
+              "Reading flex signal from excel file failed with the following exception.",
+              exception
             )
-          }
-        case Failure(exception) =>
-          fail(
-            "Reading flex signal from excel file failed with the following exception.",
-            exception
-          )
+        }
       }
     }
+
   }
 }

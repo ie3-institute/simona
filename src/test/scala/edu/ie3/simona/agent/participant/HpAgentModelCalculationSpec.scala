@@ -166,7 +166,8 @@ class HpAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              maybeEmAgent = None,
+              scheduleTriggerFunc = scheduleTriggerFunc(hpAgent)
             )
           ),
           triggerId,
@@ -247,7 +248,8 @@ class HpAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              maybeEmAgent = None,
+              scheduleTriggerFunc = scheduleTriggerFunc(hpAgent)
             )
           ),
           triggerId,
@@ -271,6 +273,7 @@ class HpAgentModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
+              _,
               _
             ) =>
           inputModel shouldBe WithHeatInputContainer(hpInput, thermalGrid)
@@ -410,7 +413,8 @@ class HpAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              maybeEmAgent = None,
+              scheduleTriggerFunc = scheduleTriggerFunc(hpAgent)
             )
           ),
           triggerId,
@@ -499,7 +503,8 @@ class HpAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              maybeEmAgent = None,
+              scheduleTriggerFunc = scheduleTriggerFunc(hpAgent)
             )
           ),
           initialiseTriggerId,
@@ -687,7 +692,8 @@ class HpAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              maybeEmAgent = None,
+              scheduleTriggerFunc = scheduleTriggerFunc(hpAgent)
             )
           ),
           initialiseTriggerId,
@@ -873,7 +879,8 @@ class HpAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              maybeEmAgent = None,
+              scheduleTriggerFunc = scheduleTriggerFunc(hpAgent)
             )
           ),
           0L,
@@ -981,7 +988,8 @@ class HpAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              maybeEmAgent = None,
+              scheduleTriggerFunc = scheduleTriggerFunc(hpAgent)
             )
           ),
           0L,

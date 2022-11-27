@@ -175,7 +175,7 @@ class PvAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(pvAgent)
             )
           ),
           triggerId,
@@ -255,7 +255,7 @@ class PvAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(pvAgent)
             )
           ),
           triggerId,
@@ -279,7 +279,8 @@ class PvAgentModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent
+              maybeEmAgent,
+              _
             ) =>
           inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
@@ -416,7 +417,7 @@ class PvAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(pvAgent)
             )
           ),
           triggerId,
@@ -503,7 +504,7 @@ class PvAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(pvAgent)
             )
           ),
           initialiseTriggerId,
@@ -653,7 +654,7 @@ class PvAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(pvAgent)
             )
           ),
           initialiseTriggerId,
@@ -801,7 +802,7 @@ class PvAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(pvAgent)
             )
           ),
           0L,
@@ -908,7 +909,7 @@ class PvAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(pvAgent)
             )
           ),
           0L,

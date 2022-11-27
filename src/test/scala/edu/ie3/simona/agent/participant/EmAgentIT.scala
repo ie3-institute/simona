@@ -10,34 +10,22 @@ import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.datamodel.models.input.system.{
-  HpInput,
   LoadInput,
   PvInput,
   StorageInput,
   SystemParticipantInput
 }
-import edu.ie3.datamodel.models.input.thermal.{
-  ThermalHouseInput,
-  ThermalStorageInput
-}
 import edu.ie3.datamodel.models.result.system.EmResult
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ApparentPowerAndHeat
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.em.EmAgent
 import edu.ie3.simona.agent.participant.em.EmAgent.EmAgentInitializeStateData
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.load.LoadAgent.FixedLoadAgent
 import edu.ie3.simona.agent.participant.pv.PvAgent
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.storage.StorageAgent
-import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.{
   HpRuntimeConfig,
   LoadRuntimeConfig,
@@ -46,8 +34,7 @@ import edu.ie3.simona.config.SimonaConfig.{
 }
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.model.participant.{HpModel, ModelState, PvModel}
-import edu.ie3.simona.model.participant.load.FixedLoadModel
+import edu.ie3.simona.model.participant.em.PrioritizedFlexStrat
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   ScheduleTriggerMessage,
@@ -177,7 +164,8 @@ class EmAgentIT
               resolution,
               simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfigOff,
-              Some(emAgent)
+              Some(emAgent),
+              scheduleTriggerEmFunc(loadAgent, emAgent)
             )
           )
         val pvAgentInit =
@@ -203,7 +191,8 @@ class EmAgentIT
               resolution,
               simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfigOff,
-              Some(emAgent)
+              Some(emAgent),
+              scheduleTriggerEmFunc(pvAgent, emAgent)
             )
           )
         val storageAgentInit =
@@ -230,7 +219,8 @@ class EmAgentIT
               resolution,
               simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfigOff,
-              Some(emAgent)
+              Some(emAgent),
+              scheduleTriggerEmFunc(storageAgent, emAgent)
             )
           )
 
@@ -258,7 +248,8 @@ class EmAgentIT
                   simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
                 outputConfig = outputConfigOn,
                 primaryServiceProxy = primaryServiceProxy.ref,
-                connectedAgents = connectedAgents
+                connectedAgents = connectedAgents,
+                modelStrategy = PrioritizedFlexStrat
               )
             ),
             initId,
@@ -578,7 +569,8 @@ class EmAgentIT
               resolution,
               simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfigOff,
-              Some(emAgent)
+              Some(emAgent),
+              scheduleTriggerEmFunc(loadAgent, emAgent)
             )
           )
         val pvAgentInit =
@@ -604,7 +596,8 @@ class EmAgentIT
               resolution,
               simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfigOff,
-              Some(emAgent)
+              Some(emAgent),
+              scheduleTriggerEmFunc(loadAgent, emAgent)
             )
           )
 
@@ -624,7 +617,8 @@ class EmAgentIT
             resolution,
             simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
             outputConfigOff,
-            Some(emAgent)
+            Some(emAgent),
+            scheduleTriggerEmFunc(loadAgent, emAgent)
           )
         )
 
@@ -660,7 +654,8 @@ class EmAgentIT
                   simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
                 outputConfig = outputConfigOn,
                 primaryServiceProxy = primaryServiceProxy.ref,
-                connectedAgents = connectedAgents
+                connectedAgents = connectedAgents,
+                modelStrategy = PrioritizedFlexStrat
               )
             ),
             initId,

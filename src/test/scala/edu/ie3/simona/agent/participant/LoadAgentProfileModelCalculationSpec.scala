@@ -146,7 +146,7 @@ class LoadAgentProfileModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(loadAgent)
             )
           ),
           triggerId,
@@ -169,7 +169,8 @@ class LoadAgentProfileModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent
+              maybeEmAgent,
+              _
             ) =>
           inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
@@ -272,7 +273,7 @@ class LoadAgentProfileModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(loadAgent)
             )
           ),
           triggerId,
@@ -353,7 +354,7 @@ class LoadAgentProfileModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(loadAgent)
             )
           ),
           initialiseTriggerId,
@@ -450,7 +451,7 @@ class LoadAgentProfileModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None
+              scheduleTriggerFunc = scheduleTriggerFunc(loadAgent)
             )
           ),
           0L,

@@ -43,16 +43,21 @@ import edu.ie3.simona.model.participant.{
 }
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   IssueFlexControl,
+  ProvideMinMaxFlexOptions,
   RequestFlexOptions
 }
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.TriggerWithIdMessage
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  ScheduleTriggerMessage,
+  TriggerWithIdMessage
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   ProvisionMessage,
   RegistrationResponseMessage
 }
+import edu.ie3.simona.ontology.trigger.Trigger
 import edu.ie3.simona.ontology.trigger.Trigger.ParticipantTrigger.StartCalculationTrigger
 import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
@@ -126,7 +131,8 @@ abstract class ParticipantAgent[
                 resolution,
                 requestVoltageDeviationThreshold,
                 outputConfig,
-                maybeEmAgent
+                maybeEmAgent,
+                scheduleTriggerFunc
               )
             ),
             triggerId,
@@ -149,7 +155,8 @@ abstract class ParticipantAgent[
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        maybeEmAgent
+        maybeEmAgent,
+        scheduleTriggerFunc
       )
   }
 
@@ -307,6 +314,7 @@ abstract class ParticipantAgent[
             resolution,
             requestVoltageDeviationThreshold,
             outputConfig,
+            _,
             _
           )
         ) =>
@@ -336,7 +344,8 @@ abstract class ParticipantAgent[
             resolution,
             requestVoltageDeviationThreshold,
             outputConfig,
-            maybeEmAgent
+            maybeEmAgent,
+            scheduleTriggerFunc
           )
         ) =>
       log.debug("Will perform model calculations")
@@ -350,7 +359,8 @@ abstract class ParticipantAgent[
         requestVoltageDeviationThreshold,
         outputConfig,
         scheduler,
-        maybeEmAgent
+        maybeEmAgent,
+        scheduleTriggerFunc
       )
 
     /* Receiving the registration replies from services and collect their next data ticks */
@@ -613,7 +623,8 @@ abstract class ParticipantAgent[
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
       scheduler: ActorRef,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[ActorRef],
+      scheduleTriggerFunc: Trigger => ScheduleTriggerMessage
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Handles the responses from service providers, this actor has registered
@@ -857,6 +868,11 @@ abstract class ParticipantAgent[
       lastState: MS,
       setPower: ComparableQuantity[Power]
   ): (MS, PD, FlexChangeIndicator)
+
+  protected def checkSetPower(
+      flexOptions: ProvideMinMaxFlexOptions,
+      setPower: ComparableQuantity[Power]
+  ): Unit
 
   /** Determining the reply to an
     * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]],

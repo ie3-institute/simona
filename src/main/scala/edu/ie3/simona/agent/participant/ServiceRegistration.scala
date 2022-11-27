@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.participant
 
 import akka.actor.ActorRef
-import edu.ie3.datamodel.models.input.system.{EvcsInput, SystemParticipantInput}
+import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
@@ -24,11 +24,10 @@ import edu.ie3.simona.model.participant.{
   ModelState,
   SystemParticipant
 }
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.RequestFlexOptions
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
-import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
+import edu.ie3.simona.ontology.trigger.Trigger
 
 trait ServiceRegistration[
     PD <: PrimaryDataWithApparentPower[PD],
@@ -48,18 +47,18 @@ trait ServiceRegistration[
     *   Input model definition
     * @param services
     *   Definition of where to get what
-    * @param agentRef
-    *   The participant agent actor
-    * @param maybeEmAgent
-    *   The EmAgent if the participant is controlled by an EMS
+    * @param scheduleTriggerFunc
+    *   function providing the proper ScheduleTriggerMessage for a given trigger
+    * @param emControlled
+    *   whether the agent is em-controlled or not
     * @return
     *   a vector of actor references to wait for responses
     */
   def registerForServices(
       inputModel: I,
       services: Option[Seq[SecondaryDataService[_ <: SecondaryData]]],
-      agentRef: ActorRef,
-      maybeEmAgent: Option[ActorRef]
+      scheduleTriggerFunc: Trigger => ScheduleTriggerMessage,
+      emControlled: Boolean
   ): Seq[ActorRef] =
     services
       .map(sources =>
@@ -67,8 +66,8 @@ trait ServiceRegistration[
           registerForSecondaryService(
             service,
             inputModel,
-            agentRef,
-            maybeEmAgent
+            scheduleTriggerFunc,
+            emControlled
           )
         )
       )
@@ -80,10 +79,10 @@ trait ServiceRegistration[
     *   Definition of the service
     * @param inputModel
     *   Input model that is interested in the information
-    * @param agentRef
-    *   The participant agent actor
-    * @param maybeEmAgent
-    *   The EmAgent if the participant is controlled by an EMS
+    * @param scheduleTriggerFunc
+    *   function providing the proper ScheduleTriggerMessage for a given trigger
+    * @param emControlled
+    *   whether the agent is em-controlled or not
     * @tparam S
     *   Type of the secondary data, that is awaited
     * @return
@@ -95,8 +94,8 @@ trait ServiceRegistration[
   ](
       serviceDefinition: SecondaryDataService[S],
       inputModel: I,
-      agentRef: ActorRef,
-      maybeEmAgent: Option[ActorRef]
+      scheduleTriggerFunc: Trigger => ScheduleTriggerMessage,
+      emControlled: Boolean
   ): Option[ActorRef] = serviceDefinition match {
     case SecondaryDataService.ActorPriceService(_) =>
       log.debug(
@@ -108,7 +107,12 @@ trait ServiceRegistration[
       registerForWeather(serviceRef, inputModel)
       Some(serviceRef)
     case ActorEvMovementsService(serviceRef) =>
-      registerForEvMovements(serviceRef, inputModel, agentRef, maybeEmAgent)
+      registerForEvMovements(
+        serviceRef,
+        inputModel,
+        scheduleTriggerFunc,
+        emControlled
+      )
       Some(serviceRef)
   }
 
@@ -146,62 +150,22 @@ trait ServiceRegistration[
     *   Actor reference of the EV movements service
     * @param inputModel
     *   Input model of the simulation mode
-    * @param maybeEmAgent
-    *   The EmAgent if the participant is controlled by an EMS
+    * @param scheduleTriggerFunc
+    *   function providing the proper ScheduleTriggerMessage for a given trigger
+    * @param emControlled
+    *   whether the agent is em-controlled or not
     * @return
     */
   private def registerForEvMovements(
       serviceRef: ActorRef,
       inputModel: I,
-      evcsRef: ActorRef,
-      maybeEmAgent: Option[ActorRef]
-  ): Unit = {
-    inputModel match {
-      case evcsInput: EvcsInput =>
-        val arrivalScheduleParticipant = (tick: Long) =>
-          ScheduleTriggerMessage(
-            ActivityStartTrigger(
-              tick
-            ),
-            evcsRef
-          )
-
-        // when using an EmAgent, activation schedules have to be stacked
-        val arrivalScheduleFunc = (tick: Long) =>
-          maybeEmAgent
-            .map { emAgent =>
-              ScheduleTriggerMessage(
-                arrivalScheduleParticipant(tick),
-                emAgent,
-                priority = true
-              )
-            }
-            .getOrElse(arrivalScheduleParticipant(tick))
-
-        // FIXME this is quite cumbersome
-        val departureScheduleFunc = (tick: Long) =>
-          maybeEmAgent.map { emAgent =>
-            ScheduleTriggerMessage(
-              ScheduleTriggerMessage(
-                RequestFlexOptions(tick),
-                evcsRef
-              ),
-              emAgent,
-              priority = true
-            )
-          }
-
-        serviceRef ! RegisterForEvDataMessage(
-          evcsInput.getUuid,
-          departureScheduleFunc,
-          arrivalScheduleFunc
-        )
-      case _ =>
-        throw new ServiceRegistrationException(
-          s"Cannot register for EV movements information at node ${inputModel.getNode.getId} " +
-            s"(${inputModel.getNode.getUuid}) of type ${inputModel.getClass.getName}, because only Evcs can register for this."
-        )
-    }
-  }
+      scheduleTriggerFunc: Trigger => ScheduleTriggerMessage,
+      emControlled: Boolean
+  ): Unit =
+    serviceRef ! RegisterForEvDataMessage(
+      inputModel.getUuid,
+      scheduleTriggerFunc,
+      emControlled
+    )
 
 }
