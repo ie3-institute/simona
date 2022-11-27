@@ -35,8 +35,6 @@ import edu.ie3.util.TimeUtil
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object GridAgent {
@@ -78,6 +76,7 @@ class GridAgent(
       TimeUtil.withDefaults
         .toZonedDateTime(simonaConfig.simona.time.endDateTime),
       simonaConfig.simona.runtime.participant,
+      simonaConfig.simona.runtime.rootEm,
       simonaConfig.simona.output.participant,
       3600L, // FIXME this is normally = resolution
       listener,

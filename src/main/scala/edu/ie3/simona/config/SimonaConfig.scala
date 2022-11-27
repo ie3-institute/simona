@@ -2008,6 +2008,7 @@ object SimonaConfig {
     final case class Runtime(
         listener: SimonaConfig.Simona.Runtime.Listener,
         participant: SimonaConfig.Simona.Runtime.Participant,
+        rootEm: scala.Option[SimonaConfig.Simona.Runtime.RootEm],
         selected_subgrids: scala.Option[scala.List[scala.Int]],
         selected_volt_lvls: scala.Option[scala.List[SimonaConfig.VoltLvlConfig]]
     )
@@ -2430,6 +2431,60 @@ object SimonaConfig {
         }
       }
 
+      final case class RootEm(
+          filePath: java.lang.String,
+          nodeId: java.lang.String,
+          threshold: scala.Double,
+          timeSeriesType: java.lang.String
+      )
+      object RootEm {
+        def apply(
+            c: com.typesafe.config.Config,
+            parentPath: java.lang.String,
+            $tsCfgValidator: $TsCfgValidator
+        ): SimonaConfig.Simona.Runtime.RootEm = {
+          SimonaConfig.Simona.Runtime.RootEm(
+            filePath = $_reqStr(parentPath, c, "filePath", $tsCfgValidator),
+            nodeId = $_reqStr(parentPath, c, "nodeId", $tsCfgValidator),
+            threshold = $_reqDbl(parentPath, c, "threshold", $tsCfgValidator),
+            timeSeriesType =
+              $_reqStr(parentPath, c, "timeSeriesType", $tsCfgValidator)
+          )
+        }
+        private def $_reqDbl(
+            parentPath: java.lang.String,
+            c: com.typesafe.config.Config,
+            path: java.lang.String,
+            $tsCfgValidator: $TsCfgValidator
+        ): scala.Double = {
+          if (c == null) 0
+          else
+            try c.getDouble(path)
+            catch {
+              case e: com.typesafe.config.ConfigException =>
+                $tsCfgValidator.addBadPath(parentPath + path, e)
+                0
+            }
+        }
+
+        private def $_reqStr(
+            parentPath: java.lang.String,
+            c: com.typesafe.config.Config,
+            path: java.lang.String,
+            $tsCfgValidator: $TsCfgValidator
+        ): java.lang.String = {
+          if (c == null) null
+          else
+            try c.getString(path)
+            catch {
+              case e: com.typesafe.config.ConfigException =>
+                $tsCfgValidator.addBadPath(parentPath + path, e)
+                null
+            }
+        }
+
+      }
+
       def apply(
           c: com.typesafe.config.Config,
           parentPath: java.lang.String,
@@ -2448,6 +2503,16 @@ object SimonaConfig {
             parentPath + "participant.",
             $tsCfgValidator
           ),
+          rootEm =
+            if (c.hasPathOrNull("rootEm"))
+              scala.Some(
+                SimonaConfig.Simona.Runtime.RootEm(
+                  c.getConfig("rootEm"),
+                  parentPath + "rootEm.",
+                  $tsCfgValidator
+                )
+              )
+            else None,
           selected_subgrids =
             if (c.hasPathOrNull("selected_subgrids"))
               scala.Some(

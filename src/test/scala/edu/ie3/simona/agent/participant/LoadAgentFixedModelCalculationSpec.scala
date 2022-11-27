@@ -144,7 +144,8 @@ class LoadAgentFixedModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(loadAgent)
             )
           ),
           triggerId,
@@ -168,7 +169,8 @@ class LoadAgentFixedModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent
+              maybeEmAgent,
+              _
             ) =>
           inputModel shouldBe voltageSensitiveInput
           modelConfig shouldBe modelConfig
@@ -269,7 +271,8 @@ class LoadAgentFixedModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(loadAgent)
             )
           ),
           triggerId,
@@ -349,7 +352,8 @@ class LoadAgentFixedModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(loadAgent)
             )
           ),
           initialiseTriggerId,
@@ -438,7 +442,8 @@ class LoadAgentFixedModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(loadAgent)
             )
           ),
           0L,
@@ -516,7 +521,8 @@ class LoadAgentFixedModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(loadAgent)
             )
           ),
           0L,

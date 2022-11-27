@@ -159,7 +159,8 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(evcsAgent)
             )
           ),
           triggerId,
@@ -238,7 +239,8 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(evcsAgent)
             )
           ),
           triggerId,
@@ -262,7 +264,8 @@ class EvcsAgentModelCalculationSpec
               timeBin,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent
+              maybeEmAgent,
+              scheduleFunc
             ) =>
           inputModel shouldBe evcsInputModel
           modelConfig shouldBe modelConfig
@@ -273,6 +276,8 @@ class EvcsAgentModelCalculationSpec
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
           maybeEmAgent shouldBe None
+          scheduleFunc(ActivityStartTrigger(0L)) shouldBe
+            scheduleTriggerFunc(evcsAgent)(ActivityStartTrigger(0L))
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
       }
@@ -284,13 +289,13 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsgPF() {
         case RegisterForEvDataMessage(
               uuid,
-              departureScheduleFunc,
-              arrivalScheduleFunc
+              scheduleFunc,
+              emControlled
             ) =>
           uuid shouldBe evcsInputModel.getUuid
-          departureScheduleFunc(3L) shouldBe None
-          arrivalScheduleFunc(3L) shouldBe
-            ScheduleTriggerMessage(ActivityStartTrigger(3L), evcsAgent)
+          scheduleFunc(ActivityStartTrigger(1L)) shouldBe
+            scheduleTriggerFunc(evcsAgent)(ActivityStartTrigger(1L))
+          emControlled shouldBe false
       }
 
       /* ... as well as corresponding state and state data */
@@ -397,7 +402,8 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(evcsAgent)
             )
           ),
           triggerId,
@@ -413,13 +419,13 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsgPF() {
         case RegisterForEvDataMessage(
               uuid,
-              departureScheduleFunc,
-              arrivalScheduleFunc
+              scheduleFunc,
+              emControlled
             ) =>
           uuid shouldBe evcsInputModel.getUuid
-          departureScheduleFunc(3L) shouldBe None
-          arrivalScheduleFunc(3L) shouldBe
-            ScheduleTriggerMessage(ActivityStartTrigger(3L), evcsAgent)
+          scheduleFunc(ActivityStartTrigger(2L)) shouldBe
+            scheduleTriggerFunc(evcsAgent)(ActivityStartTrigger(2L))
+          emControlled shouldBe false
       }
       evService.send(evcsAgent, RegistrationSuccessfulMessage(Some(900L)))
 
@@ -491,7 +497,8 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(evcsAgent)
             )
           ),
           initialiseTriggerId,
@@ -645,7 +652,8 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(evcsAgent)
             )
           ),
           initialiseTriggerId,
@@ -794,7 +802,8 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(evcsAgent)
             )
           ),
           initialiseTriggerId,
@@ -863,7 +872,8 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(evcsAgent)
             )
           ),
           initialiseTriggerId,
@@ -964,7 +974,8 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(evcsAgent)
             )
           ),
           initialiseTriggerId,
@@ -1186,7 +1197,9 @@ class EvcsAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = Some(emAgent.ref)
+              maybeEmAgent = Some(emAgent.ref),
+              scheduleTriggerFunc =
+                scheduleTriggerEmFunc(evcsAgent, emAgent.ref)
             )
           ),
           triggerId,
@@ -1210,7 +1223,8 @@ class EvcsAgentModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent
+              maybeEmAgent,
+              scheduleFunc
             ) =>
           inputModel shouldBe voltageSensitiveInput
           modelConfig shouldBe modelConfig
@@ -1221,6 +1235,10 @@ class EvcsAgentModelCalculationSpec
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
           maybeEmAgent shouldBe Some(emAgent.ref)
+          scheduleFunc(ActivityStartTrigger(0L)) shouldBe
+            scheduleTriggerEmFunc(evcsAgent, emAgent.ref)(
+              ActivityStartTrigger(0L)
+            )
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
       }
@@ -1238,23 +1256,15 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsgPF() {
         case RegisterForEvDataMessage(
               uuid,
-              departureScheduleFunc,
-              arrivalScheduleFunc
+              scheduleFunc,
+              emControlled
             ) =>
           uuid shouldBe evcsInputModel.getUuid
-          departureScheduleFunc(3L) shouldBe Some(
-            ScheduleTriggerMessage(
-              ScheduleTriggerMessage(RequestFlexOptions(3L), evcsAgent),
-              emAgent.ref,
-              priority = true
+          scheduleFunc(ActivityStartTrigger(0L)) shouldBe
+            scheduleTriggerEmFunc(evcsAgent, emAgent.ref)(
+              ActivityStartTrigger(0L)
             )
-          )
-          arrivalScheduleFunc(3L) shouldBe
-            ScheduleTriggerMessage(
-              ScheduleTriggerMessage(ActivityStartTrigger(3L), evcsAgent),
-              emAgent.ref,
-              priority = true
-            )
+          emControlled shouldBe true
       }
       evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
 
@@ -1342,7 +1352,9 @@ class EvcsAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = simResultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = Some(emAgent.ref)
+              maybeEmAgent = Some(emAgent.ref),
+              scheduleTriggerFunc =
+                scheduleTriggerEmFunc(evcsAgent, emAgent.ref)
             )
           ),
           triggerId,
@@ -1366,7 +1378,8 @@ class EvcsAgentModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent
+              maybeEmAgent,
+              scheduleFunc
             ) =>
           inputModel shouldBe voltageSensitiveInput
           modelConfig shouldBe modelConfig
@@ -1377,6 +1390,10 @@ class EvcsAgentModelCalculationSpec
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe simResultOutputConfig
           maybeEmAgent shouldBe Some(emAgent.ref)
+          scheduleFunc(ActivityStartTrigger(0L)) shouldBe
+            scheduleTriggerEmFunc(evcsAgent, emAgent.ref)(
+              ActivityStartTrigger(0L)
+            )
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
       }
@@ -1394,23 +1411,15 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsgPF() {
         case RegisterForEvDataMessage(
               uuid,
-              departureScheduleFunc,
-              arrivalScheduleFunc
+              scheduleFunc,
+              emControlled
             ) =>
           uuid shouldBe evcsInputModel.getUuid
-          departureScheduleFunc(4L) shouldBe Some(
-            ScheduleTriggerMessage(
-              ScheduleTriggerMessage(RequestFlexOptions(4L), evcsAgent),
-              emAgent.ref,
-              priority = true
+          scheduleFunc(ActivityStartTrigger(0L)) shouldBe
+            scheduleTriggerEmFunc(evcsAgent, emAgent.ref)(
+              ActivityStartTrigger(0L)
             )
-          )
-          arrivalScheduleFunc(4L) shouldBe
-            ScheduleTriggerMessage(
-              ScheduleTriggerMessage(ActivityStartTrigger(4L), evcsAgent),
-              emAgent.ref,
-              priority = true
-            )
+          emControlled shouldBe true
       }
       evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
 

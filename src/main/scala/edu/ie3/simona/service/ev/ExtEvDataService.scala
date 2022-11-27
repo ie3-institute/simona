@@ -13,11 +13,14 @@ import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.RequestFlexOptions
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
+import edu.ie3.simona.ontology.trigger.Trigger
+import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData
@@ -45,8 +48,8 @@ object ExtEvDataService {
         UUID,
         (
             ActorRef,
-            Long => Option[ScheduleTriggerMessage],
-            Long => ScheduleTriggerMessage
+            Trigger => ScheduleTriggerMessage,
+            Boolean
         )
       ] = Map.empty,
       extEvMessage: Option[EvDataMessageFromExt] = None,
@@ -110,15 +113,15 @@ class ExtEvDataService(override val scheduler: ActorRef)
     registrationMessage match {
       case RegisterForEvDataMessage(
             evcs,
-            departureScheduleFunc,
-            arrivalScheduleFunc
+            scheduleTriggerFunc,
+            emControlled
           ) =>
         Success(
           handleRegistrationRequest(
             sender(),
             evcs,
-            departureScheduleFunc,
-            arrivalScheduleFunc
+            scheduleTriggerFunc,
+            emControlled
           )
         )
       case invalidMessage =>
@@ -137,12 +140,10 @@ class ExtEvDataService(override val scheduler: ActorRef)
     *   the agent that wants to be registered
     * @param evcs
     *   the charging station
-    * @param departureScheduleFunc
-    *   function providing the proper ScheduleTriggerMessage for a given tick
-    *   upon EV departures
-    * @param arrivalScheduleFunc
-    *   function providing the proper ScheduleTriggerMessage for a given tick
-    *   upon EV arrivals
+    * @param scheduleTriggerFunc
+    *   function providing the proper ScheduleTriggerMessage for a given trigger
+    * @param emControlled
+    *   whether the agent is em-controlled or not
     * @param serviceStateData
     *   the current service state data of this service
     * @return
@@ -152,8 +153,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef,
       evcs: UUID,
-      departureScheduleFunc: Long => Option[ScheduleTriggerMessage],
-      arrivalScheduleFunc: Long => ScheduleTriggerMessage
+      scheduleTriggerFunc: Trigger => ScheduleTriggerMessage,
+      emControlled: Boolean
   )(implicit
       serviceStateData: ExtEvStateData
   ): ExtEvStateData = {
@@ -170,7 +171,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
         serviceStateData.copy(
           uuidToActorRef =
-            serviceStateData.uuidToActorRef + (evcs -> (agentToBeRegistered, departureScheduleFunc, arrivalScheduleFunc))
+            serviceStateData.uuidToActorRef + (evcs -> (agentToBeRegistered, scheduleTriggerFunc, emControlled))
         )
       case Some(_) =>
         // actor is already registered, do nothing
@@ -275,10 +276,10 @@ class ExtEvDataService(override val scheduler: ActorRef)
     val evcsWithDepartures =
       requestedDepartingEvs.asScala.flatMap { case (evcs, departingEvs) =>
         serviceStateData.uuidToActorRef.get(evcs) match {
-          case Some((evcsActor, departureScheduleFunc, _)) =>
+          case Some((evcsActor, scheduleTriggerFunc, emControlled)) =>
             evcsActor ! DepartingEvsRequest(tick, departingEvs.asScala.toSeq)
 
-            Some(evcs, departureScheduleFunc)
+            Some(evcs, scheduleTriggerFunc, emControlled)
 
           case None =>
             log.warning(
@@ -291,13 +292,13 @@ class ExtEvDataService(override val scheduler: ActorRef)
       }
 
     val departingEvResponses: Map[UUID, Option[Seq[EvModel]]] =
-      evcsWithDepartures.map { case (evcs, _) =>
+      evcsWithDepartures.map { case (evcs, _, _) =>
         evcs -> None
       }.toMap
 
     val scheduleTriggerMsgs = evcsWithDepartures.flatMap {
-      case (_, departureScheduleFunc) =>
-        departureScheduleFunc(tick)
+      case (_, scheduleTriggerFunc, emControlled) =>
+        Option.when(emControlled)(scheduleTriggerFunc(RequestFlexOptions(tick)))
     }
 
     // if there are no departing evs during this tick,
@@ -324,14 +325,14 @@ class ExtEvDataService(override val scheduler: ActorRef)
     val scheduleTriggerMsgs =
       arrivingEvs.asScala.flatMap { case (evcs, arrivingEvs) =>
         serviceStateData.uuidToActorRef.get(evcs) match {
-          case Some((evcsActor, _, arrivalScheduleFunc)) =>
+          case Some((evcsActor, scheduleTriggerFunc, _)) =>
             evcsActor ! ProvideEvDataMessage(
               tick,
               ArrivingEvsData(arrivingEvs.asScala.toSeq)
             )
 
             // schedule activation of participant
-            Some(arrivalScheduleFunc(tick))
+            Some(scheduleTriggerFunc(ActivityStartTrigger(tick)))
 
           case None =>
             log.warning(

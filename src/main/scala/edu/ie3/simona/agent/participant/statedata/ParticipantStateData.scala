@@ -13,6 +13,8 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApp
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
+import edu.ie3.simona.ontology.trigger.Trigger
 
 import java.time.ZonedDateTime
 
@@ -76,7 +78,8 @@ object ParticipantStateData {
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[ActorRef],
+      scheduleTriggerFunc: Trigger => ScheduleTriggerMessage
   ) extends ParticipantStateData[PD]
 
   /** State data to use, when initializing the participant agent
@@ -123,7 +126,8 @@ object ParticipantStateData {
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: ParticipantNotifierConfig,
-      maybeEmAgent: Option[ActorRef] = None
+      maybeEmAgent: Option[ActorRef] = None,
+      scheduleTriggerFunc: Trigger => ScheduleTriggerMessage
   ) extends InitializeStateData[PD]
 
   /** StateData to be used, while waiting for registration replies

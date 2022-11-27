@@ -156,7 +156,8 @@ class FixedFeedInAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(fixedFeedAgent)
             )
           ),
           triggerId,
@@ -180,7 +181,8 @@ class FixedFeedInAgentModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent
+              maybeEmAgent,
+              _
             ) =>
           inputModel shouldBe voltageSensitiveInput
           modelConfig shouldBe modelConfig
@@ -281,7 +283,8 @@ class FixedFeedInAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(fixedFeedAgent)
             )
           ),
           triggerId,
@@ -361,7 +364,8 @@ class FixedFeedInAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(fixedFeedAgent)
             )
           ),
           initialiseTriggerId,
@@ -450,7 +454,8 @@ class FixedFeedInAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(fixedFeedAgent)
             )
           ),
           0L,
@@ -532,7 +537,8 @@ class FixedFeedInAgentModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(fixedFeedAgent)
             )
           ),
           0,

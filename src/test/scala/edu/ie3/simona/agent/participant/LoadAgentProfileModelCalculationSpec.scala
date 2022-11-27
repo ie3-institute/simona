@@ -144,7 +144,8 @@ class LoadAgentProfileModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(loadAgent)
             )
           ),
           triggerId,
@@ -167,7 +168,8 @@ class LoadAgentProfileModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent
+              maybeEmAgent,
+              _
             ) =>
           inputModel shouldBe voltageSensitiveInput
           modelConfig shouldBe modelConfig
@@ -269,7 +271,8 @@ class LoadAgentProfileModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(loadAgent)
             )
           ),
           triggerId,
@@ -349,7 +352,8 @@ class LoadAgentProfileModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(loadAgent)
             )
           ),
           initialiseTriggerId,
@@ -445,7 +449,8 @@ class LoadAgentProfileModelCalculationSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
+              primaryServiceProxy = primaryServiceProxy.ref,
+              scheduleTriggerFunc = scheduleTriggerFunc(loadAgent)
             )
           ),
           0L,
