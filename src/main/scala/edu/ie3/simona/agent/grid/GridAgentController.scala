@@ -102,7 +102,8 @@ class GridAgentController(
       subGridContainer.getSystemParticipants,
       systemParticipants,
       environmentRefs,
-      rootEmConfig
+      rootEmConfig,
+      subGridContainer.getSubnet
     )
   }
 
@@ -195,7 +196,8 @@ class GridAgentController(
       allParticipants: SystemParticipants,
       filteredParticipants: Vector[SystemParticipantInput],
       environmentRefs: EnvironmentRefs,
-      rootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm]
+      rootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm],
+      subGrid: Int
   ): Map[UUID, Set[ActorRef]] = {
     /* Prepare the config util for the participant models, which (possibly) utilizes as map to speed up the initialization
      * phase */
@@ -221,7 +223,7 @@ class GridAgentController(
 
     if (rootEmConfig.isDefined && emInputs.nonEmpty) {
       val mockRootEmInput = new EmInput(
-        UUID.randomUUID(),
+        UUID.fromString(s"11111111-0000-0000-0000-${"%012d".format(subGrid)}"),
         "Root EmAgent",
         new NodeInput(
           UUID.randomUUID(),
