@@ -181,7 +181,8 @@ class WecAgentModelCalculationSpec
               outputConfig = ParticipantNotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
-              )
+              ),
+              scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
           ),
           triggerId,
@@ -269,7 +270,8 @@ class WecAgentModelCalculationSpec
               outputConfig = ParticipantNotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
-              )
+              ),
+              scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
           ),
           triggerId,
@@ -401,7 +403,8 @@ class WecAgentModelCalculationSpec
               outputConfig = ParticipantNotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
-              )
+              ),
+              scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
           ),
           triggerId,
@@ -493,7 +496,8 @@ class WecAgentModelCalculationSpec
               outputConfig = ParticipantNotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
-              )
+              ),
+              scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
           ),
           initialiseTriggerId,
@@ -655,7 +659,8 @@ class WecAgentModelCalculationSpec
               outputConfig = ParticipantNotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
-              )
+              ),
+              scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
           ),
           initialiseTriggerId,
@@ -815,7 +820,8 @@ class WecAgentModelCalculationSpec
               outputConfig = ParticipantNotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
-              )
+              ),
+              scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
           ),
           0L,
@@ -924,7 +930,8 @@ class WecAgentModelCalculationSpec
               outputConfig = ParticipantNotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
-              )
+              ),
+              scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
           ),
           0L,

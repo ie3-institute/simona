@@ -21,15 +21,13 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
+import edu.ie3.simona.ontology.trigger.Trigger
 import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
   InitializeServiceTrigger
 }
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
-import edu.ie3.simona.service.ev.ExtEvDataServiceSpec.{
-  arrivalScheduleFunc,
-  departureScheduleFunc
-}
+import edu.ie3.simona.service.ev.ExtEvDataServiceSpec.scheduleTriggerFunc
 import edu.ie3.simona.test.common.{EvTestData, TestKitWithShutdown}
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -112,8 +110,8 @@ class ExtEvDataServiceSpec
         evService,
         RegisterForEvDataMessage(
           evcs1UUID,
-          departureScheduleFunc,
-          arrivalScheduleFunc(evcs1.ref)
+          scheduleTriggerFunc(evcs1.ref),
+          emControlled = false
         )
       )
 
@@ -168,8 +166,8 @@ class ExtEvDataServiceSpec
         evService,
         RegisterForEvDataMessage(
           evcs1UUID,
-          departureScheduleFunc,
-          arrivalScheduleFunc(evcs1.ref)
+          scheduleTriggerFunc(evcs1.ref),
+          emControlled = false
         )
       )
       evcs1.expectMsg(RegistrationSuccessfulMessage(None))
@@ -178,8 +176,8 @@ class ExtEvDataServiceSpec
         evService,
         RegisterForEvDataMessage(
           evcs2UUID,
-          departureScheduleFunc,
-          arrivalScheduleFunc(evcs2.ref)
+          scheduleTriggerFunc(evcs2.ref),
+          emControlled = false
         )
       )
       evcs2.expectMsg(RegistrationSuccessfulMessage(None))
@@ -189,8 +187,8 @@ class ExtEvDataServiceSpec
         evService,
         RegisterForEvDataMessage(
           evcs1UUID,
-          departureScheduleFunc,
-          arrivalScheduleFunc(evcs1.ref)
+          scheduleTriggerFunc(evcs1.ref),
+          emControlled = false
         )
       )
       evcs1.expectNoMessage()
@@ -267,8 +265,8 @@ class ExtEvDataServiceSpec
         evService,
         RegisterForEvDataMessage(
           evcs1UUID,
-          departureScheduleFunc,
-          arrivalScheduleFunc(evcs1.ref)
+          scheduleTriggerFunc(evcs1.ref),
+          emControlled = false
         )
       )
       evcs1.expectMsgType[RegistrationSuccessfulMessage]
@@ -277,8 +275,8 @@ class ExtEvDataServiceSpec
         evService,
         RegisterForEvDataMessage(
           evcs2UUID,
-          departureScheduleFunc,
-          arrivalScheduleFunc(evcs2.ref)
+          scheduleTriggerFunc(evcs2.ref),
+          emControlled = false
         )
       )
       evcs2.expectMsgType[RegistrationSuccessfulMessage]
@@ -450,8 +448,8 @@ class ExtEvDataServiceSpec
         evService,
         RegisterForEvDataMessage(
           evcs1UUID,
-          departureScheduleFunc,
-          arrivalScheduleFunc(evcs1.ref)
+          scheduleTriggerFunc(evcs1.ref),
+          emControlled = false
         )
       )
       evcs1.expectMsgType[RegistrationSuccessfulMessage]
@@ -460,8 +458,8 @@ class ExtEvDataServiceSpec
         evService,
         RegisterForEvDataMessage(
           evcs2UUID,
-          departureScheduleFunc,
-          arrivalScheduleFunc(evcs2.ref)
+          scheduleTriggerFunc(evcs2.ref),
+          emControlled = false
         )
       )
       evcs2.expectMsgType[RegistrationSuccessfulMessage]
@@ -579,8 +577,8 @@ class ExtEvDataServiceSpec
         evService,
         RegisterForEvDataMessage(
           evcs1UUID,
-          departureScheduleFunc,
-          arrivalScheduleFunc(evcs1.ref)
+          scheduleTriggerFunc(evcs1.ref),
+          emControlled = false
         )
       )
       evcs1.expectMsgType[RegistrationSuccessfulMessage]
@@ -589,8 +587,8 @@ class ExtEvDataServiceSpec
         evService,
         RegisterForEvDataMessage(
           evcs2UUID,
-          departureScheduleFunc,
-          arrivalScheduleFunc(evcs2.ref)
+          scheduleTriggerFunc(evcs2.ref),
+          emControlled = false
         )
       )
       evcs2.expectMsgType[RegistrationSuccessfulMessage]
@@ -688,8 +686,8 @@ class ExtEvDataServiceSpec
         evService,
         RegisterForEvDataMessage(
           evcs1UUID,
-          departureScheduleFunc,
-          arrivalScheduleFunc(evcs1.ref)
+          scheduleTriggerFunc(evcs1.ref),
+          emControlled = false
         )
       )
       evcs1.expectMsgType[RegistrationSuccessfulMessage]
@@ -753,11 +751,9 @@ class ExtEvDataServiceSpec
 
 object ExtEvDataServiceSpec {
 
-  private def departureScheduleFunc: Long => Option[ScheduleTriggerMessage] =
-    (_: Long) => None
-
-  private def arrivalScheduleFunc(
+  private def scheduleTriggerFunc(
       actor: ActorRef
-  ): Long => ScheduleTriggerMessage =
-    (tick: Long) => ScheduleTriggerMessage(ActivityStartTrigger(tick), actor)
+  ): Trigger => ScheduleTriggerMessage =
+    (trigger: Trigger) => ScheduleTriggerMessage(trigger, actor)
+
 }

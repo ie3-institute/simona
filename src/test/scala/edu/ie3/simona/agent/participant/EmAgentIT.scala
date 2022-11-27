@@ -27,6 +27,7 @@ import edu.ie3.simona.config.SimonaConfig.{
 }
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.model.participant.em.PrioritizedFlexStrat
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   ScheduleTriggerMessage,
@@ -155,7 +156,8 @@ class EmAgentIT
             resolution,
             simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
             outputConfigOff,
-            Some(emAgent)
+            Some(emAgent),
+            scheduleTriggerEmFunc(loadAgent, emAgent)
           )
         )
       val pvAgentInit =
@@ -181,7 +183,8 @@ class EmAgentIT
             resolution,
             simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
             outputConfigOff,
-            Some(emAgent)
+            Some(emAgent),
+            scheduleTriggerEmFunc(pvAgent, emAgent)
           )
         )
       val storageAgentInit =
@@ -208,7 +211,8 @@ class EmAgentIT
             resolution,
             simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
             outputConfigOff,
-            Some(emAgent)
+            Some(emAgent),
+            scheduleTriggerEmFunc(storageAgent, emAgent)
           )
         )
 
@@ -236,7 +240,8 @@ class EmAgentIT
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfigOn,
               primaryServiceProxy = primaryServiceProxy.ref,
-              connectedAgents = connectedAgents
+              connectedAgents = connectedAgents,
+              modelStrategy = PrioritizedFlexStrat
             )
           ),
           initId,

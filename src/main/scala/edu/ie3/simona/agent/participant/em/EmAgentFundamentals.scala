@@ -28,9 +28,10 @@ import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.InvalidRequestException
-import edu.ie3.simona.model.participant.EmModel.EmRelevantData
+import edu.ie3.simona.model.participant.em.EmModel.EmRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.{EmModel, ModelState}
+import edu.ie3.simona.model.participant.ModelState
+import edu.ie3.simona.model.participant.em.{EmModel, PrioritizedFlexStrat}
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
@@ -102,7 +103,8 @@ trait EmAgentFundamentals
     inputModel,
     modelConfig,
     simulationStartDate,
-    simulationEndDate
+    simulationEndDate,
+    PrioritizedFlexStrat
   )
 
   override def determineModelBaseStateData(

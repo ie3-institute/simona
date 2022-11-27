@@ -140,7 +140,9 @@ class StorageAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = Some(emAgent.ref)
+              maybeEmAgent = Some(emAgent.ref),
+              scheduleTriggerFunc =
+                scheduleTriggerEmFunc(storageAgent, emAgent.ref)
             )
           ),
           triggerId,
@@ -164,7 +166,8 @@ class StorageAgentModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent
+              maybeEmAgent,
+              _
             ) =>
           inputModel shouldBe voltageSensitiveInput
           modelConfig shouldBe modelConfig
@@ -272,7 +275,9 @@ class StorageAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = Some(emAgent.ref)
+              maybeEmAgent = Some(emAgent.ref),
+              scheduleTriggerFunc =
+                scheduleTriggerEmFunc(storageAgent, emAgent.ref)
             )
           ),
           triggerId,
@@ -363,7 +368,9 @@ class StorageAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = Some(emAgent.ref)
+              maybeEmAgent = Some(emAgent.ref),
+              scheduleTriggerFunc =
+                scheduleTriggerEmFunc(storageAgent, emAgent.ref)
             )
           ),
           triggerId,

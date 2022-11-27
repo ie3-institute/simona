@@ -13,6 +13,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
   ServiceRegistrationMessage
 }
+import edu.ie3.simona.ontology.trigger.Trigger
 
 import java.util.UUID
 
@@ -25,17 +26,15 @@ object EvMessage {
     *
     * @param evcs
     *   the charging station
-    * @param departureScheduleFunc
-    *   function providing the proper ScheduleTriggerMessage for a given tick
-    *   upon EV departures
-    * @param arrivalScheduleFunc
-    *   function providing the proper ScheduleTriggerMessage for a given tick
-    *   upon EV arrivals
+    * @param scheduleTriggerFunc
+    *   function providing the proper ScheduleTriggerMessage for a given trigger
+    * @param emControlled
+    *   whether the agent is em-controlled or not
     */
   final case class RegisterForEvDataMessage(
       evcs: UUID,
-      departureScheduleFunc: Long => Option[ScheduleTriggerMessage],
-      arrivalScheduleFunc: Long => ScheduleTriggerMessage
+      scheduleTriggerFunc: Trigger => ScheduleTriggerMessage,
+      emControlled: Boolean
   ) extends EvMessage
       with ServiceRegistrationMessage
 
