@@ -58,11 +58,13 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         val createDateTime =
           PrivateMethod[ZonedDateTime](Symbol("createDateTime"))
 
+        val dateTimeString: String = "2020-05-18 13:41:00"
+
         "let valid input pass" in {
           noException shouldBe thrownBy {
             ConfigFailFast invokePrivate createDateTime(
               (
-                "2020-05-18 13:41:00"
+                dateTimeString
               )
             )
           }
