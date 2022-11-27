@@ -102,7 +102,7 @@ object EmAgent {
         )
       ],
       maybeParentEmAgent: Option[ActorRef] = None,
-      maybeRootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm]
+      maybeRootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm] = None
   ) extends InitializeStateData[ApparentPower]
 
   final case class EmModelBaseStateData(
