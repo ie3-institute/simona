@@ -39,7 +39,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           }
         }
 
-        "identify invalid input" in {
+        "identify invalid date or time configuration" in {
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkTimeConfig(
               new Time(
@@ -76,7 +76,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               )
             )
           }.getMessage shouldBe "Invalid dateTimeString: total non-sense." +
-            "Please ensure that your date/time parameter match the following pattern: ‘yyyy-MM-dd HH:mm:ss'"
+            "Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd HH:mm:ss'"
         }
       }
 
