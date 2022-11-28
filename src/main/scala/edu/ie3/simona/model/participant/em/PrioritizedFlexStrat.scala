@@ -84,25 +84,37 @@ object PrioritizedFlexStrat extends EmModelStrat {
               (issueCtrlMsgs, Some(remainingExcessPower)),
               (spi, flexOption: ProvideMinMaxFlexOptions)
             ) =>
-          val differenceNoControl =
+          // potential for decreasing feed-in/increasing load (negative)
+          val flexPotential =
             flexOption.referencePower.subtract(flexOption.maxPower)
 
           if (
             PsuQuantityUtil.isEquivalentAbs(
               zeroKW,
-              differenceNoControl,
+              remainingExcessPower,
               relativeTolerance
             )
           ) {
+            // we're already there (besides rounding error)
+            (issueCtrlMsgs, None)
+          } else if (
+            PsuQuantityUtil.isEquivalentAbs(
+              zeroKW,
+              flexPotential,
+              relativeTolerance
+            )
+          ) {
+            // device does not offer usable flex potential here
             (issueCtrlMsgs, Some(remainingExcessPower))
-          } else if (remainingExcessPower.isLessThan(differenceNoControl)) {
+          } else if (remainingExcessPower.isLessThan(flexPotential)) {
             // we cannot cover the excess feed-in with just this flexibility,
-            // thus use all of the flexibility
+            // thus use all of the available flexibility and continue
             (
               issueCtrlMsgs :+ (spi.getUuid, flexOption.maxPower),
-              Some(remainingExcessPower.subtract(differenceNoControl))
+              Some(remainingExcessPower.subtract(flexPotential))
             )
           } else {
+
             // this flexibility covers more than we need to reach zero excess,
             // thus we only use as much as we need
             val powerCtrl =
@@ -133,25 +145,37 @@ object PrioritizedFlexStrat extends EmModelStrat {
               (issueCtrlMsgs, Some(remainingExcessPower)),
               (spi, flexOption: ProvideMinMaxFlexOptions)
             ) =>
-          val differenceNoControl =
+          // potential for decreasing load/increasing feed-in
+          val flexPotential =
             flexOption.referencePower.subtract(flexOption.minPower)
 
           if (
             PsuQuantityUtil.isEquivalentAbs(
               zeroKW,
-              differenceNoControl,
+              remainingExcessPower,
               relativeTolerance
             )
           ) {
+            // we're already there (besides rounding error)
+            (issueCtrlMsgs, None)
+          } else if (
+            PsuQuantityUtil.isEquivalentAbs(
+              zeroKW,
+              flexPotential,
+              relativeTolerance
+            )
+          ) {
+            // device does not offer usable flex potential here
             (issueCtrlMsgs, Some(remainingExcessPower))
-          } else if (remainingExcessPower.isGreaterThan(differenceNoControl)) {
+          } else if (remainingExcessPower.isGreaterThan(flexPotential)) {
             // we cannot cover the excess load with just this flexibility,
-            // thus use all of the flexibility
+            // thus use all of the available flexibility and continue
             (
               issueCtrlMsgs :+ (spi.getUuid, flexOption.minPower),
-              Some(remainingExcessPower.subtract(differenceNoControl))
+              Some(remainingExcessPower.subtract(flexPotential))
             )
           } else {
+
             // this flexibility covers more than we need to reach zero excess,
             // thus we only use as much as we need
             val powerCtrl =
