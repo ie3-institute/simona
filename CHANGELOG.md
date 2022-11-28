@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Kafka sink for results [#24](https://github.com/ie3-institute/simona/issues/24)
 - Added Kafka sink for runtime events, re-implemented RuntimeEventListener in akka typed [#242](https://github.com/ie3-institute/simona/issues/242)
 - Added listeners to DBFS tests to check the result output and check the handling of failed power flows [#269](https://github.com/ie3-institute/simona/issues/269)
+- Added DBFS test with participant load and added testing for FinishGridSimulationTrigger [#281](https://github.com/ie3-institute/simona/issues/281)
 
 ### Changed
 - Re-organizing test resources into their respective packages [#105](https://github.com/ie3-institute/simona/issues/105)
@@ -73,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed missing ModelBaseStateData generation for random load profiles [#399](https://github.com/ie3-institute/simona/issues/399)
 - Fixed non-random first days of random load profiles [#401](https://github.com/ie3-institute/simona/issues/401)
 - Fixed groovy formatting [#110](https://github.com/ie3-institute/simona/issues/110)
+- Fixed configuration reference in user's guide [#224](https://github.com/ie3-institute/simona/issues/224)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)

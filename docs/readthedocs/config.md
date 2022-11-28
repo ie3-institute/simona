@@ -70,6 +70,9 @@ simona.input.weather.datasource = {
     - The sample values should only be used to test the functionality. The performance of a reasonable simulation with sensitive results should be based on real weather data.
     - Supported weather data sources are: influxdb1x, csv, sql, couchbase, sample
 
+Further model classes which can be used to parse a data set as input to power system simulations are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#time-series). 
+Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM. 
+
 ### Output parameters
 
 Specify the output directory
@@ -141,6 +144,9 @@ simona.output.participant.individualConfigs = [
   }
 ]
 ```
+
+Further model classes which can be used to load the outcome of a system simulation are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#result).
+Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM.
 
 ## Runtime configuration 
 
