@@ -6,19 +6,22 @@
 
 package edu.ie3.simona.service.weather
 
+import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.factory.timeseries.{
   CosmoIdCoordinateFactory,
   IconIdCoordinateFactory,
-  IdCoordinateFactory
+  IdCoordinateFactory,
+  SqlCoordinateFactory
 }
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
+import edu.ie3.datamodel.io.source.sql.SqlIdCoordinateSource
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
+import edu.ie3.simona.config.SimonaConfig.{BaseCsvParams, BaseSqlParams}
 import edu.ie3.simona.exceptions.{
   InvalidConfigParameterException,
   ServiceException
@@ -385,7 +388,7 @@ object WeatherSource {
               resolution,
               distance
             )(simulationStart)
-        case Some(Some(params: SqlParams)) =>
+        case Some(Some(params: BaseSqlParams)) =>
           checkSqlParams(params)
           (simulationStart: ZonedDateTime) =>
             WeatherSourceWrapper(
@@ -438,10 +441,11 @@ object WeatherSource {
   private def checkCoordinateSource(
       coordinateSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
   ): () => IdCoordinateSource = {
-    val supportedCoordinateSources = Set("csv", "sample")
+    val supportedCoordinateSources = Set("csv", "sql", "sample")
     val definedCoordSources = Vector(
       coordinateSourceConfig.sampleParams,
-      coordinateSourceConfig.csvParams
+      coordinateSourceConfig.csvParams,
+      coordinateSourceConfig.sqlParams
     ).filter(_.isDefined)
 
     // check that only one source is defined
@@ -466,6 +470,26 @@ object WeatherSource {
             directoryPath,
             new FileNamingStrategy(),
             idCoordinateFactory
+          )
+      case Some(
+            Some(
+              baseSqlParams @ BaseSqlParams(
+                jdbcUrl,
+                password,
+                schemaName,
+                tableName,
+                userName
+              )
+            )
+          ) =>
+        checkSqlParams(baseSqlParams)
+
+        () =>
+          new SqlIdCoordinateSource(
+            new SqlConnector(jdbcUrl, userName, password),
+            schemaName,
+            tableName,
+            new SqlCoordinateFactory()
           )
       case Some(
             Some(

@@ -11,7 +11,7 @@ import akka.testkit.{TestActorRef, TestProbe}
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
+import edu.ie3.simona.config.SimonaConfig.PrimaryDataSqlParams
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   ScheduleTriggerMessage,
@@ -79,11 +79,12 @@ class PrimaryServiceProxySqlIT
   }
 
   // function definition because postgres parameters are only available after initialization
-  private def sqlParams: SqlParams = SqlParams(
+  private def sqlParams: PrimaryDataSqlParams = PrimaryDataSqlParams(
     jdbcUrl = container.jdbcUrl,
     userName = container.username,
     password = container.password,
     schemaName = schemaName,
+    tableName = "",
     timePattern = "yyyy-MM-dd HH:mm:ss"
   )
 

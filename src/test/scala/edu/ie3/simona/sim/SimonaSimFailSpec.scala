@@ -6,14 +6,7 @@
 
 package edu.ie3.simona.sim
 
-import akka.actor.{
-  Actor,
-  ActorContext,
-  ActorRef,
-  ActorSystem,
-  Props,
-  actorRef2Scala
-}
+import akka.actor.{Actor, ActorContext, ActorRef, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -177,6 +170,7 @@ object SimonaSimFailSpec {
             new SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource(
               None,
               "foo",
+              None,
               None
             ),
             None,

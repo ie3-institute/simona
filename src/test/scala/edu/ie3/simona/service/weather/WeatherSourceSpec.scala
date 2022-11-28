@@ -17,13 +17,13 @@ import edu.ie3.simona.service.weather.WeatherSourceSpec._
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
-import org.locationtech.jts.geom.Point
+import org.locationtech.jts.geom.{Envelope, Point}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
 import java.util
-import java.util.{Collection, List, Optional, SortedSet}
+import java.util.Optional
 import javax.measure.quantity.Length
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
@@ -391,12 +391,13 @@ case object WeatherSourceSpec {
     ): util.List[CoordinateDistance] = {
       val points: Set[Point] = coordinateToId.keySet
 
-      val deltas: Array[Double] = calculateXYDelta(coordinate, distance)
+      val envelope: Envelope =
+        GeoUtils.calculateBoundingBox(coordinate, distance)
 
-      val xMin: Double = coordinate.getX - deltas(0)
-      val xMax: Double = coordinate.getX + deltas(0)
-      val yMin: Double = coordinate.getY - deltas(1)
-      val yMax: Double = coordinate.getY + deltas(1)
+      val xMin: Double = envelope.getMinX
+      val xMax: Double = envelope.getMaxX
+      val yMin: Double = envelope.getMinY
+      val yMax: Double = envelope.getMaxY
 
       val reducedPoints: Set[Point] = points.flatMap { point =>
         val x: Double = point.getX

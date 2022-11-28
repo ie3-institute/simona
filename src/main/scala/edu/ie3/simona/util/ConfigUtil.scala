@@ -287,55 +287,62 @@ object ConfigUtil {
   object DatabaseConfigUtil extends LazyLogging {
 
     def checkSqlParams(
-        sql: edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.SqlParams
-    ): Unit = {
-      if (!sql.jdbcUrl.trim.startsWith("jdbc:")) {
-        throw new InvalidConfigParameterException(
-          s"The provided JDBC url '${sql.jdbcUrl}' is invalid! The url should start with 'jdbc:'"
-        )
-      }
-      if (!sql.jdbcUrl.trim.startsWith("jdbc:postgresql://")) {
-        logger.warn(
-          "It seems like you intend to use the SqlWeatherSource with an other dialect than PostgreSQL. Please be aware that this usage has neither been tested nor been considered in development."
-        )
-      }
-      if (sql.userName.isEmpty)
-        throw new InvalidConfigParameterException(
-          "User name for SQL weather source cannot be empty"
-        )
-      if (sql.password.isEmpty)
-        logger.info(
-          "Password for SQL weather source is empty. This is allowed, but not common. Please check if this an intended setting."
-        )
-      if (sql.tableName.isEmpty)
-        throw new InvalidConfigParameterException(
-          "Weather table name for SQL weather source cannot be empty"
-        )
-      if (sql.schemaName.isEmpty)
-        throw new InvalidConfigParameterException(
-          "Schema name for SQL weather source cannot be empty"
-        )
-
-      /* Try to build a connection */
-      Try(
-        new SqlConnector(sql.jdbcUrl, sql.userName, sql.password).getConnection
-      ) match {
-        case Failure(exception) =>
-          throw new IllegalArgumentException(
-            s"Unable to reach configured SQL database with url '${sql.jdbcUrl}' and user name '${sql.userName}'. Exception: $exception"
+        params: SimonaConfig.BaseSqlParams
+    ): Unit = params match {
+      case BaseSqlParams(
+            jdbcUrl: java.lang.String,
+            password: java.lang.String,
+            schemaName: java.lang.String,
+            tableName: java.lang.String,
+            userName: java.lang.String
+          ) =>
+        if (!jdbcUrl.trim.startsWith("jdbc:")) {
+          throw new InvalidConfigParameterException(
+            s"The provided JDBC url '$jdbcUrl' is invalid! The url should start with 'jdbc:'"
           )
-        case Success(connection) =>
-          val validConnection = connection.isValid(5000)
-          connection.close()
-          if (!validConnection)
+        }
+        if (!jdbcUrl.trim.startsWith("jdbc:postgresql://")) {
+          logger.warn(
+            "It seems like you intend to use the SqlWeatherSource with an other dialect than PostgreSQL. Please be aware that this usage has neither been tested nor been considered in development."
+          )
+        }
+        if (userName.isEmpty)
+          throw new InvalidConfigParameterException(
+            "User name for SQL weather source cannot be empty"
+          )
+        if (password.isEmpty)
+          logger.info(
+            "Password for SQL weather source is empty. This is allowed, but not common. Please check if this an intended setting."
+          )
+        if (tableName.isEmpty)
+          throw new InvalidConfigParameterException(
+            "Weather table name for SQL weather source cannot be empty"
+          )
+        if (schemaName.isEmpty)
+          throw new InvalidConfigParameterException(
+            "Schema name for SQL weather source cannot be empty"
+          )
+
+        /* Try to build a connection */
+        Try(
+          new SqlConnector(jdbcUrl, userName, password).getConnection
+        ) match {
+          case Failure(exception) =>
             throw new IllegalArgumentException(
-              s"Unable to reach configured SQL database with url '${sql.jdbcUrl}' and user name '${sql.userName}'."
+              s"Unable to reach configured SQL database with url '$jdbcUrl' and user name '$userName'. Exception: $exception"
             )
-          else
-            logger.debug(
-              s"Successfully pinged SQL database with url '${sql.jdbcUrl}' and user name '${sql.userName}'"
-            )
-      }
+          case Success(connection) =>
+            val validConnection = connection.isValid(5000)
+            connection.close()
+            if (!validConnection)
+              throw new IllegalArgumentException(
+                s"Unable to reach configured SQL database with url '$jdbcUrl' and user name '$userName'."
+              )
+            else
+              logger.debug(
+                s"Successfully pinged SQL database with url '$jdbcUrl' and user name '$userName'"
+              )
+        }
     }
 
     def checkCouchbaseParams(

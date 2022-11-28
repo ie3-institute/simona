@@ -34,7 +34,7 @@ final class SampleWeatherSource(
     SampleWeatherSource.SampleIdCoordinateSource
   }
   override val distance: ComparableQuantity[Length] =
-    Quantities.getQuantity(10000, Units.METRE)
+    Quantities.getQuantity(10000d, Units.METRE)
 
   /** Get the weather data for the given tick as a weighted average taking into
     * account the given weighting of weather coordinates.

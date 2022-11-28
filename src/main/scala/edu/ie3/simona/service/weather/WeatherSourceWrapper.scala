@@ -26,10 +26,10 @@ import edu.ie3.datamodel.io.source.{
   WeatherSource => PsdmWeatherSource
 }
 import edu.ie3.datamodel.models.StandardUnits
+import edu.ie3.simona.config.SimonaConfig.BaseSqlParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
   CouchbaseParams,
-  InfluxDb1xParams,
-  SqlParams
+  InfluxDb1xParams
 }
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
@@ -316,7 +316,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
   }
 
   def apply(
-      sqlParams: SqlParams,
+      sqlParams: BaseSqlParams,
       idCoordinateSourceFunction: () => IdCoordinateSource,
       timestampPattern: Option[String],
       scheme: String,
