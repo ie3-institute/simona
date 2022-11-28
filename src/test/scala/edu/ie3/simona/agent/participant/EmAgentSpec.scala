@@ -1330,7 +1330,7 @@ class EmAgentSpec
               maxPower
             ) =>
           modelUuid shouldBe emInput.getUuid
-          referencePower shouldBe (-3d).asKiloWatt
+          referencePower shouldBe 0d.asKiloWatt
           minPower shouldBe (-16d).asKiloWatt
           maxPower shouldBe 6d.asKiloWatt // hint: PV is not flexible
       }
