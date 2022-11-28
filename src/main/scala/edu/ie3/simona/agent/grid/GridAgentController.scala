@@ -727,7 +727,7 @@ class GridAgentController(
         emAgentHierarchy.headOption.getOrElse(environmentRefs.scheduler),
         listener
       ),
-      evcsInput.getId
+      s"EvcsAgent_${evcsInput.getUuid}" // FIXME this should be id
     )
 
     (
