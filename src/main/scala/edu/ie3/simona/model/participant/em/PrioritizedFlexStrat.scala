@@ -14,6 +14,7 @@ import edu.ie3.datamodel.models.input.system.{
 }
 import edu.ie3.simona.model.participant.em.EmModel.relativeTolerance
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.util.quantities.QuantityUtils.RichQuantity
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import edu.ie3.util.quantities.{QuantityUtil => PsuQuantityUtil}
 import tech.units.indriya.ComparableQuantity
@@ -117,8 +118,9 @@ object PrioritizedFlexStrat extends EmModelStrat {
 
             // this flexibility covers more than we need to reach zero excess,
             // thus we only use as much as we need
-            val powerCtrl =
+            val powerCtrl = flexOption.maxPower.min(
               flexOption.referencePower.subtract(remainingExcessPower)
+            )
 
             (
               issueCtrlMsgs :+ (spi.getUuid, powerCtrl),
@@ -178,8 +180,9 @@ object PrioritizedFlexStrat extends EmModelStrat {
 
             // this flexibility covers more than we need to reach zero excess,
             // thus we only use as much as we need
-            val powerCtrl =
+            val powerCtrl = flexOption.minPower.max(
               flexOption.referencePower.subtract(remainingExcessPower)
+            )
 
             (
               issueCtrlMsgs :+ (spi.getUuid, powerCtrl),
