@@ -17,21 +17,13 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.em.EmAgent.{
-  EmAgentInitializeStateData,
-  EmModelBaseStateData,
-  FlexCorrespondence,
-  FlexTimeSeries
-}
+import edu.ie3.simona.agent.participant.em.EmAgent._
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexStateData,
   ModelBaseStateData
 }
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  ParticipantUninitializedStateData,
-  SimpleInputContainer
-}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantUninitializedStateData
 import edu.ie3.simona.agent.participant.statedata.{
   InitializeStateData,
   ParticipantStateData
@@ -46,6 +38,7 @@ import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.em.EmModel.EmRelevantData
 import edu.ie3.simona.model.participant.em.{
+  EmAggregateSelfOpt,
   EmAggregateSimpleSum,
   EmModel,
   EmModelStrat
@@ -79,6 +72,10 @@ import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
 object EmAgent {
+
+  // TODO config param
+  private val aggregateFlex = EmAggregateSelfOpt
+
   def props(
       scheduler: ActorRef,
       listener: Iterable[ActorRef]
@@ -734,7 +731,7 @@ class EmAgent(
               }
 
             val (ref, min, max) =
-              EmAggregateSimpleSum.aggregateFlexOptions(
+              aggregateFlex.aggregateFlexOptions(
                 flexOptionsInput
               )
 
@@ -815,7 +812,7 @@ class EmAgent(
                           .adaptFlexOptions(spi, flexOption)
                     }
 
-                  // sum up min power
+                  // sum up ref power
                   val (ref, _, _) =
                     EmAggregateSimpleSum.aggregateFlexOptions(
                       flexOptionsInput
