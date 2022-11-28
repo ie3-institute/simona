@@ -163,7 +163,8 @@ class PrioritizedFlexStratSpec
               target.asKiloWatt
             )
 
-          actualResults should have size expectedResult.size
+          actualResults should have size expectedResult.size withClue
+            s"actual results are $actualResults while $expectedResult was expected."
 
           val expectedResultMap = expectedResult.toMap
           actualResults.foreach { case (uuid, power) =>
