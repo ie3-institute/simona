@@ -43,7 +43,10 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
-import edu.ie3.simona.model.participant.em.PrioritizedFlexStrat
+import edu.ie3.simona.model.participant.em.{
+  PrioritizedFlexStrat,
+  ProportionalFlexStrat
+}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.trigger.Trigger
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeParticipantAgentTrigger
@@ -1041,7 +1044,9 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        PrioritizedFlexStrat,
+        rootEmConfig
+          .map(_ => ProportionalFlexStrat)
+          .getOrElse(PrioritizedFlexStrat),
         connectedAgents,
         emAgentHierarchy.headOption,
         rootEmConfig
