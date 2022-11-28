@@ -59,6 +59,7 @@ import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
+import scala.collection.SortedMap
 
 class FixedFeedInAgentModelCalculationSpec
     extends ParticipantAgentSpec(
@@ -241,7 +242,7 @@ class FixedFeedInAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            Map(0L -> Quantities.getQuantity(1d, PU))
+            SortedMap(0L -> Quantities.getQuantity(1d, PU))
           )
           resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPower](
@@ -321,7 +322,7 @@ class FixedFeedInAgentModelCalculationSpec
             ApparentPower
           ](
             resolution,
-            Map(
+            SortedMap(
               0L -> ApparentPower(
                 Quantities.getQuantity(0d, MEGAWATT),
                 Quantities.getQuantity(0d, MEGAVAR)

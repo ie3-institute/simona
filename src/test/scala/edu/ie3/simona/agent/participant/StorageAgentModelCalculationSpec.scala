@@ -60,6 +60,7 @@ import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
+import scala.collection.SortedMap
 
 class StorageAgentModelCalculationSpec
     extends ParticipantAgentSpec(
@@ -228,7 +229,7 @@ class StorageAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            Map(0L -> Quantities.getQuantity(1d, PU))
+            SortedMap(0L -> Quantities.getQuantity(1d, PU))
           )
           resultValueStore shouldBe ValueStore(
             resolution
@@ -321,7 +322,7 @@ class StorageAgentModelCalculationSpec
             ApparentPower
           ](
             resolution,
-            Map(
+            SortedMap(
               0L -> ApparentPower(
                 Quantities.getQuantity(0d, MEGAWATT),
                 Quantities.getQuantity(0d, MEGAVAR)

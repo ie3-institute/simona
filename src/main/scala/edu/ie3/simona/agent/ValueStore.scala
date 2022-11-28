@@ -10,7 +10,7 @@ import edu.ie3.simona.util.SimonaConstants
 import tech.units.indriya.ComparableQuantity
 
 import javax.measure.quantity.Dimensionless
-import scala.collection.SortedSet
+import scala.collection.{SortedMap, SortedSet}
 
 /** Represents a value store to hold data of former ticks
   *
@@ -23,7 +23,7 @@ import scala.collection.SortedSet
   */
 final case class ValueStore[+D](
     maxTickSpan: Long,
-    private val store: Map[Long, D] = Map.empty[Long, D]
+    private val store: SortedMap[Long, D] = SortedMap.empty[Long, D]
 ) {
 
   /** Determine the lastly known data tick, if available. Includes the given
@@ -45,9 +45,7 @@ final case class ValueStore[+D](
     *   An Option to the last entry
     */
   def last(requestedTick: Long): Option[(Long, D)] =
-    store
-      .filter(_._1 <= requestedTick)
-      .maxByOption(_._1)
+    store.rangeTo(requestedTick).lastOption
 
   /** Get the last known entry (with the highest tick)
     *
@@ -55,7 +53,7 @@ final case class ValueStore[+D](
     *   An Option to the last entry
     */
   def last(): Option[(Long, D)] =
-    store.maxByOption(_._1)
+    store.lastOption
 
   // TODO scaladoc
   def get(tick: Long): Option[D] =
@@ -79,7 +77,7 @@ final case class ValueStore[+D](
     *   in the value store
     */
   def get(requestStart: Long, requestEnd: Long): Map[Long, D] =
-    store.filter(entry => entry._1 >= requestStart && entry._1 <= requestEnd)
+    store.rangeFrom(requestStart).rangeTo(requestEnd).toMap
 
   /** Checks, if all needed ticks are available in the given value store
     *
@@ -89,10 +87,10 @@ final case class ValueStore[+D](
     *   true, if everything is there
     */
   def allTicksAvailable(neededTicks: Array[Long]): Boolean =
-    store.keySet.toSeq.sorted.containsSlice(neededTicks.toSeq.sorted)
+    store.keySet.toSeq.containsSlice(neededTicks.toSeq.sorted)
 
   def asMap: Map[Long, D] =
-    store
+    store.toMap
 }
 
 object ValueStore {
@@ -113,7 +111,7 @@ object ValueStore {
   ): ValueStore[ComparableQuantity[Dimensionless]] =
     new ValueStore(
       maxTickSpan,
-      Map(SimonaConstants.FIRST_TICK_IN_SIMULATION -> initialPerUnit)
+      SortedMap(SimonaConstants.FIRST_TICK_IN_SIMULATION -> initialPerUnit)
     )
 
   /** Create a value store for result values. A result value store requires a
@@ -150,22 +148,17 @@ object ValueStore {
       tick: Long,
       newEntry: D
   ): ValueStore[D] = {
-    val updatedStore = valueStore.store + (tick -> newEntry)
+    val updatedStore = valueStore.store ++ SortedMap(tick -> newEntry)
 
     // always keep at least 3 entries
     val minKeep = 3
 
     valueStore.copy(
       store = if (updatedStore.size > minKeep) {
-        val (rest, keep) =
-          updatedStore.keySet.to(SortedSet).splitAt(updatedStore.size - minKeep)
-        val restPruned = rest.filter(_ > tick - valueStore.maxTickSpan)
+        val (rest, keep) = updatedStore.splitAt(updatedStore.size - minKeep)
+        val restPruned = rest.rangeFrom(tick - valueStore.maxTickSpan + 1L)
 
-        val allTicks = restPruned ++ keep
-
-        updatedStore.filter { case (tick, _) =>
-          allTicks.contains(tick)
-        }
+        restPruned ++ keep
       } else
         updatedStore
     )

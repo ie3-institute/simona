@@ -70,6 +70,7 @@ import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import tech.units.indriya.quantity.Quantities
 
 import java.time.temporal.ChronoUnit
+import scala.collection.SortedMap
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 class EvcsAgentModelCalculationSpec
@@ -340,7 +341,7 @@ class EvcsAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            Map(0L -> Quantities.getQuantity(1d, PU))
+            SortedMap(0L -> Quantities.getQuantity(1d, PU))
           )
           resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPower](resolution)
@@ -456,7 +457,7 @@ class EvcsAgentModelCalculationSpec
             ApparentPower
           ](
             resolution,
-            Map(
+            SortedMap(
               0L -> ApparentPower(
                 Quantities.getQuantity(0d, MEGAWATT),
                 Quantities.getQuantity(0d, MEGAVAR)
@@ -1306,7 +1307,7 @@ class EvcsAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map(evService.ref -> None)
           voltageValueStore shouldBe ValueStore(
             resolution,
-            Map(0L -> Quantities.getQuantity(1d, PU))
+            SortedMap(0L -> Quantities.getQuantity(1d, PU))
           )
           resultValueStore shouldBe ValueStore(
             resolution

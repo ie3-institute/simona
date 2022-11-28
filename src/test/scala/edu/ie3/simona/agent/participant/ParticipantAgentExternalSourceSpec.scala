@@ -68,6 +68,7 @@ import tech.units.indriya.quantity.Quantities
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.measure.quantity.{Dimensionless, Power}
+import scala.collection.SortedMap
 import scala.util.{Failure, Success}
 
 /** Tests a mock participant agent with external data (primary data). Since
@@ -341,7 +342,7 @@ class ParticipantAgentExternalSourceSpec
             ) =>
           requestValueStore shouldBe ValueStore[ApparentPower](
             resolution,
-            Map(
+            SortedMap(
               0L -> ApparentPower(
                 Quantities.getQuantity(0d, MEGAWATT),
                 Quantities.getQuantity(0d, MEGAVAR)

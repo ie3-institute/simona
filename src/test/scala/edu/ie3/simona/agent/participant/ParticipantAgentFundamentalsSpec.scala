@@ -47,6 +47,7 @@ import tech.units.indriya.quantity.Quantities
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.measure.quantity.Power
+import scala.collection.SortedMap
 
 class ParticipantAgentFundamentalsSpec
     extends AgentSpec(
@@ -478,7 +479,7 @@ class ParticipantAgentFundamentalsSpec
       val requestTick = 1800L
       val resultValueStore = ValueStore(
         900,
-        Map(
+        SortedMap(
           800L -> ApparentPower(
             Quantities.getQuantity(0d, MEGAWATT),
             Quantities.getQuantity(0d, MEGAVAR)
@@ -507,7 +508,7 @@ class ParticipantAgentFundamentalsSpec
       )
       val requestValueStore = ValueStore(
         900,
-        Map(
+        SortedMap(
           900L -> ApparentPower(
             Quantities.getQuantity(0d, MEGAWATT),
             Quantities.getQuantity(0d, MEGAVAR)
@@ -557,7 +558,7 @@ class ParticipantAgentFundamentalsSpec
       val requestTick = 1800L
       val resultValueStore = ValueStore(
         900,
-        Map(
+        SortedMap(
           800L -> ApparentPower(
             Quantities.getQuantity(0d, MEGAWATT),
             Quantities.getQuantity(0d, MEGAVAR)
@@ -566,7 +567,7 @@ class ParticipantAgentFundamentalsSpec
       )
       val requestValueStore = ValueStore(
         900,
-        Map(
+        SortedMap(
           900L -> ApparentPower(
             Quantities.getQuantity(0d, MEGAWATT),
             Quantities.getQuantity(0d, MEGAVAR)

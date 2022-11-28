@@ -67,6 +67,7 @@ import tech.units.indriya.unit.Units._
 import java.io.File
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
+import scala.collection.SortedMap
 
 class HpAgentModelCalculationSpec
     extends ParticipantAgentSpec(
@@ -335,7 +336,7 @@ class HpAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            Map(0L -> Quantities.getQuantity(1d, PU))
+            SortedMap(0L -> Quantities.getQuantity(1d, PU))
           )
           resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPowerAndHeat](
@@ -456,7 +457,7 @@ class HpAgentModelCalculationSpec
             ApparentPowerAndHeat
           ](
             resolution,
-            Map(
+            SortedMap(
               0L -> ApparentPowerAndHeat(
                 Quantities.getQuantity(0d, MEGAWATT),
                 Quantities.getQuantity(0d, MEGAVAR),
