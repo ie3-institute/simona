@@ -304,7 +304,7 @@ class EmAgent(
           tick => createActivationTrigger(tick, maybeParentEmAgent.isDefined)
         ),
         ValueStore(0),
-        maybeParentEmAgent.map(FlexStateData(_, ValueStore(resolution * 10))),
+        maybeParentEmAgent.map(FlexStateData(_, ValueStore(resolution))),
         maybeFlexTimeseries
       )
 
