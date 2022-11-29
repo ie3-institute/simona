@@ -544,35 +544,53 @@ object WeatherSource {
       case Some(value) =>
         // found values are used to create a weather data object
         // missing values are interpolated
-
         WeatherData(
           value.getSolarIrradiance.getDiffuseIrradiance.toScala
-            .getOrElse(interpolateValue(timeSeries, dateTime, "diffIrr")),
+            .getOrElse(
+              Quantities.getQuantity(
+                interpolateValue(timeSeries, dateTime, "diffIrr"),
+                StandardUnits.SOLAR_IRRADIANCE
+              )
+            ),
           value.getSolarIrradiance.getDirectIrradiance.toScala
-            .getOrElse(interpolateValue(timeSeries, dateTime, "dirIrr")),
+            .getOrElse(
+              Quantities.getQuantity(
+                interpolateValue(timeSeries, dateTime, "dirIrr"),
+                StandardUnits.SOLAR_IRRADIANCE
+              )
+            ),
           value.getTemperature.getTemperature.toScala
-            .getOrElse(interpolateValue(timeSeries, dateTime, "temp")),
+            .getOrElse(
+              Quantities.getQuantity(
+                interpolateValue(timeSeries, dateTime, "temp"),
+                StandardUnits.TEMPERATURE
+              )
+            ),
           value.getWind.getVelocity.toScala
-            .getOrElse(interpolateValue(timeSeries, dateTime, "windVel"))
+            .getOrElse(
+              Quantities.getQuantity(
+                interpolateValue(timeSeries, dateTime, "windVel"),
+                StandardUnits.WIND_VELOCITY
+              )
+            )
         )
       case None =>
         // if no values are found all values are interpolated
-
         WeatherData(
           Quantities.getQuantity(
-            interpolateValue(timeSeries, dateTime, "diffIrr").getValue,
+            interpolateValue(timeSeries, dateTime, "diffIrr"),
             StandardUnits.SOLAR_IRRADIANCE
           ),
           Quantities.getQuantity(
-            interpolateValue(timeSeries, dateTime, "dirIrr").getValue,
+            interpolateValue(timeSeries, dateTime, "dirIrr"),
             StandardUnits.SOLAR_IRRADIANCE
           ),
           Quantities.getQuantity(
-            interpolateValue(timeSeries, dateTime, "temp").getValue,
+            interpolateValue(timeSeries, dateTime, "temp"),
             StandardUnits.TEMPERATURE
           ),
           Quantities.getQuantity(
-            interpolateValue(timeSeries, dateTime, "windVel").getValue,
+            interpolateValue(timeSeries, dateTime, "windVel"),
             StandardUnits.WIND_VELOCITY
           )
         )
@@ -593,9 +611,9 @@ object WeatherSource {
       timeSeries: IndividualTimeSeries[WeatherValue],
       dateTime: ZonedDateTime,
       get: String
-  ): ComparableQuantity[_] = {
+  ): Double = {
     // gets two options for values
-    val previousOption: Option[(ComparableQuantity[_], ZonedDateTime)] =
+    val previousOption: Option[(Double, ZonedDateTime)] =
       getNewValue(
         timeSeries,
         dateTime,
@@ -603,7 +621,7 @@ object WeatherSource {
         get,
         backwards = true
       )
-    val nextOption: Option[(ComparableQuantity[_], ZonedDateTime)] =
+    val nextOption: Option[(Double, ZonedDateTime)] =
       getNewValue(
         timeSeries,
         dateTime,
@@ -622,13 +640,10 @@ object WeatherSource {
         val diffToNextValue: Long =
           ChronoUnit.SECONDS.between(dateTime, nextVal._2)
 
-        preVal._1
-          .multiply(diffToPreviousValue)
-          .add(nextVal._1.multiply(diffToNextValue))
-          .divide(diffToPreviousValue + diffToNextValue)
+        (preVal._1 * diffToPreviousValue + nextVal._1 * diffToNextValue) / (diffToPreviousValue + diffToNextValue)
       case (_, _) =>
         // if at least one value could not be found, the value found in the EMPTY_WEATHER_DATA object is returned
-        get match {
+        val defaultValue = get match {
           case "diffIrr" =>
             EMPTY_WEATHER_DATA.diffIrr
           case "dirIrr" =>
@@ -638,6 +653,8 @@ object WeatherSource {
           case "windVel" =>
             EMPTY_WEATHER_DATA.windVel
         }
+
+        defaultValue.getValue.doubleValue()
     }
   }
 
@@ -663,7 +680,7 @@ object WeatherSource {
       maxDateTime: ZonedDateTime,
       get: String,
       backwards: Boolean
-  ): Option[(ComparableQuantity[_], ZonedDateTime)] = {
+  ): Option[(Double, ZonedDateTime)] = {
     // if one is true, then the recursion ends
     if (backwards && lastTime.isBefore(maxDateTime)) {
       return None
@@ -698,7 +715,7 @@ object WeatherSource {
         quantity match {
           case Some(data) =>
             // returning the found value
-            Some(data, value.getTime)
+            Some(data.getValue.doubleValue(), value.getTime)
           case None =>
             // recursion with found time as a new timestamp
             getNewValue(

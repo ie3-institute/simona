@@ -52,7 +52,6 @@ import tech.units.indriya.unit.Units
 import java.time.ZonedDateTime
 import javax.measure.Quantity
 import scala.jdk.CollectionConverters.{IterableHasAsJava, MapHasAsScala}
-import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
 /** This class provides an implementation of the SIMONA trait
