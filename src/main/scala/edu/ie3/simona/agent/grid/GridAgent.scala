@@ -78,7 +78,7 @@ class GridAgent(
       simonaConfig.simona.runtime.participant,
       simonaConfig.simona.runtime.rootEm,
       simonaConfig.simona.output.participant,
-      3600L, // FIXME this is normally = resolution
+      900L, // FIXME this is normally = resolution
       listener,
       log
     )
