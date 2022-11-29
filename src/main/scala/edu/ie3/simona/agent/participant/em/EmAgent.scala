@@ -630,6 +630,10 @@ class EmAgent(
       newTick: Long,
       baseStateData: EmModelBaseStateData
   ): EmModelBaseStateData = {
+
+    // FIXME debugging
+    val oldBaseStateData = baseStateData.toString
+
     // schedule flex options request for those agents that need to be activated at the next activated tick
     val schedulerDataWithNext =
       scheduleFlexRequestAtNextTick(
@@ -686,7 +690,9 @@ class EmAgent(
 
     // we should not get triggered without any scheduled triggers for the new tick
     if (expectedRequests.isEmpty)
-      log.error(s"No requests for $self at $newTick")
+      throw new RuntimeException(
+        s"No requests for ${baseStateData.modelUuid} at $newTick. Old baseStateData $oldBaseStateData, updated flex corres $updatedFlexCorrespondences, updated flex trigger $updatedFlexTrigger"
+      )
 
     baseStateData.copy(
       flexCorrespondences = updatedFlexCorrespondences,
