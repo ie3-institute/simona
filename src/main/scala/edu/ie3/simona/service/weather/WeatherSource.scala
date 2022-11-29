@@ -6,45 +6,39 @@
 
 package edu.ie3.simona.service.weather
 
-import edu.ie3.datamodel.io.factory.timeseries.{
-  CosmoIdCoordinateFactory,
-  IconIdCoordinateFactory,
-  IdCoordinateFactory
-}
+import edu.ie3.datamodel.io.factory.timeseries.{CosmoIdCoordinateFactory, IconIdCoordinateFactory, IdCoordinateFactory}
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.value.WeatherValue
+import edu.ie3.datamodel.models.timeseries.individual.{IndividualTimeSeries, TimeBasedValue}
+import edu.ie3.datamodel.models.value.{SolarIrradianceValue, WeatherValue}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
-import edu.ie3.simona.exceptions.{
-  InvalidConfigParameterException,
-  ServiceException
-}
+import edu.ie3.simona.exceptions.{InvalidConfigParameterException, ServiceException}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.simona.service.weather.WeatherSource.{
-  AgentCoordinates,
-  WeightedCoordinates
-}
+import edu.ie3.simona.service.weather.WeatherSource.{AgentCoordinates, WeightedCoordinates}
 import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
-import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
-  checkCouchbaseParams,
-  checkInfluxDb1xParams,
-  checkSqlParams
-}
+import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{checkCouchbaseParams, checkInfluxDb1xParams, checkSqlParams}
 import edu.ie3.simona.util.ParsableEnumeration
+import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.interfaces.Irradiance
 import org.locationtech.jts.geom.{Coordinate, Point}
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 import javax.measure.Quantity
-import javax.measure.quantity.{Dimensionless, Length}
+import javax.measure.quantity.{Dimensionless, Length, Speed, Temperature}
+import scala.annotation.tailrec
+import scala.concurrent.duration.Duration
 import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
 trait WeatherSource {
@@ -510,22 +504,212 @@ object WeatherSource {
   val EMPTY_WEATHER_DATA: WeatherData = WeatherData(
     Quantities.getQuantity(0d, StandardUnits.SOLAR_IRRADIANCE),
     Quantities.getQuantity(0d, StandardUnits.SOLAR_IRRADIANCE),
-    Quantities.getQuantity(0d, Units.KELVIN).to(StandardUnits.TEMPERATURE),
+    Quantities.getQuantity(288.15d, Units.KELVIN).to(StandardUnits.TEMPERATURE),
     Quantities.getQuantity(0d, StandardUnits.WIND_VELOCITY)
   )
 
-  def toWeatherData(
-      weatherValue: WeatherValue
+  /** Methode to get weather data from a time series. This method automatically
+    * interpolates missing values.
+    * @param timeSeries
+    *   with weather values
+    * @param dateTime
+    *   timestamp in question
+    * @return
+    *   weather data object
+    */
+  def getWeatherData(
+      timeSeries: IndividualTimeSeries[WeatherValue],
+      dateTime: ZonedDateTime
   ): WeatherData = {
-    WeatherData(
-      weatherValue.getSolarIrradiance.getDiffuseIrradiance
-        .orElse(EMPTY_WEATHER_DATA.diffIrr),
-      weatherValue.getSolarIrradiance.getDirectIrradiance
-        .orElse(EMPTY_WEATHER_DATA.dirIrr),
-      weatherValue.getTemperature.getTemperature
-        .orElse(EMPTY_WEATHER_DATA.temp),
-      weatherValue.getWind.getVelocity.orElse(EMPTY_WEATHER_DATA.windVel)
-    )
+
+    // gets a value option
+    val valueOption: Option[WeatherValue] =
+      timeSeries.getValue(dateTime).toScala
+
+    valueOption match {
+      case Some(value) =>
+        // found values are used to create a weather data object
+        // missing values are interpolated
+
+        WeatherData(
+          value.getSolarIrradiance.getDiffuseIrradiance.toScala
+            .getOrElse(interpolateValue(timeSeries, dateTime, "diffIrr")),
+          value.getSolarIrradiance.getDirectIrradiance.toScala
+            .getOrElse(interpolateValue(timeSeries, dateTime, "dirIrr")),
+          value.getTemperature.getTemperature.toScala
+            .getOrElse(interpolateValue(timeSeries, dateTime, "temp")),
+          value.getWind.getVelocity.toScala
+            .getOrElse(interpolateValue(timeSeries, dateTime, "windVel"))
+        )
+      case None =>
+        // if no values are found all values are interpolated
+
+        WeatherData(
+          Quantities.getQuantity(
+            interpolateValue(timeSeries, dateTime, "diffIrr").getValue,
+            StandardUnits.SOLAR_IRRADIANCE
+          ),
+          Quantities.getQuantity(
+            interpolateValue(timeSeries, dateTime, "dirIrr").getValue,
+            StandardUnits.SOLAR_IRRADIANCE
+          ),
+          Quantities.getQuantity(
+            interpolateValue(timeSeries, dateTime, "temp").getValue,
+            StandardUnits.TEMPERATURE
+          ),
+          Quantities.getQuantity(
+            interpolateValue(timeSeries, dateTime, "windVel").getValue,
+            StandardUnits.WIND_VELOCITY
+          )
+        )
+    }
+  }
+
+  /** Method for interpolation of weather values.
+    * @param timeSeries
+    *   with weather data
+    * @param dateTime
+    *   timestamp for which an interpolation is needed
+    * @param get
+    *   string defining the searched value
+    * @return
+    *   new quantity
+    */
+  def interpolateValue(
+      timeSeries: IndividualTimeSeries[WeatherValue],
+      dateTime: ZonedDateTime,
+      get: String
+  ): ComparableQuantity[_] = {
+    // gets two options for values
+    val previousOption: Option[(ComparableQuantity[_], ZonedDateTime)] =
+      getNewValue(
+        timeSeries,
+        dateTime,
+        dateTime.minusHours(2),
+        get,
+        backwards = true
+      )
+    val nextOption: Option[(ComparableQuantity[_], ZonedDateTime)] =
+      getNewValue(
+        timeSeries,
+        dateTime,
+        dateTime.plusHours(2),
+        get,
+        backwards = false
+      )
+
+    (previousOption, nextOption) match {
+      case (Some(preVal), Some(nextVal)) =>
+        // only if a previous and a next value are found
+        // found values are weighted with their time difference and used to calculate a new value
+
+        val diffToPreviousValue: Long =
+          ChronoUnit.SECONDS.between(preVal._2, dateTime)
+        val diffToNextValue: Long =
+          ChronoUnit.SECONDS.between(dateTime, nextVal._2)
+
+        preVal._1
+          .multiply(diffToPreviousValue)
+          .add(nextVal._1.multiply(diffToNextValue))
+          .divide(diffToPreviousValue + diffToNextValue)
+      case (_, _) =>
+        // if at least one value could not be found, the value found in the EMPTY_WEATHER_DATA object is returned
+        get match {
+          case "diffIrr" =>
+            EMPTY_WEATHER_DATA.diffIrr
+          case "dirIrr" =>
+            EMPTY_WEATHER_DATA.dirIrr
+          case "temp" =>
+            EMPTY_WEATHER_DATA.temp
+          case "windVel" =>
+            EMPTY_WEATHER_DATA.windVel
+        }
+    }
+  }
+
+  /** Recursive method to find a new value for a specific weather data.
+    *
+    * @param timeSeries
+    *   with weather values
+    * @param lastTime
+    *   last timestamp
+    * @param maxDateTime
+    *   after with the recursion ends
+    * @param get
+    *   string defining the searched value
+    * @param backwards
+    *   defines if the recursion is backwards or forwards
+    * @return
+    *   an option for a quantity and a time
+    */
+  @tailrec
+  def getNewValue(
+      timeSeries: IndividualTimeSeries[WeatherValue],
+      lastTime: ZonedDateTime,
+      maxDateTime: ZonedDateTime,
+      get: String,
+      backwards: Boolean
+  ): Option[(ComparableQuantity[_], ZonedDateTime)] = {
+    // if one is true, then the recursion ends
+    if (backwards && lastTime.isBefore(maxDateTime)) {
+      return None
+    } else if (!backwards && lastTime.isAfter(maxDateTime)) {
+      return None
+    }
+
+    // gets the new value option
+    val timeBasedValue: Option[TimeBasedValue[WeatherValue]] =
+      if (backwards) {
+        timeSeries.getPreviousTimeBasedValue(lastTime).toScala
+      } else {
+        timeSeries.getNextTimeBasedValue(lastTime).toScala
+      }
+
+    timeBasedValue match {
+      case Some(value) =>
+        val weatherValue: WeatherValue = value.getValue
+
+        // gets the searched value as an option
+        val quantity: Option[ComparableQuantity[_]] = get match {
+          case "diffIrr" =>
+            weatherValue.getSolarIrradiance.getDiffuseIrradiance.toScala
+          case "dirIrr" =>
+            weatherValue.getSolarIrradiance.getDirectIrradiance.toScala
+          case "temp" =>
+            weatherValue.getTemperature.getTemperature.toScala
+          case "windVel" =>
+            weatherValue.getWind.getVelocity.toScala
+        }
+
+        quantity match {
+          case Some(data) =>
+            // returning the found value
+            Some(data, value.getTime)
+          case None =>
+            // recursion with found time as a new timestamp
+            getNewValue(
+              timeSeries,
+              value.getTime,
+              maxDateTime,
+              get,
+              backwards
+            )
+        }
+      case None =>
+        val newTime: ZonedDateTime = if (backwards) {
+          lastTime.minusMinutes(15)
+        } else {
+          lastTime.plusMinutes(15)
+        }
+
+        getNewValue(
+          timeSeries,
+          newTime,
+          maxDateTime,
+          get,
+          backwards
+        )
+    }
   }
 
   /** Weather package private case class to combine the provided agent

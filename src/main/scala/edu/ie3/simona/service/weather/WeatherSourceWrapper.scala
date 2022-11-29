@@ -37,7 +37,7 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   EMPTY_WEATHER_DATA,
   WeatherScheme,
-  toWeatherData
+  getWeatherData
 }
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
 import edu.ie3.simona.service.weather.{WeatherSource => SimonaWeatherSource}
@@ -102,12 +102,10 @@ private[weather] final case class WeatherSourceWrapper private (
       )
       .asScala
       .toMap
-    val weatherDataMap = results.flatMap { case (point, timeSeries) =>
+    val weatherDataMap = results.map { case (point, timeSeries) =>
       // change temperature scale for the upcoming calculations
-      timeSeries
-        .getValue(dateTime)
-        .toScala
-        .map(weatherValue => point -> toWeatherData(weatherValue))
+
+      point -> getWeatherData(timeSeries, dateTime)
     }
 
     weatherDataMap.foldLeft((EMPTY_WEATHER_DATA, WeightSum.EMPTY_WEIGHT_SUM)) {
