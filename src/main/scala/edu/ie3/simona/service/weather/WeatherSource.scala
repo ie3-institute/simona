@@ -6,26 +6,41 @@
 
 package edu.ie3.simona.service.weather
 
-import edu.ie3.datamodel.io.factory.timeseries.{CosmoIdCoordinateFactory, IconIdCoordinateFactory, IdCoordinateFactory}
+import edu.ie3.datamodel.io.factory.timeseries.{
+  CosmoIdCoordinateFactory,
+  IconIdCoordinateFactory,
+  IdCoordinateFactory
+}
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.timeseries.individual.{IndividualTimeSeries, TimeBasedValue}
-import edu.ie3.datamodel.models.value.{SolarIrradianceValue, WeatherValue}
+import edu.ie3.datamodel.models.timeseries.individual.{
+  IndividualTimeSeries,
+  TimeBasedValue
+}
+import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
-import edu.ie3.simona.exceptions.{InvalidConfigParameterException, ServiceException}
+import edu.ie3.simona.exceptions.{
+  InvalidConfigParameterException,
+  ServiceException
+}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.simona.service.weather.WeatherSource.{AgentCoordinates, WeightedCoordinates}
+import edu.ie3.simona.service.weather.WeatherSource.{
+  AgentCoordinates,
+  WeightedCoordinates
+}
 import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
-import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{checkCouchbaseParams, checkInfluxDb1xParams, checkSqlParams}
+import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
+  checkCouchbaseParams,
+  checkInfluxDb1xParams,
+  checkSqlParams
+}
 import edu.ie3.simona.util.ParsableEnumeration
-import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.interfaces.Irradiance
 import org.locationtech.jts.geom.{Coordinate, Point}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
@@ -34,9 +49,8 @@ import tech.units.indriya.unit.Units
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import javax.measure.Quantity
-import javax.measure.quantity.{Dimensionless, Length, Speed, Temperature}
+import javax.measure.quantity.{Dimensionless, Length}
 import scala.annotation.tailrec
-import scala.concurrent.duration.Duration
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
