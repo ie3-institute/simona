@@ -518,7 +518,7 @@ object WeatherSource {
   val EMPTY_WEATHER_DATA: WeatherData = WeatherData(
     Quantities.getQuantity(0d, StandardUnits.SOLAR_IRRADIANCE),
     Quantities.getQuantity(0d, StandardUnits.SOLAR_IRRADIANCE),
-    Quantities.getQuantity(288.15d, Units.KELVIN).to(StandardUnits.TEMPERATURE),
+    Quantities.getQuantity(0d, Units.KELVIN).to(StandardUnits.TEMPERATURE),
     Quantities.getQuantity(0d, StandardUnits.WIND_VELOCITY)
   )
 
@@ -619,7 +619,8 @@ object WeatherSource {
         dateTime,
         dateTime.minusHours(2),
         get,
-        backwards = true
+        backwards = true,
+        8
       )
     val nextOption: Option[(Double, ZonedDateTime)] =
       getNewValue(
@@ -627,7 +628,8 @@ object WeatherSource {
         dateTime,
         dateTime.plusHours(2),
         get,
-        backwards = false
+        backwards = false,
+        8
       )
 
     (previousOption, nextOption) match {
@@ -649,7 +651,7 @@ object WeatherSource {
           case "dirIrr" =>
             EMPTY_WEATHER_DATA.dirIrr
           case "temp" =>
-            EMPTY_WEATHER_DATA.temp
+            Quantities.getQuantity(0d, StandardUnits.TEMPERATURE)
           case "windVel" =>
             EMPTY_WEATHER_DATA.windVel
         }
@@ -679,12 +681,15 @@ object WeatherSource {
       lastTime: ZonedDateTime,
       maxDateTime: ZonedDateTime,
       get: String,
-      backwards: Boolean
+      backwards: Boolean,
+      remainingNumberOfTries: Int
   ): Option[(Double, ZonedDateTime)] = {
     // if one is true, then the recursion ends
-    if (backwards && lastTime.isBefore(maxDateTime)) {
-      None
-    } else if (!backwards && lastTime.isAfter(maxDateTime)) {
+    if (
+      (remainingNumberOfTries == 0)
+      || (backwards && lastTime.isBefore(maxDateTime))
+      || (!backwards && lastTime.isAfter(maxDateTime))
+    ) {
       None
     } else {
       // gets the new value option
@@ -722,7 +727,8 @@ object WeatherSource {
                 value.getTime,
                 maxDateTime,
                 get,
-                backwards
+                backwards,
+                remainingNumberOfTries - 1
               )
           }
         case None =>
@@ -737,7 +743,8 @@ object WeatherSource {
             newTime,
             maxDateTime,
             get,
-            backwards
+            backwards,
+            remainingNumberOfTries - 1
           )
       }
     }
