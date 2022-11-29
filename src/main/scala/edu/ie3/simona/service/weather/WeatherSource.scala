@@ -683,63 +683,63 @@ object WeatherSource {
   ): Option[(Double, ZonedDateTime)] = {
     // if one is true, then the recursion ends
     if (backwards && lastTime.isBefore(maxDateTime)) {
-      return None
+      None
     } else if (!backwards && lastTime.isAfter(maxDateTime)) {
-      return None
-    }
-
-    // gets the new value option
-    val timeBasedValue: Option[TimeBasedValue[WeatherValue]] =
-      if (backwards) {
-        timeSeries.getPreviousTimeBasedValue(lastTime).toScala
-      } else {
-        timeSeries.getNextTimeBasedValue(lastTime).toScala
-      }
-
-    timeBasedValue match {
-      case Some(value) =>
-        val weatherValue: WeatherValue = value.getValue
-
-        // gets the searched value as an option
-        val quantity: Option[ComparableQuantity[_]] = get match {
-          case "diffIrr" =>
-            weatherValue.getSolarIrradiance.getDiffuseIrradiance.toScala
-          case "dirIrr" =>
-            weatherValue.getSolarIrradiance.getDirectIrradiance.toScala
-          case "temp" =>
-            weatherValue.getTemperature.getTemperature.toScala
-          case "windVel" =>
-            weatherValue.getWind.getVelocity.toScala
-        }
-
-        quantity match {
-          case Some(data) =>
-            // returning the found value
-            Some(data.getValue.doubleValue(), value.getTime)
-          case None =>
-            // recursion with found time as a new timestamp
-            getNewValue(
-              timeSeries,
-              value.getTime,
-              maxDateTime,
-              get,
-              backwards
-            )
-        }
-      case None =>
-        val newTime: ZonedDateTime = if (backwards) {
-          lastTime.minusMinutes(15)
+      None
+    } else {
+      // gets the new value option
+      val timeBasedValue: Option[TimeBasedValue[WeatherValue]] =
+        if (backwards) {
+          timeSeries.getPreviousTimeBasedValue(lastTime).toScala
         } else {
-          lastTime.plusMinutes(15)
+          timeSeries.getNextTimeBasedValue(lastTime).toScala
         }
 
-        getNewValue(
-          timeSeries,
-          newTime,
-          maxDateTime,
-          get,
-          backwards
-        )
+      timeBasedValue match {
+        case Some(value) =>
+          val weatherValue: WeatherValue = value.getValue
+
+          // gets the searched value as an option
+          val quantity: Option[ComparableQuantity[_]] = get match {
+            case "diffIrr" =>
+              weatherValue.getSolarIrradiance.getDiffuseIrradiance.toScala
+            case "dirIrr" =>
+              weatherValue.getSolarIrradiance.getDirectIrradiance.toScala
+            case "temp" =>
+              weatherValue.getTemperature.getTemperature.toScala
+            case "windVel" =>
+              weatherValue.getWind.getVelocity.toScala
+          }
+
+          quantity match {
+            case Some(data) =>
+              // returning the found value
+              Some(data.getValue.doubleValue(), value.getTime)
+            case None =>
+              // recursion with found time as a new timestamp
+              getNewValue(
+                timeSeries,
+                value.getTime,
+                maxDateTime,
+                get,
+                backwards
+              )
+          }
+        case None =>
+          val newTime: ZonedDateTime = if (backwards) {
+            lastTime.minusMinutes(15)
+          } else {
+            lastTime.plusMinutes(15)
+          }
+
+          getNewValue(
+            timeSeries,
+            newTime,
+            maxDateTime,
+            get,
+            backwards
+          )
+      }
     }
   }
 
