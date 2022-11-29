@@ -337,7 +337,7 @@ class EmAgent(
             baseStateData.schedulerStateData,
             scheduleTriggerMessage.trigger.tick
           ) // scheduler is parent EM here
-        } foreach(scheduler ! _)
+        } foreach (scheduler ! _)
 
       stay() using
         baseStateData.copy(
