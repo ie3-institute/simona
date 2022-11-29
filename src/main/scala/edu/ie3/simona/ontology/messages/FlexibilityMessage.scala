@@ -81,6 +81,11 @@ object FlexibilityMessage {
     */
   final case class IssueNoCtrl(tick: Long) extends IssueFlexControl
 
+  final case class RevokeFlexTrigger(
+      modelUuid: UUID,
+      revokeTick: Long
+  )
+
   /** @param modelUuid
     *   model uuid of participant agent who received flex options request or
     *   issue power control

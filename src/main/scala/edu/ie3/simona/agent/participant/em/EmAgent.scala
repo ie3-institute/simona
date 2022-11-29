@@ -325,11 +325,19 @@ class EmAgent(
           scheduleTriggerMessage: ScheduleTriggerMessage,
           baseStateData: EmModelBaseStateData
         ) =>
-      createNextTriggerIfApplicable(
-        baseStateData.schedulerStateData,
-        scheduleTriggerMessage.trigger.tick,
-        baseStateData.flexStateData.isDefined
-      ) foreach (scheduler ! _)
+      if (baseStateData.flexStateData.isDefined) {
+        createRevokeTriggerIfApplicable(
+          baseStateData.schedulerStateData,
+          baseStateData.modelUuid,
+          scheduleTriggerMessage.trigger.tick
+        )
+      } else
+        {
+          createNextTriggerIfApplicable(
+            baseStateData.schedulerStateData,
+            scheduleTriggerMessage.trigger.tick
+          ) // scheduler is parent EM here
+        } foreach(scheduler ! _)
 
       stay() using
         baseStateData.copy(
@@ -349,11 +357,20 @@ class EmAgent(
           ),
           baseStateData: EmModelBaseStateData
         ) =>
-      val maybeNextTrigger = createNextTriggerIfApplicable(
-        baseStateData.schedulerStateData,
-        scheduleTriggerMessage.trigger.tick,
-        baseStateData.flexStateData.isDefined
-      )
+      val maybeNextTrigger =
+        if (baseStateData.flexStateData.isDefined) {
+          createRevokeTriggerIfApplicable(
+            baseStateData.schedulerStateData,
+            baseStateData.modelUuid,
+            scheduleTriggerMessage.trigger.tick
+          ) foreach (scheduler ! _) // scheduler is parent EM here
+          None // nothing to include in CM
+        } else {
+          createNextTriggerIfApplicable(
+            baseStateData.schedulerStateData,
+            scheduleTriggerMessage.trigger.tick
+          )
+        }
 
       // since we've been sent a trigger, we need to complete it as well
       scheduler ! CompletionMessage(triggerId, maybeNextTrigger.map(Seq(_)))
@@ -364,6 +381,21 @@ class EmAgent(
             scheduleTrigger(
               scheduleTriggerMessage,
               baseStateData.schedulerStateData
+            )
+          )
+        )
+
+    case Event(
+          RevokeFlexTrigger(modelUuid, revokeTick),
+          baseStateData: EmModelBaseStateData
+        ) =>
+      stay() using
+        baseStateData.copy(
+          schedulerStateData = baseStateData.schedulerStateData.copy(
+            flexTrigger = revokeFlexTrigger(
+              modelUuid,
+              revokeTick,
+              baseStateData.schedulerStateData.flexTrigger
             )
           )
         )
@@ -659,8 +691,7 @@ class EmAgent(
 
   protected def createNextTriggerIfApplicable(
       schedulerStateData: EmSchedulerStateData,
-      newTick: Long,
-      hasParentEm: Boolean
+      newTick: Long
   ): Option[ScheduleTriggerMessage] = {
     val isCurrentlyInactive = schedulerStateData.mainTriggerId.isEmpty
 
@@ -674,12 +705,10 @@ class EmAgent(
     }
 
     // schedule new tick if we're inactive and
-    //   - there is no scheduled next tick or the new tick is earlier than the scheduled next tick
-    //   - we're not EM-controlled ourselves (parent EmAgent automatically schedules RFO with the STM)
+    //   - there is no scheduled next tick or
+    //   - the new tick is earlier than the scheduled next tick
     val scheduleNewTick =
-      isCurrentlyInactive &&
-        (maybeNextScheduledTick.isEmpty || maybeTickToRevoke.nonEmpty) &&
-        !hasParentEm
+      isCurrentlyInactive && (maybeNextScheduledTick.isEmpty || maybeTickToRevoke.nonEmpty)
 
     Option.when(scheduleNewTick) {
       val maybeRevokeTrigger =
@@ -694,6 +723,34 @@ class EmAgent(
       )
     }
 
+  }
+
+  private def createRevokeTriggerIfApplicable(
+      schedulerStateData: EmSchedulerStateData,
+      modelUuid: UUID,
+      newTick: Long
+  ): Option[RevokeFlexTrigger] = {
+    val isCurrentlyInactive = schedulerStateData.mainTriggerId.isEmpty
+
+    if (isCurrentlyInactive) {
+      val maybeNextScheduledTick = getNextScheduledTick(
+        schedulerStateData
+      )
+
+      // only revoke next scheduled tick if it exists and is later than new tick
+      val maybeTickToRevoke = maybeNextScheduledTick.filter {
+        nextScheduledTick =>
+          newTick < nextScheduledTick
+      }
+
+      maybeTickToRevoke.map { revokeTick =>
+        RevokeFlexTrigger(
+          modelUuid,
+          revokeTick
+        )
+      }
+    } else
+      None
   }
 
   private def handleFlexProvision(

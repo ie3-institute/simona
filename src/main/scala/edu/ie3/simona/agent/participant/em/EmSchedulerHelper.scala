@@ -90,6 +90,21 @@ trait EmSchedulerHelper {
     )
   }
 
+  protected final def revokeFlexTrigger(
+      modelUuid: UUID,
+      revokeTick: Long,
+      triggerData: FlexTriggerData
+  ): FlexTriggerData = {
+    triggerData.triggerQueue.remove(
+      revokeTick,
+      scheduledTrigger =>
+        scheduledTrigger.trigger == RequestFlexOptions(revokeTick) &&
+          scheduledTrigger.modelUuid == modelUuid
+    )
+
+    triggerData
+  }
+
   protected final def handleFlexCompletionMessage(
       completionMessage: FlexCtrlCompletion,
       triggerData: FlexTriggerData
@@ -97,12 +112,7 @@ trait EmSchedulerHelper {
 
     // revoke trigger if applicable
     completionMessage.revokeRequestAtTick.foreach { revokeTick =>
-      triggerData.triggerQueue.remove(
-        revokeTick,
-        scheduledTrigger =>
-          scheduledTrigger.trigger == RequestFlexOptions(revokeTick) &&
-            scheduledTrigger.modelUuid == completionMessage.modelUuid
-      )
+      revokeFlexTrigger(completionMessage.modelUuid, revokeTick, triggerData)
     }
 
     // mark participant to be activated at next tick if applicable
