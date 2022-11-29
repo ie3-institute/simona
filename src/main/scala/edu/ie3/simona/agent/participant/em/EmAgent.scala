@@ -63,6 +63,7 @@ import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
 import scala.compat.java8.OptionConverters.RichOptionalGeneric
@@ -167,6 +168,7 @@ object EmAgent {
 
   case class FlexTimeSeries(
       timeSeries: IndividualTimeSeries[PValue],
+      resolutionHours: Int,
       minValue: ComparableQuantity[Power],
       maxValue: ComparableQuantity[Power],
       threshold: Double
@@ -254,6 +256,19 @@ class EmAgent(
           case Failure(exception)  => throw exception
         }
 
+        val resolutionHours =
+          if (timeSeries.getEntries.size() < 2)
+            throw new RuntimeException(
+              s"Less than two entries for flex time series ${config.nodeId}"
+            )
+          else {
+            val valueIt = timeSeries.getEntries.iterator()
+            val entry1 = valueIt.next().getTime
+            val entry2 = valueIt.next().getTime
+
+            ChronoUnit.HOURS.between(entry1, entry2).intValue
+          }
+
         val allValues =
           timeSeries.getEntries.asScala.flatMap(_.getValue.getP.asScala)
         val maybeMinValue = allValues.minByOption(
@@ -269,7 +284,13 @@ class EmAgent(
             throw new RuntimeException(s"Time series for $config is empty")
           )
 
-        FlexTimeSeries(timeSeries, minValue, maxValue, config.threshold)
+        FlexTimeSeries(
+          timeSeries,
+          resolutionHours,
+          minValue,
+          maxValue,
+          config.threshold
+        )
       }
 
       val baseStateData = EmModelBaseStateData(
@@ -821,7 +842,8 @@ class EmAgent(
                 // round current time to 3 hrs
                 val currentDateTime = tick.toDateTime(baseStateData.startDate)
                 val currentHour = currentDateTime.getHour
-                val roundedHour = currentHour - currentHour % 3
+                val roundedHour =
+                  currentHour - currentHour % flexTimeSeries.resolutionHours
                 val roundedDateTime = currentDateTime
                   .withHour(roundedHour)
                   .withMinute(0)
