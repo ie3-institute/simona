@@ -7,7 +7,6 @@
 package edu.ie3.simona.ontology.messages
 
 import edu.ie3.simona.ontology.trigger.Trigger
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
@@ -80,11 +79,6 @@ object FlexibilityMessage {
     * produced/consumed.
     */
   final case class IssueNoCtrl(tick: Long) extends IssueFlexControl
-
-  final case class RevokeFlexTrigger(
-      modelUuid: UUID,
-      revokeTick: Long
-  )
 
   /** @param modelUuid
     *   model uuid of participant agent who received flex options request or

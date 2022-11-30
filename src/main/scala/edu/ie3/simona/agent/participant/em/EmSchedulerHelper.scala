@@ -342,13 +342,16 @@ trait EmSchedulerHelper {
   /** Maybe send completion message to main scheduler
     * @param stateData
     *   the current state data
+    * @param scheduledRequest
+    *   the last scheduled request (if this EmAgent is EM-controlled)
     * @return
-    *   updated state data
+    *   updated state data and possibly the scheduled tick
     */
   protected def maybeTicksCompleted(
       stateData: EmSchedulerStateData,
-      selfUuid: UUID
-  ): EmSchedulerStateData = {
+      selfUuid: UUID,
+      scheduledRequest: Option[Long]
+  ): (EmSchedulerStateData, Option[Long]) = {
 
     // since participants that are scheduled with an ActivityStartTrigger are also
     // scheduled for a flex options request, checking flex options is enough here
@@ -376,21 +379,31 @@ trait EmSchedulerHelper {
           nextTriggerOpt
         )
 
-        stateData.copy(
-          mainTriggerId = None
+        (
+          stateData.copy(
+            mainTriggerId = None
+          ),
+          nextOpt
         )
       case (true, true, None) =>
         // if we've received a RequestFlexOptions message,
         // we want to complete with FlexCtrlCompletion
+
+        val revokeRequest = scheduledRequest.filter {
+          // revoke old tick if it exists and is placed in the future
+          _ > stateData.nowInTicks
+        }
+
         scheduler ! FlexCtrlCompletion(
           selfUuid,
           requestAtNextActivation =
             stateData.flexTrigger.activateAtNextTick.nonEmpty,
-          requestAtTick = nextOpt
+          requestAtTick = nextOpt,
+          revokeRequestAtTick = revokeRequest
         )
 
-        stateData
-      case _ => stateData
+        (stateData, nextOpt)
+      case _ => (stateData, None)
     }
 
   }

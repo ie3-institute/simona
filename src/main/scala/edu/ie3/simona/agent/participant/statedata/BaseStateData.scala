@@ -233,10 +233,17 @@ object BaseStateData {
     override val modelUuid: UUID = model.getUuid
   }
 
-  /** @param scheduledRequest
-    *   Tick of a request that is currently scheduled with EmAgent. There can
-    *   only only be one scheduled tick at a time. First tick (0) is always
-    *   requested.
+  /** The existence of this data object indicates that the corresponding agent
+    * is EM-controlled (by [[emAgent]]).
+    *
+    * @param emAgent
+    *   The parent EmAgent that is controlling this agent.
+    * @param flexOptionsStore
+    *   Flex options that have been calculated for this agent.
+    * @param scheduledRequest
+    *   Tick of a request that is currently scheduled with the parent EmAgent.
+    *   There can only only be one scheduled tick at a time. First tick (0) is
+    *   always requested.
     */
   final case class FlexStateData(
       emAgent: ActorRef,
