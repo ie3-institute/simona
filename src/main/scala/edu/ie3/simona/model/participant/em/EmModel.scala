@@ -9,7 +9,7 @@ package edu.ie3.simona.model.participant.em
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system._
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.agent.participant.em.EmAgent.FlexCorrespondence
+import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore.FlexCorrespondence
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ModelState.ConstantState

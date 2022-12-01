@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant.em
 
 import edu.ie3.datamodel.models.result.system.{EvcsResult, LoadResult}
-import edu.ie3.simona.agent.participant.em.EmAgent.FlexCorrespondence
+import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore.FlexCorrespondence
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.em.EmModel.EmRelevantData
 import edu.ie3.simona.test.common.UnitSpec

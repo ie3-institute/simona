@@ -8,7 +8,6 @@ package edu.ie3.simona.agent.participant.em
 
 import akka.actor.{ActorRef, Props, ReceiveTimeout}
 import edu.ie3.datamodel.models.input.system.{EmInput, SystemParticipantInput}
-import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.datamodel.models.timeseries.individual.IndividualTimeSeries
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.ValueStore
@@ -19,6 +18,10 @@ import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.em.EmAgent._
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
+import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore.{
+  FlexCorrespondence,
+  ExpectingDataTypes
+}
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexStateData,
   ModelBaseStateData
@@ -55,7 +58,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeParticipantAgentTrigger
 }
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
+import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.scala.io.FlexSignalFromExcel
@@ -129,9 +132,7 @@ object EmAgent {
       resultValueStore: ValueStore[ApparentPower],
       requestValueStore: ValueStore[ApparentPower],
       receivedSecondaryDataStore: ValueStore[Map[ActorRef, _ <: SecondaryData]],
-      flexCorrespondences: Map[UUID, ValueStore[
-        FlexCorrespondence
-      ]], // TODO enhanced todo: MultiValueStore
+      flexCorrespondences: FlexCorrespondenceStore,
       participantInput: Map[UUID, SystemParticipantInput],
       schedulerStateData: EmSchedulerStateData,
       stateDataStore: ValueStore[ConstantState.type],
@@ -144,26 +145,6 @@ object EmAgent {
         EmModel
       ] {
     override val modelUuid: UUID = model.getUuid
-  }
-
-  final case class FlexCorrespondence(
-      receivedFlexOptions: Option[ProvideFlexOptions] = None,
-      issuedCtrlMsg: Option[IssueFlexControl] = None,
-      participantResult: Option[SystemParticipantResult] = None
-  ) {
-    def hasOptions: Boolean =
-      receivedFlexOptions.nonEmpty
-
-    def hasResults: Boolean =
-      participantResult.nonEmpty
-  }
-
-  object FlexCorrespondence {
-    def apply(flexOptions: ProvideFlexOptions): FlexCorrespondence =
-      FlexCorrespondence(
-        Some(flexOptions),
-        None
-      )
   }
 
   case class FlexTimeSeries(
@@ -311,9 +292,13 @@ class EmAgent(
         ValueStore(resolution),
         ValueStore(resolution),
         ValueStore(0),
-        connectedAgents.map { case (_, _, sp) =>
-          sp.getUuid -> ValueStore(resolution)
-        }.toMap,
+        FlexCorrespondenceStore(
+          connectedAgents.map { case (_, _, sp) =>
+            sp.getUuid
+          }.toSet,
+          resolution,
+          simulationStartDate
+        ),
         connectedAgents.map { case (_, _, sp) =>
           sp.getUuid -> sp
         }.toMap,
@@ -502,7 +487,9 @@ class EmAgent(
         flexCtrl
       )
 
-      val flexData = extractFlexData(baseStateData)
+      val flexData = baseStateData.flexCorrespondences.latestFlexData(
+        baseStateData.participantInput
+      )
 
       // calc power control per connected agent
       val updatedStateData = determineAndSchedulePowerControl(
@@ -519,28 +506,15 @@ class EmAgent(
         ) =>
       val tick = baseStateData.schedulerStateData.nowInTicks
 
-      val receivedFlexOptions =
-        baseStateData.flexCorrespondences.getOrElse(
+      val updatedCorrespondences =
+        baseStateData.flexCorrespondences.addReceivedFlexOptions(
           flexOptions.modelUuid,
-          throw new RuntimeException(
-            s"No received flex options store found for ${flexOptions.modelUuid}"
-          )
-        )
-
-      val updatedValueStore = ValueStore.updateValueStore(
-        receivedFlexOptions,
-        tick,
-        FlexCorrespondence(flexOptions)
-      )
-
-      val updatedReceivedFlexOptions =
-        baseStateData.flexCorrespondences.updated(
-          flexOptions.modelUuid,
-          updatedValueStore
+          tick,
+          flexOptions
         )
 
       val updatedBaseStateData = baseStateData.copy(
-        flexCorrespondences = updatedReceivedFlexOptions
+        flexCorrespondences = updatedCorrespondences
       )
 
       handleFlexProvision(updatedBaseStateData)
@@ -549,50 +523,22 @@ class EmAgent(
           ParticipantResultEvent(result),
           baseStateData: EmModelBaseStateData
         ) =>
-      implicit val startDate: ZonedDateTime = baseStateData.startDate
-      val tick = baseStateData.schedulerStateData.nowInTicks
-
-      val receivedFlexOptions =
-        baseStateData.flexCorrespondences.getOrElse(
-          result.getInputModel,
-          throw new RuntimeException(
-            s"No received flex options store found for ${result.getInputModel}"
-          )
-        )
-
-      val resultTick = result.getTime.toTick
-      val (_, flexCorrespondence) = receivedFlexOptions
-        .last(resultTick)
-        .getOrElse(
-          throw new RuntimeException(
-            s"No flex correspondence found for model ${result.getInputModel} and tick $resultTick"
-          )
-        )
-
-      val updatedValueStore = ValueStore.updateValueStore(
-        receivedFlexOptions,
-        resultTick,
-        flexCorrespondence.copy(participantResult = Some(result))
+      if (
+        baseStateData.flexCorrespondences.waitingType != ExpectingDataTypes.Results
       )
-
-      val updatedReceivedFlexOptions =
-        baseStateData.flexCorrespondences.updated(
-          result.getInputModel,
-          updatedValueStore
+        throw new RuntimeException(
+          "Received flex provision, but did not expect any"
         )
+
+      val updatedCorrespondences =
+        baseStateData.flexCorrespondences.addReceivedResult(result)
 
       val updatedBaseStateData = baseStateData.copy(
-        flexCorrespondences = updatedReceivedFlexOptions
+        flexCorrespondences = updatedCorrespondences
       )
 
       // check if all results received
-      val flexData = extractFlexData(updatedBaseStateData)
-      val resultsReceived = !flexData.exists {
-        case (_, correspondence, dataTick)
-            if dataTick == tick && !correspondence.hasResults =>
-          true
-        case _ => false
-      }
+      val resultsReceived = updatedBaseStateData.flexCorrespondences.isComplete
 
       if (resultsReceived)
         calculatePower(
@@ -649,25 +595,12 @@ class EmAgent(
       }
       .getOrElse(Seq.empty)
 
-    // prepare map for expected flex options and expected results for this tick
-    val updatedFlexCorrespondences = expectedRequests.foldLeft(
-      baseStateData.flexCorrespondences
-    ) { case (correspondences, uuid) =>
-      val participantValueStore = correspondences.getOrElse(
-        uuid,
-        throw new RuntimeException(s"ValueStore for UUID $uuid not found")
+    // prepare correspondences for this tick
+    val updatedCorrespondences =
+      baseStateData.flexCorrespondences.setWaitingForFlexOptions(
+        expectedRequests.toSet,
+        newTick
       )
-
-      // add a fresh flex correspondence for the new tick
-      val updatedFlexOptionsStore =
-        ValueStore.updateValueStore(
-          participantValueStore,
-          newTick,
-          FlexCorrespondence()
-        )
-
-      correspondences.updated(uuid, updatedFlexOptionsStore)
-    }
 
     // we should not get triggered without any scheduled triggers for the new tick
     if (expectedRequests.isEmpty)
@@ -676,7 +609,7 @@ class EmAgent(
       )
 
     baseStateData.copy(
-      flexCorrespondences = updatedFlexCorrespondences,
+      flexCorrespondences = updatedCorrespondences,
       schedulerStateData =
         schedulerDataWithNext.copy(flexTrigger = updatedFlexTrigger)
     )
@@ -738,18 +671,22 @@ class EmAgent(
   ): State = {
     val tick = baseStateData.schedulerStateData.nowInTicks
 
-    val flexData = extractFlexData(baseStateData)
+    if (
+      baseStateData.flexCorrespondences.waitingType != ExpectingDataTypes.FlexOptions
+    )
+      throw new RuntimeException(
+        "Received flex provision, but did not expect any"
+      )
 
     // check if expected flex answers for this tick arrived
-    val flexAnswersReceived = !flexData.exists {
-      case (_, correspondence, dataTick)
-          if dataTick == tick && !correspondence.hasOptions =>
-        true
-      case _ => false
-    }
+    val flexAnswersReceived = baseStateData.flexCorrespondences.isComplete
 
     if (flexAnswersReceived) {
       // All flex options and all results have been received.
+
+      val flexData = baseStateData.flexCorrespondences.latestFlexData(
+        baseStateData.participantInput
+      )
 
       val updatedBaseStateData =
         baseStateData.flexStateData match {
@@ -959,32 +896,16 @@ class EmAgent(
     )
 
     // create updated value stores for participants that are receiving control msgs
-    val updatedValueStores = issueCtrlMsgsComplete.flatMap {
-      case (uuid, issueFlex, _) =>
-        baseStateData.flexCorrespondences.get(uuid).flatMap { store =>
-          store.last().map { case (_, correspondence) =>
-            // since we expect a new result with potentially changed reactive power, empty the last result
-            val updatedCorrespondence =
-              correspondence.copy(
-                issuedCtrlMsg = Some(issueFlex),
-                participantResult = None
-              )
-
-            // save for current tick
-            uuid -> ValueStore.updateValueStore(
-              store,
-              tick,
-              updatedCorrespondence
-            )
-          }
-        }
-    }.toMap
-
-    // actually update the value store map
-    val updatedCorrespondences = baseStateData.flexCorrespondences.map {
-      case (uuid, store) =>
-        uuid -> updatedValueStores.getOrElse(uuid, store)
-    }
+    val updatedCorrespondences = issueCtrlMsgsComplete
+      .foldLeft(baseStateData.flexCorrespondences) {
+        case (correspondences, (uuid, issueFlex, _)) =>
+          correspondences.addIssuedFlexControl(
+            uuid,
+            tick,
+            issueFlex
+          )
+      }
+      .setWaitingForResults(tick)
 
     baseStateData.copy(
       flexCorrespondences = updatedCorrespondences,
@@ -992,37 +913,12 @@ class EmAgent(
     )
   }
 
-  private def extractFlexData(baseStateData: EmModelBaseStateData): Iterable[
-    (SystemParticipantInput, FlexCorrespondence, Long)
-  ] =
-    baseStateData.flexCorrespondences.map { case (uuid, store) =>
-      val spi = baseStateData.participantInput.getOrElse(
-        uuid,
-        throw new RuntimeException(
-          s"There's no flex options store for $uuid whatsoever"
-        )
-      )
-      val (dataTick, correspondence) = store
-        .last()
-        .getOrElse(
-          throw new RuntimeException(
-            s"There's no expected flex options for $spi whatsoever"
-          )
-        )
-
-      (spi, correspondence, dataTick)
-    }
-
   private def calculatePower(
       baseStateData: EmModelBaseStateData,
       scheduler: ActorRef
   ): State = {
-    val correspondences = baseStateData.flexCorrespondences
-      .flatMap { case (_, store) =>
-        store.last().map { case (_, correspondence) =>
-          correspondence
-        }
-      }
+    val correspondences =
+      baseStateData.flexCorrespondences.latestCorrespondences
 
     val voltage =
       getAndCheckNodalVoltage(
