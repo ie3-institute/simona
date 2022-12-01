@@ -8,7 +8,6 @@ package edu.ie3.simona.main
 
 import akka.actor.ActorSystem
 
-import java.util.concurrent.TimeUnit
 import akka.pattern.ask
 import akka.util.Timeout
 import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, SimonaConfig}
@@ -21,6 +20,7 @@ import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
 
 import scala.concurrent.Await
+import scala.concurrent.duration.DurationInt
 
 /** Run a standalone simulation of simona
   *
@@ -29,7 +29,7 @@ import scala.concurrent.Await
   */
 object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
 
-  override implicit val timeout: Timeout = Timeout(50000, TimeUnit.SECONDS)
+  override implicit val timeout: Timeout = 7.days
 
   override def setup(
       args: Array[String]
