@@ -160,7 +160,7 @@ private[weather] final case class WeatherSourceWrapper private (
             )
         }
         val (tempContrib, tempWeight) = currentWeather.temp match {
-          case EMPTY_WEATHER_DATA.temp => (EMPTY_WEATHER_DATA.temp, 288.15d)
+          case EMPTY_WEATHER_DATA.temp => (EMPTY_WEATHER_DATA.temp, 0d)
           case nonEmptyTemp =>
             calculateContrib(
               nonEmptyTemp.to(Units.KELVIN),

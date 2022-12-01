@@ -50,7 +50,6 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import javax.measure.Quantity
 import javax.measure.quantity.{Dimensionless, Length}
-import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
@@ -544,56 +543,29 @@ object WeatherSource {
       case Some(value) =>
         // found values are used to create a weather data object
         // missing values are interpolated
+        val weatherData: WeatherData = interpolateValue(timeSeries, dateTime)
+
         WeatherData(
           value.getSolarIrradiance.getDiffuseIrradiance.toScala
             .getOrElse(
-              Quantities.getQuantity(
-                interpolateValue(timeSeries, dateTime, "diffIrr"),
-                StandardUnits.SOLAR_IRRADIANCE
-              )
+              weatherData.diffIrr
             ),
           value.getSolarIrradiance.getDirectIrradiance.toScala
             .getOrElse(
-              Quantities.getQuantity(
-                interpolateValue(timeSeries, dateTime, "dirIrr"),
-                StandardUnits.SOLAR_IRRADIANCE
-              )
+              weatherData.dirIrr
             ),
           value.getTemperature.getTemperature.toScala
             .getOrElse(
-              Quantities.getQuantity(
-                interpolateValue(timeSeries, dateTime, "temp"),
-                StandardUnits.TEMPERATURE
-              )
+              weatherData.temp
             ),
           value.getWind.getVelocity.toScala
             .getOrElse(
-              Quantities.getQuantity(
-                interpolateValue(timeSeries, dateTime, "windVel"),
-                StandardUnits.WIND_VELOCITY
-              )
+              weatherData.windVel
             )
         )
       case None =>
         // if no values are found all values are interpolated
-        WeatherData(
-          Quantities.getQuantity(
-            interpolateValue(timeSeries, dateTime, "diffIrr"),
-            StandardUnits.SOLAR_IRRADIANCE
-          ),
-          Quantities.getQuantity(
-            interpolateValue(timeSeries, dateTime, "dirIrr"),
-            StandardUnits.SOLAR_IRRADIANCE
-          ),
-          Quantities.getQuantity(
-            interpolateValue(timeSeries, dateTime, "temp"),
-            StandardUnits.TEMPERATURE
-          ),
-          Quantities.getQuantity(
-            interpolateValue(timeSeries, dateTime, "windVel"),
-            StandardUnits.WIND_VELOCITY
-          )
-        )
+        interpolateValue(timeSeries, dateTime)
     }
   }
 
@@ -602,152 +574,144 @@ object WeatherSource {
     *   with weather data
     * @param dateTime
     *   timestamp for which an interpolation is needed
-    * @param get
-    *   string defining the searched value
     * @return
-    *   new quantity
+    *   interpolated weather data
     */
   def interpolateValue(
       timeSeries: IndividualTimeSeries[WeatherValue],
-      dateTime: ZonedDateTime,
-      get: String
-  ): Double = {
-    // gets two options for values
-    val previousOption: Option[(Double, ZonedDateTime)] =
-      getNewValue(
-        timeSeries,
-        dateTime,
-        dateTime.minusHours(2),
-        get,
-        backwards = true,
-        8
+      dateTime: ZonedDateTime
+  ): WeatherData = {
+    if (timeSeries.getEntries.size() < 3) {
+      EMPTY_WEATHER_DATA
+    } else {
+      val previousOption: Map[String, Option[(ComparableQuantity[_], Long)]] =
+        getNewValue(timeSeries, dateTime, previous = true)
+      val nextValueOption: Map[String, Option[(ComparableQuantity[_], Long)]] =
+        getNewValue(timeSeries, dateTime, previous = false)
+
+      val dataMap: Map[String, Double] = previousOption.map {
+        case (str, preOption) =>
+          val nextOption: Option[(ComparableQuantity[_], Long)] =
+            nextValueOption(str)
+
+          (preOption, nextOption) match {
+            case (Some(preVal), Some(nextVal)) =>
+              val firstValue: Double = preVal._1.getValue.doubleValue()
+              val firstWeight: Long = preVal._2
+              val secondValue: Double = nextVal._1.getValue.doubleValue()
+              val secondWeight: Long = nextVal._2
+
+              str -> (firstValue * firstWeight + secondValue * secondWeight) / (firstWeight + firstWeight)
+            case (_, _) =>
+              val x: ComparableQuantity[_] = str match {
+                case "diffIrr" => EMPTY_WEATHER_DATA.diffIrr
+                case "dirIrr"  => EMPTY_WEATHER_DATA.dirIrr
+                case "temp" =>
+                  Quantities.getQuantity(15d, StandardUnits.TEMPERATURE)
+                case "windVel" => EMPTY_WEATHER_DATA.windVel
+              }
+              str -> x.getValue.doubleValue()
+          }
+      }
+
+      WeatherData(
+        Quantities
+          .getQuantity(dataMap("diffIrr"), StandardUnits.SOLAR_IRRADIANCE),
+        Quantities
+          .getQuantity(dataMap("dirIrr"), StandardUnits.SOLAR_IRRADIANCE),
+        Quantities.getQuantity(dataMap("temp"), StandardUnits.TEMPERATURE),
+        Quantities.getQuantity(dataMap("windVel"), StandardUnits.WIND_VELOCITY)
       )
-    val nextOption: Option[(Double, ZonedDateTime)] =
-      getNewValue(
-        timeSeries,
-        dateTime,
-        dateTime.plusHours(2),
-        get,
-        backwards = false,
-        8
-      )
-
-    (previousOption, nextOption) match {
-      case (Some(preVal), Some(nextVal)) =>
-        // only if a previous and a next value are found
-        // found values are weighted with their time difference and used to calculate a new value
-
-        val diffToPreviousValue: Long =
-          ChronoUnit.SECONDS.between(preVal._2, dateTime)
-        val diffToNextValue: Long =
-          ChronoUnit.SECONDS.between(dateTime, nextVal._2)
-
-        (preVal._1 * diffToPreviousValue + nextVal._1 * diffToNextValue) / (diffToPreviousValue + diffToNextValue)
-      case (_, _) =>
-        // if at least one value could not be found, the value found in the EMPTY_WEATHER_DATA object is returned
-        val defaultValue = get match {
-          case "diffIrr" =>
-            EMPTY_WEATHER_DATA.diffIrr
-          case "dirIrr" =>
-            EMPTY_WEATHER_DATA.dirIrr
-          case "temp" =>
-            Quantities.getQuantity(0d, StandardUnits.TEMPERATURE)
-          case "windVel" =>
-            EMPTY_WEATHER_DATA.windVel
-        }
-
-        defaultValue.getValue.doubleValue()
     }
   }
 
-  /** Recursive method to find a new value for a specific weather data.
+  /** Method to find a new value for weather data.
     *
     * @param timeSeries
     *   with weather values
-    * @param lastTime
-    *   last timestamp
-    * @param maxDateTime
-    *   after with the recursion ends
-    * @param get
-    *   string defining the searched value
-    * @param backwards
-    *   defines if the recursion is backwards or forwards
+    * @param dateTime
+    *   starting time
+    * @param previous
+    *   determines if previous ore next value is searched
     * @return
-    *   an option for a quantity and a time
+    *   map containing option for quantity and weight for each value
     */
-  @tailrec
   def getNewValue(
       timeSeries: IndividualTimeSeries[WeatherValue],
-      lastTime: ZonedDateTime,
-      maxDateTime: ZonedDateTime,
-      get: String,
-      backwards: Boolean,
-      remainingNumberOfTries: Int
-  ): Option[(Double, ZonedDateTime)] = {
-    // if one is true, then the recursion ends
-    if (
-      (remainingNumberOfTries == 0)
-      || (backwards && lastTime.isBefore(maxDateTime))
-      || (!backwards && lastTime.isAfter(maxDateTime))
-    ) {
-      None
-    } else {
-      // gets the new value option
-      val timeBasedValue: Option[TimeBasedValue[WeatherValue]] =
-        if (backwards) {
-          timeSeries.getPreviousTimeBasedValue(lastTime).toScala
+      dateTime: ZonedDateTime,
+      previous: Boolean
+  ): Map[String, Option[(ComparableQuantity[_], Long)]] = {
+    var currentTime: ZonedDateTime = dateTime
+
+    val optionMap: Map[String, Option[(ComparableQuantity[_], Long)]] = Map(
+      "diffIrr" -> None,
+      "dirIrr" -> None,
+      "temp" -> None,
+      "windVel" -> None
+    )
+    var run: Boolean = true
+
+    while (run) {
+      val timeBasedValue: Option[TimeBasedValue[WeatherValue]] = {
+        if (previous) {
+          timeSeries.getPreviousTimeBasedValue(currentTime).toScala
         } else {
-          timeSeries.getNextTimeBasedValue(lastTime).toScala
+          timeSeries.getNextTimeBasedValue(currentTime).toScala
         }
+      }
 
       timeBasedValue match {
         case Some(value) =>
-          val weatherValue: WeatherValue = value.getValue
+          val valueTime: ZonedDateTime = value.getTime
+          val currentWeight: Long =
+            ChronoUnit.SECONDS.between(valueTime, dateTime)
+          val actualValue: WeatherValue = value.getValue
 
-          // gets the searched value as an option
-          val quantity: Option[ComparableQuantity[_]] = get match {
-            case "diffIrr" =>
-              weatherValue.getSolarIrradiance.getDiffuseIrradiance.toScala
-            case "dirIrr" =>
-              weatherValue.getSolarIrradiance.getDirectIrradiance.toScala
-            case "temp" =>
-              weatherValue.getTemperature.getTemperature.toScala
-            case "windVel" =>
-              weatherValue.getWind.getVelocity.toScala
+          val (diffIrr, dirIrr, temp, windVel) = (
+            actualValue.getSolarIrradiance.getDiffuseIrradiance.toScala,
+            actualValue.getSolarIrradiance.getDirectIrradiance.toScala,
+            actualValue.getTemperature.getTemperature.toScala,
+            actualValue.getWind.getVelocity.toScala
+          )
+
+          (optionMap("diffIrr"), diffIrr) match {
+            case (None, Some(x)) =>
+              optionMap + ("diffIrr" -> Some(x, currentWeight))
           }
 
-          quantity match {
-            case Some(data) =>
-              // returning the found value
-              Some(data.getValue.doubleValue(), value.getTime)
-            case None =>
-              // recursion with found time as a new timestamp
-              getNewValue(
-                timeSeries,
-                value.getTime,
-                maxDateTime,
-                get,
-                backwards,
-                remainingNumberOfTries - 1
-              )
+          (optionMap("dirIrr"), dirIrr) match {
+            case (None, Some(x)) =>
+              optionMap + ("dirIrr" -> Some(x, currentWeight))
+          }
+
+          (optionMap("temp"), temp) match {
+            case (None, Some(x)) =>
+              optionMap + ("temp" -> Some(x, currentWeight))
+          }
+
+          (optionMap("windVel"), windVel) match {
+            case (None, Some(x)) =>
+              optionMap + ("windVel" -> Some(x, currentWeight))
+          }
+
+          if (valueTime != currentTime) {
+            currentTime = valueTime
+          } else {
+            currentTime = currentTime.minusMinutes(15)
           }
         case None =>
-          val newTime: ZonedDateTime = if (backwards) {
-            lastTime.minusMinutes(15)
-          } else {
-            lastTime.plusMinutes(15)
-          }
+          currentTime = currentTime.minusMinutes(15)
+      }
 
-          getNewValue(
-            timeSeries,
-            newTime,
-            maxDateTime,
-            get,
-            backwards,
-            remainingNumberOfTries - 1
-          )
+      // determine if limit is reached
+      run = if (previous) {
+        currentTime.isAfter(dateTime.minusHours(2))
+      } else {
+        currentTime.isBefore(dateTime.plusHours(2))
       }
     }
+
+    optionMap
   }
 
   /** Weather package private case class to combine the provided agent
