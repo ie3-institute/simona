@@ -209,7 +209,8 @@ class WeatherServiceSpec
           weatherValue shouldBe WeatherData(
             Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
             Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(-2.372, StandardUnits.TEMPERATURE),
+            Quantities
+              .getQuantity(-2.3719999999999573, StandardUnits.TEMPERATURE),
             Quantities.getQuantity(4.16474, StandardUnits.WIND_VELOCITY)
           )
           nextDataTick shouldBe Some(3600L)
@@ -247,7 +248,8 @@ class WeatherServiceSpec
           weatherValue shouldBe WeatherData(
             Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
             Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(-2.526, StandardUnits.TEMPERATURE),
+            Quantities
+              .getQuantity(-2.5259999999999536, StandardUnits.TEMPERATURE),
             Quantities.getQuantity(4.918092, StandardUnits.WIND_VELOCITY)
           )
           nextDataTick shouldBe None
