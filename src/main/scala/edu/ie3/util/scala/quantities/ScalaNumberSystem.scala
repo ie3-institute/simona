@@ -71,7 +71,7 @@ final class ScalaNumberSystem extends DefaultNumberSystem {
 
   override def narrow(number: Number): Number =
     // FIXME hack: don't narrow anymore, turn everything into doubles
-    number.doubleValue
+    number
 
   override def compare(x: Number, y: Number): Int =
     java.lang.Double.compare(x.doubleValue, y.doubleValue)
