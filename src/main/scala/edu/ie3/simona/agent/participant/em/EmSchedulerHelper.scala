@@ -394,10 +394,10 @@ trait EmSchedulerHelper {
           _ > stateData.nowInTicks
         }
 
+        // no activation at next tick for speedier execution
+        // ( stateData.flexTrigger.activateAtNextTick.nonEmpty )
         scheduler ! FlexCtrlCompletion(
           selfUuid,
-          requestAtNextActivation =
-            stateData.flexTrigger.activateAtNextTick.nonEmpty,
           requestAtTick = nextOpt,
           revokeRequestAtTick = revokeRequest
         )
