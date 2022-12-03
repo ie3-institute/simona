@@ -34,7 +34,7 @@ class WeatherSourceSpec extends UnitSpec {
       DummyWeatherSource.getNearestCoordinatesWithDistances(
         AgentCoordinates(coordinate0.getY, coordinate0.getX),
         9,
-        Quantities.getQuantity(28, PowerSystemUnits.KILOMETRE)
+        Quantities.getQuantity(28d, PowerSystemUnits.KILOMETRE)
       ) match {
         case Failure(exception: ServiceException) =>
           exception.getMessage shouldBe "There are not enough coordinates for averaging. Found 8 but need 9."
@@ -45,7 +45,7 @@ class WeatherSourceSpec extends UnitSpec {
       DummyWeatherSource.getNearestCoordinatesWithDistances(
         AgentCoordinates(coordinate0.getY, coordinate0.getX),
         5,
-        Quantities.getQuantity(5, PowerSystemUnits.KILOMETRE)
+        Quantities.getQuantity(5d, PowerSystemUnits.KILOMETRE)
       ) match {
         case Failure(exception: ServiceException) =>
           exception.getMessage shouldBe "There are not enough coordinates within the max coordinate distance of 5.0 km. Found 4 but need 5."
