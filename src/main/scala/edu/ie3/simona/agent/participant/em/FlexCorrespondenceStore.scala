@@ -11,9 +11,9 @@ import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore.{
   FlexCorrespondence,
-  ExpectingDataTypes
+  ExpectedDataTypes
 }
-import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore.ExpectingDataTypes.ExpectingDataType
+import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore.ExpectedDataTypes.ExpectedDataType
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   IssueFlexControl,
   ProvideFlexOptions
@@ -24,20 +24,20 @@ import java.time.ZonedDateTime
 import java.util.UUID
 
 final case class FlexCorrespondenceStore(
-    private val waitingParticipants: Set[UUID],
-    waitingType: ExpectingDataType,
+    private val expectedParticipants: Set[UUID],
+    expectedDataType: ExpectedDataType,
     private val correspondences: Map[UUID, ValueStore[FlexCorrespondence]],
     implicit val startDate: ZonedDateTime
 ) {
-  def isComplete: Boolean = waitingParticipants.isEmpty
+  def isComplete: Boolean = expectedParticipants.isEmpty
 
-  def setWaitingForFlexOptions(
-      waitingParticipants: Set[UUID],
+  def setExpectingFlexOptions(
+      expectedParticipants: Set[UUID],
       tick: Long
   ): FlexCorrespondenceStore = {
 
-    val updatedCorrespondences = waitingParticipants.foldLeft(correspondences) {
-      case (flexCorr, uuid) =>
+    val updatedCorrespondences =
+      expectedParticipants.foldLeft(correspondences) { case (flexCorr, uuid) =>
         val participantValueStore = flexCorr.getOrElse(
           uuid,
           throw new RuntimeException(s"ValueStore for UUID $uuid not found")
@@ -50,21 +50,21 @@ final case class FlexCorrespondenceStore(
         )
 
         flexCorr.updated(uuid, updatedStore)
-    }
+      }
 
     copy(
-      waitingParticipants = waitingParticipants,
-      waitingType = ExpectingDataTypes.FlexOptions,
+      expectedParticipants = expectedParticipants,
+      expectedDataType = ExpectedDataTypes.FlexOptions,
       correspondences = updatedCorrespondences
     )
   }
 
-  def setWaitingForResults(
-      waitingParticipants: Set[UUID]
+  def setExpectingResults(
+      expectedParticipants: Set[UUID]
   ): FlexCorrespondenceStore =
     copy(
-      waitingParticipants = waitingParticipants,
-      waitingType = ExpectingDataTypes.Results
+      expectedParticipants = expectedParticipants,
+      expectedDataType = ExpectedDataTypes.Results
     )
 
   def addReceivedFlexOptions(
@@ -77,7 +77,7 @@ final case class FlexCorrespondenceStore(
       FlexCorrespondence(flexOptions)
 
     addData(participant, tick, addToCorrespondence).copy(
-      waitingParticipants = waitingParticipants.excl(participant)
+      expectedParticipants = expectedParticipants.excl(participant)
     )
   }
 
@@ -103,7 +103,7 @@ final case class FlexCorrespondenceStore(
       _.copy(participantResult = Some(result))
 
     addData(participant, resultTick, addToCorrespondence).copy(
-      waitingParticipants = waitingParticipants.excl(participant)
+      expectedParticipants = expectedParticipants.excl(participant)
     )
   }
 
@@ -181,10 +181,10 @@ final case class FlexCorrespondenceStore(
 
 object FlexCorrespondenceStore {
 
-  object ExpectingDataTypes extends Enumeration {
-    type ExpectingDataType = Value
+  object ExpectedDataTypes extends Enumeration {
+    type ExpectedDataType = Value
 
-    val FlexOptions, Results, NoWaiting = Value
+    val FlexOptions, Results, Nothing = Value
   }
 
   final case class FlexCorrespondence(
@@ -215,7 +215,7 @@ object FlexCorrespondenceStore {
 
     FlexCorrespondenceStore(
       Set.empty,
-      ExpectingDataTypes.NoWaiting,
+      ExpectedDataTypes.Nothing,
       correspondences,
       simulationStartDate
     )

@@ -20,7 +20,7 @@ import edu.ie3.simona.agent.participant.em.EmAgent._
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
 import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore.{
   FlexCorrespondence,
-  ExpectingDataTypes
+  ExpectedDataTypes
 }
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexStateData,
@@ -524,7 +524,7 @@ class EmAgent(
           baseStateData: EmModelBaseStateData
         ) =>
       if (
-        baseStateData.flexCorrespondences.waitingType != ExpectingDataTypes.Results
+        baseStateData.flexCorrespondences.expectedDataType != ExpectedDataTypes.Results
       )
         throw new RuntimeException(
           "Received flex provision, but did not expect any"
@@ -597,7 +597,7 @@ class EmAgent(
 
     // prepare correspondences for this tick
     val updatedCorrespondences =
-      baseStateData.flexCorrespondences.setWaitingForFlexOptions(
+      baseStateData.flexCorrespondences.setExpectingFlexOptions(
         expectedRequests.toSet,
         newTick
       )
@@ -672,7 +672,7 @@ class EmAgent(
     val tick = baseStateData.schedulerStateData.nowInTicks
 
     if (
-      baseStateData.flexCorrespondences.waitingType != ExpectingDataTypes.FlexOptions
+      baseStateData.flexCorrespondences.expectedDataType != ExpectedDataTypes.FlexOptions
     )
       throw new RuntimeException(
         "Received flex provision, but did not expect any"
@@ -909,7 +909,7 @@ class EmAgent(
             issueFlex
           )
       }
-      .setWaitingForResults(issueFlexParticipants.toSet)
+      .setExpectingResults(issueFlexParticipants.toSet)
 
     baseStateData.copy(
       flexCorrespondences = updatedCorrespondences,
