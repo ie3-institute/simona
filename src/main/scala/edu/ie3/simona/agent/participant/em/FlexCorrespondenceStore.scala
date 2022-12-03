@@ -71,16 +71,22 @@ final case class FlexCorrespondenceStore(
     copy(expectedDataType = ExpectedDataTypes.Nothing)
 
   def addReceivedFlexOptions(
-      participant: UUID,
       tick: Long,
       flexOptions: ProvideFlexOptions
   ): FlexCorrespondenceStore = {
 
+    // safety check
+    if (expectedDataType != ExpectedDataTypes.FlexOptions)
+      throw new RuntimeException(
+        s"Received flex options $flexOptions at tick $tick, but did not expect any. " +
+          s"Expected data type: $expectedDataType"
+      )
+
     val addToCorrespondence: FlexCorrespondence => FlexCorrespondence = _ =>
       FlexCorrespondence(flexOptions)
 
-    addData(participant, tick, addToCorrespondence).copy(
-      expectedParticipants = expectedParticipants.excl(participant)
+    addData(flexOptions.modelUuid, tick, addToCorrespondence).copy(
+      expectedParticipants = expectedParticipants.excl(flexOptions.modelUuid)
     )
   }
 
@@ -101,6 +107,12 @@ final case class FlexCorrespondenceStore(
   ): FlexCorrespondenceStore = {
     val participant = result.getInputModel
     val resultTick = result.getTime.toTick
+
+    if (expectedDataType != ExpectedDataTypes.Results)
+      throw new RuntimeException(
+        s"Received result $result for tick $resultTick, but did not expect any. " +
+          s"Expected data type: $expectedDataType"
+      )
 
     val addToCorrespondence: FlexCorrespondence => FlexCorrespondence =
       _.copy(participantResult = Some(result))

@@ -18,10 +18,7 @@ import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.em.EmAgent._
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
-import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore.{
-  FlexCorrespondence,
-  ExpectedDataTypes
-}
+import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore.FlexCorrespondence
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexStateData,
   ModelBaseStateData
@@ -508,7 +505,6 @@ class EmAgent(
 
       val updatedCorrespondences =
         baseStateData.flexCorrespondences.addReceivedFlexOptions(
-          flexOptions.modelUuid,
           tick,
           flexOptions
         )
@@ -523,13 +519,6 @@ class EmAgent(
           ParticipantResultEvent(result),
           baseStateData: EmModelBaseStateData
         ) =>
-      if (
-        baseStateData.flexCorrespondences.expectedDataType != ExpectedDataTypes.Results
-      )
-        throw new RuntimeException(
-          "Received flex provision, but did not expect any"
-        )
-
       val updatedCorrespondences =
         baseStateData.flexCorrespondences.addReceivedResult(result)
 
@@ -673,13 +662,6 @@ class EmAgent(
       baseStateData: EmModelBaseStateData
   ): State = {
     val tick = baseStateData.schedulerStateData.nowInTicks
-
-    if (
-      baseStateData.flexCorrespondences.expectedDataType != ExpectedDataTypes.FlexOptions
-    )
-      throw new RuntimeException(
-        "Received flex provision, but did not expect any"
-      )
 
     // check if expected flex answers for this tick arrived
     val flexAnswersReceived = baseStateData.flexCorrespondences.isComplete
