@@ -605,7 +605,7 @@ class EmAgent(
     // we should not get triggered without any scheduled triggers for the new tick
     if (expectedRequests.isEmpty)
       throw new RuntimeException(
-        s"No requests for ${baseStateData.modelUuid} at $newTick."
+        s"No requests at tick $newTick for ${baseStateData.modelUuid}."
       )
 
     baseStateData.copy(
