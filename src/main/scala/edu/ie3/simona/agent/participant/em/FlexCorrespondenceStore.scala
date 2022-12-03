@@ -67,6 +67,9 @@ final case class FlexCorrespondenceStore(
       expectedDataType = ExpectedDataTypes.Results
     )
 
+  def setReceiveComplete(): FlexCorrespondenceStore =
+    copy(expectedDataType = ExpectedDataTypes.Nothing)
+
   def addReceivedFlexOptions(
       participant: UUID,
       tick: Long,

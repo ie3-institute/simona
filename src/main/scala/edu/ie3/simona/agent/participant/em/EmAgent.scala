@@ -542,7 +542,10 @@ class EmAgent(
 
       if (resultsReceived)
         calculatePower(
-          updatedBaseStateData,
+          updatedBaseStateData.copy(
+            flexCorrespondences =
+              updatedBaseStateData.flexCorrespondences.setReceiveComplete()
+          ),
           scheduler
         )
       else
