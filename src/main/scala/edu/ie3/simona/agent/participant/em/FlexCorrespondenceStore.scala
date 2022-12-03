@@ -60,18 +60,12 @@ final case class FlexCorrespondenceStore(
   }
 
   def setWaitingForResults(
-      tick: Long
-  ): FlexCorrespondenceStore = {
-
-    val waitingParticipants = correspondences.filter { case (_, store) =>
-      store.get(tick).exists(!_.hasResults)
-    }.keySet
-
+      waitingParticipants: Set[UUID]
+  ): FlexCorrespondenceStore =
     copy(
       waitingParticipants = waitingParticipants,
       waitingType = ExpectingDataTypes.Results
     )
-  }
 
   def addReceivedFlexOptions(
       participant: UUID,

@@ -878,13 +878,13 @@ class EmAgent(
             )
           }
           .map { case (uuid, flexCtrl) =>
-            (uuid, flexCtrl, dataTick)
+            (uuid, flexCtrl)
           }
     }
 
     val updatedFlexTrigger = issueCtrlMsgsComplete.foldLeft(
       baseStateData.schedulerStateData.flexTrigger
-    ) { case (flexTrigger, (uuid, issueCtrlMsg, _)) =>
+    ) { case (flexTrigger, (uuid, issueCtrlMsg)) =>
       // send out flex control messages
       scheduleFlexTriggerOnce(flexTrigger, issueCtrlMsg, uuid)
     }
@@ -895,17 +895,21 @@ class EmAgent(
       )
     )
 
+    val issueFlexParticipants = issueCtrlMsgsComplete.map { case (uuid, _) =>
+      uuid
+    }
+
     // create updated value stores for participants that are receiving control msgs
     val updatedCorrespondences = issueCtrlMsgsComplete
       .foldLeft(baseStateData.flexCorrespondences) {
-        case (correspondences, (uuid, issueFlex, _)) =>
+        case (correspondences, (uuid, issueFlex)) =>
           correspondences.addIssuedFlexControl(
             uuid,
             tick,
             issueFlex
           )
       }
-      .setWaitingForResults(tick)
+      .setWaitingForResults(issueFlexParticipants.toSet)
 
     baseStateData.copy(
       flexCorrespondences = updatedCorrespondences,
