@@ -403,7 +403,7 @@ trait EmSchedulerHelper {
         )
 
         (stateData, nextOpt)
-      case _ => (stateData, None)
+      case _ => (stateData, scheduledRequest)
     }
 
   }
