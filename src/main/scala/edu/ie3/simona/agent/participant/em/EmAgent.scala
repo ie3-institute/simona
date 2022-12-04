@@ -465,9 +465,16 @@ class EmAgent(
           flexCtrl: IssueFlexControl,
           baseStateData: EmModelBaseStateData
         ) =>
-      val flexParticipantData = baseStateData.flexStateData.getOrElse(
+      // update tick since we could be activated without prior request for flex options
+      val updatedBaseStateData = baseStateData.copy(
+        schedulerStateData = baseStateData.schedulerStateData.copy(
+          nowInTicks = flexCtrl.tick
+        )
+      )
+
+      val flexParticipantData = updatedBaseStateData.flexStateData.getOrElse(
         throw new RuntimeException(
-          s"EmAgent ${baseStateData.modelUuid} is not EM-controlled."
+          s"EmAgent ${updatedBaseStateData.modelUuid} is not EM-controlled."
         )
       )
 
@@ -475,7 +482,7 @@ class EmAgent(
         .last()
         .getOrElse(
           throw new RuntimeException(
-            s"Flex options have not been calculated by agent ${baseStateData.modelUuid}"
+            s"Flex options have not been calculated by agent ${updatedBaseStateData.modelUuid}"
           )
         )
 
@@ -484,18 +491,18 @@ class EmAgent(
         flexCtrl
       )
 
-      val flexData = baseStateData.flexCorrespondences.latestFlexData(
-        baseStateData.participantInput
+      val flexData = updatedBaseStateData.flexCorrespondences.latestFlexData(
+        updatedBaseStateData.participantInput
       )
 
       // calc power control per connected agent
-      val updatedStateData = determineAndSchedulePowerControl(
-        baseStateData,
+      val finalStateData = determineAndSchedulePowerControl(
+        updatedBaseStateData,
         flexData,
         resultingFlexPower
       )
 
-      stay() using updatedStateData
+      stay() using finalStateData
 
     case Event(
           flexOptions: ProvideFlexOptions,
