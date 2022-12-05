@@ -58,6 +58,7 @@ import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.QuantityUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import tech.units.indriya.quantity.Quantities
 

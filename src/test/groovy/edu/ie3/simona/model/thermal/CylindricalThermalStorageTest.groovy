@@ -6,6 +6,10 @@
 
 package edu.ie3.simona.model.thermal
 
+import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
+import static edu.ie3.util.quantities.QuantityUtil.isEquivalentAbs
+import static tech.units.indriya.quantity.Quantities.getQuantity
+
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.util.quantities.QuantityUtil
@@ -13,10 +17,9 @@ import spock.lang.Shared
 import spock.lang.Specification
 import tech.units.indriya.quantity.Quantities
 
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static tech.units.indriya.quantity.Quantities.getQuantity
-
 class CylindricalThermalStorageTest extends Specification {
+
+  static final double TESTING_TOLERANCE = 1e-10
 
   @Shared
   CylindricalStorageInput storageInput
@@ -61,12 +64,12 @@ class CylindricalThermalStorageTest extends Specification {
     def notCovering = storage.isDemandCoveredByStorage(getQuantity(1, KILOWATTHOUR))
 
     then:
-    initialLevel == vol2Energy(70)
-    newLevel1 == vol2Energy(50)
-    surplus == vol2Energy(5)
-    newLevel2 == vol2Energy(100)
-    lack == vol2Energy(15)
-    newLevel3 == vol2Energy(20)
+    isEquivalentAbs(initialLevel, vol2Energy(70), TESTING_TOLERANCE)
+    isEquivalentAbs(newLevel1, vol2Energy(50), TESTING_TOLERANCE)
+    isEquivalentAbs(surplus, vol2Energy(5), TESTING_TOLERANCE)
+    isEquivalentAbs(newLevel2, vol2Energy(100), TESTING_TOLERANCE)
+    isEquivalentAbs(lack, vol2Energy(15), TESTING_TOLERANCE)
+    isEquivalentAbs(newLevel3, vol2Energy(20), TESTING_TOLERANCE)
     isCovering
     !notCovering
   }
@@ -79,7 +82,7 @@ class CylindricalThermalStorageTest extends Specification {
     def usableThermalEnergy = storage.usableThermalEnergy()
 
     then:
-    usableThermalEnergy == getQuantity(5 * 115, KILOWATTHOUR)
+    isEquivalentAbs(usableThermalEnergy, getQuantity(5 * 115, KILOWATTHOUR), TESTING_TOLERANCE)
   }
 
   def "Check apply, validation and build method:"() {
