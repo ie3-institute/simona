@@ -45,6 +45,7 @@ import tech.units.indriya.quantity.Quantities
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.measure.quantity.Power
+import scala.collection.SortedSet
 
 class ParticipantAgentFundamentalsSpec
     extends AgentSpec(
