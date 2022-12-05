@@ -95,17 +95,17 @@ object CsvGridSource {
       fileNamingStrategy,
       csvTypeSource
     )
-
+    val operators = csvTypeSource.getOperators
     val busses = csvThermalSource.getThermalBuses()
     val houses = csvThermalSource
-      .getThermalHouses()
+      .getThermalHouses(operators, busses)
       .asScala
       .groupBy(thermalHouse => thermalHouse.getThermalBus)
       .map { case (bus, houses) =>
         bus -> houses.toSet
       }
     val storages = csvThermalSource
-      .getThermalStorages()
+      .getThermalStorages(operators, busses)
       .asScala
       .groupBy(thermalStorage => thermalStorage.getThermalBus)
       .map { case (bus, storages) =>
