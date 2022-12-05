@@ -28,7 +28,6 @@ import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
 import java.util.UUID
-import javax.measure.MetricPrefix
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
@@ -236,8 +235,8 @@ trait DbfsTestGrid extends SubGridGateMokka {
     Quantities.getQuantity(200000.0, KILOVOLTAMPERE),
     Quantities.getQuantity(380.0, KILOVOLT),
     Quantities.getQuantity(110.0, KILOVOLT),
-    Quantities.getQuantity(555.5, MetricPrefix.NANO(SIEMENS)),
-    Quantities.getQuantity(-1.27, MetricPrefix.NANO(SIEMENS)),
+    Quantities.getQuantity(555.5, NANOSIEMENS),
+    Quantities.getQuantity(-1.27, NANOSIEMENS),
     Quantities.getQuantity(1.5, PERCENT),
     Quantities.getQuantity(0, RADIAN),
     false,
