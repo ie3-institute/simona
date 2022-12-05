@@ -17,7 +17,7 @@ import static tech.units.indriya.quantity.Quantities.getQuantity
 
 class CylindricalThermalStorageTest extends Specification {
 
-  static double TESTING_TOLERANCE = 1e-10
+  static final double TESTING_TOLERANCE = 1e-10
 
   @Shared
   CylindricalStorageInput storageInput

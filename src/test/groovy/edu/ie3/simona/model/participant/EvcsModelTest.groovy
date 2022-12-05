@@ -26,7 +26,7 @@ import static tech.units.indriya.unit.Units.MINUTE
 
 class EvcsModelTest extends Specification {
 
-  static double TESTING_TOLERANCE = 1e-10
+  static final double TESTING_TOLERANCE = 1e-10
 
   @Shared
   double scalingFactor = 1.0d
