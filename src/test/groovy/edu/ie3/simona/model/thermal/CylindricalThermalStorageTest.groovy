@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.thermal
 
-import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
+import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static edu.ie3.util.quantities.QuantityUtil.isEquivalentAbs
 import static tech.units.indriya.quantity.Quantities.getQuantity
 
@@ -110,13 +110,13 @@ class CylindricalThermalStorageTest extends Specification {
 
     where:
     tick | storedEnergy | qDot  | newTick | newQDot || expectedStoredEnergy | expectedThreshold
-    0L   | 250.0        | 10.0  | 3600L   | 42.0    || 260.0                | new ThermalStorage.ThermalStorageThreshold.StorageFull(79885L)
+    0L   | 250.0        | 10.0  | 3600L   | 42.0    || 260.0                | new ThermalStorage.ThermalStorageThreshold.StorageFull(79886L)
     0L   | 250.0        | 10.0  | 3600L   | -42.0   || 260.0                | new ThermalStorage.ThermalStorageThreshold.StorageEmpty(6171L)
     0L   | 250.0        | -10.0 | 3600L   | 42.0    || 240.0                | new ThermalStorage.ThermalStorageThreshold.StorageFull(81600L)
     0L   | 250.0        | -10.0 | 3600L   | -42.0   || 240.0                | new ThermalStorage.ThermalStorageThreshold.StorageEmpty(4457L)
     0L   | 250.0        | -10.0 | 3600L   | -42.0   || 240.0                | new ThermalStorage.ThermalStorageThreshold.StorageEmpty(4457L)
-    0L   | 1000.0       | 149.0 | 3600L   | 5000.0  || 1149.0               | new ThermalStorage.ThermalStorageThreshold.StorageFull(3600L)
-    0L   | 240.0        | -9.0  | 3600L   | -5000.0 || 231.0                | new ThermalStorage.ThermalStorageThreshold.StorageEmpty(3600L)
+    0L   | 1000.0       | 149.0 | 3600L   | 5000.0  || 1149.0               | new ThermalStorage.ThermalStorageThreshold.StorageFull(3601L)
+    0L   | 240.0        | -9.0  | 3600L   | -5000.0 || 231.0                | new ThermalStorage.ThermalStorageThreshold.StorageEmpty(3601L)
   }
 
   def "Check mutable state update, if no threshold is reached:"() {
