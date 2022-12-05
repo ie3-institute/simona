@@ -31,10 +31,9 @@ import edu.ie3.util.quantities.PowerSystemUnits._
 import org.scalatest.prop.TableDrivenPropertyChecks._
 import org.scalatest.prop.{TableFor2, TableFor4}
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{OHM, PERCENT, SIEMENS}
+import tech.units.indriya.unit.Units.{OHM, PERCENT}
 
 import java.util.UUID
-import javax.measure.MetricPrefix
 import scala.jdk.CollectionConverters._
 
 /** Test data for a [[Transformer3WInput]]
@@ -119,8 +118,8 @@ trait Transformer3wTestData extends DefaultTestData {
     Quantities.getQuantity(1d, OHM),
     Quantities.getQuantity(0.954711d, OHM),
     Quantities.getQuantity(1.083000d, OHM),
-    Quantities.getQuantity(40d, MetricPrefix.NANO(SIEMENS)),
-    Quantities.getQuantity(-1d, MetricPrefix.NANO(SIEMENS)),
+    Quantities.getQuantity(40d, NANOSIEMENS),
+    Quantities.getQuantity(-1d, NANOSIEMENS),
     Quantities.getQuantity(1.5, PERCENT),
     Quantities.getQuantity(0d, DEGREE_GEOM),
     0,
