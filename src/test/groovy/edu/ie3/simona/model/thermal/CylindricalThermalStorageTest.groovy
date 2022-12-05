@@ -8,12 +8,12 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
-import edu.ie3.util.quantities.QuantityUtil
 import spock.lang.Shared
 import spock.lang.Specification
 
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static tech.units.indriya.quantity.Quantities.getQuantity
+import static edu.ie3.util.quantities.QuantityUtil.isEquivalentAbs
 
 class CylindricalThermalStorageTest extends Specification {
 
@@ -60,12 +60,12 @@ class CylindricalThermalStorageTest extends Specification {
     def notCovering = storage.isDemandCoveredByStorage(getQuantity(1, KILOWATTHOUR))
 
     then:
-    QuantityUtil.isEquivalentAbs(initialLevel, vol2Energy(storage, 70), TESTING_TOLERANCE)
-    QuantityUtil.isEquivalentAbs(newLevel1, vol2Energy(storage, 50), TESTING_TOLERANCE)
-    QuantityUtil.isEquivalentAbs(surplus, vol2Energy(storage, 5), TESTING_TOLERANCE)
-    QuantityUtil.isEquivalentAbs(newLevel2, vol2Energy(storage, 100), TESTING_TOLERANCE)
-    QuantityUtil.isEquivalentAbs(lack, vol2Energy(storage, 15), TESTING_TOLERANCE)
-    QuantityUtil.isEquivalentAbs(newLevel3, vol2Energy(storage, 20), TESTING_TOLERANCE)
+    isEquivalentAbs(initialLevel, vol2Energy(storage, 70), TESTING_TOLERANCE)
+    isEquivalentAbs(newLevel1, vol2Energy(storage, 50), TESTING_TOLERANCE)
+    isEquivalentAbs(surplus, vol2Energy(storage, 5), TESTING_TOLERANCE)
+    isEquivalentAbs(newLevel2, vol2Energy(storage, 100), TESTING_TOLERANCE)
+    isEquivalentAbs(lack, vol2Energy(storage, 15), TESTING_TOLERANCE)
+    isEquivalentAbs(newLevel3, vol2Energy(storage, 20), TESTING_TOLERANCE)
     isCovering
     !notCovering
   }
@@ -80,8 +80,8 @@ class CylindricalThermalStorageTest extends Specification {
 
 
     then:
-    QuantityUtil.isEquivalentAbs(usableThermalEnergy, getQuantity(5 * 115, KILOWATTHOUR), TESTING_TOLERANCE)
-    QuantityUtil.isEquivalentAbs(volumeFromUsableEnergy, getQuantity(50, StandardUnits.VOLUME), TESTING_TOLERANCE)
+    isEquivalentAbs(usableThermalEnergy, getQuantity(5 * 115, KILOWATTHOUR), TESTING_TOLERANCE)
+    isEquivalentAbs(volumeFromUsableEnergy, getQuantity(50, StandardUnits.VOLUME), TESTING_TOLERANCE)
   }
 
   def "Check apply, validation and build method:"() {
