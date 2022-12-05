@@ -40,14 +40,14 @@ import scala.jdk.CollectionConverters.{MapHasAsJava, SetHasAsJava}
 class WeatherSourceWrapperSpec extends UnitSpec {
 
   "A weather source wrapper" should {
-    val ctor = classOf[WeatherSourceWrapper].getDeclaredConstructor(
+    val actor = classOf[WeatherSourceWrapper].getDeclaredConstructor(
       classOf[PsdmWeatherSource],
       classOf[IdCoordinateSource],
       classOf[Long],
       classOf[ZonedDateTime]
     )
-    ctor.setAccessible(true)
-    val source = ctor.newInstance(
+    actor.setAccessible(true)
+    val source = actor.newInstance(
       WeatherSourceWrapperSpec.DummyPsdmWeatherSource,
       DummyIdCoordinateSource,
       360L,

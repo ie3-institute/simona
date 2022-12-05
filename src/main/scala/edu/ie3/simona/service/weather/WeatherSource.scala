@@ -15,10 +15,7 @@ import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.timeseries.individual.{
-  IndividualTimeSeries,
-  TimeBasedValue
-}
+import edu.ie3.datamodel.models.timeseries.individual.IndividualTimeSeries
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
@@ -27,7 +24,10 @@ import edu.ie3.simona.exceptions.{
   InvalidConfigParameterException,
   ServiceException
 }
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
+  WeatherData,
+  WeatherDataOption
+}
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates
@@ -41,6 +41,7 @@ import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
 import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.interfaces.Irradiance
 import org.locationtech.jts.geom.{Coordinate, Point}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
@@ -49,7 +50,7 @@ import tech.units.indriya.unit.Units
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import javax.measure.Quantity
-import javax.measure.quantity.{Dimensionless, Length}
+import javax.measure.quantity.{Dimensionless, Length, Speed, Temperature}
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
@@ -584,88 +585,90 @@ object WeatherSource {
     if (timeSeries.getEntries.size() < 3) {
       EMPTY_WEATHER_DATA
     } else {
-      val previousOption: Map[String, Option[(ComparableQuantity[_], Long)]] =
-        getNewValue(timeSeries, dateTime, previous = true)
-      val nextValueOption: Map[String, Option[(ComparableQuantity[_], Long)]] =
-        getNewValue(timeSeries, dateTime, previous = false)
+      // find previous and next values
+      val previousOption: WeatherDataOption =
+        getPreviousValue(timeSeries, dateTime)
+      val nextOption: WeatherDataOption = getNextValue(timeSeries, dateTime)
 
-      val dataMap: Map[String, Double] = previousOption.map {
-        case (str, preOption) =>
-          val nextOption: Option[(ComparableQuantity[_], Long)] =
-            nextValueOption(str)
+      // weight found values or return EMPTY_WEATHER_DATA
+      val diffIrr: ComparableQuantity[Irradiance] =
+        (previousOption.diffIrr, nextOption.diffIrr) match {
+          case (Some(preVal), Some(nextVal)) =>
+            preVal._1
+              .multiply(preVal._2)
+              .add(nextVal._1.multiply(nextVal._2))
+              .divide(preVal._2 + nextVal._2)
+          case (_, _) =>
+            EMPTY_WEATHER_DATA.diffIrr
+        }
 
-          (preOption, nextOption) match {
-            case (Some(preVal), Some(nextVal)) =>
-              val firstValue: Double = preVal._1.getValue.doubleValue()
-              val firstWeight: Long = preVal._2
-              val secondValue: Double = nextVal._1.getValue.doubleValue()
-              val secondWeight: Long = nextVal._2
+      val dirIrr: ComparableQuantity[Irradiance] =
+        (previousOption.dirIrr, nextOption.dirIrr) match {
+          case (Some(preVal), Some(nextVal)) =>
+            preVal._1
+              .multiply(preVal._2)
+              .add(nextVal._1.multiply(nextVal._2))
+              .divide(preVal._2 + nextVal._2)
+          case (_, _) =>
+            EMPTY_WEATHER_DATA.dirIrr
+        }
 
-              str -> (firstValue * firstWeight + secondValue * secondWeight) / (firstWeight + firstWeight)
-            case (_, _) =>
-              val x: ComparableQuantity[_] = str match {
-                case "diffIrr" => EMPTY_WEATHER_DATA.diffIrr
-                case "dirIrr"  => EMPTY_WEATHER_DATA.dirIrr
-                case "temp" =>
-                  Quantities.getQuantity(15d, StandardUnits.TEMPERATURE)
-                case "windVel" => EMPTY_WEATHER_DATA.windVel
-              }
-              str -> x.getValue.doubleValue()
-          }
-      }
+      val temp: ComparableQuantity[Temperature] =
+        (previousOption.temp, nextOption.temp) match {
+          case (Some(preVal), Some(nextVal)) =>
+            preVal._1
+              .multiply(preVal._2)
+              .add(nextVal._1.multiply(nextVal._2))
+              .divide(preVal._2 + nextVal._2)
+          case (_, _) =>
+            EMPTY_WEATHER_DATA.temp
+        }
 
+      val windVel: ComparableQuantity[Speed] =
+        (previousOption.windVel, nextOption.windVel) match {
+          case (Some(preVal), Some(nextVal)) =>
+            preVal._1
+              .multiply(preVal._2)
+              .add(nextVal._1.multiply(nextVal._2))
+              .divide(preVal._2 + nextVal._2)
+          case (_, _) =>
+            EMPTY_WEATHER_DATA.windVel
+        }
+
+      // returning new WeatherData
       WeatherData(
-        Quantities
-          .getQuantity(dataMap("diffIrr"), StandardUnits.SOLAR_IRRADIANCE),
-        Quantities
-          .getQuantity(dataMap("dirIrr"), StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(dataMap("temp"), StandardUnits.TEMPERATURE),
-        Quantities.getQuantity(dataMap("windVel"), StandardUnits.WIND_VELOCITY)
+        diffIrr,
+        dirIrr,
+        temp,
+        windVel
       )
     }
   }
 
-  /** Method to find a new value for weather data.
+  /** Method to find previous weather data.
     *
     * @param timeSeries
-    *   with weather values
+    *   with weather data
     * @param dateTime
     *   starting time
-    * @param previous
-    *   determines if previous ore next value is searched
     * @return
-    *   map containing option for quantity and weight for each value
+    *   a weather data option
     */
-  def getNewValue(
+  def getPreviousValue(
       timeSeries: IndividualTimeSeries[WeatherValue],
-      dateTime: ZonedDateTime,
-      previous: Boolean
-  ): Map[String, Option[(ComparableQuantity[_], Long)]] = {
+      dateTime: ZonedDateTime
+  ): WeatherDataOption = {
     var currentTime: ZonedDateTime = dateTime
+    var weatherDataOption: WeatherDataOption =
+      WeatherDataOption(None, None, None, None)
 
-    val optionMap: Map[String, Option[(ComparableQuantity[_], Long)]] = Map(
-      "diffIrr" -> None,
-      "dirIrr" -> None,
-      "temp" -> None,
-      "windVel" -> None
-    )
-    var run: Boolean = true
-
-    while (run) {
-      val timeBasedValue: Option[TimeBasedValue[WeatherValue]] = {
-        if (previous) {
-          timeSeries.getPreviousTimeBasedValue(currentTime).toScala
-        } else {
-          timeSeries.getNextTimeBasedValue(currentTime).toScala
-        }
-      }
-
-      timeBasedValue match {
-        case Some(value) =>
-          val valueTime: ZonedDateTime = value.getTime
+    while (currentTime.isAfter(dateTime.minusHours(2))) {
+      timeSeries.getPreviousTimeBasedValue(currentTime).toScala match {
+        case Some(timeBasedValue) =>
+          val valueTime: ZonedDateTime = timeBasedValue.getTime
           val currentWeight: Long =
             ChronoUnit.SECONDS.between(valueTime, dateTime)
-          val actualValue: WeatherValue = value.getValue
+          val actualValue: WeatherValue = timeBasedValue.getValue
 
           val (diffIrr, dirIrr, temp, windVel) = (
             actualValue.getSolarIrradiance.getDiffuseIrradiance.toScala,
@@ -674,44 +677,119 @@ object WeatherSource {
             actualValue.getWind.getVelocity.toScala
           )
 
-          (optionMap("diffIrr"), diffIrr) match {
-            case (None, Some(x)) =>
-              optionMap + ("diffIrr" -> Some(x, currentWeight))
+          // check options and update weather data option
+          (weatherDataOption.diffIrr, diffIrr) match {
+            case (None, Some(value)) =>
+              weatherDataOption =
+                weatherDataOption.copy(diffIrr = Some(value, currentWeight))
+            case (_, _) =>
           }
 
-          (optionMap("dirIrr"), dirIrr) match {
-            case (None, Some(x)) =>
-              optionMap + ("dirIrr" -> Some(x, currentWeight))
+          (weatherDataOption.dirIrr, dirIrr) match {
+            case (None, Some(value)) =>
+              weatherDataOption =
+                weatherDataOption.copy(dirIrr = Some(value, currentWeight))
+            case (_, _) =>
           }
 
-          (optionMap("temp"), temp) match {
-            case (None, Some(x)) =>
-              optionMap + ("temp" -> Some(x, currentWeight))
+          (weatherDataOption.temp, temp) match {
+            case (None, Some(value)) =>
+              weatherDataOption =
+                weatherDataOption.copy(temp = Some(value, currentWeight))
+            case (_, _) =>
           }
 
-          (optionMap("windVel"), windVel) match {
-            case (None, Some(x)) =>
-              optionMap + ("windVel" -> Some(x, currentWeight))
+          (weatherDataOption.windVel, windVel) match {
+            case (None, Some(value)) =>
+              weatherDataOption =
+                weatherDataOption.copy(windVel = Some(value, currentWeight))
+            case (_, _) =>
           }
 
-          if (valueTime != currentTime) {
-            currentTime = valueTime
+          if (currentTime == valueTime) {
+            currentTime = valueTime.minusMinutes(15)
           } else {
-            currentTime = currentTime.minusMinutes(15)
+            currentTime = valueTime
           }
         case None =>
           currentTime = currentTime.minusMinutes(15)
       }
+    }
+    weatherDataOption
+  }
 
-      // determine if limit is reached
-      run = if (previous) {
-        currentTime.isAfter(dateTime.minusHours(2))
-      } else {
-        currentTime.isBefore(dateTime.plusHours(2))
+  /** Method to find previous weather data.
+    *
+    * @param timeSeries
+    *   with weather data
+    * @param dateTime
+    *   starting time
+    * @return
+    *   a weather data option
+    */
+  def getNextValue(
+      timeSeries: IndividualTimeSeries[WeatherValue],
+      dateTime: ZonedDateTime
+  ): WeatherDataOption = {
+    var currentTime: ZonedDateTime = dateTime
+    var weatherDataOption: WeatherDataOption =
+      WeatherDataOption(None, None, None, None)
+
+    while (currentTime.isBefore(dateTime.plusHours(2))) {
+
+      timeSeries.getNextTimeBasedValue(currentTime).toScala match {
+        case Some(timeBasedValue) =>
+          val valueTime: ZonedDateTime = timeBasedValue.getTime
+          val currentWeight: Long =
+            ChronoUnit.SECONDS.between(dateTime, valueTime)
+          val actualValue: WeatherValue = timeBasedValue.getValue
+
+          val (diffIrr, dirIrr, temp, windVel) = (
+            actualValue.getSolarIrradiance.getDiffuseIrradiance.toScala,
+            actualValue.getSolarIrradiance.getDirectIrradiance.toScala,
+            actualValue.getTemperature.getTemperature.toScala,
+            actualValue.getWind.getVelocity.toScala
+          )
+
+          // check options and update weather data option
+          (weatherDataOption.diffIrr, diffIrr) match {
+            case (None, Some(value)) =>
+              weatherDataOption =
+                weatherDataOption.copy(diffIrr = Some(value, currentWeight))
+            case (_, _) =>
+          }
+
+          (weatherDataOption.dirIrr, dirIrr) match {
+            case (None, Some(value)) =>
+              weatherDataOption =
+                weatherDataOption.copy(dirIrr = Some(value, currentWeight))
+            case (_, _) =>
+          }
+
+          (weatherDataOption.temp, temp) match {
+            case (None, Some(value)) =>
+              weatherDataOption =
+                weatherDataOption.copy(temp = Some(value, currentWeight))
+            case (_, _) =>
+          }
+
+          (weatherDataOption.windVel, windVel) match {
+            case (None, Some(value)) =>
+              weatherDataOption =
+                weatherDataOption.copy(windVel = Some(value, currentWeight))
+            case (_, _) =>
+          }
+
+          if (currentTime == valueTime) {
+            currentTime = valueTime.plusMinutes(15)
+          } else {
+            currentTime = valueTime
+          }
+        case None =>
+          currentTime = currentTime.plusMinutes(15)
       }
     }
-
-    optionMap
+    weatherDataOption
   }
 
   /** Weather package private case class to combine the provided agent

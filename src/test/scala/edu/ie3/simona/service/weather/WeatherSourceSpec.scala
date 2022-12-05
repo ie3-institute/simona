@@ -7,11 +7,25 @@
 package edu.ie3.simona.service.weather
 
 import edu.ie3.datamodel.io.source.IdCoordinateSource
+import edu.ie3.datamodel.models.StandardUnits
+import edu.ie3.datamodel.models.timeseries.individual.{
+  IndividualTimeSeries,
+  TimeBasedValue
+}
+import edu.ie3.datamodel.models.value.{
+  SolarIrradianceValue,
+  TemperatureValue,
+  WeatherValue,
+  WindValue
+}
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherDataOption
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
-  WeightedCoordinates
+  WeightedCoordinates,
+  getNextValue,
+  getPreviousValue
 }
 import edu.ie3.simona.service.weather.WeatherSourceSpec._
 import edu.ie3.simona.test.common.UnitSpec
@@ -19,9 +33,11 @@ import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import org.locationtech.jts.geom.Point
 import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
+import java.time.ZonedDateTime
 import java.util
-import java.util.Optional
+import java.util.{Optional, UUID}
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 import scala.util.{Failure, Success}
@@ -296,6 +312,123 @@ class WeatherSourceSpec extends UnitSpec {
           )
       }
     }
+
+    "interpolate missing weather values correctly" in {}
+
+    "find correct previous values" in {
+      val cases = Table(
+        (
+          "timeBasedValues",
+          "expectedDiffIrr",
+          "expectedDirIrr",
+          "expectedTemp",
+          "expectedWindVel"
+        ),
+        (
+          Set(
+            timeBasedValue0,
+            timeBasedValue1,
+            timeBasedValue2,
+            timeBasedValue3,
+            timeBasedValue4
+          ),
+          Some(
+            Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
+            3900
+          ),
+          Some(
+            Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
+            6900
+          ),
+          Some(Quantities.getQuantity(14.85d, StandardUnits.TEMPERATURE), 3900),
+          Some(Quantities.getQuantity(10d, Units.METRE_PER_SECOND), 3900)
+        ),
+        (
+          Set(timeBasedValue0, timeBasedValue6),
+          None,
+          None,
+          None,
+          None
+        )
+      )
+
+      forAll(cases) {
+        (
+            timeBasedValues,
+            expectedDiffIrr,
+            expectedDirIrr,
+            expectedTemp,
+            expectedWindVel
+        ) =>
+          val weatherDataOption: WeatherDataOption =
+            getPreviousValue(buildTimeSeries(timeBasedValues), time)
+
+          weatherDataOption.diffIrr shouldBe expectedDiffIrr
+          weatherDataOption.dirIrr shouldBe expectedDirIrr
+          weatherDataOption.temp shouldBe expectedTemp
+          weatherDataOption.windVel shouldBe expectedWindVel
+      }
+    }
+
+    "find correct next values" in {
+      val cases = Table(
+        (
+          "timeBasedValues",
+          "expectedDiffIrr",
+          "expectedDirIrr",
+          "expectedTemp",
+          "expectedWindVel"
+        ),
+        (
+          Set(
+            timeBasedValue0,
+            timeBasedValue1,
+            timeBasedValue2,
+            timeBasedValue3,
+            timeBasedValue4,
+            timeBasedValue5,
+            timeBasedValue6
+          ),
+          Some(
+            Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
+            3300
+          ),
+          Some(
+            Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
+            3300
+          ),
+          Some(Quantities.getQuantity(16.85d, StandardUnits.TEMPERATURE), 3300),
+          Some(Quantities.getQuantity(20d, Units.METRE_PER_SECOND), 7200)
+        ),
+        (
+          Set(timeBasedValue0, timeBasedValue5),
+          Some(
+            Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
+            6000
+          ),
+          None,
+          Some(Quantities.getQuantity(14.85d, StandardUnits.TEMPERATURE), 6000),
+          None
+        )
+      )
+
+      forAll(cases) {
+        (
+            timeBasedValues,
+            expectedDiffIrr,
+            expectedDirIrr,
+            expectedTemp,
+            expectedWindVel
+        ) =>
+          val weatherDataOption: WeatherDataOption =
+            getNextValue(buildTimeSeries(timeBasedValues), time)
+
+          weatherDataOption.diffIrr shouldBe expectedDiffIrr
+          weatherDataOption.dirIrr shouldBe expectedDirIrr
+          weatherDataOption.temp shouldBe expectedTemp
+          weatherDataOption.windVel shouldBe expectedWindVel
+      }
+    }
   }
 }
 
@@ -308,6 +441,125 @@ case object WeatherSourceSpec {
   private val coordinate537947 = GeoUtils.buildPoint(52.25, 12.812)
   private val coordinate144112 = GeoUtils.buildPoint(52.312, 12.875)
   private val coordinate165125 = GeoUtils.buildPoint(52.25, 12.875)
+
+  private val time: ZonedDateTime = ZonedDateTime.now()
+
+  private val solarIrradianceValue0: SolarIrradianceValue =
+    new SolarIrradianceValue(null, null)
+  private val solarIrradianceValue1: SolarIrradianceValue =
+    new SolarIrradianceValue(
+      null,
+      Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE)
+    )
+  private val solarIrradianceValue2: SolarIrradianceValue =
+    new SolarIrradianceValue(
+      Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
+      Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE)
+    )
+
+  private val temperatureValue0: TemperatureValue = new TemperatureValue(null)
+  private val temperatureValue1: TemperatureValue = new TemperatureValue(
+    Quantities.getQuantity(288d, Units.KELVIN)
+  )
+  private val temperatureValue2: TemperatureValue = new TemperatureValue(
+    Quantities.getQuantity(290d, Units.KELVIN)
+  )
+
+  private val windValue0: WindValue = new WindValue(null, null)
+  private val windValue1: WindValue =
+    new WindValue(null, Quantities.getQuantity(10, Units.METRE_PER_SECOND))
+  private val windValue2: WindValue =
+    new WindValue(null, Quantities.getQuantity(20, Units.METRE_PER_SECOND))
+
+  private val timeBasedValue0: TimeBasedValue[WeatherValue] =
+    buildTimeBasedValue(
+      time,
+      new WeatherValue(
+        coordinate67775,
+        solarIrradianceValue0,
+        temperatureValue0,
+        windValue0
+      )
+    )
+
+  private val timeBasedValue1: TimeBasedValue[WeatherValue] =
+    buildTimeBasedValue(
+      time.minusMinutes(65),
+      new WeatherValue(
+        coordinate67775,
+        solarIrradianceValue1,
+        temperatureValue1,
+        windValue1
+      )
+    )
+
+  private val timeBasedValue2: TimeBasedValue[WeatherValue] =
+    buildTimeBasedValue(
+      time.minusMinutes(115),
+      new WeatherValue(
+        coordinate67775,
+        solarIrradianceValue2,
+        temperatureValue1,
+        windValue2
+      )
+    )
+
+  private val timeBasedValue3: TimeBasedValue[WeatherValue] =
+    buildTimeBasedValue(
+      time.minusMinutes(121),
+      new WeatherValue(
+        coordinate67775,
+        solarIrradianceValue1,
+        temperatureValue1,
+        windValue2
+      )
+    )
+
+  private val timeBasedValue4: TimeBasedValue[WeatherValue] =
+    buildTimeBasedValue(
+      time.plusMinutes(55),
+      new WeatherValue(
+        coordinate67775,
+        solarIrradianceValue2,
+        temperatureValue2,
+        windValue0
+      )
+    )
+
+  private val timeBasedValue5: TimeBasedValue[WeatherValue] =
+    buildTimeBasedValue(
+      time.plusMinutes(100),
+      new WeatherValue(
+        coordinate67775,
+        solarIrradianceValue1,
+        temperatureValue1,
+        windValue0
+      )
+    )
+
+  private val timeBasedValue6: TimeBasedValue[WeatherValue] =
+    buildTimeBasedValue(
+      time.plusMinutes(120),
+      new WeatherValue(
+        coordinate67775,
+        solarIrradianceValue2,
+        temperatureValue2,
+        windValue2
+      )
+    )
+
+  def buildTimeBasedValue(
+      time: ZonedDateTime,
+      value: WeatherValue
+  ): TimeBasedValue[WeatherValue] = {
+    new TimeBasedValue[WeatherValue](UUID.randomUUID(), time, value)
+  }
+
+  def buildTimeSeries(
+      set: Set[TimeBasedValue[WeatherValue]]
+  ): IndividualTimeSeries[WeatherValue] = {
+    new IndividualTimeSeries[WeatherValue](UUID.randomUUID(), set.asJava)
+  }
 
   case object DummyWeatherSource extends WeatherSource {
     override protected val idCoordinateSource: IdCoordinateSource =
