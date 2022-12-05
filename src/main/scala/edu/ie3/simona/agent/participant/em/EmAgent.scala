@@ -33,7 +33,6 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.em.EmModel.EmRelevantData
@@ -536,16 +535,18 @@ class EmAgent(
       // check if all results received
       val resultsReceived = updatedBaseStateData.flexCorrespondences.isComplete
 
-      if (resultsReceived)
-        calculatePower(
-          updatedBaseStateData.copy(
-            flexCorrespondences =
-              updatedBaseStateData.flexCorrespondences.setReceiveComplete()
-          ),
-          scheduler
-        )
-      else
-        stay() using updatedBaseStateData
+      stay() using {
+        if (resultsReceived)
+          calculatePower(
+            updatedBaseStateData.copy(
+              flexCorrespondences =
+                updatedBaseStateData.flexCorrespondences.setReceiveComplete()
+            ),
+            scheduler
+          )
+        else
+          updatedBaseStateData
+      }
 
     case Event(ReceiveTimeout, stateData) =>
       handleReceiveTimeout(stateData)
@@ -903,16 +904,43 @@ class EmAgent(
       }
       .setExpectingResults(issueFlexParticipants.toSet)
 
-    baseStateData.copy(
+    val updatedBaseStateData = baseStateData.copy(
       flexCorrespondences = updatedCorrespondences,
       schedulerStateData = updatedScheduledStateData
     )
+
+    if (issueCtrlMsgsComplete.isEmpty) {
+      // if we're EM-controlled and we only received an IssueFlexControl message,
+      // it is possible that the result is empty
+
+      // thus send a result to the parent EM (same one as before)...
+      val stateDataWithResults = calculatePower(
+        updatedBaseStateData,
+        scheduler
+      )
+
+      // ... and send a flex completion message
+      val (updatedSchedulerData, scheduledTick) = maybeTicksCompleted(
+        stateDataWithResults.schedulerStateData,
+        stateDataWithResults.modelUuid,
+        stateDataWithResults.flexStateData.flatMap(_.scheduledRequest)
+      )
+
+      stateDataWithResults.copy(
+        schedulerStateData = updatedSchedulerData,
+        flexStateData = stateDataWithResults.flexStateData.map(
+          _.copy(scheduledRequest = scheduledTick)
+        )
+      )
+    } else
+      updatedBaseStateData
+
   }
 
   private def calculatePower(
       baseStateData: EmModelBaseStateData,
       scheduler: ActorRef
-  ): State = {
+  ): EmModelBaseStateData = {
     val correspondences =
       baseStateData.flexCorrespondences.latestCorrespondences
 
@@ -946,7 +974,7 @@ class EmAgent(
     * java.lang.Object, java.lang.Object)
     *
     * Update the result and calc relevant data value stores, inform all
-    * registered listeners and go to Idle using the updated base state data
+    * registered listeners and return updated base state data
     *
     * @param scheduler
     *   Actor reference of the scheduler
@@ -955,13 +983,13 @@ class EmAgent(
     * @param result
     *   Result of simulation
     * @return
-    *   Desired state change
+    *   Updated state data
     */
   final def updateValueStoresInformListeners(
       scheduler: ActorRef,
       baseStateData: EmModelBaseStateData,
       result: ApparentPower
-  ): State = {
+  ): EmModelBaseStateData = {
     /* Update the value stores */
     val updatedValueStore =
       ValueStore.updateValueStore(
@@ -971,17 +999,9 @@ class EmAgent(
       )
 
     /* Update the base state data */
-    val baseStateDateWithUpdatedResults =
-      baseStateData match {
-        case data: EmModelBaseStateData =>
-          data.copy(
-            resultValueStore = updatedValueStore
-          )
-        case _ =>
-          throw new InconsistentStateException(
-            "Wrong base state data"
-          )
-      }
+    val baseStateDateWithUpdatedResults = baseStateData.copy(
+      resultValueStore = updatedValueStore
+    )
 
     /* Inform the listeners about current result
      * (IN CONTRAST TO REGULAR SPA BEHAVIOR, WHERE WE WAIT FOR POTENTIALLY CHANGED VOLTAGE) */
@@ -1001,10 +1021,9 @@ class EmAgent(
       )
     )
 
-    // we don't send the completion message here, as this is part
-    // of the EmScheduler
     unstashAll()
-    goto(Idle) using baseStateDateWithUpdatedResults
+
+    baseStateDateWithUpdatedResults
   }
 
   /** Create trigger for this agent depending on whether it is controlled by a
