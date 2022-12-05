@@ -32,6 +32,7 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import org.locationtech.jts.geom.Point
+import org.scalatest.prop.TableDrivenPropertyChecks
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -42,7 +43,7 @@ import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 import scala.util.{Failure, Success}
 
-class WeatherSourceSpec extends UnitSpec {
+class WeatherSourceSpec extends UnitSpec with TableDrivenPropertyChecks {
   private val coordinate0 = GeoUtils.buildPoint(51.47, 7.41)
 
   "A weather source" should {
