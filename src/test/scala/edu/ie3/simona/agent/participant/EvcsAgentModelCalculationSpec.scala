@@ -42,15 +42,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
-import edu.ie3.simona.ontology.messages.services.EvMessage.{
-  ArrivingEvsData,
-  DepartingEvsRequest,
-  DepartingEvsResponse,
-  EvFreeLotsRequest,
-  FreeLotsResponse,
-  ProvideEvDataMessage,
-  RegisterForEvDataMessage
-}
+import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
@@ -337,7 +329,7 @@ class EvcsAgentModelCalculationSpec
             simulationResultInfo = false,
             powerRequestReply = false
           )
-          additionalActivationTicks shouldBe Array.emptyLongArray
+          additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
@@ -1303,7 +1295,7 @@ class EvcsAgentModelCalculationSpec
           endDate shouldBe simulationEndDate
           services shouldBe withServices
           outputConfig shouldBe defaultOutputConfig
-          additionalActivationTicks shouldBe Array.emptyLongArray
+          additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map(evService.ref -> None)
           voltageValueStore shouldBe ValueStore(
             resolution,

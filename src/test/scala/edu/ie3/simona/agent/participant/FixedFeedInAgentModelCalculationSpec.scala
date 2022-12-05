@@ -238,7 +238,7 @@ class FixedFeedInAgentModelCalculationSpec
           endDate shouldBe simulationEndDate
           services shouldBe None
           outputConfig shouldBe defaultOutputConfig
-          additionalActivationTicks shouldBe Array.emptyLongArray
+          additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,

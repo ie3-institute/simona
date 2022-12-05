@@ -60,6 +60,7 @@ import tech.units.indriya.quantity.Quantities
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
+import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
 protected trait EvcsAgentFundamentals
@@ -198,7 +199,7 @@ protected trait EvcsAgentFundamentals
       model,
       servicesOpt,
       outputConfig,
-      Array.emptyLongArray, // Additional activation of the evcs agent is not needed
+      SortedSet.empty, // Additional activation of the evcs agent is not needed
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(

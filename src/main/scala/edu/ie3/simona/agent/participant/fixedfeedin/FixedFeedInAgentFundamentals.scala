@@ -51,6 +51,7 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
+import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
 protected trait FixedFeedInAgentFundamentals
@@ -128,11 +129,11 @@ protected trait FixedFeedInAgentFundamentals
        *  3) The tick, it turns off (in time dependent operation)
        * Coinciding ticks are summarized and the last tick is removed, as the change in operation status
        * doesn't affect anything then */
-      List[Long](
+      SortedSet[Long](
         SimonaConstants.FIRST_TICK_IN_SIMULATION,
         model.operationInterval.start,
         model.operationInterval.end
-      ).distinct.sorted.filterNot(_ == lastTickInSimulation).toArray
+      ).filterNot(_ == lastTickInSimulation)
 
     ParticipantModelBaseStateData[
       ApparentPower,

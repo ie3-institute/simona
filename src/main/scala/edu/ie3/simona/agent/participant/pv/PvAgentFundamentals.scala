@@ -39,14 +39,12 @@ import edu.ie3.simona.exceptions.agent.{
 }
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.ModelState.ConstantState
+import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.model.participant.{
-  CalcRelevantData,
-  FixedFeedInModel,
   FlexChangeIndicator,
   ModelState,
   PvModel
 }
-import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherService.FALLBACK_WEATHER_STEM_DISTANCE
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -56,6 +54,7 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
+import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
 protected trait PvAgentFundamentals
@@ -143,7 +142,7 @@ protected trait PvAgentFundamentals
       model,
       services,
       outputConfig,
-      Array.emptyLongArray, // Additional activation of the pv agent is not needed
+      SortedSet.empty, // Additional activation of the pv agent is not needed
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(

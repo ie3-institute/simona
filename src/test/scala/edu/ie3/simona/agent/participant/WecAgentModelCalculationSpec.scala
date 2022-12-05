@@ -318,7 +318,7 @@ class WecAgentModelCalculationSpec
             simulationResultInfo = false,
             powerRequestReply = false
           )
-          additionalActivationTicks shouldBe Array.emptyLongArray
+          additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,

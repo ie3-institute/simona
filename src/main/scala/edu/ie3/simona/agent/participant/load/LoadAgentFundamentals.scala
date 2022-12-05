@@ -34,12 +34,6 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
-import edu.ie3.simona.model.participant.{
-  CalcRelevantData,
-  FixedFeedInModel,
-  FlexChangeIndicator,
-  ModelState
-}
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
@@ -47,16 +41,17 @@ import edu.ie3.simona.model.participant.load.profile.{
   LoadProfileStore,
   ProfileLoadModel
 }
+import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
 import edu.ie3.simona.model.participant.load.random.{
   RandomLoadModel,
   RandomLoadParamStore
 }
-import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
 import edu.ie3.simona.model.participant.load.{
   FixedLoadModel,
   LoadModel,
   LoadReference
 }
+import edu.ie3.simona.model.participant.{FlexChangeIndicator, ModelState}
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits.PU
@@ -66,6 +61,7 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
+import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
 protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
@@ -146,11 +142,11 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
          *  3) The tick, it turns off (in time dependent operation)
          * Coinciding ticks are summarized and the last tick is removed, as the change in operation status
          * doesn't affect anything then */
-        List[Long](
+        SortedSet[Long](
           SimonaConstants.FIRST_TICK_IN_SIMULATION,
           fixedLoadModel.operationInterval.start,
           fixedLoadModel.operationInterval.end
-        ).distinct.sorted.filterNot(_ == lastTickInSimulation).toArray
+        ).filterNot(_ == lastTickInSimulation)
       case profileLoadModel: ProfileLoadModel =>
         activationTicksInOperationTime(
           simulationStartDate,
@@ -166,7 +162,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
           randomLoadModel.operationInterval.end
         )
       case _ =>
-        Array.emptyLongArray
+        SortedSet.empty[Long]
     }
 
     ParticipantModelBaseStateData[ApparentPower, LD, ConstantState.type, LM](

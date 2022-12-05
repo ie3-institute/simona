@@ -98,6 +98,7 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.measure.quantity.{Dimensionless, Energy, Power}
+import scala.collection.SortedSet
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
@@ -194,7 +195,7 @@ protected trait ParticipantAgentFundamentals[
       simulationStartDate,
       simulationEndDate,
       outputConfig,
-      Array.emptyLongArray,
+      SortedSet.empty,
       Map(senderToMaybeTick),
       modelConfig.calculateMissingReactivePowerWithModel,
       requestVoltageDeviationThreshold,
@@ -363,7 +364,7 @@ protected trait ParticipantAgentFundamentals[
       resolution: Long,
       operationStart: Long,
       operationEnd: Long
-  ): Array[Long] = {
+  ): SortedSet[Long] = {
     /* The profile load model holds values in the specified resolution (e.g. for each full quarter hour (00:00,
      * 00:15, ...)). As the simulation might not start at an integer multiple of the resolution, we have to
      * determine, what the first tick is, in which profile information do exist */
@@ -379,7 +380,7 @@ protected trait ParticipantAgentFundamentals[
     ).toLong
 
     /* Set up all ticks between the first and last tick */
-    (firstTick to lastTick by resolution).toArray
+    (firstTick to lastTick by resolution).to(SortedSet)
   }
 
   /** Assume we have information, that are available in a fixed resolution after
@@ -1166,7 +1167,7 @@ protected trait ParticipantAgentFundamentals[
         /* The next activation is additional (either there is no foreseen data tick or it is after the additional tick.
          * Remove the tick from the list of additional activation ticks. */
         val upcomingActivationTicks =
-          baseStateData.additionalActivationTicks.filter(_ > additionalTick)
+          baseStateData.additionalActivationTicks.rangeFrom(additionalTick + 1)
         val updatedBaseStateData = BaseStateData.updateBaseStateData(
           baseStateData,
           baseStateData.resultValueStore,
@@ -1222,7 +1223,7 @@ protected trait ParticipantAgentFundamentals[
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     /* Check, if there is any calculation foreseen for this tick. If so, wait with the response. */
     val activationExpected =
-      baseStateData.additionalActivationTicks.exists(_ < requestTick)
+      baseStateData.additionalActivationTicks.headOption.exists(_ < requestTick)
     val dataExpected =
       baseStateData.foreseenDataTicks.values.flatten.exists(_ < requestTick)
     if (activationExpected || dataExpected) {

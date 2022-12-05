@@ -47,7 +47,7 @@ import tech.units.indriya.quantity.Quantities
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.measure.quantity.Power
-import scala.collection.SortedMap
+import scala.collection.{SortedMap, SortedSet}
 
 class ParticipantAgentFundamentalsSpec
     extends AgentSpec(
@@ -229,7 +229,7 @@ class ParticipantAgentFundamentalsSpec
                 operationEnd
               )
 
-            additionalActivationTicks.corresponds(expectedTicks.toArray)(
+            additionalActivationTicks.corresponds(expectedTicks)(
               _ == _
             ) shouldBe true
           }
@@ -240,7 +240,7 @@ class ParticipantAgentFundamentalsSpec
   "Determining the next activation tick" should {
     "bring up no activation trigger" in {
       val baseStateData = ParticipantAgentFundamentalsSpec.mockBaseStateData(
-        Array.emptyLongArray,
+        SortedSet.empty,
         Map.empty
       )
 
@@ -255,7 +255,7 @@ class ParticipantAgentFundamentalsSpec
 
     "bring up the next foreseen data tick, if this is the closest one" in {
       val baseStateData = ParticipantAgentFundamentalsSpec.mockBaseStateData(
-        Array(100L, 200L, 300L),
+        SortedSet(100L, 200L, 300L),
         Map(
           self -> Some(10L),
           noSender -> Some(0L)
@@ -288,7 +288,7 @@ class ParticipantAgentFundamentalsSpec
 
     "bring up the next additional activation tick, if this is the closest one and pop it from base state data" in {
       val baseStateData = ParticipantAgentFundamentalsSpec.mockBaseStateData(
-        Array(0L, 10L, 20L),
+        SortedSet(0L, 10L, 20L),
         Map(
           self -> Some(200L),
           noSender -> Some(100L)
@@ -324,7 +324,7 @@ class ParticipantAgentFundamentalsSpec
 
     "bring up the next additional activation tick, if it and a data tick at the same time are the closest ones and pop it from base state data" in {
       val baseStateData = ParticipantAgentFundamentalsSpec.mockBaseStateData(
-        Array(0L, 10L, 20L),
+        SortedSet(0L, 10L, 20L),
         Map(
           self -> Some(20L),
           noSender -> Some(0L)
@@ -616,7 +616,7 @@ class ParticipantAgentFundamentalsSpec
         ),
         None,
         outputConfig,
-        Array(0L, 900L, 1800L),
+        SortedSet(0L, 900L, 1800L),
         Map.empty,
         1e-12,
         ValueStore
@@ -656,7 +656,7 @@ class ParticipantAgentFundamentalsSpec
         ),
         None,
         outputConfig,
-        Array(0L, 900L, 1800L),
+        SortedSet(0L, 900L, 1800L),
         Map.empty,
         1e-12,
         ValueStore(901L),
@@ -687,7 +687,7 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
     *   mocked base state data
     */
   def mockBaseStateData(
-      additionalActivationTicks: Array[Long],
+      additionalActivationTicks: SortedSet[Long],
       foreseenDataTicks: Map[ActorRef, Option[Long]]
   ): ParticipantModelBaseStateData[
     ApparentPower,

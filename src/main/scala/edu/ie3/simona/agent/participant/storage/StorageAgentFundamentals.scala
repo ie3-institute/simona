@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.participant.storage
 
 import akka.actor.ActorRef
-import edu.ie3.datamodel.exceptions.NotImplementedException
 import edu.ie3.datamodel.models.input.system.StorageInput
 import edu.ie3.datamodel.models.result.system.{
   StorageResult,
@@ -26,26 +25,23 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexStateData,
   ParticipantModelBaseStateData
 }
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  InputModelContainer,
-  SimpleInputContainer
-}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
   ParticipantStateData
 }
 import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
-import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
   InvalidRequestException
 }
-import edu.ie3.simona.model.participant.{FlexChangeIndicator, StorageModel}
 import edu.ie3.simona.model.participant.StorageModel.{
   StorageRelevantData,
   StorageState
 }
+import edu.ie3.simona.model.participant.{FlexChangeIndicator, StorageModel}
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -57,6 +53,7 @@ import tech.units.indriya.unit.Units
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
+import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
 trait StorageAgentFundamentals
@@ -119,7 +116,7 @@ trait StorageAgentFundamentals
       model,
       services,
       outputConfig,
-      Array.empty,
+      SortedSet.empty,
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(

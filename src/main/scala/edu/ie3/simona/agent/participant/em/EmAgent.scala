@@ -65,6 +65,7 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
+import scala.collection.SortedSet
 import scala.compat.java8.OptionConverters.RichOptionalGeneric
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.jdk.CollectionConverters._
@@ -119,7 +120,7 @@ object EmAgent {
         Vector[SecondaryDataService[_ <: SecondaryData]]
       ],
       outputConfig: NotifierConfig,
-      additionalActivationTicks: Array[Long],
+      additionalActivationTicks: SortedSet[Long],
       foreseenDataTicks: Map[ActorRef, Option[Long]],
       requestVoltageDeviationThreshold: Double,
       voltageValueStore: ValueStore[
@@ -276,7 +277,7 @@ class EmAgent(
         model,
         services,
         outputConfig,
-        Array.empty,
+        SortedSet.empty,
         Map.empty,
         requestVoltageDeviationThreshold,
         ValueStore.forVoltage(

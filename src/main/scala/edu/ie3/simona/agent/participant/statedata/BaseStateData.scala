@@ -23,6 +23,7 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.Dimensionless
+import scala.collection.SortedSet
 
 /** Trait to denote the common properties to all basic state data in participant
   * agents
@@ -51,7 +52,7 @@ trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
     * information needed, we might have the need to schedule ourselves for
     * activation triggers
     */
-  val additionalActivationTicks: Array[Long]
+  val additionalActivationTicks: SortedSet[Long]
 
   /** A mapping from service reference to it's foreseen next availability of
     * data
@@ -155,7 +156,7 @@ object BaseStateData {
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
       override val outputConfig: NotifierConfig,
-      override val additionalActivationTicks: Array[Long],
+      override val additionalActivationTicks: SortedSet[Long],
       override val foreseenDataTicks: Map[ActorRef, Option[Long]],
       fillUpReactivePowerWithModelFunc: Boolean = false,
       requestVoltageDeviationThreshold: Double,
@@ -213,7 +214,7 @@ object BaseStateData {
         Vector[SecondaryDataService[_ <: SecondaryData]]
       ],
       override val outputConfig: NotifierConfig,
-      override val additionalActivationTicks: Array[Long],
+      override val additionalActivationTicks: SortedSet[Long],
       override val foreseenDataTicks: Map[ActorRef, Option[Long]],
       requestVoltageDeviationThreshold: Double,
       override val voltageValueStore: ValueStore[
@@ -262,7 +263,7 @@ object BaseStateData {
     * @param updatedVoltageValueStore
     *   Value store with updated voltage information
     * @param updatedAdditionalActivationTicks
-    *   An array of additional activation ticks
+    *   Additional activation ticks
     * @param updatedForeseenTicks
     *   Mapping from [[ActorRef]] to foreseen ticks
     * @tparam PD
@@ -275,7 +276,7 @@ object BaseStateData {
       updatedResultValueStore: ValueStore[PD],
       updatedRequestValueStore: ValueStore[PD],
       updatedVoltageValueStore: ValueStore[ComparableQuantity[Dimensionless]],
-      updatedAdditionalActivationTicks: Array[Long],
+      updatedAdditionalActivationTicks: SortedSet[Long],
       updatedForeseenTicks: Map[ActorRef, Option[Long]]
   ): BaseStateData[PD] = {
     baseStateData match {

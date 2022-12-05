@@ -31,7 +31,6 @@ import edu.ie3.simona.exceptions.agent.InvalidRequestException
 import edu.ie3.simona.model.participant.em.EmModel.EmRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.{FlexChangeIndicator, ModelState}
-import edu.ie3.simona.model.participant.ModelState
 import edu.ie3.simona.model.participant.em.{EmModel, PrioritizedFlexStrat}
 import tech.units.indriya.ComparableQuantity
 

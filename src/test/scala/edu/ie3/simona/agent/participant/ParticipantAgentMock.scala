@@ -39,7 +39,6 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant
 }
 import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT, PU}
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito.doReturn
@@ -50,6 +49,7 @@ import tech.units.indriya.quantity.Quantities
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
+import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
 /** Creating a mocking participant agent
@@ -222,7 +222,7 @@ class ParticipantAgentMock(
       participant,
       None,
       outputConfig,
-      Array.emptyLongArray,
+      SortedSet.empty,
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
