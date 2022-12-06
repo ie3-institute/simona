@@ -20,12 +20,18 @@ import edu.ie3.datamodel.models.value.{
 }
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherDataOption
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
+  WeatherData,
+  WeatherDataOption
+}
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
+  EMPTY_WEATHER_DATA,
   WeightedCoordinates,
   getNextValue,
-  getPreviousValue
+  getPreviousValue,
+  getWeatherData,
+  updateWeatherDataOption
 }
 import edu.ie3.simona.service.weather.WeatherSourceSpec._
 import edu.ie3.simona.test.common.UnitSpec
@@ -314,7 +320,68 @@ class WeatherSourceSpec extends UnitSpec with TableDrivenPropertyChecks {
       }
     }
 
-    "interpolate missing weather values correctly" in {}
+    "interpolate missing weather values correctly" in {
+      val cases = Table(
+        ("timeBasedValues", "time", "expectedWeatherData"),
+        (Set.empty[TimeBasedValue[WeatherValue]], time, EMPTY_WEATHER_DATA),
+        (
+          Set(
+            timeBasedValue0,
+            timeBasedValue1,
+            timeBasedValue2,
+            timeBasedValue3,
+            timeBasedValue4,
+            timeBasedValue5,
+            timeBasedValue6
+          ),
+          time.minusHours(3),
+          EMPTY_WEATHER_DATA
+        ),
+        (
+          Set(
+            timeBasedValue0,
+            timeBasedValue1,
+            timeBasedValue2,
+            timeBasedValue3,
+            timeBasedValue4,
+            timeBasedValue5,
+            timeBasedValue6
+          ),
+          time.plusHours(2),
+          EMPTY_WEATHER_DATA
+        ),
+        (
+          Set(
+            timeBasedValue0,
+            timeBasedValue1,
+            timeBasedValue2,
+            timeBasedValue3,
+            timeBasedValue4,
+            timeBasedValue5,
+            timeBasedValue6
+          ),
+          time,
+          WeatherData(
+            Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
+            Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
+            Quantities.getQuantity(15d, StandardUnits.TEMPERATURE),
+            Quantities.getQuantity(0d, StandardUnits.WIND_VELOCITY)
+          )
+        )
+      )
+
+      forAll(cases) { (timeBasedValues, time, expectedWeatherData) =>
+        val timeSeries: IndividualTimeSeries[WeatherValue] =
+          buildTimeSeries(timeBasedValues)
+        val weatherData: WeatherData = getWeatherData(timeSeries, time)
+
+        weatherData.diffIrr shouldBe expectedWeatherData.diffIrr
+        weatherData.dirIrr shouldBe expectedWeatherData.dirIrr
+        weatherData.temp shouldBe expectedWeatherData.temp
+        weatherData.windVel shouldBe expectedWeatherData.windVel
+      }
+
+    }
 
     "find correct previous values" in {
       val cases = Table(
@@ -341,7 +408,7 @@ class WeatherSourceSpec extends UnitSpec with TableDrivenPropertyChecks {
             Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
             6900
           ),
-          Some(Quantities.getQuantity(14.85d, StandardUnits.TEMPERATURE), 3900),
+          Some(Quantities.getQuantity(15d, StandardUnits.TEMPERATURE), 3900),
           Some(Quantities.getQuantity(10d, Units.METRE_PER_SECOND), 3900)
         ),
         (
@@ -398,8 +465,8 @@ class WeatherSourceSpec extends UnitSpec with TableDrivenPropertyChecks {
             Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
             3300
           ),
-          Some(Quantities.getQuantity(16.85d, StandardUnits.TEMPERATURE), 3300),
-          Some(Quantities.getQuantity(20d, Units.METRE_PER_SECOND), 7200)
+          Some(Quantities.getQuantity(15d, StandardUnits.TEMPERATURE), 6000),
+          None
         ),
         (
           Set(timeBasedValue0, timeBasedValue5),
@@ -408,7 +475,7 @@ class WeatherSourceSpec extends UnitSpec with TableDrivenPropertyChecks {
             6000
           ),
           None,
-          Some(Quantities.getQuantity(14.85d, StandardUnits.TEMPERATURE), 6000),
+          Some(Quantities.getQuantity(15d, StandardUnits.TEMPERATURE), 6000),
           None
         )
       )
@@ -429,6 +496,126 @@ class WeatherSourceSpec extends UnitSpec with TableDrivenPropertyChecks {
           weatherDataOption.temp shouldBe expectedTemp
           weatherDataOption.windVel shouldBe expectedWindVel
       }
+    }
+
+    "update weather data option correctly" in {
+      val weatherDataOption: WeatherDataOption =
+        WeatherDataOption(None, None, None, None)
+
+      val cases = Table(
+        ("givenValue", "givenWeight", "expectedResult"),
+        (timeBasedValue0.getValue, 200L, weatherDataOption),
+        (
+          timeBasedValue1.getValue,
+          300L,
+          WeatherDataOption(
+            Some(
+              Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
+              300L
+            ),
+            None,
+            Some(
+              Quantities.getQuantity(15d, StandardUnits.TEMPERATURE),
+              300L
+            ),
+            Some(Quantities.getQuantity(10, Units.METRE_PER_SECOND), 300L)
+          )
+        ),
+        (
+          timeBasedValue2.getValue,
+          250L,
+          WeatherDataOption(
+            Some(
+              Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
+              250L
+            ),
+            Some(
+              Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
+              250L
+            ),
+            Some(
+              Quantities.getQuantity(15d, StandardUnits.TEMPERATURE),
+              250L
+            ),
+            Some(Quantities.getQuantity(20, Units.METRE_PER_SECOND), 250L)
+          )
+        ),
+        (
+          timeBasedValue3.getValue,
+          300L,
+          WeatherDataOption(
+            Some(
+              Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
+              300L
+            ),
+            None,
+            Some(
+              Quantities.getQuantity(15d, StandardUnits.TEMPERATURE),
+              300L
+            ),
+            Some(Quantities.getQuantity(20, Units.METRE_PER_SECOND), 300L)
+          )
+        ),
+        (
+          timeBasedValue4.getValue,
+          250L,
+          WeatherDataOption(
+            Some(
+              Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
+              250L
+            ),
+            Some(
+              Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
+              250L
+            ),
+            None,
+            None
+          )
+        ),
+        (
+          timeBasedValue5.getValue,
+          300L,
+          WeatherDataOption(
+            Some(
+              Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
+              300L
+            ),
+            None,
+            Some(
+              Quantities.getQuantity(15d, StandardUnits.TEMPERATURE),
+              300L
+            ),
+            None
+          )
+        ),
+        (
+          timeBasedValue6.getValue,
+          250L,
+          WeatherDataOption(
+            Some(
+              Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
+              250L
+            ),
+            Some(
+              Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE),
+              250L
+            ),
+            Some(
+              Quantities.getQuantity(17d, StandardUnits.TEMPERATURE),
+              250L
+            ),
+            Some(Quantities.getQuantity(20, Units.METRE_PER_SECOND), 250L)
+          )
+        )
+      )
+
+      forAll(cases) { (givenValue, givenWeight, expectedResult) =>
+        val updatedWeatherDataOption =
+          updateWeatherDataOption(weatherDataOption, givenValue, givenWeight)
+
+        updatedWeatherDataOption shouldBe expectedResult
+      }
+
     }
   }
 }
@@ -460,10 +647,10 @@ case object WeatherSourceSpec {
 
   private val temperatureValue0: TemperatureValue = new TemperatureValue(null)
   private val temperatureValue1: TemperatureValue = new TemperatureValue(
-    Quantities.getQuantity(288d, Units.KELVIN)
+    Quantities.getQuantity(288.15d, Units.KELVIN)
   )
   private val temperatureValue2: TemperatureValue = new TemperatureValue(
-    Quantities.getQuantity(290d, Units.KELVIN)
+    Quantities.getQuantity(290.15d, Units.KELVIN)
   )
 
   private val windValue0: WindValue = new WindValue(null, null)
@@ -522,7 +709,7 @@ case object WeatherSourceSpec {
       new WeatherValue(
         coordinate67775,
         solarIrradianceValue2,
-        temperatureValue2,
+        temperatureValue0,
         windValue0
       )
     )
@@ -540,7 +727,7 @@ case object WeatherSourceSpec {
 
   private val timeBasedValue6: TimeBasedValue[WeatherValue] =
     buildTimeBasedValue(
-      time.plusMinutes(120),
+      time.plusMinutes(1),
       new WeatherValue(
         coordinate67775,
         solarIrradianceValue2,

@@ -535,7 +535,6 @@ object WeatherSource {
       timeSeries: IndividualTimeSeries[WeatherValue],
       dateTime: ZonedDateTime
   ): WeatherData = {
-
     // gets a value option
     val valueOption: Option[WeatherValue] =
       timeSeries.getValue(dateTime).toScala
@@ -662,48 +661,20 @@ object WeatherSource {
     var weatherDataOption: WeatherDataOption =
       WeatherDataOption(None, None, None, None)
 
-    while (currentTime.isAfter(dateTime.minusHours(2))) {
+    for (i <- 0 to 7) {
       timeSeries.getPreviousTimeBasedValue(currentTime).toScala match {
         case Some(timeBasedValue) =>
           val valueTime: ZonedDateTime = timeBasedValue.getTime
-          val currentWeight: Long =
-            ChronoUnit.SECONDS.between(valueTime, dateTime)
-          val actualValue: WeatherValue = timeBasedValue.getValue
 
-          val (diffIrr, dirIrr, temp, windVel) = (
-            actualValue.getSolarIrradiance.getDiffuseIrradiance.toScala,
-            actualValue.getSolarIrradiance.getDirectIrradiance.toScala,
-            actualValue.getTemperature.getTemperature.toScala,
-            actualValue.getWind.getVelocity.toScala
-          )
+          if (valueTime.isAfter(dateTime.minusHours(2))) {
+            val currentWeight: Long =
+              ChronoUnit.SECONDS.between(valueTime, dateTime)
 
-          // check options and update weather data option
-          (weatherDataOption.diffIrr, diffIrr) match {
-            case (None, Some(value)) =>
-              weatherDataOption =
-                weatherDataOption.copy(diffIrr = Some(value, currentWeight))
-            case (_, _) =>
-          }
-
-          (weatherDataOption.dirIrr, dirIrr) match {
-            case (None, Some(value)) =>
-              weatherDataOption =
-                weatherDataOption.copy(dirIrr = Some(value, currentWeight))
-            case (_, _) =>
-          }
-
-          (weatherDataOption.temp, temp) match {
-            case (None, Some(value)) =>
-              weatherDataOption =
-                weatherDataOption.copy(temp = Some(value, currentWeight))
-            case (_, _) =>
-          }
-
-          (weatherDataOption.windVel, windVel) match {
-            case (None, Some(value)) =>
-              weatherDataOption =
-                weatherDataOption.copy(windVel = Some(value, currentWeight))
-            case (_, _) =>
+            weatherDataOption = updateWeatherDataOption(
+              weatherDataOption,
+              timeBasedValue.getValue,
+              currentWeight
+            )
           }
 
           if (currentTime == valueTime) {
@@ -735,49 +706,20 @@ object WeatherSource {
     var weatherDataOption: WeatherDataOption =
       WeatherDataOption(None, None, None, None)
 
-    while (currentTime.isBefore(dateTime.plusHours(2))) {
-
+    for (i <- 0 to 7) {
       timeSeries.getNextTimeBasedValue(currentTime).toScala match {
         case Some(timeBasedValue) =>
           val valueTime: ZonedDateTime = timeBasedValue.getTime
-          val currentWeight: Long =
-            ChronoUnit.SECONDS.between(dateTime, valueTime)
-          val actualValue: WeatherValue = timeBasedValue.getValue
 
-          val (diffIrr, dirIrr, temp, windVel) = (
-            actualValue.getSolarIrradiance.getDiffuseIrradiance.toScala,
-            actualValue.getSolarIrradiance.getDirectIrradiance.toScala,
-            actualValue.getTemperature.getTemperature.toScala,
-            actualValue.getWind.getVelocity.toScala
-          )
+          if (valueTime.isBefore(dateTime.plusHours(2))) {
+            val currentWeight: Long =
+              ChronoUnit.SECONDS.between(dateTime, valueTime)
 
-          // check options and update weather data option
-          (weatherDataOption.diffIrr, diffIrr) match {
-            case (None, Some(value)) =>
-              weatherDataOption =
-                weatherDataOption.copy(diffIrr = Some(value, currentWeight))
-            case (_, _) =>
-          }
-
-          (weatherDataOption.dirIrr, dirIrr) match {
-            case (None, Some(value)) =>
-              weatherDataOption =
-                weatherDataOption.copy(dirIrr = Some(value, currentWeight))
-            case (_, _) =>
-          }
-
-          (weatherDataOption.temp, temp) match {
-            case (None, Some(value)) =>
-              weatherDataOption =
-                weatherDataOption.copy(temp = Some(value, currentWeight))
-            case (_, _) =>
-          }
-
-          (weatherDataOption.windVel, windVel) match {
-            case (None, Some(value)) =>
-              weatherDataOption =
-                weatherDataOption.copy(windVel = Some(value, currentWeight))
-            case (_, _) =>
+            weatherDataOption = updateWeatherDataOption(
+              weatherDataOption,
+              timeBasedValue.getValue,
+              currentWeight
+            )
           }
 
           if (currentTime == valueTime) {
@@ -790,6 +732,63 @@ object WeatherSource {
       }
     }
     weatherDataOption
+  }
+
+  /** Method to find options for new weather data.
+    *
+    * @param weatherDataOption
+    *   container class holding the options
+    * @param value
+    *   possible new values
+    * @param weight
+    *   weighting for the found values
+    * @return
+    *   updated weather data option
+    */
+  def updateWeatherDataOption(
+      weatherDataOption: WeatherDataOption,
+      value: WeatherValue,
+      weight: Long
+  ): WeatherDataOption = {
+    var option: WeatherDataOption = weatherDataOption
+    if (weight == 0L) {
+      weatherDataOption
+    } else {
+      // check options and update weather data option
+      (
+        weatherDataOption.diffIrr,
+        value.getSolarIrradiance.getDiffuseIrradiance.toScala
+      ) match {
+        case (None, Some(value)) =>
+          option = option.copy(diffIrr = Some(value, weight))
+        case (_, _) =>
+      }
+
+      (
+        weatherDataOption.dirIrr,
+        value.getSolarIrradiance.getDirectIrradiance.toScala
+      ) match {
+        case (None, Some(value)) =>
+          option = option.copy(dirIrr = Some(value, weight))
+        case (_, _) =>
+      }
+
+      (
+        weatherDataOption.temp,
+        value.getTemperature.getTemperature.toScala
+      ) match {
+        case (None, Some(value)) =>
+          option = option.copy(temp = Some(value, weight))
+        case (_, _) =>
+      }
+
+      (weatherDataOption.windVel, value.getWind.getVelocity.toScala) match {
+        case (None, Some(value)) =>
+          option = option.copy(windVel = Some(value, weight))
+        case (_, _) =>
+      }
+      option
+    }
   }
 
   /** Weather package private case class to combine the provided agent
