@@ -26,6 +26,8 @@ import static tech.units.indriya.unit.Units.MINUTE
 
 class EvcsModelTest extends Specification {
 
+  static final double TESTING_TOLERANCE = 1e-10
+
   @Shared
   double scalingFactor = 1.0d
   @Shared
@@ -64,9 +66,9 @@ class EvcsModelTest extends Specification {
 
     then:
     QuantityUtil.isEquivalentAbs(res._1(),
-        Quantities.getQuantity(solChargedEnergy, KILOWATTHOUR))
+        Quantities.getQuantity(solChargedEnergy, KILOWATTHOUR), TESTING_TOLERANCE)
     QuantityUtil.isEquivalentAbs(res._2().storedEnergy,
-        Quantities.getQuantity(solStoredEnergy, KILOWATTHOUR))
+        Quantities.getQuantity(solStoredEnergy, KILOWATTHOUR), TESTING_TOLERANCE)
 
     where:
     evcsSRated | evSRated | evEStorage | evStoredEnergy | durationMins || solStoredEnergy | solChargedEnergy
@@ -102,12 +104,12 @@ class EvcsModelTest extends Specification {
     def res = evcsModel.calculateActivePowerAndEvSoc(data)
 
     then:
-    QuantityUtil.isEquivalentAbs(res._1(), Quantities.getQuantity(solPower, KILOWATT))
+    QuantityUtil.isEquivalentAbs(res._1(), Quantities.getQuantity(solPower, KILOWATT), TESTING_TOLERANCE)
     res._2().size() == 2
     QuantityUtil.isEquivalentAbs(res._2().head().storedEnergy,
-        Quantities.getQuantity(solEv1Stored, KILOWATTHOUR))
+        Quantities.getQuantity(solEv1Stored, KILOWATTHOUR), TESTING_TOLERANCE)
     QuantityUtil.isEquivalentAbs(res._2().last().storedEnergy,
-        Quantities.getQuantity(solEv2Stored, KILOWATTHOUR))
+        Quantities.getQuantity(solEv2Stored, KILOWATTHOUR), TESTING_TOLERANCE)
 
     where:
     ev1SRated | ev1StoredEnergy | ev2SRated | ev2StoredEnergy | durationTicks || solPower | solEv1Stored | solEv2Stored
