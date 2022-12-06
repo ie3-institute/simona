@@ -23,11 +23,7 @@ object EmAggregateSimpleSum extends EmAggregateFlex {
       ComparableQuantity[Power]
   ) = {
     flexOptions.foldLeft(
-      (
-        zeroKW,
-        zeroKW,
-        zeroKW
-      )
+      (zeroKW, zeroKW, zeroKW)
     ) {
       case (
             (sumRef, sumMin, sumMax),

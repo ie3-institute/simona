@@ -729,7 +729,7 @@ class EmAgent(
             // either via flex time series or as 0 kW
             val setPower = baseStateData.flexTimeSeries match {
               case Some(flexTimeSeries) =>
-                // round current time to 3 hrs
+                // round current time to flexTimeSeries.resolutionHours hrs
                 val currentDateTime = tick.toDateTime(baseStateData.startDate)
                 val currentHour = currentDateTime.getHour
                 val roundedHour =
@@ -740,7 +740,6 @@ class EmAgent(
                   .withSecond(0)
                   .withNano(0)
 
-                // retrieve target power
                 val flexSetPower = flexTimeSeries.timeSeries
                   .getTimeBasedValue(roundedDateTime)
                   .asScala
@@ -757,6 +756,27 @@ class EmAgent(
                       s"No value set for $roundedDateTime"
                     )
                   )
+                  .multiply(-1d) // negate the flex signal to get residual power
+
+                val flexOptionsInput = flexData
+                  .flatMap { case (spi, correspondence, _) =>
+                    correspondence.receivedFlexOptions.map((spi, _))
+                  }
+                  .collect { case (spi, flexOption: ProvideMinMaxFlexOptions) =>
+                    // adapt flex options, e.g. of devices that are
+                    // not controllable by the strategy of this EM
+                    baseStateData.model.modelStrategy
+                      .adaptFlexOptions(spi, flexOption)
+                  }
+
+                // sum up ref power
+                val (refSum, _, _) =
+                  EmAggregateSimpleSum.aggregateFlexOptions(
+                    flexOptionsInput
+                  )
+                // TODO write out as flex options results
+
+                val combinedPower = flexSetPower.add(refSum)
 
                 val minThreshold =
                   flexTimeSeries.minValue.multiply(flexTimeSeries.threshold)
@@ -765,34 +785,17 @@ class EmAgent(
 
                 // if target power is below threshold, issue no control
                 if (
-                  flexSetPower.isGreaterThanOrEqualTo(
-                    minThreshold
-                  ) && flexSetPower.isLessThanOrEqualTo(maxThreshold)
+                  combinedPower.isGreaterThanOrEqualTo(minThreshold)
+                  && combinedPower.isLessThanOrEqualTo(maxThreshold)
                 ) {
-                  val flexOptionsInput = flexData
-                    .flatMap { case (spi, correspondence, _) =>
-                      correspondence.receivedFlexOptions.map((spi, _))
-                    }
-                    .collect {
-                      case (spi, flexOption: ProvideMinMaxFlexOptions) =>
-                        // adapt flex options, e.g. of devices that are
-                        // not controllable by the strategy of this EM
-                        baseStateData.model.modelStrategy
-                          .adaptFlexOptions(spi, flexOption)
-                    }
-
-                  // sum up ref power
-                  val (ref, _, _) =
-                    EmAggregateSimpleSum.aggregateFlexOptions(
-                      flexOptionsInput
-                    )
-
-                  ref
+                  refSum
                 } else {
-                  if (flexSetPower.isLessThan(minThreshold))
-                    minThreshold
+                  if (combinedPower.isLessThan(minThreshold))
+                    // target value must exclude the residual power
+                    minThreshold.subtract(flexSetPower)
                   else
-                    maxThreshold
+                    // target value must exclude the residual power
+                    maxThreshold.subtract(flexSetPower)
                 }
 
               case None => zeroKW
