@@ -67,7 +67,7 @@ class EvcsModelSpec
         actualSchedule shouldBe Map(
           evModel -> Some(
             // ending early at 9000 because of max power charging
-            ChargingSchedule(evModel, Seq(Entry(3600L, 8999L, 10.0.asKiloWatt)))
+            ChargingSchedule(evModel, Seq(Entry(3600L, 9000L, 10.0.asKiloWatt)))
           )
         )
       }
