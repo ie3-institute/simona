@@ -53,13 +53,15 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
   protected val defaultOutputConfig: NotifierConfig =
     NotifierConfig(
       simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-      simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
+      simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
+      simonaConfig.simona.output.participant.defaultConfig.flexResult
     )
 
   protected val simResultOutputConfig: NotifierConfig =
     NotifierConfig(
       simulationResultInfo = true,
-      powerRequestReply = false
+      powerRequestReply = false,
+      flexResult = false
     )
 
   protected val modelConfig: SimonaConfig.EvcsRuntimeConfig =

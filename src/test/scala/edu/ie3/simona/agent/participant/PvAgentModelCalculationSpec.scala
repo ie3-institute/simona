@@ -108,7 +108,8 @@ class PvAgentModelCalculationSpec
     )
   private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
+    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
+    simonaConfig.simona.output.participant.defaultConfig.flexResult
   )
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
@@ -336,7 +337,8 @@ class PvAgentModelCalculationSpec
           )
           outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
-            powerRequestReply = false
+            powerRequestReply = false,
+            flexResult = false
           )
           additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty

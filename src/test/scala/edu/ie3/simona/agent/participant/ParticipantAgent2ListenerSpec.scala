@@ -100,7 +100,8 @@ class ParticipantAgent2ListenerSpec
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = NotifierConfig(
         simulationResultInfo = true,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false
       )
 
       /* Trigger the initialisation */
@@ -185,7 +186,8 @@ class ParticipantAgent2ListenerSpec
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false
       )
 
       /* Trigger the initialisation */
@@ -257,7 +259,8 @@ class ParticipantAgent2ListenerSpec
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = true
+        powerRequestReply = true,
+        flexResult = false
       )
 
       /* Trigger the initialisation */
@@ -350,7 +353,8 @@ class ParticipantAgent2ListenerSpec
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false
       )
 
       /* Trigger the initialisation */

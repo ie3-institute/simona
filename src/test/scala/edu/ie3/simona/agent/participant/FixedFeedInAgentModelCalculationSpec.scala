@@ -95,7 +95,8 @@ class FixedFeedInAgentModelCalculationSpec
     )
   private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
+    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
+    simonaConfig.simona.output.participant.defaultConfig.flexResult
   )
 
   private val fixedFeedConfigUtil = ConfigUtil.ParticipantConfigUtil(

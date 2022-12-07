@@ -90,12 +90,14 @@ class EmAgentIT
 
   private val outputConfigOn = NotifierConfig(
     simulationResultInfo = true,
-    powerRequestReply = false
+    powerRequestReply = false,
+    flexResult = false
   )
 
   private val outputConfigOff = NotifierConfig(
     simulationResultInfo = false,
-    powerRequestReply = false
+    powerRequestReply = false,
+    flexResult = false
   )
 
   private val tolerance = 1e-10d

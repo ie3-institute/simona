@@ -96,7 +96,8 @@ class StorageAgentModelCalculationSpec
     )
   private val outputConfig = NotifierConfig(
     simulationResultInfo = true,
-    powerRequestReply = false
+    powerRequestReply = false,
+    flexResult = true
   )
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant

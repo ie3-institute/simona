@@ -181,7 +181,8 @@ class WecAgentModelCalculationSpec
               secondaryDataServices = None,
               outputConfig = NotifierConfig(
                 simulationResultInfo = false,
-                powerRequestReply = false
+                powerRequestReply = false,
+                flexResult = false
               ),
               scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
@@ -270,7 +271,8 @@ class WecAgentModelCalculationSpec
               secondaryDataServices = withServices,
               outputConfig = NotifierConfig(
                 simulationResultInfo = false,
-                powerRequestReply = false
+                powerRequestReply = false,
+                flexResult = false
               ),
               scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
@@ -316,7 +318,8 @@ class WecAgentModelCalculationSpec
           services shouldBe withServices
           outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
-            powerRequestReply = false
+            powerRequestReply = false,
+            flexResult = false
           )
           additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
@@ -403,7 +406,8 @@ class WecAgentModelCalculationSpec
               secondaryDataServices = withServices,
               outputConfig = NotifierConfig(
                 simulationResultInfo = false,
-                powerRequestReply = false
+                powerRequestReply = false,
+                flexResult = false
               ),
               scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
@@ -496,7 +500,8 @@ class WecAgentModelCalculationSpec
               secondaryDataServices = withServices,
               outputConfig = NotifierConfig(
                 simulationResultInfo = false,
-                powerRequestReply = false
+                powerRequestReply = false,
+                flexResult = false
               ),
               scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
@@ -659,7 +664,8 @@ class WecAgentModelCalculationSpec
               secondaryDataServices = withServices,
               outputConfig = NotifierConfig(
                 simulationResultInfo = false,
-                powerRequestReply = false
+                powerRequestReply = false,
+                flexResult = false
               ),
               scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
@@ -820,7 +826,8 @@ class WecAgentModelCalculationSpec
               secondaryDataServices = withServices,
               outputConfig = NotifierConfig(
                 simulationResultInfo = false,
-                powerRequestReply = false
+                powerRequestReply = false,
+                flexResult = false
               ),
               scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )
@@ -930,7 +937,8 @@ class WecAgentModelCalculationSpec
               secondaryDataServices = withServices,
               outputConfig = NotifierConfig(
                 simulationResultInfo = false,
-                powerRequestReply = false
+                powerRequestReply = false,
+                flexResult = false
               ),
               scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
             )

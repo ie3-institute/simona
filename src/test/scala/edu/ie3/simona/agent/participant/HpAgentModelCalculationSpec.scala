@@ -99,7 +99,8 @@ class HpAgentModelCalculationSpec
   )
   private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
+    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
+    simonaConfig.simona.output.participant.defaultConfig.flexResult
   )
   private val participantConfigUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
@@ -330,7 +331,8 @@ class HpAgentModelCalculationSpec
           )
           outputConfig shouldBe NotifierConfig(
             simulationResultInfo = true,
-            powerRequestReply = false
+            powerRequestReply = false,
+            flexResult = false
           )
           additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty

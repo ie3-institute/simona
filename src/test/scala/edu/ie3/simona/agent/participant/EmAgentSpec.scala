@@ -60,7 +60,8 @@ class EmAgentSpec
 
   private val outputConfig = NotifierConfig(
     simulationResultInfo = true,
-    powerRequestReply = false
+    powerRequestReply = false,
+    flexResult = false
   )
 
   private val tolerance = 1e-10d

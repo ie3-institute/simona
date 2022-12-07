@@ -462,6 +462,7 @@ object SimonaConfig {
   final case class ParticipantBaseOutputConfig(
       override val notifier: java.lang.String,
       override val simulationResult: scala.Boolean,
+      flexResult: scala.Boolean,
       powerRequestReply: scala.Boolean
   ) extends BaseOutputConfig(notifier, simulationResult)
   object ParticipantBaseOutputConfig {
@@ -471,6 +472,8 @@ object SimonaConfig {
         $tsCfgValidator: $TsCfgValidator
     ): SimonaConfig.ParticipantBaseOutputConfig = {
       SimonaConfig.ParticipantBaseOutputConfig(
+        flexResult =
+          c.hasPathOrNull("flexResult") && c.getBoolean("flexResult"),
         powerRequestReply =
           $_reqBln(parentPath, c, "powerRequestReply", $tsCfgValidator),
         notifier = $_reqStr(parentPath, c, "notifier", $tsCfgValidator),

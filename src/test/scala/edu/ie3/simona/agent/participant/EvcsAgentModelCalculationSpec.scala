@@ -58,7 +58,6 @@ import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.quantities.QuantityUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import tech.units.indriya.quantity.Quantities
 
@@ -328,7 +327,8 @@ class EvcsAgentModelCalculationSpec
           )
           outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
-            powerRequestReply = false
+            powerRequestReply = false,
+            flexResult = false
           )
           additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
@@ -1347,7 +1347,11 @@ class EvcsAgentModelCalculationSpec
               resolution = resolution,
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = simResultOutputConfig,
+              outputConfig = NotifierConfig(
+                simulationResultInfo = true,
+                powerRequestReply = false,
+                flexResult = true
+              ),
               primaryServiceProxy = primaryServiceProxy.ref,
               maybeEmAgent = Some(emAgent.ref),
               scheduleTriggerFunc =
@@ -1385,7 +1389,11 @@ class EvcsAgentModelCalculationSpec
           simulationEndDate shouldBe simulationEndDate
           resolution shouldBe resolution
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
-          outputConfig shouldBe simResultOutputConfig
+          outputConfig shouldBe NotifierConfig(
+            simulationResultInfo = true,
+            powerRequestReply = false,
+            flexResult = true
+          )
           maybeEmAgent shouldBe Some(emAgent.ref)
           scheduleFunc(ActivityStartTrigger(0L)) shouldBe
             scheduleTriggerEmFunc(evcsAgent, emAgent.ref)(

@@ -124,7 +124,8 @@ class ParticipantAgentExternalSourceSpec
   )
   private val defaultOutputConfig = NotifierConfig(
     simulationResultInfo = false,
-    powerRequestReply = false
+    powerRequestReply = false,
+    flexResult = false
   )
 
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds

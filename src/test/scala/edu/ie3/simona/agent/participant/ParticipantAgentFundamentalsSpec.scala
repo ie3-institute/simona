@@ -69,7 +69,8 @@ class ParticipantAgentFundamentalsSpec
   private val outputConfig: NotifierConfig =
     NotifierConfig(
       simulationResultInfo = false,
-      powerRequestReply = false
+      powerRequestReply = false,
+      flexResult = false
     )
 
   /* Get one instance of the mock for participant agent */
@@ -718,7 +719,8 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
       None,
       NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false
       ),
       additionalActivationTicks,
       foreseenDataTicks,

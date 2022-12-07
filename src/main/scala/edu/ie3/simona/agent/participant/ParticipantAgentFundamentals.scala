@@ -672,7 +672,7 @@ protected trait ParticipantAgentFundamentals[
 
     // announce flex options (we can do this right away, since this
     // does not include reactive power which could change later
-    if (baseStateData.outputConfig.simulationResultInfo) {
+    if (baseStateData.outputConfig.flexResult) {
       val flexResult = flexOptions match {
         case ProvideMinMaxFlexOptions(
               modelUuid,
