@@ -8,6 +8,7 @@ package edu.ie3.simona.agent.participant.em
 
 import akka.actor.{ActorRef, Props, ReceiveTimeout}
 import edu.ie3.datamodel.models.input.system.{EmInput, SystemParticipantInput}
+import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.timeseries.individual.IndividualTimeSeries
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.ValueStore
@@ -31,7 +32,10 @@ import edu.ie3.simona.agent.participant.statedata.{
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
-import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
+import edu.ie3.simona.event.ResultEvent.{
+  FlexOptionsResultEvent,
+  ParticipantResultEvent
+}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.ModelState.ConstantState
@@ -770,11 +774,24 @@ class EmAgent(
                   }
 
                 // sum up ref power
-                val (refSum, _, _) =
+                val (refSum, minSum, maxSum) =
                   EmAggregateSimpleSum.aggregateFlexOptions(
                     flexOptionsInput
                   )
-                // TODO write out as flex options results
+
+                // announce flex options (we can do this right away, since this
+                // does not include reactive power which could change later
+                if (baseStateData.outputConfig.flexResult) {
+                  val flexResult = new FlexOptionsResult(
+                    tick.toDateTime(baseStateData.startDate),
+                    baseStateData.modelUuid,
+                    refSum,
+                    minSum,
+                    maxSum
+                  )
+
+                  notifyListener(FlexOptionsResultEvent(flexResult))
+                }
 
                 val combinedPower = flexSetPower.add(refSum)
 
