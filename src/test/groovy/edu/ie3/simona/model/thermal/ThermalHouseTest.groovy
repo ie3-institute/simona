@@ -45,7 +45,7 @@ class ThermalHouseTest extends Specification {
 
     when:
     def isHigher = thermalHouse.isInnerTemperatureTooHigh(innerTemperature)
-    def isLower = thermalHouse.isInnerTemperatureTooLow(innerTemperature)
+    def isLower = thermalHouse.isInnerTemperatureTooLow(innerTemperature, thermalHouse.lowerBoundaryTemperature())
 
     then:
     isHigher == isTooHigh
