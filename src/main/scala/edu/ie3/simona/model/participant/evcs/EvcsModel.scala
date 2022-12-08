@@ -54,7 +54,6 @@ import javax.measure.quantity.{Dimensionless, Energy, Power, Time}
 import scala.annotation.tailrec
 import scala.collection.SortedMap
 import scala.collection.immutable.SortedSet
-import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success}
 
 /** EV charging station model
@@ -203,8 +202,7 @@ final case class EvcsModel(
       state: EvcsState,
       currentTick: Long
   ): Set[EvModel] = if (state.schedule.nonEmpty) {
-    /* Apply schedules asynchronously */
-    state.evs.par
+    state.evs
       .map(ev =>
         state
           .getSchedule(ev)
@@ -218,7 +216,6 @@ final case class EvcsModel(
           }
           .getOrElse(ev)
       )
-      .seq
   } else {
     logger.debug(
       "There are EVs parked at this charging station, but there was no scheduling since the last" +
