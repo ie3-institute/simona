@@ -690,7 +690,7 @@ final case class EvcsModel(
     *   Regarded instant in simulation
     * @param voltage
     *   Nodal voltage magnitude
-    * @param maybeModelState
+    * @param modelState
     *   Current state of the model
     * @param data
     *   Further needed, secondary data
@@ -706,8 +706,8 @@ final case class EvcsModel(
 
   /** Calculate the active power behaviour of the model
     *
-    * @param maybeModelState
-    *   Optional model state
+    * @param modelState
+    *   Current state of the model
     * @param data
     *   Further needed, secondary data
     * @return
