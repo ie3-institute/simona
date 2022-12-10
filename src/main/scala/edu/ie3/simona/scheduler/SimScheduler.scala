@@ -69,7 +69,7 @@ class SimScheduler(
       // notify listeners
       notifyListener(Initializing)
 
-      context.setReceiveTimeout(1 minute)
+      context.setReceiveTimeout(10 minutes)
 
       // set init sender
       val startSender = sender()
@@ -200,7 +200,7 @@ class SimScheduler(
       // disable timeout again
       context.setReceiveTimeout(Duration.Undefined)
       log.warning(
-        "No messages received for one minute. Current state data: " + stateData
+        "No messages received for ten minutes. Current state data: " + stateData
       )
 
     /* all unhandled messages */

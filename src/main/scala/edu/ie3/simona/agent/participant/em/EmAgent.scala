@@ -207,7 +207,7 @@ class EmAgent(
           ),
           _: ParticipantUninitializedStateData[ApparentPower]
         ) =>
-      context.setReceiveTimeout(2 minutes)
+      context.setReceiveTimeout(10 minutes)
 
       // sending init triggers
       val triggerData = connectedAgents.foldLeft(TriggerData()) {
@@ -1070,7 +1070,7 @@ class EmAgent(
     context.setReceiveTimeout(Duration.Undefined)
 
     log.warning(
-      "No messages received for two minutes. Current state data: " + stateData
+      "No messages received for ten minutes. Current state data: " + stateData
     )
     stay()
   }
