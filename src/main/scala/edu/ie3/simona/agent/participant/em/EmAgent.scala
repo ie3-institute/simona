@@ -896,18 +896,19 @@ class EmAgent(
           }
     }
 
-    val updatedFlexTrigger = issueCtrlMsgsComplete.foldLeft(
-      baseStateData.schedulerStateData.flexTrigger
-    ) { case (flexTrigger, (uuid, issueCtrlMsg)) =>
+    val updatedScheduledStateData = issueCtrlMsgsComplete.foldLeft(
+      baseStateData.schedulerStateData
+    ) { case (schedulerData, (uuid, issueCtrlMsg)) =>
       // send out flex control messages
-      scheduleFlexTriggerOnce(flexTrigger, issueCtrlMsg, uuid)
-    }
+      val updatedFlexTrigger =
+        scheduleFlexTriggerOnce(schedulerData.flexTrigger, issueCtrlMsg, uuid)
 
-    val updatedScheduledStateData = sendEligibleTrigger(
-      baseStateData.schedulerStateData.copy(
-        flexTrigger = updatedFlexTrigger
+      sendEligibleTrigger(
+        schedulerData.copy(
+          flexTrigger = updatedFlexTrigger
+        )
       )
-    )
+    }
 
     val issueFlexParticipants = issueCtrlMsgsComplete.map { case (uuid, _) =>
       uuid
