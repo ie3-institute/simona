@@ -251,7 +251,7 @@ class EmAgentIT
                 outputConfig = outputConfigOn,
                 primaryServiceProxy = primaryServiceProxy.ref,
                 connectedAgents = connectedAgents,
-                modelStrategy = PrioritizedFlexStrat
+                modelStrategy = PrioritizedFlexStrat(pvFlex = false)
               )
             ),
             initId,
@@ -657,7 +657,7 @@ class EmAgentIT
                 outputConfig = outputConfigOn,
                 primaryServiceProxy = primaryServiceProxy.ref,
                 connectedAgents = connectedAgents,
-                modelStrategy = PrioritizedFlexStrat
+                modelStrategy = PrioritizedFlexStrat(pvFlex = false)
               )
             ),
             initId,

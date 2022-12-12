@@ -13,4 +13,7 @@ trait TableDrivenHelper {
 
   /** Shortcut for None type to make case tables more concise */
   def N: None.type = None
+
+  /** Shortcut for Seq type to make case tables more concise */
+  def L: Seq.type = Seq
 }

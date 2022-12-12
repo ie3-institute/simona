@@ -36,6 +36,7 @@ import org.scalatestplus.mockito.MockitoSugar
 
 import java.time.ZonedDateTime
 
+// TODO move to right package
 class EmAgentSpec
     extends ParticipantAgentSpec(
       ActorSystem(
@@ -113,7 +114,7 @@ class EmAgentSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
-              modelStrategy = PrioritizedFlexStrat,
+              modelStrategy = PrioritizedFlexStrat(pvFlex = false),
               primaryServiceProxy = primaryServiceProxy.ref,
               connectedAgents = connectedAgents
             )
@@ -455,7 +456,7 @@ class EmAgentSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
-              modelStrategy = PrioritizedFlexStrat,
+              modelStrategy = PrioritizedFlexStrat(pvFlex = false),
               primaryServiceProxy = primaryServiceProxy.ref,
               connectedAgents = connectedAgents
             )
@@ -831,7 +832,7 @@ class EmAgentSpec
               requestVoltageDeviationThreshold =
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
-              modelStrategy = PrioritizedFlexStrat,
+              modelStrategy = PrioritizedFlexStrat(pvFlex = false),
               primaryServiceProxy = primaryServiceProxy.ref,
               connectedAgents = connectedAgents
             )
@@ -1213,7 +1214,7 @@ class EmAgentSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
-              modelStrategy = PrioritizedFlexStrat,
+              modelStrategy = PrioritizedFlexStrat(pvFlex = false),
               connectedAgents = connectedAgents,
               maybeParentEmAgent = Some(parentEmAgent.ref) // em-controlled
             )

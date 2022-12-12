@@ -39,7 +39,7 @@ class EmModelSpec
       modelConfig,
       simulationStartDate,
       simulationEndDate,
-      PrioritizedFlexStrat // is not tested here
+      PrioritizedFlexStrat(pvFlex = false) // is not tested here
     )
 
     model.enable()

@@ -82,7 +82,8 @@ object SimonaConfig {
   final case class EmRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: scala.Boolean,
       override val scaling: scala.Double,
-      override val uuids: scala.List[java.lang.String]
+      override val uuids: scala.List[java.lang.String],
+      pvFlex: scala.Boolean
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -95,6 +96,7 @@ object SimonaConfig {
         $tsCfgValidator: $TsCfgValidator
     ): SimonaConfig.EmRuntimeConfig = {
       SimonaConfig.EmRuntimeConfig(
+        pvFlex = c.hasPathOrNull("pvFlex") && c.getBoolean("pvFlex"),
         calculateMissingReactivePowerWithModel = $_reqBln(
           parentPath,
           c,

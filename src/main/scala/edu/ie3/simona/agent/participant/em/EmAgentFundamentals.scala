@@ -106,7 +106,7 @@ trait EmAgentFundamentals
     modelConfig,
     simulationStartDate,
     simulationEndDate,
-    PrioritizedFlexStrat
+    PrioritizedFlexStrat(modelConfig.pvFlex)
   )
 
   /** Abstract definition, individual implementations found in individual agent

@@ -9,6 +9,7 @@ package edu.ie3.simona.model.participant.em
 import edu.ie3.datamodel.models.input.system.{
   EvcsInput,
   HpInput,
+  PvInput,
   StorageInput,
   SystemParticipantInput
 }
@@ -22,7 +23,7 @@ import tech.units.indriya.ComparableQuantity
 import java.util.UUID
 import javax.measure.quantity.Power
 
-object PrioritizedFlexStrat extends EmModelStrat {
+final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
 
   /** Determine the power of controllable devices by using flexibility according
     * to a prioritized list of device types. This means that e.g. flexibility of
@@ -63,6 +64,11 @@ object PrioritizedFlexStrat extends EmModelStrat {
     val heatPumpOpt = flexOptions.collectFirst { case flex @ (_: HpInput, _) =>
       flex
     }
+    val pvOpt = flexOptions
+      .collectFirst { case flex @ (_: PvInput, _) =>
+        flex
+      }
+      .filter(_ => pvFlex) // only if enabled
 
     if (
       PsuQuantityUtil.isEquivalentAbs(
@@ -76,7 +82,8 @@ object PrioritizedFlexStrat extends EmModelStrat {
       // suggested power too low, try to store difference/increase load
 
       // TODO configurable
-      val orderedParticipants = Seq(evcsOpt, storageOpt, heatPumpOpt).flatten
+      val orderedParticipants =
+        Seq(evcsOpt, storageOpt, heatPumpOpt, pvOpt).flatten
 
       orderedParticipants.foldLeft(
         (Seq.empty[(UUID, ComparableQuantity[Power])], Option(targetDelta))
@@ -208,7 +215,9 @@ object PrioritizedFlexStrat extends EmModelStrat {
     // stations are controlled by this strategy
     // TODO configurable
     val controllableAssets: Seq[Class[_ <: SystemParticipantInput]] =
-      Seq(classOf[HpInput], classOf[StorageInput], classOf[EvcsInput])
+      Seq(classOf[HpInput], classOf[StorageInput], classOf[EvcsInput]) ++ Option
+        .when(pvFlex)(Seq(classOf[PvInput]))
+        .getOrElse(Seq.empty)
 
     if (controllableAssets.contains(spi.getClass))
       flexOptions

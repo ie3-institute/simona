@@ -257,7 +257,8 @@ class GridAgentController(
         EmRuntimeConfig(
           calculateMissingReactivePowerWithModel = false,
           1d,
-          List.empty
+          List.empty,
+          pvFlex = false
         ),
         environmentRefs.primaryServiceProxy,
         environmentRefs.weather,
@@ -1046,7 +1047,7 @@ class GridAgentController(
         outputConfig,
         rootEmConfig
           .map(_ => ProportionalFlexStrat)
-          .getOrElse(PrioritizedFlexStrat),
+          .getOrElse(PrioritizedFlexStrat(modelConfiguration.pvFlex)),
         connectedAgents,
         emAgentHierarchy.headOption,
         rootEmConfig
