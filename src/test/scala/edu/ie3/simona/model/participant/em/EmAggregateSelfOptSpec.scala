@@ -6,13 +6,15 @@
 
 package edu.ie3.simona.model.participant.em
 
+import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import org.scalatestplus.mockito.MockitoSugar
 
 import java.util.UUID
 
-class EmAggregateSelfOptSpec extends UnitSpec {
+class EmAggregateSelfOptSpec extends UnitSpec with MockitoSugar {
 
   "The self-optimizing aggregating strategy" should {
 
@@ -32,7 +34,10 @@ class EmAggregateSelfOptSpec extends UnitSpec {
       )
 
       val actualResult = EmAggregateSelfOpt.aggregateFlexOptions(
-        Iterable(flexOptions1, flexOptions2)
+        Iterable(
+          (mock[SystemParticipantInput], flexOptions1),
+          (mock[SystemParticipantInput], flexOptions2)
+        )
       )
 
       actualResult shouldBe (
@@ -58,7 +63,10 @@ class EmAggregateSelfOptSpec extends UnitSpec {
       )
 
       val actualResult = EmAggregateSelfOpt.aggregateFlexOptions(
-        Iterable(flexOptions1, flexOptions2)
+        Iterable(
+          (mock[SystemParticipantInput], flexOptions1),
+          (mock[SystemParticipantInput], flexOptions2)
+        )
       )
 
       actualResult shouldBe (
@@ -84,7 +92,10 @@ class EmAggregateSelfOptSpec extends UnitSpec {
       )
 
       val actualResult = EmAggregateSelfOpt.aggregateFlexOptions(
-        Iterable(flexOptions1, flexOptions2)
+        Iterable(
+          (mock[SystemParticipantInput], flexOptions1),
+          (mock[SystemParticipantInput], flexOptions2)
+        )
       )
 
       actualResult shouldBe (

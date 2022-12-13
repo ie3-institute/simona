@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.participant.em
 
+import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.QuantityUtils.RichQuantity
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
@@ -16,7 +17,9 @@ import javax.measure.quantity.Power
 object EmAggregateSelfOpt extends EmAggregateFlex {
 
   override def aggregateFlexOptions(
-      flexOptions: Iterable[ProvideMinMaxFlexOptions]
+      flexOptions: Iterable[
+        (_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)
+      ]
   ): (
       ComparableQuantity[Power],
       ComparableQuantity[Power],
@@ -25,7 +28,7 @@ object EmAggregateSelfOpt extends EmAggregateFlex {
     val (minSum, maxSum) = flexOptions.foldLeft((zeroKW, zeroKW)) {
       case (
             (sumMin, sumMax),
-            ProvideMinMaxFlexOptions(_, _, addMin, addMax)
+            (_, ProvideMinMaxFlexOptions(_, _, addMin, addMax))
           ) =>
         (
           sumMin.add(addMin),

@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.participant.em
 
+import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
 import tech.units.indriya.ComparableQuantity
 
@@ -24,7 +25,9 @@ trait EmAggregateFlex {
     *   aggregated reference, minimum and maximum power
     */
   def aggregateFlexOptions(
-      flexOptions: Iterable[ProvideMinMaxFlexOptions]
+      flexOptions: Iterable[
+        (_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)
+      ]
   ): (
       ComparableQuantity[Power],
       ComparableQuantity[Power],

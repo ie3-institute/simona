@@ -698,14 +698,14 @@ class EmAgent(
               .collect { case (spi, flexOption: ProvideMinMaxFlexOptions) =>
                 // adapt flex options, e.g. of devices that are
                 // not controllable by the strategy of this EM
-                baseStateData.model.modelStrategy
+                spi -> baseStateData.model.modelStrategy
                   .adaptFlexOptions(spi, flexOption)
               }
 
             val (ref, min, max) =
               aggregateFlex.aggregateFlexOptions(
                 flexOptionsInput
-              )
+              ) // TODO aggregate flex options
 
             val flexMessage = ProvideMinMaxFlexOptions(
               baseStateData.modelUuid,
@@ -768,7 +768,7 @@ class EmAgent(
                   .collect { case (spi, flexOption: ProvideMinMaxFlexOptions) =>
                     // adapt flex options, e.g. of devices that are
                     // not controllable by the strategy of this EM
-                    baseStateData.model.modelStrategy
+                    spi -> baseStateData.model.modelStrategy
                       .adaptFlexOptions(spi, flexOption)
                   }
 
