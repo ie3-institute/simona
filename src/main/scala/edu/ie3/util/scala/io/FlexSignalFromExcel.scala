@@ -76,7 +76,8 @@ object FlexSignalFromExcel {
             .atZone(zoneId)
 
           val tsTypeToValue = colToTimeseriesType.map { case (col, tsType) =>
-            val raw = row.getCell(col).getNumericCellValue
+            // negate the flex signal to get residual power
+            val raw = -row.getCell(col).getNumericCellValue
             val value = new PValue(
               Quantities.getQuantity(raw, unit)
             )

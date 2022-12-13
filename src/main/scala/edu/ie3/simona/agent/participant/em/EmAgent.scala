@@ -760,7 +760,6 @@ class EmAgent(
                       s"No value set for $roundedDateTime"
                     )
                   )
-                  .multiply(-1d) // negate the flex signal to get residual power
 
                 val flexOptionsInput = flexData
                   .flatMap { case (spi, correspondence, _) =>
