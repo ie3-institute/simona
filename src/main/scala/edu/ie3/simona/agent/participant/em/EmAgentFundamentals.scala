@@ -28,15 +28,15 @@ import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InvalidRequestException
-import edu.ie3.simona.model.participant.em.EmModel.EmRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.{FlexChangeIndicator, ModelState}
+import edu.ie3.simona.model.participant.em.EmModel.EmRelevantData
 import edu.ie3.simona.model.participant.em.{EmModel, PrioritizedFlexStrat}
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.simona.model.participant.{FlexChangeIndicator, ModelState}
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.ReactivePower
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.{ClassTag, classTag}
 
 /** TODO unused methods
@@ -81,7 +81,7 @@ trait EmAgentFundamentals
       ],
       data: EmRelevantData,
       lastState: ModelState.ConstantState.type,
-      setPower: ComparableQuantity[Power]
+      setPower: squants.Power
   ): (ModelState.ConstantState.type, ApparentPower, FlexChangeIndicator) = ???
 
   /** Abstract method to build the calculation model from input
@@ -152,7 +152,7 @@ trait EmAgentFundamentals
       tick: Long,
       modelState: ModelState.ConstantState.type,
       calcRelevantData: EmRelevantData,
-      nodalVoltage: ComparableQuantity[Dimensionless],
+      nodalVoltage: squants.Dimensionless,
       model: EmModel
   ): ModelState.ConstantState.type = ???
 
@@ -165,7 +165,7 @@ trait EmAgentFundamentals
         EmModel
       ],
       ConstantState.type,
-      ComparableQuantity[Dimensionless]
+      squants.Dimensionless
   ) => ApparentPower =
     (
         _: Long,
@@ -176,7 +176,7 @@ trait EmAgentFundamentals
           EmModel
         ],
         _: ConstantState.type,
-        _: ComparableQuantity[Dimensionless]
+        _: squants.Dimensionless
     ) =>
       throw new InvalidRequestException(
         "WEC model cannot be run without secondary data."
@@ -237,7 +237,7 @@ trait EmAgentFundamentals
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        squants.Power => ReactivePower
       ]
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
@@ -264,6 +264,11 @@ trait EmAgentFundamentals
       dateTime: ZonedDateTime,
       result: ApparentPower
   ): SystemParticipantResult =
-    new EmResult(dateTime, uuid, result.p, result.q)
+    new EmResult(
+      dateTime,
+      uuid,
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
+    )
 
 }

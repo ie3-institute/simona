@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.ChpInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.participant.ChpModel._
@@ -14,14 +13,12 @@ import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.{MutableStorage, ThermalStorage}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities.getQuantity
-import tech.units.indriya.unit.Units
+import squants.energy.{KilowattHours, Kilowatts}
+import squants.time.Seconds
 
 import java.util.UUID
-import javax.measure.quantity.{Energy, Power, Time}
 
 /** Model of a combined heat and power plant (CHP) with a [[ThermalStorage]]
   * medium and its current [[ChpState]].
@@ -51,9 +48,9 @@ final case class ChpModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: ComparableQuantity[Power],
+    sRated: squants.Power,
     cosPhiRated: Double,
-    pThermal: ComparableQuantity[Power],
+    pThermal: squants.Power,
     storage: ThermalStorage with MutableStorage
 ) extends SystemParticipant[ChpData, ApparentPower, ConstantState.type](
       uuid,
@@ -66,8 +63,7 @@ final case class ChpModel(
     )
     with ApparentPowerParticipant[ChpData, ConstantState.type] {
 
-  val pRated: ComparableQuantity[Power] =
-    sRated.multiply(cosPhiRated).to(StandardUnits.ACTIVE_POWER_IN)
+  val pRated: squants.Power = sRated * cosPhiRated
 
   /** As this is a state-full model (with respect to the current operation
     * condition and its thermal storage), the power calculation operates on the
@@ -83,7 +79,7 @@ final case class ChpModel(
   override protected def calculateActivePower(
       modelState: ConstantState.type,
       chpData: ChpData
-  ): ComparableQuantity[Power] =
+  ): squants.Power =
     chpData.chpState.activePower
 
   /** Given a [[ChpData]] object, containing the [[ChpState]], the heat demand
@@ -121,7 +117,7 @@ final case class ChpModel(
       chpData: ChpData
   ): ChpData => ChpState = {
     val isRunning = chpData.chpState.isRunning
-    val hasDemand = chpData.heatDemand.isGreaterThan(DefaultQuantities.zeroKWH)
+    val hasDemand = chpData.heatDemand > KilowattHours(0d)
     val isCovered = isDemandCovered(chpData)
 
     (isRunning, hasDemand, isCovered) match {
@@ -147,8 +143,8 @@ final case class ChpModel(
     ChpState(
       isRunning = false,
       chpData.currentTimeTick,
-      DefaultQuantities.zeroKW,
-      DefaultQuantities.zeroKWH
+      Kilowatts(0d),
+      KilowattHours(0d)
     )
 
   /** The demand cannot be covered, therefore this function sets storage level
@@ -184,8 +180,8 @@ final case class ChpModel(
     ChpState(
       isRunning = false,
       chpData.currentTimeTick,
-      DefaultQuantities.zeroKW,
-      DefaultQuantities.zeroKWH
+      Kilowatts(0d),
+      KilowattHours(0d)
     )
   }
 
@@ -201,10 +197,10 @@ final case class ChpModel(
   private def calculateStateRunningDemandCovered(
       chpData: ChpData
   ): ChpState = {
-    val differenceEnergy = chpEnergy(chpData).subtract(chpData.heatDemand)
-    if (differenceEnergy.isLessThan(DefaultQuantities.zeroKWH)) {
+    val differenceEnergy = chpEnergy(chpData) - chpData.heatDemand
+    if (differenceEnergy < KilowattHours(0d)) {
       // Returned lack is always zero, because demand is covered.
-      storage.tryToTakeAndReturnLack(differenceEnergy.multiply(-1))
+      storage.tryToTakeAndReturnLack(differenceEnergy * -1)
       calculateStateRunningSurplus(chpData)
     } else {
       val surplus = storage.tryToStoreAndReturnRemainder(differenceEnergy)
@@ -225,7 +221,7 @@ final case class ChpModel(
     */
   private def calculateStateRunningSurplus(
       chpData: ChpData,
-      surplus: Option[ComparableQuantity[Energy]] = None
+      surplus: Option[squants.Energy] = None
   ): ChpState = {
     surplus match {
       case Some(surplusEnergy) =>
@@ -233,7 +229,7 @@ final case class ChpModel(
           isRunning = false,
           chpData.currentTimeTick,
           pRated,
-          chpEnergy(chpData).subtract(surplusEnergy)
+          chpEnergy(chpData) - surplusEnergy
         )
       case None =>
         ChpState(
@@ -254,9 +250,9 @@ final case class ChpModel(
     */
   private def powerToEnergy(
       chpData: ChpData,
-      power: ComparableQuantity[Power]
-  ): ComparableQuantity[Energy] =
-    power.multiply(timeRunning(chpData)).asType(classOf[Energy])
+      power: squants.Power
+  ): squants.Energy =
+    power * timeRunning(chpData)
 
   /** Check if the stored energy suffices to cover the heat demand. If not,
     * check if CHP thermal output energy plus stored energy is enough to cover
@@ -268,11 +264,10 @@ final case class ChpModel(
     *   is demand covered
     */
   private def isDemandCovered(chpData: ChpData) =
-    storage.isDemandCoveredByStorage(chpData.heatDemand) || totalUsableEnergy(
-      chpData
-    ).isGreaterThanOrEqualTo(chpData.heatDemand)
+    storage.isDemandCoveredByStorage(chpData.heatDemand) ||
+      totalUsableEnergy(chpData) >= chpData.heatDemand
 
-  private def chpEnergy(chpData: ChpData): ComparableQuantity[Energy] =
+  private def chpEnergy(chpData: ChpData): squants.Energy =
     powerToEnergy(chpData, pThermal)
 
   /** Returns the storage mediums total usable plus the CHP thermal output
@@ -286,14 +281,11 @@ final case class ChpModel(
     */
   private def totalUsableEnergy(
       chpData: ChpData
-  ): ComparableQuantity[Energy] =
-    storage.usableThermalEnergy.add(chpEnergy(chpData))
+  ): squants.Energy =
+    storage.usableThermalEnergy + chpEnergy(chpData)
 
-  private def timeRunning(chpData: ChpData): ComparableQuantity[Time] =
-    getQuantity(
-      chpData.currentTimeTick - chpData.chpState.lastTimeTick,
-      Units.SECOND
-    )
+  private def timeRunning(chpData: ChpData): squants.Time =
+    Seconds(chpData.currentTimeTick - chpData.chpState.lastTimeTick)
 
   override def determineFlexOptions(
       data: ChpData,
@@ -303,7 +295,7 @@ final case class ChpModel(
   override def handleControlledPowerChange(
       data: ChpData,
       lastState: ConstantState.type,
-      setPower: ComparableQuantity[Power]
+      setPower: squants.Power
   ): (ConstantState.type, FlexChangeIndicator) =
     ??? // TODO actual implementation
 }
@@ -328,8 +320,8 @@ object ChpModel {
   final case class ChpState(
       isRunning: Boolean,
       lastTimeTick: Long,
-      activePower: ComparableQuantity[Power],
-      thermalEnergy: ComparableQuantity[Energy]
+      activePower: squants.Power,
+      thermalEnergy: squants.Energy
   )
 
   /** Main data required for simulation/calculation, containing a [[ChpState]],
@@ -347,7 +339,7 @@ object ChpModel {
     */
   final case class ChpData(
       chpState: ChpState,
-      heatDemand: ComparableQuantity[Energy],
+      heatDemand: squants.Energy,
       currentTimeTick: Long
   ) extends CalcRelevantData
 
@@ -376,9 +368,19 @@ object ChpModel {
       operationInterval,
       scalingFactor = 1.0,
       qControl,
-      chpInput.getType.getsRated,
+      Kilowatts(
+        chpInput.getType.getsRated
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
       chpInput.getType.getCosPhiRated,
-      chpInput.getType.getpThermal,
+      Kilowatts(
+        chpInput.getType.getpThermal
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
       thermalStorage
     )
 }

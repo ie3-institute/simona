@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.model.SystemComponent
@@ -22,14 +21,12 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideFlexOptions,
   ProvideMinMaxFlexOptions
 }
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import squants.energy.{Kilowatts, Megawatts}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Power, Temperature}
 
 /** Model of a heat pump (HP) with a [[ThermalHouse]] medium and its current
   * [[HpState]].
@@ -61,9 +58,9 @@ final case class HpModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: ComparableQuantity[Power],
+    sRated: squants.Power,
     cosPhiRated: Double,
-    pThermal: ComparableQuantity[Power],
+    pThermal: squants.Power,
     thermalGrid: ThermalGrid
 ) extends SystemParticipant[
       HpRelevantData,
@@ -80,11 +77,8 @@ final case class HpModel(
     )
     with ApparentPowerAndHeatParticipant[HpRelevantData, HpState] {
 
-  private val pRated: ComparableQuantity[Power] =
-    sRated
-      .multiply(cosPhiRated)
-      .multiply(scalingFactor)
-      .to(StandardUnits.ACTIVE_POWER_IN)
+  private val pRated: squants.Power =
+    sRated * cosPhiRated * scalingFactor
 
   /** As this is a state-full model (with respect to the current operation
     * condition and inner temperature), the power calculation operates on the
@@ -102,7 +96,7 @@ final case class HpModel(
   override protected def calculateActivePower(
       modelState: HpState,
       relevantData: HpRelevantData
-  ): ComparableQuantity[Power] = modelState.activePower
+  ): squants.Power = modelState.activePower
 
   /** "Calculate" the heat output of the heat pump. The hp's state is already
     * updated, because the calculation of apparent power in
@@ -121,8 +115,8 @@ final case class HpModel(
       tick: Long,
       modelState: HpState,
       data: HpRelevantData
-  ): ComparableQuantity[Power] =
-    modelState.qDot.to(StandardUnits.ACTIVE_POWER_RESULT)
+  ): squants.Power =
+    modelState.qDot
 
   /** Given a [[HpRelevantData]] object and the current [[HpState]], this
     * function calculates the heat pump's next state To get the actual active
@@ -190,8 +184,8 @@ final case class HpModel(
   ): HpState = {
     val (newActivePower, newThermalPower) =
       if (isRunning)
-        (pRated, pThermal.multiply(scalingFactor))
-      else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
+        (pRated, pThermal * scalingFactor)
+      else (Megawatts(0d), Megawatts(0d))
 
     /* Push thermal energy to the thermal grid and get it's updated state in return */
     val (thermalGridState, maybeThreshold) = relevantData match {
@@ -234,14 +228,14 @@ final case class HpModel(
 
     val lowerBoundary =
       if (canBeOutOfOperation)
-        Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+        Kilowatts(0d)
       else
-        updatedState.activePower.to(StandardUnits.ACTIVE_POWER_IN)
+        updatedState.activePower
     val upperBoundary =
       if (canOperate)
-        sRated.multiply(cosPhiRated).to(StandardUnits.ACTIVE_POWER_IN)
+        sRated * cosPhiRated
       else
-        Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+        Kilowatts(0d)
 
     ProvideMinMaxFlexOptions(
       uuid,
@@ -271,11 +265,10 @@ final case class HpModel(
   override def handleControlledPowerChange(
       data: HpRelevantData,
       lastState: HpState,
-      setPower: ComparableQuantity[Power]
+      setPower: squants.Power
   ): (HpState, FlexChangeIndicator) = {
     /* If the setpoint value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
-    val turnOn =
-      setPower.isGreaterThan(sRated.multiply(cosPhiRated).multiply(0.5))
+    val turnOn = setPower > (sRated * cosPhiRated * 0.5)
     val updatedState = calcState(lastState, data, turnOn)
 
     (
@@ -315,9 +308,19 @@ object HpModel {
       operationInterval,
       scaling,
       qControl,
-      inputModel.getType.getsRated(),
+      Kilowatts(
+        inputModel.getType.getsRated
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
       inputModel.getType.getCosPhiRated,
-      inputModel.getType.getpThermal(),
+      Kilowatts(
+        inputModel.getType.getpThermal
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
       thermalGrid
     )
 
@@ -348,9 +351,9 @@ object HpModel {
   final case class HpState(
       isRunning: Boolean,
       lastTimeTick: Long,
-      ambientTemperature: ComparableQuantity[Temperature],
-      activePower: ComparableQuantity[Power],
-      qDot: ComparableQuantity[Power],
+      ambientTemperature: squants.Temperature,
+      activePower: squants.Power,
+      qDot: squants.Power,
       thermalGridState: ThermalGridState,
       maybeThermalThreshold: Option[ThermalThreshold]
   ) extends ModelState
@@ -368,7 +371,7 @@ object HpModel {
     */
   final case class HpRelevantData(
       currentTimeTick: Long,
-      ambientTemperature: ComparableQuantity[Temperature]
+      ambientTemperature: squants.Temperature
   ) extends CalcRelevantData
 
   /** Internal method to construct a new [[HpModel]] based on a provided
@@ -397,9 +400,19 @@ object HpModel {
       operationInterval,
       scalingFactor = 1.0,
       qControl,
-      hpInput.getType.getsRated,
+      Kilowatts(
+        hpInput.getType.getsRated
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
       hpInput.getType.getCosPhiRated,
-      hpInput.getType.getpThermal,
+      Kilowatts(
+        hpInput.getType.getpThermal
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
       thermalGrid
     )
 

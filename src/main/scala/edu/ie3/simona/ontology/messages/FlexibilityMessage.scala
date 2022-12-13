@@ -7,10 +7,8 @@
 package edu.ie3.simona.ontology.messages
 
 import edu.ie3.simona.ontology.trigger.Trigger
-import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
-import javax.measure.quantity.Power
 
 // TODO adapt scaladoc
 sealed trait FlexibilityMessage
@@ -32,7 +30,7 @@ object FlexibilityMessage {
   object ProvideFlexOptions {
     def noFlexOption(
         uuid: UUID,
-        power: ComparableQuantity[Power]
+        power: squants.Power
     ): ProvideMinMaxFlexOptions =
       ProvideMinMaxFlexOptions(uuid, power, power, power)
   }
@@ -57,9 +55,9 @@ object FlexibilityMessage {
     */
   final case class ProvideMinMaxFlexOptions(
       override val modelUuid: UUID,
-      referencePower: ComparableQuantity[Power],
-      minPower: ComparableQuantity[Power],
-      maxPower: ComparableQuantity[Power]
+      referencePower: squants.Power,
+      minPower: squants.Power,
+      maxPower: squants.Power
   ) extends ProvideFlexOptions
 
   /** Message sent by [[edu.ie3.simona.agent.participant.em.EmAgent]] that
@@ -71,7 +69,7 @@ object FlexibilityMessage {
     */
   final case class IssuePowerCtrl(
       tick: Long,
-      setPower: ComparableQuantity[Power]
+      setPower: squants.Power
   ) extends IssueFlexControl
 
   /** Message sent by [[edu.ie3.simona.agent.participant.em.EmAgent]] indicating

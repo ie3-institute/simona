@@ -48,12 +48,14 @@ import edu.ie3.simona.model.participant.{
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherService.FALLBACK_WEATHER_STEM_DISTANCE
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.PowerSystemUnits.PU
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT_PER_SQUAREMETRE, PU}
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.ReactivePower
+import squants.Each
+import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
@@ -147,9 +149,13 @@ protected trait PvAgentFundamentals
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution,
-        inputModel.electricalInputModel.getNode
-          .getvTarget()
-          .to(PU)
+        Each(
+          inputModel.electricalInputModel.getNode
+            .getvTarget()
+            .to(PU)
+            .getValue
+            .doubleValue
+        )
       ),
       ValueStore(resolution),
       ValueStore(resolution),
@@ -233,8 +239,12 @@ protected trait PvAgentFundamentals
     PvRelevantData(
       dateTime,
       tickInterval,
-      weatherData.diffIrr,
-      weatherData.dirIrr
+      Kilowatts(
+        weatherData.diffIrr.to(KILOWATT_PER_SQUAREMETRE).getValue.doubleValue
+      ),
+      Kilowatts(
+        weatherData.dirIrr.to(KILOWATT_PER_SQUAREMETRE).getValue.doubleValue
+      )
     )
   }
 
@@ -252,7 +262,7 @@ protected trait PvAgentFundamentals
     * @return
     *   Updated model state, a result model and a [[FlexChangeIndicator]]
     */
-  def handleControlledPowerChange(
+  override def handleControlledPowerChange(
       tick: Long,
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
@@ -262,7 +272,7 @@ protected trait PvAgentFundamentals
       ],
       data: PvRelevantData,
       lastState: ConstantState.type,
-      setPower: ComparableQuantity[Power]
+      setPower: squants.Power
   ): (ConstantState.type, ApparentPower, FlexChangeIndicator) = {
     /* Calculate result */
     val voltage = getAndCheckNodalVoltage(baseStateData, tick)
@@ -292,7 +302,7 @@ protected trait PvAgentFundamentals
         PvModel
       ],
       ConstantState.type,
-      ComparableQuantity[Dimensionless]
+      squants.Dimensionless
   ) => ApparentPower =
     (_, _, _, _) =>
       throw new InvalidRequestException(
@@ -373,7 +383,7 @@ protected trait PvAgentFundamentals
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        squants.Power => ReactivePower
       ] = None
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
@@ -403,8 +413,8 @@ protected trait PvAgentFundamentals
     new PvResult(
       dateTime,
       uuid,
-      result.p,
-      result.q
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
     )
 
   /** Update the last known model state with the given external, relevant data
@@ -427,7 +437,7 @@ protected trait PvAgentFundamentals
       tick: Long,
       modelState: ModelState.ConstantState.type,
       calcRelevantData: PvRelevantData,
-      nodalVoltage: ComparableQuantity[Dimensionless],
+      nodalVoltage: squants.Dimensionless,
       model: PvModel
   ): ModelState.ConstantState.type = modelState
 }

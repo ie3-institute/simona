@@ -8,10 +8,7 @@ package edu.ie3.simona.model.participant.em
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
-import tech.units.indriya.ComparableQuantity
-
-import javax.measure.quantity.Power
+import squants.energy.Kilowatts
 
 // TODO provide test
 object EmAggregateSimpleSum extends EmAggregateFlex {
@@ -20,22 +17,18 @@ object EmAggregateSimpleSum extends EmAggregateFlex {
       flexOptions: Iterable[
         (_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)
       ]
-  ): (
-      ComparableQuantity[Power],
-      ComparableQuantity[Power],
-      ComparableQuantity[Power]
-  ) = {
+  ): (squants.Power, squants.Power, squants.Power) = {
     flexOptions.foldLeft(
-      (zeroKW, zeroKW, zeroKW)
+      (Kilowatts(0d), Kilowatts(0d), Kilowatts(0d))
     ) {
       case (
             (sumRef, sumMin, sumMax),
             (_, ProvideMinMaxFlexOptions(_, addRef, addMin, addMax))
           ) =>
         (
-          sumRef.add(addRef),
-          sumMin.add(addMin),
-          sumMax.add(addMax)
+          sumRef + addRef,
+          sumMin + addMin,
+          sumMax + addMax
         )
     }
   }

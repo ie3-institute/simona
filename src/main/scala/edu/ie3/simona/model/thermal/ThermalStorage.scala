@@ -6,16 +6,14 @@
 
 package edu.ie3.simona.model.thermal
 
-import java.util.UUID
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.DefaultQuantities
+import squants.Seconds
+import squants.energy.KilowattHours
 
-import javax.measure.quantity.{Energy, Power}
-import tech.units.indriya.ComparableQuantity
+import java.util.UUID
 
 /** Thermal storage model.
   *
@@ -42,39 +40,37 @@ abstract class ThermalStorage(
     operatorInput: OperatorInput,
     operationTime: OperationTime,
     bus: ThermalBusInput,
-    minEnergyThreshold: ComparableQuantity[Energy],
-    maxEnergyThreshold: ComparableQuantity[Energy],
-    chargingPower: ComparableQuantity[Power]
+    minEnergyThreshold: squants.Energy,
+    maxEnergyThreshold: squants.Energy,
+    chargingPower: squants.Power
 ) {
-  protected val zeroEnergy: ComparableQuantity[Energy] =
-    DefaultQuantities.zeroKWH
+  protected val zeroEnergy: squants.Energy =
+    KilowattHours(0d)
 
   /** In order to avoid faulty flexibility options, we want to avoid offering
     * charging/discharging that could last less than one second.
     */
-  private val toleranceMargin = chargingPower
-    .multiply(1d.asSecond)
-    .asType(classOf[Energy])
+  private val toleranceMargin = chargingPower * Seconds(1d)
 
   def getUuid: UUID = uuid
 
-  def getMinEnergyThreshold: ComparableQuantity[Energy] = minEnergyThreshold
+  def getMinEnergyThreshold: squants.Energy = minEnergyThreshold
 
-  def getMaxEnergyThreshold: ComparableQuantity[Energy] = maxEnergyThreshold
+  def getMaxEnergyThreshold: squants.Energy = maxEnergyThreshold
 
-  def getChargingPower: ComparableQuantity[Power] = chargingPower
+  def getChargingPower: squants.Power = chargingPower
 
   def startingState: ThermalStorageState
 
-  def isFull(energy: ComparableQuantity[Energy]): Boolean =
-    energy.isGreaterThan(maxEnergyThreshold.subtract(toleranceMargin))
+  def isFull(energy: squants.Energy): Boolean =
+    energy > (maxEnergyThreshold - toleranceMargin)
 
-  def isEmpty(energy: ComparableQuantity[Energy]): Boolean =
-    energy.isLessThan(minEnergyThreshold.add(toleranceMargin))
+  def isEmpty(energy: squants.Energy): Boolean =
+    energy < (minEnergyThreshold + toleranceMargin)
 
   def updateState(
       tick: Long,
-      qDot: ComparableQuantity[Power],
+      qDot: squants.Power,
       lastState: ThermalStorageState
   ): (ThermalStorageState, Option[ThermalThreshold])
 }
@@ -82,8 +78,8 @@ abstract class ThermalStorage(
 object ThermalStorage {
   final case class ThermalStorageState(
       tick: Long,
-      storedEnergy: ComparableQuantity[Energy],
-      qDot: ComparableQuantity[Power]
+      storedEnergy: squants.Energy,
+      qDot: squants.Power
   )
 
   object ThermalStorageThreshold {

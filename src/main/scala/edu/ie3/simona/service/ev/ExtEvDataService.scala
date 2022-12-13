@@ -13,6 +13,7 @@ import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
+import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.RequestFlexOptions
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
@@ -55,7 +56,7 @@ object ExtEvDataService {
       extEvMessage: Option[EvDataMessageFromExt] = None,
       freeLots: Map[UUID, Option[Int]] = Map.empty,
       currentPrices: Map[UUID, Option[Double]] = Map.empty,
-      departingEvResponses: Map[UUID, Option[Seq[EvModel]]] = Map.empty
+      departingEvResponses: Map[UUID, Option[Seq[EvModelWrapper]]] = Map.empty
   ) extends ServiceBaseStateData
 
   final case class InitExtEvData(
@@ -291,7 +292,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
         }
       }
 
-    val departingEvResponses: Map[UUID, Option[Seq[EvModel]]] =
+    val departingEvResponses: Map[UUID, Option[Seq[EvModelWrapper]]] =
       evcsWithDepartures.map { case (evcs, _, _) =>
         evcs -> None
       }.toMap
@@ -328,7 +329,9 @@ class ExtEvDataService(override val scheduler: ActorRef)
           case Some((evcsActor, scheduleTriggerFunc, _)) =>
             evcsActor ! ProvideEvDataMessage(
               tick,
-              ArrivingEvsData(arrivingEvs.asScala.toSeq)
+              ArrivingEvsData(
+                arrivingEvs.asScala.map(EvModelWrapper.apply).toSeq
+              )
             )
 
             // schedule activation of participant
@@ -380,7 +383,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
           val departingEvs = updatedResponses.values.flatten.flatten
 
           serviceStateData.extEvData.queueExtResponseMsg(
-            new ProvideDepartingEvs(departingEvs.toList.asJava)
+            new ProvideDepartingEvs(departingEvs.map(_.unwrap()).toList.asJava)
           )
 
           serviceStateData.copy(

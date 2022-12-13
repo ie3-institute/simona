@@ -55,12 +55,13 @@ import edu.ie3.simona.model.participant.{FlexChangeIndicator, ModelState}
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits.PU
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.scala.quantities.ReactivePower
+import squants.Each
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
@@ -176,9 +177,13 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution,
-        inputModel.electricalInputModel.getNode
-          .getvTarget()
-          .to(PU)
+        Each(
+          inputModel.electricalInputModel.getNode
+            .getvTarget()
+            .to(PU)
+            .getValue
+            .doubleValue
+        )
       ),
       ValueStore(resolution),
       ValueStore(resolution),
@@ -244,7 +249,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       ],
       data: LD,
       lastState: ConstantState.type,
-      setPower: ComparableQuantity[Power]
+      setPower: squants.Power
   ): (ConstantState.type, ApparentPower, FlexChangeIndicator) = {
     /* Calculate result */
     val voltage = getAndCheckNodalVoltage(baseStateData, tick)
@@ -315,7 +320,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        squants.Power => ReactivePower
       ] = None
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
@@ -345,8 +350,8 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     new LoadResult(
       dateTime,
       uuid,
-      result.p,
-      result.q
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
     )
 }
 
@@ -392,7 +397,7 @@ object LoadAgentFundamentals {
           FixedLoadModel
         ],
         ConstantState.type,
-        ComparableQuantity[Dimensionless]
+        squants.Dimensionless
     ) => ApparentPower = (
         tick: Long,
         baseStateData: ParticipantModelBaseStateData[
@@ -402,7 +407,7 @@ object LoadAgentFundamentals {
           FixedLoadModel
         ],
         ConstantState,
-        voltage: ComparableQuantity[Dimensionless]
+        voltage: squants.Dimensionless
     ) =>
       baseStateData.model.calculatePower(
         tick,
@@ -431,7 +436,7 @@ object LoadAgentFundamentals {
         tick: Long,
         modelState: ModelState.ConstantState.type,
         calcRelevantData: FixedLoadRelevantData.type,
-        nodalVoltage: ComparableQuantity[Dimensionless],
+        nodalVoltage: squants.Dimensionless,
         model: FixedLoadModel
     ): ModelState.ConstantState.type = modelState
   }
@@ -479,7 +484,7 @@ object LoadAgentFundamentals {
           ProfileLoadModel
         ],
         ConstantState.type,
-        ComparableQuantity[Dimensionless]
+        squants.Dimensionless
     ) => ApparentPower = (tick, baseStateData, _, voltage) => {
       val profileRelevantData =
         createCalcRelevantData(baseStateData, tick)
@@ -512,7 +517,7 @@ object LoadAgentFundamentals {
         tick: Long,
         modelState: ModelState.ConstantState.type,
         calcRelevantData: ProfileRelevantData,
-        nodalVoltage: ComparableQuantity[Dimensionless],
+        nodalVoltage: squants.Dimensionless,
         model: ProfileLoadModel
     ): ModelState.ConstantState.type = modelState
   }
@@ -560,7 +565,7 @@ object LoadAgentFundamentals {
           RandomLoadModel
         ],
         ConstantState.type,
-        ComparableQuantity[Dimensionless]
+        squants.Dimensionless
     ) => ApparentPower = (tick, baseStateData, _, voltage) => {
       val profileRelevantData =
         createCalcRelevantData(baseStateData, tick)
@@ -593,7 +598,7 @@ object LoadAgentFundamentals {
         tick: Long,
         modelState: ModelState.ConstantState.type,
         calcRelevantData: RandomRelevantData,
-        nodalVoltage: ComparableQuantity[Dimensionless],
+        nodalVoltage: squants.Dimensionless,
         model: RandomLoadModel
     ): ModelState.ConstantState.type = modelState
   }

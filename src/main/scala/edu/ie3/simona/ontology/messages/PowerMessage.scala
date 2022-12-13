@@ -7,10 +7,9 @@
 package edu.ie3.simona.ontology.messages
 
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
+import edu.ie3.util.scala.quantities.ReactivePower
 
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
-import tech.units.indriya.ComparableQuantity
 
 sealed trait PowerMessage
 
@@ -23,9 +22,9 @@ object PowerMessage {
   sealed trait PowerResponseMessage extends PowerMessage
 
   sealed trait ProvidePowerMessage extends PowerResponseMessage {
-    def p: ComparableQuantity[Power]
+    def p: squants.Power
 
-    def q: ComparableQuantity[Power]
+    def q: ReactivePower
   }
 
   /** Request the power values for the requested tick from an AssetAgent and
@@ -40,8 +39,8 @@ object PowerMessage {
     */
   final case class RequestAssetPowerMessage(
       currentTick: Long,
-      eInPu: ComparableQuantity[Dimensionless],
-      fInPu: ComparableQuantity[Dimensionless]
+      eInPu: squants.Dimensionless,
+      fInPu: squants.Dimensionless
   ) extends PowerRequestMessage
 
   /** Provide power values as a reply to a [[RequestAssetPowerMessage]]
@@ -52,8 +51,8 @@ object PowerMessage {
     *   Unchanged reactive power
     */
   final case class AssetPowerChangedMessage(
-      override val p: ComparableQuantity[Power],
-      override val q: ComparableQuantity[Power]
+      override val p: squants.Power,
+      override val q: ReactivePower
   ) extends ProvidePowerMessage
 
   /** Provide values as a reply to a [[RequestAssetPowerMessage]]. In contrast
@@ -66,8 +65,8 @@ object PowerMessage {
     *   Reactive power from the previous request
     */
   final case class AssetPowerUnchangedMessage(
-      override val p: ComparableQuantity[Power],
-      override val q: ComparableQuantity[Power]
+      override val p: squants.Power,
+      override val q: ReactivePower
   ) extends ProvidePowerMessage
 
   /** Request complex power at the nodes that the inferior sub grid shares with
@@ -104,8 +103,8 @@ object PowerMessage {
       */
     final case class ExchangePower(
         nodeUuid: UUID,
-        override val p: ComparableQuantity[Power],
-        override val q: ComparableQuantity[Power]
+        override val p: squants.Power,
+        override val q: ReactivePower
     ) extends ProvidePowerMessage
   }
 

@@ -46,13 +46,12 @@ import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.DefaultQuantities._
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.unit.Units
+import edu.ie3.util.scala.quantities.ReactivePower
+import squants.Each
+import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
@@ -121,9 +120,13 @@ trait StorageAgentFundamentals
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution,
-        inputModel.electricalInputModel.getNode
-          .getvTarget()
-          .to(PowerSystemUnits.PU)
+        Each(
+          inputModel.electricalInputModel.getNode
+            .getvTarget()
+            .to(PowerSystemUnits.PU)
+            .getValue
+            .doubleValue
+        )
       ),
       ValueStore(resolution),
       ValueStore(resolution),
@@ -157,8 +160,8 @@ trait StorageAgentFundamentals
         StorageModel
       ]
   ): StorageState = StorageState(
-    baseStateData.model.eStorage.multiply(baseStateData.model.initialSoc),
-    zeroKW,
+    baseStateData.model.eStorage * baseStateData.model.initialSoc,
+    Kilowatts(0d),
     SimonaConstants.INIT_SIM_TICK
   )
 
@@ -182,7 +185,7 @@ trait StorageAgentFundamentals
         StorageModel
       ],
       StorageState,
-      ComparableQuantity[Dimensionless]
+      squants.Dimensionless
   ) => ApparentPower =
     (_, _, _, _) =>
       throw new InvalidRequestException(
@@ -209,7 +212,7 @@ trait StorageAgentFundamentals
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        squants.Power => ReactivePower
       ]
   ): ApparentPower = ParticipantAgentFundamentals.averageApparentPower(
     tickToResults,
@@ -226,8 +229,8 @@ trait StorageAgentFundamentals
   ): SystemParticipantResult = new StorageResult(
     dateTime,
     uuid,
-    result.p,
-    result.q,
+    result.p.toMegawatts.asMegaWatt,
+    result.q.toMegavars.asMegaVar,
     (-1d).asPercent // dummy value
   )
 
@@ -273,16 +276,15 @@ trait StorageAgentFundamentals
         )
         .storedEnergy
 
-      val soc = storedEnergy
-        .divide(baseStateData.model.eStorage)
-        .asType(classOf[Dimensionless])
-        .to(Units.PERCENT)
+      val soc = Each(
+        storedEnergy / baseStateData.model.eStorage
+      ).toPercent.asPercent
 
       val storageResult = new StorageResult(
         dateTime,
         uuid,
-        result.p,
-        result.q,
+        result.p.toMegawatts.asMegaWatt,
+        result.q.toMegavars.asMegaVar,
         soc
       )
 
@@ -323,7 +325,7 @@ trait StorageAgentFundamentals
       ],
       data: StorageRelevantData,
       lastState: StorageState,
-      setPower: ComparableQuantity[Power]
+      setPower: squants.Power
   ): (StorageState, ApparentPower, FlexChangeIndicator) = {
     val (updatedState, flexChangeIndicator) =
       baseStateData.model.handleControlledPowerChange(data, lastState, setPower)
@@ -359,7 +361,7 @@ trait StorageAgentFundamentals
       tick: Long,
       modelState: StorageState,
       calcRelevantData: StorageRelevantData,
-      nodalVoltage: ComparableQuantity[Dimensionless],
+      nodalVoltage: squants.Dimensionless,
       model: StorageModel
   ): StorageState = ???
 

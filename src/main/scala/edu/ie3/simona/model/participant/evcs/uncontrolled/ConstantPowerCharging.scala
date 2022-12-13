@@ -6,15 +6,13 @@
 
 package edu.ie3.simona.model.participant.evcs.uncontrolled
 
-import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.participant.evcs.ChargingSchedule.Entry
-import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvcsModel}
-import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT, KILOWATTHOUR}
-import edu.ie3.util.quantities.QuantityUtils.RichQuantity
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.SECOND
-
-import javax.measure.quantity.{Energy, Power}
+import edu.ie3.simona.model.participant.evcs.{
+  ChargingSchedule,
+  EvModelWrapper,
+  EvcsModel
+}
+import squants.time.Seconds
 
 trait ConstantPowerCharging {
   this: EvcsModel =>
@@ -33,29 +31,23 @@ trait ConstantPowerCharging {
     */
   def chargeWithConstantPower(
       currentTick: Long,
-      evs: Set[EvModel]
-  ): Map[EvModel, Option[ChargingSchedule]] = evs.map { ev =>
-    ev -> Option.when(ev.getStoredEnergy.isLessThan(ev.getEStorage)) {
+      evs: Set[EvModelWrapper]
+  ): Map[EvModelWrapper, Option[ChargingSchedule]] = evs.map { ev =>
+    ev -> Option.when(ev.storedEnergy < ev.eStorage) {
       val maxChargingPower = getMaxAvailableChargingPower(ev)
-      val remainingParkingTime =
-        Quantities.getQuantity(ev.getDepartureTick - currentTick, SECOND)
+      val remainingParkingTime = Seconds(ev.departureTick - currentTick)
 
-      val requiredEnergyUntilFull =
-        ev.getEStorage.subtract(ev.getStoredEnergy)
-      val maxChargedEnergyUntilDeparture = maxChargingPower
-        .multiply(remainingParkingTime)
-        .asType(classOf[Energy])
+      val requiredEnergyUntilFull = ev.eStorage - ev.storedEnergy
+      val maxChargedEnergyUntilDeparture =
+        maxChargingPower * remainingParkingTime
       val actualChargedEnergy =
         requiredEnergyUntilFull.min(maxChargedEnergyUntilDeparture)
 
-      val chargingPower = actualChargedEnergy
-        .divide(remainingParkingTime)
-        .asType(classOf[Power])
-        .to(KILOWATT)
+      val chargingPower = actualChargedEnergy / remainingParkingTime
 
       ChargingSchedule(
         ev,
-        Seq(Entry(currentTick, ev.getDepartureTick, chargingPower))
+        Seq(Entry(currentTick, ev.departureTick, chargingPower))
       )
     }
   }.toMap

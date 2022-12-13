@@ -8,11 +8,7 @@ package edu.ie3.simona.model.participant.em
 
 import edu.ie3.datamodel.models.input.system.{PvInput, SystemParticipantInput}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.util.quantities.QuantityUtils.RichQuantity
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
-import tech.units.indriya.ComparableQuantity
-
-import javax.measure.quantity.Power
+import squants.energy.Kilowatts
 
 /** Aggregates flex reference power with the target of reaching 0kW, while
   * excluding positive PV potential from the calculation
@@ -23,30 +19,26 @@ object EmAggregateSelfOptExclPv extends EmAggregateFlex {
       flexOptions: Iterable[
         (_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)
       ]
-  ): (
-      ComparableQuantity[Power],
-      ComparableQuantity[Power],
-      ComparableQuantity[Power]
-  ) = {
+  ): (squants.Power, squants.Power, squants.Power) = {
     val (minSum, maxSum, maxExclPv) =
-      flexOptions.foldLeft((zeroKW, zeroKW, zeroKW)) {
+      flexOptions.foldLeft((Kilowatts(0d), Kilowatts(0d), Kilowatts(0d))) {
         case (
               (sumMin, sumMax, sumMaxExclPv),
               (spi, ProvideMinMaxFlexOptions(_, _, addMin, addMax))
             ) =>
           (
-            sumMin.add(addMin),
-            sumMax.add(addMax),
+            sumMin + addMin,
+            sumMax + addMax,
             spi match {
               case _: PvInput =>
-                sumMaxExclPv.add(addMin)
-              case _ => sumMaxExclPv.add(addMax)
+                sumMaxExclPv + addMin
+              case _ => sumMaxExclPv + addMax
             }
           )
       }
 
     // take the closest power possible to zero
-    val aggregateRef = minSum.max(maxExclPv.min(zeroKW))
+    val aggregateRef = minSum.max(maxExclPv.min(Kilowatts(0d)))
 
     (aggregateRef, minSum, maxSum)
   }

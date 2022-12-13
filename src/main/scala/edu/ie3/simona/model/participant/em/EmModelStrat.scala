@@ -26,8 +26,8 @@ trait EmModelStrat {
     */
   def determineDeviceControl(
       flexOptions: Seq[(_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)],
-      target: ComparableQuantity[Power]
-  ): Seq[(UUID, ComparableQuantity[Power])]
+      target: squants.Power
+  ): Seq[(UUID, squants.Power)]
 
   def adaptFlexOptions(
       spi: SystemParticipantInput,

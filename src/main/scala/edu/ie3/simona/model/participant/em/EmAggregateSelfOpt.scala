@@ -8,11 +8,7 @@ package edu.ie3.simona.model.participant.em
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.util.quantities.QuantityUtils.RichQuantity
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
-import tech.units.indriya.ComparableQuantity
-
-import javax.measure.quantity.Power
+import squants.energy.Kilowatts
 
 object EmAggregateSelfOpt extends EmAggregateFlex {
 
@@ -20,24 +16,21 @@ object EmAggregateSelfOpt extends EmAggregateFlex {
       flexOptions: Iterable[
         (_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)
       ]
-  ): (
-      ComparableQuantity[Power],
-      ComparableQuantity[Power],
-      ComparableQuantity[Power]
-  ) = {
-    val (minSum, maxSum) = flexOptions.foldLeft((zeroKW, zeroKW)) {
-      case (
-            (sumMin, sumMax),
-            (_, ProvideMinMaxFlexOptions(_, _, addMin, addMax))
-          ) =>
-        (
-          sumMin.add(addMin),
-          sumMax.add(addMax)
-        )
-    }
+  ): (squants.Power, squants.Power, squants.Power) = {
+    val (minSum, maxSum) =
+      flexOptions.foldLeft((Kilowatts(0d), Kilowatts(0d))) {
+        case (
+              (sumMin, sumMax),
+              (_, ProvideMinMaxFlexOptions(_, _, addMin, addMax))
+            ) =>
+          (
+            sumMin + addMin,
+            sumMax + addMax
+          )
+      }
 
     // take the closest power possible to zero
-    val aggregateRef = minSum.max(maxSum.min(zeroKW))
+    val aggregateRef = minSum.max(maxSum.min(Kilowatts(0d)))
 
     (aggregateRef, minSum, maxSum)
   }

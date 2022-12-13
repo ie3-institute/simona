@@ -13,17 +13,22 @@ import edu.ie3.datamodel.models.input.system.{
   StorageInput,
   SystemParticipantInput
 }
-import edu.ie3.simona.model.participant.em.EmModel.relativeTolerance
+import edu.ie3.simona.model.participant.em.EmModel.tolerance
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.util.quantities.QuantityUtils.RichQuantity
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
-import edu.ie3.util.quantities.{QuantityUtil => PsuQuantityUtil}
-import tech.units.indriya.ComparableQuantity
+import squants.energy.Kilowatts
 
 import java.util.UUID
-import javax.measure.quantity.Power
 
 final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
+
+  /** Only heat pumps, battery storages, charging stations and PVs (if enabled)
+    * are controlled by this strategy
+    */
+  // TODO configurable
+  private val controllableAssets: Seq[Class[_ <: SystemParticipantInput]] =
+    Seq(classOf[HpInput], classOf[StorageInput], classOf[EvcsInput]) ++ Option
+      .when(pvFlex)(Seq(classOf[PvInput]))
+      .getOrElse(Seq.empty)
 
   /** Determine the power of controllable devices by using flexibility according
     * to a prioritized list of device types. This means that e.g. flexibility of
@@ -40,8 +45,8 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
     */
   override def determineDeviceControl(
       flexOptions: Seq[(_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)],
-      target: ComparableQuantity[Power]
-  ): Seq[(UUID, ComparableQuantity[Power])] = {
+      target: squants.Power
+  ): Seq[(UUID, squants.Power)] = {
 
     val totalRefPower =
       flexOptions
@@ -49,11 +54,11 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
           refPower
         }
         .reduceOption { (power1, power2) =>
-          power1.add(power2)
+          power1 + power2
         }
         .getOrElse(throw new RuntimeException("No flexibilities provided"))
 
-    val targetDelta = totalRefPower.subtract(target)
+    val targetDelta = totalRefPower - target
 
     val evcsOpt = flexOptions.collectFirst { case flex @ (_: EvcsInput, _) =>
       flex
@@ -70,15 +75,9 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
       }
       .filter(_ => pvFlex) // only if enabled
 
-    if (
-      PsuQuantityUtil.isEquivalentAbs(
-        zeroKW,
-        targetDelta,
-        relativeTolerance
-      )
-    ) {
+    if (Kilowatts(0d).~=(targetDelta)(tolerance)) {
       Seq.empty
-    } else if (targetDelta.isLessThan(zeroKW)) {
+    } else if (targetDelta < Kilowatts(0d)) {
       // suggested power too low, try to store difference/increase load
 
       // TODO configurable
@@ -86,7 +85,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
         Seq(evcsOpt, storageOpt, heatPumpOpt, pvOpt).flatten
 
       orderedParticipants.foldLeft(
-        (Seq.empty[(UUID, ComparableQuantity[Power])], Option(targetDelta))
+        (Seq.empty[(UUID, squants.Power)], Option(targetDelta))
       ) {
         case (
               (issueCtrlMsgs, Some(remainingExcessPower)),
@@ -94,39 +93,27 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
             ) =>
           // potential for decreasing feed-in/increasing load (negative)
           val flexPotential =
-            flexOption.referencePower.subtract(flexOption.maxPower)
+            flexOption.referencePower - flexOption.maxPower
 
-          if (
-            PsuQuantityUtil.isEquivalentAbs(
-              zeroKW,
-              remainingExcessPower,
-              relativeTolerance
-            )
-          ) {
+          if (Kilowatts(0d).~=(remainingExcessPower)(tolerance)) {
             // we're already there (besides rounding error)
             (issueCtrlMsgs, None)
-          } else if (
-            PsuQuantityUtil.isEquivalentAbs(
-              zeroKW,
-              flexPotential,
-              relativeTolerance
-            )
-          ) {
+          } else if (Kilowatts(0d).~=(flexPotential)(tolerance)) {
             // device does not offer usable flex potential here
             (issueCtrlMsgs, Some(remainingExcessPower))
-          } else if (remainingExcessPower.isLessThan(flexPotential)) {
+          } else if (remainingExcessPower < flexPotential) {
             // we cannot cover the excess feed-in with just this flexibility,
             // thus use all of the available flexibility and continue
             (
               issueCtrlMsgs :+ (spi.getUuid, flexOption.maxPower),
-              Some(remainingExcessPower.subtract(flexPotential))
+              Some(remainingExcessPower - flexPotential)
             )
           } else {
 
             // this flexibility covers more than we need to reach zero excess,
             // thus we only use as much as we need
             val powerCtrl = flexOption.maxPower.min(
-              flexOption.referencePower.subtract(remainingExcessPower)
+              flexOption.referencePower - remainingExcessPower
             )
 
             (
@@ -148,7 +135,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
       val orderedParticipants = Seq(storageOpt, evcsOpt, heatPumpOpt).flatten
 
       orderedParticipants.foldLeft(
-        (Seq.empty[(UUID, ComparableQuantity[Power])], Option(targetDelta))
+        (Seq.empty[(UUID, squants.Power)], Option(targetDelta))
       ) {
         case (
               (issueCtrlMsgs, Some(remainingExcessPower)),
@@ -156,39 +143,27 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
             ) =>
           // potential for decreasing load/increasing feed-in
           val flexPotential =
-            flexOption.referencePower.subtract(flexOption.minPower)
+            flexOption.referencePower - flexOption.minPower
 
-          if (
-            PsuQuantityUtil.isEquivalentAbs(
-              zeroKW,
-              remainingExcessPower,
-              relativeTolerance
-            )
-          ) {
+          if (Kilowatts(0d).~=(remainingExcessPower)(tolerance)) {
             // we're already there (besides rounding error)
             (issueCtrlMsgs, None)
-          } else if (
-            PsuQuantityUtil.isEquivalentAbs(
-              zeroKW,
-              flexPotential,
-              relativeTolerance
-            )
-          ) {
+          } else if (Kilowatts(0d).~=(flexPotential)(tolerance)) {
             // device does not offer usable flex potential here
             (issueCtrlMsgs, Some(remainingExcessPower))
-          } else if (remainingExcessPower.isGreaterThan(flexPotential)) {
+          } else if (remainingExcessPower > flexPotential) {
             // we cannot cover the excess load with just this flexibility,
             // thus use all of the available flexibility and continue
             (
               issueCtrlMsgs :+ (spi.getUuid, flexOption.minPower),
-              Some(remainingExcessPower.subtract(flexPotential))
+              Some(remainingExcessPower - flexPotential)
             )
           } else {
 
             // this flexibility covers more than we need to reach zero excess,
             // thus we only use as much as we need
             val powerCtrl = flexOption.minPower.max(
-              flexOption.referencePower.subtract(remainingExcessPower)
+              flexOption.referencePower - remainingExcessPower
             )
 
             (
@@ -211,14 +186,6 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
       spi: SystemParticipantInput,
       flexOptions: ProvideMinMaxFlexOptions
   ): ProvideMinMaxFlexOptions = {
-    // only heat pumps, battery storages and charging
-    // stations are controlled by this strategy
-    // TODO configurable
-    val controllableAssets: Seq[Class[_ <: SystemParticipantInput]] =
-      Seq(classOf[HpInput], classOf[StorageInput], classOf[EvcsInput]) ++ Option
-        .when(pvFlex)(Seq(classOf[PvInput]))
-        .getOrElse(Seq.empty)
-
     if (controllableAssets.contains(spi.getClass))
       flexOptions
     else {

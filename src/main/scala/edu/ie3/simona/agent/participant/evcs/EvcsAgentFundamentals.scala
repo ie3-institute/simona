@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.participant.evcs
 
 import akka.actor.{ActorRef, FSM}
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.result.system.{
   EvcsResult,
@@ -25,9 +24,11 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexStateData,
   ParticipantModelBaseStateData
 }
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.participant.statedata.{
+  BaseStateData,
+  ParticipantStateData
+}
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
-import edu.ie3.simona.agent.participant.statedata.BaseStateData
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
@@ -39,11 +40,6 @@ import edu.ie3.simona.exceptions.agent.{
   InvalidRequestException
 }
 import edu.ie3.simona.model.participant.FlexChangeIndicator
-import edu.ie3.simona.ontology.messages.services.EvMessage.{
-  ArrivingEvsData,
-  DepartingEvsResponse,
-  FreeLotsResponse
-}
 import edu.ie3.simona.model.participant.evcs.EvcsModel
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
@@ -53,13 +49,16 @@ import edu.ie3.simona.ontology.messages.PowerMessage.AssetPowerChangedMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
-import edu.ie3.util.quantities.PowerSystemUnits.PU
+import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT, PU}
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.Megavars
+import squants.Each
+import squants.energy.Megawatts
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
+import javax.measure.quantity.Dimensionless
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
@@ -204,9 +203,13 @@ protected trait EvcsAgentFundamentals
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution, // FIXME probably need to increase this for grid oriented scheduling
-        inputModel.electricalInputModel.getNode
-          .getvTarget()
-          .to(PU)
+        Each(
+          inputModel.electricalInputModel.getNode
+            .getvTarget()
+            .to(PU)
+            .getValue
+            .doubleValue
+        )
       ),
       ValueStore(resolution),
       ValueStore(resolution),
@@ -295,7 +298,7 @@ protected trait EvcsAgentFundamentals
       ],
       data: EvcsRelevantData,
       lastState: EvcsState,
-      setPower: ComparableQuantity[Power]
+      setPower: squants.Power
   ): (EvcsState, ApparentPower, FlexChangeIndicator) = {
     /* Calculate the power */
     val voltage = getAndCheckNodalVoltage(baseStateData, tick)
@@ -325,7 +328,7 @@ protected trait EvcsAgentFundamentals
         EvcsModel
       ],
       EvcsState,
-      ComparableQuantity[Dimensionless]
+      squants.Dimensionless
   ) => ApparentPower =
     (_, _, _, _) =>
       throw new InvalidRequestException(
@@ -514,7 +517,7 @@ protected trait EvcsAgentFundamentals
     )
 
     val (departingEvs, stayingEvs) = updatedEvs.partition { ev =>
-      requestedDepartingEvs.contains(ev.getUuid)
+      requestedDepartingEvs.contains(ev.uuid)
     }
 
     // send back departing EVs
@@ -530,7 +533,7 @@ protected trait EvcsAgentFundamentals
       .map { case (_, voltage) =>
         voltage
       }
-      .getOrElse(Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE))
+      .getOrElse(Each(1d))
 
     /* Calculate evcs power for interval since last update, save for updating value store, and inform listeners */
     val updatedResultValueStore =
@@ -542,7 +545,7 @@ protected trait EvcsAgentFundamentals
       )
 
     val stayingSchedules = lastState.schedule.flatMap {
-      case (ev, maybeSchedule) if !requestedDepartingEvs.contains(ev.getUuid) =>
+      case (ev, maybeSchedule) if !requestedDepartingEvs.contains(ev.uuid) =>
         Some(
           ev -> maybeSchedule.map(scheduleContainer =>
             scheduleContainer.copy(schedule =
@@ -655,8 +658,8 @@ protected trait EvcsAgentFundamentals
       requestTick: Long,
       baseStateData: BaseStateData[ApparentPower],
       mostRecentRequest: Option[(Long, ApparentPower)],
-      nodalVoltage: ComparableQuantity[Dimensionless],
-      updatedVoltageValueStore: ValueStore[ComparableQuantity[Dimensionless]],
+      nodalVoltage: squants.Dimensionless,
+      updatedVoltageValueStore: ValueStore[squants.Dimensionless],
       alternativeResult: ApparentPower
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
     /* No fast reply possible --> Some calculations have to be made */
@@ -730,7 +733,7 @@ protected trait EvcsAgentFundamentals
                   voltage
                 }
                 .getOrElse(
-                  Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE)
+                  Each(1d)
                 )
 
               val updatedResultValueStore =
@@ -824,7 +827,7 @@ protected trait EvcsAgentFundamentals
                 voltage
               }
               .getOrElse(
-                Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE)
+                Each(1d)
               )
 
             val updatedResultValueStore =
@@ -866,7 +869,7 @@ protected trait EvcsAgentFundamentals
   private def determineResultsAnnounceUpdateValueStore(
       lastState: EvcsState,
       currentTick: Long,
-      voltage: ComparableQuantity[Dimensionless],
+      voltage: squants.Dimensionless,
       modelBaseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         EvcsRelevantData,
@@ -898,7 +901,10 @@ protected trait EvcsAgentFundamentals
         ValueStore.updateValueStore(
           resultValueStore,
           result.getTime.toTick(modelBaseStateData.startDate),
-          ApparentPower(result.getP, result.getQ)
+          ApparentPower(
+            Megawatts(result.getP.to(MEGAWATT).getValue.doubleValue),
+            Megavars(result.getQ.to(MEGAVAR).getValue.doubleValue)
+          )
         )
     }
   }
@@ -922,8 +928,8 @@ protected trait EvcsAgentFundamentals
     new EvcsResult(
       dateTime,
       uuid,
-      result.p,
-      result.q
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
     )
 
   /** Update the last known model state with the given external, relevant data
@@ -946,7 +952,7 @@ protected trait EvcsAgentFundamentals
       tick: Long,
       modelState: EvcsState,
       calcRelevantData: EvcsRelevantData,
-      nodalVoltage: ComparableQuantity[Dimensionless],
+      nodalVoltage: squants.Dimensionless,
       model: EvcsModel
   ): EvcsState = modelState
 }

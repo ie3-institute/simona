@@ -59,15 +59,16 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.PowerSystemUnits.PU
+import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT, PU}
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.io.FlexSignalFromExcel
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
-import tech.units.indriya.ComparableQuantity
+import squants.Each
+import squants.energy.{Kilowatts, Megawatts}
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
 import scala.collection.SortedSet
 import scala.compat.java8.OptionConverters.RichOptionalGeneric
 import scala.concurrent.duration.{Duration, DurationInt}
@@ -124,9 +125,7 @@ object EmAgent {
       additionalActivationTicks: SortedSet[Long],
       foreseenDataTicks: Map[ActorRef, Option[Long]],
       requestVoltageDeviationThreshold: Double,
-      voltageValueStore: ValueStore[
-        ComparableQuantity[Dimensionless]
-      ],
+      voltageValueStore: ValueStore[squants.Dimensionless],
       resultValueStore: ValueStore[ApparentPower],
       requestValueStore: ValueStore[ApparentPower],
       receivedSecondaryDataStore: ValueStore[Map[ActorRef, _ <: SecondaryData]],
@@ -149,8 +148,8 @@ object EmAgent {
   case class FlexTimeSeries(
       timeSeries: IndividualTimeSeries[PValue],
       resolutionHours: Int,
-      minValue: ComparableQuantity[Power],
-      maxValue: ComparableQuantity[Power],
+      minValue: squants.Power,
+      maxValue: squants.Power,
       threshold: Double
   )
 
@@ -251,13 +250,13 @@ class EmAgent(
           }
 
         val allValues =
-          timeSeries.getEntries.asScala.flatMap(_.getValue.getP.asScala)
-        val maybeMinValue = allValues.minByOption(
-          _.to(PowerSystemUnits.MEGAWATT).getValue.doubleValue
-        )
-        val maybeMaxValue = allValues.maxByOption(
-          _.to(PowerSystemUnits.MEGAWATT).getValue.doubleValue
-        )
+          timeSeries.getEntries.asScala.flatMap(
+            _.getValue.getP.asScala.map(p =>
+              Megawatts(p.to(PowerSystemUnits.MEGAWATT).getValue.doubleValue)
+            )
+          )
+        val maybeMinValue = allValues.minOption
+        val maybeMaxValue = allValues.maxOption
 
         val (minValue, maxValue) = maybeMinValue
           .zip(maybeMaxValue)
@@ -285,9 +284,13 @@ class EmAgent(
         requestVoltageDeviationThreshold,
         ValueStore.forVoltage(
           resolution,
-          inputModel.getNode
-            .getvTarget()
-            .to(PU)
+          Each(
+            inputModel.getNode
+              .getvTarget()
+              .to(PU)
+              .getValue
+              .doubleValue
+          )
         ),
         ValueStore(resolution),
         ValueStore(resolution),
@@ -755,6 +758,7 @@ class EmAgent(
                   .getValue
                   .getP
                   .asScala
+                  .map(p => Kilowatts(p.to(KILOWATT).getValue.doubleValue))
                   .getOrElse(
                     throw new RuntimeException(
                       s"No value set for $roundedDateTime"
@@ -784,46 +788,45 @@ class EmAgent(
                   val flexResult = new FlexOptionsResult(
                     tick.toDateTime(baseStateData.startDate),
                     baseStateData.modelUuid,
-                    refSum,
-                    minSum,
-                    maxSum
+                    refSum.toMegawatts.asMegaWatt,
+                    minSum.toMegawatts.asMegaWatt,
+                    maxSum.toMegawatts.asMegaWatt
                   )
 
                   notifyListener(FlexOptionsResultEvent(flexResult))
                 }
 
-                val combinedPower = flexSetPower.add(refSum)
+                val combinedPower = flexSetPower + refSum
 
                 val minThreshold =
-                  flexTimeSeries.minValue.multiply(flexTimeSeries.threshold)
+                  flexTimeSeries.minValue * flexTimeSeries.threshold
                 val maxThreshold =
-                  flexTimeSeries.maxValue.multiply(flexTimeSeries.threshold)
+                  flexTimeSeries.maxValue * flexTimeSeries.threshold
 
                 // if target power is below threshold, issue no control
                 if (
-                  combinedPower.isGreaterThanOrEqualTo(minThreshold)
-                  && combinedPower.isLessThanOrEqualTo(maxThreshold)
+                  combinedPower >= minThreshold && combinedPower <= maxThreshold
                 ) {
                   refSum
                 } else {
-                  if (combinedPower.isLessThan(minThreshold)) {
+                  if (combinedPower < minThreshold) {
                     // flex that is needed to reach threshold
-                    val neededFlex = minThreshold.subtract(combinedPower)
+                    val neededFlex = minThreshold - combinedPower
                     // as we undershoot the lower threshold we need to increase load / decrease generation
-                    val targetSetPoint = refSum.add(neededFlex)
-                    if (targetSetPoint.isGreaterThan(maxSum)) maxSum
+                    val targetSetPoint = refSum + neededFlex
+                    if (targetSetPoint > maxSum) maxSum
                     else targetSetPoint
                   } else {
                     // flex that is needed to reach threshold
-                    val neededFlex = maxThreshold.subtract(combinedPower)
+                    val neededFlex = maxThreshold - combinedPower
                     // as we overshoot the upper threshold we need to decrease load / increase generation
-                    val targetSetPoint = refSum.add(neededFlex)
-                    if (targetSetPoint.isLessThan(minSum)) minSum
+                    val targetSetPoint = refSum + neededFlex
+                    if (targetSetPoint < minSum) minSum
                     else targetSetPoint
                   }
                 }
 
-              case None => zeroKW
+              case None => Megawatts(0d)
             }
 
             determineAndSchedulePowerControl(
@@ -843,7 +846,7 @@ class EmAgent(
   private def determineAndSchedulePowerControl(
       baseStateData: EmModelBaseStateData,
       flexData: Iterable[(SystemParticipantInput, FlexCorrespondence, Long)],
-      targetPower: ComparableQuantity[Power] = zeroKW
+      targetPower: squants.Power = Kilowatts(0d)
   ): EmModelBaseStateData = {
     val tick = baseStateData.schedulerStateData.nowInTicks
 

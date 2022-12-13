@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant.em
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system._
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore.FlexCorrespondence
@@ -26,14 +25,13 @@ import edu.ie3.simona.model.participant.{
 }
 import edu.ie3.simona.ontology.messages.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.scala.quantities.Megavars
+import squants.energy.{Kilowatts, Megawatts}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
 
 final case class EmModel private (
     uuid: UUID,
@@ -48,37 +46,46 @@ final case class EmModel private (
       operationInterval,
       scalingFactor,
       qControl,
-      zeroKW, // FIXME dummy
+      Kilowatts(0d), // FIXME dummy
       0 // FIXME dummy
     ) {
 
   def determineDeviceControl(
       flexOptions: Seq[(_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)],
-      target: ComparableQuantity[Power]
-  ): Seq[(UUID, ComparableQuantity[Power])] =
+      target: squants.Power
+  ): Seq[(UUID, squants.Power)] =
     modelStrategy.determineDeviceControl(flexOptions, target)
 
   override def calculatePower(
       tick: Long,
-      voltage: ComparableQuantity[Dimensionless],
+      voltage: squants.Dimensionless,
       modelState: ConstantState.type,
       data: EmRelevantData
   ): ApparentPower =
     data.flexCorrespondences
       .map { correspondence =>
         correspondence.participantResult
-          .map(res => ApparentPower(res.getP, res.getQ))
+          .map(res =>
+            ApparentPower(
+              Megawatts(
+                res.getP.to(PowerSystemUnits.MEGAWATT).getValue.doubleValue
+              ),
+              Megavars(
+                res.getQ.to(PowerSystemUnits.MEGAVAR).getValue.doubleValue
+              )
+            )
+          )
           .getOrElse(
             throw new RuntimeException(s"No result received in $correspondence")
           )
       }
       .reduceOption { (power1, power2) =>
-        ApparentPower(power1.p.add(power2.p), power1.q.add(power2.q))
+        ApparentPower(power1.p + power2.p, power1.q + power2.q)
       }
       .map { power =>
         ApparentPower(
-          power.p.to(StandardUnits.ACTIVE_POWER_RESULT),
-          power.q.to(StandardUnits.REACTIVE_POWER_RESULT)
+          power.p,
+          power.q
         )
       }
       .getOrElse(zeroApparentPower)
@@ -86,7 +93,7 @@ final case class EmModel private (
   override protected def calculateActivePower(
       modelState: ConstantState.type,
       data: EmRelevantData
-  ): ComparableQuantity[Power] =
+  ): squants.Power =
     throw new NotImplementedError("Use calculatePower directly")
 
   override def determineFlexOptions(
@@ -98,18 +105,18 @@ final case class EmModel private (
   override def handleControlledPowerChange(
       data: EmRelevantData,
       lastState: ModelState.ConstantState.type,
-      setPower: ComparableQuantity[Power]
+      setPower: squants.Power
   ): (ModelState.ConstantState.type, FlexChangeIndicator) =
     throw new NotImplementedError("EmModel cannot be managed")
 }
 
 object EmModel {
 
-  val relativeTolerance: Double = 1e-6d
+  val tolerance: squants.Power = Kilowatts(1e-6d)
 
   private val zeroApparentPower = ApparentPower(
-    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
-    Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT)
+    Megawatts(0d),
+    Megavars(0d)
   )
 
   /** Class that holds all relevant data for Energy Management calculation

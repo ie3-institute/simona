@@ -6,12 +6,8 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-
-import javax.measure.quantity.{Dimensionless, Power}
+import squants.energy.Megawatts
 
 trait ApparentPowerAndHeatParticipant[
     CD <: CalcRelevantData,
@@ -20,7 +16,7 @@ trait ApparentPowerAndHeatParticipant[
   this: SystemParticipant[CD, ApparentPowerAndHeat, MS] =>
   override def calculatePower(
       tick: Long,
-      voltage: ComparableQuantity[Dimensionless],
+      voltage: squants.Dimensionless,
       modelState: MS,
       data: CD
   ): ApparentPowerAndHeat = {
@@ -28,11 +24,9 @@ trait ApparentPowerAndHeatParticipant[
       calculateApparentPower(tick, voltage, modelState, data)
     val heat =
       if (isInOperation(tick))
-        calculateHeat(tick, modelState, data).to(
-          StandardUnits.ACTIVE_POWER_RESULT
-        )
+        calculateHeat(tick, modelState, data)
       else
-        Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
+        Megawatts(0d)
 
     ApparentPowerAndHeat(apparentPower.p, apparentPower.q, heat)
   }
@@ -41,7 +35,7 @@ trait ApparentPowerAndHeatParticipant[
     * are understood as consumption and negative as production
     * @param tick
     *   Current instant in simulation time
-    * @param maybeModelState
+    * @param modelState
     *   Current state of the model
     * @param data
     *   Needed calculation relevant data
@@ -52,5 +46,5 @@ trait ApparentPowerAndHeatParticipant[
       tick: Long,
       modelState: MS,
       data: CD
-  ): ComparableQuantity[Power]
+  ): squants.Power
 }

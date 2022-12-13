@@ -16,15 +16,11 @@ import edu.ie3.simona.model.participant.load.LoadReference._
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
 import edu.ie3.simona.model.participant.load.{DayType, LoadModel, LoadReference}
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT, KILOWATTHOUR, PU}
 import edu.ie3.util.scala.OperationInterval
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.WATT
+import squants.energy.{KilowattHours, Kilowatts, Watts}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.util.Random
@@ -56,7 +52,7 @@ final case class RandomLoadModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: ComparableQuantity[Power],
+    sRated: squants.Power,
     cosPhiRated: Double,
     reference: LoadReference
 ) extends LoadModel[RandomRelevantData](
@@ -71,10 +67,7 @@ final case class RandomLoadModel(
 
   private lazy val energyReferenceScalingFactor = reference match {
     case EnergyConsumption(energyConsumption) =>
-      energyConsumption
-        .divide(RandomLoadModel.randomProfileEnergyScaling)
-        .asType(classOf[Dimensionless])
-        .to(PU)
+      energyConsumption / RandomLoadModel.randomProfileEnergyScaling
     case _ =>
       throw new IllegalArgumentException(
         s"Applying energy reference scaling factor for reference mode '$reference' is not supported!"
@@ -98,7 +91,7 @@ final case class RandomLoadModel(
   override protected def calculateActivePower(
       modelState: ConstantState.type,
       data: RandomRelevantData
-  ): ComparableQuantity[Power] = {
+  ): squants.Power = {
     val gev = getGevDistribution(data.date)
 
     /* Get a next random power (in kW) */
@@ -106,24 +99,18 @@ final case class RandomLoadModel(
     if (randomPower < 0)
       calculateActivePower(modelState, data)
     else {
-      val profilePower = Quantities.getQuantity(randomPower, KILOWATT)
+      val profilePower = Kilowatts(randomPower)
       val activePower = reference match {
         case ActivePower(activePower) =>
           /* scale the reference active power based on the random profiles averagePower/maxPower ratio */
-          val referenceScalingFactor = profilePower
-            .divide(RandomLoadModel.randomMaxPower)
-            .asType(classOf[Dimensionless])
-            .to(PU)
-            .getValue
-            .doubleValue()
-          activePower.multiply(referenceScalingFactor)
+          val referenceScalingFactor =
+            profilePower / RandomLoadModel.randomMaxPower
+          activePower * referenceScalingFactor
         case _: EnergyConsumption =>
           /* scale the profiles random power based on the energyConsumption/profileEnergyScaling(=1000kWh/year) ratio  */
-          profilePower
-            .multiply(energyReferenceScalingFactor)
-            .asType(classOf[Power])
+          profilePower * energyReferenceScalingFactor
       }
-      activePower.multiply(scalingFactor)
+      activePower * scalingFactor
     }
   }
 
@@ -177,8 +164,7 @@ object RandomLoadModel {
     * annual energy consumption of approx. this value. It has been found by
     * 1,000 evaluations of the year 2019.
     */
-  private val randomProfileEnergyScaling =
-    Quantities.getQuantity(716.5416966513656, KILOWATTHOUR)
+  private val randomProfileEnergyScaling = KilowattHours(716.5416966513656)
 
   /** This is the 95 % quantile resulting from 10,000 evaluations of the year
     * 2019. It is only needed, when the load is meant to be scaled to rated
@@ -187,8 +173,7 @@ object RandomLoadModel {
     * @return
     *   Reference power to use for later model calculations
     */
-  private val randomMaxPower: ComparableQuantity[Power] =
-    Quantities.getQuantity(159d, WATT)
+  private val randomMaxPower: squants.Power = Watts(159d)
 
   def apply(
       input: LoadInput,

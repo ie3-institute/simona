@@ -7,7 +7,7 @@
 package edu.ie3.simona.ontology.messages.services
 
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
-import edu.ie3.simona.api.data.ev.model.EvModel
+import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
@@ -86,7 +86,7 @@ object EvMessage {
     *   EVs arriving at the charging station
     */
   final case class ArrivingEvsData(
-      arrivals: Seq[EvModel]
+      arrivals: Seq[EvModelWrapper]
   ) extends EvData {}
 
   trait EvResponseMessage extends EvMessage
@@ -98,7 +98,7 @@ object EvMessage {
 
   final case class DepartingEvsResponse(
       evcs: UUID,
-      evModels: Set[EvModel]
+      evModels: Set[EvModelWrapper]
   ) extends EvResponseMessage
 
   final case class CurrentPriceResponse(

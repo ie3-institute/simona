@@ -6,14 +6,12 @@
 
 package edu.ie3.simona.model.participant.evcs.uncontrolled
 
-import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.participant.evcs.ChargingSchedule.Entry
-import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvcsModel}
-import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT, KILOWATTHOUR}
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.SECOND
-
-import javax.measure.quantity.{Energy, Time}
+import edu.ie3.simona.model.participant.evcs.{
+  ChargingSchedule,
+  EvModelWrapper,
+  EvcsModel
+}
 
 trait MaximumPowerCharging {
   this: EvcsModel =>
@@ -32,35 +30,25 @@ trait MaximumPowerCharging {
     */
   def chargeWithMaximumPower(
       currentTick: Long,
-      evs: Set[EvModel]
-  ): Map[EvModel, Option[ChargingSchedule]] = evs.map { ev =>
-    ev -> Option.when(ev.getStoredEnergy.isLessThan(ev.getEStorage)) {
+      evs: Set[EvModelWrapper]
+  ): Map[EvModelWrapper, Option[ChargingSchedule]] = evs.map { ev =>
+    ev -> Option.when(ev.storedEnergy < ev.eStorage) {
       val chargingPower = getMaxAvailableChargingPower(ev)
       val remainingParkingTime =
-        Quantities.getQuantity(ev.getDepartureTick - currentTick, SECOND)
+        squants.Seconds(ev.departureTick - currentTick)
 
-      val possibleChargeableEnergyUntilDeparture = chargingPower
-        .multiply(remainingParkingTime)
-        .asType(classOf[Energy])
-        .to(KILOWATTHOUR)
+      val possibleChargeableEnergyUntilDeparture =
+        chargingPower * remainingParkingTime
 
       val endTick: Long =
         if (
-          ev.getStoredEnergy
-            .add(possibleChargeableEnergyUntilDeparture)
-            .isLessThanOrEqualTo(ev.getEStorage)
+          ev.storedEnergy + possibleChargeableEnergyUntilDeparture <= ev.eStorage
         ) {
           /* Charge with full power, if battery can accommodate the energy */
-          ev.getDepartureTick
+          ev.departureTick
         } else {
           /* Charge only until the car is full */
-          ev.getEStorage
-            .subtract(ev.getStoredEnergy)
-            .divide(chargingPower.to(KILOWATT))
-            .asType(classOf[Time])
-            .to(SECOND)
-            .getValue
-            .longValue + currentTick
+          ((ev.eStorage - ev.storedEnergy) / chargingPower).toSeconds.toLong + currentTick
         }
 
       ChargingSchedule(ev, Seq(Entry(currentTick, endTick, chargingPower)))

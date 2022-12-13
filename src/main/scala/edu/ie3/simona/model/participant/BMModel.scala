@@ -17,13 +17,14 @@ import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.quantities.interfaces.{DimensionlessRate, EnergyPrice}
 import edu.ie3.util.scala.OperationInterval
+import squants.energy.{Kilowatts, Megawatts}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power, Temperature}
+import javax.measure.quantity.{Power, Temperature}
 import scala.math._
 
 /** This class represents a single biomass plant
@@ -47,7 +48,7 @@ final case class BMModel(
       operationInterval,
       scalingFactor,
       qControl,
-      sRated,
+      Kilowatts(sRated.to(KILOWATT).getValue.doubleValue),
       cosPhi
     )
     with ApparentPowerParticipant[BMCalcRelevantData, BmState] {
@@ -58,12 +59,12 @@ final case class BMModel(
 
   override def calculatePower(
       tick: Long,
-      voltage: ComparableQuantity[Dimensionless],
+      voltage: squants.Dimensionless,
       modelState: BmState,
       data: BMCalcRelevantData
   ): ApparentPower = {
     val result = super.calculatePower(tick, voltage, modelState, data)
-    _lastPower = Some(result.p)
+    _lastPower = Some(result.p.toKilowatts.asKiloWatt)
 
     result
   }
@@ -78,7 +79,7 @@ final case class BMModel(
   override protected def calculateActivePower(
       modelState: BmState,
       data: BMCalcRelevantData
-  ): ComparableQuantity[Power] = {
+  ): squants.Power = {
     // Calculate heat demand //
     val (k1, k2) = (calculateK1(data.date), calculateK2(data.date))
     val pTh = calculatePTh(data.temperature, k1, k2)
@@ -93,7 +94,7 @@ final case class BMModel(
     val pEl = calculateElOutput(usage, eff)
 
     // Application of load gradient, return power output
-    applyLoadGradient(pEl)
+    Megawatts(applyLoadGradient(pEl).to(MEGAWATT).getValue.doubleValue)
   }
 
   /** Calculates first time dependent factor for heat demand
@@ -234,13 +235,13 @@ final case class BMModel(
   ): ProvideFlexOptions = {
     val power = calculateActivePower(lastState, data)
 
-    ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
+    ProvideMinMaxFlexOptions(uuid, power, power, Megawatts(0d))
   }
 
   override def handleControlledPowerChange(
       data: BMCalcRelevantData,
       lastState: BmState,
-      setPower: ComparableQuantity[Power]
+      setPower: squants.Power
   ): (BmState, FlexChangeIndicator) = (lastState, FlexChangeIndicator())
 }
 

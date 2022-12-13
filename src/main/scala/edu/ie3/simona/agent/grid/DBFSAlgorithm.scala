@@ -47,6 +47,9 @@ import edu.ie3.simona.ontology.messages.VoltageMessage.{
 import edu.ie3.simona.ontology.trigger.Trigger._
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.scala.quantities.Megavars
+import squants.Each
+import squants.energy.Megawatts
 import tech.units.indriya.quantity.Quantities
 
 import java.time.{Duration, ZonedDateTime}
@@ -344,7 +347,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                     }
                 }
                 .map { case (nodeUuid, (p, q)) =>
-                  ProvideGridPowerMessage.ExchangePower(nodeUuid, p, q)
+                  ProvideGridPowerMessage.ExchangePower(
+                    nodeUuid,
+                    Megawatts(p.to(MEGAWATT).getValue.doubleValue),
+                    Megavars(q.to(MEGAVAR).getValue.doubleValue)
+                  )
                 }
 
               /* Determine the remaining replies */
@@ -1109,8 +1116,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
                 (assetAgent ? RequestAssetPowerMessage(
                   currentTick,
-                  eInPu,
-                  fInPU
+                  Each(eInPu.to(PU).getValue.doubleValue),
+                  Each(fInPU.to(PU).getValue.doubleValue)
                 )).map {
                   case providedPowerValuesMessage: AssetPowerChangedMessage =>
                     (assetAgent, providedPowerValuesMessage)

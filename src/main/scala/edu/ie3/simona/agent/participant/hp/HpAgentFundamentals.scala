@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.participant.hp
 
 import akka.actor.{ActorRef, FSM}
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.result.system.{
   HpResult,
@@ -47,13 +46,15 @@ import edu.ie3.simona.model.participant.{FlexChangeIndicator, HpModel}
 import edu.ie3.simona.model.thermal.ThermalGrid
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.util.quantities.PowerSystemUnits.PU
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
+import squants.Each
+import squants.energy.Megawatts
+import squants.thermal.{Celsius, Kelvin}
+import tech.units.indriya.unit.Units.KELVIN
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
@@ -71,9 +72,9 @@ trait HpAgentFundamentals
   override protected val pdClassTag: ClassTag[ApparentPowerAndHeat] =
     classTag[ApparentPowerAndHeat]
   override val alternativeResult: ApparentPowerAndHeat = ApparentPowerAndHeat(
-    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
-    Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT),
-    Quantities.getQuantity(0d, StandardUnits.HEAT_DEMAND)
+    Megawatts(0d),
+    Megavars(0d),
+    Megawatts(0d)
   )
 
   /** Partial function, that is able to transfer
@@ -89,7 +90,7 @@ trait HpAgentFundamentals
         HpModel
       ],
       HpState,
-      ComparableQuantity[Dimensionless]
+      squants.Dimensionless
   ) => ApparentPowerAndHeat =
     (_, _, _, _) =>
       throw new InvalidRequestException(
@@ -110,9 +111,9 @@ trait HpAgentFundamentals
   ): HpState = HpState(
     isRunning = false,
     -1,
-    Quantities.getQuantity(10d, Units.CELSIUS), // TODO
-    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
-    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
+    Celsius(10d), // TODO
+    Megawatts(0d),
+    Megawatts(0d),
     ThermalGrid.startingState(thermalGrid),
     None
   )
@@ -141,7 +142,7 @@ trait HpAgentFundamentals
       ],
       data: HpRelevantData,
       lastState: HpState,
-      setPower: ComparableQuantity[Power]
+      setPower: squants.Power
   ): (HpState, ApparentPowerAndHeat, FlexChangeIndicator) = {
     /* Determine needed information */
     val voltage =
@@ -279,7 +280,7 @@ trait HpAgentFundamentals
       tick: Long,
       modelState: HpState,
       calcRelevantData: HpRelevantData,
-      nodalVoltage: ComparableQuantity[Dimensionless],
+      nodalVoltage: squants.Dimensionless,
       model: HpModel
   ): HpState = model.calculateNextState(modelState, calcRelevantData)
 
@@ -341,9 +342,13 @@ trait HpAgentFundamentals
           requestVoltageDeviationThreshold,
           ValueStore.forVoltage(
             resolution,
-            inputModel.electricalInputModel.getNode
-              .getvTarget()
-              .to(PU)
+            Each(
+              inputModel.electricalInputModel.getNode
+                .getvTarget()
+                .to(PU)
+                .getValue
+                .doubleValue
+            )
           ),
           ValueStore(resolution),
           ValueStore(resolution),
@@ -393,7 +398,7 @@ trait HpAgentFundamentals
 
     HpRelevantData(
       tick,
-      weatherData.temp
+      Kelvin(weatherData.temp.to(KELVIN).getValue.doubleValue)
     )
   }
 
@@ -448,7 +453,7 @@ trait HpAgentFundamentals
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        squants.Power => ReactivePower
       ]
   ): ApparentPowerAndHeat =
     ParticipantAgentFundamentals.averageApparentPowerAndHeat(
@@ -477,8 +482,8 @@ trait HpAgentFundamentals
   ): SystemParticipantResult = new HpResult(
     dateTime,
     uuid,
-    result.p,
-    result.q,
-    result.qDot
+    result.p.toMegawatts.asMegaWatt,
+    result.q.toMegavars.asMegaVar,
+    result.qDot.toMegawatts.asMegaWatt
   )
 }

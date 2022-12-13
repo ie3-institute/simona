@@ -8,9 +8,6 @@ package edu.ie3.simona.model.participant.em
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
-import tech.units.indriya.ComparableQuantity
-
-import javax.measure.quantity.Power
 
 /** Offers method for aggregating flex options from connected agents which will
   * then be provided to a superior EmAgent
@@ -28,9 +25,5 @@ trait EmAggregateFlex {
       flexOptions: Iterable[
         (_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)
       ]
-  ): (
-      ComparableQuantity[Power],
-      ComparableQuantity[Power],
-      ComparableQuantity[Power]
-  )
+  ): (squants.Power, squants.Power, squants.Power)
 }

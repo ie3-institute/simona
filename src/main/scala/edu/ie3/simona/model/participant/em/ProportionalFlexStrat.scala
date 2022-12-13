@@ -7,14 +7,11 @@
 package edu.ie3.simona.model.participant.em
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
-import edu.ie3.simona.model.participant.em.EmModel.relativeTolerance
+import edu.ie3.simona.model.participant.em.EmModel.tolerance
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.util.quantities.{QuantityUtil => PsuQuantityUtil}
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
-import tech.units.indriya.{AbstractUnit, ComparableQuantity}
+import squants.energy.Kilowatts
 
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
 
 object ProportionalFlexStrat extends EmModelStrat {
 
@@ -34,8 +31,8 @@ object ProportionalFlexStrat extends EmModelStrat {
       spiFlexOptions: Seq[
         (_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)
       ],
-      target: ComparableQuantity[Power]
-  ): Seq[(UUID, ComparableQuantity[Power])] = {
+      target: squants.Power
+  ): Seq[(UUID, squants.Power)] = {
 
     // SPIs are not needed here
     val flexOptions = spiFlexOptions
@@ -46,28 +43,22 @@ object ProportionalFlexStrat extends EmModelStrat {
     // sum up reference, minimum and maximum power of all connected devices
     val (totalRef, totalMin, totalMax) = flexOptions
       .foldLeft(
-        (zeroKW, zeroKW, zeroKW)
+        (Kilowatts(0d), Kilowatts(0d), Kilowatts(0d))
       ) {
         case (
               (sumRef, sumMin, sumMax),
               ProvideMinMaxFlexOptions(_, addRef, addMin, addMax)
             ) =>
           (
-            sumRef.add(addRef),
-            sumMin.add(addMin),
-            sumMax.add(addMax)
+            sumRef + addRef,
+            sumMin + addMin,
+            sumMax + addMax
           )
       }
 
-    if (
-      PsuQuantityUtil.isEquivalentAbs(
-        target,
-        totalRef,
-        relativeTolerance
-      )
-    ) {
+    if (target.~=(totalRef)(tolerance)) {
       Seq.empty
-    } else if (target.isLessThan(totalRef)) {
+    } else if (target < totalRef) {
       val reducedOptions = flexOptions.map {
         case ProvideMinMaxFlexOptions(uuid, refPower, minPower, _) =>
           (uuid, refPower, minPower)
@@ -98,25 +89,19 @@ object ProportionalFlexStrat extends EmModelStrat {
     *   Power set points for devices, if applicable
     */
   private def distributeFlexibility(
-      target: ComparableQuantity[Power],
-      totalRef: ComparableQuantity[Power],
-      totalLimit: ComparableQuantity[Power],
-      options: Seq[(UUID, ComparableQuantity[Power], ComparableQuantity[Power])]
-  ): Seq[(UUID, ComparableQuantity[Power])] = {
+      target: squants.Power,
+      totalRef: squants.Power,
+      totalLimit: squants.Power,
+      options: Seq[(UUID, squants.Power, squants.Power)]
+  ): Seq[(UUID, squants.Power)] = {
     // filter out options with ref == limit because they're useless here
     val filteredOptions = options.filterNot { case (_, refPower, limitPower) =>
-      PsuQuantityUtil.isEquivalentAbs(
-        refPower,
-        limitPower,
-        relativeTolerance
-      )
+      refPower.~=(limitPower)(tolerance)
     }
 
     if (
-      (target.isLessThan(totalRef) &&
-        target.isLessThanOrEqualTo(totalLimit)) ||
-      (target.isGreaterThan(totalRef) &&
-        target.isGreaterThanOrEqualTo(totalLimit))
+      (target < totalRef && target <= totalLimit) ||
+      (target > totalRef && target >= totalLimit)
     ) {
       // target is beyond limit, thus use limit powers for all applicable devices
       filteredOptions.map { case (uuid, _, limitPower) =>
@@ -124,23 +109,16 @@ object ProportionalFlexStrat extends EmModelStrat {
       }
     } else {
       // calculate share of flexibility that each device should carry
-      val normalizedLimit = totalLimit.subtract(totalRef)
-      val normalizedTarget = target.subtract(totalRef)
+      val normalizedLimit = totalLimit - totalRef
+      val normalizedTarget = target - totalRef
 
-      val flexShare = normalizedTarget
-        .divide(normalizedLimit)
-        .asType(classOf[Dimensionless])
-        .to(AbstractUnit.ONE)
-        .getValue
-        .doubleValue
+      val flexShare = normalizedTarget / normalizedLimit
 
       filteredOptions.map { case (uuid, refPower, limitPower) =>
-        val diffLimitRef = limitPower.subtract(refPower)
+        val diffLimitRef = limitPower - refPower
 
         // add the required share of flexibility to the reference power
-        val setPower = refPower.add(
-          diffLimitRef.multiply(flexShare)
-        )
+        val setPower = refPower + (diffLimitRef * flexShare)
 
         uuid -> setPower
       }

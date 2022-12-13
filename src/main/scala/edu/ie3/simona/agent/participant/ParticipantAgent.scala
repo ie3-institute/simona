@@ -64,10 +64,9 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   FinishGridSimulationTrigger,
   InitializeParticipantAgentTrigger
 }
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.scala.quantities.ReactivePower
 
 import java.time.ZonedDateTime
-import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.ClassTag
 
 /** Common properties to participant agents
@@ -113,7 +112,7 @@ abstract class ParticipantAgent[
       Long,
       ParticipantModelBaseStateData[PD, CD, MS, M],
       MS,
-      ComparableQuantity[Dimensionless]
+      squants.Dimensionless
   ) => PD
 
   protected val handleUnitialized: StateFunction = {
@@ -789,7 +788,7 @@ abstract class ParticipantAgent[
       lastModelState: MS,
       currentTick: Long,
       scheduler: ActorRef,
-      nodalVoltage: ComparableQuantity[Dimensionless]
+      nodalVoltage: squants.Dimensionless
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Abstractly calculate the power output of the participant utilising
@@ -866,12 +865,12 @@ abstract class ParticipantAgent[
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
       data: CD,
       lastState: MS,
-      setPower: ComparableQuantity[Power]
+      setPower: squants.Power
   ): (MS, PD, FlexChangeIndicator)
 
   protected def checkSetPower(
       flexOptions: ProvideMinMaxFlexOptions,
-      setPower: ComparableQuantity[Power]
+      setPower: squants.Power
   ): Unit
 
   /** Determining the reply to an
@@ -904,8 +903,8 @@ abstract class ParticipantAgent[
   def answerPowerRequestAndStayWithUpdatedStateData(
       baseStateData: BaseStateData[PD],
       requestTick: Long,
-      eInPu: ComparableQuantity[Dimensionless],
-      fInPu: ComparableQuantity[Dimensionless],
+      eInPu: squants.Dimensionless,
+      fInPu: squants.Dimensionless,
       alternativeResult: PD
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
@@ -920,8 +919,8 @@ abstract class ParticipantAgent[
   def announceAssetPowerRequestReply(
       baseStateData: BaseStateData[_],
       currentTick: Long,
-      activePower: ComparableQuantity[Power],
-      reactivePower: ComparableQuantity[Power]
+      activePower: squants.Power,
+      reactivePower: ReactivePower
   )(implicit outputConfig: NotifierConfig): Unit
 
   /** Abstract definition to clean up agent value stores after power flow
@@ -957,7 +956,7 @@ object ParticipantAgent {
   def getAndCheckNodalVoltage(
       baseStateData: BaseStateData[_ <: PrimaryData],
       currentTick: Long
-  ): ComparableQuantity[Dimensionless] = {
+  ): squants.Dimensionless = {
     baseStateData.voltageValueStore.last(currentTick) match {
       case Some((_, voltage)) => voltage
       case None =>

@@ -25,11 +25,13 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
 import edu.ie3.util.quantities.EmptyQuantity
 import edu.ie3.util.quantities.PowerSystemUnits.{
   KILOGRAM_PER_CUBIC_METRE,
+  KILOWATT,
   MEGAWATT
 }
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.quantities.interfaces.{Density, HeatCapacity}
 import edu.ie3.util.scala.OperationInterval
+import squants.energy.{Kilowatts, Megawatts}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.ProductUnit
@@ -78,7 +80,7 @@ final case class WecModel(
       operationInterval,
       scalingFactor,
       qControl,
-      sRated,
+      Kilowatts(sRated.to(KILOWATT).getValue.doubleValue),
       cosPhiRated
     )
     with ApparentPowerParticipant[WecRelevantData, ConstantState.type] {
@@ -102,21 +104,23 @@ final case class WecModel(
   override protected def calculateActivePower(
       modelState: ConstantState.type,
       wecData: WecRelevantData
-  ): ComparableQuantity[Power] = {
+  ): squants.Power = {
     val activePower = determinePower(wecData).to(MEGAWATT)
-    val pMax = sMax.multiply(cosPhiRated).to(MEGAWATT)
+    val pMax = sMax.toKilowatts.asKiloWatt.multiply(cosPhiRated).to(MEGAWATT)
 
-    (if (activePower.isGreaterThan(pMax)) {
-       logger.warn(
-         "The fed in active power is higher than the estimated maximum active power of this plant ({} > {}). " +
-           "Did you provide wrong weather input data?",
-         activePower,
+    Megawatts(
+      (if (activePower.isGreaterThan(pMax)) {
+         logger.warn(
+           "The fed in active power is higher than the estimated maximum active power of this plant ({} > {}). " +
+             "Did you provide wrong weather input data?",
+           activePower,
+           pMax
+         )
          pMax
-       )
-       pMax
-     } else {
-       activePower
-     }).multiply(-1)
+       } else {
+         activePower
+       }).multiply(-1).to(MEGAWATT).getValue.doubleValue
+    )
   }
 
   /** Determine the turbine output power with the air density ρ, the wind
@@ -196,13 +200,13 @@ final case class WecModel(
   ): ProvideFlexOptions = {
     val power = calculateActivePower(ConstantState, data)
 
-    ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
+    ProvideMinMaxFlexOptions(uuid, power, power, Megawatts(0d))
   }
 
   override def handleControlledPowerChange(
       data: WecRelevantData,
       lastState: ConstantState.type,
-      setPower: ComparableQuantity[Power]
+      setPower: squants.Power
   ): (ConstantState.type, FlexChangeIndicator) =
     (lastState, FlexChangeIndicator())
 }

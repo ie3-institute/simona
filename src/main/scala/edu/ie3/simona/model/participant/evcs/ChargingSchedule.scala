@@ -6,12 +6,9 @@
 
 package edu.ie3.simona.model.participant.evcs
 
-import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.participant.evcs.ChargingSchedule.Entry
-import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
-import javax.measure.quantity.Power
 import scala.collection.immutable.{SortedSet, TreeSet}
 
 /** Charging schedule for an EV for several time intervals
@@ -24,8 +21,8 @@ import scala.collection.immutable.{SortedSet, TreeSet}
 final case class ChargingSchedule(ev: UUID, schedule: SortedSet[Entry]) {}
 
 object ChargingSchedule {
-  def apply(ev: EvModel, entries: Seq[Entry]) =
-    new ChargingSchedule(ev.getUuid, TreeSet.from(entries))
+  def apply(ev: EvModelWrapper, entries: Seq[Entry]) =
+    new ChargingSchedule(ev.uuid, TreeSet.from(entries))
 
   /** Schedule entry specifying a time interval in which the EV should be
     * charged with some given power
@@ -40,7 +37,7 @@ object ChargingSchedule {
   final case class Entry(
       tickStart: Long,
       tickStop: Long,
-      chargingPower: ComparableQuantity[Power]
+      chargingPower: squants.Power
   ) extends Ordered[Entry] {
     override def compare(that: Entry): Int = {
       val startComp = tickStart.compare(that.tickStart)

@@ -46,11 +46,12 @@ import edu.ie3.simona.model.participant.{
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.quantities.PowerSystemUnits.PU
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.ReactivePower
+import squants.Each
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
@@ -151,9 +152,13 @@ protected trait FixedFeedInAgentFundamentals
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution,
-        inputModel.electricalInputModel.getNode
-          .getvTarget()
-          .to(PU)
+        Each(
+          inputModel.electricalInputModel.getNode
+            .getvTarget()
+            .to(PU)
+            .getValue
+            .doubleValue
+        )
       ),
       ValueStore(resolution),
       ValueStore(resolution),
@@ -220,7 +225,7 @@ protected trait FixedFeedInAgentFundamentals
       ],
       data: FixedRelevantData.type,
       lastState: ConstantState.type,
-      setPower: ComparableQuantity[Power]
+      setPower: squants.Power
   ): (ConstantState.type, ApparentPower, FlexChangeIndicator) = {
     /* Calculate result */
     val voltage = getAndCheckNodalVoltage(baseStateData, tick)
@@ -246,7 +251,7 @@ protected trait FixedFeedInAgentFundamentals
         FixedFeedInModel
       ],
       ConstantState.type,
-      ComparableQuantity[Dimensionless]
+      squants.Dimensionless
   ) => ApparentPower = (
       currentTick: Long,
       baseStateData: ParticipantModelBaseStateData[
@@ -256,7 +261,7 @@ protected trait FixedFeedInAgentFundamentals
         FixedFeedInModel
       ],
       ConstantState,
-      voltage: ComparableQuantity[Dimensionless]
+      voltage: squants.Dimensionless
   ) =>
     baseStateData.model match {
       case fixedModel: FixedFeedInModel =>
@@ -284,7 +289,7 @@ protected trait FixedFeedInAgentFundamentals
     *
     * @param baseStateData
     *   The base state data with collected secondary data
-    * @param maybeLastModelState
+    * @param lastModelState
     *   Optional last model state
     * @param currentTick
     *   Tick, the trigger belongs to
@@ -326,7 +331,7 @@ protected trait FixedFeedInAgentFundamentals
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        squants.Power => ReactivePower
       ] = None
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
@@ -356,8 +361,8 @@ protected trait FixedFeedInAgentFundamentals
     new FixedFeedInResult(
       dateTime,
       uuid,
-      result.p,
-      result.q
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
     )
 
   /** Update the last known model state with the given external, relevant data
@@ -380,7 +385,7 @@ protected trait FixedFeedInAgentFundamentals
       tick: Long,
       modelState: ModelState.ConstantState.type,
       calcRelevantData: CalcRelevantData.FixedRelevantData.type,
-      nodalVoltage: ComparableQuantity[Dimensionless],
+      nodalVoltage: squants.Dimensionless,
       model: FixedFeedInModel
   ): ModelState.ConstantState.type = modelState
 }
