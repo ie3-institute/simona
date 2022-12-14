@@ -1,0 +1,169 @@
+/*
+ * © 2022. TU Dortmund University,
+ * Institute of Energy Systems, Energy Efficiency and Energy Economics,
+ * Research group Distribution grid planning and operation
+ */
+
+package edu.ie3.simona.model.participant.em
+
+import edu.ie3.datamodel.models.input.system.{PvInput, SystemParticipantInput}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import org.scalatestplus.mockito.MockitoSugar
+
+import java.util.UUID
+
+class EmAggregateSelfOptExclPvSpec extends UnitSpec with MockitoSugar {
+
+  "The self-optimizing aggregating strategy without PV" should {
+
+    "pick 0kW if possible" in {
+      val flexOptions1 = ProvideMinMaxFlexOptions(
+        modelUuid = UUID.randomUUID(),
+        referencePower = 2d.asKiloWatt,
+        minPower = (-1d).asKiloWatt,
+        maxPower = 4d.asKiloWatt
+      )
+
+      val flexOptions2 = ProvideMinMaxFlexOptions(
+        modelUuid = UUID.randomUUID(),
+        referencePower = (-6d).asKiloWatt,
+        minPower = (-6d).asKiloWatt,
+        maxPower = 0d.asKiloWatt
+      )
+
+      val actualResult = EmAggregateSelfOptExclPv.aggregateFlexOptions(
+        Iterable(
+          (mock[SystemParticipantInput], flexOptions1),
+          (mock[SystemParticipantInput], flexOptions2)
+        )
+      )
+
+      actualResult shouldBe (
+        0d.asKiloWatt,
+        (-7d).asKiloWatt,
+        4d.asKiloWatt
+      )
+    }
+
+    "pick minSum if minSum > 0kW" in {
+      val flexOptions1 = ProvideMinMaxFlexOptions(
+        modelUuid = UUID.randomUUID(),
+        referencePower = 6d.asKiloWatt,
+        minPower = 4d.asKiloWatt,
+        maxPower = 12d.asKiloWatt
+      )
+
+      val flexOptions2 = ProvideMinMaxFlexOptions(
+        modelUuid = UUID.randomUUID(),
+        referencePower = 2d.asKiloWatt,
+        minPower = (-2d).asKiloWatt,
+        maxPower = 2d.asKiloWatt
+      )
+
+      val actualResult = EmAggregateSelfOptExclPv.aggregateFlexOptions(
+        Iterable(
+          (mock[SystemParticipantInput], flexOptions1),
+          (mock[SystemParticipantInput], flexOptions2)
+        )
+      )
+
+      actualResult shouldBe (
+        2d.asKiloWatt,
+        2d.asKiloWatt,
+        14d.asKiloWatt
+      )
+    }
+
+    "pick maxSum if maxSum < 0kW" in {
+      val flexOptions1 = ProvideMinMaxFlexOptions(
+        modelUuid = UUID.randomUUID(),
+        referencePower = (-1d).asKiloWatt,
+        minPower = (-10d).asKiloWatt,
+        maxPower = (-1d).asKiloWatt
+      )
+
+      val flexOptions2 = ProvideMinMaxFlexOptions(
+        modelUuid = UUID.randomUUID(),
+        referencePower = (-6d).asKiloWatt,
+        minPower = (-6d).asKiloWatt,
+        maxPower = 0d.asKiloWatt
+      )
+
+      val actualResult = EmAggregateSelfOptExclPv.aggregateFlexOptions(
+        Iterable(
+          (mock[SystemParticipantInput], flexOptions1),
+          (mock[SystemParticipantInput], flexOptions2)
+        )
+      )
+
+      actualResult shouldBe (
+        (-1d).asKiloWatt,
+        (-16d).asKiloWatt,
+        (-1d).asKiloWatt
+      )
+    }
+  }
+
+  "The self-optimizing aggregating strategy with PV" should {
+
+    "exclude PV max power when normally picking 0kW as target" in {
+      val flexOptions1 = ProvideMinMaxFlexOptions(
+        modelUuid = UUID.randomUUID(),
+        referencePower = 2d.asKiloWatt,
+        minPower = (-1d).asKiloWatt,
+        maxPower = 4d.asKiloWatt
+      )
+
+      val flexOptions2 = ProvideMinMaxFlexOptions(
+        modelUuid = UUID.randomUUID(),
+        referencePower = (-6d).asKiloWatt,
+        minPower = (-6d).asKiloWatt,
+        maxPower = 0d.asKiloWatt
+      )
+
+      val actualResult = EmAggregateSelfOptExclPv.aggregateFlexOptions(
+        Iterable(
+          (mock[SystemParticipantInput], flexOptions1),
+          (mock[PvInput], flexOptions2)
+        )
+      )
+
+      actualResult shouldBe (
+        (-2d).asKiloWatt,
+        (-7d).asKiloWatt,
+        4d.asKiloWatt
+      )
+    }
+
+    "exclude PV max power when normally picking maxSum as target" in {
+      val flexOptions1 = ProvideMinMaxFlexOptions(
+        modelUuid = UUID.randomUUID(),
+        referencePower = (-1d).asKiloWatt,
+        minPower = (-10d).asKiloWatt,
+        maxPower = (-1d).asKiloWatt
+      )
+
+      val flexOptions2 = ProvideMinMaxFlexOptions(
+        modelUuid = UUID.randomUUID(),
+        referencePower = (-6d).asKiloWatt,
+        minPower = (-6d).asKiloWatt,
+        maxPower = 0d.asKiloWatt
+      )
+
+      val actualResult = EmAggregateSelfOptExclPv.aggregateFlexOptions(
+        Iterable(
+          (mock[SystemParticipantInput], flexOptions1),
+          (mock[PvInput], flexOptions2)
+        )
+      )
+
+      actualResult shouldBe (
+        (-7d).asKiloWatt,
+        (-16d).asKiloWatt,
+        (-1d).asKiloWatt
+      )
+    }
+  }
+}
