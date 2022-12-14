@@ -41,7 +41,7 @@ import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.em.EmModel.EmRelevantData
 import edu.ie3.simona.model.participant.em.{
-  EmAggregateSelfOpt,
+  EmAggregateSelfOptExclPv,
   EmAggregateSimpleSum,
   EmModel,
   EmModelStrat
@@ -79,7 +79,7 @@ import scala.util.{Failure, Success}
 object EmAgent {
 
   // TODO config param
-  private val aggregateFlex = EmAggregateSelfOpt
+  private val aggregateFlex = EmAggregateSelfOptExclPv
 
   def props(
       scheduler: ActorRef,
@@ -705,7 +705,7 @@ class EmAgent(
             val (ref, min, max) =
               aggregateFlex.aggregateFlexOptions(
                 flexOptionsInput
-              ) // TODO aggregate flex options
+              )
 
             val flexMessage = ProvideMinMaxFlexOptions(
               baseStateData.modelUuid,
