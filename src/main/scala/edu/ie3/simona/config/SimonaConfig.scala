@@ -868,7 +868,8 @@ object SimonaConfig {
       override val calculateMissingReactivePowerWithModel: scala.Boolean,
       override val scaling: scala.Double,
       override val uuids: scala.List[java.lang.String],
-      initialSoc: scala.Double
+      initialSoc: scala.Double,
+      targetSoc: scala.Option[scala.Double]
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -883,6 +884,9 @@ object SimonaConfig {
       SimonaConfig.StorageRuntimeConfig(
         initialSoc =
           if (c.hasPathOrNull("initialSoc")) c.getDouble("initialSoc") else 0,
+        targetSoc =
+          if (c.hasPathOrNull("targetSoc")) Some(c.getDouble("targetSoc"))
+          else None,
         calculateMissingReactivePowerWithModel = $_reqBln(
           parentPath,
           c,

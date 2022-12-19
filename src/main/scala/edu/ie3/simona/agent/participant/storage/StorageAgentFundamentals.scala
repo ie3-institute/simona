@@ -145,7 +145,8 @@ trait StorageAgentFundamentals
     modelConfig.scaling,
     simulationStartDate,
     simulationEndDate,
-    modelConfig.initialSoc
+    modelConfig.initialSoc,
+    modelConfig.targetSoc
   )
 
   override protected def createInitialState(

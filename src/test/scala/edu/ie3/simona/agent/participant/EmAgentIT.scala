@@ -212,7 +212,8 @@ class EmAgentIT
                 calculateMissingReactivePowerWithModel = true,
                 scaling = 1d,
                 uuids = List.empty,
-                initialSoc = 0d
+                initialSoc = 0d,
+                targetSoc = None
               ),
               primaryServiceProxy.ref,
               None,
