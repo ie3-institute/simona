@@ -41,8 +41,7 @@ import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.em.EmModel.EmRelevantData
 import edu.ie3.simona.model.participant.em.{
-  EmAggregateSelfOptExclPv,
-  EmAggregateSimpleSum,
+  EmAggregateFlex,
   EmModel,
   EmModelStrat
 }
@@ -78,9 +77,6 @@ import scala.util.{Failure, Success}
 
 object EmAgent {
 
-  // TODO config param
-  private val aggregateFlex = EmAggregateSelfOptExclPv
-
   def props(
       scheduler: ActorRef,
       listener: Iterable[ActorRef]
@@ -113,7 +109,8 @@ object EmAgent {
         )
       ],
       maybeParentEmAgent: Option[ActorRef] = None,
-      maybeRootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm] = None
+      maybeRootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm] = None,
+      aggregateFlex: EmAggregateFlex
   ) extends InitializeStateData[ApparentPower]
 
   final case class EmModelBaseStateData(
@@ -138,7 +135,8 @@ object EmAgent {
       schedulerStateData: EmSchedulerStateData,
       stateDataStore: ValueStore[ConstantState.type],
       flexStateData: Option[FlexStateData],
-      flexTimeSeries: Option[FlexTimeSeries]
+      flexTimeSeries: Option[FlexTimeSeries],
+      aggregateFlex: EmAggregateFlex
   ) extends ModelBaseStateData[
         ApparentPower,
         EmRelevantData,
@@ -199,7 +197,8 @@ class EmAgent(
                 modelStrategy,
                 connectedAgents,
                 maybeParentEmAgent,
-                maybeRootEmConfig
+                maybeRootEmConfig,
+                aggregateFlex
               )
             ),
             triggerId,
@@ -312,7 +311,8 @@ class EmAgent(
         ),
         ValueStore(0),
         maybeParentEmAgent.map(FlexStateData(_, ValueStore(resolution))),
-        maybeFlexTimeseries
+        maybeFlexTimeseries,
+        aggregateFlex
       )
 
       val updatedBaseStateData = setActiveTickAndSendTriggers(
@@ -703,7 +703,7 @@ class EmAgent(
               }
 
             val (ref, min, max) =
-              aggregateFlex.aggregateFlexOptions(
+              baseStateData.aggregateFlex.aggregateFlexOptions(
                 flexOptionsInput
               )
 
@@ -774,7 +774,7 @@ class EmAgent(
 
                 // sum up ref power
                 val (refSum, minSum, maxSum) =
-                  EmAggregateSimpleSum.aggregateFlexOptions(
+                  baseStateData.aggregateFlex.aggregateFlexOptions(
                     flexOptionsInput
                   )
 

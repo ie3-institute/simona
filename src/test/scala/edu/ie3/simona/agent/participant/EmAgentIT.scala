@@ -34,7 +34,10 @@ import edu.ie3.simona.config.SimonaConfig.{
 }
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.model.participant.em.PrioritizedFlexStrat
+import edu.ie3.simona.model.participant.em.{
+  EmAggregateSelfOpt,
+  PrioritizedFlexStrat
+}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   ScheduleTriggerMessage,
@@ -252,7 +255,8 @@ class EmAgentIT
                 outputConfig = outputConfigOn,
                 primaryServiceProxy = primaryServiceProxy.ref,
                 connectedAgents = connectedAgents,
-                modelStrategy = PrioritizedFlexStrat(pvFlex = false)
+                modelStrategy = PrioritizedFlexStrat(pvFlex = false),
+                aggregateFlex = EmAggregateSelfOpt
               )
             ),
             initId,
@@ -658,7 +662,8 @@ class EmAgentIT
                 outputConfig = outputConfigOn,
                 primaryServiceProxy = primaryServiceProxy.ref,
                 connectedAgents = connectedAgents,
-                modelStrategy = PrioritizedFlexStrat(pvFlex = false)
+                modelStrategy = PrioritizedFlexStrat(pvFlex = false),
+                aggregateFlex = EmAggregateSelfOpt
               )
             ),
             initId,

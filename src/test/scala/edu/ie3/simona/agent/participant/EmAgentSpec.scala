@@ -16,7 +16,10 @@ import edu.ie3.simona.agent.participant.em.EmAgent.EmAgentInitializeStateData
 import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.model.participant.em.PrioritizedFlexStrat
+import edu.ie3.simona.model.participant.em.{
+  EmAggregateSelfOpt,
+  PrioritizedFlexStrat
+}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
@@ -116,7 +119,8 @@ class EmAgentSpec
               outputConfig = outputConfig,
               modelStrategy = PrioritizedFlexStrat(pvFlex = false),
               primaryServiceProxy = primaryServiceProxy.ref,
-              connectedAgents = connectedAgents
+              connectedAgents = connectedAgents,
+              aggregateFlex = EmAggregateSelfOpt
             )
           ),
           initId,
@@ -458,7 +462,8 @@ class EmAgentSpec
               outputConfig = outputConfig,
               modelStrategy = PrioritizedFlexStrat(pvFlex = false),
               primaryServiceProxy = primaryServiceProxy.ref,
-              connectedAgents = connectedAgents
+              connectedAgents = connectedAgents,
+              aggregateFlex = EmAggregateSelfOpt
             )
           ),
           initId,
@@ -834,7 +839,8 @@ class EmAgentSpec
               outputConfig = outputConfig,
               modelStrategy = PrioritizedFlexStrat(pvFlex = false),
               primaryServiceProxy = primaryServiceProxy.ref,
-              connectedAgents = connectedAgents
+              connectedAgents = connectedAgents,
+              aggregateFlex = EmAggregateSelfOpt
             )
           ),
           initId,
@@ -1216,7 +1222,8 @@ class EmAgentSpec
               primaryServiceProxy = primaryServiceProxy.ref,
               modelStrategy = PrioritizedFlexStrat(pvFlex = false),
               connectedAgents = connectedAgents,
-              maybeParentEmAgent = Some(parentEmAgent.ref) // em-controlled
+              maybeParentEmAgent = Some(parentEmAgent.ref), // em-controlled
+              aggregateFlex = EmAggregateSelfOpt
             )
           ),
           initId,

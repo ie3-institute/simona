@@ -44,6 +44,9 @@ import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.participant.em.{
+  EmAggregateSelfOpt,
+  EmAggregateSelfOptExclPv,
+  EmAggregateSimpleSum,
   PrioritizedFlexStrat,
   ProportionalFlexStrat
 }
@@ -258,7 +261,8 @@ class GridAgentController(
           calculateMissingReactivePowerWithModel = false,
           1d,
           List.empty,
-          pvFlex = false
+          pvFlex = false,
+          aggregateFlex = "SIMPLE_SUM"
         ),
         environmentRefs.primaryServiceProxy,
         environmentRefs.weather,
@@ -1033,6 +1037,12 @@ class GridAgentController(
       }
       .toSeq
 
+    val aggregateFlex = modelConfiguration.aggregateFlex match {
+      case "SELF_OPT_EXCL_PV" => EmAggregateSelfOptExclPv
+      case "SELF_OPT"         => EmAggregateSelfOpt
+      case "SIMPLE_SUM"       => EmAggregateSimpleSum
+    }
+
     (
       emAgentRef,
       EmAgentInitializeStateData(
@@ -1050,7 +1060,8 @@ class GridAgentController(
           .getOrElse(PrioritizedFlexStrat(modelConfiguration.pvFlex)),
         connectedAgents,
         emAgentHierarchy.headOption,
-        rootEmConfig
+        rootEmConfig,
+        aggregateFlex
       )
     )
   }
