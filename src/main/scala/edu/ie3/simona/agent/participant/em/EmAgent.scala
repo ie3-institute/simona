@@ -806,12 +806,19 @@ class EmAgent(
                 ) {
                   refSum
                 } else {
-                  if (combinedPower.isLessThan(minThreshold))
-                    // target value must exclude the residual power
-                    minThreshold.subtract(flexSetPower)
-                  else
-                    // target value must exclude the residual power
-                    maxThreshold.subtract(flexSetPower)
+                  if (combinedPower.isLessThan(minThreshold)) {
+                    // flex that is needed to reach threshold
+                    val neededFlex = minThreshold.subtract(combinedPower)
+                    // as we undershoot the lower threshold we need to increase load / decrease generation
+                    val targetSetPoint = refSum.add(neededFlex)
+                    if (targetSetPoint.isGreaterThan(maxSum)) maxSum else targetSetPoint
+                  } else {
+                    // flex that is needed to reach threshold
+                    val neededFlex = maxThreshold.subtract(combinedPower)
+                    // as we overshoot the upper threshold we need to decrease load / increase generation
+                    val targetSetPoint = refSum.add(neededFlex)
+                    if (targetSetPoint.isLessThan(minSum)) minSum else targetSetPoint
+                  }
                 }
 
               case None => zeroKW
@@ -894,6 +901,12 @@ class EmAgent(
             (uuid, flexCtrl)
           }
     }
+
+    if (baseStateData.modelUuid.toString == "15bdf719-68fd-47e2-8c33-f4fcb4322b00") {
+      issueCtrlMsgs.foreach{case (uuid, setpoint) =>
+        val actorRef = baseStateData.schedulerStateData.flexTrigger.uuidToActorRef(uuid)
+        log.info(s"Ctrl msg setpoint = $setpoint, actor ref = $actorRef")
+    }}
 
     val updatedScheduledStateData = issueCtrlMsgsComplete.foldLeft(
       baseStateData.schedulerStateData
