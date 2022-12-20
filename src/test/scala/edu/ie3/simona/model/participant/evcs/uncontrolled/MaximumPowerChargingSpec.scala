@@ -6,12 +6,13 @@
 
 package edu.ie3.simona.model.participant.evcs.uncontrolled
 
-import edu.ie3.simona.model.participant.evcs.ChargingSchedule
+import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvModelWrapper}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.simona.test.common.model.participant.EvcsTestData
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.scalatest.prop.TableDrivenPropertyChecks
+import squants.energy.Kilowatts
 
 import java.util.UUID
 
@@ -24,14 +25,16 @@ class MaximumPowerChargingSpec
     val evcsModel = evcsStandardModel
 
     "not charge evs if they are fully charged" in {
-      val ev = new MockEvModel(
-        UUID.randomUUID(),
-        "Test EV",
-        5.0.asKiloWatt,
-        10.0.asKiloWatt,
-        20.0.asKiloWattHour,
-        20.0.asKiloWattHour,
-        3600
+      val ev = EvModelWrapper(
+        new MockEvModel(
+          UUID.randomUUID(),
+          "Test EV",
+          5.0.asKiloWatt,
+          10.0.asKiloWatt,
+          20.0.asKiloWattHour,
+          20.0.asKiloWattHour,
+          3600
+        )
       )
 
       val actualSchedule = evcsModel.chargeWithMaximumPower(
@@ -60,14 +63,16 @@ class MaximumPowerChargingSpec
       )
 
       forAll(cases) { (stayingTicks, storedEnergy, expectedDuration) =>
-        val ev = new MockEvModel(
-          UUID.randomUUID(),
-          "Test EV",
-          5.0.asKiloWatt, // using AC charging here
-          10.0.asKiloWatt,
-          10.0.asKiloWattHour,
-          storedEnergy.asKiloWattHour,
-          offset + stayingTicks
+        val ev = EvModelWrapper(
+          new MockEvModel(
+            UUID.randomUUID(),
+            "Test EV",
+            5.0.asKiloWatt, // using AC charging here
+            10.0.asKiloWatt,
+            10.0.asKiloWattHour,
+            storedEnergy.asKiloWattHour,
+            offset + stayingTicks
+          )
         )
 
         val chargingMap = evcsModel.chargeWithMaximumPower(
@@ -83,7 +88,7 @@ class MaximumPowerChargingSpec
                 ChargingSchedule.Entry(
                   offset,
                   offset + expectedDuration,
-                  ev.getSRatedAC
+                  ev.sRatedAc
                 )
               )
             )
@@ -109,24 +114,28 @@ class MaximumPowerChargingSpec
       )
 
       forAll(cases) { (stayingTicks, storedEnergy, expectedDuration) =>
-        val givenEv = new MockEvModel(
-          UUID.randomUUID(),
-          "First EV",
-          5.0.asKiloWatt, // using AC charging here
-          10.0.asKiloWatt,
-          10.0.asKiloWattHour,
-          5.0.asKiloWattHour,
-          offset + 3600L
+        val givenEv = EvModelWrapper(
+          new MockEvModel(
+            UUID.randomUUID(),
+            "First EV",
+            5.0.asKiloWatt, // using AC charging here
+            10.0.asKiloWatt,
+            10.0.asKiloWattHour,
+            5.0.asKiloWattHour,
+            offset + 3600L
+          )
         )
 
-        val ev = new MockEvModel(
-          UUID.randomUUID(),
-          "Test EV",
-          5.0.asKiloWatt, // using AC charging here
-          10.0.asKiloWatt,
-          10.0.asKiloWattHour,
-          storedEnergy.asKiloWattHour,
-          offset + stayingTicks
+        val ev = EvModelWrapper(
+          new MockEvModel(
+            UUID.randomUUID(),
+            "Test EV",
+            5.0.asKiloWatt, // using AC charging here
+            10.0.asKiloWatt,
+            10.0.asKiloWattHour,
+            storedEnergy.asKiloWattHour,
+            offset + stayingTicks
+          )
         )
 
         val chargingMap = evcsModel.chargeWithMaximumPower(
@@ -142,7 +151,7 @@ class MaximumPowerChargingSpec
                 ChargingSchedule.Entry(
                   offset,
                   offset + 3600L,
-                  5.0.asKiloWatt
+                  Kilowatts(5.0)
                 )
               )
             )
@@ -154,7 +163,7 @@ class MaximumPowerChargingSpec
                 ChargingSchedule.Entry(
                   offset,
                   offset + expectedDuration,
-                  5.0.asKiloWatt
+                  Kilowatts(5.0)
                 )
               )
             )

@@ -20,6 +20,7 @@ import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.mockito.Mockito.when
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.mockito.MockitoSugar
+import squants.energy.Kilowatts
 
 import java.util.UUID
 
@@ -127,36 +128,36 @@ class PrioritizedFlexStratSpec
               loadInputModel,
               ProvideMinMaxFlexOptions(
                 load,
-                loadPower.asKiloWatt,
-                loadPower.asKiloWatt,
-                loadPower.asKiloWatt
+                Kilowatts(loadPower),
+                Kilowatts(loadPower),
+                Kilowatts(loadPower)
               )
             ),
             (
               pvInputModel,
               ProvideMinMaxFlexOptions(
                 pv,
-                pvPower.asKiloWatt,
-                pvPower.asKiloWatt,
-                0d.asKiloWatt
+                Kilowatts(pvPower),
+                Kilowatts(pvPower),
+                Kilowatts(0d)
               )
             ),
             (
               evcsInputModel,
               ProvideMinMaxFlexOptions(
                 evcs,
-                evcsSuggested.asKiloWatt,
-                evcsMin.asKiloWatt,
-                evcsMax.asKiloWatt
+                Kilowatts(evcsSuggested),
+                Kilowatts(evcsMin),
+                Kilowatts(evcsMax)
               )
             ),
             (
               storageInputModel,
               ProvideMinMaxFlexOptions(
                 strg,
-                0d.asKiloWatt,
-                storageMin.asKiloWatt,
-                storageMax.asKiloWatt
+                Kilowatts(0d),
+                Kilowatts(storageMin),
+                Kilowatts(storageMax)
               )
             )
           )
@@ -164,7 +165,7 @@ class PrioritizedFlexStratSpec
           val actualResults =
             strat.determineDeviceControl(
               flexOptions,
-              target.asKiloWatt
+              Kilowatts(target)
             )
 
           actualResults should have size expectedResult.size withClue
@@ -179,10 +180,7 @@ class PrioritizedFlexStratSpec
               )
             )
 
-            power
-              .to(PowerSystemUnits.KILOWATT)
-              .getValue
-              .doubleValue() should ===(expectedRes +- 1e-6d)
+            power.toKilowatts should ===(expectedRes +- 1e-6d)
           }
       }
     }
@@ -259,36 +257,36 @@ class PrioritizedFlexStratSpec
               loadInputModel,
               ProvideMinMaxFlexOptions(
                 load,
-                loadPower.asKiloWatt,
-                loadPower.asKiloWatt,
-                loadPower.asKiloWatt
+                Kilowatts(loadPower),
+                Kilowatts(loadPower),
+                Kilowatts(loadPower)
               )
             ),
             (
               pvInputModel,
               ProvideMinMaxFlexOptions(
                 pv,
-                pvPower.asKiloWatt,
-                pvPower.asKiloWatt,
-                0d.asKiloWatt
+                Kilowatts(pvPower),
+                Kilowatts(pvPower),
+                Kilowatts(0d)
               )
             ),
             (
               evcsInputModel,
               ProvideMinMaxFlexOptions(
                 ev,
-                evcsSuggested.asKiloWatt,
-                evcsMin.asKiloWatt,
-                evcsMax.asKiloWatt
+                Kilowatts(evcsSuggested),
+                Kilowatts(evcsMin),
+                Kilowatts(evcsMax)
               )
             ),
             (
               storageInputModel,
               ProvideMinMaxFlexOptions(
                 st,
-                0d.asKiloWatt,
-                storageMin.asKiloWatt,
-                storageMax.asKiloWatt
+                Kilowatts(0d),
+                Kilowatts(storageMin),
+                Kilowatts(storageMax)
               )
             )
           )
@@ -296,7 +294,7 @@ class PrioritizedFlexStratSpec
           val actualResults =
             strat.determineDeviceControl(
               flexOptions,
-              0d.asKiloWatt
+              Kilowatts(0d)
             )
 
           actualResults should have size expectedResult.size withClue
@@ -311,10 +309,7 @@ class PrioritizedFlexStratSpec
               )
             )
 
-            power
-              .to(PowerSystemUnits.KILOWATT)
-              .getValue
-              .doubleValue() should ===(expectedRes +- 1e-6d)
+            power.toKilowatts should ===(expectedRes +- 1e-6d)
           }
       }
     }

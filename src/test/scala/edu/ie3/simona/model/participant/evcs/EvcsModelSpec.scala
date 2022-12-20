@@ -19,10 +19,11 @@ import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.simona.test.common.model.participant.EvcsTestData
 import edu.ie3.simona.test.helper.TableDrivenHelper
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.scalatest.prop.TableDrivenPropertyChecks
+import squants.Each
+import squants.energy.{KilowattHours, Kilowatts}
 
 import java.util.UUID
 
@@ -33,6 +34,9 @@ class EvcsModelSpec
     with EvcsTestData {
 
   private val simulationStart = evcsStandardModel.simulationStartDate
+
+  private implicit val energyTolerance: squants.Energy = KilowattHours(1e-10)
+  private implicit val powerTolerance: squants.Power = Kilowatts(1e-10)
 
   // TODO some conditions/functions have not been tested yet
   "An EVCS model" should {
@@ -45,14 +49,16 @@ class EvcsModelSpec
           locationType = EvcsLocationType.CHARGING_HUB_TOWN
         )
 
-        val evModel = new MockEvModel(
-          UUID.randomUUID(),
-          "Mock EV",
-          10.0.asKiloWatt, // AC is relevant,
-          20.0.asKiloWatt, // DC is not
-          20.0.asKiloWattHour,
-          5.0.asKiloWattHour,
-          10800L
+        val evModel = EvModelWrapper(
+          new MockEvModel(
+            UUID.randomUUID(),
+            "Mock EV",
+            10.0.asKiloWatt, // AC is relevant,
+            20.0.asKiloWatt, // DC is not
+            20.0.asKiloWattHour,
+            5.0.asKiloWattHour,
+            10800L
+          )
         )
 
         val actualSchedule = evcsModel.calculateNewScheduling(
@@ -67,7 +73,7 @@ class EvcsModelSpec
         actualSchedule shouldBe Map(
           evModel -> Some(
             // ending early at 9000 because of max power charging
-            ChargingSchedule(evModel, Seq(Entry(3600L, 8999L, 10.0.asKiloWatt)))
+            ChargingSchedule(evModel, Seq(Entry(3600L, 8999L, Kilowatts(10.0))))
           )
         )
       }
@@ -78,14 +84,16 @@ class EvcsModelSpec
           locationType = EvcsLocationType.HOME
         )
 
-        val evModel = new MockEvModel(
-          UUID.randomUUID(),
-          "Mock EV",
-          10.0.asKiloWatt, // AC is relevant,
-          20.0.asKiloWatt, // DC is not
-          20.0.asKiloWattHour,
-          15.0.asKiloWattHour,
-          10800L
+        val evModel = EvModelWrapper(
+          new MockEvModel(
+            UUID.randomUUID(),
+            "Mock EV",
+            10.0.asKiloWatt, // AC is relevant,
+            20.0.asKiloWatt, // DC is not
+            20.0.asKiloWattHour,
+            15.0.asKiloWattHour,
+            10800L
+          )
         )
 
         val actualSchedule = evcsModel.calculateNewScheduling(
@@ -100,7 +108,7 @@ class EvcsModelSpec
         actualSchedule shouldBe Map(
           evModel -> Some(
             // using 2.5 kW with constant power charging
-            ChargingSchedule(evModel, Seq(Entry(3600L, 10800L, 2.5.asKiloWatt)))
+            ChargingSchedule(evModel, Seq(Entry(3600L, 10800L, Kilowatts(2.5))))
           )
         )
       }
@@ -151,19 +159,21 @@ class EvcsModelSpec
               power,
               expectedStored
           ) =>
-            val ev = new MockEvModel(
-              UUID.randomUUID(),
-              "TestEv1",
-              5.0.asKiloWatt, // using AC charging here
-              10.0.asKiloWatt,
-              10.0.asKiloWattHour,
-              storedEnergy.asKiloWattHour,
-              7200L // is ignored here
+            val ev = EvModelWrapper(
+              new MockEvModel(
+                UUID.randomUUID(),
+                "TestEv1",
+                5.0.asKiloWatt, // using AC charging here
+                10.0.asKiloWatt,
+                10.0.asKiloWattHour,
+                storedEnergy.asKiloWattHour,
+                7200L // is ignored here
+              )
             )
 
             val schedule = ChargingSchedule(
               ev,
-              Seq(Entry(chargeStart, chargeEnd, power.asKiloWatt))
+              Seq(Entry(chargeStart, chargeEnd, Kilowatts(power)))
             )
 
             val state = EvcsState(
@@ -183,15 +193,15 @@ class EvcsModelSpec
                 fail("No charging schedule provided.")
               )
 
-            actualEv.getUuid shouldBe ev.getUuid
-            actualEv.getId shouldBe ev.getId
-            actualEv.getSRatedAC shouldBe ev.getSRatedAC
-            actualEv.getSRatedDC shouldBe ev.getSRatedDC
-            actualEv.getEStorage shouldBe ev.getEStorage
-            actualEv.getStoredEnergy should equalWithTolerance(
-              expectedStored.asKiloWattHour
-            )
-            actualEv.getDepartureTick shouldBe ev.getDepartureTick
+            actualEv.uuid shouldBe ev.uuid
+            actualEv.id shouldBe ev.id
+            actualEv.sRatedAc shouldBe ev.sRatedAc
+            actualEv.sRatedDc shouldBe ev.sRatedDc
+            actualEv.eStorage shouldBe ev.eStorage
+            (actualEv.storedEnergy ~= KilowattHours(
+              expectedStored
+            )) shouldBe true
+            actualEv.departureTick shouldBe ev.departureTick
 
         }
 
@@ -202,21 +212,23 @@ class EvcsModelSpec
 
       "one EV is parked and charging" in {
 
-        val ev = new MockEvModel(
-          UUID.randomUUID(),
-          "TestEv1",
-          5.0.asKiloWatt, // using AC charging here
-          10.0.asKiloWatt,
-          10.0.asKiloWattHour,
-          0d.asKiloWattHour,
-          10800L
+        val ev = EvModelWrapper(
+          new MockEvModel(
+            UUID.randomUUID(),
+            "TestEv1",
+            5.0.asKiloWatt, // using AC charging here
+            10.0.asKiloWatt,
+            10.0.asKiloWattHour,
+            0d.asKiloWattHour,
+            10800L
+          )
         )
 
         val schedule = ChargingSchedule(
           ev,
           Seq(
-            Entry(3600L, 5400L, 2d.asKiloWatt),
-            Entry(7200L, 9000L, 4d.asKiloWatt)
+            Entry(3600L, 5400L, Kilowatts(2d)),
+            Entry(7200L, 9000L, Kilowatts(4d))
           )
         )
 
@@ -265,7 +277,7 @@ class EvcsModelSpec
               evcsStandardModel.createResults(
                 lastState,
                 currentTick,
-                1d.asPu
+                Each(1d)
               )
 
             val (_, firstPower) = generalEvResults(firstResultIndex)
@@ -278,7 +290,7 @@ class EvcsModelSpec
             actualEvResults.zip(expectedEvResults).foreach {
               case (actual, (startTick, p)) =>
                 actual.getTime shouldBe startTick.toDateTime(simulationStart)
-                actual.getInputModel shouldBe ev.getUuid
+                actual.getInputModel shouldBe ev.uuid
                 actual.getP should beEquivalentTo(p.asKiloWatt)
                 actual.getQ should beEquivalentTo(zeroKW)
             }
@@ -297,38 +309,42 @@ class EvcsModelSpec
 
       "two EVs are parked and charging" in {
 
-        val ev1 = new MockEvModel(
-          UUID.randomUUID(),
-          "TestEv1",
-          5.0.asKiloWatt, // using AC charging here
-          10.0.asKiloWatt,
-          10.0.asKiloWattHour,
-          0d.asKiloWattHour,
-          18000L
+        val ev1 = EvModelWrapper(
+          new MockEvModel(
+            UUID.randomUUID(),
+            "TestEv1",
+            5.0.asKiloWatt, // using AC charging here
+            10.0.asKiloWatt,
+            10.0.asKiloWattHour,
+            0d.asKiloWattHour,
+            18000L
+          )
         )
 
-        val ev2 = new MockEvModel(
-          UUID.randomUUID(),
-          "TestEv2",
-          5.0.asKiloWatt, // using AC charging here
-          10.0.asKiloWatt,
-          10.0.asKiloWattHour,
-          0d.asKiloWattHour,
-          18000L
+        val ev2 = EvModelWrapper(
+          new MockEvModel(
+            UUID.randomUUID(),
+            "TestEv2",
+            5.0.asKiloWatt, // using AC charging here
+            10.0.asKiloWatt,
+            10.0.asKiloWattHour,
+            0d.asKiloWattHour,
+            18000L
+          )
         )
 
         val schedule1 = ChargingSchedule(
           ev1,
           Seq(
-            Entry(3600L, 7200L, 2d.asKiloWatt),
-            Entry(9000L, 14400L, 3d.asKiloWatt)
+            Entry(3600L, 7200L, Kilowatts(2d)),
+            Entry(9000L, 14400L, Kilowatts(3d))
           )
         )
 
         val schedule2 = ChargingSchedule(
           ev2,
           Seq(
-            Entry(5400L, 9000L, 2d.asKiloWatt)
+            Entry(5400L, 9000L, Kilowatts(2d))
           )
         )
 
@@ -345,7 +361,7 @@ class EvcsModelSpec
           evcsStandardModel.createResults(
             lastState,
             currentTick,
-            1d.asPu
+            Each(1d)
           )
 
         // tick, p in kW, soc in %
@@ -378,7 +394,7 @@ class EvcsModelSpec
         actualEvResults should have size expectedEv1Results.size + expectedEv2Results.size
 
         val actualEv1Results =
-          actualEvResults.filter(_.getInputModel == ev1.getUuid)
+          actualEvResults.filter(_.getInputModel == ev1.uuid)
         actualEv1Results should have size expectedEv1Results.size
         actualEv1Results.zip(expectedEv1Results).foreach {
           case (actual, (startTick, p, soc)) =>
@@ -389,7 +405,7 @@ class EvcsModelSpec
         }
 
         val actualEv2Results =
-          actualEvResults.filter(_.getInputModel == ev2.getUuid)
+          actualEvResults.filter(_.getInputModel == ev2.uuid)
         actualEv2Results should have size expectedEv2Results.size
         actualEv2Results.zip(expectedEv2Results).foreach {
           case (actual, (startTick, p, soc)) =>
@@ -411,20 +427,22 @@ class EvcsModelSpec
 
       "EV is departing at current tick" in {
 
-        val ev = new MockEvModel(
-          UUID.randomUUID(),
-          "TestEv",
-          5.0.asKiloWatt, // using AC charging here
-          10.0.asKiloWatt,
-          10.0.asKiloWattHour,
-          0d.asKiloWattHour,
-          7200L // equals the current tick
+        val ev = EvModelWrapper(
+          new MockEvModel(
+            UUID.randomUUID(),
+            "TestEv",
+            5.0.asKiloWatt, // using AC charging here
+            10.0.asKiloWatt,
+            10.0.asKiloWattHour,
+            0d.asKiloWattHour,
+            7200L // equals the current tick
+          )
         )
 
         val schedule = ChargingSchedule(
           ev,
           Seq(
-            Entry(3600L, 7200L, 2d.asKiloWatt)
+            Entry(3600L, 7200L, Kilowatts(2d))
           )
         )
 
@@ -441,7 +459,7 @@ class EvcsModelSpec
           evcsStandardModel.createResults(
             lastState,
             currentTick,
-            1d.asPu
+            Each(1d)
           )
 
         // tick, p in kW, soc in %
@@ -569,34 +587,38 @@ class EvcsModelSpec
               expectedPMin,
               expectedPMax
           ) =>
-            val ev1 = new MockEvModel(
-              UUID.randomUUID(),
-              "Mock EV 1",
-              10.0.asKiloWatt, // AC is relevant,
-              20.0.asKiloWatt, // DC is not
-              10.0.asKiloWattHour,
-              lastStored1.asKiloWattHour,
-              10800L
+            val ev1 = EvModelWrapper(
+              new MockEvModel(
+                UUID.randomUUID(),
+                "Mock EV 1",
+                10.0.asKiloWatt, // AC is relevant,
+                20.0.asKiloWatt, // DC is not
+                10.0.asKiloWattHour,
+                lastStored1.asKiloWattHour,
+                10800L
+              )
             )
 
             val schedule1 = ChargingSchedule(
               ev1,
-              Seq(ChargingSchedule.Entry(3600L, 7200L, zeroKW))
+              Seq(ChargingSchedule.Entry(3600L, 7200L, Kilowatts(0d)))
             )
 
-            val ev2 = new MockEvModel(
-              UUID.randomUUID(),
-              "Mock EV 2",
-              5.0.asKiloWatt, // AC is relevant,
-              10.0.asKiloWatt, // DC is not
-              15.0.asKiloWattHour,
-              lastStored2.asKiloWattHour,
-              10800L
+            val ev2 = EvModelWrapper(
+              new MockEvModel(
+                UUID.randomUUID(),
+                "Mock EV 2",
+                5.0.asKiloWatt, // AC is relevant,
+                10.0.asKiloWatt, // DC is not
+                15.0.asKiloWattHour,
+                lastStored2.asKiloWattHour,
+                10800L
+              )
             )
 
             val schedule2 = ChargingSchedule(
               ev1,
-              Seq(ChargingSchedule.Entry(0L, 5400L, lastPower2.asKiloWatt))
+              Seq(ChargingSchedule.Entry(0L, 5400L, Kilowatts(lastPower2)))
             )
 
             evcsModel.determineFlexOptions(
@@ -636,19 +658,21 @@ class EvcsModelSpec
           Map.empty
         )
 
-        val ev1 = new MockEvModel(
-          UUID.randomUUID(),
-          "Mock EV 1",
-          10.0.asKiloWatt, // AC is relevant,
-          20.0.asKiloWatt, // DC is not
-          10.0.asKiloWattHour,
-          0.0.asKiloWattHour,
-          10800L
+        val ev1 = EvModelWrapper(
+          new MockEvModel(
+            UUID.randomUUID(),
+            "Mock EV 1",
+            10.0.asKiloWatt, // AC is relevant,
+            20.0.asKiloWatt, // DC is not
+            10.0.asKiloWattHour,
+            0.0.asKiloWattHour,
+            10800L
+          )
         )
 
         val schedule1 = ChargingSchedule(
           ev1,
-          Seq(ChargingSchedule.Entry(3600L, 7200L, 5.0.asKiloWatt))
+          Seq(ChargingSchedule.Entry(3600L, 7200L, Kilowatts(5.0)))
         )
 
         evcsModel.determineFlexOptions(
@@ -666,9 +690,9 @@ class EvcsModelSpec
                 maxPower
               ) =>
             modelUuid shouldBe evcsModel.getUuid
-            refPower should equalWithTolerance(5.0.asKiloWatt) // one hour left
-            minPower should equalWithTolerance(zeroKW) // no v2g allowed!
-            maxPower should equalWithTolerance(ev1.getSRatedAC)
+            (refPower ~= Kilowatts(5.0)) shouldBe true // one hour left
+            (minPower ~= Kilowatts(0d)) shouldBe true // no v2g allowed!
+            (maxPower ~= ev1.sRatedAc) shouldBe true
         }
 
       }
@@ -746,24 +770,28 @@ class EvcsModelSpec
               expNextActivation: Boolean,
               expNextTick: Option[Long]
           ) =>
-            val ev1 = new MockEvModel(
-              UUID.randomUUID(),
-              "Mock EV 1",
-              10.0.asKiloWatt, // AC is relevant,
-              20.0.asKiloWatt, // DC is not
-              10.0.asKiloWattHour,
-              stored1.asKiloWattHour,
-              7200L
+            val ev1 = EvModelWrapper(
+              new MockEvModel(
+                UUID.randomUUID(),
+                "Mock EV 1",
+                10.0.asKiloWatt, // AC is relevant,
+                20.0.asKiloWatt, // DC is not
+                10.0.asKiloWattHour,
+                stored1.asKiloWattHour,
+                7200L
+              )
             )
 
-            val ev2 = new MockEvModel(
-              UUID.randomUUID(),
-              "Mock EV 2",
-              5.0.asKiloWatt, // AC is relevant,
-              10.0.asKiloWatt, // DC is not
-              15.0.asKiloWattHour,
-              stored2.asKiloWattHour,
-              10800L
+            val ev2 = EvModelWrapper(
+              new MockEvModel(
+                UUID.randomUUID(),
+                "Mock EV 2",
+                5.0.asKiloWatt, // AC is relevant,
+                10.0.asKiloWatt, // DC is not
+                15.0.asKiloWattHour,
+                stored2.asKiloWattHour,
+                10800L
+              )
             )
 
             evcsModel.handleControlledPowerChange(
@@ -773,7 +801,7 @@ class EvcsModelSpec
                 Map(ev1 -> None, ev2 -> None),
                 0L
               ),
-              setPower.asKiloWatt
+              Kilowatts(setPower)
             ) match {
               case (
                     EvcsState(actualEvs, actualSchedules, actualTick),
@@ -790,7 +818,7 @@ class EvcsModelSpec
                     entry.tickStart shouldBe currentTick
 
                     (
-                      entry.chargingPower.to(KILOWATT).getValue.doubleValue(),
+                      entry.chargingPower.toKilowatts,
                       entry.tickStop
                     )
                 } shouldBe expPowerAndTick1
@@ -802,7 +830,7 @@ class EvcsModelSpec
                     entry.tickStart shouldBe currentTick
 
                     (
-                      entry.chargingPower.to(KILOWATT).getValue.doubleValue(),
+                      entry.chargingPower.toKilowatts,
                       entry.tickStop
                     )
                 } shouldBe expPowerAndTick2

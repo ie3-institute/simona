@@ -13,6 +13,7 @@ import edu.ie3.simona.test.helper.TableDrivenHelper
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.mockito.MockitoSugar
+import squants.energy.Kilowatts
 
 import java.util.UUID
 
@@ -88,16 +89,16 @@ class ProportionalFlexStratSpec
         ) =>
           val flexOptions1 = ProvideMinMaxFlexOptions(
             modelUuid = UUID.randomUUID(),
-            referencePower = ref1.asKiloWatt,
-            minPower = min1.asKiloWatt,
-            maxPower = max1.asKiloWatt
+            referencePower = Kilowatts(ref1),
+            minPower = Kilowatts(min1),
+            maxPower = Kilowatts(max1)
           )
 
           val flexOptions2 = ProvideMinMaxFlexOptions(
             modelUuid = UUID.randomUUID(),
-            referencePower = ref2.asKiloWatt,
-            minPower = min2.asKiloWatt,
-            maxPower = max2.asKiloWatt
+            referencePower = Kilowatts(ref2),
+            minPower = Kilowatts(min2),
+            maxPower = Kilowatts(max2)
           )
 
           val actualResults = ProportionalFlexStrat
@@ -106,7 +107,7 @@ class ProportionalFlexStratSpec
                 (spi, flexOptions1),
                 (spi, flexOptions2)
               ),
-              target.asKiloWatt
+              Kilowatts(target)
             )
             .toMap
 

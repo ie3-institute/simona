@@ -17,6 +17,7 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.mockito.MockitoSugar
+import squants.Each
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -71,7 +72,7 @@ class EmModelSpec
       val actualResult =
         model.calculatePower(
           0L,
-          1d.asPu,
+          Each(1d),
           ConstantState,
           EmRelevantData(flexCorrespondences)
         )

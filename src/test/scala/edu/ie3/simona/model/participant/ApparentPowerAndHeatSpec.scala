@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.model.participant.ApparentPowerAndHeatSpec.ApparentPowerAndHeatMock
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
@@ -16,32 +15,30 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.OperationInterval
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
+import squants.Each
+import squants.energy.{Kilowatts, Megawatts, Watts}
 
 import java.util.UUID
-import javax.measure.quantity.Power
 
 class ApparentPowerAndHeatSpec extends UnitSpec {
+
+  private implicit val powerTolerance: squants.Power = Watts(1e-4)
+  private implicit val reactivePowerTolerance: ReactivePower = Vars(1e-4)
+
   "Mixing in the trait for apparent power and heat participants" when {
     "requesting a result outside of the operation interval" should {
       "return zero result" in {
         ApparentPowerAndHeatMock.calculatePower(
           50L,
-          Quantities.getQuantity(1.0, StandardUnits.VOLTAGE_MAGNITUDE),
+          Each(1.0),
           ConstantState,
           FixedRelevantData
         ) match {
           case ApparentPowerAndHeat(p, q, qDot) =>
-            p should equalWithTolerance(
-              Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
-            )
-            q should equalWithTolerance(
-              Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT)
-            )
-            qDot should equalWithTolerance(
-              Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
-            )
+            (p ~= Megawatts(0.0)) shouldBe true
+            (q ~= Megavars(0.0)) shouldBe true
+            (qDot ~= Megawatts(0.0)) shouldBe true
         }
       }
     }
@@ -49,20 +46,14 @@ class ApparentPowerAndHeatSpec extends UnitSpec {
       "return the correct values" in {
         ApparentPowerAndHeatMock.calculatePower(
           10L,
-          Quantities.getQuantity(1.0, StandardUnits.VOLTAGE_MAGNITUDE),
+          Each(1.0),
           ConstantState,
           FixedRelevantData
         ) match {
           case ApparentPowerAndHeat(p, q, qDot) =>
-            p should equalWithTolerance(
-              Quantities.getQuantity(43d, StandardUnits.ACTIVE_POWER_RESULT)
-            )
-            q should equalWithTolerance(
-              Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT)
-            )
-            qDot should equalWithTolerance(
-              Quantities.getQuantity(42d, StandardUnits.ACTIVE_POWER_RESULT)
-            )
+            (p ~= Megawatts(43.0)) shouldBe true
+            (q ~= Megavars(0.0)) shouldBe true
+            (qDot ~= Megawatts(42.0)) shouldBe true
         }
       }
     }
@@ -81,7 +72,7 @@ object ApparentPowerAndHeatSpec {
         OperationInterval.apply(0L, 42L),
         1.0,
         CosPhiFixed(0.97),
-        Quantities.getQuantity(42d, StandardUnits.ACTIVE_POWER_IN),
+        Kilowatts(42.0),
         0.97
       )
       with ApparentPowerAndHeatParticipant[
@@ -104,8 +95,7 @@ object ApparentPowerAndHeatSpec {
         tick: Long,
         modelState: ConstantState.type,
         data: CalcRelevantData.FixedRelevantData.type
-    ): ComparableQuantity[Power] =
-      Quantities.getQuantity(42d, StandardUnits.ACTIVE_POWER_RESULT)
+    ): squants.Power = Megawatts(42.0)
 
     /** Calculate the active power behaviour of the model
       *
@@ -117,8 +107,7 @@ object ApparentPowerAndHeatSpec {
     override protected def calculateActivePower(
         modelState: ConstantState.type,
         data: CalcRelevantData.FixedRelevantData.type
-    ): ComparableQuantity[Power] =
-      Quantities.getQuantity(43d, StandardUnits.ACTIVE_POWER_RESULT)
+    ): squants.Power = Megawatts(43.0)
 
     /** @param data
       * @param lastState
@@ -145,7 +134,7 @@ object ApparentPowerAndHeatSpec {
     override def handleControlledPowerChange(
         data: CalcRelevantData.FixedRelevantData.type,
         lastState: ModelState.ConstantState.type,
-        setPower: ComparableQuantity[Power]
+        setPower: squants.Power
     ): (ModelState.ConstantState.type, FlexChangeIndicator) =
       (lastState, FlexChangeIndicator())
   }

@@ -11,10 +11,7 @@ import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.input.system.`type`.HpTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.datamodel.models.input.thermal.{
-  CylindricalStorageInput,
-  ThermalHouseInput
-}
+import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
 import edu.ie3.simona.model.participant.HpModel.HpRelevantData
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
@@ -26,6 +23,8 @@ import edu.ie3.simona.model.thermal.{
   ThermalStorage
 }
 import edu.ie3.util.quantities.PowerSystemUnits
+import squants.energy.{KilowattHours, Kilowatts}
+import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -59,9 +58,9 @@ trait HpModelTestData {
     null,
     1.0,
     null,
-    Quantities.getQuantity(100, PowerSystemUnits.KILOWATT),
+    Kilowatts(100.0),
     0.95,
-    Quantities.getQuantity(15, PowerSystemUnits.KILOWATT),
+    Kilowatts(15.0),
     thermalGrid
   )
 
@@ -105,10 +104,10 @@ trait HpModelTestData {
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
     null,
-    Quantities.getQuantity(20d, StandardUnits.ENERGY_IN),
-    Quantities.getQuantity(500d, StandardUnits.ENERGY_IN),
-    Quantities.getQuantity(10d, StandardUnits.ACTIVE_POWER_IN),
-    Quantities.getQuantity(0d, StandardUnits.ENERGY_IN)
+    KilowattHours(20.0),
+    KilowattHours(500.0),
+    Kilowatts(10.0),
+    KilowattHours(0.0)
   )
 
   protected def thermalState(
@@ -118,8 +117,8 @@ trait HpModelTestData {
     Some(
       ThermalHouseState(
         0L,
-        Quantities.getQuantity(temperature, StandardUnits.TEMPERATURE),
-        Quantities.getQuantity(qDot, StandardUnits.ACTIVE_POWER_IN)
+        Celsius(temperature),
+        Kilowatts(qDot)
       )
     ),
     None
@@ -134,20 +133,20 @@ trait HpModelTestData {
     Some(
       ThermalHouseState(
         0L,
-        Quantities.getQuantity(temperature, StandardUnits.TEMPERATURE),
-        Quantities.getQuantity(qDotHouse, StandardUnits.ACTIVE_POWER_IN)
+        Celsius(temperature),
+        Kilowatts(qDotHouse)
       )
     ),
     Some(
       ThermalStorageState(
         0L,
-        Quantities.getQuantity(storedEnergy, StandardUnits.ENERGY_IN),
-        Quantities.getQuantity(qDotStorage, StandardUnits.ACTIVE_POWER_IN)
+        KilowattHours(storedEnergy),
+        Kilowatts(qDotStorage)
       )
     )
   )
 
   protected def hpData: HpRelevantData =
-    HpRelevantData(7200, Quantities.getQuantity(10, Units.CELSIUS))
+    HpRelevantData(7200, Celsius(10.0))
 
 }

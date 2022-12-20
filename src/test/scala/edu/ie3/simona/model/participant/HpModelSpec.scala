@@ -14,10 +14,10 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureUpperBoundaryReached
 }
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
-
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.prop.TableDrivenPropertyChecks
+import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -42,8 +42,8 @@ class HpModelSpec
               isRunning = false,
               0,
               hpData.ambientTemperature,
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
+              Kilowatts(0.0),
+              Kilowatts(0.0),
               thermalState(17),
               None
             ),
@@ -58,8 +58,8 @@ class HpModelSpec
               isRunning = false,
               0,
               hpData.ambientTemperature,
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
+              Kilowatts(0.0),
+              Kilowatts(0.0),
               thermalState(18),
               None
             ),
@@ -74,8 +74,8 @@ class HpModelSpec
               isRunning = false,
               0,
               hpData.ambientTemperature,
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
+              Kilowatts(0.0),
+              Kilowatts(0.0),
               thermalState(20),
               None
             ),
@@ -90,8 +90,8 @@ class HpModelSpec
               isRunning = false,
               0,
               hpData.ambientTemperature,
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
+              Kilowatts(0.0),
+              Kilowatts(0.0),
               thermalState(22),
               None
             ),
@@ -106,8 +106,8 @@ class HpModelSpec
               isRunning = false,
               0,
               hpData.ambientTemperature,
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
+              Kilowatts(0.0),
+              Kilowatts(0.0),
               thermalState(23),
               None
             ),
@@ -122,8 +122,8 @@ class HpModelSpec
               isRunning = true,
               0,
               hpData.ambientTemperature,
-              Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
+              Kilowatts(95.0),
+              Kilowatts(80.0),
               thermalState(17),
               None
             ),
@@ -138,8 +138,8 @@ class HpModelSpec
               isRunning = true,
               0,
               hpData.ambientTemperature,
-              Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
+              Kilowatts(95.0),
+              Kilowatts(80.0),
               thermalState(18),
               None
             ),
@@ -154,8 +154,8 @@ class HpModelSpec
               isRunning = true,
               0,
               hpData.ambientTemperature,
-              Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
+              Kilowatts(95.0),
+              Kilowatts(80.0),
               thermalState(20),
               None
             ),
@@ -170,8 +170,8 @@ class HpModelSpec
               isRunning = true,
               0,
               hpData.ambientTemperature,
-              Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
+              Kilowatts(95.0),
+              Kilowatts(80.0),
               thermalState(22),
               None
             ),
@@ -186,8 +186,8 @@ class HpModelSpec
               isRunning = true,
               0,
               hpData.ambientTemperature,
-              Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
+              Kilowatts(95.0),
+              Kilowatts(80.0),
               thermalState(25),
               None
             ),
@@ -249,10 +249,7 @@ class HpModelSpec
       "the house is heated up and storage has space" should {
         "deliver positive flexibility" in {
           val house = thermalHouse(18, 22)
-            .copy(
-              ethLosses = Quantities
-                .getQuantity(0.2, StandardUnits.THERMAL_TRANSMISSION)
-            )
+            .copy(ethLosses = Kilowatts(0.2))
           val grid = thermalGrid(house, Some(thermalStorage))
           val hp = hpModel(grid)
           val relevantData = hpData.copy(currentTimeTick =
@@ -262,8 +259,8 @@ class HpModelSpec
             isRunning = true,
             0,
             hpData.ambientTemperature,
-            Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
-            Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
+            Kilowatts(95.0),
+            Kilowatts(80.0),
             thermalState(21, 80, 20, 0),
             Some(HouseTemperatureUpperBoundaryReached(7995L))
           )

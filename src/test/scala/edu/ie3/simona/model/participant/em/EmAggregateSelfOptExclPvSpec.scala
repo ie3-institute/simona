@@ -11,6 +11,7 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOpti
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.scalatestplus.mockito.MockitoSugar
+import squants.energy.Kilowatts
 
 import java.util.UUID
 
@@ -21,16 +22,16 @@ class EmAggregateSelfOptExclPvSpec extends UnitSpec with MockitoSugar {
     "pick 0kW if possible" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
-        referencePower = 2d.asKiloWatt,
-        minPower = (-1d).asKiloWatt,
-        maxPower = 4d.asKiloWatt
+        referencePower = Kilowatts(2.0),
+        minPower = Kilowatts(-1.0),
+        maxPower = Kilowatts(4.0)
       )
 
       val flexOptions2 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
-        referencePower = (-6d).asKiloWatt,
-        minPower = (-6d).asKiloWatt,
-        maxPower = 0d.asKiloWatt
+        referencePower = Kilowatts(-6.0),
+        minPower = Kilowatts(-6.0),
+        maxPower = Kilowatts(0.0)
       )
 
       val actualResult = EmAggregateSelfOptExclPv.aggregateFlexOptions(
@@ -41,25 +42,25 @@ class EmAggregateSelfOptExclPvSpec extends UnitSpec with MockitoSugar {
       )
 
       actualResult shouldBe (
-        0d.asKiloWatt,
-        (-7d).asKiloWatt,
-        4d.asKiloWatt
+        Kilowatts(0.0),
+        Kilowatts(-7.0),
+        Kilowatts(4.0)
       )
     }
 
     "pick minSum if minSum > 0kW" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
-        referencePower = 6d.asKiloWatt,
-        minPower = 4d.asKiloWatt,
-        maxPower = 12d.asKiloWatt
+        referencePower = Kilowatts(6.0),
+        minPower = Kilowatts(4.0),
+        maxPower = Kilowatts(12.0)
       )
 
       val flexOptions2 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
-        referencePower = 2d.asKiloWatt,
-        minPower = (-2d).asKiloWatt,
-        maxPower = 2d.asKiloWatt
+        referencePower = Kilowatts(2.0),
+        minPower = Kilowatts(-2.0),
+        maxPower = Kilowatts(2.0)
       )
 
       val actualResult = EmAggregateSelfOptExclPv.aggregateFlexOptions(
@@ -70,25 +71,25 @@ class EmAggregateSelfOptExclPvSpec extends UnitSpec with MockitoSugar {
       )
 
       actualResult shouldBe (
-        2d.asKiloWatt,
-        2d.asKiloWatt,
-        14d.asKiloWatt
+        Kilowatts(2.0),
+        Kilowatts(2.0),
+        Kilowatts(14.0)
       )
     }
 
     "pick maxSum if maxSum < 0kW" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
-        referencePower = (-1d).asKiloWatt,
-        minPower = (-10d).asKiloWatt,
-        maxPower = (-1d).asKiloWatt
+        referencePower = Kilowatts(-1.0),
+        minPower = Kilowatts(-10.0),
+        maxPower = Kilowatts(-1.0)
       )
 
       val flexOptions2 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
-        referencePower = (-6d).asKiloWatt,
-        minPower = (-6d).asKiloWatt,
-        maxPower = 0d.asKiloWatt
+        referencePower = Kilowatts(-6.0),
+        minPower = Kilowatts(-6.0),
+        maxPower = Kilowatts(0.0)
       )
 
       val actualResult = EmAggregateSelfOptExclPv.aggregateFlexOptions(
@@ -99,9 +100,9 @@ class EmAggregateSelfOptExclPvSpec extends UnitSpec with MockitoSugar {
       )
 
       actualResult shouldBe (
-        (-1d).asKiloWatt,
-        (-16d).asKiloWatt,
-        (-1d).asKiloWatt
+        Kilowatts(-1.0),
+        Kilowatts(-16.0),
+        Kilowatts(-1.0)
       )
     }
   }
@@ -111,16 +112,16 @@ class EmAggregateSelfOptExclPvSpec extends UnitSpec with MockitoSugar {
     "exclude PV max power when normally picking 0kW as target" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
-        referencePower = 2d.asKiloWatt,
-        minPower = (-1d).asKiloWatt,
-        maxPower = 4d.asKiloWatt
+        referencePower = Kilowatts(2.0),
+        minPower = Kilowatts(-1.0),
+        maxPower = Kilowatts(4.0)
       )
 
       val flexOptions2 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
-        referencePower = (-6d).asKiloWatt,
-        minPower = (-6d).asKiloWatt,
-        maxPower = 0d.asKiloWatt
+        referencePower = Kilowatts(-6.0),
+        minPower = Kilowatts(-6.0),
+        maxPower = Kilowatts(0.0)
       )
 
       val actualResult = EmAggregateSelfOptExclPv.aggregateFlexOptions(
@@ -131,25 +132,25 @@ class EmAggregateSelfOptExclPvSpec extends UnitSpec with MockitoSugar {
       )
 
       actualResult shouldBe (
-        (-2d).asKiloWatt,
-        (-7d).asKiloWatt,
-        4d.asKiloWatt
+        Kilowatts(-2.0),
+        Kilowatts(-7.0),
+        Kilowatts(4.0)
       )
     }
 
     "exclude PV max power when normally picking maxSum as target" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
-        referencePower = (-1d).asKiloWatt,
-        minPower = (-10d).asKiloWatt,
-        maxPower = (-1d).asKiloWatt
+        referencePower = Kilowatts(-1.0),
+        minPower = Kilowatts(-10.0),
+        maxPower = Kilowatts(-1.0)
       )
 
       val flexOptions2 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
-        referencePower = (-6d).asKiloWatt,
-        minPower = (-6d).asKiloWatt,
-        maxPower = 0d.asKiloWatt
+        referencePower = Kilowatts(-6.0),
+        minPower = Kilowatts(-6.0),
+        maxPower = Kilowatts(0.0)
       )
 
       val actualResult = EmAggregateSelfOptExclPv.aggregateFlexOptions(
@@ -160,9 +161,9 @@ class EmAggregateSelfOptExclPvSpec extends UnitSpec with MockitoSugar {
       )
 
       actualResult shouldBe (
-        (-7d).asKiloWatt,
-        (-16d).asKiloWatt,
-        (-1d).asKiloWatt
+        Kilowatts(-7.0),
+        Kilowatts(-16.0),
+        Kilowatts(-1.0)
       )
     }
   }
