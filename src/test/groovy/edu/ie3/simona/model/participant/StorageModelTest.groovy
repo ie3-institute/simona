@@ -15,12 +15,13 @@ import edu.ie3.datamodel.models.input.system.type.StorageTypeInput
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.ontology.messages.FlexibilityMessage
 import edu.ie3.util.TimeUtil
+import edu.ie3.util.quantities.Sq
 import scala.Option
 import spock.lang.Shared
 import spock.lang.Specification
+import squants.energy.*
 
 import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static edu.ie3.util.quantities.QuantityUtil.equals
 import static tech.units.indriya.quantity.Quantities.getQuantity
 
 class StorageModelTest extends Specification {
@@ -83,8 +84,8 @@ class StorageModelTest extends Specification {
     def startTick = 3600L
     def data = new StorageModel.StorageRelevantData(startTick + timeDelta)
     def oldState = new StorageModel.StorageState(
-        getQuantity(lastStored, KILOWATTHOUR),
-        getQuantity(lastPower, KILOWATT),
+        Sq.create(lastStored, KilowattHours$.MODULE$),
+        Sq.create(lastStored, Kilowatts$.MODULE$),
         startTick
         )
 
@@ -92,9 +93,9 @@ class StorageModelTest extends Specification {
     def result = (FlexibilityMessage.ProvideMinMaxFlexOptions) storageModel.determineFlexOptions(data, oldState)
 
     then:
-    equals(result.referencePower(), getQuantity(pRef, KILOWATT), TOLERANCE)
-    equals(result.minPower(), getQuantity(pMin, KILOWATT), TOLERANCE)
-    equals(result.maxPower(), getQuantity(pMax, KILOWATT), TOLERANCE)
+    Math.abs(result.referencePower().toKilowatts() - pRef) < TOLERANCE
+    Math.abs(result.minPower().toKilowatts() - pMin) < TOLERANCE
+    Math.abs(result.maxPower().toKilowatts() - pMax) < TOLERANCE
 
     where:
     lastStored | lastPower | timeDelta || pRef | pMin | pMax
@@ -132,8 +133,8 @@ class StorageModelTest extends Specification {
     def startTick = 3600L
     def data = new StorageModel.StorageRelevantData(startTick + 1)
     def oldState = new StorageModel.StorageState(
-        getQuantity(lastStored, KILOWATTHOUR),
-        getQuantity(0d, KILOWATT),
+        Sq.create(lastStored, KilowattHours$.MODULE$),
+        Sq.create(0d, Kilowatts$.MODULE$),
         startTick
         )
 
@@ -141,9 +142,9 @@ class StorageModelTest extends Specification {
     def result = (FlexibilityMessage.ProvideMinMaxFlexOptions) storageModel.determineFlexOptions(data, oldState)
 
     then:
-    equals(result.referencePower(), getQuantity(pRef, KILOWATT), TOLERANCE)
-    equals(result.minPower(), getQuantity(pMin, KILOWATT), TOLERANCE)
-    equals(result.maxPower(), getQuantity(pMax, KILOWATT), TOLERANCE)
+    Math.abs(result.referencePower().toKilowatts() - pRef) < TOLERANCE
+    Math.abs(result.minPower().toKilowatts() - pMin) < TOLERANCE
+    Math.abs(result.maxPower().toKilowatts() - pMax) < TOLERANCE
 
     where:
     lastStored || pRef | pMin | pMax
@@ -173,8 +174,8 @@ class StorageModelTest extends Specification {
     def startTick = 3600L
     def data = new StorageModel.StorageRelevantData(startTick + 1)
     def oldState = new StorageModel.StorageState(
-    getQuantity(lastStored, KILOWATTHOUR),
-    getQuantity(0d, KILOWATT),
+    Sq.create(lastStored, KilowattHours$.MODULE$),
+    Sq.create(0d, Kilowatts$.MODULE$),
     startTick
     )
 
@@ -182,13 +183,13 @@ class StorageModelTest extends Specification {
     def result = storageModel.handleControlledPowerChange(
     data,
     oldState,
-    getQuantity(setPower, KILOWATT)
+    Sq.create(setPower, Kilowatts$.MODULE$)
     )
 
     then:
-    equals(result._1.chargingPower(), getQuantity(expPower, KILOWATT), TOLERANCE)
+    Math.abs(result._1.chargingPower().toKilowatts() - expPower) < TOLERANCE
     result._1.tick() == startTick + 1
-    equals(result._1.storedEnergy(), getQuantity(lastStored, KILOWATTHOUR), TOLERANCE)
+    Math.abs(result._1.storedEnergy().toKilowattHours() - lastStored) < TOLERANCE
     def flexChangeIndication = result._2
     flexChangeIndication.changesAtTick().defined == expScheduled
     flexChangeIndication.changesAtTick().map(x -> x == startTick + 1 + expDelta).getOrElse(_ -> true)
@@ -197,23 +198,23 @@ class StorageModelTest extends Specification {
     where:
     lastStored | setPower || expPower | expActiveNext | expScheduled | expDelta
     // no power
-    0          | 0        || 0        | false         | false        | 0
-    50         | 0        || 0        | false         | false        | 0
-    100        | 0        || 0        | false         | false        | 0
+    0          | 0        || 0d       | false         | false        | 0
+    50         | 0        || 0d       | false         | false        | 0
+    100        | 0        || 0d       | false         | false        | 0
     // charging on empty
-    0          | 1        || 0.9      | true          | true         | 100 * 3600 / 0.9
-    0          | 2.5      || 2.25     | true          | true         | 40 * 3600 / 0.9
-    0          | 5        || 4.5      | true          | true         | 20 * 3600 / 0.9
-    0          | 10       || 9        | true          | true         | 10 * 3600 / 0.9
+    0          | 1        || 0.9d     | true          | true         | 100 * 3600 / 0.9
+    0          | 2.5      || 2.25d    | true          | true         | 40 * 3600 / 0.9
+    0          | 5        || 4.5d     | true          | true         | 20 * 3600 / 0.9
+    0          | 10       || 9d       | true          | true         | 10 * 3600 / 0.9
     // charging on half full
-    50         | 5        || 4.5      | false         | true         | 10 * 3600 / 0.9
-    50         | 10       || 9        | false         | true         | 5 * 3600 / 0.9
+    50         | 5        || 4.5d     | false         | true         | 10 * 3600 / 0.9
+    50         | 10       || 9d       | false         | true         | 5 * 3600 / 0.9
     // discharging on half full
-    50         | -5       || -4.5     | false         | true         | 6 * 3600 / 0.9
-    50         | -10      || -9       | false         | true         | 3 * 3600 / 0.9
+    50         | -5       || -4.5d    | false         | true         | 6 * 3600 / 0.9
+    50         | -10      || -9d      | false         | true         | 3 * 3600 / 0.9
     // discharging on full
-    100        | -5       || -4.5     | true          | true         | 16 * 3600 / 0.9
-    100        | -10      || -9       | true          | true         | 8 * 3600 / 0.9
+    100        | -5       || -4.5d    | true          | true         | 16 * 3600 / 0.9
+    100        | -10      || -9d      | true          | true         | 8 * 3600 / 0.9
   }
 
   def "Handle controlled power change with ref target SOC"() {
@@ -222,8 +223,8 @@ class StorageModelTest extends Specification {
     def startTick = 3600L
     def data = new StorageModel.StorageRelevantData(startTick + 1)
     def oldState = new StorageModel.StorageState(
-    getQuantity(lastStored, KILOWATTHOUR),
-    getQuantity(0d, KILOWATT),
+    Sq.create(lastStored, KilowattHours$.MODULE$),
+    Sq.create(0d, Kilowatts$.MODULE$),
     startTick
     )
 
@@ -231,13 +232,13 @@ class StorageModelTest extends Specification {
     def result = storageModel.handleControlledPowerChange(
     data,
     oldState,
-    getQuantity(setPower, KILOWATT)
+    Sq.create(setPower, Kilowatts$.MODULE$)
     )
 
     then:
-    equals(result._1.chargingPower(), getQuantity(expPower, KILOWATT), TOLERANCE)
+    Math.abs(result._1.chargingPower().toKilowatts() - expPower) < TOLERANCE
     result._1.tick() == startTick + 1
-    equals(result._1.storedEnergy(), getQuantity(lastStored, KILOWATTHOUR), TOLERANCE)
+    Math.abs(result._1.storedEnergy().toKilowattHours() - lastStored) < TOLERANCE
     def flexChangeIndication = result._2
     flexChangeIndication.changesAtTick().defined == expScheduled
     flexChangeIndication.changesAtTick().map(x -> x == startTick + 1 + expDelta).getOrElse(_ -> true)
@@ -246,23 +247,23 @@ class StorageModelTest extends Specification {
     where:
     lastStored | setPower || expPower | expActiveNext | expScheduled | expDelta
     // no power
-    0          | 0        || 0        | false         | false        | 0
-    50         | 0        || 0        | false         | false        | 0
-    100        | 0        || 0        | false         | false        | 0
+    0          | 0        || 0d       | false         | false        | 0
+    50         | 0        || 0d       | false         | false        | 0
+    100        | 0        || 0d       | false         | false        | 0
     // charging on empty
-    0          | 1        || 0.9      | true          | true         | 50 * 3600 / 0.9
-    0          | 2.5      || 2.25     | true          | true         | 20 * 3600 / 0.9
-    0          | 5        || 4.5      | true          | true         | 10 * 3600 / 0.9
-    0          | 10       || 9        | true          | true         | 5 * 3600 / 0.9
+    0          | 1        || 0.9d     | true          | true         | 50 * 3600 / 0.9
+    0          | 2.5      || 2.25d    | true          | true         | 20 * 3600 / 0.9
+    0          | 5        || 4.5d     | true          | true         | 10 * 3600 / 0.9
+    0          | 10       || 9d       | true          | true         | 5 * 3600 / 0.9
     // charging on target ref
-    50         | 5        || 4.5      | true          | true         | 10 * 3600 / 0.9
-    50         | 10       || 9        | true          | true         | 5 * 3600 / 0.9
+    50         | 5        || 4.5d     | true          | true         | 10 * 3600 / 0.9
+    50         | 10       || 9d       | true          | true         | 5 * 3600 / 0.9
     // discharging on target ref
-    50         | -5       || -4.5     | true          | true         | 6 * 3600 / 0.9
-    50         | -10      || -9       | true          | true         | 3 * 3600 / 0.9
+    50         | -5       || -4.5d    | true          | true         | 6 * 3600 / 0.9
+    50         | -10      || -9d      | true          | true         | 3 * 3600 / 0.9
     // discharging on full
-    100        | -5       || -4.5     | true          | true         | 10 * 3600 / 0.9
-    100        | -10      || -9       | true          | true         | 5 * 3600 / 0.9
+    100        | -5       || -4.5d    | true          | true         | 10 * 3600 / 0.9
+    100        | -10      || -9d      | true          | true         | 5 * 3600 / 0.9
   }
 
   def "Handle the edge case of discharging in tolerance margins"() {
@@ -272,8 +273,8 @@ class StorageModelTest extends Specification {
     def data = new StorageModel.StorageRelevantData(startTick + 1)
     // margin is at ~ 20.0030864 kWh
     def oldState = new StorageModel.StorageState(
-        getQuantity(20.002d, KILOWATTHOUR),
-        getQuantity(0d, KILOWATT),
+        Sq.create(20.002d, KilowattHours$.MODULE$),
+        Sq.create(0d, Kilowatts$.MODULE$),
         startTick
         )
 
@@ -281,13 +282,13 @@ class StorageModelTest extends Specification {
     def result = storageModel.handleControlledPowerChange(
         data,
         oldState,
-        getQuantity(-5d, KILOWATT)
+        Sq.create(-5d, Kilowatts$.MODULE$)
         )
 
     then:
-    equals(result._1.chargingPower(), getQuantity(0d, KILOWATT), TOLERANCE)
+    Math.abs(result._1.chargingPower().toKilowatts()) < TOLERANCE
     result._1.tick() == startTick + 1
-    equals(result._1.storedEnergy(), oldState.storedEnergy(), TOLERANCE)
+    Math.abs(result._1.storedEnergy().toKilowattHours() - oldState.storedEnergy().toKilowattHours()) < TOLERANCE
     def flexChangeIndication = result._2
     !flexChangeIndication.changesAtTick().defined
     flexChangeIndication.changesAtNextActivation()
@@ -300,8 +301,8 @@ class StorageModelTest extends Specification {
     def data = new StorageModel.StorageRelevantData(startTick + 1)
     // margin is at ~ 99.9975 kWh
     def oldState = new StorageModel.StorageState(
-        getQuantity(99.999, KILOWATTHOUR),
-        getQuantity(0d, KILOWATT),
+        Sq.create(99.999, KilowattHours$.MODULE$),
+        Sq.create(0d, Kilowatts$.MODULE$),
         startTick
         )
 
@@ -309,13 +310,13 @@ class StorageModelTest extends Specification {
     def result = storageModel.handleControlledPowerChange(
         data,
         oldState,
-        getQuantity(9d, KILOWATT)
+        Sq.create(9d, Kilowatts$.MODULE$)
         )
 
     then:
-    equals(result._1.chargingPower(), getQuantity(0d, KILOWATT), TOLERANCE)
+    Math.abs(result._1.chargingPower().toKilowatts()) < TOLERANCE
     result._1.tick() == startTick + 1
-    equals(result._1.storedEnergy(), oldState.storedEnergy(), TOLERANCE)
+    Math.abs(result._1.storedEnergy().toKilowattHours() - oldState.storedEnergy().toKilowattHours()) < TOLERANCE
     def flexChangeIndication = result._2
     !flexChangeIndication.changesAtTick().defined
     flexChangeIndication.changesAtNextActivation()
@@ -328,8 +329,8 @@ class StorageModelTest extends Specification {
     def data = new StorageModel.StorageRelevantData(startTick + 1)
     // margin is at ~ 30.0025 kWh
     def oldState = new StorageModel.StorageState(
-        getQuantity(30.0024d, KILOWATTHOUR),
-        getQuantity(0d, KILOWATT),
+        Sq.create(30.0024d, KilowattHours$.MODULE$),
+        Sq.create(0d, Kilowatts$.MODULE$),
         startTick
         )
 
@@ -337,13 +338,13 @@ class StorageModelTest extends Specification {
     def result = storageModel.handleControlledPowerChange(
         data,
         oldState,
-        getQuantity(-10d, KILOWATT)
+        Sq.create(-10d, Kilowatts$.MODULE$)
         )
 
     then:
-    equals(result._1.chargingPower(), getQuantity(-9d, KILOWATT), TOLERANCE)
+    Math.abs(result._1.chargingPower().toKilowatts() - (-9d)) < TOLERANCE
     result._1.tick() == startTick + 1
-    equals(result._1.storedEnergy(), oldState.storedEnergy(), TOLERANCE)
+    Math.abs(result._1.storedEnergy().toKilowattHours() - oldState.storedEnergy().toKilowattHours()) < TOLERANCE
     def flexChangeIndication = result._2
     flexChangeIndication.changesAtTick() == Option.apply(startTick + 1L + 4001L)
     flexChangeIndication.changesAtNextActivation()
@@ -356,8 +357,8 @@ class StorageModelTest extends Specification {
     def data = new StorageModel.StorageRelevantData(startTick + 1)
     // margin is at ~ 39.9975 kWh
     def oldState = new StorageModel.StorageState(
-        getQuantity(39.998d, KILOWATTHOUR),
-        getQuantity(0d, KILOWATT),
+        Sq.create(39.998d, KilowattHours$.MODULE$),
+        Sq.create(0d, Kilowatts$.MODULE$),
         startTick
         )
 
@@ -365,13 +366,13 @@ class StorageModelTest extends Specification {
     def result = storageModel.handleControlledPowerChange(
         data,
         oldState,
-        getQuantity(5d, KILOWATT)
+        Sq.create(5d, Kilowatts$.MODULE$)
         )
 
     then:
-    equals(result._1.chargingPower(), getQuantity(4.5d, KILOWATT), TOLERANCE)
+    Math.abs(result._1.chargingPower().toKilowatts() - (4.5d)) < TOLERANCE
     result._1.tick() == startTick + 1
-    equals(result._1.storedEnergy(), oldState.storedEnergy(), TOLERANCE)
+    Math.abs(result._1.storedEnergy().toKilowattHours() - oldState.storedEnergy().toKilowattHours()) < TOLERANCE
     def flexChangeIndication = result._2
     flexChangeIndication.changesAtTick() == Option.apply(startTick + 1L + 48002L)
     flexChangeIndication.changesAtNextActivation()
