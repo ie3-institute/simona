@@ -15,38 +15,18 @@ import edu.ie3.datamodel.models.result.system.StorageResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  ParticipantInitializeStateData,
-  ParticipantInitializingStateData,
-  SimpleInputContainer
-}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{ParticipantInitializeStateData, ParticipantInitializingStateData, SimpleInputContainer}
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.event.ResultEvent.{
-  FlexOptionsResultEvent,
-  ParticipantResultEvent
-}
+import edu.ie3.simona.event.ResultEvent.{FlexOptionsResultEvent, ParticipantResultEvent}
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
-  FlexCtrlCompletion,
-  IssuePowerCtrl,
-  ProvideFlexOptions,
-  ProvideMinMaxFlexOptions,
-  RequestFlexOptions
-}
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  RequestAssetPowerMessage
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{FlexCtrlCompletion, IssuePowerCtrl, ProvideFlexOptions, ProvideMinMaxFlexOptions, RequestFlexOptions}
+import edu.ie3.simona.ontology.messages.PowerMessage.{AssetPowerChangedMessage, RequestAssetPowerMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeParticipantAgentTrigger
@@ -57,6 +37,9 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.Megavars
+import squants.Each
+import squants.energy.{Kilowatts, Megawatts}
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
@@ -92,7 +75,7 @@ class StorageAgentModelCalculationSpec
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
+      LoadReference.ActivePower(Kilowatts(0d))
     )
   private val outputConfig = NotifierConfig(
     simulationResultInfo = true,
@@ -307,13 +290,13 @@ class StorageAgentModelCalculationSpec
 
       storageAgent ! RequestAssetPowerMessage(
         0L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
       expectMsg(
         AssetPowerChangedMessage(
-          Quantities.getQuantity(0d, MEGAWATT),
-          Quantities.getQuantity(0d, MEGAVAR)
+          Megawatts(0d),
+          Megavars(0d)
         )
       )
 
@@ -325,8 +308,8 @@ class StorageAgentModelCalculationSpec
             resolution,
             SortedMap(
               0L -> ApparentPower(
-                Quantities.getQuantity(0d, MEGAWATT),
-                Quantities.getQuantity(0d, MEGAVAR)
+                Megawatts(0d),
+                Megavars(0d)
               )
             )
           )
@@ -487,7 +470,7 @@ class StorageAgentModelCalculationSpec
         flexResult.getpMax should beEquivalentTo(storageInput.getType.getpMax)
       }
 
-      emAgent.send(storageAgent, IssuePowerCtrl(28800L, 9.asKiloWatt))
+      emAgent.send(storageAgent, IssuePowerCtrl(28800L, Kilowatts(9)))
 
       emAgent.expectMsgPF() {
         case ParticipantResultEvent(result: StorageResult) =>
@@ -562,7 +545,7 @@ class StorageAgentModelCalculationSpec
          - expecting trigger revoke
        */
 
-      emAgent.send(storageAgent, IssuePowerCtrl(43200L, 12.asKiloWatt))
+      emAgent.send(storageAgent, IssuePowerCtrl(43200L, Kilowatts(12)))
 
       emAgent.expectMsgPF() {
         case ParticipantResultEvent(result: StorageResult) =>
@@ -622,7 +605,7 @@ class StorageAgentModelCalculationSpec
         flexResult.getpMax should beEquivalentTo(0d.asKiloWatt)
       }
 
-      emAgent.send(storageAgent, IssuePowerCtrl(79688L, (-12).asKiloWatt))
+      emAgent.send(storageAgent, IssuePowerCtrl(79688L, Kilowatts(-12)))
 
       emAgent.expectMsgPF() {
         case ParticipantResultEvent(result: StorageResult) =>
@@ -680,7 +663,7 @@ class StorageAgentModelCalculationSpec
         flexResult.getpMax should beEquivalentTo(storageInput.getType.getpMax)
       }
 
-      emAgent.send(storageAgent, IssuePowerCtrl(131862L, 0.asKiloWatt))
+      emAgent.send(storageAgent, IssuePowerCtrl(131862L, Kilowatts(0d)))
 
       emAgent.expectMsgPF() {
         case ParticipantResultEvent(result: StorageResult) =>
