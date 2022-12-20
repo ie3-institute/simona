@@ -35,6 +35,8 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.Megavars
+import squants.energy.Megawatts
 
 import scala.language.postfixOps
 
@@ -212,8 +214,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
           inferiorGridAgent.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,
-              1000d.asMegaWatt,
-              0d.asMegaVar
+              Megawatts(1000.0),
+              Megavars(0.0)
             )
           )
         )
