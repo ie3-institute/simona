@@ -11,11 +11,9 @@ import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
 import edu.ie3.util.quantities.Sq
 import spock.lang.Shared
 import spock.lang.Specification
-import squants.energy.Kilowatts$
-import squants.thermal.Celsius$
-import squants.thermal.Kelvin$
-import squants.thermal.Temperature
-import squants.time.Seconds$
+import squants.energy.*
+import squants.thermal.*
+import squants.time.*
 
 import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR_PER_KELVIN
 import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATT_PER_KELVIN

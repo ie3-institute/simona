@@ -36,6 +36,7 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.scalatestplus.mockito.MockitoSugar
+import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 
@@ -211,9 +212,9 @@ class EmAgentSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           pvInput.getUuid,
-          (-5d).asKiloWatt,
-          (-5d).asKiloWatt,
-          0d.asKiloWatt
+          Kilowatts(-5d),
+          Kilowatts(-5d),
+          Kilowatts(0d)
         )
       )
 
@@ -224,9 +225,9 @@ class EmAgentSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           evcsInput.getUuid,
-          2d.asKiloWatt,
-          (-11d).asKiloWatt,
-          11d.asKiloWatt
+          Kilowatts(2d),
+          Kilowatts(-11d),
+          Kilowatts(11d)
         )
       )
 
@@ -347,9 +348,9 @@ class EmAgentSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           evcsInput.getUuid,
-          0d.asKiloWatt,
-          (-11d).asKiloWatt,
-          0d.asKiloWatt
+          Kilowatts(0d),
+          Kilowatts(-11d),
+          Kilowatts(0d)
         )
       )
 
@@ -553,9 +554,9 @@ class EmAgentSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           pvInput.getUuid,
-          (-5d).asKiloWatt,
-          (-5d).asKiloWatt,
-          0d.asKiloWatt
+          Kilowatts(-5d),
+          Kilowatts(-5d),
+          Kilowatts(0d)
         )
       )
 
@@ -566,9 +567,9 @@ class EmAgentSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           evcsInput.getUuid,
-          2d.asKiloWatt,
-          (-11d).asKiloWatt,
-          11d.asKiloWatt
+          Kilowatts(2d),
+          Kilowatts(-11d),
+          Kilowatts(11d)
         )
       )
 
@@ -695,9 +696,9 @@ class EmAgentSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           pvInput.getUuid,
-          (-3d).asKiloWatt,
-          (-3d).asKiloWatt,
-          0d.asKiloWatt
+          Kilowatts(-3d),
+          Kilowatts(-3d),
+          Kilowatts(0d)
         )
       )
 
@@ -930,9 +931,9 @@ class EmAgentSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           pvInput.getUuid,
-          (-5d).asKiloWatt,
-          (-5d).asKiloWatt,
-          0d.asKiloWatt
+          Kilowatts(-5d),
+          Kilowatts(-5d),
+          Kilowatts(0d)
         )
       )
 
@@ -943,9 +944,9 @@ class EmAgentSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           evcsInput.getUuid,
-          2d.asKiloWatt,
-          0d.asKiloWatt,
-          11d.asKiloWatt
+          Kilowatts(2d),
+          Kilowatts(0d),
+          Kilowatts(11d)
         )
       )
 
@@ -1073,9 +1074,9 @@ class EmAgentSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           pvInput.getUuid,
-          (-3d).asKiloWatt,
-          (-3d).asKiloWatt,
-          0d.asKiloWatt
+          Kilowatts(-3d),
+          Kilowatts(-3d),
+          Kilowatts(0d)
         )
       )
 
@@ -1086,9 +1087,9 @@ class EmAgentSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           evcsInput.getUuid,
-          2d.asKiloWatt,
-          (-11d).asKiloWatt,
-          11d.asKiloWatt
+          Kilowatts(2d),
+          Kilowatts(-11d),
+          Kilowatts(11d)
         )
       )
 
@@ -1315,9 +1316,9 @@ class EmAgentSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           pvInput.getUuid,
-          (-5d).asKiloWatt,
-          (-5d).asKiloWatt,
-          0d.asKiloWatt
+          Kilowatts(-5d),
+          Kilowatts(-5d),
+          Kilowatts(0d)
         )
       )
 
@@ -1325,9 +1326,9 @@ class EmAgentSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           evcsInput.getUuid,
-          2d.asKiloWatt,
-          (-11d).asKiloWatt,
-          11d.asKiloWatt
+          Kilowatts(2d),
+          Kilowatts(-11d),
+          Kilowatts(11d)
         )
       )
 
@@ -1339,13 +1340,13 @@ class EmAgentSpec
               maxPower
             ) =>
           modelUuid shouldBe emInput.getUuid
-          referencePower shouldBe 0d.asKiloWatt
-          minPower shouldBe (-16d).asKiloWatt
-          maxPower shouldBe 6d.asKiloWatt // hint: PV is not flexible
+          referencePower shouldBe Kilowatts(0d)
+          minPower shouldBe Kilowatts(-16d)
+          maxPower shouldBe Kilowatts(6d) // hint: PV is not flexible
       }
 
       // issue power control and expect EmAgent to distribute it
-      parentEmAgent.send(emAgent, IssuePowerCtrl(0L, 6d.asKiloWatt))
+      parentEmAgent.send(emAgent, IssuePowerCtrl(0L, Kilowatts(6d)))
 
       // expect issue power control
       pvAgent.expectMsg(IssueNoCtrl(0L))
