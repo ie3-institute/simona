@@ -16,15 +16,14 @@ import edu.ie3.datamodel.models.input.system.type.WecTypeInput
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.EmptyQuantity
-import scala.Option
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
 
-import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static edu.ie3.datamodel.models.StandardUnits.*
-import static edu.ie3.util.quantities.QuantityUtil.equals
 import static edu.ie3.simona.model.participant.WecModel.WecRelevantData
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static edu.ie3.util.quantities.QuantityUtil.equals
 import static tech.units.indriya.quantity.Quantities.getQuantity
 
 class WecModelTest extends Specification {
@@ -110,11 +109,10 @@ class WecModelTest extends Specification {
         getQuantity(20, CELSIUS), getQuantity(101325, PASCAL))
 
     when:
-    def result = wecModel.calculateActivePower(ModelState.ConstantState$.MODULE$, wecData).to(WATT)
-    def expected = getQuantity(power, WATT)
+    def result = wecModel.calculateActivePower(ModelState.ConstantState$.MODULE$, wecData)
 
     then:
-    equals(result, expected, TOLERANCE)
+    Math.abs(result.toWatts() - power.doubleValue()) < TOLERANCE
 
     where:
     velocity || power
@@ -140,11 +138,10 @@ class WecModelTest extends Specification {
         getQuantity(temperature, CELSIUS), getQuantity(101325, PASCAL))
 
     when:
-    def result = wecModel.calculateActivePower(ModelState.ConstantState$.MODULE$, wecData).to(WATT)
-    def expected = getQuantity(power, WATT)
+    def result = wecModel.calculateActivePower(ModelState.ConstantState$.MODULE$, wecData)
 
     then:
-    equals(result, expected, TOLERANCE)
+    Math.abs(result.toWatts() - power.doubleValue()) < TOLERANCE
 
     where:
     temperature || power

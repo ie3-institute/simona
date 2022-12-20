@@ -15,28 +15,25 @@ import edu.ie3.datamodel.models.input.system.type.ChpTypeInput
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.simona.model.participant.ChpModel.ChpState
 import edu.ie3.simona.model.thermal.CylindricalThermalStorage
-import edu.ie3.simona.model.thermal.CylindricalThermalStorage$
-import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.Sq
 import edu.ie3.util.scala.OperationInterval
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
-import tech.units.indriya.quantity.Quantities
+import squants.energy.*
 
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static tech.units.indriya.quantity.Quantities.getQuantity
-import static tech.units.indriya.unit.Units.CUBIC_METRE
 import static tech.units.indriya.unit.Units.PERCENT
-import static edu.ie3.util.quantities.QuantityUtil.equals
 
 class ChpModelTest extends Specification {
 
   @Shared
   static final Double TOLERANCE = 0.0001
   @Shared
-  ChpState chpStateNotRunning = new ChpState(false, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATTHOUR))
+  ChpState chpStateNotRunning = new ChpState(false, 0, Sq.create(0, Kilowatts$.MODULE$), Sq.create(0, KilowattHours$.MODULE$))
   @Shared
-  ChpState chpStateRunning = new ChpState(true, 0, getQuantity(0, KILOWATT), getQuantity(0, KILOWATTHOUR))
+  ChpState chpStateRunning = new ChpState(true, 0, Sq.create(0, Kilowatts$.MODULE$), Sq.create(0, KilowattHours$.MODULE$))
   @Shared
   CylindricalStorageInput storageInput
   @Shared
@@ -85,18 +82,25 @@ class ChpModelTest extends Specification {
         null,
         1.0,
         null,
-        getQuantity(100, KILOWATT),
+        Sq.create(100, Kilowatts$.MODULE$),
         0.95,
-        getQuantity(50, KILOWATT),
+        Sq.create(50, Kilowatts$.MODULE$),
         thermalStorage)
   }
 
   static def buildChpData(ChpState chpState, Double heatDemand) {
-    return new ChpModel.ChpData(chpState, getQuantity(heatDemand, KILOWATTHOUR), 7200)
+    return new ChpModel.ChpData(chpState, Sq.create(heatDemand, KilowattHours$.MODULE$), 7200)
   }
 
   static def buildThermalStorage(CylindricalStorageInput storageInput, Double storageLvl) {
-    def storedEnergy = CylindricalThermalStorage.volumeToEnergy(getQuantity(storageLvl, StandardUnits.VOLUME), storageInput.c, storageInput.inletTemp, storageInput.returnTemp)
+    def storedEnergy =
+        Sq.create(
+        CylindricalThermalStorage.volumeToEnergy(getQuantity(storageLvl, StandardUnits.VOLUME), storageInput.c, storageInput.inletTemp, storageInput.returnTemp)
+        .to(KILOWATTHOUR)
+        .getValue()
+        .doubleValue(),
+        KilowattHours$.MODULE$
+        )
     def thermalStorage = CylindricalThermalStorage.apply(storageInput, storedEnergy)
     return thermalStorage
   }
@@ -137,11 +141,10 @@ class ChpModelTest extends Specification {
 
     when:
     def nextState = chpModel.calculateNextState(chpData)
-    def thermalEnergy = nextState.thermalEnergy().to(KILOWATTHOUR)
-    def expected = getQuantity(expectedTotalEnergy, KILOWATTHOUR)
+    def thermalEnergy = nextState.thermalEnergy()
 
     then:
-    equals(thermalEnergy, expected, TOLERANCE)
+    Math.abs(thermalEnergy.toKilowattHours() - expectedTotalEnergy) < TOLERANCE
 
     where:
     chpState           | storageLvl | heatDemand  || expectedTotalEnergy
@@ -162,13 +165,12 @@ class ChpModelTest extends Specification {
     def chpData = buildChpData(chpState, heatDemand)
     def thermalStorage = buildThermalStorage(storageInput, storageLvl)
     def chpModel = buildChpModel(thermalStorage)
-    def expectedStoredEnergyQty = Quantities.getQuantity(expectedStoredEnergy, KILOWATTHOUR)
 
     when:
     chpModel.calculateNextState(chpData)
 
     then:
-    equals(thermalStorage._storedEnergy(), expectedStoredEnergyQty, TOLERANCE)
+    Math.abs(thermalStorage._storedEnergy().toKilowattHours() - expectedStoredEnergy.doubleValue()) < TOLERANCE
 
     where:
     chpState           | storageLvl | heatDemand | expectedStoredEnergy

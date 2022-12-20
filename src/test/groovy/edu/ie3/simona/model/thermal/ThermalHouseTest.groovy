@@ -8,16 +8,19 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
-import edu.ie3.util.quantities.QuantityUtil
+import edu.ie3.util.quantities.Sq
 import spock.lang.Shared
 import spock.lang.Specification
+import squants.energy.Kilowatts$
+import squants.thermal.Celsius$
+import squants.thermal.Kelvin$
+import squants.thermal.Temperature
+import squants.time.Seconds$
 
-import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
-import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
+import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR_PER_KELVIN
+import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATT_PER_KELVIN
 import static tech.units.indriya.quantity.Quantities.getQuantity
 import static tech.units.indriya.unit.Units.CELSIUS
-import static tech.units.indriya.unit.Units.KELVIN
-import static tech.units.indriya.unit.Units.SECOND
 
 class ThermalHouseTest extends Specification {
 
@@ -44,55 +47,56 @@ class ThermalHouseTest extends Specification {
     def thermalHouse = buildThermalHouse(18, 22)
 
     when:
-    def isHigher = thermalHouse.isInnerTemperatureTooHigh(innerTemperature)
-    def isLower = thermalHouse.isInnerTemperatureTooLow(innerTemperature, thermalHouse.lowerBoundaryTemperature())
+    Temperature innerTemp = Sq.create(innerTemperature, Celsius$.MODULE$)
+    def isHigher = thermalHouse.isInnerTemperatureTooHigh(innerTemp)
+    def isLower = thermalHouse.isInnerTemperatureTooLow(innerTemp, thermalHouse.lowerBoundaryTemperature())
 
     then:
     isHigher == isTooHigh
     isLower == isTooLow
 
     where:
-    innerTemperature         || isTooHigh | isTooLow
-    getQuantity(20, CELSIUS) || false     | false
-    getQuantity(18, CELSIUS) || false     | true
-    getQuantity(22, CELSIUS) || true      | false
-    getQuantity(17, CELSIUS) || false     | true
-    getQuantity(23, CELSIUS) || true      | false
+    innerTemperature || isTooHigh | isTooLow
+    20               || false     | false
+    18               || false     | true
+    22               || true      | false
+    17               || false     | true
+    23               || true      | false
   }
 
   def "Calculation of thermal energy change and new inner temperature is performed correctly"() {
     given:
     def thermalHouse = buildThermalHouse(18, 22)
-    def innerTemperature = getQuantity(20, CELSIUS)
+    def innerTemperature = Sq.create(20, Celsius$.MODULE$)
 
     when:
-    def thermalEnergyGain = thermalHouse.calcThermalEnergyGain(getQuantity(100, KILOWATT), getQuantity(3600, SECOND)).to(KILOWATTHOUR)
-    def thermalEnergyLoss = thermalHouse.calcThermalEnergyLoss(innerTemperature, getQuantity(10, CELSIUS), getQuantity(3600, SECOND)).to(KILOWATTHOUR)
-    def thermalEnergyChange = thermalHouse.calcThermalEnergyChange(thermalEnergyGain, thermalEnergyLoss).to(KILOWATTHOUR)
-    def innerTemperatureChange = thermalHouse.calcInnerTemperatureChange(thermalEnergyChange).to(KELVIN)
+    def thermalEnergyGain = thermalHouse.calcThermalEnergyGain(Sq.create(100, Kilowatts$.MODULE$), Sq.create(3600, Seconds$.MODULE$))
+    def thermalEnergyLoss = thermalHouse.calcThermalEnergyLoss(innerTemperature, Sq.create(10, Celsius$.MODULE$), Sq.create(3600, Seconds$.MODULE$))
+    def thermalEnergyChange = thermalHouse.calcThermalEnergyChange(thermalEnergyGain, thermalEnergyLoss)
+    def innerTemperatureChange = thermalHouse.calcInnerTemperatureChange(thermalEnergyChange)
     def newInnerTemperature = thermalHouse.calcNewInnerTemperature(innerTemperature, innerTemperatureChange)
 
     then:
-    QuantityUtil.equals(getQuantity(100, KILOWATTHOUR), thermalEnergyGain.to(KILOWATTHOUR), TOLERANCE)
-    QuantityUtil.equals(getQuantity(10, KILOWATTHOUR), thermalEnergyLoss.to(KILOWATTHOUR), TOLERANCE)
-    QuantityUtil.equals(getQuantity(90, KILOWATTHOUR), thermalEnergyChange.to(KILOWATTHOUR), TOLERANCE)
-    QuantityUtil.equals(getQuantity(9, KELVIN), innerTemperatureChange.to(KELVIN), TOLERANCE)
-    QuantityUtil.equals(getQuantity(29, CELSIUS), newInnerTemperature.to(CELSIUS), TOLERANCE)
+    Math.abs(100d - thermalEnergyGain.toKilowattHours()) < TOLERANCE
+    Math.abs(10d - thermalEnergyLoss.toKilowattHours()) < TOLERANCE
+    Math.abs(90d - thermalEnergyChange.toKilowattHours()) < TOLERANCE
+    Math.abs(9d - innerTemperatureChange.toKelvinScale()) < TOLERANCE
+    Math.abs(29d - newInnerTemperature.toCelsiusDegrees()) < TOLERANCE
   }
 
   def "Comprising function to calculate new inner temperature works as expected"() {
     given:
     def thermalHouse = buildThermalHouse(18, 22)
-    def thermalPower = getQuantity(100, KILOWATT)
-    def duration = getQuantity(3600, SECOND)
-    def currentInnerTemperature = getQuantity(20, CELSIUS)
-    def ambientTemperature = getQuantity(10, CELSIUS)
+    def thermalPower = Sq.create(100, Kilowatts$.MODULE$)
+    def duration = Sq.create(3600, Seconds$.MODULE$)
+    def currentInnerTemperature = Sq.create(20, Celsius$.MODULE$)
+    def ambientTemperature = Sq.create(10, Celsius$.MODULE$)
 
     when:
     def newInnerTemperature = thermalHouse.newInnerTemperature(thermalPower, duration, currentInnerTemperature, ambientTemperature)
 
     then:
-    QuantityUtil.equals(getQuantity(29, CELSIUS), newInnerTemperature.to(CELSIUS), TOLERANCE)
+    Math.abs(newInnerTemperature.toCelsiusDegrees() - 29d) < TOLERANCE
   }
 
   def "Check build method:"() {
@@ -116,9 +120,9 @@ class ThermalHouseTest extends Specification {
     thermalHouse.operatorInput() == thermalHouseInput.operator
     thermalHouse.operationTime() == thermalHouseInput.operationTime
     thermalHouse.bus() == thermalHouseInput.thermalBus
-    thermalHouse.ethLosses() == thermalHouseInput.ethLosses
-    thermalHouse.ethCapa() == thermalHouseInput.ethCapa
-    thermalHouse.lowerBoundaryTemperature() == getQuantity(18, CELSIUS)
-    thermalHouse.upperBoundaryTemperature() == getQuantity(22, CELSIUS)
+    thermalHouse.ethLosses().toKilowatts() == thermalHouseInput.ethLosses.to(KILOWATT_PER_KELVIN).getValue().doubleValue()
+    (thermalHouse.ethCapa().$times(Sq.create(1d, Kelvin$.MODULE$))).toKilowattHours() == thermalHouseInput.ethCapa.to(KILOWATTHOUR_PER_KELVIN).getValue().doubleValue()
+    thermalHouse.lowerBoundaryTemperature() == Sq.create(18, Celsius$.MODULE$)
+    thermalHouse.upperBoundaryTemperature() == Sq.create(22, Celsius$.MODULE$)
   }
 }

@@ -9,30 +9,30 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.simona.io.grid.CsvGridSource
-import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.util.TimeUtil
+import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.Sq
 import edu.ie3.util.quantities.interfaces.Irradiance
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVRecord
-import scala.Option
 import spock.lang.Shared
 import spock.lang.Specification
+import squants.*
+import squants.energy.*
 import tech.units.indriya.ComparableQuantity
 
 import javax.measure.Quantity
-import javax.measure.quantity.Dimensionless
 import javax.measure.quantity.Power
 import java.time.ZonedDateTime
 import java.util.zip.GZIPInputStream
 
 import static edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
-import static edu.ie3.util.quantities.PowerSystemUnits.PU
 import static java.util.Locale.US
 import static java.util.Locale.setDefault
 import static tech.units.indriya.quantity.Quantities.getQuantity
-import static tech.units.indriya.unit.Units.*
+import static tech.units.indriya.unit.Units.KELVIN
+import static tech.units.indriya.unit.Units.METRE_PER_SECOND
 
 /**
  * A simple integration test that uses pre-calculated data to check if the pv model works as expected.
@@ -89,8 +89,19 @@ class PvModelIT extends Specification implements PvModelITHelper {
 
         "build the needed data"
         WeatherMessage.WeatherData weather = modelToWeatherMap.get(modelId)
-        PvModel.PvRelevantData neededData = new PvModel.PvRelevantData(dateTime,3600L, weather.diffIrr() as ComparableQuantity<Irradiance>, weather.dirIrr() as ComparableQuantity<Irradiance>)
-        ComparableQuantity<Dimensionless> voltage = getQuantity(1.414213562, PU)
+        PvModel.PvRelevantData neededData = new PvModel.PvRelevantData(
+            dateTime,
+            3600L,
+            Sq.create(
+            weather.diffIrr().to(PowerSystemUnits.KILOWATT_PER_SQUAREMETRE).getValue().doubleValue(),
+            Kilowatts$.MODULE$
+            ),
+            Sq.create(
+            weather.dirIrr().to(PowerSystemUnits.KILOWATT_PER_SQUAREMETRE).getValue().doubleValue(),
+            Kilowatts$.MODULE$
+            ),
+            )
+        Dimensionless voltage = Sq.create(1.414213562, Each$.MODULE$)
 
         "collect the results and calculate the difference between the provided results and the calculated ones"
         double calc = model.calculatePower(0L, voltage, ModelState.ConstantState$.MODULE$,  neededData).p().getValue().doubleValue()
@@ -138,24 +149,10 @@ trait PvModelITHelper {
     HashMap<String, PvModel> pvModels = new HashMap<>()
     for (PvInput inputModel : csvGridSource.get().getSystemParticipants().getPvPlants()) {
       PvModel model = PvModel.apply(
-          inputModel.getUuid(),
-          inputModel.getId(),
-          SystemComponent.determineOperationInterval(
-          simulationStartDate,
-          simulationEndDate,
-          inputModel.getOperationTime()
-          ),
+          inputModel,
           1d,
-          QControl.apply(inputModel.getqCharacteristics()),
-          inputModel.getsRated(),
-          inputModel.getCosPhiRated(),
-          inputModel.getNode().getGeoPosition().getY(),
-          inputModel.getNode().getGeoPosition().getX(),
-          inputModel.getAlbedo(),
-          inputModel.getEtaConv(),
-          inputModel.getAzimuth(),
-          inputModel.getElevationAngle(),
-          getQuantity(1d, SQUARE_METRE)
+          simulationStartDate,
+          simulationEndDate
           )
 
       pvModels.put(inputModel.getId(), model)

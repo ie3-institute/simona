@@ -12,16 +12,11 @@ import edu.ie3.simona.model.participant.ModelState
 import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage
+import edu.ie3.util.quantities.Sq
 import edu.ie3.util.scala.OperationInterval
-import scala.Option
 import scala.Tuple2
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-
-import javax.measure.quantity.Dimensionless
-import javax.measure.quantity.Power
-
-import static edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
+import squants.Dimensionless
+import squants.energy.*
 
 class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryData.ApparentPower, ModelState> {
 
@@ -31,7 +26,7 @@ class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryDa
   OperationInterval operationInterval,
   Double scalingFactor,
   QControl qControl,
-  ComparableQuantity<Power> sRated,
+  Power sRated,
   Double cosPhiRated
   ) {
     super(
@@ -46,13 +41,13 @@ class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryDa
   }
 
   @Override
-  Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, ModelState maybeModelState, CalcRelevantData data) {
+  Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, ModelState maybeModelState, CalcRelevantData data) {
     return super.calculateApparentPower(tick, voltage, maybeModelState, data)
   }
 
   @Override
-  ComparableQuantity<Power> calculateActivePower(ModelState maybeModelState, CalcRelevantData data) {
-    return Quantities.getQuantity(0, MEGAWATT)
+  Power calculateActivePower(ModelState maybeModelState, CalcRelevantData data) {
+    return Sq.create(0, Megawatts$.MODULE$)
   }
 
   @Override
@@ -61,7 +56,7 @@ class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryDa
   }
 
   @Override
-  Tuple2 handleControlledPowerChange(CalcRelevantData data, ModelState lastState, ComparableQuantity setPower) {
+  Tuple2 handleControlledPowerChange(CalcRelevantData data, ModelState lastState, Power setPower) {
     return null
   }
 }

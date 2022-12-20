@@ -11,13 +11,11 @@ import edu.ie3.datamodel.models.input.system.characteristic.CosPhiP
 import edu.ie3.datamodel.models.input.system.characteristic.QV
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.test.common.model.MockParticipant
+import edu.ie3.util.quantities.Sq
 import edu.ie3.util.scala.OperationInterval
 import spock.lang.Specification
-import tech.units.indriya.quantity.Quantities
-
-import javax.measure.Quantity
-
-import static edu.ie3.util.quantities.PowerSystemUnits.*
+import squants.*
+import squants.energy.*
 
 class SystemParticipantTest extends Specification {
 
@@ -30,16 +28,16 @@ class SystemParticipantTest extends Specification {
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new CosPhiFixed(varCharacteristicString)),
-        Quantities.getQuantity(200, KILOVOLTAMPERE),
+        Sq.create(200, Kilowatts$.MODULE$),
         1d)
-    Quantity adjustedVoltage = Quantities.getQuantity(1, PU) // needed for method call but not applicable for cosphi_p
+    Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$) // needed for method call but not applicable for cosphi_p
 
     when: "the reactive power is calculated"
-    Quantity power = Quantities.getQuantity(pVal, KILOWATT)
+    Power power = Sq.create(pVal, Kilowatts$.MODULE$)
     def qCalc = loadMock.calculateReactivePower(power, adjustedVoltage)
 
     then: "compare the results in watt"
-    Math.abs(qCalc.subtract(Quantities.getQuantity(qSol, KILOVAR)).getValue().doubleValue()) < 0.0001
+    Math.abs(qCalc.toKilovars() - qSol.doubleValue()) < 0.0001
 
     where:
     varCharacteristicString   | pVal || qSol
@@ -63,16 +61,17 @@ class SystemParticipantTest extends Specification {
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new CosPhiP(varCharacteristicString)),
-        Quantities.getQuantity(102, KILOWATT),
+        Sq.create(102, Kilowatts$.MODULE$),
         1d)
 
-    Quantity adjustedVoltage = Quantities.getQuantity(1, PU) // needed for method call but not applicable for cosphi_p
+    Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$) // needed for method call but not applicable for cosphi_p
 
     when: "the reactive power is calculated"
-    def qCalc = loadMock.calculateReactivePower(Quantities.getQuantity(p, KILOWATT), adjustedVoltage)
+    Power power = Sq.create(p, Kilowatts$.MODULE$)
+    def qCalc = loadMock.calculateReactivePower(power, adjustedVoltage)
 
     then: "compare the results in watt"
-    Math.abs(qCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(qSol, KILOVAR).toSystemUnit().getValue().doubleValue()) < 0.0001
+    Math.abs(qCalc.toKilovars() - qSol.doubleValue()) < 0.0001
 
     where: // explained below
     varCharacteristicString                                                                                                                                                                                                                     | p     || qSol
@@ -93,16 +92,17 @@ class SystemParticipantTest extends Specification {
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new CosPhiP(varCharacteristicString)),
-        Quantities.getQuantity(101, KILOWATT),
+        Sq.create(101, Kilowatts$.MODULE$),
         1d)
 
-    Quantity adjustedVoltage = Quantities.getQuantity(1, PU) // needed for method call but not applicable for cosphi_p
+    Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$) // needed for method call but not applicable for cosphi_p
 
     when: "the reactive power is calculated"
-    def qCalc = loadMock.calculateReactivePower(Quantities.getQuantity(p, KILOWATT), adjustedVoltage)
+    Power power = Sq.create(p, Kilowatts$.MODULE$)
+    def qCalc = loadMock.calculateReactivePower(power, adjustedVoltage)
 
     then: "compare the results in watt"
-    Math.abs(qCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(qSol, KILOVAR).toSystemUnit().getValue().doubleValue()) < 0.0001
+    Math.abs(qCalc.toKilovars() - qSol.doubleValue()) < 0.0001
 
     where: // explained below
     varCharacteristicString                                                                                                                                                                                                                                         | p      || qSol
@@ -117,7 +117,7 @@ class SystemParticipantTest extends Specification {
   def "Test calculateQ for a standard q_v characteristic"() {
     given: "the mocked system participant model with a q_v characteristic"
 
-    Quantity p = Quantities.getQuantity(42, KILOWATT)
+    Power p = Sq.create(42, Kilowatts$.MODULE$)
 
     def loadMock = new MockParticipant(
         UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
@@ -125,18 +125,18 @@ class SystemParticipantTest extends Specification {
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-        Quantities.getQuantity(200, KILOWATT),
+        Sq.create(200, Kilowatts$.MODULE$),
         0.98)
 
     when: "the reactive power is calculated"
-    Quantity adjustedVoltage = Quantities.getQuantity(adjustedVoltageVal, PU)
+    Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$)
     def qCalc = loadMock.calculateReactivePower(p, adjustedVoltage)
 
     then: "compare the results in watt"
-    Math.abs(qCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(qSoll, KILOVAR).toSystemUnit().getValue().doubleValue()) < 0.0001
+    Math.abs(qCalc.toKilovars() - qSol.doubleValue()) < 0.0001
 
     where:
-    adjustedVoltageVal || qSoll
+    adjustedVoltageVal || qSol
     0.9                || -39.79949748426482
     0.93               || -39.79949748426482
     0.95               ||  -19.89974874213241
@@ -151,7 +151,7 @@ class SystemParticipantTest extends Specification {
   def "Test calculateQ for a standard q_v characteristic if active power is zero and cosPhiRated 1"() {
     given: "the mocked system participant model with a q_v characteristic"
 
-    Quantity p = Quantities.getQuantity(0, KILOWATT)
+    Power p = Sq.create(0, Kilowatts$.MODULE$)
 
     def loadMock = new MockParticipant(
         UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
@@ -159,18 +159,18 @@ class SystemParticipantTest extends Specification {
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-        Quantities.getQuantity(200, KILOWATT),
+        Sq.create(200, Kilowatts$.MODULE$),
         1d)
 
     when: "the reactive power is calculated"
-    Quantity adjustedVoltage = Quantities.getQuantity(adjustedVoltageVal, PU)
+    Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$)
     def qCalc = loadMock.calculateReactivePower(p, adjustedVoltage)
 
     then: "compare the results in watt"
-    Math.abs(qCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(qSoll, KILOVAR).toSystemUnit().getValue().doubleValue()) < 0.0001
+    Math.abs(qCalc.toKilovars() - qSol.doubleValue()) < 0.0001
 
     where:
-    adjustedVoltageVal || qSoll
+    adjustedVoltageVal || qSol
     0.9                || 0
     0.93               || 0
     0.95               || 0
@@ -185,7 +185,7 @@ class SystemParticipantTest extends Specification {
   def "Test calculateQ for a standard q_v characteristic if active power is not zero and cosPhiRated 0.95"() {
     given: "the mocked system participant model with a q_v characteristic"
 
-    Quantity p = Quantities.getQuantity(100d, KILOWATT)
+    Power p = Sq.create(100, Kilowatts$.MODULE$)
 
     def loadMock = new MockParticipant(
         UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
@@ -193,18 +193,18 @@ class SystemParticipantTest extends Specification {
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-        Quantities.getQuantity(200, KILOWATT),
+        Sq.create(200, Kilowatts$.MODULE$),
         0.95)
 
     when: "the reactive power is calculated"
-    Quantity adjustedVoltage = Quantities.getQuantity(adjustedVoltageVal, PU)
+    Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$)
     def qCalc = loadMock.calculateReactivePower(p, adjustedVoltage)
 
     then: "compare the results in watt"
-    Math.abs(qCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(qSoll, KILOVAR).toSystemUnit().getValue().doubleValue()) < 0.0001
+    Math.abs(qCalc.toKilovars() - qSol.doubleValue()) < 0.0001
 
     where:
-    adjustedVoltageVal || qSoll
+    adjustedVoltageVal || qSol
     0.9                || -62.449979983984
     0.93               || -62.449979983984
     0.95               || -31.224989991992
@@ -219,7 +219,7 @@ class SystemParticipantTest extends Specification {
   def "Test calculateQ for a standard q_v characteristic if active power is 195 and cosPhiRated 0.95"() {
     given: "the mocked system participant model with a q_v characteristic"
 
-    Quantity p = Quantities.getQuantity(195d, KILOWATT)
+    Power p = Sq.create(195, Kilowatts$.MODULE$)
 
     def loadMock = new MockParticipant(
         UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
@@ -227,18 +227,18 @@ class SystemParticipantTest extends Specification {
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-        Quantities.getQuantity(200, KILOWATT),
+        Sq.create(200, Kilowatts$.MODULE$),
         0.95)
 
     when: "the reactive power is calculated"
-    Quantity adjustedVoltage = Quantities.getQuantity(adjustedVoltageVal, PU)
+    Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$)
     def qCalc = loadMock.calculateReactivePower(p, adjustedVoltage)
 
     then: "compare the results in watt"
-    Math.abs(qCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(qSoll, KILOVAR).toSystemUnit().getValue().doubleValue()) < 0.0001
+    Math.abs(qCalc.toKilovars() - qSol.doubleValue()) < 0.0001
 
     where:
-    adjustedVoltageVal || qSoll
+    adjustedVoltageVal || qSol
     0.9                || -44.440972086578
     0.93               || -44.440972086578
     0.95               || -31.224989991992
