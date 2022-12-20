@@ -16,39 +16,26 @@ import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.load.LoadAgent.FixedLoadAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  ParticipantInitializeStateData,
-  ParticipantInitializingStateData,
-  ParticipantUninitializedStateData,
-  SimpleInputContainer
-}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{ParticipantInitializeStateData, ParticipantInitializingStateData, ParticipantUninitializedStateData, SimpleInputContainer}
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.PowerMessage.{AssetPowerChangedMessage, AssetPowerUnchangedMessage, RequestAssetPowerMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger
-}
+import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeParticipantAgentTrigger}
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.model.participant.LoadTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.scala.quantities.Megavars
 import org.scalatest.PrivateMethodTester
+import squants.Each
+import squants.energy.{Kilowatts, Megawatts}
 import tech.units.indriya.quantity.Quantities
 
 import java.util.concurrent.TimeUnit
@@ -80,7 +67,7 @@ class LoadAgentFixedModelCalculationSpec
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
+      LoadReference.ActivePower(Kilowatts(0d))
     )
   private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
@@ -295,13 +282,13 @@ class LoadAgentFixedModelCalculationSpec
 
       loadAgent ! RequestAssetPowerMessage(
         0L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
       expectMsg(
         AssetPowerChangedMessage(
-          Quantities.getQuantity(0d, MEGAWATT),
-          Quantities.getQuantity(0d, MEGAVAR)
+          Megawatts(0d),
+          Megavars(0d)
         )
       )
 
@@ -313,8 +300,8 @@ class LoadAgentFixedModelCalculationSpec
             resolution,
             SortedMap(
               0L -> ApparentPower(
-                Quantities.getQuantity(0d, MEGAWATT),
-                Quantities.getQuantity(0d, MEGAVAR)
+                Megawatts(0d),
+                Megavars(0d)
               )
             )
           )
@@ -476,8 +463,8 @@ class LoadAgentFixedModelCalculationSpec
       /* Ask the agent for average power in tick 3000 */
       loadAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -554,8 +541,8 @@ class LoadAgentFixedModelCalculationSpec
       /* Ask the agent for average power in tick 3000 */
       loadAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -577,8 +564,8 @@ class LoadAgentFixedModelCalculationSpec
       /* Ask again with unchanged information */
       loadAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(1.000000000000001d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.000000000000001d),
+        Each(0d)
       )
 
       /* Expect, that nothing has changed */
@@ -599,8 +586,8 @@ class LoadAgentFixedModelCalculationSpec
       /* Ask again with changed information */
       loadAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(0.98, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(0.98),
+        Each(0d)
       )
 
       /* Expect, the correct values (this model has fixed power factor) */
