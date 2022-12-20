@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.thermal
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.{
   ThermalHouseInput,
   ThermalStorageInput
@@ -18,14 +17,20 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageFull
 }
 import edu.ie3.simona.test.common.UnitSpec
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
+import squants.Kelvin
+import squants.energy.{KilowattHours, Kilowatts, MegawattHours, Megawatts}
+import squants.thermal.Celsius
 
 import scala.jdk.CollectionConverters._
 
 class ThermalGridWithStorageOnlySpec
     extends UnitSpec
     with ThermalStorageTestData {
+
+  implicit val energyTolerance: squants.Energy = KilowattHours(1e-10)
+  implicit val powerTolerance: squants.Power = Kilowatts(1e-10)
+  implicit val temperatureTolerance: squants.Temperature = Kelvin(1e-3)
+
   "Testing thermal grid generation with only a storage" should {
     "instantiating correctly from input data" in new ThermalStorageTestData {
       val thermalGridInput =
@@ -52,11 +57,9 @@ class ThermalGridWithStorageOnlySpec
         Set[ThermalStorageInput](thermalStorageInput).asJava
       )
     )
-    val ambientTemperature = Quantities.getQuantity(12d, Units.CELSIUS)
-    val qDotInfeed =
-      Quantities.getQuantity(15d, StandardUnits.ACTIVE_POWER_IN)
-    val qDotConsumption =
-      Quantities.getQuantity(-200d, StandardUnits.ACTIVE_POWER_IN)
+    val ambientTemperature = Celsius(12.0)
+    val qDotInfeed = Kilowatts(15.0)
+    val qDotConsumption = Kilowatts(-200.0)
 
     "requesting the starting state" should {
       "deliver proper results" in {
@@ -66,12 +69,8 @@ class ThermalGridWithStorageOnlySpec
                 Some(ThermalStorageState(tick, storedEnergy, qDot))
               ) =>
             tick shouldBe expectedStorageStartingState.tick
-            storedEnergy should equalWithTolerance(
-              expectedStorageStartingState.storedEnergy
-            )
-            qDot should equalWithTolerance(
-              expectedStorageStartingState.qDot
-            )
+            (storedEnergy ~= expectedStorageStartingState.storedEnergy) shouldBe true
+            (qDot ~= expectedStorageStartingState.qDot) shouldBe true
           case _ => fail("Determination of starting state failed")
         }
       }
@@ -87,12 +86,8 @@ class ThermalGridWithStorageOnlySpec
           ThermalGrid.startingState(thermalGrid)
         )
 
-        gridDemand.required should equalWithTolerance(
-          Quantities.getQuantity(0d, StandardUnits.ENERGY_RESULT)
-        )
-        gridDemand.possible should equalWithTolerance(
-          Quantities.getQuantity(0.92d, StandardUnits.ENERGY_RESULT)
-        )
+        (gridDemand.required ~= MegawattHours(0.0)) shouldBe true
+        (gridDemand.possible ~= MegawattHours(0.92)) shouldBe true
       }
     }
 
@@ -110,8 +105,8 @@ class ThermalGridWithStorageOnlySpec
             Some(
               ThermalStorageState(
                 0L,
-                Quantities.getQuantity(430d, StandardUnits.ENERGY_IN),
-                Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+                KilowattHours(430.0),
+                Kilowatts(0.0)
               )
             )
           )
@@ -130,10 +125,8 @@ class ThermalGridWithStorageOnlySpec
                 Some(ThermalStorageState(tick, storedEnergy, qDot))
               ) =>
             tick shouldBe 0L
-            storedEnergy should equalWithTolerance(
-              Quantities.getQuantity(430d, StandardUnits.ENERGY_IN)
-            )
-            qDot should equalWithTolerance(qDotConsumption)
+            (storedEnergy ~= KilowattHours(430d)) shouldBe true
+            (qDot ~= qDotConsumption) shouldBe true
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(StorageEmpty(3600L))
@@ -164,10 +157,8 @@ class ThermalGridWithStorageOnlySpec
                 Some(ThermalStorageState(tick, storedEnergy, qDot))
               ) =>
             tick shouldBe 0L
-            storedEnergy should equalWithTolerance(
-              Quantities.getQuantity(230d, StandardUnits.ENERGY_IN)
-            )
-            qDot should equalWithTolerance(qDotInfeed)
+            (storedEnergy ~= KilowattHours(230d)) shouldBe true
+            (qDot ~= qDotInfeed) shouldBe true
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(StorageFull(220800L))
@@ -191,10 +182,8 @@ class ThermalGridWithStorageOnlySpec
                 Some(ThermalStorageState(tick, storedEnergy, qDot))
               ) =>
             tick shouldBe 0L
-            storedEnergy should equalWithTolerance(
-              Quantities.getQuantity(230d, StandardUnits.ENERGY_IN)
-            )
-            qDot should equalWithTolerance(qDotInfeed)
+            (storedEnergy ~= KilowattHours(230d)) shouldBe true
+            (qDot ~= qDotInfeed) shouldBe true
           case _ => fail("Thermal grid state updated failed")
         }
       }
@@ -208,8 +197,8 @@ class ThermalGridWithStorageOnlySpec
               Some(
                 ThermalStorageState(
                   0L,
-                  Quantities.getQuantity(430d, StandardUnits.ENERGY_IN),
-                  Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+                  KilowattHours(430.0),
+                  Kilowatts(0.0)
                 )
               )
             ),
@@ -224,10 +213,8 @@ class ThermalGridWithStorageOnlySpec
                 Some(StorageEmpty(thresholdTick))
               ) =>
             tick shouldBe 0L
-            storedEnergy should equalWithTolerance(
-              Quantities.getQuantity(430d, StandardUnits.ENERGY_IN)
-            )
-            qDot should equalWithTolerance(qDotConsumption)
+            (storedEnergy ~= KilowattHours(430d)) shouldBe true
+            (qDot ~= qDotConsumption) shouldBe true
             thresholdTick shouldBe 3600L
           case _ => fail("Thermal grid state updated failed")
         }
@@ -238,7 +225,7 @@ class ThermalGridWithStorageOnlySpec
           0L,
           ThermalGrid.startingState(thermalGrid),
           ambientTemperature,
-          Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
+          Megawatts(0.0)
         )
         updatedState match {
           case (
@@ -249,12 +236,8 @@ class ThermalGridWithStorageOnlySpec
                 None
               ) =>
             tick shouldBe 0L
-            storedEnergy should equalWithTolerance(
-              Quantities.getQuantity(230d, StandardUnits.ENERGY_IN)
-            )
-            qDot should equalWithTolerance(
-              Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
-            )
+            (storedEnergy ~= KilowattHours(230.0)) shouldBe true
+            (qDot ~= Megawatts(0.0)) shouldBe true
           case _ => fail("Thermal grid state updated failed")
         }
       }
