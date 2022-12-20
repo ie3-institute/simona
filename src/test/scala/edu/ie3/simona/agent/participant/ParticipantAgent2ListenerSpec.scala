@@ -19,33 +19,19 @@ import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.PowerMessage.{AssetPowerChangedMessage, AssetPowerUnchangedMessage, RequestAssetPowerMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, TriggerWithIdMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  FinishGridSimulationTrigger,
-  InitializeParticipantAgentTrigger
-}
+import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, FinishGridSimulationTrigger, InitializeParticipantAgentTrigger}
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.DefaultTestData
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KILOWATT,
-  MEGAVAR,
-  MEGAWATT,
-  PU
-}
+import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT}
 import org.mockito.Mockito.when
 import org.scalatest.PrivateMethodTester
 import org.scalatestplus.mockito.MockitoSugar
+import squants.Each
+import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
@@ -79,7 +65,7 @@ class ParticipantAgent2ListenerSpec
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
+      LoadReference.ActivePower(Kilowatts(0d))
     )
 
   private val mockInputModel = mock[SystemParticipantInput]
@@ -319,8 +305,8 @@ class ParticipantAgent2ListenerSpec
       /* Ask the agent for average power in tick 3000 */
       mockAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
 
       /* Wait for original reply (this is the querying agent) */
@@ -413,8 +399,8 @@ class ParticipantAgent2ListenerSpec
       /* Ask the agent for average power in tick 3000 */
       mockAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
 
       /* Wait for original reply (this is the querying agent) */
