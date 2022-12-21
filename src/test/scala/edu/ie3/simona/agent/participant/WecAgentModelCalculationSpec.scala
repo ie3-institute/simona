@@ -63,7 +63,6 @@ import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.WecInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT, PU}
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import org.scalatest.PrivateMethodTester
 import squants.Each
@@ -101,8 +100,6 @@ class WecAgentModelCalculationSpec
     .copy()
     .qCharacteristics(new QV("qV:{(0.95,-0.625),(1.05,0.625)}"))
     .build()
-
-  private val testingTolerance = 1e-6 // Equality on the basis of 1 W
 
   /* Assign this test to receive the result events from agent */
   override val systemListener: Iterable[ActorRef] = Vector(self)
@@ -325,7 +322,7 @@ class WecAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            SortedMap(0L -> Quantities.getQuantity(1d, PU))
+            SortedMap(0L -> Each(1.0))
           )
           resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPower](resolution)

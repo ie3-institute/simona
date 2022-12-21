@@ -47,12 +47,10 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.model.participant.LoadTestData
 import edu.ie3.simona.util.ConfigUtil
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import org.scalatest.PrivateMethodTester
 import squants.Each
 import squants.energy.{Kilowatts, Megawatts, Watts}
-import tech.units.indriya.quantity.Quantities
 
 import java.util.concurrent.TimeUnit
 import scala.collection.SortedMap
@@ -236,7 +234,7 @@ class LoadAgentFixedModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            SortedMap(0L -> Quantities.getQuantity(1d, PU))
+            SortedMap(0L -> Each(1.0))
           )
           resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPower](

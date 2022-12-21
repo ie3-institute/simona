@@ -56,12 +56,10 @@ import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.EvTestData
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import squants.Each
 import squants.energy.{KilowattHours, Kilowatts, Megawatts, WattHours, Watts}
-import tech.units.indriya.quantity.Quantities
 
 import java.time.temporal.ChronoUnit
 import scala.collection.SortedMap
@@ -339,7 +337,7 @@ class EvcsAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            SortedMap(0L -> Quantities.getQuantity(1d, PU))
+            SortedMap(0L -> Each(1.0))
           )
           resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPower](resolution)
@@ -1277,7 +1275,7 @@ class EvcsAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map(evService.ref -> None)
           voltageValueStore shouldBe ValueStore(
             resolution,
-            SortedMap(0L -> Quantities.getQuantity(1d, PU))
+            SortedMap(0L -> Each(1.0))
           )
           resultValueStore shouldBe ValueStore(
             resolution
@@ -1421,14 +1419,14 @@ class EvcsAgentModelCalculationSpec
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
               modelUuid,
-              referencePower,
+              refPower,
               minPower,
               maxPower
             ) =>
           modelUuid shouldBe evcsInputModel.getUuid
-          referencePower shouldBe 0d.asKiloWatt
-          minPower shouldBe 0d.asKiloWatt
-          maxPower shouldBe 0d.asKiloWatt
+          (refPower ~= Kilowatts(0.0)) shouldBe true
+          (minPower ~= Kilowatts(0.0)) shouldBe true
+          (maxPower ~= Kilowatts(0.0)) shouldBe true
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>

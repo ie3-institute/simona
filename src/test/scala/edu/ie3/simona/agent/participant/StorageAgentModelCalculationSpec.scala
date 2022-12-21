@@ -55,12 +55,10 @@ import edu.ie3.simona.test.common.input.StorageInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Megavars
 import squants.Each
 import squants.energy.{Kilowatts, Megawatts}
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import scala.collection.SortedMap
@@ -233,7 +231,7 @@ class StorageAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            SortedMap(0L -> Quantities.getQuantity(1d, PU))
+            SortedMap(0L -> Each(1.0))
           )
           resultValueStore shouldBe ValueStore(
             resolution
