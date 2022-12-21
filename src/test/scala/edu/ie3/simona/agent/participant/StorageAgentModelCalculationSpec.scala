@@ -15,18 +15,38 @@ import edu.ie3.datamodel.models.result.system.StorageResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{ParticipantInitializeStateData, ParticipantInitializingStateData, SimpleInputContainer}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
+  ParticipantInitializeStateData,
+  ParticipantInitializingStateData,
+  SimpleInputContainer
+}
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.event.ResultEvent.{FlexOptionsResultEvent, ParticipantResultEvent}
+import edu.ie3.simona.event.ResultEvent.{
+  FlexOptionsResultEvent,
+  ParticipantResultEvent
+}
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.{FlexCtrlCompletion, IssuePowerCtrl, ProvideFlexOptions, ProvideMinMaxFlexOptions, RequestFlexOptions}
-import edu.ie3.simona.ontology.messages.PowerMessage.{AssetPowerChangedMessage, RequestAssetPowerMessage}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  FlexCtrlCompletion,
+  IssuePowerCtrl,
+  ProvideFlexOptions,
+  ProvideMinMaxFlexOptions,
+  RequestFlexOptions
+}
+import edu.ie3.simona.ontology.messages.PowerMessage.{
+  AssetPowerChangedMessage,
+  RequestAssetPowerMessage
+}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  CompletionMessage,
+  ScheduleTriggerMessage,
+  TriggerWithIdMessage
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeParticipantAgentTrigger
@@ -410,7 +430,10 @@ class StorageAgentModelCalculationSpec
 
       emAgent.send(
         storageAgent,
-        IssuePowerCtrl(0L, storageInput.getType.getpMax())
+        IssuePowerCtrl(
+          0L,
+          Kilowatts(storageInput.getType.getpMax().getValue.doubleValue())
+        )
       )
 
       emAgent.expectMsgPF() {
@@ -506,7 +529,12 @@ class StorageAgentModelCalculationSpec
 
       emAgent.send(
         storageAgent,
-        IssuePowerCtrl(36000L, storageInput.getType.getpMax().multiply(-1))
+        IssuePowerCtrl(
+          36000L,
+          Kilowatts(
+            storageInput.getType.getpMax().multiply(-1).getValue.doubleValue()
+          )
+        )
       )
 
       emAgent.expectMsgPF() {
