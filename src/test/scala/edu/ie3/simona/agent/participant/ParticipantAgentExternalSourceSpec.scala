@@ -11,7 +11,6 @@ import akka.testkit.TestFSMRef
 import akka.util.Timeout
 import breeze.numerics.{acos, tan}
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.ValueStore
@@ -58,16 +57,16 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.ProvidePrimaryDataMes
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.scala.quantities.{Kilovars, Megavars, ReactivePower, Vars}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import tech.units.indriya.ComparableQuantity
+import squants.Each
+import squants.energy.{Kilowatts, Megawatts, Watts}
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import javax.measure.quantity.{Dimensionless, Power}
 import scala.collection.{SortedMap, SortedSet}
 import scala.util.{Failure, Success}
 
@@ -107,20 +106,17 @@ class ParticipantAgentExternalSourceSpec
       ConstantState.type
     ]]
   when(mockModel.getUuid).thenReturn(testUUID)
-  private val activeToReactivePowerFunction
-      : ComparableQuantity[Power] => ComparableQuantity[Power] =
-    (p: ComparableQuantity[Power]) => p.multiply(tan(acos(0.9)))
+  private val activeToReactivePowerFunction: squants.Power => ReactivePower =
+    (p: squants.Power) => Kilovars(p.toKilowatts * tan(acos(0.9)))
   when(
     mockModel.activeToReactivePowerFunc(
-      any(classOf[ComparableQuantity[Dimensionless]])
+      any(classOf[squants.Dimensionless])
     )
   ).thenReturn(activeToReactivePowerFunction)
 
-  private val testingTolerance = 1e-6 // Equality on the basis of 1 W
-
   private val simonaConfig: SimonaConfig = createSimonaConfig(
     LoadModelBehaviour.FIX,
-    LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
+    LoadReference.ActivePower(Kilowatts(0.0))
   )
   private val defaultOutputConfig = NotifierConfig(
     simulationResultInfo = false,
@@ -129,6 +125,9 @@ class ParticipantAgentExternalSourceSpec
   )
 
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+
+  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   "A participant agent with externally given data provider" should {
     "be instantiated correctly" in {
@@ -317,13 +316,13 @@ class ParticipantAgentExternalSourceSpec
 
       mockAgent ! RequestAssetPowerMessage(
         0L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.0),
+        Each(0.0)
       )
       expectMsg(
         AssetPowerChangedMessage(
-          Quantities.getQuantity(0d, MEGAWATT),
-          Quantities.getQuantity(0d, MEGAVAR)
+          Megawatts(0.0),
+          Megavars(0.0)
         )
       )
 
@@ -345,8 +344,8 @@ class ParticipantAgentExternalSourceSpec
             resolution,
             SortedMap(
               0L -> ApparentPower(
-                Quantities.getQuantity(0d, MEGAWATT),
-                Quantities.getQuantity(0d, MEGAVAR)
+                Megawatts(0.0),
+                Megavars(0.0)
               )
             )
           )
@@ -412,8 +411,8 @@ class ParticipantAgentExternalSourceSpec
         ProvidePrimaryDataMessage(
           900L,
           ApparentPower(
-            Quantities.getQuantity(0, KILOWATT),
-            Quantities.getQuantity(900, KILOVAR)
+            Kilowatts(0.0),
+            Kilovars(900.0)
           ),
           Some(1800L)
         )
@@ -440,8 +439,8 @@ class ParticipantAgentExternalSourceSpec
           expectedSenders shouldBe Map(
             primaryServiceProxy.ref -> Some(
               ApparentPower(
-                Quantities.getQuantity(0, KILOWATT),
-                Quantities.getQuantity(900, KILOVAR)
+                Kilowatts(0.0),
+                Kilovars(900.0)
               )
             )
           )
@@ -492,8 +491,8 @@ class ParticipantAgentExternalSourceSpec
             case ValueStore(_, store) =>
               store shouldBe Map(
                 900L -> ApparentPower(
-                  Quantities.getQuantity(0, KILOWATT),
-                  Quantities.getQuantity(900, KILOVAR)
+                  Kilowatts(0.0),
+                  Kilovars(900.0)
                 )
               )
           }
@@ -597,8 +596,8 @@ class ParticipantAgentExternalSourceSpec
         ProvidePrimaryDataMessage(
           900L,
           ApparentPower(
-            Quantities.getQuantity(0, KILOWATT),
-            Quantities.getQuantity(900, KILOVAR)
+            Kilowatts(0.0),
+            Kilovars(900.0)
           ),
           Some(1800L)
         )
@@ -632,8 +631,8 @@ class ParticipantAgentExternalSourceSpec
             case ValueStore(_, store) =>
               store shouldBe Map(
                 900L -> ApparentPower(
-                  Quantities.getQuantity(0, KILOWATT),
-                  Quantities.getQuantity(900, KILOVAR)
+                  Kilowatts(0.0),
+                  Kilovars(900.0)
                 )
               )
           }
@@ -696,8 +695,8 @@ class ParticipantAgentExternalSourceSpec
       /* Ask the agent for average power in tick 1800 */
       mockAgent ! RequestAssetPowerMessage(
         1800L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.0),
+        Each(0.0)
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(mockAgent.stateName == Idle)
@@ -708,8 +707,8 @@ class ParticipantAgentExternalSourceSpec
         ProvidePrimaryDataMessage(
           900L,
           ApparentPower(
-            Quantities.getQuantity(0, KILOWATT),
-            Quantities.getQuantity(900, KILOVAR)
+            Kilowatts(0.0),
+            Kilovars(900.0)
           ),
           Some(1800L)
         )
@@ -769,7 +768,7 @@ class ParticipantAgentExternalSourceSpec
         1e-4,
         ValueStore.forVoltage(
           900L,
-          Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE)
+          Each(1.0)
         ),
         ValueStore.forResult(900L, 1L),
         ValueStore(900L)
@@ -777,12 +776,7 @@ class ParticipantAgentExternalSourceSpec
 
       val actualFunction =
         mockAgent.underlyingActor.getReactivePowerFunction(0L, baseStateData)
-      actualFunction(
-        Quantities.getQuantity(100d, StandardUnits.ACTIVE_POWER_IN)
-      ) should equalWithTolerance(
-        Quantities.getQuantity(0L, StandardUnits.REACTIVE_POWER_IN),
-        1e-3
-      )
+      (actualFunction(Kilowatts(100.0)) ~= Kilovars(0.0)) shouldBe true
     }
 
     "correctly determine the reactive power function from model when requested" in {
@@ -805,7 +799,7 @@ class ParticipantAgentExternalSourceSpec
         1e-4,
         ValueStore.forVoltage(
           900L,
-          Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE)
+          Each(1.0)
         ),
         ValueStore.forResult(900L, 1L),
         ValueStore(900L)
@@ -813,12 +807,7 @@ class ParticipantAgentExternalSourceSpec
 
       val actualFunction =
         mockAgent.underlyingActor.getReactivePowerFunction(0L, baseStateData)
-      actualFunction(
-        Quantities.getQuantity(100d, StandardUnits.ACTIVE_POWER_IN)
-      ) should equalWithTolerance(
-        Quantities.getQuantity(48.43221, StandardUnits.REACTIVE_POWER_IN),
-        1e-3
-      )
+      (actualFunction(Kilowatts(100.0)) ~= Kilovars(48.43221)) shouldBe true
     }
 
     "provide correct average power after three data ticks are available" in {
@@ -871,8 +860,8 @@ class ParticipantAgentExternalSourceSpec
         ProvidePrimaryDataMessage(
           900L,
           ApparentPower(
-            Quantities.getQuantity(100d, KILOWATT),
-            Quantities.getQuantity(33d, KILOVAR)
+            Kilowatts(100.0),
+            Kilovars(33.0)
           ),
           Some(1800L)
         )
@@ -905,8 +894,8 @@ class ParticipantAgentExternalSourceSpec
         ProvidePrimaryDataMessage(
           1800L,
           ApparentPower(
-            Quantities.getQuantity(150d, KILOWATT),
-            Quantities.getQuantity(49d, KILOVAR)
+            Kilowatts(150.0),
+            Kilovars(49.0)
           ),
           Some(2700L)
         )
@@ -939,8 +928,8 @@ class ParticipantAgentExternalSourceSpec
         ProvidePrimaryDataMessage(
           2700L,
           ApparentPower(
-            Quantities.getQuantity(200d, KILOWATT),
-            Quantities.getQuantity(66d, KILOVAR)
+            Kilowatts(200.0),
+            Kilovars(66.0)
           ),
           None
         )
@@ -960,20 +949,14 @@ class ParticipantAgentExternalSourceSpec
       /* Ask the agent for average power in tick 3000 */
       mockAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.0),
+        Each(0.0)
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0.095, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0.0312, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.095)) shouldBe true
+          (q ~= Megavars(0.0312)) shouldBe true
       }
     }
 
@@ -982,21 +965,15 @@ class ParticipantAgentExternalSourceSpec
       /* Ask again with unchanged information */
       mockAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(1.000000000000001d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.000000000000001d),
+        Each(0.0)
       )
 
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0.095, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0.0312, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.095)) shouldBe true
+          (q ~= Megavars(0.0312)) shouldBe true
       }
     }
 
@@ -1005,38 +982,31 @@ class ParticipantAgentExternalSourceSpec
       /* Ask again with unchanged information */
       mockAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(0.98d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(0.98d),
+        Each(0.0)
       )
 
       /* Expect, that nothing has changed, as this model is meant to forward information from outside */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0.095, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0.0312, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.095)) shouldBe true
+          (q ~= Megavars(0.0312)) shouldBe true
       }
     }
 
     "preparing incoming primary data" when {
       val participantAgent =
         TestFSMRef(new ParticipantAgentMock(scheduler.ref)).underlyingActor
-      val reactivePowerFunction = (_: ComparableQuantity[Power]) =>
-        Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_IN)
+      val reactivePowerFunction = (_: squants.Power) => Kilovars(0.0)
 
       "sending unsupported data" should {
         "fail" in {
           val data = Map(
             primaryServiceProxy.ref -> Some(
               ApparentPowerAndHeat(
-                Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN),
-                Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_IN),
-                Quantities.getQuantity(0d, StandardUnits.HEAT_DEMAND)
+                Kilowatts(0.0),
+                Kilovars(0.0),
+                Kilowatts(0.0)
               )
             )
           )
@@ -1056,8 +1026,8 @@ class ParticipantAgentExternalSourceSpec
           val data = Map(
             primaryServiceProxy.ref -> Some(
               ActivePowerAndHeat(
-                Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN),
-                Quantities.getQuantity(0d, StandardUnits.HEAT_DEMAND)
+                Kilowatts(0.0),
+                Kilowatts(0.0)
               )
             )
           )
@@ -1074,20 +1044,14 @@ class ParticipantAgentExternalSourceSpec
         "lead to proper enriched data, if supported" in {
           val data = Map(
             primaryServiceProxy.ref -> Some(
-              ActivePower(
-                Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-              )
+              ActivePower(Kilowatts(0.0))
             )
           )
 
           participantAgent.prepareData(data, reactivePowerFunction) match {
             case Success(ApparentPower(p, q)) =>
-              p should equalWithTolerance(
-                Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-              )
-              q should equalWithTolerance(
-                Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_IN)
-              )
+              (p ~= Megawatts(0.0)) shouldBe true
+              (q ~= Megavars(0.0)) shouldBe true
             case Success(value) =>
               fail(s"Succeeded, but with wrong data: '$value'.")
             case Failure(exception) =>
@@ -1101,25 +1065,17 @@ class ParticipantAgentExternalSourceSpec
         "lead to proper enriched data, if supported and utilizing a active to reactive power function" in {
           val data = Map(
             primaryServiceProxy.ref -> Some(
-              ActivePower(
-                Quantities.getQuantity(100d, StandardUnits.ACTIVE_POWER_IN)
-              )
+              ActivePower(Kilowatts(100.0))
             )
           )
 
           participantAgent.prepareData(
             data,
-            (p: ComparableQuantity[Power]) => p.multiply(tan(acos(0.9)))
+            (p: squants.Power) => Kilovars(p.toKilowatts * tan(acos(0.9)))
           ) match {
             case Success(ApparentPower(p, q)) =>
-              p should equalWithTolerance(
-                Quantities.getQuantity(100d, StandardUnits.ACTIVE_POWER_IN)
-              )
-              q should equalWithTolerance(
-                Quantities
-                  .getQuantity(48.43221, StandardUnits.REACTIVE_POWER_IN),
-                1e-4
-              )
+              (p ~= Kilowatts(100.0)) shouldBe true
+              (q ~= Kilovars(48.43221)) shouldBe true
             case Success(value) =>
               fail(s"Succeeded, but with wrong data: '$value'.")
             case Failure(exception) =>

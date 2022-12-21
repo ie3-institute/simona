@@ -36,7 +36,7 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.scalatestplus.mockito.MockitoSugar
-import squants.energy.Kilowatts
+import squants.energy.{Kilowatts, Megawatts}
 
 import java.time.ZonedDateTime
 
@@ -69,6 +69,7 @@ class EmAgentSpec
     flexResult = false
   )
 
+  private implicit val powerTolerance: squants.Power = Kilowatts(1e-10)
   private val tolerance = 1e-10d
 
   "A self-optimizing EM agent" should {
@@ -247,7 +248,7 @@ class EmAgentSpec
 
       evcsAgent.expectMsgType[IssuePowerCtrl] match {
         case IssuePowerCtrl(0L, setPower) =>
-          setPower should equalWithTolerance(5d.asKiloWatt, tolerance)
+          (setPower ~= Kilowatts(5.0)) shouldBe true
       }
       evcsAgent.send(
         emAgent,
@@ -589,7 +590,7 @@ class EmAgentSpec
 
       evcsAgent.expectMsgType[IssuePowerCtrl] match {
         case IssuePowerCtrl(0L, setPower) =>
-          setPower should equalWithTolerance(5d.asKiloWatt, tolerance)
+          (setPower ~= Kilowatts(5.0)) shouldBe true
       }
       evcsAgent.send(
         emAgent,
@@ -732,7 +733,7 @@ class EmAgentSpec
       // evcs is now sent control too
       evcsAgent.expectMsgType[IssuePowerCtrl] match {
         case IssuePowerCtrl(300L, setPower) =>
-          setPower should equalWithTolerance(3d.asKiloWatt, tolerance)
+          (setPower ~= Kilowatts(3.0)) shouldBe true
       }
 
       scheduler.expectNoMessage()
@@ -966,7 +967,7 @@ class EmAgentSpec
 
       evcsAgent.expectMsgType[IssuePowerCtrl] match {
         case IssuePowerCtrl(0L, setPower) =>
-          setPower should equalWithTolerance(5d.asKiloWatt, tolerance)
+          (setPower ~= Kilowatts(5.0)) shouldBe true
       }
 
       evcsAgent.send(
@@ -1122,7 +1123,7 @@ class EmAgentSpec
 
       evcsAgent.expectMsgType[IssuePowerCtrl] match {
         case IssuePowerCtrl(300L, setPower) =>
-          setPower should equalWithTolerance(3d.asKiloWatt, tolerance)
+          (setPower ~= Kilowatts(3.0)) shouldBe true
       }
       evcsAgent.send(
         emAgent,
@@ -1383,7 +1384,7 @@ class EmAgentSpec
 
       evcsAgent.expectMsgType[IssuePowerCtrl] match {
         case IssuePowerCtrl(0L, setPower) =>
-          setPower should equalWithTolerance(11d.asKiloWatt, tolerance)
+          (setPower ~= Kilowatts(11.0)) shouldBe true
       }
 
       evcsAgent.send(

@@ -61,7 +61,8 @@ import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import org.scalatest.PrivateMethodTester
-import squants.energy.{Megawatts, Watts}
+import squants.energy.{Kilowatts, Megawatts, Watts}
+import squants.thermal.Celsius
 import squants.{Dimensionless, Each}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
@@ -92,7 +93,6 @@ class HpAgentModelCalculationSpec
   /* Alter the input model to have a voltage sensitive reactive power calculation */
   val hpInput: HpInput = hpInputModel
 
-  private val testingTolerance = 1e-6 // Equality on the basis of 1 W
   private val simonaConfig: SimonaConfig = SimonaConfig(
     ConfigFactory
       .empty()
@@ -119,13 +119,11 @@ class HpAgentModelCalculationSpec
   )
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
-  private implicit val powerTolerance: squants.Power = Watts(
-    1.0
-  ) // Equals to 1 W power
-
-  private implicit val reactivePowerTolerance: ReactivePower = Vars(
-    1.0
-  ) // Equals to 1 Var power
+  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
+  private implicit val temperatureTolerance: squants.Temperature = Celsius(
+    1e-10
+  )
 
   "A heat pump agent depending on no services" should {
     "be instantiated correctly" in {
@@ -617,21 +615,12 @@ class HpAgentModelCalculationSpec
                 ) =>
               isRunning shouldBe false
               lastTimeTick shouldBe 0L
-              activePower should equalWithTolerance(
-                Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-              )
-              qDot should equalWithTolerance(
-                Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-              )
+              (activePower ~= Kilowatts(0.0)) shouldBe true
+              (qDot ~= Kilowatts(0.0)) shouldBe true
 
               thermalGridState.houseState match {
                 case Some(ThermalHouseState(_, innerTemperature, _)) =>
-                  innerTemperature should equalWithTolerance(
-                    Quantities.getQuantity(
-                      20.99998675925926,
-                      StandardUnits.TEMPERATURE
-                    )
-                  )
+                  (innerTemperature ~= Celsius(20.99998675925926)) shouldBe true
                 case None =>
                   fail(
                     s"Expected to get a result for thermal house '${hpInputModel.getUuid}'"
@@ -792,21 +781,12 @@ class HpAgentModelCalculationSpec
                 ) =>
               isRunning shouldBe false
               lastTimeTick shouldBe 0L
-              activePower should equalWithTolerance(
-                Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-              )
-              qDot should equalWithTolerance(
-                Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-              )
+              (activePower ~= Kilowatts(0.0)) shouldBe true
+              (qDot ~= Kilowatts(0.0)) shouldBe true
 
               thermalGridState.houseState match {
                 case Some(ThermalHouseState(_, innerTemperature, _)) =>
-                  innerTemperature should equalWithTolerance(
-                    Quantities.getQuantity(
-                      20.99998675925926,
-                      StandardUnits.TEMPERATURE
-                    )
-                  )
+                  (innerTemperature ~= Celsius(20.99998675925926)) shouldBe true
                 case None =>
                   fail(
                     s"Expected to get a result for thermal house '${hpInputModel.getUuid}'"
@@ -934,14 +914,8 @@ class HpAgentModelCalculationSpec
       /* Appreciate the answer to my previous request */
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -1094,14 +1068,8 @@ class HpAgentModelCalculationSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
         case answer => fail(s"Did not expect to get that answer: $answer")
       }
     }
@@ -1118,14 +1086,8 @@ class HpAgentModelCalculationSpec
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -1140,14 +1102,8 @@ class HpAgentModelCalculationSpec
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
   }

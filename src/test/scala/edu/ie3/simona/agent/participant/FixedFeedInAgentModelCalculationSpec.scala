@@ -48,11 +48,10 @@ import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT, PU}
-import edu.ie3.util.scala.quantities.Megavars
+import edu.ie3.util.quantities.PowerSystemUnits.PU
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import squants.Each
-import squants.energy.{Kilowatts, Megawatts}
+import squants.energy.{Kilowatts, Megawatts, Watts}
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
@@ -85,7 +84,9 @@ class FixedFeedInAgentModelCalculationSpec
   protected val simulationEndDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00")
 
-  private val testingTolerance = 1e-6 // Equality on the basis of 1 W
+  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
+
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
@@ -406,14 +407,8 @@ class FixedFeedInAgentModelCalculationSpec
             case Some((tick, entry)) =>
               tick shouldBe 0L
               inside(entry) { case ApparentPower(p, q) =>
-                p should equalWithTolerance(
-                  Quantities.getQuantity(-268.603e-6, MEGAWATT),
-                  testingTolerance
-                )
-                q should equalWithTolerance(
-                  Quantities.getQuantity(0d, MEGAVAR),
-                  testingTolerance
-                )
+                (p ~= Megawatts(-268.603e-6)) shouldBe true
+                (q ~= Megavars(0.0)) shouldBe true
               }
             case None =>
               fail("Result value store does not contain entry for tick 900.")
@@ -496,14 +491,8 @@ class FixedFeedInAgentModelCalculationSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(-268.603e-6, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(-268.603e-6)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -578,14 +567,8 @@ class FixedFeedInAgentModelCalculationSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(-268.603e-6, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(-268.603e-6)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
         case answer => fail(s"Did not expect to get that answer: $answer")
       }
     }
@@ -602,15 +585,8 @@ class FixedFeedInAgentModelCalculationSpec
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(-268.603e-6, PowerSystemUnits.MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities
-              .getQuantity(0d, PowerSystemUnits.MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(-268.603e-6)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -625,14 +601,8 @@ class FixedFeedInAgentModelCalculationSpec
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(-0.000268603, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(-22.07138418e-6, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(-0.000268603)) shouldBe true
+          (q ~= Megavars(-22.07138418e-6)) shouldBe true
       }
     }
   }

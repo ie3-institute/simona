@@ -48,10 +48,10 @@ import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.model.participant.LoadTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.scala.quantities.Megavars
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import org.scalatest.PrivateMethodTester
 import squants.Each
-import squants.energy.{Kilowatts, Megawatts}
+import squants.energy.{Kilowatts, Megawatts, Watts}
 import tech.units.indriya.quantity.Quantities
 
 import java.util.concurrent.TimeUnit
@@ -79,7 +79,6 @@ class LoadAgentProfileModelCalculationSpec
     .qCharacteristics(new QV("qV:{(0.95,-0.625),(1.05,0.625)}"))
     .build()
 
-  private val testingTolerance = 1e-6 // Equality on the basis of 1 W
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.PROFILE,
@@ -99,6 +98,9 @@ class LoadAgentProfileModelCalculationSpec
     )
   private val services = None
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+
+  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   "A load agent with profile model calculation depending on no secondary data service" should {
     "be instantiated correctly" in {
@@ -406,14 +408,8 @@ class LoadAgentProfileModelCalculationSpec
             case Some((tick, entry)) =>
               tick shouldBe 0L
               inside(entry) { case ApparentPower(p, q) =>
-                p should equalWithTolerance(
-                  Quantities.getQuantity(84.000938e-6, MEGAWATT),
-                  testingTolerance
-                )
-                q should equalWithTolerance(
-                  Quantities.getQuantity(0d, MEGAVAR),
-                  testingTolerance
-                )
+                (p ~= Megawatts(84.000938e-6)) shouldBe true
+                (q ~= Megavars(0.0)) shouldBe true
               }
             case None =>
               fail("Result value store does not contain entry for tick 0.")
@@ -508,14 +504,8 @@ class LoadAgentProfileModelCalculationSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(79.750890e-6, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(79.750890e-6)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -531,14 +521,8 @@ class LoadAgentProfileModelCalculationSpec
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(79.750890e-6, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(79.750890e-6)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -553,14 +537,8 @@ class LoadAgentProfileModelCalculationSpec
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(79.750890e-6, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(-22.0714e-6, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(79.750890e-6)) shouldBe true
+          (q ~= Megavars(-22.0714e-6)) shouldBe true
       }
     }
   }

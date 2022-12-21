@@ -58,9 +58,9 @@ import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.Megavars
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import squants.Each
-import squants.energy.{KilowattHours, Kilowatts, Megawatts, WattHours}
+import squants.energy.{KilowattHours, Kilowatts, Megawatts, WattHours, Watts}
 import tech.units.indriya.quantity.Quantities
 
 import java.time.temporal.ChronoUnit
@@ -84,9 +84,9 @@ class EvcsAgentModelCalculationSpec
   private implicit val noReceiveTimeOut: Timeout = 1.second
 
   private val testingTolerance = 1e-6
-  private implicit val energyTolerance: squants.Energy = WattHours(
-    1
-  ) // Equality on the basis of 1 Wh
+  private implicit val energyTolerance: squants.Energy = WattHours(0.1)
+  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   /* Alter the input model to have a voltage sensitive reactive power calculation */
   private val voltageSensitiveInput = evcsInputModel
@@ -835,14 +835,8 @@ class EvcsAgentModelCalculationSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -1102,14 +1096,8 @@ class EvcsAgentModelCalculationSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0.011d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.011)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
         case answer => fail(s"Did not expect to get that answer: $answer")
       }
     }
@@ -1126,14 +1114,8 @@ class EvcsAgentModelCalculationSpec
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0.011d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.011)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -1148,14 +1130,8 @@ class EvcsAgentModelCalculationSpec
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0.011d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(-0.0067133728, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.011)) shouldBe true
+          (q ~= Megavars(-0.0067133728)) shouldBe true
       }
     }
   }
