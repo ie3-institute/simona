@@ -15,7 +15,7 @@ import edu.ie3.datamodel.models.input.system.type.StorageTypeInput
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.ontology.messages.FlexibilityMessage
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.Sq
+import edu.ie3.util.scala.quantities.Sq
 import scala.Option
 import spock.lang.Shared
 import spock.lang.Specification

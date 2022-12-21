@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.util.quantities
+package edu.ie3.util.scala.quantities
 
 import squants.{Quantity, UnitOfMeasure}
 

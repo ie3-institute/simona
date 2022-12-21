@@ -13,9 +13,9 @@ import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.util.quantities.Sq
 import edu.ie3.util.quantities.interfaces.Irradiation
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.Sq
 import org.locationtech.jts.geom.Coordinate
 import org.locationtech.jts.geom.GeometryFactory
 import org.locationtech.jts.geom.Point

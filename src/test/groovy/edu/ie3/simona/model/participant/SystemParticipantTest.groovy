@@ -11,8 +11,8 @@ import edu.ie3.datamodel.models.input.system.characteristic.CosPhiP
 import edu.ie3.datamodel.models.input.system.characteristic.QV
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.test.common.model.MockParticipant
-import edu.ie3.util.quantities.Sq
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.Sq
 import spock.lang.Specification
 import squants.*
 import squants.energy.*

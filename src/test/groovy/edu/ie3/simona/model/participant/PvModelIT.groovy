@@ -12,8 +12,8 @@ import edu.ie3.simona.io.grid.CsvGridSource
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.Sq
 import edu.ie3.util.quantities.interfaces.Irradiance
+import edu.ie3.util.scala.quantities.Sq
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVRecord
 import spock.lang.Shared
