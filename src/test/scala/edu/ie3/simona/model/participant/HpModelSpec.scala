@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.model.participant.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
@@ -15,16 +14,19 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
 }
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.prop.TableDrivenPropertyChecks
-import squants.energy.Kilowatts
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
+import squants.Kelvin
+import squants.energy.{Kilowatts, Watts}
+import squants.thermal.Celsius
 
 class HpModelSpec
     extends UnitSpec
     with TableDrivenPropertyChecks
     with HpModelTestData {
+
+  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val temperatureTolerance: squants.Temperature = Kelvin(1e-3)
+
   "Testing the heat pump model" when {
     "calculating the next state with different states" should {
       "deliver correct tick, power and running state" in {
@@ -225,19 +227,11 @@ class HpModelSpec
                   ) =>
                 isRunning shouldBe expectedRunningState
                 lastTimeTick shouldBe expectedTick
-                activePower should equalWithTolerance(
-                  Quantities.getQuantity(
-                    expectedActivePower,
-                    PowerSystemUnits.KILOWATT
-                  )
-                )
+                (activePower ~= Kilowatts(expectedActivePower)) shouldBe true
 
-                thermalHouseState.innerTemperature should equalWithTolerance(
-                  Quantities.getQuantity(
-                    expectedInnerTemperature,
-                    Units.CELSIUS
-                  )
-                )
+                (thermalHouseState.innerTemperature ~= Celsius(
+                  expectedInnerTemperature
+                )) shouldBe true
 
                 maybeThreshold shouldBe expectedNextThreshold
             }
@@ -273,15 +267,9 @@ class HpModelSpec
                   maxPower
                 ) =>
               modelUuid shouldBe hp.uuid
-              referencePower should equalWithTolerance(
-                Quantities.getQuantity(95d, StandardUnits.ACTIVE_POWER_IN)
-              )
-              minPower should equalWithTolerance(
-                Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-              )
-              maxPower should equalWithTolerance(
-                Quantities.getQuantity(95d, StandardUnits.ACTIVE_POWER_IN)
-              )
+              (referencePower ~= Kilowatts(95.0)) shouldBe true
+              (minPower ~= Kilowatts(0.0)) shouldBe true
+              (maxPower ~= Kilowatts(95.0)) shouldBe true
           }
         }
       }

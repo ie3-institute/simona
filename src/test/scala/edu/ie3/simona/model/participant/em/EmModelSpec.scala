@@ -15,9 +15,11 @@ import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.mockito.MockitoSugar
 import squants.Each
+import squants.energy.{Megawatts, Watts}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -32,6 +34,9 @@ class EmModelSpec
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
   protected val simulationEndDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 02:00:00")
+
+  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   "The em model object" should {
 
@@ -77,14 +82,8 @@ class EmModelSpec
           EmRelevantData(flexCorrespondences)
         )
 
-      actualResult.p should equalWithTolerance(
-        0.008d.asMegaWatt,
-        1e-9d
-      )
-      actualResult.q should equalWithTolerance(
-        0.0007d.asMegaVar,
-        1e-9d
-      )
+      (actualResult.p ~= Megawatts(0.008d)) shouldBe true
+      (actualResult.q ~= Megavars(0.0007d)) shouldBe true
     }
   }
 

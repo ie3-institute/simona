@@ -636,9 +636,9 @@ class EvcsModelSpec
                     maxPower
                   ) =>
                 modelUuid shouldBe evcsModel.getUuid
-                refPower should equalWithTolerance(expectedPRef.asKiloWatt)
-                minPower should equalWithTolerance(expectedPMin.asKiloWatt)
-                maxPower should equalWithTolerance(expectedPMax.asKiloWatt)
+                (refPower ~= Kilowatts(expectedPRef)) shouldBe true
+                (minPower ~= Kilowatts(expectedPMin)) shouldBe true
+                (maxPower ~= Kilowatts(expectedPMax)) shouldBe true
             }
         }
 

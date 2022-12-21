@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.participant
 
 import akka.actor.{ActorRef, FSM, Props}
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
@@ -38,17 +37,17 @@ import edu.ie3.simona.model.participant.{
   ModelState,
   SystemParticipant
 }
-import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT, PU}
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.{Kilovars, Megavars, ReactivePower}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito.doReturn
 import org.scalatestplus.mockito.MockitoSugar.mock
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import squants.Each
+import squants.energy.{Kilowatts, Megawatts}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
@@ -107,12 +106,12 @@ class ParticipantAgentMock(
         ]
       ],
       ConstantState.type,
-      ComparableQuantity[Dimensionless]
+      squants.Dimensionless
   ) => ApparentPower = (_, _, _, _) =>
     // output different from default (0, 0)
     ApparentPower(
-      Quantities.getQuantity(2, MEGAWATT),
-      Quantities.getQuantity(1, MEGAVAR)
+      Megawatts(2.0),
+      Megavars(1.0)
     )
 
   /** Abstractly calculate the power output of the participant with all needed
@@ -191,9 +190,9 @@ class ParticipantAgentMock(
     SystemParticipant[FixedRelevantData.type, ApparentPower, ConstantState.type]
   ] = {
     val func = CosPhiFixed(0.95).activeToReactivePowerFunc(
-      Quantities.getQuantity(0, StandardUnits.S_RATED),
+      Kilowatts(0.0),
       0.95d,
-      Quantities.getQuantity(1, PU)
+      Each(1.0)
     )
     val participant: SystemParticipant[
       FixedRelevantData.type,
@@ -227,7 +226,7 @@ class ParticipantAgentMock(
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution,
-        Quantities.getQuantity(1d, PU)
+        Each(1.0)
       ),
       ValueStore.forResult(resolution, 2),
       ValueStore(resolution),
@@ -332,7 +331,7 @@ class ParticipantAgentMock(
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        squants.Power => ReactivePower
       ] = None
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
@@ -362,8 +361,8 @@ class ParticipantAgentMock(
     new SystemParticipantResult(
       dateTime,
       uuid,
-      result.p,
-      result.q
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
     ) {}
 
   /** Handle an active power change by flex control.
@@ -395,12 +394,12 @@ class ParticipantAgentMock(
       ],
       data: CalcRelevantData.FixedRelevantData.type,
       lastState: ModelState.ConstantState.type,
-      setPower: ComparableQuantity[Power]
+      setPower: squants.Power
   ): (ModelState.ConstantState.type, ApparentPower, FlexChangeIndicator) = (
     ConstantState,
     ApparentPower(
-      Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN),
-      Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_IN)
+      Kilowatts(0.0),
+      Kilovars(0.0)
     ),
     FlexChangeIndicator()
   )
@@ -425,7 +424,7 @@ class ParticipantAgentMock(
       tick: Long,
       modelState: ModelState.ConstantState.type,
       calcRelevantData: CalcRelevantData.FixedRelevantData.type,
-      nodalVoltage: ComparableQuantity[Dimensionless],
+      nodalVoltage: squants.Dimensionless,
       model: SystemParticipant[
         CalcRelevantData.FixedRelevantData.type,
         ApparentPower,

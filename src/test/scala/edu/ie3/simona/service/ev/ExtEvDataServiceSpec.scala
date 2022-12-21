@@ -14,6 +14,7 @@ import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.exceptions.ServiceException
+import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   ScheduleTriggerMessage,
@@ -515,7 +516,7 @@ class ExtEvDataServiceSpec
         evService,
         DepartingEvsResponse(
           evcs1UUID,
-          Set(updatedEvA)
+          Set(EvModelWrapper(updatedEvA))
         )
       )
 
@@ -530,7 +531,7 @@ class ExtEvDataServiceSpec
         evService,
         DepartingEvsResponse(
           evcs2UUID,
-          Set(updatedEvB)
+          Set(EvModelWrapper(updatedEvB))
         )
       )
 
@@ -624,14 +625,14 @@ class ExtEvDataServiceSpec
       evcs1.expectMsg(
         ProvideEvDataMessage(
           tick,
-          ArrivingEvsData(Seq(evA))
+          ArrivingEvsData(Seq(EvModelWrapper(evA)))
         )
       )
 
       evcs2.expectMsg(
         ProvideEvDataMessage(
           tick,
-          ArrivingEvsData(Seq(evB))
+          ArrivingEvsData(Seq(EvModelWrapper(evB)))
         )
       )
 
@@ -724,7 +725,7 @@ class ExtEvDataServiceSpec
         ProvideEvDataMessage(
           tick,
           ArrivingEvsData(
-            Seq(evA)
+            Seq(EvModelWrapper(evA))
           )
         )
       )

@@ -55,7 +55,7 @@ import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.PvInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT, PU}
+import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import squants.Each
 import squants.energy.{Kilowatts, Megawatts, Watts}
@@ -93,8 +93,6 @@ class PvAgentModelCalculationSpec
     .qCharacteristics(new QV("qV:{(0.95,-0.625),(1.05,0.625)}"))
     .build()
 
-  private val testingTolerance = 1e-6 // Equality on the basis of 1 W
-
   /* Assign this test to receive the result events from agent */
   override val systemListener: Iterable[ActorRef] = Vector(self)
 
@@ -122,13 +120,8 @@ class PvAgentModelCalculationSpec
   )
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
-  private implicit val powerTolerance: squants.Power = Watts(
-    1.0
-  ) // Equals to 1 W power
-
-  private implicit val reactivePowerTolerance: ReactivePower = Vars(
-    1.0
-  ) // Equals to 1 Var power
+  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   "A pv agent with model calculation depending on no secondary data service" should {
     "be instantiated correctly" in {
@@ -858,14 +851,8 @@ class PvAgentModelCalculationSpec
       /* Appreciate the answer to my previous request */
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -1016,14 +1003,8 @@ class PvAgentModelCalculationSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
         case answer => fail(s"Did not expect to get that answer: $answer")
       }
     }
@@ -1040,14 +1021,8 @@ class PvAgentModelCalculationSpec
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -1062,14 +1037,8 @@ class PvAgentModelCalculationSpec
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(-780.6e-6, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(-780.6e-6)) shouldBe true
       }
     }
   }

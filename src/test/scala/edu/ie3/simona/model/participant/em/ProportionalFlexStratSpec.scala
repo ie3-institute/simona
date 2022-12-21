@@ -10,10 +10,9 @@ import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.helper.TableDrivenHelper
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.mockito.MockitoSugar
-import squants.energy.Kilowatts
+import squants.energy.{Kilowatts, Watts}
 
 import java.util.UUID
 
@@ -22,6 +21,8 @@ class ProportionalFlexStratSpec
     with TableDrivenPropertyChecks
     with TableDrivenHelper
     with MockitoSugar {
+
+  private implicit val powerTolerance: squants.Power = Watts(0.1)
 
   "The proportional flex model" should {
 
@@ -114,25 +115,23 @@ class ProportionalFlexStratSpec
           actualResults should have size Seq(expected1, expected2).flatten.size
 
           expected1.foreach { exp1 =>
-            actualResults.getOrElse(
+            val res1 = actualResults.getOrElse(
               flexOptions1.modelUuid,
               fail(
                 "Results should include a set point for device 1, but doesn't"
               )
-            ) should beEquivalentTo(
-              exp1.asKiloWatt
             )
+            (res1 ~= Kilowatts(exp1)) shouldBe true
           }
 
           expected2.foreach { exp2 =>
-            actualResults.getOrElse(
+            val res2 = actualResults.getOrElse(
               flexOptions2.modelUuid,
               fail(
                 "Results should include a set point for device 2, but doesn't"
               )
-            ) should beEquivalentTo(
-              exp2.asKiloWatt
             )
+            (res2 ~= Kilowatts(exp2)) shouldBe true
           }
 
       }

@@ -18,8 +18,7 @@ import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
-import tech.units.indriya.quantity.Quantities
+import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -43,7 +42,7 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
   protected val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
+      LoadReference.ActivePower(Kilowatts(0.0))
     )
 
   private val configUtil = ConfigUtil.ParticipantConfigUtil(

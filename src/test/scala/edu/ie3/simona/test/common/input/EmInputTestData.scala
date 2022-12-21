@@ -35,6 +35,7 @@ import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.test.common.model.participant.HpTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
+import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
@@ -102,7 +103,7 @@ trait EmInputTestData
     createSimonaConfig(
       LoadModelBehaviour.FIX,
       LoadReference.ActivePower(
-        Quantities.getQuantity(0d, KILOWATT)
+        Kilowatts(0.0)
       )
     )
 

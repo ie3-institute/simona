@@ -17,9 +17,8 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageFull
 }
 import edu.ie3.simona.test.common.UnitSpec
-import squants.Kelvin
 import squants.energy.{KilowattHours, Kilowatts, MegawattHours, Megawatts}
-import squants.thermal.Celsius
+import squants.thermal.{Celsius, Kelvin}
 
 import scala.jdk.CollectionConverters._
 
