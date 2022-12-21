@@ -18,12 +18,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  CollectRegistrationConfirmMessages,
-  ParticipantInitializeStateData,
-  ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
-}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{CollectRegistrationConfirmMessages, ParticipantInitializeStateData, ParticipantInitializingStateData, ParticipantUninitializedStateData}
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
@@ -34,43 +29,21 @@ import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.WecModel
 import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  IllegalTriggerMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.PowerMessage.{AssetPowerChangedMessage, AssetPowerUnchangedMessage, RequestAssetPowerMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, IllegalTriggerMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage
-}
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  ProvideWeatherMessage,
-  RegisterForWeatherMessage,
-  WeatherData
-}
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationFailedMessage, RegistrationSuccessfulMessage}
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.{ProvideWeatherMessage, RegisterForWeatherMessage, WeatherData}
+import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeParticipantAgentTrigger}
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.WecInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KILOWATT,
-  MEGAVAR,
-  MEGAWATT,
-  PU
-}
-import edu.ie3.util.quantities.QuantityUtil
+import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT, PU}
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import org.scalatest.PrivateMethodTester
+import squants.Each
+import squants.energy.{Kilowatts, Megawatts, Watts}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND}
 
@@ -113,7 +86,7 @@ class WecAgentModelCalculationSpec
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
+      LoadReference.ActivePower(Kilowatts(0d))
     )
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
@@ -128,6 +101,14 @@ class WecAgentModelCalculationSpec
   )
 
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+
+  private implicit val powerTolerance: squants.Power = Watts(
+    1.0
+  ) // Equals to 1 W power
+
+  private implicit val reactivePowerTolerance: ReactivePower = Vars(
+    1.0
+  ) // Equals to 1 Var power
 
   "A wec agent with model calculation depending on no second data service" should {
     "be instantiated correctly" in {
@@ -433,13 +414,13 @@ class WecAgentModelCalculationSpec
 
       wecAgent ! RequestAssetPowerMessage(
         0L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.0),
+        Each(0.0)
       )
       expectMsg(
         AssetPowerChangedMessage(
-          Quantities.getQuantity(0d, MEGAWATT),
-          Quantities.getQuantity(0d, MEGAVAR)
+          Megawatts(0.0),
+          Megavars(0.0)
         )
       )
 
@@ -456,8 +437,8 @@ class WecAgentModelCalculationSpec
             resolution,
             SortedMap(
               0L -> ApparentPower(
-                Quantities.getQuantity(0d, MEGAWATT),
-                Quantities.getQuantity(0d, MEGAVAR)
+                Megawatts(0d),
+                Megavars(0d)
               )
             )
           )
@@ -613,16 +594,8 @@ class WecAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 900.")
               ) match {
                 case ApparentPower(p, q) =>
-                  QuantityUtil.isEquivalentAbs(
-                    p,
-                    Quantities.getQuantity(0, MEGAWATT),
-                    1e-16
-                  ) shouldBe true
-                  QuantityUtil.isEquivalentAbs(
-                    q,
-                    Quantities.getQuantity(0, MEGAVAR),
-                    1e-16
-                  ) shouldBe true
+                  (p ~= Megawatts(0.0)) shouldBe true
+                  (q ~= Megavars(0.0)) shouldBe true
               }
           }
         case _ =>
@@ -775,16 +748,8 @@ class WecAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 900.")
               ) match {
                 case ApparentPower(p, q) =>
-                  QuantityUtil.isEquivalentAbs(
-                    p,
-                    Quantities.getQuantity(0, MEGAWATT),
-                    1e-16
-                  ) shouldBe true
-                  QuantityUtil.isEquivalentAbs(
-                    q,
-                    Quantities.getQuantity(0, MEGAVAR),
-                    1e-16
-                  ) shouldBe true
+                  (p ~= Megawatts(0.0)) shouldBe true
+                  (q ~= Megavars(0.0)) shouldBe true
               }
           }
         case _ =>
@@ -852,8 +817,8 @@ class WecAgentModelCalculationSpec
       /* Ask the agent for average power in tick 1800 */
       wecAgent ! RequestAssetPowerMessage(
         1800L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.0),
+        Each(0.0)
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(wecAgent.stateName == Idle)
@@ -1050,8 +1015,8 @@ class WecAgentModelCalculationSpec
       /* Ask the agent for average power in tick 3000 */
       wecAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.0),
+        Each(0.0)
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -1073,8 +1038,8 @@ class WecAgentModelCalculationSpec
       /* Ask again with (nearly) unchanged information */
       wecAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(1.000000000000001d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.000000000000001d),
+        Each(0.0)
       )
 
       /* Expect, that nothing has changed */
@@ -1095,8 +1060,8 @@ class WecAgentModelCalculationSpec
       /* Ask again with changed information */
       wecAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(0.98, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(0.98d),
+        Each(0.0)
       )
 
       /* Expect, the correct values (this model has fixed power factor) */

@@ -13,10 +13,7 @@ import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ApparentPowerAndHeat
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ApparentPower, ApparentPowerAndHeat}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
@@ -30,37 +27,20 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.integration.common.IntegrationSpecCommon
 import edu.ie3.simona.model.participant.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  IllegalTriggerMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.PowerMessage.{AssetPowerChangedMessage, AssetPowerUnchangedMessage, RequestAssetPowerMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, IllegalTriggerMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage
-}
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  ProvideWeatherMessage,
-  RegisterForWeatherMessage,
-  WeatherData
-}
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationFailedMessage, RegistrationSuccessfulMessage}
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.{ProvideWeatherMessage, RegisterForWeatherMessage, WeatherData}
+import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeParticipantAgentTrigger}
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.model.participant.HpTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.quantities.QuantityUtil
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import org.scalatest.PrivateMethodTester
+import squants.energy.{Megawatts, Watts}
+import squants.{Dimensionless, Each}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
@@ -116,6 +96,14 @@ class HpAgentModelCalculationSpec
     )
   )
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+
+  private implicit val powerTolerance: squants.Power = Watts(
+    1.0
+  ) // Equals to 1 W power
+
+  private implicit val reactivePowerTolerance: ReactivePower = Vars(
+    1.0
+  ) // Equals to 1 Var power
 
   "A heat pump agent depending on no services" should {
     "be instantiated correctly" in {
@@ -443,13 +431,13 @@ class HpAgentModelCalculationSpec
 
       hpAgent ! RequestAssetPowerMessage(
         0L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Dimensionless.primaryUnit(1.0),
+        Dimensionless.primaryUnit(0.0)
       )
       expectMsg(
         AssetPowerChangedMessage(
-          Quantities.getQuantity(0d, MEGAWATT),
-          Quantities.getQuantity(0d, MEGAVAR)
+          Megawatts(0.0),
+          Megavars(0.0)
         )
       )
 
@@ -461,9 +449,9 @@ class HpAgentModelCalculationSpec
             resolution,
             SortedMap(
               0L -> ApparentPowerAndHeat(
-                Quantities.getQuantity(0d, MEGAWATT),
-                Quantities.getQuantity(0d, MEGAVAR),
-                Quantities.getQuantity(0d, MEGAWATT)
+                Megawatts(0.0),
+                Megavars(0.0),
+                Megawatts(0.0)
               )
             )
           )
@@ -639,21 +627,9 @@ class HpAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 900.")
               ) match {
                 case ApparentPowerAndHeat(p, q, qDot) =>
-                  QuantityUtil.isEquivalentAbs(
-                    p,
-                    Quantities.getQuantity(0, MEGAWATT),
-                    1e-16
-                  ) shouldBe true
-                  QuantityUtil.isEquivalentAbs(
-                    q,
-                    Quantities.getQuantity(0, MEGAVAR),
-                    1e-16
-                  ) shouldBe true
-                  QuantityUtil.isEquivalentAbs(
-                    qDot,
-                    Quantities.getQuantity(0, MEGAWATT),
-                    1e-16
-                  ) shouldBe true
+                  (p ~= Megawatts(0.0)) shouldBe true
+                  (q ~= Megavars(0.0)) shouldBe true
+                  (qDot ~= Megawatts(0.0)) shouldBe true
               }
           }
         case _ =>
@@ -826,21 +802,9 @@ class HpAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 0.")
               ) match {
                 case ApparentPowerAndHeat(p, q, qDot) =>
-                  QuantityUtil.isEquivalentAbs(
-                    p,
-                    Quantities.getQuantity(0, MEGAWATT),
-                    1e-16
-                  ) shouldBe true
-                  QuantityUtil.isEquivalentAbs(
-                    q,
-                    Quantities.getQuantity(0, MEGAVAR),
-                    1e-16
-                  ) shouldBe true
-                  QuantityUtil.isEquivalentAbs(
-                    qDot,
-                    Quantities.getQuantity(0, MEGAWATT),
-                    1e-16
-                  ) shouldBe true
+                  (p ~= Megawatts(0.0)) shouldBe true
+                  (q ~= Megavars(0.0)) shouldBe true
+                  (qDot ~= Megawatts(0.0)) shouldBe true
               }
           }
         case _ =>
@@ -906,8 +870,8 @@ class HpAgentModelCalculationSpec
       /* Ask the agent for average power in tick 7200 */
       hpAgent ! RequestAssetPowerMessage(
         7200L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.0),
+        Each(0.0)
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(hpAgent.stateName == Idle)
@@ -1102,8 +1066,8 @@ class HpAgentModelCalculationSpec
       /* Ask the agent for average power in tick 7500 */
       hpAgent ! RequestAssetPowerMessage(
         7500L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.0),
+        Each(0.0)
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -1125,8 +1089,8 @@ class HpAgentModelCalculationSpec
       /* Ask again with (nearly) unchanged information */
       hpAgent ! RequestAssetPowerMessage(
         7500L,
-        Quantities.getQuantity(1.000000000000001d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.000000000000001d),
+        Each(0.0)
       )
 
       /* Expect, that nothing has changed */
@@ -1147,8 +1111,8 @@ class HpAgentModelCalculationSpec
       /* Ask again with changed information */
       hpAgent ! RequestAssetPowerMessage(
         7500L,
-        Quantities.getQuantity(0.98, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(0.98),
+        Each(0.0)
       )
 
       /* Expect, the correct values (this model has fixed power factor) */
