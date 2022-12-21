@@ -116,7 +116,7 @@ class ChpModelTest extends Specification {
     def activePower = chpModel.calculateNextState(chpData).activePower()
 
     then:
-    activePower.isEquivalentTo(getQuantity(expectedActivePower, KILOWATT))
+    activePower.toKilowatts() == expectedActivePower
 
     where:
     chpState           | storageLvl | heatDemand  || expectedActivePower
@@ -224,9 +224,9 @@ class ChpModelTest extends Specification {
         thermalStorage)
 
     then:
-    chpModelCaseClass.sRated().getValue() == chpModelCaseObject.sRated().getValue()
+    chpModelCaseClass.sRated() == chpModelCaseObject.sRated()
     chpModelCaseClass.cosPhiRated() == chpModelCaseObject.cosPhiRated()
-    chpModelCaseClass.pThermal().getValue() == chpModelCaseObject.pThermal().getValue()
+    chpModelCaseClass.pThermal() == chpModelCaseObject.pThermal()
     chpModelCaseClass.storage() == chpModelCaseObject.storage()
   }
 }
