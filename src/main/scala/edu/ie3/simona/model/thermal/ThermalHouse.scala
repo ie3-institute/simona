@@ -280,7 +280,7 @@ final case class ThermalHouse(
       time: squants.Time
   ): squants.Energy = {
     val temperatureDeviation = innerTemperature - ambientTemperature
-    temperatureDeviation.toKelvinScale * (ethLosses * time) // TODO ?
+    temperatureDeviation.toKelvinDegrees * (ethLosses * time) // TODO ?
   }
 
   /** Update the current state of the house
