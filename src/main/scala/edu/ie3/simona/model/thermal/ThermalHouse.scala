@@ -158,7 +158,9 @@ final case class ThermalHouse(
   def isInnerTemperatureTooHigh(
       innerTemperature: squants.Temperature
   ): Boolean =
-    innerTemperature > upperBoundaryTemperature - temperatureTolerance
+    innerTemperature > Kelvin(
+      upperBoundaryTemperature.toKelvinScale - temperatureTolerance.toKelvinScale
+    )
 
   /** Check if inner temperature is lower than preferred minimum temperature
     *
@@ -169,7 +171,9 @@ final case class ThermalHouse(
       innerTemperature: squants.Temperature,
       boundaryTemperature: squants.Temperature = lowerBoundaryTemperature
   ): Boolean =
-    innerTemperature < boundaryTemperature + temperatureTolerance
+    innerTemperature < Kelvin(
+      boundaryTemperature.toKelvinScale + temperatureTolerance.toKelvinScale
+    )
 
   /** Calculate the new inner temperature of the thermal house.
     *
@@ -217,7 +221,7 @@ final case class ThermalHouse(
       oldInnerTemperature: squants.Temperature,
       temperatureChange: squants.Temperature
   ): squants.Temperature =
-    oldInnerTemperature + temperatureChange
+    Kelvin(oldInnerTemperature.toKelvinScale + temperatureChange.toKelvinScale)
 
   /** Calculate the temperature change for the thermal house form the thermal
     * energy change
@@ -279,8 +283,9 @@ final case class ThermalHouse(
       ambientTemperature: squants.Temperature,
       time: squants.Time
   ): squants.Energy = {
-    val temperatureDeviation = innerTemperature - ambientTemperature
-    (ethLosses * time) * temperatureDeviation.toKelvinDegrees
+    val temperatureDeviation =
+      innerTemperature.toKelvinScale - ambientTemperature.toKelvinScale
+    (ethLosses * time) * temperatureDeviation
   }
 
   /** Update the current state of the house
