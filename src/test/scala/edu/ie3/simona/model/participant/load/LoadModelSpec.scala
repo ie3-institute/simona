@@ -11,16 +11,9 @@ import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData
-import edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
-import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.{KilowattHours, Watts}
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.WATT
-
-import javax.measure.Quantity
-import javax.measure.quantity.Power
 
 class LoadModelSpec
     extends UnitSpec

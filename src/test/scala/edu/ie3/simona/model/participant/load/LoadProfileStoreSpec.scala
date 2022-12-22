@@ -20,7 +20,6 @@ import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.{KilowattHours, Watts}
 import squants.time.Minutes
-import tech.units.indriya.quantity.Quantities
 
 import java.io.InputStreamReader
 import java.time.ZonedDateTime
