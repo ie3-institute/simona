@@ -107,7 +107,7 @@ class FixedLoadModelTest extends Specification {
     then:
     for (cnt in 0..10000) {
       abs((dut.calculateActivePower(ModelState.ConstantState$.MODULE$, FixedLoadModel.FixedLoadRelevantData$.MODULE$)).toWatts().doubleValue()
-              - (expectedPower).toMegawatts().doubleValue()) < testingTolerance
+          - (expectedPower).toMegawatts().doubleValue()) < testingTolerance
     }
 
     where:
