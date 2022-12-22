@@ -19,6 +19,11 @@ import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.util.TimeUtil
 import scala.Option
 import spock.lang.Specification
+import squants.energy.KilowattHours$
+import squants.energy.Kilowatts$
+import squants.energy.Watts$
+import org.scalatest.time.Minutes$
+import edu.ie3.util.scala.quantities.Sq
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
@@ -79,16 +84,16 @@ class ProfileLoadModelTest extends Specification {
         reference)
 
     then:
-    abs((actual.sRated() * actual.cosPhiRated()).subtract(expectedsRated).to(MEGAWATT).value.doubleValue()) < testingTolerance
+    abs((actual.sRated().toWatts() * actual.cosPhiRated()).toDouble() -  (expectedsRated).toWatts().doubleValue()) < testingTolerance
 
     where:
-    profile | reference                                                          || expectedsRated
-    H0      | new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
-    H0      | new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(805.8089, WATT)
-    L0      | new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
-    L0      | new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(721.2, WATT)
-    G0      | new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
-    G0      | new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(721.2, WATT)
+    profile | reference                                                           || expectedsRated
+    H0      | new ActivePower(Sq.create(268.6d, Watts$.MODULE$))                  || Sq.create(268.6d, Watts$.MODULE$)
+    H0      | new EnergyConsumption(Sq.create(3000d, KilowattHours$.MODULE$))     || Sq.create(805.8089d, Watts$.MODULE$)
+    L0      | new ActivePower(Sq.create(268.6d, Watts$.MODULE$))                  || Sq.create(268.6d, Watts$.MODULE$)
+    L0      | new EnergyConsumption(Sq.create(3000d, KilowattHours$.MODULE$))     || Sq.create(721.2d, Watts$.MODULE$)
+    G0      | new ActivePower(Sq.create(268.6d, Watts$.MODULE$))                  || Sq.create(268.6d, Watts$.MODULE$)
+    G0      | new EnergyConsumption(Sq.create(3000d, KilowattHours$.MODULE$))     || Sq.create(721.2d, Watts$.MODULE$)
   }
 
   def "A profile load model should reach the targeted maximum power within a year"() {
@@ -100,10 +105,10 @@ class ProfileLoadModelTest extends Specification {
         foreSeenOperationInterval,
         1.0,
         QControl.apply(loadInput.qCharacteristics),
-        loadInput.sRated,
+        Sq.create(loadInput.getsRated().to(KILOWATT).getValue().doubleValue(), Kilowatts$.MODULE$),
         loadInput.cosPhiRated,
         profile,
-        new ActivePower(Quantities.getQuantity(268.6, WATT))
+        new ActivePower(Sq.create(268.6d, Watts$.MODULE$))
         )
     def relevantData = (0..35040).stream().map({ cnt ->
       new ProfileLoadModel.ProfileRelevantData(
@@ -112,7 +117,7 @@ class ProfileLoadModelTest extends Specification {
 
     when:
     def max = relevantData.stream().mapToDouble({ data ->
-      dut.calculateActivePower(ModelState.ConstantState$.MODULE$, data).to(MEGAWATT).value.doubleValue()
+      dut.calculateActivePower(ModelState.ConstantState$.MODULE$, data).toMegawatts().doubleValue()
     }).max().getAsDouble()
 
     then:
@@ -134,10 +139,10 @@ class ProfileLoadModelTest extends Specification {
         foreSeenOperationInterval,
         globalScaling,
         QControl.apply(loadInput.qCharacteristics),
-        loadInput.sRated,
+        Sq.create(loadInput.getsRated().to(KILOWATT).getValue().doubleValue(), Kilowatts$.MODULE$),
         loadInput.cosPhiRated,
         H0,
-        new ActivePower(Quantities.getQuantity(268.6, WATT))
+        new ActivePower(Sq.create(268.6d, Watts$.MODULE$))
         )
     def relevantDatas = (0..35040).stream().map({ cnt ->
       new ProfileLoadModel.ProfileRelevantData(
@@ -146,7 +151,7 @@ class ProfileLoadModelTest extends Specification {
 
     when:
     def max = relevantDatas.stream().mapToDouble({ relevantData ->
-      dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData).to(MEGAWATT).value.doubleValue()
+      dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData).toMegawatts().doubleValue()
     }).max().getAsDouble()
 
     then:
