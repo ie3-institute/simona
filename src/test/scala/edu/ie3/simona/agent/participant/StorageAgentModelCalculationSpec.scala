@@ -55,10 +55,11 @@ import edu.ie3.simona.test.common.input.StorageInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Megavars
 import squants.Each
-import squants.energy.{Kilowatts, Megawatts}
+import squants.energy.{Kilowatts, Megawatts, Watts}
 
 import java.time.ZonedDateTime
 import scala.collection.SortedMap
@@ -108,6 +109,8 @@ class StorageAgentModelCalculationSpec
   )
   private val services = None
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+
+  private implicit val powerTolerance: squants.Power = Watts(0.1)
 
   "A storage agent with model calculation depending on no secondary data service" should {
 
@@ -398,6 +401,13 @@ class StorageAgentModelCalculationSpec
       awaitAssert(storageAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
 
+      val pMax = Kilowatts(
+        storageInput.getType.getpMax
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      )
+
       /* TICK 0 (expected activation)
          - charging with pMax (12.961 kW)
          - expecting changing flex options indicator (charging from empty)
@@ -408,14 +418,14 @@ class StorageAgentModelCalculationSpec
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
               modelUuid,
-              referencePower,
+              refPower,
               minPower,
               maxPower
             ) =>
           modelUuid shouldBe storageInput.getUuid
-          referencePower shouldBe 0d.asKiloWatt
-          minPower shouldBe 0d.asKiloWatt
-          maxPower shouldBe storageInput.getType.getpMax
+          (refPower ~= Kilowatts(0.0)) shouldBe true
+          (minPower ~= Kilowatts(0.0)) shouldBe true
+          (maxPower ~= pMax) shouldBe true
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
@@ -471,14 +481,14 @@ class StorageAgentModelCalculationSpec
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
               modelUuid,
-              referencePower,
+              refPower,
               minPower,
               maxPower
             ) =>
           modelUuid shouldBe storageInput.getUuid
-          referencePower shouldBe 0d.asKiloWatt
-          minPower shouldBe storageInput.getType.getpMax().multiply(-1)
-          maxPower shouldBe storageInput.getType.getpMax()
+          (refPower ~= Kilowatts(0.0)) shouldBe true
+          (minPower ~= pMax * -1) shouldBe true
+          (maxPower ~= pMax) shouldBe true
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
@@ -611,14 +621,14 @@ class StorageAgentModelCalculationSpec
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
               modelUuid,
-              referencePower,
+              refPower,
               minPower,
               maxPower
             ) =>
           modelUuid shouldBe storageInput.getUuid
-          referencePower shouldBe 0d.asKiloWatt
-          minPower shouldBe storageInput.getType.getpMax().multiply(-1)
-          maxPower shouldBe 0d.asKiloWatt
+          (refPower ~= Kilowatts(0.0)) shouldBe true
+          (minPower ~= pMax * -1) shouldBe true
+          (maxPower ~= Kilowatts(0.0)) shouldBe true
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
@@ -671,14 +681,14 @@ class StorageAgentModelCalculationSpec
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
               modelUuid,
-              referencePower,
+              refPower,
               minPower,
               maxPower
             ) =>
           modelUuid shouldBe storageInput.getUuid
-          referencePower shouldBe 0d.asKiloWatt
-          minPower shouldBe 0d.asKiloWatt
-          maxPower shouldBe storageInput.getType.getpMax()
+          (refPower ~= Kilowatts(0.0)) shouldBe true
+          (minPower ~= Kilowatts(0.0)) shouldBe true
+          (maxPower ~= pMax) shouldBe true
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
