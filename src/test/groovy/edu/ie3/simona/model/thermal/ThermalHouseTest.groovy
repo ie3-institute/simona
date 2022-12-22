@@ -79,7 +79,7 @@ class ThermalHouseTest extends Specification {
     Math.abs(10d - thermalEnergyLoss.toKilowattHours()) < TOLERANCE
     Math.abs(90d - thermalEnergyChange.toKilowattHours()) < TOLERANCE
     Math.abs(9d - innerTemperatureChange.toKelvinScale()) < TOLERANCE
-    Math.abs(29d - newInnerTemperature.toCelsiusDegrees()) < TOLERANCE
+    Math.abs(29d - newInnerTemperature.toCelsiusScale()) < TOLERANCE
   }
 
   def "Comprising function to calculate new inner temperature works as expected"() {
@@ -94,7 +94,7 @@ class ThermalHouseTest extends Specification {
     def newInnerTemperature = thermalHouse.newInnerTemperature(thermalPower, duration, currentInnerTemperature, ambientTemperature)
 
     then:
-    Math.abs(newInnerTemperature.toCelsiusDegrees() - 29d) < TOLERANCE
+    Math.abs(newInnerTemperature.toCelsiusScale() - 29d) < TOLERANCE
   }
 
   def "Check build method:"() {

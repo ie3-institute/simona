@@ -129,7 +129,7 @@ class SystemParticipantTest extends Specification {
         0.98)
 
     when: "the reactive power is calculated"
-    Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$)
+    Dimensionless adjustedVoltage = Sq.create(adjustedVoltageVal.doubleValue(), Each$.MODULE$)
     def qCalc = loadMock.calculateReactivePower(p, adjustedVoltage)
 
     then: "compare the results in watt"
@@ -163,7 +163,7 @@ class SystemParticipantTest extends Specification {
         1d)
 
     when: "the reactive power is calculated"
-    Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$)
+    Dimensionless adjustedVoltage = Sq.create(adjustedVoltageVal.doubleValue(), Each$.MODULE$)
     def qCalc = loadMock.calculateReactivePower(p, adjustedVoltage)
 
     then: "compare the results in watt"
@@ -197,7 +197,7 @@ class SystemParticipantTest extends Specification {
         0.95)
 
     when: "the reactive power is calculated"
-    Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$)
+    Dimensionless adjustedVoltage = Sq.create(adjustedVoltageVal.doubleValue(), Each$.MODULE$)
     def qCalc = loadMock.calculateReactivePower(p, adjustedVoltage)
 
     then: "compare the results in watt"
@@ -231,7 +231,7 @@ class SystemParticipantTest extends Specification {
         0.95)
 
     when: "the reactive power is calculated"
-    Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$)
+    Dimensionless adjustedVoltage = Sq.create(adjustedVoltageVal.doubleValue(), Each$.MODULE$)
     def qCalc = loadMock.calculateReactivePower(p, adjustedVoltage)
 
     then: "compare the results in watt"

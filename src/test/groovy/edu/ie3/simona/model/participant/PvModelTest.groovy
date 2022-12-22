@@ -376,7 +376,7 @@ class PvModelTest extends Specification {
     // 1 MJ/m^2 = 277,778 Wh/m^2
     // 0.244 MJ/m^2 = 67.777778 Wh/m^2
     //Beam Radiation on horizontal surface
-    Quantity<Irradiation> eBeamH = Sq.create(67.777778, WATTHOUR_PER_SQUAREMETRE)
+    Energy eBeamH = Sq.create(67.777778d, WattHours$.MODULE$)
     // Declination Angle delta of the sun at solar noon
     squants.space.Angle delta = Sq.create(Math.toRadians(deltaIn), Radians$.MODULE$)
     //Hour Angle
@@ -386,7 +386,7 @@ class PvModelTest extends Specification {
     //Sunset Angle
     squants.space.Angle omegaSS = pvModel.calcSunsetAngleOmegaSS(latitudeInRad, delta)
     //Sunrise Angle (Sunset Angle * (-1))
-    squants.space.Angle omegaSR = omegaSS * (-1)
+    squants.space.Angle omegaSR = omegaSS.$times(-1d)
     //omega1 and omega2
     Option<scala.Tuple2<ComparableQuantity<Angle>, ComparableQuantity<Angle>>> omegas = pvModel.calculateBeamOmegas(thetaG, omega, omegaSS, omegaSR)
 
@@ -394,7 +394,7 @@ class PvModelTest extends Specification {
     "- should calculate the beam contribution,"
     Math.abs(
         pvModel.calcBeamRadiationOnSlopedSurface(eBeamH, omegas, delta, latitudeInRad, gammaE, alphaE).toWattHours() - eBeamSSol
-        ) < 1e-15
+        ) < 1e-13
 
     where: "the following parameters are given"
     latitudeInDeg | slope | azimuth | deltaIn | omegaIn | thetaGIn || eBeamSSol
@@ -431,7 +431,7 @@ class PvModelTest extends Specification {
     // == 0,7792781569074354 MJ/m^2
     Math.abs(
         pvModel.calcDiffuseRadiationOnSlopedSurfacePerez(eDifH, eBeamH, airMass, I0Quantity, thetaZ, thetaG, gammaE).toWattHours() - eDifSSol
-        ) < 1e-15
+        ) < 1e-13
 
     where: "the following parameters are given"
     thetaGIn | thetaZIn | slope | airMass           | I0                  || eDifSSol

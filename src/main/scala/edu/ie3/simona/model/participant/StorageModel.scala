@@ -200,7 +200,7 @@ final case class StorageModel(
     val hasObsoleteFlexOptions =
       (isFull(currentStoredEnergy) && setPower > Kilowatts(0d)) ||
         (isEmpty(currentStoredEnergy) && setPower < Kilowatts(0d)) ||
-        (isAtTarget && setPower == Kilowatts(0d))
+        (isAtTarget && setPower != Kilowatts(0d))
 
     val activateAtNextTick =
       ((isEmptyOrFull || isAtTarget) && isChargingOrDischarging) || hasObsoleteFlexOptions
