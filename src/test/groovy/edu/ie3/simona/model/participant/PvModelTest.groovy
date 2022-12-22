@@ -15,6 +15,7 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.quantities.interfaces.Irradiation
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.Kilovars
 import edu.ie3.util.scala.quantities.Sq
 import org.locationtech.jts.geom.Coordinate
 import org.locationtech.jts.geom.GeometryFactory
@@ -116,7 +117,7 @@ class PvModelTest extends Specification {
 
   def "A PvModel should have sMax set to be 10% higher than its sRated"() {
     expect:
-    pvModel.sMax() == (pvModel.sRated() * 1.1)
+    pvModel.sMax().toKilowatts() == ((pvModel.sRated().toKilowatts() * 1.1))
   }
 
   def "A PvModel should provide reactive power up to 110% of it's rated apparent power"() {
@@ -127,12 +128,12 @@ class PvModelTest extends Specification {
     def qCalc = pvModel.calculateReactivePower(Sq.create(pVal, Kilowatts$.MODULE$), adjustedVoltage)
 
     then:
-    Math.abs(qCalc.toKilovars() - qSoll) < 0.0001
+    (Math.abs(qCalc.toKilovars() - qSoll)).toDouble() < 0.0001
 
     where:
     pVal || qSoll
-    9.5  || 4.601059d // above sRated (no q limitation)
-    11   || 0d        // above sMax (limit q becomes active)
+    9.5d  || 4.601059d // above sRated (no q limitation)
+    11d   || 0d        // above sMax (limit q becomes active)
   }
 
   def "Calculate day angle J"() {
