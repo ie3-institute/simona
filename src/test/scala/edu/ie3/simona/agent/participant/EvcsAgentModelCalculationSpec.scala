@@ -56,6 +56,7 @@ import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.EvTestData
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import squants.Each
@@ -79,7 +80,6 @@ class EvcsAgentModelCalculationSpec
     with EvcsInputTestData
     with EvTestData {
   private implicit val receiveTimeout: FiniteDuration = 10.seconds
-  private implicit val noReceiveTimeOut: Timeout = 1.second
 
   private val testingTolerance = 1e-6
   private implicit val energyTolerance: squants.Energy = WattHours(0.1)
@@ -1444,11 +1444,11 @@ class EvcsAgentModelCalculationSpec
 
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
-          result.systemParticipantResult.getP should equalWithTolerance(
-            0.asKiloWatt,
+          result.systemParticipantResult.getP should beEquivalentTo(
+            0.asMegaWatt,
             testingTolerance
           )
-          result.systemParticipantResult.getQ should equalWithTolerance(
+          result.systemParticipantResult.getQ should beEquivalentTo(
             0.asMegaVar,
             testingTolerance
           )
@@ -1515,11 +1515,11 @@ class EvcsAgentModelCalculationSpec
 
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
-          result.systemParticipantResult.getP should equalWithTolerance(
+          result.systemParticipantResult.getP should beEquivalentTo(
             ev900.unwrap().getSRatedAC,
             testingTolerance
           )
-          result.systemParticipantResult.getQ should equalWithTolerance(
+          result.systemParticipantResult.getQ should beEquivalentTo(
             0.asMegaVar,
             testingTolerance
           )
@@ -1641,11 +1641,11 @@ class EvcsAgentModelCalculationSpec
 
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
-          result.systemParticipantResult.getP should equalWithTolerance(
+          result.systemParticipantResult.getP should beEquivalentTo(
             11.asKiloWatt,
             testingTolerance
           )
-          result.systemParticipantResult.getQ should equalWithTolerance(
+          result.systemParticipantResult.getQ should beEquivalentTo(
             0.asMegaVar,
             testingTolerance
           )
@@ -1702,11 +1702,11 @@ class EvcsAgentModelCalculationSpec
 
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
-          result.systemParticipantResult.getP should equalWithTolerance(
+          result.systemParticipantResult.getP should beEquivalentTo(
             10.asKiloWatt,
             testingTolerance
           )
-          result.systemParticipantResult.getQ should equalWithTolerance(
+          result.systemParticipantResult.getQ should beEquivalentTo(
             0.asMegaVar,
             testingTolerance
           )
@@ -1775,23 +1775,21 @@ class EvcsAgentModelCalculationSpec
 
       val combinedChargingPower =
         ev11700.unwrap().getSRatedAC.add(ev4500.unwrap().getSRatedAC)
+      val combinedChargingPowerSq = Kilowatts(
+        combinedChargingPower.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
+      )
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
               modelUuid,
-              referencePower,
+              refPower,
               minPower,
               maxPower
             ) =>
           modelUuid shouldBe evcsInputModel.getUuid
-          referencePower shouldBe combinedChargingPower
-          minPower shouldBe ev4500
-            .unwrap()
-            .getSRatedAC
-            .multiply(
-              -1
-            ) // battery of earlier ev is above lowest soc now
-          maxPower shouldBe combinedChargingPower
+          refPower shouldBe combinedChargingPowerSq
+          minPower shouldBe ev4500.sRatedAc * -1 // battery of earlier ev is above lowest soc now
+          maxPower shouldBe combinedChargingPowerSq
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
@@ -1811,11 +1809,11 @@ class EvcsAgentModelCalculationSpec
 
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
-          result.systemParticipantResult.getP should equalWithTolerance(
+          result.systemParticipantResult.getP should beEquivalentTo(
             16.asKiloWatt,
             testingTolerance
           )
-          result.systemParticipantResult.getQ should equalWithTolerance(
+          result.systemParticipantResult.getQ should beEquivalentTo(
             0.asMegaVar,
             testingTolerance
           )
@@ -1870,11 +1868,9 @@ class EvcsAgentModelCalculationSpec
               maxPower
             ) =>
           modelUuid shouldBe evcsInputModel.getUuid
-          referencePower shouldBe combinedChargingPower
-          minPower shouldBe combinedChargingPower.multiply(
-            -1
-          ) // battery of both evs is above lowest soc now
-          maxPower shouldBe combinedChargingPower
+          referencePower shouldBe combinedChargingPowerSq
+          minPower shouldBe combinedChargingPowerSq * -1 // battery of both evs is above lowest soc now
+          maxPower shouldBe combinedChargingPowerSq
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
@@ -1896,11 +1892,11 @@ class EvcsAgentModelCalculationSpec
 
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
-          result.systemParticipantResult.getP should equalWithTolerance(
+          result.systemParticipantResult.getP should beEquivalentTo(
             (-20).asKiloWatt,
             testingTolerance
           )
-          result.systemParticipantResult.getQ should equalWithTolerance(
+          result.systemParticipantResult.getQ should beEquivalentTo(
             0.asMegaVar,
             testingTolerance
           )
@@ -1960,14 +1956,9 @@ class EvcsAgentModelCalculationSpec
               maxPower
             ) =>
           modelUuid shouldBe evcsInputModel.getUuid
-          referencePower shouldBe combinedChargingPower
-          minPower shouldBe ev4500
-            .unwrap()
-            .getSRatedAC
-            .multiply(
-              -1
-            ) // battery of ev11700 is below lowest soc now
-          maxPower shouldBe combinedChargingPower
+          referencePower shouldBe combinedChargingPowerSq
+          minPower shouldBe ev4500.sRatedAc * -1 // battery of ev11700 is below lowest soc now
+          maxPower shouldBe combinedChargingPowerSq
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
@@ -1992,11 +1983,11 @@ class EvcsAgentModelCalculationSpec
 
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
-          result.systemParticipantResult.getP should equalWithTolerance(
+          result.systemParticipantResult.getP should beEquivalentTo(
             (-10).asKiloWatt,
             testingTolerance
           )
-          result.systemParticipantResult.getQ should equalWithTolerance(
+          result.systemParticipantResult.getQ should beEquivalentTo(
             0.asMegaVar,
             testingTolerance
           )
@@ -2054,9 +2045,9 @@ class EvcsAgentModelCalculationSpec
               maxPower
             ) =>
           modelUuid shouldBe evcsInputModel.getUuid
-          referencePower shouldBe combinedChargingPower
-          minPower shouldBe 0.asKiloWatt // both at lowest soc
-          maxPower shouldBe combinedChargingPower
+          referencePower shouldBe combinedChargingPowerSq
+          minPower shouldBe Kilowatts(0.0) // both at lowest soc
+          maxPower shouldBe combinedChargingPowerSq
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
@@ -2074,11 +2065,11 @@ class EvcsAgentModelCalculationSpec
 
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
-          result.systemParticipantResult.getP should equalWithTolerance(
+          result.systemParticipantResult.getP should beEquivalentTo(
             0.asKiloWatt,
             testingTolerance
           )
-          result.systemParticipantResult.getQ should equalWithTolerance(
+          result.systemParticipantResult.getQ should beEquivalentTo(
             0.asMegaVar,
             testingTolerance
           )
@@ -2193,11 +2184,11 @@ class EvcsAgentModelCalculationSpec
 
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
-          result.systemParticipantResult.getP should equalWithTolerance(
+          result.systemParticipantResult.getP should beEquivalentTo(
             4.asKiloWatt,
             testingTolerance
           )
-          result.systemParticipantResult.getQ should equalWithTolerance(
+          result.systemParticipantResult.getQ should beEquivalentTo(
             0.asMegaVar,
             testingTolerance
           )
