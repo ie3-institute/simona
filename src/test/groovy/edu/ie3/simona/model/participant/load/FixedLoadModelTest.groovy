@@ -17,7 +17,6 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ModelState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.TimeUtil
-import scala.Option
 import spock.lang.Specification
 import edu.ie3.util.scala.quantities.Sq
 import squants.energy.KilowattHours$
@@ -30,8 +29,6 @@ import static edu.ie3.simona.model.participant.load.LoadReference.ActivePower
 import static edu.ie3.simona.model.participant.load.LoadReference.EnergyConsumption
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static org.apache.commons.math3.util.FastMath.abs
-
-import static tech.units.indriya.unit.Units.WATT
 
 class FixedLoadModelTest extends Specification {
   def loadInput =
@@ -67,7 +64,7 @@ class FixedLoadModelTest extends Specification {
   simulationEndDate,
   loadInput.operationTime
   )
-  def testingTolerance = 1e-6 // Equals to 1 W power
+  def wattTolerance = 1 // Equals to 1 W power
 
   def "A fixed load model should be instantiated from valid input correctly"() {
     when:
@@ -83,12 +80,12 @@ class FixedLoadModelTest extends Specification {
         )
 
     then:
-    abs(actual.activePower().value().doubleValue() - expectedReferenceActivePower.value().doubleValue()) < testingTolerance
+    abs(actual.activePower().toWatts() - expectedReferenceActivePower.doubleValue()) < wattTolerance
 
     where:
-    reference                                                          || expectedReferenceActivePower
-    new ActivePower(Sq.create(268.6d, Watts$.MODULE$)) || Sq.create(268.6d, Watts$.MODULE$)
-    new EnergyConsumption(Sq.create(3000d, KilowattHours$.MODULE$)) || Sq.create(342.24d, Watts$.MODULE$)
+    reference                                                       || expectedReferenceActivePower
+    new ActivePower(Sq.create(268.6d, Watts$.MODULE$))              || 268.6
+    new EnergyConsumption(Sq.create(3000d, KilowattHours$.MODULE$)) || 342.24
   }
 
   def "A fixed load model should return approximately the same power in 10.000 calculations"() {
@@ -107,7 +104,7 @@ class FixedLoadModelTest extends Specification {
     then:
     for (cnt in 0..10000) {
       abs((dut.calculateActivePower(ModelState.ConstantState$.MODULE$, FixedLoadModel.FixedLoadRelevantData$.MODULE$)).toWatts().doubleValue()
-          - (expectedPower).toMegawatts().doubleValue()) < testingTolerance
+          - (expectedPower).toMegawatts().doubleValue()) < wattTolerance
     }
 
     where:
@@ -133,12 +130,12 @@ class FixedLoadModelTest extends Specification {
           reference
           )
 
-      abs((dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData)).value().doubleValue() - (expectedPower * scale).to(MEGAWATT).value.doubleValue()) < testingTolerance
+      abs((dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData)).toWatts() - (expectedPower * scale).doubleValue()) < wattTolerance
     }
 
     where:
     reference                                                           || expectedPower
-    new ActivePower(Sq.create(268.6d, Watts$.MODULE$))                  || Sq.create(268.6d, Watts$.MODULE$)
-    new EnergyConsumption(Sq.create(3000d, KilowattHours$.MODULE$))     || Sq.create(342.24d, Watts$.MODULE$)
+    new ActivePower(Sq.create(268.6d, Watts$.MODULE$))                  || 268.6
+    new EnergyConsumption(Sq.create(3000d, KilowattHours$.MODULE$))     || 342.24
   }
 }

@@ -33,8 +33,6 @@ import static edu.ie3.simona.model.participant.load.LoadReference.ActivePower
 import static edu.ie3.simona.model.participant.load.LoadReference.EnergyConsumption
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static org.apache.commons.math3.util.FastMath.abs
-import static tech.units.indriya.unit.Units.MINUTE
-import static tech.units.indriya.unit.Units.WATT
 
 class RandomLoadModelTest extends Specification {
   def loadInput =
@@ -148,7 +146,7 @@ class RandomLoadModelTest extends Specification {
         { runCnt ->
           relevantDatas.parallelStream().mapToDouble(
               { relevantData ->
-                (dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData) * Quantities.getQuantity(15d, MINUTE)).asType(Energy).to(KILOWATTHOUR).value.doubleValue()
+                (dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData).$times(Sq.create(15d, Minutes$.MODULE$))).toKilowattHours()
               }).sum()
         }).average().orElse(0d)
 
