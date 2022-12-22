@@ -597,8 +597,7 @@ class ParticipantAgentFundamentalsSpec
       ParticipantAgent.getAndCheckNodalVoltage(
         baseStateData,
         1000L
-      ) shouldBe Quantities
-        .getQuantity(1d, PU)
+      ) shouldBe Each(1.0)
     }
 
     "throw an error, if no nodal voltage is available" in {
