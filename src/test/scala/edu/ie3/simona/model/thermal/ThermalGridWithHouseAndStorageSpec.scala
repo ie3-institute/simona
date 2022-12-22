@@ -19,7 +19,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageFull
 }
 import edu.ie3.simona.test.common.UnitSpec
-import squants.energy.{KilowattHours, Kilowatts, MegawattHours, Megawatts}
+import squants.energy._
 import squants.thermal.{Celsius, Kelvin}
 import tech.units.indriya.unit.Units
 
@@ -30,8 +30,8 @@ class ThermalGridWithHouseAndStorageSpec
     with ThermalHouseTestData
     with ThermalStorageTestData {
 
-  implicit val energyTolerance: squants.Energy = KilowattHours(1e-10)
-  implicit val powerTolerance: squants.Power = Kilowatts(1e-10)
+  implicit val energyTolerance: squants.Energy = WattHours(0.1)
+  implicit val powerTolerance: squants.Power = Watts(0.1)
   implicit val temperatureTolerance: squants.Temperature = Kelvin(1e-3)
 
   "Testing thermal grid generation with only a house" should {
@@ -117,7 +117,7 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
         (gridDemand.required ~= MegawattHours(0.0)) shouldBe true
-        (gridDemand.possible ~= MegawattHours(1.041200)) shouldBe true
+        (gridDemand.possible ~= MegawattHours(1.0412001)) shouldBe true
       }
 
       "consider stored energy to reduce house demand if stored energy is not enough" in {
