@@ -415,10 +415,10 @@ class PvModelTest extends Specification {
     // 1 MJ/m^2 = 277,778 Wh/m^2
     // 0.244 MJ/m^2 = 67.777778 Wh/m^2
     //Beam Radiation on horizontal surface
-    Energy eBeamH = Sq.create(67.777778, WattHours$.MODULE$)
+    Energy eBeamH = Sq.create(67.777778d, WattHours$.MODULE$)
     // 0.769 MJ/m^2 = 213,61111 Wh/m^2
     //Diffuse beam Radiation on horizontal surface
-    Energy eDifH = Sq.create(213.61111, WattHours$.MODULE$)
+    Energy eDifH = Sq.create(213.61111d, WattHours$.MODULE$)
     //Incidence Angle
     squants.space.Angle thetaG = Sq.create(Math.toRadians(thetaGIn), Radians$.MODULE$)
     //Zenith Angle
@@ -447,10 +447,10 @@ class PvModelTest extends Specification {
     // 1 MJ/m^2 = 277,778 Wh/m^2
     // 0.244 MJ/m^2 = 67.777778 Wh/m^2
     //Beam Radiation on horizontal surface
-    Energy eBeamH = Sq.create(67.777778, WattHours$.MODULE$)
+    Energy eBeamH = Sq.create(67.777778d, WattHours$.MODULE$)
     // 0.769 MJ/m^2 = 213,61111 Wh/m^2
     //Diffuse beam Radiation on horizontal surface
-    Energy eDifH = Sq.create(213.61111, WattHours$.MODULE$)
+    Energy eDifH = Sq.create(213.61111d, WattHours$.MODULE$)
 
     expect:
     "- should calculate the ground reflection correctly"
