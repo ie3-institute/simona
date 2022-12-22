@@ -19,12 +19,18 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.TimeUtil
 import scala.Option
 import spock.lang.Specification
+import edu.ie3.util.scala.quantities.Sq
+import squants.energy.KilowattHours$
+import squants.energy.Kilowatts$
+
+import squants.energy.Watts$
 import tech.units.indriya.quantity.Quantities
 
 import static edu.ie3.simona.model.participant.load.LoadReference.ActivePower
 import static edu.ie3.simona.model.participant.load.LoadReference.EnergyConsumption
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static org.apache.commons.math3.util.FastMath.abs
+
 import static tech.units.indriya.unit.Units.WATT
 
 class FixedLoadModelTest extends Specification {
@@ -71,18 +77,18 @@ class FixedLoadModelTest extends Specification {
         foreSeenOperationInterval,
         1.0,
         QControl.apply(loadInput.qCharacteristics),
-        loadInput.sRated,
+        Sq.create(loadInput.getsRated().to(KILOWATT).getValue().doubleValue(), Kilowatts$.MODULE$),
         loadInput.cosPhiRated,
         reference
         )
 
     then:
-    abs(actual.activePower().subtract(expectedReferenceActivePower).to(MEGAWATT).value.doubleValue()) < testingTolerance
+    abs(actual.activePower().value().doubleValue() - expectedReferenceActivePower.value().doubleValue()) < testingTolerance
 
     where:
     reference                                                          || expectedReferenceActivePower
-    new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
-    new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(342.24, WATT)
+    new ActivePower(Sq.create(268.6d, Watts$.MODULE$)) || Sq.create(268.6d, Watts$.MODULE$)
+    new EnergyConsumption(Sq.create(3000d, KilowattHours$.MODULE$)) || Sq.create(342.24d, Watts$.MODULE$)
   }
 
   def "A fixed load model should return approximately the same power in 10.000 calculations"() {
@@ -93,7 +99,7 @@ class FixedLoadModelTest extends Specification {
         foreSeenOperationInterval,
         1.0,
         QControl.apply(loadInput.qCharacteristics),
-        loadInput.sRated,
+        Sq.create(loadInput.getsRated().to(KILOWATT).getValue().doubleValue(), Kilowatts$.MODULE$),
         loadInput.cosPhiRated,
         reference
         )
@@ -105,8 +111,8 @@ class FixedLoadModelTest extends Specification {
 
     where:
     reference                                                          || expectedPower
-    new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
-    new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(342.24, WATT)
+    new ActivePower(Sq.create(268.6d, Watts$.MODULE$))                 || Sq.create(268.6d, Watts$.MODULE$)
+    new EnergyConsumption(Sq.create(3000d, KilowattHours$.MODULE$))    || Sq.create(342.24d, Watts$.MODULE$)
   }
 
   def "A fixed load model considers the (global) scaling factor correctly"() {
@@ -121,17 +127,17 @@ class FixedLoadModelTest extends Specification {
           foreSeenOperationInterval,
           scale,
           QControl.apply(loadInput.qCharacteristics),
-          loadInput.sRated,
+          Sq.create(loadInput.getsRated().to(KILOWATT).getValue().doubleValue(), Kilowatts$.MODULE$),
           loadInput.cosPhiRated,
           reference
           )
 
-      abs((dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData)).subtract(expectedPower * scale).to(MEGAWATT).value.doubleValue()) < testingTolerance
+      abs((dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData)).value().doubleValue() - (expectedPower * scale).to(MEGAWATT).value.doubleValue()) < testingTolerance
     }
 
     where:
-    reference                                                          || expectedPower
-    new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
-    new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(342.24, WATT)
+    reference                                                           || expectedPower
+    new ActivePower(Sq.create(268.6d, Watts$.MODULE$))                  || Sq.create(268.6d, Watts$.MODULE$)
+    new EnergyConsumption(Sq.create(3000d, KilowattHours$.MODULE$))     || Sq.create(342.24d, Watts$.MODULE$)
   }
 }
