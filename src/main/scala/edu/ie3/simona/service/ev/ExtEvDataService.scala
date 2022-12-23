@@ -31,6 +31,7 @@ import edu.ie3.simona.service.ev.ExtEvDataService.{
   InitExtEvData
 }
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
+import edu.ie3.simona.util.ReceiveDataMap
 
 import java.util.UUID
 import scala.jdk.CollectionConverters._
@@ -54,9 +55,10 @@ object ExtEvDataService {
         )
       ] = Map.empty,
       extEvMessage: Option[EvDataMessageFromExt] = None,
-      freeLots: Map[UUID, Option[Int]] = Map.empty,
-      currentPrices: Map[UUID, Option[Double]] = Map.empty,
-      departingEvResponses: Map[UUID, Option[Seq[EvModelWrapper]]] = Map.empty
+      freeLots: ReceiveDataMap[UUID, Int] = ReceiveDataMap.empty,
+      currentPrices: ReceiveDataMap[UUID, Double] = ReceiveDataMap.empty,
+      departingEvResponses: ReceiveDataMap[UUID, Seq[EvModelWrapper]] =
+        ReceiveDataMap.empty
   ) extends ServiceBaseStateData
 
   final case class InitExtEvData(
@@ -224,19 +226,19 @@ class ExtEvDataService(override val scheduler: ActorRef)
       evcsActor ! EvFreeLotsRequest(tick)
     }
 
-    val freeLots: Map[UUID, Option[Int]] =
+    val awaitedEvcs =
       serviceStateData.uuidToActorRef.map { case (evcs, _) =>
-        evcs -> None
-      }
+        evcs
+      }.toSet
 
     // if there are no evcs, we're sending response right away
-    if (freeLots.isEmpty)
+    if (awaitedEvcs.isEmpty)
       serviceStateData.extEvData.queueExtResponseMsg(new ProvideEvcsFreeLots())
 
     (
       serviceStateData.copy(
         extEvMessage = None,
-        freeLots = freeLots
+        freeLots = ReceiveDataMap(awaitedEvcs)
       ),
       None
     )
@@ -249,19 +251,19 @@ class ExtEvDataService(override val scheduler: ActorRef)
       evcsActor ! CurrentPriceRequest(tick)
     }
 
-    val currentPrices: Map[UUID, Option[Double]] =
+    val awaitedEvcs =
       serviceStateData.uuidToActorRef.map { case (evcs, _) =>
-        evcs -> None
-      }
+        evcs
+      }.toSet
 
     // if there are no evcs, we're sending response right away
-    if (currentPrices.isEmpty)
+    if (awaitedEvcs.isEmpty)
       serviceStateData.extEvData.queueExtResponseMsg(new ProvideCurrentPrices())
 
     (
       serviceStateData.copy(
         extEvMessage = None,
-        currentPrices = currentPrices
+        currentPrices = ReceiveDataMap(awaitedEvcs)
       ),
       None
     )
@@ -292,10 +294,9 @@ class ExtEvDataService(override val scheduler: ActorRef)
         }
       }
 
-    val departingEvResponses: Map[UUID, Option[Seq[EvModelWrapper]]] =
-      evcsWithDepartures.map { case (evcs, _, _) =>
-        evcs -> None
-      }.toMap
+    val awaitedEvcs = evcsWithDepartures.map { case (evcs, _, _) =>
+      evcs
+    }.toSet
 
     val scheduleTriggerMsgs = evcsWithDepartures.flatMap {
       case (_, scheduleTriggerFunc, emControlled) =>
@@ -304,13 +305,13 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
     // if there are no departing evs during this tick,
     // we're sending response right away
-    if (departingEvResponses.isEmpty)
+    if (awaitedEvcs.isEmpty)
       serviceStateData.extEvData.queueExtResponseMsg(new ProvideDepartingEvs())
 
     (
       serviceStateData.copy(
         extEvMessage = None,
-        departingEvResponses = departingEvResponses
+        departingEvResponses = ReceiveDataMap(awaitedEvcs)
       ),
       Option.when(scheduleTriggerMsgs.nonEmpty) { scheduleTriggerMsgs.toSeq }
     )
@@ -370,42 +371,41 @@ class ExtEvDataService(override val scheduler: ActorRef)
   )(implicit serviceStateData: ExtEvStateData): ExtEvStateData = {
     extResponseMsg match {
       case DepartingEvsResponse(evcs, evModels) =>
-        val updatedResponses = serviceStateData.departingEvResponses +
-          (evcs -> Some(evModels.toList))
+        val updatedResponses =
+          serviceStateData.departingEvResponses.addData(evcs, evModels.toList)
 
-        if (updatedResponses.exists { case (_, resp) => resp.isEmpty }) {
+        if (updatedResponses.nonComplete) {
           // responses are still incomplete
           serviceStateData.copy(
             departingEvResponses = updatedResponses
           )
         } else {
           // all responses received, forward them to external simulation in a bundle
-          val departingEvs = updatedResponses.values.flatten.flatten
+          val departingEvs =
+            updatedResponses.receivedData.values.flatten.map(_.unwrap())
 
           serviceStateData.extEvData.queueExtResponseMsg(
-            new ProvideDepartingEvs(departingEvs.map(_.unwrap()).toList.asJava)
+            new ProvideDepartingEvs(departingEvs.toList.asJava)
           )
 
           serviceStateData.copy(
-            departingEvResponses = Map.empty
+            departingEvResponses = ReceiveDataMap.empty
           )
         }
       case CurrentPriceResponse(evcs, currentPrice) =>
-        val updatedCurrentPrices = serviceStateData.currentPrices +
-          (evcs -> Some(currentPrice))
+        val updatedCurrentPrices =
+          serviceStateData.currentPrices.addData(evcs, currentPrice)
 
-        if (updatedCurrentPrices.exists { case (_, resp) => resp.isEmpty }) {
+        if (updatedCurrentPrices.nonComplete) {
           // responses are still incomplete
           serviceStateData.copy(
             currentPrices = updatedCurrentPrices
           )
         } else {
           // all responses received, forward them to external simulation in a bundle
-          val currentPricesResponse = updatedCurrentPrices.flatMap {
-            case (evcs, Some(currentPrice)) =>
-              Some(evcs -> java.lang.Double.valueOf(currentPrice))
-            case _ =>
-              None
+          val currentPricesResponse = updatedCurrentPrices.receivedData.map {
+            case (evcs, currentPrice) =>
+              evcs -> java.lang.Double.valueOf(currentPrice)
           }
 
           serviceStateData.extEvData.queueExtResponseMsg(
@@ -413,33 +413,33 @@ class ExtEvDataService(override val scheduler: ActorRef)
           )
 
           serviceStateData.copy(
-            currentPrices = Map.empty
+            currentPrices = ReceiveDataMap.empty
           )
         }
       case FreeLotsResponse(evcs, freeLots) =>
-        val updatedFreeLots = serviceStateData.freeLots +
-          (evcs -> Some(freeLots))
+        val updatedFreeLots = serviceStateData.freeLots.addData(evcs, freeLots)
 
-        if (updatedFreeLots.exists { case (_, resp) => resp.isEmpty }) {
+        if (updatedFreeLots.nonComplete) {
           // responses are still incomplete
           serviceStateData.copy(
             freeLots = updatedFreeLots
           )
         } else {
           // all responses received, forward them to external simulation in a bundle
-          val freeLotsResponse = updatedFreeLots.flatMap {
-            case (evcs, Some(freeLotsCount)) if freeLotsCount > 0 =>
-              Some(evcs -> Integer.valueOf(freeLotsCount))
-            case _ =>
-              None
-          }
+          val freeLotsResponse = updatedFreeLots.receivedData
+            .filter { case (_, freeLotsCount) =>
+              freeLotsCount > 0
+            }
+            .map { case (evcs, freeLotsCount) =>
+              evcs -> Integer.valueOf(freeLotsCount)
+            }
 
           serviceStateData.extEvData.queueExtResponseMsg(
             new ProvideEvcsFreeLots(freeLotsResponse.asJava)
           )
 
           serviceStateData.copy(
-            freeLots = Map.empty
+            freeLots = ReceiveDataMap.empty
           )
         }
     }
