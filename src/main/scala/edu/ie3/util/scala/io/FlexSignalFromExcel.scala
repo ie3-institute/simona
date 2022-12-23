@@ -6,7 +6,10 @@
 
 package edu.ie3.util.scala.io
 
-import edu.ie3.datamodel.models.timeseries.individual.{IndividualTimeSeries, TimeBasedValue}
+import edu.ie3.datamodel.models.timeseries.individual.{
+  IndividualTimeSeries,
+  TimeBasedValue
+}
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.config.SimonaConfig.Simona.Runtime.RootEm
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -20,7 +23,11 @@ import java.time.ZoneId
 import java.util.UUID
 import javax.measure
 import javax.measure.quantity.Power
-import scala.jdk.CollectionConverters.{IterableHasAsScala, IteratorHasAsScala, SetHasAsJava}
+import scala.jdk.CollectionConverters.{
+  IterableHasAsScala,
+  IteratorHasAsScala,
+  SetHasAsJava
+}
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try, Using}
 
@@ -138,7 +145,10 @@ object FlexSignalFromExcel {
       .getOrElse(
         throw new RuntimeException(s"Time series for $config is empty")
       )
-    (Megawatts(minValue.getValue.doubleValue()), Megawatts(maxValue.getValue.doubleValue()))
+    (
+      Megawatts(minValue.getValue.doubleValue()),
+      Megawatts(maxValue.getValue.doubleValue())
+    )
   }
 
   object TimeSeriesType extends Enumeration {
