@@ -255,7 +255,9 @@ case object SetupHelper {
     ).simulationResultEntitiesToConsider ++
       (OutputConfigUtil(
         outputConfig.participant
-      ).simulationResultIdentifiersToConsider(thermal = false) ++ OutputConfigUtil(
+      ).simulationResultIdentifiersToConsider(thermal =
+        false
+      ) ++ OutputConfigUtil(
         outputConfig.thermal
       ).simulationResultIdentifiersToConsider(thermal = true))
         .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId)) ++
