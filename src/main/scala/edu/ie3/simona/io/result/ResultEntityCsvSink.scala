@@ -65,7 +65,8 @@ final case class ResultEntityCsvSink private (
         .asScala
         .view
 
-      val columns = resultEntityProcessor.getHeaderElements
+      // todo: these are temporary filtered to save space
+      val columns = resultEntityProcessor.getHeaderElements.filter( _ != "uuid")
       val text = if (attributeToValue.nonEmpty) {
         val resString: String =
           columns
@@ -93,6 +94,8 @@ final case class ResultEntityCsvSink private (
     */
   private def writeHeader(): Unit = {
     val text = resultEntityProcessor.getHeaderElements.view
+      // todo: these are temporary filtered to save space
+      .filter(_ != "uuid")
       .map(StringUtils.camelCaseToSnakeCase)
       .mkString(",")
 

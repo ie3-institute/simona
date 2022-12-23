@@ -249,19 +249,12 @@ class EmAgent(
             ChronoUnit.HOURS.between(entry1, entry2).intValue
           }
 
-        val allValues =
-          timeSeries.getEntries.asScala.flatMap(
-            _.getValue.getP.asScala.map(p =>
-              Megawatts(p.to(PowerSystemUnits.MEGAWATT).getValue.doubleValue)
-            )
-          )
-        val maybeMinValue = allValues.minOption
-        val maybeMaxValue = allValues.maxOption
-
-        val (minValue, maxValue) = maybeMinValue
-          .zip(maybeMaxValue)
-          .getOrElse(
-            throw new RuntimeException(s"Time series for $config is empty")
+        // in case of resLoad we use totalResload (considering Simona participants) for min max setting
+        val (minValue, maxValue) =
+          FlexSignalFromExcel.getCorrespondingMinMaxValues(
+            timeSeriesType,
+            timeSeries,
+            config
           )
 
         FlexTimeSeries(
