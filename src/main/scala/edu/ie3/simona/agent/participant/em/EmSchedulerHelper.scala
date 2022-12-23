@@ -264,7 +264,7 @@ trait EmSchedulerHelper {
       flexTrigger.triggerQueue
         .get(trigger.tick)
         .getOrElse(Seq.empty)
-        .contains(scheduledTrigger)
+        .contains(scheduledTrigger) // TODO time saving possible here
 
     if (!alreadyScheduled)
       flexTrigger.triggerQueue.add(
