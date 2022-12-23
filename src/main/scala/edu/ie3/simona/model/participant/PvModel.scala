@@ -62,7 +62,7 @@ final case class PvModel private (
   override protected val sMax: squants.Power = sRated * 1.1
 
   /** Permissible maximum active power feed in (therefore negative) */
-  protected val pMax: squants.Power = sMax * cosPhiRated
+  protected val pMax: squants.Power = sMax * cosPhiRated * -1d
 
   /** Reference yield at standard testing conditions (STC) */
   private val yieldSTC = Kilowatts(1d) // FIXME should be per area
