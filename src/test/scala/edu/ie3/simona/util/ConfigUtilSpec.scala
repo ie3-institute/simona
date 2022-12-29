@@ -725,7 +725,9 @@ class ConfigUtilSpec
         NotifierIdentifier.PvPlant
       ) -- NotifierIdentifier.getThermalIdentifiers.toVector
 
-      configUtil.simulationResultIdentifiersToConsider(false) shouldBe expectedResult
+      configUtil.simulationResultIdentifiersToConsider(
+        false
+      ) shouldBe expectedResult
     }
 
     "return the correct notifier identifiers when the default is to NOT inform about new simulation results" in {
@@ -761,7 +763,9 @@ class ConfigUtilSpec
       val expectedResult: Set[Value] =
         Set(NotifierIdentifier.Load, NotifierIdentifier.ChpPlant)
 
-      configUtil.simulationResultIdentifiersToConsider(false) shouldBe expectedResult
+      configUtil.simulationResultIdentifiersToConsider(
+        false
+      ) shouldBe expectedResult
     }
 
     "return the correct result entity classes to be considered " in {
@@ -797,7 +801,9 @@ class ConfigUtilSpec
       val expectedResult: Set[Class[_ <: ResultEntity]] =
         Set[Class[_ <: ResultEntity]](classOf[LoadResult], classOf[ChpResult])
 
-      configUtil.simulationResultEntitiesToConsider(false) shouldBe expectedResult
+      configUtil.simulationResultEntitiesToConsider(
+        false
+      ) shouldBe expectedResult
     }
   }
 

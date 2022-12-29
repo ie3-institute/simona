@@ -66,7 +66,7 @@ final case class ResultEntityCsvSink private (
         .view
 
       // todo: these are temporary filtered to save space
-      val columns = resultEntityProcessor.getHeaderElements.filter( _ != "uuid")
+      val columns = resultEntityProcessor.getHeaderElements.filter(_ != "uuid")
       val text = if (attributeToValue.nonEmpty) {
         val resString: String =
           columns

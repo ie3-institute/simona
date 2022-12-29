@@ -144,9 +144,14 @@ object ConfigUtil {
       * @return
       *   A set of applicable notifiers
       */
-    def simulationResultIdentifiersToConsider(thermal: Boolean): Set[NotifierIdentifier.Value] = {
+    def simulationResultIdentifiersToConsider(
+        thermal: Boolean
+    ): Set[NotifierIdentifier.Value] = {
       if (defaultConfig.simulationResultInfo) {
-        val notifiers = if (thermal) NotifierIdentifier.getThermalIdentifiers else NotifierIdentifier.values -- NotifierIdentifier.getThermalIdentifiers
+        val notifiers =
+          if (thermal) NotifierIdentifier.getThermalIdentifiers
+          else
+            NotifierIdentifier.values -- NotifierIdentifier.getThermalIdentifiers
         /* Generally inform about all simulation results, but not on those, that are explicitly marked */
         notifiers -- configs.flatMap {
           case (
@@ -169,7 +174,9 @@ object ConfigUtil {
       }
     }
 
-    def simulationResultEntitiesToConsider(thermal: Boolean): Set[Class[_ <: ResultEntity]] =
+    def simulationResultEntitiesToConsider(
+        thermal: Boolean
+    ): Set[Class[_ <: ResultEntity]] =
       simulationResultIdentifiersToConsider(thermal).map(notifierId =>
         EntityMapperUtil.getResultEntityClass(notifierId)
       )
