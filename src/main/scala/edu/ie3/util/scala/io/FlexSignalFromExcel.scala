@@ -41,7 +41,7 @@ object FlexSignalFromExcel {
     * @param timeSeriesType
     *   The time series type
     * @param unit
-    *   Physical unit to set for values
+    *   Physical unit of input data
     * @param zoneId
     *   Time zone of the incorporated date times
     * @return
@@ -51,6 +51,7 @@ object FlexSignalFromExcel {
       filePath: String,
       nodeId: String,
       timeSeriesType: TimeSeriesType.Value = TimeSeriesType.ResidualLoad,
+      // ATTENTION: the unit configured here is not the output unit as `PValues` are transformed to kW by default
       unit: measure.Unit[Power] = PowerSystemUnits.MEGAWATT,
       zoneId: ZoneId = ZoneId.of("UTC")
   ): Try[IndividualTimeSeries[PValue]] = {
@@ -134,10 +135,10 @@ object FlexSignalFromExcel {
     val allValues =
       minMaxTs.getEntries.asScala.flatMap(_.getValue.getP.toScala)
     val maybeMinValue = allValues.minByOption(
-      _.to(PowerSystemUnits.MEGAWATT).getValue.doubleValue
+      _.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
     )
     val maybeMaxValue = allValues.maxByOption(
-      _.to(PowerSystemUnits.MEGAWATT).getValue.doubleValue
+      _.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
     )
 
     val (minValue, maxValue) = maybeMinValue
