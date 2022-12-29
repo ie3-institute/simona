@@ -99,7 +99,7 @@ object SimonaConfig {
       SimonaConfig.EmRuntimeConfig(
         aggregateFlex =
           if (c.hasPathOrNull("aggregateFlex")) c.getString("aggregateFlex")
-          else "SELF_OPT",
+          else "SELF_OPT_EXCL_PV",
         pvFlex = c.hasPathOrNull("pvFlex") && c.getBoolean("pvFlex"),
         calculateMissingReactivePowerWithModel = $_reqBln(
           parentPath,
