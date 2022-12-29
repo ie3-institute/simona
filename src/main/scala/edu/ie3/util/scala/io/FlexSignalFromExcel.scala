@@ -15,7 +15,7 @@ import edu.ie3.simona.config.SimonaConfig.Simona.Runtime.RootEm
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.apache.poi.ss.usermodel.CellType
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import squants.energy.Megawatts
+import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
 
 import java.io.{File, FileInputStream}
@@ -147,8 +147,8 @@ object FlexSignalFromExcel {
         throw new RuntimeException(s"Time series for $config is empty")
       )
     (
-      Megawatts(minValue.getValue.doubleValue()),
-      Megawatts(maxValue.getValue.doubleValue())
+      Kilowatts(minValue.getValue.doubleValue()),
+      Kilowatts(maxValue.getValue.doubleValue())
     )
   }
 
