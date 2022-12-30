@@ -9,7 +9,7 @@ package edu.ie3.util.scala.collection.mutable
 import scala.collection.{SortedSet, immutable, mutable}
 
 /** Queue that is specialized at holding many values of type [[V]] for the same
-  * key of type [[K]]. Mutable structure. Values are stored in a
+  * key of type Long. Mutable structure. Values are stored in a
   * [[mutable.ListBuffer]], which corresponds to a linked list (with adding and
   * removing items to/from its head/tail in constant time).
   * @param queue
@@ -19,28 +19,26 @@ import scala.collection.{SortedSet, immutable, mutable}
   *   HashMap that provides direct access to each list given the key that it was
   *   added with. This is useful for quickly adding values to new and existing
   *   keys, running in nearly O(1).
-  * @tparam K
-  *   Type of the key, which needs to be sortable by means of [[Ordering]]
   * @tparam V
   *   Type of the value
   */
-final case class PriorityMultiQueue[K: Ordering, V] private (
-    private val queue: mutable.SortedMap[K, mutable.ListBuffer[V]],
-    private val table: mutable.HashMap[K, mutable.ListBuffer[V]]
+final case class PriorityMultiQueue[V] private (
+    private val queue: mutable.SortedMap[Long, mutable.ListBuffer[V]],
+    private val table: mutable.HashMap[Long, mutable.ListBuffer[V]]
 ) {
 
   /** Get the first key of the queue, if the queue is not empty. Runs in O(1).
     * @return
     *   The first key
     */
-  def headKeyOption: Option[K] =
+  def headKeyOption: Option[Long] =
     queue.headOption.map { case (key, _) => key }
 
   /** Get all keys in a sorted set.
     * @return
     *   The sorted keys
     */
-  def keySet: SortedSet[K] = queue.keySet
+  def keySet: SortedSet[Long] = queue.keySet
 
   /** Add given value to the end of the list that belongs to given key
     * @param key
@@ -48,7 +46,7 @@ final case class PriorityMultiQueue[K: Ordering, V] private (
     * @param value
     *   The value to add
     */
-  def add(key: K, value: V): Unit = {
+  def add(key: Long, value: V): Unit = {
     table.get(key) match {
       case Some(list) =>
         // list already exists in both structures
@@ -68,7 +66,7 @@ final case class PriorityMultiQueue[K: Ordering, V] private (
     * @param valueFunc
     *   Values that are mapped to true are removed
     */
-  def remove(key: K, valueFunc: V => Boolean): Unit = {
+  def remove(key: Long, valueFunc: V => Boolean): Unit = {
     table.get(key).foreach { list =>
       list.filterInPlace(value => !valueFunc(value))
 
@@ -81,7 +79,7 @@ final case class PriorityMultiQueue[K: Ordering, V] private (
 
   // TODO scaladoc
   // TODO test this
-  def get(key: K): Option[Seq[V]] = {
+  def get(key: Long): Option[Seq[V]] = {
     // make a copy of list, the original is mutable
     // FIXME maybe only List.from works?
     table.get(key).map(immutable.Seq.from)
@@ -116,7 +114,7 @@ final case class PriorityMultiQueue[K: Ordering, V] private (
     *   Iterable is returned if this queue is empty or all keys are greater than
     *   the given key.
     */
-  def pollTo(key: K): Iterable[V] = {
+  def pollTo(key: Long): Iterable[V] = {
     // a copy has to be made here because the resulting Map of
     // rangeTo is linked to the original map. This means that
     // the map with the values to be returned would be depleted
@@ -152,17 +150,15 @@ final case class PriorityMultiQueue[K: Ordering, V] private (
 object PriorityMultiQueue {
 
   /** Creates and returns an empty PriorityMultiQueue for given types.
-    * @tparam K
-    *   Type of the key, which needs to be sortable by means of [[Ordering]]
     * @tparam V
     *   Type of the value
     * @return
     *   An empty PriorityMultiQueue
     */
-  def empty[K: Ordering, V]: PriorityMultiQueue[K, V] =
+  def empty[V]: PriorityMultiQueue[V] =
     PriorityMultiQueue(
-      mutable.SortedMap[K, mutable.ListBuffer[V]](),
-      mutable.HashMap[K, mutable.ListBuffer[V]]()
+      mutable.SortedMap[Long, mutable.ListBuffer[V]](),
+      mutable.HashMap[Long, mutable.ListBuffer[V]]()
     )
 
   /** Creates and returns an empty PriorityMultiQueue for given types. The
@@ -174,20 +170,18 @@ object PriorityMultiQueue {
     * @param loadFactor
     *   The loadFactor of the HashMap. If the size of the map reaches capacity *
     *   loadFactor, the underlying table is replaced with a larger one.
-    * @tparam K
-    *   Type of the key, which needs to be sortable by means of [[Ordering]]
     * @tparam V
     *   Type of the value
     * @return
     *   An empty PriorityMultiQueue
     */
-  def empty[K: Ordering, V](
+  def empty[V](
       initialKeyCapacity: Int,
       loadFactor: Double = mutable.HashMap.defaultLoadFactor
-  ): PriorityMultiQueue[K, V] =
+  ): PriorityMultiQueue[V] =
     PriorityMultiQueue(
-      mutable.SortedMap[K, mutable.ListBuffer[V]](),
-      new mutable.HashMap[K, mutable.ListBuffer[V]](
+      mutable.SortedMap[Long, mutable.ListBuffer[V]](),
+      new mutable.HashMap[Long, mutable.ListBuffer[V]](
         initialKeyCapacity,
         loadFactor
       )

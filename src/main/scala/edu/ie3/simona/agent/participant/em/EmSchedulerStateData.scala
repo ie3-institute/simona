@@ -72,8 +72,8 @@ object EmSchedulerStateData {
     */
   private[em] final case class TriggerData(
       triggerIdCounter: Int = 0,
-      triggerQueue: PriorityMultiQueue[Long, ScheduledTrigger] =
-        PriorityMultiQueue.empty[Long, ScheduledTrigger],
+      triggerQueue: PriorityMultiQueue[ScheduledTrigger] =
+        PriorityMultiQueue.empty[ScheduledTrigger],
       awaitedTriggerMap: mutable.Map[Long, ScheduledTrigger] =
         mutable.Map.empty[Long, ScheduledTrigger]
   )
@@ -81,7 +81,7 @@ object EmSchedulerStateData {
   private[em] final case class FlexTriggerData(
       actorRefToUuid: Map[ActorRef, UUID],
       uuidToActorRef: Map[UUID, ActorRef],
-      triggerQueue: PriorityMultiQueue[Long, ScheduledFlexTrigger] =
+      triggerQueue: PriorityMultiQueue[ScheduledFlexTrigger] =
         PriorityMultiQueue.empty,
       awaitedFlexCompletions: mutable.Set[UUID] = mutable.Set.empty,
       activateAtNextTick: mutable.Set[UUID] = mutable.Set.empty

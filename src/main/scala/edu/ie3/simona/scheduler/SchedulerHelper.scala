@@ -275,7 +275,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     *   a boolean
     */
   private def noScheduledTriggersForCurrentTick(
-      triggerQueue: PriorityMultiQueue[Long, ScheduledTrigger],
+      triggerQueue: PriorityMultiQueue[ScheduledTrigger],
       nowInTicks: Long
   ): Boolean =
     triggerQueue.headKeyOption match {
@@ -769,8 +769,8 @@ trait SchedulerHelper extends SimonaActorLogging {
     */
   private def isInitDone(
       awaitingResponseMap: CountingMap[Long],
-      triggerQueue: PriorityMultiQueue[Long, ScheduledTrigger],
-      priorityTriggerQueue: PriorityMultiQueue[Long, ScheduledTrigger]
+      triggerQueue: PriorityMultiQueue[ScheduledTrigger],
+      priorityTriggerQueue: PriorityMultiQueue[ScheduledTrigger]
   ): Boolean =
     !awaitingResponseMap.contains(SimonaConstants.INIT_SIM_TICK) &&
       !triggerQueue.headKeyOption.contains(SimonaConstants.INIT_SIM_TICK) &&

@@ -80,9 +80,9 @@ object SimSchedulerStateData {
     */
   private[scheduler] final case class TriggerData(
       triggerIdCounter: Int = 0,
-      triggerQueue: PriorityMultiQueue[Long, ScheduledTrigger] =
-        PriorityMultiQueue.empty[Long, ScheduledTrigger],
-      priorityTriggerQueue: PriorityMultiQueue[Long, ScheduledTrigger] =
+      triggerQueue: PriorityMultiQueue[ScheduledTrigger] =
+        PriorityMultiQueue.empty[ScheduledTrigger],
+      priorityTriggerQueue: PriorityMultiQueue[ScheduledTrigger] =
         PriorityMultiQueue.empty,
       triggerIdToScheduledTriggerMap: mutable.Map[Long, ScheduledTrigger] =
         mutable.Map.empty[Long, ScheduledTrigger],
