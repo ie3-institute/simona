@@ -6,6 +6,8 @@
 
 package edu.ie3.util.scala.collection.mutable
 
+import edu.ie3.util.scala.collection.mutable.PriorityMultiQueue.KeyWrapper
+
 import scala.collection.{SortedSet, immutable, mutable}
 
 /** Queue that is specialized at holding many values of type [[V]] for the same
@@ -23,8 +25,8 @@ import scala.collection.{SortedSet, immutable, mutable}
   *   Type of the value
   */
 final case class PriorityMultiQueue[V] private (
-    private val queue: mutable.SortedMap[Long, mutable.ListBuffer[V]],
-    private val table: mutable.HashMap[Long, mutable.ListBuffer[V]]
+    private val queue: mutable.SortedMap[KeyWrapper, mutable.ListBuffer[V]],
+    private val table: mutable.HashMap[KeyWrapper, mutable.ListBuffer[V]]
 ) {
 
   /** Get the first key of the queue, if the queue is not empty. Runs in O(1).
@@ -32,13 +34,13 @@ final case class PriorityMultiQueue[V] private (
     *   The first key
     */
   def headKeyOption: Option[Long] =
-    queue.headOption.map { case (key, _) => key }
+    queue.headOption.map { case (wrapper, _) => wrapper.key }
 
   /** Get all keys in a sorted set.
     * @return
     *   The sorted keys
     */
-  def keySet: SortedSet[Long] = queue.keySet
+  def keySet: SortedSet[Long] = queue.keySet.map(_.key)
 
   /** Add given value to the end of the list that belongs to given key
     * @param key
@@ -47,15 +49,17 @@ final case class PriorityMultiQueue[V] private (
     *   The value to add
     */
   def add(key: Long, value: V): Unit = {
-    table.get(key) match {
+    val wrapper = KeyWrapper(key)
+
+    table.get(wrapper) match {
       case Some(list) =>
         // list already exists in both structures
         list.addOne(value)
       case None =>
         // list doesn't exist yet, add to both structures
         val list = mutable.ListBuffer(value)
-        queue.addOne(key, list)
-        table.addOne(key, list)
+        queue.addOne(wrapper, list)
+        table.addOne(wrapper, list)
     }
   }
 
@@ -67,12 +71,14 @@ final case class PriorityMultiQueue[V] private (
     *   Values that are mapped to true are removed
     */
   def remove(key: Long, valueFunc: V => Boolean): Unit = {
-    table.get(key).foreach { list =>
+    val wrapper = KeyWrapper(key)
+
+    table.get(wrapper).foreach { list =>
       list.filterInPlace(value => !valueFunc(value))
 
       if (list.isEmpty) {
-        queue.remove(key)
-        table.remove(key)
+        queue.remove(wrapper)
+        table.remove(wrapper)
       }
     }
   }
@@ -82,7 +88,7 @@ final case class PriorityMultiQueue[V] private (
   def get(key: Long): Option[Seq[V]] = {
     // make a copy of list, the original is mutable
     // FIXME maybe only List.from works?
-    table.get(key).map(immutable.Seq.from)
+    table.get(KeyWrapper(key)).map(immutable.Seq.from)
   }
 
   /** Retrieves the first element in the list of the first key. The returned
@@ -119,7 +125,7 @@ final case class PriorityMultiQueue[V] private (
     // rangeTo is linked to the original map. This means that
     // the map with the values to be returned would be depleted
     // with the subtractions below
-    val polledValues = mutable.SortedMap.from(queue.rangeTo(key))
+    val polledValues = mutable.SortedMap.from(queue.rangeTo(KeyWrapper(key)))
 
     val keys = polledValues.keySet
     queue --= keys
@@ -149,6 +155,10 @@ final case class PriorityMultiQueue[V] private (
 
 object PriorityMultiQueue {
 
+  case class KeyWrapper(key: Long) extends Ordered[KeyWrapper] {
+    override def compare(that: KeyWrapper): Int = key.compareTo(that.key)
+  }
+
   /** Creates and returns an empty PriorityMultiQueue for given types.
     * @tparam V
     *   Type of the value
@@ -157,8 +167,8 @@ object PriorityMultiQueue {
     */
   def empty[V]: PriorityMultiQueue[V] =
     PriorityMultiQueue(
-      mutable.SortedMap[Long, mutable.ListBuffer[V]](),
-      mutable.HashMap[Long, mutable.ListBuffer[V]]()
+      mutable.SortedMap[KeyWrapper, mutable.ListBuffer[V]](),
+      mutable.HashMap[KeyWrapper, mutable.ListBuffer[V]]()
     )
 
   /** Creates and returns an empty PriorityMultiQueue for given types. The
@@ -180,8 +190,8 @@ object PriorityMultiQueue {
       loadFactor: Double = mutable.HashMap.defaultLoadFactor
   ): PriorityMultiQueue[V] =
     PriorityMultiQueue(
-      mutable.SortedMap[Long, mutable.ListBuffer[V]](),
-      new mutable.HashMap[Long, mutable.ListBuffer[V]](
+      mutable.SortedMap[KeyWrapper, mutable.ListBuffer[V]](),
+      new mutable.HashMap[KeyWrapper, mutable.ListBuffer[V]](
         initialKeyCapacity,
         loadFactor
       )
