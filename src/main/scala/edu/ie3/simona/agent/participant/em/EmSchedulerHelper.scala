@@ -97,9 +97,7 @@ trait EmSchedulerHelper {
   ): FlexTriggerData = {
     triggerData.triggerQueue.remove(
       revokeTick,
-      scheduledTrigger =>
-        scheduledTrigger.trigger == RequestFlexOptions(revokeTick) &&
-          scheduledTrigger.modelUuid == modelUuid
+      ScheduledFlexTrigger(RequestFlexOptions(revokeTick), modelUuid)
     )
 
     triggerData
@@ -260,17 +258,11 @@ trait EmSchedulerHelper {
   ): FlexTriggerData = {
     val scheduledTrigger = ScheduledFlexTrigger(trigger, modelUuid)
 
-    val alreadyScheduled =
-      flexTrigger.triggerQueue
-        .get(trigger.tick)
-        .getOrElse(Seq.empty)
-        .contains(scheduledTrigger) // TODO time saving possible here
-
-    if (!alreadyScheduled)
-      flexTrigger.triggerQueue.add(
-        trigger.tick,
-        scheduledTrigger
-      )
+    // adds only if not present already
+    flexTrigger.triggerQueue.add(
+      trigger.tick,
+      scheduledTrigger
+    )
 
     flexTrigger
   }

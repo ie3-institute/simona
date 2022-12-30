@@ -14,7 +14,10 @@ import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.{
 import edu.ie3.simona.ontology.trigger.Trigger
 import edu.ie3.simona.scheduler.SimSchedulerStateData.ScheduledTrigger
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.util.scala.collection.mutable.PriorityMultiQueue
+import edu.ie3.util.scala.collection.mutable.{
+  PriorityMultiQueue,
+  PriorityMultiSet
+}
 
 import java.util.UUID
 import scala.collection.mutable
@@ -81,8 +84,8 @@ object EmSchedulerStateData {
   private[em] final case class FlexTriggerData(
       actorRefToUuid: Map[ActorRef, UUID],
       uuidToActorRef: Map[UUID, ActorRef],
-      triggerQueue: PriorityMultiQueue[ScheduledFlexTrigger] =
-        PriorityMultiQueue.empty,
+      triggerQueue: PriorityMultiSet[ScheduledFlexTrigger] =
+        PriorityMultiSet.empty,
       awaitedFlexCompletions: mutable.Set[UUID] = mutable.Set.empty,
       activateAtNextTick: mutable.Set[UUID] = mutable.Set.empty
   )
