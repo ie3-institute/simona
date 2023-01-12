@@ -21,7 +21,7 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import squants.energy.{KilowattHours, Kilowatts}
+import squants.energy.{KilowattHours, Kilowatts, Watts}
 import squants.Each
 
 import java.time.ZonedDateTime
@@ -53,7 +53,8 @@ final case class StorageModel(
 
   private val minEnergy = eStorage * dod.toEach
 
-  private implicit val doubleTolerance: squants.Power = Kilowatts(1e-9)
+  // Tolerance fitting for capacities up to GWh
+  private implicit val doubleTolerance: squants.Power = Watts(1e-3)
 
   /** In order to avoid faulty flexibility options, we want to avoid offering
     * charging/discharging that could last less than one second.
