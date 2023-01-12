@@ -54,6 +54,7 @@ final case class StorageModel(
   private val minEnergy = eStorage * dod.toEach
 
   // Tolerance fitting for capacities up to GWh
+  // FIXME make dependent on capacity
   private implicit val doubleTolerance: squants.Power = Watts(1e-3)
 
   /** In order to avoid faulty flexibility options, we want to avoid offering
