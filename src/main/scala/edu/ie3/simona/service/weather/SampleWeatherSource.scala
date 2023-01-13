@@ -148,6 +148,12 @@ object SampleWeatherSource {
       else
         Vector.empty[CoordinateDistance].asJava
     }
+
+    override def getNearestCoordinates(
+        point: Point,
+        n: Int
+    ): util.List[CoordinateDistance] =
+      getNearestCoordinates(point, n, getAllCoordinates)
   }
 
   // these lists contain the hourly weather values for each first of the month of 2011 + january of

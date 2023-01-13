@@ -412,5 +412,45 @@ case object WeatherSourceSpec {
 
       getNearestCoordinates(coordinate, n, reducedPoints.asJava)
     }
+
+    override def getNearestCoordinates(
+        coordinate: Point,
+        n: Int
+    ): util.List[CoordinateDistance] = {
+      val allCoordinates: Set[Point] = getAllCoordinates().asScala.toSet
+
+      if (allCoordinates.size < n) {
+        getNearestCoordinates(coordinate, n, allCoordinates.asJava)
+      }
+
+      var foundPoints: Set[Point] = Set.empty[Point]
+      var distance: ComparableQuantity[Length] =
+        Quantities.getQuantity(50000, Units.METRE)
+
+      // extends the search radius until n points are found
+      while (foundPoints.size < n) {
+        distance = distance.multiply(2)
+
+        val envelope: Envelope =
+          GeoUtils.calculateBoundingBox(coordinate, distance)
+
+        val set: Set[Point] = allCoordinates.flatMap { point =>
+          {
+            if (envelope.contains(point.getCoordinate)) {
+              Some(coordinate)
+            } else {
+              None
+            }
+          }
+        }
+        foundPoints = set
+      }
+
+      restrictToBoundingBoxWithSetNumberOfCorner(
+        coordinate,
+        GeoUtils.calcOrderedCoordinateDistances(coordinate, foundPoints.asJava),
+        n
+      )
+    }
   }
 }
