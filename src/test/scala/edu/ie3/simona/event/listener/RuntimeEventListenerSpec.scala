@@ -102,8 +102,12 @@ class RuntimeEventListenerSpec
         )
       }
 
-      def roundDuration(dur: Double): Double =
-        roundAt(5)(dur / 1000)
+      def convertDuration(duration: Double): String = {
+        val hh = ((duration / 1000 / 60) % 24).toInt
+        val mm = ((duration / 1000 / 60) % 60).toInt
+        val ss = roundAt(5)(duration / 1000) % 60
+        s"$hh h: $mm m: $ss s"
+      }
 
       def roundAt(precision: Int)(number: Double): Double = {
         val s = math pow (10, precision)
@@ -119,7 +123,7 @@ class RuntimeEventListenerSpec
         (
           InitComplete(0d),
           Level.INFO,
-          s"Initialization complete. (duration: ${roundDuration(0d)} s)"
+          s"Initialization complete. (duration: ${convertDuration(0d)} )"
         ),
         (
           Ready(currentTick, 0d),
@@ -139,7 +143,7 @@ class RuntimeEventListenerSpec
         (
           Done(endTick, duration, 0, errorInSim = false),
           Level.INFO,
-          s"Simulation completed with \u001b[0;32mSUCCESS (Failed PF: 0)\u001b[0;30m in time step ${calcTime(endTick)}. Total runtime: ${roundDuration(duration)} s"
+          s"Simulation completed with \u001b[0;32mSUCCESS (Failed PF: 0)\u001b[0;30m in time step ${calcTime(endTick)}. Total runtime: ${convertDuration(duration)} "
         ),
         (
           Error(errMsg),
