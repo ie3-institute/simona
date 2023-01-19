@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.service.weather
 
+import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.io.factory.timeseries.{
   CosmoIdCoordinateFactory,
   IconIdCoordinateFactory,
@@ -294,7 +295,7 @@ trait WeatherSource {
   ): Array[Long]
 }
 
-object WeatherSource {
+object WeatherSource extends LazyLogging {
 
   def apply(
       dataSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource,
@@ -565,6 +566,8 @@ object WeatherSource {
         )
       case None =>
         // if no values are found all values are interpolated
+        logger.warn(s"No weather value found for timestamp $dateTime.")
+
         interpolateValue(timeSeries, dateTime)
     }
   }
@@ -582,6 +585,10 @@ object WeatherSource {
       dateTime: ZonedDateTime
   ): WeatherData = {
     if (timeSeries.getEntries.size() < 3) {
+      logger.info(
+        s"Not enough entries in time series $timeSeries to interpolate weather data. At least three values are needed, found ${timeSeries.getEntries.size()}."
+      )
+
       EMPTY_WEATHER_DATA
     } else {
       // find previous and next values
@@ -598,6 +605,10 @@ object WeatherSource {
               .add(nextVal._1.multiply(nextVal._2))
               .divide(preVal._2 + nextVal._2)
           case (_, _) =>
+            logger.warn(
+              s"Interpolating diffused irradiance value for timestamp $dateTime was not possible. The default value is used."
+            )
+
             EMPTY_WEATHER_DATA.diffIrr
         }
 
@@ -609,6 +620,10 @@ object WeatherSource {
               .add(nextVal._1.multiply(nextVal._2))
               .divide(preVal._2 + nextVal._2)
           case (_, _) =>
+            logger.warn(
+              s"Interpolating direct irradiance value for timestamp $dateTime was not possible. The default value is used."
+            )
+
             EMPTY_WEATHER_DATA.dirIrr
         }
 
@@ -620,6 +635,10 @@ object WeatherSource {
               .add(nextVal._1.multiply(nextVal._2))
               .divide(preVal._2 + nextVal._2)
           case (_, _) =>
+            logger.warn(
+              s"Interpolating temperature value for timestamp $dateTime was not possible. The default value is used."
+            )
+
             EMPTY_WEATHER_DATA.temp
         }
 
@@ -631,6 +650,10 @@ object WeatherSource {
               .add(nextVal._1.multiply(nextVal._2))
               .divide(preVal._2 + nextVal._2)
           case (_, _) =>
+            logger.warn(
+              s"Interpolating wind velocity value for timestamp $dateTime was not possible. The default value is used."
+            )
+
             EMPTY_WEATHER_DATA.windVel
         }
 
@@ -661,7 +684,7 @@ object WeatherSource {
     var weatherDataOption: WeatherDataOption =
       WeatherDataOption(None, None, None, None)
 
-    for (i <- 0 to 7) {
+    for (_ <- 0 to 7) {
       timeSeries.getPreviousTimeBasedValue(currentTime).toScala match {
         case Some(timeBasedValue) =>
           val valueTime: ZonedDateTime = timeBasedValue.getTime
@@ -706,7 +729,7 @@ object WeatherSource {
     var weatherDataOption: WeatherDataOption =
       WeatherDataOption(None, None, None, None)
 
-    for (i <- 0 to 7) {
+    for (_ <- 0 to 7) {
       timeSeries.getNextTimeBasedValue(currentTime).toScala match {
         case Some(timeBasedValue) =>
           val valueTime: ZonedDateTime = timeBasedValue.getTime
@@ -762,6 +785,9 @@ object WeatherSource {
         case (None, Some(value)) =>
           option = option.copy(diffIrr = Some(value, weight))
         case (_, _) =>
+          logger.debug(
+            s"No diffused irradiance value with the given time difference of $weight found."
+          )
       }
 
       (
@@ -771,6 +797,9 @@ object WeatherSource {
         case (None, Some(value)) =>
           option = option.copy(dirIrr = Some(value, weight))
         case (_, _) =>
+          logger.debug(
+            s"No direct irradiance value with the given time difference of $weight found."
+          )
       }
 
       (
@@ -780,12 +809,18 @@ object WeatherSource {
         case (None, Some(value)) =>
           option = option.copy(temp = Some(value, weight))
         case (_, _) =>
+          logger.debug(
+            s"No temperature value with the given time difference of $weight found."
+          )
       }
 
       (weatherDataOption.windVel, value.getWind.getVelocity.toScala) match {
         case (None, Some(value)) =>
           option = option.copy(windVel = Some(value, weight))
         case (_, _) =>
+          logger.debug(
+            s"No wind velocity value with the given time difference of $weight found."
+          )
       }
       option
     }
