@@ -7,7 +7,7 @@ plugins {
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
   id 'pmd' // code check, working on source code
-  id 'com.diffplug.spotless' version '6.12.0'// code format
+  id 'com.diffplug.spotless' version '6.13.0'// code format
   id 'com.github.onslip.gradle-one-jar' version '1.0.6' // pack a self contained jar
   id "com.github.ben-manes.versions" version '0.44.0'
   id "de.undercouch.download" version "5.3.0" // downloads plugin
@@ -105,8 +105,8 @@ dependencies {
   /* testing */
   testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
   testImplementation 'org.scalatestplus:mockito-3-4_2.13:3.2.10.0'
-  implementation 'org.mockito:mockito-core:4.9.0' // mocking framework
-  testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.14"
+  implementation 'org.mockito:mockito-core:5.0.0' // mocking framework
+  testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.15"
   testRuntimeOnly 'com.vladsch.flexmark:flexmark-all:0.64.0' //scalatest html output
   testImplementation group: 'org.pegdown', name: 'pegdown', version: '1.6.0'
   testImplementation "com.typesafe.akka:akka-testkit_${scalaVersion}:${akkaVersion}" // akka testkit
