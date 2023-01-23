@@ -445,31 +445,22 @@ trait SchedulerHelper extends SimonaActorLogging {
       context.unwatch(trig.agent)
     )
 
+    /* notify listeners */
+    /*The usage of min is necessary because the scheduler overshoots the target tick by 1 at the end of the simulation*/
+    notifyListener(
+      Done(
+        Math.min(stateData.time.nowInTicks, endTick),
+        totalSimDuration,
+        stateData.runtime.noOfFailedPF,
+        errorInSim
+      )
+    )
+
     /* notify start sender */
     if (errorInSim) {
       stateData.runtime.initSender ! SimulationFailureMessage
-
-      /* notify listeners */
-      notifyListener(
-        Done(
-          Math.min(stateData.time.nowInTicks, endTick),
-          totalSimDuration,
-          stateData.runtime.noOfFailedPF,
-          errorInSim
-        )
-      )
     } else {
       stateData.runtime.initSender ! SimulationSuccessfulMessage
-
-      /* notify listeners */
-      notifyListener(
-        Done(
-          Math.min(stateData.time.nowInTicks, endTick),
-          totalSimDuration,
-          stateData.runtime.noOfFailedPF,
-          errorInSim
-        )
-      )
     }
 
     /* disable schedule */
