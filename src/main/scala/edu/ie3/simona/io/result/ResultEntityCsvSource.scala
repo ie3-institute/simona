@@ -8,7 +8,6 @@ package edu.ie3.simona.io.result
 
 import java.io.{File, FileInputStream}
 import java.util.zip.GZIPInputStream
-
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.alpakka.csv.scaladsl.{CsvParsing, CsvToMap}
@@ -23,9 +22,15 @@ import akka.stream.scaladsl.{
 }
 import akka.stream.{FlowShape, Materializer}
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.datamodel.exceptions.FactoryException
+import edu.ie3.datamodel.io.factory.FactoryData.MapWithRowIndex
 import edu.ie3.datamodel.io.factory.SimpleEntityData
 import edu.ie3.datamodel.io.factory.result.SystemParticipantResultFactory
 import edu.ie3.datamodel.models.result.ResultEntity
+import edu.ie3.datamodel.models.result.system.SystemParticipantResult
+import edu.ie3.datamodel.utils.StreamUtils
+import edu.ie3.datamodel.utils.StreamUtils.zipWithRowIndex
+import edu.ie3.datamodel.utils.options.Try
 import edu.ie3.simona.exceptions.{FileIOException, ProcessResultEventException}
 import org.apache.commons.io.FilenameUtils
 
@@ -70,20 +75,24 @@ final case class ResultEntityCsvSource(
     )
 
   private def parseLine(model: Class[ResultEntity], filePath: String)(
-      rowWithHeadline: Map[String, String]
+      rowWithHeadline: MapWithRowIndex
   ): Future[_ <: ResultEntity] = Future {
 
-    val simpleEntityData = new SimpleEntityData(rowWithHeadline.asJava, model)
-    resultFactory.get(simpleEntityData).toScala match {
-      case Some(resultEntity) =>
-        resultEntity
-      case None =>
-        logger.error(
-          s"Unable to parse line in $filePath\nline: ${rowWithHeadline.values}\nWill ignore that line!"
-        )
-        throw new ProcessResultEventException(
-          s"Unable to parse line in $filePath\nline: ${rowWithHeadline.values}\nWill ignore that line!"
-        )
+    val simpleEntityData = new SimpleEntityData(rowWithHeadline, model)
+    val option: Try[SystemParticipantResult, FactoryException] =
+      resultFactory.get(simpleEntityData)
+
+    if (option.isSuccess) {
+      option.getData
+    } else {
+      logger.error(
+        s"Unable to parse line in $filePath\nline ${rowWithHeadline
+            .index()}: ${rowWithHeadline.fieldsToAttribute().values}\nWill ignore that line!"
+      )
+      throw new ProcessResultEventException(
+        s"Unable to parse line in $filePath\nline ${rowWithHeadline
+            .index()}: ${rowWithHeadline.fieldsToAttribute().values}\nWill ignore that line!"
+      )
     }
   }
 
@@ -103,10 +112,15 @@ final case class ResultEntityCsvSource(
             )
         }
 
+        val nr: Iterator[Int] = LazyList.from(0).iterator
+
         StreamConverters
           .fromInputStream(() => inputStream)
           .via(CsvParsing.lineScanner())
           .via(CsvToMap.toMapAsStrings())
+          .map { fields =>
+            new MapWithRowIndex(nr.next().toString, fields.asJava)
+          }
           .mapAsync(parallelism = nonIOParallelism)(
             parseLine(model, file.getPath)
           )

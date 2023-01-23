@@ -54,16 +54,16 @@ object CsvGridSource {
     )
 
     // read and get the models
-    val rawGridElements = csvRawGridSource.getGridData.toScala
+    val rawGridElements = csvRawGridSource.getGridData
     val systemParticipants =
-      csvSystemParticipantSource.getSystemParticipants.toScala
-    val graphicElements = csvGraphicSource.getGraphicElements.toScala
+      csvSystemParticipantSource.getSystemParticipants
+    val graphicElements = csvGraphicSource.getGraphicElements
 
     (rawGridElements, systemParticipants, graphicElements) match {
       case (
-            Some(rawGridElements),
-            Some(systemParticipants),
-            Some(graphicElements)
+            rawGridElements,
+            systemParticipants,
+            graphicElements
           ) =>
         Some(
           new JointGridContainer(

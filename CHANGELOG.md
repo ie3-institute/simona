@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Latex equations [#264](https://github.com/ie3-institute/simona/issues/264)
 - Documentation of the simulation configuration [#334](https://github.com/ie3-institute/simona/issues/334)
 - Adapted to changes of Quantity units in PSU and PSDM [#419](https://github.com/ie3-institute/simona/pull/419)
+- Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
