@@ -332,7 +332,7 @@ trait SchedulerHelper extends SimonaActorLogging {
       && stateData.event.lastCheckWindowPassedTick < nowInTicks
     ) {
       // calculate duration
-      val duration = calcDuration(stateData.time.checkStepStartTime.toDouble)
+      val duration = calcDuration(stateData.time.checkStepStartTime)
 
       // notify listeners
       notifyListener(CheckWindowPassed(nowInTicks, duration))
@@ -378,7 +378,7 @@ trait SchedulerHelper extends SimonaActorLogging {
       notifyListener(
         Ready(
           nowInTicks,
-          calcDuration(stateData.time.readyStepStartTime.toDouble)
+          calcDuration(stateData.time.readyStepStartTime)
         )
       )
 
@@ -436,8 +436,8 @@ trait SchedulerHelper extends SimonaActorLogging {
       stateData: SchedulerStateData,
       errorInSim: Boolean = false
   ): SchedulerStateData = {
-    val totalSimDuration: Double = stateData.time.simStartTime
-      .map(startTime => calcDuration(startTime.toDouble))
+    val totalSimDuration: Long = stateData.time.simStartTime
+      .map(startTime => calcDuration(startTime))
       .getOrElse(0)
 
     /* unwatch all agents that have triggered themselves as the simulation will shutdown now */
@@ -629,7 +629,7 @@ trait SchedulerHelper extends SimonaActorLogging {
           /* steps to be carried out when init is done */
           val updateTime = if (initDone) {
             val initDuration = calcDuration(
-              stateData.time.initStartTime.toDouble
+              stateData.time.initStartTime
             )
 
             notifyListener(InitComplete(initDuration))
@@ -736,8 +736,8 @@ trait SchedulerHelper extends SimonaActorLogging {
     *   the duration between the given start time and the current system time in
     *   milliseconds
     */
-  protected def calcDuration(startTime: Double): Double = {
-    (System.nanoTime - startTime).doubleValue() / 1e6d // in msec
+  protected def calcDuration(startTime: Long): Long = {
+    (System.nanoTime - startTime) / 1000000L // in msec
   }
 
   /** Adds the provided trigger to the trigger queue to schedule it at the
