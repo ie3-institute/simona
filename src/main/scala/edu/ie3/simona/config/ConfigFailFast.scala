@@ -219,7 +219,8 @@ case object ConfigFailFast extends LazyLogging {
       )
   }
 
-  /** Check for valid dateTime string
+  /** Check for valid dateTime string If a faulty dateTime string is passed, an
+    * InvalidConfigParameterException is thrown
     *
     * @param dateTimeString
     *   the dateTimeString that should be checked

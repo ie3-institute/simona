@@ -16,6 +16,7 @@ import edu.ie3.simona.config.SimonaConfig.{BaseCsvParams, ResultKafkaParams}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
+import edu.ie3.util.TimeUtil
 
 import java.time.{Duration, ZonedDateTime}
 import java.time.temporal.ChronoUnit
@@ -63,19 +64,15 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "let valid input pass" in {
           noException shouldBe thrownBy {
             ConfigFailFast invokePrivate createDateTime(
-              (
-                dateTimeString
-              )
-            )
+              dateTimeString
+            ) shouldBe TimeUtil.withDefaults.toZonedDateTime(dateTimeString)
           }
         }
 
         "identify invalid input" in {
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate createDateTime(
-              (
-                "total non-sense"
-              )
+              "total non-sense"
             )
           }.getMessage shouldBe "Invalid dateTimeString: total non-sense." +
             "Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd HH:mm:ss'"
