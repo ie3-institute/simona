@@ -737,7 +737,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     *   milliseconds
     */
   protected def calcDuration(startTime: Long): Long = {
-    ((System.nanoTime - startTime) / 1e6).toLong // in msec
+    (System.nanoTime - startTime) / 1000000L // in msec
   }
 
   /** Adds the provided trigger to the trigger queue to schedule it at the

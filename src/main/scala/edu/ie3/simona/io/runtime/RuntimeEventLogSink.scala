@@ -78,10 +78,12 @@ final case class RuntimeEventLogSink(
   }
 
   def convertDuration(duration: Long): String = {
-    val hh = duration / 1000 / 3600
-    val mm = (duration / 1000 / 60) % 60
-    val ss = (duration / 1000) % 60
-    s"${hh}h : ${mm}m : ${ss}s"
+    val durationInSeconds = duration / 1000
+
+    val hours = durationInSeconds / 3600
+    val minutes = (durationInSeconds / 60) % 60
+    val seconds = durationInSeconds % 60
+    s"${hours}h : ${minutes}m : ${seconds}s"
   }
 
   private def durationAndMemoryString(duration: Long) = {
