@@ -77,19 +77,14 @@ final case class RuntimeEventLogSink(
     )
   }
 
-  private def convertDuration(duration: Double): String = {
-    val hh = ((duration / 1000 / 60) % 24).toInt
-    val mm = ((duration / 1000 / 60) % 60).toInt
-    val ss = roundAt(5)(duration / 1000) % 60
-    s"$hh h: $mm m: $ss s"
+  def convertDuration(duration: Long): String = {
+    val hh = duration / 1000 / 3600
+    val mm = (duration / 1000 / 60) % 60
+    val ss = (duration / 1000) % 60
+    s"${hh}h : ${mm}m : ${ss}s"
   }
 
-  private def roundAt(precision: Int)(number: Double): Double = {
-    val s = math pow (10, precision)
-    (math round number * s) / s
-  }
-
-  private def durationAndMemoryString(duration: Double) = {
+  private def durationAndMemoryString(duration: Long) = {
     val memory = math.round(
       10 * (Runtime.getRuntime.totalMemory() - Runtime.getRuntime
         .freeMemory()) / Math
