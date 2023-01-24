@@ -62,11 +62,11 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         val dateTimeString: String = "2020-05-18 13:41:00"
 
         "let valid input pass" in {
-          noException shouldBe thrownBy {
-            ConfigFailFast invokePrivate createDateTime(
-              dateTimeString
-            ) shouldBe TimeUtil.withDefaults.toZonedDateTime(dateTimeString)
-          }
+
+          ConfigFailFast invokePrivate createDateTime(
+            dateTimeString
+          ) shouldBe TimeUtil.withDefaults.toZonedDateTime(dateTimeString)
+
         }
 
         "identify invalid input" in {
