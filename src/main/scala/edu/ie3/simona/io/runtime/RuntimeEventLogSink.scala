@@ -11,7 +11,8 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import org.slf4j.Logger
 
-import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.time.{Instant, ZoneId, ZonedDateTime}
 
 /** Runtime event sink that just logs all received events.
   * @param simulationStartDate
@@ -32,7 +33,7 @@ final case class RuntimeEventLogSink(
 
       case InitComplete(duration) =>
         log.info(
-          s"Initialization complete. (duration: ${roundDuration(duration)} s)"
+          s"Initialization complete. (duration: ${convertDuration(duration)} )"
         )
 
       case CheckWindowPassed(tick, duration) =>
@@ -56,7 +57,7 @@ final case class RuntimeEventLogSink(
             s"\u001b[0;31mERROR (Failed PF: $noOfFailedPF)\u001b[0;30m"
           else s"\u001b[0;32mSUCCESS (Failed PF: $noOfFailedPF)\u001b[0;30m"
         log.info(
-          s"******* Simulation completed with $simStatus in time step ${calcTime(currentTick)}. Total runtime: ${roundDuration(duration)} s *******"
+          s"******* Simulation completed with $simStatus in time step ${calcTime(currentTick)}. Total runtime: ${convertDuration(duration)} *******"
         )
 
       case Error(errMsg) =>
@@ -76,23 +77,23 @@ final case class RuntimeEventLogSink(
     )
   }
 
-  private def roundDuration(duration: Double): Double = {
-    roundAt(5)(duration / 1000)
+  def convertDuration(duration: Long): String = {
+    val durationInSeconds = duration / 1000
+
+    val hours = durationInSeconds / 3600
+    val minutes = (durationInSeconds / 60) % 60
+    val seconds = durationInSeconds % 60
+    s"${hours}h : ${minutes}m : ${seconds}s"
   }
 
-  private def roundAt(precision: Int)(number: Double): Double = {
-    val s = math pow (10, precision)
-    (math round number * s) / s
-  }
-
-  private def durationAndMemoryString(duration: Double) = {
+  private def durationAndMemoryString(duration: Long) = {
     val memory = math.round(
       10 * (Runtime.getRuntime.totalMemory() - Runtime.getRuntime
         .freeMemory()) / Math
         .pow(1000, 3)
     ) / 10.0
 
-    s"(duration: ${roundDuration(duration)} s, memory: $memory GB)"
+    s"(duration: ${convertDuration(duration)} , memory: $memory GB)"
   }
 
   override def close(): Unit = {
