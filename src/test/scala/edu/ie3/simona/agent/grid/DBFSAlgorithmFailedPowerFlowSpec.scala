@@ -33,8 +33,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 }
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
-import edu.ie3.util.quantities.PowerSystemUnits._
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 
 import scala.language.postfixOps
 
@@ -197,8 +196,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
         Seq(
           ExchangeVoltage(
             node1.getUuid,
-            Quantities.getQuantity(110, KILOVOLT),
-            Quantities.getQuantity(0, KILOVOLT)
+            110d.asKiloVolt,
+            0d.asKiloVolt
           )
         )
       )
@@ -211,8 +210,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
           inferiorGridAgent.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,
-              Quantities.getQuantity(1000, MEGAWATT),
-              Quantities.getQuantity(0, MEGAVAR)
+              1000d.asMegaWatt,
+              0d.asMegaVar
             )
           )
         )
@@ -225,8 +224,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
           Seq(
             ExchangeVoltage(
               supNodeA.getUuid,
-              Quantities.getQuantity(380, KILOVOLT),
-              Quantities.getQuantity(0, KILOVOLT)
+              380d.asKiloVolt,
+              0d.asKiloVolt
             )
           )
         )
