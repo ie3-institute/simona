@@ -79,15 +79,13 @@ dependencies {
     exclude group: 'com.github.ie3-institute'
   }
 
-  implementation files("lib/PowerSystemDataModel-3.0.0.jar")
+  implementation('com.github.ie3-institute:PowerSystemDataModel:3.0-SNAPSHOT') {
+    exclude group: 'org.apache.logging.log4j'
+    exclude group: 'org.slf4j'
+    /* Exclude our own nested dependencies */
+    exclude group: 'com.github.ie3-institute'
+  }
 
-  /*
-   implementation('com.github.ie3-institute:PowerSystemDataModel:3.0-SNAPSHOT') {
-   exclude group: 'org.apache.logging.log4j'
-   exclude group: 'org.slf4j'
-   /* Exclude our own nested dependencies */
-  //  exclude group: 'com.github.ie3-institute'
-  //}
   implementation('com.github.ie3-institute:powerflow:0.1') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
