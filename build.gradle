@@ -62,7 +62,7 @@ repositories {
   mavenCentral() // searches in Sonatype's central repository
   maven { url 'https://jitpack.io' } // allows github repos as dependencies
   maven { url 'https://oss.sonatype.org/content/repositories/snapshots' } // sonatype snapshot repo
-  maven { url "https://packages.confluent.io/maven" } // confluent repo (kafka)
+  maven { url 'https://packages.confluent.io/maven' } // confluent repo (kafka)
 }
 
 dependencies {
