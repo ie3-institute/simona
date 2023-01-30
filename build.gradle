@@ -61,7 +61,14 @@ repositories {
   mavenCentral() // searches in Sonatype's central repository
   maven { url 'https://jitpack.io' } // allows github repos as dependencies
   maven { url 'https://oss.sonatype.org/content/repositories/snapshots' } // sonatype snapshot repo
-  maven { url "https://packages.confluent.io/maven" } // confluent repo (kafka)
+  maven {
+    // confluent repo (kafka)
+    url "https://packages.confluent.io/maven"
+    content {
+      // exclude confluent enterprise versions
+      excludeVersionByRegex("io.confluent", ".*", ".*-ce")
+    }
+  }
 }
 
 dependencies {
@@ -146,8 +153,8 @@ dependencies {
   scalaCompilerPlugin "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:${scapegoatVersion}"
 
   /* Kafka */
-  implementation group: 'org.apache.kafka', name: 'kafka-clients', version: '3.2.0'
-  implementation 'io.confluent:kafka-streams-avro-serde:7.2.2'
+  implementation 'org.apache.kafka:kafka-clients:3.2.0'
+  implementation 'io.confluent:kafka-streams-avro-serde:7.3.1'
   implementation "com.sksamuel.avro4s:avro4s-core_${scalaVersion}:4.1.0"
 
   implementation 'org.apache.commons:commons-math3:3.6.1' // apache commons math3
