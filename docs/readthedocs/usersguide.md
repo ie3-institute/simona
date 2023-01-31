@@ -67,7 +67,7 @@ Let's pretend you want to start a simulation with the default ``vn_simona`` conf
 
 When you want to start a simulation run from the command line interface you have to pass the directory of the config file as a command-line argument. That would look as follows:
 
-    java -cp build/libs/simona-2.1-all.jar edu.ie3.simona.main.RunSimonaStandalone --config=input/samples/vn_simona/vn_simona.conf
+    java -cp build/libs/simona-2.1.0-all.jar edu.ie3.simona.main.RunSimonaStandalone --config=input/samples/vn_simona/vn_simona.conf
 
 
 #### Using IntelliJ IDEA
