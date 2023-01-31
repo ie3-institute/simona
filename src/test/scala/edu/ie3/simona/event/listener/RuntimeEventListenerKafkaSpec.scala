@@ -108,11 +108,11 @@ class RuntimeEventListenerKafkaSpec
       val cases = Table(
         ("event", "expectedMsg"),
         (
-          Done(1800L, 3.0d, 0, errorInSim = false),
+          Done(1800L, 3L, 0, errorInSim = false),
           SimonaEndMessage(runId, 0, error = false)
         ),
         (
-          Done(3600L, 3.0d, 2, errorInSim = true),
+          Done(3600L, 3L, 2, errorInSim = true),
           SimonaEndMessage(runId, 2, error = true)
         ),
         (Error(errMsg), SimonaEndMessage(runId, -1, error = true))

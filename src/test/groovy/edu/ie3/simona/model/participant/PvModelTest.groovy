@@ -47,6 +47,8 @@ import static tech.units.indriya.quantity.Quantities.getQuantity
 
 class PvModelTest extends Specification {
 
+  static final double TESTING_TOLERANCE = 1e-10
+
   @Shared
   PvModel pvModel
 
@@ -291,8 +293,10 @@ class PvModelTest extends Specification {
     Quantity<Angle> alphaE = getQuantity(Math.toRadians(15), RADIAN)
 
     then:
-    QuantityUtil.isEquivalentAbs(pvModel.calcAngleOfIncidenceThetaG(delta, latitudeInRad, gammaE, alphaE, omega).to(DEGREE_GEOM),
-        getQuantity(35.176193345578606393727080835951995075234213360724, DEGREE_GEOM))
+    QuantityUtil.isEquivalentAbs(
+        pvModel.calcAngleOfIncidenceThetaG(delta, latitudeInRad, gammaE, alphaE, omega).to(DEGREE_GEOM),
+        getQuantity(35.176193345578606393727080835951995075234213360724, DEGREE_GEOM),
+        TESTING_TOLERANCE)
   }
 
   def "Calculate the solar altitude (azimuth) angle alphaS"() {
@@ -310,8 +314,10 @@ class PvModelTest extends Specification {
 
     expect:
     "- should calculate the solar altitude correctly and"
-    QuantityUtil.isEquivalentAbs(pvModel.calcSolarAltitudeAngleAlphaS(omega, delta, latitudeInRad).to(DEGREE_GEOM),
-        getQuantity(alphaSOut, DEGREE_GEOM))
+    QuantityUtil.isEquivalentAbs(
+        pvModel.calcSolarAltitudeAngleAlphaS(omega, delta, latitudeInRad).to(DEGREE_GEOM),
+        getQuantity(alphaSOut, DEGREE_GEOM),
+        TESTING_TOLERANCE)
 
     where: "the following parameters are given"
     latitudeInDeg | deltaIn | omegaIn || alphaSOut
@@ -339,8 +345,10 @@ class PvModelTest extends Specification {
 
     expect:
     "- should calculate the angle of incidence thetaG and zenith angle thetaZ of beam radiation on a surface correctly"
-    QuantityUtil.isEquivalentAbs(pvModel.calcAngleOfIncidenceThetaG(delta, latitudeInRad, gammaE, alphaE, omega).to(DEGREE_GEOM),
-        getQuantity(thetaOut, DEGREE_GEOM))
+    QuantityUtil.isEquivalentAbs(
+        pvModel.calcAngleOfIncidenceThetaG(delta, latitudeInRad, gammaE, alphaE, omega).to(DEGREE_GEOM),
+        getQuantity(thetaOut, DEGREE_GEOM),
+        TESTING_TOLERANCE)
 
     where: "the following parameters are given"
     latitudeInDeg | deltaIn | omegaIn | slope | azimuth || thetaOut
@@ -386,8 +394,10 @@ class PvModelTest extends Specification {
 
     expect:
     "- should calculate the beam contribution,"
-    QuantityUtil.isEquivalentAbs(pvModel.calcBeamRadiationOnSlopedSurface(eBeamH, omegas, delta, latitudeInRad, gammaE, alphaE),
-        Quantities.getQuantity(eBeamSSol, WATTHOUR_PER_SQUAREMETRE))
+    QuantityUtil.isEquivalentAbs(
+        pvModel.calcBeamRadiationOnSlopedSurface(eBeamH, omegas, delta, latitudeInRad, gammaE, alphaE),
+        Quantities.getQuantity(eBeamSSol, WATTHOUR_PER_SQUAREMETRE),
+        TESTING_TOLERANCE)
 
     where: "the following parameters are given"
     latitudeInDeg | slope | azimuth | deltaIn | omegaIn | thetaGIn || eBeamSSol
@@ -422,8 +432,10 @@ class PvModelTest extends Specification {
     expect:
     "- should calculate the beam diffusion"
     // == 0,7792781569074354 MJ/m^2
-    QuantityUtil.isEquivalentAbs(pvModel.calcDiffuseRadiationOnSlopedSurfacePerez(eDifH, eBeamH, airMass, I0Quantity, thetaZ, thetaG, gammaE),
-        getQuantity(eDifSSol, WATTHOUR_PER_SQUAREMETRE))
+    QuantityUtil.isEquivalentAbs(
+        pvModel.calcDiffuseRadiationOnSlopedSurfacePerez(eDifH, eBeamH, airMass, I0Quantity, thetaZ, thetaG, gammaE),
+        getQuantity(eDifSSol, WATTHOUR_PER_SQUAREMETRE),
+        TESTING_TOLERANCE)
 
     where: "the following parameters are given"
     thetaGIn | thetaZIn | slope | airMass           | I0                  || eDifSSol
@@ -447,8 +459,10 @@ class PvModelTest extends Specification {
     expect:
     "- should calculate the ground reflection correctly"
     // == 0,15194999952 MJ/m^2 (Book: 0.156 MJ/m^2)
-    QuantityUtil.isEquivalentAbs(pvModel.calcReflectedRadiationOnSlopedSurface(eBeamH, eDifH, gammaE, albedo),
-        Quantities.getQuantity(eRefSSol, WATTHOUR_PER_SQUAREMETRE))
+    QuantityUtil.isEquivalentAbs(
+        pvModel.calcReflectedRadiationOnSlopedSurface(eBeamH, eDifH, gammaE, albedo),
+        Quantities.getQuantity(eRefSSol, WATTHOUR_PER_SQUAREMETRE),
+        TESTING_TOLERANCE)
 
     where: "the following parameters are given"
     slope | albedo || eRefSSol

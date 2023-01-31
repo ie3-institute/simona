@@ -6,15 +6,18 @@
 
 package edu.ie3.simona.model.thermal
 
+import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
+import static edu.ie3.util.quantities.QuantityUtil.isEquivalentAbs
+import static tech.units.indriya.quantity.Quantities.getQuantity
+
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import spock.lang.Shared
 import spock.lang.Specification
 
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static tech.units.indriya.quantity.Quantities.getQuantity
-
 class CylindricalThermalStorageTest extends Specification {
+
+  static final double TESTING_TOLERANCE = 1e-10
 
   @Shared
   CylindricalStorageInput storageInput
@@ -57,12 +60,12 @@ class CylindricalThermalStorageTest extends Specification {
     def notCovering = storage.isDemandCoveredByStorage(getQuantity(1, KILOWATTHOUR))
 
     then:
-    initialLevel == vol2Energy(storage, 70)
-    newLevel1 == vol2Energy(storage, 50)
-    surplus == vol2Energy(storage, 5)
-    newLevel2 == vol2Energy(storage, 100)
-    lack == vol2Energy(storage, 15)
-    newLevel3 == vol2Energy(storage, 20)
+    isEquivalentAbs(initialLevel, vol2Energy(storage, 70), TESTING_TOLERANCE)
+    isEquivalentAbs(newLevel1, vol2Energy(storage, 50), TESTING_TOLERANCE)
+    isEquivalentAbs(surplus, vol2Energy(storage, 5), TESTING_TOLERANCE)
+    isEquivalentAbs(newLevel2, vol2Energy(storage, 100), TESTING_TOLERANCE)
+    isEquivalentAbs(lack, vol2Energy(storage, 15), TESTING_TOLERANCE)
+    isEquivalentAbs(newLevel3, vol2Energy(storage, 20), TESTING_TOLERANCE)
     isCovering
     !notCovering
   }
@@ -77,8 +80,8 @@ class CylindricalThermalStorageTest extends Specification {
 
 
     then:
-    usableThermalEnergy == getQuantity(5 * 115, KILOWATTHOUR)
-    volumeFromUsableEnergy == getQuantity(50, StandardUnits.VOLUME)
+    isEquivalentAbs(usableThermalEnergy, getQuantity(5 * 115, KILOWATTHOUR), TESTING_TOLERANCE)
+    isEquivalentAbs(volumeFromUsableEnergy, getQuantity(50, StandardUnits.VOLUME), TESTING_TOLERANCE)
   }
 
   def "Check apply, validation and build method:"() {
