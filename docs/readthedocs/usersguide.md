@@ -27,7 +27,7 @@ You can either delegate the job to your preferred IDE or build an executable jar
 In order to be able to execute SIMONA from a CLI, you need an executable fat jar. A fat jar contains all compiled classes and dependencies, ready for execution. For building one, you can use a Gradle task of the project.
 
 1. Open a CLI and change directories to the top level directory of the project.   
-2. Execute ``./gradlew shadowJar`` within the CLI. This creates a fat jar of SIMONA inside of the directory ``build/libs``.   
+2. Execute ``gradlew shadowJar`` within the CLI. This creates a fat jar of SIMONA inside of the directory ``build/libs``.   
 3. For executing a fat jar you need to specify the classpath of the entrypoint of your application. Assuming we are still in the top level directory of our project, the execution command would look as follows:
 
     
@@ -61,7 +61,7 @@ Let's pretend you want to start a simulation with the default ``vn_simona`` conf
 
 When you want to start a simulation run from the command line interface you have to pass the directory of the config file as a command-line argument. That would look as follows:
 
-    java -cp build/libs/simona-2.1-all.jar edu.ie3.simona.main.RunSimonaStandalone --config=input/samples/vn_simona/vn_simona.conf
+    java -cp build/libs/simona-2.1.0-all.jar edu.ie3.simona.main.RunSimonaStandalone --config=input/samples/vn_simona/vn_simona.conf
 
 
 #### Using IntelliJ IDEA
@@ -166,7 +166,7 @@ In order to run an external simulation, several requirements have to be fulfille
 
 These steps have to be performed each time updates to the external simulation need to be deployed.
 
-- Execute ``./gradlew shadowJar`` inside the external simulation project.
+- Execute ``gradlew shadowJar`` inside the external simulation project.
 - Copy the resulting *jar* (usually placed inside ``<external project>/build/libs``) to ``./input/ext_sim/``.
 
 Now, when a simulation with SIMONA is started (see {ref}`usersguide:running a standalone simulation`), the external simulation is triggered at each tick that it requested.
