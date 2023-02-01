@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adapted entry in Done message and deleted parallel window [#159](https://github.com/ie3-institute/simona/issues/159)
 - Added ConfigFailFast check for invalid dateTime configuration [#344](https://github.com/ie3-institute/simona/issues/344)
 - Changed simulation duration format [#429](https://github.com/ie3-institute/simona/issues/429)
+- Updated sphinx dependencies and fixed sphinx warnings [#444](https://github.com/ie3-institute/simona/issues/444)
 - Speeding up additionalActivationTicks in participant's BaseStateData [#421](https://github.com/ie3-institute/simona/pull/421)
 
 ### Fixed

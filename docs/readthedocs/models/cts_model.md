@@ -1,23 +1,23 @@
 (cts_model)=
-## Cylindrical Thermal Storage
+# Cylindrical Thermal Storage
 This page documents the functionality of the cylindrical thermal storage available in SIMONA.
 
-### Behaviour
+## Behaviour
 This storage model operates on volumes, although the functions it provides for other models all operate with energy. Internally the storage model converts energy to volume and vice versa with formulas specified below. Furthermore it is assumed that the storage medium is water. Also the model holds a variable for the current storage level.
 
-### Attributes, Units and Remarks
+## Attributes, Units and Remarks
 
 Please refer to  {doc}`PowerSystemDataModel - CTS Model <psdm:models/input/participant/cylindricalstorage>` for Attributes and Units used in this Model.
 
-### Calculations
-#### Maximal storage capacity
+## Calculations
+### Maximal storage capacity
 As the name suggests this storage has a cylindric form, hence its maximum storage capacity $V_{st, max}$ can be given by:
 
 $$
 V_{st, max} = \pi \cdot r^2 \cdot h
 $$
 
-#### Conversions of energy and volume
+### Conversions of energy and volume
 
 In this model the change of stored energy (heat) is represented by the change of the volume of the storage medium. This relation between stored heat and volume change is given by:
 
@@ -51,6 +51,6 @@ $$
 W = V \cdot c \cdot (tE - tA)
 $$
 
-### Store/Take energy
+## Store/Take energy
 
 This calculation is performed as follows: An amount of energy is specified for storing or taking. The model then changes the storage level and returns if it exceeded the maximum (when storing energy) or the minimum (when taking energy).
