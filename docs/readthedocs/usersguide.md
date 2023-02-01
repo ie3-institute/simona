@@ -31,7 +31,7 @@ You can either delegate the job to your preferred IDE or build an executable jar
 In order to be able to execute SIMONA from a CLI, you need an executable fat jar. A fat jar contains all compiled classes and dependencies, ready for execution. For building one, you can use a Gradle task of the project.
 
 1. Open a CLI and change directories to the top level directory of the project.   
-2. Execute ``./gradlew shadowJar`` within the CLI. This creates a fat jar of SIMONA inside of the directory ``build/libs``.   
+2. Execute ``gradlew shadowJar`` within the CLI. This creates a fat jar of SIMONA inside of the directory ``build/libs``.   
 3. For executing a fat jar you need to specify the classpath of the entrypoint of your application. Assuming we are still in the top level directory of our project, the execution command would look as follows:
 
     
@@ -67,7 +67,7 @@ Let's pretend you want to start a simulation with the default ``vn_simona`` conf
 
 When you want to start a simulation run from the command line interface you have to pass the directory of the config file as a command-line argument. That would look as follows:
 
-    java -cp build/libs/simona-2.1-all.jar edu.ie3.simona.main.RunSimonaStandalone --config=input/samples/vn_simona/vn_simona.conf
+    java -cp build/libs/simona-2.1.0-all.jar edu.ie3.simona.main.RunSimonaStandalone --config=input/samples/vn_simona/vn_simona.conf
 
 
 #### Using IntelliJ IDEA
@@ -97,7 +97,7 @@ If you are using IntelliJ IDEA as your IDE, this is how setting the command line
 
 
 If you want to change specific parameters of the simulation, you can create a custom configuration file.
-For a detailed description on how to do that and all the various configuration parameters you can adjust, see /config/config.
+For a detailed description on how to do that and all the various configuration parameters you can adjust, see [configuration](config).
 
 
 ### Model and Grid Data
@@ -108,7 +108,7 @@ Within SIMONA we use the PowerSystemDataModel (PSDM) for modeling the system com
 Before the data can be utilized for a simulation run, make sure to convert them to the PSDM.
 For more information on the PSDM visit the [docs](https://powersystemdatamodel.readthedocs.io/en/latest/index.html) and for an example of how the converted data looks like you can take a look at an example grid at ``./input/samples/vn_simona/fullGrid``.
 The example grids are provided as csv files. You can choose to use a different data source for your own grid.
-For more information on supported sources, check out the /config/config section.
+For more information on supported sources, check out the [configuration](config).
 Include your grid and its specification by referencing the folder path, where all the converted grid data is located, within your custom configuration file.
 
 
@@ -117,15 +117,14 @@ Include your grid and its specification by referencing the folder path, where al
 
 Besides a configuration and the actual grid and grid participants, SIMONA also expects weather data.
 There is an option to use sample weather data, but if you want sensible results, definitely consider supplying suitable data.
-Find information on the expected data format and different supported sources at /config/config.
+Information on the expected data format and different supported sources are given in the input parameters section of the [configuration](config) file.
 
 
 ## Simulation Outputs
 
 
-The raw simulation outputs get written according to the settings, specified in the simulation configuration.
-There are different types of output formats. More in depth information can be found at the /config/config section.
-As for the example configuration, the results will be written as csv files into the specified output folder.
+The raw simulation outputs get written according to the settings, specified in the output parameters section of the simulation [configuration](config).
+There are different types of output formats. As for the example configuration, the results will be written as csv files into the specified output folder.
 Within the folder you can find the following subfolders:
 
 ### configs
@@ -179,7 +178,7 @@ The external simulation is loaded via class loader. Thus, SIMONA and the externa
 
 These steps have to be performed each time updates to the external simulation need to be deployed.
 
-- Execute ``./gradlew shadowJar`` inside the external simulation project.
+- Execute ``gradlew shadowJar`` inside the external simulation project.
 - Copy the resulting *jar* (usually placed inside ``<external project>/build/libs``) to ``./input/ext_sim/``.
 
 Now, when a simulation with SIMONA is started (see [above](#running-a-standalone-simulation), the external simulation is triggered at each tick that it requested.

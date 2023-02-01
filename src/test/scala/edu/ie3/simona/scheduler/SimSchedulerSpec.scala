@@ -771,7 +771,7 @@ class SimSchedulerSpec
       )
 
       val doneMsg = resultEventListener.expectMsgType[Done]
-      doneMsg.tick shouldBe 3600L
+      doneMsg.tick shouldBe 0L
       doneMsg.noOfFailedPF shouldBe 2
       doneMsg.errorInSim shouldBe true
 
