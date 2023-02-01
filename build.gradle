@@ -9,7 +9,7 @@ plugins {
   id 'pmd' // code check, working on source code
   id 'com.diffplug.spotless' version '6.14.0'// code format
   id 'com.github.onslip.gradle-one-jar' version '1.0.6' // pack a self contained jar
-  id "com.github.ben-manes.versions" version '0.44.0'
+  id "com.github.ben-manes.versions" version '0.45.0'
   id "de.undercouch.download" version "5.3.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id "com.github.johnrengelman.shadow" version "7.1.2" // fat jar
@@ -85,7 +85,7 @@ dependencies {
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:powerflow:0.1') {
+  implementation('com.github.ie3-institute:powerflow:0.2') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -156,7 +156,7 @@ dependencies {
   implementation 'javax.measure:unit-api:2.1.3'
   implementation 'tech.units:indriya:2.1.4' // quantities
   implementation 'org.apache.commons:commons-csv:1.9.0'
-  implementation 'org.scalanlp:breeze_2.13:1.3' // scientific calculations (http://www.scalanlp.org/)
+  implementation 'org.scalanlp:breeze_2.13:2.1.0' // scientific calculations (http://www.scalanlp.org/)
   implementation 'de.lmu.ifi.dbs.elki:elki:0.7.5' // Statistics (for random load model)
   implementation 'org.jgrapht:jgrapht-core:1.5.1'
 }
