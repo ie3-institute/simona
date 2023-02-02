@@ -16,7 +16,7 @@ With this document we would like to give you some orientation on how you can con
 ## Testing and reporting bugs
 We really appreciate your usage of this project.
 Whenever you find a bug, it would be nice to check, if this isn't a feature to us. :wink:
-If you still think it's a bug, please raise an [issue](https://simona.ie3.e-technik.tu-dortmund.de/jira/projects/SIM/issues/) for us.
+If you still think it's a bug, please [raise an issue](https://github.com/ie3-institute/simona/issues) for us.
 Considering the following aspects in your inquiry, assists us in helping you:
 
 * **Is there already an issue addressing your problem?**
@@ -42,8 +42,8 @@ free to contact us.
 
 ### Branching and handing in pull requests
 We try to follow a branch naming strategy of the form `<initials>/#<issueId>-<description>`.
-If for example [Prof. Dr. rer. hort. Klaus-Dieter Brokkoli](https://www.instagram.com/prof_broccoli/) would like to add some work on node models reported in issue 4711, he would open a branch `kb/#4711-extendingNodeModels`.
-Please hand in a pull request with ``WIP:`` prefix as early as possible to allow other to keep track on your changes.
+If for example [Prof. Dr. rer. hort. Klaus-Dieter Brokkoli](https://www.instagram.com/prof_broccoli/) would like to add some work on node models reported in issue #4711, he would open a branch `kb/#4711-extendingNodeModels`.
+Please hand in a draft pull request early to allow other to keep track on your changes.
 Before opening it for review, please [finalise your pull request](#finalising-your-pull-request).
 
 ### General (software) design guidelines
@@ -55,21 +55,23 @@ In order to maintain a consistent project, we thought of some general design gui
 
 ### Testing
 Ensure the proper function of your code by [test driven development (TDD)](https://www.guru99.com/test-driven-development.html).
-We have good experiences using [ScalaTest](scalatest.org) and [Spock](http://spockframework.org/) as a testing framework for [Groovy](https://groovy-lang.org/).
+We have good experiences using [ScalaTest](https://www.scalatest.org/) and [Spock](http://spockframework.org/) as testing frameworks.
 
 ### Finalising your pull request
 Some automated checks assist us in delivering a pretty fair quality of software.
 Before marking the pull request as 'ready to review', take these precautionary actions:
 
-* Are all tests passing? Run `gradle allTests` or comment `!test` in your PR which automatically triggers
-our [CI](https://tvnws007-lin.ie3.e-technik.tu-dortmund.de/job/simona/)
+* Are all tests passing? Run `gradle test` or comment `!test` in your PR which automatically triggers
+our [CI](https://simona.ie3.e-technik.tu-dortmund.de/ci/job/ie3-institute/job/simona/)
 * Is your code properly formatted? Run `gradle spotlessApply`
-* Update the javadoc pages. Run `gradle genJavadoc`
 
-## For any doubts
+## With any doubts
 ... please contact
-* Johannes ([johannes.hiry@tu-dortmund.de](mailto:johannes.hiry@tu-dortmund.de)),
 * Debopama ([debopama-sen.sarma@tu-dortmund.de](mailto:debopama-sen.sarma@tu-dortmund.de)) or
-* Chris ([chris.kittl@tu-dortmund.de](mailto:chris.kittl@tu-dortmund.de))
+* Thomas ([thomas.oberliessen@tu-dortmund.de](mailto:thomas.oberliessen@tu-dortmund.de)) or
+* Sebastian ([sebastian.peter@tu-dortmund.de](mailto:sebastian.peter@tu-dortmund.de)) or
+* Daniel ([daniel.feismann@tu-dortmund.de](mailto:daniel.feismann@tu-dortmund.de)) or
+* Johannes ([johannes.bao@tu-dortmund.de](mailto:johannes.bao@tu-dortmund.de)) or
+* Julian ([julian.hohmann@tu-dortmund.de](mailto:julian.hohmann@tu-dortmund.de))
 
-We are happy to help! :smiley:
+* We are happy to help! :smiley:
