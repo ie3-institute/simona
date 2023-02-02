@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.participant.statedata
 
 import akka.actor.ActorRef
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
@@ -15,7 +14,6 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
