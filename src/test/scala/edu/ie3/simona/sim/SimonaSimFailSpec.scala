@@ -6,14 +6,7 @@
 
 package edu.ie3.simona.sim
 
-import akka.actor.{
-  Actor,
-  ActorContext,
-  ActorRef,
-  ActorSystem,
-  Props,
-  actorRef2Scala
-}
+import akka.actor.{Actor, ActorContext, ActorRef, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -128,8 +121,7 @@ object SimonaSimFailSpec {
       *   A sequence of actor references to runtime event listeners
       */
     override def systemParticipantsListener(
-        context: ActorContext,
-        supervisor: ActorRef
+        context: ActorContext
     ): Seq[ActorRef] = Seq.empty[ActorRef]
 
     /** Creates a primary service proxy. The proxy is the first instance to ask

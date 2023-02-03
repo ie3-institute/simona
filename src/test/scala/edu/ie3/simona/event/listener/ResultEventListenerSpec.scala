@@ -6,9 +6,8 @@
 
 package edu.ie3.simona.event.listener
 
-import java.io.{File, FileInputStream}
-import java.util.zip.GZIPInputStream
 import akka.actor.ActorSystem
+import akka.pattern.gracefulStop
 import akka.stream.Materializer
 import akka.testkit.{TestFSMRef, TestProbe}
 import com.typesafe.config.ConfigFactory
@@ -33,10 +32,12 @@ import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.util.io.FileIOUtils
 import org.scalatest.BeforeAndAfterEach
 
+import java.io.{File, FileInputStream}
+import java.util.zip.GZIPInputStream
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 import scala.io.Source
 import scala.language.postfixOps
 
@@ -69,6 +70,8 @@ class ResultEventListenerSpec
     classOf[SwitchResult],
     classOf[LineResult]
   )
+
+  private val timeout = 10.seconds
 
   // the OutputFileHierarchy
   private def resultFileHierarchy(
@@ -144,8 +147,7 @@ class ResultEventListenerSpec
         val testProbe = TestProbe()
         val listener = testProbe.childActorOf(
           ResultEventListener.props(
-            fileHierarchy,
-            testProbe.ref
+            fileHierarchy
           )
         )
 
@@ -162,8 +164,7 @@ class ResultEventListenerSpec
         val listenerRef = system.actorOf(
           ResultEventListener
             .props(
-              specificOutputFileHierarchy,
-              testActor
+              specificOutputFileHierarchy
             )
         )
 
@@ -178,14 +179,20 @@ class ResultEventListenerSpec
           )
         )
 
-        // wait until output file exists:
-        awaitCond(outputFile.exists(), interval = 500.millis)
+        // wait until output file exists (headers are flushed out immediately):
+        awaitCond(outputFile.exists(), interval = 500.millis, max = timeout)
+
+        // stop listener so that result is flushed out
+        Await.ready(
+          gracefulStop(listenerRef, timeout),
+          timeout
+        )
 
         // wait until all lines have been written out:
         awaitCond(
           getFileLinesLength(outputFile) == 2,
           interval = 500.millis,
-          max = 5.seconds
+          max = timeout
         )
 
         val resultFileSource = Source.fromFile(outputFile)
@@ -207,8 +214,7 @@ class ResultEventListenerSpec
         val listenerRef = system.actorOf(
           ResultEventListener
             .props(
-              specificOutputFileHierarchy,
-              testActor
+              specificOutputFileHierarchy
             )
         )
 
@@ -255,17 +261,24 @@ class ResultEventListenerSpec
           )
         )
 
-        // wait until all output files exist:
+        // wait until all output files exist (headers are flushed out immediately):
         awaitCond(
           outputFiles.values.map(_.exists()).forall(identity),
-          interval = 500.millis
+          interval = 500.millis,
+          max = timeout
+        )
+
+        // stop listener so that result is flushed out
+        Await.ready(
+          gracefulStop(listenerRef, timeout),
+          timeout
         )
 
         // wait until all lines have been written out:
         awaitCond(
           !outputFiles.values.exists(file => getFileLinesLength(file) < 2),
           interval = 500.millis,
-          max = 5.seconds
+          max = timeout
         )
 
         outputFiles.foreach { case (resultRowString, outputFile) =>
@@ -294,8 +307,7 @@ class ResultEventListenerSpec
         resultFileHierarchy(5, ".csv", Set(classOf[Transformer3WResult]))
       val listener = TestFSMRef(
         new ResultEventListener(
-          fileHierarchy,
-          testActor
+          fileHierarchy
         )
       )
 
@@ -492,6 +504,12 @@ class ResultEventListenerSpec
           Vector(resultB)
         )
 
+        // stop listener so that result is flushed out
+        Await.ready(
+          gracefulStop(listener, timeout),
+          timeout
+        )
+
         /* Await that the result is written */
         awaitCond(
           getFileLinesLength(outputFile) == 2,
@@ -524,8 +542,7 @@ class ResultEventListenerSpec
         val listenerRef = system.actorOf(
           ResultEventListener
             .props(
-              specificOutputFileHierarchy,
-              testActor
+              specificOutputFileHierarchy
             )
         )
         ResultSinkType.Csv(fileFormat = ".csv.gz")
@@ -552,8 +569,8 @@ class ResultEventListenerSpec
         // this also triggers the compression of result files
         import akka.pattern._
         Await.ready(
-          gracefulStop(listenerRef, 5.seconds),
-          5.seconds
+          gracefulStop(listenerRef, timeout),
+          timeout
         )
 
         // shutdown the actor system
@@ -569,7 +586,7 @@ class ResultEventListenerSpec
               )
             )
           ).exists,
-          10.seconds
+          timeout
         )
 
         val resultFileSource = Source.fromInputStream(
