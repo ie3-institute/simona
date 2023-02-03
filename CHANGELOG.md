@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added ConfigFailFast check for invalid dateTime configuration [#344](https://github.com/ie3-institute/simona/issues/344)
 - Changed simulation duration format [#429](https://github.com/ie3-institute/simona/issues/429)
 - Updated sphinx dependencies and fixed sphinx warnings [#444](https://github.com/ie3-institute/simona/issues/444)
+- Updated authors in AUTHORS.md and README.md [#452](https://github.com/ie3-institute/simona/issues/452)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
