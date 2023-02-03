@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Kafka sink for runtime events, re-implemented RuntimeEventListener in akka typed [#242](https://github.com/ie3-institute/simona/issues/242)
 - Added listeners to DBFS tests to check the result output and check the handling of failed power flows [#269](https://github.com/ie3-institute/simona/issues/269)
 - Added DBFS test with participant load and added testing for FinishGridSimulationTrigger [#281](https://github.com/ie3-institute/simona/issues/281)
+- Added Dependabot updates to sphinx/readthedocs dependencies [#448](https://github.com/ie3-institute/simona/issues/448)
 
 ### Changed
 - Re-organizing test resources into their respective packages [#105](https://github.com/ie3-institute/simona/issues/105)
@@ -51,6 +52,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Latex equations [#264](https://github.com/ie3-institute/simona/issues/264)
 - Documentation of the simulation configuration [#334](https://github.com/ie3-institute/simona/issues/334)
 - Adapted to changes of Quantity units in PSU and PSDM [#419](https://github.com/ie3-institute/simona/pull/419)
+- Adapted entry in Done message and deleted parallel window [#159](https://github.com/ie3-institute/simona/issues/159)
+- Added ConfigFailFast check for invalid dateTime configuration [#344](https://github.com/ie3-institute/simona/issues/344)
+- Changed simulation duration format [#429](https://github.com/ie3-institute/simona/issues/429)
+- Updated sphinx dependencies and fixed sphinx warnings [#444](https://github.com/ie3-institute/simona/issues/444)
 - Updated authors in AUTHORS.md and README.md [#452](https://github.com/ie3-institute/simona/issues/452)
 
 ### Fixed

@@ -1,11 +1,11 @@
 (load_model)=
-## Load Model Configuration and Load Profiles
+# Load Model Configuration and Load Profiles
 
 SIMONA includes a polymorph approach for load model configuration. Based on parameterization the load model can be a profile model or a random model.
 
-### Load Model
+## Load Model
 
-#### General Information
+### General Information
 
 SIMONA supports different load model behaviours, which need some parameterization made by this config entry. It can be found in the config tree at ```simona.runtime.participant.load```.
 
@@ -17,20 +17,21 @@ This applies to all load models, except for those, which already have an individ
 Set of Individual Configurations
 This part holds a set of configurations, that will apply to specific load models, denoted by their uuid. To simplify config generation, you are able to assign the same config to a list of uuids in batch. If one load has no individual configuration assigned, it will default to the above given config.
 
-### Attributes, Units and Remarks
+## Attributes, Units and Remarks
 
 Please refer to {doc}`PowerSystemDataModel - Load Model <psdm:models/input/participant/load>` for Attributes and Units used in this Model.
 
+### Configuration parameters
 
-##### Configuration parameter ``uuid``
+#### ``uuid``
 
 A list of valid UUIDs of load models, the following configuration should be applied for.
 
-##### Configuration parameter ``scaling``
+#### ``scaling``
 
 Universal multiplication factor, that is applied to the models' calculation results. It may be a positive real number.
 
-##### Configuration parameter ``modelBehaviour``
+#### ``modelBehaviour``
 
 Defining the model implementation to use:
 
@@ -38,20 +39,21 @@ Defining the model implementation to use:
 - *"fix"*: The model will provide a fixed active power consumption
 - *"random"*: The model will randomly draw the active power consumption from sampled probability functions of household load measurements
 
-##### Configuration parameter ``reference``
+#### ``reference``
 
 Gives information, to what input information the model output will be scaled. Everything is meant with reference to the active power consumption:
 
 - *"power"*: The maximum active power consumption throughout a year will meet the rated active power of the model. In the case of ``modelBehaviour = "random"``, the 95 % quantile will meet the rated apparent power.
 - *"energy"*: The annual energy consumption of the model will meet ``eConsAnnual`` of the input model
 
-#### Applying configuration
+### Applying configuration
 
 Two examples of proper load model configuration is given beneath.
 
 The first example applies the same configuration to all available load models:
 
-```    simona.runtime.participant.load = {
+```{code-block}
+    simona.runtime.participant.load = {
         defaultConfig = {
             uuid = ["default"]
             scaling = 1.3
@@ -64,7 +66,8 @@ The first example applies the same configuration to all available load models:
 
 If you want to have specific behaviour for only a sub set of the models, you may have something like:
 
- ```   simona.runtime.participant.load = {
+ ```{code-block}
+    simona.runtime.participant.load = {
         defaultConfig = {
             uuid = ["default"]
             scaling = 1.3
@@ -94,11 +97,11 @@ If you want to have specific behaviour for only a sub set of the models, you may
 All models behave the same, except for those with the given uuids.
 
 (load_profiles)=
-### Load Profiles
+## Load Profiles
 
 Load profiles model the annual power consumption of various consumer types in quarter-hour steps.
 
-#### Model
+### Model
 
 Load profiles are determined by three factors: consumer type, day type and season.
 
@@ -119,7 +122,7 @@ Assignment of season and day type are described at page 4 of the source PDF.
 
 **Holidays** should normally be treated as Sundays, Christmas Eve and New Year\'s Eve as Saturdays. Holidays are currently not implemented for profile types in SIMONA.
 
-##### Dynamization factor
+#### Dynamization factor
 
 Household type *H0* requires special treatment by multiplying a dynamization factor, which is dependent on the day of year *t*.
 
@@ -131,19 +134,19 @@ $$
 
 The factor $F_t$, after calculation, shall be rounded to four decimal places. After multiplication with the profile value for given quarter hour, the result should again be rounded to one decimal place.
 
-##### Maximum value
+#### Maximum value
 
 For each consumer type, a maximum value can be retrieved by calling LoadProfileStore.getMaxParam. The maximum value of consumer type *H0* has to be calculated considering dynamization function. For sake of simplicity, in SIMONA it is searched for only in winter profiles of *H0*, as we assume the maximum value to be exclusively found there.
 
-##### Units
+#### Units
 
 Although the primary source declares the profile values to be power in W (p. 14 and 19), we consider them to represent energy in Wh.
 
-##### Considering annual consumption
+#### Considering annual consumption
 
 Load profile values are normalized for an annual consumption of $1000 \frac{kWh}{a}$. For a realistic prediction, the actual annual consumption has to be considered. Given an annual consumption of 4711 kWh/a, each load profile output has to be multiplied with 4.711.
 
-#### Sources
+### Sources
 
 Both model and data stem from [BDEW](https://www.bdew.de/energie/standardlastprofile-strom/).
 
