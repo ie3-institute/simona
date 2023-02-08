@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.{ActorRef, FSM, Props, Stash, Status}
+import akka.actor._
 import akka.pattern.pipe
 import akka.stream.Materializer
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
@@ -35,12 +35,11 @@ import edu.ie3.simona.exceptions.{
 }
 import edu.ie3.simona.io.result._
 import edu.ie3.simona.logging.SimonaFSMActorLogging
-import edu.ie3.simona.sim.SimonaSim.ServiceInitComplete
+import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.util.ResultFileHierarchy
 
-import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 
@@ -76,13 +75,11 @@ object ResultEventListener extends Transformer3wResultSupport {
   ) extends ResultEventListenerData
 
   def props(
-      resultFileHierarchy: ResultFileHierarchy,
-      supervisor: ActorRef
+      resultFileHierarchy: ResultFileHierarchy
   ): Props =
     Props(
       new ResultEventListener(
-        resultFileHierarchy,
-        supervisor
+        resultFileHierarchy
       )
     )
 
@@ -117,14 +114,19 @@ object ResultEventListener extends Transformer3wResultSupport {
               )
               .flatMap { fileName =>
                 if (fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")) {
-                  ResultEntityCsvSink(
-                    fileName.replace(".gz", ""),
-                    new ResultEntityProcessor(resultClass),
-                    fileName.endsWith(".gz")
-                  ).map((resultClass, _))
+                  Future {
+                    (
+                      resultClass,
+                      ResultEntityCsvSink(
+                        fileName.replace(".gz", ""),
+                        new ResultEntityProcessor(resultClass),
+                        fileName.endsWith(".gz")
+                      )
+                    )
+                  }
                 } else {
-                  Future(
-                    throw new ProcessResultEventException(
+                  Future.failed(
+                    new ProcessResultEventException(
                       s"Invalid output file format for file $fileName provided. Currently only '.csv' or '.csv.gz' is supported!"
                     )
                   )
@@ -169,8 +171,7 @@ object ResultEventListener extends Transformer3wResultSupport {
 }
 
 class ResultEventListener(
-    resultFileHierarchy: ResultFileHierarchy,
-    supervisor: ActorRef
+    resultFileHierarchy: ResultFileHierarchy
 ) extends SimonaListener
     with FSM[AgentState, ResultEventListenerData]
     with SimonaFSMActorLogging
@@ -334,7 +335,6 @@ class ResultEventListener(
     case Event(SinkResponse(classToSink), _) =>
       // Sink Initialization succeeded
       log.debug("Initialization complete!")
-      supervisor ! ServiceInitComplete
 
       unstashAll()
       goto(Idle) using BaseData(classToSink)
@@ -376,6 +376,16 @@ class ResultEventListener(
               )
           }
       stay() using updatedBaseData
+
+    case Event(StopMessage(_), _) =>
+      // set ReceiveTimeout message to be sent if no message has been received for 5 seconds
+      context.setReceiveTimeout(5.seconds)
+      stay()
+
+    case Event(ReceiveTimeout, _) =>
+      // there have been no messages for 5 seconds, let's end this
+      self ! PoisonPill
+      stay()
   }
 
   onTermination { case StopEvent(_, _, baseData: BaseData) =>
@@ -399,7 +409,7 @@ class ResultEventListener(
           }
         )
       ),
-      Duration(100, TimeUnit.MINUTES)
+      5.minutes
     )
 
     log.debug("Result I/O completed.")
