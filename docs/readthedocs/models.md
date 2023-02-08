@@ -31,3 +31,9 @@ models/load_model
 models/pv_model
 models/wec_model
 ```
+
+## Measurement and Control
+```{toctree}
+---
+maxdepth: 1
+---
