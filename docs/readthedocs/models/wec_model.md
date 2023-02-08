@@ -1,14 +1,14 @@
 (wec_model)=
 
-## Wind Energy Converter Model
+# Wind Energy Converter Model
 
 This page describes the wind energy converter model (WecModel). Given the current wind velocity, temperature and air pressure the model can calculate the wind turbines active power output.
 
-### Attributes, Units and Remarks
+## Attributes, Units and Remarks
 
 Please refer to {doc}`PowerSystemDataModel - Wec Model <psdm:models/input/participant/wec>` or Attributes and Units used in this Model.
 
-### Calculation
+## Calculation
 
 The figure below depicts the calculation steps as implemented.
 
@@ -27,15 +27,15 @@ The air density is calculated using the temperature and the air pressure, as sta
 
 Note, that the arguments M and R are constants. Their values are contained in the column "Remarks". After inserting the constant values the formula looks as follows: $\rho = \frac{p}{287.058 \cdot T}$
 
-#### Enercon E-82
+### Enercon E-82
 
 It is useful to look at a real wind turbine for the visualization of some parameters.
 
-###### Rotor area
+#### Rotor area
 
 The Enercon E-82 has a three-bladed rotor with a diameter of 82 m. A rotors swept area is a circle, therefore it is calculated as follows: $A = \pi \cdot r^2$. The swept area (rotorArea) of the Enercon E-82 is $5281.02\:{m^2} = \pi \cdot (\frac{82\:m}{2})^2$.
 
-###### Betz curve
+#### Betz curve
 
 The betz curve (or betz characteristic) is a mapping of wind velocities to cP values. It is used to determine the power that can be extracted from the wind. It follows [Betz's law](https://en.wikipedia.org/wiki/Betz's_law). Each wind turbine has a unique betz curve. The figure below shows the betz curve for the Enercon E-82 wind turbine.
 
