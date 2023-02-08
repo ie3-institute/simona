@@ -37,3 +37,4 @@ models/wec_model
 ---
 maxdepth: 1
 ---
+measurement_control
