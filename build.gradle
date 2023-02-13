@@ -7,16 +7,16 @@ plugins {
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
   id 'pmd' // code check, working on source code
-  id 'com.diffplug.spotless' version '6.14.0'// code format
+  id 'com.diffplug.spotless' version '6.15.0'// code format
   id 'com.github.onslip.gradle-one-jar' version '1.0.6' // pack a self contained jar
   id "com.github.ben-manes.versions" version '0.45.0'
-  id "de.undercouch.download" version "5.3.0" // downloads plugin
+  id "de.undercouch.download" version "5.3.1" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id "com.github.johnrengelman.shadow" version "7.1.2" // fat jar
   id "org.sonarqube" version "3.5.0.2730" // sonarqube
   id "org.scoverage" version "7.0.1" // scala code coverage scoverage
   id "com.github.maiflai.scalatest" version "0.32" // run scalatest without specific spec task
-  id 'org.hidetake.ssh' version '2.10.1'
+  id 'org.hidetake.ssh' version '2.11.0'
   id 'net.thauvin.erik.gradle.semver' version '1.0.4' // semantic versioning
 }
 
