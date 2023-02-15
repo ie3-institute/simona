@@ -1,22 +1,22 @@
 (chp_model)=
 
-## Combined Heat and Power Plant Model
+# Combined Heat and Power Plant Model
 
 This page documents the functionality of the CHP Model (combined heat and power plant model) available in SIMONA. This model is part of the SIMONA simulation framework and represented by an agent. In the current model, it is feasible to simulate nano- and micro-CHP units. As it is a cross-sector agent heat/electricity) the usage of a house-heat-model is mandatory.  In the following, the CHP unit model and its controller unit is described. The controller unit is necessary to ensure, that different kinds of heat models can be applied.
 
-### Assumptions
+## Assumptions
 
 The CHP unit is able to operate either at full load or not at all. Uncovered heat demand of former time-steps is not considered in the following steps, as the CHP unit does not posses a memory. Losses of the heat storage are not considered.
 
-### Parameters
+## Parameters
 
 ![](../_static/figures/models/chp_model/chp4.png)
 
-### Attributes, Units and Remarks
+## Attributes, Units and Remarks
 
 Please refer to {doc}`PowerSystemDataModel - CHP Model <psdm:models/input/participant/chp>` for Attributes and Units used in this Model.
 
-### Implemented Behaviour
+## Implemented Behaviour
 
 - Agent Objectives
   The objective of the CHP agent is to cover the given heat demand in each time-step.
@@ -25,12 +25,12 @@ Please refer to {doc}`PowerSystemDataModel - CHP Model <psdm:models/input/partic
 
 The implemented behaviour is shown in the program sequence plan below. In general, the unit will turn on, if the energy in the storage is too low to satisfy the given heat demand and will turn off if the storage is completely filled. During operation, the CHP unit operates at full utilization.
 
-### Implementation:
+## Implementation:
 
 ![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/uml/main/participants/ChpModelCalculation.puml)
 ![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/uml/main/participants/ChpModelCalculationConcept.puml)
 
-### Mathematical concept
+## Mathematical concept
 
 The implementation of the CHP unit's behavior is based on the following mathematical model.
 

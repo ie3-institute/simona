@@ -1,9 +1,7 @@
 (two_winding_transformer_model)=
-## Two winding transformer
+# Two winding transformer
 
-### Transformer Calculations
-
-#### Attributes, Units and Remarks
+## Attributes, Units and Remarks
 
 Input and Result Attributes and Units are defined at PowerSystemDataModel. Please refer to:
 
