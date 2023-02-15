@@ -121,8 +121,7 @@ object SimonaSimFailSpec {
       *   A sequence of actor references to runtime event listeners
       */
     override def systemParticipantsListener(
-        context: ActorContext,
-        supervisor: ActorRef
+        context: ActorContext
     ): Seq[ActorRef] = Seq.empty[ActorRef]
 
     /** Creates a primary service proxy. The proxy is the first instance to ask

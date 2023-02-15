@@ -117,8 +117,7 @@ class ResultEntityKafkaSpec
                 20
               )
             )
-          ),
-          testActor
+          )
         )
       )
 

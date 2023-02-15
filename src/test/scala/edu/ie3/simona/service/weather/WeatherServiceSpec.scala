@@ -205,8 +205,8 @@ class WeatherServiceSpec
         case ProvideWeatherMessage(tick, weatherValue, nextDataTick) =>
           tick shouldBe 0L
           weatherValue shouldBe WeatherData(
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
+            Quantities.getQuantity(0.0, StandardUnits.SOLAR_IRRADIANCE),
+            Quantities.getQuantity(0.0, StandardUnits.SOLAR_IRRADIANCE),
             Quantities.getQuantity(-2.372, StandardUnits.TEMPERATURE),
             Quantities.getQuantity(4.16474, StandardUnits.WIND_VELOCITY)
           )
@@ -243,8 +243,8 @@ class WeatherServiceSpec
         case ProvideWeatherMessage(tick, weatherValue, nextDataTick) =>
           tick shouldBe 3600L
           weatherValue shouldBe WeatherData(
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
+            Quantities.getQuantity(0.0, StandardUnits.SOLAR_IRRADIANCE),
+            Quantities.getQuantity(0.0, StandardUnits.SOLAR_IRRADIANCE),
             Quantities.getQuantity(-2.526, StandardUnits.TEMPERATURE),
             Quantities.getQuantity(4.918092, StandardUnits.WIND_VELOCITY)
           )
