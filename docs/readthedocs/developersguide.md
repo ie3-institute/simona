@@ -10,44 +10,11 @@ The convention for merging into the developer branch is that it needs to pass al
 
 Please use the following naming convention for feature branches, “&lt;initials-or-username&lt;/#&lt;issue-number&lt;-&lt;descriptive-feature-branch-name&lt;”. E.g.: ab/#issue123-update-docs
 
-
-## Models
-
-This page gives an overview of the available models in *SIMONA*.
-
-### Grid Related Models
-
-```{eval-rst}
-.. toctree::
-   :maxdepth: 1
-
-   models/line_model
-   models/switch_model
-   models/two_winding_transformer_model
-   models/three_winding_transformer_model
-```
-
-### System Participant Related Models
-
-```{eval-rst}
-.. toctree::
-   :maxdepth: 1
-
-   models/bm_model
-   models/chp_model
-   models/cts_model
-   models/evcs_model
-   models/load_model
-   models/pv_model
-   models/wec_model
-```
-
 ## Protocols
 
-```{eval-rst}
-.. toctree::
-   :maxdepth: 1
-
-   protocols
-   protocolsTriggerParticipantAgent
+```{toctree}
+---
+maxdepth: 1
+---
+protocols
 ```

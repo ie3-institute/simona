@@ -19,8 +19,13 @@ extensions = [
     'sphinxcontrib.plantuml',
     'sphinx.ext.intersphinx',
     'hoverxref.extension',
-    'sphinxcontrib.bibtex',
+    'sphinxcontrib.bibtex'
 ]
+
+# Make sure the target is unique
+autosectionlabel_prefix_document = True
+
+myst_enable_extensions = ["dollarmath", "amsmath"]
 
 templates_path = ['_templates']
 exclude_trees = ['.build']

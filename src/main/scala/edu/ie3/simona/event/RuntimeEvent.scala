@@ -28,7 +28,7 @@ object RuntimeEvent {
     *   duration that has been passed since the last time a [[Ready]] event has
     *   been issued
     */
-  final case class Ready(tick: Long, duration: Double) extends RuntimeEvent
+  final case class Ready(tick: Long, duration: Long) extends RuntimeEvent
 
   /** Indicates that the initialization process of all agents and actors is
     * finished
@@ -36,7 +36,7 @@ object RuntimeEvent {
     * @param duration
     *   duration needed for the initialization process
     */
-  final case class InitComplete(duration: Double) extends RuntimeEvent
+  final case class InitComplete(duration: Long) extends RuntimeEvent
 
   /** A status indication that the
     * [[edu.ie3.simona.config.SimonaConfig.simona.time.schedulerReadyCheckWindow]]
@@ -54,7 +54,7 @@ object RuntimeEvent {
     *   the duration that has been taken since the last time a
     *   [[CheckWindowPassed]] event has been issued
     */
-  final case class CheckWindowPassed(tick: Long, duration: Double)
+  final case class CheckWindowPassed(tick: Long, duration: Long)
       extends RuntimeEvent
 
   /** Indicates that the scheduler is currently executing a simulation within
@@ -81,7 +81,7 @@ object RuntimeEvent {
     */
   final case class Done(
       tick: Long,
-      duration: Double,
+      duration: Long,
       noOfFailedPF: Int,
       errorInSim: Boolean
   ) extends RuntimeEvent

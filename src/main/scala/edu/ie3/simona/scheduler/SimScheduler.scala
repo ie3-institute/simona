@@ -71,7 +71,7 @@ class SimScheduler(
 
       // initializing process
       val initStartTime = System.nanoTime
-      initializeAgents(stateData)
+      sendEligibleTrigger(stateData)
 
       context become schedulerReceive(
         stateData.copy(
