@@ -12,6 +12,8 @@ import edu.ie3.datamodel.models.input.container.JointGridContainer
 import edu.ie3.datamodel.utils.validation.ValidationUtils
 import edu.ie3.simona.config.SimonaConfig
 
+import scala.util.{Failure, Try}
+
 /** Takes [[edu.ie3.simona.config.SimonaConfig.Simona.Input.Grid.Datasource]] as
   * input and provides a [[JointGridContainer]] based on the configuration incl.
   * necessary sanity checks
@@ -35,10 +37,9 @@ object GridProvider extends LazyLogging {
               params.csvSep,
               params.directoryPath
             )
-            try {
-              ValidationUtils.check(jointGridContainer)
-            } catch {
-              case exception: Exception =>
+
+            Try.apply(ValidationUtils.check(jointGridContainer)) match {
+              case Failure(exception) =>
                 logger.warn(
                   s"Error while initializing CsvGridSource! Cannot proceed without a valid GridSource!",
                   exception
