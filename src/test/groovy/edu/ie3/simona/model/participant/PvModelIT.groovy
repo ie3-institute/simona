@@ -133,25 +133,25 @@ trait PvModelITHelper {
     def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2012-01-01 00:00:00")
 
     HashMap<String, PvModel> pvModels = new HashMap<>()
-    for (PvInput inputModel : csvGridSource.getSystemParticipants().getPvPlants()) {
+    for (PvInput inputModel : csvGridSource.systemParticipants.pvPlants) {
       PvModel model = PvModel.apply(
-          inputModel.getUuid(),
-          inputModel.getId(),
+          inputModel.uuid,
+          inputModel.id,
           SystemComponent.determineOperationInterval(
           simulationStartDate,
           simulationEndDate,
-          inputModel.getOperationTime()
+          inputModel.operationTime
           ),
           1d,
-          QControl.apply(inputModel.getqCharacteristics()),
-          inputModel.getsRated(),
-          inputModel.getCosPhiRated(),
-          inputModel.getNode().getGeoPosition().getY(),
-          inputModel.getNode().getGeoPosition().getX(),
-          inputModel.getAlbedo(),
-          inputModel.getEtaConv(),
-          inputModel.getAzimuth(),
-          inputModel.getElevationAngle(),
+          QControl.apply(inputModel.qCharacteristics),
+          inputModel.sRated,
+          inputModel.cosPhiRated,
+          inputModel.node.geoPosition.y,
+          inputModel.node.geoPosition.x,
+          inputModel.albedo,
+          inputModel.etaConv,
+          inputModel.azimuth,
+          inputModel.elevationAngle,
           getQuantity(1d, SQUARE_METRE)
           )
 
