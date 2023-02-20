@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.io.source.csv.CsvJointGridContainerSource
-import edu.ie3.datamodel.models.input.container.JointGridContainer
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
@@ -134,7 +133,7 @@ trait PvModelITHelper {
     def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2012-01-01 00:00:00")
 
     HashMap<String, PvModel> pvModels = new HashMap<>()
-    for (PvInput inputModel : csvGridSource.get().getSystemParticipants().getPvPlants()) {
+    for (PvInput inputModel : csvGridSource.getSystemParticipants().getPvPlants()) {
       PvModel model = PvModel.apply(
           inputModel.getUuid(),
           inputModel.getId(),
@@ -173,6 +172,7 @@ trait PvModelITHelper {
       HashMap modelToWeatherMap
       if (weatherMap.containsKey(time)) {
         modelToWeatherMap = weatherMap.get(time)
+        weatherMap.put(time, modelToWeatherMap)
       }
 
       if (modelToWeatherMap == null) {
