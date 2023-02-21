@@ -13,7 +13,7 @@ the grid must be provided in the PowerSystemDataModel format. (For more informat
 physical participant models and your provided input data forms a power grid that can be further investigated and 
 analysed using ancillary tools.
 
-![Basic Simona](images/usersguide/basic_simona_environment.png "SIMONA System Overview")
+![SIMONA System Overview](images/usersguide/basic_simona_environment.png)
 
 ## Simulation
 SIMONA is designed to simulate the assets' behaviour with each other and with the grid itself. In this process, SIMONA
@@ -24,7 +24,7 @@ Since SIMONA uses an agent-based approach, the assets are modelled as agents. Th
 which represent generators or loads commonly used in distribution grids (PV, Wind Turbine, EV, Storages, ...). In 
 addition to that, a grid agent (GA) manages interactions between subgrids and with the subordinate SPAs.
 
-![SIMONA Agent Message](images/usersguide/agent_messages.png)
+![SIMONA Message Protocol Overview](images/usersguide/agent_messages.png)
 
 ## Further Information and Contact Details
 
