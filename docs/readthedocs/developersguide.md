@@ -40,7 +40,7 @@ In short, mergeable PRs have to meet our standards in several areas:
     - readthedocs for long form documentation
     - ScalaDoc/JavaDoc for interface documentation
     - code commentary on crucial parts of the code
-  - Code quality should be sufficient, i.e.
+  - Code quality should be sufficient (see {ref}`developersguide:coding conventions`)
 
 There can be exceptions to these rules, which have to be approved by the reviewer.
 
