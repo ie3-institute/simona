@@ -6,10 +6,13 @@
 
 package edu.ie3.simona.io.grid
 
-import edu.ie3.datamodel.io.naming.FileNamingStrategy
+import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.datamodel.io.source.csv.CsvJointGridContainerSource
 import edu.ie3.datamodel.models.input.container.JointGridContainer
+import edu.ie3.datamodel.utils.validation.ValidationUtils
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.exceptions.InitializationException
+
+import scala.util.{Failure, Success, Try}
 
 /** Takes [[edu.ie3.simona.config.SimonaConfig.Simona.Input.Grid.Datasource]] as
   * input and provides a [[JointGridContainer]] based on the configuration incl.
@@ -18,7 +21,7 @@ import edu.ie3.simona.exceptions.InitializationException
   * @version 0.1
   * @since 28.04.20
   */
-object GridProvider {
+object GridProvider extends LazyLogging {
 
   def gridFromConfig(
       simulationName: String,
@@ -29,18 +32,24 @@ object GridProvider {
       case GridSourceType.CSV =>
         gridDataSource.csvParams match {
           case Some(params) =>
-            CsvGridSource
-              .readGrid(
-                simulationName,
-                params.csvSep,
-                params.directoryPath,
-                new FileNamingStrategy()
-              )
-              .getOrElse(
-                throw new InitializationException(
-                  "Error while initializing CsvGridSource! Cannot proceed without a valid GridSource!"
+            val jointGridContainer = CsvJointGridContainerSource.read(
+              simulationName,
+              params.csvSep,
+              params.directoryPath
+            )
+
+            Try(ValidationUtils.check(jointGridContainer)) match {
+              case Failure(exception) =>
+                logger.warn(
+                  s"Validation of grid ${jointGridContainer.getGridName} failed: \n\t{}",
+                  exception.getMessage
                 )
-              )
+              case Success(_) =>
+                logger.debug(
+                  s"Validation of given grid ${jointGridContainer.getGridName} was successful."
+                )
+            }
+            jointGridContainer
           case None =>
             throw new RuntimeException(
               "CSVGridSource requires csv params to be set!"
