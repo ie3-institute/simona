@@ -172,7 +172,6 @@ trait PvModelITHelper {
       HashMap modelToWeatherMap
       if (weatherMap.containsKey(time)) {
         modelToWeatherMap = weatherMap.get(time)
-        weatherMap.put(time, modelToWeatherMap)
       }
 
       if (modelToWeatherMap == null) {

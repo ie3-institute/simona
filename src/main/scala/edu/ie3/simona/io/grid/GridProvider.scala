@@ -44,7 +44,10 @@ object GridProvider extends LazyLogging {
                   s"Error while validating JointGridContainer! Cannot proceed without a valid GridSource!\n\t{}",
                   exception.getMessage
                 )
-              case Success(_) => logger.debug("Validation successful.")
+              case Success(_) =>
+                logger.debug(
+                  s"Validation of given grid was successful. The grid ${jointGridContainer.getGridName} is a valid grid."
+                )
             }
             jointGridContainer
           case None =>
