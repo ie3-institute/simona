@@ -41,12 +41,12 @@ object GridProvider extends LazyLogging {
             Try(ValidationUtils.check(jointGridContainer)) match {
               case Failure(exception) =>
                 logger.warn(
-                  s"Error while validating JointGridContainer! Cannot proceed without a valid GridSource!\n\t{}",
+                  s"Validation of grid ${jointGridContainer.getGridName} failed: \n\t{}",
                   exception.getMessage
                 )
               case Success(_) =>
                 logger.debug(
-                  s"Validation of given grid was successful. The grid ${jointGridContainer.getGridName} is a valid grid."
+                  s"Validation of given grid ${jointGridContainer.getGridName} was successful."
                 )
             }
             jointGridContainer
