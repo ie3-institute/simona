@@ -27,7 +27,6 @@ We use issues as well to keep track of enhancement suggestions.
 Considering the following aspects, assists us in understanding your needs properly:
 
 * **Is there already an issue addressing your request?**
-* **What would do you desire for?**
 * If possible provide an **example or sketch**.
 * Show a **use case**, that should be as versatile as possible.
 * Mark the issue with the **label _enhancement_**.
