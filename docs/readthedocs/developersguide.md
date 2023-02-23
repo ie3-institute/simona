@@ -49,12 +49,12 @@ There can be exceptions to these rules, which have to be approved by the reviewe
 
 ### Tests
 
-Ensure the proper function of your code by [test driven development (TDD)](https://www.guru99.com/test-driven-development.html).
 We have good experiences using [ScalaTest](https://www.scalatest.org/) and [Spock](http://spockframework.org/) as testing frameworks.
 Please do not only try to achieve a high _line coverage_, but also aim at covering as many [_branches_](https://en.wikipedia.org/wiki/Code_coverage) as possible.
 In order to execute _all_ available tests, execute `gradle test` or comment `!test` on your PR, which automatically queues a run in our CI.
 
-In general, it pays off to write a failing test first for new functionality to be implemented, then implement and alter the implementation until the tests pass.
+When practical, we like to use [test driven development (TDD)](https://www.guru99.com/test-driven-development.html):
+It can pay off to write a failing test first for new functionality to be implemented, then implement and alter the implementation until the tests pass.
 
 ### Coding conventions
 
