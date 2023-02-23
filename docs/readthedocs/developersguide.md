@@ -54,7 +54,7 @@ Please do not only try to achieve a high _line coverage_, but also aim at coveri
 In order to execute _all_ available tests, execute `gradle test` or comment `!test` on your PR, which automatically queues a run in our CI.
 
 When practical, we like to use [test driven development (TDD)](https://www.guru99.com/test-driven-development.html):
-It can pay off to write a failing test first for new functionality to be implemented, then implement and alter the implementation until the tests pass.
+It can pay off to write a failing test first for new functionality to be implemented, then implement and alter the actual functionality until the tests pass.
 
 ### Coding conventions
 
