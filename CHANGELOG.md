@@ -60,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated sphinx dependencies and fixed sphinx warnings [#444](https://github.com/ie3-institute/simona/issues/444)
 - Updated authors in AUTHORS.md and README.md [#452](https://github.com/ie3-institute/simona/issues/452)
 - Updating `CONTRIBUTING.md` [#201](https://github.com/ie3-institute/simona/issues/201)
+- Speeding up additionalActivationTicks in participant's BaseStateData [#421](https://github.com/ie3-institute/simona/pull/421)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
