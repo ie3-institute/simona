@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added DBFS test with participant load and added testing for FinishGridSimulationTrigger [#281](https://github.com/ie3-institute/simona/issues/281)
 - Added Dependabot updates to sphinx/readthedocs dependencies [#448](https://github.com/ie3-institute/simona/issues/448)
 - Check for grid validity with PSDM `ValidationUtils` [#460](https://github.com/ie3-institute/simona/issues/460)
+- Enhancing dev's guide [#363](https://github.com/ie3-institute/simona/issues/363)
 
 ### Changed
 - Re-organizing test resources into their respective packages [#105](https://github.com/ie3-institute/simona/issues/105)
@@ -58,6 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed simulation duration format [#429](https://github.com/ie3-institute/simona/issues/429)
 - Updated sphinx dependencies and fixed sphinx warnings [#444](https://github.com/ie3-institute/simona/issues/444)
 - Updated authors in AUTHORS.md and README.md [#452](https://github.com/ie3-institute/simona/issues/452)
+- Updating `CONTRIBUTING.md` [#201](https://github.com/ie3-institute/simona/issues/201)
+- Speeding up additionalActivationTicks in participant's BaseStateData [#421](https://github.com/ie3-institute/simona/pull/421)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
