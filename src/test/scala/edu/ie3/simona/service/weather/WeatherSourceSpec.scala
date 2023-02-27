@@ -632,11 +632,13 @@ case object WeatherSourceSpec {
 
   private val time: ZonedDateTime = ZonedDateTime.now()
 
+  private val missingValue: Null = null
+
   private val solarIrradianceValue0: SolarIrradianceValue =
-    new SolarIrradianceValue(null, null)
+    new SolarIrradianceValue(missingValue, missingValue)
   private val solarIrradianceValue1: SolarIrradianceValue =
     new SolarIrradianceValue(
-      null,
+      missingValue,
       Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE)
     )
   private val solarIrradianceValue2: SolarIrradianceValue =
@@ -645,7 +647,9 @@ case object WeatherSourceSpec {
       Quantities.getQuantity(40d, StandardUnits.SOLAR_IRRADIANCE)
     )
 
-  private val temperatureValue0: TemperatureValue = new TemperatureValue(null)
+  private val temperatureValue0: TemperatureValue = new TemperatureValue(
+    missingValue
+  )
   private val temperatureValue1: TemperatureValue = new TemperatureValue(
     Quantities.getQuantity(288.15d, Units.KELVIN)
   )
@@ -653,11 +657,17 @@ case object WeatherSourceSpec {
     Quantities.getQuantity(290.15d, Units.KELVIN)
   )
 
-  private val windValue0: WindValue = new WindValue(null, null)
+  private val windValue0: WindValue = new WindValue(missingValue, missingValue)
   private val windValue1: WindValue =
-    new WindValue(null, Quantities.getQuantity(10, Units.METRE_PER_SECOND))
+    new WindValue(
+      missingValue,
+      Quantities.getQuantity(10, Units.METRE_PER_SECOND)
+    )
   private val windValue2: WindValue =
-    new WindValue(null, Quantities.getQuantity(20, Units.METRE_PER_SECOND))
+    new WindValue(
+      missingValue,
+      Quantities.getQuantity(20, Units.METRE_PER_SECOND)
+    )
 
   private val timeBasedValue0: TimeBasedValue[WeatherValue] =
     buildTimeBasedValue(

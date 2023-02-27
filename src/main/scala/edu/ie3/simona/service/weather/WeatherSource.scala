@@ -37,6 +37,7 @@ import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
 import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
   checkCouchbaseParams,
   checkInfluxDb1xParams,
+  checkKafkaParams,
   checkSqlParams
 }
 import edu.ie3.simona.util.ParsableEnumeration
@@ -580,7 +581,7 @@ object WeatherSource extends LazyLogging {
     * @return
     *   interpolated weather data
     */
-  def interpolateValue(
+  private def interpolateValue(
       timeSeries: IndividualTimeSeries[WeatherValue],
       dateTime: ZonedDateTime
   ): WeatherData = {
@@ -588,7 +589,6 @@ object WeatherSource extends LazyLogging {
       logger.info(
         s"Not enough entries in time series $timeSeries to interpolate weather data. At least three values are needed, found ${timeSeries.getEntries.size()}."
       )
-
       EMPTY_WEATHER_DATA
     } else {
       // find previous and next values
@@ -597,65 +597,30 @@ object WeatherSource extends LazyLogging {
       val nextOption: WeatherDataOption = getNextValue(timeSeries, dateTime)
 
       // weight found values or return EMPTY_WEATHER_DATA
-      val diffIrr: ComparableQuantity[Irradiance] =
-        (previousOption.diffIrr, nextOption.diffIrr) match {
-          case (Some(preVal), Some(nextVal)) =>
-            preVal._1
-              .multiply(preVal._2)
-              .add(nextVal._1.multiply(nextVal._2))
-              .divide(preVal._2 + nextVal._2)
-          case (_, _) =>
-            logger.warn(
-              s"Interpolating diffused irradiance value for timestamp $dateTime was not possible. The default value is used."
-            )
-
-            EMPTY_WEATHER_DATA.diffIrr
-        }
-
-      val dirIrr: ComparableQuantity[Irradiance] =
-        (previousOption.dirIrr, nextOption.dirIrr) match {
-          case (Some(preVal), Some(nextVal)) =>
-            preVal._1
-              .multiply(preVal._2)
-              .add(nextVal._1.multiply(nextVal._2))
-              .divide(preVal._2 + nextVal._2)
-          case (_, _) =>
-            logger.warn(
-              s"Interpolating direct irradiance value for timestamp $dateTime was not possible. The default value is used."
-            )
-
-            EMPTY_WEATHER_DATA.dirIrr
-        }
-
-      val temp: ComparableQuantity[Temperature] =
-        (previousOption.temp, nextOption.temp) match {
-          case (Some(preVal), Some(nextVal)) =>
-            preVal._1
-              .multiply(preVal._2)
-              .add(nextVal._1.multiply(nextVal._2))
-              .divide(preVal._2 + nextVal._2)
-          case (_, _) =>
-            logger.warn(
-              s"Interpolating temperature value for timestamp $dateTime was not possible. The default value is used."
-            )
-
-            EMPTY_WEATHER_DATA.temp
-        }
-
-      val windVel: ComparableQuantity[Speed] =
-        (previousOption.windVel, nextOption.windVel) match {
-          case (Some(preVal), Some(nextVal)) =>
-            preVal._1
-              .multiply(preVal._2)
-              .add(nextVal._1.multiply(nextVal._2))
-              .divide(preVal._2 + nextVal._2)
-          case (_, _) =>
-            logger.warn(
-              s"Interpolating wind velocity value for timestamp $dateTime was not possible. The default value is used."
-            )
-
-            EMPTY_WEATHER_DATA.windVel
-        }
+      val diffIrr: ComparableQuantity[Irradiance] = interpolate(
+        dateTime,
+        previousOption.diffIrr,
+        nextOption.diffIrr,
+        EMPTY_WEATHER_DATA.diffIrr
+      )
+      val dirIrr: ComparableQuantity[Irradiance] = interpolate(
+        dateTime,
+        previousOption.dirIrr,
+        nextOption.dirIrr,
+        EMPTY_WEATHER_DATA.dirIrr
+      )
+      val temp: ComparableQuantity[Temperature] = interpolate(
+        dateTime,
+        previousOption.temp,
+        nextOption.temp,
+        EMPTY_WEATHER_DATA.temp
+      )
+      val windVel: ComparableQuantity[Speed] = interpolate(
+        dateTime,
+        previousOption.windVel,
+        nextOption.windVel,
+        EMPTY_WEATHER_DATA.windVel
+      )
 
       // returning new WeatherData
       WeatherData(
@@ -664,6 +629,45 @@ object WeatherSource extends LazyLogging {
         temp,
         windVel
       )
+    }
+  }
+
+  /** Method to interpolate a quantity for a specific timestamp with a previous
+    * and a next value.
+    * @param dateTime
+    *   timestamp which is interpolated
+    * @param previousOption
+    *   option of quantity and time difference
+    * @param nextOption
+    *   option of quantity and time difference
+    * @param empty
+    *   weather data
+    * @return
+    *   option of interpolated quantity
+    */
+  private def interpolate[V <: Quantity[V]](
+      dateTime: ZonedDateTime,
+      previousOption: Option[(ComparableQuantity[V], Long)],
+      nextOption: Option[(ComparableQuantity[V], Long)],
+      empty: ComparableQuantity[V]
+  ): ComparableQuantity[V] = {
+    (previousOption, nextOption) match {
+      case (Some(previousValue), Some(nextValue)) =>
+        val time1: Long = previousValue._2
+        val time2: Long = nextValue._2
+        val interval = time1 + time2
+        val quantity1: ComparableQuantity[V] = previousValue._1
+        val quantity2: ComparableQuantity[V] = nextValue._1
+
+        val weightedQuantity1 = quantity1.multiply(time1)
+        val weightedQuantity2 = quantity2.multiply(time2)
+
+        weightedQuantity1.add(weightedQuantity2).divide(interval)
+      case (_, _) =>
+        logger.warn(
+          s"Interpolating value with unit ${empty.getUnit} for timestamp $dateTime was not possible. The default value is used."
+        )
+        empty
     }
   }
 
