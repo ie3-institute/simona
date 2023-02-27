@@ -199,10 +199,17 @@ case object GridModel {
       admittanceMatrix
     }
 
+    // TODO the following methods are structurally very similar and thus can be abstracted, possibly using higher order functions
     val linesAdmittanceMatrix: DenseMatrix[Complex] =
       buildLinesAdmittanceMatrix(
         nodeUuidToIndexMap,
         gridComponents.lines,
+        _updateAdmittanceMatrix
+      )
+    val switchesAdmittanceMatrix: DenseMatrix[Complex] =
+      buildSwitchesAdmittanceMatrix(
+        nodeUuidToIndexMap,
+        gridComponents.switches,
         _updateAdmittanceMatrix
       )
     val trafoAdmittanceMatrix: DenseMatrix[Complex] =
@@ -219,7 +226,7 @@ case object GridModel {
       )
 
     _returnAdmittanceMatrixIfValid(
-      linesAdmittanceMatrix + trafoAdmittanceMatrix + trafo3wAdmittanceMatrix
+      linesAdmittanceMatrix + switchesAdmittanceMatrix + trafoAdmittanceMatrix + trafo3wAdmittanceMatrix
     )
   }
 
@@ -258,6 +265,46 @@ case object GridModel {
 
           // add to admittanceMatrix
           updateAdmittanceMatrix(i, j, yab, yaa, yaa, linesAdmittanceMatrix)
+
+        }
+      )
+  }
+
+  private def buildSwitchesAdmittanceMatrix(
+      nodeUuidToIndexMap: Map[UUID, Int],
+      switches: Set[SwitchModel],
+      updateAdmittanceMatrix: (
+          Int,
+          Int,
+          Complex,
+          Complex,
+          Complex,
+          DenseMatrix[Complex]
+      ) => DenseMatrix[Complex]
+  ): DenseMatrix[Complex] = {
+    val matrixDimension = nodeUuidToIndexMap.size
+    switches
+      .filter(switch => switch.isInOperation && switch.isClosed)
+      .foldLeft(DenseMatrix.zeros[Complex](matrixDimension, matrixDimension))(
+        (switchesAdmittanceMatrix, switch) => {
+          val (i: Int, j: Int) =
+            (
+              nodeUuidToIndexMap.getOrElse(
+                switch.nodeAUuid,
+                throwNodeNotFoundException(switch.nodeAUuid)
+              ),
+              nodeUuidToIndexMap
+                .getOrElse(
+                  switch.nodeBUuid,
+                  throwNodeNotFoundException(switch.nodeBUuid)
+                )
+            )
+
+          // yaa == ybb => we use yaa only
+          val (yab, yaa) = (SwitchModel.yij(switch), SwitchModel.y0(switch))
+
+          // add to admittanceMatrix
+          updateAdmittanceMatrix(i, j, yab, yaa, yaa, switchesAdmittanceMatrix)
 
         }
       )
@@ -560,7 +607,7 @@ case object GridModel {
     val switches: Set[SwitchModel] =
       subGridContainer.getRawGrid.getSwitches.asScala.map { switchInput =>
         getConnectedNodes(switchInput, nodes)
-        SwitchModel(switchInput, startDate, endDate)
+        SwitchModel(switchInput, refSystem, startDate, endDate)
       }.toSet
 
     // build

@@ -6,15 +6,22 @@
 
 package edu.ie3.simona.model.grid
 
-import java.time.ZonedDateTime
-import java.util.UUID
+import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.SwitchInput
 import edu.ie3.simona.exceptions.InvalidActionRequestException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
+import edu.ie3.util.quantities.DoubleConverterFactory
 import edu.ie3.util.scala.OperationInterval
+import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units.OHM
 
+import java.time.ZonedDateTime
+import java.util.UUID
+import javax.measure.MetricPrefix.MICRO
+import javax.measure.quantity.Dimensionless
 import scala.util.{Failure, Success, Try}
 
 /** This model represents an electric power switch
@@ -29,13 +36,18 @@ import scala.util.{Failure, Success, Try}
   *   uuid of node a
   * @param nodeBUuid
   *   uuid of node b
+  * @param r
+  *   resistance r, real part of the impedance of the switch z (referenced to
+  *   the nominal impedance of the grid) in p.u.
   */
+// TODO extend PiEquivalentCircuit ?
 final case class SwitchModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
     nodeAUuid: UUID,
-    nodeBUuid: UUID
+    nodeBUuid: UUID,
+    r: ComparableQuantity[Dimensionless]
 ) extends SystemComponent(
       uuid,
       id,
@@ -85,6 +97,7 @@ final case class SwitchModel(
 case object SwitchModel {
   def apply(
       switchInput: SwitchInput,
+      refSystem: RefSystem,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
   ): SwitchModel = {
@@ -99,12 +112,18 @@ case object SwitchModel {
         switchInput.getOperationTime
       )
 
+    // default switch resistance
+    // TODO create MICROOHM in PSU/PowerSystemUnits
+    val switchResistance =
+      Quantities.getQuantity(50, DoubleConverterFactory.withPrefix(OHM, MICRO))
+
     val switchModel = new SwitchModel(
       switchInput.getUuid,
       switchInput.getId,
       operationInterval,
       switchInput.getNodeA.getUuid,
-      switchInput.getNodeB.getUuid
+      switchInput.getNodeB.getUuid,
+      refSystem.rInPu(switchResistance)
     )
     if (!switchInput.isClosed)
       switchModel.open()
@@ -143,4 +162,30 @@ case object SwitchModel {
           s"vNom: (nodeA: ${switchInput.getNodeA.getVoltLvl.getNominalVoltage}, NodeB: ${switchInput.getNodeB.getVoltLvl.getNominalVoltage})"
       )
   }
+
+  /** Calculate the phase-to-ground admittance of a given switch model
+    *
+    * @param switchModel
+    *   instance of [[SwitchModel]] the phase-to-ground admittance should be
+    *   calculated from
+    * @return
+    *   phase-to-ground admittance Y_0 of the switch model in p.u.
+    */
+  def y0(switchModel: SwitchModel): Complex =
+    Complex.zero
+
+  /** Calculate the branch admittance of a given switch model
+    *
+    * @param switchModel
+    *   instance of [[SwitchModel]] the branch admittance should be calculated
+    *   from
+    * @return
+    *   branch admittance Y_ij between node a and b of the switch model in p.u.
+    */
+  def yij(switchModel: SwitchModel): Complex =
+    Complex(
+      switchModel.gij().getValue.doubleValue(), // FIXME PiEquivalentCircuit
+      switchModel.bij().getValue.doubleValue() // FIXME PiEquivalentCircuit
+    )
+
 }

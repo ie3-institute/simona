@@ -96,7 +96,7 @@ final case class LineModel(
   /** see [[PiEquivalentCircuit.bij()]]
     *
     * @return
-    *   phase-to-ground conductance g_0 in p.u.
+    *   phase-to-ground susceptance g_0 in p.u.
     */
   override def bij(): ComparableQuantity[Dimensionless] =
     super.bij().multiply(amount)
