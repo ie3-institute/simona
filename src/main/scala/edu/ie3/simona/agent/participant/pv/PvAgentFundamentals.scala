@@ -47,6 +47,7 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
+import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
 protected trait PvAgentFundamentals
@@ -122,7 +123,7 @@ protected trait PvAgentFundamentals
       model,
       services,
       outputConfig,
-      Array.emptyLongArray, // Additional activation of the pv agent is not needed
+      SortedSet.empty, // Additional activation of the pv agent is not needed
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
