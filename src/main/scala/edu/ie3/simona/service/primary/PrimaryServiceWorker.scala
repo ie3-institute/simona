@@ -35,7 +35,9 @@ import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 
+import java.io.IOException
 import java.time.ZonedDateTime
+import java.time.format.DateTimeParseException
 import java.util.UUID
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters.RichOptional
@@ -77,15 +79,30 @@ final case class PrimaryServiceWorker[V <: Value](
         Try {
           /* Set up source and acquire information */
           val factory = new TimeBasedSimpleValueFactory(valueClass, timePattern)
-          val source = new CsvTimeSeriesSource(
-            csvSep,
-            directoryPath,
-            fileNamingStrategy,
-            timeSeriesUuid,
-            filePath,
-            valueClass,
-            factory
-          )
+          val source = Try(
+            new CsvTimeSeriesSource(
+              csvSep,
+              directoryPath,
+              fileNamingStrategy,
+              timeSeriesUuid,
+              filePath,
+              valueClass,
+              factory
+            )
+          ) match {
+            case Failure(exc: DateTimeParseException) =>
+              throw new IOException(
+                s"Could not initiate the time series source. Parsing ${exc.getParsedString} failed with timepattern: $timePattern. The time pattern can be configured in the configuration.",
+                exc
+              )
+            case Failure(exc) =>
+              throw new IOException(
+                s"Could not initiate the time series source.",
+                exc
+              )
+            case Success(source) =>
+              source
+          }
           (source, simulationStart)
         }
 

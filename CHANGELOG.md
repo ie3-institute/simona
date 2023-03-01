@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Dependabot updates to sphinx/readthedocs dependencies [#448](https://github.com/ie3-institute/simona/issues/448)
 - Check for grid validity with PSDM `ValidationUtils` [#460](https://github.com/ie3-institute/simona/issues/460)
 - Enhancing dev's guide [#363](https://github.com/ie3-institute/simona/issues/363)
+- More expressive failure message upon setting up Primary Service with wrong time pattern [#475](https://github.com/ie3-institute/simona/issues/475)
 
 ### Changed
 - Re-organizing test resources into their respective packages [#105](https://github.com/ie3-institute/simona/issues/105)
