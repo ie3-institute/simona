@@ -14,6 +14,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 import edu.ie3.util.quantities.interfaces.Irradiance
 import tech.units.indriya.ComparableQuantity
 
+import javax.measure.Quantity
 import javax.measure.quantity.{Speed, Temperature}
 
 sealed trait WeatherMessage
@@ -89,9 +90,23 @@ object WeatherMessage {
     *   Wind velocity
     */
   final case class WeatherDataOption(
-      diffIrr: Option[(ComparableQuantity[Irradiance], Long)],
-      dirIrr: Option[(ComparableQuantity[Irradiance], Long)],
-      temp: Option[(ComparableQuantity[Temperature], Long)],
-      windVel: Option[(ComparableQuantity[Speed], Long)]
+      diffIrr: Option[QuantityWithWeight[Irradiance]],
+      dirIrr: Option[QuantityWithWeight[Irradiance]],
+      temp: Option[QuantityWithWeight[Temperature]],
+      windVel: Option[QuantityWithWeight[Speed]]
+  )
+
+  /** Container class for a weather quantity with a weight. It is primarily used
+    * for interpolation.
+    * @param quantity
+    *   value
+    * @param weight
+    *   of the value
+    * @tparam V
+    *   unit of the quantity
+    */
+  final case class QuantityWithWeight[V <: Quantity[V]](
+      quantity: ComparableQuantity[V],
+      weight: Long
   )
 }

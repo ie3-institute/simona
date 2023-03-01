@@ -16,7 +16,10 @@ import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.timeseries.individual.IndividualTimeSeries
+import edu.ie3.datamodel.models.timeseries.individual.{
+  IndividualTimeSeries,
+  TimeBasedValue
+}
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
@@ -26,6 +29,7 @@ import edu.ie3.simona.exceptions.{
   ServiceException
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
+  QuantityWithWeight,
   WeatherData,
   WeatherDataOption
 }
@@ -53,6 +57,7 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import javax.measure.Quantity
 import javax.measure.quantity.{Dimensionless, Length, Speed, Temperature}
+import scala.collection.immutable.SortedSet
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
@@ -543,97 +548,120 @@ object WeatherSource extends LazyLogging {
 
     valueOption match {
       case Some(value) =>
-        // found values are used to create a weather data object
-        // missing values are interpolated
-        val weatherData: WeatherData = interpolateValue(timeSeries, dateTime)
-
         WeatherData(
           value.getSolarIrradiance.getDiffuseIrradiance.toScala
             .getOrElse(
-              weatherData.diffIrr
+              interpolateValue(
+                timeSeries,
+                dateTime,
+                "diffIrr",
+                EMPTY_WEATHER_DATA.diffIrr
+              )
             ),
           value.getSolarIrradiance.getDirectIrradiance.toScala
             .getOrElse(
-              weatherData.dirIrr
+              interpolateValue(
+                timeSeries,
+                dateTime,
+                "dirIrr",
+                EMPTY_WEATHER_DATA.dirIrr
+              )
             ),
           value.getTemperature.getTemperature.toScala
             .getOrElse(
-              weatherData.temp
+              interpolateValue(
+                timeSeries,
+                dateTime,
+                "temp",
+                EMPTY_WEATHER_DATA.temp
+              )
             ),
           value.getWind.getVelocity.toScala
             .getOrElse(
-              weatherData.windVel
+              interpolateValue(
+                timeSeries,
+                dateTime,
+                "windVel",
+                EMPTY_WEATHER_DATA.windVel
+              )
             )
         )
       case None =>
         // if no values are found all values are interpolated
         logger.warn(s"No weather value found for timestamp $dateTime.")
 
-        interpolateValue(timeSeries, dateTime)
+        WeatherData(
+          interpolateValue(
+            timeSeries,
+            dateTime,
+            "diffIrr",
+            EMPTY_WEATHER_DATA.diffIrr
+          ),
+          interpolateValue(
+            timeSeries,
+            dateTime,
+            "dirIrr",
+            EMPTY_WEATHER_DATA.dirIrr
+          ),
+          interpolateValue(
+            timeSeries,
+            dateTime,
+            "temp",
+            EMPTY_WEATHER_DATA.temp
+          ),
+          interpolateValue(
+            timeSeries,
+            dateTime,
+            "windVel",
+            EMPTY_WEATHER_DATA.windVel
+          )
+        )
     }
   }
 
   /** Method for interpolation of weather values.
+    *
     * @param timeSeries
     *   with weather data
     * @param dateTime
     *   timestamp for which an interpolation is needed
+    * @param searchedValue
+    *   string containing the searched value
     * @return
     *   interpolated weather data
     */
-  private def interpolateValue(
+  private def interpolateValue[V <: Quantity[V]](
       timeSeries: IndividualTimeSeries[WeatherValue],
-      dateTime: ZonedDateTime
-  ): WeatherData = {
+      dateTime: ZonedDateTime,
+      searchedValue: String,
+      empty: ComparableQuantity[V]
+  ): ComparableQuantity[V] = {
     if (timeSeries.getEntries.size() < 3) {
       logger.info(
         s"Not enough entries in time series $timeSeries to interpolate weather data. At least three values are needed, found ${timeSeries.getEntries.size()}."
       )
-      EMPTY_WEATHER_DATA
+      empty
     } else {
-      // find previous and next values
-      val previousOption: WeatherDataOption =
-        getPreviousValue(timeSeries, dateTime)
-      val nextOption: WeatherDataOption = getNextValue(timeSeries, dateTime)
+      val intervalStart: ZonedDateTime = dateTime.minusHours(2)
+      val intervalEnd: ZonedDateTime = dateTime.plusHours(2)
 
-      // weight found values or return EMPTY_WEATHER_DATA
-      val diffIrr: ComparableQuantity[Irradiance] = interpolate(
+      val previous: Option[QuantityWithWeight[V]] = getValue(
+        timeSeries,
         dateTime,
-        previousOption.diffIrr,
-        nextOption.diffIrr,
-        EMPTY_WEATHER_DATA.diffIrr
-      )
-      val dirIrr: ComparableQuantity[Irradiance] = interpolate(
+        intervalStart,
         dateTime,
-        previousOption.dirIrr,
-        nextOption.dirIrr,
-        EMPTY_WEATHER_DATA.dirIrr
+        searchedValue
       )
-      val temp: ComparableQuantity[Temperature] = interpolate(
-        dateTime,
-        previousOption.temp,
-        nextOption.temp,
-        EMPTY_WEATHER_DATA.temp
-      )
-      val windVel: ComparableQuantity[Speed] = interpolate(
-        dateTime,
-        previousOption.windVel,
-        nextOption.windVel,
-        EMPTY_WEATHER_DATA.windVel
-      )
+      val next: Option[QuantityWithWeight[V]] =
+        getValue(timeSeries, dateTime, dateTime, intervalEnd, searchedValue)
 
-      // returning new WeatherData
-      WeatherData(
-        diffIrr,
-        dirIrr,
-        temp,
-        windVel
-      )
+      interpolate(dateTime, previous, next, empty)
     }
   }
 
   /** Method to interpolate a quantity for a specific timestamp with a previous
     * and a next value.
+    *
     * @param dateTime
     *   timestamp which is interpolated
     * @param previousOption
@@ -645,22 +673,22 @@ object WeatherSource extends LazyLogging {
     * @return
     *   option of interpolated quantity
     */
-  private def interpolate[V <: Quantity[V]](
+  def interpolate[V <: Quantity[V]](
       dateTime: ZonedDateTime,
-      previousOption: Option[(ComparableQuantity[V], Long)],
-      nextOption: Option[(ComparableQuantity[V], Long)],
+      previousOption: Option[QuantityWithWeight[V]],
+      nextOption: Option[QuantityWithWeight[V]],
       empty: ComparableQuantity[V]
   ): ComparableQuantity[V] = {
     (previousOption, nextOption) match {
       case (Some(previousValue), Some(nextValue)) =>
-        val time1: Long = previousValue._2
-        val time2: Long = nextValue._2
-        val interval = time1 + time2
-        val quantity1: ComparableQuantity[V] = previousValue._1
-        val quantity2: ComparableQuantity[V] = nextValue._1
+        val previousWeight: Long = previousValue.weight
+        val nextWeight: Long = nextValue.weight
+        val interval: Long = previousWeight + nextWeight
+        val previousQuantity: ComparableQuantity[V] = previousValue.quantity
+        val nextQuantity: ComparableQuantity[V] = nextValue.quantity
 
-        val weightedQuantity1 = quantity1.multiply(time1)
-        val weightedQuantity2 = quantity2.multiply(time2)
+        val weightedQuantity1 = previousQuantity.multiply(previousWeight)
+        val weightedQuantity2 = nextQuantity.multiply(nextWeight)
 
         weightedQuantity1.add(weightedQuantity2).divide(interval)
       case (_, _) =>
@@ -671,162 +699,105 @@ object WeatherSource extends LazyLogging {
     }
   }
 
-  /** Method to find previous weather data.
-    *
+  /** Method to get an quantity with its weight from an interval of a time
+    * series.
     * @param timeSeries
-    *   with weather data
-    * @param dateTime
-    *   starting time
+    *   given time series
+    * @param timestamp
+    *   given timestamp
+    * @param intervalStart
+    *   start of the interval
+    * @param intervalEnd
+    *   end of the interval
+    * @param searchedValue
+    *   value that is searched
+    * @tparam V
+    *   unit of the quantity
     * @return
-    *   a weather data option
+    *   an option of a quantity with a weight
     */
-  def getPreviousValue(
+  def getValue[V <: Quantity[V]](
       timeSeries: IndividualTimeSeries[WeatherValue],
-      dateTime: ZonedDateTime
-  ): WeatherDataOption = {
-    var currentTime: ZonedDateTime = dateTime
-    var weatherDataOption: WeatherDataOption =
-      WeatherDataOption(None, None, None, None)
+      timestamp: ZonedDateTime,
+      intervalStart: ZonedDateTime,
+      intervalEnd: ZonedDateTime,
+      searchedValue: String
+  ): Option[QuantityWithWeight[V]] = {
+    val values: List[QuantityWithWeight[V]] =
+      timeSeries.getEntries.asScala.flatMap { weatherValue =>
+        val time: ZonedDateTime = weatherValue.getTime
 
-    for (_ <- 0 to 7) {
-      timeSeries.getPreviousTimeBasedValue(currentTime).toScala match {
-        case Some(timeBasedValue) =>
-          val valueTime: ZonedDateTime = timeBasedValue.getTime
+        // calculates the time difference to the given timestamp
+        val weight = if (time.isBefore(timestamp)) {
+          ChronoUnit.SECONDS.between(time, timestamp)
+        } else {
+          ChronoUnit.SECONDS.between(timestamp, time)
+        }
 
-          if (valueTime.isAfter(dateTime.minusHours(2))) {
-            val currentWeight: Long =
-              ChronoUnit.SECONDS.between(valueTime, dateTime)
+        // check is the found timestamp is in the defined interval
+        if (time.isAfter(intervalStart) && time.isBefore(intervalEnd)) {
+          getQuantity(weatherValue.getValue, weight, searchedValue): Option[
+            QuantityWithWeight[V]
+          ]
+        } else {
+          // if timestamp is not inside is not inside the interval none is returned
+          None
+        }
+      }.toList
 
-            weatherDataOption = updateWeatherDataOption(
-              weatherDataOption,
-              timeBasedValue.getValue,
-              currentWeight
-            )
-          }
-
-          if (currentTime == valueTime) {
-            currentTime = valueTime.minusMinutes(15)
-          } else {
-            currentTime = valueTime
-          }
-        case None =>
-          currentTime = currentTime.minusMinutes(15)
-      }
-    }
-    weatherDataOption
-  }
-
-  /** Method to find previous weather data.
-    *
-    * @param timeSeries
-    *   with weather data
-    * @param dateTime
-    *   starting time
-    * @return
-    *   a weather data option
-    */
-  def getNextValue(
-      timeSeries: IndividualTimeSeries[WeatherValue],
-      dateTime: ZonedDateTime
-  ): WeatherDataOption = {
-    var currentTime: ZonedDateTime = dateTime
-    var weatherDataOption: WeatherDataOption =
-      WeatherDataOption(None, None, None, None)
-
-    for (_ <- 0 to 7) {
-      timeSeries.getNextTimeBasedValue(currentTime).toScala match {
-        case Some(timeBasedValue) =>
-          val valueTime: ZonedDateTime = timeBasedValue.getTime
-
-          if (valueTime.isBefore(dateTime.plusHours(2))) {
-            val currentWeight: Long =
-              ChronoUnit.SECONDS.between(dateTime, valueTime)
-
-            weatherDataOption = updateWeatherDataOption(
-              weatherDataOption,
-              timeBasedValue.getValue,
-              currentWeight
-            )
-          }
-
-          if (currentTime == valueTime) {
-            currentTime = valueTime.plusMinutes(15)
-          } else {
-            currentTime = valueTime
-          }
-        case None =>
-          currentTime = currentTime.plusMinutes(15)
-      }
-    }
-    weatherDataOption
-  }
-
-  /** Method to find options for new weather data.
-    *
-    * @param weatherDataOption
-    *   container class holding the options
-    * @param value
-    *   possible new values
-    * @param weight
-    *   weighting for the found values
-    * @return
-    *   updated weather data option
-    */
-  def updateWeatherDataOption(
-      weatherDataOption: WeatherDataOption,
-      value: WeatherValue,
-      weight: Long
-  ): WeatherDataOption = {
-    var option: WeatherDataOption = weatherDataOption
-    if (weight == 0L) {
-      weatherDataOption
+    if (values.isEmpty) {
+      None
     } else {
-      // check options and update weather data option
-      (
-        weatherDataOption.diffIrr,
-        value.getSolarIrradiance.getDiffuseIrradiance.toScala
-      ) match {
-        case (None, Some(value)) =>
-          option = option.copy(diffIrr = Some(value, weight))
-        case (_, _) =>
-          logger.debug(
-            s"No diffused irradiance value with the given time difference of $weight found."
-          )
-      }
+      // sorting the list to return the value with the least time difference
+      val sortedSet: Set[QuantityWithWeight[V]] = values.sortBy { x =>
+        x.weight
+      }.toSet
 
-      (
-        weatherDataOption.dirIrr,
-        value.getSolarIrradiance.getDirectIrradiance.toScala
-      ) match {
-        case (None, Some(value)) =>
-          option = option.copy(dirIrr = Some(value, weight))
-        case (_, _) =>
-          logger.debug(
-            s"No direct irradiance value with the given time difference of $weight found."
-          )
-      }
+      sortedSet.headOption
+    }
+  }
 
-      (
-        weatherDataOption.temp,
-        value.getTemperature.getTemperature.toScala
-      ) match {
-        case (None, Some(value)) =>
-          option = option.copy(temp = Some(value, weight))
-        case (_, _) =>
-          logger.debug(
-            s"No temperature value with the given time difference of $weight found."
-          )
-      }
+  /** Method to get a specific value from a "WeatherValue"
+    * @param weatherValue
+    *   given value
+    * @param weight
+    *   current weight for the value
+    * @param searchedValue
+    *   value that is searched
+    * @tparam V
+    *   unit of the quantity
+    * @return
+    *   an option for a quantity with its weight
+    */
+  private def getQuantity[V <: Quantity[V]](
+      weatherValue: WeatherValue,
+      weight: Long,
+      searchedValue: String
+  ): Option[QuantityWithWeight[V]] = {
+    val option = searchedValue match {
+      case "diffIrr" =>
+        weatherValue.getSolarIrradiance.getDiffuseIrradiance.toScala
+      case "dirIrr" =>
+        weatherValue.getSolarIrradiance.getDirectIrradiance.toScala
+      case "temp" =>
+        weatherValue.getTemperature.getTemperature.toScala
+      case "windVel" =>
+        weatherValue.getWind.getVelocity.toScala
+    }
 
-      (weatherDataOption.windVel, value.getWind.getVelocity.toScala) match {
-        case (None, Some(value)) =>
-          option = option.copy(windVel = Some(value, weight))
-        case (_, _) =>
-          logger.debug(
-            s"No wind velocity value with the given time difference of $weight found."
+    option match {
+      case Some(value) =>
+        if (value.isInstanceOf[V]) {
+          Some(
+            QuantityWithWeight(
+              value.asInstanceOf[ComparableQuantity[V]],
+              weight
+            )
           )
-      }
-      option
+        } else {
+          None
+        }
+      case None => None
     }
   }
 
