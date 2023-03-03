@@ -16,10 +16,7 @@ import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.timeseries.individual.{
-  IndividualTimeSeries,
-  TimeBasedValue
-}
+import edu.ie3.datamodel.models.timeseries.individual.IndividualTimeSeries
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
@@ -30,8 +27,7 @@ import edu.ie3.simona.exceptions.{
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   QuantityWithWeight,
-  WeatherData,
-  WeatherDataOption
+  WeatherData
 }
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
@@ -41,7 +37,6 @@ import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
 import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
   checkCouchbaseParams,
   checkInfluxDb1xParams,
-  checkKafkaParams,
   checkSqlParams
 }
 import edu.ie3.simona.util.ParsableEnumeration
@@ -57,7 +52,6 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import javax.measure.Quantity
 import javax.measure.quantity.{Dimensionless, Length, Speed, Temperature}
-import scala.collection.immutable.SortedSet
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
@@ -546,77 +540,60 @@ object WeatherSource extends LazyLogging {
     val valueOption: Option[WeatherValue] =
       timeSeries.getValue(dateTime).toScala
 
-    valueOption match {
+    val (diffIrr, dirIrr, temp, windVel): (
+        Option[ComparableQuantity[Irradiance]],
+        Option[ComparableQuantity[Irradiance]],
+        Option[ComparableQuantity[Temperature]],
+        Option[ComparableQuantity[Speed]]
+    ) = valueOption match {
       case Some(value) =>
-        WeatherData(
-          value.getSolarIrradiance.getDiffuseIrradiance.toScala
-            .getOrElse(
-              interpolateValue(
-                timeSeries,
-                dateTime,
-                "diffIrr",
-                EMPTY_WEATHER_DATA.diffIrr
-              )
-            ),
-          value.getSolarIrradiance.getDirectIrradiance.toScala
-            .getOrElse(
-              interpolateValue(
-                timeSeries,
-                dateTime,
-                "dirIrr",
-                EMPTY_WEATHER_DATA.dirIrr
-              )
-            ),
-          value.getTemperature.getTemperature.toScala
-            .getOrElse(
-              interpolateValue(
-                timeSeries,
-                dateTime,
-                "temp",
-                EMPTY_WEATHER_DATA.temp
-              )
-            ),
-          value.getWind.getVelocity.toScala
-            .getOrElse(
-              interpolateValue(
-                timeSeries,
-                dateTime,
-                "windVel",
-                EMPTY_WEATHER_DATA.windVel
-              )
-            )
+        (
+          getQuantity(value, "diffIrr"),
+          getQuantity(value, "diffIrr"),
+          getQuantity(value, "diffIrr"),
+          getQuantity(value, "diffIrr")
         )
       case None =>
         // if no values are found all values are interpolated
         logger.warn(s"No weather value found for timestamp $dateTime.")
 
-        WeatherData(
-          interpolateValue(
-            timeSeries,
-            dateTime,
-            "diffIrr",
-            EMPTY_WEATHER_DATA.diffIrr
-          ),
-          interpolateValue(
-            timeSeries,
-            dateTime,
-            "dirIrr",
-            EMPTY_WEATHER_DATA.dirIrr
-          ),
-          interpolateValue(
-            timeSeries,
-            dateTime,
-            "temp",
-            EMPTY_WEATHER_DATA.temp
-          ),
-          interpolateValue(
-            timeSeries,
-            dateTime,
-            "windVel",
-            EMPTY_WEATHER_DATA.windVel
-          )
-        )
+        (None, None, None, None)
     }
+
+    WeatherData(
+      diffIrr.getOrElse(
+        interpolateValue(
+          timeSeries,
+          dateTime,
+          "diffIrr",
+          EMPTY_WEATHER_DATA.diffIrr
+        )
+      ),
+      dirIrr.getOrElse(
+        interpolateValue(
+          timeSeries,
+          dateTime,
+          "dirIrr",
+          EMPTY_WEATHER_DATA.dirIrr
+        )
+      ),
+      temp.getOrElse(
+        interpolateValue(
+          timeSeries,
+          dateTime,
+          "temp",
+          EMPTY_WEATHER_DATA.temp
+        )
+      ),
+      windVel.getOrElse(
+        interpolateValue(
+          timeSeries,
+          dateTime,
+          "windVel",
+          EMPTY_WEATHER_DATA.windVel
+        )
+      )
+    )
   }
 
   /** Method for interpolation of weather values.
@@ -736,9 +713,12 @@ object WeatherSource extends LazyLogging {
 
         // check is the found timestamp is in the defined interval
         if (time.isAfter(intervalStart) && time.isBefore(intervalEnd)) {
-          getQuantity(weatherValue.getValue, weight, searchedValue): Option[
-            QuantityWithWeight[V]
-          ]
+          val option: Option[ComparableQuantity[V]] =
+            getQuantity(weatherValue.getValue, searchedValue)
+          option match {
+            case Some(value) => Some(QuantityWithWeight(value, weight))
+            case None        => None
+          }
         } else {
           // if timestamp is not inside is not inside the interval none is returned
           None
@@ -760,21 +740,18 @@ object WeatherSource extends LazyLogging {
   /** Method to get a specific value from a "WeatherValue"
     * @param weatherValue
     *   given value
-    * @param weight
-    *   current weight for the value
     * @param searchedValue
     *   value that is searched
     * @tparam V
     *   unit of the quantity
     * @return
-    *   an option for a quantity with its weight
+    *   an option for a quantity
     */
   private def getQuantity[V <: Quantity[V]](
       weatherValue: WeatherValue,
-      weight: Long,
       searchedValue: String
-  ): Option[QuantityWithWeight[V]] = {
-    val option = searchedValue match {
+  ): Option[ComparableQuantity[V]] = {
+    (searchedValue match {
       case "diffIrr" =>
         weatherValue.getSolarIrradiance.getDiffuseIrradiance.toScala
       case "dirIrr" =>
@@ -783,17 +760,10 @@ object WeatherSource extends LazyLogging {
         weatherValue.getTemperature.getTemperature.toScala
       case "windVel" =>
         weatherValue.getWind.getVelocity.toScala
-    }
-
-    option match {
+    }) match {
       case Some(value) =>
         if (value.isInstanceOf[V]) {
-          Some(
-            QuantityWithWeight(
-              value.asInstanceOf[ComparableQuantity[V]],
-              weight
-            )
-          )
+          Some(value.asInstanceOf[ComparableQuantity[V]])
         } else {
           None
         }

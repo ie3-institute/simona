@@ -76,26 +76,6 @@ object WeatherMessage {
       windVel: ComparableQuantity[Speed]
   ) extends SecondaryData
 
-  /** Container class for the weather data option. It is similar to the normal
-    * weather data but instead of concrete quantities, this container holds
-    * options for quantities with their weight.
-    *
-    * @param diffIrr
-    *   Diffuse irradiance on the horizontal pane
-    * @param dirIrr
-    *   Direct irradiance on the horizontal pane
-    * @param temp
-    *   Temperature
-    * @param windVel
-    *   Wind velocity
-    */
-  final case class WeatherDataOption(
-      diffIrr: Option[QuantityWithWeight[Irradiance]],
-      dirIrr: Option[QuantityWithWeight[Irradiance]],
-      temp: Option[QuantityWithWeight[Temperature]],
-      windVel: Option[QuantityWithWeight[Speed]]
-  )
-
   /** Container class for a weather quantity with a weight. It is primarily used
     * for interpolation.
     * @param quantity
