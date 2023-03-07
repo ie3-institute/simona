@@ -229,9 +229,16 @@ case object RefSystem {
     // hence we call them manually
     new PowerSystemUnits
 
-    val sNom = Quantities.getQuantity(nominalPower).asType(classOf[Power])
-    val vNom =
-      Quantities.getQuantity(nominalVoltage).asType(classOf[ElectricPotential])
+    // parsed quantities are transformed to PowerSystemUnits,
+    // which are compatible to other units used
+    val sNom = Quantities
+      .getQuantity(nominalPower)
+      .asType(classOf[Power])
+      .to(MEGAVOLTAMPERE)
+    val vNom = Quantities
+      .getQuantity(nominalVoltage)
+      .asType(classOf[ElectricPotential])
+      .to(KILOVOLT)
     RefSystem(sNom, vNom)
   }
 

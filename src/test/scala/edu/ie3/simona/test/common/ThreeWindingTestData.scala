@@ -30,7 +30,6 @@ import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
 import java.util.UUID
-import javax.measure.MetricPrefix
 import scala.jdk.CollectionConverters._
 
 /** Simple grid structure with only one three winding transformer
@@ -85,8 +84,8 @@ trait ThreeWindingTestData extends DefaultTestData {
     Quantities.getQuantity(1.0, OHM),
     Quantities.getQuantity(0.08, OHM),
     Quantities.getQuantity(0.003, OHM),
-    Quantities.getQuantity(40d, MetricPrefix.NANO(SIEMENS)),
-    Quantities.getQuantity(-1d, MetricPrefix.NANO(SIEMENS)),
+    Quantities.getQuantity(40d, NANOSIEMENS),
+    Quantities.getQuantity(-1d, NANOSIEMENS),
     Quantities.getQuantity(1.5, PERCENT),
     Quantities.getQuantity(0d, DEGREE_GEOM),
     0,
