@@ -199,22 +199,30 @@ case object GridModel {
       admittanceMatrix
     }
 
+    /*
+    Nodes that are connected via a [closed] switch map to the same idx as we fuse them during the power flow.
+    Therefore the admittance matrix has to be of the size of the distinct node idxs.
+     */
+    val matrixDimension = nodeUuidToIndexMap.values.toSeq.distinct.size
     val linesAdmittanceMatrix: DenseMatrix[Complex] =
       buildLinesAdmittanceMatrix(
         nodeUuidToIndexMap,
         gridComponents.lines,
+        matrixDimension,
         _updateAdmittanceMatrix
       )
     val trafoAdmittanceMatrix: DenseMatrix[Complex] =
       buildTrafoAdmittanceMatrix(
         nodeUuidToIndexMap,
         gridComponents.transformers,
+        matrixDimension,
         _updateAdmittanceMatrix
       )
     val trafo3wAdmittanceMatrix: DenseMatrix[Complex] =
       buildTrafo3wAdmittanceMatrix(
         nodeUuidToIndexMap,
         gridComponents.transformers3w,
+        matrixDimension,
         _updateAdmittanceMatrix
       )
 
@@ -226,6 +234,7 @@ case object GridModel {
   private def buildLinesAdmittanceMatrix(
       nodeUuidToIndexMap: Map[UUID, Int],
       lines: Set[LineModel],
+      matrixDimension: Int,
       updateAdmittanceMatrix: (
           Int,
           Int,
@@ -235,7 +244,6 @@ case object GridModel {
           DenseMatrix[Complex]
       ) => DenseMatrix[Complex]
   ): DenseMatrix[Complex] = {
-    val matrixDimension = nodeUuidToIndexMap.size
     lines
       .filter(_.isInOperation)
       .foldLeft(DenseMatrix.zeros[Complex](matrixDimension, matrixDimension))(
@@ -266,6 +274,7 @@ case object GridModel {
   private def buildTrafoAdmittanceMatrix(
       nodeUuidToIndexMap: Map[UUID, Int],
       trafos: Set[TransformerModel],
+      matrixDimension: Int,
       updateAdmittanceMatrix: (
           Int,
           Int,
@@ -275,7 +284,6 @@ case object GridModel {
           DenseMatrix[Complex]
       ) => DenseMatrix[Complex]
   ): DenseMatrix[Complex] = {
-    val matrixDimension = nodeUuidToIndexMap.size
     trafos
       .filter(_.isInOperation)
       .foldLeft(DenseMatrix.zeros[Complex](matrixDimension, matrixDimension))(
@@ -309,6 +317,7 @@ case object GridModel {
   private def buildTrafo3wAdmittanceMatrix(
       nodeUuidToIndexMap: Map[UUID, Int],
       trafos3w: Set[Transformer3wModel],
+      matrixDimension: Int,
       updateAdmittanceMatrix: (
           Int,
           Int,
@@ -318,7 +327,6 @@ case object GridModel {
           DenseMatrix[Complex]
       ) => DenseMatrix[Complex]
   ): DenseMatrix[Complex] = {
-    val matrixDimension = nodeUuidToIndexMap.size
     trafos3w
       .filter(_.isInOperation)
       .foldLeft(DenseMatrix.zeros[Complex](matrixDimension, matrixDimension))(
@@ -589,7 +597,7 @@ case object GridModel {
     * mandatory) to call this method every time a node admittance matrix is
     * needed after a switch status has changed.
     *
-    * @param gridModel
+    * @param gridModel the grid model we operate on
     */
   def updateUuidToIndexMap(gridModel: GridModel): Unit = {
 
