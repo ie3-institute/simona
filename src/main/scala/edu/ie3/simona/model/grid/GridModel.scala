@@ -597,7 +597,8 @@ case object GridModel {
     * mandatory) to call this method every time a node admittance matrix is
     * needed after a switch status has changed.
     *
-    * @param gridModel the grid model we operate on
+    * @param gridModel
+    *   the grid model we operate on
     */
   def updateUuidToIndexMap(gridModel: GridModel): Unit = {
 
