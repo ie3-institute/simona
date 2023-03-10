@@ -8,7 +8,6 @@ package edu.ie3.simona.event.listener
 
 import akka.actor._
 import akka.pattern.pipe
-import akka.stream.Materializer
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
@@ -94,8 +93,6 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def initializeSinks(
       resultFileHierarchy: ResultFileHierarchy
-  )(implicit
-      materializer: Materializer
   ): Iterable[Future[(Class[_], ResultEntitySink)]] = {
     resultFileHierarchy.resultSinkType match {
       case _: ResultSinkType.Csv =>
@@ -176,8 +173,6 @@ class ResultEventListener(
     with FSM[AgentState, ResultEventListenerData]
     with SimonaFSMActorLogging
     with Stash {
-
-  implicit private val materializer: Materializer = Materializer(context)
 
   override def preStart(): Unit = {
     log.debug("Starting initialization!")
@@ -321,6 +316,11 @@ class ResultEventListener(
       stash()
       stay()
 
+    case Event(StopMessage(_), _) =>
+      // set ReceiveTimeout message to be sent if no message has been received for 5 seconds
+      stash()
+      stay()
+
     case Event(Init, _) =>
       Future
         .sequence(
@@ -341,6 +341,7 @@ class ResultEventListener(
 
     case Event(Status.Failure(ex), _) =>
       throw new InitializationException("Unable to setup SimonaSim.", ex)
+
   }
 
   when(Idle) {

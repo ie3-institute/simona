@@ -7,8 +7,6 @@
 package edu.ie3.simona.event.listener
 
 import akka.actor.ActorSystem
-import akka.pattern.gracefulStop
-import akka.stream.Materializer
 import akka.testkit.{TestFSMRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.result.connector.{
@@ -25,6 +23,7 @@ import edu.ie3.simona.event.ResultEvent.{
   PowerFlowResultEvent
 }
 import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
+import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.test.common.result.PowerFlowResultData
 import edu.ie3.simona.test.common.{AgentSpec, IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
@@ -71,7 +70,7 @@ class ResultEventListenerSpec
     classOf[LineResult]
   )
 
-  private val timeout = 60 seconds
+  private val timeout = 20 seconds
 
   // the OutputFileHierarchy
   private def resultFileHierarchy(
@@ -92,17 +91,12 @@ class ResultEventListenerSpec
   def createDir(
       resultFileHierarchy: ResultFileHierarchy
   ): Iterable[Future[ResultEntitySink]] = {
-    val materializer: Materializer = Materializer(system)
-
     val initializeSinks: PrivateMethod[Iterable[Future[ResultEntitySink]]] =
       PrivateMethod[Iterable[Future[ResultEntitySink]]](
         Symbol("initializeSinks")
       )
 
-    ResultEventListener invokePrivate initializeSinks(
-      resultFileHierarchy,
-      materializer
-    )
+    ResultEventListener invokePrivate initializeSinks(resultFileHierarchy)
   }
 
   private def getFileLinesLength(file: File) = {
@@ -183,10 +177,7 @@ class ResultEventListenerSpec
         awaitCond(outputFile.exists(), interval = 500.millis, max = timeout)
 
         // stop listener so that result is flushed out
-        Await.ready(
-          gracefulStop(listenerRef, timeout),
-          timeout
-        )
+        listenerRef ! StopMessage(true)
 
         // wait until all lines have been written out:
         awaitCond(
@@ -269,10 +260,7 @@ class ResultEventListenerSpec
         )
 
         // stop listener so that result is flushed out
-        Await.ready(
-          gracefulStop(listenerRef, timeout),
-          timeout
-        )
+        listenerRef ! StopMessage(true)
 
         // wait until all lines have been written out:
         awaitCond(
@@ -506,10 +494,7 @@ class ResultEventListenerSpec
         )
 
         // stop listener so that result is flushed out
-        Await.ready(
-          gracefulStop(listener, timeout),
-          timeout
-        )
+        listener ! StopMessage(true)
 
         /* Await that the result is written */
         awaitCond(
@@ -565,18 +550,11 @@ class ResultEventListenerSpec
 
         awaitCond(outputFile.exists(), interval = 500.millis, max = timeout)
 
-        // graceful shutdown should wait until existing messages within an actor are fully processed
+        // stopping the actor should wait until existing messages within an actor are fully processed
         // otherwise it might happen, that the shutdown is triggered even before the just send ParticipantResultEvent
         // reached the listener
         // this also triggers the compression of result files
-        import akka.pattern._
-        Await.ready(
-          gracefulStop(listenerRef, timeout),
-          timeout
-        )
-
-        // shutdown the actor system
-        Await.ready(system.terminate(), 1.minute)
+        listenerRef ! StopMessage(true)
 
         // wait until file exists
         awaitCond(
