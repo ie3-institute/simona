@@ -154,7 +154,7 @@ class ResultEntityKafkaSpec
       testConsumer.seekToBeginning(topicPartitions.asJava)
 
       // kafka messages might take some time if machine is loaded
-      eventually(timeout(60 seconds), interval(1 second)) {
+      eventually(timeout(2 minutes), interval(1 second)) {
         val records: List[PlainNodeResult] =
           testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
 
