@@ -24,7 +24,7 @@ trait KafkaSpecLike extends BeforeAndAfterAll {
   protected val testTopics: Seq[Topic]
 
   protected val kafka: KafkaContainer = KafkaContainer(
-    DockerImageName.parse("confluentinc/cp-kafka:6.1.0")
+    DockerImageName.parse("confluentinc/cp-kafka:7.3.1")
   )
   protected lazy val admin: Admin = Admin.create(
     Map[String, AnyRef]("bootstrap.servers" -> kafka.bootstrapServers).asJava
