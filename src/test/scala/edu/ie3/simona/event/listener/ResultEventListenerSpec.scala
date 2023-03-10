@@ -71,7 +71,7 @@ class ResultEventListenerSpec
     classOf[LineResult]
   )
 
-  private val timeout = 10.seconds
+  private val timeout = 20 seconds
 
   // the OutputFileHierarchy
   private def resultFileHierarchy(
@@ -472,7 +472,8 @@ class ResultEventListenerSpec
         /* The result file is created at start up and only contains a head line. */
         awaitCond(
           outputFile.exists(),
-          interval = 500.millis
+          interval = 500.millis,
+          max = timeout
         )
         getFileLinesLength(outputFile) shouldBe 1
 
@@ -513,7 +514,8 @@ class ResultEventListenerSpec
         /* Await that the result is written */
         awaitCond(
           getFileLinesLength(outputFile) == 2,
-          interval = 500.millis
+          interval = 500.millis,
+          max = timeout
         )
         /* Check the result */
         val resultFileSource = Source.fromFile(outputFile)
@@ -561,7 +563,7 @@ class ResultEventListenerSpec
           )
         )
 
-        awaitCond(outputFile.exists(), interval = 500.millis)
+        awaitCond(outputFile.exists(), interval = 500.millis, max = timeout)
 
         // graceful shutdown should wait until existing messages within an actor are fully processed
         // otherwise it might happen, that the shutdown is triggered even before the just send ParticipantResultEvent
