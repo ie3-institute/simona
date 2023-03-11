@@ -317,7 +317,6 @@ class ResultEventListener(
       stay()
 
     case Event(StopMessage(_), _) =>
-      // set ReceiveTimeout message to be sent if no message has been received for 5 seconds
       stash()
       stay()
 
