@@ -227,6 +227,8 @@ class ParticipantAgentExternalSourceSpec
                       actorToBeScheduled
                     ) =>
                   tick == 4711L && actorToBeScheduled == mockAgent
+                case unexpected =>
+                  fail(s"Received unexpected trigger message $unexpected")
               } shouldBe true
             case None => fail("Expected to get a trigger for tick 4711.")
           }
