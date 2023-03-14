@@ -88,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed groovy formatting [#110](https://github.com/ie3-institute/simona/issues/110)
 - Fixed configuration reference in user's guide [#224](https://github.com/ie3-institute/simona/issues/224)
 - Fixed ResultEventListener exiting too early with high volumes of results [#350](https://github.com/ie3-institute/simona/issues/350)
+- Fixed tests that unreliably fail [#359](https://github.com/ie3-institute/simona/issues/359)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)
