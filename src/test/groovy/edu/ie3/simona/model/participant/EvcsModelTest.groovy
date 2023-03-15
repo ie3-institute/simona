@@ -121,6 +121,5 @@ class EvcsModelTest extends Specification {
     50d       | 25d             | 50d       | 25d             | 1800L         || 100d     | 50d          | 50d   // with non-zero start
     50d       | 45d             | 50d       | 35d             | 3600L         || 20d      | 50d          | 50d
     200d      | 25d             | 50d       | 50d             | 3600L         || 25d      | 50d          | 50d
-
   }
 }

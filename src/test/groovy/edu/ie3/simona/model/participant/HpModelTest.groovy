@@ -117,7 +117,6 @@ class HpModelTest extends Specification {
     new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(18, CELSIUS)) || 7200             | true                  | 95                            // tests case (true, false, false)
     new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(22, CELSIUS)) || 7200             | true                  | 95                            // tests case (true, false, false)
     new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(23, CELSIUS)) || 7200             | false                 | 0                            // tests case (true, true, false)
-
   }
 
   def "Check new inner temperature after calculating next state with #hpState:"() {
@@ -145,7 +144,6 @@ class HpModelTest extends Specification {
     new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(20, CELSIUS)) || 21                            // tests case (false, false, false)
     new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(22, CELSIUS)) || 22.6                            // tests case (true, false, false)
     new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(23, CELSIUS)) || 20.4                            // tests case (true, true, false)
-
   }
 
 
