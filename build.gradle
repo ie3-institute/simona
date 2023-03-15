@@ -7,16 +7,16 @@ plugins {
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
   id 'pmd' // code check, working on source code
-  id 'com.diffplug.spotless' version '6.15.0'// code format
+  id 'com.diffplug.spotless' version '6.17.0'// code format
   id 'com.github.onslip.gradle-one-jar' version '1.0.6' // pack a self contained jar
-  id "com.github.ben-manes.versions" version '0.45.0'
+  id "com.github.ben-manes.versions" version '0.46.0'
   id "de.undercouch.download" version "5.3.1" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id "com.github.johnrengelman.shadow" version "7.1.2" // fat jar
-  id "org.sonarqube" version "3.5.0.2730" // sonarqube
+  id "org.sonarqube" version "4.0.0.2929" // sonarqube
   id "org.scoverage" version "7.0.1" // scala code coverage scoverage
   id "com.github.maiflai.scalatest" version "0.32" // run scalatest without specific spec task
-  id 'org.hidetake.ssh' version '2.11.0'
+  id 'org.hidetake.ssh' version '2.11.2'
   id 'net.thauvin.erik.gradle.semver' version '1.0.4' // semantic versioning
 }
 
@@ -79,7 +79,7 @@ dependencies {
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:PowerSystemDataModel:3.0-SNAPSHOT') {
+  implementation('com.github.ie3-institute:PowerSystemDataModel:3.0.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -106,7 +106,7 @@ dependencies {
   /* testing */
   testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
   testImplementation 'org.scalatestplus:mockito-3-4_2.13:3.2.10.0'
-  implementation 'org.mockito:mockito-core:5.1.1' // mocking framework
+  implementation 'org.mockito:mockito-core:5.2.0' // mocking framework
   testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.15"
   testRuntimeOnly 'com.vladsch.flexmark:flexmark-all:0.64.0' //scalatest html output
   testImplementation group: 'org.pegdown', name: 'pegdown', version: '1.6.0'

@@ -13,17 +13,17 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult
 }
 import edu.ie3.simona.agent.ValueStore
+import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower,
+  ZERO_POWER
+}
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.{
   DataCollectionStateData,
   ParticipantStateData
-}
-import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ZERO_POWER
 }
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
@@ -38,11 +38,11 @@ import edu.ie3.simona.model.participant.load.profile.{
   LoadProfileStore,
   ProfileLoadModel
 }
+import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
 import edu.ie3.simona.model.participant.load.random.{
   RandomLoadModel,
   RandomLoadParamStore
 }
-import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
 import edu.ie3.simona.model.participant.load.{
   FixedLoadModel,
   LoadModel,
@@ -57,6 +57,7 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
+import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
 protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
@@ -130,11 +131,11 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
          *  3) The tick, it turns off (in time dependent operation)
          * Coinciding ticks are summarized and the last tick is removed, as the change in operation status
          * doesn't affect anything then */
-        List[Long](
+        SortedSet[Long](
           SimonaConstants.FIRST_TICK_IN_SIMULATION,
           fixedLoadModel.operationInterval.start,
           fixedLoadModel.operationInterval.end
-        ).distinct.sorted.filterNot(_ == lastTickInSimulation).toArray
+        ).filterNot(_ == lastTickInSimulation)
       case profileLoadModel: ProfileLoadModel =>
         activationTicksInOperationTime(
           simulationStartDate,
@@ -150,7 +151,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
           randomLoadModel.operationInterval.end
         )
       case _ =>
-        Array.emptyLongArray
+        SortedSet.empty[Long]
     }
 
     ParticipantModelBaseStateData(
