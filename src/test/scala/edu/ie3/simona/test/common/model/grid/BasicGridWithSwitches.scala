@@ -6,7 +6,14 @@
 
 package edu.ie3.simona.test.common.model.grid
 
-import edu.ie3.simona.model.grid.{LineModel, NodeModel, SwitchModel}
+import edu.ie3.simona.model.grid.GridModel.GridComponents
+import edu.ie3.simona.model.grid.{
+  GridModel,
+  LineModel,
+  NodeModel,
+  SwitchModel,
+  Transformer3wModel
+}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import tech.units.indriya.quantity.Quantities
 
@@ -162,24 +169,66 @@ trait BasicGridWithSwitches extends BasicGrid {
     UUID.fromString("009d808a-1497-4d17-aea6-fa718acf0294"),
     "TestSwitch1",
     defaultOperationInterval,
-    UUID.fromString("69f08e1d-725d-4bae-80c3-5b5a472493c9"),
-    UUID.fromString("c09cb11f-4e2c-4871-84c6-a22dc6702679")
+    node13.uuid,
+    node14.uuid
   )
   val switch2 = new SwitchModel(
     UUID.fromString("e9eb5598-1611-46ad-a44f-fde689c3f558"),
     "TestSwitch2",
     defaultOperationInterval,
-    UUID.fromString("2b45e1e2-591e-49c1-bcbe-0e4ceed79c9b"),
-    UUID.fromString("8aec5998-9c8a-453d-8556-e8630f4c053a")
+    node15.uuid,
+    node16.uuid
   )
   val switch3 = new SwitchModel(
     UUID.fromString("01731a4a-7801-4656-96c9-26d002ff52da"),
     "TestSwitch3",
     defaultOperationInterval,
-    UUID.fromString("e1002827-0430-4ba0-950f-8107fefc09fa"),
-    UUID.fromString("4ab4904e-dde3-4591-8eb5-3e0ca4fd8e3d")
+    node17.uuid,
+    node18.uuid
   )
 
   def switches: Set[SwitchModel] = Set(switch1, switch2, switch3)
 
-} //todo might be removable
+  def gridOpenSwitches(): GridModel = {
+    val gridNodes = nodes
+    gridNodes.foreach(node => if (!node.isInOperation) node.enable())
+    // we copy the switches to avoid clash when simultaneously getting grid with closed switches
+    val cpSwitches = switches.map(switch => switch.copy())
+    cpSwitches.foreach(switch => if (!switch.isInOperation) switch.enable())
+    cpSwitches.foreach(switch => if (!switch.isOpen) switch.open())
+
+    new GridModel(
+      1,
+      default400Kva10KvRefSystem,
+      GridComponents(
+        gridNodes,
+        lines,
+        Set(transformer2wModel),
+        Set.empty[Transformer3wModel],
+        cpSwitches
+      )
+    )
+  }
+
+  def gridClosedSwitches(): GridModel = {
+    val gridNodes = nodes
+    gridNodes.foreach(node => if (!node.isInOperation) node.enable())
+    // we copy the switches to avoid clash when simultaneously getting grid with closed switches
+    val cpSwitches = switches.map(switch => switch.copy())
+    cpSwitches.foreach(switch => if (!switch.isInOperation) switch.enable())
+    cpSwitches.foreach(switch => if (!switch.isOpen) switch.close())
+
+    new GridModel(
+      1,
+      default400Kva10KvRefSystem,
+      GridComponents(
+        gridNodes,
+        lines,
+        Set(transformer2wModel),
+        Set.empty[Transformer3wModel],
+        cpSwitches
+      )
+    )
+  }
+
+}

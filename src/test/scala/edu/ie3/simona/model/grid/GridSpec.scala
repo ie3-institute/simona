@@ -207,30 +207,12 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
     }
 
-    "update the nodeUuidToIndexMap correctly, when the given grid" should {
+    "update the nodeUuidToIndexMap correctly, when the given grid" must {
 
       "contains 3 open switches" in new BasicGridWithSwitches {
-        // enable nodes
-        override val nodes: Seq[NodeModel] = super.nodes
-        nodes.foreach(_.enable())
-        // enable switches
-        override val switches: Set[SwitchModel] = super.switches
-        switches.foreach(_.enable())
-        // open the switches
-        switches.foreach(_.open())
 
         // get the grid from the raw data
-        val gridModel = new GridModel(
-          1,
-          default400Kva10KvRefSystem,
-          GridComponents(
-            nodes,
-            lines,
-            Set(transformer2wModel),
-            Set.empty[Transformer3wModel],
-            switches
-          )
-        )
+        val gridModel: GridModel = gridOpenSwitches()
 
         // update the uuidToIndexMap
         GridModel.updateUuidToIndexMap(gridModel)
@@ -254,26 +236,9 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
       }
 
       "contains 3 closed switches" in new BasicGridWithSwitches {
-        // enable nodes
-        override val nodes: Seq[NodeModel] = super.nodes
-        nodes.foreach(_.enable())
-        // enable switches
-        override val switches: Set[SwitchModel] = super.switches
-        switches.foreach(_.enable())
-        // switches are closed by default
 
         // get the grid from the raw data
-        val gridModel = new GridModel(
-          1,
-          default400Kva10KvRefSystem,
-          GridComponents(
-            nodes,
-            lines,
-            Set(transformer2wModel),
-            Set.empty[Transformer3wModel],
-            switches
-          )
-        )
+        val gridModel: GridModel = gridClosedSwitches()
 
         // update the uuidToIndexMap
         GridModel.updateUuidToIndexMap(gridModel)
@@ -286,7 +251,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         // value set should be in the range of 0 to 9 (13 nodes with 3 closed switches -> 3 nodes are aggregated
         // = 9 rows and columns in the admittance matrix)
         gridModel.nodeUuidToIndexMap.values.toSet.toVector.sorted should be(
-          (for (i <- 0 to 9) yield i).toSet.toVector.sorted
+          (for (i <- 0 to 9) yield i).toVector.sorted
         )
 
         // keys should be the same as the node uuids we provided
@@ -407,7 +372,36 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             )
           )
         )
+      }
 
+      "calculation of admittance matrix should respect closed switches" in new BasicGridWithSwitches {
+
+        val withClosedSwitches = gridClosedSwitches()
+        GridModel.updateUuidToIndexMap(withClosedSwitches)
+        val admittanceMatixClosed = GridModel.composeAdmittanceMatrix(
+          withClosedSwitches.nodeUuidToIndexMap,
+          withClosedSwitches.gridComponents
+        )
+
+        val withOpenSwitches = gridOpenSwitches()
+        GridModel.updateUuidToIndexMap(withOpenSwitches)
+        val admittanceMatrixOpen = GridModel.composeAdmittanceMatrix(
+          withOpenSwitches.nodeUuidToIndexMap,
+          withOpenSwitches.gridComponents
+        )
+
+        // dimension of admittance matrix with closed switches should be reduced by the number of closed switches
+        val closedSwitches =
+          withClosedSwitches.gridComponents.switches.filter(_.isClosed)
+        val numberClosedSwitches = closedSwitches.size
+        numberClosedSwitches should be > 0
+        admittanceMatixClosed.rows shouldBe admittanceMatrixOpen.rows - numberClosedSwitches
+        admittanceMatixClosed.cols shouldBe admittanceMatrixOpen.cols - numberClosedSwitches
+
+        // the admittance at the fused nodes should be the sum of the admittances of the two nodes when switches are open
+        closedSwitches.foreach(switch => {
+          ???
+        })
       }
 
       "contains no switches" in new BasicGrid {
