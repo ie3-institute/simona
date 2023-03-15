@@ -9,8 +9,8 @@ package edu.ie3.simona.model.participant.load
 import breeze.numerics.abs
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.system.LoadInput
-import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
+import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
@@ -126,9 +126,13 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
                     .asType(classOf[Energy])
                     .to(PowerSystemUnits.KILOWATTHOUR)
                 }
-                .reduce((l, r) => l.add(r))
+                .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
+                  _.add(_)
+                )
             }
-            .reduce((l, r) => l.add(r))
+            .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
+              _.add(_)
+            )
             .divide(totalRuns)
 
           Quantities
@@ -193,9 +197,13 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
                   .asType(classOf[Energy])
                   .to(PowerSystemUnits.KILOWATTHOUR)
               }
-              .reduce((l, r) => l.add(r))
+              .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
+                _.add(_)
+              )
           }
-          .reduce((l, r) => l.add(r))
+          .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
+            _.add(_)
+          )
           .divide(totalRuns)
 
         Quantities
@@ -391,9 +399,13 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
                   .asType(classOf[Energy])
                   .to(PowerSystemUnits.KILOWATTHOUR)
               }
-              .reduce((l, r) => l.add(r))
+              .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
+                _.add(_)
+              )
           }
-          .reduce((l, r) => l.add(r))
+          .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
+            _.add(_)
+          )
           .divide(totalRuns)
 
         Quantities
@@ -456,9 +468,13 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
                   .asType(classOf[Energy])
                   .to(PowerSystemUnits.KILOWATTHOUR)
               }
-              .reduce((l, r) => l.add(r))
+              .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
+                _.add(_)
+              )
           }
-          .reduce((l, r) => l.add(r))
+          .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
+            _.add(_)
+          )
           .divide(totalRuns)
 
         Quantities
