@@ -139,7 +139,7 @@ class RandomLoadModelTest extends Specification {
 					startDate.plus(cnt * 15, ChronoUnit.MINUTES))
 		}).collect(Collectors.toSet())
 
-		when:
+		and:
 		def avgEnergy = (0..10).parallelStream().mapToDouble(
 				{ runCnt ->
 					relevantDatas.parallelStream().mapToDouble(
@@ -147,11 +147,6 @@ class RandomLoadModelTest extends Specification {
 								(dut.calculateActivePower(relevantData) * Quantities.getQuantity(15d, MINUTE)).asType(Energy).to(KILOWATTHOUR).value.doubleValue()
 							}).sum()
 				}).average().orElse(0d)
+        avgEnergy
 	}
-}
-
-  def get95Quantile(Double[] sortedArray) {
-    def quantIdx = sortedArray.length * 0.95 as int
-    sortedArray[quantIdx]
-  }
 }
