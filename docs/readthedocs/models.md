@@ -37,5 +37,5 @@ models/wec_model
 ---
 maxdepth: 1
 ---
-transformer_control_groups
+measurement_control
 ```
