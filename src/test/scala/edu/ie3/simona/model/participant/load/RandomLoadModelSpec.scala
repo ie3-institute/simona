@@ -15,8 +15,14 @@ import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.load.LoadReference.{ActivePower, EnergyConsumption}
-import edu.ie3.simona.model.participant.load.random.{RandomLoadModel, RandomLoadParameters}
+import edu.ie3.simona.model.participant.load.LoadReference.{
+  ActivePower,
+  EnergyConsumption
+}
+import edu.ie3.simona.model.participant.load.random.{
+  RandomLoadModel,
+  RandomLoadParameters
+}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.matchers.QuantityMatchers
 import edu.ie3.util.TimeUtil

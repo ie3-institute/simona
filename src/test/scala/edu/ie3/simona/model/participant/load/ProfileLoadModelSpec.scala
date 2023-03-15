@@ -13,7 +13,10 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.load.LoadReference.{ActivePower, EnergyConsumption}
+import edu.ie3.simona.model.participant.load.LoadReference.{
+  ActivePower,
+  EnergyConsumption
+}
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
