@@ -152,13 +152,13 @@ class HpModelTest extends Specification {
     def thermalHouse = buildThermalHouse(18, 22)
     def hpModelCaseClass = buildStandardModel(thermalHouse)
     def startDate = TimeUtil.withDefaults.toZonedDateTime("2021-01-01 00:00:00")
-		def endDate = startDate.plusSeconds(86400L)
-		def hpModelCaseObject = HpModel.apply(
-				hpInput,
-				startDate,
-				endDate,
-				null,
-				1.0,
+    def endDate = startDate.plusSeconds(86400L)
+    def hpModelCaseObject = HpModel.apply(
+        hpInput,
+        startDate,
+        endDate,
+        null,
+        1.0,
         thermalHouse)
 
     then:

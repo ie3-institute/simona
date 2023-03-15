@@ -33,49 +33,49 @@ import static tech.units.indriya.unit.Units.MINUTE
 import static tech.units.indriya.unit.Units.WATT
 
 class RandomLoadModelTest extends Specification {
-	def loadInput =
-			new LoadInput(
-					UUID.fromString("4eeaf76a-ec17-4fc3-872d-34b7d6004b03"),
-					"testLoad",
-					OperatorInput.NO_OPERATOR_ASSIGNED,
-					OperationTime.notLimited(),
-					new NodeInput(
-							UUID.fromString("e5c1cde5-c161-4a4f-997f-fcf31fecbf57"),
-							"TestNodeInputModel",
-							OperatorInput.NO_OPERATOR_ASSIGNED,
-							OperationTime.notLimited(),
-							Quantities.getQuantity(1d, PU),
-							false,
-							NodeInput.DEFAULT_GEO_POSITION,
-							GermanVoltageLevelUtils.LV,
-							-1
-					),
-					new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
-					H0,
-					false,
-					Quantities.getQuantity(3000d, KILOWATTHOUR),
-					Quantities.getQuantity(282.74d, VOLTAMPERE),
-					0.95
-			)
+  def loadInput =
+  new LoadInput(
+  UUID.fromString("4eeaf76a-ec17-4fc3-872d-34b7d6004b03"),
+  "testLoad",
+  OperatorInput.NO_OPERATOR_ASSIGNED,
+  OperationTime.notLimited(),
+  new NodeInput(
+  UUID.fromString("e5c1cde5-c161-4a4f-997f-fcf31fecbf57"),
+  "TestNodeInputModel",
+  OperatorInput.NO_OPERATOR_ASSIGNED,
+  OperationTime.notLimited(),
+  Quantities.getQuantity(1d, PU),
+  false,
+  NodeInput.DEFAULT_GEO_POSITION,
+  GermanVoltageLevelUtils.LV,
+  -1
+  ),
+  new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+  H0,
+  false,
+  Quantities.getQuantity(3000d, KILOWATTHOUR),
+  Quantities.getQuantity(282.74d, VOLTAMPERE),
+  0.95
+  )
 
-	def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2019-01-01 00:00:00")
-	def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2019-12-31 23:59:00")
-	def foreSeenOperationInterval =
-			SystemComponent.determineOperationInterval(
-					simulationStartDate,
-					simulationEndDate,
-					loadInput.operationTime
-			)
-	def testingTolerance = 1e-6 // Equals to 1 W power
+  def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2019-01-01 00:00:00")
+  def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2019-12-31 23:59:00")
+  def foreSeenOperationInterval =
+  SystemComponent.determineOperationInterval(
+  simulationStartDate,
+  simulationEndDate,
+  loadInput.operationTime
+  )
+  def testingTolerance = 1e-6 // Equals to 1 W power
 
-	def "A random load model should be instantiated from valid input correctly"() {
-		when:
-		def actual = RandomLoadModel.apply(
-				loadInput,
-				foreSeenOperationInterval,
-				1.0,
-				reference
-		)
+  def "A random load model should be instantiated from valid input correctly"() {
+    when:
+    def actual = RandomLoadModel.apply(
+        loadInput,
+        foreSeenOperationInterval,
+        1.0,
+        reference
+        )
 
     then:
     abs(actual.sRated().subtract(expSRated).getValue().doubleValue()) < testingTolerance
@@ -86,21 +86,21 @@ class RandomLoadModelTest extends Specification {
     new EnergyConsumption(Quantities.getQuantity(2000d, KILOWATTHOUR)) || Quantities.getQuantity(467.156124576697, VOLTAMPERE)
   }
 
-	def "A random load model is able to deliver the correct distribution on request"() {
-		given:
-		def dut = new RandomLoadModel(
-				loadInput.uuid,
-				loadInput.id,
-				foreSeenOperationInterval,
-				1.0,
-				QControl.apply(loadInput.qCharacteristics),
-				loadInput.sRated,
-				loadInput.cosPhiRated,
-				new ActivePower(Quantities.getQuantity(268.6, WATT))
-		)
-		/* Working day, 61th quarter hour */
-		def queryDate = TimeUtil.withDefaults.toZonedDateTime('2019-07-19 15:21:00')
-		def expectedParams = new RandomLoadParameters(0.405802458524704, 0.0671483352780342, 0.0417016632854939)
+  def "A random load model is able to deliver the correct distribution on request"() {
+    given:
+    def dut = new RandomLoadModel(
+        loadInput.uuid,
+        loadInput.id,
+        foreSeenOperationInterval,
+        1.0,
+        QControl.apply(loadInput.qCharacteristics),
+        loadInput.sRated,
+        loadInput.cosPhiRated,
+        new ActivePower(Quantities.getQuantity(268.6, WATT))
+        )
+    /* Working day, 61th quarter hour */
+    def queryDate = TimeUtil.withDefaults.toZonedDateTime('2019-07-19 15:21:00')
+    def expectedParams = new RandomLoadParameters(0.405802458524704, 0.0671483352780342, 0.0417016632854939)
 
     when:
     /* First query leeds to generation of distribution */
@@ -121,32 +121,30 @@ class RandomLoadModelTest extends Specification {
     secondHit == firstHit
   }
 
-	def "A random load model should approx. reach the targeted annual energy consumption"() {
-		given:
-		def startDate = TimeUtil.withDefaults.toZonedDateTime("2019-01-01 00:00:00")
-		def dut = new RandomLoadModel(
-				loadInput.uuid,
-				loadInput.id,
-				foreSeenOperationInterval,
-				1.0,
-				QControl.apply(loadInput.qCharacteristics),
-				loadInput.sRated,
-				loadInput.cosPhiRated,
-				new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR))
-		)
-		def relevantDatas = (0..35040).stream().map({ cnt ->
-			new RandomLoadModel.RandomRelevantData(
-					startDate.plus(cnt * 15, ChronoUnit.MINUTES))
-		}).collect(Collectors.toSet())
+  def "A random load model should approx. reach the targeted annual energy consumption"() {
+    given:
+    def startDate = TimeUtil.withDefaults.toZonedDateTime("2019-01-01 00:00:00")
+    def dut = new RandomLoadModel(
+        loadInput.uuid,
+        loadInput.id,
+        foreSeenOperationInterval,
+        1.0,
+        QControl.apply(loadInput.qCharacteristics),
+        loadInput.sRated,
+        loadInput.cosPhiRated,
+        new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR))
+        )
+    def relevantDatas = (0..35040).stream().map({ cnt ->
+      new RandomLoadModel.RandomRelevantData(
+          startDate.plus(cnt * 15, ChronoUnit.MINUTES))
+    }).collect(Collectors.toSet())
 
-		and:
-		def avgEnergy = (0..10).parallelStream().mapToDouble(
-				{ runCnt ->
-					relevantDatas.parallelStream().mapToDouble(
-							{ relevantData ->
-								(dut.calculateActivePower(relevantData) * Quantities.getQuantity(15d, MINUTE)).asType(Energy).to(KILOWATTHOUR).value.doubleValue()
-							}).sum()
-				}).average().orElse(0d)
-        avgEnergy
-	}
+    and:
+    def avgEnergy = (0..10).parallelStream().mapToDouble( { runCnt ->
+      relevantDatas.parallelStream().mapToDouble( { relevantData ->
+        (dut.calculateActivePower(relevantData) * Quantities.getQuantity(15d, MINUTE)).asType(Energy).to(KILOWATTHOUR).value.doubleValue()
+      }).sum()
+    }).average().orElse(0d)
+    avgEnergy
+  }
 }
