@@ -77,14 +77,14 @@ class RandomLoadModelTest extends Specification {
 				reference
 		)
 
-		then:
-		abs(actual.sRated().subtract(expSRated).getValue().doubleValue()) < testingTolerance
+    then:
+    abs(actual.sRated().subtract(expSRated).getValue().doubleValue()) < testingTolerance
 
-		where:
-		reference                                                          || expSRated
-		new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(311.0105263157895, VOLTAMPERE)
-		new EnergyConsumption(Quantities.getQuantity(2000d, KILOWATTHOUR)) || Quantities.getQuantity(467.156124576697, VOLTAMPERE)
-	}
+    where:
+    reference                                                          || expSRated
+    new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(311.0105263157895, VOLTAMPERE)
+    new EnergyConsumption(Quantities.getQuantity(2000d, KILOWATTHOUR)) || Quantities.getQuantity(467.156124576697, VOLTAMPERE)
+  }
 
 	def "A random load model is able to deliver the correct distribution on request"() {
 		given:
@@ -102,24 +102,24 @@ class RandomLoadModelTest extends Specification {
 		def queryDate = TimeUtil.withDefaults.toZonedDateTime('2019-07-19 15:21:00')
 		def expectedParams = new RandomLoadParameters(0.405802458524704, 0.0671483352780342, 0.0417016632854939)
 
-		when:
-		/* First query leeds to generation of distribution */
-		def firstHit = dut.getGevDistribution(queryDate)
+    when:
+    /* First query leeds to generation of distribution */
+    def firstHit = dut.getGevDistribution(queryDate)
 
-		then:
-		firstHit.with {
-			assert k == expectedParams.k()
-			assert mu == expectedParams.my()
-			assert sigma == expectedParams.sigma()
-		}
+    then:
+    firstHit.with {
+      assert k == expectedParams.k()
+      assert mu == expectedParams.my()
+      assert sigma == expectedParams.sigma()
+    }
 
-		when:
-		/* Second query is only look up in storage */
-		def secondHit = dut.getGevDistribution(queryDate)
+    when:
+    /* Second query is only look up in storage */
+    def secondHit = dut.getGevDistribution(queryDate)
 
-		then:
-		secondHit == firstHit
-	}
+    then:
+    secondHit == firstHit
+  }
 
 	def "A random load model should approx. reach the targeted annual energy consumption"() {
 		given:
@@ -148,4 +148,10 @@ class RandomLoadModelTest extends Specification {
 							}).sum()
 				}).average().orElse(0d)
 	}
+}
+
+  def get95Quantile(Double[] sortedArray) {
+    def quantIdx = sortedArray.length * 0.95 as int
+    sortedArray[quantIdx]
+  }
 }
