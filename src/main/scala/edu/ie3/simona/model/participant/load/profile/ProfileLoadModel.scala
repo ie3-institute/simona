@@ -111,7 +111,7 @@ final case class ProfileLoadModel(
           .multiply(energyReferenceScalingFactor)
           .asType(classOf[Power])
     }
-    activePower
+    activePower.multiply(scalingFactor)
   }
 }
 
