@@ -53,35 +53,33 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
       // enable the lines first, otherwise they are not considered in building the admittance matrix
       lines.foreach(_.enable())
 
-      // the update function for the admittance matrix
-      val _updateAdmittanceMatrix: (
-          Int,
-          Int,
-          Complex,
-          Complex,
-          Complex,
-          DenseMatrix[Complex]
-      ) => DenseMatrix[Complex] = { (i, j, yab, yaa, ybb, admittanceMatrix) =>
-        admittanceMatrix(i, i) += (yab + yaa)
-        admittanceMatrix(j, j) += (yab + ybb)
-        admittanceMatrix(i, j) += (yab * -1)
-        admittanceMatrix(j, i) += (yab * -1)
-        admittanceMatrix
-      }
-
       // method call
-      val buildLinesAdmittanceMatrixMethod
-          : PrivateMethod[DenseMatrix[Complex]] =
+      val buildAssetAdmittanceMatrix: PrivateMethod[DenseMatrix[Complex]] =
         PrivateMethod[DenseMatrix[Complex]](
-          Symbol("buildLinesAdmittanceMatrix")
+          Symbol("buildAssetAdmittanceMatrix")
         )
+
+      val getLinesAdmittanceMethod
+          : PrivateMethod[(Int, Int, Complex, Complex, Complex)] =
+        PrivateMethod[(Int, Int, Complex, Complex, Complex)](
+          Symbol("getLinesAdmittance")
+        )
+      val getLinesAdmittance: (
+          Map[UUID, Int],
+          LineModel
+      ) => (Int, Int, Complex, Complex, Complex) =
+        (nodeUuidToIndexMap, line) =>
+          GridModel invokePrivate getLinesAdmittanceMethod(
+            nodeUuidToIndexMap,
+            line
+          )
 
       // result of method call
       val actualResult: DenseMatrix[Complex] =
-        GridModel invokePrivate buildLinesAdmittanceMatrixMethod(
+        GridModel invokePrivate buildAssetAdmittanceMatrix(
           nodeUuidToIndexMap,
           lines,
-          _updateAdmittanceMatrix
+          getLinesAdmittance
         )
 
       _printAdmittanceMatrixOnMismatch(actualResult, lineAdmittanceMatrix)
