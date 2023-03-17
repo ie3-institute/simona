@@ -101,7 +101,6 @@ class PvModelIT extends Specification implements PvModelITHelper {
 
         modelI++
       }
-
     }
 
     then: "we expect the calculated result to be quasi equal the provided results data"
