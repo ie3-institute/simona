@@ -287,7 +287,7 @@ trait PowerFlowSupport {
     * @return
     *   the combined operating point
     */
-  protected def combineOperatingPoint(
+  private def combineOperatingPoint(
       operatingPoint: Array[PresetData]
   ): Array[PresetData] = {
     operatingPoint
@@ -316,7 +316,7 @@ trait PowerFlowSupport {
     * @return
     *   combined instance
     */
-  protected def combinePresetData(a: PresetData, b: PresetData): PresetData = {
+  private def combinePresetData(a: PresetData, b: PresetData): PresetData = {
     require(
       a.index == b.index,
       "Preset Data should only be combined when they map to the same index."

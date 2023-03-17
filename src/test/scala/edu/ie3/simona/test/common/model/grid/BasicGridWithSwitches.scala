@@ -193,7 +193,7 @@ trait BasicGridWithSwitches extends BasicGrid {
     val gridNodes = nodes
     gridNodes.foreach(node => if (!node.isInOperation) node.enable())
     // we copy the switches to avoid clash when simultaneously getting grid with closed switches
-    val cpSwitches = switches.map(switch => switch.copy())
+    val cpSwitches = switches.map(_.copy())
     cpSwitches.foreach(switch => if (!switch.isInOperation) switch.enable())
     cpSwitches.foreach(switch => if (!switch.isOpen) switch.open())
 
@@ -216,7 +216,7 @@ trait BasicGridWithSwitches extends BasicGrid {
     // we copy the switches to avoid clash when simultaneously getting grid with closed switches
     val cpSwitches = switches.map(switch => switch.copy())
     cpSwitches.foreach(switch => if (!switch.isInOperation) switch.enable())
-    cpSwitches.foreach(switch => if (!switch.isOpen) switch.close())
+    cpSwitches.foreach(switch => if (!switch.isClosed) switch.close())
 
     new GridModel(
       1,
