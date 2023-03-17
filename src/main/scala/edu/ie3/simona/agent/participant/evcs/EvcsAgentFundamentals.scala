@@ -44,7 +44,11 @@ import edu.ie3.simona.ontology.messages.services.EvMessage.{
   FreeLotsResponse
 }
 import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DISTANCE
-import edu.ie3.util.quantities.PowerSystemUnits.PU
+import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT, PU}
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.Megavars
+import squants.Each
+import squants.energy.Megawatts
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
@@ -594,8 +598,8 @@ protected trait EvcsAgentFundamentals
     new EvcsResult(
       dateTime,
       uuid,
-      result.p,
-      result.q
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
     )
 
   /** Checks whether requested departing EVs are consistent with currently

@@ -6,46 +6,27 @@
 
 package edu.ie3.simona.model.participant
 
-import java.util.UUID
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.characteristic.WecCharacteristicInput
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.WecModel.{
-  WecCharacteristic,
-  WecRelevantData
-}
+import edu.ie3.simona.model.participant.WecModel.{WecCharacteristic, WecRelevantData}
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.util.quantities.EmptyQuantity
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KILOGRAM_PER_CUBIC_METRE,
-  MEGAWATT
-}
+import edu.ie3.util.quantities.PowerSystemUnits.{KILOGRAM_PER_CUBIC_METRE, KILOWATT, MEGAWATT}
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.quantities.interfaces.{Density, HeatCapacity}
 import edu.ie3.util.scala.OperationInterval
-
-import javax.measure.quantity.{
-  Area,
-  Dimensionless,
-  Power,
-  Pressure,
-  Speed,
-  Temperature
-}
+import squants.energy.{Kilowatts, Megawatts}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.ProductUnit
-import tech.units.indriya.unit.Units.{
-  JOULE,
-  KELVIN,
-  KILOGRAM,
-  METRE_PER_SECOND,
-  PASCAL,
-  SQUARE_METRE
-}
+import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
+import java.util.UUID
+import javax.measure.quantity._
 import scala.collection.SortedSet
 
 /** A wind energy converter model used for calculating output power of a wind
@@ -86,7 +67,7 @@ final case class WecModel(
       operationInterval,
       scalingFactor,
       qControl,
-      sRated,
+      Kilowatts(sRated.to(KILOWATT).getValue.doubleValue),
       cosPhiRated
     ) {
 
@@ -108,21 +89,23 @@ final case class WecModel(
     */
   override protected def calculateActivePower(
       wecData: WecRelevantData
-  ): ComparableQuantity[Power] = {
+  ): squants.Power = {
     val activePower = determinePower(wecData).to(MEGAWATT)
-    val pMax = sMax.multiply(cosPhiRated).to(MEGAWATT)
+    val pMax = sMax.toKilowatts.asKiloWatt.multiply(cosPhiRated).to(MEGAWATT)
 
-    (if (activePower.isGreaterThan(pMax)) {
-       logger.warn(
-         "The fed in active power is higher than the estimated maximum active power of this plant ({} > {}). " +
-           "Did you provide wrong weather input data?",
-         activePower,
+    Megawatts(
+      (if (activePower.isGreaterThan(pMax)) {
+         logger.warn(
+           "The fed in active power is higher than the estimated maximum active power of this plant ({} > {}). " +
+             "Did you provide wrong weather input data?",
+           activePower,
+           pMax
+         )
          pMax
-       )
-       pMax
-     } else {
-       activePower
-     }).multiply(-1)
+       } else {
+         activePower
+       }).multiply(-1).to(MEGAWATT).getValue.doubleValue
+    )
   }
 
   /** Determine the turbine output power with the air density ρ, the wind

@@ -10,8 +10,10 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.participant.BMModel.BMCalcRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.quantities.interfaces.{DimensionlessRate, EnergyPrice}
 import edu.ie3.util.scala.OperationInterval
+import squants.energy.{Kilowatts, Megawatts}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
@@ -52,11 +54,12 @@ final case class BMModel(
 
   override def calculatePower(
       tick: Long,
+      voltage: squants.Dimensionless,
       voltage: ComparableQuantity[Dimensionless],
       data: BMCalcRelevantData
   ): ApparentPower = {
     val result = super.calculatePower(tick, voltage, data)
-    _lastPower = Some(result.p)
+    _lastPower = Some(result.p.toKilowatts.asKiloWatt)
 
     result
   }
@@ -70,7 +73,7 @@ final case class BMModel(
     */
   override protected def calculateActivePower(
       data: BMCalcRelevantData
-  ): ComparableQuantity[Power] = {
+  ): squants.Power = {
     // Calculate heat demand //
     val (k1, k2) = (calculateK1(data.date), calculateK2(data.date))
     val pTh = calculatePTh(data.temperature, k1, k2)
@@ -85,7 +88,7 @@ final case class BMModel(
     val pEl = calculateElOutput(usage, eff)
 
     // Application of load gradient, return power output
-    applyLoadGradient(pEl)
+    Megawatts(applyLoadGradient(pEl).to(MEGAWATT).getValue.doubleValue)
   }
 
   /** Calculates first time dependent factor for heat demand

@@ -53,7 +53,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   FinishGridSimulationTrigger,
   InitializeParticipantAgentTrigger
 }
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.scala.quantities.ReactivePower
 
 import java.time.ZonedDateTime
 import javax.measure.quantity.{Dimensionless, Power}
@@ -709,8 +709,8 @@ abstract class ParticipantAgent[
   def answerPowerRequestAndStayWithUpdatedStateData(
       baseStateData: BaseStateData[PD],
       requestTick: Long,
-      eInPu: ComparableQuantity[Dimensionless],
-      fInPu: ComparableQuantity[Dimensionless],
+      eInPu: squants.Dimensionless,
+      fInPu: squants.Dimensionless,
       alternativeResult: PD
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
@@ -725,8 +725,8 @@ abstract class ParticipantAgent[
   def announceAssetPowerRequestReply(
       baseStateData: BaseStateData[_],
       currentTick: Long,
-      activePower: ComparableQuantity[Power],
-      reactivePower: ComparableQuantity[Power]
+    activePower: squants.Power,
+    reactivePower: ReactivePower
   )(implicit outputConfig: ParticipantNotifierConfig): Unit
 
   /** Abstract definition to clean up agent value stores after power flow
@@ -762,7 +762,7 @@ case object ParticipantAgent {
   def getAndCheckNodalVoltage(
       baseStateData: BaseStateData[_ <: PrimaryData],
       currentTick: Long
-  ): ComparableQuantity[Dimensionless] = {
+  ): squants.Dimensionless = {
     baseStateData.voltageValueStore.last(currentTick) match {
       case Some((_, voltage)) => voltage
       case None =>

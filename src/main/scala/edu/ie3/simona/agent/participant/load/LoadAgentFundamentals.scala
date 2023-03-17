@@ -51,8 +51,10 @@ import edu.ie3.simona.model.participant.load.{
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits.PU
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.scala.quantities.ReactivePower
+import squants.Each
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -165,9 +167,13 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution,
-        inputModel.getNode
-          .getvTarget()
-          .to(PU)
+        Each(
+          inputModel.getNode
+            .getvTarget()
+            .to(PU)
+            .getValue
+            .doubleValue
+        )
       ),
       ValueStore.forResult(resolution, 2),
       ValueStore(resolution),
@@ -243,7 +249,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        squants.Power => ReactivePower
       ] = None
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
@@ -273,8 +279,8 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     new LoadResult(
       dateTime,
       uuid,
-      result.p,
-      result.q
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
     )
 }
 
@@ -307,7 +313,7 @@ case object LoadAgentFundamentals {
           FixedLoadRelevantData.type,
           FixedLoadModel
         ],
-        ComparableQuantity[Dimensionless]
+          squants.Dimensionless
     ) => ApparentPower = (
         tick: Long,
         baseStateData: ParticipantModelBaseStateData[
@@ -315,7 +321,7 @@ case object LoadAgentFundamentals {
           FixedLoadRelevantData.type,
           FixedLoadModel
         ],
-        voltage: ComparableQuantity[Dimensionless]
+    voltage: squants.Dimensionless
     ) =>
       baseStateData.model.calculatePower(tick, voltage, FixedLoadRelevantData)
   }

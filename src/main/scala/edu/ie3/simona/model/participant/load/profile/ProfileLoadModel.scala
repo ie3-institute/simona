@@ -48,7 +48,7 @@ final case class ProfileLoadModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: ComparableQuantity[Power],
+    sRated: squants.Power,
     cosPhiRated: Double,
     loadProfile: StandardLoadProfile,
     reference: LoadReference
@@ -71,10 +71,7 @@ final case class ProfileLoadModel(
   private lazy val energyReferenceScalingFactor =
     reference match {
       case EnergyConsumption(energyConsumption) =>
-        energyConsumption
-          .divide(LoadProfileStore.defaultLoadProfileEnergyScaling)
-          .asType(classOf[Dimensionless])
-          .to(PU)
+        energyConsumption / LoadProfileStore.defaultLoadProfileEnergyScaling
       case _ =>
         throw new IllegalArgumentException(
           s"Applying energy reference scaling factor for reference mode '$reference' is not supported!"
@@ -90,28 +87,21 @@ final case class ProfileLoadModel(
     */
   override protected def calculateActivePower(
       data: ProfileRelevantData
-  ): ComparableQuantity[Power] = {
+  ): squants.Power = {
     /* The power comes in W and is delivered all 15 minutes */
-    val averagePower: ComparableQuantity[Power] = loadProfileStore
+    val averagePower: squants.Power = loadProfileStore
       .entry(data.date, loadProfile)
 
     val activePower = reference match {
       case ActivePower(activePower) =>
         /* scale the reference active power based on the profiles averagePower/maxPower ratio */
-        val referenceScalingFactor = averagePower
-          .divide(profileMaxPower)
-          .asType(classOf[Dimensionless])
-          .to(PU)
-          .getValue
-          .doubleValue()
-        activePower.multiply(referenceScalingFactor)
+        val referenceScalingFactor = averagePower / profileMaxPower
+        activePower * referenceScalingFactor
       case _: EnergyConsumption =>
         /* scale the profiles average power based on the energyConsumption/profileEnergyScaling(=1000kWh/year) ratio  */
-        averagePower
-          .multiply(energyReferenceScalingFactor)
-          .asType(classOf[Power])
+        averagePower * energyReferenceScalingFactor
     }
-    activePower.multiply(scalingFactor)
+    activePower * scalingFactor
   }
 }
 

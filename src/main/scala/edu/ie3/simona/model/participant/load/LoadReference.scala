@@ -9,9 +9,8 @@ package edu.ie3.simona.model.participant.load
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.util.StringUtils
-import edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
-import javax.measure.quantity.{Energy, Power}
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.quantities.PowerSystemUnits.{MEGAWATT, MEGAWATTHOUR}
+import squants.energy.{MegawattHours, Megawatts}
 
 /** Denoting difference referencing scenarios for scaling load model output
   */
@@ -27,8 +26,7 @@ case object LoadReference {
     * @param power
     *   Foreseen active power
     */
-  final case class ActivePower(power: ComparableQuantity[Power])
-      extends LoadReference {
+  final case class ActivePower(power: squants.Power) extends LoadReference {
     override val key: String = "power"
   }
 
@@ -39,7 +37,7 @@ case object LoadReference {
     *   Annual energy consumption to reach
     */
   final case class EnergyConsumption(
-      energyConsumption: ComparableQuantity[Energy]
+      energyConsumption: squants.Energy
   ) extends LoadReference {
     override val key: String = "energy"
   }
@@ -66,14 +64,21 @@ case object LoadReference {
   ): LoadReference =
     StringUtils.cleanString(modelConfig.reference).toLowerCase match {
       case "power" =>
-        val activePower = inputModel
-          .getsRated()
-          .multiply(inputModel.getCosPhiRated)
-          .to(MEGAWATT)
+        val activePower = Megawatts(
+          inputModel
+            .getsRated()
+            .to(MEGAWATT)
+            .getValue
+            .doubleValue
+        ) *
+          inputModel.getCosPhiRated
         LoadReference.ActivePower(activePower)
       case "energy" =>
         Option(inputModel.geteConsAnnual()) match {
-          case Some(consumption) => LoadReference.EnergyConsumption(consumption)
+          case Some(consumption) =>
+            LoadReference.EnergyConsumption(
+              MegawattHours(consumption.to(MEGAWATTHOUR).getValue.doubleValue)
+            )
           case None =>
             throw new IllegalArgumentException(
               s"Load model with uuid ${inputModel.getUuid} is meant to be scaled to annual energy consumption, but the energy is not provided."

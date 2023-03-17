@@ -12,11 +12,15 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.util.TimeUtil
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.interfaces.Irradiance
+import edu.ie3.util.scala.quantities.Sq
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVRecord
 import spock.lang.Shared
 import spock.lang.Specification
+import squants.*
+import squants.energy.*
 import tech.units.indriya.ComparableQuantity
 
 import javax.measure.Quantity
@@ -30,7 +34,8 @@ import static edu.ie3.util.quantities.PowerSystemUnits.PU
 import static java.util.Locale.US
 import static java.util.Locale.setDefault
 import static tech.units.indriya.quantity.Quantities.getQuantity
-import static tech.units.indriya.unit.Units.*
+import static tech.units.indriya.unit.Units.KELVIN
+import static tech.units.indriya.unit.Units.METRE_PER_SECOND
 
 /**
  * A simple integration test that uses pre-calculated data to check if the pv model works as expected.

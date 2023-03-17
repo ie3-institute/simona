@@ -41,11 +41,9 @@ import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.util.quantities.EmptyQuantity
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.scala.quantities.QuantityUtil
-
-import javax.measure.quantity.{Dimensionless, Energy, Power}
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.ReactivePower
+import squants.Each
 import tech.units.indriya.unit.Units.PASCAL
 
 import java.time.ZonedDateTime
@@ -161,7 +159,7 @@ protected trait WecAgentFundamentals
   override val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[ApparentPower, WecRelevantData, WecModel],
-      ComparableQuantity[Dimensionless]
+        squants.Dimensionless
   ) => ApparentPower =
     (
         _: Long,
@@ -170,7 +168,8 @@ protected trait WecAgentFundamentals
           WecRelevantData,
           WecModel
         ],
-        _: ComparableQuantity[Dimensionless]
+        _,
+        _: squants.Dimensionless
     ) =>
       throw new InvalidRequestException(
         "WEC model cannot be run without secondary data."
@@ -276,7 +275,7 @@ protected trait WecAgentFundamentals
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        squants.Power => ReactivePower
       ] = None
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
@@ -306,7 +305,7 @@ protected trait WecAgentFundamentals
     new WecResult(
       dateTime,
       uuid,
-      result.p,
-      result.q
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
     )
 }

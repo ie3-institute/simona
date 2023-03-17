@@ -6,18 +6,19 @@
 
 package edu.ie3.simona.model.participant
 
-import java.util.UUID
-
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.model.participant.HpModel._
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalHouse
+import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
-import javax.measure.quantity.{Power, Temperature, Time}
+import squants.energy.Megawatts
 import tech.units.indriya.ComparableQuantity
-import edu.ie3.simona.util.TickUtil.TickLong
+
+import java.util.UUID
+import javax.measure.quantity.{Power, Temperature, Time}
 
 /** Model of a heat pump (HP) with a [[ThermalHouse]] medium and its current
   * [[HpState]].
@@ -48,9 +49,9 @@ final case class HpModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: ComparableQuantity[Power],
+    sRated: squants.Power,
     cosPhiRated: Double,
-    pThermal: ComparableQuantity[Power],
+    pThermal: squants.Power,
     thermalHouse: ThermalHouse
 ) extends SystemParticipant[HpData](
       uuid,
@@ -62,11 +63,8 @@ final case class HpModel(
       cosPhiRated
     ) {
 
-  private val pRated: ComparableQuantity[Power] =
-    sRated
-      .multiply(cosPhiRated)
-      .multiply(scalingFactor)
-      .to(StandardUnits.ACTIVE_POWER_IN)
+  private val pRated: squants.Power =
+    sRated * cosPhiRated * scalingFactor
 
   /** As this is a state-full model (with respect to the current operation
     * condition and inner temperature), the power calculation operates on the
@@ -138,8 +136,8 @@ final case class HpModel(
   private def calcState(hpData: HpData, isRunning: Boolean): HpState = {
     val (newActivePower, newThermalPower) =
       if (isRunning)
-        (pRated, pThermal.multiply(scalingFactor))
-      else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
+        (pRated, pThermal * scalingFactor)
+      else (Megawatts(0d), Megawatts(0d))
 
     val duration: ComparableQuantity[Time] =
       hpData.hpState.lastTimeTick.durationUntil(hpData.currentTimeTick)
@@ -181,8 +179,8 @@ case object HpModel {
   final case class HpState(
       isRunning: Boolean,
       lastTimeTick: Long,
-      activePower: ComparableQuantity[Power],
-      innerTemperature: ComparableQuantity[Temperature]
+      activePower: squants.Power,
+      innerTemperature: squants.Temperature,
   )
 
   /** Main data required for simulation/calculation, containing a [[HpState]]
@@ -195,11 +193,13 @@ case object HpModel {
     *   a [[HpState]]
     * @param currentTimeTick
     *   contains current time tick
+    * @param ambientTemperature
+    *   Ambient temperature
     */
   final case class HpData(
       hpState: HpState,
       currentTimeTick: Long,
-      ambientTemperature: ComparableQuantity[Temperature]
+      ambientTemperature: squants.Temperature
   ) extends CalcRelevantData
 
   /** Internal method to construct a new [[HpModel]] based on a provided
@@ -229,9 +229,16 @@ case object HpModel {
       operationInterval,
       scalingFactor = 1.0,
       qControl,
-      hpInput.getType.getsRated,
+      Kilowatts(
+        hpInput.getType.getsRated
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
       hpInput.getType.getCosPhiRated,
-      hpInput.getType.getpThermal,
+        .to(PowerSystemUnits.KILOWATT)
+        .getValue
+        .doubleValue,
       thermalHouse
     )
   }

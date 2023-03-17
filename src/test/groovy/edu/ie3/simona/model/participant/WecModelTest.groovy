@@ -24,6 +24,8 @@ import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static edu.ie3.datamodel.models.StandardUnits.*
 import static edu.ie3.util.quantities.QuantityUtil.equals
 import static edu.ie3.simona.model.participant.WecModel.WecRelevantData
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static edu.ie3.util.quantities.QuantityUtil.equals
 import static tech.units.indriya.quantity.Quantities.getQuantity
 
 class WecModelTest extends Specification {
@@ -109,7 +111,7 @@ class WecModelTest extends Specification {
         getQuantity(20, CELSIUS), getQuantity(101325, PASCAL))
 
     when:
-    def result = wecModel.calculateActivePower(wecData).to(WATT)
+    def result = wecModel.calculateActivePower(wecData)
     def expected = getQuantity(power, WATT)
 
     then:
@@ -139,7 +141,7 @@ class WecModelTest extends Specification {
         getQuantity(temperature, CELSIUS), getQuantity(101325, PASCAL))
 
     when:
-    def result = wecModel.calculateActivePower(wecData).to(WATT)
+    def result = wecModel.calculateActivePower(wecData)
     def expected = getQuantity(power, WATT)
 
     then:

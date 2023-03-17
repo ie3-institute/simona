@@ -41,12 +41,14 @@ import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherService.FALLBACK_WEATHER_STEM_DISTANCE
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.PowerSystemUnits.PU
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT_PER_SQUAREMETRE, PU}
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.ReactivePower
+import squants.Each
+import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
@@ -128,9 +130,12 @@ protected trait PvAgentFundamentals
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution * 10,
-        inputModel.getNode
-          .getvTarget()
-          .to(PU)
+        Each(
+          inputModel.getNode
+            .getvTarget()
+            .to(PU)
+            .getValue
+            .doubleValue
       ),
       ValueStore.forResult(resolution, 10),
       ValueStore(resolution * 10),
@@ -157,7 +162,8 @@ protected trait PvAgentFundamentals
   override val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[ApparentPower, PvRelevantData, PvModel],
-      ComparableQuantity[Dimensionless]
+        ConstantState.type,
+        squants.Dimensionless
   ) => ApparentPower =
     (_, _, _) =>
       throw new InvalidRequestException(
@@ -279,7 +285,7 @@ protected trait PvAgentFundamentals
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        squants.Power => ReactivePower
       ] = None
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
@@ -309,7 +315,7 @@ protected trait PvAgentFundamentals
     new PvResult(
       dateTime,
       uuid,
-      result.p,
-      result.q
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
     )
 }

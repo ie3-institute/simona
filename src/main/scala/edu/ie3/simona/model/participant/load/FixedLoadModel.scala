@@ -14,14 +14,12 @@ import edu.ie3.simona.model.participant.load.LoadReference.{
   ActivePower,
   EnergyConsumption
 }
-import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVOLTAMPERE, MEGAWATT}
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{HOUR, YEAR}
+import squants.energy.Kilowatts
+import squants.time.Days
 
 import java.util.UUID
-import javax.measure.quantity.Power
 
 /** Load model always consuming the same, constant power
   *
@@ -48,7 +46,7 @@ final case class FixedLoadModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: ComparableQuantity[Power],
+    sRated: squants.Power,
     cosPhiRated: Double,
     reference: LoadReference
 ) extends LoadModel[FixedLoadRelevantData.type](
@@ -57,14 +55,15 @@ final case class FixedLoadModel(
       operationInterval,
       scalingFactor,
       qControl,
-      sRated.to(MEGAVOLTAMPERE),
+      sRated,
       cosPhiRated
     ) {
+
   private val activePower = reference match {
-    case ActivePower(power) => power.to(MEGAWATT)
+    case ActivePower(power) => power
     case EnergyConsumption(energyConsumption) =>
-      val duration = Quantities.getQuantity(1d, YEAR).to(HOUR)
-      energyConsumption.divide(duration).asType(classOf[Power]).to(MEGAWATT)
+      val duration = Days(365d)
+      energyConsumption / duration
   }
 
   /** Calculate the active power behaviour of the model
@@ -77,8 +76,7 @@ final case class FixedLoadModel(
     */
   override protected def calculateActivePower(
       data: FixedLoadRelevantData.type = FixedLoadRelevantData
-  ): ComparableQuantity[Power] = activePower.multiply(scalingFactor)
-
+  ): squants.Power = activePower * scalingFactor
 }
 
 case object FixedLoadModel {
@@ -95,7 +93,12 @@ case object FixedLoadModel {
     operationInterval,
     scalingFactor,
     QControl(input.getqCharacteristics()),
-    input.getsRated(),
+    Kilowatts(
+      input.getsRated
+        .to(PowerSystemUnits.KILOWATT)
+        .getValue
+        .doubleValue
+    ),
     input.getCosPhiRated,
     reference
   )
