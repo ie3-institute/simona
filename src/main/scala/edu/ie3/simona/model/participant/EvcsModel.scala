@@ -19,7 +19,8 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantity
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.QuantityUtil
+import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil}
+import squants.energy.Megawatts
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
@@ -84,7 +85,7 @@ final case class EvcsModel(
       tick: Long,
       voltage: ComparableQuantity[Dimensionless],
       data: EvcsRelevantData
-  ): (ApparentPower, Set[EvModel]) = {
+  ): (squants.Power, Set[EvModel]) = {
     if (isInOperation(tick) && data.evMovementsDataFrameLength > 0) {
       val (activePower, evModels) = calculateActivePowerAndEvSoc(data)
       val reactivePower =
@@ -99,8 +100,8 @@ final case class EvcsModel(
     } else {
       (
         ApparentPower(
-          Quantities.getQuantity(0d, MEGAWATT),
-          Quantities.getQuantity(0d, MEGAVAR)
+          Megawatts(0d),
+          Megavars(0d)
         ),
         data.currentEvs
       )

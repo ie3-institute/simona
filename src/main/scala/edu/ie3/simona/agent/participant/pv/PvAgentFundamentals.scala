@@ -14,6 +14,11 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
+import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower,
+  ZERO_POWER
+}
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.pv.PvAgent.neededServices
@@ -21,11 +26,6 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModel
 import edu.ie3.simona.agent.participant.statedata.{
   DataCollectionStateData,
   ParticipantStateData
-}
-import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ZERO_POWER
 }
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
@@ -41,11 +41,10 @@ import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherService.FALLBACK_WEATHER_STEM_DISTANCE
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT_PER_SQUAREMETRE, PU}
+import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
 import squants.Each
-import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -136,11 +135,13 @@ protected trait PvAgentFundamentals
             .to(PU)
             .getValue
             .doubleValue
+        )
       ),
       ValueStore.forResult(resolution, 10),
       ValueStore(resolution * 10),
       ValueStore(resolution * 10)
     )
+
   }
 
   override def buildModel(
@@ -162,8 +163,7 @@ protected trait PvAgentFundamentals
   override val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[ApparentPower, PvRelevantData, PvModel],
-        ConstantState.type,
-        squants.Dimensionless
+      squants.Dimensionless
   ) => ApparentPower =
     (_, _, _) =>
       throw new InvalidRequestException(

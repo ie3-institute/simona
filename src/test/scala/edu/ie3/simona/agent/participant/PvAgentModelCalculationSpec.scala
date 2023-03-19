@@ -335,7 +335,7 @@ class PvAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution * 10,
-            Map(0L ->  Each(1.0))
+            Map(0L -> Each(1.0))
           )
           resultValueStore shouldBe ValueStore.forResult(resolution, 10)
           requestValueStore shouldBe ValueStore[ApparentPower](resolution * 10)
