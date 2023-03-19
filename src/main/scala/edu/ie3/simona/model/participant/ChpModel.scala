@@ -6,16 +6,13 @@
 
 package edu.ie3.simona.model.participant
 
-import java.util.UUID
-
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.ChpInput
 import edu.ie3.simona.model.participant.ChpModel._
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.{MutableStorage, ThermalStorage}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import squants.energy.{KilowattHours, Kilowatts}
+import squants.energy._
 import squants.time.Seconds
 
 import java.util.UUID
@@ -354,11 +351,7 @@ case object ChpModel {
       operationInterval,
       scalingFactor = 1.0,
       qControl,
-      Kilowatts(
-        chpInput.getType.getsRated
-          .to(PowerSystemUnits.KILOWATT)
-          .getValue
-          .doubleValue
+      Kilowatts(chpInput.getType.getsRated.getValue.doubleValue()
       ),
       chpInput.getType.getCosPhiRated,
       Kilowatts(

@@ -31,7 +31,7 @@ trait MutableStorage {
     * @return
     *   usable energy
     */
-  def usableThermalEnergy: ComparableQuantity[Energy]
+  def usableThermalEnergy: squants.Energy
 
   /** Add energy to storage and check if stored energy exceeds maximum. Return
     * the potential surplus energy.
