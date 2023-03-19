@@ -473,7 +473,7 @@ class ExtEvDataServiceSpec
 
       // return evs to ev service
       val updatedEvA = evA.copyWith(
-        Quantities.getQuantity(6, PowerSystemUnits.KILOWATTHOUR)
+        Quantities.getQuantity(6.0, PowerSystemUnits.KILOWATTHOUR)
       )
 
       evcs1.send(
@@ -488,7 +488,7 @@ class ExtEvDataServiceSpec
       extData.receiveTriggerQueue shouldBe empty
 
       val updatedEvB = evB.copyWith(
-        Quantities.getQuantity(4, PowerSystemUnits.KILOWATTHOUR)
+        Quantities.getQuantity(4.0, PowerSystemUnits.KILOWATTHOUR)
       )
 
       evcs2.send(

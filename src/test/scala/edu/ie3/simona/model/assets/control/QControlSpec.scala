@@ -24,16 +24,19 @@ import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtil
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 
 import javax.measure.quantity.Dimensionless
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
+import squants.Each
 import tech.units.indriya.quantity.Quantities._
 
 import scala.collection.immutable.TreeSet
 
 class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
 
-  final val defaultTolerance = 1e-12
+  private val defaultTolerance = 1e-12
+  private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-12)
 
   val validCosPhiPInput: characteristic.CosPhiP = new CosPhiPInput(
     "cosPhiP:{(0.0,-1.0),(0.5,-0.8),(1.0,-0.2)}"
@@ -71,7 +74,7 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
       intercept[QControlException](
         QControl(invalidInput)
-      ).getMessage shouldBe "Got an invalid definition of fixed power factor: cosPhiFixed{points=[CharacteristicCoordinate{x=1 p.u., y=2 p.u.}, CharacteristicCoordinate{x=3 p.u., y=4 p.u.}]}. It may only contain one coordinate"
+      ).getMessage shouldBe "Got an invalid definition of fixed power factor: cosPhiFixed{points=[CharacteristicCoordinate{x=1.0 p.u., y=2.0 p.u.}, CharacteristicCoordinate{x=3.0 p.u., y=4.0 p.u.}]}. It may only contain one coordinate"
     }
 
     "parse a valid CosPhiFixed correctly" in {
@@ -118,8 +121,7 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
       val requestedValue = getQuantity(0.5, PU)
       QuantityUtil.isEquivalentAbs(
         validCosPhiP.cosPhi(requestedValue),
-        getQuantity(-0.8, PU),
-        defaultTolerance
+        getQuantity(-0.8, PU)
       ) shouldBe true
     }
 
@@ -148,7 +150,7 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
   }
 
   "A valid Q(V) control" should {
-    val qMax = getQuantity(250d, MEGAVAR)
+    val qMax = Megavars(250.0)
 
     "return correct reactive power for a linear function" in {
       val validQV =
@@ -175,11 +177,7 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
       )
 
       forAll(testingPoints) { (v: Double, scaleExpected: Double) =>
-        QuantityUtil.isEquivalentAbs(
-          validQV.q(getQuantity(v, PU), qMax),
-          qMax.multiply(scaleExpected),
-          defaultTolerance
-        ) shouldBe true
+        (validQV.q(Each(v), qMax) ~= qMax * scaleExpected) shouldBe true
       }
     }
 
@@ -217,11 +215,7 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
       )
 
       forAll(testingPoints) { (v: Double, scaleExpected: Double) =>
-        QuantityUtil.isEquivalentAbs(
-          validQV.q(getQuantity(v, PU), qMax),
-          qMax.multiply(scaleExpected),
-          defaultTolerance
-        ) shouldBe true
+        (validQV.q(Each(v), qMax) ~= qMax * scaleExpected) shouldBe true
       }
     }
   }

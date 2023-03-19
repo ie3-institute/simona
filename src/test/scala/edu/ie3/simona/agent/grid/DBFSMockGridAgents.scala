@@ -19,6 +19,8 @@ import edu.ie3.simona.ontology.messages.VoltageMessage.{
   RequestSlackVoltageMessage
 }
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
+import squants.energy.Megawatts
 
 import java.util.UUID
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
@@ -30,6 +32,8 @@ import scala.language.postfixOps
   */
 trait DBFSMockGridAgents extends UnitSpec {
   private val floatPrecision: Double = 0.00000000001
+  private implicit val powerTolerance: squants.Power = Megawatts(1e-10)
+  private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-10)
 
   sealed trait GAActorAndModel {
     val gaProbe: TestProbe
@@ -120,14 +124,8 @@ trait DBFSMockGridAgents extends UnitSpec {
           expectedExchangedPowers.foreach { expectedPower =>
             exchangedPower.find(_.nodeUuid == expectedPower.nodeUuid) match {
               case Some(ExchangePower(_, actualP, actualQ)) =>
-                actualP should equalWithTolerance(
-                  expectedPower.p,
-                  floatPrecision
-                )
-                actualQ should equalWithTolerance(
-                  expectedPower.q,
-                  floatPrecision
-                )
+                (actualP ~= expectedPower.p) shouldBe true
+                (actualQ ~= expectedPower.q) shouldBe true
               case None =>
                 fail(
                   s"Expected ExchangePower with node UUID ${expectedPower.nodeUuid} " +

@@ -12,9 +12,10 @@ import edu.ie3.simona.model.participant.HpModel._
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalHouse
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
-import squants.energy.Megawatts
+import squants.energy.{Kilowatts, Megawatts}
 import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
@@ -179,8 +180,9 @@ case object HpModel {
   final case class HpState(
       isRunning: Boolean,
       lastTimeTick: Long,
+      ambientTemperature: squants.Temperature,
       activePower: squants.Power,
-      innerTemperature: squants.Temperature,
+      qDot: squants.Power
   )
 
   /** Main data required for simulation/calculation, containing a [[HpState]]
@@ -236,9 +238,12 @@ case object HpModel {
           .doubleValue
       ),
       hpInput.getType.getCosPhiRated,
-        .to(PowerSystemUnits.KILOWATT)
-        .getValue
-        .doubleValue,
+      Kilowatts(
+        hpInput.getType.getpThermal
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
       thermalHouse
     )
   }
