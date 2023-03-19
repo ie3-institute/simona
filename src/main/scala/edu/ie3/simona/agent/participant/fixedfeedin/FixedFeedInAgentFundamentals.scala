@@ -141,7 +141,8 @@ protected trait FixedFeedInAgentFundamentals
             .getvTarget()
             .to(PU)
             .getValue
-            .doubleValue)
+            .doubleValue
+        )
       ),
       ValueStore.forResult(resolution, 2),
       ValueStore(resolution),
@@ -168,7 +169,7 @@ protected trait FixedFeedInAgentFundamentals
         FixedRelevantData.type,
         FixedFeedInModel
       ],
-        squants.Dimensionless
+      squants.Dimensionless
   ) => ApparentPower = (
       currentTick: Long,
       baseStateData: ParticipantModelBaseStateData[
@@ -176,7 +177,7 @@ protected trait FixedFeedInAgentFundamentals
         FixedRelevantData.type,
         FixedFeedInModel
       ],
-  voltage: squants.Dimensionless
+      voltage: squants.Dimensionless
   ) =>
     baseStateData.model match {
       case fixedModel: FixedFeedInModel =>

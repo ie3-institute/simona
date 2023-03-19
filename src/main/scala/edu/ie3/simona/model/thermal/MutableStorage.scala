@@ -21,7 +21,7 @@ trait MutableStorage {
     */
   protected var _storedEnergy: ComparableQuantity[Energy]
 
-  def isDemandCoveredByStorage(demand: ComparableQuantity[Energy]): Boolean =
+  def isDemandCoveredByStorage(demand: squants.Energy): Boolean =
     usableThermalEnergy.isGreaterThanOrEqualTo(demand)
 
   /** Overridden in such manner, that this method returns the usable thermal
@@ -42,8 +42,8 @@ trait MutableStorage {
     *   surplus
     */
   def tryToStoreAndReturnRemainder(
-      addedEnergy: ComparableQuantity[Energy]
-  ): Option[ComparableQuantity[Energy]]
+      addedEnergy: squants.Energy
+  ): Option[squants.Energy]
 
   /** Take energy from storage and check if stored energy falls to minimum.
     * Return the potential lack of energy.
@@ -54,6 +54,6 @@ trait MutableStorage {
     *   lack
     */
   def tryToTakeAndReturnLack(
-      takenEnergy: ComparableQuantity[Energy]
-  ): Option[ComparableQuantity[Energy]]
+      addedEnergy: squants.Energy
+  ): Option[squants.Energy]
 }

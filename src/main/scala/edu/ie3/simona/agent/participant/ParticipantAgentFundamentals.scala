@@ -11,7 +11,6 @@ import akka.event.LoggingAdapter
 import akka.util
 import akka.util.Timeout
 import breeze.numerics.{ceil, floor, pow, sqrt}
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
@@ -853,8 +852,7 @@ protected trait ParticipantAgentFundamentals[
             fInPu.toEach,
             2
           )
-        ),
-        PU
+        )
       )
       val lastNodalVoltage =
         baseStateData.voltageValueStore.last(requestTick)
@@ -1385,11 +1383,11 @@ protected trait ParticipantAgentFundamentals[
       baseStateData: ParticipantModelBaseStateData[PD, CD, M],
       currentTick: Long,
       scheduler: ActorRef,
-      nodalVoltage: ComparableQuantity[Dimensionless],
+      nodalVoltage: squants.Dimensionless,
       calculateModelPowerFunc: (
           Long,
           ParticipantModelBaseStateData[PD, CD, M],
-          ComparableQuantity[Dimensionless]
+          squants.Dimensionless
       ) => PD
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     val result =
@@ -1534,7 +1532,7 @@ protected trait ParticipantAgentFundamentals[
       tick: Long,
       activePower: squants.Power,
       reactivePower: ReactivePower
-  )(implicit outputConfig: NotifierConfig): Unit =
+  )(implicit outputConfig: ParticipantNotifierConfig): Unit =
     if (outputConfig.powerRequestReply) {
       log.warning(
         "Writing out power request replies is currently not supported!"

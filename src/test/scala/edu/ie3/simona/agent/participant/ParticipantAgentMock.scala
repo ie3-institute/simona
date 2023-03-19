@@ -94,7 +94,7 @@ class ParticipantAgentMock(
         FixedRelevantData.type,
         SystemParticipant[FixedRelevantData.type]
       ],
-        squants.Dimensionless
+      squants.Dimensionless
   ) => ApparentPower = (_, _, _) =>
     // output different from default (0, 0)
     ApparentPower(

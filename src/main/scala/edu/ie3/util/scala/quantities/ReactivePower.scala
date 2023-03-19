@@ -22,10 +22,10 @@ import squants.{
 }
 
 final class ReactivePower private (
-  val value: Double,
-  val unit: ReactivePowerUnit
+    val value: Double,
+    val unit: ReactivePowerUnit
 ) extends Quantity[ReactivePower]
-  with TimeIntegral[PowerRamp] {
+    with TimeIntegral[PowerRamp] {
 
   def dimension = ReactivePower
 
@@ -47,7 +47,7 @@ final class ReactivePower private (
 
 object ReactivePower extends Dimension[ReactivePower] {
   private[quantities] def apply[A](n: A, unit: ReactivePowerUnit)(implicit
-    num: Numeric[A]
+      num: Numeric[A]
   ) = new ReactivePower(num.toDouble(n), unit)
   def apply(energy: Energy, time: Time): ReactivePower =
     apply(energy.toWattHours / time.toHours, Vars)
@@ -60,7 +60,7 @@ object ReactivePower extends Dimension[ReactivePower] {
 }
 
 trait ReactivePowerUnit
-  extends UnitOfMeasure[ReactivePower]
+    extends UnitOfMeasure[ReactivePower]
     with UnitConverter {
   def apply[A](n: A)(implicit num: Numeric[A]) = ReactivePower(n, this)
 }

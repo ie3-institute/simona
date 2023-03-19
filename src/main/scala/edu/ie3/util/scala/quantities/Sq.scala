@@ -18,5 +18,4 @@ object Sq {
         unit.apply(i.intValue())
     }
   }
-
 }

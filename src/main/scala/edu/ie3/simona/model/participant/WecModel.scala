@@ -9,12 +9,19 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.characteristic.WecCharacteristicInput
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.WecModel.{WecCharacteristic, WecRelevantData}
+import edu.ie3.simona.model.participant.WecModel.{
+  WecCharacteristic,
+  WecRelevantData
+}
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.util.quantities.EmptyQuantity
-import edu.ie3.util.quantities.PowerSystemUnits.{KILOGRAM_PER_CUBIC_METRE, KILOWATT, MEGAWATT}
+import edu.ie3.util.quantities.PowerSystemUnits.{
+  KILOGRAM_PER_CUBIC_METRE,
+  KILOWATT,
+  MEGAWATT
+}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.quantities.interfaces.{Density, HeatCapacity}
 import edu.ie3.util.scala.OperationInterval

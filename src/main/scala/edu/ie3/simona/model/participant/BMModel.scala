@@ -20,7 +20,7 @@ import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power, Temperature}
+import javax.measure.quantity.{Power, Temperature}
 import scala.math._
 
 /** This class represents a single biomass plant
@@ -44,7 +44,7 @@ final case class BMModel(
       operationInterval,
       scalingFactor,
       qControl,
-      sRated,
+      Kilowatts(sRated.to(KILOWATT).getValue.doubleValue),
       cosPhi
     ) {
 
@@ -55,7 +55,6 @@ final case class BMModel(
   override def calculatePower(
       tick: Long,
       voltage: squants.Dimensionless,
-      voltage: ComparableQuantity[Dimensionless],
       data: BMCalcRelevantData
   ): ApparentPower = {
     val result = super.calculatePower(tick, voltage, data)

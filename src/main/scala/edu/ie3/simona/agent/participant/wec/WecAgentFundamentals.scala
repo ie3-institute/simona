@@ -43,7 +43,7 @@ import edu.ie3.util.quantities.EmptyQuantity
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
-import squants.Each
+import squants.{Dimensionless, Each}
 import tech.units.indriya.unit.Units.PASCAL
 
 import java.time.ZonedDateTime
@@ -159,7 +159,7 @@ protected trait WecAgentFundamentals
   override val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[ApparentPower, WecRelevantData, WecModel],
-        squants.Dimensionless
+      squants.Dimensionless
   ) => ApparentPower =
     (
         _: Long,

@@ -313,7 +313,7 @@ case object LoadAgentFundamentals {
           FixedLoadRelevantData.type,
           FixedLoadModel
         ],
-          squants.Dimensionless
+        squants.Dimensionless
     ) => ApparentPower = (
         tick: Long,
         baseStateData: ParticipantModelBaseStateData[
@@ -321,7 +321,7 @@ case object LoadAgentFundamentals {
           FixedLoadRelevantData.type,
           FixedLoadModel
         ],
-    voltage: squants.Dimensionless
+        voltage: squants.Dimensionless
     ) =>
       baseStateData.model.calculatePower(tick, voltage, FixedLoadRelevantData)
   }
@@ -354,7 +354,7 @@ case object LoadAgentFundamentals {
           ProfileRelevantData,
           ProfileLoadModel
         ],
-        ComparableQuantity[Dimensionless]
+        squants.Dimensionless
     ) => ApparentPower = (tick, baseStateData, voltage) => {
       val profileLoadModel = baseStateData.model
       val profileRelevantData = ProfileRelevantData(
@@ -392,7 +392,7 @@ case object LoadAgentFundamentals {
           RandomRelevantData,
           RandomLoadModel
         ],
-        ComparableQuantity[Dimensionless]
+        squants.Dimensionless
     ) => ApparentPower = (tick, baseStateData, voltage) => {
       val randomLoadModel = baseStateData.model
       val profileRelevantData = RandomRelevantData(

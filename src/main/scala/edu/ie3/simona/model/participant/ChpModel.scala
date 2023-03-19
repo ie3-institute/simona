@@ -278,7 +278,7 @@ final case class ChpModel(
     *   total usable energy
     */
   private def totalUsableEnergy(
-    chpData: ChpData
+      chpData: ChpData
   ): squants.Energy =
     storage.usableThermalEnergy + chpEnergy(chpData)
 
