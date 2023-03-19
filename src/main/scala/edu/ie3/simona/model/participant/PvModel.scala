@@ -12,12 +12,11 @@ import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.quantities.interfaces.{Irradiance, Irradiation}
 import edu.ie3.util.scala.OperationInterval
-import squants.Each
+import squants.{Each, Energy}
 import squants.energy.{Kilowatts, Megawatts, WattHours}
+import squants.radio.{Irradiance, SquareMeterSeconds}
 import squants.space.{Degrees, Radians, SquareMeters}
-import squants.time.Seconds
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
@@ -41,7 +40,7 @@ final case class PvModel private (
     private val alphaE: squants.Angle,
     private val gammaE: squants.Angle,
     private val moduleSurface: squants.Area = SquareMeters(1d)
-) extends SystemParticipant[PvRelevantData, ApparentPower, ConstantState.type](
+) extends SystemParticipant[PvRelevantData](
       uuid,
       id,
       operationInterval,
@@ -60,7 +59,7 @@ final case class PvModel private (
   protected val pMax: squants.Power = sMax * cosPhiRated * -1d
 
   /** Reference yield at standard testing conditions (STC) */
-  private val yieldSTC = Kilowatts(1d) // FIXME should be per area
+  private val yieldSTC = squants.space.Area(1d)
 
   private val activationThreshold = sRated * cosPhiRated * 0.001 * -1d
 
@@ -82,7 +81,9 @@ final case class PvModel private (
     /* The pv model calculates the power in-feed based on the solar irradiance that is received over a specific
      * time frame (which actually is the solar irradiation). Hence, a multiplication with the time frame within
      * this irradiance is received is required. */
-    val duration = Seconds(data.weatherDataFrameLength)
+    val duration: squants.radio.AreaTime = SquareMeterSeconds(
+      data.weatherDataFrameLength
+    )
 
     // eBeamH and eDifH needs to be extract to their double values in some places
     // hence a conversion to watt-hour per square meter is required, to avoid
@@ -341,7 +342,7 @@ final case class PvModel private (
     */
   private def calcExtraterrestrialRadiationI0(
       J: squants.Angle
-  ): squants.Energy = { // FIXME Irradiation
+  ): squants.radio.Irradiance = {
     val jInRad = J.toRadians
 
     // eccentricity correction factor
@@ -353,7 +354,7 @@ final case class PvModel private (
 
     // solar constant in W/m2
     val Gsc = 1367 // solar constant
-    WattHours(Gsc * e0)
+    Irradiance(Gsc * e0).get
   }
 
   /** Calculates the angle of incidence thetaG of beam radiation on a surface
@@ -484,13 +485,13 @@ final case class PvModel private (
     *   the beam radiation on the sloped surface
     */
   private def calcBeamRadiationOnSlopedSurface(
-      eBeamH: squants.Energy, // FIXME Irradiation
+      eBeamH: squants.radio.Irradiance,
       omegas: Option[(squants.Angle, squants.Angle)],
       delta: squants.Angle,
       latitudeInRad: squants.Angle,
       gammaE: squants.Angle,
       alphaE: squants.Angle
-  ): squants.Energy = { // FIXME Irradiation
+  ): squants.radio.Irradiance = {
 
     omegas match {
       case Some((omega1, omega2)) =>
@@ -523,7 +524,7 @@ final case class PvModel private (
         // in rare cases (close to sunrise) r can become negative (although very small)
         val r = max(a / b, 0d)
         eBeamH * r
-      case None => WattHours(0d)
+      case None => Irradiance(0d).get
     }
   }
 
@@ -553,14 +554,14 @@ final case class PvModel private (
     *   the diffuse radiation on the sloped surface
     */
   private def calcDiffuseRadiationOnSlopedSurfacePerez(
-      eDifH: squants.Energy, // FIXME Irradiation
-      eBeamH: squants.Energy, // FIXME Irradiation
+      eDifH: squants.radio.Irradiance,
+      eBeamH: squants.radio.Irradiance,
       airMass: Double,
-      I0: squants.Energy, // FIXME Irradiation
+      I0: squants.radio.Irradiance,
       thetaZ: squants.Angle,
       thetaG: squants.Angle,
       gammaE: squants.Angle
-  ): squants.Energy = { // FIXME Irradiation
+  ): squants.radio.Irradiance = {
     val thetaZValue = thetaZ.toRadians
     val thetaGValue = thetaG.toRadians
     val gammaEValue = gammaE.toRadians
@@ -572,7 +573,7 @@ final case class PvModel private (
     // if we have no clouds,  the epsilon bin is 8, as epsilon bin for an epsilon in [6.2, inf.[ = 8
     var x = 8
 
-    if (eDifH.toWattHours > 0) {
+    if (eDifH.toWattsPerSquareMeter > 0) {
       // if we have diffuse radiation on horizontal surface we have to check if we have another epsilon due to clouds get the epsilon
       var epsilon = ((eDifH + eBeamH) / eDifH +
         (5.535d * 1.0e-6) * pow(
@@ -656,11 +657,11 @@ final case class PvModel private (
     *   the reflected radiation on the sloped surface eRefS
     */
   private def calcReflectedRadiationOnSlopedSurface(
-      eBeamH: squants.Energy, // FIXME Irradiation
-      eDifH: squants.Energy, // FIXME Irradiation
+      eBeamH: squants.radio.Irradiance,
+      eDifH: squants.radio.Irradiance,
       gammaE: squants.Angle,
       albedo: Double
-  ): squants.Energy = { // FIXME Irradiation
+  ): squants.radio.Irradiance = {
     val gammaEValue = gammaE.toRadians
     (eBeamH + eDifH) * (albedo * 0.5 * (1 - cos(gammaEValue)))
   }
@@ -701,9 +702,9 @@ final case class PvModel private (
   }
 
   private def calcOutput(
-      eTotalInKWhPerSM: squants.Energy, // FIXME Irradiation
+      eTotalInKWhPerSM: squants.radio.Irradiance,
       time: ZonedDateTime,
-      irraditionSTC: squants.Energy // FIXME Irradiation
+      irraditionSTC: squants.radio.Irradiance
   ): squants.Power = {
     val genCorr = generatorCorrectionFactor(time, gammaE)
     val tempCorr = temperatureCorrectionFactor(time)
@@ -751,8 +752,8 @@ case object PvModel {
   final case class PvRelevantData(
       dateTime: ZonedDateTime,
       weatherDataFrameLength: Long,
-      diffIrradiance: squants.Power, // FIXME Irradiance as power per area
-      dirIrradiance: squants.Power // FIXME Irradiance
+      diffIrradiance: Irradiance,
+      dirIrradiance: Irradiance
   ) extends CalcRelevantData
 
   def apply(
