@@ -1,5 +1,5 @@
 /*
- * © 2022. TU Dortmund University,
+ * © 2023. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
@@ -120,6 +120,66 @@ object SimonaConfig {
       val scaling: scala.Double,
       val uuids: scala.List[java.lang.String]
   ) extends java.io.Serializable
+
+  final case class ChpRuntimeConfig(
+      override val calculateMissingReactivePowerWithModel: scala.Boolean,
+      override val scaling: scala.Double,
+      override val uuids: scala.List[java.lang.String]
+  ) extends BaseRuntimeConfig(
+        calculateMissingReactivePowerWithModel,
+        scaling,
+        uuids
+      )
+  object ChpRuntimeConfig {
+    def apply(
+        c: com.typesafe.config.Config,
+        parentPath: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): SimonaConfig.ChpRuntimeConfig = {
+      SimonaConfig.ChpRuntimeConfig(
+        calculateMissingReactivePowerWithModel = $_reqBln(
+          parentPath,
+          c,
+          "calculateMissingReactivePowerWithModel",
+          $tsCfgValidator
+        ),
+        scaling = $_reqDbl(parentPath, c, "scaling", $tsCfgValidator),
+        uuids = $_L$_str(c.getList("uuids"), parentPath, $tsCfgValidator)
+      )
+    }
+    private def $_reqBln(
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): scala.Boolean = {
+      if (c == null) false
+      else
+        try c.getBoolean(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            false
+        }
+    }
+
+    private def $_reqDbl(
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): scala.Double = {
+      if (c == null) 0
+      else
+        try c.getDouble(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            0
+        }
+    }
+
+  }
 
   sealed abstract class CsvParams(
       val csvSep: java.lang.String,
@@ -1914,6 +1974,7 @@ object SimonaConfig {
       }
 
       final case class Participant(
+          chp: SimonaConfig.Simona.Runtime.Participant.Chp,
           evcs: SimonaConfig.Simona.Runtime.Participant.Evcs,
           fixedFeedIn: SimonaConfig.Simona.Runtime.Participant.FixedFeedIn,
           load: SimonaConfig.Simona.Runtime.Participant.Load,
@@ -1922,6 +1983,51 @@ object SimonaConfig {
           wec: SimonaConfig.Simona.Runtime.Participant.Wec
       )
       object Participant {
+        final case class Chp(
+            defaultConfig: SimonaConfig.ChpRuntimeConfig,
+            individualConfigs: scala.List[SimonaConfig.ChpRuntimeConfig]
+        )
+        object Chp {
+          def apply(
+              c: com.typesafe.config.Config,
+              parentPath: java.lang.String,
+              $tsCfgValidator: $TsCfgValidator
+          ): SimonaConfig.Simona.Runtime.Participant.Chp = {
+            SimonaConfig.Simona.Runtime.Participant.Chp(
+              defaultConfig = SimonaConfig.ChpRuntimeConfig(
+                if (c.hasPathOrNull("defaultConfig"))
+                  c.getConfig("defaultConfig")
+                else
+                  com.typesafe.config.ConfigFactory
+                    .parseString("defaultConfig{}"),
+                parentPath + "defaultConfig.",
+                $tsCfgValidator
+              ),
+              individualConfigs = $_LSimonaConfig_ChpRuntimeConfig(
+                c.getList("individualConfigs"),
+                parentPath,
+                $tsCfgValidator
+              )
+            )
+          }
+          private def $_LSimonaConfig_ChpRuntimeConfig(
+              cl: com.typesafe.config.ConfigList,
+              parentPath: java.lang.String,
+              $tsCfgValidator: $TsCfgValidator
+          ): scala.List[SimonaConfig.ChpRuntimeConfig] = {
+            import scala.jdk.CollectionConverters._
+            cl.asScala
+              .map(cv =>
+                SimonaConfig.ChpRuntimeConfig(
+                  cv.asInstanceOf[com.typesafe.config.ConfigObject].toConfig,
+                  parentPath,
+                  $tsCfgValidator
+                )
+              )
+              .toList
+          }
+        }
+
         final case class Evcs(
             defaultConfig: SimonaConfig.EvcsRuntimeConfig,
             individualConfigs: scala.List[SimonaConfig.EvcsRuntimeConfig]
@@ -2153,6 +2259,12 @@ object SimonaConfig {
             $tsCfgValidator: $TsCfgValidator
         ): SimonaConfig.Simona.Runtime.Participant = {
           SimonaConfig.Simona.Runtime.Participant(
+            chp = SimonaConfig.Simona.Runtime.Participant.Chp(
+              if (c.hasPathOrNull("chp")) c.getConfig("chp")
+              else com.typesafe.config.ConfigFactory.parseString("chp{}"),
+              parentPath + "chp.",
+              $tsCfgValidator
+            ),
             evcs = SimonaConfig.Simona.Runtime.Participant.Evcs(
               if (c.hasPathOrNull("evcs")) c.getConfig("evcs")
               else com.typesafe.config.ConfigFactory.parseString("evcs{}"),
