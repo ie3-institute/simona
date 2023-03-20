@@ -92,12 +92,12 @@ trait BasicGridWithSwitches extends BasicGrid {
   // add nodes to nodeUuidToIndexMap
   override protected def nodeUuidToIndexMap: Map[UUID, Int] =
     super.nodeUuidToIndexMap ++ Map(
-      UUID.fromString("69f08e1d-725d-4bae-80c3-5b5a472493c9") -> 7,
-      UUID.fromString("c09cb11f-4e2c-4871-84c6-a22dc6702679") -> 8,
-      UUID.fromString("2b45e1e2-591e-49c1-bcbe-0e4ceed79c9b") -> 9,
-      UUID.fromString("8aec5998-9c8a-453d-8556-e8630f4c053a") -> 10,
-      UUID.fromString("e1002827-0430-4ba0-950f-8107fefc09fa") -> 11,
-      UUID.fromString("4ab4904e-dde3-4591-8eb5-3e0ca4fd8e3d") -> 12
+      node13.uuid -> 7,
+      node14.uuid -> 8,
+      node15.uuid -> 9,
+      node16.uuid -> 10,
+      node17.uuid -> 11,
+      node18.uuid -> 12
     )
 
   // rebuild lines

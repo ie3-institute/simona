@@ -197,12 +197,12 @@ trait FiveLinesWithNodes {
   // nodeToIndexMap
   protected def nodeUuidToIndexMap: Map[UUID, Int] =
     Map(
-      UUID.fromString("51c03963-f28b-4892-9053-c6bb58d20a45") -> 0,
-      UUID.fromString("890fb76c-2c6c-4eea-a47d-cf0244750718") -> 1,
-      UUID.fromString("be77fa50-613e-4fc9-854a-cfb694443e2f") -> 2,
-      UUID.fromString("9a41fd03-fb9a-4966-925e-d847a28ca97d") -> 3,
-      UUID.fromString("7f058275-476a-4d84-b1fa-12381204ac4f") -> 4,
-      UUID.fromString("ea93feca-0947-4869-a961-9cf942143feb") -> 5
+      node0.uuid -> 0,
+      node1.uuid -> 1,
+      node2.uuid -> 2,
+      node3.uuid -> 3,
+      node4.uuid -> 4,
+      node5.uuid -> 5
     )
 
   // corresponding admittance matrix
