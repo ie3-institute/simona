@@ -68,19 +68,19 @@ final case class HpModel(
     sRated * cosPhiRated * scalingFactor
 
   /** As this is a state-full model (with respect to the current operation
-    * condition and inner temperature), the power calculation operates on the
-    * current state of the model, which has to be calculated beforehand by
-    * [[HpModel.calculateNextState]]. This state then is fed into the power
-    * calculation logic by <i>hpData</i>.
-    *
-    * @param hpData
-    *   data of heat pump including state of the heat pump
-    * @return
-    *   active power
-    */
+   * condition and inner temperature), the power calculation operates on the
+   * current state of the model, which has to be calculated beforehand by
+   * [[HpModel.calculateNextState]]. This state then is fed into the power
+   * calculation logic by <i>hpData</i>.
+   *
+   * @param hpData
+   * data of heat pump including state of the heat pump
+   * @return
+   * active power
+   */
   override protected def calculateActivePower(
-      hpData: HpData
-  ): ComparableQuantity[Power] = {
+    hpData: HpData
+  ): squants.Power = {
     calculateNextState(hpData)
     hpData.hpState.activePower
   }
@@ -116,7 +116,8 @@ final case class HpModel(
   def operatesInNextState(hpData: HpData): Boolean = {
     val isRunning = hpData.hpState.isRunning
     val tooHigh =
-      thermalHouse.isInnerTemperatureTooHigh(hpData.hpState.innerTemperature)
+      thermalHouse.isInnerTemperatureTooHigh(hpData.hpState.
+        innerTemperature)
     val tooLow =
       thermalHouse.isInnerTemperatureTooLow(hpData.hpState.innerTemperature)
 
@@ -182,7 +183,7 @@ case object HpModel {
       lastTimeTick: Long,
       ambientTemperature: squants.Temperature,
       activePower: squants.Power,
-      qDot: squants.Power
+      innerTemperature: squants.Temperature
   )
 
   /** Main data required for simulation/calculation, containing a [[HpState]]
