@@ -23,11 +23,20 @@ import java.util.UUID
   * [[FiveLinesWithNodes]] are used instead!
   *
   * {{{
-  * (6) / / trafo (5) /
-  * | /
-  * | / (0)--(15)S2(16)-----(3)-----(4)
-  * | (17) S3 (18)
-  * | (1)--(13)S1(14)-----(2)
+  *                             (6)
+  *                             /
+  *                            /
+  *                         trafo
+  *                     (5)  /
+  *                      |  /
+  *                      | /
+  * (0)--(15)S2(16)-----(3)-----(4)
+  * |
+  * (17)
+  * S3
+  * (18)
+  * |
+  * (1)--(13)S1(14)-----(2)
   * }}}
   */
 trait BasicGridWithSwitches extends BasicGrid {

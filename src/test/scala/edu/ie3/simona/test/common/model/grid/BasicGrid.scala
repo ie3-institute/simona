@@ -29,11 +29,17 @@ import javax.measure.quantity.{
   * used lines and nodes see [[FiveLinesWithNodes]].
   *
   * {{{
-  * (6) / / trafo (5) /
-  * | /
-  * | / (0)-----(3)-----(4)
+  *                  (6)
+  *                  /
+  *                 /
+  *             trafo
+  *         (5)  /
+  *          |  /
+  *          | /
+  * (0)-----(3)-----(4)
   * |
-  * | (1)-----(2)
+  * |
+  * (1)-----(2)
   * }}}
   *
   * Reference System: 400 kVA @ 10 kV --> Reference admittance: 4 mS

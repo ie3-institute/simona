@@ -88,6 +88,36 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
     }
 
+    "be able to build a valid line admittance matrix with switches" in new BasicGridWithSwitches {
+
+      val withClosedSwitches = gridClosedSwitches()
+      GridModel.updateUuidToIndexMap(withClosedSwitches)
+      val admittanceMatixClosed = GridModel.composeAdmittanceMatrix(
+        withClosedSwitches.nodeUuidToIndexMap,
+        withClosedSwitches.gridComponents
+      )
+
+      val withOpenSwitches = gridOpenSwitches()
+      GridModel.updateUuidToIndexMap(withOpenSwitches)
+      val admittanceMatrixOpen = GridModel.composeAdmittanceMatrix(
+        withOpenSwitches.nodeUuidToIndexMap,
+        withOpenSwitches.gridComponents
+      )
+
+      // dimension of admittance matrix with closed switches should be reduced by the number of closed switches
+      val closedSwitches =
+        withClosedSwitches.gridComponents.switches.filter(_.isClosed)
+      val numberClosedSwitches = closedSwitches.size
+      numberClosedSwitches should be > 0
+      admittanceMatixClosed.rows shouldBe admittanceMatrixOpen.rows - numberClosedSwitches
+      admittanceMatixClosed.cols shouldBe admittanceMatrixOpen.cols - numberClosedSwitches
+
+      // the admittance at the fused nodes should be the sum of the admittances of the two nodes when switches are open
+      closedSwitches.foreach(switch => {
+        ???
+      })
+    }
+
     // todo CK
     "be able to build a valid transformer admittance matrix for a" in {}
 
@@ -207,7 +237,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
     "update the nodeUuidToIndexMap correctly, when the given grid" must {
 
-      "contains 3 open switches" in new BasicGridWithSwitches {
+      "contain 3 open switches" in new BasicGridWithSwitches {
 
         // get the grid from the raw data
         val gridModel: GridModel = gridOpenSwitches()
@@ -233,7 +263,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
       }
 
-      "contains 3 closed switches" in new BasicGridWithSwitches {
+      "contain 3 closed switches" in new BasicGridWithSwitches {
 
         // get the grid from the raw data
         val gridModel: GridModel = gridClosedSwitches()
@@ -370,36 +400,6 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             )
           )
         )
-      }
-
-      "calculation of admittance matrix should respect closed switches" in new BasicGridWithSwitches {
-
-        val withClosedSwitches = gridClosedSwitches()
-        GridModel.updateUuidToIndexMap(withClosedSwitches)
-        val admittanceMatixClosed = GridModel.composeAdmittanceMatrix(
-          withClosedSwitches.nodeUuidToIndexMap,
-          withClosedSwitches.gridComponents
-        )
-
-        val withOpenSwitches = gridOpenSwitches()
-        GridModel.updateUuidToIndexMap(withOpenSwitches)
-        val admittanceMatrixOpen = GridModel.composeAdmittanceMatrix(
-          withOpenSwitches.nodeUuidToIndexMap,
-          withOpenSwitches.gridComponents
-        )
-
-        // dimension of admittance matrix with closed switches should be reduced by the number of closed switches
-        val closedSwitches =
-          withClosedSwitches.gridComponents.switches.filter(_.isClosed)
-        val numberClosedSwitches = closedSwitches.size
-        numberClosedSwitches should be > 0
-        admittanceMatixClosed.rows shouldBe admittanceMatrixOpen.rows - numberClosedSwitches
-        admittanceMatixClosed.cols shouldBe admittanceMatrixOpen.cols - numberClosedSwitches
-
-        // the admittance at the fused nodes should be the sum of the admittances of the two nodes when switches are open
-        closedSwitches.foreach(switch => {
-          ???
-        })
       }
 
       "contains no switches" in new BasicGrid {
