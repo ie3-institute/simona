@@ -14,6 +14,7 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent._
+import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
@@ -21,7 +22,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData._
-import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.statedata.{
   DataCollectionStateData,
   ParticipantStateData
@@ -43,14 +43,12 @@ import edu.ie3.util.quantities.EmptyQuantity
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
-import squants.{Dimensionless, Each}
 import tech.units.indriya.unit.Units.PASCAL
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
-import scala.util.{Failure, Success}
 
 protected trait WecAgentFundamentals
     extends ParticipantAgentFundamentals[
@@ -133,6 +131,7 @@ protected trait WecAgentFundamentals
         inputModel.getNode
           .getvTarget()
           .to(PU)
+          .asInstanceOf[squants.Dimensionless]
       ),
       ValueStore.forResult(resolution, 10),
       ValueStore(resolution * 10),
@@ -168,7 +167,6 @@ protected trait WecAgentFundamentals
           WecRelevantData,
           WecModel
         ],
-        _,
         _: squants.Dimensionless
     ) =>
       throw new InvalidRequestException(

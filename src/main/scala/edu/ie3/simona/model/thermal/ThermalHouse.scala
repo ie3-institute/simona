@@ -6,22 +6,18 @@
 
 package edu.ie3.simona.model.thermal
 
-import java.util.UUID
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
-import edu.ie3.datamodel.models.input.thermal.{ThermalBusInput, ThermalHouseInput}
-import edu.ie3.util.quantities.interfaces.{HeatCapacity, ThermalConductance}
-
-import javax.measure.quantity.{Energy, Power, Temperature, Time}
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.unit.Units.HOUR
-import squants.Kelvin
-import squants.energy.{KilowattHours, Kilowatts, MegawattHours, Megawatts}
-import squants.thermal.ThermalCapacity
-import squants.time.{Hours, Seconds}
-import tech.units.indriya.unit.Units
-import edu.ie3.simona.model.thermal.ThermalHouse.{ThermalHouseState, temperatureTolerance}
+import edu.ie3.datamodel.models.input.thermal.{
+  ThermalBusInput,
+  ThermalHouseInput
+}
+import edu.ie3.simona.model.thermal.ThermalHouse.temperatureTolerance
 import edu.ie3.util.quantities.PowerSystemUnits
+import squants.Kelvin
+import squants.energy.{KilowattHours, Kilowatts}
+import squants.thermal.ThermalCapacity
+import tech.units.indriya.unit.Units
 
 import java.util.UUID
 
@@ -49,10 +45,10 @@ final case class ThermalHouse(
     operatorInput: OperatorInput,
     operationTime: OperationTime,
     bus: ThermalBusInput,
-  ethLosses: squants.Power, // FIXME thermal conductance, power per 1K
-  ethCapa: ThermalCapacity,
-  lowerBoundaryTemperature: squants.Temperature,
-  upperBoundaryTemperature: squants.Temperature
+    ethLosses: squants.Power, // FIXME thermal conductance, power per 1K
+    ethCapa: ThermalCapacity,
+    lowerBoundaryTemperature: squants.Temperature,
+    upperBoundaryTemperature: squants.Temperature
 ) extends ThermalSink(
       uuid,
       id,
@@ -212,6 +208,9 @@ case object ThermalHouse {
     * @return
     *   a ready-to-use [[ThermalHouse]] with referenced electric parameters
     */
+
+  protected final def temperatureTolerance: squants.Temperature = Kelvin(0.01)
+
   def apply(
       input: ThermalHouseInput
   ): ThermalHouse =

@@ -13,8 +13,8 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.util.TickUtil
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.geo.CoordinateDistance
-import edu.ie3.util.quantities.PowerSystemUnits
 import org.locationtech.jts.geom.Point
+import squants.radio.WattsPerSquareMeter
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -69,18 +69,14 @@ final class SampleWeatherSource(
       else wallClockTime.get(YEAR)
     val index = (((year - 2011) * 288) + (month * 24) + hour) + 1
     val weatherResult = WeatherData(
-      Quantities
-        .getQuantity(
-          SampleWeatherSource.diffuseRadiation(index),
-          PowerSystemUnits.WATT_PER_SQUAREMETRE
-        )
-        .to(StandardUnits.SOLAR_IRRADIANCE),
-      Quantities
-        .getQuantity(
-          SampleWeatherSource.directRadiation(index),
-          PowerSystemUnits.WATT_PER_SQUAREMETRE
-        )
-        .to(StandardUnits.SOLAR_IRRADIANCE),
+      WattsPerSquareMeter(
+        SampleWeatherSource
+          .diffuseRadiation(index)
+          .doubleValue
+      ),
+      WattsPerSquareMeter(
+        SampleWeatherSource.directRadiation(index).doubleValue
+      ),
       Quantities
         .getQuantity(
           SampleWeatherSource.temperature(index),

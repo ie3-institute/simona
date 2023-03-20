@@ -38,6 +38,9 @@ import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.locationtech.jts.geom.{Coordinate, Point}
+import squants.radio
+import squants.radio.{Irradiance, WattsPerSquareMeter}
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -508,8 +511,8 @@ object WeatherSource {
     * "empty" concept best.
     */
   val EMPTY_WEATHER_DATA: WeatherData = WeatherData(
-    Quantities.getQuantity(0d, StandardUnits.SOLAR_IRRADIANCE),
-    Quantities.getQuantity(0d, StandardUnits.SOLAR_IRRADIANCE),
+    WattsPerSquareMeter(0.0),
+    WattsPerSquareMeter(0.0),
     Quantities.getQuantity(0d, Units.KELVIN).to(StandardUnits.TEMPERATURE),
     Quantities.getQuantity(0d, StandardUnits.WIND_VELOCITY)
   )
@@ -519,8 +522,24 @@ object WeatherSource {
   ): WeatherData = {
     WeatherData(
       weatherValue.getSolarIrradiance.getDiffuseIrradiance
+        .map(irradiance =>
+          WattsPerSquareMeter(
+            irradiance
+              .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
+              .getValue
+              .doubleValue()
+          )
+        )
         .orElse(EMPTY_WEATHER_DATA.diffIrr),
       weatherValue.getSolarIrradiance.getDirectIrradiance
+        .map(irradiance =>
+          WattsPerSquareMeter(
+            irradiance
+              .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
+              .getValue
+              .doubleValue()
+          )
+        )
         .orElse(EMPTY_WEATHER_DATA.dirIrr),
       weatherValue.getTemperature.getTemperature
         .orElse(EMPTY_WEATHER_DATA.temp),
@@ -558,5 +577,4 @@ object WeatherSource {
     val ICON: Value = Value("icon")
     val COSMO: Value = Value("cosmo")
   }
-
 }

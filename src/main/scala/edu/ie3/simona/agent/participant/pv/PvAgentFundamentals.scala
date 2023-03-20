@@ -45,6 +45,7 @@ import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
 import squants.Each
+import squants.radio.Irradiance
 
 import java.time.ZonedDateTime
 import java.util.UUID

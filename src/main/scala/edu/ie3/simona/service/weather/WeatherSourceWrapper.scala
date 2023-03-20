@@ -46,6 +46,10 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.DoubleUtils.ImplicitDouble
 import edu.ie3.util.exceptions.EmptyQuantityException
 import edu.ie3.util.interval.ClosedInterval
+import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.interfaces.Irradiance
+import squants.radio.{Irradiance, WattsPerSquareMeter}
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -146,7 +150,10 @@ private[weather] final case class WeatherSourceWrapper private (
           case EMPTY_WEATHER_DATA.diffIrr => (EMPTY_WEATHER_DATA.diffIrr, 0d)
           case nonEmptyDiffIrr =>
             calculateContrib(
-              nonEmptyDiffIrr,
+              Quantities.getQuantity(
+                nonEmptyDiffIrr.value.doubleValue,
+                PowerSystemUnits.WATT_PER_SQUAREMETRE
+              ),
               weight,
               StandardUnits.SOLAR_IRRADIANCE,
               s"Diffuse solar irradiance not available at $point."
@@ -156,7 +163,10 @@ private[weather] final case class WeatherSourceWrapper private (
           case EMPTY_WEATHER_DATA.`dirIrr` => (EMPTY_WEATHER_DATA.dirIrr, 0d)
           case nonEmptyDirIrr =>
             calculateContrib(
-              nonEmptyDirIrr,
+              Quantities.getQuantity(
+                nonEmptyDirIrr.value.doubleValue,
+                PowerSystemUnits.WATT_PER_SQUAREMETRE
+              ),
               weight,
               StandardUnits.SOLAR_IRRADIANCE,
               s"Direct solar irradiance not available at $point."
@@ -186,8 +196,8 @@ private[weather] final case class WeatherSourceWrapper private (
         /* Sum up weight and contributions */
         (
           WeatherData(
-            averagedWeather.diffIrr.add(diffIrrContrib),
-            averagedWeather.dirIrr.add(dirIrrContrib),
+            WattsPerSquareMeter(averagedWeather.diffIrr.value) + diffIrrContrib,
+            WattsPerSquareMeter(averagedWeather.dirIrr.value) + dirIrrContrib,
             averagedWeather.temp.add(tempContrib),
             averagedWeather.windVel.add(windVelContrib)
           ),

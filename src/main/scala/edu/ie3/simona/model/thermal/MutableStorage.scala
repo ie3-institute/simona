@@ -6,23 +6,21 @@
 
 package edu.ie3.simona.model.thermal
 
-import javax.measure.quantity.Energy
-import tech.units.indriya.ComparableQuantity
-
 /** This trait enables implementations of a [[ThermalStorage]], which need a
   * mutable storage. The trait can only be used by subclasses of
   * [[ThermalStorage]] (look [[self]]). <p> <strong>Important:</strong> The
   * field storedEnergy is a variable and set to 0kWh by default.
   */
+@deprecated("Use thermal storage state instead")
 trait MutableStorage {
   self: ThermalStorage =>
 
   /** Current storage level
     */
-  protected var _storedEnergy: ComparableQuantity[Energy]
+  protected var _storedEnergy: squants.Energy
 
   def isDemandCoveredByStorage(demand: squants.Energy): Boolean =
-    usableThermalEnergy.isGreaterThanOrEqualTo(demand)
+    usableThermalEnergy >= demand
 
   /** Overridden in such manner, that this method returns the usable thermal
     * energy, meaning that amount of energy which is allowed to be taken from
@@ -54,6 +52,6 @@ trait MutableStorage {
     *   lack
     */
   def tryToTakeAndReturnLack(
-      addedEnergy: squants.Energy
+      takenEnergy: squants.Energy
   ): Option[squants.Energy]
 }

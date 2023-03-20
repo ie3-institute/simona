@@ -13,10 +13,17 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
-import squants.{Each, Energy}
+import edu.ie3.util.scala.quantities.SquantsEnergyDensity
+import squants.{Each, radio}
 import squants.energy.{Kilowatts, Megawatts, WattHours}
-import squants.radio.{Irradiance, SquareMeterSeconds}
+import squants.radio.{
+  AreaTime,
+  Irradiance,
+  SquareMeterSeconds,
+  WattsPerSquareMeter
+}
 import squants.space.{Degrees, Radians, SquareMeters}
+import squants.time.Seconds
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
@@ -59,7 +66,7 @@ final case class PvModel private (
   protected val pMax: squants.Power = sMax * cosPhiRated * -1d
 
   /** Reference yield at standard testing conditions (STC) */
-  private val yieldSTC = squants.space.Area(1d)
+  private val yieldSTC = SquareMeters(1d)
 
   private val activationThreshold = sRated * cosPhiRated * 0.001 * -1d
 
@@ -81,16 +88,15 @@ final case class PvModel private (
     /* The pv model calculates the power in-feed based on the solar irradiance that is received over a specific
      * time frame (which actually is the solar irradiation). Hence, a multiplication with the time frame within
      * this irradiance is received is required. */
-    val duration: squants.radio.AreaTime = SquareMeterSeconds(
-      data.weatherDataFrameLength
-    )
-
+    val duration = Seconds(data.weatherDataFrameLength)
+    val area = SquareMeters(1d)
     // eBeamH and eDifH needs to be extract to their double values in some places
     // hence a conversion to watt-hour per square meter is required, to avoid
     // invalid double value extraction!
     val eBeamH =
-      data.dirIrradiance * duration // FIXME Irradiation as energy per area
-    val eDifH = data.diffIrradiance * duration // FIXME Irradiation
+      data.dirIrradiance * duration // FIXME Should be WATTHOUR_PER_SQUAREMETRE
+    val eDifH =
+      data.diffIrradiance * duration // FIXME Should be WATTHOUR_PER_SQUAREMETRE
 
     // === Beam Radiation Parameters  === //
     val J = calcJ(data.dateTime)
@@ -140,7 +146,7 @@ final case class PvModel private (
     // === Total Radiation ===//
     val eTotal = eDifS + eBeamS + eRefS
 
-    val irraditionSTC = yieldSTC * duration
+    val irraditionSTC: squants.Energy = yieldSTC * duration
     calcOutput(
       eTotal,
       data.dateTime,
@@ -342,7 +348,7 @@ final case class PvModel private (
     */
   private def calcExtraterrestrialRadiationI0(
       J: squants.Angle
-  ): squants.radio.Irradiance = {
+  ): squants.Energy = {
     val jInRad = J.toRadians
 
     // eccentricity correction factor
@@ -353,8 +359,8 @@ final case class PvModel private (
     ) + 0.000077 * sin(2d * jInRad)
 
     // solar constant in W/m2
-    val Gsc = 1367 // solar constant
-    Irradiance(Gsc * e0).get
+    val Gsc = WattsPerSquareMeter(1367) // solar constant
+    (Gsc * e0) // FIXME Should be Wh / m²
   }
 
   /** Calculates the angle of incidence thetaG of beam radiation on a surface
@@ -485,13 +491,14 @@ final case class PvModel private (
     *   the beam radiation on the sloped surface
     */
   private def calcBeamRadiationOnSlopedSurface(
-      eBeamH: squants.radio.Irradiance,
+      eBeamH: squants.Energy,
       omegas: Option[(squants.Angle, squants.Angle)],
       delta: squants.Angle,
       latitudeInRad: squants.Angle,
       gammaE: squants.Angle,
       alphaE: squants.Angle
-  ): squants.radio.Irradiance = {
+  ): squants.Energy // FIXME Should be Wh/m²
+  = {
 
     omegas match {
       case Some((omega1, omega2)) =>
@@ -524,7 +531,7 @@ final case class PvModel private (
         // in rare cases (close to sunrise) r can become negative (although very small)
         val r = max(a / b, 0d)
         eBeamH * r
-      case None => Irradiance(0d).get
+      case None => WattHours(0d) // FIXME Should be Wh/m²
     }
   }
 
@@ -554,14 +561,14 @@ final case class PvModel private (
     *   the diffuse radiation on the sloped surface
     */
   private def calcDiffuseRadiationOnSlopedSurfacePerez(
-      eDifH: squants.radio.Irradiance,
-      eBeamH: squants.radio.Irradiance,
+      eDifH: squants.Energy,
+      eBeamH: squants.Energy,
       airMass: Double,
-      I0: squants.radio.Irradiance,
+      I0: squants.Energy,
       thetaZ: squants.Angle,
       thetaG: squants.Angle,
       gammaE: squants.Angle
-  ): squants.radio.Irradiance = {
+  ): squants.Energy = {
     val thetaZValue = thetaZ.toRadians
     val thetaGValue = thetaG.toRadians
     val gammaEValue = gammaE.toRadians
@@ -573,7 +580,7 @@ final case class PvModel private (
     // if we have no clouds,  the epsilon bin is 8, as epsilon bin for an epsilon in [6.2, inf.[ = 8
     var x = 8
 
-    if (eDifH.toWattsPerSquareMeter > 0) {
+    if (eDifH.value.doubleValue > 0) {
       // if we have diffuse radiation on horizontal surface we have to check if we have another epsilon due to clouds get the epsilon
       var epsilon = ((eDifH + eBeamH) / eDifH +
         (5.535d * 1.0e-6) * pow(
@@ -657,11 +664,11 @@ final case class PvModel private (
     *   the reflected radiation on the sloped surface eRefS
     */
   private def calcReflectedRadiationOnSlopedSurface(
-      eBeamH: squants.radio.Irradiance,
-      eDifH: squants.radio.Irradiance,
+      eBeamH: squants.Energy,
+      eDifH: squants.Energy,
       gammaE: squants.Angle,
       albedo: Double
-  ): squants.radio.Irradiance = {
+  ): squants.Energy = {
     val gammaEValue = gammaE.toRadians
     (eBeamH + eDifH) * (albedo * 0.5 * (1 - cos(gammaEValue)))
   }
@@ -702,9 +709,9 @@ final case class PvModel private (
   }
 
   private def calcOutput(
-      eTotalInKWhPerSM: squants.radio.Irradiance,
+      eTotalInKWhPerSM: squants.Energy,
       time: ZonedDateTime,
-      irraditionSTC: squants.radio.Irradiance
+      irraditionSTC: squants.Energy
   ): squants.Power = {
     val genCorr = generatorCorrectionFactor(time, gammaE)
     val tempCorr = temperatureCorrectionFactor(time)
