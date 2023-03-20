@@ -139,7 +139,9 @@ final case class EvcsModel(
           )
         ) { case ((calcEvs, noCalcEvs, powerSum), ev) =>
           val newPower = powerSum.add(ev.getSRatedAC)
-          if (newPower.isLessThanOrEqualTo(sRated.asInstanceOf[Quantity[Power]]))
+          if (
+            newPower.isLessThanOrEqualTo(sRated.asInstanceOf[Quantity[Power]])
+          )
             (calcEvs + ev, noCalcEvs, newPower)
           else
             (calcEvs, noCalcEvs + ev, powerSum)
@@ -200,14 +202,18 @@ final case class EvcsModel(
       duration: squants.Time
   ): (squants.Energy, EvModel) = {
     if (evModel.getStoredEnergy.isLessThan(evModel.getEStorage)) {
-      val chargingPower = sRated.min(evModel.getSRatedAC.asInstanceOf[energy.Power])
+      val chargingPower =
+        sRated.min(evModel.getSRatedAC.asInstanceOf[energy.Power])
 
-      val chargeLeftToFull=
-        evModel.getEStorage.subtract(evModel.getStoredEnergy).asInstanceOf[squants.Energy]
-      val potentialChargeDuringTick= chargingPower * duration
+      val chargeLeftToFull =
+        evModel.getEStorage
+          .subtract(evModel.getStoredEnergy)
+          .asInstanceOf[squants.Energy]
+      val potentialChargeDuringTick = chargingPower * duration
 
-
-      val actualCharge = chargeLeftToFull.min(potentialChargeDuringTick).asInstanceOf[Quantity[Energy]]
+      val actualCharge = chargeLeftToFull
+        .min(potentialChargeDuringTick)
+        .asInstanceOf[Quantity[Energy]]
       val newStoredEnergy = evModel.getStoredEnergy.add(actualCharge)
 
       (
@@ -215,7 +221,12 @@ final case class EvcsModel(
         evModel.copyWith(newStoredEnergy)
       )
     } else
-      (QuantityUtil.zero(PowerSystemUnits.KILOWATTHOUR).asInstanceOf[squants.Energy], evModel)
+      (
+        QuantityUtil
+          .zero(PowerSystemUnits.KILOWATTHOUR)
+          .asInstanceOf[squants.Energy],
+        evModel
+      )
   }
 
   /** Calculate the active power behaviour of the model

@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.model.participant.HpModel._
 import edu.ie3.simona.model.participant.control.QControl
@@ -14,12 +13,9 @@ import edu.ie3.simona.model.thermal.ThermalHouse
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities
 import squants.energy.{Kilowatts, Megawatts}
-import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
-import javax.measure.quantity.{Power, Temperature, Time}
 
 /** Model of a heat pump (HP) with a [[ThermalHouse]] medium and its current
   * [[HpState]].
@@ -68,18 +64,18 @@ final case class HpModel(
     sRated * cosPhiRated * scalingFactor
 
   /** As this is a state-full model (with respect to the current operation
-   * condition and inner temperature), the power calculation operates on the
-   * current state of the model, which has to be calculated beforehand by
-   * [[HpModel.calculateNextState]]. This state then is fed into the power
-   * calculation logic by <i>hpData</i>.
-   *
-   * @param hpData
-   * data of heat pump including state of the heat pump
-   * @return
-   * active power
-   */
+    * condition and inner temperature), the power calculation operates on the
+    * current state of the model, which has to be calculated beforehand by
+    * [[HpModel.calculateNextState]]. This state then is fed into the power
+    * calculation logic by <i>hpData</i>.
+    *
+    * @param hpData
+    *   data of heat pump including state of the heat pump
+    * @return
+    *   active power
+    */
   override protected def calculateActivePower(
-    hpData: HpData
+      hpData: HpData
   ): squants.Power = {
     calculateNextState(hpData)
     hpData.hpState.activePower
@@ -116,8 +112,7 @@ final case class HpModel(
   def operatesInNextState(hpData: HpData): Boolean = {
     val isRunning = hpData.hpState.isRunning
     val tooHigh =
-      thermalHouse.isInnerTemperatureTooHigh(hpData.hpState.
-        innerTemperature)
+      thermalHouse.isInnerTemperatureTooHigh(hpData.hpState.innerTemperature)
     val tooLow =
       thermalHouse.isInnerTemperatureTooLow(hpData.hpState.innerTemperature)
 
@@ -141,8 +136,10 @@ final case class HpModel(
         (pRated, pThermal * scalingFactor)
       else (Megawatts(0d), Megawatts(0d))
 
-    val duration: ComparableQuantity[Time] =
-      hpData.hpState.lastTimeTick.durationUntil(hpData.currentTimeTick)
+    val duration: squants.Time =
+      hpData.hpState.lastTimeTick
+        .durationUntil(hpData.currentTimeTick)
+        .asInstanceOf[squants.Time]
 
     val newInnerTemperature = thermalHouse.newInnerTemperature(
       newThermalPower,
@@ -154,6 +151,7 @@ final case class HpModel(
     HpState(
       isRunning,
       hpData.currentTimeTick,
+      hpData.hpState.innerTemperature,
       newActivePower,
       newInnerTemperature
     )
