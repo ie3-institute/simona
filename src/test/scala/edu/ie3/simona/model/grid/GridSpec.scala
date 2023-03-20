@@ -89,15 +89,20 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
     }
 
     "be able to build a valid line admittance matrix with switches" in new BasicGridWithSwitches {
-
-      val withClosedSwitches = gridClosedSwitches()
+      val withClosedSwitches = createGridCopy()
+      closeSwitches(withClosedSwitches)
+      // enable the lines first, otherwise they are not considered in building the admittance matrix
+      withClosedSwitches.gridComponents.lines.foreach(_.enable())
       GridModel.updateUuidToIndexMap(withClosedSwitches)
       val admittanceMatixClosed = GridModel.composeAdmittanceMatrix(
         withClosedSwitches.nodeUuidToIndexMap,
         withClosedSwitches.gridComponents
       )
 
-      val withOpenSwitches = gridOpenSwitches()
+      val withOpenSwitches = createGridCopy()
+      openSwitches(withOpenSwitches)
+      // enable the lines first, otherwise they are not considered in building the admittance matrix
+      withClosedSwitches.gridComponents.lines.foreach(_.enable())
       GridModel.updateUuidToIndexMap(withOpenSwitches)
       val admittanceMatrixOpen = GridModel.composeAdmittanceMatrix(
         withOpenSwitches.nodeUuidToIndexMap,
@@ -108,14 +113,64 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
       val closedSwitches =
         withClosedSwitches.gridComponents.switches.filter(_.isClosed)
       val numberClosedSwitches = closedSwitches.size
-      numberClosedSwitches should be > 0
+      numberClosedSwitches shouldBe 3
       admittanceMatixClosed.rows shouldBe admittanceMatrixOpen.rows - numberClosedSwitches
       admittanceMatixClosed.cols shouldBe admittanceMatrixOpen.cols - numberClosedSwitches
 
-      // the admittance at the fused nodes should be the sum of the admittances of the two nodes when switches are open
-      closedSwitches.foreach(switch => {
-        ???
-      })
+      // Nodes connected by switches, in both directions
+      // no transitivity considered (for this test, consecutive switches should not be part of the grid!)
+      val switchConnections = closedSwitches.toSeq
+        .flatMap { switch =>
+          Iterable(
+            switch.nodeAUuid -> switch.nodeBUuid,
+            switch.nodeBUuid -> switch.nodeAUuid
+          )
+        }
+        .groupMap { case (key, _) => key } { case (_, value) => value }
+
+      val nodeUuids = withClosedSwitches.nodeUuidToIndexMap.keys
+      nodeUuids.foreach { iNode =>
+        val iClosed = withClosedSwitches.nodeUuidToIndexMap.get(iNode).value
+
+        // all indices that have been fused together to iNode in the withClosedSwitches grid
+        val iOpenAll = switchConnections
+          .get(iNode)
+          .map(_.map(withOpenSwitches.nodeUuidToIndexMap.get(_).value))
+          .getOrElse(Iterable.empty)
+          .toSeq :+ withOpenSwitches.nodeUuidToIndexMap.get(iNode).value
+
+        nodeUuids.foreach { jNode =>
+          val jClosed = withClosedSwitches.nodeUuidToIndexMap.get(jNode).value
+
+          // all indices that have been fused together to jNode in the withClosedSwitches grid
+          val jOpenAll = switchConnections
+            .get(jNode)
+            .map(_.map(withOpenSwitches.nodeUuidToIndexMap.get(_).value))
+            .getOrElse(Iterable.empty)
+            .toSeq :+ withOpenSwitches.nodeUuidToIndexMap.get(jNode).value
+
+          // add together values for all index combinations
+          val sumOfAdmittancesOpenSwitches = iOpenAll
+            .map { iOpen =>
+              jOpenAll
+                .map { jOpen =>
+                  admittanceMatrixOpen.valueAt(iOpen, jOpen)
+                }
+                .reduceOption(_ + _)
+                .getOrElse(Complex.zero)
+            }
+            .reduceOption(_ + _)
+            .getOrElse(Complex.zero)
+
+          admittanceMatixClosed.valueAt(
+            iClosed,
+            jClosed
+          ) shouldBe sumOfAdmittancesOpenSwitches withClue s" at \n\tposition ($iClosed, $jClosed) of the grid with closed switches/" +
+            s"\n\tpositions (${iOpenAll.mkString(",")}) x (${jOpenAll.mkString(",")}) of the grid with open switches"
+
+        }
+      }
+
     }
 
     // todo CK
@@ -240,7 +295,8 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
       "contain 3 open switches" in new BasicGridWithSwitches {
 
         // get the grid from the raw data
-        val gridModel: GridModel = gridOpenSwitches()
+        val gridModel: GridModel = createGridCopy()
+        openSwitches(gridModel)
 
         // update the uuidToIndexMap
         GridModel.updateUuidToIndexMap(gridModel)
@@ -266,7 +322,8 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
       "contain 3 closed switches" in new BasicGridWithSwitches {
 
         // get the grid from the raw data
-        val gridModel: GridModel = gridClosedSwitches()
+        val gridModel: GridModel = createGridCopy()
+        closeSwitches(gridModel)
 
         // update the uuidToIndexMap
         GridModel.updateUuidToIndexMap(gridModel)
@@ -279,7 +336,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         // value set should be in the range of 0 to 9 (13 nodes with 3 closed switches -> 3 nodes are aggregated
         // = 9 rows and columns in the admittance matrix)
         gridModel.nodeUuidToIndexMap.values.toSet.toVector.sorted should be(
-          (for (i <- 0 to 9) yield i).toVector.sorted
+          Range.inclusive(0, 9).toVector.sorted
         )
 
         // keys should be the same as the node uuids we provided
@@ -288,44 +345,14 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         )
 
         // we want the same indices for the switch nodes
-        gridModel.nodeUuidToIndexMap.getOrElse(
-          node13.uuid,
-          throw new RuntimeException(
-            "Didn't found node13 in nodeUuidToIndexMap!"
-          )
-        ) should be(
-          gridModel.nodeUuidToIndexMap.getOrElse(
-            node14.uuid,
-            throw new RuntimeException(
-              "Didn't found node14 in nodeUuidToIndexMap!"
-            )
-          )
+        gridModel.nodeUuidToIndexMap.get(node13.uuid).value should be(
+          gridModel.nodeUuidToIndexMap.get(node14.uuid).value
         )
-        gridModel.nodeUuidToIndexMap.getOrElse(
-          node15.uuid,
-          throw new RuntimeException(
-            "Didn't found node15 in nodeUuidToIndexMap!"
-          )
-        ) should be(
-          gridModel.nodeUuidToIndexMap.getOrElse(
-            node16.uuid,
-            throw new RuntimeException(
-              "Didn't found node16 in nodeUuidToIndexMap!"
-            )
-          )
+        gridModel.nodeUuidToIndexMap.get(node15.uuid).value should be(
+          gridModel.nodeUuidToIndexMap.get(node16.uuid).value
         )
-        gridModel.nodeUuidToIndexMap.getOrElse(
-          node17.uuid,
-          throw new RuntimeException(
-            "Didn't found node17 in nodeUuidToIndexMap!"
-          )
-        ) should be(
-          gridModel.nodeUuidToIndexMap.getOrElse(
-            node18.uuid,
-            throw new RuntimeException(
-              "Didn't found node18 in nodeUuidToIndexMap!"
-            )
-          )
+        gridModel.nodeUuidToIndexMap.get(node17.uuid).value should be(
+          gridModel.nodeUuidToIndexMap.get(node18.uuid).value
         )
 
       }
@@ -373,32 +400,16 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         )
 
         // we want the same indices for the switch nodes that are closed (switch1 and switch3)
-        gridModel.nodeUuidToIndexMap.getOrElse(
-          node13.uuid,
-          throw new RuntimeException(
-            "Didn't found node13 in nodeUuidToIndexMap!"
-          )
-        ) should be(
-          gridModel.nodeUuidToIndexMap.getOrElse(
-            node14.uuid,
-            throw new RuntimeException(
-              "Didn't found node14 in nodeUuidToIndexMap!"
-            )
-          )
+        gridModel.nodeUuidToIndexMap.get(node13.uuid).value should be(
+          gridModel.nodeUuidToIndexMap.get(node14.uuid).value
+        )
+        gridModel.nodeUuidToIndexMap.get(node17.uuid).value should be(
+          gridModel.nodeUuidToIndexMap.get(node18.uuid).value
         )
 
-        gridModel.nodeUuidToIndexMap.getOrElse(
-          node17.uuid,
-          throw new RuntimeException(
-            "Didn't found node17 in nodeUuidToIndexMap!"
-          )
-        ) should be(
-          gridModel.nodeUuidToIndexMap.getOrElse(
-            node18.uuid,
-            throw new RuntimeException(
-              "Didn't found node18 in nodeUuidToIndexMap!"
-            )
-          )
+        // different indices for the switch that is open (switch2)
+        gridModel.nodeUuidToIndexMap.get(node15.uuid).value shouldNot be(
+          gridModel.nodeUuidToIndexMap.get(node16.uuid).value
         )
       }
 

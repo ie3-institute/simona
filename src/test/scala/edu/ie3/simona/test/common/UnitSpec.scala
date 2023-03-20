@@ -31,7 +31,8 @@ trait UnitSpec
     with Inspectors
     with PrivateMethodTester
     with LazyLogging
-    with TryValues {
+    with TryValues
+    with AppendedClues {
   /* Set default locale in order to ensure proper number parsing - among others */
   Locale.setDefault(Locale.ENGLISH)
 

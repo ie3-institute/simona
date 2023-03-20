@@ -198,13 +198,12 @@ trait BasicGridWithSwitches extends BasicGrid {
 
   def switches: Set[SwitchModel] = Set(switch1, switch2, switch3)
 
-  def gridOpenSwitches(): GridModel = {
+  def createGridCopy(): GridModel = {
     val gridNodes = nodes
     gridNodes.foreach(node => if (!node.isInOperation) node.enable())
     // we copy the switches to avoid clash when simultaneously getting grid with closed switches
     val cpSwitches = switches.map(_.copy())
     cpSwitches.foreach(switch => if (!switch.isInOperation) switch.enable())
-    cpSwitches.foreach(switch => if (!switch.isOpen) switch.open())
 
     new GridModel(
       1,
@@ -219,24 +218,15 @@ trait BasicGridWithSwitches extends BasicGrid {
     )
   }
 
-  def gridClosedSwitches(): GridModel = {
-    val gridNodes = nodes
-    gridNodes.foreach(node => if (!node.isInOperation) node.enable())
-    // we copy the switches to avoid clash when simultaneously getting grid with closed switches
-    val cpSwitches = switches.map(switch => switch.copy())
-    cpSwitches.foreach(switch => if (!switch.isInOperation) switch.enable())
-    cpSwitches.foreach(switch => if (!switch.isClosed) switch.close())
+  def openSwitches(gridModel: GridModel): Unit = {
+    gridModel.gridComponents.switches.foreach(switch =>
+      if (!switch.isOpen) switch.open()
+    )
+  }
 
-    new GridModel(
-      1,
-      default400Kva10KvRefSystem,
-      GridComponents(
-        gridNodes,
-        lines,
-        Set(transformer2wModel),
-        Set.empty[Transformer3wModel],
-        cpSwitches
-      )
+  def closeSwitches(gridModel: GridModel): Unit = {
+    gridModel.gridComponents.switches.foreach(switch =>
+      if (!switch.isClosed) switch.close()
     )
   }
 
