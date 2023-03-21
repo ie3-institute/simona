@@ -120,10 +120,10 @@ class GridResultsSupportSpec
       }
 
       "calculate line results correctly" in new BasicGrid {
-        line01.enable()
+        line0To1.enable()
         val expectedLineResult = new LineResult(
           defaultSimulationStart,
-          line01.uuid,
+          line0To1.uuid,
           Quantities
             .getQuantity(24.94091597114390620787, Units.AMPERE),
           Quantities
@@ -154,7 +154,7 @@ class GridResultsSupportSpec
         )
 
         val lineResult: LineResult = calcLineResult(
-          line01,
+          line0To1,
           nodeAStateData,
           nodeBStateData,
           default400Kva10KvRefSystem.nominalCurrent,
@@ -186,9 +186,9 @@ class GridResultsSupportSpec
         ) shouldBe true
 
         // if line is disabled zero results are expected
-        line01.disable()
+        line0To1.disable()
         val disabledLineResult: LineResult = calcLineResult(
-          line01,
+          line0To1,
           nodeAStateData,
           nodeBStateData,
           default400Kva10KvRefSystem.nominalCurrent,
@@ -197,7 +197,7 @@ class GridResultsSupportSpec
 
         disabledLineResult shouldBe new LineResult(
           defaultSimulationStart,
-          line01.uuid,
+          line0To1.uuid,
           ScalaQuantityUtil.zero(Units.AMPERE),
           ScalaQuantityUtil.zero(DEGREE_GEOM),
           ScalaQuantityUtil.zero(Units.AMPERE),

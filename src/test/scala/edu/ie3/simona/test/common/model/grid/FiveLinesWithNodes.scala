@@ -72,22 +72,20 @@ trait FiveLinesWithNodes {
       Quantity[Dimensionless],
       Quantity[Dimensionless],
       Quantity[Dimensionless]
-  ) => LineModel = {
-    Quantities.getQuantity(300, MEGAVOLTAMPERE)
-    (lineId, uuid, nodeA, nodeB, r, x, g, b) =>
-      new LineModel(
-        UUID.fromString(uuid),
-        lineId,
-        OperationInterval(0L, 7200L),
-        nodeA.uuid,
-        nodeB.uuid,
-        1,
-        Quantities.getQuantity(300, AMPERE),
-        Quantities.getQuantity(r.getValue.doubleValue(), PU),
-        Quantities.getQuantity(x.getValue.doubleValue(), PU),
-        Quantities.getQuantity(g.getValue.doubleValue(), PU),
-        Quantities.getQuantity(b.getValue.doubleValue(), PU)
-      )
+  ) => LineModel = { (lineId, uuid, nodeA, nodeB, r, x, g, b) =>
+    new LineModel(
+      UUID.fromString(uuid),
+      lineId,
+      OperationInterval(0L, 7200L),
+      nodeA.uuid,
+      nodeB.uuid,
+      1,
+      Quantities.getQuantity(300, AMPERE),
+      Quantities.getQuantity(r.getValue.doubleValue(), PU),
+      Quantities.getQuantity(x.getValue.doubleValue(), PU),
+      Quantities.getQuantity(g.getValue.doubleValue(), PU),
+      Quantities.getQuantity(b.getValue.doubleValue(), PU)
+    )
   }
 
   def node0: NodeModel =
@@ -136,8 +134,8 @@ trait FiveLinesWithNodes {
   protected def nodes: Seq[NodeModel] =
     Seq(node0, node1, node2, node3, node4, node5)
 
-  val line01: LineModel = _lineCreator(
-    "line01",
+  val line0To1: LineModel = _lineCreator(
+    "line0To1",
     "95ce3bd5-8c56-403f-aaea-d605fb328542",
     node0,
     node1,
@@ -147,8 +145,8 @@ trait FiveLinesWithNodes {
     Quantities.getQuantity(0.0000048375, PU)
   )
 
-  val line12: LineModel = _lineCreator(
-    "line12",
+  val line1To2: LineModel = _lineCreator(
+    "line1To2",
     "f6de6796-e880-45c3-80a6-b7141f3b686c",
     node1,
     node2,
@@ -158,8 +156,8 @@ trait FiveLinesWithNodes {
     Quantities.getQuantity(0.00000645, PU)
   )
 
-  val line03: LineModel = _lineCreator(
-    "line03",
+  val line0To3: LineModel = _lineCreator(
+    "line0To3",
     "335ccb58-526f-4d80-ad4f-522b544913e2",
     node0,
     node3,
@@ -169,8 +167,8 @@ trait FiveLinesWithNodes {
     Quantities.getQuantity(0.000003225, PU)
   )
 
-  val line34: LineModel = _lineCreator(
-    "line34",
+  val line3To4: LineModel = _lineCreator(
+    "line3To4",
     "b3b592f6-2112-4254-aca3-d093d220ff0f",
     node3,
     node4,
@@ -180,8 +178,8 @@ trait FiveLinesWithNodes {
     Quantities.getQuantity(0.0000016125, PU)
   )
 
-  val line35: LineModel = _lineCreator(
-    "line35",
+  val line3To5: LineModel = _lineCreator(
+    "line3To5",
     "0ffa4c4a-c0fb-44b2-8073-c8c66cc105e8",
     node3,
     node5,
@@ -192,7 +190,7 @@ trait FiveLinesWithNodes {
   )
 
   protected val lines: Set[LineModel] =
-    Set(line01, line12, line03, line34, line35)
+    Set(line0To1, line1To2, line0To3, line3To4, line3To5)
 
   // nodeToIndexMap
   protected def nodeUuidToIndexMap: Map[UUID, Int] =

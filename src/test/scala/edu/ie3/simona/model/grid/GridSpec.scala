@@ -89,37 +89,37 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
     }
 
     "be able to build a valid line admittance matrix with switches" in new BasicGridWithSwitches {
-      val withClosedSwitches = createGridCopy()
+      private val withClosedSwitches = createGridCopy()
       closeSwitches(withClosedSwitches)
       // enable the lines first, otherwise they are not considered in building the admittance matrix
       withClosedSwitches.gridComponents.lines.foreach(_.enable())
       GridModel.updateUuidToIndexMap(withClosedSwitches)
-      val admittanceMatixClosed = GridModel.composeAdmittanceMatrix(
+      private val admittanceMatixClosed = GridModel.composeAdmittanceMatrix(
         withClosedSwitches.nodeUuidToIndexMap,
         withClosedSwitches.gridComponents
       )
 
-      val withOpenSwitches = createGridCopy()
+      private val withOpenSwitches = createGridCopy()
       openSwitches(withOpenSwitches)
       // enable the lines first, otherwise they are not considered in building the admittance matrix
       withClosedSwitches.gridComponents.lines.foreach(_.enable())
       GridModel.updateUuidToIndexMap(withOpenSwitches)
-      val admittanceMatrixOpen = GridModel.composeAdmittanceMatrix(
+      private val admittanceMatrixOpen = GridModel.composeAdmittanceMatrix(
         withOpenSwitches.nodeUuidToIndexMap,
         withOpenSwitches.gridComponents
       )
 
       // dimension of admittance matrix with closed switches should be reduced by the number of closed switches
-      val closedSwitches =
+      private val closedSwitches =
         withClosedSwitches.gridComponents.switches.filter(_.isClosed)
-      val numberClosedSwitches = closedSwitches.size
+      private val numberClosedSwitches = closedSwitches.size
       numberClosedSwitches shouldBe 3
       admittanceMatixClosed.rows shouldBe admittanceMatrixOpen.rows - numberClosedSwitches
       admittanceMatixClosed.cols shouldBe admittanceMatrixOpen.cols - numberClosedSwitches
 
       // Nodes connected by switches, in both directions
       // no transitivity considered (for this test, consecutive switches should not be part of the grid!)
-      val switchConnections = closedSwitches.toSeq
+      private val switchConnections = closedSwitches.toSeq
         .flatMap { switch =>
           Iterable(
             switch.nodeAUuid -> switch.nodeBUuid,
@@ -128,7 +128,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         }
         .groupMap { case (key, _) => key } { case (_, value) => value }
 
-      val nodeUuids = withClosedSwitches.nodeUuidToIndexMap.keys
+      private val nodeUuids = withClosedSwitches.nodeUuidToIndexMap.keys
       nodeUuids.foreach { iNode =>
         val iClosed = withClosedSwitches.nodeUuidToIndexMap.get(iNode).value
 
@@ -216,7 +216,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
       nodes.foreach(_.enable())
 
       // remove a line from the grid
-      val adaptedLines: Set[LineModel] = lines - line01
+      val adaptedLines: Set[LineModel] = lines - line0To1
 
       // get the grid from the raw data
       val gridModel = new GridModel(

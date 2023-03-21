@@ -31,11 +31,11 @@ import java.util.UUID
   *                      |  /
   *                      | /
   * (0)--(15)S2(16)-----(3)-----(4)
-  * |
-  * (17)
-  * S3
-  * (18)
-  * |
+  * |                    |
+  * (17)                 |
+  * S3                   |
+  * (18)                 |
+  * |                    |
   * (1)--(13)S1(14)-----(2)
   * }}}
   */
@@ -46,42 +46,42 @@ trait BasicGridWithSwitches extends BasicGrid {
     _nodeCreator(
       "node13",
       "69f08e1d-725d-4bae-80c3-5b5a472493c9",
-      true,
+      false,
       linesRatedVoltage
     )
   def node14: NodeModel =
     _nodeCreator(
       "node14",
       "c09cb11f-4e2c-4871-84c6-a22dc6702679",
-      true,
+      false,
       linesRatedVoltage
     )
   def node15: NodeModel =
     _nodeCreator(
       "node15",
       "2b45e1e2-591e-49c1-bcbe-0e4ceed79c9b",
-      true,
+      false,
       linesRatedVoltage
     )
   def node16: NodeModel =
     _nodeCreator(
       "node16",
       "8aec5998-9c8a-453d-8556-e8630f4c053a",
-      true,
+      false,
       linesRatedVoltage
     )
   def node17: NodeModel =
     _nodeCreator(
       "node17",
       "e1002827-0430-4ba0-950f-8107fefc09fa",
-      true,
+      false,
       linesRatedVoltage
     )
   def node18: NodeModel =
     _nodeCreator(
       "node18",
       "4ab4904e-dde3-4591-8eb5-3e0ca4fd8e3d",
-      true,
+      false,
       linesRatedVoltage
     )
 
@@ -112,7 +112,7 @@ trait BasicGridWithSwitches extends BasicGrid {
     Quantities.getQuantity(0.0000048375, PU)
   )
   def line18To1: LineModel = _lineCreator(
-    "line18_1",
+    "line18To1",
     "11ad6538-e40b-4210-9a7f-796fc8744901",
     node18,
     node1,
@@ -122,7 +122,7 @@ trait BasicGridWithSwitches extends BasicGrid {
     Quantities.getQuantity(0.0000048375, PU)
   )
   def line1To13: LineModel = _lineCreator(
-    "line1_13",
+    "line1To13",
     "f1ad18e9-0f1c-4faa-9cee-18c99be120b7",
     node1,
     node13,
@@ -132,7 +132,7 @@ trait BasicGridWithSwitches extends BasicGrid {
     Quantities.getQuantity(0.00000645, PU)
   )
   def line14To2: LineModel = _lineCreator(
-    "line14_2",
+    "line14To2",
     "f1ad18e9-0f1c-4faa-9cee-18c99be120b7", // TODO THIS SHOULD PRODUCE AN ERROR!
     node14,
     node2,
@@ -142,7 +142,7 @@ trait BasicGridWithSwitches extends BasicGrid {
     Quantities.getQuantity(0.00000645, PU)
   )
   def line0To15: LineModel = _lineCreator(
-    "line0_15",
+    "line0To15",
     "c13c34ef-62bc-42cb-8861-749dc62e3672",
     node0,
     node15,
@@ -152,7 +152,7 @@ trait BasicGridWithSwitches extends BasicGrid {
     Quantities.getQuantity(0.000003225, PU)
   )
   def line16To3: LineModel = _lineCreator(
-    "line16_3",
+    "line16To3",
     "ee26d14b-9062-4231-b046-1c4f2b6b0edd",
     node16,
     node3,
@@ -162,6 +162,17 @@ trait BasicGridWithSwitches extends BasicGrid {
     Quantities.getQuantity(0.000003225, PU)
   )
 
+  val line2To3: LineModel = _lineCreator(
+    "line2To3",
+    "88fdbe78-96b0-4d21-a8ab-7a8d5ece3131",
+    node2,
+    node3,
+    Quantities.getQuantity(0.0013109999999999999, PU),
+    Quantities.getQuantity(0.0010680000000000002, PU),
+    Quantities.getQuantity(0, PU),
+    Quantities.getQuantity(0.0000048375, PU)
+  )
+
   override protected val lines: Set[LineModel] = Set(
     line0To17,
     line18To1,
@@ -169,8 +180,9 @@ trait BasicGridWithSwitches extends BasicGrid {
     line14To2,
     line0To15,
     line16To3,
-    line34,
-    line35
+    line3To4,
+    line3To5,
+    line2To3
   )
 
   // switches
@@ -199,21 +211,23 @@ trait BasicGridWithSwitches extends BasicGrid {
   def switches: Set[SwitchModel] = Set(switch1, switch2, switch3)
 
   def createGridCopy(): GridModel = {
+    // copy components because they are mutable and are altered by some tests
     val gridNodes = nodes
     gridNodes.foreach(node => if (!node.isInOperation) node.enable())
-    // we copy the switches to avoid clash when simultaneously getting grid with closed switches
-    val cpSwitches = switches.map(_.copy())
-    cpSwitches.foreach(switch => if (!switch.isInOperation) switch.enable())
+    val gridLines = lines
+    gridLines.foreach(_.enable())
+    val gridSwitches = switches.map(_.copy())
+    gridSwitches.foreach(switch => if (!switch.isInOperation) switch.enable())
 
     new GridModel(
       1,
       default400Kva10KvRefSystem,
       GridComponents(
         gridNodes,
-        lines,
+        gridLines,
         Set(transformer2wModel),
         Set.empty[Transformer3wModel],
-        cpSwitches
+        gridSwitches
       )
     )
   }

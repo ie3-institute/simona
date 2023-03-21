@@ -164,19 +164,19 @@ class LineSpec extends UnitSpec with LineInputTestData {
 
     "be able to be enabled and disabled on request" in new FiveLinesWithNodes {
 
-      line03.isInOperation shouldBe false
+      line0To3.isInOperation shouldBe false
 
-      line03.enable()
+      line0To3.enable()
 
-      line03.isInOperation shouldBe true
+      line0To3.isInOperation shouldBe true
 
-      line03.disable()
+      line0To3.disable()
 
-      line03.isInOperation shouldBe false
+      line0To3.isInOperation shouldBe false
 
-      line03.enable()
+      line0To3.enable()
 
-      line03.isInOperation shouldBe true
+      line0To3.isInOperation shouldBe true
 
     }
 
