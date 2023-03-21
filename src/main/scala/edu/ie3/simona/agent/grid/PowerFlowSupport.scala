@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
+import akka.event.LoggingAdapter
 import breeze.math.Complex
 import edu.ie3.powerflow.NewtonRaphsonPF
 import edu.ie3.powerflow.model.NodeData.{PresetData, StateData}
@@ -32,7 +33,8 @@ import scala.util.{Failure, Success, Try}
   * [[edu.ie3.powerflow]]
   */
 trait PowerFlowSupport {
-  this: GridAgent =>
+
+  protected val log: LoggingAdapter
 
   /** Composes the current operation point needed by
     * [[edu.ie3.powerflow.NewtonRaphsonPF.calculate()]]
