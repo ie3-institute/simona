@@ -38,9 +38,7 @@ import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.locationtech.jts.geom.{Coordinate, Point}
-import squants.radio
-import squants.radio.{Irradiance, WattsPerSquareMeter}
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 

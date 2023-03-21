@@ -11,7 +11,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
   ServiceRegistrationMessage
 }
-import squants.radio
+import edu.ie3.util.scala.quantities.Irradiance
 import tech.units.indriya.ComparableQuantity
 
 import javax.measure.quantity.{Speed, Temperature}
@@ -69,8 +69,8 @@ object WeatherMessage {
     *   Wind velocity
     */
   final case class WeatherData(
-      diffIrr: radio.Irradiance,
-      dirIrr: radio.Irradiance,
+      diffIrr: Irradiance,
+      dirIrr: Irradiance,
       temp: ComparableQuantity[Temperature],
       windVel: ComparableQuantity[Speed]
   ) extends SecondaryData
