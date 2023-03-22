@@ -162,7 +162,7 @@ trait BasicGridWithSwitches extends BasicGrid {
     Quantities.getQuantity(0.000003225, PU)
   )
 
-  val line2To3: LineModel = _lineCreator(
+  def line2To3: LineModel = _lineCreator(
     "line2To3",
     "88fdbe78-96b0-4d21-a8ab-7a8d5ece3131",
     node2,
