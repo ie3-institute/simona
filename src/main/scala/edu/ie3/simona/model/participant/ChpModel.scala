@@ -7,18 +7,21 @@
 package edu.ie3.simona.model.participant
 
 import java.util.UUID
-
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.ChpInput
+import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ChpModel._
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.{MutableStorage, ThermalStorage}
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
+
 import javax.measure.quantity.{Energy, Power, Time}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units
+
+import java.time.ZonedDateTime
 
 /** Model of a combined heat and power plant (CHP) with a [[ThermalStorage]]
   * medium and its current [[ChpState]].
@@ -364,4 +367,42 @@ case object ChpModel {
       chpInput.getType.getpThermal,
       thermalStorage
     )
+
+  def apply(
+           inputModel: ChpInput,
+           scalingFactor: Double,
+           simulationStartDate: ZonedDateTime,
+           simulationEndDate: ZonedDateTime
+           ): ChpModel = {
+    val operationInterval = SystemComponent.determineOperationInterval(
+      simulationStartDate,
+      simulationEndDate,
+      inputModel.getOperationTime
+    )
+
+    val model = new ChpModel(
+      inputModel.getUuid,
+      inputModel.getId,
+      operationInterval,
+      scalingFactor,
+      QControl(inputModel.getqCharacteristics),
+      inputModel.getType.getsRated,
+      inputModel.getType.getCosPhiRated,
+      inputModel.getType.getpThermal,
+      new ThermalStorage(inputModel.getThermalStorage)
+    )
+
+    UUID uuid
+    ,
+    String id
+    ,
+    OperatorInput operator
+    ,
+    OperationTime operationTime
+    ,
+    ThermalBusInput bus
+
+    model.enable()
+    model
+  }
 }

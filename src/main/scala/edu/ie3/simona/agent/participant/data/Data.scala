@@ -73,6 +73,12 @@ object Data {
       Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT)
     )
 
+    val ZERO_POWER_HEAT: ApparentPowerAndHeat = ApparentPowerAndHeat(
+      Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
+      Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT),
+      Quantities.getQuantity(0d, StandardUnits.Q_DOT_RESULT)
+    )
+
     /** Active power as participant simulation result
       *
       * @param p
