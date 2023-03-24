@@ -47,10 +47,10 @@ class CylindricalThermalStorageTest extends Specification {
   static def buildThermalStorage(CylindricalStorageInput storageInput, Double volume) {
     def storedEnergy =
         CylindricalThermalStorage.volumeToEnergy(
-                Sq.create(volume, CubicMeters$.MODULE$),
-                Sq.create(storageInput.c.value.doubleValue(), WattHoursPerKelvinCubicMeters$.MODULE$),
-                Sq.create(storageInput.inletTemp.value.doubleValue(), Celsius$.MODULE$),
-                Sq.create(storageInput.returnTemp.value.doubleValue(), Celsius$.MODULE$)
+        Sq.create(volume, CubicMeters$.MODULE$),
+        Sq.create(storageInput.c.value.doubleValue(), WattHoursPerKelvinCubicMeters$.MODULE$),
+        Sq.create(storageInput.inletTemp.value.doubleValue(), Celsius$.MODULE$),
+        Sq.create(storageInput.returnTemp.value.doubleValue(), Celsius$.MODULE$)
         )
     def thermalStorage = CylindricalThermalStorage.apply(storageInput, storedEnergy)
     return thermalStorage
@@ -58,10 +58,10 @@ class CylindricalThermalStorageTest extends Specification {
 
   def vol2Energy(Double volume) {
     return CylindricalThermalStorage.volumeToEnergy(
-            Sq.create(volume, CubicMeters$.MODULE$),
-            Sq.create(storageInput.c.value.doubleValue(), WattHoursPerKelvinCubicMeters$.MODULE$),
-            Sq.create(storageInput.inletTemp.value.doubleValue(), Celsius$.MODULE$),
-            Sq.create(storageInput.returnTemp.value.doubleValue(), Celsius$.MODULE$))
+        Sq.create(volume, CubicMeters$.MODULE$),
+        Sq.create(storageInput.c.value.doubleValue(), WattHoursPerKelvinCubicMeters$.MODULE$),
+        Sq.create(storageInput.inletTemp.value.doubleValue(), Celsius$.MODULE$),
+        Sq.create(storageInput.returnTemp.value.doubleValue(), Celsius$.MODULE$))
   }
 
   def "Check storage level operations:"() {
@@ -70,7 +70,7 @@ class CylindricalThermalStorageTest extends Specification {
 
     when:
     def initialLevel =
-            getQuantity(storage._storedEnergy().toKilowattHours(), KILOWATTHOUR)
+        getQuantity(storage._storedEnergy().toKilowattHours(), KILOWATTHOUR)
     storage._storedEnergy_$eq(vol2Energy(50d),)
     def newLevel1 = getQuantity(storage._storedEnergy().toKilowattHours(), KILOWATTHOUR)
     def surplus = storage.tryToStoreAndReturnRemainder(
