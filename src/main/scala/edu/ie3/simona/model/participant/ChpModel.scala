@@ -55,7 +55,7 @@ final case class ChpModel(
     cosPhiRated: Double,
     pThermal: ComparableQuantity[Power],
     storage: ThermalStorage with MutableStorage
-) extends SystemParticipant[ChpData](
+) extends SystemParticipant[ChpRelevantData](
       uuid,
       id,
       operationInterval,
@@ -80,14 +80,14 @@ final case class ChpModel(
     *   active power
     */
   override protected def calculateActivePower(
-      chpData: ChpData
+      chpData: ChpRelevantData
   ): ComparableQuantity[Power] =
     chpData.chpState.activePower
 
-  /** Given a [[ChpData]] object, containing the [[ChpState]], the heat demand
-    * and the current time tick, this function calculates the CHPs next state
-    * while trying to cover the demand. To get the actual active power of this
-    * state please use [[calculateActivePower]] with the generated state
+  /** Given a [[ChpRelevantData]] object, containing the [[ChpState]], the heat
+    * demand and the current time tick, this function calculates the CHPs next
+    * state while trying to cover the demand. To get the actual active power of
+    * this state please use [[calculateActivePower]] with the generated state
     *
     * @param chpData
     *   state of the chp and heat demand
@@ -95,7 +95,7 @@ final case class ChpModel(
     *   next [[ChpState]]
     */
   def calculateNextState(
-      chpData: ChpData
+      chpData: ChpRelevantData
   ): ChpState = generateStateCalculation(chpData)(chpData)
 
   /** Depending on the input, this function returns a fitting 'calculateState'
@@ -113,11 +113,11 @@ final case class ChpModel(
     * @param chpData
     *   state of the chp and heat demand
     * @return
-    *   partially applied function taking a [[ChpData]] object
+    *   partially applied function taking a [[ChpRelevantData]] object
     */
   private def generateStateCalculation(
-      chpData: ChpData
-  ): ChpData => ChpState = {
+      chpData: ChpRelevantData
+  ): ChpRelevantData => ChpState = {
     val isRunning = chpData.chpState.isRunning
     val hasDemand = chpData.heatDemand.isGreaterThan(DefaultQuantities.zeroKWH)
     val isCovered = isDemandCovered(chpData)
@@ -140,7 +140,7 @@ final case class ChpModel(
     *   next [[ChpState]]
     */
   private def calculateStateNotRunningNoDemand(
-      chpData: ChpData
+      chpData: ChpRelevantData
   ): ChpState =
     ChpState(
       isRunning = false,
@@ -158,7 +158,7 @@ final case class ChpModel(
     *   next [[ChpState]]
     */
   private def calculateStateDemandNotCovered(
-      chpData: ChpData
+      chpData: ChpRelevantData
   ): ChpState = {
     val energy = chpEnergy(chpData)
     // ChpModel ignores possible lack of energy from prior time steps.
@@ -175,7 +175,7 @@ final case class ChpModel(
     *   next [[ChpState]]
     */
   private def calculateStateNotRunningDemandCovered(
-      chpData: ChpData
+      chpData: ChpRelevantData
   ): ChpState = {
     // Returned lack is always zero, because demand is covered.
     storage.tryToTakeAndReturnLack(chpData.heatDemand)
@@ -197,7 +197,7 @@ final case class ChpModel(
     *   next [[ChpState]]
     */
   private def calculateStateRunningDemandCovered(
-      chpData: ChpData
+      chpData: ChpRelevantData
   ): ChpState = {
     val differenceEnergy = chpEnergy(chpData).subtract(chpData.heatDemand)
     if (differenceEnergy.isLessThan(DefaultQuantities.zeroKWH)) {
@@ -222,7 +222,7 @@ final case class ChpModel(
     *   total energy minus surplus energy
     */
   private def calculateStateRunningSurplus(
-      chpData: ChpData,
+      chpData: ChpRelevantData,
       surplus: Option[ComparableQuantity[Energy]] = None
   ): ChpState = {
     surplus match {
@@ -251,7 +251,7 @@ final case class ChpModel(
     *   energy
     */
   private def powerToEnergy(
-      chpData: ChpData,
+      chpData: ChpRelevantData,
       power: ComparableQuantity[Power]
   ): ComparableQuantity[Energy] =
     power.multiply(timeRunning(chpData)).asType(classOf[Energy])
@@ -265,12 +265,12 @@ final case class ChpModel(
     * @return
     *   is demand covered
     */
-  private def isDemandCovered(chpData: ChpData) =
+  private def isDemandCovered(chpData: ChpRelevantData) =
     storage.isDemandCoveredByStorage(chpData.heatDemand) || totalUsableEnergy(
       chpData
     ).isGreaterThanOrEqualTo(chpData.heatDemand)
 
-  private def chpEnergy(chpData: ChpData): ComparableQuantity[Energy] =
+  private def chpEnergy(chpData: ChpRelevantData): ComparableQuantity[Energy] =
     powerToEnergy(chpData, pThermal)
 
   /** Returns the storage mediums total usable plus the CHP thermal output
@@ -283,11 +283,11 @@ final case class ChpModel(
     *   total usable energy
     */
   private def totalUsableEnergy(
-      chpData: ChpData
+      chpData: ChpRelevantData
   ): ComparableQuantity[Energy] =
     storage.usableThermalEnergy.add(chpEnergy(chpData))
 
-  private def timeRunning(chpData: ChpData): ComparableQuantity[Time] =
+  private def timeRunning(chpData: ChpRelevantData): ComparableQuantity[Time] =
     getQuantity(
       chpData.currentTimeTick - chpData.chpState.lastTimeTick,
       Units.SECOND
@@ -319,10 +319,10 @@ case object ChpModel {
   )
 
   /** Main data required for simulation/calculation, containing a [[ChpState]],
-    * the heat demand and the current time tick. <p> [[ChpData.currentTimeTick]]
-    * and [[ChpState.lastTimeTick]] form a time interval for the current state
-    * calculation. One time tick represents one second (3600 time ticks = 1
-    * hour).
+    * the heat demand and the current time tick. <p>
+    * [[ChpRelevantData.currentTimeTick]] and [[ChpState.lastTimeTick]] form a
+    * time interval for the current state calculation. One time tick represents
+    * one second (3600 time ticks = 1 hour).
     *
     * @param chpState
     *   a [[ChpState]]
@@ -331,7 +331,7 @@ case object ChpModel {
     * @param currentTimeTick
     *   contains current time tick
     */
-  final case class ChpData(
+  final case class ChpRelevantData(
       chpState: ChpState,
       heatDemand: ComparableQuantity[Energy],
       currentTimeTick: Long
