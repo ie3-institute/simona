@@ -81,10 +81,10 @@ final case class ChpModel(
   ): ComparableQuantity[Power] =
     chpData.chpState.activePower
 
-  /** Given a [[ChpRelevantData]] object, containing the [[ChpState]], the heat demand
-    * and the current time tick, this function calculates the CHPs next state
-    * while trying to cover the demand. To get the actual active power of this
-    * state please use [[calculateActivePower]] with the generated state
+  /** Given a [[ChpRelevantData]] object, containing the [[ChpState]], the heat
+    * demand and the current time tick, this function calculates the CHPs next
+    * state while trying to cover the demand. To get the actual active power of
+    * this state please use [[calculateActivePower]] with the generated state
     *
     * @param chpData
     *   state of the chp and heat demand
@@ -316,10 +316,10 @@ case object ChpModel {
   )
 
   /** Main data required for simulation/calculation, containing a [[ChpState]],
-    * the heat demand and the current time tick. <p> [[ChpRelevantData.currentTimeTick]]
-    * and [[ChpState.lastTimeTick]] form a time interval for the current state
-    * calculation. One time tick represents one second (3600 time ticks = 1
-    * hour).
+    * the heat demand and the current time tick. <p>
+    * [[ChpRelevantData.currentTimeTick]] and [[ChpState.lastTimeTick]] form a
+    * time interval for the current state calculation. One time tick represents
+    * one second (3600 time ticks = 1 hour).
     *
     * @param chpState
     *   a [[ChpState]]
