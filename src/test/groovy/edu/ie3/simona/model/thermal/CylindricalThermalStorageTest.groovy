@@ -9,13 +9,19 @@ package edu.ie3.simona.model.thermal
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.util.scala.quantities.Sq
+import edu.ie3.util.scala.quantities.WattHoursPerKelvinCubicMeters$
 import spock.lang.Shared
 import spock.lang.Specification
 import squants.energy.*
+import squants.space.CubicMeters$
+import squants.thermal.Celsius$
 
 import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
+import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE
 import static edu.ie3.util.quantities.QuantityUtil.isEquivalentAbs
 import static tech.units.indriya.quantity.Quantities.getQuantity
+import static tech.units.indriya.unit.Units.CELSIUS
+import static tech.units.indriya.unit.Units.CUBIC_METRE
 
 class CylindricalThermalStorageTest extends Specification {
 
@@ -40,19 +46,22 @@ class CylindricalThermalStorageTest extends Specification {
 
   static def buildThermalStorage(CylindricalStorageInput storageInput, Double volume) {
     def storedEnergy =
-        Sq.create(
-        CylindricalThermalStorage.volumeToEnergy(getQuantity(volume, StandardUnits.VOLUME), storageInput.c, storageInput.inletTemp, storageInput.returnTemp)
-        .to(KILOWATTHOUR)
-        .getValue()
-        .doubleValue(),
-        KilowattHours$.MODULE$
+        CylindricalThermalStorage.volumeToEnergy(
+                Sq.create(volume, CubicMeters$.MODULE$),
+                Sq.create(storageInput.c.value.doubleValue(), WattHoursPerKelvinCubicMeters$.MODULE$),
+                Sq.create(storageInput.inletTemp.value.doubleValue(), Celsius$.MODULE$),
+                Sq.create(storageInput.returnTemp.value.doubleValue(), Celsius$.MODULE$)
         )
     def thermalStorage = CylindricalThermalStorage.apply(storageInput, storedEnergy)
     return thermalStorage
   }
 
   def vol2Energy(Double volume) {
-    return CylindricalThermalStorage.volumeToEnergy(getQuantity(volume, StandardUnits.VOLUME), storageInput.c, storageInput.inletTemp, storageInput.returnTemp)
+    return CylindricalThermalStorage.volumeToEnergy(
+            Sq.create(volume, CubicMeters$.MODULE$),
+            Sq.create(storageInput.c.value.doubleValue(), WattHoursPerKelvinCubicMeters$.MODULE$),
+            Sq.create(storageInput.inletTemp.value.doubleValue(), Celsius$.MODULE$),
+            Sq.create(storageInput.returnTemp.value.doubleValue(), Celsius$.MODULE$))
   }
 
   def "Check storage level operations:"() {
@@ -60,35 +69,28 @@ class CylindricalThermalStorageTest extends Specification {
     def storage = buildThermalStorage(storageInput, 70)
 
     when:
-    def initialLevel = getQuantity(storage._storedEnergy().toKilowattHours(), KILOWATTHOUR)
-    storage._storedEnergy_$eq(
-        Sq.create(vol2Energy(50).to(KILOWATTHOUR).getValue().doubleValue(),
-        KilowattHours$.MODULE$)
-        )
+    def initialLevel =
+            getQuantity(storage._storedEnergy().toKilowattHours(), KILOWATTHOUR)
+    storage._storedEnergy_$eq(vol2Energy(50d),)
     def newLevel1 = getQuantity(storage._storedEnergy().toKilowattHours(), KILOWATTHOUR)
-    def surplus = getQuantity(storage.tryToStoreAndReturnRemainder(
-        Sq.create(vol2Energy(55).to(KILOWATTHOUR).getValue().doubleValue(),
-        KilowattHours$.MODULE$)
-        ).get().toKilowattHours(), KILOWATTHOUR)
+    def surplus = storage.tryToStoreAndReturnRemainder(
+        vol2Energy(55d))
     def newLevel2 = getQuantity(storage._storedEnergy().toKilowattHours(), KILOWATTHOUR)
     def isCovering = storage.isDemandCoveredByStorage(Sq.create(5, KilowattHours$.MODULE$))
-    def lack = getQuantity(
+    def lack =
         storage.tryToTakeAndReturnLack(
-        Sq.create(vol2Energy(95).to(KILOWATTHOUR).getValue().doubleValue(),
-        KilowattHours$.MODULE$)
-        ).get().toKilowattHours(),
-        KILOWATTHOUR
+        vol2Energy(95d)
         )
     def newLevel3 = getQuantity(storage._storedEnergy().toKilowattHours(), KILOWATTHOUR)
     def notCovering = storage.isDemandCoveredByStorage(Sq.create(1, KilowattHours$.MODULE$))
 
     then:
-    isEquivalentAbs(initialLevel, vol2Energy(70), TESTING_TOLERANCE)
-    isEquivalentAbs(newLevel1, vol2Energy(50), TESTING_TOLERANCE)
-    isEquivalentAbs(surplus, vol2Energy(5), TESTING_TOLERANCE)
-    isEquivalentAbs(newLevel2, vol2Energy(100), TESTING_TOLERANCE)
-    isEquivalentAbs(lack, vol2Energy(15), TESTING_TOLERANCE)
-    isEquivalentAbs(newLevel3, vol2Energy(20), TESTING_TOLERANCE)
+    initialLevel =~ vol2Energy(70d)
+    newLevel1 =~ vol2Energy(50d)
+    surplus =~ vol2Energy(5d)
+    newLevel2 =~ vol2Energy(100d)
+    lack =~ vol2Energy(15d)
+    newLevel3 =~ vol2Energy(20d)
     isCovering
     !notCovering
   }
@@ -114,10 +116,10 @@ class CylindricalThermalStorageTest extends Specification {
     storage.operatorInput() == storageInput.operator
     storage.operationTime() == storageInput.operationTime
     storage.bus() == storageInput.thermalBus
-    storage.storageVolumeLvlMax() == storageInput.storageVolumeLvl
-    storage.storageVolumeLvlMin() == storageInput.storageVolumeLvlMin
-    storage.inletTemp() == storageInput.inletTemp
-    storage.returnTemp() == storageInput.returnTemp
-    storage.c() == storageInput.c
+    storage.storageVolumeLvlMax() =~ storageInput.storageVolumeLvl
+    storage.storageVolumeLvlMin() =~ storageInput.storageVolumeLvlMin
+    storage.inletTemp() =~ storageInput.inletTemp
+    storage.returnTemp() =~ storageInput.returnTemp
+    storage.c() =~ storageInput.c
   }
 }
