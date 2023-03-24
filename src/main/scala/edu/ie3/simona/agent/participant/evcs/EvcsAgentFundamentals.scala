@@ -47,11 +47,9 @@ import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DIS
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import squants.Each
-import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.Dimensionless
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
@@ -151,7 +149,7 @@ protected trait EvcsAgentFundamentals
     * @return
     *   Needed base state data for model calculation
     */
-  def baseStateDataForModelCalculation(
+  private def baseStateDataForModelCalculation(
       inputModel: EvcsInput,
       modelConfig: EvcsRuntimeConfig,
       servicesOpt: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
@@ -219,7 +217,7 @@ protected trait EvcsAgentFundamentals
   override val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[ApparentPower, EvcsRelevantData, EvcsModel],
-      ComparableQuantity[Dimensionless]
+      squants.Dimensionless
   ) => ApparentPower =
     (_, _, _) =>
       throw new InvalidRequestException(
@@ -250,8 +248,6 @@ protected trait EvcsAgentFundamentals
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
-    implicit val startDateTime: ZonedDateTime =
-      collectionStateData.baseStateData.startDate
 
     collectionStateData.baseStateData match {
       case modelBaseStateData: ParticipantModelBaseStateData[
@@ -612,7 +608,7 @@ protected trait EvcsAgentFundamentals
     * @param departures
     *   Departing EVs at the current tick
     */
-  protected def validateDepartures(
+  private def validateDepartures(
       lastEvs: Set[EvModel],
       departures: Seq[UUID]
   ): Unit = {
@@ -635,7 +631,7 @@ protected trait EvcsAgentFundamentals
     * @param chargingPoints
     *   max number of charging points available at this CS
     */
-  protected def validateArrivals(
+  private def validateArrivals(
       lastEvs: Set[EvModel],
       arrivals: Seq[EvModel],
       chargingPoints: Int

@@ -11,15 +11,18 @@ import edu.ie3.datamodel.models.input.system.type.evcslocation.EvcsLocationType
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.test.common.model.MockEvModel
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import spock.lang.Shared
 import spock.lang.Specification
-import tech.units.indriya.ComparableQuantity
+import squants.time.Time
 import tech.units.indriya.quantity.Quantities
 import edu.ie3.util.quantities.QuantityUtil
 
-import javax.measure.quantity.Power
 import scala.collection.immutable.Set
+
+import javax.measure.Unit
+import javax.measure.quantity.Energy
 
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static tech.units.indriya.unit.Units.MINUTE
@@ -33,7 +36,10 @@ class EvcsModelTest extends Specification {
   @Shared
   int chargingPoints = 2
 
-  def getStandardModel(ComparableQuantity<Power> sRated) {
+
+
+
+  def getStandardModel(sRated) {
     return new EvcsModel(
         UUID.fromString("06a14909-366e-4e94-a593-1016e1455b30"),
         "Evcs Model Test",
@@ -57,15 +63,15 @@ class EvcsModelTest extends Specification {
         "TestEv",
         Quantities.getQuantity(evSRated, KILOWATT),
         Quantities.getQuantity(evEStorage, KILOWATTHOUR),
-        Quantities.getQuantity(evStoredEnergy, KILOWATTHOUR)
+        Quantities.getQuantity(evStoredEnergy, KILOWATTHOUR as Unit<Energy>)
         )
     def chargingTime = Quantities.getQuantity(durationMins, MINUTE)
 
     when:
-    def res = evcsModel.charge(evModel, chargingTime)
+    def res = evcsModel.charge(evModel, chargingTime as Time)
 
     then:
-    QuantityUtil.isEquivalentAbs(res._1(),
+    QuantityUtil.isEquivalentAbs(Quantities.getQuantity(res._1().value(),KILOWATTHOUR),
         Quantities.getQuantity(solChargedEnergy, KILOWATTHOUR), TESTING_TOLERANCE)
     QuantityUtil.isEquivalentAbs(res._2().storedEnergy,
         Quantities.getQuantity(solStoredEnergy, KILOWATTHOUR), TESTING_TOLERANCE)
@@ -104,7 +110,7 @@ class EvcsModelTest extends Specification {
     def res = evcsModel.calculateActivePowerAndEvSoc(data)
 
     then:
-    QuantityUtil.isEquivalentAbs(res._1(), Quantities.getQuantity(solPower, KILOWATT), TESTING_TOLERANCE)
+    QuantityUtil.isEquivalentAbs(Quantities.getQuantity(res._1().value(),KILOWATT), Quantities.getQuantity(solPower, KILOWATT), TESTING_TOLERANCE)
     res._2().size() == 2
     QuantityUtil.isEquivalentAbs(res._2().head().storedEnergy,
         Quantities.getQuantity(solEv1Stored, KILOWATTHOUR), TESTING_TOLERANCE)

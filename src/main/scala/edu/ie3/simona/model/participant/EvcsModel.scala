@@ -19,14 +19,12 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil}
 import squants.energy
-import squants.energy.Megawatts
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import squants.energy.{Kilowatts, Megawatts}
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.Quantity
-import javax.measure.quantity.{Energy, Power}
+import javax.measure.quantity.Energy
 
 /** EV charging station model
   *
@@ -55,7 +53,7 @@ final case class EvcsModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: energy.Power,
+    sRated: squants.Power,
     cosPhiRated: Double,
     chargingPoints: Int,
     locationType: EvcsLocationType
@@ -89,12 +87,12 @@ final case class EvcsModel(
     if (isInOperation(tick) && data.evMovementsDataFrameLength > 0) {
       val (activePower, evModels) = calculateActivePowerAndEvSoc(data)
       val reactivePower =
-        calculateReactivePower(activePower.asInstanceOf[energy.Power], voltage)
+        calculateReactivePower(activePower, voltage)
       (
         ApparentPower(
-          activePower.asInstanceOf[energy.Power],
+          activePower,
           reactivePower
-        ).asInstanceOf[energy.Power],
+        ).asInstanceOf[squants.Power],
         evModels
       )
     } else {
@@ -102,7 +100,7 @@ final case class EvcsModel(
         ApparentPower(
           Megawatts(0d),
           Megavars(0d)
-        ).asInstanceOf[energy.Power],
+        ).asInstanceOf[squants.Power],
         data.currentEvs
       )
     }
@@ -115,14 +113,14 @@ final case class EvcsModel(
     * @return
     *   Active power and ev models with updated stored energy
     */
-  private def calculateActivePowerAndEvSoc(
+  def calculateActivePowerAndEvSoc(
       data: EvcsRelevantData
-  ): (ComparableQuantity[Power], Set[EvModel]) = {
+  ): (squants.Power, Set[EvModel]) = {
     val (powerSum, models) = calculateActivePowerAndEvSoc(
       data.currentEvs,
       data.evMovementsDataFrameLength
     )
-    if (powerSum.isLessThanOrEqualTo(sRated.asInstanceOf[Quantity[Power]])) {
+    if (powerSum <= sRated) {
       (powerSum, models)
     } else {
       // if we exceed sRated, we scale down charging power of all evs proportionally
@@ -135,13 +133,12 @@ final case class EvcsModel(
           (
             Set.empty[EvModel],
             Set.empty[EvModel],
-            Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+            Kilowatts(0d)
           )
         ) { case ((calcEvs, noCalcEvs, powerSum), ev) =>
-          val newPower = powerSum.add(ev.getSRatedAC)
-          if (
-            newPower.isLessThanOrEqualTo(sRated.asInstanceOf[Quantity[Power]])
-          )
+          val newPower =
+            powerSum + Kilowatts(ev.getSRatedAC.getValue.doubleValue())
+          if (newPower <= sRated)
             (calcEvs + ev, noCalcEvs, newPower)
           else
             (calcEvs, noCalcEvs + ev, powerSum)
@@ -168,24 +165,23 @@ final case class EvcsModel(
   private def calculateActivePowerAndEvSoc(
       currentEvs: Set[EvModel],
       dataFrameLength: Long
-  ): (ComparableQuantity[Power], Set[EvModel]) = {
+  ): (squants.Power, Set[EvModel]) = {
     val tickDuration = dataFrameLength.toTimespan.asInstanceOf[squants.Time]
 
-    currentEvs.foldLeft(
-      (QuantityUtil.zero(PowerSystemUnits.MEGAWATT), Set.empty[EvModel])
-    ) { case ((powerSum, models), evModel) =>
-      val (chargedEnergy, newEvModel) = charge(
-        evModel,
-        tickDuration
-      )
+    currentEvs.foldLeft(Megawatts(0d), Set.empty[EvModel]) {
+      case ((powerSum, models), evModel) =>
+        val (chargedEnergy, newEvModel) = charge(
+          evModel,
+          tickDuration
+        )
 
-      val chargingPower =
-        chargedEnergy / tickDuration
+        val chargingPower =
+          chargedEnergy / tickDuration
 
-      (
-        powerSum.add(chargingPower.asInstanceOf[Quantity[Power]]),
-        models + newEvModel
-      )
+        (
+          powerSum + chargingPower,
+          models + newEvModel
+        )
     }
   }
 
@@ -197,13 +193,13 @@ final case class EvcsModel(
     * @return
     *   Charged energy and updated ev model as a copy
     */
-  private def charge(
+   def charge(
       evModel: EvModel,
       duration: squants.Time
   ): (squants.Energy, EvModel) = {
     if (evModel.getStoredEnergy.isLessThan(evModel.getEStorage)) {
       val chargingPower =
-        sRated.min(evModel.getSRatedAC.asInstanceOf[energy.Power])
+        sRated.min(evModel.getSRatedAC.asInstanceOf[squants.Power])
 
       val chargeLeftToFull =
         evModel.getEStorage
@@ -313,7 +309,7 @@ object EvcsModel {
       operationInterval: OperationInterval,
       scalingFactor: Double,
       qControl: QControl,
-      sRated: energy.Power,
+      sRated: squants.Power,
       cosPhiRated: Double,
       chargingPoints: Int,
       locationType: EvcsLocationType
