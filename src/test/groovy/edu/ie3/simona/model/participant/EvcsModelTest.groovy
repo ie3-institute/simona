@@ -11,11 +11,12 @@ import edu.ie3.datamodel.models.input.system.type.evcslocation.EvcsLocationType
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.test.common.model.MockEvModel
-import edu.ie3.util.quantities.PowerSystemUnits
+
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.Sq
 import spock.lang.Shared
 import spock.lang.Specification
-import squants.time.Time
+import squants.time.Minutes$
 import tech.units.indriya.quantity.Quantities
 import edu.ie3.util.quantities.QuantityUtil
 
@@ -25,7 +26,7 @@ import javax.measure.Unit
 import javax.measure.quantity.Energy
 
 import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static tech.units.indriya.unit.Units.MINUTE
+
 
 class EvcsModelTest extends Specification {
 
@@ -65,23 +66,23 @@ class EvcsModelTest extends Specification {
         Quantities.getQuantity(evEStorage, KILOWATTHOUR),
         Quantities.getQuantity(evStoredEnergy, KILOWATTHOUR as Unit<Energy>)
         )
-    def chargingTime = Quantities.getQuantity(durationMins, MINUTE)
+    def chargingTime = Sq.create(
+        durationMins, Minutes$.MODULE$
+        )
 
     when:
-    def res = evcsModel.charge(evModel, chargingTime as Time)
+    def res = evcsModel.charge(evModel, chargingTime)
 
     then:
-    QuantityUtil.isEquivalentAbs(Quantities.getQuantity(res._1().value(),KILOWATTHOUR),
-        Quantities.getQuantity(solChargedEnergy, KILOWATTHOUR), TESTING_TOLERANCE)
-    QuantityUtil.isEquivalentAbs(res._2().storedEnergy,
-        Quantities.getQuantity(solStoredEnergy, KILOWATTHOUR), TESTING_TOLERANCE)
+    res._1() =~ solChargedEnergy
+    res._2() =~ solChargedEnergy
 
     where:
     evcsSRated | evSRated | evEStorage | evStoredEnergy | durationMins || solStoredEnergy | solChargedEnergy
-    100d       | 10d      | 20d        | 0d             | 60           || 10d             | 10d // charge a bit
-    100d       | 100d     | 20d        | 0d             | 60           || 20d             | 20d // charge to full
-    100d       | 100d     | 80d        | 30d            | 30           || 80d             | 50d // charge to full with non-empty start
-    100d       | 10d      | 20d        | 20d            | 60           || 20d             | 0d  // already full
+    100d       | 10d      | 20d        | 0d             | 60d           || 10d             | 10d // charge a bit
+    100d       | 100d     | 20d        | 0d             | 60d           || 20d             | 20d // charge to full
+    100d       | 100d     | 80d        | 30d            | 30d           || 80d             | 50d // charge to full with non-empty start
+    100d       | 10d      | 20d        | 20d            | 60d           || 20d             | 0d  // already full
   }
 
   def "Test calcActivePowerAndEvSoc"() {

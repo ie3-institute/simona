@@ -15,10 +15,17 @@ import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.model.participant.EvModelWrapper
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  CompletionMessage,
+  ScheduleTriggerMessage,
+  TriggerWithIdMessage
+}
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeServiceTrigger}
+import edu.ie3.simona.ontology.trigger.Trigger.{
+  ActivityStartTrigger,
+  InitializeServiceTrigger
+}
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.test.common.{EvTestData, TestKitWithShutdown}
 import edu.ie3.util.quantities.PowerSystemUnits

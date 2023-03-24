@@ -14,8 +14,8 @@ import squants.energy.{KilowattHours, Kilowatts}
 import java.util.UUID
 
 case class EvModelWrapper(
-  storedEnergy: squants.Energy,
-  private val original: EvModel
+    storedEnergy: squants.Energy,
+    private val original: EvModel
 ) {
 
   def uuid: UUID = original.getUuid

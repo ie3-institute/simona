@@ -193,7 +193,7 @@ final case class EvcsModel(
     * @return
     *   Charged energy and updated ev model as a copy
     */
-   def charge(
+  def charge(
       evModel: EvModel,
       duration: squants.Time
   ): (squants.Energy, EvModel) = {
