@@ -24,7 +24,6 @@ import edu.ie3.util.scala.quantities.Sq
 import squants.time.Minutes$
 import tech.units.indriya.quantity.Quantities
 
-import javax.measure.quantity.Energy
 import java.time.temporal.ChronoUnit
 import java.util.stream.Collectors
 
@@ -33,8 +32,7 @@ import static edu.ie3.simona.model.participant.load.LoadReference.ActivePower
 import static edu.ie3.simona.model.participant.load.LoadReference.EnergyConsumption
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static org.apache.commons.math3.util.FastMath.abs
-import static tech.units.indriya.unit.Units.MINUTE
-import static tech.units.indriya.unit.Units.WATT
+
 
 class ProfileLoadModelTest extends Specification {
   def loadInput =
