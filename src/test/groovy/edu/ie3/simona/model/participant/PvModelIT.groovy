@@ -15,6 +15,8 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.interfaces.Irradiance
 import edu.ie3.util.scala.quantities.Sq
+import edu.ie3.util.scala.quantities.WattsPerSquareMeter
+import edu.ie3.util.scala.quantities.WattsPerSquareMeter$
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVRecord
 import spock.lang.Shared
@@ -92,8 +94,13 @@ class PvModelIT extends Specification implements PvModelITHelper {
 
         "build the needed data"
         WeatherMessage.WeatherData weather = modelToWeatherMap.get(modelId)
-        PvModel.PvRelevantData neededData = new PvModel.PvRelevantData(dateTime,3600L, weather.diffIrr() as ComparableQuantity<Irradiance>, weather.dirIrr() as ComparableQuantity<Irradiance>)
-        ComparableQuantity<Dimensionless> voltage = getQuantity(1.414213562, PU)
+        PvModel.PvRelevantData neededData = new PvModel.PvRelevantData(
+            dateTime,
+            3600L,
+            weather.diffIrr(),
+            weather.dirIrr()
+            )
+        squants.Dimensionless voltage = Sq.create(1.414213562d, Each$.MODULE$)
 
         "collect the results and calculate the difference between the provided results and the calculated ones"
         double calc = model.calculatePower(0L, voltage, neededData).p().getValue().doubleValue()
@@ -139,24 +146,10 @@ trait PvModelITHelper {
     HashMap<String, PvModel> pvModels = new HashMap<>()
     for (PvInput inputModel : csvGridSource.systemParticipants.pvPlants) {
       PvModel model = PvModel.apply(
-          inputModel.uuid,
-          inputModel.id,
-          SystemComponent.determineOperationInterval(
-          simulationStartDate,
-          simulationEndDate,
-          inputModel.operationTime
-          ),
+          inputModel,
           1d,
-          QControl.apply(inputModel.qCharacteristics),
-          inputModel.sRated,
-          inputModel.cosPhiRated,
-          inputModel.node.geoPosition.y,
-          inputModel.node.geoPosition.x,
-          inputModel.albedo,
-          inputModel.etaConv,
-          inputModel.azimuth,
-          inputModel.elevationAngle,
-          getQuantity(1d, SQUARE_METRE)
+          simulationStartDate,
+          simulationEndDate
           )
 
       pvModels.put(inputModel.getId(), model)
@@ -189,11 +182,8 @@ trait PvModelITHelper {
       double windVel = 0
 
       WeatherMessage.WeatherData weather = new WeatherMessage.WeatherData(
-          (ComparableQuantity<Irradiance>) getQuantity(row.get(22)
-          .replace("Wh/m²", "W/m²")
-          .split("\u0000")[0]),
-          (ComparableQuantity<Irradiance>) getQuantity(row.get(21)
-          .replace("Wh/m²", "W/m²")),
+          Sq.create(row.get(22).replace("Wh/m²", "").toDouble() / 10000, WattsPerSquareMeter$.MODULE$), // TODO CHECK IF THIS NEEDS TO BE DIVIDED!
+          Sq.create(row.get(21).replace("Wh/m²", "").toDouble(), WattsPerSquareMeter$.MODULE$),
           getQuantity(temp, KELVIN),
           getQuantity(windVel, METRE_PER_SECOND))
 
