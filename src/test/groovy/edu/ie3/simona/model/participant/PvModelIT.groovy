@@ -8,31 +8,28 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.io.source.csv.CsvJointGridContainerSource
 import edu.ie3.datamodel.models.input.system.PvInput
-import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.control.QControl
+
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.interfaces.Irradiance
+
 import edu.ie3.util.scala.quantities.Sq
-import edu.ie3.util.scala.quantities.WattsPerSquareMeter
+
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter$
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVRecord
 import spock.lang.Shared
 import spock.lang.Specification
 import squants.*
-import squants.energy.*
-import tech.units.indriya.ComparableQuantity
+
 
 import javax.measure.Quantity
-import javax.measure.quantity.Dimensionless
+
 import javax.measure.quantity.Power
 import java.time.ZonedDateTime
 import java.util.zip.GZIPInputStream
 
 import static edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
-import static edu.ie3.util.quantities.PowerSystemUnits.PU
+
 import static java.util.Locale.US
 import static java.util.Locale.setDefault
 import static tech.units.indriya.quantity.Quantities.getQuantity
@@ -100,7 +97,7 @@ class PvModelIT extends Specification implements PvModelITHelper {
             weather.diffIrr(),
             weather.dirIrr()
             )
-        squants.Dimensionless voltage = Sq.create(1.414213562d, Each$.MODULE$)
+        Dimensionless voltage = Sq.create(1.414213562d, Each$.MODULE$)
 
         "collect the results and calculate the difference between the provided results and the calculated ones"
         double calc = model.calculatePower(0L, voltage, neededData).p().getValue().doubleValue()
