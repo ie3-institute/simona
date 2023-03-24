@@ -14,17 +14,11 @@ import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.exceptions.ServiceException
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.model.participant.EvModelWrapper
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeServiceTrigger
-}
+import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeServiceTrigger}
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.test.common.{EvTestData, TestKitWithShutdown}
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -131,6 +125,7 @@ class ExtEvDataServiceSpec
   }
 
   "An idle ev movements service" must {
+    // TODO enhance with tests for cases where no EVCS are applicable and answer is sent right away
     "handle duplicate registrations correctly" in {
       val evService = TestActorRef(
         new ExtEvDataService(
@@ -480,7 +475,7 @@ class ExtEvDataServiceSpec
         evService,
         DepartingEvsResponse(
           evcs1UUID,
-          Set(updatedEvA)
+          Set(EvModelWrapper(updatedEvA))
         )
       )
 
@@ -495,7 +490,7 @@ class ExtEvDataServiceSpec
         evService,
         DepartingEvsResponse(
           evcs2UUID,
-          Set(updatedEvB)
+          Set(EvModelWrapper(updatedEvB))
         )
       )
 
@@ -581,14 +576,14 @@ class ExtEvDataServiceSpec
       evcs1.expectMsg(
         ProvideEvDataMessage(
           tick,
-          ArrivingEvsData(Seq(evA))
+          ArrivingEvsData(Seq(EvModelWrapper(evA)))
         )
       )
 
       evcs2.expectMsg(
         ProvideEvDataMessage(
           tick,
-          ArrivingEvsData(Seq(evB))
+          ArrivingEvsData(Seq(EvModelWrapper(evB)))
         )
       )
 
@@ -677,7 +672,7 @@ class ExtEvDataServiceSpec
         ProvideEvDataMessage(
           tick,
           ArrivingEvsData(
-            Seq(evA)
+            Seq(EvModelWrapper(evA))
           )
         )
       )
