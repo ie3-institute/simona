@@ -666,8 +666,7 @@ final case class PvModel private (
       eDifH: Irradiation,
       gammaE: squants.Angle,
       albedo: Double
-  ): Irradiation
-  = {
+  ): Irradiation = {
     val gammaEValue = gammaE.toRadians
     (eBeamH + eDifH) * (albedo * 0.5 * (1 - cos(gammaEValue)))
   }
