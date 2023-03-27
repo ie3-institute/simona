@@ -573,8 +573,6 @@ class ParticipantAgentFundamentalsSpec
         ValueStore.forVoltage(901L, Each(1.0)),
         ValueStore(901L),
         ValueStore(901L),
-        ValueStore(901L),
-        ValueStore(901L),
         ValueStore(901L)
       )
 
