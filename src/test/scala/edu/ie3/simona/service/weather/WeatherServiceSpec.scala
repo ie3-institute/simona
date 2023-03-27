@@ -32,6 +32,7 @@ import edu.ie3.simona.service.weather.WeatherSource.AgentCoordinates
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.scalatest.PrivateMethodTester
 import org.scalatest.wordspec.AnyWordSpecLike
 import tech.units.indriya.quantity.Quantities
@@ -205,8 +206,8 @@ class WeatherServiceSpec
         case ProvideWeatherMessage(tick, weatherValue, nextDataTick) =>
           tick shouldBe 0L
           weatherValue shouldBe WeatherData(
-            Quantities.getQuantity(0d, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0d, StandardUnits.SOLAR_IRRADIANCE),
+            WattsPerSquareMeter(0d),
+            WattsPerSquareMeter(0d),
             Quantities
               .getQuantity(-2.3719999999999573, StandardUnits.TEMPERATURE),
             Quantities.getQuantity(4.16474, StandardUnits.WIND_VELOCITY)
@@ -244,8 +245,8 @@ class WeatherServiceSpec
         case ProvideWeatherMessage(tick, weatherValue, nextDataTick) =>
           tick shouldBe 3600L
           weatherValue shouldBe WeatherData(
-            Quantities.getQuantity(0d, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0d, StandardUnits.SOLAR_IRRADIANCE),
+            WattsPerSquareMeter(0d),
+            WattsPerSquareMeter(0d),
             Quantities
               .getQuantity(-2.5259999999999536, StandardUnits.TEMPERATURE),
             Quantities.getQuantity(4.918092, StandardUnits.WIND_VELOCITY)
