@@ -231,7 +231,7 @@ class FixedFeedInAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            SortedMap(0L -> Each(1.0))
+            Map(0L -> Each(1.0))
           )
           resultValueStore shouldBe ValueStore.forResult(
             resolution,
