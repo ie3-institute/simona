@@ -32,20 +32,18 @@ import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.test.common.AgentSpec
 import edu.ie3.simona.test.common.model.participant.LoadTestData
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import org.mockito.Mockito.when
 import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor3, TableFor5}
 import org.scalatestplus.mockito.MockitoSugar
 import squants.Each
-import squants.energy.{Kilowatts, Megawatts, Watts}
-import tech.units.indriya.quantity.Quantities
+import squants.energy.{Kilowatts, Megawatts}
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import javax.measure.quantity.Power
+
 import scala.collection.SortedSet
 
 class ParticipantAgentFundamentalsSpec
@@ -64,6 +62,8 @@ class ParticipantAgentFundamentalsSpec
     with TableDrivenPropertyChecks {
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
+  implicit val p_tolerance = Megawatts(0.001)
+  implicit val q_tolerance = Megavars(0.001)
 
   private val outputConfig: ParticipantNotifierConfig =
     ParticipantNotifierConfig(

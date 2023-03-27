@@ -31,6 +31,7 @@ class SampleWeatherSourceSpec
     with TableDrivenPropertyChecks {
   implicit val simulationStart: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2011-01-01 00:00:00")
+  implicit val tolerance = WattsPerSquareMeter(0.1)
   val source: SampleWeatherSource = new SampleWeatherSource()
 
   "The sample weather source" should {

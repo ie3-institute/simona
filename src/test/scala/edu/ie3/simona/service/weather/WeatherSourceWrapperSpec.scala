@@ -40,6 +40,8 @@ import scala.jdk.CollectionConverters.{MapHasAsJava, SetHasAsJava}
 
 class WeatherSourceWrapperSpec extends UnitSpec {
 
+  implicit val tolerance = WattsPerSquareMeter(0.1)
+
   "A weather source wrapper" should {
     val ctor = classOf[WeatherSourceWrapper].getDeclaredConstructor(
       classOf[PsdmWeatherSource],
