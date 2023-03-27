@@ -17,6 +17,7 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.mockito.MockitoSugar
 import tech.units.indriya.quantity.Quantities
@@ -83,18 +84,16 @@ class SampleWeatherSourceSpec
       val actual = source invokePrivate getWeatherPrivate(tick)
 
       /* Units meet expectation */
-      actual.diffIrr.getUnit shouldBe StandardUnits.SOLAR_IRRADIANCE
-      actual.dirIrr.getUnit shouldBe StandardUnits.SOLAR_IRRADIANCE
+      actual.diffIrr.unit shouldBe WattsPerSquareMeter
+      actual.dirIrr.unit shouldBe WattsPerSquareMeter
       actual.temp.getUnit shouldBe StandardUnits.TEMPERATURE
       actual.windVel.getUnit shouldBe StandardUnits.WIND_VELOCITY
 
       /* Values meet expectations */
-      actual.diffIrr should equalWithTolerance(
-        Quantities.getQuantity(72.7656, StandardUnits.SOLAR_IRRADIANCE)
-      )
-      actual.dirIrr should equalWithTolerance(
-        Quantities.getQuantity(80.1172, StandardUnits.SOLAR_IRRADIANCE)
-      )
+      actual.diffIrr ~= WattsPerSquareMeter(72.7656)
+
+      actual.dirIrr ~= WattsPerSquareMeter(80.1172)
+
       actual.windVel should equalWithTolerance(
         Quantities.getQuantity(11.11602, StandardUnits.WIND_VELOCITY)
       )
@@ -109,15 +108,11 @@ class SampleWeatherSourceSpec
 
       source.getWeather(tick, weightedCoordinates) match {
         case WeatherData(diffIrr, dirIrr, temp, windVel) =>
-          diffIrr.getUnit shouldBe StandardUnits.SOLAR_IRRADIANCE
-          diffIrr should equalWithTolerance(
-            Quantities.getQuantity(72.7656, StandardUnits.SOLAR_IRRADIANCE)
-          )
+          diffIrr.unit shouldBe WattsPerSquareMeter
+          diffIrr ~= WattsPerSquareMeter(72.7656)
 
-          dirIrr.getUnit shouldBe StandardUnits.SOLAR_IRRADIANCE
-          dirIrr should equalWithTolerance(
-            Quantities.getQuantity(80.1172, StandardUnits.SOLAR_IRRADIANCE)
-          )
+          dirIrr.unit shouldBe WattsPerSquareMeter
+          dirIrr ~= WattsPerSquareMeter(80.1172)
 
           temp.getUnit shouldBe StandardUnits.TEMPERATURE
           temp should equalWithTolerance(
