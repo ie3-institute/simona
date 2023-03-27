@@ -14,7 +14,6 @@ import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.exceptions.ServiceException
-import edu.ie3.simona.model.participant.EvModelWrapper
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
   ScheduleTriggerMessage,
@@ -460,10 +459,10 @@ class ExtEvDataServiceSpec
       )
 
       evcs1.expectMsg(
-        DepartingEvsRequest(tick, Seq(evA.getUuid))
+        DepartingEvsRequest(tick, scala.collection.immutable.Seq(evA.getUuid))
       )
       evcs2.expectMsg(
-        DepartingEvsRequest(tick, Seq(evB.getUuid))
+        DepartingEvsRequest(tick, scala.collection.immutable.Seq(evB.getUuid))
       )
 
       scheduler.expectMsg(
@@ -480,10 +479,7 @@ class ExtEvDataServiceSpec
 
       evcs1.send(
         evService,
-        DepartingEvsResponse(
-          evcs1UUID,
-          Set(EvModelWrapper(updatedEvA))
-        )
+        DepartingEvsResponse(evcs1UUID, Set(updatedEvA))
       )
 
       // nothing should happen yet, waiting for second departed ev
@@ -495,10 +491,7 @@ class ExtEvDataServiceSpec
 
       evcs2.send(
         evService,
-        DepartingEvsResponse(
-          evcs2UUID,
-          Set(EvModelWrapper(updatedEvB))
-        )
+        DepartingEvsResponse(evcs2UUID, Set(updatedEvB))
       )
 
       // ev service should recognize that all evs that are expected are returned,
@@ -583,14 +576,14 @@ class ExtEvDataServiceSpec
       evcs1.expectMsg(
         ProvideEvDataMessage(
           tick,
-          ArrivingEvsData(Seq(EvModelWrapper(evA)))
+          ArrivingEvsData(scala.collection.immutable.Seq(evA))
         )
       )
 
       evcs2.expectMsg(
         ProvideEvDataMessage(
           tick,
-          ArrivingEvsData(Seq(EvModelWrapper(evB)))
+          ArrivingEvsData(scala.collection.immutable.Seq(evB))
         )
       )
 
@@ -598,7 +591,7 @@ class ExtEvDataServiceSpec
         CompletionMessage(
           triggerId,
           Some(
-            Seq(
+            scala.collection.immutable.Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(tick),
                 evcs1.ref
@@ -678,9 +671,7 @@ class ExtEvDataServiceSpec
       evcs1.expectMsg(
         ProvideEvDataMessage(
           tick,
-          ArrivingEvsData(
-            Seq(EvModelWrapper(evA))
-          )
+          ArrivingEvsData(scala.collection.immutable.Seq(evA))
         )
       )
 
@@ -688,7 +679,7 @@ class ExtEvDataServiceSpec
         CompletionMessage(
           triggerId,
           Some(
-            Seq(
+            scala.collection.immutable.Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(tick),
                 evcs1.ref
