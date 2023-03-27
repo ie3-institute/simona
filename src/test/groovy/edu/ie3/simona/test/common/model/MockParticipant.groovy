@@ -18,7 +18,7 @@ import scala.Tuple2
 import squants.Dimensionless
 import squants.energy.*
 
-class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryData.ApparentPower> {
+class MockParticipant extends SystemParticipant<CalcRelevantData> {
 
   MockParticipant(
   UUID uuid,
@@ -48,10 +48,5 @@ class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryDa
   @Override
   Power calculateActivePower(CalcRelevantData data) {
     return Sq.create(0, Megawatts$.MODULE$)
-  }
-
-  @Override
-  Tuple2 handleControlledPowerChange(CalcRelevantData data, Power setPower) {
-    return null
   }
 }
