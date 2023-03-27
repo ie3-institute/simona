@@ -27,6 +27,7 @@ import edu.ie3.simona.service.weather.WeatherSourceWrapperSpec._
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.GeoUtils
 import edu.ie3.util.interval.ClosedInterval
+import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.locationtech.jts.geom.Point
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
@@ -66,12 +67,10 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       )
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
       val sumOfAll = 1 + 1 + 1 + 13
-      result.dirIrr should equalWithTolerance(
-        Quantities.getQuantity(sumOfAll / 4, StandardUnits.SOLAR_IRRADIANCE)
-      )
-      result.diffIrr should equalWithTolerance(
-        Quantities.getQuantity(sumOfAll / 4, StandardUnits.SOLAR_IRRADIANCE)
-      )
+      result.dirIrr ~= WattsPerSquareMeter(sumOfAll / 4)
+
+      result.diffIrr ~= WattsPerSquareMeter(sumOfAll / 4)
+
       result.temp should equalWithTolerance(
         Quantities.getQuantity(sumOfAll / 4, StandardUnits.TEMPERATURE)
       )
@@ -91,12 +90,10 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       )
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
       val sumOfAll = 1 + 1 + 1 + 13
-      result.dirIrr should equalWithTolerance(
-        Quantities.getQuantity(sumOfAll / 4, StandardUnits.SOLAR_IRRADIANCE)
-      )
-      result.diffIrr should equalWithTolerance(
-        Quantities.getQuantity(sumOfAll / 4, StandardUnits.SOLAR_IRRADIANCE)
-      )
+      result.dirIrr ~= WattsPerSquareMeter(sumOfAll / 4)
+
+      result.diffIrr ~= WattsPerSquareMeter(sumOfAll / 4)
+
       result.temp should equalWithTolerance(
         Quantities.getQuantity((1 + 1 + 1) / 3, StandardUnits.TEMPERATURE)
       )
@@ -116,12 +113,10 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       )
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
       val sumOfAll = 1 + 1 + 1
-      result.dirIrr should equalWithTolerance(
-        Quantities.getQuantity(sumOfAll / 3, StandardUnits.SOLAR_IRRADIANCE)
-      )
-      result.diffIrr should equalWithTolerance(
-        Quantities.getQuantity(sumOfAll / 3, StandardUnits.SOLAR_IRRADIANCE)
-      )
+      result.dirIrr ~= WattsPerSquareMeter(sumOfAll / 3)
+
+      result.diffIrr ~= WattsPerSquareMeter(sumOfAll / 3)
+
       result.temp should equalWithTolerance(
         Quantities.getQuantity(sumOfAll / 3, StandardUnits.TEMPERATURE)
       )
@@ -133,12 +128,10 @@ class WeatherSourceWrapperSpec extends UnitSpec {
     "calculate the correct weighted value for 1 coordinate with a weight of 1" in {
       val weightedCoordinates = WeightedCoordinates(Map(coordinate13 -> 1d))
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
-      result.dirIrr should equalWithTolerance(
-        Quantities.getQuantity(13, StandardUnits.SOLAR_IRRADIANCE)
-      )
-      result.diffIrr should equalWithTolerance(
-        Quantities.getQuantity(13, StandardUnits.SOLAR_IRRADIANCE)
-      )
+      result.dirIrr ~= WattsPerSquareMeter(13)
+
+      result.diffIrr ~= WattsPerSquareMeter(13)
+
       result.temp should equalWithTolerance(
         Quantities.getQuantity(13, StandardUnits.TEMPERATURE)
       )
@@ -187,14 +180,9 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
         weightSum.scale(weightedWeather) match {
           case WeatherData(diffIrr, dirIrr, temp, windVel) =>
-            diffIrr should equalWithTolerance(
-              Quantities.getQuantity(19.83, StandardUnits.SOLAR_IRRADIANCE),
-              1e-6
-            )
-            dirIrr should equalWithTolerance(
-              Quantities.getQuantity(3.01, StandardUnits.SOLAR_IRRADIANCE),
-              1e-6
-            )
+            diffIrr =~ WattsPerSquareMeter(19.83)
+
+            dirIrr ~= WattsPerSquareMeter(3.01)
             temp should equalWithTolerance(
               Quantities
                 .getQuantity(290.75, Units.KELVIN)
@@ -261,8 +249,8 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
     "correctly calculate scaled properties if provided with varying weight components" in {
       val weatherData = WeatherData(
-        Quantities.getQuantity(1.0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(1.0, StandardUnits.SOLAR_IRRADIANCE),
+        WattsPerSquareMeter(1.0),
+        WattsPerSquareMeter(1.0),
         Quantities.getQuantity(1.0, Units.KELVIN),
         Quantities.getQuantity(1.0, StandardUnits.WIND_VELOCITY)
       )
@@ -270,12 +258,10 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
       weightSum.scale(weatherData) match {
         case WeatherData(diffIrr, dirIrr, temp, windVel) =>
-          diffIrr should equalWithTolerance(
-            Quantities.getQuantity(4.0, StandardUnits.SOLAR_IRRADIANCE)
-          )
-          dirIrr should equalWithTolerance(
-            Quantities.getQuantity(2.0, StandardUnits.SOLAR_IRRADIANCE)
-          )
+          diffIrr ~= WattsPerSquareMeter(4.0)
+
+          dirIrr ~= WattsPerSquareMeter(2.0)
+
           temp should equalWithTolerance(
             Quantities
               .getQuantity(1.25, Units.KELVIN)
@@ -426,8 +412,8 @@ object WeatherSourceWrapperSpec {
   ): (WeatherData, WeightSum) = {
     val weatherData = weatherSeq.map { case (diff, dir, temp, wVel) =>
       WeatherData(
-        Quantities.getQuantity(diff, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(dir, StandardUnits.SOLAR_IRRADIANCE),
+        WattsPerSquareMeter(diff),
+        WattsPerSquareMeter(dir),
         Quantities.getQuantity(temp, Units.KELVIN),
         Quantities.getQuantity(wVel, StandardUnits.WIND_VELOCITY)
       )
@@ -443,8 +429,8 @@ object WeatherSourceWrapperSpec {
               )
             ) =>
           currentSum.copy(
-            diffIrr = currentSum.diffIrr.add(diffIrr.multiply(diffWeight)),
-            dirIrr = currentSum.dirIrr.add(dirIrr.multiply(dirWeight)),
+            diffIrr = currentSum.diffIrr + (diffIrr * diffWeight),
+            dirIrr = currentSum.dirIrr + (dirIrr * dirWeight),
             temp = currentSum.temp.add(temp.multiply(tempWeight)),
             windVel = currentSum.windVel.add(windVel.multiply(wVelWeight))
           )
