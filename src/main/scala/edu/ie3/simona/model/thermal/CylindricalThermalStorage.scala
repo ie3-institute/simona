@@ -142,7 +142,7 @@ case object CylindricalThermalStorage {
       CubicMeters(input.getStorageVolumeLvlMin.getValue.doubleValue()),
       Celsius(input.getInletTemp.getValue.doubleValue()),
       Celsius(input.getReturnTemp.getValue.doubleValue()),
-      WattHoursPerKelvinCubicMeters(input.getC.getValue.doubleValue() * 1000),
+      WattHoursPerKelvinCubicMeters(input.getC.getValue.doubleValue()),
       initialStoredEnergy
     )
 

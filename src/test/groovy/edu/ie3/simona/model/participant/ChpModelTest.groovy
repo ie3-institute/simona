@@ -17,10 +17,13 @@ import edu.ie3.simona.model.participant.ChpModel.ChpState
 import edu.ie3.simona.model.thermal.CylindricalThermalStorage
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.Sq
+import edu.ie3.util.scala.quantities.WattHoursPerKelvinCubicMeters$
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
 import squants.energy.*
+import squants.space.CubicMeters$
+import squants.thermal.Celsius$
 
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static tech.units.indriya.quantity.Quantities.getQuantity
@@ -93,14 +96,12 @@ class ChpModelTest extends Specification {
   }
 
   static def buildThermalStorage(CylindricalStorageInput storageInput, Double storageLvl) {
-    def storedEnergy =
-        Sq.create(
-        CylindricalThermalStorage.volumeToEnergy(getQuantity(storageLvl, StandardUnits.VOLUME), storageInput.c, storageInput.inletTemp, storageInput.returnTemp)
-        .to(KILOWATTHOUR)
-        .getValue()
-        .doubleValue(),
-        KilowattHours$.MODULE$
-        )
+    def storedEnergy = CylindricalThermalStorage.volumeToEnergy(
+            Sq.create(storageLvl, CubicMeters$.MODULE$),
+            Sq.create(storageInput.c.value.toDouble(), WattHoursPerKelvinCubicMeters$.MODULE$),
+            Sq.create(storageInput.inletTemp.value.doubleValue(), Celsius$.MODULE$),
+            Sq.create(storageInput.returnTemp.value.doubleValue(), Celsius$.MODULE$)
+    )
     def thermalStorage = CylindricalThermalStorage.apply(storageInput, storedEnergy)
     return thermalStorage
   }

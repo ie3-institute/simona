@@ -100,7 +100,7 @@ class PvModelIT extends Specification implements PvModelITHelper {
         Dimensionless voltage = Sq.create(1.414213562d, Each$.MODULE$)
 
         "collect the results and calculate the difference between the provided results and the calculated ones"
-        double calc = model.calculatePower(0L, voltage, neededData).p().getValue().doubleValue()
+        double calc = model.calculatePower(0L, voltage, neededData).p().value().doubleValue()
         double sol = resultsMap.get(dateTime).get(modelId).getValue().doubleValue()
 
         testRes.add(Math.abs(calc - sol))
