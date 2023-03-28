@@ -19,7 +19,30 @@ operational behavior.
 
 More information are provided in the project's [documentation](http://simona.readthedocs.io/).
 
-## Usage and Contribution
+## Usage (Docker)
+
+To build the Docker image using the Dockerfile, you need to provide a build argument version and optionally snapshotSuffix if applicable.
+
+```
+docker build --build-arg version=2.1.0 --build-arg snapshotSuffix=-SNAPSHOT -t simona .
+```
+This command will create a Docker image named simona.
+
+To run the Docker container, you need to mount an input directory from your host machine to the /input directory inside the container.
+
+For Linux and macOS systems, use the following command:
+
+```
+docker run -v `realpath input`:/input --rm simona
+```
+For Windows systems, provide the absolute path to the input directory manually and escape the backslashes (\). Replace <path-to-input> with the actual path to the input directory on your system:
+
+```
+docker run -v <path-to-input>:/input --rm simona
+```
+This command will run the container with the input directory mounted, execute the simona Java application, and remove the container after the execution is finished.
+
+## Contribution
 SIMONA is part of several ongoing research projects and will be part of future research projects. Hence, the codebase
 is continuously under development from different perspectives, needs and developers.
 
