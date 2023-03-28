@@ -53,9 +53,9 @@ class FixedFeedModelTest extends Specification {
   simulationEndDate,
   fixedFeedInput.operationTime
   )
-  def testingTolerance = 1e-6 // Equals to 1 W power
+  def testingTolerance = 1e-3 // Equals to 1 W power
 
-  def expectedPower = fixedFeedInput.sRated.to(MEGAWATT).getValue().doubleValue() * -1 * fixedFeedInput.cosPhiRated * 1.0
+  def expectedPower = Sq.create(fixedFeedInput.sRated.value.doubleValue() * -1 * fixedFeedInput.cosPhiRated * 1.0,Kilowatts$.MODULE$)
 
   def "A fixed feed model should return approximately correct power calculations"() {
     when:
@@ -77,7 +77,7 @@ class FixedFeedModelTest extends Specification {
 
     then:
     abs(
-        actualModel.calculateActivePower(CalcRelevantData.FixedRelevantData$.MODULE$).value().doubleValue() - expectedPower
+        actualModel.calculateActivePower(CalcRelevantData.FixedRelevantData$.MODULE$).value().doubleValue() - expectedPower.value().doubleValue()
         ) < testingTolerance
   }
 }
