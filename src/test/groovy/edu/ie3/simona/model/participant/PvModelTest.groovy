@@ -13,10 +13,10 @@ import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.util.quantities.interfaces.Irradiation
+import edu.ie3.util.scala.quantities.Irradiation
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.Kilovars
 import edu.ie3.util.scala.quantities.Sq
+import edu.ie3.util.scala.quantities.WattHoursPerSquareMeter$
 import org.locationtech.jts.geom.Coordinate
 import org.locationtech.jts.geom.GeometryFactory
 import org.locationtech.jts.geom.Point
@@ -26,10 +26,7 @@ import spock.lang.Specification
 import squants.*
 import squants.energy.*
 import squants.space.*
-import tech.units.indriya.ComparableQuantity
 
-import javax.measure.Quantity
-import javax.measure.quantity.Angle
 import java.time.ZonedDateTime
 
 import static edu.ie3.util.quantities.PowerSystemUnits.*
@@ -47,8 +44,6 @@ import static tech.units.indriya.quantity.Quantities.getQuantity
  */
 
 class PvModelTest extends Specification {
-
-  static final double TESTING_TOLERANCE = 1e-10
 
   @Shared
   PvModel pvModel
@@ -262,10 +257,10 @@ class PvModelTest extends Specification {
     when:
     squants.space.Angle dayAngleQuantity = Sq.create(j, Radians$.MODULE$)
 
-    Energy I0Calc = pvModel.calcExtraterrestrialRadiationI0(dayAngleQuantity)
+    Irradiation I0Calc = pvModel.calcExtraterrestrialRadiationI0(dayAngleQuantity)
 
     then:
-    Math.abs(I0Calc.toWattHours() - I0Sol) < 1e-15
+    Math.abs(I0Calc.value().doubleValue() - I0Sol).toDouble() < 1e-15
 
     where:
     j                  || I0Sol
@@ -376,7 +371,7 @@ class PvModelTest extends Specification {
     // 1 MJ/m^2 = 277,778 Wh/m^2
     // 0.244 MJ/m^2 = 67.777778 Wh/m^2
     //Beam Radiation on horizontal surface
-    Energy eBeamH = Sq.create(67.777778d, WattHours$.MODULE$)
+    Irradiation eBeamH = Sq.create(67.777778d, WattHoursPerSquareMeter$.MODULE$)
     // Declination Angle delta of the sun at solar noon
     squants.space.Angle delta = Sq.create(Math.toRadians(deltaIn), Radians$.MODULE$)
     //Hour Angle
@@ -388,13 +383,13 @@ class PvModelTest extends Specification {
     //Sunrise Angle (Sunset Angle * (-1))
     squants.space.Angle omegaSR = omegaSS.$times(-1d)
     //omega1 and omega2
-    Option<scala.Tuple2<ComparableQuantity<Angle>, ComparableQuantity<Angle>>> omegas = pvModel.calculateBeamOmegas(thetaG, omega, omegaSS, omegaSR)
+    Option<scala.Tuple2<squants.space.Angle, squants.space.Angle>> omegas = pvModel.calculateBeamOmegas(thetaG, omega, omegaSS, omegaSR)
 
     expect:
     "- should calculate the beam contribution,"
     Math.abs(
-        pvModel.calcBeamRadiationOnSlopedSurface(eBeamH, omegas, delta, latitudeInRad, gammaE, alphaE).toWattHours() - eBeamSSol
-        ) < 1e-13
+        pvModel.calcBeamRadiationOnSlopedSurface(eBeamH, omegas, delta, latitudeInRad, gammaE, alphaE).value().doubleValue() - eBeamSSol
+       ) < 1e-13
 
     where: "the following parameters are given"
     latitudeInDeg | slope | azimuth | deltaIn | omegaIn | thetaGIn || eBeamSSol
@@ -415,22 +410,22 @@ class PvModelTest extends Specification {
     // 1 MJ/m^2 = 277,778 Wh/m^2
     // 0.244 MJ/m^2 = 67.777778 Wh/m^2
     //Beam Radiation on horizontal surface
-    Energy eBeamH = Sq.create(67.777778d, WattHours$.MODULE$)
+    Irradiation eBeamH = Sq.create(67.777778d, WattHoursPerSquareMeter$.MODULE$)
     // 0.769 MJ/m^2 = 213,61111 Wh/m^2
     //Diffuse beam Radiation on horizontal surface
-    Energy eDifH = Sq.create(213.61111d, WattHours$.MODULE$)
+    Irradiation eDifH = Sq.create(213.61111d, WattHoursPerSquareMeter$.MODULE$)
     //Incidence Angle
     squants.space.Angle thetaG = Sq.create(Math.toRadians(thetaGIn), Radians$.MODULE$)
     //Zenith Angle
     squants.space.Angle thetaZ = Sq.create(Math.toRadians(thetaZIn), Radians$.MODULE$)
     // Extraterrestrial radiation
-    Energy I0Quantity = Sq.create(I0, WattHours$.MODULE$)
+    Irradiation I0Quantity = Sq.create(I0, WattHoursPerSquareMeter$.MODULE$)
 
     expect:
     "- should calculate the beam diffusion"
     // == 0,7792781569074354 MJ/m^2
     Math.abs(
-        pvModel.calcDiffuseRadiationOnSlopedSurfacePerez(eDifH, eBeamH, airMass, I0Quantity, thetaZ, thetaG, gammaE).toWattHours() - eDifSSol
+        pvModel.calcDiffuseRadiationOnSlopedSurfacePerez(eDifH, eBeamH, airMass, I0Quantity, thetaZ, thetaG, gammaE).value().doubleValue() - eDifSSol
         ) < 1e-13
 
     where: "the following parameters are given"
@@ -447,16 +442,16 @@ class PvModelTest extends Specification {
     // 1 MJ/m^2 = 277,778 Wh/m^2
     // 0.244 MJ/m^2 = 67.777778 Wh/m^2
     //Beam Radiation on horizontal surface
-    Energy eBeamH = Sq.create(67.777778d, WattHours$.MODULE$)
+    Irradiation eBeamH = Sq.create(67.777778d, WattHoursPerSquareMeter$.MODULE$)
     // 0.769 MJ/m^2 = 213,61111 Wh/m^2
     //Diffuse beam Radiation on horizontal surface
-    Energy eDifH = Sq.create(213.61111d, WattHours$.MODULE$)
+    Irradiation eDifH = Sq.create(213.61111d, WattHoursPerSquareMeter$.MODULE$)
 
     expect:
     "- should calculate the ground reflection correctly"
     // == 0,15194999952 MJ/m^2 (Book: 0.156 MJ/m^2)
     Math.abs(
-        pvModel.calcReflectedRadiationOnSlopedSurface(eBeamH, eDifH, gammaE, albedo).toWattHours() - eRefSSol
+        pvModel.calcReflectedRadiationOnSlopedSurface(eBeamH, eDifH, gammaE, albedo).value().doubleValue() - eRefSSol
         ) < 1e-15
 
     where: "the following parameters are given"
