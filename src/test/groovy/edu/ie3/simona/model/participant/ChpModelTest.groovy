@@ -97,11 +97,11 @@ class ChpModelTest extends Specification {
 
   static def buildThermalStorage(CylindricalStorageInput storageInput, Double storageLvl) {
     def storedEnergy = CylindricalThermalStorage.volumeToEnergy(
-            Sq.create(storageLvl, CubicMeters$.MODULE$),
-            Sq.create(storageInput.c.value.toDouble(), WattHoursPerKelvinCubicMeters$.MODULE$),
-            Sq.create(storageInput.inletTemp.value.doubleValue(), Celsius$.MODULE$),
-            Sq.create(storageInput.returnTemp.value.doubleValue(), Celsius$.MODULE$)
-    )
+        Sq.create(storageLvl, CubicMeters$.MODULE$),
+        Sq.create(storageInput.c.value.toDouble(), WattHoursPerKelvinCubicMeters$.MODULE$),
+        Sq.create(storageInput.inletTemp.value.doubleValue(), Celsius$.MODULE$),
+        Sq.create(storageInput.returnTemp.value.doubleValue(), Celsius$.MODULE$)
+        )
     def thermalStorage = CylindricalThermalStorage.apply(storageInput, storedEnergy)
     return thermalStorage
   }

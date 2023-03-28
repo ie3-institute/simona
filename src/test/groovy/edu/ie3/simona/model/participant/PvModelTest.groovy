@@ -389,7 +389,7 @@ class PvModelTest extends Specification {
     "- should calculate the beam contribution,"
     Math.abs(
         pvModel.calcBeamRadiationOnSlopedSurface(eBeamH, omegas, delta, latitudeInRad, gammaE, alphaE).value().doubleValue() - eBeamSSol
-       ) < 1e-13
+        ) < 1e-13
 
     where: "the following parameters are given"
     latitudeInDeg | slope | azimuth | deltaIn | omegaIn | thetaGIn || eBeamSSol
