@@ -84,12 +84,12 @@ class CylindricalThermalStorageTest extends Specification {
     def notCovering = storage.isDemandCoveredByStorage(Sq.create(1, KilowattHours$.MODULE$))
 
     then:
-    initialLevel =~ vol2Energy(70d).toKilowattHours()
-    newLevel1 =~ vol2Energy(50d).toKilowattHours()
+    initialLevel.value.doubleValue() =~ vol2Energy(70d).toKilowattHours()
+    newLevel1.value.doubleValue() =~ vol2Energy(50d).toKilowattHours()
     surplus =~ vol2Energy(5d)
-    newLevel2 =~ vol2Energy(100d).toKilowattHours()
-    lack =~ vol2Energy(15d).toKilowattHours()
-    newLevel3 =~ vol2Energy(20d).toKilowattHours()
+    newLevel2.value.doubleValue() =~ vol2Energy(100d).toKilowattHours()
+    lack =~ vol2Energy(15d)
+    newLevel3.value.doubleValue() =~ vol2Energy(20d).toKilowattHours()
     isCovering
     !notCovering
   }

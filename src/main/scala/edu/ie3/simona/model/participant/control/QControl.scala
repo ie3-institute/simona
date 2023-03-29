@@ -150,7 +150,7 @@ object QControl {
       qMax * interpolateXy(vInPu.toEach.asPu)._2
         .to(AbstractUnit.ONE)
         .getValue
-        .doubleValue
+        .doubleValue()
 
     /** Obtain the function, that transfers active into reactive power
       *

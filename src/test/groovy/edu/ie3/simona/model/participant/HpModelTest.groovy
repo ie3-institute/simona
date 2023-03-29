@@ -116,14 +116,14 @@ class HpModelTest extends Specification {
     nextState.isRunning() == expectedRunningStatus
 
     where:
-    hpState                                                                                         || expectedTimeTick | expectedRunningStatus | expectedActivePower        // (isRunning, tooHigh, tooLow)
-    /*    new HpState(false, 0L, Sq.create(0d, Kilowatts$.MODULE$), Sq.create(17d, Celsius$.MODULE$))     || 7200             | true                  | 95                            // tests case (false, false, true)
-     new HpState(false, 0L, Sq.create(0d, Kilowatts$.MODULE$), Sq.create(18d, Celsius$.MODULE$))     || 7200             | false                 | 0                            // tests case (false, false, false)
-     new HpState(false, 0L, Sq.create(0d, Kilowatts$.MODULE$), Sq.create(22d, Celsius$.MODULE$))     || 7200             | false                 | 0                            // tests case (false, false, false)
-     new HpState(false, 0L, Sq.create(0d, Kilowatts$.MODULE$), Sq.create(23d, Celsius$.MODULE$))     || 7200             | false                 | 0                            // tests case (false, true, false)
-     new HpState(true, 0L, Sq.create(95d, Kilowatts$.MODULE$), Sq.create(17d, Celsius$.MODULE$))      || 7200             | true                  | 95                            // tests case (true, false, true)
-     new HpState(true, 0L, Sq.create(95d, Kilowatts$.MODULE$), Sq.create(18d, Celsius$.MODULE$))      || 7200             | true                  | 95                            // tests case (true, false, false)
-     */  new HpState(true, 0L, Sq.create(95d, Kilowatts$.MODULE$), Sq.create(22d, Celsius$.MODULE$))      || 7200             | true                  | 95                            // tests case (true, false, false)
+    hpState                                                                                          || expectedTimeTick | expectedRunningStatus | expectedActivePower        // (isRunning, tooHigh, tooLow)
+    new HpState(false, 0L, Sq.create(0d, Kilowatts$.MODULE$), Sq.create(17d, Celsius$.MODULE$))      || 7200             | true                  | 95                            // tests case (false, false, true)
+    new HpState(false, 0L, Sq.create(0d, Kilowatts$.MODULE$), Sq.create(18d, Celsius$.MODULE$))      || 7200             | false                 | 0                            // tests case (false, false, false)
+    new HpState(false, 0L, Sq.create(0d, Kilowatts$.MODULE$), Sq.create(22d, Celsius$.MODULE$))      || 7200             | false                 | 0                            // tests case (false, false, false)
+    new HpState(false, 0L, Sq.create(0d, Kilowatts$.MODULE$), Sq.create(23d, Celsius$.MODULE$))      || 7200             | false                 | 0                            // tests case (false, true, false)
+    new HpState(true, 0L, Sq.create(95d, Kilowatts$.MODULE$), Sq.create(17d, Celsius$.MODULE$))      || 7200             | true                  | 95                            // tests case (true, false, true)
+    new HpState(true, 0L, Sq.create(95d, Kilowatts$.MODULE$), Sq.create(18d, Celsius$.MODULE$))      || 7200             | true                  | 95                            // tests case (true, false, false)
+    new HpState(true, 0L, Sq.create(95d, Kilowatts$.MODULE$), Sq.create(22d, Celsius$.MODULE$))      || 7200             | true                  | 95                            // tests case (true, false, false)
     new HpState(true, 0L, Sq.create(95d, Kilowatts$.MODULE$), Sq.create(23d, Celsius$.MODULE$))      || 7200             | false                 | 0                            // tests case (true, true, false)
   }
 

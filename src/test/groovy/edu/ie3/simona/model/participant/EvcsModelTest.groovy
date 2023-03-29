@@ -15,16 +15,15 @@ import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.Sq
 import spock.lang.Shared
 import spock.lang.Specification
+
 import squants.time.Minutes$
 import tech.units.indriya.quantity.Quantities
 import edu.ie3.util.quantities.QuantityUtil
 
 import scala.collection.immutable.Set
 
-import javax.measure.Unit
-import javax.measure.quantity.Energy
-
 import static edu.ie3.util.quantities.PowerSystemUnits.*
+
 
 
 class EvcsModelTest extends Specification {
@@ -63,7 +62,7 @@ class EvcsModelTest extends Specification {
         "TestEv",
         Quantities.getQuantity(evSRated, KILOWATT),
         Quantities.getQuantity(evEStorage, KILOWATTHOUR),
-        Quantities.getQuantity(evStoredEnergy, KILOWATTHOUR as Unit<Energy>)
+        Quantities.getQuantity(evStoredEnergy.doubleValue(), KILOWATTHOUR)
         )
     def chargingTime = Sq.create(
         durationMins, Minutes$.MODULE$

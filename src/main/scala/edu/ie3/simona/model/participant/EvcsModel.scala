@@ -273,7 +273,7 @@ object EvcsModel {
       operationInterval,
       scalingFactor,
       QControl(inputModel.getqCharacteristics),
-      inputModel.getType.getsRated.asInstanceOf[energy.Power],
+      Kilowatts(inputModel.getType.getsRated.getValue.doubleValue()),
       inputModel.getCosPhiRated,
       inputModel.getChargingPoints,
       inputModel.getLocationType
@@ -320,7 +320,7 @@ object EvcsModel {
       operationInterval,
       scalingFactor,
       qControl,
-      sRated,
+      Kilowatts(sRated.value.doubleValue()),
       cosPhiRated,
       chargingPoints,
       locationType
