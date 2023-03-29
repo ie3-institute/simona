@@ -36,7 +36,7 @@ final class Irradiance private (val value: Double, val unit: IrradianceUnit)
   )
 
   def *(that: squants.Time): Irradiation = WattHoursPerSquareMeter(
-    this.toWattsPerSquareMeter * that.toSeconds
+    this.toWattsPerSquareMeter * that.toSeconds / Hours(1).toSeconds
   )
 
   def /(that: Energy): ParticleFlux = BecquerelsPerSquareMeterSecond(

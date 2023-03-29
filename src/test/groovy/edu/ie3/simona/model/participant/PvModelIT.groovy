@@ -179,7 +179,7 @@ trait PvModelITHelper {
       double windVel = 0
 
       WeatherMessage.WeatherData weather = new WeatherMessage.WeatherData(
-          Sq.create(row.get(22).replace("Wh/m²", "").toDouble() / 10000, WattsPerSquareMeter$.MODULE$), // TODO CHECK IF THIS NEEDS TO BE DIVIDED!
+          Sq.create(row.get(22).replace("Wh/m²", "").toDouble(), WattsPerSquareMeter$.MODULE$),
           Sq.create(row.get(21).replace("Wh/m²", "").toDouble(), WattsPerSquareMeter$.MODULE$),
           getQuantity(temp, KELVIN),
           getQuantity(windVel, METRE_PER_SECOND))

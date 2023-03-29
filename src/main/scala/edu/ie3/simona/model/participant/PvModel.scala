@@ -66,7 +66,7 @@ final case class PvModel private (
   /** Reference yield at standard testing conditions (STC) */
   private val yieldSTC = WattsPerSquareMeter(1000d)
 
-  private val activationThreshold = sRated * cosPhiRated * 0.001 * -1d
+  private val activationThreshold = sRated * cosPhiRated * 0.000001 * -1d
 
   /** Calculate the active power behaviour of the model
     *
@@ -707,7 +707,7 @@ final case class PvModel private (
   }
 
   private def calcOutput(
-      eTotalInKWhPerSM: Irradiation,
+      eTotalInWhPerSM: Irradiation,
       time: ZonedDateTime,
       irradiationSTC: Irradiation
   ): squants.Power = {
@@ -716,8 +716,9 @@ final case class PvModel private (
     /* The actual yield of this sum of available panels. As the solar irradiance summed up over the total panel surface
      * area. The yield also takes care of generator and temperature correction factors as well as the converter's
      * efficiency */
+    // TODO Check if this make sense, but eTotal comes in Wh/m² but needs to be in kWh/m²
     val `yield` =
-      eTotalInKWhPerSM * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
+      eTotalInWhPerSM * 0.001 * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
 
     /* Calculate the foreseen active power output without boundary condition adaptions */
     val proposal = sRated * (-1) * (
