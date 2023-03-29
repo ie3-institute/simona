@@ -14,7 +14,7 @@ import edu.ie3.datamodel.models.input.thermal.{
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.temperatureTolerance
 import edu.ie3.util.quantities.PowerSystemUnits
-import squants.Kelvin
+import squants.thermal.Celsius
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.thermal.ThermalCapacity
 import tech.units.indriya.unit.Units
@@ -65,8 +65,8 @@ final case class ThermalHouse(
   def isInnerTemperatureTooHigh(
       innerTemperature: squants.Temperature
   ): Boolean =
-    innerTemperature > Kelvin(
-      upperBoundaryTemperature.toKelvinScale - temperatureTolerance.toKelvinScale
+    innerTemperature > Celsius(
+      upperBoundaryTemperature + temperatureTolerance
     )
 
   /** Check if inner temperature is lower than preferred minimum temperature
@@ -78,8 +78,8 @@ final case class ThermalHouse(
       innerTemperature: squants.Temperature,
       boundaryTemperature: squants.Temperature = lowerBoundaryTemperature
   ): Boolean =
-    innerTemperature < Kelvin(
-      boundaryTemperature.toKelvinScale + temperatureTolerance.toKelvinScale
+    innerTemperature < Celsius(
+      boundaryTemperature - temperatureTolerance
     )
 
   /** Calculate the new inner temperature of the thermal house.
@@ -128,7 +128,9 @@ final case class ThermalHouse(
       oldInnerTemperature: squants.Temperature,
       temperatureChange: squants.Temperature
   ): squants.Temperature =
-    Kelvin(oldInnerTemperature.toKelvinScale + temperatureChange.toKelvinScale)
+    Celsius(
+      oldInnerTemperature + temperatureChange
+    )
 
   /** Calculate the temperature change for the thermal house form the thermal
     * energy change
@@ -190,9 +192,8 @@ final case class ThermalHouse(
       ambientTemperature: squants.Temperature,
       time: squants.Time
   ): squants.Energy = {
-    val temperatureDeviation =
-      innerTemperature.toKelvinScale - ambientTemperature.toKelvinScale
-    (ethLosses * time) * temperatureDeviation
+    val temperatureDeviation = innerTemperature - ambientTemperature
+    (ethLosses * time) * temperatureDeviation.toCelsiusScale
   }
 
 }
@@ -209,7 +210,7 @@ case object ThermalHouse {
     *   a ready-to-use [[ThermalHouse]] with referenced electric parameters
     */
 
-  protected final def temperatureTolerance: squants.Temperature = Kelvin(0.01)
+  protected final def temperatureTolerance: squants.Temperature = Celsius(0.01)
 
   def apply(
       input: ThermalHouseInput
@@ -231,12 +232,12 @@ case object ThermalHouse {
           .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN)
           .getValue
           .doubleValue
-      ) / Kelvin(1d),
-      squants.thermal.Kelvin(
-        input.getLowerTemperatureLimit.to(Units.KELVIN).getValue.doubleValue
+      ) / Celsius(1d),
+      squants.thermal.Celsius(
+        input.getLowerTemperatureLimit.to(Units.CELSIUS).getValue.doubleValue
       ),
-      squants.thermal.Kelvin(
-        input.getUpperTemperatureLimit.to(Units.KELVIN).getValue.doubleValue
+      squants.thermal.Celsius(
+        input.getUpperTemperatureLimit.to(Units.CELSIUS).getValue.doubleValue
       )
     )
 

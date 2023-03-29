@@ -29,8 +29,7 @@ class CylindricalThermalStorageTest extends Specification {
 
   @Shared
   CylindricalStorageInput storageInput
-  @Shared
-  static final Double TOLERANCE = 0.0001
+
 
   def setupSpec() {
     storageInput = new CylindricalStorageInput(
@@ -103,7 +102,7 @@ class CylindricalThermalStorageTest extends Specification {
     def usableThermalEnergy = storage.usableThermalEnergy()
 
     then:
-    Math.abs(usableThermalEnergy.toKilowattHours() - 5 * 115) < TESTING_TOLERANCE
+    Math.abs(usableThermalEnergy.toKilowattHours() - 50 * 10 * 1.15) < TESTING_TOLERANCE
   }
 
   def "Check apply, validation and build method:"() {
@@ -120,6 +119,6 @@ class CylindricalThermalStorageTest extends Specification {
     storage.storageVolumeLvlMin() =~ Sq.create(storageInput.storageVolumeLvlMin.value.doubleValue(), CubicMeters$.MODULE$)
     storage.inletTemp() =~ Sq.create(storageInput.inletTemp.value.doubleValue(), Celsius$.MODULE$)
     storage.returnTemp() =~ Sq.create(storageInput.returnTemp.value.doubleValue(), Celsius$.MODULE$)
-    storage.c() =~ Sq.create(storageInput.c.value.doubleValue(), WattHoursPerKelvinCubicMeters$.MODULE$)
+    storage.c().value().doubleValue() =~ storageInput.c.value.doubleValue()
   }
 }

@@ -24,10 +24,10 @@ final class SpecificHeatCapacity private (
   def dimension = SpecificHeatCapacity
 
   def *(that: Temperature): EnergyDensity = WattHoursPerCubicMeter(
-    this.toWattHoursPerKelvinCubicMeters * that.toKelvinScale
+    this.toWattHoursPerKelvinCubicMeters * that.toCelsiusScale
   )
   def multiply(temperature: Temperature, volume: Volume): Energy = WattHours(
-    this.toWattHoursPerKelvinCubicMeters * temperature.toKelvinScale * volume.toCubicMeters
+    this.toWattHoursPerKelvinCubicMeters * 1000 * temperature.toCelsiusScale * volume.toCubicMeters
   )
 
   def toWattHoursPerKelvinCubicMeters = to(WattHoursPerKelvinCubicMeters)
@@ -53,7 +53,7 @@ object WattHoursPerKelvinCubicMeters
     extends SpecificHeatCapacityUnit
     with PrimaryUnit
     with SiUnit {
-  def symbol = "kWh/(K*m³)"
+  def symbol = "kWh/K*m³"
 }
 
 object ThermalCapacityConversions {

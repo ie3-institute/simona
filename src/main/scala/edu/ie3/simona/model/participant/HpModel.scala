@@ -14,6 +14,7 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import squants.energy.{Kilowatts, Megawatts}
+import squants.time.Seconds
 
 import java.util.UUID
 
@@ -137,9 +138,12 @@ final case class HpModel(
       else (Megawatts(0d), Megawatts(0d))
 
     val duration: squants.Time =
-      hpData.hpState.lastTimeTick
-        .durationUntil(hpData.currentTimeTick)
-        .asInstanceOf[squants.Time]
+      Seconds(
+        hpData.hpState.lastTimeTick
+          .durationUntil(hpData.currentTimeTick)
+          .getValue
+          .longValue()
+      )
 
     val newInnerTemperature = thermalHouse.newInnerTemperature(
       newThermalPower,
@@ -151,7 +155,6 @@ final case class HpModel(
     HpState(
       isRunning,
       hpData.currentTimeTick,
-      hpData.hpState.innerTemperature,
       newActivePower,
       newInnerTemperature
     )
@@ -179,7 +182,6 @@ case object HpModel {
   final case class HpState(
       isRunning: Boolean,
       lastTimeTick: Long,
-      ambientTemperature: squants.Temperature,
       activePower: squants.Power,
       innerTemperature: squants.Temperature
   )
@@ -194,8 +196,6 @@ case object HpModel {
     *   a [[HpState]]
     * @param currentTimeTick
     *   contains current time tick
-    * @param ambientTemperature
-    *   Ambient temperature
     */
   final case class HpData(
       hpState: HpState,

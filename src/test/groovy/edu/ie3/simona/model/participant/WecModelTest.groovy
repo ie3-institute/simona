@@ -21,9 +21,9 @@ import spock.lang.Specification
 import spock.lang.Unroll
 import squants.energy.Watts$
 
+
 import edu.ie3.util.scala.quantities.Sq
 import static edu.ie3.datamodel.models.StandardUnits.*
-import static edu.ie3.util.quantities.QuantityUtil.equals
 import static edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static edu.ie3.util.quantities.QuantityUtil.equals
@@ -113,10 +113,9 @@ class WecModelTest extends Specification {
 
     when:
     def result = wecModel.calculateActivePower(wecData)
-    def expected = Sq.create(power, Watts$.MODULE$)
 
     then:
-    math.abs((result - expected).value().doubleValue()) < TOLERANCE
+    Math.abs((result.toWatts() - power.doubleValue())) < TOLERANCE
 
     where:
     velocity || power
@@ -143,10 +142,9 @@ class WecModelTest extends Specification {
 
     when:
     def result = wecModel.calculateActivePower(wecData)
-    def expected = Sq.create(power, Watts$.MODULE$)
 
     then:
-    math.abs((result - expected).value().doubleValue()) < TOLERANCE
+    Math.abs((result.toWatts() - power.doubleValue())) < TOLERANCE
 
     where:
     temperature || power
