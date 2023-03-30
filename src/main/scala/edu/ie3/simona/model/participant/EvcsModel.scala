@@ -17,14 +17,14 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil}
+import edu.ie3.util.scala.quantities.Megavars
 import squants.energy
-import squants.energy.{Kilowatts, Megawatts}
+import squants.energy.{KilowattHours, Kilowatts, Megawatts}
+import squants.time.Seconds
+import tech.units.indriya.quantity.Quantities.getQuantity
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.Quantity
-import javax.measure.quantity.Energy
 
 /** EV charging station model
   *
@@ -166,7 +166,7 @@ final case class EvcsModel(
       currentEvs: Set[EvModel],
       dataFrameLength: Long
   ): (squants.Power, Set[EvModel]) = {
-    val tickDuration = dataFrameLength.toTimespan.asInstanceOf[squants.Time]
+    val tickDuration = Seconds(dataFrameLength)
 
     currentEvs.foldLeft(Megawatts(0d), Set.empty[EvModel]) {
       case ((powerSum, models), evModel) =>
@@ -199,28 +199,31 @@ final case class EvcsModel(
   ): (squants.Energy, EvModel) = {
     if (evModel.getStoredEnergy.isLessThan(evModel.getEStorage)) {
       val chargingPower =
-        sRated.min(evModel.getSRatedAC.asInstanceOf[squants.Power])
+        sRated.min(Kilowatts(evModel.getSRatedAC.getValue.doubleValue()))
 
-      val chargeLeftToFull =
-        evModel.getEStorage
-          .subtract(evModel.getStoredEnergy)
-          .asInstanceOf[squants.Energy]
+      val chargeLeftToFull = KilowattHours(
+        evModel.getEStorage.getValue.doubleValue()
+      ) - (KilowattHours(evModel.getStoredEnergy.getValue.doubleValue()))
+
       val potentialChargeDuringTick = chargingPower * duration
 
-      val actualCharge = chargeLeftToFull
-        .min(potentialChargeDuringTick)
-        .asInstanceOf[Quantity[Energy]]
-      val newStoredEnergy = evModel.getStoredEnergy.add(actualCharge)
+      val actualCharge = chargeLeftToFull.min(potentialChargeDuringTick)
+      val newStoredEnergy = KilowattHours(
+        evModel.getStoredEnergy.getValue.doubleValue()
+      ) + actualCharge
 
       (
-        actualCharge.asInstanceOf[squants.Energy],
-        evModel.copyWith(newStoredEnergy)
+        actualCharge,
+        evModel.copyWith(
+          getQuantity(
+            newStoredEnergy.value.doubleValue(),
+            PowerSystemUnits.KILOWATTHOUR
+          )
+        )
       )
     } else
       (
-        QuantityUtil
-          .zero(PowerSystemUnits.KILOWATTHOUR)
-          .asInstanceOf[squants.Energy],
+        KilowattHours(0d),
         evModel
       )
   }

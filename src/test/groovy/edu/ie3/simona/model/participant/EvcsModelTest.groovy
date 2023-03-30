@@ -15,7 +15,10 @@ import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.Sq
 import spock.lang.Shared
 import spock.lang.Specification
-
+import squants.energy.KilowattHours$
+import squants.energy.MegawattHours$
+import squants.energy.Kilowatts$
+import squants.energy.Power
 import squants.time.Minutes$
 import tech.units.indriya.quantity.Quantities
 import edu.ie3.util.quantities.QuantityUtil
@@ -38,7 +41,7 @@ class EvcsModelTest extends Specification {
 
 
 
-  def getStandardModel(sRated) {
+  def getStandardModel(Power sRated) {
     return new EvcsModel(
         UUID.fromString("06a14909-366e-4e94-a593-1016e1455b30"),
         "Evcs Model Test",
@@ -55,7 +58,7 @@ class EvcsModelTest extends Specification {
   def "Test charge"() {
     given:
     EvcsModel evcsModel = getStandardModel(
-        Quantities.getQuantity(evcsSRated, KILOVOLTAMPERE)
+        Sq.create(evcsSRated, Kilowatts$.MODULE$)
         )
     EvModel evModel = new MockEvModel(
         UUID.fromString("73c041c7-68e9-470e-8ca2-21fd7dbd1797"),
@@ -72,8 +75,8 @@ class EvcsModelTest extends Specification {
     def res = evcsModel.charge(evModel, chargingTime)
 
     then:
-    res._1() =~ solChargedEnergy
-    res._2() =~ solChargedEnergy
+    res._1().value().doubleValue() =~ solChargedEnergy.doubleValue()
+    Sq.create(res._2().storedEnergy.value.doubleValue(), KilowattHours$.MODULE$) =~ Sq.create(solStoredEnergy, KilowattHours$.MODULE$)
 
     where:
     evcsSRated | evSRated | evEStorage | evStoredEnergy | durationMins || solStoredEnergy | solChargedEnergy
@@ -85,9 +88,9 @@ class EvcsModelTest extends Specification {
 
   def "Test calcActivePowerAndEvSoc"() {
     given:
-    def evsRated = Quantities.getQuantity(100d, KILOVOLTAMPERE)
+    def evsRated = 100d
 
-    EvcsModel evcsModel = getStandardModel(evsRated)
+    EvcsModel evcsModel = getStandardModel(Sq.create(evsRated, Kilowatts$.MODULE$))
     EvModel ev1Model = new MockEvModel(
         UUID.fromString("73c041c7-68e9-470e-8ca2-21fd7dbd1797"),
         "TestEv1",
@@ -109,12 +112,10 @@ class EvcsModelTest extends Specification {
     def res = evcsModel.calculateActivePowerAndEvSoc(data)
 
     then:
-    QuantityUtil.isEquivalentAbs(Quantities.getQuantity(res._1().value(),KILOWATT), Quantities.getQuantity(solPower, KILOWATT), TESTING_TOLERANCE)
+    Sq.create(res._1().toKilowatts(),KilowattHours$.MODULE$) =~ solPower
     res._2().size() == 2
-    QuantityUtil.isEquivalentAbs(res._2().head().storedEnergy,
-        Quantities.getQuantity(solEv1Stored, KILOWATTHOUR), TESTING_TOLERANCE)
-    QuantityUtil.isEquivalentAbs(res._2().last().storedEnergy,
-        Quantities.getQuantity(solEv2Stored, KILOWATTHOUR), TESTING_TOLERANCE)
+    Sq.create(res._2().head().storedEnergy.value.doubleValue(), KilowattHours$.MODULE$) =~ solEv1Stored
+    Sq.create(res._2().last().storedEnergy.value.doubleValue(), KilowattHours$.MODULE$) =~ solEv2Stored
 
     where:
     ev1SRated | ev1StoredEnergy | ev2SRated | ev2StoredEnergy | durationTicks || solPower | solEv1Stored | solEv2Stored
