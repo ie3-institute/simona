@@ -43,6 +43,7 @@ import edu.ie3.util.quantities.EmptyQuantity
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
+import squants.Each
 import tech.units.indriya.unit.Units.PASCAL
 
 import java.time.ZonedDateTime
@@ -128,10 +129,13 @@ protected trait WecAgentFundamentals
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution * 10,
-        inputModel.getNode
-          .getvTarget()
-          .to(PU)
-          .asInstanceOf[squants.Dimensionless]
+        Each(
+          inputModel.getNode
+            .getvTarget()
+            .to(PU)
+            .getValue
+            .doubleValue()
+        )
       ),
       ValueStore.forResult(resolution, 10),
       ValueStore(resolution * 10),
