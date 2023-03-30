@@ -7,38 +7,20 @@
 package edu.ie3.simona.service.weather
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.io.connectors.{
-  CouchbaseConnector,
-  InfluxDbConnector,
-  SqlConnector
-}
-import edu.ie3.datamodel.io.factory.timeseries.{
-  CosmoTimeBasedWeatherValueFactory,
-  IconTimeBasedWeatherValueFactory
-}
+import edu.ie3.datamodel.io.connectors.{CouchbaseConnector, InfluxDbConnector, SqlConnector}
+import edu.ie3.datamodel.io.factory.timeseries.{CosmoTimeBasedWeatherValueFactory, IconTimeBasedWeatherValueFactory}
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.couchbase.CouchbaseWeatherSource
 import edu.ie3.datamodel.io.source.csv.CsvWeatherSource
 import edu.ie3.datamodel.io.source.influxdb.InfluxDbWeatherSource
 import edu.ie3.datamodel.io.source.sql.SqlWeatherSource
-import edu.ie3.datamodel.io.source.{
-  IdCoordinateSource,
-  WeatherSource => PsdmWeatherSource
-}
+import edu.ie3.datamodel.io.source.{IdCoordinateSource, WeatherSource => PsdmWeatherSource}
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
-  CouchbaseParams,
-  InfluxDb1xParams,
-  SqlParams
-}
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{CouchbaseParams, InfluxDb1xParams, SqlParams}
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.simona.service.weather.WeatherSource.{
-  EMPTY_WEATHER_DATA,
-  WeatherScheme,
-  toWeatherData
-}
+import edu.ie3.simona.service.weather.WeatherSource.{EMPTY_WEATHER_DATA, WeatherScheme, toWeatherData}
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
 import edu.ie3.simona.service.weather.{WeatherSource => SimonaWeatherSource}
 import edu.ie3.simona.util.TickUtil
@@ -47,7 +29,7 @@ import edu.ie3.util.DoubleUtils.ImplicitDouble
 import edu.ie3.util.exceptions.EmptyQuantityException
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
+import edu.ie3.util.scala.quantities.{Irradiance, Sq, WattsPerSquareMeter}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -196,10 +178,20 @@ private[weather] final case class WeatherSourceWrapper private (
           WeatherData(
             WattsPerSquareMeter(
               averagedWeather.diffIrr.value.doubleValue
-            ) + diffIrrContrib.asInstanceOf[Irradiance],
+            ) +
+              (diffIrrContrib match {
+              case irradiance: Irradiance => WattsPerSquareMeter(irradiance.value.doubleValue)
+              case _ => WattsPerSquareMeter(EMPTY_WEATHER_DATA.dirIrr.value.doubleValue)
+            }
+                )
+            ,
             WattsPerSquareMeter(
               averagedWeather.dirIrr.value.doubleValue
-            ) + dirIrrContrib.asInstanceOf[Irradiance],
+            ) + (dirIrrContrib match {
+              case irradiance: Irradiance => WattsPerSquareMeter(irradiance.value.doubleValue)
+              case _ => WattsPerSquareMeter(EMPTY_WEATHER_DATA.dirIrr.value.doubleValue)
+            })
+            ,
             averagedWeather.temp.add(tempContrib),
             averagedWeather.windVel.add(windVelContrib)
           ),
