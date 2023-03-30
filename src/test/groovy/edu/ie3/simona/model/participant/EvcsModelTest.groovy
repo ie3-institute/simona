@@ -16,12 +16,10 @@ import edu.ie3.util.scala.quantities.Sq
 import spock.lang.Shared
 import spock.lang.Specification
 import squants.energy.KilowattHours$
-import squants.energy.MegawattHours$
 import squants.energy.Kilowatts$
 import squants.energy.Power
 import squants.time.Minutes$
 import tech.units.indriya.quantity.Quantities
-import edu.ie3.util.quantities.QuantityUtil
 
 import scala.collection.immutable.Set
 
