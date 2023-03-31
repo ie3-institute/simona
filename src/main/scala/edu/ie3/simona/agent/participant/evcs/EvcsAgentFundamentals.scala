@@ -616,7 +616,7 @@ protected trait EvcsAgentFundamentals
     * @param departures
     *   Departing EVs at the current tick
     */
-  private def validateDepartures(
+  protected def validateDepartures(
       lastEvs: Set[EvModel],
       departures: Seq[UUID]
   ): Unit = {
@@ -639,7 +639,7 @@ protected trait EvcsAgentFundamentals
     * @param chargingPoints
     *   max number of charging points available at this CS
     */
-  private def validateArrivals(
+  protected def validateArrivals(
       lastEvs: Set[EvModel],
       arrivals: Seq[EvModel],
       chargingPoints: Int

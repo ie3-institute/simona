@@ -12,6 +12,7 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.{MutableStorage, ThermalStorage}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities
 import squants.energy._
 import squants.time.Seconds
 
@@ -112,7 +113,7 @@ final case class ChpModel(
       chpData: ChpData
   ): ChpData => ChpState = {
     val isRunning = chpData.chpState.isRunning
-    val hasDemand = chpData.heatDemand > KilowattHours(0d)
+    val hasDemand = chpData.heatDemand > DefaultQuantities.zeroKWH
     val isCovered = isDemandCovered(chpData)
 
     (isRunning, hasDemand, isCovered) match {
@@ -138,8 +139,8 @@ final case class ChpModel(
     ChpState(
       isRunning = false,
       chpData.currentTimeTick,
-      Kilowatts(0d),
-      KilowattHours(0d)
+      DefaultQuantities.zeroKW,
+      DefaultQuantities.zeroKWH
     )
 
   /** The demand cannot be covered, therefore this function sets storage level
@@ -175,8 +176,8 @@ final case class ChpModel(
     ChpState(
       isRunning = false,
       chpData.currentTimeTick,
-      Kilowatts(0d),
-      KilowattHours(0d)
+      DefaultQuantities.zeroKW,
+      DefaultQuantities.zeroKWH
     )
   }
 

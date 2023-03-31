@@ -736,7 +736,7 @@ final case class PvModel private (
 
     /* If the output is marginally small, suppress the output, as we are likely to be in night and then only produce incorrect output */
     if (proposal.compareTo(activationThreshold) > 0)
-      Megawatts(0d)
+      DefaultQuantities.zeroMW
     else proposal
   }
 }

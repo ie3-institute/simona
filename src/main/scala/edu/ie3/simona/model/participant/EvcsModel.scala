@@ -132,7 +132,7 @@ final case class EvcsModel(
           (
             Set.empty[EvModel],
             Set.empty[EvModel],
-            Kilowatts(0d)
+            DefaultQuantities.zeroKW
           )
         ) { case ((calcEvs, noCalcEvs, powerSum), ev) =>
           val newPower =
@@ -167,7 +167,7 @@ final case class EvcsModel(
   ): (squants.Power, Set[EvModel]) = {
     val tickDuration = Seconds(dataFrameLength)
 
-    currentEvs.foldLeft(Kilowatts(0d), Set.empty[EvModel]) {
+    currentEvs.foldLeft(DefaultQuantities.zeroKW, Set.empty[EvModel]) {
       case ((powerSum, models), evModel) =>
         val (chargedEnergy, newEvModel) = charge(
           evModel,
@@ -222,7 +222,7 @@ final case class EvcsModel(
       )
     } else
       (
-        KilowattHours(0d),
+        DefaultQuantities.zeroKWH,
         evModel
       )
   }

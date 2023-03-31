@@ -77,8 +77,8 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
       ApparentPower(activePower, reactivePower)
     } else {
       ApparentPower(
-        Megawatts(0d),
-        Megavars(0d)
+        DefaultQuantities.zeroMW,
+        DefaultQuantities.zeroMVAr
       )
     }
   }

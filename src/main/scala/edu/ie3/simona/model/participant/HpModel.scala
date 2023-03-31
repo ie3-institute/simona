@@ -135,7 +135,7 @@ final case class HpModel(
     val (newActivePower, newThermalPower) =
       if (isRunning)
         (pRated, pThermal * scalingFactor)
-      else (Megawatts(0d), Megawatts(0d))
+      else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
 
     val duration: squants.Time =
       Seconds(

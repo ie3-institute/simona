@@ -130,7 +130,7 @@ case object CylindricalThermalStorage {
     */
   def apply(
       input: CylindricalStorageInput,
-      initialStoredEnergy: squants.Energy = KilowattHours(0d)
+      initialStoredEnergy: squants.Energy = DefaultQuantities.zeroKWH
   ): CylindricalThermalStorage =
     new CylindricalThermalStorage(
       input.getUuid,
