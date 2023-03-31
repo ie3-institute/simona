@@ -151,7 +151,7 @@ protected trait EvcsAgentFundamentals
     * @return
     *   Needed base state data for model calculation
     */
-  private def baseStateDataForModelCalculation(
+  def baseStateDataForModelCalculation(
       inputModel: EvcsInput,
       modelConfig: EvcsRuntimeConfig,
       servicesOpt: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],

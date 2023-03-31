@@ -13,7 +13,8 @@ import edu.ie3.simona.model.thermal.ThermalHouse
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import squants.energy.{Kilowatts, Megawatts}
+import edu.ie3.util.scala.quantities.DefaultQuantities
+import squants.energy.Kilowatts
 import squants.time.Seconds
 
 import java.util.UUID

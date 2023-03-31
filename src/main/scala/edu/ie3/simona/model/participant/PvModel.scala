@@ -12,14 +12,9 @@ import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{
-  Irradiance,
-  Irradiation,
-  WattHoursPerSquareMeter,
-  WattsPerSquareMeter
-}
+import edu.ie3.util.scala.quantities._
 import squants.Each
-import squants.energy.{Kilowatts, Megawatts}
+import squants.energy.Kilowatts
 import squants.space.{Degrees, Radians, SquareMeters}
 import squants.time.Seconds
 import tech.units.indriya.quantity.Quantities

@@ -9,12 +9,14 @@ package edu.ie3.simona.model.participant
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
-import squants.energy.{Kilowatts, Megawatts}
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.scala.quantities.{
+  DefaultQuantities,
+  Megavars,
+  ReactivePower
+}
+import squants.energy.Kilowatts
 
 import java.util.UUID
 

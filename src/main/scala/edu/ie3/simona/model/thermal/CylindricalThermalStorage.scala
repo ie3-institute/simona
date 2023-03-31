@@ -13,10 +13,10 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput
 }
 import edu.ie3.util.scala.quantities.{
+  DefaultQuantities,
   SpecificHeatCapacity,
   WattHoursPerKelvinCubicMeters
 }
-import squants.energy.KilowattHours
 import squants.space.CubicMeters
 import squants.thermal.Celsius
 

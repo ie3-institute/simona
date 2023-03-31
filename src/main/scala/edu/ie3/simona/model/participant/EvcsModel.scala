@@ -16,7 +16,7 @@ import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.Megavars
+import edu.ie3.util.scala.quantities.{DefaultQuantities, Megavars}
 import squants.energy
 import squants.energy.{KilowattHours, Kilowatts, Megawatts}
 import squants.time.Seconds

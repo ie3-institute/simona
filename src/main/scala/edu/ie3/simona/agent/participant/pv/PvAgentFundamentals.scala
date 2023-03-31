@@ -142,7 +142,6 @@ protected trait PvAgentFundamentals
       ValueStore(resolution * 10),
       ValueStore(resolution * 10)
     )
-
   }
 
   override def buildModel(
