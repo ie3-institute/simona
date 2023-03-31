@@ -6,19 +6,28 @@
 
 package edu.ie3.simona.service.weather
 
-import edu.ie3.datamodel.io.source.{IdCoordinateSource, WeatherSource => PsdmWeatherSource}
+import edu.ie3.datamodel.io.source.{
+  IdCoordinateSource,
+  WeatherSource => PsdmWeatherSource
+}
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.timeseries.individual.{IndividualTimeSeries, TimeBasedValue}
+import edu.ie3.datamodel.models.timeseries.individual.{
+  IndividualTimeSeries,
+  TimeBasedValue
+}
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.simona.service.weather.WeatherSource.{EMPTY_WEATHER_DATA, WeightedCoordinates}
+import edu.ie3.simona.service.weather.WeatherSource.{
+  EMPTY_WEATHER_DATA,
+  WeightedCoordinates
+}
 import edu.ie3.simona.service.weather.WeatherSourceSpec.DummyIdCoordinateSource
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
 import edu.ie3.simona.service.weather.WeatherSourceWrapperSpec._
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.GeoUtils
 import edu.ie3.util.interval.ClosedInterval
-import edu.ie3.util.scala.quantities.WattsPerSquareMeter
+import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import org.locationtech.jts.geom.Point
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
@@ -31,7 +40,7 @@ import scala.jdk.CollectionConverters.{MapHasAsJava, SetHasAsJava}
 
 class WeatherSourceWrapperSpec extends UnitSpec {
 
-  implicit val tolerance = WattsPerSquareMeter(0.1)
+  implicit val tolerance: Irradiance = WattsPerSquareMeter(0.1)
 
   "A weather source wrapper" should {
     val ctor = classOf[WeatherSourceWrapper].getDeclaredConstructor(

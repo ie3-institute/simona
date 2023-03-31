@@ -7,7 +7,10 @@
 package edu.ie3.simona.ontology.messages.services
 
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{ProvisionMessage, ServiceRegistrationMessage}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  ProvisionMessage,
+  ServiceRegistrationMessage
+}
 import edu.ie3.util.scala.quantities.Irradiance
 import tech.units.indriya.ComparableQuantity
 
