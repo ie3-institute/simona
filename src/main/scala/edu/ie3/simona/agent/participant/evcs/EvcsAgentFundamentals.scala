@@ -46,7 +46,9 @@ import edu.ie3.simona.ontology.messages.services.EvMessage.{
 import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DISTANCE
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.Kilovars
 import squants.Each
+import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -385,7 +387,10 @@ protected trait EvcsAgentFundamentals
     updateValueStoresInformListeners(
       modelBaseStateData,
       tick,
-      result.asInstanceOf[ApparentPower],
+      ApparentPower.apply(
+        Kilowatts(result.p.value.doubleValue),
+        Kilovars(result.q.value.doubleValue)
+      ),
       updatedRelevantData
     )
   }
@@ -456,7 +461,10 @@ protected trait EvcsAgentFundamentals
         updateValueStoresInformListeners(
           modelBaseStateData,
           tick,
-          result.asInstanceOf[ApparentPower],
+          ApparentPower.apply(
+            Kilowatts(result.p.value.doubleValue),
+            Kilovars(result.q.value.doubleValue)
+          ),
           updatedRelevantData
         )
       } else {

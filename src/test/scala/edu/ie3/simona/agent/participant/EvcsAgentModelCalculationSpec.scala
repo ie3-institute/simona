@@ -28,7 +28,6 @@ import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.model.participant.EvModelWrapper
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -57,7 +56,7 @@ import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import squants.Each
-import squants.energy.{KilowattHours, Megawatts, WattHours, Watts}
+import squants.energy.{Megawatts, WattHours, Watts}
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
@@ -546,8 +545,15 @@ class EvcsAgentModelCalculationSpec
           /* The store for simulation results has been extended */
           baseStateData.resultValueStore match {
             case ValueStore(_, store) =>
-              // FIXME: Please double-check if an empty result store is actually correct here!
-              store.keys shouldBe empty
+              store.size shouldBe 1
+              store.getOrElse(
+                0L,
+                fail("Expected a simulation result for tick 900.")
+              ) match {
+                case ApparentPower(p, q) =>
+                  p =~ Megawatts(0d) shouldBe true
+                  q =~ Megavars(0d) shouldBe true
+              }
           }
         case _ =>
           fail(
@@ -670,8 +676,15 @@ class EvcsAgentModelCalculationSpec
           /* The store for simulation results has been extended */
           baseStateData.resultValueStore match {
             case ValueStore(_, store) =>
-              // FIXME: Please double-check if an empty result store is actually correct here!
-              store shouldBe empty
+              store.size shouldBe 1
+              store.getOrElse(
+                0L,
+                fail("Expected a simulation result for tick 900.")
+              ) match {
+                case ApparentPower(p, q) =>
+                  p =~ Megawatts(0d) shouldBe true
+                  q =~ Megavars(0d) shouldBe true
+              }
           }
         case _ =>
           fail(

@@ -14,7 +14,6 @@ import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.Megavars
@@ -83,7 +82,7 @@ final case class EvcsModel(
       tick: Long,
       voltage: squants.Dimensionless,
       data: EvcsRelevantData
-  ): (squants.Power, Set[EvModel]) = {
+  ): (ApparentPower, Set[EvModel]) = {
     if (isInOperation(tick) && data.evMovementsDataFrameLength > 0) {
       val (activePower, evModels) = calculateActivePowerAndEvSoc(data)
       val reactivePower =
@@ -92,7 +91,7 @@ final case class EvcsModel(
         ApparentPower(
           activePower,
           reactivePower
-        ).asInstanceOf[squants.Power],
+        ),
         evModels
       )
     } else {
@@ -100,7 +99,7 @@ final case class EvcsModel(
         ApparentPower(
           Megawatts(0d),
           Megavars(0d)
-        ).asInstanceOf[squants.Power],
+        ),
         data.currentEvs
       )
     }
@@ -168,7 +167,7 @@ final case class EvcsModel(
   ): (squants.Power, Set[EvModel]) = {
     val tickDuration = Seconds(dataFrameLength)
 
-    currentEvs.foldLeft(Megawatts(0d), Set.empty[EvModel]) {
+    currentEvs.foldLeft(Kilowatts(0d), Set.empty[EvModel]) {
       case ((powerSum, models), evModel) =>
         val (chargedEnergy, newEvModel) = charge(
           evModel,
@@ -323,7 +322,7 @@ object EvcsModel {
       operationInterval,
       scalingFactor,
       qControl,
-      Kilowatts(sRated.value.doubleValue()),
+      sRated,
       cosPhiRated,
       chargingPoints,
       locationType
