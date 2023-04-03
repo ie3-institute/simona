@@ -11,12 +11,19 @@ import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ApparentPower, ZERO_POWER}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower,
+  ZERO_POWER
+}
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
-import edu.ie3.simona.agent.participant.statedata.{BaseStateData, DataCollectionStateData, ParticipantStateData}
+import edu.ie3.simona.agent.participant.statedata.{
+  BaseStateData,
+  DataCollectionStateData,
+  ParticipantStateData
+}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig
@@ -162,8 +169,8 @@ class ParticipantAgentMock(
     ParticipantModelBaseStateData[
       ApparentPower,
       FixedRelevantData.type,
-      SystemParticipant[FixedRelevantData.type ,ApparentPower
-      ]](
+      SystemParticipant[FixedRelevantData.type, ApparentPower]
+    ](
       simulationStartDate,
       simulationEndDate,
       participant,
@@ -206,7 +213,7 @@ class ParticipantAgentMock(
     val mockModel =
       mock[SystemParticipant[
         FixedRelevantData.type,
-        ApparentPower,
+        ApparentPower
       ]]
     val uuid = inputModel.electricalInputModel.getUuid
     Mockito.when(mockModel.getUuid).thenReturn(uuid)

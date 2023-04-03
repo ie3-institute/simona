@@ -15,11 +15,23 @@ import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
-import edu.ie3.simona.ontology.messages.PowerMessage.{FailedPowerFlow, ProvideGridPowerMessage}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
+import edu.ie3.simona.ontology.messages.PowerMessage.{
+  FailedPowerFlow,
+  ProvideGridPowerMessage
+}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  CompletionMessage,
+  ScheduleTriggerMessage,
+  TriggerWithIdMessage
+}
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, FinishGridSimulationTrigger, InitializeGridAgentTrigger, StartGridSimulationTrigger}
+import edu.ie3.simona.ontology.trigger.Trigger.{
+  ActivityStartTrigger,
+  FinishGridSimulationTrigger,
+  InitializeGridAgentTrigger,
+  StartGridSimulationTrigger
+}
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
