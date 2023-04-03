@@ -14,6 +14,7 @@ import edu.ie3.util.scala.OperationInterval
 import spock.lang.Specification
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
+import edu.ie3.simona.agent.participant.data.Data
 
 import javax.measure.Quantity
 import javax.measure.quantity.Dimensionless
