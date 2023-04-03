@@ -529,7 +529,7 @@ abstract class ParticipantAgent[
     *   Transition to [[HandleInformation]] utilising appropriate new
     *   [[DataCollectionStateData]]
     */
-  def handleActivityStartTriggerAndGoToHandleInformation(
+  private def handleActivityStartTriggerAndGoToHandleInformation(
       tick: Long,
       triggerId: Long,
       baseStateData: BaseStateData[PD]

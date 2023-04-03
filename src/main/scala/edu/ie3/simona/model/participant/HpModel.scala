@@ -133,7 +133,7 @@ final case class HpModel(
     * @return
     *   boolean defining if heat pump runs in next time step
     */
-  def operatesInNextState(hpData: HpRelevantData): Boolean =
+  private def operatesInNextState(hpData: HpRelevantData): Boolean =
     hpData match {
       case HpRelevantData(hpState, currentTimeTick, ambientTemperature) =>
         val demand = thermalGrid.energyDemand(
