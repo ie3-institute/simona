@@ -11,19 +11,12 @@ import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ZERO_POWER
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ApparentPower, ZERO_POWER}
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
-import edu.ie3.simona.agent.participant.statedata.{
-  BaseStateData,
-  DataCollectionStateData,
-  ParticipantStateData
-}
+import edu.ie3.simona.agent.participant.statedata.{BaseStateData, DataCollectionStateData, ParticipantStateData}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig
@@ -69,7 +62,7 @@ class ParticipantAgentMock(
       ParticipantStateData[ApparentPower],
       SystemParticipantInput,
       SimonaConfig.BaseRuntimeConfig,
-      SystemParticipant[FixedRelevantData.type]
+      SystemParticipant[FixedRelevantData.type, ApparentPower]
     ] {
   override protected val pdClassTag: ClassTag[ApparentPower] =
     classTag[ApparentPower]
@@ -84,7 +77,7 @@ class ParticipantAgentMock(
       ParticipantModelBaseStateData[
         ApparentPower,
         FixedRelevantData.type,
-        SystemParticipant[FixedRelevantData.type]
+        SystemParticipant[FixedRelevantData.type, ApparentPower]
       ],
       ComparableQuantity[Dimensionless]
   ) => ApparentPower = (_, _, _) =>
@@ -144,26 +137,26 @@ class ParticipantAgentMock(
     *   based on the data source definition
     */
   override def determineModelBaseStateData(
-      inputModel: SystemParticipantInput,
+      inputModel: InputModelContainer[SystemParticipantInput],
       modelConfig: SimonaConfig.BaseRuntimeConfig,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,
-    SystemParticipant[FixedRelevantData.type]
+    SystemParticipant[FixedRelevantData.type, ApparentPower]
   ] = {
     val func = CosPhiFixed(0.95).activeToReactivePowerFunc(
       Quantities.getQuantity(0, StandardUnits.S_RATED),
       0.95d,
       Quantities.getQuantity(1, PU)
     )
-    val participant: SystemParticipant[FixedRelevantData.type] =
-      mock[SystemParticipant[FixedRelevantData.type]]
+    val participant: SystemParticipant[FixedRelevantData.type, ApparentPower] =
+      mock[SystemParticipant[FixedRelevantData.type, ApparentPower]]
     doReturn(func).when(participant).activeToReactivePowerFunc(any())
 
     ParticipantModelBaseStateData(
@@ -198,13 +191,20 @@ class ParticipantAgentMock(
     * @return
     */
   override def buildModel(
-      inputModel: SystemParticipantInput,
+      inputModel: InputModelContainer[SystemParticipantInput],
       modelConfig: BaseRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
-  ): SystemParticipant[FixedRelevantData.type] = {
-    val mockModel = mock[SystemParticipant[FixedRelevantData.type]]
-    val uuid = inputModel.getUuid
+  ): SystemParticipant[
+    FixedRelevantData.type,
+    ApparentPower
+  ] = {
+    val mockModel =
+      mock[SystemParticipant[
+        FixedRelevantData.type,
+        ApparentPower,
+      ]]
+    val uuid = inputModel.electricalInputModel.getUuid
     Mockito.when(mockModel.getUuid).thenReturn(uuid)
     mockModel
   }
