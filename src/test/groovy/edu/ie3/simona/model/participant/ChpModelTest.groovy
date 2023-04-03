@@ -162,10 +162,10 @@ class ChpModelTest extends Specification {
     def chpData = buildChpData(chpState, heatDemand)
     def thermalStorage = buildThermalStorage(storageInput, storageLvl)
     def chpModel = buildChpModel(thermalStorage)
-		def expectedStoredEnergyQty = Quantities.getQuantity(expectedStoredEnergy, KILOWATTHOUR)
+    def expectedStoredEnergyQty = Quantities.getQuantity(expectedStoredEnergy, KILOWATTHOUR)
 
-		when:
-		chpModel.calculateNextState(chpData)
+    when:
+    chpModel.calculateNextState(chpData)
 
     then:
     equals(thermalStorage._storedEnergy(), expectedStoredEnergyQty, TOLERANCE)
