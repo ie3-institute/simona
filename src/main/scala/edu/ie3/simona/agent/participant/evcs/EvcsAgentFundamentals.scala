@@ -531,7 +531,7 @@ protected trait EvcsAgentFundamentals
     announceSimulationResult(
       baseStateData,
       tick,
-      result
+      AccompaniedSimulationResult(result)
     )(baseStateData.outputConfig)
 
     /* Update the base state data */

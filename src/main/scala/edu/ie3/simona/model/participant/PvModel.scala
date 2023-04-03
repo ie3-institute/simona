@@ -44,7 +44,7 @@ final case class PvModel private (
     private val gammaE: ComparableQuantity[Angle],
     private val moduleSurface: Quantity[Area] =
       Quantities.getQuantity(1d, SQUARE_METRE)
-) extends SystemParticipant[PvRelevantData](
+) extends SystemParticipant[PvRelevantData, ApparentPower](
       uuid,
       id,
       operationInterval,
@@ -53,7 +53,7 @@ final case class PvModel private (
       sRated,
       cosPhiRated
     )
-    with ApparentPowerParticipant[PVRelevantData] {
+    with ApparentPowerParticipant[PvRelevantData] {
 
   /** Override sMax as the power output of a pv unit could become easily up to
     * 10% higher than the sRated value found in the technical sheets

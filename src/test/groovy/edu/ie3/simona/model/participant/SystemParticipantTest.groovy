@@ -9,6 +9,9 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiP
 import edu.ie3.datamodel.models.input.system.characteristic.QV
+import edu.ie3.simona.agent.participant.data.Data
+import edu.ie3.simona.model.participant.CalcRelevantData
+import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.scala.OperationInterval
 import spock.lang.Specification
@@ -27,24 +30,24 @@ class SystemParticipantTest extends Specification {
     given: "the mocked system participant model with a q_v characteristic"
 
     def loadMock = new SystemParticipant<CalcRelevantData, Data.PrimaryData.ApparentPower>(
-				UUID.fromString("b69f6675-5284-4e28-add5-b76952ec1ec2"),
-				"System participant calculateQ Test",
-				OperationInterval.apply(0L, 86400L),
-				1d,
-				QControl.apply(new CosPhiFixed(varCharacteristicString)),
-				Quantities.getQuantity(200, KILOVOLTAMPERE),
-				1d) {
-					@Override
-					Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
-						return super.calculateApparentPower(tick, voltage, data)
-					}
+        UUID.fromString("b69f6675-5284-4e28-add5-b76952ec1ec2"),
+        "System participant calculateQ Test",
+        OperationInterval.apply(0L, 86400L),
+        1d,
+        QControl.apply(new CosPhiFixed(varCharacteristicString)),
+        Quantities.getQuantity(200, KILOVOLTAMPERE),
+        1d) {
+          @Override
+          Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
+            return super.calculateApparentPower(tick, voltage, data)
+          }
 
-					@Override
-					ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
-						return Quantities.getQuantity(0, MEGAWATT)
-					}
-		}
-		Quantity adjustedVoltage = Quantities.getQuantity(1, PU) // needed for method call but not applicable for cosphi_p
+          @Override
+          ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
+            return Quantities.getQuantity(0, MEGAWATT)
+          }
+        }
+    Quantity adjustedVoltage = Quantities.getQuantity(1, PU) // needed for method call but not applicable for cosphi_p
 
     when: "the reactive power is calculated"
     Quantity power = Quantities.getQuantity(pVal, KILOWATT)
@@ -76,10 +79,10 @@ class SystemParticipantTest extends Specification {
         QControl.apply(new CosPhiP(varCharacteristicString)),
         Quantities.getQuantity(102, KILOWATT),
         1d) {
-					@Override
-					Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
-						return super.calculateApparentPower(tick, voltage, data)
-					}
+          @Override
+          Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
+            return super.calculateApparentPower(tick, voltage, data)
+          }
 
           @Override
           ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
@@ -115,10 +118,10 @@ class SystemParticipantTest extends Specification {
         QControl.apply(new CosPhiP(varCharacteristicString)),
         Quantities.getQuantity(101, KILOWATT),
         1d) {
-					@Override
-					Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
-						return super.calculateApparentPower(tick, voltage, data)
-					}
+          @Override
+          Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
+            return super.calculateApparentPower(tick, voltage, data)
+          }
 
           @Override
           ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
@@ -156,10 +159,10 @@ class SystemParticipantTest extends Specification {
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
         Quantities.getQuantity(200, KILOWATT),
         0.98) {
-					@Override
-					Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
-						return super.calculateApparentPower(tick, voltage, data)
-					}
+          @Override
+          Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
+            return super.calculateApparentPower(tick, voltage, data)
+          }
 
           @Override
           ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
@@ -200,10 +203,10 @@ class SystemParticipantTest extends Specification {
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
         Quantities.getQuantity(200, KILOWATT),
         1d) {
-					@Override
-					Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
-						return super.calculateApparentPower(tick, voltage, data)
-					}
+          @Override
+          Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
+            return super.calculateApparentPower(tick, voltage, data)
+          }
 
           @Override
           ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
@@ -244,10 +247,10 @@ class SystemParticipantTest extends Specification {
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
         Quantities.getQuantity(200, KILOWATT),
         0.95) {
-					@Override
-					Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
-						return super.calculateApparentPower(tick, voltage, data)
-					}
+          @Override
+          Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
+            return super.calculateApparentPower(tick, voltage, data)
+          }
 
           @Override
           ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
@@ -288,10 +291,10 @@ class SystemParticipantTest extends Specification {
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
         Quantities.getQuantity(200, KILOWATT),
         0.95) {
-					@Override
-					Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
-						return super.calculateApparentPower(tick, voltage, data)
-					}
+          @Override
+          Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
+            return super.calculateApparentPower(tick, voltage, data)
+          }
 
           @Override
           ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {

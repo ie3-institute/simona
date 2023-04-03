@@ -119,7 +119,7 @@ protected trait PvAgentFundamentals
         simulationEndDate
       )
 
-    ParticipantModelBaseStateData[ApparentPower, PVRelevantData, PVModel](
+    ParticipantModelBaseStateData[ApparentPower, PvRelevantData, PvModel](
       simulationStartDate,
       simulationEndDate,
       model,
