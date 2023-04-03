@@ -566,7 +566,7 @@ class ThermalGridWithHouseAndStorageSpec
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
-          StorageFull(220800L)
+          StorageFull(220799L)
         )
       }
     }

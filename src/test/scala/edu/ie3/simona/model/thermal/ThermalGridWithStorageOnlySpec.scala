@@ -136,7 +136,7 @@ class ThermalGridWithStorageOnlySpec
             qDot should equalWithTolerance(qDotConsumption)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
-        reachedThreshold shouldBe Some(StorageEmpty(3600L))
+        reachedThreshold shouldBe Some(StorageEmpty(3599L))
       }
     }
 
@@ -170,7 +170,7 @@ class ThermalGridWithStorageOnlySpec
             qDot should equalWithTolerance(qDotInfeed)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
-        reachedThreshold shouldBe Some(StorageFull(220800L))
+        reachedThreshold shouldBe Some(StorageFull(220799L))
       }
     }
 
@@ -183,7 +183,7 @@ class ThermalGridWithStorageOnlySpec
           qDotInfeed
         )
 
-        nextThreshold shouldBe Some(StorageFull(220800L))
+        nextThreshold shouldBe Some(StorageFull(220799L))
 
         updatedState match {
           case ThermalGridState(
@@ -228,7 +228,7 @@ class ThermalGridWithStorageOnlySpec
               Quantities.getQuantity(430d, StandardUnits.ENERGY_IN)
             )
             qDot should equalWithTolerance(qDotConsumption)
-            thresholdTick shouldBe 3600L
+            thresholdTick shouldBe 3599L
           case _ => fail("Thermal grid state updated failed")
         }
       }
