@@ -14,6 +14,7 @@ models/line_model
 models/switch_model
 models/two_winding_transformer_model
 models/three_winding_transformer_model
+models/thermal_bus_model
 models/reference_system
 ```
 
