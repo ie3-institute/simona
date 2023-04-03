@@ -51,6 +51,7 @@ import tech.units.indriya.quantity.Quantities
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
+import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
 trait HpAgentFundamentals
@@ -235,7 +236,7 @@ trait HpAgentFundamentals
           model,
           services,
           outputConfig,
-          Array.emptyLongArray,
+          SortedSet.empty,
           Map.empty,
           requestVoltageDeviationThreshold,
           ValueStore.forVoltage(
