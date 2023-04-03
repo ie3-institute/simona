@@ -8,10 +8,16 @@ package edu.ie3.simona.model.thermal
 
 import breeze.linalg.max
 import edu.ie3.datamodel.models.input.OperatorInput
-import edu.ie3.datamodel.models.input.thermal.{CylindricalStorageInput, ThermalBusInput}
+import edu.ie3.datamodel.models.input.thermal.{
+  CylindricalStorageInput,
+  ThermalBusInput
+}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{StorageEmpty, StorageFull}
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
+  StorageEmpty,
+  StorageFull
+}
 import edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
 import edu.ie3.util.quantities.interfaces.SpecificHeatCapacity
 import tech.units.indriya.ComparableQuantity
