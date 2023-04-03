@@ -240,4 +240,28 @@ case object CylindricalThermalStorage {
       .multiply(c)
       .multiply(returnTemp.subtract(inletTemp))
       .asType(classOf[Energy])
+
+  /** Equation from docs for the relation between stored heat and volume change.
+    *
+    * @param energy
+    *   available energy
+    * @param c
+    *   Specific heat capacity
+    * @param inletTemp
+    *   Inlet temperature
+    * @param returnTemp
+    *   Return temperature
+    * @return
+    *   volume
+    */
+  def energyToVolume(
+      energy: ComparableQuantity[Energy],
+      c: ComparableQuantity[SpecificHeatCapacity],
+      inletTemp: ComparableQuantity[Temperature],
+      returnTemp: ComparableQuantity[Temperature]
+  ): ComparableQuantity[Volume] =
+    energy
+      .divide(c.multiply(returnTemp.subtract(inletTemp)))
+      .asType(classOf[Volume])
+
 }
