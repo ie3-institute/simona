@@ -9,10 +9,10 @@ package edu.ie3.simona.test
 import com.dimafeng.testcontainers.KafkaContainer
 import edu.ie3.simona.test.KafkaSpecLike.Topic
 import org.apache.kafka.clients.admin.{Admin, NewTopic}
-import org.junit.Rule
 import org.scalatest.{BeforeAndAfterAll, TestSuite}
 import org.testcontainers.utility.DockerImageName
 
+import java.util.concurrent.TimeUnit
 import scala.jdk.CollectionConverters._
 
 /** Adapted from
@@ -23,9 +23,8 @@ trait KafkaSpecLike extends BeforeAndAfterAll {
 
   protected val testTopics: Seq[Topic]
 
-  @Rule
   protected val kafka: KafkaContainer = KafkaContainer(
-    DockerImageName.parse("confluentinc/cp-kafka:6.1.0")
+    DockerImageName.parse("confluentinc/cp-kafka:7.3.1")
   )
   protected lazy val admin: Admin = Admin.create(
     Map[String, AnyRef]("bootstrap.servers" -> kafka.bootstrapServers).asJava
@@ -34,7 +33,7 @@ trait KafkaSpecLike extends BeforeAndAfterAll {
   override def beforeAll(): Unit = {
     super.beforeAll()
     kafka.start()
-    admin.createTopics(
+    val result = admin.createTopics(
       testTopics.map { topic =>
         new NewTopic(
           topic.name,
@@ -43,6 +42,9 @@ trait KafkaSpecLike extends BeforeAndAfterAll {
         )
       }.asJava
     )
+
+    // wait for result, throw exception if applicable
+    result.all().get(1, TimeUnit.MINUTES)
   }
 
   override def afterAll(): Unit = {

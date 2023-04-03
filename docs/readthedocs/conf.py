@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 project = u'simona'
-copyright = u'2020. TU Dortmund University, Institute of Energy Systems, Energy Efficiency and Energy Economics, Research group Distribution grid planning and operation '
+copyright = u'2023. TU Dortmund University, Institute of Energy Systems, Energy Efficiency and Energy Economics, Research group Distribution grid planning and operation '
 version = '1.0'
 release = '1.0.0'
 
@@ -19,8 +19,13 @@ extensions = [
     'sphinxcontrib.plantuml',
     'sphinx.ext.intersphinx',
     'hoverxref.extension',
-    'sphinxcontrib.bibtex',
+    'sphinxcontrib.bibtex'
 ]
+
+# Make sure the target is unique
+autosectionlabel_prefix_document = True
+
+myst_enable_extensions = ["dollarmath", "amsmath"]
 
 templates_path = ['_templates']
 exclude_trees = ['.build']

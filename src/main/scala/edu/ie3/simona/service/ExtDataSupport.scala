@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service
 
-import edu.ie3.simona.api.data.ontology.ExtDataMessage
+import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.ontology.messages.services.EvMessage.EvResponseMessage
 import edu.ie3.simona.service.ServiceStateData.ServiceBaseStateData
 
@@ -16,7 +16,7 @@ trait ExtDataSupport[
   this: SimonaService[S] =>
 
   override def idleExternal(implicit stateData: S): Receive = {
-    case extMsg: ExtDataMessage =>
+    case extMsg: DataMessageFromExt =>
       val updatedStateData = handleDataMessage(extMsg)(stateData)
       context become idle(updatedStateData)
 
@@ -36,7 +36,7 @@ trait ExtDataSupport[
     *   the updated state data
     */
   protected def handleDataMessage(
-      extMsg: ExtDataMessage
+      extMsg: DataMessageFromExt
   )(implicit serviceStateData: S): S
 
   /** Handle a message from inside SIMONA sent to external

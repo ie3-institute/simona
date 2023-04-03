@@ -249,8 +249,7 @@ class SimonaStandaloneSetup(
   }
 
   override def systemParticipantsListener(
-      context: ActorContext,
-      simonaSim: ActorRef
+      context: ActorContext
   ): Seq[ActorRef] = {
     // append ResultEventListener as well to write raw output files
     ArgsParser
@@ -264,8 +263,7 @@ class SimonaStandaloneSetup(
       }
       .toSeq :+ context.simonaActorOf(
       ResultEventListener.props(
-        resultFileHierarchy,
-        simonaSim
+        resultFileHierarchy
       )
     )
   }

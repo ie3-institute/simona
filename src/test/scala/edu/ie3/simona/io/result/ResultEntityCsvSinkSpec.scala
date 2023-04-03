@@ -10,6 +10,7 @@ import akka.actor.ActorSystem
 import akka.stream.scaladsl.FileIO
 import akka.util.ByteString
 import com.typesafe.config.ConfigFactory
+import edu.ie3.datamodel.exceptions.EntityProcessorException
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.result.system.{PvResult, WecResult}
@@ -54,18 +55,16 @@ class ResultEntityCsvSinkSpec
       val resultEntityProcessor = new ResultEntityProcessor(classOf[PvResult])
 
       val resultEntitySink =
-        Await.result(
-          ResultEntityCsvSink(
-            outFileName,
-            resultEntityProcessor,
-            outFileName.endsWith(".gz")
-          ),
-          60 seconds
+        ResultEntityCsvSink(
+          outFileName,
+          resultEntityProcessor,
+          outFileName.endsWith(".gz")
         )
 
       resultEntitySink.outfileName shouldBe outFileName
       resultEntitySink.delimiter shouldBe ","
       resultEntitySink.resultEntityProcessor shouldBe resultEntityProcessor
+      resultEntitySink.close()
 
       val outputFile = new File(outFileName)
 
@@ -83,6 +82,7 @@ class ResultEntityCsvSinkSpec
         )
       ) shouldBe "uuid,input_model,p,q,time"
 
+      // close sink to ensure that everything is written out
       resultFileSource.close()
 
       // cleanup
@@ -108,11 +108,14 @@ class ResultEntityCsvSinkSpec
 
       val resultEntityProcessor = new ResultEntityProcessor(classOf[PvResult])
 
-      ResultEntityCsvSink(
+      val resultEntitySink = ResultEntityCsvSink(
         outFileName,
         resultEntityProcessor,
         outFileName.endsWith(".gz")
       )
+
+      // close sink to ensure that everything is written out
+      resultEntitySink.close()
 
       val outputFile = new File(outFileName)
 
@@ -153,13 +156,10 @@ class ResultEntityCsvSinkSpec
       )
 
       val resultEntitySink =
-        Await.result(
-          ResultEntityCsvSink(
-            outFileName,
-            resultEntityProcessor,
-            outFileName.endsWith(".gz")
-          ),
-          60 seconds
+        ResultEntityCsvSink(
+          outFileName,
+          resultEntityProcessor,
+          outFileName.endsWith(".gz")
         )
 
       resultEntitySink.handleResultEntity(dummyPvResult)
@@ -201,21 +201,20 @@ class ResultEntityCsvSinkSpec
       )
 
       val resultEntitySink =
-        Await.result(
-          ResultEntityCsvSink(
-            outFileName,
-            resultEntityProcessor,
-            outFileName.endsWith(".gz"),
-            bufferSize = 0
-          ),
-          60 seconds
+        ResultEntityCsvSink(
+          outFileName,
+          resultEntityProcessor,
+          outFileName.endsWith(".gz")
         )
 
       val exception = intercept[ProcessResultEventException] {
         resultEntitySink.handleResultEntity(dummyWecResult)
       }
+      // close sink to ensure that everything is written out
+      resultEntitySink.close()
 
-      exception.getMessage shouldBe "edu.ie3.simona.exceptions.FileIOException: Result entity WecResult is not part of model sink!"
+      exception.getMessage shouldBe "Processing result failed"
+      exception.getCause.getClass shouldBe classOf[EntityProcessorException]
 
       // cleanup
       FileIOUtils.deleteRecursively(testTmpDir)

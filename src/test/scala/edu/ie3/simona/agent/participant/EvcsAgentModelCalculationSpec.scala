@@ -27,7 +27,6 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
-import edu.ie3.simona.api.data.ev.ontology.builder.EvcsMovementsBuilder
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
@@ -41,14 +40,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   IllegalTriggerMessage,
   TriggerWithIdMessage
 }
-import edu.ie3.simona.ontology.messages.services.EvMessage.{
-  DepartedEvsResponse,
-  EvFreeLotsRequest,
-  EvMovementData,
-  FreeLotsResponse,
-  ProvideEvDataMessage,
-  RegisterForEvDataMessage
-}
+import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
@@ -63,7 +55,8 @@ import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.EvTestData
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
+import edu.ie3.util.quantities.QuantityUtil
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import tech.units.indriya.quantity.Quantities
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
@@ -309,7 +302,7 @@ class EvcsAgentModelCalculationSpec
             simulationResultInfo = false,
             powerRequestReply = false
           )
-          additionalActivationTicks shouldBe Array.emptyLongArray
+          additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution * 10,
@@ -486,13 +479,11 @@ class EvcsAgentModelCalculationSpec
       /* State data is tested in another test */
 
       /* Send out new data */
-      val evMovementData = EvMovementData(
-        new EvcsMovementsBuilder().addArrival(evA).addArrival(evB).build()
-      )
+      val arrivingEvsData = ArrivingEvsData(Seq(evA, evB))
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(0L, evMovementData)
+        ProvideEvDataMessage(0L, arrivingEvsData)
       )
 
       /* Find yourself in corresponding state and state data */
@@ -508,7 +499,7 @@ class EvcsAgentModelCalculationSpec
 
           /* The yet sent data is also registered */
           expectedSenders shouldBe Map(
-            evService.ref -> Some(evMovementData)
+            evService.ref -> Some(arrivingEvsData)
           )
 
           /* It is not yet triggered */
@@ -660,13 +651,11 @@ class EvcsAgentModelCalculationSpec
       }
 
       /* Send out new data */
-      val evMovementData = EvMovementData(
-        new EvcsMovementsBuilder().addArrival(evA).addArrival(evB).build()
-      )
+      val arrivingEvsData = ArrivingEvsData(Seq(evA, evB))
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(0L, evMovementData)
+        ProvideEvDataMessage(0L, arrivingEvsData)
       )
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
@@ -855,9 +844,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           0L,
-          EvMovementData(
-            new EvcsMovementsBuilder().addArrival(evA).build()
-          )
+          ArrivingEvsData(Seq(evA))
         )
       )
 
@@ -944,9 +931,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           0L,
-          EvMovementData(
-            new EvcsMovementsBuilder().addArrival(evA).build()
-          )
+          ArrivingEvsData(Seq(evA))
         )
       )
       scheduler.send(
@@ -960,18 +945,32 @@ class EvcsAgentModelCalculationSpec
       scheduler.expectMsg(CompletionMessage(3L))
 
       /* ... for tick 3600 */
+
+      // departures first
+      evService.send(
+        evcsAgent,
+        DepartingEvsRequest(3600L, Seq(evA.getUuid))
+      )
+      evService.expectMsgType[DepartingEvsResponse] match {
+        case DepartingEvsResponse(evcs, evs) =>
+          evcs shouldBe evcsInputModel.getUuid
+
+          evs should have size 1
+
+          val ev = evs.headOption.getOrElse(fail("No EV departed"))
+          ev.getUuid shouldBe evA.getUuid
+          ev.getStoredEnergy should equalWithTolerance(11d.asKiloWattHour)
+      }
+
+      // arrivals second
       evService.send(
         evcsAgent,
         ProvideEvDataMessage(
           3600L,
-          EvMovementData(
-            new EvcsMovementsBuilder()
-              .addDeparture(evA.getUuid)
-              .addArrival(evB)
-              .build()
-          )
+          ArrivingEvsData(Seq(evB))
         )
       )
+
       scheduler.send(
         evcsAgent,
         TriggerWithIdMessage(
@@ -980,29 +979,31 @@ class EvcsAgentModelCalculationSpec
           evcsAgent
         )
       )
-      evService.expectMsg(
-        DepartedEvsResponse(
-          evcsInputModel.getUuid,
-          Set(
-            evA.copyWith(
-              Quantities.getQuantity(11d, PowerSystemUnits.KILOWATTHOUR)
-            )
-          )
-        )
-      )
       scheduler.expectMsg(CompletionMessage(4L))
 
       /* ... for tick 7200 */
+
+      // departures first
+      evService.send(
+        evcsAgent,
+        DepartingEvsRequest(7200L, Seq(evB.getUuid))
+      )
+      evService.expectMsgType[DepartingEvsResponse] match {
+        case DepartingEvsResponse(evcs, evs) =>
+          evcs shouldBe evcsInputModel.getUuid
+
+          evs should have size 1
+
+          val ev = evs.headOption.getOrElse(fail("No EV departed"))
+          ev.getUuid shouldBe evB.getUuid
+          ev.getStoredEnergy should equalWithTolerance(11d.asKiloWattHour)
+      }
+
       evService.send(
         evcsAgent,
         ProvideEvDataMessage(
           7200L,
-          EvMovementData(
-            new EvcsMovementsBuilder()
-              .addDeparture(evB.getUuid)
-              .addArrival(evA)
-              .build()
-          )
+          ArrivingEvsData(Seq(evA))
         )
       )
       scheduler.send(
@@ -1013,16 +1014,7 @@ class EvcsAgentModelCalculationSpec
           evcsAgent
         )
       )
-      evService.expectMsg(
-        DepartedEvsResponse(
-          evcsInputModel.getUuid,
-          Set(
-            evB.copyWith(
-              Quantities.getQuantity(11d, PowerSystemUnits.KILOWATTHOUR)
-            )
-          )
-        )
-      )
+
       scheduler.expectMsg(CompletionMessage(5L))
 
       /* Ask the agent for average power in tick 7500 */

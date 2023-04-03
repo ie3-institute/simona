@@ -67,6 +67,7 @@ import tech.units.indriya.quantity.Quantities
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.measure.quantity.{Dimensionless, Power}
+import scala.collection.SortedSet
 import scala.util.{Failure, Success}
 
 /** Tests a mock participant agent with external data (primary data). Since
@@ -229,6 +230,8 @@ class ParticipantAgentExternalSourceSpec
                       actorToBeScheduled
                     ) =>
                   tick == 4711L && actorToBeScheduled == mockAgent
+                case unexpected =>
+                  fail(s"Received unexpected trigger message $unexpected")
               } shouldBe true
             case None => fail("Expected to get a trigger for tick 4711.")
           }
@@ -741,7 +744,7 @@ class ParticipantAgentExternalSourceSpec
         defaultSimulationStart,
         defaultSimulationEnd,
         defaultOutputConfig,
-        Array.emptyLongArray,
+        SortedSet.empty,
         Map.empty[ActorRef, Option[Long]],
         fillUpReactivePowerWithModelFunc = false,
         1e-4,
@@ -775,7 +778,7 @@ class ParticipantAgentExternalSourceSpec
         defaultSimulationStart,
         defaultSimulationEnd,
         defaultOutputConfig,
-        Array.emptyLongArray,
+        SortedSet.empty,
         Map.empty[ActorRef, Option[Long]],
         fillUpReactivePowerWithModelFunc = true,
         1e-4,
