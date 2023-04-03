@@ -159,7 +159,11 @@ class ParticipantAgentMock(
       mock[SystemParticipant[FixedRelevantData.type, ApparentPower]]
     doReturn(func).when(participant).activeToReactivePowerFunc(any())
 
-    ParticipantModelBaseStateData(
+    ParticipantModelBaseStateData[
+      ApparentPower,
+      FixedRelevantData.type,
+      SystemParticipant[FixedRelevantData.type ,ApparentPower
+      ]](
       simulationStartDate,
       simulationEndDate,
       participant,
