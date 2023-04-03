@@ -117,8 +117,7 @@ class ResultEntityKafkaSpec
                 20
               )
             )
-          ),
-          testActor
+          )
         )
       )
 
@@ -154,7 +153,8 @@ class ResultEntityKafkaSpec
       Then("records can be fetched from Kafka")
       testConsumer.seekToBeginning(topicPartitions.asJava)
 
-      eventually(timeout(20 seconds), interval(1 second)) {
+      // kafka messages might take some time if machine is loaded
+      eventually(timeout(2 minutes), interval(1 second)) {
         val records: List[PlainNodeResult] =
           testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
 

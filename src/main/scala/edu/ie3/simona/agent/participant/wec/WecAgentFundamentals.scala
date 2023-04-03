@@ -52,6 +52,7 @@ import tech.units.indriya.unit.Units.PASCAL
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 import scala.util.{Failure, Success}
 
@@ -128,7 +129,7 @@ protected trait WecAgentFundamentals
       model,
       services,
       outputConfig,
-      Array.emptyLongArray, // Additional activation of the wec agent is not needed
+      SortedSet.empty, // Additional activation of the wec agent is not needed
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(

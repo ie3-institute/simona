@@ -35,8 +35,10 @@ import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 class RuntimeEventListenerSpec
     extends ScalaTestWithActorTestKit(
       ActorTestKit.ApplicationTestConfig.withValue(
+        // Timeout for LoggingTestKit via TestKitSettings
+        // Log message sometimes seem to take a while until caught by the test kit
         "akka.actor.testkit.typed.filter-leeway",
-        ConfigValueFactory.fromAnyRef("10s")
+        ConfigValueFactory.fromAnyRef("30s")
       )
     )
     with AnyWordSpecLike
@@ -47,7 +49,7 @@ class RuntimeEventListenerSpec
   val eventQueue = new LinkedBlockingQueue[RuntimeEvent]()
   val startDateTimeString = "2011-01-01 00:00:00"
   val endTick = 3600
-  val duration = 0.1
+  val duration = 10805000
   val errMsg =
     "Und wenn du lange in einen Abgrund blickst, blickt der Abgrund auch in dich hinein"
 
@@ -102,14 +104,6 @@ class RuntimeEventListenerSpec
         )
       }
 
-      def roundDuration(dur: Double): Double =
-        roundAt(5)(dur / 1000)
-
-      def roundAt(precision: Int)(number: Double): Double = {
-        val s = math pow (10, precision)
-        (math round number * s) / s
-      }
-
       val events = Seq(
         (
           Initializing,
@@ -117,12 +111,12 @@ class RuntimeEventListenerSpec
           "Initializing Agents and Services for Simulation ... "
         ),
         (
-          InitComplete(0d),
+          InitComplete(0L),
           Level.INFO,
-          s"Initialization complete. (duration: ${roundDuration(0d)} s)"
+          s"Initialization complete. (duration: 0h : 0m : 0s )"
         ),
         (
-          Ready(currentTick, 0d),
+          Ready(currentTick, 0L),
           Level.INFO,
           s"Switched from 'Simulating' to 'Ready'. Last simulated time: ${calcTime(currentTick)}."
         ),
@@ -132,14 +126,14 @@ class RuntimeEventListenerSpec
           s"Simulating from ${calcTime(currentTick)} until ${calcTime(endTick)}."
         ),
         (
-          CheckWindowPassed(currentTick, 0d),
+          CheckWindowPassed(currentTick, 0L),
           Level.INFO,
           s"Simulation until ${calcTime(currentTick)} completed."
         ),
         (
           Done(endTick, duration, 0, errorInSim = false),
           Level.INFO,
-          s"Simulation completed with \u001b[0;32mSUCCESS (Failed PF: 0)\u001b[0;30m in time step ${calcTime(endTick)}. Total runtime: ${roundDuration(duration)} s"
+          s"Simulation completed with \u001b[0;32mSUCCESS (Failed PF: 0)\u001b[0;30m in time step ${calcTime(endTick)}. Total runtime: 3h : 0m : 5s "
         ),
         (
           Error(errMsg),
