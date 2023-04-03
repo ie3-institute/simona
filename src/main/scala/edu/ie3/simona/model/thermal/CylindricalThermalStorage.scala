@@ -7,29 +7,19 @@
 package edu.ie3.simona.model.thermal
 
 import breeze.linalg.max
-
-import java.util.UUID
-import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.datamodel.models.input.OperatorInput
-import edu.ie3.datamodel.models.input.thermal.{
-  CylindricalStorageInput,
-  ThermalBusInput
-}
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
-  StorageEmpty,
-  StorageFull
-}
-import edu.ie3.simona.model.thermal.ThermalStorage.{
-  ThermalStorageState,
-  ThermalStorageThreshold
-}
+import edu.ie3.datamodel.models.input.thermal.{CylindricalStorageInput, ThermalBusInput}
+import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{StorageEmpty, StorageFull}
 import edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
 import edu.ie3.util.quantities.interfaces.SpecificHeatCapacity
-
-import javax.measure.quantity.{Energy, Power, Temperature, Time, Volume}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
+
+import java.util.UUID
+import javax.measure.quantity._
 
 /** A cylindrical thermal storage used for implementations, which require a
   * mutable storage. <p> <strong>Important:</strong> The field storageLvl is a
