@@ -302,7 +302,7 @@ class GridAgentController(
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs)
       )
-    case hpInput: HpInput => {
+    case hpInput: HpInput =>
       thermalIslandGridsByBusId.get(hpInput.getThermalBus.getUuid) match {
         case Some(thermalGrid) =>
           buildHp(
@@ -319,7 +319,7 @@ class GridAgentController(
             s"Unable to find thermal island grid for heat pump '${hpInput.getUuid}' with thermal bus '${hpInput.getThermalBus.getUuid}'."
           )
       }
-    }
+
     case input: SystemParticipantInput =>
       throw new NotImplementedError(
         s"Building ${input.getClass.getSimpleName} is not implemented, yet."

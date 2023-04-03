@@ -23,7 +23,7 @@ trait SchedulerMessageFunctions extends TestKit with AnyWordSpecLike {
       case msg @ CompletionMessage(_, _) => msg
       case x =>
         fail(
-          s"Unexpected message ${x} received when expecting CompletionMessage!"
+          s"Unexpected message $x received when expecting CompletionMessage!"
         )
     }
   }
