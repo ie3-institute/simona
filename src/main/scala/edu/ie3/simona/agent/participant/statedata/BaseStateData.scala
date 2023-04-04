@@ -11,8 +11,13 @@ import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
+import edu.ie3.simona.event.notifier.NotifierConfig
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  ModelState,
+  SystemParticipant
+}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
@@ -72,7 +77,7 @@ trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
 
   /** Determines the output behaviour of this model
     */
-  val outputConfig: ParticipantNotifierConfig
+  val outputConfig: NotifierConfig
 }
 
 object BaseStateData {
@@ -90,7 +95,8 @@ object BaseStateData {
   trait ModelBaseStateData[
       +PD <: PrimaryDataWithApparentPower[PD],
       CD <: CalcRelevantData,
-      M <: SystemParticipant[_ <: CalcRelevantData]
+      MS <: ModelState,
+      +M <: SystemParticipant[_ <: CalcRelevantData, PD, MS]
   ] extends BaseStateData[PD] {
 
     /** The physical system model
@@ -103,7 +109,15 @@ object BaseStateData {
 
     /** Stores all data that are relevant to model calculation
       */
-    val calcRelevantDateStore: ValueStore[CalcRelevantData]
+    val receivedSecondaryDataStore: ValueStore[
+      Map[ActorRef, _ <: SecondaryData]
+    ]
+
+    val stateDataStore: ValueStore[MS]
+
+    val flexStateData: Option[FlexStateData]
+
+    def isEmManaged: Boolean = flexStateData.nonEmpty
   }
 
   /** Basic state data, when the agent is supposed to only provide external data
@@ -134,12 +148,14 @@ object BaseStateData {
     *   Type of primary data, that the model produces
     */
   final case class FromOutsideBaseStateData[M <: SystemParticipant[
-    _ <: CalcRelevantData
+    _ <: CalcRelevantData,
+    P,
+    _
   ], +P <: PrimaryDataWithApparentPower[P]](
       model: M,
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
-      override val outputConfig: ParticipantNotifierConfig,
+      override val outputConfig: NotifierConfig,
       override val additionalActivationTicks: SortedSet[Long],
       override val foreseenDataTicks: Map[ActorRef, Option[Long]],
       fillUpReactivePowerWithModelFunc: Boolean = false,
@@ -188,7 +204,8 @@ object BaseStateData {
   final case class ParticipantModelBaseStateData[
       +PD <: PrimaryDataWithApparentPower[PD],
       CD <: CalcRelevantData,
-      M <: SystemParticipant[_ <: CalcRelevantData]
+      MS <: ModelState,
+      M <: SystemParticipant[_ <: CalcRelevantData, PD, MS]
   ](
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
@@ -196,7 +213,7 @@ object BaseStateData {
       override val services: Option[
         Vector[SecondaryDataService[_ <: SecondaryData]]
       ],
-      override val outputConfig: ParticipantNotifierConfig,
+      override val outputConfig: NotifierConfig,
       override val additionalActivationTicks: SortedSet[Long],
       override val foreseenDataTicks: Map[ActorRef, Option[Long]],
       requestVoltageDeviationThreshold: Double,
@@ -205,13 +222,35 @@ object BaseStateData {
       ],
       override val resultValueStore: ValueStore[PD],
       override val requestValueStore: ValueStore[PD],
-      override val calcRelevantDateStore: ValueStore[CD]
-  ) extends ModelBaseStateData[PD, CD, M] {
+      override val receivedSecondaryDataStore: ValueStore[
+        Map[ActorRef, _ <: SecondaryData]
+      ],
+      override val stateDataStore: ValueStore[MS],
+      override val flexStateData: Option[FlexStateData]
+  ) extends ModelBaseStateData[PD, CD, MS, M] {
 
     /** Unique identifier of the simulation model
       */
     override val modelUuid: UUID = model.getUuid
   }
+
+  /** The existence of this data object indicates that the corresponding agent
+    * is EM-controlled (by [[emAgent]]).
+    *
+    * @param emAgent
+    *   The parent EmAgent that is controlling this agent.
+    * @param flexOptionsStore
+    *   Flex options that have been calculated for this agent.
+    * @param scheduledRequest
+    *   Tick of a request that is currently scheduled with the parent EmAgent.
+    *   There can only only be one scheduled tick at a time. First tick (0) is
+    *   always requested.
+    */
+  final case class FlexStateData(
+      emAgent: ActorRef,
+      flexOptionsStore: ValueStore[ProvideFlexOptions],
+      scheduledRequest: Option[Long] = Some(0L)
+  )
 
   /** Updates the base state data with the given value stores
     *
@@ -241,7 +280,7 @@ object BaseStateData {
       updatedForeseenTicks: Map[ActorRef, Option[Long]]
   ): BaseStateData[PD] = {
     baseStateData match {
-      case external: FromOutsideBaseStateData[_, _] =>
+      case external: FromOutsideBaseStateData[_, PD] =>
         external.copy(
           resultValueStore = updatedResultValueStore,
           requestValueStore = updatedRequestValueStore,
@@ -249,7 +288,7 @@ object BaseStateData {
           additionalActivationTicks = updatedAdditionalActivationTicks,
           foreseenDataTicks = updatedForeseenTicks
         )
-      case model: ParticipantModelBaseStateData[_, _, _] =>
+      case model: ParticipantModelBaseStateData[PD, _, _, _] =>
         model.copy(
           resultValueStore = updatedResultValueStore,
           requestValueStore = updatedRequestValueStore,

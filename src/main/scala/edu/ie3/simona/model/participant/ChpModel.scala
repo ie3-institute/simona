@@ -16,7 +16,7 @@ import edu.ie3.simona.model.thermal.{MutableStorage, ThermalStorage}
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
 
-import javax.measure.quantity.{Energy, Power, Time}
+import javax.measure.quantity.{Energy, Power, Temperature, Time}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units
@@ -64,6 +64,27 @@ final case class ChpModel(
       sRated,
       cosPhiRated
     ) {
+
+  /** As the HpModel class is a dynamic model, it requires a state for its
+    * calculations. The state contains all variables needed including the inner
+    * temperature.
+    *
+    * @param isRunning
+    * indicates if CHP is turned on
+    * @param lastTimeTick
+    * contains last time tick
+    * @param activePower
+    * result active power
+    * @param innerTemperature
+    * inner temperature of the thermal house
+    */
+  final case class ChpState(
+                            isRunning: Boolean,
+                            lastTimeTick: Long,
+                            activePower: ComparableQuantity[Power],
+                            innerTemperature: ComparableQuantity[Temperature]
+                          )
+
 
   val pRated: ComparableQuantity[Power] =
     sRated.multiply(cosPhiRated).to(StandardUnits.ACTIVE_POWER_IN)
@@ -391,16 +412,6 @@ case object ChpModel {
       inputModel.getType.getpThermal,
       new ThermalStorage(inputModel.getThermalStorage)
     )
-
-    UUID uuid
-    ,
-    String id
-    ,
-    OperatorInput operator
-    ,
-    OperationTime operationTime
-    ,
-    ThermalBusInput bus
 
     model.enable()
     model

@@ -16,7 +16,7 @@ import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.config.SimonaConfig.{ChpRuntimeConfig, WecRuntimeConfig}
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.{AgentInitializationException, InconsistentStateException, InvalidRequestException}
-import edu.ie3.simona.model.participant.ChpModel.ChpData
+import edu.ie3.simona.model.participant.ChpModel.{ChpRelevantData, ChpState}
 import edu.ie3.simona.model.participant.{ChpModel, WecModel}
 import tech.units.indriya.ComparableQuantity
 
@@ -29,7 +29,7 @@ import scala.collection.SortedSet
 protected trait ChpAgentFundamentals
   extends ParticipantAgentFundamentals[
     ApparentPowerAndHeat,
-    ChpData,
+    ChpRelevantData,
     ParticipantStateData[ApparentPowerAndHeat],
     ChpInput,
     ChpRuntimeConfig,
@@ -73,7 +73,7 @@ protected trait ChpAgentFundamentals
                                             resolution: Long,
                                             requestVoltageDeviationThreshold: Double,
                                             outputConfig: ParticipantNotifierConfig
-                                          ): ParticipantModelBaseStateData[ApparentPowerAndHeat, ChpData, ChpModel] = {
+                                          ): ParticipantModelBaseStateData[ApparentPowerAndHeat, ChpRelevantData, ChpModel] = {
 
     // Build calculation model
     val model = buildModel(
@@ -123,14 +123,18 @@ protected trait ChpAgentFundamentals
     */
   override val calculateModelPowerFunc: (
     Long,
-      ParticipantModelBaseStateData[ApparentPower, ChpData, ChpModel],
+      ParticipantModelBaseStateData[
+        ApparentPowerAndHeat,
+        ChpRelevantData,
+        ChpState,
+        ChpModel],
       ComparableQuantity[Dimensionless]
     ) => ApparentPower =
     (
       _: Long,
       _: ParticipantModelBaseStateData[
-        ApparentPower,
-        ChpData,
+        ApparentPowerAndHeat,
+        ChpRelevantData,
         ChpModel
       ],
       _: ComparableQuantity[Dimensionless]
@@ -169,7 +173,7 @@ protected trait ChpAgentFundamentals
       collectionStateData.baseStateData match {
         case modelBaseStateData: ParticipantModelBaseStateData[
           ApparentPowerAndHeat,
-          ChpData,
+          ChpRelevantData,
           ChpModel] =>
 
 
