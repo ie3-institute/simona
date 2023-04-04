@@ -89,7 +89,7 @@ class ChpModelTest extends Specification {
         thermalStorage)
   }
 
-  static def buildChpData(ChpState chpState, Double heatDemand) {
+  static def buildChpRelevantData(ChpState chpState, Double heatDemand) {
     return new ChpModel.ChpRelevantData(chpState, getQuantity(heatDemand, KILOWATTHOUR), 7200)
   }
 
