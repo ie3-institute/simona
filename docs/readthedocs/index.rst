@@ -17,7 +17,9 @@ Institute of Energy Systems, Energy Efficiency and Energy Economics at TU Dortmu
    config
    models
    developersguide
+   publications
    references
+
 
 Indices and tables
 ==================
