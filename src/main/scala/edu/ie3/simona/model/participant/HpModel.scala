@@ -57,7 +57,10 @@ final case class HpModel(
     cosPhiRated: Double,
     pThermal: ComparableQuantity[Power],
     thermalGrid: ThermalGrid
-) extends SystemParticipant[HpRelevantData, ApparentPowerAndHeat](
+) extends SystemParticipant[
+      HpRelevantData,
+      ApparentPowerAndHeat
+    ](
       uuid,
       id,
       operationInterval,
@@ -80,16 +83,16 @@ final case class HpModel(
     * [[HpModel.calculateNextState]]. This state then is fed into the power
     * calculation logic by <i>hpData</i>.
     *
-    * @param hpData
+    * @param relevantData
     *   data of heat pump including state of the heat pump
     * @return
     *   active power
     */
   override protected def calculateActivePower(
-      hpData: HpRelevantData
+    relevantData: HpRelevantData
   ): ComparableQuantity[Power] = {
-    hpData.hpState = calculateNextState(hpData)
-    hpData.hpState.activePower
+    relevantData.hpState = calculateNextState(relevantData)
+    relevantData.hpState.activePower
   }
 
   /** "Calculate" the heat output of the heat pump. The hp's state is already
@@ -99,7 +102,7 @@ final case class HpModel(
     * @param tick
     *   Current simulation time for the calculation
     * @param data
-    *   Needed calculation relevant data
+    *   Relevant (external) data for calculation
     * @return
     *   The heat, that is produced in that instant
     */
