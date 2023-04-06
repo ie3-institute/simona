@@ -91,8 +91,8 @@ class ChpModelTest extends Specification {
         thermalStorage)
   }
 
-  static def buildChpData(ChpState chpState, Double heatDemand) {
-    return new ChpModel.ChpData(chpState, getQuantity(heatDemand, KILOWATTHOUR), 7200)
+  static def buildChpRelevantData(ChpState chpState, Double heatDemand) {
+    return new ChpModel.ChpRelevantData(chpState, getQuantity(heatDemand, KILOWATTHOUR), 7200)
   }
 
   static def buildThermalStorage(CylindricalStorageInput storageInput, Double storageLvl) {
@@ -104,7 +104,7 @@ class ChpModelTest extends Specification {
   @Unroll
   def "Check active power after calculating next state with #chpState and heat demand #heatDemand kWh:"() {
     given:
-    def chpData = buildChpData(chpState, heatDemand)
+    def chpData = buildChpRelevantData(chpState, heatDemand)
     def thermalStorage = buildThermalStorage(storageInput, storageLvl)
     def chpModel = buildChpModel(thermalStorage)
 
@@ -131,7 +131,7 @@ class ChpModelTest extends Specification {
   @Unroll
   def "Check total energy after calculating next state with #chpState and heat demand #heatDemand kWh:"() {
     given:
-    def chpData = buildChpData(chpState, heatDemand)
+    def chpData = buildChpRelevantData(chpState, heatDemand)
     def thermalStorage = buildThermalStorage(storageInput, storageLvl)
     def chpModel = buildChpModel(thermalStorage)
 
@@ -159,7 +159,7 @@ class ChpModelTest extends Specification {
 
   def "Check storage level after calculating next state with #chpState and heat demand #heatDemand kWh:"() {
     given:
-    def chpData = buildChpData(chpState, heatDemand)
+    def chpData = buildChpRelevantData(chpState, heatDemand)
     def thermalStorage = buildThermalStorage(storageInput, storageLvl)
     def chpModel = buildChpModel(thermalStorage)
     def expectedStoredEnergyQty = Quantities.getQuantity(expectedStoredEnergy, KILOWATTHOUR)
@@ -186,7 +186,7 @@ class ChpModelTest extends Specification {
 
   def "Check time tick and running status after calculating next state with #chpState and heat demand #heatDemand kWh:"() {
     given:
-    def chpData = buildChpData(chpState, heatDemand)
+    def chpData = buildChpRelevantData(chpState, heatDemand)
     def thermalStorage = buildThermalStorage(storageInput, storageLvl)
     def chpModel = buildChpModel(thermalStorage)
 
