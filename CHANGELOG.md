@@ -62,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updating `CONTRIBUTING.md` [#201](https://github.com/ie3-institute/simona/issues/201)
 - Speeding up additionalActivationTicks in participant's BaseStateData [#421](https://github.com/ie3-institute/simona/pull/421)
 - Changed format of example grid `vn_simona` [#216](https://github.com/ie3-institute/simona/issues/216)
+- Renamed ChpData to ChpRelevantData [#494](https://github.com/ie3-institute/simona/issues/494)
 - Respect for scaling factor when simulating the system participants [#81](https://github.com/ie3-institute/simona/issues/81)
 - Harmonize participant model instantiation [#81](https://github.com/ie3-institute/simona/issues/81)
 
