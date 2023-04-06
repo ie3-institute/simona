@@ -1,4 +1,4 @@
-(thermal_grid_model)=
+(thermal_grid)=
 
 # Thermal Grid Model
 
