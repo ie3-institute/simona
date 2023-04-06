@@ -89,7 +89,7 @@ final case class HpModel(
     *   active power
     */
   override protected def calculateActivePower(
-    relevantData: HpRelevantData
+      relevantData: HpRelevantData
   ): ComparableQuantity[Power] = {
     relevantData.hpState = calculateNextState(relevantData)
     relevantData.hpState.activePower

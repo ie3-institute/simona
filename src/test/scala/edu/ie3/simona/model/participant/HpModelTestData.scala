@@ -15,7 +15,12 @@ import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.{CylindricalThermalStorage, ThermalGrid, ThermalHouse, ThermalStorage}
+import edu.ie3.simona.model.thermal.{
+  CylindricalThermalStorage,
+  ThermalGrid,
+  ThermalHouse,
+  ThermalStorage
+}
 import edu.ie3.util.quantities.PowerSystemUnits
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
