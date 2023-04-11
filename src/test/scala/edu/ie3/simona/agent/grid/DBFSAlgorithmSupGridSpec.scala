@@ -42,6 +42,7 @@ import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
+import scala.language.postfixOps
 
 /** Test to ensure the functions that a [[GridAgent]] in superior position
   * should be able to do if the DBFSAlgorithm is used. The scheduler, the
@@ -206,7 +207,8 @@ class DBFSAlgorithmSupGridSpec
 
           // we expect a completion message here and that the agent goes back to simulate grid
           // and waits until the newly scheduled StartGridSimulationTrigger is send
-          scheduler.expectMsgPF() {
+          // wait 30 seconds max for power flow to finish
+          scheduler.expectMsgPF(30 seconds) {
             case CompletionMessage(
                   2,
                   Some(
@@ -362,7 +364,8 @@ class DBFSAlgorithmSupGridSpec
           // and waits until the newly scheduled StartGridSimulationTrigger is send
 
           // Simulate Grid
-          scheduler.expectMsgPF(30.seconds) {
+          // wait 30 seconds max for power flow to finish
+          scheduler.expectMsgPF(30 seconds) {
             case CompletionMessage(
                   _,
                   Some(

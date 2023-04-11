@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updating `CONTRIBUTING.md` [#201](https://github.com/ie3-institute/simona/issues/201)
 - Speeding up additionalActivationTicks in participant's BaseStateData [#421](https://github.com/ie3-institute/simona/pull/421)
 - Changed format of example grid `vn_simona` [#216](https://github.com/ie3-institute/simona/issues/216)
+- Renamed ChpData to ChpRelevantData [#494](https://github.com/ie3-institute/simona/issues/494)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
@@ -89,6 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed groovy formatting [#110](https://github.com/ie3-institute/simona/issues/110)
 - Fixed configuration reference in user's guide [#224](https://github.com/ie3-institute/simona/issues/224)
 - Fixed ResultEventListener exiting too early with high volumes of results [#350](https://github.com/ie3-institute/simona/issues/350)
+- Fixed tests that unreliably fail [#359](https://github.com/ie3-institute/simona/issues/359)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)
