@@ -20,8 +20,12 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import javax.measure.quantity.Angle
 
-/** Please refer to the diagram of the grid in [[BasicGridWithSwitches]] in
-  * order to comprehend the expected test results
+/** Tests power flow on a grid with switches on two branches, where depending on
+  * whether switches are opened or closed, current flows through one or both of
+  * the branches.
+  *
+  * Please refer to the diagram of the grid in [[BasicGridWithSwitches]] in
+  * order to comprehend the expected test results.
   */
 class PowerFlowSupportSpec
     extends UnitSpec
