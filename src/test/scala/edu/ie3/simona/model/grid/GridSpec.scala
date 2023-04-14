@@ -105,7 +105,8 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         withOpenSwitches.gridComponents
       )
 
-      // dimension of admittance matrix with closed switches should be reduced by the number of closed switches
+      // dimension of admittance matrix with closed switches should be the dimension
+      // of the one with open switches, reduced by the number of closed switches
       private val closedSwitches =
         withClosedSwitches.gridComponents.switches.filter(_.isClosed)
       private val numberClosedSwitches = closedSwitches.size
@@ -113,8 +114,8 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
       admittanceMatixClosed.rows shouldBe admittanceMatrixOpen.rows - numberClosedSwitches
       admittanceMatixClosed.cols shouldBe admittanceMatrixOpen.cols - numberClosedSwitches
 
-      // Nodes connected by switches, in both directions
-      // no transitivity considered (for this test, consecutive switches should not be part of the grid!)
+      // we're compiling a map of nodes connected by switches, in both directions
+      // no transitivity considered (for this test, consecutively connected switches should not be part of the grid!)
       private val switchConnections = closedSwitches.toSeq
         .flatMap { switch =>
           Iterable(
@@ -125,10 +126,14 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         .groupMap { case (key, _) => key } { case (_, value) => value }
 
       private val nodeUuids = withClosedSwitches.nodeUuidToIndexMap.keys
+      // we're going through all node combinations in the closed grid and check whether
+      // the admittances in the grid with open switches have been summed up correctly
       nodeUuids.foreach { iNode =>
+        // the index of iNode in the grid with closed switches
         val iClosed = withClosedSwitches.nodeUuidToIndexMap.get(iNode).value
 
-        // all indices that have been fused together to iNode in the withClosedSwitches grid
+        // all indices that have been fused together within the grid with open switches,
+        // which are represented only by iNode in the grid with closed switches
         val iOpenAll = switchConnections
           .get(iNode)
           .map(_.map(withOpenSwitches.nodeUuidToIndexMap.get(_).value))
@@ -136,16 +141,19 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           .toSeq :+ withOpenSwitches.nodeUuidToIndexMap.get(iNode).value
 
         nodeUuids.foreach { jNode =>
+          // the index of jNode in the grid with closed switches
           val jClosed = withClosedSwitches.nodeUuidToIndexMap.get(jNode).value
 
-          // all indices that have been fused together to jNode in the withClosedSwitches grid
+          // all indices that have been fused together within the grid with open switches,
+          // which are represented only by jNode in the grid with closed switches
           val jOpenAll = switchConnections
             .get(jNode)
             .map(_.map(withOpenSwitches.nodeUuidToIndexMap.get(_).value))
             .getOrElse(Iterable.empty)
             .toSeq :+ withOpenSwitches.nodeUuidToIndexMap.get(jNode).value
 
-          // add together values for all index combinations
+          // all row/column combinations in the grid with open switches are summed up and
+          // should then result in the same admittance in the grid with closed switches
           val sumOfAdmittancesOpenSwitches = iOpenAll
             .map { iOpen =>
               jOpenAll
