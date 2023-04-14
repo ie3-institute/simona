@@ -212,6 +212,7 @@ trait BasicGridWithSwitches extends BasicGrid {
 
   def createGridCopy(): GridModel = {
     // copy components because they are mutable and are altered by some tests
+    // also enable components, otherwise they are not considered in building admittance matrices
     val gridNodes = nodes
     gridNodes.foreach(node => if (!node.isInOperation) node.enable())
     val gridLines = lines

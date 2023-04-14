@@ -91,8 +91,6 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
     "be able to build a valid line admittance matrix with switches" in new BasicGridWithSwitches {
       private val withClosedSwitches = createGridCopy()
       closeSwitches(withClosedSwitches)
-      // enable the lines first, otherwise they are not considered in building the admittance matrix
-      withClosedSwitches.gridComponents.lines.foreach(_.enable())
       GridModel.updateUuidToIndexMap(withClosedSwitches)
       private val admittanceMatixClosed = GridModel.composeAdmittanceMatrix(
         withClosedSwitches.nodeUuidToIndexMap,
@@ -101,8 +99,6 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
       private val withOpenSwitches = createGridCopy()
       openSwitches(withOpenSwitches)
-      // enable the lines first, otherwise they are not considered in building the admittance matrix
-      withClosedSwitches.gridComponents.lines.foreach(_.enable())
       GridModel.updateUuidToIndexMap(withOpenSwitches)
       private val admittanceMatrixOpen = GridModel.composeAdmittanceMatrix(
         withOpenSwitches.nodeUuidToIndexMap,
