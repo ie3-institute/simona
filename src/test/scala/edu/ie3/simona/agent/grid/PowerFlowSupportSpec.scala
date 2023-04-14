@@ -15,8 +15,10 @@ import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessag
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.BasicGridWithSwitches
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
+import javax.measure.quantity.Angle
 
 /** Please refer to the diagram of the grid in [[BasicGridWithSwitches]] in
   * order to comprehend the expected test results
@@ -57,6 +59,23 @@ class PowerFlowSupportSpec
       )
     )
 
+  val currentTolerance = 1e-3 // 1 mA
+  val angleTolerance = 1e-3 // 0.001 deg
+
+  /** We test for angle regardless of direction of the lines here, thus
+    * normalize to [0, 180] degrees
+    */
+  private def normalizeAngle(
+      angle: ComparableQuantity[Angle]
+  ): ComparableQuantity[Angle] = {
+    if (angle.isLessThan(0d.asDegreeGeom))
+      angle.add(180.asDegreeGeom)
+    else if (angle.isGreaterThan(180d.asDegreeGeom))
+      angle.subtract(180.asDegreeGeom)
+    else
+      angle
+  }
+
   "PowerFlowSupport" when {
     "all switches are closed" must {
       "calculate power flow correctly" in {
@@ -95,20 +114,63 @@ class PowerFlowSupportSpec
         val pfResult =
           createResultModels(gridModel, sweepValueStore)(ZonedDateTime.now())
 
-        // all lines should have some load
-        val expectedLoadLines =
+        // left/top side segments should have similar currents
+        val loadLinesLeft =
           Iterable(
             line18To1,
             line0To17,
             line0To15,
-            line16To3,
+            line16To3
+          ).map(_.uuid).toSet
+        pfResult.lineResults
+          .filter(lineRes => loadLinesLeft.contains(lineRes.getInputModel))
+          .foreach { lineRes =>
+            lineRes.getiAMag() should equalWithTolerance(
+              30.4954d.asAmpere,
+              currentTolerance
+            )
+            lineRes.getiBMag() should equalWithTolerance(
+              30.4954d.asAmpere,
+              currentTolerance
+            )
+            normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
+              179.7095d.asDegreeGeom,
+              angleTolerance
+            )
+            normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
+              179.7095d.asDegreeGeom,
+              angleTolerance
+            )
+          }
+
+        // right/bottom side segments should have similar currents
+        val loadLinesRight =
+          Iterable(
             line1To13,
             line14To2,
             line2To3
           ).map(_.uuid).toSet
         pfResult.lineResults
-          .filter(lineRes => expectedLoadLines.contains(lineRes.getInputModel))
-          .forall(_.getiAMag().isGreaterThan(25d.asAmpere)) shouldBe true
+          .filter(lineRes => loadLinesRight.contains(lineRes.getInputModel))
+          .foreach { lineRes =>
+            lineRes.getiAMag() should equalWithTolerance(
+              27.723d.asAmpere,
+              currentTolerance
+            )
+            lineRes.getiBMag() should equalWithTolerance(
+              27.723d.asAmpere,
+              currentTolerance
+            )
+            normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
+              179.7095d.asDegreeGeom,
+              angleTolerance
+            )
+            normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
+              179.7095d.asDegreeGeom,
+              angleTolerance
+            )
+          }
+
       }
     }
 
@@ -153,21 +215,47 @@ class PowerFlowSupportSpec
           )
         )(ZonedDateTime.now())
 
-        // lines that are adjacent to the open switch should have no load
-        val expectedNoLoadLines =
+        // left/top side segments (lines that are adjacent to the open switch) should have no load
+        val loadLinesLeft =
           Iterable(line18To1, line0To17, line0To15, line16To3).map(_.uuid).toSet
         pfResult.lineResults
-          .filter(lineRes =>
-            expectedNoLoadLines.contains(lineRes.getInputModel)
-          )
-          .forall(_.getiAMag().isLessThan(1e-3.asAmpere)) shouldBe true
+          .filter(lineRes => loadLinesLeft.contains(lineRes.getInputModel))
+          .foreach { lineRes =>
+            lineRes.getiAMag() should equalWithTolerance(
+              0.0001d.asAmpere,
+              currentTolerance
+            )
+            lineRes.getiBMag() should equalWithTolerance(
+              0.0001d.asAmpere,
+              currentTolerance
+            )
+          // angles are not reliable enough with such small magnitudes
+          }
 
-        // lines that are adjacent to the closed switch should have load
-        val expectedLoadLines =
+        // right/bottom side segments (lines that are adjacent to the closed switch) should have load
+        val loadLinesRight =
           Iterable(line1To13, line14To2, line2To3).map(_.uuid).toSet
         pfResult.lineResults
-          .filter(lineRes => expectedLoadLines.contains(lineRes.getInputModel))
-          .forall(_.getiAMag().isGreaterThan(50d.asAmpere)) shouldBe true
+          .filter(lineRes => loadLinesRight.contains(lineRes.getInputModel))
+          .foreach { lineRes =>
+            lineRes.getiAMag() should equalWithTolerance(
+              58.6017d.asAmpere,
+              currentTolerance
+            )
+            lineRes.getiBMag() should equalWithTolerance(
+              58.6017d.asAmpere,
+              currentTolerance
+            )
+            normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
+              179.4090d.asDegreeGeom,
+              angleTolerance
+            )
+            normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
+              179.4090d.asDegreeGeom,
+              angleTolerance
+            )
+          }
+
       }
     }
 
@@ -212,21 +300,49 @@ class PowerFlowSupportSpec
           )
         )(ZonedDateTime.now())
 
-        // lines that are adjacent to the open switch should have no load
+        // left/top side segments (lines that are adjacent to the open switch) should have load
+        val expectedLoadLines =
+          Iterable(line18To1, line0To17, line0To15, line16To3).map(_.uuid).toSet
+        pfResult.lineResults
+          .filter(lineRes => expectedLoadLines.contains(lineRes.getInputModel))
+          .foreach { lineRes =>
+            lineRes.getiAMag() should equalWithTolerance(
+              58.5343d.asAmpere,
+              currentTolerance
+            )
+            lineRes.getiBMag() should equalWithTolerance(
+              58.5343d.asAmpere,
+              currentTolerance
+            )
+            normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
+              179.461d.asDegreeGeom,
+              angleTolerance
+            )
+            normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
+              179.461d.asDegreeGeom,
+              angleTolerance
+            )
+          }
+
+        // right/bottom side segments (lines that are adjacent to the closed switch) should have no load
         val expectedNoLoadLines =
           Iterable(line1To13, line14To2, line2To3).map(_.uuid).toSet
         pfResult.lineResults
           .filter(lineRes =>
             expectedNoLoadLines.contains(lineRes.getInputModel)
           )
-          .forall(_.getiAMag().isLessThan(1e-3.asAmpere)) shouldBe true
+          .foreach { lineRes =>
+            lineRes.getiAMag() should equalWithTolerance(
+              0.0001d.asAmpere,
+              currentTolerance
+            )
+            lineRes.getiBMag() should equalWithTolerance(
+              0.0001d.asAmpere,
+              currentTolerance
+            )
+          // angles are not reliable enough with such small magnitudes
+          }
 
-        // lines that are adjacent to the closed switch should have load
-        val expectedLoadLines =
-          Iterable(line18To1, line0To17, line0To15, line16To3).map(_.uuid).toSet
-        pfResult.lineResults
-          .filter(lineRes => expectedLoadLines.contains(lineRes.getInputModel))
-          .forall(_.getiAMag().isGreaterThan(50d.asAmpere)) shouldBe true
       }
     }
   }
