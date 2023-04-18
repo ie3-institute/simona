@@ -28,15 +28,12 @@ import edu.ie3.datamodel.io.factory.SimpleEntityData
 import edu.ie3.datamodel.io.factory.result.SystemParticipantResultFactory
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
-import edu.ie3.datamodel.utils.StreamUtils
-import edu.ie3.datamodel.utils.StreamUtils.zipWithRowIndex
 import edu.ie3.datamodel.utils.options.Try
 import edu.ie3.simona.exceptions.{FileIOException, ProcessResultEventException}
 import org.apache.commons.io.FilenameUtils
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.jdk.CollectionConverters._
-import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success}
 
 /** Source that reads .csv files containing [[ResultEntity]] s
