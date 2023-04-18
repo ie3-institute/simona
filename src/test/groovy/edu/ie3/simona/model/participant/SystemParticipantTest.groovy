@@ -9,8 +9,6 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiP
 import edu.ie3.datamodel.models.input.system.characteristic.QV
-import edu.ie3.simona.model.participant.CalcRelevantData
-import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.scala.OperationInterval
 import spock.lang.Specification
@@ -59,7 +57,6 @@ class SystemParticipantTest extends Specification {
     "cosPhiFixed:{(0.0,0.9)}" | -100 || -48.432210483785254000
     "cosPhiFixed:{(0.0,0.9)}" | -200 || 0
     "cosPhiFixed:{(0.0,1.0)}" | 100  || 0
-
   }
 
   def "Test calculateQ for a load unit with cosphi_p"() {
@@ -94,7 +91,6 @@ class SystemParticipantTest extends Specification {
 
     // first line is "with P" -> positive Q (influence on voltage level: decrease) is expected
     // second line is "against P" -> negative Q (influence on voltage level: increase) is expected
-
   }
 
   def "Test calculateQ for a generation unit with cosphi_p"() {
@@ -129,7 +125,6 @@ class SystemParticipantTest extends Specification {
 
     // first line is "with P" -> negative Q (influence on voltage level: increase) is expected
     // second line is "against P" -> positive Q (influence on voltage level: decrease) is expected
-
   }
 
   def "Test calculateQ for a standard q_v characteristic"() {
