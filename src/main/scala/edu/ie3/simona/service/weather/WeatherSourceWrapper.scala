@@ -275,7 +275,8 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       idCoordinateSourceFunction(),
       couchbaseParams.coordinateColumnName,
       couchbaseParams.keyPrefix,
-      buildFactory(scheme, timestampPattern)
+      buildFactory(scheme, timestampPattern),
+      "yyyy-MM-dd'T'HH:mm:ssxxx"
     )
     logger.info(
       "Successfully initiated CouchbaseWeatherSource as source for WeatherSourceWrapper."
