@@ -32,7 +32,7 @@ ext {
   tscfgVersion = '1.0.2'
   scapegoatVersion = '1.4.17'
 
-  testContainerVersion = '0.40.14'
+  testContainerVersion = '0.40.15'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
 }
@@ -101,7 +101,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // akka scala logging
-  implementation "ch.qos.logback:logback-classic:1.4.6"
+  implementation "ch.qos.logback:logback-classic:1.4.7"
 
   /* testing */
   testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
