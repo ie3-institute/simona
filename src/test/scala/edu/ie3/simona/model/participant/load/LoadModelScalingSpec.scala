@@ -14,6 +14,7 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference.{
   ActivePower,
@@ -27,9 +28,11 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.prop.TableDrivenPropertyChecks
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
+import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Energy}
@@ -102,6 +105,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             EnergyConsumption(targetEnergyConsumption)
           )
           dut.enable()
+
           val relevantDatas = (0 until 35040)
             .map(tick =>
               tick -> ProfileRelevantData(
@@ -173,54 +177,12 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           EnergyConsumption(targetEnergyConsumption)
         )
         dut.enable()
-        val relevantDatas = (0 until 35040)
-          .map(tick =>
-            tick -> ProfileRelevantData(
-              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-            )
-          )
-          .toMap
 
-        val totalRuns = 10
-        val avgEnergy = (0 until totalRuns)
-          .map { _ =>
-            relevantDatas
-              .map { case (tick, relevantData) =>
-                dut
-                  .calculatePower(
-                    tick,
-                    Quantities.getQuantity(0d, PowerSystemUnits.PU),
-                    relevantData
-                  )
-                  .p
-                  .multiply(Quantities.getQuantity(15d, Units.MINUTE))
-                  .asType(classOf[Energy])
-                  .to(PowerSystemUnits.KILOWATTHOUR)
-              }
-              .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
-                _.add(_)
-              )
-          }
-          .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
-            _.add(_)
-          )
-          .divide(totalRuns)
-
-        Quantities
-          .getQuantity(100, Units.PERCENT)
-          .subtract(
-            Quantities.getQuantity(
-              abs(
-                avgEnergy
-                  .divide(expectedEnergy)
-                  .asType(classOf[Dimensionless])
-                  .to(Units.PERCENT)
-                  .getValue
-                  .doubleValue()
-              ),
-              Units.PERCENT
-            )
-          ) should beLessThanWithTolerance(
+        calculateAverageEnergy(
+          dut.asInstanceOf[LoadModel[LoadRelevantData]],
+          simulationStartDate,
+          expectedEnergy
+        ) should beLessThanWithTolerance(
           Quantities.getQuantity(2d, Units.PERCENT),
           1e-1
         )
@@ -375,6 +337,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           EnergyConsumption(targetEnergyConsumption)
         )
         dut.enable()
+
         val relevantDatas = (0 until 35040)
           .map(tick =>
             tick -> RandomLoadModel.RandomRelevantData(
@@ -510,6 +473,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           ActivePower(targetMaximumPower)
         )
         dut.enable()
+
         val relevantDatas = (0 until 35040)
           .map(tick =>
             tick -> RandomLoadModel.RandomRelevantData(
@@ -602,4 +566,88 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
       }
     }
   }
+
+  def getRelevantDatas[T <: LoadModel[LoadRelevantData]](
+      dut: LoadModel[LoadRelevantData],
+      simulationStartDate: ZonedDateTime
+  ): Map[Int, LoadRelevantData] = {
+
+    if (dut.isInstanceOf[ProfileLoadModel]) {
+      val relevantDatas = (0 until 35040)
+        .map(tick =>
+          tick -> ProfileLoadModel.ProfileRelevantData(
+            simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
+          )
+        )
+        .toMap
+      return relevantDatas
+    }
+
+    if (dut.isInstanceOf[RandomLoadModel]) {
+      val relevantDatas = (0 until 35040)
+        .map(tick =>
+          tick -> RandomLoadModel.RandomRelevantData(
+            simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
+          )
+        )
+        .toMap
+    relevantDatas
+    }
+    else {
+      throw new IllegalArgumentException("Unknown load model type")
+    }
+  }
+
+    def calculateAverageEnergy[T <: LoadModel[ProfileRelevantData]](
+        dut: LoadModel[LoadRelevantData],
+        simulationStartDate: ZonedDateTime,
+        expectedEnergy: ComparableQuantity[Energy]
+    )= {
+
+      val relevantDatas = getRelevantDatas(dut, simulationStartDate)
+
+      val totalRuns = 10
+      val avgEnergy = (0 until totalRuns)
+        .map { _ =>
+          relevantDatas
+            .map { case (tick, relevantData) =>
+              dut
+                .calculatePower(
+                  tick,
+                  Quantities.getQuantity(0d, PowerSystemUnits.PU),
+                  relevantData
+                )
+                .p
+                .multiply(Quantities.getQuantity(15d, Units.MINUTE))
+                .asType(classOf[Energy])
+                .to(PowerSystemUnits.KILOWATTHOUR)
+            }
+            .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
+              _.add(_)
+            )
+        }
+        .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
+          _.add(_)
+        )
+        .divide(totalRuns)
+
+      val result = Quantities
+        .getQuantity(100, Units.PERCENT)
+        .subtract(
+          Quantities.getQuantity(
+            abs(
+              avgEnergy
+                .divide(expectedEnergy)
+                .asType(classOf[Dimensionless])
+                .to(Units.PERCENT)
+                .getValue
+                .doubleValue()
+            ),
+            Units.PERCENT
+          )
+        )
+      result
+    }
+
+
 }
