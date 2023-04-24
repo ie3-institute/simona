@@ -175,7 +175,6 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           BdewStandardLoadProfile.H0,
           EnergyConsumption(targetEnergyConsumption)
         )
-        dut.enable()
 
         calculateAverageEnergy(
           dut.asInstanceOf[LoadModel[LoadRelevantData]],
@@ -210,7 +209,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             profile,
             ActivePower(targetMaximumPower)
           )
-          dut.enable()
+
           val relevantDatas = (0 until 35040)
             .map(tick =>
               tick -> ProfileRelevantData(
@@ -258,7 +257,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           BdewStandardLoadProfile.H0,
           ActivePower(targetMaximumPower)
         )
-        dut.enable()
+
         val relevantDatas = (0 until 35040)
           .map(tick =>
             tick -> ProfileRelevantData(
@@ -335,7 +334,6 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           randomLoadInput.getCosPhiRated,
           EnergyConsumption(targetEnergyConsumption)
         )
-        dut.enable()
 
         val relevantDatas = (0 until 35040)
           .map(tick =>
@@ -405,7 +403,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           randomLoadInput.getCosPhiRated,
           EnergyConsumption(targetEnergyConsumption)
         )
-        dut.enable()
+
         val relevantDatas = (0 until 35040)
           .map(tick =>
             tick -> RandomLoadModel.RandomRelevantData(
@@ -471,7 +469,6 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           randomLoadInput.getCosPhiRated,
           ActivePower(targetMaximumPower)
         )
-        dut.enable()
 
         val relevantDatas = (0 until 35040)
           .map(tick =>
@@ -531,7 +528,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           randomLoadInput.getCosPhiRated,
           ActivePower(targetMaximumPower)
         )
-        dut.enable()
+
         val relevantDatas = (0 until 35040)
           .map(tick =>
             tick -> RandomLoadModel.RandomRelevantData(
