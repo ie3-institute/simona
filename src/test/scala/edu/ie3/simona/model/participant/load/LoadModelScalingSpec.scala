@@ -104,7 +104,6 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             profile,
             EnergyConsumption(targetEnergyConsumption)
           )
-          dut.enable()
 
           val relevantDatas = (0 until 35040)
             .map(tick =>
