@@ -29,11 +29,17 @@ import javax.measure.quantity.{
   * used lines and nodes see [[FiveLinesWithNodes]].
   *
   * {{{
-  * (6) / / trafo (5) /
-  * | /
-  * | / (0)-----(3)-----(4)
+  *                  (6)
+  *                  /
+  *                 /
+  *             trafo
+  *         (5)  /
+  *          |  /
+  *          | /
+  * (0)-----(3)-----(4)
   * |
-  * | (1)-----(2)
+  * |
+  * (1)-----(2)
   * }}}
   *
   * Reference System: 400 kVA @ 10 kV --> Reference admittance: 4 mS
@@ -81,9 +87,7 @@ trait BasicGrid extends FiveLinesWithNodes with DefaultTestData {
   // update nodeToIndexMap
   // nodeToIndexMap
   override protected def nodeUuidToIndexMap: Map[UUID, Int] =
-    super.nodeUuidToIndexMap + (UUID.fromString(
-      "3d2d3626-5043-4ec7-892d-cead983c046e"
-    ) -> 6)
+    super.nodeUuidToIndexMap + (node6.uuid -> 6)
 
   // transformer
   // / transformer tapping model
