@@ -435,7 +435,6 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           )
         )
         .toMap
-      return relevantDatas
     }
 
     if (dut.isInstanceOf[RandomLoadModel]) {
