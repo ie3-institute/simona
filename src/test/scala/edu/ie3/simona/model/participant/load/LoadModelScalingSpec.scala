@@ -103,56 +103,13 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             profileLoadInput.getCosPhiRated,
             profile,
             EnergyConsumption(targetEnergyConsumption)
-          )
+          ).asInstanceOf[LoadModel[LoadRelevantData]]
 
-          val relevantDatas = (0 until 35040)
-            .map(tick =>
-              tick -> ProfileRelevantData(
-                simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-              )
-            )
-            .toMap
-
-          val totalRuns = 10
-          val avgEnergy = (0 until totalRuns)
-            .map { _ =>
-              relevantDatas
-                .map { case (tick, relevantData) =>
-                  dut
-                    .calculatePower(
-                      tick,
-                      Quantities.getQuantity(0d, PowerSystemUnits.PU),
-                      relevantData
-                    )
-                    .p
-                    .multiply(Quantities.getQuantity(15d, Units.MINUTE))
-                    .asType(classOf[Energy])
-                    .to(PowerSystemUnits.KILOWATTHOUR)
-                }
-                .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
-                  _.add(_)
-                )
-            }
-            .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
-              _.add(_)
-            )
-            .divide(totalRuns)
-
-          Quantities
-            .getQuantity(100, Units.PERCENT)
-            .subtract(
-              Quantities.getQuantity(
-                abs(
-                  avgEnergy
-                    .divide(targetEnergyConsumption)
-                    .asType(classOf[Dimensionless])
-                    .to(Units.PERCENT)
-                    .getValue
-                    .doubleValue()
-                ),
-                Units.PERCENT
-              )
-            ) should beLessThanWithTolerance(
+          calculateAverageEnergy(
+            dut,
+            simulationStartDate,
+            targetEnergyConsumption
+          ) should beLessThanWithTolerance(
             Quantities.getQuantity(2d, Units.PERCENT),
             1e-1
           )
@@ -174,10 +131,10 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           profileLoadInput.getCosPhiRated,
           BdewStandardLoadProfile.H0,
           EnergyConsumption(targetEnergyConsumption)
-        )
+        ).asInstanceOf[LoadModel[LoadRelevantData]]
 
         calculateAverageEnergy(
-          dut.asInstanceOf[LoadModel[LoadRelevantData]],
+          dut,
           simulationStartDate,
           expectedEnergy
         ) should beLessThanWithTolerance(
@@ -208,15 +165,9 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             profileLoadInput.getCosPhiRated,
             profile,
             ActivePower(targetMaximumPower)
-          )
+          ).asInstanceOf[LoadModel[LoadRelevantData]]
 
-          val relevantDatas = (0 until 35040)
-            .map(tick =>
-              tick -> ProfileRelevantData(
-                simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-              )
-            )
-            .toMap
+          val relevantDatas = getRelevantDatas(dut, simulationStartDate)
 
           val totalRuns = 10
           (0 until totalRuns).flatMap { _ =>
@@ -256,15 +207,9 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           profileLoadInput.getCosPhiRated,
           BdewStandardLoadProfile.H0,
           ActivePower(targetMaximumPower)
-        )
+        ).asInstanceOf[LoadModel[LoadRelevantData]]
 
-        val relevantDatas = (0 until 35040)
-          .map(tick =>
-            tick -> ProfileRelevantData(
-              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-            )
-          )
-          .toMap
+        val relevantDatas = getRelevantDatas(dut, simulationStartDate)
 
         val totalRuns = 10
         (0 until totalRuns).flatMap { _ =>
@@ -333,56 +278,13 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           randomLoadInput.getsRated(),
           randomLoadInput.getCosPhiRated,
           EnergyConsumption(targetEnergyConsumption)
-        )
+        ).asInstanceOf[LoadModel[LoadRelevantData]]
 
-        val relevantDatas = (0 until 35040)
-          .map(tick =>
-            tick -> RandomLoadModel.RandomRelevantData(
-              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-            )
-          )
-          .toMap
-
-        val totalRuns = 10
-        val avgEnergy = (0 until totalRuns)
-          .map { _ =>
-            relevantDatas
-              .map { case (tick, relevantData) =>
-                dut
-                  .calculatePower(
-                    tick,
-                    Quantities.getQuantity(0d, PowerSystemUnits.PU),
-                    relevantData
-                  )
-                  .p
-                  .multiply(Quantities.getQuantity(15d, Units.MINUTE))
-                  .asType(classOf[Energy])
-                  .to(PowerSystemUnits.KILOWATTHOUR)
-              }
-              .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
-                _.add(_)
-              )
-          }
-          .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
-            _.add(_)
-          )
-          .divide(totalRuns)
-
-        Quantities
-          .getQuantity(100, Units.PERCENT)
-          .subtract(
-            Quantities.getQuantity(
-              abs(
-                avgEnergy
-                  .divide(targetEnergyConsumption)
-                  .asType(classOf[Dimensionless])
-                  .to(Units.PERCENT)
-                  .getValue
-                  .doubleValue()
-              ),
-              Units.PERCENT
-            )
-          ) should beLessThanWithTolerance(
+        calculateAverageEnergy(
+          dut,
+          simulationStartDate,
+          targetEnergyConsumption
+        ) should beLessThanWithTolerance(
           Quantities.getQuantity(1d, Units.PERCENT),
           1e-1
         )
@@ -402,56 +304,13 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           randomLoadInput.getsRated(),
           randomLoadInput.getCosPhiRated,
           EnergyConsumption(targetEnergyConsumption)
-        )
+        ).asInstanceOf[LoadModel[LoadRelevantData]]
 
-        val relevantDatas = (0 until 35040)
-          .map(tick =>
-            tick -> RandomLoadModel.RandomRelevantData(
-              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-            )
-          )
-          .toMap
-
-        val totalRuns = 10
-        val avgEnergy = (0 until totalRuns)
-          .map { _ =>
-            relevantDatas
-              .map { case (tick, relevantData) =>
-                dut
-                  .calculatePower(
-                    tick,
-                    Quantities.getQuantity(0d, PowerSystemUnits.PU),
-                    relevantData
-                  )
-                  .p
-                  .multiply(Quantities.getQuantity(15d, Units.MINUTE))
-                  .asType(classOf[Energy])
-                  .to(PowerSystemUnits.KILOWATTHOUR)
-              }
-              .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
-                _.add(_)
-              )
-          }
-          .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
-            _.add(_)
-          )
-          .divide(totalRuns)
-
-        Quantities
-          .getQuantity(100, Units.PERCENT)
-          .subtract(
-            Quantities.getQuantity(
-              abs(
-                avgEnergy
-                  .divide(expectedEnergy)
-                  .asType(classOf[Dimensionless])
-                  .to(Units.PERCENT)
-                  .getValue
-                  .doubleValue()
-              ),
-              Units.PERCENT
-            )
-          ) should beLessThanWithTolerance(
+        calculateAverageEnergy(
+          dut,
+          simulationStartDate,
+          expectedEnergy
+        ) should beLessThanWithTolerance(
           Quantities.getQuantity(2d, Units.PERCENT),
           1e-1
         )
