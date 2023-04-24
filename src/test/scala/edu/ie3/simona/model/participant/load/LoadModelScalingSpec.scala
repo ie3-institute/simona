@@ -35,7 +35,7 @@ import tech.units.indriya.unit.Units
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Energy}
+import javax.measure.quantity.{Dimensionless, Energy, Power}
 
 class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
   "Testing correct scaling of load models" when {
@@ -327,46 +327,15 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           randomLoadInput.getsRated(),
           randomLoadInput.getCosPhiRated,
           ActivePower(targetMaximumPower)
-        )
+        ).asInstanceOf[LoadModel[LoadRelevantData]]
 
-        val relevantDatas = (0 until 35040)
-          .map(tick =>
-            tick -> RandomLoadModel.RandomRelevantData(
-              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-            )
-          )
-          .toMap
-
-        val totalRuns = 10
-        val powers = (0 until totalRuns)
-          .flatMap { _ =>
-            relevantDatas
-              .map { case (tick, relevantData) =>
-                dut
-                  .calculatePower(
-                    tick,
-                    Quantities.getQuantity(0d, PowerSystemUnits.PU),
-                    relevantData
-                  )
-                  .p
-              }
-          }
-          .sorted
-          .toArray
-
+        val powers =
+          calculateAveragePower(dut, simulationStartDate, targetMaximumPower)
         val quantile95 = RandomLoadModelSpec.get95Quantile(powers)
 
-        Quantities.getQuantity(
-          abs(
-            100 -
-              quantile95
-                .divide(targetMaximumPower)
-                .asType(classOf[Dimensionless])
-                .to(Units.PERCENT)
-                .getValue
-                .doubleValue()
-          ),
-          Units.PERCENT
+        getRelativeResult(
+          quantile95.asInstanceOf[ComparableQuantity[Dimensionless]],
+          targetMaximumPower.asInstanceOf[ComparableQuantity[Dimensionless]]
         ) should beLessThanWithTolerance(
           Quantities.getQuantity(1d, Units.PERCENT),
           1e-1
@@ -386,32 +355,10 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           randomLoadInput.getsRated(),
           randomLoadInput.getCosPhiRated,
           ActivePower(targetMaximumPower)
-        )
+        ).asInstanceOf[LoadModel[LoadRelevantData]]
 
-        val relevantDatas = (0 until 35040)
-          .map(tick =>
-            tick -> RandomLoadModel.RandomRelevantData(
-              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-            )
-          )
-          .toMap
-
-        val totalRuns = 10
-        val powers = (0 until totalRuns)
-          .flatMap { _ =>
-            relevantDatas
-              .map { case (tick, relevantData) =>
-                dut
-                  .calculatePower(
-                    tick,
-                    Quantities.getQuantity(1d, PowerSystemUnits.PU),
-                    relevantData
-                  )
-                  .p
-              }
-          }
-          .sorted
-          .toArray
+        val powers =
+          calculateAveragePower(dut, simulationStartDate, expectedMaximum)
         /* Tolerance is equivalent to 10 W difference between the 95%-percentile of the obtained random results and the
          * target maximum power. Because of the stochastic nature, the maximum power cannot be met perfectly */
         RandomLoadModelSpec.get95Quantile(powers) should equalWithTolerance(
@@ -451,6 +398,28 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
     }
   }
 
+  def getRelativeResult(
+      avgResult: ComparableQuantity[Dimensionless],
+      expectedResult: ComparableQuantity[Dimensionless]
+  ): ComparableQuantity[Dimensionless] = {
+    val result = Quantities
+      .getQuantity(100, Units.PERCENT)
+      .subtract(
+        Quantities.getQuantity(
+          abs(
+            avgResult
+              .divide(expectedResult)
+              .asType(classOf[Dimensionless])
+              .to(Units.PERCENT)
+              .getValue
+              .doubleValue()
+          ),
+          Units.PERCENT
+        )
+      )
+    result
+  }
+
   def calculateAverageEnergy[T <: LoadModel[ProfileRelevantData]](
       dut: LoadModel[LoadRelevantData],
       simulationStartDate: ZonedDateTime,
@@ -484,22 +453,40 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
       )
       .divide(totalRuns)
 
-    val result = Quantities
-      .getQuantity(100, Units.PERCENT)
-      .subtract(
-        Quantities.getQuantity(
-          abs(
-            avgEnergy
-              .divide(expectedEnergy)
-              .asType(classOf[Dimensionless])
-              .to(Units.PERCENT)
-              .getValue
-              .doubleValue()
-          ),
-          Units.PERCENT
-        )
-      )
-    result
+    getRelativeResult(
+      avgEnergy.asInstanceOf[ComparableQuantity[Dimensionless]],
+      expectedEnergy.asInstanceOf[ComparableQuantity[Dimensionless]]
+    )
+
+  }
+
+  def calculateAveragePower[T <: LoadModel[ProfileRelevantData]](
+      dut: LoadModel[LoadRelevantData],
+      simulationStartDate: ZonedDateTime,
+      targetPower: ComparableQuantity[Power]
+  ): Array[ComparableQuantity[Power]] = {
+
+    val relevantDatas = getRelevantDatas(dut, simulationStartDate)
+
+    val totalRuns = 10
+    val powers = (0 until totalRuns)
+      .flatMap { _ =>
+        relevantDatas
+          .map { case (tick, relevantData) =>
+            dut
+              .calculatePower(
+                tick,
+                Quantities.getQuantity(0d, PowerSystemUnits.PU),
+                relevantData
+              )
+              .p
+          }
+      }
+      .sorted
+      .toArray
+
+    powers
+
   }
 
 }
