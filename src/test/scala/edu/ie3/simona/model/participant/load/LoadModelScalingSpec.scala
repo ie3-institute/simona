@@ -591,63 +591,61 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           )
         )
         .toMap
-    relevantDatas
-    }
-    else {
+      relevantDatas
+    } else {
       throw new IllegalArgumentException("Unknown load model type")
     }
   }
 
-    def calculateAverageEnergy[T <: LoadModel[ProfileRelevantData]](
-        dut: LoadModel[LoadRelevantData],
-        simulationStartDate: ZonedDateTime,
-        expectedEnergy: ComparableQuantity[Energy]
-    )= {
+  def calculateAverageEnergy[T <: LoadModel[ProfileRelevantData]](
+      dut: LoadModel[LoadRelevantData],
+      simulationStartDate: ZonedDateTime,
+      expectedEnergy: ComparableQuantity[Energy]
+  ): ComparableQuantity[Dimensionless] = {
 
-      val relevantDatas = getRelevantDatas(dut, simulationStartDate)
+    val relevantDatas = getRelevantDatas(dut, simulationStartDate)
 
-      val totalRuns = 10
-      val avgEnergy = (0 until totalRuns)
-        .map { _ =>
-          relevantDatas
-            .map { case (tick, relevantData) =>
-              dut
-                .calculatePower(
-                  tick,
-                  Quantities.getQuantity(0d, PowerSystemUnits.PU),
-                  relevantData
-                )
-                .p
-                .multiply(Quantities.getQuantity(15d, Units.MINUTE))
-                .asType(classOf[Energy])
-                .to(PowerSystemUnits.KILOWATTHOUR)
-            }
-            .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
-              _.add(_)
-            )
-        }
-        .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
-          _.add(_)
-        )
-        .divide(totalRuns)
-
-      val result = Quantities
-        .getQuantity(100, Units.PERCENT)
-        .subtract(
-          Quantities.getQuantity(
-            abs(
-              avgEnergy
-                .divide(expectedEnergy)
-                .asType(classOf[Dimensionless])
-                .to(Units.PERCENT)
-                .getValue
-                .doubleValue()
-            ),
-            Units.PERCENT
+    val totalRuns = 10
+    val avgEnergy = (0 until totalRuns)
+      .map { _ =>
+        relevantDatas
+          .map { case (tick, relevantData) =>
+            dut
+              .calculatePower(
+                tick,
+                Quantities.getQuantity(0d, PowerSystemUnits.PU),
+                relevantData
+              )
+              .p
+              .multiply(Quantities.getQuantity(15d, Units.MINUTE))
+              .asType(classOf[Energy])
+              .to(PowerSystemUnits.KILOWATTHOUR)
+          }
+          .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
+            _.add(_)
           )
-        )
-      result
-    }
+      }
+      .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
+        _.add(_)
+      )
+      .divide(totalRuns)
 
+    val result = Quantities
+      .getQuantity(100, Units.PERCENT)
+      .subtract(
+        Quantities.getQuantity(
+          abs(
+            avgEnergy
+              .divide(expectedEnergy)
+              .asType(classOf[Dimensionless])
+              .to(Units.PERCENT)
+              .getValue
+              .doubleValue()
+          ),
+          Units.PERCENT
+        )
+      )
+    result
+  }
 
 }
