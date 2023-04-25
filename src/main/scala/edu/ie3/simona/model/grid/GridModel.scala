@@ -16,9 +16,15 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.TransformerControlGroup
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.control.{TransformerControlGroup => ControlGroupModel}
+import edu.ie3.simona.model.control.{
+  TransformerControlGroup => ControlGroupModel
+}
 import edu.ie3.simona.model.grid.GridModel.{GridComponents, GridControls}
-import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{PowerFlowCaseA, PowerFlowCaseB, PowerFlowCaseC}
+import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
+  PowerFlowCaseA,
+  PowerFlowCaseB,
+  PowerFlowCaseC
+}
 import edu.ie3.simona.util.CollectionUtils
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.jgrapht.Graph
@@ -100,7 +106,6 @@ case object GridModel {
   )
 
   /** Represents an empty Transformer control groups
-    *
     */
   val EMPTY_GRID_CONTROLS: GridControls = GridControls(
     Set.empty[ControlGroupModel]
