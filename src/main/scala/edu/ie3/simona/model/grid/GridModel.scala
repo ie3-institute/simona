@@ -209,182 +209,143 @@ case object GridModel {
           admittanceMatrix
     }
 
-    val _updateAdmittanceMatrix: (
-        Int,
-        Int,
-        Complex,
-        Complex,
-        Complex,
-        DenseMatrix[Complex]
-    ) => DenseMatrix[Complex] = { (i, j, yab, yaa, ybb, admittanceMatrix) =>
-      admittanceMatrix(i, i) += (yab + yaa)
-      admittanceMatrix(j, j) += (yab + ybb)
-      admittanceMatrix(i, j) += (yab * -1)
-      admittanceMatrix(j, i) += (yab * -1)
-      admittanceMatrix
-    }
-
-    val linesAdmittanceMatrix: DenseMatrix[Complex] =
-      buildLinesAdmittanceMatrix(
-        nodeUuidToIndexMap,
-        gridComponents.lines,
-        _updateAdmittanceMatrix
-      )
-    val trafoAdmittanceMatrix: DenseMatrix[Complex] =
-      buildTrafoAdmittanceMatrix(
-        nodeUuidToIndexMap,
-        gridComponents.transformers,
-        _updateAdmittanceMatrix
-      )
-    val trafo3wAdmittanceMatrix: DenseMatrix[Complex] =
-      buildTrafo3wAdmittanceMatrix(
-        nodeUuidToIndexMap,
-        gridComponents.transformers3w,
-        _updateAdmittanceMatrix
-      )
+    /*
+    Nodes that are connected via a [closed] switch map to the same idx as we fuse them during the power flow.
+    Therefore the admittance matrix has to be of the size of the distinct node idxs.
+     */
+    val linesAdmittanceMatrix = buildAssetAdmittanceMatrix(
+      nodeUuidToIndexMap,
+      gridComponents.lines,
+      getLinesAdmittance
+    )
+    val trafoAdmittanceMatrix = buildAssetAdmittanceMatrix(
+      nodeUuidToIndexMap,
+      gridComponents.transformers,
+      getTransformerAdmittance
+    )
+    val trafo3wAdmittanceMatrix = buildAssetAdmittanceMatrix(
+      nodeUuidToIndexMap,
+      gridComponents.transformers3w,
+      getTransformer3wAdmittance
+    )
 
     _returnAdmittanceMatrixIfValid(
       linesAdmittanceMatrix + trafoAdmittanceMatrix + trafo3wAdmittanceMatrix
     )
   }
 
-  private def buildLinesAdmittanceMatrix(
+  private def buildAssetAdmittanceMatrix[C <: SystemComponent](
       nodeUuidToIndexMap: Map[UUID, Int],
-      lines: Set[LineModel],
-      updateAdmittanceMatrix: (
-          Int,
-          Int,
-          Complex,
-          Complex,
-          Complex,
-          DenseMatrix[Complex]
-      ) => DenseMatrix[Complex]
+      assets: Set[C],
+      getAssetAdmittance: (
+          Map[UUID, Int],
+          C
+      ) => (Int, Int, Complex, Complex, Complex)
   ): DenseMatrix[Complex] = {
-    val matrixDimension = nodeUuidToIndexMap.size
-    lines
+    val matrixDimension = nodeUuidToIndexMap.values.toSeq.distinct.size
+
+    assets
       .filter(_.isInOperation)
       .foldLeft(DenseMatrix.zeros[Complex](matrixDimension, matrixDimension))(
-        (linesAdmittanceMatrix, line) => {
-          val (i: Int, j: Int) =
-            (
-              nodeUuidToIndexMap.getOrElse(
-                line.nodeAUuid,
-                throwNodeNotFoundException(line.nodeAUuid)
-              ),
-              nodeUuidToIndexMap
-                .getOrElse(
-                  line.nodeBUuid,
-                  throwNodeNotFoundException(line.nodeBUuid)
-                )
-            )
+        (admittanceMatrix, asset) => {
+          val (i, j, yab, yaa, ybb) =
+            getAssetAdmittance(nodeUuidToIndexMap, asset)
 
-          // yaa == ybb => we use yaa only
-          val (yab, yaa) = (LineModel.yij(line), LineModel.y0(line))
-
-          // add to admittanceMatrix
-          updateAdmittanceMatrix(i, j, yab, yaa, yaa, linesAdmittanceMatrix)
-
+          admittanceMatrix(i, i) += (yab + yaa)
+          admittanceMatrix(j, j) += (yab + ybb)
+          admittanceMatrix(i, j) += (yab * -1)
+          admittanceMatrix(j, i) += (yab * -1)
+          admittanceMatrix
         }
       )
   }
 
-  private def buildTrafoAdmittanceMatrix(
+  private def getLinesAdmittance(
       nodeUuidToIndexMap: Map[UUID, Int],
-      trafos: Set[TransformerModel],
-      updateAdmittanceMatrix: (
-          Int,
-          Int,
-          Complex,
-          Complex,
-          Complex,
-          DenseMatrix[Complex]
-      ) => DenseMatrix[Complex]
-  ): DenseMatrix[Complex] = {
-    val matrixDimension = nodeUuidToIndexMap.size
-    trafos
-      .filter(_.isInOperation)
-      .foldLeft(DenseMatrix.zeros[Complex](matrixDimension, matrixDimension))(
-        (trafoAdmittanceMatrix, trafo) => {
+      line: LineModel
+  ): (Int, Int, Complex, Complex, Complex) = {
 
-          val (i: Int, j: Int) =
-            (
-              nodeUuidToIndexMap.getOrElse(
-                trafo.hvNodeUuid,
-                throwNodeNotFoundException(trafo.hvNodeUuid)
-              ),
-              nodeUuidToIndexMap.getOrElse(
-                trafo.lvNodeUuid,
-                throwNodeNotFoundException(trafo.lvNodeUuid)
-              )
-            )
+    val (i: Int, j: Int) =
+      (
+        nodeUuidToIndexMap.getOrElse(
+          line.nodeAUuid,
+          throwNodeNotFoundException(line.nodeAUuid)
+        ),
+        nodeUuidToIndexMap
+          .getOrElse(
+            line.nodeBUuid,
+            throwNodeNotFoundException(line.nodeBUuid)
+          )
+      )
 
-          val (yab, yaa, ybb) = (
-            TransformerModel.yij(trafo),
-            TransformerModel.y0(trafo, ConnectorPort.A),
-            TransformerModel.y0(trafo, ConnectorPort.B)
+    // yaa == ybb => we use yaa only
+    val (yab, yaa) = (LineModel.yij(line), LineModel.y0(line))
+
+    (i, j, yab, yaa, yaa)
+  }
+
+  private def getTransformerAdmittance(
+      nodeUuidToIndexMap: Map[UUID, Int],
+      trafo: TransformerModel
+  ): (Int, Int, Complex, Complex, Complex) = {
+
+    val (i: Int, j: Int) =
+      (
+        nodeUuidToIndexMap.getOrElse(
+          trafo.hvNodeUuid,
+          throwNodeNotFoundException(trafo.hvNodeUuid)
+        ),
+        nodeUuidToIndexMap.getOrElse(
+          trafo.lvNodeUuid,
+          throwNodeNotFoundException(trafo.lvNodeUuid)
+        )
+      )
+
+    val (yab, yaa, ybb) = (
+      TransformerModel.yij(trafo),
+      TransformerModel.y0(trafo, ConnectorPort.A),
+      TransformerModel.y0(trafo, ConnectorPort.B)
+    )
+
+    (i, j, yab, yaa, ybb)
+  }
+
+  private def getTransformer3wAdmittance(
+      nodeUuidToIndexMap: Map[UUID, Int],
+      trafo3w: Transformer3wModel
+  ): (Int, Int, Complex, Complex, Complex) = {
+
+    // start with power flow case specific parameters
+    val (nodeAUuid: UUID, nodeBUuid: UUID, ybb: Complex) =
+      trafo3w.powerFlowCase match {
+        case PowerFlowCaseA =>
+          (
+            trafo3w.hvNodeUuid,
+            trafo3w.nodeInternalUuid,
+            Transformer3wModel
+              .y0(trafo3w, Transformer3wModel.Transformer3wPort.INTERNAL)
           )
 
-          // add to admittanceMatrix
-          updateAdmittanceMatrix(i, j, yab, yaa, ybb, trafoAdmittanceMatrix)
+        case PowerFlowCaseB =>
+          (trafo3w.nodeInternalUuid, trafo3w.mvNodeUuid, Complex.zero)
 
-        }
-      )
-  }
+        case PowerFlowCaseC =>
+          (trafo3w.nodeInternalUuid, trafo3w.lvNodeUuid, Complex.zero)
+      }
 
-  private def buildTrafo3wAdmittanceMatrix(
-      nodeUuidToIndexMap: Map[UUID, Int],
-      trafos3w: Set[Transformer3wModel],
-      updateAdmittanceMatrix: (
-          Int,
-          Int,
-          Complex,
-          Complex,
-          Complex,
-          DenseMatrix[Complex]
-      ) => DenseMatrix[Complex]
-  ): DenseMatrix[Complex] = {
-    val matrixDimension = nodeUuidToIndexMap.size
-    trafos3w
-      .filter(_.isInOperation)
-      .foldLeft(DenseMatrix.zeros[Complex](matrixDimension, matrixDimension))(
-        (trafo3wAdmittanceMatrix, trafo3w) => {
-
-          // start with power flow case specific parameters
-          val (nodeAUuid: UUID, nodeBUuid: UUID, ybb: Complex) =
-            trafo3w.powerFlowCase match {
-              case PowerFlowCaseA =>
-                (
-                  trafo3w.hvNodeUuid,
-                  trafo3w.nodeInternalUuid,
-                  Transformer3wModel
-                    .y0(trafo3w, Transformer3wModel.Transformer3wPort.INTERNAL)
-                )
-
-              case PowerFlowCaseB =>
-                (trafo3w.nodeInternalUuid, trafo3w.mvNodeUuid, Complex.zero)
-
-              case PowerFlowCaseC =>
-                (trafo3w.nodeInternalUuid, trafo3w.lvNodeUuid, Complex.zero)
-            }
-
-          val (i: Int, j: Int) =
-            (
-              nodeUuidToIndexMap
-                .getOrElse(nodeAUuid, throwNodeNotFoundException(nodeAUuid)),
-              nodeUuidToIndexMap
-                .getOrElse(nodeBUuid, throwNodeNotFoundException(nodeBUuid))
-            )
-
-          // these parameters are the same for all cases
-          val yab: Complex = Transformer3wModel.yij(trafo3w)
-          val yaa: Complex = Complex.zero
-
-          // add to admittanceMatrix
-          updateAdmittanceMatrix(i, j, yab, yaa, ybb, trafo3wAdmittanceMatrix)
-
-        }
+    val (i: Int, j: Int) =
+      (
+        nodeUuidToIndexMap
+          .getOrElse(nodeAUuid, throwNodeNotFoundException(nodeAUuid)),
+        nodeUuidToIndexMap
+          .getOrElse(nodeBUuid, throwNodeNotFoundException(nodeBUuid))
       )
 
+    // these parameters are the same for all cases
+    val yab: Complex = Transformer3wModel.yij(trafo3w)
+    val yaa: Complex = Complex.zero
+
+    (i, j, yab, yaa, ybb)
   }
 
   /** This checks whether the provided grid model graph is connected, that means
@@ -761,6 +722,7 @@ case object GridModel {
     * needed after a switch status has changed.
     *
     * @param gridModel
+    *   the grid model we operate on
     */
   def updateUuidToIndexMap(gridModel: GridModel): Unit = {
 
