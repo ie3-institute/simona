@@ -14,15 +14,12 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.load.LoadReference.{
-  ActivePower,
-  EnergyConsumption
-}
+import edu.ie3.simona.model.participant.load.LoadReference.{ActivePower, EnergyConsumption}
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
+import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
 import edu.ie3.simona.test.common.TestTags.SnailTest
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
@@ -35,7 +32,7 @@ import tech.units.indriya.unit.Units
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Energy, Power}
+import javax.measure.quantity.{Dimensionless, Energy}
 
 class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
   "Testing correct scaling of load models" when {
@@ -103,9 +100,10 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             profileLoadInput.getCosPhiRated,
             profile,
             EnergyConsumption(targetEnergyConsumption)
-          ).asInstanceOf[LoadModel[LoadRelevantData]]
+          )
+          dut.enable()
 
-          calculateAverageEnergy(
+          calculateAverageEnergyFromProfile(
             dut,
             simulationStartDate,
             targetEnergyConsumption
@@ -131,12 +129,13 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           profileLoadInput.getCosPhiRated,
           BdewStandardLoadProfile.H0,
           EnergyConsumption(targetEnergyConsumption)
-        ).asInstanceOf[LoadModel[LoadRelevantData]]
+        )
+        dut.enable()
 
-        calculateAverageEnergy(
+        calculateAverageEnergyFromProfile(
           dut,
           simulationStartDate,
-          expectedEnergy
+          targetEnergyConsumption
         ) should beLessThanWithTolerance(
           Quantities.getQuantity(2d, Units.PERCENT),
           1e-1
@@ -165,9 +164,15 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             profileLoadInput.getCosPhiRated,
             profile,
             ActivePower(targetMaximumPower)
-          ).asInstanceOf[LoadModel[LoadRelevantData]]
-
-          val relevantDatas = getRelevantDatas(dut, simulationStartDate)
+          )
+          dut.enable()
+          val relevantDatas = (0 until 35040)
+            .map(tick =>
+              tick -> ProfileRelevantData(
+                simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
+              )
+            )
+            .toMap
 
           val totalRuns = 10
           (0 until totalRuns).flatMap { _ =>
@@ -207,9 +212,15 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           profileLoadInput.getCosPhiRated,
           BdewStandardLoadProfile.H0,
           ActivePower(targetMaximumPower)
-        ).asInstanceOf[LoadModel[LoadRelevantData]]
-
-        val relevantDatas = getRelevantDatas(dut, simulationStartDate)
+        )
+        dut.enable()
+        val relevantDatas = (0 until 35040)
+          .map(tick =>
+            tick -> ProfileRelevantData(
+              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
+            )
+          )
+          .toMap
 
         val totalRuns = 10
         (0 until totalRuns).flatMap { _ =>
@@ -278,13 +289,11 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           randomLoadInput.getsRated(),
           randomLoadInput.getCosPhiRated,
           EnergyConsumption(targetEnergyConsumption)
-        ).asInstanceOf[LoadModel[LoadRelevantData]]
+        )
+        dut.enable()
 
-        calculateAverageEnergy(
-          dut,
-          simulationStartDate,
-          targetEnergyConsumption
-        ) should beLessThanWithTolerance(
+
+        calculateAverageEnergyFromRandom(dut, simulationStartDate, targetEnergyConsumption) should beLessThanWithTolerance(
           Quantities.getQuantity(1d, Units.PERCENT),
           1e-1
         )
@@ -304,13 +313,10 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           randomLoadInput.getsRated(),
           randomLoadInput.getCosPhiRated,
           EnergyConsumption(targetEnergyConsumption)
-        ).asInstanceOf[LoadModel[LoadRelevantData]]
+        )
+        dut.enable()
 
-        calculateAverageEnergy(
-          dut,
-          simulationStartDate,
-          expectedEnergy
-        ) should beLessThanWithTolerance(
+        calculateAverageEnergyFromRandom(dut, simulationStartDate, targetEnergyConsumption) should beLessThanWithTolerance(
           Quantities.getQuantity(2d, Units.PERCENT),
           1e-1
         )
@@ -327,10 +333,34 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           randomLoadInput.getsRated(),
           randomLoadInput.getCosPhiRated,
           ActivePower(targetMaximumPower)
-        ).asInstanceOf[LoadModel[LoadRelevantData]]
+        )
+        dut.enable()
 
-        val powers =
-          calculateAveragePower(dut, simulationStartDate, targetMaximumPower)
+        val relevantDatas = (0 until 35040)
+          .map(tick =>
+            tick -> RandomLoadModel.RandomRelevantData(
+              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
+            )
+          )
+          .toMap
+
+        val totalRuns = 10
+        val powers = (0 until totalRuns)
+          .flatMap { _ =>
+            relevantDatas
+              .map { case (tick, relevantData) =>
+                dut
+                  .calculatePower(
+                    tick,
+                    Quantities.getQuantity(0d, PowerSystemUnits.PU),
+                    relevantData
+                  )
+                  .p
+              }
+          }
+          .sorted
+          .toArray
+
         val quantile95 = RandomLoadModelSpec.get95Quantile(powers)
 
         getRelativeResult(
@@ -355,10 +385,32 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           randomLoadInput.getsRated(),
           randomLoadInput.getCosPhiRated,
           ActivePower(targetMaximumPower)
-        ).asInstanceOf[LoadModel[LoadRelevantData]]
+        )
+        dut.enable()
+        val relevantDatas = (0 until 35040)
+          .map(tick =>
+            tick -> RandomLoadModel.RandomRelevantData(
+              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
+            )
+          )
+          .toMap
 
-        val powers =
-          calculateAveragePower(dut, simulationStartDate, expectedMaximum)
+        val totalRuns = 10
+        val powers = (0 until totalRuns)
+          .flatMap { _ =>
+            relevantDatas
+              .map { case (tick, relevantData) =>
+                dut
+                  .calculatePower(
+                    tick,
+                    Quantities.getQuantity(1d, PowerSystemUnits.PU),
+                    relevantData
+                  )
+                  .p
+              }
+          }
+          .sorted
+          .toArray
         /* Tolerance is equivalent to 10 W difference between the 95%-percentile of the obtained random results and the
          * target maximum power. Because of the stochastic nature, the maximum power cannot be met perfectly */
         RandomLoadModelSpec.get95Quantile(powers) should equalWithTolerance(
@@ -366,35 +418,6 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           1e-5
         )
       }
-    }
-  }
-
-  def getRelevantDatas[T <: LoadModel[LoadRelevantData]](
-      dut: LoadModel[LoadRelevantData],
-      simulationStartDate: ZonedDateTime
-  ): Map[Int, LoadRelevantData] = {
-
-    if (dut.isInstanceOf[ProfileLoadModel]) {
-      val relevantDatas = (0 until 35040)
-        .map(tick =>
-          tick -> ProfileLoadModel.ProfileRelevantData(
-            simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-          )
-        )
-        .toMap
-    }
-
-    if (dut.isInstanceOf[RandomLoadModel]) {
-      val relevantDatas = (0 until 35040)
-        .map(tick =>
-          tick -> RandomLoadModel.RandomRelevantData(
-            simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-          )
-        )
-        .toMap
-      relevantDatas
-    } else {
-      throw new IllegalArgumentException("Unknown load model type")
     }
   }
 
@@ -420,13 +443,19 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
     result
   }
 
-  def calculateAverageEnergy[T <: LoadModel[ProfileRelevantData]](
-      dut: LoadModel[LoadRelevantData],
+  def calculateAverageEnergyFromProfile[T <: LoadModel[ProfileRelevantData]](
+      dut: T,
       simulationStartDate: ZonedDateTime,
       expectedEnergy: ComparableQuantity[Energy]
   ): ComparableQuantity[Dimensionless] = {
 
-    val relevantDatas = getRelevantDatas(dut, simulationStartDate)
+    val relevantDatas = (0 until 35040)
+      .map(tick =>
+        tick -> ProfileRelevantData(
+          simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
+        )
+      )
+      .toMap
 
     val totalRuns = 10
     val avgEnergy = (0 until totalRuns)
@@ -460,17 +489,23 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
 
   }
 
-  def calculateAveragePower[T <: LoadModel[ProfileRelevantData]](
-      dut: LoadModel[LoadRelevantData],
-      simulationStartDate: ZonedDateTime,
-      targetPower: ComparableQuantity[Power]
-  ): Array[ComparableQuantity[Power]] = {
+  def calculateAverageEnergyFromRandom[T <: LoadModel[RandomRelevantData]](
+    dut: T,
+    simulationStartDate: ZonedDateTime,
+    expectedEnergy: ComparableQuantity[Energy]
+  ): ComparableQuantity[Dimensionless] = {
 
-    val relevantDatas = getRelevantDatas(dut, simulationStartDate)
+    val relevantDatas = (0 until 35040)
+      .map(tick =>
+        tick -> RandomRelevantData(
+          simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
+        )
+      )
+      .toMap
 
     val totalRuns = 10
-    val powers = (0 until totalRuns)
-      .flatMap { _ =>
+    val avgEnergy = (0 until totalRuns)
+      .map { _ =>
         relevantDatas
           .map { case (tick, relevantData) =>
             dut
@@ -480,13 +515,23 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
                 relevantData
               )
               .p
+              .multiply(Quantities.getQuantity(15d, Units.MINUTE))
+              .asType(classOf[Energy])
+              .to(PowerSystemUnits.KILOWATTHOUR)
           }
+          .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
+            _.add(_)
+          )
       }
-      .sorted
-      .toArray
+      .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
+        _.add(_)
+      )
+      .divide(totalRuns)
 
-    powers
+    getRelativeResult(
+      avgEnergy.asInstanceOf[ComparableQuantity[Dimensionless]],
+      expectedEnergy.asInstanceOf[ComparableQuantity[Dimensionless]]
+    )
 
   }
-
 }
