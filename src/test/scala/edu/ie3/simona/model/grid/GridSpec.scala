@@ -15,7 +15,11 @@ import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.model.control.TransformerControlGroup
-import edu.ie3.simona.model.grid.GridModel.{GridComponents, GridControls}
+import edu.ie3.simona.model.grid.GridModel.{
+  EMPTY_GRID_CONTROLS,
+  GridComponents,
+  GridControls
+}
 import edu.ie3.simona.test.common.input.{GridInputTestData, LineInputTestData}
 import edu.ie3.simona.test.common.model.grid.{
   BasicGrid,
@@ -26,7 +30,6 @@ import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import testutils.TestObjectFactory
 
 import scala.jdk.CollectionConverters.SetHasAsJava
-
 import java.util.UUID
 
 class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
@@ -287,7 +290,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           Set.empty[Transformer3wModel],
           switches
         ),
-        Set.empty[ControlGroupModel]
+        EMPTY_GRID_CONTROLS
       )
 
       // get the private method for validation
