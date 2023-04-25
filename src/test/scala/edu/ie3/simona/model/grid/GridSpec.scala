@@ -13,9 +13,17 @@ import breeze.numerics.abs
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.model.control.TransformerControlGroup
-import edu.ie3.simona.model.grid.GridModel.{EMPTY_GRID_CONTROLS, GridComponents, GridControls}
+import edu.ie3.simona.model.grid.GridModel.{
+  EMPTY_GRID_CONTROLS,
+  GridComponents,
+  GridControls
+}
 import edu.ie3.simona.test.common.input.{GridInputTestData, LineInputTestData}
-import edu.ie3.simona.test.common.model.grid.{BasicGrid, BasicGridWithSwitches, FiveLinesWithNodes}
+import edu.ie3.simona.test.common.model.grid.{
+  BasicGrid,
+  BasicGridWithSwitches,
+  FiveLinesWithNodes
+}
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 
 import java.util.UUID
