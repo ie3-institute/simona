@@ -287,7 +287,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           Set.empty[Transformer3wModel],
           switches
         ),
-        GridControls(Set.empty[TransformerControlGroup])
+        Set.empty[ControlGroupModel]
       )
 
       // get the private method for validation

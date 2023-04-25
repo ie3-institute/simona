@@ -9,22 +9,16 @@ package edu.ie3.simona.model.grid
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
-import edu.ie3.datamodel.models.input.{MeasurementUnitInput, NodeInput}
+import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.input.connector._
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.TransformerControlGroup
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.control.{TransformerControlGroup => ControlGroupModel}
 import edu.ie3.simona.model.grid.GridModel.{GridComponents, GridControls}
-import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
-  PowerFlowCaseA,
-  PowerFlowCaseB,
-  PowerFlowCaseC
-}
-import edu.ie3.simona.model.control.{
-  TransformerControlGroup => ControlGroupModel
-}
+import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{PowerFlowCaseA, PowerFlowCaseB, PowerFlowCaseC}
 import edu.ie3.simona.util.CollectionUtils
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.jgrapht.Graph
@@ -103,6 +97,13 @@ case object GridModel {
     */
   final case class GridControls(
       transformerControlGroups: Set[ControlGroupModel]
+  )
+
+  /** Represents an empty Transformer control groups
+    *
+    */
+  val EMPTY_GRID_CONTROLS: GridControls = GridControls(
+    Set.empty[ControlGroupModel]
   )
 
   /** Checks the availability of node calculation models, that are connected by
