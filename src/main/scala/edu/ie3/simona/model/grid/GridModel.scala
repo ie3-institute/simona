@@ -109,6 +109,12 @@ case object GridModel {
       transformerControlGroups: Set[ControlGroupModel]
   )
 
+  /** Represents an empty Transformer control groups
+    */
+  val EMPTY_GRID_CONTROLS: GridControls = GridControls(
+    Set.empty[ControlGroupModel]
+  )
+
   /** Checks the availability of node calculation models, that are connected by
     * the given [[ConnectorInput]]. If not both models can be found,
     * [[InvalidGridException]] s are thrown

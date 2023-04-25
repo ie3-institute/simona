@@ -6,7 +6,11 @@
 
 package edu.ie3.simona.test.common.model.grid
 
-import edu.ie3.simona.model.grid.GridModel.GridComponents
+import edu.ie3.simona.model.grid.GridModel.{
+  EMPTY_GRID_CONTROLS,
+  GridComponents,
+  GridControls
+}
 import edu.ie3.simona.model.grid.{
   GridModel,
   LineModel,
@@ -229,7 +233,8 @@ trait BasicGridWithSwitches extends BasicGrid {
         Set(transformer2wModel),
         Set.empty[Transformer3wModel],
         gridSwitches
-      )
+      ),
+      EMPTY_GRID_CONTROLS
     )
   }
 
