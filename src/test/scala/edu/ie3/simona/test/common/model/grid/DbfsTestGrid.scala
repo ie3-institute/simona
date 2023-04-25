@@ -33,9 +33,22 @@ import scala.jdk.CollectionConverters._
 
 /** Provides the high voltage level of SIMONA's test grid. Only consists of
   * lines, nodes and transformers.
+  *
+  * Schema of the basic grid:
+  * {{{
+  * (A)    (B)
+  *  |      |
+  * trafo  trafo
+  *  |      |
+  * (1)----(2)
+  *  | \   /
+  *  |   \
+  *  | /   \
+  * (3)----(4)
+  * }}}
   */
 trait DbfsTestGrid extends SubGridGateMokka {
-  // 4 HS nodes, 1 slack HöS node
+  // 4 HV nodes, 1 slack EHV node
   protected val node1 = new NodeInput(
     UUID.fromString("78c5d473-e01b-44c4-afd2-e4ff3c4a5d7c"),
     "HS_NET1_Station_1",
@@ -58,7 +71,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     GermanVoltageLevelUtils.HV,
     1
   )
-  protected val node3a = new NodeInput(
+  protected val node3 = new NodeInput(
     UUID.fromString("47ef9983-8fcf-4713-be90-093fc27864ae"),
     "HS_NET1_Station_3",
     OperatorInput.NO_OPERATOR_ASSIGNED,
@@ -69,7 +82,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     GermanVoltageLevelUtils.HV,
     1
   )
-  protected val node3b = new NodeInput(
+  protected val node4 = new NodeInput(
     UUID.fromString("d44ba8ed-81db-4a22-a40d-f7c0d0808a75"),
     "HS_NET1_Station_4",
     OperatorInput.NO_OPERATOR_ASSIGNED,
@@ -112,7 +125,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
    */
 
   // 5 lines between the nodes
-  private val lineType1 = new LineTypeInput(
+  protected val lineType1 = new LineTypeInput(
     UUID.randomUUID(),
     "Freileitung_110kV_1 ",
     Quantities.getQuantity(0.0, SIEMENS_PER_KILOMETRE),
@@ -123,7 +136,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     Quantities.getQuantity(110.0, KILOVOLT)
   )
 
-  private val lineType2 = new LineTypeInput(
+  protected val lineType2 = new LineTypeInput(
     UUID.randomUUID(),
     "Kabel_110kV_1",
     Quantities.getQuantity(0.0, SIEMENS_PER_KILOMETRE),
@@ -134,7 +147,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     Quantities.getQuantity(110.0, KILOVOLT)
   )
 
-  private val lineType3 = new LineTypeInput(
+  protected val lineType3 = new LineTypeInput(
     UUID.randomUUID(),
     "Freileitung_110kV_2",
     Quantities.getQuantity(0, SIEMENS_PER_KILOMETRE),
@@ -145,7 +158,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     Quantities.getQuantity(110.0, KILOVOLT)
   )
 
-  private val lineType4 = new LineTypeInput(
+  protected val lineType4 = new LineTypeInput(
     UUID.randomUUID(),
     "HS_1",
     Quantities.getQuantity(0.000003, SIEMENS_PER_KILOMETRE),
@@ -156,35 +169,35 @@ trait DbfsTestGrid extends SubGridGateMokka {
     Quantities.getQuantity(110.0, KILOVOLT)
   )
 
-  protected val line1 = new LineInput(
+  protected val line3To4 = new LineInput(
     UUID.fromString("b6dff9c3-cebb-4aea-9f12-0556bdbf35dc"),
     "LTG_HS_NET1_Station_3-HS_NET1_Station_4",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
-    node3a,
-    node3b,
+    node3,
+    node4,
     1,
     lineType1,
     Quantities.getQuantity(20, KILOMETRE),
-    GridAndGeoUtils.buildSafeLineStringBetweenNodes(node3a, node3b),
+    GridAndGeoUtils.buildSafeLineStringBetweenNodes(node3, node4),
     OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
   )
 
-  protected val line2 = new LineInput(
+  protected val line2To3 = new LineInput(
     UUID.fromString("c15ec4ad-3ff3-43f0-bc72-ee9a76f53afd"),
     "LTG_HS_NET1_Station_3-HS_NET1_Station_2",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
-    node3a,
+    node3,
     node2,
     1,
     lineType2,
     Quantities.getQuantity(20.0, KILOMETRE),
-    GridAndGeoUtils.buildSafeLineStringBetweenNodes(node3a, node2),
+    GridAndGeoUtils.buildSafeLineStringBetweenNodes(node3, node2),
     OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
   )
 
-  protected val line3 = new LineInput(
+  protected val line1To2 = new LineInput(
     UUID.fromString("8440825c-24c9-4b3d-9e94-a6bfb9643a6b"),
     "LTG_HS_NET1_Station_1-HS_NET1_Station_2",
     OperatorInput.NO_OPERATOR_ASSIGNED,
@@ -198,31 +211,31 @@ trait DbfsTestGrid extends SubGridGateMokka {
     OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
   )
 
-  protected val line4 = new LineInput(
+  protected val line1To3 = new LineInput(
     UUID.fromString("e0ca3891-1757-4dea-ac9d-8f1194da453e"),
     "LTG_HS_NET1_Station_1-HS_NET1_Station_3",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
     node1,
-    node3a,
+    node3,
     1,
     lineType4,
     Quantities.getQuantity(40, KILOMETRE),
-    GridAndGeoUtils.buildSafeLineStringBetweenNodes(node1, node3a),
+    GridAndGeoUtils.buildSafeLineStringBetweenNodes(node1, node3),
     OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
   )
 
-  protected val line5 = new LineInput(
+  protected val line1To4 = new LineInput(
     UUID.fromString("147ae685-4fc7-406c-aca6-afb2bc6e19fc"),
     "LTG_HS_NET1_Station_4-HS_NET1_Station_1",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
-    node3b,
+    node4,
     node1,
     1,
     lineType2,
     Quantities.getQuantity(30, KILOMETRE),
-    GridAndGeoUtils.buildSafeLineStringBetweenNodes(node3b, node1),
+    GridAndGeoUtils.buildSafeLineStringBetweenNodes(node4, node1),
     OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
   )
 
@@ -274,8 +287,8 @@ trait DbfsTestGrid extends SubGridGateMokka {
     // LinkedHashSet in order to preserve the given order.
     // This is important as long as only one slack node between two sub grids can exist
     val nodes =
-      mutable.LinkedHashSet(node1, node2, node3a, node3b, supNodeB, supNodeA)
-    val lines = Set(line1, line2, line3, line4, line5)
+      mutable.LinkedHashSet(node1, node2, node3, node4, supNodeB, supNodeA)
+    val lines = Set(line3To4, line2To3, line1To2, line1To3, line1To4)
     val transformers = Set(transformer1, transformer2)
     val rawGridElements = new RawGridElements(
       nodes.asJava,
@@ -297,7 +310,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
         )
       ) ++ Seq(
         build2wSubGridGate(
-          node3b.getUuid,
+          node4.getUuid,
           1,
           UUID.fromString("1129b00d-3d89-4a4a-8ae1-2a56041b95aa"),
           13
@@ -315,7 +328,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
           11
         ),
         build2wSubGridGate(
-          node3a.getUuid,
+          node3.getUuid,
           1,
           UUID.fromString("9237e237-01e9-446f-899f-c3b5cf69d288"),
           13
