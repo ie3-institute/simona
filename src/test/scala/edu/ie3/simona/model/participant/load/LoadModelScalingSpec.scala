@@ -15,7 +15,10 @@ import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.load.LoadReference.{ActivePower, EnergyConsumption}
+import edu.ie3.simona.model.participant.load.LoadReference.{
+  ActivePower,
+  EnergyConsumption
+}
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
@@ -292,8 +295,11 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
         dut.enable()
 
-
-        calculateAverageEnergyFromRandom(dut, simulationStartDate, targetEnergyConsumption) should beLessThanWithTolerance(
+        calculateAverageEnergyFromRandom(
+          dut,
+          simulationStartDate,
+          targetEnergyConsumption
+        ) should beLessThanWithTolerance(
           Quantities.getQuantity(1d, Units.PERCENT),
           1e-1
         )
@@ -316,7 +322,11 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
         dut.enable()
 
-        calculateAverageEnergyFromRandom(dut, simulationStartDate, targetEnergyConsumption) should beLessThanWithTolerance(
+        calculateAverageEnergyFromRandom(
+          dut,
+          simulationStartDate,
+          targetEnergyConsumption
+        ) should beLessThanWithTolerance(
           Quantities.getQuantity(2d, Units.PERCENT),
           1e-1
         )
@@ -490,9 +500,9 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
   }
 
   def calculateAverageEnergyFromRandom[T <: LoadModel[RandomRelevantData]](
-    dut: T,
-    simulationStartDate: ZonedDateTime,
-    expectedEnergy: ComparableQuantity[Energy]
+      dut: T,
+      simulationStartDate: ZonedDateTime,
+      expectedEnergy: ComparableQuantity[Energy]
   ): ComparableQuantity[Dimensionless] = {
 
     val relevantDatas = (0 until 35040)
