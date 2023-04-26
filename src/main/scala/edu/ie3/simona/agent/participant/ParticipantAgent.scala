@@ -155,7 +155,7 @@ abstract class ParticipantAgent[
 
       /* Remove this tick from the array of foreseen activation ticks */
       val additionalActivationTicks =
-        modelBaseStateData.additionalActivationTicks.filter(_ > currentTick)
+        modelBaseStateData.additionalActivationTicks.rangeFrom(currentTick + 1)
       goto(Calculate) using BaseStateData.updateBaseStateData(
         modelBaseStateData,
         modelBaseStateData.resultValueStore,

@@ -87,17 +87,12 @@ class ResultEventListenerSpec
   def createDir(
       resultFileHierarchy: ResultFileHierarchy
   ): Iterable[Future[ResultEntitySink]] = {
-    val materializer: Materializer = Materializer(system)
-
     val initializeSinks: PrivateMethod[Iterable[Future[ResultEntitySink]]] =
       PrivateMethod[Iterable[Future[ResultEntitySink]]](
         Symbol("initializeSinks")
       )
 
-    ResultEventListener invokePrivate initializeSinks(
-      resultFileHierarchy,
-      materializer
-    )
+    ResultEventListener invokePrivate initializeSinks(resultFileHierarchy)
   }
 
   private def getFileLinesLength(file: File) = {
@@ -555,7 +550,7 @@ class ResultEventListenerSpec
           max = timeoutDuration
         )
 
-        // graceful shutdown should wait until existing messages within an actor are fully processed
+        // stopping the actor should wait until existing messages within an actor are fully processed
         // otherwise it might happen, that the shutdown is triggered even before the just send ParticipantResultEvent
         // reached the listener
         // this also triggers the compression of result files

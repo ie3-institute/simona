@@ -13,14 +13,8 @@ import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.{
-  ParticipantResultEvent,
-  PowerFlowResultEvent
-}
-import edu.ie3.simona.exceptions.{
-  FileHierarchyException,
-  ProcessResultEventException
-}
+import edu.ie3.simona.event.ResultEvent.{ParticipantResultEvent, PowerFlowResultEvent}
+import edu.ie3.simona.exceptions.{FileHierarchyException, InitializationException, ProcessResultEventException}
 import edu.ie3.simona.io.result._
 import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.util.ResultFileHierarchy
@@ -70,8 +64,6 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def initializeSinks(
       resultFileHierarchy: ResultFileHierarchy
-  )(implicit
-      materializer: Materializer
   ): Iterable[Future[(Class[_], ResultEntitySink)]] = {
     resultFileHierarchy.resultSinkType match {
       case _: ResultSinkType.Csv =>
@@ -347,6 +339,10 @@ object ResultEventListener extends Transformer3wResultSupport {
           case (Stop, _) =>
             // there have been no messages for 5 seconds, let's end this
             Behaviors.stopped
+
+          case (Status.Failure(ex), _) =>
+            throw new InitializationException("Unable to setup SimonaSim.", ex)
+
         }
       }
       .receiveSignal { case (ctx, PostStop) =>

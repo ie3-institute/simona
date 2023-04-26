@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 project = u'simona'
-copyright = u'2020. TU Dortmund University, Institute of Energy Systems, Energy Efficiency and Energy Economics, Research group Distribution grid planning and operation '
+copyright = u'2023. TU Dortmund University, Institute of Energy Systems, Energy Efficiency and Energy Economics, Research group Distribution grid planning and operation '
 version = '1.0'
 release = '1.0.0'
 

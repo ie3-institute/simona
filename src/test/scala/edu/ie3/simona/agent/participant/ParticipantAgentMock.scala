@@ -50,6 +50,7 @@ import tech.units.indriya.quantity.Quantities
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Energy, Power}
+import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 import scala.util.{Failure, Success}
 
@@ -178,7 +179,7 @@ class ParticipantAgentMock(
       participant,
       None,
       outputConfig,
-      Array.emptyLongArray,
+      SortedSet.empty,
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
