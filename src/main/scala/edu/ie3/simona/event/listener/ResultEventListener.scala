@@ -8,13 +8,19 @@ package edu.ie3.simona.event.listener
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{Behavior, PostStop}
-import akka.stream.Materializer
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.{ParticipantResultEvent, PowerFlowResultEvent}
-import edu.ie3.simona.exceptions.{FileHierarchyException, InitializationException, ProcessResultEventException}
+import edu.ie3.simona.event.ResultEvent.{
+  ParticipantResultEvent,
+  PowerFlowResultEvent
+}
+import edu.ie3.simona.exceptions.{
+  FileHierarchyException,
+  InitializationException,
+  ProcessResultEventException
+}
 import edu.ie3.simona.io.result._
 import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.util.ResultFileHierarchy
@@ -32,11 +38,12 @@ object ResultEventListener extends Transformer3wResultSupport {
       response: Map[Class[_], ResultEntitySink]
   ) extends ResultEvent
 
+  private final case class Failed(ex: Exception) extends ResultEvent
   private final case object Stop extends ResultEvent
 
   /** Internal [[ResultEventListenerData]]
     */
-  sealed trait ResultEventListenerData extends ResultEvent
+  private sealed trait ResultEventListenerData extends ResultEvent
 
   /** [[ResultEventListener]] base data containing all information the listener
     * needs
@@ -264,7 +271,6 @@ object ResultEventListener extends Transformer3wResultSupport {
 
     Behaviors.setup[ResultEvent] { context: ActorContext[ResultEvent] =>
       this.log = context.log
-      implicit val materializer: Materializer = Materializer(context)
 
       context.log.debug("Starting initialization!")
       resultFileHierarchy.resultSinkType match {
@@ -340,7 +346,7 @@ object ResultEventListener extends Transformer3wResultSupport {
             // there have been no messages for 5 seconds, let's end this
             Behaviors.stopped
 
-          case (Status.Failure(ex), _) =>
+          case (Failed(ex), _) =>
             throw new InitializationException("Unable to setup SimonaSim.", ex)
 
         }

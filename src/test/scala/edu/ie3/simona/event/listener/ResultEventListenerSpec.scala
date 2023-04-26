@@ -10,7 +10,6 @@ import akka.actor.testkit.typed.scaladsl.{
   ActorTestKit,
   ScalaTestWithActorTestKit
 }
-import akka.stream.Materializer
 import akka.testkit.TestKit.awaitCond
 import com.typesafe.config.ConfigValueFactory
 import edu.ie3.datamodel.models.result.connector.{
