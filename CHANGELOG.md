@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Dependabot updates to sphinx/readthedocs dependencies [#448](https://github.com/ie3-institute/simona/issues/448)
 - Check for grid validity with PSDM `ValidationUtils` [#460](https://github.com/ie3-institute/simona/issues/460)
 - Enhancing dev's guide [#363](https://github.com/ie3-institute/simona/issues/363)
+- Support PF calculation with closed switches [#474](https://github.com/ie3-institute/simona/issues/474)
 
 ### Changed
 - Re-organizing test resources into their respective packages [#105](https://github.com/ie3-institute/simona/issues/105)
@@ -96,6 +97,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Allow multiple sub grid gates at one node (also allows multiple two winding transformers at one node)
   - Perform power flow calculation in highest grid, if a three winding transformer is apparent
   - Write out results
+- Fixed broken layout in RTD documentation [#500](https://github.com/ie3-institute/simona/issues/500)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)
