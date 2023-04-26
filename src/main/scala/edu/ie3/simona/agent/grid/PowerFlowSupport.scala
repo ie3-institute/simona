@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
+import akka.event.LoggingAdapter
 import breeze.math.Complex
 import edu.ie3.powerflow.NewtonRaphsonPF
 import edu.ie3.powerflow.model.NodeData.{PresetData, StateData}
@@ -32,7 +33,8 @@ import scala.util.{Failure, Success, Try}
   * [[edu.ie3.powerflow]]
   */
 trait PowerFlowSupport {
-  this: GridAgent =>
+
+  protected val log: LoggingAdapter
 
   /** Composes the current operation point needed by
     * [[edu.ie3.powerflow.NewtonRaphsonPF.calculate()]]
@@ -195,7 +197,7 @@ trait PowerFlowSupport {
     }
 
     (
-      adaptedOperatingPoint.toArray,
+      combineOperatingPoint(adaptedOperatingPoint.toArray),
       WithForcedStartVoltages(Array(slackNodeData))
     )
   }
@@ -273,10 +275,99 @@ trait PowerFlowSupport {
     }.unzip match {
       case (operatingPoint, stateData) =>
         (
-          operatingPoint.toArray,
+          combineOperatingPoint(operatingPoint.toArray),
           WithForcedStartVoltages(stateData.flatten.toArray)
         )
     }
+
+  /** When nodes are connected via a closed switch, they map to the same node
+    * idx, as they get fused in the power flow calculation. In this case we need
+    * to combine the operating point of these two nodes.
+    *
+    * @param operatingPoint
+    *   the operating point of all nodes
+    * @return
+    *   the combined operating point
+    */
+  private def combineOperatingPoint(
+      operatingPoint: Array[PresetData]
+  ): Array[PresetData] = {
+    operatingPoint
+      .groupBy(_.index)
+      .view
+      .mapValues(
+        _.reduceOption(combinePresetData)
+          .getOrElse(
+            throw new IllegalArgumentException(
+              "There are no operation points to combine."
+            )
+          )
+      )
+      .values
+      .toArray
+      .sortBy(_.index)
+  }
+
+  /** Combines two [[PresetData]] instances to one. This is only possible if
+    * they map to the same node index and have the same node type.
+    *
+    * @param a
+    *   first instance
+    * @param b
+    *   second instance
+    * @return
+    *   combined instance
+    */
+  private def combinePresetData(a: PresetData, b: PresetData): PresetData = {
+    require(
+      a.index == b.index,
+      "Preset Data should only be combined when they map to the same index."
+    )
+    require(
+      a.nodeType == b.nodeType,
+      "Preset Data combination is only supported for the same node types for now."
+    )
+    require(
+      math.abs(a.targetVoltage - b.targetVoltage) < 1e-6,
+      "Nodes to be combined have to be located in the same voltage level."
+    )
+
+    val index = a.index
+    val nodeType = a.nodeType
+    val power = a.power + b.power
+    val targetVoltage = a.targetVoltage
+
+    def combineOptionals(
+        a: Option[Double],
+        b: Option[Double],
+        f: (Double, Double) => Double
+    ): Option[Double] = (a, b) match {
+      case (Some(a), Some(b)) => Some(f(a, b))
+      case (Some(a), None)    => Some(a)
+      case (None, Some(b))    => Some(b)
+      case (None, None)       => None
+    }
+
+    val activePowerMin =
+      combineOptionals(a.activePowerMin, b.activePowerMin, math.max)
+    val activePowerMax =
+      combineOptionals(a.activePowerMax, b.activePowerMax, math.min)
+    val reactivePowerMin =
+      combineOptionals(a.reactivePowerMin, b.reactivePowerMin, math.max)
+    val reactivePowerMax =
+      combineOptionals(a.reactivePowerMax, b.reactivePowerMax, math.min)
+
+    PresetData(
+      index,
+      nodeType,
+      power,
+      targetVoltage,
+      activePowerMin,
+      activePowerMax,
+      reactivePowerMin,
+      reactivePowerMax
+    )
+  }
 
   /** A debug method that composes a string with voltage information (in p.u.)
     * from a [[ValidNewtonRaphsonPFResult]]
