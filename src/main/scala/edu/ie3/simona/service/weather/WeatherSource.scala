@@ -116,7 +116,7 @@ trait WeatherSource {
 
     /* Go and get the nearest coordinates, that are known to the weather source */
     val nearestCoords = idCoordinateSource
-      .getNearestCoordinates(queryPoint, amountOfInterpolationCoords, distance)
+      .getClosestCoordinates(queryPoint, amountOfInterpolationCoords, distance)
       .asScala
 
     nearestCoords.find(coordinateDistance =>

@@ -133,10 +133,25 @@ object SampleWeatherSource {
     override def getAllCoordinates: util.Collection[Point] =
       Collections.singletonList(NodeInput.DEFAULT_GEO_POSITION)
 
-    override def getNearestCoordinates(
+    override def getClosestCoordinates(
         coordinate: Point,
         n: Int,
         distance: ComparableQuantity[Length]
+    ): util.List[CoordinateDistance] = {
+      if (coordinate.getY.abs <= 90 && coordinate.getX.abs <= 180)
+        Vector(
+          new CoordinateDistance(
+            coordinate,
+            coordinate
+          )
+        ).asJava
+      else
+        Vector.empty[CoordinateDistance].asJava
+    }
+
+    override def getNearestCoordinates(
+        coordinate: Point,
+        i: Int
     ): util.List[CoordinateDistance] = {
       if (coordinate.getY.abs <= 90 && coordinate.getX.abs <= 180)
         Vector(

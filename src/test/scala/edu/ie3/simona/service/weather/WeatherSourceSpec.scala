@@ -384,7 +384,7 @@ case object WeatherSourceSpec {
     override def getAllCoordinates: util.Collection[Point] =
       idToCoordinate.values.toVector.asJava
 
-    def getNearestCoordinates(
+    def getClosestCoordinates(
         coordinate: Point,
         n: Int,
         distance: ComparableQuantity[Length]
@@ -410,7 +410,39 @@ case object WeatherSourceSpec {
         }
       }
 
-      getNearestCoordinates(coordinate, n, reducedPoints.asJava)
+      calculateCoordinateDistances(coordinate, n, reducedPoints.asJava)
+    }
+
+    override def getNearestCoordinates(
+        coordinate: Point,
+        n: Int
+    ): util.List[CoordinateDistance] = {
+      val points: util.Collection[Point] =
+        if (idToCoordinate.size < n) {
+          val foundPoints: util.ArrayList[Point] = new util.ArrayList()
+          var distance: ComparableQuantity[Length] =
+            Quantities.getQuantity(10000, Units.METRE)
+
+          while (foundPoints.size() < n) {
+            foundPoints.clear()
+            distance = distance.multiply(2)
+
+            val envelope: Envelope =
+              GeoUtils.calculateBoundingBox(coordinate, distance)
+
+            coordinateToId.keySet.foreach { point =>
+              if (envelope.contains(point.getCoordinate)) {
+                foundPoints.add(point)
+              }
+            }
+          }
+
+          foundPoints
+        } else {
+          coordinateToId.keySet.asJava
+        }
+
+      calculateCoordinateDistances(coordinate, n, points)
     }
   }
 }
