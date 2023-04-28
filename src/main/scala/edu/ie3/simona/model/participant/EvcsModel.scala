@@ -202,7 +202,7 @@ final case class EvcsModel(
 
       val chargeLeftToFull = KilowattHours(
         evModel.getEStorage.getValue.doubleValue()
-      ) - (KilowattHours(evModel.getStoredEnergy.getValue.doubleValue()))
+      ) - KilowattHours(evModel.getStoredEnergy.getValue.doubleValue())
 
       val potentialChargeDuringTick = chargingPower * duration
 
