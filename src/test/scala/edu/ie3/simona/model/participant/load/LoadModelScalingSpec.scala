@@ -169,27 +169,10 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             ActivePower(targetMaximumPower)
           )
           dut.enable()
-          val relevantDatas = (0 until 35040)
-            .map(tick =>
-              tick -> ProfileRelevantData(
-                simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-              )
-            )
-            .toMap
-
-          val totalRuns = 10
-          (0 until totalRuns).flatMap { _ =>
-            relevantDatas
-              .map { case (tick, relevantData) =>
-                dut
-                  .calculatePower(
-                    tick,
-                    Quantities.getQuantity(0d, PowerSystemUnits.PU),
-                    relevantData
-                  )
-                  .p
-              }
-          }.maxOption match {
+          getPowerFromRelevantDataProfile(
+            simulationStartDate,
+            dut
+          ).maxOption match {
             case Some(maximumPower) =>
               maximumPower should equalWithTolerance(
                 targetMaximumPower.to(PowerSystemUnits.MEGAWATT),
@@ -217,27 +200,11 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           ActivePower(targetMaximumPower)
         )
         dut.enable()
-        val relevantDatas = (0 until 35040)
-          .map(tick =>
-            tick -> ProfileRelevantData(
-              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-            )
-          )
-          .toMap
 
-        val totalRuns = 10
-        (0 until totalRuns).flatMap { _ =>
-          relevantDatas
-            .map { case (tick, relevantData) =>
-              dut
-                .calculatePower(
-                  tick,
-                  Quantities.getQuantity(0d, PowerSystemUnits.PU),
-                  relevantData
-                )
-                .p
-            }
-        }.maxOption match {
+        getPowerFromRelevantDataProfile(
+          simulationStartDate,
+          dut
+        ).maxOption match {
           case Some(maximumPower) =>
             maximumPower should equalWithTolerance(
               expectedMaximum.to(PowerSystemUnits.MEGAWATT),
@@ -389,6 +356,35 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
       }
     }
+  }
+
+  def getPowerFromRelevantDataProfile[T <: LoadModel[ProfileRelevantData]](
+      simulationStartDate: ZonedDateTime,
+      dut: T
+  ): IndexedSeq[ComparableQuantity[Power]] = {
+    val relevantDatas = (0 until 35040)
+      .map(tick =>
+        tick -> ProfileRelevantData(
+          simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
+        )
+      )
+      .toMap
+
+    val totalRuns = 10
+    val powers =
+      (0 until totalRuns).flatMap { _ =>
+        relevantDatas
+          .map { case (tick, relevantData) =>
+            dut
+              .calculatePower(
+                tick,
+                Quantities.getQuantity(0d, PowerSystemUnits.PU),
+                relevantData
+              )
+              .p
+          }
+      }
+    powers
   }
   def getPowerFromRelevantDataRandom[T <: LoadModel[RandomRelevantData]](
       simulationStartDate: ZonedDateTime,
