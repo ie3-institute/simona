@@ -433,7 +433,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           Units.PERCENT
         )
       )
-    result
+    Quantities.getQuantity(abs(result.getValue.doubleValue()), Units.PERCENT)
   }
 
   def calculateAverageEnergyFromProfile[T <: LoadModel[ProfileRelevantData]](
