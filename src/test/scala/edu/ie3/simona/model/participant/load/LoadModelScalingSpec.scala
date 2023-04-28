@@ -35,7 +35,7 @@ import tech.units.indriya.unit.Units
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Energy}
+import javax.measure.quantity.{Dimensionless, Energy, Power}
 
 class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
   "Testing correct scaling of load models" when {
@@ -138,7 +138,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         calculateAverageEnergyFromProfile(
           dut,
           simulationStartDate,
-          targetEnergyConsumption
+          expectedEnergy
         ) should beLessThanWithTolerance(
           Quantities.getQuantity(2d, Units.PERCENT),
           1e-1
@@ -325,7 +325,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         calculateAverageEnergyFromRandom(
           dut,
           simulationStartDate,
-          targetEnergyConsumption
+          expectedEnergy
         ) should beLessThanWithTolerance(
           Quantities.getQuantity(2d, Units.PERCENT),
           1e-1
@@ -346,28 +346,10 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
         dut.enable()
 
-        val relevantDatas = (0 until 35040)
-          .map(tick =>
-            tick -> RandomLoadModel.RandomRelevantData(
-              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-            )
-          )
-          .toMap
-
-        val totalRuns = 10
-        val powers = (0 until totalRuns)
-          .flatMap { _ =>
-            relevantDatas
-              .map { case (tick, relevantData) =>
-                dut
-                  .calculatePower(
-                    tick,
-                    Quantities.getQuantity(0d, PowerSystemUnits.PU),
-                    relevantData
-                  )
-                  .p
-              }
-          }
+        val powers = getPowerFromRelevantDataRandom(
+          simulationStartDate,
+          dut
+        )
           .sorted
           .toArray
 
@@ -397,30 +379,10 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           ActivePower(targetMaximumPower)
         )
         dut.enable()
-        val relevantDatas = (0 until 35040)
-          .map(tick =>
-            tick -> RandomLoadModel.RandomRelevantData(
-              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-            )
-          )
-          .toMap
-
-        val totalRuns = 10
-        val powers = (0 until totalRuns)
-          .flatMap { _ =>
-            relevantDatas
-              .map { case (tick, relevantData) =>
-                dut
-                  .calculatePower(
-                    tick,
-                    Quantities.getQuantity(1d, PowerSystemUnits.PU),
-                    relevantData
-                  )
-                  .p
-              }
-          }
-          .sorted
-          .toArray
+        val powers = getPowerFromRelevantDataRandom(
+          simulationStartDate,
+          dut
+        ).sorted.toArray
         /* Tolerance is equivalent to 10 W difference between the 95%-percentile of the obtained random results and the
          * target maximum power. Because of the stochastic nature, the maximum power cannot be met perfectly */
         RandomLoadModelSpec.get95Quantile(powers) should equalWithTolerance(
@@ -430,7 +392,34 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
       }
     }
   }
+  def getPowerFromRelevantDataRandom[T <: LoadModel[RandomRelevantData]](
+      simulationStartDate: ZonedDateTime,
+      dut: T
+  ): IndexedSeq[ComparableQuantity[Power]] = {
+    val relevantDatas = (0 until 35040)
+      .map(tick =>
+        tick -> RandomLoadModel.RandomRelevantData(
+          simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
+        )
+      )
+      .toMap
 
+    val totalRuns = 10
+    val powers = (0 until totalRuns)
+      .flatMap { _ =>
+        relevantDatas
+          .map { case (tick, relevantData) =>
+            dut
+              .calculatePower(
+                tick,
+                Quantities.getQuantity(1d, PowerSystemUnits.PU),
+                relevantData
+              )
+              .p
+          }
+      }
+    powers
+  }
   def getRelativeResult(
       avgResult: ComparableQuantity[Dimensionless],
       expectedResult: ComparableQuantity[Dimensionless]
