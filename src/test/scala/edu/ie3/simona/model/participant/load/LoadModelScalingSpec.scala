@@ -349,9 +349,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         val powers = getPowerFromRelevantDataRandom(
           simulationStartDate,
           dut
-        )
-          .sorted
-          .toArray
+        ).sorted.toArray
 
         val quantile95 = RandomLoadModelSpec.get95Quantile(powers)
 
