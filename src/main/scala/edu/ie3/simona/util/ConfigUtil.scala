@@ -291,10 +291,10 @@ object ConfigUtil {
     ): Unit = params match {
       case BaseSqlParams(
             jdbcUrl: java.lang.String,
+            userName: java.lang.String,
             password: java.lang.String,
             schemaName: java.lang.String,
-            tableName: java.lang.String,
-            userName: java.lang.String
+            tableName: java.lang.String
           ) =>
         if (!jdbcUrl.trim.startsWith("jdbc:")) {
           throw new InvalidConfigParameterException(

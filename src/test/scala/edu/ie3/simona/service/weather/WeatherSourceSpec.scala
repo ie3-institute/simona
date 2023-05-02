@@ -394,16 +394,8 @@ case object WeatherSourceSpec {
       val envelope: Envelope =
         GeoUtils.calculateBoundingBox(coordinate, distance)
 
-      val xMin: Double = envelope.getMinX
-      val xMax: Double = envelope.getMaxX
-      val yMin: Double = envelope.getMinY
-      val yMax: Double = envelope.getMaxY
-
       val reducedPoints: Set[Point] = points.flatMap { point =>
-        val x: Double = point.getX
-        val y: Double = point.getY
-
-        if (xMin <= x && x <= xMax && yMin <= y && y <= yMax) {
+        if (envelope.contains(point.getCoordinate)) {
           Some(point)
         } else {
           None

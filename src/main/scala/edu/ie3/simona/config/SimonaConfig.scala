@@ -1,5 +1,5 @@
 /*
- * © 2022. TU Dortmund University,
+ * © 2023. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
@@ -123,11 +123,11 @@ object SimonaConfig {
 
   final case class BaseSqlParams(
       override val jdbcUrl: java.lang.String,
+      override val userName: java.lang.String,
       override val password: java.lang.String,
       override val schemaName: java.lang.String,
-      override val tableName: java.lang.String,
-      override val userName: java.lang.String
-  ) extends SqlParams(jdbcUrl, password, schemaName, tableName, userName)
+      tableName: java.lang.String
+  ) extends SqlParams(jdbcUrl, userName, password, schemaName)
   object BaseSqlParams {
     def apply(
         c: com.typesafe.config.Config,
@@ -135,12 +135,12 @@ object SimonaConfig {
         $tsCfgValidator: $TsCfgValidator
     ): SimonaConfig.BaseSqlParams = {
       SimonaConfig.BaseSqlParams(
+        tableName = $_reqStr(parentPath, c, "tableName", $tsCfgValidator),
         jdbcUrl = $_reqStr(parentPath, c, "jdbcUrl", $tsCfgValidator),
         password = $_reqStr(parentPath, c, "password", $tsCfgValidator),
         schemaName =
           if (c.hasPathOrNull("schemaName")) c.getString("schemaName")
           else "public",
-        tableName = $_reqStr(parentPath, c, "tableName", $tsCfgValidator),
         userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
       )
     }
@@ -477,12 +477,11 @@ object SimonaConfig {
 
   final case class PrimaryDataSqlParams(
       override val jdbcUrl: java.lang.String,
+      override val userName: java.lang.String,
       override val password: java.lang.String,
       override val schemaName: java.lang.String,
-      override val tableName: java.lang.String,
-      override val userName: java.lang.String,
       timePattern: java.lang.String
-  ) extends SqlParams(jdbcUrl, password, schemaName, tableName, userName)
+  ) extends SqlParams(jdbcUrl, userName, password, schemaName)
   object PrimaryDataSqlParams {
     def apply(
         c: com.typesafe.config.Config,
@@ -498,7 +497,6 @@ object SimonaConfig {
         schemaName =
           if (c.hasPathOrNull("schemaName")) c.getString("schemaName")
           else "public",
-        tableName = $_reqStr(parentPath, c, "tableName", $tsCfgValidator),
         userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
       )
     }
@@ -763,10 +761,9 @@ object SimonaConfig {
 
   sealed abstract class SqlParams(
       val jdbcUrl: java.lang.String,
+      val userName: java.lang.String,
       val password: java.lang.String,
-      val schemaName: java.lang.String,
-      val tableName: java.lang.String,
-      val userName: java.lang.String
+      val schemaName: java.lang.String
   )
 
   final case class VoltLvlConfig(

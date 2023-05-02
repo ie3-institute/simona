@@ -28,6 +28,7 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.GeoUtils
 import edu.ie3.util.interval.ClosedInterval
 import org.locationtech.jts.geom.Point
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -35,6 +36,7 @@ import java.time.{ZoneId, ZonedDateTime}
 import java.util
 import java.util.{Optional, UUID}
 import javax.measure.Quantity.Scale
+import javax.measure.quantity.Length
 import scala.jdk.CollectionConverters.{MapHasAsJava, SetHasAsJava}
 
 class WeatherSourceWrapperSpec extends UnitSpec {
@@ -44,6 +46,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       classOf[PsdmWeatherSource],
       classOf[IdCoordinateSource],
       classOf[Long],
+      classOf[ComparableQuantity[Length]],
       classOf[ZonedDateTime]
     )
     actor.setAccessible(true)
@@ -51,6 +54,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       WeatherSourceWrapperSpec.DummyPsdmWeatherSource,
       DummyIdCoordinateSource,
       360L,
+      Quantities.getQuantity(10000, Units.METRE),
       ZonedDateTime.now()
     )
     val date = ZonedDateTime.of(2021, 1, 15, 18, 0, 0, 0, ZoneId.of("UTC"))

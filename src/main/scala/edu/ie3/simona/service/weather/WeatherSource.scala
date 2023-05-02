@@ -475,10 +475,10 @@ object WeatherSource {
             Some(
               baseSqlParams @ BaseSqlParams(
                 jdbcUrl,
+                userName,
                 password,
                 schemaName,
-                tableName,
-                userName
+                tableName
               )
             )
           ) =>
