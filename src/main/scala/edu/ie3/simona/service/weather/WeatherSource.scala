@@ -21,7 +21,7 @@ import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
-import edu.ie3.simona.config.SimonaConfig.{BaseCsvParams, BaseSqlParams}
+import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.exceptions.{
   InvalidConfigParameterException,
   ServiceException
@@ -388,7 +388,7 @@ object WeatherSource {
               resolution,
               distance
             )(simulationStart)
-        case Some(Some(params: BaseSqlParams)) =>
+        case Some(Some(params: SqlParams)) =>
           checkSqlParams(params)
           (simulationStart: ZonedDateTime) =>
             WeatherSourceWrapper(
@@ -473,7 +473,7 @@ object WeatherSource {
           )
       case Some(
             Some(
-              baseSqlParams @ BaseSqlParams(
+              sqlParams @ SqlParams(
                 jdbcUrl,
                 userName,
                 password,
@@ -482,7 +482,7 @@ object WeatherSource {
               )
             )
           ) =>
-        checkSqlParams(baseSqlParams)
+        checkSqlParams(sqlParams)
 
         () =>
           new SqlIdCoordinateSource(

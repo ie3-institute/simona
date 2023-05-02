@@ -121,47 +121,6 @@ object SimonaConfig {
       val uuids: scala.List[java.lang.String]
   ) extends java.io.Serializable
 
-  final case class BaseSqlParams(
-      override val jdbcUrl: java.lang.String,
-      override val userName: java.lang.String,
-      override val password: java.lang.String,
-      override val schemaName: java.lang.String,
-      tableName: java.lang.String
-  ) extends SqlParams(jdbcUrl, userName, password, schemaName)
-  object BaseSqlParams {
-    def apply(
-        c: com.typesafe.config.Config,
-        parentPath: java.lang.String,
-        $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.BaseSqlParams = {
-      SimonaConfig.BaseSqlParams(
-        tableName = $_reqStr(parentPath, c, "tableName", $tsCfgValidator),
-        jdbcUrl = $_reqStr(parentPath, c, "jdbcUrl", $tsCfgValidator),
-        password = $_reqStr(parentPath, c, "password", $tsCfgValidator),
-        schemaName =
-          if (c.hasPathOrNull("schemaName")) c.getString("schemaName")
-          else "public",
-        userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
-      )
-    }
-    private def $_reqStr(
-        parentPath: java.lang.String,
-        c: com.typesafe.config.Config,
-        path: java.lang.String,
-        $tsCfgValidator: $TsCfgValidator
-    ): java.lang.String = {
-      if (c == null) null
-      else
-        try c.getString(path)
-        catch {
-          case e: com.typesafe.config.ConfigException =>
-            $tsCfgValidator.addBadPath(parentPath + path, e)
-            null
-        }
-    }
-
-  }
-
   sealed abstract class CsvParams(
       val csvSep: java.lang.String,
       val directoryPath: java.lang.String,
@@ -475,49 +434,6 @@ object SimonaConfig {
 
   }
 
-  final case class PrimaryDataSqlParams(
-      override val jdbcUrl: java.lang.String,
-      override val userName: java.lang.String,
-      override val password: java.lang.String,
-      override val schemaName: java.lang.String,
-      timePattern: java.lang.String
-  ) extends SqlParams(jdbcUrl, userName, password, schemaName)
-  object PrimaryDataSqlParams {
-    def apply(
-        c: com.typesafe.config.Config,
-        parentPath: java.lang.String,
-        $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.PrimaryDataSqlParams = {
-      SimonaConfig.PrimaryDataSqlParams(
-        timePattern =
-          if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
-          else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
-        jdbcUrl = $_reqStr(parentPath, c, "jdbcUrl", $tsCfgValidator),
-        password = $_reqStr(parentPath, c, "password", $tsCfgValidator),
-        schemaName =
-          if (c.hasPathOrNull("schemaName")) c.getString("schemaName")
-          else "public",
-        userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
-      )
-    }
-    private def $_reqStr(
-        parentPath: java.lang.String,
-        c: com.typesafe.config.Config,
-        path: java.lang.String,
-        $tsCfgValidator: $TsCfgValidator
-    ): java.lang.String = {
-      if (c == null) null
-      else
-        try c.getString(path)
-        catch {
-          case e: com.typesafe.config.ConfigException =>
-            $tsCfgValidator.addBadPath(parentPath + path, e)
-            null
-        }
-    }
-
-  }
-
   final case class PvRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: scala.Boolean,
       override val scaling: scala.Double,
@@ -758,13 +674,6 @@ object SimonaConfig {
     }
 
   }
-
-  sealed abstract class SqlParams(
-      val jdbcUrl: java.lang.String,
-      val userName: java.lang.String,
-      val password: java.lang.String,
-      val schemaName: java.lang.String
-  )
 
   final case class VoltLvlConfig(
       id: java.lang.String,
@@ -1067,7 +976,7 @@ object SimonaConfig {
           influxDb1xParams: scala.Option[
             SimonaConfig.Simona.Input.Primary.InfluxDb1xParams
           ],
-          sqlParams: scala.Option[SimonaConfig.PrimaryDataSqlParams]
+          sqlParams: scala.Option[SimonaConfig.Simona.Input.Primary.SqlParams]
       )
       object Primary {
         final case class CouchbaseParams(
@@ -1176,6 +1085,49 @@ object SimonaConfig {
 
         }
 
+        final case class SqlParams(
+            jdbcUrl: java.lang.String,
+            password: java.lang.String,
+            schemaName: java.lang.String,
+            timePattern: java.lang.String,
+            userName: java.lang.String
+        )
+        object SqlParams {
+          def apply(
+              c: com.typesafe.config.Config,
+              parentPath: java.lang.String,
+              $tsCfgValidator: $TsCfgValidator
+          ): SimonaConfig.Simona.Input.Primary.SqlParams = {
+            SimonaConfig.Simona.Input.Primary.SqlParams(
+              jdbcUrl = $_reqStr(parentPath, c, "jdbcUrl", $tsCfgValidator),
+              password = $_reqStr(parentPath, c, "password", $tsCfgValidator),
+              schemaName =
+                if (c.hasPathOrNull("schemaName")) c.getString("schemaName")
+                else "public",
+              timePattern =
+                if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
+                else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
+              userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
+            )
+          }
+          private def $_reqStr(
+              parentPath: java.lang.String,
+              c: com.typesafe.config.Config,
+              path: java.lang.String,
+              $tsCfgValidator: $TsCfgValidator
+          ): java.lang.String = {
+            if (c == null) null
+            else
+              try c.getString(path)
+              catch {
+                case e: com.typesafe.config.ConfigException =>
+                  $tsCfgValidator.addBadPath(parentPath + path, e)
+                  null
+              }
+          }
+
+        }
+
         def apply(
             c: com.typesafe.config.Config,
             parentPath: java.lang.String,
@@ -1215,7 +1167,7 @@ object SimonaConfig {
             sqlParams =
               if (c.hasPathOrNull("sqlParams"))
                 scala.Some(
-                  SimonaConfig.PrimaryDataSqlParams(
+                  SimonaConfig.Simona.Input.Primary.SqlParams(
                     c.getConfig("sqlParams"),
                     parentPath + "sqlParams.",
                     $tsCfgValidator
@@ -1245,7 +1197,9 @@ object SimonaConfig {
               SimonaConfig.Simona.Input.Weather.Datasource.SampleParams
             ],
             scheme: java.lang.String,
-            sqlParams: scala.Option[SimonaConfig.BaseSqlParams],
+            sqlParams: scala.Option[
+              SimonaConfig.Simona.Input.Weather.Datasource.SqlParams
+            ],
             timestampPattern: scala.Option[java.lang.String]
         )
         object Datasource {
@@ -1255,7 +1209,9 @@ object SimonaConfig {
               sampleParams: scala.Option[
                 SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams
               ],
-              sqlParams: scala.Option[SimonaConfig.BaseSqlParams]
+              sqlParams: scala.Option[
+                SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SqlParams
+              ]
           )
           object CoordinateSource {
             final case class SampleParams(
@@ -1272,6 +1228,53 @@ object SimonaConfig {
                     use = !c.hasPathOrNull("use") || c.getBoolean("use")
                   )
               }
+            }
+
+            final case class SqlParams(
+                jdbcUrl: java.lang.String,
+                password: java.lang.String,
+                schemaName: java.lang.String,
+                tableName: java.lang.String,
+                userName: java.lang.String
+            )
+            object SqlParams {
+              def apply(
+                  c: com.typesafe.config.Config,
+                  parentPath: java.lang.String,
+                  $tsCfgValidator: $TsCfgValidator
+              ): SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SqlParams = {
+                SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
+                  .SqlParams(
+                    jdbcUrl =
+                      $_reqStr(parentPath, c, "jdbcUrl", $tsCfgValidator),
+                    password =
+                      $_reqStr(parentPath, c, "password", $tsCfgValidator),
+                    schemaName =
+                      if (c.hasPathOrNull("schemaName"))
+                        c.getString("schemaName")
+                      else "public",
+                    tableName =
+                      $_reqStr(parentPath, c, "tableName", $tsCfgValidator),
+                    userName =
+                      $_reqStr(parentPath, c, "userName", $tsCfgValidator)
+                  )
+              }
+              private def $_reqStr(
+                  parentPath: java.lang.String,
+                  c: com.typesafe.config.Config,
+                  path: java.lang.String,
+                  $tsCfgValidator: $TsCfgValidator
+              ): java.lang.String = {
+                if (c == null) null
+                else
+                  try c.getString(path)
+                  catch {
+                    case e: com.typesafe.config.ConfigException =>
+                      $tsCfgValidator.addBadPath(parentPath + path, e)
+                      null
+                  }
+              }
+
             }
 
             def apply(
@@ -1307,11 +1310,12 @@ object SimonaConfig {
                 sqlParams =
                   if (c.hasPathOrNull("sqlParams"))
                     scala.Some(
-                      SimonaConfig.BaseSqlParams(
-                        c.getConfig("sqlParams"),
-                        parentPath + "sqlParams.",
-                        $tsCfgValidator
-                      )
+                      SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
+                        .SqlParams(
+                          c.getConfig("sqlParams"),
+                          parentPath + "sqlParams.",
+                          $tsCfgValidator
+                        )
                     )
                   else None
               )
@@ -1432,6 +1436,48 @@ object SimonaConfig {
             }
           }
 
+          final case class SqlParams(
+              jdbcUrl: java.lang.String,
+              userName: java.lang.String,
+              password: java.lang.String,
+              schemaName: java.lang.String,
+              tableName: java.lang.String
+          )
+          object SqlParams {
+            def apply(
+                c: com.typesafe.config.Config,
+                parentPath: java.lang.String,
+                $tsCfgValidator: $TsCfgValidator
+            ): SimonaConfig.Simona.Input.Weather.Datasource.SqlParams = {
+              SimonaConfig.Simona.Input.Weather.Datasource.SqlParams(
+                jdbcUrl = $_reqStr(parentPath, c, "jdbcUrl", $tsCfgValidator),
+                password = $_reqStr(parentPath, c, "password", $tsCfgValidator),
+                schemaName =
+                  if (c.hasPathOrNull("schemaName")) c.getString("schemaName")
+                  else "public",
+                tableName =
+                  $_reqStr(parentPath, c, "tableName", $tsCfgValidator),
+                userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
+              )
+            }
+            private def $_reqStr(
+                parentPath: java.lang.String,
+                c: com.typesafe.config.Config,
+                path: java.lang.String,
+                $tsCfgValidator: $TsCfgValidator
+            ): java.lang.String = {
+              if (c == null) null
+              else
+                try c.getString(path)
+                catch {
+                  case e: com.typesafe.config.ConfigException =>
+                    $tsCfgValidator.addBadPath(parentPath + path, e)
+                    null
+                }
+            }
+
+          }
+
           def apply(
               c: com.typesafe.config.Config,
               parentPath: java.lang.String,
@@ -1503,7 +1549,7 @@ object SimonaConfig {
               sqlParams =
                 if (c.hasPathOrNull("sqlParams"))
                   scala.Some(
-                    SimonaConfig.BaseSqlParams(
+                    SimonaConfig.Simona.Input.Weather.Datasource.SqlParams(
                       c.getConfig("sqlParams"),
                       parentPath + "sqlParams.",
                       $tsCfgValidator

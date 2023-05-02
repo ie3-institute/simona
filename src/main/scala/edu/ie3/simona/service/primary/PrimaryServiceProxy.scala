@@ -31,10 +31,8 @@ import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
   Primary => PrimaryConfig
 }
-import edu.ie3.simona.config.SimonaConfig.{
-  PrimaryDataCsvParams,
-  PrimaryDataSqlParams
-}
+import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.exceptions.{
   InitializationException,
   InvalidConfigParameterException
@@ -207,7 +205,7 @@ case class PrimaryServiceProxy(
             fileNamingStrategy
           )
         )
-      case Some(sqlParams: PrimaryDataSqlParams) =>
+      case Some(sqlParams: SqlParams) =>
         val sqlConnector = new SqlConnector(
           sqlParams.jdbcUrl,
           sqlParams.userName,
@@ -446,7 +444,7 @@ case class PrimaryServiceProxy(
             None,
             None,
             None,
-            Some(sqlParams: PrimaryDataSqlParams)
+            Some(sqlParams: SqlParams)
           ) =>
         Success(
           SqlInitPrimaryServiceStateData(
@@ -595,7 +593,7 @@ object PrimaryServiceProxy {
           // note: if inheritance is supported by tscfg,
           // the following method should be called for all different supported sources!
           checkTimePattern(csvParams.timePattern)
-        case Some(sqlParams: PrimaryDataSqlParams) =>
+        case Some(sqlParams: SqlParams) =>
           checkTimePattern(sqlParams.timePattern)
         case Some(x) =>
           throw new InvalidConfigParameterException(
