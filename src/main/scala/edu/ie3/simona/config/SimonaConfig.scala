@@ -1438,10 +1438,10 @@ object SimonaConfig {
 
           final case class SqlParams(
               jdbcUrl: java.lang.String,
-              userName: java.lang.String,
               password: java.lang.String,
               schemaName: java.lang.String,
-              tableName: java.lang.String
+              tableName: java.lang.String,
+              userName: java.lang.String
           )
           object SqlParams {
             def apply(
