@@ -8,7 +8,7 @@ plugins {
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
   id 'pmd' // code check, working on source code
   id 'com.diffplug.spotless' version '6.18.0'// code format
-  id 'com.github.onslip.gradle-one-jar' version '1.0.6' // pack a self contained jar
+  id 'com.github.onslip.gradle-one-jar' version '1.1.0' // pack a self contained jar
   id "com.github.ben-manes.versions" version '0.46.0'
   id "de.undercouch.download" version "5.4.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
