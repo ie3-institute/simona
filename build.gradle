@@ -127,7 +127,7 @@ dependencies {
   implementation "com.typesafe.akka:akka-actor-typed_${scalaVersion}:${akkaVersion}"
   implementation "com.typesafe.akka:akka-slf4j_${scalaVersion}:${akkaVersion}"
   implementation "com.typesafe.akka:akka-cluster_${scalaVersion}:${akkaVersion}"
-  implementation "com.lightbend.akka:akka-stream-alpakka-csv_${scalaVersion}:4.0.0"
+  implementation "com.lightbend.akka:akka-stream-alpakka-csv_${scalaVersion}:6.0.0"
   implementation "com.typesafe.akka:akka-cluster-sharding_${scalaVersion}:${akkaVersion}"
   implementation "com.typesafe.akka:akka-cluster-tools_${scalaVersion}:${akkaVersion}"
 
