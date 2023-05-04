@@ -19,7 +19,10 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModel
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.exceptions.agent.{AgentInitializationException, InconsistentStateException}
+import edu.ie3.simona.exceptions.agent.{
+  AgentInitializationException,
+  InconsistentStateException
+}
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
@@ -78,7 +81,7 @@ class ParticipantAgentFundamentalsSpec
     )
   val mockAgent: ParticipantAgentMock = mockAgentTestRef.underlyingActor
 
-  val powerValues: Map [Long, ApparentPower] =
+  val powerValues: Map[Long, ApparentPower] =
     Map(
       0L -> ApparentPower(
         Megawatts(1.0),
