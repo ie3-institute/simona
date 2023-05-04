@@ -19,10 +19,7 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModel
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.exceptions.agent.{
-  AgentInitializationException,
-  InconsistentStateException
-}
+import edu.ie3.simona.exceptions.agent.{AgentInitializationException, InconsistentStateException}
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
@@ -43,7 +40,6 @@ import squants.energy.{Kilowatts, Megawatts}
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-
 import scala.collection.SortedSet
 
 class ParticipantAgentFundamentalsSpec
@@ -62,8 +58,8 @@ class ParticipantAgentFundamentalsSpec
     with TableDrivenPropertyChecks {
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
-  implicit val pTolerance = Megawatts(0.001)
-  implicit val qTolerance = Megavars(0.001)
+  implicit val pTolerance: squants.Power = Megawatts(0.001)
+  implicit val qTolerance: ReactivePower = Megavars(0.001)
 
   private val outputConfig: ParticipantNotifierConfig =
     ParticipantNotifierConfig(
@@ -82,7 +78,7 @@ class ParticipantAgentFundamentalsSpec
     )
   val mockAgent: ParticipantAgentMock = mockAgentTestRef.underlyingActor
 
-  val powerValues =
+  val powerValues: Map [Long, ApparentPower] =
     Map(
       0L -> ApparentPower(
         Megawatts(1.0),
