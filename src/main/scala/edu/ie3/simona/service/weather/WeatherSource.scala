@@ -549,9 +549,9 @@ object WeatherSource extends LazyLogging {
       case Some(value) =>
         (
           getQuantity(value, "diffIrr"),
-          getQuantity(value, "diffIrr"),
-          getQuantity(value, "diffIrr"),
-          getQuantity(value, "diffIrr")
+          getQuantity(value, "dirIrr"),
+          getQuantity(value, "temp"),
+          getQuantity(value, "windVel")
         )
       case None =>
         // if no values are found all values are interpolated
