@@ -62,8 +62,8 @@ class ParticipantAgentFundamentalsSpec
     with TableDrivenPropertyChecks {
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
-  implicit val p_tolerance = Megawatts(0.001)
-  implicit val q_tolerance = Megavars(0.001)
+  implicit val pTolerance = Megawatts(0.001)
+  implicit val qTolerance = Megavars(0.001)
 
   private val outputConfig: ParticipantNotifierConfig =
     ParticipantNotifierConfig(
