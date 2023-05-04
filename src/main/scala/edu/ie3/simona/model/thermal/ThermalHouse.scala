@@ -8,15 +8,11 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
-import edu.ie3.datamodel.models.input.thermal.{
-  ThermalBusInput,
-  ThermalHouseInput
-}
+import edu.ie3.datamodel.models.input.thermal.{ThermalBusInput, ThermalHouseInput}
 import edu.ie3.simona.model.thermal.ThermalHouse.temperatureTolerance
 import edu.ie3.util.quantities.PowerSystemUnits
-import squants.thermal.Celsius
 import squants.energy.{KilowattHours, Kilowatts}
-import squants.thermal.ThermalCapacity
+import squants.thermal.{Celsius, ThermalCapacity}
 import tech.units.indriya.unit.Units
 
 import java.util.UUID
