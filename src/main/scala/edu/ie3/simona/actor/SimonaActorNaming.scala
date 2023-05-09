@@ -31,9 +31,9 @@ object SimonaActorNaming {
     */
   private def simonaActorUuid: String = {
     val uuid = UUID.randomUUID().toString.substring(0, 5)
-    val timestamp = System.currentTimeMillis()
+    val timestamp = System.nanoTime()
     val finalUuid = s"$uuid-$timestamp"
-    finalUuid.substring(0, 13)
+    finalUuid.substring(0, 15)
   }
 
   /** Constructs an actor name based on the simona convention for actor names.
