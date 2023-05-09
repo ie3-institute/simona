@@ -317,8 +317,8 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         val quantile95 = RandomLoadModelSpec.get95Quantile(powers)
 
         getRelativeResult(
-          quantile95.asInstanceOf[ComparableQuantity[Dimensionless]],
-          targetMaximumPower.asInstanceOf[ComparableQuantity[Dimensionless]]
+          quantile95,
+          targetMaximumPower
         ) should beLessThanWithTolerance(
           Quantities.getQuantity(1d, Units.PERCENT),
           1e-1
@@ -458,7 +458,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
     }
 
     val totalRuns = 10
-    val powers = (0 until totalRuns)
+    (0 until totalRuns)
       .flatMap { _ =>
         relevantDatas
           .map { case (tick, relevantData) =>
@@ -471,6 +471,5 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
               .p
           }
       }
-    powers
   }
 }
