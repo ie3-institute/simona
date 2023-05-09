@@ -376,30 +376,39 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
     Quantities.getQuantity(abs(result.getValue.doubleValue()), Units.PERCENT)
   }
 
+  def getRelevantData[C <: LoadRelevantData forSome {type LoadRelevantData},
+    T <: LoadModel[C] forSome {type C}](
+    dut: T,
+    simulationStartDate: ZonedDateTime) = {
+    dut match {
+      case _: RandomLoadModel =>
+        (0L until 35040)
+          .map(tick =>
+            tick -> RandomLoadModel
+              .RandomRelevantData(
+                simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
+              ).asInstanceOf[C]
+          )
+          .toMap
+      case _: ProfileLoadModel =>
+        (0L until 35040)
+          .map(tick =>
+            tick -> ProfileLoadModel
+              .ProfileRelevantData(
+                simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
+              ).asInstanceOf[C]
+          )
+          .toMap
+    }
+  }
+
   def calculateAverageEnergy[C <: LoadRelevantData, T <: LoadModel[C]](
       dut: T,
       simulationStartDate: ZonedDateTime,
       expectedEnergy: ComparableQuantity[Energy]
   ): ComparableQuantity[Dimensionless] = {
 
-    val relevantDatas = dut match {
-      case _: RandomLoadModel =>
-        (0L until 35040)
-          .map(tick =>
-            tick -> RandomLoadModel.RandomRelevantData(
-              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-            )
-          )
-          .toMap
-      case _: ProfileLoadModel =>
-        (0L until 35040)
-          .map(tick =>
-            tick -> ProfileLoadModel.ProfileRelevantData(
-              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-            )
-          )
-          .toMap
-    }
+    val relevantDatas = getRelevantData(dut, simulationStartDate)
 
     val totalRuns = 10
     val avgEnergy = (0 until totalRuns)
@@ -438,24 +447,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
       dut: T
   ): IndexedSeq[ComparableQuantity[Power]] = {
 
-    val relevantDatas = dut match {
-      case _: RandomLoadModel =>
-        (0L until 35040)
-          .map(tick =>
-            tick -> RandomLoadModel.RandomRelevantData(
-              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-            )
-          )
-          .toMap
-      case _: ProfileLoadModel =>
-        (0L until 35040)
-          .map(tick =>
-            tick -> ProfileLoadModel.ProfileRelevantData(
-              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-            )
-          )
-          .toMap
-    }
+    val relevantDatas = getRelevantData(dut, simulationStartDate)
 
     val totalRuns = 10
     (0 until totalRuns)
