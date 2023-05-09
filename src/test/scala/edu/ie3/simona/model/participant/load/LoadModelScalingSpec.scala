@@ -14,6 +14,7 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference.{
   ActivePower,
@@ -106,7 +107,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           )
           dut.enable()
 
-          calculateAverageEnergyFromProfile(
+          calculateAverageEnergy(
             dut,
             simulationStartDate,
             targetEnergyConsumption
@@ -135,7 +136,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
         dut.enable()
 
-        calculateAverageEnergyFromProfile(
+        calculateAverageEnergy(
           dut,
           simulationStartDate,
           expectedEnergy
@@ -262,7 +263,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
         dut.enable()
 
-        calculateAverageEnergyFromRandom(
+        calculateAverageEnergy(
           dut,
           simulationStartDate,
           targetEnergyConsumption
@@ -289,7 +290,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
         dut.enable()
 
-        calculateAverageEnergyFromRandom(
+        calculateAverageEnergy(
           dut,
           simulationStartDate,
           expectedEnergy
@@ -436,19 +437,30 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
     Quantities.getQuantity(abs(result.getValue.doubleValue()), Units.PERCENT)
   }
 
-  def calculateAverageEnergyFromProfile[T <: LoadModel[ProfileRelevantData]](
+  def calculateAverageEnergy[C <: LoadRelevantData, T <: LoadModel[C]](
       dut: T,
       simulationStartDate: ZonedDateTime,
       expectedEnergy: ComparableQuantity[Energy]
   ): ComparableQuantity[Dimensionless] = {
 
-    val relevantDatas = (0 until 35040)
-      .map(tick =>
-        tick -> ProfileRelevantData(
-          simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-        )
-      )
-      .toMap
+    val relevantDatas = dut match {
+      case _: RandomLoadModel =>
+        (0L until 35040)
+          .map(tick =>
+            tick -> RandomLoadModel.RandomRelevantData(
+              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
+            )
+          )
+          .toMap
+      case _: ProfileLoadModel =>
+        (0L until 35040)
+          .map(tick =>
+            tick -> ProfileLoadModel.ProfileRelevantData(
+              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
+            )
+          )
+          .toMap
+    }
 
     val totalRuns = 10
     val avgEnergy = (0 until totalRuns)
@@ -459,7 +471,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
               .calculatePower(
                 tick,
                 Quantities.getQuantity(0d, PowerSystemUnits.PU),
-                relevantData
+                relevantData.asInstanceOf[C]
               )
               .p
               .multiply(Quantities.getQuantity(15d, Units.MINUTE))
