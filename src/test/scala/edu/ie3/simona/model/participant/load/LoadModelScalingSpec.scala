@@ -355,8 +355,8 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
   }
 
   def getRelativeResult(
-      avgResult: ComparableQuantity[Dimensionless],
-      expectedResult: ComparableQuantity[Dimensionless]
+      avgResult: ComparableQuantity[_],
+      expectedResult: ComparableQuantity[_]
   ): ComparableQuantity[Dimensionless] = {
     val result = Quantities
       .getQuantity(100, Units.PERCENT)
