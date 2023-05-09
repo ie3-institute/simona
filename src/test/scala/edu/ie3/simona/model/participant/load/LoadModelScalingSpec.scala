@@ -443,8 +443,8 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
       .divide(totalRuns)
 
     getRelativeResult(
-      avgEnergy.asInstanceOf[ComparableQuantity[Dimensionless]],
-      expectedEnergy.asInstanceOf[ComparableQuantity[Dimensionless]]
+      avgEnergy,
+      expectedEnergy
     )
 
   }
