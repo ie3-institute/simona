@@ -14,9 +14,11 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.load.LoadReference.{ActivePower, EnergyConsumption}
+import edu.ie3.simona.model.participant.load.LoadReference.{
+  ActivePower,
+  EnergyConsumption
+}
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
 import edu.ie3.simona.test.common.TestTags.SnailTest
@@ -376,10 +378,10 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
     Quantities.getQuantity(abs(result.getValue.doubleValue()), Units.PERCENT)
   }
 
-  def getRelevantData[C <: LoadRelevantData forSome {type LoadRelevantData},
-    T <: LoadModel[C] forSome {type C}](
-    dut: T,
-    simulationStartDate: ZonedDateTime) = {
+  def getRelevantData[
+      C <: LoadRelevantData forSome { type LoadRelevantData },
+      T <: LoadModel[C] forSome { type C }
+  ](dut: T, simulationStartDate: ZonedDateTime) = {
     dut match {
       case _: RandomLoadModel =>
         (0L until 35040)
@@ -387,7 +389,8 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             tick -> RandomLoadModel
               .RandomRelevantData(
                 simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-              ).asInstanceOf[C]
+              )
+              .asInstanceOf[C]
           )
           .toMap
       case _: ProfileLoadModel =>
@@ -396,13 +399,17 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             tick -> ProfileLoadModel
               .ProfileRelevantData(
                 simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-              ).asInstanceOf[C]
+              )
+              .asInstanceOf[C]
           )
           .toMap
     }
   }
 
-  def calculateAverageEnergy[C <: LoadRelevantData, T <: LoadModel[C]](
+  def calculateAverageEnergy[
+      C <: LoadRelevantData forSome { type LoadRelevantData },
+      T <: LoadModel[C] forSome { type C }
+  ](
       dut: T,
       simulationStartDate: ZonedDateTime,
       expectedEnergy: ComparableQuantity[Energy]
@@ -419,7 +426,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
               .calculatePower(
                 tick,
                 Quantities.getQuantity(0d, PowerSystemUnits.PU),
-                relevantData.asInstanceOf[C]
+                relevantData
               )
               .p
               .multiply(Quantities.getQuantity(15d, Units.MINUTE))
@@ -442,7 +449,10 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
 
   }
 
-  def calculatePowerFromRelevantData[C <: LoadRelevantData, T <: LoadModel[C]](
+  def calculatePowerFromRelevantData[
+      C <: LoadRelevantData forSome { type LoadRelevantData },
+      T <: LoadModel[C] forSome { type C }
+  ](
       simulationStartDate: ZonedDateTime,
       dut: T
   ): IndexedSeq[ComparableQuantity[Power]] = {
@@ -458,7 +468,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
               .calculatePower(
                 tick,
                 Quantities.getQuantity(0d, PowerSystemUnits.PU),
-                relevantData.asInstanceOf[C]
+                relevantData
               )
               .p
           }
