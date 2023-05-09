@@ -14,9 +14,24 @@ import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.{ParticipantResultEvent, PowerFlowResultEvent}
-import edu.ie3.simona.event.listener.ResultEventListener.{AggregatedTransformer3wResult, BaseData, Init, ResultEventListenerData, SinkResponse, Transformer3wKey, UninitializedData}
-import edu.ie3.simona.exceptions.{FileHierarchyException, InitializationException, ProcessResultEventException}
+import edu.ie3.simona.event.ResultEvent.{
+  ParticipantResultEvent,
+  PowerFlowResultEvent
+}
+import edu.ie3.simona.event.listener.ResultEventListener.{
+  AggregatedTransformer3wResult,
+  BaseData,
+  Init,
+  ResultEventListenerData,
+  SinkResponse,
+  Transformer3wKey,
+  UninitializedData
+}
+import edu.ie3.simona.exceptions.{
+  FileHierarchyException,
+  InitializationException,
+  ProcessResultEventException
+}
 import edu.ie3.simona.io.result._
 import edu.ie3.simona.logging.SimonaFSMActorLogging
 import edu.ie3.simona.ontology.messages.StopMessage
@@ -54,13 +69,13 @@ object ResultEventListener extends Transformer3wResultSupport {
     *   listener
     * @param previousResults
     *   a map containing only the previous results
-    *
     */
   private final case class BaseData(
       classToSink: Map[Class[_], ResultEntitySink],
       threeWindingResults: Map[
         Transformer3wKey,
-        AggregatedTransformer3wResult] = Map.empty,
+        AggregatedTransformer3wResult
+      ] = Map.empty,
       previousResults: Map[UUID, ResultEntity] = Map.empty
   ) extends ResultEventListenerData
 
@@ -181,10 +196,11 @@ class ResultEventListener(
     self ! Init
   }
 
-  /** Handle the given result and possibly update the state data
-    * The state data is compared to the previous corresponding data. Both maps are
-    * only updated if the state data has changed.
-    * Before comparing both maps, previous results are cloned and the time is adapted to the corresponding time in the state data.
+  /** Handle the given result and possibly update the state data The state data
+    * is compared to the previous corresponding data. Both maps are only updated
+    * if the state data has changed. Before comparing both maps, previous
+    * results are cloned and the time is adapted to the corresponding time in
+    * the state data.
     *
     * @param resultEntity
     *   Result entity to handle
@@ -193,28 +209,26 @@ class ResultEventListener(
     * @return
     *   The possibly update base data
     */
-  def handleResult(resultEntity: ResultEntity, baseData: BaseData): BaseData = {
+  private def handleResult(
+      resultEntity: ResultEntity,
+      baseData: BaseData
+  ): BaseData = {
     val previousResult = baseData.previousResults.get(resultEntity.getUuid)
-
     val previousResultClone = previousResult.map { previousResult =>
       val resultEntityClone = SerializationUtils.clone(previousResult)
       resultEntityClone.setTime(resultEntity.getTime)
       resultEntityClone
     }
-
     if (previousResultClone.exists(_.equals(resultEntity))) {
-
       baseData
     } else {
-
-      val updatedPreviousResults = baseData.previousResults + (resultEntity.getUuid -> SerializationUtils.clone(resultEntity))
-
-    handOverToSink(resultEntity, baseData.classToSink)
+      val updatedPreviousResults =
+        baseData.previousResults + (resultEntity.getUuid -> SerializationUtils
+          .clone(resultEntity))
+      handOverToSink(resultEntity, baseData.classToSink)
       baseData.copy(previousResults = updatedPreviousResults)
     }
   }
-
-
 
   /** Handle a partial three winding result properly by adding it to an
     * [[AggregatedTransformer3wResult]] and flushing then possibly completed
