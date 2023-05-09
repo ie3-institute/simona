@@ -29,8 +29,12 @@ object SimonaActorNaming {
     * @return
     *   a shortened uuid string
     */
-  private def simonaActorUuid: String =
-    UUID.randomUUID().toString.substring(0, 5)
+  private def simonaActorUuid: String = {
+    val uuid = UUID.randomUUID().toString.substring(0, 5)
+    val timestamp = System.currentTimeMillis()
+    val finalUuid = s"$uuid-$timestamp"
+    finalUuid.substring(0, 13)
+  }
 
   /** Constructs an actor name based on the simona convention for actor names.
     * The provided combination of class and id has to be unique for the whole
