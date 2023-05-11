@@ -17,7 +17,7 @@ import javax.measure.Quantity
 import org.scalatest.matchers.{MatchResult, Matcher}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
-
+@deprecated("Use implementation in power system utils package")
 /** Trait, to simplify test coding, that is reliant on [[Quantity]] s
   */
 trait QuantityMatchers {
