@@ -35,7 +35,8 @@ object GridProvider extends LazyLogging {
             val jointGridContainer = CsvJointGridContainerSource.read(
               simulationName,
               params.csvSep,
-              params.directoryPath
+              params.directoryPath,
+              params.isHierarchic
             )
 
             Try(ValidationUtils.check(jointGridContainer)) match {
