@@ -931,7 +931,7 @@ class EvcsAgentModelCalculationSpec
       // departures first
       evService.send(
         evcsAgent,
-        DepartingEvsRequest(3600L, scala.collection.immutable.Seq(evA.getUuid))
+        DepartingEvsRequest(3600L, Seq(evA.getUuid))
       )
       evService.expectMsgType[DepartingEvsResponse] match {
         case DepartingEvsResponse(evcs, evs) =>
