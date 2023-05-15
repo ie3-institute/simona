@@ -826,7 +826,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           0L,
-          ArrivingEvsData(scala.collection.immutable.Seq(evA))
+          ArrivingEvsData(Seq(evA))
         )
       )
 
