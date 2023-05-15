@@ -461,7 +461,7 @@ protected trait EvcsAgentFundamentals
         updateValueStoresInformListeners(
           modelBaseStateData,
           tick,
-          ApparentPower.apply(
+          ApparentPower(
             Kilowatts(result.p.value.doubleValue),
             Kilovars(result.q.value.doubleValue)
           ),
