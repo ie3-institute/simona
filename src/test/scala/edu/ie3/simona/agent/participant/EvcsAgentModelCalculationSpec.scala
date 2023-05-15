@@ -647,7 +647,7 @@ class EvcsAgentModelCalculationSpec
 
       /* Send out new data */
       val arrivingEvsData =
-        ArrivingEvsData(scala.collection.immutable.Seq(evA, evB))
+        ArrivingEvsData(Seq(evA, evB))
 
       evService.send(
         evcsAgent,
