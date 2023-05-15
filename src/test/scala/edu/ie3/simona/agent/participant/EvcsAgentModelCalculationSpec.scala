@@ -988,7 +988,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           7200L,
-          ArrivingEvsData(scala.collection.immutable.Seq(evA))
+          ArrivingEvsData(Seq(evA))
         )
       )
       scheduler.send(
