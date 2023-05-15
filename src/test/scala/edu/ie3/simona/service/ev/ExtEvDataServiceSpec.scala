@@ -679,7 +679,7 @@ class ExtEvDataServiceSpec
         CompletionMessage(
           triggerId,
           Some(
-            scala.collection.immutable.Seq(
+            Seq(
               ScheduleTriggerMessage(
                 ActivityStartTrigger(tick),
                 evcs1.ref
