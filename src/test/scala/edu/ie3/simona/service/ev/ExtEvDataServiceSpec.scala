@@ -671,7 +671,7 @@ class ExtEvDataServiceSpec
       evcs1.expectMsg(
         ProvideEvDataMessage(
           tick,
-          Seq(evA))
+          ArrivingEvsData(Seq(evA))
         )
       )
 
