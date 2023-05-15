@@ -671,7 +671,7 @@ class ExtEvDataServiceSpec
       evcs1.expectMsg(
         ProvideEvDataMessage(
           tick,
-          ArrivingEvsData(scala.collection.immutable.Seq(evA))
+          Seq(evA))
         )
       )
 
