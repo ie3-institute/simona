@@ -10,6 +10,8 @@ import squants._
 import squants.energy.WattHours
 import squants.space.CubicMeters
 
+import scala.util.Try
+
 /** Represents the EnergyDesity some substance or storage medium.
   *
   * In Wh/m³
@@ -21,43 +23,43 @@ final class EnergyDensity private (
     val unit: EnergyDensityUnit
 ) extends Quantity[EnergyDensity] {
 
-  def dimension = EnergyDensity
+  def dimension: EnergyDensity.type = EnergyDensity
 
   def *(that: Volume): Energy = WattHours(
     this.toWattHoursPerCubicMeter * that.toCubicMeters
   )
 
-  def toWattHoursPerCubicMeter = to(WattHoursPerCubicMeter)
+  private def toWattHoursPerCubicMeter: Double = to(WattHoursPerCubicMeter)
 }
 
 object EnergyDensity extends Dimension[EnergyDensity] {
   def apply[A](n: A, unit: EnergyDensityUnit)(implicit num: Numeric[A]) =
     new EnergyDensity(num.toDouble(n), unit)
-  def apply(value: Any) = parse(value)
+  def apply(value: Any): Try[EnergyDensity] = parse(value)
   def name = "EnergyDensity"
-  def primaryUnit = WattHoursPerCubicMeter
-  def siUnit = WattHoursPerCubicMeter
-  def units = Set(WattHoursPerCubicMeter)
+  def primaryUnit: WattHoursPerCubicMeter.type = WattHoursPerCubicMeter
+  def siUnit: WattHoursPerCubicMeter.type = WattHoursPerCubicMeter
+  def units: Set[UnitOfMeasure[EnergyDensity]] = Set(WattHoursPerCubicMeter)
 }
 
 trait EnergyDensityUnit
     extends UnitOfMeasure[EnergyDensity]
     with UnitConverter {
-  def apply[A](n: A)(implicit num: Numeric[A]) = EnergyDensity(n, this)
+  def apply[A](n: A)(implicit num: Numeric[A]): EnergyDensity = EnergyDensity(n, this)
 }
 
 object WattHoursPerCubicMeter
     extends EnergyDensityUnit
     with PrimaryUnit
     with SiUnit {
-  val symbol = WattHours.symbol + "/" + CubicMeters.symbol
+  val symbol: String = WattHours.symbol + "/" + CubicMeters.symbol
 }
 
 object EnergyDensityConversions {
-  lazy val wattHoursPerCubicMeter = WattHoursPerCubicMeter(1)
+  lazy val wattHoursPerCubicMeter: EnergyDensity = WattHoursPerCubicMeter(1)
 
   implicit class EnergyDensityConversions[A](n: A)(implicit num: Numeric[A]) {
-    def wattHoursPerCubicMeter = WattHoursPerCubicMeter(n)
+    def wattHoursPerCubicMeter: EnergyDensity = WattHoursPerCubicMeter(n)
   }
 
   implicit object EnergyDensityNumeric

@@ -12,6 +12,8 @@ import squants.radio.{AreaTime, BecquerelsPerSquareMeterSecond, ParticleFlux}
 import squants.space.SquareMeters
 import squants.time.Hours
 
+import scala.util.Try
+
 /** Originally from squants.radio.Irradiance
   *
   * @author
@@ -24,7 +26,7 @@ import squants.time.Hours
 final class Irradiance private (val value: Double, val unit: IrradianceUnit)
     extends Quantity[Irradiance] {
 
-  def dimension = Irradiance
+  def dimension: Irradiance.type = Irradiance
 
   def *(that: Area): Power = Watts(
     this.toWattsPerSquareMeter * that.toSquareMeters
@@ -47,33 +49,33 @@ final class Irradiance private (val value: Double, val unit: IrradianceUnit)
       Hours(1).toSeconds
   )
 
-  def toWattsPerSquareMeter = to(WattsPerSquareMeter)
+  private def toWattsPerSquareMeter: Double = to(WattsPerSquareMeter)
 
 }
 
 object Irradiance extends Dimension[Irradiance] {
   def apply[A](n: A, unit: IrradianceUnit)(implicit num: Numeric[A]) =
     new Irradiance(num.toDouble(n), unit)
-  def apply(value: Any) = parse(value)
+  def apply(value: Any): Try[Irradiance] = parse(value)
   def name = "Irradiance"
-  def primaryUnit = WattsPerSquareMeter
-  def siUnit = WattsPerSquareMeter
-  def units = Set(WattsPerSquareMeter)
+  def primaryUnit: WattsPerSquareMeter.type = WattsPerSquareMeter
+  def siUnit: WattsPerSquareMeter.type = WattsPerSquareMeter
+  def units: Set[UnitOfMeasure[Irradiance]] = Set(WattsPerSquareMeter)
 }
 
 trait IrradianceUnit extends UnitOfMeasure[Irradiance] with UnitConverter {
-  def apply[A](n: A)(implicit num: Numeric[A]) = Irradiance(n, this)
+  def apply[A](n: A)(implicit num: Numeric[A]): Irradiance = Irradiance(n, this)
 }
 
 object WattsPerSquareMeter extends IrradianceUnit with PrimaryUnit with SiUnit {
-  val symbol = Watts.symbol + "/" + SquareMeters.symbol
+  val symbol: String = Watts.symbol + "/" + SquareMeters.symbol
 }
 
 object IrradianceConversions {
-  lazy val wattPerSquareMeter = WattsPerSquareMeter(1)
+  lazy val wattPerSquareMeter: Irradiance = WattsPerSquareMeter(1)
 
   implicit class IrradianceConversions[A](n: A)(implicit num: Numeric[A]) {
-    def wattsPerSquareMeter = WattsPerSquareMeter(n)
+    def wattsPerSquareMeter: Irradiance = WattsPerSquareMeter(n)
 
   }
 
