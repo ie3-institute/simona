@@ -11,11 +11,7 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{
-  DefaultQuantities,
-  Megavars,
-  ReactivePower
-}
+import edu.ie3.util.scala.quantities.{DefaultQuantities, Megavars, ReactivePower}
 import squants.energy.Kilowatts
 
 import java.util.UUID
@@ -45,7 +41,7 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: squants.Power, // TODO ApparentPower type
+    sRated: squants.Power,
     cosPhiRated: Double
 ) extends SystemComponent(uuid, id, operationInterval) {
 
