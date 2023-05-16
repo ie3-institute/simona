@@ -8,14 +8,10 @@ package edu.ie3.simona.util
 
 import breeze.numerics.floor
 import edu.ie3.util.TimeUtil
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
+import squants.time.Seconds
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
-
-import javax.measure.quantity.Time
 
 /** Provides handy methods to convert ZonedDateTime to ticks and vice versa
   */
@@ -43,16 +39,15 @@ object TickUtil {
       startDateTime.plusSeconds(tick)
 
     /** Calculates time spam of given time bin resolution */
-    def toTimespan: ComparableQuantity[Time] =
-      Quantities.getQuantity(tick, Units.SECOND)
+    def toTimespan: squants.Time =
+      Seconds(tick)
 
     /** Calculate the length for the time interval */
     def durationUntil(
         otherTick: Long,
-        tickDuration: ComparableQuantity[Time] =
-          Quantities.getQuantity(1d, Units.SECOND)
-    ): ComparableQuantity[Time] =
-      tickDuration.multiply(otherTick - tick)
+        tickDuration: squants.Time = Seconds(1d)
+    ): squants.Time =
+      tickDuration * (otherTick - tick)
 
   }
 

@@ -15,7 +15,6 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
 import squants.energy.Kilowatts
-import squants.time.Seconds
 
 import java.util.UUID
 
@@ -139,12 +138,7 @@ final case class HpModel(
       else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
 
     val duration: squants.Time =
-      Seconds(
-        hpData.hpState.lastTimeTick
-          .durationUntil(hpData.currentTimeTick)
-          .getValue
-          .longValue()
-      )
+      hpData.hpState.lastTimeTick.durationUntil(hpData.currentTimeTick)
 
     val newInnerTemperature = thermalHouse.newInnerTemperature(
       newThermalPower,
