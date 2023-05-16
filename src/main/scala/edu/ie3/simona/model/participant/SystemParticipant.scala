@@ -165,7 +165,7 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
           Math.pow(activePower.toMegawatts, 2)
 
         if (powerSquaredDifference < 0) {
-          logger.debug(
+          logger.warn(
             s"Difference between sMax and active power is negative when limiting reactive power. " +
               s"Set reactive power to 0!"
           )
