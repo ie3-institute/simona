@@ -9,6 +9,8 @@ package edu.ie3.util.scala.quantities
 import squants._
 import squants.energy.WattHours
 
+import scala.util.Try
+
 /** Represents the capacity of some substance or storage medium to hold thermal
   * energy.
   *
@@ -21,7 +23,7 @@ final class SpecificHeatCapacity private (
     val unit: SpecificHeatCapacityUnit
 ) extends Quantity[SpecificHeatCapacity] {
 
-  def dimension = SpecificHeatCapacity
+  def dimension: SpecificHeatCapacity.type = SpecificHeatCapacity
 
   def *(that: Temperature): EnergyDensity = WattHoursPerCubicMeter(
     this.toWattHoursPerKelvinCubicMeters * that.toCelsiusScale
@@ -30,23 +32,23 @@ final class SpecificHeatCapacity private (
     this.toWattHoursPerKelvinCubicMeters * 1000 * temperature.toCelsiusScale * volume.toCubicMeters
   )
 
-  def toWattHoursPerKelvinCubicMeters = to(WattHoursPerKelvinCubicMeters)
+  private def toWattHoursPerKelvinCubicMeters: Double = to(WattHoursPerKelvinCubicMeters)
 }
 
 object SpecificHeatCapacity extends Dimension[SpecificHeatCapacity] {
   def apply[A](n: A, unit: SpecificHeatCapacityUnit)(implicit num: Numeric[A]) =
     new SpecificHeatCapacity(num.toDouble(n), unit)
-  def apply(value: Any) = parse(value)
+  def apply(value: Any): Try[SpecificHeatCapacity] = parse(value)
   def name = "SpecificHeatCapacity"
-  def primaryUnit = WattHoursPerKelvinCubicMeters
-  def siUnit = WattHoursPerKelvinCubicMeters
-  def units = Set(WattHoursPerKelvinCubicMeters)
+  def primaryUnit: WattHoursPerKelvinCubicMeters.type = WattHoursPerKelvinCubicMeters
+  def siUnit: WattHoursPerKelvinCubicMeters.type = WattHoursPerKelvinCubicMeters
+  def units: Set[UnitOfMeasure[SpecificHeatCapacity]] = Set(WattHoursPerKelvinCubicMeters)
 }
 
 trait SpecificHeatCapacityUnit
     extends UnitOfMeasure[SpecificHeatCapacity]
     with UnitConverter {
-  def apply[A](n: A)(implicit num: Numeric[A]) = SpecificHeatCapacity(n, this)
+  def apply[A](n: A)(implicit num: Numeric[A]): SpecificHeatCapacity = SpecificHeatCapacity(n, this)
 }
 
 object WattHoursPerKelvinCubicMeters
@@ -57,12 +59,12 @@ object WattHoursPerKelvinCubicMeters
 }
 
 object ThermalCapacityConversions {
-  lazy val wattHoursPerKelvinCubicMeters = WattHoursPerKelvinCubicMeters(1)
+  lazy val wattHoursPerKelvinCubicMeters: SpecificHeatCapacity = WattHoursPerKelvinCubicMeters(1)
 
   implicit class SpecificHeatCapacityConversions[A](n: A)(implicit
       num: Numeric[A]
   ) {
-    def wattHoursPerKelvinCubicMeters = WattHoursPerKelvinCubicMeters(n)
+    def wattHoursPerKelvinCubicMeters: SpecificHeatCapacity = WattHoursPerKelvinCubicMeters(n)
   }
 
   implicit object SpecificHeatCapacityNumeric

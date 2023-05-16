@@ -6,20 +6,11 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants.energy.{WattHours, Watts, WattsPerHour}
+import squants.energy.{Power, WattHours, Watts, WattsPerHour}
 import squants.time.{Hours, TimeIntegral}
-import squants.{
-  Dimension,
-  Energy,
-  MetricSystem,
-  PowerRamp,
-  PrimaryUnit,
-  Quantity,
-  SiUnit,
-  Time,
-  UnitConverter,
-  UnitOfMeasure
-}
+import squants.{Dimension, Energy, MetricSystem, PowerRamp, PrimaryUnit, Quantity, SiUnit, Time, UnitConverter, UnitOfMeasure}
+
+import scala.util.Try
 
 final class ReactivePower private (
     val value: Double,
@@ -27,21 +18,22 @@ final class ReactivePower private (
 ) extends Quantity[ReactivePower]
     with TimeIntegral[PowerRamp] {
 
-  def dimension = ReactivePower
+  def dimension: ReactivePower.type = ReactivePower
 
-  protected[quantities] def timeIntegrated = WattHours(toVars)
+  protected[quantities] def timeIntegrated: Energy = WattHours(toVars)
 
-  protected def timeDerived = WattsPerHour(toVars)
+  protected def timeDerived: PowerRamp = WattsPerHour(toVars)
 
-  protected[quantities] def time = Hours(1)
+  protected[quantities] def time: Time = Hours(1)
 
-  def toMillivars = to(Millivars)
-  def toVars = to(Vars)
-  def toKilovars = to(Kilovars)
-  def toMegavars = to(Megavars)
-  def toGigavars = to(Gigavars)
+  def toMillivars: Double = to(Millivars)
 
-  def toPower = Watts(toVars)
+  private def toVars: Double = to(Vars)
+  def toKilovars: Double = to(Kilovars)
+  def toMegavars: Double = to(Megavars)
+  def toGigavars: Double = to(Gigavars)
+
+  def toPower: Power = Watts(toVars)
 
 }
 
@@ -51,22 +43,22 @@ object ReactivePower extends Dimension[ReactivePower] {
   ) = new ReactivePower(num.toDouble(n), unit)
   def apply(energy: Energy, time: Time): ReactivePower =
     apply(energy.toWattHours / time.toHours, Vars)
-  def apply(value: Any) = parse(value)
+  def apply(value: Any): Try[ReactivePower] = parse(value)
 
   def name = "Power"
-  def primaryUnit = Vars
-  def siUnit = Vars
-  def units = Set(Vars, Millivars, Kilovars, Megavars, Gigavars)
+  def primaryUnit: Vars.type = Vars
+  def siUnit: Vars.type = Vars
+  def units: Set[UnitOfMeasure[ReactivePower]] = Set(Vars, Millivars, Kilovars, Megavars, Gigavars)
 }
 
 trait ReactivePowerUnit
     extends UnitOfMeasure[ReactivePower]
     with UnitConverter {
-  def apply[A](n: A)(implicit num: Numeric[A]) = ReactivePower(n, this)
+  def apply[A](n: A)(implicit num: Numeric[A]): ReactivePower = ReactivePower(n, this)
 }
 
 object Millivars extends ReactivePowerUnit with SiUnit {
-  val conversionFactor = MetricSystem.Milli
+  val conversionFactor: Double = MetricSystem.Milli
   val symbol = "mVar"
 }
 
@@ -75,16 +67,16 @@ object Vars extends ReactivePowerUnit with PrimaryUnit with SiUnit {
 }
 
 object Kilovars extends ReactivePowerUnit with SiUnit {
-  val conversionFactor = MetricSystem.Kilo
+  val conversionFactor: Double = MetricSystem.Kilo
   val symbol = "kVar"
 }
 
 object Megavars extends ReactivePowerUnit with SiUnit {
-  val conversionFactor = MetricSystem.Mega
+  val conversionFactor: Double = MetricSystem.Mega
   val symbol = "MVar"
 }
 
 object Gigavars extends ReactivePowerUnit with SiUnit {
-  val conversionFactor = MetricSystem.Giga
+  val conversionFactor: Double = MetricSystem.Giga
   val symbol = "GVar"
 }
