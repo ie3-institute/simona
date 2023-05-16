@@ -83,7 +83,7 @@ final case class BMModel(
     val pEl = calculateElOutput(usage, eff)
 
     // Application of load gradient, return power output
-    Megawatts(applyLoadGradient(pEl).value.doubleValue)
+    applyLoadGradient(pEl)
   }
 
   /** Calculates first time dependent factor for heat demand
