@@ -6,7 +6,7 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants.energy.{Energy}
+import squants.energy.Energy
 import squants.space.{CubicMeters, Volume}
 
 object SquantsUtils {
