@@ -170,22 +170,22 @@ class ChpModelTest extends Specification {
     when:
     chpModel.calculateNextState(chpData)
     def storageLevel = CylindricalThermalStorage.energyToVolume(thermalStorage._storedEnergy(), thermalStorage.c(), thermalStorage.inletTemp(), thermalStorage.returnTemp())
-    def resStorageLvl = Sq.create(storageLevel, CubicMeters$.MODULE$)
+    def resStorageLvl = Sq.create(storageLevel.toCubicMeters(), CubicMeters$.MODULE$)
 
     then:
     storageLevel - resStorageLvl < Sq.create(TOLERANCE, CubicMeters$.MODULE$)
 
     where:
     chpState           | storageLvl | heatDemand | expectedStorageLevel
-    chpStateNotRunning | 90         | 0         || 90                    // tests case (false, false, true)
-    chpStateNotRunning | 90         | 8 * 115   || 20                // tests case (false, true, false)
-    chpStateNotRunning | 90         | 10        || 89.1304                // tests case (false, true, true)
-    chpStateRunning    | 90         | 0         || 98.6956                    // tests case (true, false, true)
-    chpStateRunning    | 90         | 8 * 115   || 20                // tests case (true, true, false)
-    chpStateRunning    | 90         | 10        || 97.8260                // tests case (true, true, true)
-    chpStateRunning    | 90         | 806       || 28.6086                // test case (_, true, false) and demand covered together with chp
-    chpStateRunning    | 90         | 9 * 115   || 20                // test case (_, true, false) and demand not covered together with chp
-    chpStateRunning    | 92         | 1         || 100                        // test case (true, true, true) and storage volume exceeds maximum
+    chpStateNotRunning | 90d         | 0         || 90d                    // tests case (false, false, true)
+    chpStateNotRunning | 90d         | 8 * 115   || 20d                // tests case (false, true, false)
+    chpStateNotRunning | 90d         | 10        || 89.1304d                // tests case (false, true, true)
+    chpStateRunning    | 90d         | 0         || 98.6956d                    // tests case (true, false, true)
+    chpStateRunning    | 90d         | 8 * 115   || 20d                // tests case (true, true, false)
+    chpStateRunning    | 90d         | 10        || 97.8260d                // tests case (true, true, true)
+    chpStateRunning    | 90d         | 806       || 28.6086d                // test case (_, true, false) and demand covered together with chp
+    chpStateRunning    | 90d         | 9 * 115   || 20d                // test case (_, true, false) and demand not covered together with chp
+    chpStateRunning    | 92d         | 1         || 100d                        // test case (true, true, true) and storage volume exceeds maximum
     /* The following tests do not exist: (false, false, false), (true, false, false) */
   }
 
