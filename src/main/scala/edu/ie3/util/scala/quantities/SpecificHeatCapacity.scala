@@ -32,7 +32,9 @@ final class SpecificHeatCapacity private (
     this.toWattHoursPerKelvinCubicMeters * 1000 * temperature.toCelsiusScale * volume.toCubicMeters
   )
 
-  private def toWattHoursPerKelvinCubicMeters: Double = to(WattHoursPerKelvinCubicMeters)
+  private def toWattHoursPerKelvinCubicMeters: Double = to(
+    WattHoursPerKelvinCubicMeters
+  )
 }
 
 object SpecificHeatCapacity extends Dimension[SpecificHeatCapacity] {
@@ -40,15 +42,19 @@ object SpecificHeatCapacity extends Dimension[SpecificHeatCapacity] {
     new SpecificHeatCapacity(num.toDouble(n), unit)
   def apply(value: Any): Try[SpecificHeatCapacity] = parse(value)
   def name = "SpecificHeatCapacity"
-  def primaryUnit: WattHoursPerKelvinCubicMeters.type = WattHoursPerKelvinCubicMeters
+  def primaryUnit: WattHoursPerKelvinCubicMeters.type =
+    WattHoursPerKelvinCubicMeters
   def siUnit: WattHoursPerKelvinCubicMeters.type = WattHoursPerKelvinCubicMeters
-  def units: Set[UnitOfMeasure[SpecificHeatCapacity]] = Set(WattHoursPerKelvinCubicMeters)
+  def units: Set[UnitOfMeasure[SpecificHeatCapacity]] = Set(
+    WattHoursPerKelvinCubicMeters
+  )
 }
 
 trait SpecificHeatCapacityUnit
     extends UnitOfMeasure[SpecificHeatCapacity]
     with UnitConverter {
-  def apply[A](n: A)(implicit num: Numeric[A]): SpecificHeatCapacity = SpecificHeatCapacity(n, this)
+  def apply[A](n: A)(implicit num: Numeric[A]): SpecificHeatCapacity =
+    SpecificHeatCapacity(n, this)
 }
 
 object WattHoursPerKelvinCubicMeters
@@ -59,12 +65,14 @@ object WattHoursPerKelvinCubicMeters
 }
 
 object ThermalCapacityConversions {
-  lazy val wattHoursPerKelvinCubicMeters: SpecificHeatCapacity = WattHoursPerKelvinCubicMeters(1)
+  lazy val wattHoursPerKelvinCubicMeters: SpecificHeatCapacity =
+    WattHoursPerKelvinCubicMeters(1)
 
   implicit class SpecificHeatCapacityConversions[A](n: A)(implicit
       num: Numeric[A]
   ) {
-    def wattHoursPerKelvinCubicMeters: SpecificHeatCapacity = WattHoursPerKelvinCubicMeters(n)
+    def wattHoursPerKelvinCubicMeters: SpecificHeatCapacity =
+      WattHoursPerKelvinCubicMeters(n)
   }
 
   implicit object SpecificHeatCapacityNumeric

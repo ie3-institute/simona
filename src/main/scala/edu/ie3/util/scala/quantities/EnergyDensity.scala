@@ -45,7 +45,8 @@ object EnergyDensity extends Dimension[EnergyDensity] {
 trait EnergyDensityUnit
     extends UnitOfMeasure[EnergyDensity]
     with UnitConverter {
-  def apply[A](n: A)(implicit num: Numeric[A]): EnergyDensity = EnergyDensity(n, this)
+  def apply[A](n: A)(implicit num: Numeric[A]): EnergyDensity =
+    EnergyDensity(n, this)
 }
 
 object WattHoursPerCubicMeter

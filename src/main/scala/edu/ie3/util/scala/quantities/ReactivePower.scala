@@ -8,7 +8,18 @@ package edu.ie3.util.scala.quantities
 
 import squants.energy.{Power, WattHours, Watts, WattsPerHour}
 import squants.time.{Hours, TimeIntegral}
-import squants.{Dimension, Energy, MetricSystem, PowerRamp, PrimaryUnit, Quantity, SiUnit, Time, UnitConverter, UnitOfMeasure}
+import squants.{
+  Dimension,
+  Energy,
+  MetricSystem,
+  PowerRamp,
+  PrimaryUnit,
+  Quantity,
+  SiUnit,
+  Time,
+  UnitConverter,
+  UnitOfMeasure
+}
 
 import scala.util.Try
 
@@ -48,13 +59,15 @@ object ReactivePower extends Dimension[ReactivePower] {
   def name = "Power"
   def primaryUnit: Vars.type = Vars
   def siUnit: Vars.type = Vars
-  def units: Set[UnitOfMeasure[ReactivePower]] = Set(Vars, Millivars, Kilovars, Megavars, Gigavars)
+  def units: Set[UnitOfMeasure[ReactivePower]] =
+    Set(Vars, Millivars, Kilovars, Megavars, Gigavars)
 }
 
 trait ReactivePowerUnit
     extends UnitOfMeasure[ReactivePower]
     with UnitConverter {
-  def apply[A](n: A)(implicit num: Numeric[A]): ReactivePower = ReactivePower(n, this)
+  def apply[A](n: A)(implicit num: Numeric[A]): ReactivePower =
+    ReactivePower(n, this)
 }
 
 object Millivars extends ReactivePowerUnit with SiUnit {

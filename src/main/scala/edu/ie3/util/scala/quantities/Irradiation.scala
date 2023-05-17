@@ -44,7 +44,8 @@ object Irradiation extends Dimension[Irradiation] {
 }
 
 trait IrradiationUnit extends UnitOfMeasure[Irradiation] with UnitConverter {
-  def apply[A](n: A)(implicit num: Numeric[A]): Irradiation = Irradiation(n, this)
+  def apply[A](n: A)(implicit num: Numeric[A]): Irradiation =
+    Irradiation(n, this)
 }
 
 object WattHoursPerSquareMeter
