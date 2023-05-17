@@ -12,6 +12,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
   ThermalBusInput
 }
+import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
 import edu.ie3.util.scala.quantities.{
   DefaultQuantities,
   SpecificHeatCapacity,
@@ -167,7 +168,29 @@ case object CylindricalThermalStorage {
   ): squants.Energy = {
     val tempDiff = (returnTemp - inletTemp)
     c.multiply(tempDiff, volume)
-
   }
 
+  /** Equation from docs for the relation between stored heat and volume change.
+    *
+    * @param energy
+    *   available energy
+    * @param c
+    *   Specific heat capacity
+    * @param inletTemp
+    *   Inlet temperature
+    * @param returnTemp
+    *   Return temperature
+    * @return
+    *   volume
+    */
+  def energyToVolume(
+      energy: squants.Energy,
+      c: SpecificHeatCapacity,
+      inletTemp: squants.Temperature,
+      returnTemp: squants.Temperature
+  ): squants.Volume = {
+    val energyDensity = c * (returnTemp - inletTemp)
+
+    energy.divideByEnergyDensity(energyDensity)
+  }
 }

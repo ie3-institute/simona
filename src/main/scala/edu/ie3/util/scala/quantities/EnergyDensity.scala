@@ -29,7 +29,7 @@ final class EnergyDensity private (
     this.toWattHoursPerCubicMeter * that.toCubicMeters
   )
 
-  private def toWattHoursPerCubicMeter: Double = to(WattHoursPerCubicMeter)
+  def toWattHoursPerCubicMeter: Double = to(WattHoursPerCubicMeter)
 }
 
 object EnergyDensity extends Dimension[EnergyDensity] {
