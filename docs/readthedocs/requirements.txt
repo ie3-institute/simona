@@ -1,5 +1,5 @@
 Sphinx==5.3.0
-sphinx-rtd-theme==1.1.1
+sphinx-rtd-theme==1.2.1
 sphinxcontrib-plantuml==0.25
 myst-parser==1.0.0
 markdown-it-py==2.2.0
