@@ -25,12 +25,12 @@ ext {
   javaVersion = JavaVersion.VERSION_17
 
   scalaVersion = '2.13'
-  scalaBinaryVersion = '2.13.8'
+  scalaBinaryVersion = '2.13.10'
   akkaVersion = '2.6.20'
   jtsVersion = '1.19.0'
   confluentKafkaVersion = '7.3.1'
   tscfgVersion = '1.0.2'
-  scapegoatVersion = '1.4.17'
+  scapegoatVersion = '2.1.1'
 
   testContainerVersion = '0.40.16'
 
