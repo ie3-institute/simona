@@ -12,7 +12,7 @@ plugins {
   id "com.github.ben-manes.versions" version '0.46.0'
   id "de.undercouch.download" version "5.4.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
-  id "com.github.johnrengelman.shadow" version "7.1.2" // fat jar
+  id "com.github.johnrengelman.shadow" version "8.1.1" // fat jar
   id "org.sonarqube" version "4.2.0.3129" // sonarqube
   id "org.scoverage" version "8.0.2" // scala code coverage scoverage
   id "com.github.maiflai.scalatest" version "0.32" // run scalatest without specific spec task
