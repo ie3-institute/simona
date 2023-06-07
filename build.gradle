@@ -30,7 +30,7 @@ ext {
   jtsVersion = '1.19.0'
   confluentKafkaVersion = '7.3.1'
   tscfgVersion = '1.0.2'
-  scapegoatVersion = '2.1.1'
+  scapegoatVersion = '2.1.2'
 
   testContainerVersion = '0.40.16'
 
