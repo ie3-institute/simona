@@ -13,11 +13,16 @@ import squants.{Dimensionless, Each}
 import scala.collection.SortedSet
 
 trait CharacteristicTestData {
-  protected val xy1: XYPair[Dimensionless, Dimensionless] = XYPair(Each(1), Each(2))
-  protected val xy2: XYPair[Dimensionless, Dimensionless] = XYPair(Each(2), Each(4))
-  protected val xy3: XYPair[Dimensionless, Dimensionless] = XYPair(Each(3), Each(8))
-  protected val xy4: XYPair[Dimensionless, Dimensionless] = XYPair(Each(4), Each(16))
-  protected val xy5: XYPair[Dimensionless, Dimensionless] = XYPair(Each(5), Each(32))
+  protected val xy1: XYPair[Dimensionless, Dimensionless] =
+    XYPair(Each(1), Each(2))
+  protected val xy2: XYPair[Dimensionless, Dimensionless] =
+    XYPair(Each(2), Each(4))
+  protected val xy3: XYPair[Dimensionless, Dimensionless] =
+    XYPair(Each(3), Each(8))
+  protected val xy4: XYPair[Dimensionless, Dimensionless] =
+    XYPair(Each(4), Each(16))
+  protected val xy5: XYPair[Dimensionless, Dimensionless] =
+    XYPair(Each(5), Each(32))
 
   object TestCharacteristic
       extends Characteristic[Dimensionless, Dimensionless] {
