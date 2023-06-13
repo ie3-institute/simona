@@ -6,15 +6,12 @@
 
 package edu.ie3.simona.model.system
 
-import edu.ie3.datamodel.models.input.system.characteristic.CharacteristicPoint
 import edu.ie3.simona.exceptions.CharacteristicsException
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.simona.util.CollectionUtils._
+import squants.Quantity
 
-import javax.measure.Quantity
 import scala.collection.SortedSet
-import scala.math.Ordered
-import scala.math.Ordered.orderingToOrdered
 import scala.reflect.ClassTag
 
 /** Describes a mapping of a x-y-pairs with possibility to interpolate the y
@@ -52,13 +49,13 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
         (Some(x), Some(y))
       case ((Some(leftX), Some(leftY)), (rightX, rightY)) =>
         /* We found the next entry right to the requested abscissa element and have the left one at hand as well. */
-        val m = (rightY - leftY) / (rightX - leftX)
+        val m = (rightY - leftY).value / (rightX - leftX).value
         val b = leftY
         val deltaX = requestedAbscissaQuantity - leftX
         (
           Some(requestedAbscissaQuantity),
           Some(
-            m * deltaX + b
+            b.map(_ + (m * deltaX).value)
           )
         )
       case _ =>
@@ -97,9 +94,4 @@ object Characteristic {
     }
   }
 
-  case object XYPair {
-    def xYPairFromCharacteristicPoint[A <: Quantity[A], O <: Quantity[O]](
-        point: CharacteristicPoint[A, O]
-    ): XYPair[A, O] = new XYPair[A, O](point.getX, point.getY)
-  }
 }

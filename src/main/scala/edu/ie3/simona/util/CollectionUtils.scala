@@ -6,12 +6,13 @@
 
 package edu.ie3.simona.util
 
-import javax.measure.Quantity
+import squants.Quantity
+
 import scala.annotation.tailrec
 import scala.collection.immutable.HashSet
 import scala.math.Ordering.Double
 
-case object CollectionUtils {
+object CollectionUtils {
 
   /** fast implementation to test if a list contains duplicates. See
     * https://stackoverflow.com/questions/3871491/functional-programming-does-a-list-only-contain-unique-items
