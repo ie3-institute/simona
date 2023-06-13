@@ -172,15 +172,13 @@ final case class WecModel(
     */
   private def calculateAirDensity(
       temperature: squants.Temperature,
-      airPressure: squants.motion.Pressure
+      airPressure: Option[squants.motion.Pressure]
   ): squants.Density = {
     airPressure match {
-      // OPTIONAL TODO DF
-      case _: EmptyQuantity[Pressure] =>
+      case None =>
         KilogramsPerCubicMeter(1.2041d)
-      case pressure =>
-        AIR_MOLAR_MASS * (pressure.toPascals)
-          .divide(R * temperature.toKelvinScale)
+      case Some(pressure) =>
+        AIR_MOLAR_MASS * (pressure.toPascals)/(R * temperature.toKelvinScale)
     }
   }
 }
