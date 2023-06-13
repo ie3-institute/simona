@@ -72,9 +72,12 @@ final case class WecModel(
       cosPhiRated
     ) {
 
-  /** Universal gas constant
+  /** Universal gas constant, actually in J/(K * mol)
     */
   private val R = JoulesPerKelvin(8.31446261815324d)
+
+  /** Molar mass of air, actually in kg/mol
+    */
   private val AIR_MOLAR_MASS = Kilograms(0.0289647d)
 
   /** Calculate the active power output of the [[WecModel]]. First determine the
@@ -176,7 +179,11 @@ final case class WecModel(
       case None =>
         KilogramsPerCubicMeter(1.2041d)
       case Some(pressure) =>
-        AIR_MOLAR_MASS * pressure.toPascals / (R * temperature.toKelvinScale)
+        // kg * mol^-1 * J * m^-3 * J^-1 * K * mol * K^-1
+        // = kg * m^-3
+        KilogramsPerCubicMeter(
+          AIR_MOLAR_MASS.toKilograms * pressure.toPascals / (R.toJoulesPerKelvin * temperature.toKelvinScale)
+        )
     }
   }
 }
