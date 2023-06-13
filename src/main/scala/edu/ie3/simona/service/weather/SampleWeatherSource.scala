@@ -7,16 +7,16 @@
 package edu.ie3.simona.service.weather
 
 import edu.ie3.datamodel.io.source.IdCoordinateSource
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.util.TickUtil
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.geo.CoordinateDistance
-import org.locationtech.jts.geom.Point
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
+import org.locationtech.jts.geom.Point
+import squants.Kelvin
+import squants.motion.MetersPerSecond
+
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoField.{HOUR_OF_DAY, MONTH_OF_YEAR, YEAR}
 import java.util
@@ -74,17 +74,19 @@ final class SampleWeatherSource(
           .doubleValue
       ),
       WattsPerSquareMeter(
-        SampleWeatherSource.directRadiation(index).doubleValue
+        SampleWeatherSource
+          .directRadiation(index)
+          .doubleValue
       ),
-      Quantities
-        .getQuantity(
-          SampleWeatherSource.temperature(index),
-          Units.KELVIN
-        )
-        .to(StandardUnits.TEMPERATURE),
-      Quantities.getQuantity(
-        SampleWeatherSource.windVelocity(index),
-        StandardUnits.WIND_VELOCITY
+      Kelvin(
+        SampleWeatherSource
+          .temperature(index)
+          .doubleValue
+      ),
+      MetersPerSecond(
+        SampleWeatherSource
+          .windVelocity(index)
+          .doubleValue
       )
     )
     weatherResult

@@ -6,12 +6,9 @@
 
 package edu.ie3.simona.util
 
-import tech.units.indriya.ComparableQuantity
-
 import javax.measure.Quantity
 import scala.annotation.tailrec
 import scala.collection.immutable.HashSet
-import scala.math.Ordering
 import scala.math.Ordering.Double
 
 case object CollectionUtils {
@@ -106,12 +103,10 @@ case object CollectionUtils {
     * @return
     *   either a Seq with one or two (k,v) pairs
     */
-  def closestKeyValuePairs[A <: Quantity[A], O <: Quantity[
-    O
-  ]](
-      map: Map[ComparableQuantity[A], ComparableQuantity[O]],
-      key: ComparableQuantity[A]
-  ): Seq[(ComparableQuantity[A], ComparableQuantity[O])] = {
+  def closestKeyValuePairs[A <: Quantity[A], O <: Quantity[O]](
+      map: Map[A, O],
+      key: A
+  ): Seq[(A, O)] = {
     import scala.collection.immutable.TreeMap
     implicit val ordering: Double.IeeeOrdering.type =
       Ordering.Double.IeeeOrdering

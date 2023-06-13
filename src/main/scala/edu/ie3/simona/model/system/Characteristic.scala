@@ -10,7 +10,6 @@ import edu.ie3.datamodel.models.input.system.characteristic.CharacteristicPoint
 import edu.ie3.simona.exceptions.CharacteristicsException
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.simona.util.CollectionUtils._
-import tech.units.indriya.ComparableQuantity
 
 import javax.measure.Quantity
 import scala.collection.SortedSet
@@ -32,12 +31,12 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
     *   the interpolated value (requestedX, interpolatedY)
     */
   def interpolateXy(
-      requestedAbscissaQuantity: ComparableQuantity[A]
+      requestedAbscissaQuantity: A
   )(implicit
       tag: ClassTag[O]
-  ): (ComparableQuantity[A], ComparableQuantity[O]) = {
+  ): (A, O) = {
 
-    val xyCoords: Seq[(ComparableQuantity[A], ComparableQuantity[O])] =
+    val xyCoords: Seq[(A, O)] =
       closestKeyValuePairs[A, O](
         xyCoordinates.toSeq
           .map(xyPair => xyPair.x -> xyPair.y)
@@ -46,24 +45,20 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
       )
 
     xyCoords.foldLeft(
-      (None: Option[ComparableQuantity[A]], None: Option[ComparableQuantity[O]])
+      (None: Option[A], None: Option[O])
     )({
       case ((None, None), (x, y)) =>
         /* We found the latest entry left of the requested abscissa element. Remember that one */
         (Some(x), Some(y))
       case ((Some(leftX), Some(leftY)), (rightX, rightY)) =>
         /* We found the next entry right to the requested abscissa element and have the left one at hand as well. */
-        val m = rightY
-          .subtract(leftY)
-          .divide(rightX.subtract(leftX))
+        val m = (rightY - leftY) / (rightX - leftX)
         val b = leftY
-        val deltaX = requestedAbscissaQuantity.subtract(leftX)
+        val deltaX = requestedAbscissaQuantity - leftX
         (
           Some(requestedAbscissaQuantity),
           Some(
-            m.multiply(deltaX)
-              .asType(tag.runtimeClass.asInstanceOf[Class[O]])
-              .add(b)
+            m * deltaX + b
           )
         )
       case _ =>
@@ -82,8 +77,8 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
 
 object Characteristic {
   final case class XYPair[A <: Quantity[A], O <: Quantity[O]](
-      x: ComparableQuantity[A],
-      y: ComparableQuantity[O]
+    x: A,
+    y: O
   ) extends Ordered[XYPair[A, O]] {
 
     /** The pairs are ordered by their x value first. If two pairs have the same

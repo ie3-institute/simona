@@ -39,12 +39,14 @@ import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.locationtech.jts.geom.{Coordinate, Point}
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
+import squants.motion.MetersPerSecond
+import squants.thermal.{Celsius, Kelvin}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import javax.measure.Quantity
-import javax.measure.quantity.{Dimensionless, Length}
+import javax.measure.quantity.{Dimensionless, Length, Temperature}
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -511,8 +513,8 @@ object WeatherSource {
   val EMPTY_WEATHER_DATA: WeatherData = WeatherData(
     WattsPerSquareMeter(0.0),
     WattsPerSquareMeter(0.0),
-    Quantities.getQuantity(0d, Units.KELVIN).to(StandardUnits.TEMPERATURE),
-    Quantities.getQuantity(0d, StandardUnits.WIND_VELOCITY)
+    Kelvin(0d),
+    MetersPerSecond(0d)
   )
 
   def toWeatherData(
@@ -540,9 +542,27 @@ object WeatherSource {
         )
         .orElse(EMPTY_WEATHER_DATA.dirIrr),
       weatherValue.getTemperature.getTemperature
+        .map(temperature =>
+          Kelvin(
+            temperature
+              .to(Units.CELSIUS)
+              .getValue
+              .doubleValue()
+          )
+        )
         .orElse(EMPTY_WEATHER_DATA.temp),
-      weatherValue.getWind.getVelocity.orElse(EMPTY_WEATHER_DATA.windVel)
+      weatherValue.getWind.getVelocity
+        .map(windVel =>
+          MetersPerSecond(
+            windVel
+              .to(Units.METRE_PER_SECOND)
+              .getValue
+              .doubleValue()
+          )
+        )
+        .orElse(EMPTY_WEATHER_DATA.windVel)
     )
+
   }
 
   /** Weather package private case class to combine the provided agent

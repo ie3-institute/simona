@@ -47,7 +47,9 @@ import edu.ie3.util.DoubleUtils.ImplicitDouble
 import edu.ie3.util.exceptions.EmptyQuantityException
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.{Irradiance, Sq, WattsPerSquareMeter}
+import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
+import squants.motion.MetersPerSecond
+import squants.thermal.{Kelvin, Temperature}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -174,7 +176,8 @@ private[weather] final case class WeatherSourceWrapper private (
           case EMPTY_WEATHER_DATA.temp => (EMPTY_WEATHER_DATA.temp, 0d)
           case nonEmptyTemp =>
             calculateContrib(
-              nonEmptyTemp.to(Units.KELVIN),
+              Quantities
+                .getQuantity(nonEmptyTemp.value.doubleValue, Units.KELVIN),
               weight,
               StandardUnits.TEMPERATURE,
               s"Temperature not available at $point."
@@ -184,7 +187,10 @@ private[weather] final case class WeatherSourceWrapper private (
           case EMPTY_WEATHER_DATA.windVel => (EMPTY_WEATHER_DATA.windVel, 0d)
           case nonEmptyWindVel =>
             calculateContrib(
-              nonEmptyWindVel,
+              Quantities.getQuantity(
+                nonEmptyWindVel.value.doubleValue,
+                Units.METRE_PER_SECOND
+              ),
               weight,
               StandardUnits.WIND_VELOCITY,
               s"Wind velocity not available at $point."
@@ -213,8 +219,28 @@ private[weather] final case class WeatherSourceWrapper private (
               case _ =>
                 WattsPerSquareMeter(EMPTY_WEATHER_DATA.dirIrr.value.doubleValue)
             }),
-            averagedWeather.temp.add(tempContrib),
-            averagedWeather.windVel.add(windVelContrib)
+            Kelvin(
+              averagedWeather.temp.value.doubleValue
+            ) +
+              (tempContrib match {
+                case temperature: Temperature =>
+                  Kelvin(temperature.value.doubleValue)
+                case _ =>
+                  Kelvin(
+                    EMPTY_WEATHER_DATA.temp.value.doubleValue
+                  )
+              }),
+            MetersPerSecond(
+              averagedWeather.windVel.value.doubleValue
+            ) +
+              (windVelContrib match {
+                case windVelocity: squants.Velocity =>
+                  MetersPerSecond(windVelocity.value.doubleValue)
+                case _ =>
+                  MetersPerSecond(
+                    EMPTY_WEATHER_DATA.windVel.value.doubleValue
+                  )
+              })
           ),
           currentWeightSum.add(
             diffIrrWeight,

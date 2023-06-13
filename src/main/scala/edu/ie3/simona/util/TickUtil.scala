@@ -47,7 +47,7 @@ object TickUtil {
         otherTick: Long,
         tickDuration: squants.Time = Seconds(1d)
     ): squants.Time =
-      tickDuration * (otherTick - tick)
+      tickDuration * (otherTick - tick).toDouble
 
   }
 

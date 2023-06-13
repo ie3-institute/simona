@@ -13,8 +13,9 @@ import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
-import tech.units.indriya.{AbstractUnit, ComparableQuantity}
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Sq}
+import squants.Each
+import tech.units.indriya.AbstractUnit
 
 import javax.measure.quantity.Dimensionless
 import scala.collection.SortedSet
@@ -221,8 +222,8 @@ object QControl {
       *   the cosine phi for the requested p.u. value
       */
     def cosPhi(
-        pInPu: ComparableQuantity[Dimensionless]
-    ): ComparableQuantity[Dimensionless] =
+        pInPu: squants.Dimensionless
+    ): squants.Dimensionless =
       interpolateXy(pInPu)._2
 
     /** Obtain the function, that transfers active into reactive power
@@ -244,8 +245,8 @@ object QControl {
       /* cosphi( P / P_N ) = cosphi( P / (S_N * cosphi_rated) ) */
       val pInPu =
         activePower / (sRated * cosPhiRated)
-      val instantCosPhi = cosPhi(pInPu.asPu)
-      _cosPhiMultiplication(instantCosPhi.getValue.doubleValue, activePower)
+      val instantCosPhi = cosPhi(Each(pInPu.asPu.getValue.doubleValue()))
+      _cosPhiMultiplication(instantCosPhi.value.doubleValue, activePower)
     }
   }
 
