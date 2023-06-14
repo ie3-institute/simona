@@ -73,7 +73,10 @@ object QControl {
         CosPhiP(
           TreeSet.from(
             cosPhiP.getPoints.asScala.map(point =>
-              XYPair[squants.Dimensionless, squants.Dimensionless](Each(point.getX.getValue.doubleValue()), Each(point.getY.getValue.doubleValue()))
+              XYPair[squants.Dimensionless, squants.Dimensionless](
+                Each(point.getX.getValue.doubleValue()),
+                Each(point.getY.getValue.doubleValue())
+              )
             )
           )
         )
@@ -82,7 +85,10 @@ object QControl {
           TreeSet.from(
             qv.getPoints.asScala
               .map(point =>
-                XYPair[squants.Dimensionless, squants.Dimensionless](Each(point.getX.getValue.doubleValue()), Each(point.getY.getValue.doubleValue()))
+                XYPair[squants.Dimensionless, squants.Dimensionless](
+                  Each(point.getX.getValue.doubleValue()),
+                  Each(point.getY.getValue.doubleValue())
+                )
               )
               .toSeq
           )
@@ -126,7 +132,9 @@ object QControl {
     *   the characteristic as sequence of (x,y)
     */
   final case class QV private (
-      xyCoordinates: SortedSet[XYPair[squants.Dimensionless, squants.Dimensionless]]
+      xyCoordinates: SortedSet[
+        XYPair[squants.Dimensionless, squants.Dimensionless]
+      ]
   ) extends QControl
       with Characteristic[squants.Dimensionless, squants.Dimensionless] {
 
@@ -204,7 +212,9 @@ object QControl {
     *   the characteristic as sequence of (x,y)
     */
   final case class CosPhiP private (
-      xyCoordinates: SortedSet[XYPair[squants.Dimensionless, squants.Dimensionless]]
+      xyCoordinates: SortedSet[
+        XYPair[squants.Dimensionless, squants.Dimensionless]
+      ]
   ) extends QControl
       with Characteristic[squants.Dimensionless, squants.Dimensionless] {
 
