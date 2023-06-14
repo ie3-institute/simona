@@ -71,6 +71,8 @@ import edu.ie3.util.scala.quantities.{
 import org.scalatest.PrivateMethodTester
 import squants.Each
 import squants.energy.{Kilowatts, Megawatts, Watts}
+import squants.motion.MetersPerSecond
+import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND, PASCAL}
 
@@ -516,8 +518,8 @@ class WecAgentModelCalculationSpec
       val weatherData = WeatherData(
         WattsPerSquareMeter(50d),
         WattsPerSquareMeter(100d),
-        Quantities.getQuantity(0, CELSIUS),
-        Quantities.getQuantity(0, METRE_PER_SECOND)
+        Celsius(0d),
+        MetersPerSecond(0d)
       )
 
       weatherService.send(
@@ -711,8 +713,8 @@ class WecAgentModelCalculationSpec
       val weatherData = WeatherData(
         WattsPerSquareMeter(50d),
         WattsPerSquareMeter(100d),
-        Quantities.getQuantity(0, CELSIUS),
-        Quantities.getQuantity(0, METRE_PER_SECOND)
+        Celsius(0d),
+        MetersPerSecond(0d)
       )
 
       weatherService.send(
@@ -838,8 +840,8 @@ class WecAgentModelCalculationSpec
       val weatherData = WeatherData(
         WattsPerSquareMeter(50d),
         WattsPerSquareMeter(100d),
-        Quantities.getQuantity(0, CELSIUS),
-        Quantities.getQuantity(0, METRE_PER_SECOND)
+        Celsius(0d),
+        MetersPerSecond(0d)
       )
       weatherService.send(
         wecAgent,
@@ -939,8 +941,8 @@ class WecAgentModelCalculationSpec
           WeatherData(
             WattsPerSquareMeter(50d),
             WattsPerSquareMeter(100d),
-            Quantities.getQuantity(0, CELSIUS),
-            Quantities.getQuantity(0, METRE_PER_SECOND)
+            Celsius(0d),
+            MetersPerSecond(0d)
           ),
           Some(1800L)
         )
@@ -972,8 +974,8 @@ class WecAgentModelCalculationSpec
           WeatherData(
             WattsPerSquareMeter(50d),
             WattsPerSquareMeter(100d),
-            Quantities.getQuantity(0, CELSIUS),
-            Quantities.getQuantity(0, METRE_PER_SECOND)
+            Celsius(0d),
+            MetersPerSecond(0d)
           ),
           Some(2700L)
         )
@@ -1005,8 +1007,8 @@ class WecAgentModelCalculationSpec
           WeatherData(
             WattsPerSquareMeter(50d),
             WattsPerSquareMeter(100d),
-            Quantities.getQuantity(0, CELSIUS),
-            Quantities.getQuantity(0, METRE_PER_SECOND)
+            Celsius(0d),
+            MetersPerSecond(0d)
           ),
           None
         )
