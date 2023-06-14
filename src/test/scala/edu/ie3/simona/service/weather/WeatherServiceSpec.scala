@@ -11,22 +11,11 @@ import akka.testkit.{EventFilter, ImplicitSender, TestActorRef}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationFailedMessage, RegistrationSuccessfulMessage}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage._
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeServiceTrigger
-}
+import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeServiceTrigger}
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.service.weather.WeatherSource.AgentCoordinates
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
@@ -35,6 +24,8 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.scalatest.PrivateMethodTester
 import org.scalatest.wordspec.AnyWordSpecLike
+import squants.motion.MetersPerSecond
+import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
@@ -208,9 +199,8 @@ class WeatherServiceSpec
           weatherValue shouldBe WeatherData(
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),
-            Quantities
-              .getQuantity(-2.3719999999999573, StandardUnits.TEMPERATURE),
-            Quantities.getQuantity(4.16474, StandardUnits.WIND_VELOCITY)
+            Celsius(-2.3719999999999573),
+            MetersPerSecond(4.16474)
           )
           nextDataTick shouldBe Some(3600L)
         case CompletionMessage(triggerId, nextTriggers) =>
@@ -247,9 +237,8 @@ class WeatherServiceSpec
           weatherValue shouldBe WeatherData(
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),
-            Quantities
-              .getQuantity(-2.5259999999999536, StandardUnits.TEMPERATURE),
-            Quantities.getQuantity(4.918092, StandardUnits.WIND_VELOCITY)
+            Celsius(-2.5259999999999536),
+            MetersPerSecond(4.918092)
           )
           nextDataTick shouldBe None
         case CompletionMessage(triggerId, nextTriggers) =>
