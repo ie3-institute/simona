@@ -13,11 +13,10 @@ import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Sq}
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import squants.Each
 import tech.units.indriya.AbstractUnit
 
-import javax.measure.quantity.Dimensionless
 import scala.collection.SortedSet
 import scala.collection.immutable.TreeSet
 import scala.jdk.CollectionConverters._
@@ -74,7 +73,7 @@ object QControl {
         CosPhiP(
           TreeSet.from(
             cosPhiP.getPoints.asScala.map(point =>
-              XYPair[Dimensionless, Dimensionless](point.getX, point.getY)
+              XYPair[squants.Dimensionless, squants.Dimensionless](Each(point.getX.getValue.doubleValue()), Each(point.getY.getValue.doubleValue()))
             )
           )
         )
@@ -83,7 +82,7 @@ object QControl {
           TreeSet.from(
             qv.getPoints.asScala
               .map(point =>
-                XYPair[Dimensionless, Dimensionless](point.getX, point.getY)
+                XYPair[squants.Dimensionless, squants.Dimensionless](Each(point.getX.getValue.doubleValue()), Each(point.getY.getValue.doubleValue()))
               )
               .toSeq
           )
@@ -127,9 +126,9 @@ object QControl {
     *   the characteristic as sequence of (x,y)
     */
   final case class QV private (
-      xyCoordinates: SortedSet[XYPair[Dimensionless, Dimensionless]]
+      xyCoordinates: SortedSet[XYPair[squants.Dimensionless, squants.Dimensionless]]
   ) extends QControl
-      with Characteristic[Dimensionless, Dimensionless] {
+      with Characteristic[squants.Dimensionless, squants.Dimensionless] {
 
     /** Returns the resulting reactive power for the requested voltage level
       * value. The conversion to abstract unit [[AbstractUnit.ONE]] is necessary
@@ -148,10 +147,7 @@ object QControl {
         vInPu: squants.Dimensionless,
         qMax: ReactivePower
     ): ReactivePower =
-      qMax * interpolateXy(vInPu.toEach.asPu)._2
-        .to(AbstractUnit.ONE)
-        .getValue
-        .doubleValue()
+      qMax * interpolateXy(vInPu)._2.toEach
 
     /** Obtain the function, that transfers active into reactive power
       *
@@ -208,9 +204,9 @@ object QControl {
     *   the characteristic as sequence of (x,y)
     */
   final case class CosPhiP private (
-      xyCoordinates: SortedSet[XYPair[Dimensionless, Dimensionless]]
+      xyCoordinates: SortedSet[XYPair[squants.Dimensionless, squants.Dimensionless]]
   ) extends QControl
-      with Characteristic[Dimensionless, Dimensionless] {
+      with Characteristic[squants.Dimensionless, squants.Dimensionless] {
 
     /** Returns the requested cosine phi value for a provided power value
       * (p/sRated) in p.u. If the cosine phi cannot be found for the requested
