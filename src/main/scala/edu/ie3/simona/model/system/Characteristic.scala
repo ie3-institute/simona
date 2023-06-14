@@ -74,8 +74,8 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
 
 object Characteristic {
   final case class XYPair[A <: Quantity[A], O <: Quantity[O]](
-    x: A,
-    y: O
+      x: A,
+      y: O
   ) extends Ordered[XYPair[A, O]] {
 
     /** The pairs are ordered by their x value first. If two pairs have the same
