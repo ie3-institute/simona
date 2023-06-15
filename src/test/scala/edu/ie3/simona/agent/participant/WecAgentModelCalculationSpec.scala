@@ -61,7 +61,6 @@ import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.WecInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.EmptyQuantity
 import edu.ie3.util.scala.quantities.{
   Megavars,
   ReactivePower,
@@ -73,8 +72,6 @@ import squants.Each
 import squants.energy.{Kilowatts, Megawatts, Watts}
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND, PASCAL}
 
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
@@ -593,7 +590,7 @@ class WecAgentModelCalculationSpec
                 900L -> WecRelevantData(
                   weatherData.windVel,
                   weatherData.temp,
-                  EmptyQuantity.of(PASCAL)
+                  None
                 )
               )
           }
@@ -749,7 +746,7 @@ class WecAgentModelCalculationSpec
                 900L -> WecRelevantData(
                   weatherData.windVel,
                   weatherData.temp,
-                  EmptyQuantity.of(PASCAL)
+                  None
                 )
               )
           }
