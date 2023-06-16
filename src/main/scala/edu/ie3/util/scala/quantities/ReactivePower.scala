@@ -10,6 +10,7 @@ import squants.energy.{Power, WattHours, Watts, WattsPerHour}
 import squants.time.{Hours, TimeIntegral}
 import squants.{
   Dimension,
+  Each,
   Energy,
   MetricSystem,
   PowerRamp,
@@ -31,6 +32,10 @@ final class ReactivePower private (
 
   def dimension: ReactivePower.type = ReactivePower
 
+  def /(activePower: squants.Power): squants.Dimensionless = Each(
+    this.toVars / activePower.toWatts
+  )
+
   protected[quantities] def timeIntegrated: Energy = WattHours(toVars)
 
   protected def timeDerived: PowerRamp = WattsPerHour(toVars)
@@ -39,7 +44,7 @@ final class ReactivePower private (
 
   def toMillivars: Double = to(Millivars)
 
-  private def toVars: Double = to(Vars)
+  def toVars: Double = to(Vars)
   def toKilovars: Double = to(Kilovars)
   def toMegavars: Double = to(Megavars)
   def toGigavars: Double = to(Gigavars)

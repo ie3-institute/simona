@@ -6,6 +6,7 @@
 
 package edu.ie3.util.scala.quantities
 
+import squants.Each
 import squants.energy.Energy
 import squants.space.{CubicMeters, Volume}
 
@@ -14,5 +15,11 @@ object SquantsUtils {
     def divideByEnergyDensity(that: EnergyDensity): Volume = CubicMeters(
       energy.toWattHours / that.toWattHoursPerCubicMeter
     )
+
+    implicit class RichPower(power: squants.Power) {
+      def /(that: ReactivePower): squants.Dimensionless = Each(
+        power.toWatts / that.toVars
+      )
+    }
   }
 }
