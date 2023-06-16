@@ -14,8 +14,8 @@ import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.geo.CoordinateDistance
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.locationtech.jts.geom.Point
-import squants.Kelvin
 import squants.motion.MetersPerSecond
+import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoField.{HOUR_OF_DAY, MONTH_OF_YEAR, YEAR}
@@ -78,7 +78,7 @@ final class SampleWeatherSource(
           .directRadiation(index)
           .doubleValue
       ),
-      Kelvin(
+      Celsius(
         SampleWeatherSource
           .temperature(index)
           .doubleValue

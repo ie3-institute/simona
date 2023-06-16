@@ -40,7 +40,7 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import org.locationtech.jts.geom.{Coordinate, Point}
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import squants.motion.MetersPerSecond
-import squants.thermal.{Celsius, Kelvin}
+import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -513,7 +513,7 @@ object WeatherSource {
   val EMPTY_WEATHER_DATA: WeatherData = WeatherData(
     WattsPerSquareMeter(0.0),
     WattsPerSquareMeter(0.0),
-    Kelvin(0d),
+    Celsius(0d),
     MetersPerSecond(0d)
   )
 
@@ -543,7 +543,7 @@ object WeatherSource {
         .orElse(EMPTY_WEATHER_DATA.dirIrr),
       weatherValue.getTemperature.getTemperature
         .map(temperature =>
-          Kelvin(
+          Celsius(
             temperature
               .to(Units.CELSIUS)
               .getValue

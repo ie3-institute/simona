@@ -49,7 +49,7 @@ import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import squants.motion.MetersPerSecond
-import squants.thermal.{Kelvin, Temperature}
+import squants.thermal.{Celsius, Kelvin, Temperature}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -219,14 +219,14 @@ private[weather] final case class WeatherSourceWrapper private (
               case _ =>
                 WattsPerSquareMeter(EMPTY_WEATHER_DATA.dirIrr.value.doubleValue)
             }),
-            Kelvin(
+            Celsius(
               averagedWeather.temp.value.doubleValue
             ) +
               (tempContrib match {
                 case temperature: Temperature =>
-                  Kelvin(temperature.value.doubleValue)
+                  Celsius(temperature.toCelsiusScale.doubleValue)
                 case _ =>
-                  Kelvin(
+                  Celsius(
                     EMPTY_WEATHER_DATA.temp.value.doubleValue
                   )
               }),

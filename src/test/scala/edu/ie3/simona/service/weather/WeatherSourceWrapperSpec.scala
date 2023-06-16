@@ -36,7 +36,6 @@ import tech.units.indriya.quantity.Quantities
 import java.time.{ZoneId, ZonedDateTime}
 import java.util
 import java.util.{Optional, UUID}
-import javax.measure.Quantity.Scale
 import scala.jdk.CollectionConverters.{MapHasAsJava, SetHasAsJava}
 
 class WeatherSourceWrapperSpec extends UnitSpec {
@@ -138,7 +137,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
     "return temperature quantity on absolute scale" in {
       val weightedCoordinates = WeightedCoordinates(Map(coordinate1a -> 1))
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
-      result.temp.unit shouldBe Scale.ABSOLUTE
+      result.temp.unit shouldBe squants.thermal.Kelvin
     }
   }
 
