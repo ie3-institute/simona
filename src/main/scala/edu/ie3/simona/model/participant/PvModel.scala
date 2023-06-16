@@ -15,7 +15,7 @@ import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities._
 import squants.Each
 import squants.energy.Kilowatts
-import squants.space.{Degrees, Radians, SquareMeters}
+import squants.space.{Radians, SquareMeters}
 import squants.time.Seconds
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
@@ -74,8 +74,8 @@ final case class PvModel private (
       data: PvRelevantData
   ): squants.Power = {
     // === Pv Panel Base Data  === //
-    val latInRad = Degrees(lat) // latitude of location
-    val locInRad = Degrees(lon) // longitude of location
+    val latInRad = Radians(lat.toRadians) // latitude of location
+    val locInRad = Radians(lon.toRadians) // longitude of location
 
     // === Weather Base Data  === //
     /* The pv model calculates the power in-feed based on the solar irradiance that is received over a specific
@@ -223,7 +223,7 @@ final case class PvModel private (
     val st = lmt.add(et).to(HOUR)
     val stValue = st.getValue.doubleValue
 
-    Degrees((stValue - 12) * 15d)
+    Radians((stValue - 12).toRadians * 15d)
   }
 
   /** Calculates the sunset hour angle omegaSS which represents the omega value
