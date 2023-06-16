@@ -139,7 +139,7 @@ class PvModelTest extends Specification {
     Angle jCalc = pvModel.calcJ(ZonedDateTime.parse(time))
 
     then:
-    Math.abs(jCalc.toRadians() - jSol) < 1e-15
+    jCalc =~ jSol
 
     where:
     time                                       || jSol
