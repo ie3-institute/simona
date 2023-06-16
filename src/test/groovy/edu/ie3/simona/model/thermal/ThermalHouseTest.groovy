@@ -66,8 +66,8 @@ class ThermalHouseTest extends Specification {
 
   def "Calculation of thermal energy change and new inner temperature is performed correctly"() {
     given:
-    def thermalHouse = buildThermalHouse(18, 22)
-    def innerTemperature = Sq.create(20, Celsius$.MODULE$)
+    def thermalHouse = buildThermalHouse(18d, 22d)
+    def innerTemperature = Sq.create(20d, Celsius$.MODULE$)
 
     when:
     def thermalEnergyGain = thermalHouse.calcThermalEnergyGain(Sq.create(100, Kilowatts$.MODULE$), Sq.create(3600, Seconds$.MODULE$))
@@ -77,20 +77,20 @@ class ThermalHouseTest extends Specification {
     def newInnerTemperature = thermalHouse.calcNewInnerTemperature(innerTemperature, innerTemperatureChange)
 
     then:
-    Math.abs(100d - thermalEnergyGain.toKilowattHours()) < TOLERANCE
-    Math.abs(10d - thermalEnergyLoss.toKilowattHours()) < TOLERANCE
-    Math.abs(90d - thermalEnergyChange.toKilowattHours()) < TOLERANCE
-    Math.abs(9d - innerTemperatureChange.toKelvinScale()) < TOLERANCE
-    Math.abs(29d - newInnerTemperature.toCelsiusScale()) < TOLERANCE
+    Sq.create(100d, KilowattHours$.MODULE$) - thermalEnergyGain < Sq.create(TOLERANCE, KilowattHours$.MODULE$)
+    Sq.create(10d, KilowattHours$.MODULE$) - thermalEnergyLoss < Sq.create(TOLERANCE, KilowattHours$.MODULE$)
+    Sq.create(90d, KilowattHours$.MODULE$) - thermalEnergyChange < Sq.create(TOLERANCE, KilowattHours$.MODULE$)
+    Sq.create(9d, Kelvin$.MODULE$) - innerTemperatureChange < Sq.create(TOLERANCE, Kelvin$.MODULE$)
+    Sq.create(29d, Celsius$.MODULE$) - newInnerTemperature < Sq.create(TOLERANCE,Celsius$.MODULE$)
   }
 
   def "Comprising function to calculate new inner temperature works as expected"() {
     given:
-    def thermalHouse = buildThermalHouse(18, 22)
-    def thermalPower = Sq.create(100, Kilowatts$.MODULE$)
-    def duration = Sq.create(3600, Seconds$.MODULE$)
-    def currentInnerTemperature = Sq.create(20, Celsius$.MODULE$)
-    def ambientTemperature = Sq.create(10, Celsius$.MODULE$)
+    def thermalHouse = buildThermalHouse(18d, 22d)
+    def thermalPower = Sq.create(100d, Kilowatts$.MODULE$)
+    def duration = Sq.create(3600d, Seconds$.MODULE$)
+    def currentInnerTemperature = Sq.create(20d, Celsius$.MODULE$)
+    def ambientTemperature = Sq.create(10d, Celsius$.MODULE$)
 
     when:
     def newInnerTemperature = thermalHouse.newInnerTemperature(thermalPower, duration, currentInnerTemperature, ambientTemperature)
@@ -105,11 +105,11 @@ class ThermalHouseTest extends Specification {
         UUID.randomUUID(),
         "Thermal House",
         null,
-        getQuantity(1.0, StandardUnits.THERMAL_TRANSMISSION),
-        getQuantity(10.0, StandardUnits.HEAT_CAPACITY),
-        getQuantity(0, CELSIUS), // stub
-        getQuantity(18, CELSIUS),
-        getQuantity(22, CELSIUS)
+        Sq.create(1.0d, StandardUnits.THERMAL_TRANSMISSION),
+        Sq.create(10.0d, StandardUnits.HEAT_CAPACITY),
+        Sq.create(0d, Celsius$.MODULE$), // stub
+        Sq.create(18d, Celsius$.MODULE$),
+        Sq.create(22d, Celsius$.MODULE$)
         )
 
     when:

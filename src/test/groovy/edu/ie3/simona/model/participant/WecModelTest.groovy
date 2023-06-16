@@ -17,12 +17,16 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.Sq
 import scala.Option
+import scala.Some
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
 import squants.Each$
+import squants.energy.Kilowatts$
 import squants.motion.MetersPerSecond$
 import squants.motion.Pascals$
+import squants.motion.Pressure
+import squants.space.SquareMeters$
 import squants.thermal.Celsius$
 
 import static edu.ie3.datamodel.models.StandardUnits.*
@@ -99,9 +103,9 @@ class WecModelTest extends Specification {
     wecModel.uuid() == inputModel.getUuid()
     wecModel.id() == inputModel.getId()
     wecModel.scalingFactor() == 1
-    wecModel.sRated() == Kilowatts(inputModel.getType.getsRated.to(KILOWATT).getValue.doubleValue)
+    wecModel.sRated() == Sq.create((inputModel.getType().getsRated().value.doubleValue()), Kilowatts$.MODULE$)
     wecModel.cosPhiRated() == inputModel.getType().getCosPhiRated()
-    wecModel.rotorArea() == SquareMeters(inputModel.getType.getRotorArea.to(SQUARE_METRE).getValue.doubleValue)
+    wecModel.rotorArea() == Sq.create((inputModel.getType().getRotorArea().value.doubleValue()), SquareMeters$.MODULE$)
     wecModel.betzCurve() == new WecModel.WecCharacteristic$().apply(inputModel.getType().getCpCharacteristic())
   }
 
@@ -112,7 +116,7 @@ class WecModelTest extends Specification {
     def wecData = new WecRelevantData(
         Sq.create(velocity, MetersPerSecond$.MODULE$),
         Sq.create(20, Celsius$.MODULE$),
-        Sq.create(101325, Pascals$.MODULE$))
+        new Some (Sq.create(101325d, Pascals$.MODULE$)))
 
     when:
     def result = wecModel.calculateActivePower(wecData)
@@ -122,18 +126,18 @@ class WecModelTest extends Specification {
 
     where:
     velocity || power
-    1.0      || 0
-    2.0      || -2948.80958
-    3.0      || -24573.41320
-    7.0      || -522922.23257
-    9.0      || -1140000
-    13.0     || -1140000
-    15.0     || -1140000
-    19.0     || -1140000
-    23.0     || -1140000
-    27.0     || -1140000
-    34.0     || -24573.39638
-    40.0     || 0
+    1.0d      || 0
+    2.0d      || -2948.80958
+    3.0d      || -24573.41320
+    7.0d      || -522922.23257
+    9.0d      || -1140000
+    13.0d     || -1140000
+    15.0d     || -1140000
+    19.0d     || -1140000
+    23.0d     || -1140000
+    27.0d     || -1140000
+    34.0d     || -24573.39638
+    40.0d     || 0
   }
 
   @Unroll
