@@ -30,7 +30,7 @@ final class ThermalConductance private (
       temperature: Temperature,
       time: squants.Time
   ): Energy = WattHours(
-    this.toWattsPerKelvin * temperature.toCelsiusScale * time.toSeconds
+    this.toWattsPerKelvin * temperature.toCelsiusScale * time.toHours
   )
 
   private def toWattsPerKelvin: Double = to(WattsPerKelvin)
