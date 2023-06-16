@@ -16,6 +16,7 @@ import edu.ie3.datamodel.models.input.system.type.WecTypeInput
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.Sq
+import scala.None
 import scala.Option
 import scala.Some
 import spock.lang.Shared
@@ -144,20 +145,20 @@ class WecModelTest extends Specification {
   def "Check active power output depending on temperature #temperature Celsius"() {
     given:
     def wecModel = buildWecModel()
-    def wecData = new WecRelevantData(getQuantity(3.0, METRE_PER_SECOND),
-        getQuantity(temperature, CELSIUS), getQuantity(101325, PASCAL))
+    def wecData = new WecRelevantData(Sq.create(3.0d, MetersPerSecond$.MODULE$),
+        Sq.create(temperature, Celsius$.MODULE$), new Some( Sq.create(101325d, Pascals$.MODULE$)))
 
     when:
     def result = wecModel.calculateActivePower(wecData)
 
     then:
-    Math.abs((result.toWatts() - power.doubleValue())) < TOLERANCE
+    result.toWatts() =~ power
 
     where:
     temperature || power
-    35          || -23377.23862
-    20          || -24573.41320
-    -25         || -29029.60338
+    35d          || -23377.23862d
+    20d          || -24573.41320d
+    -25d         || -29029.60338d
   }
 
   @Unroll
@@ -175,12 +176,12 @@ class WecModelTest extends Specification {
 
     where:
     velocity || betzResult
-    2        || 0.115933516
-    2.5      || 0.2010945555
-    18       || 0.108671106
-    27       || 0.032198846
-    34       || 0.000196644
-    40       || 0.0
+    2d        || 0.115933516d
+    2.5d      || 0.2010945555d
+    18d       || 0.108671106d
+    27d       || 0.032198846d
+    34d       || 0.000196644d
+    40d       || 0.0d
   }
 
   @Unroll
@@ -192,7 +193,7 @@ class WecModelTest extends Specification {
 
     when:
     if (pressure > 0) {
-      pressureV = Some(Sq.create(pressure, Pascals$.MODULE$))
+      pressureV = new Some(Sq.create(pressure, Pascals$.MODULE$))
     }
     def airDensity = wecModel.calculateAirDensity(temperatureV, pressureV).toKilogramsPerCubicMeter()
 
@@ -200,17 +201,17 @@ class WecModelTest extends Specification {
     Math.abs(airDensity - densityResult) < TOLERANCE
 
     where:
-    temperature | pressure  || densityResult
-    -15         | 100129.44 || 1.35121
-    -5          | 99535.96  || 1.29311
-    0           | 99535.96  || 1.26944
-    5           | 100129.44 || 1.25405
-    20          | 100129.44 || 1.18988
-    25          | 100427.25 || 1.17341
-    37          | 100427.25 || 1.12801
+    temperature  | pressure   || densityResult
+    -15d         | 100129.44d || 1.35121d
+    -5d          | 99535.96d  || 1.29311d
+    0d           | 99535.96d  || 1.26944d
+    5d           | 100129.44d || 1.25405d
+    20d          | 100129.44d || 1.18988d
+    25d          | 100427.25d || 1.17341d
+    37d          | 100427.25d || 1.12801d
     // test case, where no air pressure is given (see WecModel.calculateAirDensity)
-    0           | -1.0      || 1.2041
-    5           | -1.0      || 1.2041
-    40          | -1.0      || 1.2041
+    0d           | -1.0d      || 1.2041d
+    5d           | -1.0d      || 1.2041d
+    40d          | -1.0d      || 1.2041d
   }
 }

@@ -20,7 +20,8 @@ import org.apache.commons.csv.CSVRecord
 import spock.lang.Shared
 import spock.lang.Specification
 import squants.*
-
+import squants.motion.MetersPerSecond$
+import squants.thermal.Kelvin$
 
 import javax.measure.Quantity
 
@@ -181,8 +182,8 @@ trait PvModelITHelper {
       WeatherMessage.WeatherData weather = new WeatherMessage.WeatherData(
           Sq.create(row.get(22).replace("Wh/m²", "").toDouble(), WattsPerSquareMeter$.MODULE$),
           Sq.create(row.get(21).replace("Wh/m²", "").toDouble(), WattsPerSquareMeter$.MODULE$),
-          getQuantity(temp, KELVIN),
-          getQuantity(windVel, METRE_PER_SECOND))
+          Sq.create(temp, Kelvin$.MODULE$),
+          Sq.create(windVel, MetersPerSecond$.MODULE$))
 
       modelToWeatherMap.put(modelId, weather)
     }

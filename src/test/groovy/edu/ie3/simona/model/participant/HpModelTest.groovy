@@ -137,7 +137,7 @@ class HpModelTest extends Specification {
     def nextInnerTemperature = hpModel.calculateNextState(hpData).innerTemperature()
 
     then:
-    Math.abs((nextInnerTemperature.toCelsiusScale().doubleValue() - expectedNewInnerTemperature.doubleValue())) < 0.0001
+    nextInnerTemperature =~ expectedNewInnerTemperature
 
     where:
     hpState                                                                                     || expectedNewInnerTemperature // (isRunning, tooHigh, tooLow)
