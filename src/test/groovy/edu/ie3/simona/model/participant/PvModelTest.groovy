@@ -24,6 +24,11 @@ import scala.Option
 import spock.lang.Shared
 import spock.lang.Specification
 import squants.Dimensionless
+import squants.Each$
+import squants.energy.Kilowatts$
+import squants.space.Angle
+import squants.space.Radians$
+import squants.space.SquareMeters$
 
 import java.time.ZonedDateTime
 
@@ -131,7 +136,7 @@ class PvModelTest extends Specification {
 
   def "Calculate day angle J"() {
     when:
-    squants.space.Angle jCalc = pvModel.calcJ(ZonedDateTime.parse(time))
+    Angle jCalc = pvModel.calcJ(ZonedDateTime.parse(time))
 
     then:
     Math.abs(jCalc.toRadians() - jSol) < 1e-15
@@ -145,8 +150,8 @@ class PvModelTest extends Specification {
 
   def "Calculate declination angle delta"() {
     when:
-    squants.space.Angle dayAngleQuantity = Sq.create(j, Radians$.MODULE$)
-    squants.space.Angle deltaCalc = pvModel.calcSunDeclinationDelta(dayAngleQuantity)
+    Angle dayAngleQuantity = Sq.create(j, Radians$.MODULE$)
+    Angle deltaCalc = pvModel.calcSunDeclinationDelta(dayAngleQuantity)
 
     then:
     Math.abs(deltaCalc.toRadians() - deltaSol) < 1e-15
@@ -163,10 +168,10 @@ class PvModelTest extends Specification {
   def "Calculate hour angle omega"() {
     when:
     ZonedDateTime dateTime = ZonedDateTime.parse(time)
-    squants.space.Angle dayAngleQuantity = Sq.create(j, Radians$.MODULE$)
-    squants.space.Angle longitudeQuantity = Sq.create(longitude, Radians$.MODULE$)
+    Angle dayAngleQuantity = Sq.create(j, Radians$.MODULE$)
+    Angle longitudeQuantity = Sq.create(longitude, Radians$.MODULE$)
 
-    squants.space.Angle omegaCalc = pvModel.calcHourAngleOmega(dateTime, dayAngleQuantity, longitudeQuantity)
+    Angle omegaCalc = pvModel.calcHourAngleOmega(dateTime, dayAngleQuantity, longitudeQuantity)
 
     then:
     Math.abs(omegaCalc.toRadians() - omegaSol) < 1e-15
@@ -184,10 +189,10 @@ class PvModelTest extends Specification {
 
   def "Calculate sunset angle omegaSS"() {
     when:
-    squants.space.Angle latitudeQuantity = Sq.create(latitude, Radians$.MODULE$)
-    squants.space.Angle deltaQuantity = Sq.create(delta, Radians$.MODULE$)
+    Angle latitudeQuantity = Sq.create(latitude, Radians$.MODULE$)
+    Angle deltaQuantity = Sq.create(delta, Radians$.MODULE$)
 
-    squants.space.Angle omegaSSCalc = pvModel.calcSunsetAngleOmegaSS(latitudeQuantity, deltaQuantity)
+    Angle omegaSSCalc = pvModel.calcSunsetAngleOmegaSS(latitudeQuantity, deltaQuantity)
 
     then:
     Math.abs(omegaSSCalc.toRadians() - omegaSSSol) < 1e-15
@@ -201,11 +206,11 @@ class PvModelTest extends Specification {
 
   def "Calculate solar altitude angle alphaS"() {
     when:
-    squants.space.Angle omegaQuantity = Sq.create(omega, Radians$.MODULE$)
-    squants.space.Angle deltaQuantity = Sq.create(delta, Radians$.MODULE$)
-    squants.space.Angle latitudeQuantity = Sq.create(latitude, Radians$.MODULE$)
+    Angle omegaQuantity = Sq.create(omega, Radians$.MODULE$)
+    Angle deltaQuantity = Sq.create(delta, Radians$.MODULE$)
+    Angle latitudeQuantity = Sq.create(latitude, Radians$.MODULE$)
 
-    squants.space.Angle alphaSCalc = pvModel.calcSolarAltitudeAngleAlphaS(omegaQuantity, deltaQuantity, latitudeQuantity)
+    Angle alphaSCalc = pvModel.calcSolarAltitudeAngleAlphaS(omegaQuantity, deltaQuantity, latitudeQuantity)
 
     then:
     Math.abs(alphaSCalc.toRadians() - alphaSSol) < 1e-15
@@ -221,9 +226,9 @@ class PvModelTest extends Specification {
 
   def "Calculate zenith angle thetaZ"() {
     when:
-    squants.space.Angle alphaSQuantity = Sq.create(alphaS, Radians$.MODULE$)
+    Angle alphaSQuantity = Sq.create(alphaS, Radians$.MODULE$)
 
-    squants.space.Angle thetaZCalc = pvModel.calcZenithAngleThetaZ(alphaSQuantity)
+    Angle thetaZCalc = pvModel.calcZenithAngleThetaZ(alphaSQuantity)
 
     then:
     Math.abs(thetaZCalc.toRadians() - thetaZSol) < 1e-15
@@ -237,7 +242,7 @@ class PvModelTest extends Specification {
 
   def "Calculate air mass"() {
     when:
-    squants.space.Angle thetaZQuantity = Sq.create(thetaZ, Radians$.MODULE$)
+    Angle thetaZQuantity = Sq.create(thetaZ, Radians$.MODULE$)
 
     double airMassCalc = pvModel.calcAirMass(thetaZQuantity)
 
@@ -253,7 +258,7 @@ class PvModelTest extends Specification {
 
   def "Calculate extraterrestrial radiation IO"() {
     when:
-    squants.space.Angle dayAngleQuantity = Sq.create(j, Radians$.MODULE$)
+    Angle dayAngleQuantity = Sq.create(j, Radians$.MODULE$)
 
     Irradiation I0Calc = pvModel.calcExtraterrestrialRadiationI0(dayAngleQuantity)
 
@@ -276,15 +281,15 @@ class PvModelTest extends Specification {
     "== Calculate the angle of incidence thetaG =="
     when:
     // Declination Angle delta of the sun at solar noon
-    squants.space.Angle delta = Sq.create(Math.toRadians(-14), Radians$.MODULE$)
+    Angle delta = Sq.create(Math.toRadians(-14), Radians$.MODULE$)
     //Latitude in Radian
-    squants.space.Angle latitudeInRad = Sq.create(Math.toRadians(43d), Radians$.MODULE$)
+    Angle latitudeInRad = Sq.create(Math.toRadians(43d), Radians$.MODULE$)
     //Hour Angle
-    squants.space.Angle omega = Sq.create(Math.toRadians(-22.5), Radians$.MODULE$)
+    Angle omega = Sq.create(Math.toRadians(-22.5), Radians$.MODULE$)
     //Inclination Angle of the surface
-    squants.space.Angle gammaE = Sq.create(Math.toRadians(45), Radians$.MODULE$)
+    Angle gammaE = Sq.create(Math.toRadians(45), Radians$.MODULE$)
     //Sun's azimuth
-    squants.space.Angle alphaE = Sq.create(Math.toRadians(15), Radians$.MODULE$)
+    Angle alphaE = Sq.create(Math.toRadians(15), Radians$.MODULE$)
 
     then:
     Math.abs(
@@ -299,11 +304,11 @@ class PvModelTest extends Specification {
     "== Calculate solar altitude (azimuth) angle =="
     given:
     // Declination Angle delta of the sun at solar noon
-    squants.space.Angle delta = Sq.create(Math.toRadians(deltaIn), Radians$.MODULE$)
+    Angle delta = Sq.create(Math.toRadians(deltaIn), Radians$.MODULE$)
     //Hour Angle
-    squants.space.Angle omega = Sq.create(Math.toRadians(omegaIn), Radians$.MODULE$)
+    Angle omega = Sq.create(Math.toRadians(omegaIn), Radians$.MODULE$)
     //Latitude in Radian
-    squants.space.Angle latitudeInRad = Sq.create(Math.toRadians(latitudeInDeg), Radians$.MODULE$)
+    Angle latitudeInRad = Sq.create(Math.toRadians(latitudeInDeg), Radians$.MODULE$)
 
     expect:
     "- should calculate the solar altitude correctly and"
@@ -325,15 +330,15 @@ class PvModelTest extends Specification {
     given:
     "- using pre-calculated parameters"
     //Latitude in Radian
-    squants.space.Angle latitudeInRad = Sq.create(Math.toRadians(latitudeInDeg), Radians$.MODULE$)
+    Angle latitudeInRad = Sq.create(Math.toRadians(latitudeInDeg), Radians$.MODULE$)
     // Declination Angle delta of the sun at solar noon
-    squants.space.Angle delta = Sq.create(Math.toRadians(deltaIn), Radians$.MODULE$)
+    Angle delta = Sq.create(Math.toRadians(deltaIn), Radians$.MODULE$)
     //Hour Angle
-    squants.space.Angle omega = Sq.create(Math.toRadians(omegaIn), Radians$.MODULE$)
+    Angle omega = Sq.create(Math.toRadians(omegaIn), Radians$.MODULE$)
     //Inclination Angle of the surface
-    squants.space.Angle gammaE = Sq.create(Math.toRadians(slope), Radians$.MODULE$)
+    Angle gammaE = Sq.create(Math.toRadians(slope), Radians$.MODULE$)
     //Sun's azimuth
-    squants.space.Angle alphaE = Sq.create(Math.toRadians(azimuth), Radians$.MODULE$)
+    Angle alphaE = Sq.create(Math.toRadians(azimuth), Radians$.MODULE$)
 
     expect:
     "- should calculate the angle of incidence thetaG and zenith angle thetaZ of beam radiation on a surface correctly"
@@ -361,25 +366,25 @@ class PvModelTest extends Specification {
 
     given:
     //Inclination of the Pv system in degrees (tilted from the horizontal)
-    squants.space.Angle gammaE = Sq.create(Math.toRadians(slope), Radians$.MODULE$)
+    Angle gammaE = Sq.create(Math.toRadians(slope), Radians$.MODULE$)
     //Inclination of the Pv system in degrees (Inclined in a compass direction)(South 0◦; West 90◦; East -90◦)
-    squants.space.Angle alphaE = Sq.create(Math.toRadians(azimuth), Radians$.MODULE$)
+    Angle alphaE = Sq.create(Math.toRadians(azimuth), Radians$.MODULE$)
     //Latitude in Radian
-    squants.space.Angle latitudeInRad = Sq.create(Math.toRadians(latitudeInDeg), Radians$.MODULE$)
+    Angle latitudeInRad = Sq.create(Math.toRadians(latitudeInDeg), Radians$.MODULE$)
     // 1 MJ/m^2 = 277,778 Wh/m^2
     // 0.244 MJ/m^2 = 67.777778 Wh/m^2
     //Beam Radiation on horizontal surface
     Irradiation eBeamH = Sq.create(67.777778d, WattHoursPerSquareMeter$.MODULE$)
     // Declination Angle delta of the sun at solar noon
-    squants.space.Angle delta = Sq.create(Math.toRadians(deltaIn), Radians$.MODULE$)
+    Angle delta = Sq.create(Math.toRadians(deltaIn), Radians$.MODULE$)
     //Hour Angle
-    squants.space.Angle omega = Sq.create(Math.toRadians(omegaIn), Radians$.MODULE$)
+    Angle omega = Sq.create(Math.toRadians(omegaIn), Radians$.MODULE$)
     //Incidence Angle
-    squants.space.Angle thetaG = Sq.create(Math.toRadians(thetaGIn), Radians$.MODULE$)
+    Angle thetaG = Sq.create(Math.toRadians(thetaGIn), Radians$.MODULE$)
     //Sunset Angle
-    squants.space.Angle omegaSS = pvModel.calcSunsetAngleOmegaSS(latitudeInRad, delta)
+    Angle omegaSS = pvModel.calcSunsetAngleOmegaSS(latitudeInRad, delta)
     //Sunrise Angle (Sunset Angle * (-1))
-    squants.space.Angle omegaSR = omegaSS.$times(-1d)
+    Angle omegaSR = omegaSS.$times(-1d)
     //omega1 and omega2
     Option<scala.Tuple2<squants.space.Angle, squants.space.Angle>> omegas = pvModel.calculateBeamOmegas(thetaG, omega, omegaSS, omegaSR)
 
@@ -404,7 +409,7 @@ class PvModelTest extends Specification {
 
     given:
     //Inclination of the Pv system in degrees (tilted from the horizontal)
-    squants.space.Angle gammaE = Sq.create(Math.toRadians(slope), Radians$.MODULE$)
+    Angle gammaE = Sq.create(Math.toRadians(slope), Radians$.MODULE$)
     // 1 MJ/m^2 = 277,778 Wh/m^2
     // 0.244 MJ/m^2 = 67.777778 Wh/m^2
     //Beam Radiation on horizontal surface
@@ -413,9 +418,9 @@ class PvModelTest extends Specification {
     //Diffuse beam Radiation on horizontal surface
     Irradiation eDifH = Sq.create(213.61111d, WattHoursPerSquareMeter$.MODULE$)
     //Incidence Angle
-    squants.space.Angle thetaG = Sq.create(Math.toRadians(thetaGIn), Radians$.MODULE$)
+    Angle thetaG = Sq.create(Math.toRadians(thetaGIn), Radians$.MODULE$)
     //Zenith Angle
-    squants.space.Angle thetaZ = Sq.create(Math.toRadians(thetaZIn), Radians$.MODULE$)
+    Angle thetaZ = Sq.create(Math.toRadians(thetaZIn), Radians$.MODULE$)
     // Extraterrestrial radiation
     Irradiation I0Quantity = Sq.create(I0, WattHoursPerSquareMeter$.MODULE$)
 
@@ -436,7 +441,7 @@ class PvModelTest extends Specification {
     given:
     "- Beam radiation and diffuse bean radiation on horizontal surface"
     //Inclination of the Pv system in degrees (tilted from the horizontal)
-    squants.space.Angle gammaE = Sq.create(Math.toRadians(slope), Radians$.MODULE$)
+    Angle gammaE = Sq.create(Math.toRadians(slope), Radians$.MODULE$)
     // 1 MJ/m^2 = 277,778 Wh/m^2
     // 0.244 MJ/m^2 = 67.777778 Wh/m^2
     //Beam Radiation on horizontal surface
