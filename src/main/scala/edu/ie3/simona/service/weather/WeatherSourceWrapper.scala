@@ -220,14 +220,14 @@ private[weather] final case class WeatherSourceWrapper private (
                 WattsPerSquareMeter(EMPTY_WEATHER_DATA.dirIrr.value.doubleValue)
             }),
             Celsius(
-              averagedWeather.temp.value.doubleValue
+              averagedWeather.temp.toCelsiusScale.doubleValue
             ) +
               (tempContrib match {
                 case temperature: Temperature =>
                   Celsius(temperature.toCelsiusScale.doubleValue)
                 case _ =>
                   Celsius(
-                    EMPTY_WEATHER_DATA.temp.value.doubleValue
+                    EMPTY_WEATHER_DATA.temp.toCelsiusScale.doubleValue
                   )
               }),
             MetersPerSecond(
