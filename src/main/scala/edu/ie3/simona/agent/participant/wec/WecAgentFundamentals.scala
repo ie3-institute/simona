@@ -43,7 +43,6 @@ import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
 import squants.Each
-import squants.motion.Pascals
 
 import java.time.ZonedDateTime
 import java.util.UUID
