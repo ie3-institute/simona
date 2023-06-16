@@ -53,7 +53,6 @@ class FixedFeedModelTest extends Specification {
   simulationEndDate,
   fixedFeedInput.operationTime
   )
-  def testingTolerance = 1e-3 // Equals to 1 W power
 
   def expectedPower = Sq.create(fixedFeedInput.sRated.value.doubleValue() * -1 * fixedFeedInput.cosPhiRated * 1.0,Kilowatts$.MODULE$)
 
@@ -76,8 +75,6 @@ class FixedFeedModelTest extends Specification {
         )
 
     then:
-    abs(
-        actualModel.calculateActivePower(CalcRelevantData.FixedRelevantData$.MODULE$).value().doubleValue() - expectedPower.value().doubleValue()
-        ) < testingTolerance
+    actualModel.calculateActivePower(CalcRelevantData.FixedRelevantData$.MODULE$) =~ expectedPower
   }
 }
