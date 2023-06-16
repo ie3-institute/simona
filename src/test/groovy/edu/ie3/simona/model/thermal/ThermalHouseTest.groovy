@@ -105,11 +105,11 @@ class ThermalHouseTest extends Specification {
         UUID.randomUUID(),
         "Thermal House",
         null,
-        Sq.create(1.0d, StandardUnits.THERMAL_TRANSMISSION),
-        Sq.create(10.0d, StandardUnits.HEAT_CAPACITY),
-        Sq.create(0d, Celsius$.MODULE$), // stub
-        Sq.create(18d, Celsius$.MODULE$),
-        Sq.create(22d, Celsius$.MODULE$)
+        getQuantity(1.0, StandardUnits.THERMAL_TRANSMISSION),
+        getQuantity(10.0, StandardUnits.HEAT_CAPACITY),
+        getQuantity(0, CELSIUS), // stub
+        getQuantity(18, CELSIUS),
+        getQuantity(22, CELSIUS)
         )
 
     when:
@@ -120,7 +120,7 @@ class ThermalHouseTest extends Specification {
     thermalHouse.operatorInput() == thermalHouseInput.operator
     thermalHouse.operationTime() == thermalHouseInput.operationTime
     thermalHouse.bus() == thermalHouseInput.thermalBus
-    thermalHouse.ethLosses().toKilowatts() == thermalHouseInput.ethLosses.to(KILOWATT_PER_KELVIN).getValue().doubleValue()
+    thermalHouse.ethLosses().value().doubleValue() == thermalHouseInput.ethLosses.to(KILOWATT_PER_KELVIN).getValue().doubleValue() * 1000
     (thermalHouse.ethCapa().$times(Sq.create(1d, Kelvin$.MODULE$))).toKilowattHours() == thermalHouseInput.ethCapa.to(KILOWATTHOUR_PER_KELVIN).getValue().doubleValue()
     thermalHouse.lowerBoundaryTemperature() == Sq.create(18, Celsius$.MODULE$)
     thermalHouse.upperBoundaryTemperature() == Sq.create(22, Celsius$.MODULE$)
