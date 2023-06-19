@@ -295,7 +295,6 @@ class PvModelTest extends Specification {
     then:
 
     pvModel.calcAngleOfIncidenceThetaG(delta, latitudeInRad, gammaE, alphaE, omega).toDegrees() =~ 35.176193345578604
-
   }
 
   def "Calculate the solar altitude (azimuth) angle alphaS"() {
@@ -313,7 +312,7 @@ class PvModelTest extends Specification {
 
     expect:
     "- should calculate the solar altitude correctly and"
-       pvModel.calcSolarAltitudeAngleAlphaS(omega, delta, latitudeInRad).toDegrees() =~ alphaSOut
+    pvModel.calcSolarAltitudeAngleAlphaS(omega, delta, latitudeInRad).toDegrees() =~ alphaSOut
 
 
     where: "the following parameters are given"
@@ -343,7 +342,7 @@ class PvModelTest extends Specification {
     expect:
     "- should calculate the angle of incidence thetaG and zenith angle thetaZ of beam radiation on a surface correctly"
 
-        pvModel.calcAngleOfIncidenceThetaG(delta, latitudeInRad, gammaE, alphaE, omega).toDegrees() =~ thetaOut
+    pvModel.calcAngleOfIncidenceThetaG(delta, latitudeInRad, gammaE, alphaE, omega).toDegrees() =~ thetaOut
 
 
     where: "the following parameters are given"
@@ -428,7 +427,7 @@ class PvModelTest extends Specification {
     "- should calculate the beam diffusion"
     // == 0,7792781569074354 MJ/m^2
 
-        pvModel.calcDiffuseRadiationOnSlopedSurfacePerez(eDifH, eBeamH, airMass, I0Quantity, thetaZ, thetaG, gammaE) =~ Sq.create(eDifSSol, WattHoursPerSquareMeter$.MODULE$)
+    pvModel.calcDiffuseRadiationOnSlopedSurfacePerez(eDifH, eBeamH, airMass, I0Quantity, thetaZ, thetaG, gammaE) =~ Sq.create(eDifSSol, WattHoursPerSquareMeter$.MODULE$)
 
     where: "the following parameters are given"
     thetaGIn | thetaZIn | slope | airMass           | I0                  || eDifSSol
