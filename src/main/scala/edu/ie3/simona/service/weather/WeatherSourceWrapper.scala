@@ -122,19 +122,11 @@ private[weather] final case class WeatherSourceWrapper private (
           * weather data), we do let it out and also return the "effective"
           * weight of 0d.
           */
-        def calculateContrib[Q <: Quantity[Q]](
-            quantity: Quantity[Q],
-            weight: Double,
-            defaultUnit: javax.measure.Unit[Q],
-            warningString: String
-        ): (Quantity[Q], Double) = {
-          try {
-            (quantity.multiply(weight), weight)
-          } catch {
-            case e: EmptyQuantityException =>
-              logger.warn(warningString, e)
-              (Quantities.getQuantity(0d, defaultUnit), 0d)
-          }
+        def calculateContrib[Q <: squants.Quantity[Q]](
+            quantity: squants.Quantity[Q],
+            weight: Double
+        ): (squants.Quantity[Q], Double) = {
+          (quantity * weight, weight)
         }
 
         /* Get pre-calculated weight for this coordinate */
@@ -147,53 +139,43 @@ private[weather] final case class WeatherSourceWrapper private (
 
         /* Determine actual weights and contributions */
         val (diffIrrContrib, diffIrrWeight) = currentWeather.diffIrr match {
-          case EMPTY_WEATHER_DATA.diffIrr => (EMPTY_WEATHER_DATA.diffIrr, 0d)
+          case EMPTY_WEATHER_DATA.diffIrr =>
+            logger.warn(s"Diffuse solar irradiance not available at $point.")
+            (EMPTY_WEATHER_DATA.diffIrr, 0d)
           case nonEmptyDiffIrr =>
             calculateContrib(
-              Quantities.getQuantity(
-                nonEmptyDiffIrr.value.doubleValue,
-                PowerSystemUnits.WATT_PER_SQUAREMETRE
-              ),
-              weight,
-              StandardUnits.SOLAR_IRRADIANCE,
-              s"Diffuse solar irradiance not available at $point."
+              nonEmptyDiffIrr,
+              weight
             )
         }
         val (dirIrrContrib, dirIrrWeight) = currentWeather.dirIrr match {
-          case EMPTY_WEATHER_DATA.`dirIrr` => (EMPTY_WEATHER_DATA.dirIrr, 0d)
+          case EMPTY_WEATHER_DATA.`dirIrr` =>
+            logger.warn(s"Direct solar irradiance not available at $point.")
+            (EMPTY_WEATHER_DATA.dirIrr, 0d)
           case nonEmptyDirIrr =>
             calculateContrib(
-              Quantities.getQuantity(
-                nonEmptyDirIrr.value.doubleValue,
-                PowerSystemUnits.WATT_PER_SQUAREMETRE
-              ),
-              weight,
-              StandardUnits.SOLAR_IRRADIANCE,
-              s"Direct solar irradiance not available at $point."
+              nonEmptyDirIrr,
+              weight
             )
         }
         val (tempContrib, tempWeight) = currentWeather.temp match {
-          case EMPTY_WEATHER_DATA.temp => (EMPTY_WEATHER_DATA.temp, 0d)
+          case EMPTY_WEATHER_DATA.temp =>
+            logger.warn(s"Temperature not available at $point.")
+            (EMPTY_WEATHER_DATA.temp, 0d)
           case nonEmptyTemp =>
             calculateContrib(
-              Quantities
-                .getQuantity(nonEmptyTemp.value.doubleValue, Units.KELVIN),
-              weight,
-              StandardUnits.TEMPERATURE,
-              s"Temperature not available at $point."
+              nonEmptyTemp,
+              weight
             )
         }
         val (windVelContrib, windVelWeight) = currentWeather.windVel match {
-          case EMPTY_WEATHER_DATA.windVel => (EMPTY_WEATHER_DATA.windVel, 0d)
+          case EMPTY_WEATHER_DATA.windVel =>
+            logger.warn(s"Wind velocity not available at $point.")
+            (EMPTY_WEATHER_DATA.windVel, 0d)
           case nonEmptyWindVel =>
             calculateContrib(
-              Quantities.getQuantity(
-                nonEmptyWindVel.value.doubleValue,
-                Units.METRE_PER_SECOND
-              ),
-              weight,
-              StandardUnits.WIND_VELOCITY,
-              s"Wind velocity not available at $point."
+              nonEmptyWindVel,
+              weight
             )
         }
 
