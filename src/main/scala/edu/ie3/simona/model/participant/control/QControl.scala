@@ -155,7 +155,7 @@ object QControl {
         vInPu: squants.Dimensionless,
         qMax: ReactivePower
     ): ReactivePower = {
-      val q: ReactivePower = Each(qMax * interpolateXy(vInPu)._2.toEach)
+      qMax * interpolateXy(vInPu)._2.toEach
     }
 
     /** Obtain the function, that transfers active into reactive power
