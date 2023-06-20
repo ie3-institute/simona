@@ -49,7 +49,7 @@ final class Irradiance private (val value: Double, val unit: IrradianceUnit)
       Hours(1).toSeconds
   )
 
-  private def toWattsPerSquareMeter: Double = to(WattsPerSquareMeter)
+  def toWattsPerSquareMeter: Double = to(WattsPerSquareMeter)
 
 }
 

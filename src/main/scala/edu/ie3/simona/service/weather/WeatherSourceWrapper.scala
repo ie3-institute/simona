@@ -183,44 +183,44 @@ private[weather] final case class WeatherSourceWrapper private (
         (
           WeatherData(
             WattsPerSquareMeter(
-              averagedWeather.diffIrr.value.doubleValue
+              averagedWeather.diffIrr.toWattsPerSquareMeter
             ) +
               (diffIrrContrib match {
                 case irradiance: Irradiance =>
-                  WattsPerSquareMeter(irradiance.value.doubleValue)
+                  WattsPerSquareMeter(irradiance.toWattsPerSquareMeter)
                 case _ =>
                   WattsPerSquareMeter(
-                    EMPTY_WEATHER_DATA.dirIrr.value.doubleValue
+                    EMPTY_WEATHER_DATA.dirIrr.toWattsPerSquareMeter
                   )
               }),
             WattsPerSquareMeter(
-              averagedWeather.dirIrr.value.doubleValue
+            averagedWeather.dirIrr.toWattsPerSquareMeter
             ) + (dirIrrContrib match {
               case irradiance: Irradiance =>
-                WattsPerSquareMeter(irradiance.value.doubleValue)
+                WattsPerSquareMeter(irradiance.toWattsPerSquareMeter)
               case _ =>
-                WattsPerSquareMeter(EMPTY_WEATHER_DATA.dirIrr.value.doubleValue)
+                WattsPerSquareMeter(EMPTY_WEATHER_DATA.dirIrr.toWattsPerSquareMeter)
             }),
-            Celsius(
-              averagedWeather.temp.toCelsiusScale.doubleValue
+            Kelvin(
+              averagedWeather.temp.toKelvinScale
             ) +
               (tempContrib match {
                 case temperature: Temperature =>
-                  Celsius(temperature.toCelsiusScale.doubleValue)
+                  Kelvin(temperature.toKelvinScale)
                 case _ =>
-                  Celsius(
-                    EMPTY_WEATHER_DATA.temp.toCelsiusScale.doubleValue
+                  Kelvin(
+                    EMPTY_WEATHER_DATA.temp.toKelvinScale
                   )
               }),
             MetersPerSecond(
-              averagedWeather.windVel.value.doubleValue
+              averagedWeather.windVel.toMetersPerSecond
             ) +
               (windVelContrib match {
                 case windVelocity: squants.Velocity =>
-                  MetersPerSecond(windVelocity.value.doubleValue)
+                  MetersPerSecond(windVelocity.toMetersPerSecond)
                 case _ =>
                   MetersPerSecond(
-                    EMPTY_WEATHER_DATA.windVel.value.doubleValue
+                    EMPTY_WEATHER_DATA.windVel.toMetersPerSecond
                   )
               })
           ),
