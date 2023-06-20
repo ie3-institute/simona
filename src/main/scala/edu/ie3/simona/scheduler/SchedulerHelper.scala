@@ -47,8 +47,6 @@ trait SchedulerHelper extends SimonaActorLogging {
       TimeUtil.withDefaults.toZonedDateTime(simonaTimeConfig.endDateTime)
     )
 
-  private val parallelWindow = SimonaConstants.PARALLELISM_WINDOW
-
   // if currentTick % checkWindowTick == 0 and all completionMessages have been
   // received for currentTick, a CheckWindowPassed RuntimeEvent is issued
   private val schedulerReadyCheckWindow =
@@ -140,12 +138,11 @@ trait SchedulerHelper extends SimonaActorLogging {
         /* we do not want to pause the schedule, go on with normal schedule handling  */
         if (notFinishedAndTriggerAvailable(nowInTicks, stateData)) {
 
-          /* if we do not exceed nowInSeconds + parallelWindow OR do not wait on any responses we can send out new triggers */
+          /* if we do not exceed nowInSeconds OR do not wait on any responses we can send out new triggers */
           if (
             canWeAdvanceInTime(
               stateData.trigger.awaitingResponseMap,
-              nowInTicks,
-              parallelWindow
+              nowInTicks
             )
           ) {
 
@@ -159,12 +156,11 @@ trait SchedulerHelper extends SimonaActorLogging {
               eligibleTriggerSendStateData.time.nowInTicks
             )
 
-            /* if we do not exceed (nowInTicks+1) + parallelWindow OR do not wait on any responses, we can move on in time by one tick */
+            /* if we do not exceed (nowInTicks+1) OR do not wait on any responses, we can move on in time by one tick */
             if (
               nowInTicks <= endTick && canWeAdvanceInTime(
                 updatedStateData.trigger.awaitingResponseMap,
-                nowInTicks + 1,
-                parallelWindow
+                nowInTicks + 1
               )
             ) {
               val nextStateData =
@@ -203,7 +199,7 @@ trait SchedulerHelper extends SimonaActorLogging {
           val stateDataAfterCheckWindow = maybeCheckWindowPassed(
             stateData,
             schedulerReadyCheckWindow,
-            nowInTicks - parallelWindow) */
+            nowInTicks) */
 
           maybeFinishSimulation(stateData)
         }
@@ -304,26 +300,23 @@ trait SchedulerHelper extends SimonaActorLogging {
       stateData.trigger.triggerQueue.headKeyOption.exists(_ <= endTick)
 
   /** Checks if we can move on in time in the schedule by comparing the awaiting
-    * response map data with the current tick and the parallelWindow data
+    * response map data with the current tick
     *
     * @param awaitingResponseMap
     *   the map containing all information about triggers we still wait for
     *   completion messages
     * @param nowInTicks
     *   the current tick
-    * @param parallelWindow
-    *   the parallel window tick information
     * @return
     *   true if trigger can be send, false otherwise
     */
   private def canWeAdvanceInTime(
       awaitingResponseMap: CountingMap[Long],
-      nowInTicks: Long,
-      parallelWindow: Long
+      nowInTicks: Long
   ): Boolean =
     awaitingResponseMap.minKeyOption match {
       case Some(minKey) =>
-        nowInTicks - minKey <= parallelWindow
+        nowInTicks <= minKey
       case None =>
         true // map empty, no completions awaited
     }
@@ -363,7 +356,7 @@ trait SchedulerHelper extends SimonaActorLogging {
       && stateData.event.lastCheckWindowPassedTick < nowInTicks
     ) {
       // calculate duration
-      val duration = calcDuration(stateData.time.checkStepStartTime.toDouble)
+      val duration = calcDuration(stateData.time.checkStepStartTime)
 
       // notify listeners
       notifyListener(CheckWindowPassed(nowInTicks, duration))
@@ -412,7 +405,7 @@ trait SchedulerHelper extends SimonaActorLogging {
       notifyListener(
         Ready(
           nowInTicks,
-          calcDuration(stateData.time.readyStepStartTime.toDouble)
+          calcDuration(stateData.time.readyStepStartTime)
         )
       )
 
@@ -473,8 +466,8 @@ trait SchedulerHelper extends SimonaActorLogging {
       stateData: SchedulerStateData,
       errorInSim: Boolean = false
   ): SchedulerStateData = {
-    val totalSimDuration: Double = stateData.time.simStartTime
-      .map(startTime => calcDuration(startTime.toDouble))
+    val totalSimDuration: Long = stateData.time.simStartTime
+      .map(startTime => calcDuration(startTime))
       .getOrElse(0)
 
     /* unwatch all agents that have triggered themselves as the simulation will shutdown now */
@@ -486,9 +479,10 @@ trait SchedulerHelper extends SimonaActorLogging {
     )
 
     /* notify listeners */
+    /*The usage of min is necessary because the scheduler overshoots the target tick by 1 at the end of the simulation*/
     notifyListener(
       Done(
-        endTick,
+        Math.min(stateData.time.nowInTicks, endTick),
         totalSimDuration,
         stateData.runtime.noOfFailedPF,
         errorInSim
@@ -647,18 +641,17 @@ trait SchedulerHelper extends SimonaActorLogging {
 
           /* if there are no triggers left to send and we are only receiving completion messages, we still might
            * pass a ready check window, this call is to ensure that for the last tick of the simulation a CheckWindowPassed()
-           * is issued lastTick % schedulerReadyCheckWindow == 0, parallel window does not account for last tick */
+           * is issued lastTick % schedulerReadyCheckWindow == 0 */
           maybeCheckWindowPassed(
             updatedStateData,
             schedulerReadyCheckWindow,
             stateData.time.nowInTicks - 1
           )
-          /* if resolution == schedulerCheckWindow we need to subtract the parallel window for the current tick as we might
-           * move on in time already will still receiving completion messages for nowInTicks - parallelWindow */
+
           maybeCheckWindowPassed(
             updatedStateData,
             schedulerReadyCheckWindow,
-            stateData.time.nowInTicks - parallelWindow
+            stateData.time.nowInTicks
           )
         } else {
           /* we are @ the init tick (SimonaSim#initTick), if no init triggers are in the queue and in the await map
@@ -673,7 +666,7 @@ trait SchedulerHelper extends SimonaActorLogging {
           /* steps to be carried out when init is done */
           val updatedStateData = if (initDone) {
             val initDuration = calcDuration(
-              stateData.time.initStartTime.toDouble
+              stateData.time.initStartTime
             )
 
             notifyListener(InitComplete(initDuration))
@@ -787,8 +780,8 @@ trait SchedulerHelper extends SimonaActorLogging {
     *   the duration between the given start time and the current system time in
     *   milliseconds
     */
-  protected def calcDuration(startTime: Double): Double = {
-    (System.nanoTime - startTime).doubleValue() / 1e6d // in msec
+  protected def calcDuration(startTime: Long): Long = {
+    (System.nanoTime - startTime) / 1000000L // in msec
   }
 
   /** Adds the provided trigger to the trigger queue to schedule it at the
@@ -842,7 +835,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     context.watch(actorToBeScheduled)
 
     // if the tick of this trigger is too much in the past, we cannot schedule it
-    if (stateData.time.nowInTicks - trigger.tick > parallelWindow) {
+    if (stateData.time.nowInTicks > trigger.tick) {
       actorToBeScheduled ! IllegalTriggerMessage(
         s"Cannot schedule an event $trigger at tick ${trigger.tick} when 'nowInSeconds' is at ${stateData.time.nowInTicks}!",
         actorToBeScheduled

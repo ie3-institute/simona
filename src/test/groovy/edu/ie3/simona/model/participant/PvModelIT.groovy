@@ -6,9 +6,11 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.io.naming.FileNamingStrategy
+import edu.ie3.datamodel.io.source.csv.CsvJointGridContainerSource
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.simona.io.grid.CsvGridSource
+import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -114,7 +116,6 @@ class PvModelIT extends Specification implements PvModelITHelper {
 
         modelI++
       }
-
     }
 
     then: "we expect the calculated result to be quasi equal the provided results data"
@@ -139,15 +140,14 @@ trait PvModelITHelper {
   HashMap<String, PvModel> createPvModels() {
     "load the grid input data from the corresponding resources folder"
 
-    def csvGridSource = CsvGridSource.readGrid("it_grid", ";",
-        this.getClass().getResource("_pv/it/grid_data").file,
-        new FileNamingStrategy())
+    def csvGridSource = CsvJointGridContainerSource.read("it_grid", ";",
+        this.getClass().getResource("_pv/it/grid_data").file)
 
     def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2011-01-01 00:00:00")
     def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2012-01-01 00:00:00")
 
     HashMap<String, PvModel> pvModels = new HashMap<>()
-    for (PvInput inputModel : csvGridSource.get().getSystemParticipants().getPvPlants()) {
+    for (PvInput inputModel : csvGridSource.systemParticipants.pvPlants) {
       PvModel model = PvModel.apply(
           inputModel,
           1d,

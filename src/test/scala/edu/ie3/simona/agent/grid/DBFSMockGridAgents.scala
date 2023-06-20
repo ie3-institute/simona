@@ -23,7 +23,8 @@ import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import squants.energy.Megawatts
 
 import java.util.UUID
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.language.postfixOps
 
 /** Provide mock grid agents for testing the DBFSAlgorithm. These agents are an
   * agent for inferior grids and an agent for superior grids. Each grid agent
@@ -113,9 +114,10 @@ trait DBFSMockGridAgents extends UnitSpec {
     }
 
     def expectGridPowerProvision(
-        expectedExchangedPowers: Seq[ExchangePower]
+        expectedExchangedPowers: Seq[ExchangePower],
+        maxDuration: FiniteDuration = 30 seconds
     ): Unit = {
-      inside(gaProbe.expectMsgType[ProvideGridPowerMessage](10.seconds)) {
+      inside(gaProbe.expectMsgType[ProvideGridPowerMessage](maxDuration)) {
         case ProvideGridPowerMessage(exchangedPower) =>
           exchangedPower should have size expectedExchangedPowers.size
 

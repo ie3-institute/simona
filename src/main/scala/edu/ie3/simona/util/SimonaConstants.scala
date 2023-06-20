@@ -25,10 +25,4 @@ object SimonaConstants {
     */
   val FIRST_TICK_IN_SIMULATION: Long = 0L
 
-  /** Amount of ticks, that an agent is allowed to be ahead of the slowest agent
-    * in population
-    */
-  val PARALLELISM_WINDOW = 0L
-  // TODO: NSteffan: Changed from 0L to 1L, with 0 the MobiltiySimulator didn't work(?)
-  // SP: it works with 0, but double check this?
 }

@@ -16,71 +16,8 @@ import edu.ie3.datamodel.models.input.thermal.{
 }
 
 import scala.jdk.CollectionConverters._
-import scala.jdk.OptionConverters._
 
 object CsvGridSource {
-  def readGrid(
-      gridName: String,
-      csvSep: String,
-      baseFolder: String,
-      fileNamingStrategy: FileNamingStrategy
-  ): Option[JointGridContainer] = {
-
-    // build the sources
-    val csvTypeSource: CsvTypeSource =
-      new CsvTypeSource(csvSep, baseFolder, fileNamingStrategy)
-    val csvRawGridSource: CsvRawGridSource = new CsvRawGridSource(
-      csvSep,
-      baseFolder,
-      fileNamingStrategy,
-      csvTypeSource
-    )
-    val csvThermalSource: CsvThermalSource = new CsvThermalSource(
-      csvSep,
-      baseFolder,
-      fileNamingStrategy,
-      csvTypeSource
-    )
-    val csvSystemParticipantSource: CsvSystemParticipantSource =
-      new CsvSystemParticipantSource(
-        csvSep,
-        baseFolder,
-        fileNamingStrategy,
-        csvTypeSource,
-        csvThermalSource,
-        csvRawGridSource
-      )
-    val csvGraphicSource: CsvGraphicSource = new CsvGraphicSource(
-      csvSep,
-      baseFolder,
-      fileNamingStrategy,
-      csvTypeSource,
-      csvRawGridSource
-    )
-
-    // read and get the models
-    val rawGridElements = csvRawGridSource.getGridData.toScala
-    val systemParticipants =
-      csvSystemParticipantSource.getSystemParticipants.toScala
-    val graphicElements = csvGraphicSource.getGraphicElements.toScala
-
-    (rawGridElements, systemParticipants, graphicElements) match {
-      case (
-            Some(rawGridElements),
-            Some(systemParticipants),
-            Some(graphicElements)
-          ) =>
-        Some(
-          new JointGridContainer(
-            gridName,
-            rawGridElements,
-            systemParticipants,
-            graphicElements
-          )
-        )
-      case (_, _, _) => None
-    }
-  }
 
   def readThermalGrids(
       csvSep: String,

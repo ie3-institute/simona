@@ -49,7 +49,6 @@ class SystemParticipantTest extends Specification {
     "cosPhiFixed:{(0.0,0.9)}" | -100 || -48.432210483785254000
     "cosPhiFixed:{(0.0,0.9)}" | -200 || 0
     "cosPhiFixed:{(0.0,1.0)}" | 100  || 0
-
   }
 
   def "Test calculateQ for a load unit with cosphi_p"() {
@@ -80,7 +79,6 @@ class SystemParticipantTest extends Specification {
 
     // first line is "with P" -> positive Q (influence on voltage level: decrease) is expected
     // second line is "against P" -> negative Q (influence on voltage level: increase) is expected
-
   }
 
   def "Test calculateQ for a generation unit with cosphi_p"() {
@@ -111,7 +109,6 @@ class SystemParticipantTest extends Specification {
 
     // first line is "with P" -> negative Q (influence on voltage level: increase) is expected
     // second line is "against P" -> positive Q (influence on voltage level: decrease) is expected
-
   }
 
   def "Test calculateQ for a standard q_v characteristic"() {

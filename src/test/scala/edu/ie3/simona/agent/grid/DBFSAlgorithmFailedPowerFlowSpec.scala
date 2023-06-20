@@ -38,6 +38,7 @@ import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Megavars
 import squants.energy.Megawatts
 
+import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
 class DBFSAlgorithmFailedPowerFlowSpec
@@ -242,7 +243,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       // the requested power is to high for the grid to handle, therefore the superior grid agent
       // receives a FailedPowerFlow message
-      superiorGridAgent.gaProbe.expectMsg(FailedPowerFlow)
+      // wait 30 seconds max for power flow to finish
+      superiorGridAgent.gaProbe.expectMsg(30 seconds, FailedPowerFlow)
 
       // normally the slack node would send a FinishGridSimulationTrigger to all
       // connected inferior grids, because the slack node is just a mock, we imitate this behavior

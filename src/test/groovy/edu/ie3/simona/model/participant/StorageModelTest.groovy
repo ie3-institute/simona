@@ -33,49 +33,49 @@ class StorageModelTest extends Specification {
 
   def setupSpec() {
     def nodeInput = new NodeInput(
-        UUID.fromString("ad39d0b9-5ad6-4588-8d92-74c7d7de9ace"),
-        "NodeInput",
-        OperatorInput.NO_OPERATOR_ASSIGNED,
-        OperationTime.notLimited(),
-        getQuantity(1d, PU),
-        false,
-        NodeInput.DEFAULT_GEO_POSITION,
-        GermanVoltageLevelUtils.LV,
-        -1)
+    UUID.fromString("ad39d0b9-5ad6-4588-8d92-74c7d7de9ace"),
+    "NodeInput",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    getQuantity(1d, PU),
+    false,
+    NodeInput.DEFAULT_GEO_POSITION,
+    GermanVoltageLevelUtils.LV,
+    -1)
 
     def typeInput = new StorageTypeInput(
-        UUID.fromString("fbee4995-24dd-45e4-9c85-7d986fe99ff3"),
-        "Test_StorageTypeInput",
-        getQuantity(100d, EURO),
-        getQuantity(101d, EURO_PER_MEGAWATTHOUR),
-        getQuantity(100d, KILOWATTHOUR),
-        getQuantity(13d, KILOVOLTAMPERE),
-        0.997,
-        getQuantity(10d, KILOWATT),
-        getQuantity(0.03, PU_PER_HOUR),
-        getQuantity(0.9, PU),
-        getQuantity(20d, PERCENT),
-        getQuantity(43800.0, HOUR),
-        100000
-        )
+    UUID.fromString("fbee4995-24dd-45e4-9c85-7d986fe99ff3"),
+    "Test_StorageTypeInput",
+    getQuantity(100d, EURO),
+    getQuantity(101d, EURO_PER_MEGAWATTHOUR),
+    getQuantity(100d, KILOWATTHOUR),
+    getQuantity(13d, KILOVOLTAMPERE),
+    0.997,
+    getQuantity(10d, KILOWATT),
+    getQuantity(0.03, PU_PER_HOUR),
+    getQuantity(0.9, PU),
+    getQuantity(20d, PERCENT),
+    getQuantity(43800.0, HOUR),
+    100000
+    )
 
     inputModel = new StorageInput(
-        UUID.randomUUID(),
-        "Test_StorageInput",
-        new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
-        OperationTime.notLimited(),
-        nodeInput,
-        CosPhiFixed.CONSTANT_CHARACTERISTIC,
-        typeInput
-        )
+    UUID.randomUUID(),
+    "Test_StorageInput",
+    new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
+    OperationTime.notLimited(),
+    nodeInput,
+    CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    typeInput
+    )
   }
 
   def buildStorageModel(Option<Double> targetSoc = Option.empty()) {
     return StorageModel.apply(inputModel, 1,
-        TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
-        TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00"),
-        0d,
-        targetSoc)
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00"),
+    0d,
+    targetSoc)
   }
 
   def "Calculate flex options"() {
@@ -84,10 +84,10 @@ class StorageModelTest extends Specification {
     def startTick = 3600L
     def data = new StorageModel.StorageRelevantData(startTick + timeDelta)
     def oldState = new StorageModel.StorageState(
-        Sq.create(lastStored.doubleValue(), KilowattHours$.MODULE$),
-        Sq.create(lastPower.doubleValue(), Kilowatts$.MODULE$),
-        startTick
-        )
+    Sq.create(lastStored.doubleValue(), KilowattHours$.MODULE$),
+    Sq.create(lastPower.doubleValue(), Kilowatts$.MODULE$),
+    startTick
+    )
 
     when:
     def result = (FlexibilityMessage.ProvideMinMaxFlexOptions) storageModel.determineFlexOptions(data, oldState)
@@ -133,10 +133,10 @@ class StorageModelTest extends Specification {
     def startTick = 3600L
     def data = new StorageModel.StorageRelevantData(startTick + 1)
     def oldState = new StorageModel.StorageState(
-        Sq.create(lastStored.doubleValue(), KilowattHours$.MODULE$),
-        Sq.create(0d, Kilowatts$.MODULE$),
-        startTick
-        )
+    Sq.create(lastStored.doubleValue(), KilowattHours$.MODULE$),
+    Sq.create(0d, Kilowatts$.MODULE$),
+    startTick
+    )
 
     when:
     def result = (FlexibilityMessage.ProvideMinMaxFlexOptions) storageModel.determineFlexOptions(data, oldState)
@@ -273,17 +273,17 @@ class StorageModelTest extends Specification {
     def data = new StorageModel.StorageRelevantData(startTick + 1)
     // margin is at ~ 20.0030864 kWh
     def oldState = new StorageModel.StorageState(
-        Sq.create(20.002d, KilowattHours$.MODULE$),
-        Sq.create(0d, Kilowatts$.MODULE$),
-        startTick
-        )
+    Sq.create(20.002d, KilowattHours$.MODULE$),
+    Sq.create(0d, Kilowatts$.MODULE$),
+    startTick
+    )
 
     when:
     def result = storageModel.handleControlledPowerChange(
-        data,
-        oldState,
-        Sq.create(-5d, Kilowatts$.MODULE$)
-        )
+    data,
+    oldState,
+    Sq.create(-5d, Kilowatts$.MODULE$)
+    )
 
     then:
     Math.abs(result._1.chargingPower().toKilowatts()) < TOLERANCE
@@ -301,17 +301,17 @@ class StorageModelTest extends Specification {
     def data = new StorageModel.StorageRelevantData(startTick + 1)
     // margin is at ~ 99.9975 kWh
     def oldState = new StorageModel.StorageState(
-        Sq.create(99.999d, KilowattHours$.MODULE$),
-        Sq.create(0d, Kilowatts$.MODULE$),
-        startTick
-        )
+    Sq.create(99.999d, KilowattHours$.MODULE$),
+    Sq.create(0d, Kilowatts$.MODULE$),
+    startTick
+    )
 
     when:
     def result = storageModel.handleControlledPowerChange(
-        data,
-        oldState,
-        Sq.create(9d, Kilowatts$.MODULE$)
-        )
+    data,
+    oldState,
+    Sq.create(9d, Kilowatts$.MODULE$)
+    )
 
     then:
     Math.abs(result._1.chargingPower().toKilowatts()) < TOLERANCE
@@ -329,17 +329,17 @@ class StorageModelTest extends Specification {
     def data = new StorageModel.StorageRelevantData(startTick + 1)
     // margin is at ~ 30.0025 kWh
     def oldState = new StorageModel.StorageState(
-        Sq.create(30.0024d, KilowattHours$.MODULE$),
-        Sq.create(0d, Kilowatts$.MODULE$),
-        startTick
-        )
+    Sq.create(30.0024d, KilowattHours$.MODULE$),
+    Sq.create(0d, Kilowatts$.MODULE$),
+    startTick
+    )
 
     when:
     def result = storageModel.handleControlledPowerChange(
-        data,
-        oldState,
-        Sq.create(-10d, Kilowatts$.MODULE$)
-        )
+    data,
+    oldState,
+    Sq.create(-10d, Kilowatts$.MODULE$)
+    )
 
     then:
     Math.abs(result._1.chargingPower().toKilowatts() - (-9d)) < TOLERANCE
@@ -357,17 +357,17 @@ class StorageModelTest extends Specification {
     def data = new StorageModel.StorageRelevantData(startTick + 1)
     // margin is at ~ 39.9975 kWh
     def oldState = new StorageModel.StorageState(
-        Sq.create(39.998d, KilowattHours$.MODULE$),
-        Sq.create(0d, Kilowatts$.MODULE$),
-        startTick
-        )
+    Sq.create(39.998d, KilowattHours$.MODULE$),
+    Sq.create(0d, Kilowatts$.MODULE$),
+    startTick
+    )
 
     when:
     def result = storageModel.handleControlledPowerChange(
-        data,
-        oldState,
-        Sq.create(5d, Kilowatts$.MODULE$)
-        )
+    data,
+    oldState,
+    Sq.create(5d, Kilowatts$.MODULE$)
+    )
 
     then:
     Math.abs(result._1.chargingPower().toKilowatts() - (4.5d)) < TOLERANCE

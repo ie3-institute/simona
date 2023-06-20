@@ -25,7 +25,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.trigger.Trigger
 import edu.ie3.simona.scheduler.SimSchedulerStateData.ScheduledTrigger
-import edu.ie3.simona.util.SimonaConstants.PARALLELISM_WINDOW
 
 import java.util.UUID
 
@@ -35,8 +34,6 @@ trait EmSchedulerHelper {
   this: EmAgent =>
 
   protected final implicit val system: ActorSystem = context.system
-
-  protected val parallelWindow: Long = PARALLELISM_WINDOW
 
   /** Main method to handle all [[CompletionMessage]]s received by the
     * scheduler. Based on the received completion message, the provided
@@ -202,7 +199,7 @@ trait EmSchedulerHelper {
   ): TriggerData = {
 
     // if the tick of this trigger is too far in the past, we cannot schedule it
-    if (nowInTicks - trigger.tick > parallelWindow) {
+    if (nowInTicks > trigger.tick) {
       actorToBeScheduled ! IllegalTriggerMessage(
         s"Cannot schedule an event $trigger at tick ${trigger.tick} when 'nowInSeconds' is at $nowInTicks!",
         actorToBeScheduled

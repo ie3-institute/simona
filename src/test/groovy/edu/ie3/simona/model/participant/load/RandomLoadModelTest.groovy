@@ -142,13 +142,11 @@ class RandomLoadModelTest extends Specification {
     }).collect(Collectors.toSet())
 
     when:
-    def avgEnergy = (0..10).parallelStream().mapToDouble(
-        { runCnt ->
-          relevantDatas.parallelStream().mapToDouble(
-              { relevantData ->
-                (dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData).$times(Sq.create(15d, Minutes$.MODULE$))).toKilowattHours()
-              }).sum()
-        }).average().orElse(0d)
+    def avgEnergy = (0..10).parallelStream().mapToDouble( { runCnt ->
+      relevantDatas.parallelStream().mapToDouble( { relevantData ->
+        (dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData).$times(Sq.create(15d, Minutes$.MODULE$))).toKilowattHours()
+      }).sum()
+    }).average().orElse(0d)
 
     then:
     abs(avgEnergy - 3000) / 3000 < 0.01
