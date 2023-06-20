@@ -711,7 +711,6 @@ final case class PvModel private (
     /* The actual yield of this sum of available panels. As the solar irradiance summed up over the total panel surface
      * area. The yield also takes care of generator and temperature correction factors as well as the converter's
      * efficiency */
-    // TODO Check if this make sense, but eTotal comes in Wh/m² but needs to be in kWh/m²
     val `yield` =
       eTotalInWhPerSM * 0.001 * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
 
