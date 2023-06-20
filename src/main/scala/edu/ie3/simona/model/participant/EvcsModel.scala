@@ -198,17 +198,35 @@ final case class EvcsModel(
   ): (squants.Energy, EvModel) = {
     if (evModel.getStoredEnergy.isLessThan(evModel.getEStorage)) {
       val chargingPower =
-        sRated.min(Kilowatts(evModel.getSRatedAC.getValue.doubleValue()))
+        sRated.min(
+          Kilowatts(
+            evModel.getSRatedAC
+              .to(PowerSystemUnits.KILOWATT)
+              .getValue
+              .doubleValue()
+          )
+        )
 
       val chargeLeftToFull = KilowattHours(
-        evModel.getEStorage.getValue.doubleValue()
-      ) - KilowattHours(evModel.getStoredEnergy.getValue.doubleValue())
+        evModel.getEStorage
+          .to(PowerSystemUnits.KILOWATTHOUR)
+          .getValue
+          .doubleValue()
+      ) - KilowattHours(
+        evModel.getStoredEnergy
+          .to(PowerSystemUnits.KILOWATTHOUR)
+          .getValue
+          .doubleValue()
+      )
 
       val potentialChargeDuringTick = chargingPower * duration
 
       val actualCharge = chargeLeftToFull.min(potentialChargeDuringTick)
       val newStoredEnergy = KilowattHours(
-        evModel.getStoredEnergy.getValue.doubleValue()
+        evModel.getStoredEnergy
+          .to(PowerSystemUnits.KILOWATTHOUR)
+          .getValue
+          .doubleValue()
       ) + actualCharge
 
       (
@@ -275,7 +293,12 @@ object EvcsModel {
       operationInterval,
       scalingFactor,
       QControl(inputModel.getqCharacteristics),
-      Kilowatts(inputModel.getType.getsRated.getValue.doubleValue()),
+      Kilowatts(
+        inputModel.getType.getsRated
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue()
+      ),
       inputModel.getCosPhiRated,
       inputModel.getChargingPoints,
       inputModel.getLocationType
