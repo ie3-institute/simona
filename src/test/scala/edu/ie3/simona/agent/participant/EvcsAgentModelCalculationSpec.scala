@@ -473,7 +473,7 @@ class EvcsAgentModelCalculationSpec
 
       /* I'm not interested in the content of the RegistrationMessage */
       evService.expectMsgType[RegisterForEvDataMessage]
-      evService.send(evcsAgent, RegistrationSuccessfulMessage(Some(0L)))
+      evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]
