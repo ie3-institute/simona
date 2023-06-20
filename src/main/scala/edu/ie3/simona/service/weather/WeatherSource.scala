@@ -6,11 +6,7 @@
 
 package edu.ie3.simona.service.weather
 
-import edu.ie3.datamodel.io.factory.timeseries.{
-  CosmoIdCoordinateFactory,
-  IconIdCoordinateFactory,
-  IdCoordinateFactory
-}
+import edu.ie3.datamodel.io.factory.timeseries.{CosmoIdCoordinateFactory, IconIdCoordinateFactory, IdCoordinateFactory}
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
@@ -19,34 +15,24 @@ import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
-import edu.ie3.simona.exceptions.{
-  InvalidConfigParameterException,
-  ServiceException
-}
+import edu.ie3.simona.exceptions.{InvalidConfigParameterException, ServiceException}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.simona.service.weather.WeatherSource.{
-  AgentCoordinates,
-  WeightedCoordinates
-}
+import edu.ie3.simona.service.weather.WeatherSource.{AgentCoordinates, WeightedCoordinates}
 import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
-import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
-  checkCouchbaseParams,
-  checkInfluxDb1xParams,
-  checkSqlParams
-}
+import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{checkCouchbaseParams, checkInfluxDb1xParams, checkSqlParams}
 import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.locationtech.jts.geom.{Coordinate, Point}
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import squants.motion.MetersPerSecond
-import squants.thermal.Celsius
+import squants.thermal.{Celsius, Kelvin}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import javax.measure.Quantity
-import javax.measure.quantity.{Dimensionless, Length, Temperature}
+import javax.measure.quantity.{Dimensionless, Length}
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -513,7 +499,7 @@ object WeatherSource {
   val EMPTY_WEATHER_DATA: WeatherData = WeatherData(
     WattsPerSquareMeter(0.0),
     WattsPerSquareMeter(0.0),
-    Celsius(0d),
+    Kelvin(0d),
     MetersPerSecond(0d)
   )
 
@@ -543,9 +529,9 @@ object WeatherSource {
         .orElse(EMPTY_WEATHER_DATA.dirIrr),
       weatherValue.getTemperature.getTemperature
         .map(temperature =>
-          Celsius(
+          Kelvin(
             temperature
-              .to(Units.CELSIUS)
+              .to(Units.KELVIN)
               .getValue
               .doubleValue()
           )

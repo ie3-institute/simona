@@ -14,6 +14,7 @@ import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.geo.CoordinateDistance
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.locationtech.jts.geom.Point
+import squants.Kelvin
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 
@@ -78,11 +79,11 @@ final class SampleWeatherSource(
           .directRadiation(index)
           .doubleValue
       ),
-      Celsius(
+      Celsius(Kelvin(
         SampleWeatherSource
           .temperature(index)
           .doubleValue
-      ),
+      ).toCelsiusScale),
       MetersPerSecond(
         SampleWeatherSource
           .windVelocity(index)
