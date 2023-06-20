@@ -6,21 +6,9 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants.energy.{Power, WattHours, Watts, WattsPerHour}
-import squants.time.{Hours, TimeIntegral}
-import squants.{
-  Dimension,
-  Each,
-  Energy,
-  MetricSystem,
-  PowerRamp,
-  PrimaryUnit,
-  Quantity,
-  SiUnit,
-  Time,
-  UnitConverter,
-  UnitOfMeasure
-}
+import squants.energy._
+import squants.time.{Hours, Time, TimeIntegral}
+import squants._
 
 import scala.util.Try
 
