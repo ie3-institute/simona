@@ -93,10 +93,10 @@ final case class PvModel private (
       data.diffIrradiance * duration
 
     // === Beam Radiation Parameters  === //
-    val J = calcJ(data.dateTime)
-    val delta = calcSunDeclinationDelta(J)
+    val angleJ = calcJ(data.dateTime)
+    val delta = calcSunDeclinationDelta(angleJ)
 
-    val omega = calcHourAngleOmega(data.dateTime, J, locInRad)
+    val omega = calcHourAngleOmega(data.dateTime, angleJ, locInRad)
 
     val omegaSS = calcSunsetAngleOmegaSS(latInRad, delta)
     val omegaSR = calcSunriseAngleOmegaSR(omegaSS)
@@ -120,7 +120,7 @@ final case class PvModel private (
     // === Diffuse Radiation Parameters ===//
     val thetaZ = calcZenithAngleThetaZ(alphaS)
     val airMass = calcAirMass(thetaZ)
-    val I0 = calcExtraterrestrialRadiationI0(J)
+    val I0 = calcExtraterrestrialRadiationI0(angleJ)
 
     // === Diffuse Radiation ===//
     val eDifS = calcDiffuseRadiationOnSlopedSurfacePerez(
@@ -353,8 +353,8 @@ final case class PvModel private (
     ) + 0.000077 * sin(2d * jInRad)
 
     // solar constant in W/m2
-    val Gsc = WattHoursPerSquareMeter(1367) // solar constant
-    Gsc * e0
+    val gsc = WattHoursPerSquareMeter(1367) // solar constant
+    gsc * e0
   }
 
   /** Calculates the angle of incidence thetaG of beam radiation on a surface
@@ -541,7 +541,7 @@ final case class PvModel private (
     *   beam radiation on a horizontal surface
     * @param airMass
     *   the air mass
-    * @param I0
+    * @param i0
     *   extraterrestrial radiation
     * @param thetaZ
     *   zenith angle
@@ -557,7 +557,7 @@ final case class PvModel private (
       eDifH: Irradiation,
       eBeamH: Irradiation,
       airMass: Double,
-      I0: Irradiation,
+      i0: Irradiation,
       thetaZ: squants.Angle,
       thetaG: squants.Angle,
       gammaE: squants.Angle
@@ -567,7 +567,7 @@ final case class PvModel private (
     val gammaEValue = gammaE.toRadians
 
     // == brightness index beta  ==//
-    val beta = eDifH * airMass / I0
+    val beta = eDifH * airMass / i0
 
     // == cloud index epsilon  ==//
     // if we have no clouds,  the epsilon bin is 8, as epsilon bin for an epsilon in [6.2, inf.[ = 8
