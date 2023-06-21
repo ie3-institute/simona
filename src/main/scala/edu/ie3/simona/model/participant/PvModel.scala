@@ -167,15 +167,15 @@ final case class PvModel private (
     * equator. Formula taken from Spencer, J.W. "Fourier series representation
     * of the position of the sun". Appl. Opt. 1971, 10, 2569–2571
     *
-    * @param J
+    * @param angleJ
     *   day angle in radians
     * @return
     *   declination angle in radians
     */
   private def calcSunDeclinationDelta(
-      J: squants.Angle
+      angleJ: squants.Angle
   ): squants.Angle = {
-    val jInRad = J.toRadians
+    val jInRad = angleJ.toRadians
     Radians(
       0.006918 - 0.399912 * cos(jInRad) + 0.070257 * sin(
         jInRad
@@ -195,7 +195,7 @@ final case class PvModel private (
     *
     * @param time
     *   the requested time (which is transformed to solar time)
-    * @param J
+    * @param angleJ
     *   day angle in radians
     * @param longitudeInRad
     *   longitude of the position in radians
@@ -204,10 +204,10 @@ final case class PvModel private (
     */
   private def calcHourAngleOmega(
       time: ZonedDateTime,
-      J: squants.Angle,
+      angleJ: squants.Angle,
       longitudeInRad: squants.Angle
   ): squants.Angle = {
-    val jInRad = J.toRadians
+    val jInRad = angleJ.toRadians
     val lambda = longitudeInRad.toDegrees
     val et = Quantities.getQuantity(
       0.0066 + 7.3525 * cos(jInRad + 1.4992378274631293) + 9.9359 * cos(
@@ -335,15 +335,15 @@ final case class PvModel private (
   /** Calculates the extraterrestrial radiation, that is, the radiation that
     * would be received in the absence of the atmosphere.
     *
-    * @param J
+    * @param angleJ
     *   day angle in radians
     * @return
     *   extraterrestrial radiation I0
     */
   private def calcExtraterrestrialRadiationI0(
-      J: squants.Angle
+      angleJ: squants.Angle
   ): Irradiation = {
-    val jInRad = J.toRadians
+    val jInRad = angleJ.toRadians
 
     // eccentricity correction factor
     val e0 = 1.000110 + 0.034221 * cos(jInRad) + 0.001280 * sin(

@@ -61,7 +61,7 @@ object WattHoursPerKelvinCubicMeters
     extends SpecificHeatCapacityUnit
     with PrimaryUnit
     with SiUnit {
-  def symbol = "kWh/K*m³"
+  def symbol = "kWh/Km³"
 }
 
 object ThermalCapacityConversions {
