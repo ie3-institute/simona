@@ -6,6 +6,9 @@
 
 package edu.ie3.simona.model.thermal
 
+import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
+import static tech.units.indriya.quantity.Quantities.getQuantity
+
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.util.scala.quantities.Sq
@@ -15,13 +18,6 @@ import spock.lang.Specification
 import squants.energy.*
 import squants.space.CubicMeters$
 import squants.thermal.Celsius$
-
-import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
-import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE
-import static edu.ie3.util.quantities.QuantityUtil.isEquivalentAbs
-import static tech.units.indriya.quantity.Quantities.getQuantity
-import static tech.units.indriya.unit.Units.CELSIUS
-import static tech.units.indriya.unit.Units.CUBIC_METRE
 
 class CylindricalThermalStorageTest extends Specification {
 

@@ -110,7 +110,7 @@ class EvcsModelTest extends Specification {
     def res = evcsModel.calculateActivePowerAndEvSoc(data)
 
     then:
-    Sq.create(res._1().toKilowatts(),KilowattHours$.MODULE$) =~ solPower
+    Sq.create(res._1().toKilowatts(), KilowattHours$.MODULE$) =~ solPower
     res._2().size() == 2
     Sq.create(res._2().head().storedEnergy.value.doubleValue(), KilowattHours$.MODULE$) =~ solEv1Stored
     Sq.create(res._2().last().storedEnergy.value.doubleValue(), KilowattHours$.MODULE$) =~ solEv2Stored

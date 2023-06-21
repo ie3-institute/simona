@@ -16,7 +16,6 @@ import edu.ie3.datamodel.models.input.system.type.WecTypeInput
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.Sq
-import scala.None
 import scala.Option
 import scala.Some
 import spock.lang.Shared
@@ -26,7 +25,7 @@ import squants.Each$
 import squants.energy.Kilowatts$
 import squants.motion.MetersPerSecond$
 import squants.motion.Pascals$
-import squants.motion.Pressure
+
 import squants.space.SquareMeters$
 import squants.thermal.Celsius$
 

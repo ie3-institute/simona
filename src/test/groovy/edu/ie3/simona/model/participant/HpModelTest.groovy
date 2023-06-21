@@ -27,10 +27,7 @@ import spock.lang.Unroll
 
 import squants.energy.Kilowatts$
 import squants.thermal.Celsius$
-import squants.time.Seconds$
 
-import javax.measure.Unit
-import javax.measure.quantity.Temperature
 
 import static edu.ie3.util.quantities.PowerSystemUnits.KILOVOLTAMPERE
 import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
