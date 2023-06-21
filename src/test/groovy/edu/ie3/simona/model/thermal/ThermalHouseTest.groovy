@@ -122,8 +122,8 @@ class ThermalHouseTest extends Specification {
     thermalHouse.operatorInput() == thermalHouseInput.operator
     thermalHouse.operationTime() == thermalHouseInput.operationTime
     thermalHouse.bus() == thermalHouseInput.thermalBus
-    thermalHouse.ethLosses().value().doubleValue() == thermalHouseInput.ethLosses.to(KILOWATT_PER_KELVIN).getValue().doubleValue() * 1000
-    (thermalHouse.ethCapa().$times(Sq.create(1d, Kelvin$.MODULE$))).toKilowattHours() == thermalHouseInput.ethCapa.to(KILOWATTHOUR_PER_KELVIN).getValue().doubleValue()
+    thermalHouse.ethLosses().value().doubleValue() == thermalHouseInput.ethLosses.to(KILOWATT_PER_KELVIN).value.doubleValue() * 1000
+    (thermalHouse.ethCapa().$times(Sq.create(1d, Kelvin$.MODULE$))).toKilowattHours() == thermalHouseInput.ethCapa.to(KILOWATTHOUR_PER_KELVIN).value.doubleValue()
     thermalHouse.lowerBoundaryTemperature() == Sq.create(18, Celsius$.MODULE$)
     thermalHouse.upperBoundaryTemperature() == Sq.create(22, Celsius$.MODULE$)
   }

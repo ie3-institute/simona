@@ -36,9 +36,6 @@ class EvcsModelTest extends Specification {
   @Shared
   int chargingPoints = 2
 
-
-
-
   def getStandardModel(Power sRated) {
     return new EvcsModel(
         UUID.fromString("06a14909-366e-4e94-a593-1016e1455b30"),

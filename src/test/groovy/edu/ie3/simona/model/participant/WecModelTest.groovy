@@ -100,13 +100,13 @@ class WecModelTest extends Specification {
     when:
     def wecModel = buildWecModel()
     then:
-    wecModel.uuid() == inputModel.getUuid()
-    wecModel.id() == inputModel.getId()
+    wecModel.uuid() == inputModel.uuid
+    wecModel.id() == inputModel.id
     wecModel.scalingFactor() == 1
-    wecModel.sRated() == Sq.create((inputModel.getType().getsRated().value.doubleValue()), Kilowatts$.MODULE$)
-    wecModel.cosPhiRated() == inputModel.getType().getCosPhiRated()
-    wecModel.rotorArea() == Sq.create((inputModel.getType().getRotorArea().value.doubleValue()), SquareMeters$.MODULE$)
-    wecModel.betzCurve() == new WecModel.WecCharacteristic$().apply(inputModel.getType().getCpCharacteristic())
+    wecModel.sRated() == Sq.create(inputModel.type.sRated.value.doubleValue(), Kilowatts$.MODULE$)
+    wecModel.cosPhiRated() == inputModel.type.cosPhiRated
+    wecModel.rotorArea() == Sq.create(inputModel.type.rotorArea.value.doubleValue(), SquareMeters$.MODULE$)
+    wecModel.betzCurve() == new WecModel.WecCharacteristic$().apply(inputModel.type.cpCharacteristic)
   }
 
   @Unroll
