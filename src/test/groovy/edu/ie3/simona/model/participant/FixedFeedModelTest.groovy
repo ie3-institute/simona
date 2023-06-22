@@ -21,7 +21,6 @@ import squants.energy.*
 import tech.units.indriya.quantity.Quantities
 
 import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static org.apache.commons.math3.util.FastMath.abs
 
 class FixedFeedModelTest extends Specification {
 

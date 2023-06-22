@@ -120,14 +120,14 @@ final case class PvModel private (
     // === Diffuse Radiation Parameters ===//
     val thetaZ = calcZenithAngleThetaZ(alphaS)
     val airMass = calcAirMass(thetaZ)
-    val I0 = calcExtraterrestrialRadiationI0(angleJ)
+    val i0 = calcExtraterrestrialRadiationI0(angleJ)
 
     // === Diffuse Radiation ===//
     val eDifS = calcDiffuseRadiationOnSlopedSurfacePerez(
       eDifH,
       eBeamH,
       airMass,
-      I0,
+      i0,
       thetaZ,
       thetaG,
       gammaE
