@@ -14,7 +14,8 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
-import squants.electro.{Ohms, Siemens}
+import squants.Each
+import squants.electro.{Amperes, Ohms, Siemens}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
@@ -66,11 +67,11 @@ final case class LineModel(
     nodeAUuid: UUID,
     nodeBUuid: UUID,
     amount: Int,
-    iNom: ComparableQuantity[ElectricCurrent],
-    protected val r: ComparableQuantity[Dimensionless],
-    protected val x: ComparableQuantity[Dimensionless],
-    protected val g: ComparableQuantity[Dimensionless],
-    protected val b: ComparableQuantity[Dimensionless]
+    iNom: squants.electro.ElectricCurrent,
+    protected val r: squants.Dimensionless,
+    protected val x: squants.Dimensionless,
+    protected val g: squants.Dimensionless,
+    protected val b: squants.Dimensionless
 ) extends SystemComponent(
       uuid,
       id,
@@ -83,32 +84,32 @@ final case class LineModel(
     * @return
     *   branch conductance g_ij between node A and B of the element in p.u.
     */
-  override def gij(): ComparableQuantity[Dimensionless] =
-    super.gij().multiply(amount)
+  override def gij(): squants.Dimensionless =
+    super.gij() * (amount)
 
   /** see [[PiEquivalentCircuit.g0()]]
     *
     * @return
     *   phase-to-ground conductance g_0 in p.u.
     */
-  override def g0(): ComparableQuantity[Dimensionless] =
-    super.g0().multiply(amount).divide(2)
+  override def g0(): squants.Dimensionless =
+    super.g0() * amount / 2
 
   /** see [[PiEquivalentCircuit.bij()]]
     *
     * @return
     *   phase-to-ground conductance g_0 in p.u.
     */
-  override def bij(): ComparableQuantity[Dimensionless] =
-    super.bij().multiply(amount)
+  override def bij(): squants.Dimensionless =
+    super.bij() * amount
 
   /** see [[PiEquivalentCircuit.b0()]]
     *
     * @return
     *   phase-to-ground susceptance b_0 in p.u.
     */
-  override def b0(): ComparableQuantity[Dimensionless] =
-    super.b0().multiply(amount).divide(2)
+  override def b0(): squants.Dimensionless =
+    super.b0() * amount / 2
 
 }
 
@@ -199,14 +200,13 @@ case object LineModel extends LazyLogging {
       lineInput.getNodeA.getUuid,
       lineInput.getNodeB.getUuid,
       lineInput.getParallelDevices,
-      Quantities.getQuantity(
-        lineType.getiMax().to(AMPERE).getValue.doubleValue(),
-        AMPERE
+      Amperes(
+        lineType.getiMax().to(AMPERE).getValue.doubleValue()
       ),
-      Quantities.getQuantity(r.value.doubleValue(), PU),
-      Quantities.getQuantity(x.value.doubleValue(), PU),
-      Quantities.getQuantity(g.value.doubleValue(), PU),
-      Quantities.getQuantity(b.value.doubleValue(), PU)
+      r,
+      x,
+      g,
+      b
     )
 
     // if the line input model is in operation, enable the model
@@ -320,8 +320,8 @@ case object LineModel extends LazyLogging {
     */
   def y0(lineModel: LineModel): Complex = {
     new Complex(
-      lineModel.g0().getValue.doubleValue(),
-      lineModel.b0().getValue.doubleValue()
+      lineModel.g0().value.doubleValue(),
+      lineModel.b0().value.doubleValue()
     )
   }
 
@@ -334,8 +334,8 @@ case object LineModel extends LazyLogging {
     *   branch admittance Y_ij between node a and b of the line model in p.u.
     */
   def yij(lineModel: LineModel): Complex = new Complex(
-    lineModel.gij().getValue.doubleValue(),
-    lineModel.bij().getValue.doubleValue()
+    lineModel.gij().value.doubleValue(),
+    lineModel.bij().value.doubleValue()
   )
 
   /** Calculates the utilisation of a given line model
@@ -351,17 +351,14 @@ case object LineModel extends LazyLogging {
     */
   def utilisation(
       lineModel: LineModel,
-      iNodeA: Quantity[ElectricCurrent],
-      iNodeB: Quantity[ElectricCurrent]
-  ): Quantity[Dimensionless] = {
-    Quantities.getQuantity(
+      iNodeA: squants.electro.ElectricCurrent,
+      iNodeB: squants.electro.ElectricCurrent
+  ): squants.Dimensionless = {
+    Each(
       Math.max(
-        iNodeA.getValue.doubleValue(),
-        iNodeB.getValue
-          .doubleValue()
-      ) / lineModel.iNom.getValue
-        .doubleValue() * 100 / lineModel.amount,
-      PERCENT
+        iNodeA.toAmperes,
+        iNodeB.toAmperes
+      ) / lineModel.iNom.toAmperes * 100 / lineModel.amount
     )
   }
 

@@ -14,7 +14,6 @@ import squants.Each
 import squants.electro.{Kilovolts, Ohms, Volts}
 import squants.energy.Watts
 
-
 /** Provides the values a [[GridModel]] is referenced to as well as functions to
   * reference some standard parameters to the nominal impedance.
   */
@@ -88,7 +87,7 @@ final case class RefSystem private (
     * @return
     *   unreferenced active power value in Watt
     */
-   def pInSi(pInPu: squants.Dimensionless): squants.Power =
+  def pInSi(pInPu: squants.Dimensionless): squants.Power =
     Watts(nominalPower * pInPu)
 
   def pInSi(pInPu: Double): squants.Power =
@@ -144,7 +143,7 @@ final case class RefSystem private (
     vInSi(Each(vInPu))
 
   def vInSi(vInPu: Complex): (
-    squants.electro.ElectricPotential,
+      squants.electro.ElectricPotential,
       squants.electro.ElectricPotential
   ) =
     (
@@ -193,7 +192,7 @@ case object RefSystem {
 
     // parsed quantities are transformed to PowerSystemUnits,
     // which are compatible to other units used
-    val sNom =nominalPower
+    val sNom = nominalPower
     val vNom = nominalVoltage
     RefSystem(sNom, vNom)
   }
@@ -236,7 +235,6 @@ case object RefSystem {
       to: RefSystem
   ): squants.Dimensionless = {
     val ratio = to.nominalImpedance.toOhms / from.nominalImpedance.toOhms
-
 
     Each(admittance * ratio)
   }

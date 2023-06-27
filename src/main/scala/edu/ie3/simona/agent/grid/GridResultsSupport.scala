@@ -320,12 +320,12 @@ private[grid] trait GridResultsSupport {
 
     if (line.isInOperation) {
       val yij = new Complex(
-        line.gij().getValue.doubleValue,
-        line.bij().getValue.doubleValue
+        line.gij().value.doubleValue,
+        line.bij().value.doubleValue
       )
       val y0 = new Complex(
-        line.g0().getValue.doubleValue,
-        line.b0().getValue.doubleValue
+        line.g0().value.doubleValue,
+        line.b0().value.doubleValue
       )
 
       val (iAComplexPu, iBComplexPu) =
