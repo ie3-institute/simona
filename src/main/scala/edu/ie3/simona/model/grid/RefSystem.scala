@@ -7,26 +7,24 @@
 package edu.ie3.simona.model.grid
 
 import breeze.math.Complex
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.scala.quantities.ReactivePower
+import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import squants.Each
-import squants.electro.ElectricalResistanceConversions.ElectricalResistanceNumeric
-import squants.electro.{ElectricCurrent, ElectricalConductance, ElectricalResistance, Kilovolts}
-import squants.energy.Megawatts
+
+import javax.measure.Quantity
+import javax.measure.quantity._
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
-
-import javax.measure.quantity.{ElectricPotential, Power}
-
+import tech.units.indriya.unit.Units._
 
 /** Provides the values a [[GridModel]] is referenced to as well as functions to
   * reference some standard parameters to the nominal impedance.
   */
-final case class RefSystem (
+final case class RefSystem private (
     nominalVoltage: squants.electro.ElectricPotential,
-    nominalCurrent: ElectricCurrent,
+    nominalCurrent: squants.electro.ElectricCurrent,
     nominalPower: squants.Power,
-    nominalImpedance: ElectricalResistance
+    nominalImpedance: squants.electro.ElectricalResistance
 ) {
 
   /** Calculates the referenced resistance r (real part of impedance z) of a
@@ -38,7 +36,7 @@ final case class RefSystem (
     *   referenced resistance r in p.u.
     */
   def rInPu(
-      r: ElectricalResistance
+      r: squants.electro.ElectricalResistance
   ): squants.Dimensionless = {
     Each(r / nominalImpedance.toOhms)
   }
@@ -52,7 +50,7 @@ final case class RefSystem (
     *   referenced reactance x in p.u.
     */
   def xInPu(
-      x: ElectricalResistance
+      x: squants.electro.ElectricalResistance
   ): squants.Dimensionless =
     rInPu(x)
 
@@ -65,9 +63,14 @@ final case class RefSystem (
     *   referenced susceptance b in p.u.
     */
   def bInPu(
-      b: ElectricalConductance
-  ): squants.Dimensionless = {
-    Each(b.toSiemens * nominalImpedance.toOhms)
+      b: Quantity[ElectricConductance]
+  ): ComparableQuantity[Dimensionless] = {
+    QuantityUtil
+      .asComparable(b)
+      .to(SIEMENS)
+      .multiply(nominalImpedance.to(OHM))
+      .asType(classOf[Dimensionless])
+      .to(PU)
   }
 
   /** Calculates the referenced conductance g (real part of admittance y) of a
@@ -79,8 +82,8 @@ final case class RefSystem (
     *   referenced conductance g in p.u.
     */
   def gInPu(
-      g: ElectricalConductance
-  ): squants.Dimensionless =
+      g: Quantity[ElectricConductance]
+  ): ComparableQuantity[Dimensionless] =
     bInPu(g)
 
   /** Converts a provided referenced active power value from p.u. into physical
@@ -91,11 +94,14 @@ final case class RefSystem (
     * @return
     *   unreferenced active power value in Watt
     */
-  def pInSi(pInPu: squants.Dimensionless): squants.Power =
-    nominalPower * pInPu.value.doubleValue
+  def pInSi(pInPu: Quantity[Dimensionless]): ComparableQuantity[Power] =
+    nominalPower
+      .multiply(pInPu)
+      .asType(classOf[Power])
+      .to(nominalPower.getUnit.toEquivalentIn(WATT))
 
-  def pInSi(pInPu: Double): squants.Power =
-    pInSi(pInPu)
+  def pInSi(pInPu: Double): ComparableQuantity[Power] =
+    pInSi(Quantities.getQuantity(pInPu, PU))
 
   /** Converts a provided active power value from physical SI to referenced p.u.
     *
@@ -104,8 +110,12 @@ final case class RefSystem (
     * @return
     *   referenced active power value in p.u.
     */
-  def pInPu(pInSi: squants.Power): squants.Dimensionless =
-    Each(pInSi / nominalPower)
+  def pInPu(pInSi: Quantity[Power]): ComparableQuantity[Dimensionless] =
+    QuantityUtil
+      .asComparable(pInSi)
+      .divide(nominalPower)
+      .asType(classOf[Dimensionless])
+      .to(PU)
 
   /** Converts a provided reactive power value from p.u. into physical SI value
     *
@@ -114,11 +124,14 @@ final case class RefSystem (
     * @return
     *   unreferenced active power value in Var
     */
-  def qInSi(qInPu: squants.Dimensionless): squants.Power =
-    nominalPower * qInPu.value.doubleValue
+  def qInSi(qInPu: Quantity[Dimensionless]): ComparableQuantity[Power] =
+    nominalPower
+      .multiply(qInPu)
+      .asType(classOf[Power])
+      .to(nominalPower.getUnit.toEquivalentIn(VAR))
 
-  def qInSi(qInPu: Double): squants.Power =
-    qInSi(qInPu.doubleValue)
+  def qInSi(qInPu: Double): ComparableQuantity[Power] =
+    qInSi(Quantities.getQuantity(qInPu, PU))
 
   /** Converts a provided reactive power value from physical SI to referenced
     * p.u.
@@ -128,8 +141,12 @@ final case class RefSystem (
     * @return
     *   referenced active power value in p.u.
     */
-  def qInPu(qInSi: ReactivePower): squants.Dimensionless =
-    qInSi / nominalPower
+  def qInPu(qInSi: Quantity[Power]): ComparableQuantity[Dimensionless] =
+    QuantityUtil
+      .asComparable(qInSi)
+      .divide(nominalPower)
+      .asType(classOf[Dimensionless])
+      .to(PU)
 
   /** Converts a provided voltage value from p.u. into physical SI value
     *
@@ -139,19 +156,23 @@ final case class RefSystem (
     *   unreferenced voltage value in Volt
     */
   def vInSi(
-      vInPu: squants.Dimensionless
-  ): squants.electro.ElectricPotential = nominalVoltage * vInPu.value.doubleValue
+      vInPu: Quantity[Dimensionless]
+  ): ComparableQuantity[ElectricPotential] =
+    nominalVoltage
+      .multiply(vInPu)
+      .asType(classOf[ElectricPotential])
+      .to(nominalVoltage.getUnit)
 
-  def vInSi(vInPu: Double): squants.electro.ElectricPotential =
-    vInSi(vInPu)
+  def vInSi(vInPu: Double): ComparableQuantity[ElectricPotential] =
+    vInSi(Quantities.getQuantity(vInPu, PU))
 
   def vInSi(vInPu: Complex): (
-    squants.electro.ElectricPotential,
-      squants.electro.ElectricPotential
+      ComparableQuantity[ElectricPotential],
+      ComparableQuantity[ElectricPotential]
   ) =
     (
-      vInSi(vInPu.real),
-      vInSi(vInPu.imag)
+      vInSi(Quantities.getQuantity(vInPu.real, PU)),
+      vInSi(Quantities.getQuantity(vInPu.imag, PU))
     )
 
   /** Converts a provided voltage value from physical SI value into p.u. value
@@ -162,27 +183,39 @@ final case class RefSystem (
     *   referenced voltage value in p.u.
     */
   def vInPu(
-      vInSi: squants.electro.ElectricPotential
-  ): squants.Dimensionless =
-    Each(vInSi / nominalVoltage)
+      vInSi: Quantity[ElectricPotential]
+  ): ComparableQuantity[Dimensionless] =
+    QuantityUtil
+      .asComparable(vInSi)
+      .divide(nominalVoltage)
+      .asType(classOf[Dimensionless])
+      .to(PU)
+
 }
 
-object RefSystem {
+case object RefSystem {
+
   def apply(
-      nominalPower: squants.Power,
-      nominalVoltage: squants.electro.ElectricPotential
+      nominalPower: Quantity[Power],
+      nominalVoltage: Quantity[ElectricPotential]
   ): RefSystem = {
 
-    val nominalCurrent: ElectricCurrent =
-      nominalPower / (nominalVoltage * Math.sqrt(3))
-
-    val nominalImpedance: ElectricalResistance =
-      nominalVoltage / (nominalCurrent * Math.sqrt(3))
+    val nominalCurrent: ComparableQuantity[ElectricCurrent] = QuantityUtil
+      .asComparable(nominalPower)
+      .divide(nominalVoltage.multiply(Math.sqrt(3)))
+      .asType(classOf[ElectricCurrent])
+      .to(AMPERE)
+    val nominalImpedance: ComparableQuantity[ElectricResistance] =
+      QuantityUtil
+        .asComparable(nominalVoltage)
+        .divide(nominalCurrent.multiply(Math.sqrt(3)))
+        .asType(classOf[ElectricResistance])
+        .to(OHM)
 
     new RefSystem(
-      nominalVoltage,
+      QuantityUtil.asComparable(nominalVoltage),
       nominalCurrent,
-      nominalPower,
+      QuantityUtil.asComparable(nominalPower),
       nominalImpedance
     )
   }
@@ -194,14 +227,14 @@ object RefSystem {
 
     // parsed quantities are transformed to PowerSystemUnits,
     // which are compatible to other units used
-    val sNom = Megawatts(Quantities
+    val sNom = Quantities
       .getQuantity(nominalPower)
       .asType(classOf[Power])
-      .to(MEGAVOLTAMPERE).getValue.doubleValue())
-    val vNom = Kilovolts(Quantities
+      .to(MEGAVOLTAMPERE)
+    val vNom = Quantities
       .getQuantity(nominalVoltage)
       .asType(classOf[ElectricPotential])
-      .to(KILOVOLT).getValue.doubleValue())
+      .to(KILOVOLT)
     RefSystem(sNom, vNom)
   }
 
@@ -217,13 +250,17 @@ object RefSystem {
     *   Dimensionless impedance with regard the to target reference system
     */
   def transferImpedance(
-      impedance: squants.Dimensionless,
+      impedance: Quantity[Dimensionless],
       from: RefSystem,
       to: RefSystem
-  ): squants.Dimensionless = {
-    val ratio = from.nominalImpedance / to.nominalImpedance
+  ): ComparableQuantity[Dimensionless] = {
+    val ratio = from.nominalImpedance
+      .to(OHM)
+      .divide(to.nominalImpedance.to(OHM))
+      .getValue
+      .doubleValue()
 
-    impedance * ratio
+    QuantityUtil.asComparable(impedance).multiply(ratio)
   }
 
   /** Transfers the dimensionless admittance from one to another reference
@@ -239,12 +276,16 @@ object RefSystem {
     *   Dimensionless admittance with regard the to target reference system
     */
   def transferAdmittance(
-      admittance: squants.Dimensionless,
+      admittance: Quantity[Dimensionless],
       from: RefSystem,
       to: RefSystem
-  ): squants.Dimensionless = {
-    val ratio = to.nominalImpedance / from.nominalImpedance
+  ): ComparableQuantity[Dimensionless] = {
+    val ratio = to.nominalImpedance
+      .to(OHM)
+      .divide(from.nominalImpedance.to(OHM))
+      .getValue
+      .doubleValue()
 
-    admittance * ratio
+    QuantityUtil.asComparable(admittance).multiply(ratio)
   }
 }

@@ -11,23 +11,15 @@ import java.util.UUID
 import breeze.math.Complex
 import breeze.numerics.pow
 import edu.ie3.datamodel.exceptions.InvalidGridException
-import edu.ie3.datamodel.models.input.connector.{
-  ConnectorPort,
-  Transformer2WInput
-}
+import edu.ie3.datamodel.models.input.connector.{ConnectorPort, Transformer2WInput}
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import squants.Each
 
 import javax.measure.Quantity
-import javax.measure.quantity.{
-  Dimensionless,
-  ElectricCurrent,
-  ElectricPotential
-}
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import javax.measure.quantity.{Dimensionless, ElectricCurrent, ElectricPotential}
 import tech.units.indriya.unit.Units._
 
 import scala.math.BigDecimal.RoundingMode
@@ -78,10 +70,10 @@ final case class TransformerModel(
     voltRatioNominal: BigDecimal,
     iNomHv: Quantity[ElectricCurrent],
     iNomLv: Quantity[ElectricCurrent],
-    protected val r: ComparableQuantity[Dimensionless],
-    protected val x: ComparableQuantity[Dimensionless],
-    protected val g: ComparableQuantity[Dimensionless],
-    protected val b: ComparableQuantity[Dimensionless]
+    protected val r: squants.Dimensionless,
+    protected val x: squants.Dimensionless,
+    protected val g: squants.Dimensionless,
+    protected val b: squants.Dimensionless
 ) extends SystemComponent(
       uuid,
       id,
@@ -204,10 +196,10 @@ case object TransformerModel {
       voltRatioNominal,
       iNomHv,
       iNomLv,
-      Quantities.getQuantity(r.getValue.doubleValue(), PU),
-      Quantities.getQuantity(x.getValue.doubleValue(), PU),
-      Quantities.getQuantity(g.getValue.doubleValue(), PU),
-      Quantities.getQuantity(b.getValue.doubleValue(), PU)
+      Each(r),
+      Each(x),
+      Each(g),
+      Each(b)
     )
 
     // if the transformer input model is in operation, enable the model
@@ -243,11 +235,11 @@ case object TransformerModel {
     val vRef = refSystem.nominalVoltage
     if (
       Math.abs(
-        vRef.getValue
+        vRef.value
           .doubleValue() - trafoType.getvRatedA.getValue.doubleValue()
       )
         < Math.abs(
-          vRef.getValue
+          vRef.value
             .doubleValue() - trafoType.getvRatedB.getValue.doubleValue()
         )
     )
@@ -358,15 +350,14 @@ case object TransformerModel {
       transformerModel: TransformerModel,
       iNodeHv: Quantity[ElectricCurrent],
       iNodeLv: Quantity[ElectricCurrent]
-  ): Quantity[Dimensionless] = {
-    Quantities.getQuantity(
+  ): squants.Dimensionless = {
+    Each(
       Math.max(
         iNodeHv.getValue.doubleValue() / transformerModel.iNomHv.getValue
           .doubleValue(),
         iNodeLv.getValue.doubleValue() / transformerModel.iNomLv.getValue
           .doubleValue()
-      ) * 100,
-      PERCENT
+      ) * 100
     )
   }
 
