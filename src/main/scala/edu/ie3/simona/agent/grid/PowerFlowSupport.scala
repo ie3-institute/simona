@@ -19,10 +19,10 @@ import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid._
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvidePowerMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.Kilovars
-import squants.energy.Kilowatts
 import squants.electro.ElectricPotential
+import squants.energy.Kilowatts
+
 import java.util.UUID
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
@@ -149,10 +149,7 @@ trait PowerFlowSupport {
           // Either the received data shall not be considered or the node is not a slack node
           Complex.one *
             (if (!ignoreTargetVoltage)
-               nodeModel.vTarget
-                 .to(PowerSystemUnits.PU)
-                 .getValue
-                 .doubleValue()
+               nodeModel.vTarget.toEach
              else 1.0)
         }
 

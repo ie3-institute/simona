@@ -50,11 +50,9 @@ import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.quantities.Megavars
 import squants.Each
 import squants.energy.Megawatts
-import tech.units.indriya.quantity.Quantities
 
 import java.time.{Duration, ZonedDateTime}
 import java.util.UUID
-import javax.measure.quantity.ElectricPotential
 import scala.concurrent.{ExecutionContext, Future}
 
 /** Trait that is normally mixed into every [[GridAgent]] to enable distributed

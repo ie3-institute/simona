@@ -7,11 +7,10 @@
 package edu.ie3.simona.model.grid
 
 import breeze.math.Complex
-import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{ReactivePower, Vars}
 import squants.Each
-import squants.electro.{Kilovolts, Ohms, Volts}
+import squants.electro.Kilovolts
 import squants.energy.Watts
 
 /** Provides the values a [[GridModel]] is referenced to as well as functions to
@@ -36,7 +35,7 @@ final case class RefSystem private (
   def rInPu(
       r: squants.electro.ElectricalResistance
   ): squants.Dimensionless = {
-    Each(r / nominalImpedance.toOhms)
+    Each(r / nominalImpedance)
   }
 
   /** Calculates the referenced reactance x (imaginary part of impedance z) of a
@@ -63,7 +62,7 @@ final case class RefSystem private (
   def bInPu(
       b: squants.electro.ElectricalConductance
   ): squants.Dimensionless = {
-    Each(b * nominalImpedance.toOhms)
+    Each(b.toSiemens * nominalImpedance.toOhms)
   }
 
   /** Calculates the referenced conductance g (real part of admittance y) of a
@@ -88,7 +87,7 @@ final case class RefSystem private (
     *   unreferenced active power value in Watt
     */
   def pInSi(pInPu: squants.Dimensionless): squants.Power =
-    Watts(nominalPower * pInPu)
+    Watts(nominalPower.toWatts * pInPu.toEach)
 
   def pInSi(pInPu: Double): squants.Power =
     pInSi(Each(pInPu))
@@ -111,7 +110,7 @@ final case class RefSystem private (
     *   unreferenced active power value in Var
     */
   def qInSi(qInPu: squants.Dimensionless): ReactivePower =
-    Vars(nominalPower * qInPu)
+    Vars(nominalPower.toWatts * qInPu.toEach)
 
   def qInSi(qInPu: Double): ReactivePower =
     qInSi(Each(qInPu))
@@ -124,8 +123,8 @@ final case class RefSystem private (
     * @return
     *   referenced active power value in p.u.
     */
-  def qInPu(qInSi: squants.Power): squants.Dimensionless =
-    Each(qInSi / nominalPower)
+  def qInPu(qInSi: ReactivePower): squants.Dimensionless =
+    Each(qInSi.toVars / nominalPower.toWatts)
 
   /** Converts a provided voltage value from p.u. into physical SI value
     *
@@ -137,7 +136,7 @@ final case class RefSystem private (
   def vInSi(
       vInPu: squants.Dimensionless
   ): squants.electro.ElectricPotential =
-    Kilovolts(nominalVoltage.toKilovolts * vInPu)
+    Kilovolts(nominalVoltage.toKilovolts * vInPu.toEach)
 
   def vInSi(vInPu: Double): squants.electro.ElectricPotential =
     vInSi(Each(vInPu))
@@ -214,7 +213,7 @@ case object RefSystem {
       to: RefSystem
   ): squants.Dimensionless = {
     val ratio = from.nominalImpedance.toOhms / to.nominalImpedance.toOhms
-    Each(impedance * ratio)
+    Each(impedance.toEach * ratio)
   }
 
   /** Transfers the dimensionless admittance from one to another reference
@@ -236,6 +235,6 @@ case object RefSystem {
   ): squants.Dimensionless = {
     val ratio = to.nominalImpedance.toOhms / from.nominalImpedance.toOhms
 
-    Each(admittance * ratio)
+    Each(admittance.toEach * ratio)
   }
 }

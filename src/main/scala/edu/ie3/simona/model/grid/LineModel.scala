@@ -16,20 +16,12 @@ import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
 import squants.Each
 import squants.electro.{Amperes, Ohms, Siemens}
-import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.Quantity
-import javax.measure.quantity.{
-  Dimensionless,
-  ElectricConductance,
-  ElectricCurrent,
-  ElectricResistance
-}
 
 /** This model represents an electric wire or overhead line
   *
@@ -153,35 +145,43 @@ case object LineModel extends LazyLogging {
       startDate: ZonedDateTime,
       endDate: ZonedDateTime
   ): LineModel = {
-    val lineType = lineInput.getType
 
+    val lineType = lineInput.getType
     val (r, x, g, b) = (
       refSystem.rInPu(
         Ohms(
           lineType.getR
-            .multiply(lineInput.getLength)
-            .asType(classOf[ElectricResistance])
+            .to(OHM_PER_KILOMETRE)
+            .multiply(lineInput.getLength.to(KILOMETRE))
+            .getValue
+            .doubleValue()
         )
       ),
       refSystem.xInPu(
         Ohms(
           lineType.getX
-            .multiply(lineInput.getLength)
-            .asType(classOf[ElectricResistance])
+            .to(OHM_PER_KILOMETRE)
+            .multiply(lineInput.getLength.to(KILOMETRE))
+            .getValue
+            .doubleValue()
         )
       ),
       refSystem.gInPu(
         Siemens(
           lineType.getG
-            .multiply(lineInput.getLength)
-            .asType(classOf[ElectricConductance])
+            .to(SIEMENS_PER_KILOMETRE)
+            .multiply(lineInput.getLength.to(KILOMETRE))
+            .getValue
+            .doubleValue()
         )
       ),
       refSystem.bInPu(
         Siemens(
           lineType.getB
-            .multiply(lineInput.getLength)
-            .asType(classOf[ElectricConductance])
+            .to(SIEMENS_PER_KILOMETRE)
+            .multiply(lineInput.getLength.to(KILOMETRE))
+            .getValue
+            .doubleValue()
         )
       )
     )

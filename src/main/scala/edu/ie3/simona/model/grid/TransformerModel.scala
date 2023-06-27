@@ -9,7 +9,10 @@ package edu.ie3.simona.model.grid
 import breeze.math.Complex
 import breeze.numerics.pow
 import edu.ie3.datamodel.exceptions.InvalidGridException
-import edu.ie3.datamodel.models.input.connector.{ConnectorPort, Transformer2WInput}
+import edu.ie3.datamodel.models.input.connector.{
+  ConnectorPort,
+  Transformer2WInput
+}
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits._
@@ -137,10 +140,34 @@ case object TransformerModel {
     /* Determine the physical pi equivalent circuit diagram parameters from the perspective
      * of the transformer's low voltage side */
     val (rTrafo, xTrafo, gTrafo, bTrafo) = (
-      Ohms(trafoType.getrSc.to(OHM).divide(squaredNominalVoltRatio).getValue.doubleValue()),
-      Ohms(trafoType.getxSc.to(OHM).divide(squaredNominalVoltRatio).getValue.doubleValue()),
-      Siemens(trafoType.getgM.to(SIEMENS).multiply(squaredNominalVoltRatio).getValue.doubleValue()),
-      Siemens(trafoType.getbM.to(SIEMENS).multiply(squaredNominalVoltRatio).getValue.doubleValue())
+      Ohms(
+        trafoType.getrSc
+          .to(OHM)
+          .divide(squaredNominalVoltRatio)
+          .getValue
+          .doubleValue()
+      ),
+      Ohms(
+        trafoType.getxSc
+          .to(OHM)
+          .divide(squaredNominalVoltRatio)
+          .getValue
+          .doubleValue()
+      ),
+      Siemens(
+        trafoType.getgM
+          .to(SIEMENS)
+          .multiply(squaredNominalVoltRatio)
+          .getValue
+          .doubleValue()
+      ),
+      Siemens(
+        trafoType.getbM
+          .to(SIEMENS)
+          .multiply(squaredNominalVoltRatio)
+          .getValue
+          .doubleValue()
+      )
     )
 
     /* Transfer the dimensionless parameters into the grid reference system */
@@ -159,20 +186,23 @@ case object TransformerModel {
           trafoType.getsRated
             .to(VOLTAMPERE)
             .getValue
-            .doubleValue()) / Math.sqrt(3) / portVoltage
+            .doubleValue()
+        ) / Math.sqrt(3) / portVoltage
 
     }
     val (iNomHv, iNomLv) =
-      (_calcINom(
-        Kilovolts(
-          trafoType.getvRatedA.to(KILOVOLT).getValue.doubleValue()
-        )),
+      (
+        _calcINom(
+          Kilovolts(
+            trafoType.getvRatedA.to(KILOVOLT).getValue.doubleValue()
+          )
+        ),
         _calcINom(
           Kilovolts(
             trafoType.getvRatedB.to(KILOVOLT).getValue.doubleValue()
           )
-        ))
-
+        )
+      )
 
     // get the element port, where the transformer tap is located
     // if trafoType.isTapSide == true, tapper is on the low voltage side (== ConnectorPort.B)
