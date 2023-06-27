@@ -11,7 +11,10 @@ import java.util.UUID
 import breeze.math.Complex
 import breeze.numerics.pow
 import edu.ie3.datamodel.exceptions.InvalidGridException
-import edu.ie3.datamodel.models.input.connector.{ConnectorPort, Transformer2WInput}
+import edu.ie3.datamodel.models.input.connector.{
+  ConnectorPort,
+  Transformer2WInput
+}
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits._
@@ -19,7 +22,11 @@ import edu.ie3.util.scala.OperationInterval
 import squants.Each
 
 import javax.measure.Quantity
-import javax.measure.quantity.{Dimensionless, ElectricCurrent, ElectricPotential}
+import javax.measure.quantity.{
+  Dimensionless,
+  ElectricCurrent,
+  ElectricPotential
+}
 import tech.units.indriya.unit.Units._
 
 import scala.math.BigDecimal.RoundingMode
@@ -68,8 +75,8 @@ final case class TransformerModel(
     protected val transformerTappingModel: TransformerTappingModel,
     amount: Int,
     voltRatioNominal: BigDecimal,
-    iNomHv: Quantity[ElectricCurrent],
-    iNomLv: Quantity[ElectricCurrent],
+    iNomHv: squants.electro.ElectricCurrent,
+    iNomLv: squants.electro.ElectricCurrent,
     protected val r: squants.Dimensionless,
     protected val x: squants.Dimensionless,
     protected val g: squants.Dimensionless,
@@ -353,9 +360,9 @@ case object TransformerModel {
   ): squants.Dimensionless = {
     Each(
       Math.max(
-        iNodeHv.getValue.doubleValue() / transformerModel.iNomHv.getValue
+        iNodeHv.getValue.doubleValue() / transformerModel.iNomHv.value
           .doubleValue(),
-        iNodeLv.getValue.doubleValue() / transformerModel.iNomLv.getValue
+        iNodeLv.getValue.doubleValue() / transformerModel.iNomLv.value
           .doubleValue()
       ) * 100
     )

@@ -14,6 +14,7 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import squants.electro.{Ohms, Siemens}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
@@ -155,24 +156,32 @@ case object LineModel extends LazyLogging {
 
     val (r, x, g, b) = (
       refSystem.rInPu(
-        lineType.getR
-          .multiply(lineInput.getLength)
-          .asType(classOf[ElectricResistance])
+        Ohms(
+          lineType.getR
+            .multiply(lineInput.getLength)
+            .asType(classOf[ElectricResistance])
+        )
       ),
       refSystem.xInPu(
-        lineType.getX
-          .multiply(lineInput.getLength)
-          .asType(classOf[ElectricResistance])
+        Ohms(
+          lineType.getX
+            .multiply(lineInput.getLength)
+            .asType(classOf[ElectricResistance])
+        )
       ),
       refSystem.gInPu(
-        lineType.getG
-          .multiply(lineInput.getLength)
-          .asType(classOf[ElectricConductance])
+        Siemens(
+          lineType.getG
+            .multiply(lineInput.getLength)
+            .asType(classOf[ElectricConductance])
+        )
       ),
       refSystem.bInPu(
-        lineType.getB
-          .multiply(lineInput.getLength)
-          .asType(classOf[ElectricConductance])
+        Siemens(
+          lineType.getB
+            .multiply(lineInput.getLength)
+            .asType(classOf[ElectricConductance])
+        )
       )
     )
 
@@ -194,10 +203,10 @@ case object LineModel extends LazyLogging {
         lineType.getiMax().to(AMPERE).getValue.doubleValue(),
         AMPERE
       ),
-      Quantities.getQuantity(r.getValue.doubleValue(), PU),
-      Quantities.getQuantity(x.getValue.doubleValue(), PU),
-      Quantities.getQuantity(g.getValue.doubleValue(), PU),
-      Quantities.getQuantity(b.getValue.doubleValue(), PU)
+      Quantities.getQuantity(r.value.doubleValue(), PU),
+      Quantities.getQuantity(x.value.doubleValue(), PU),
+      Quantities.getQuantity(g.value.doubleValue(), PU),
+      Quantities.getQuantity(b.value.doubleValue(), PU)
     )
 
     // if the line input model is in operation, enable the model

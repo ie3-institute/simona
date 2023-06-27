@@ -10,13 +10,22 @@ import akka.event.LoggingAdapter
 import breeze.math.Complex
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.datamodel.models.result.NodeResult
-import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult, Transformer3WResult}
+import edu.ie3.datamodel.models.result.connector.{
+  LineResult,
+  SwitchResult,
+  Transformer2WResult,
+  Transformer3WResult
+}
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.agent.grid.SweepValueStore.SweepValueStoreData
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.Transformer3wModel.yij
-import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{PowerFlowCaseA, PowerFlowCaseB, PowerFlowCaseC}
+import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
+  PowerFlowCaseA,
+  PowerFlowCaseB,
+  PowerFlowCaseC
+}
 import edu.ie3.simona.model.grid._
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.QuantityUtil
@@ -325,8 +334,14 @@ private[grid] trait GridResultsSupport {
       val (iAMag, iAAng) = iMagAndAngle(iAComplexPu, iNominal)
       val (iBMag, iBAng) = iMagAndAngle(iBComplexPu, iNominal)
 
-      new LineResult(timestamp, line.uuid, Quantities.getQuantity(iAMag.toAmperes, Units.AMPERE),
-        Quantities.getQuantity(iAAng.toDegrees, PowerSystemUnits.DEGREE_GEOM), Quantities.getQuantity(iBMag.toAmperes, Units.AMPERE), Quantities.getQuantity(iBAng.toDegrees, PowerSystemUnits.DEGREE_GEOM))
+      new LineResult(
+        timestamp,
+        line.uuid,
+        Quantities.getQuantity(iAMag.toAmperes, Units.AMPERE),
+        Quantities.getQuantity(iAAng.toDegrees, PowerSystemUnits.DEGREE_GEOM),
+        Quantities.getQuantity(iBMag.toAmperes, Units.AMPERE),
+        Quantities.getQuantity(iBAng.toDegrees, PowerSystemUnits.DEGREE_GEOM)
+      )
     } else {
       new LineResult(
         timestamp,
@@ -383,16 +398,16 @@ private[grid] trait GridResultsSupport {
 
       /* Transfer port current A to high voltage level */
       val (iAMag, iAAng) =
-        iMagAndAngle(iAComplexPu, iNominal / voltRatioNominal)
+        iMagAndAngle(iAComplexPu, iNominal / voltRatioNominal.toDouble)
       val (iBMag, iBAng) = iMagAndAngle(iBComplexPu, iNominal)
 
       new Transformer2WResult(
         timestamp,
         trafo2w.uuid,
         Quantities.getQuantity(iAMag.toAmperes, Units.AMPERE),
-        Quantities.getQuantity(iAAng.toDegrees,PowerSystemUnits.DEGREE_GEOM),
-          Quantities.getQuantity(iBMag.toAmperes, Units.AMPERE),
-            Quantities.getQuantity(iBAng.toDegrees, PowerSystemUnits.DEGREE_GEOM),
+        Quantities.getQuantity(iAAng.toDegrees, PowerSystemUnits.DEGREE_GEOM),
+        Quantities.getQuantity(iBMag.toAmperes, Units.AMPERE),
+        Quantities.getQuantity(iBAng.toDegrees, PowerSystemUnits.DEGREE_GEOM),
         trafo2w.currentTapPos
       )
     } else {

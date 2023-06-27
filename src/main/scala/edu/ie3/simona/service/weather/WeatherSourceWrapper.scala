@@ -194,12 +194,14 @@ private[weather] final case class WeatherSourceWrapper private (
                   )
               }),
             WattsPerSquareMeter(
-            averagedWeather.dirIrr.toWattsPerSquareMeter
+              averagedWeather.dirIrr.toWattsPerSquareMeter
             ) + (dirIrrContrib match {
               case irradiance: Irradiance =>
                 WattsPerSquareMeter(irradiance.toWattsPerSquareMeter)
               case _ =>
-                WattsPerSquareMeter(EMPTY_WEATHER_DATA.dirIrr.toWattsPerSquareMeter)
+                WattsPerSquareMeter(
+                  EMPTY_WEATHER_DATA.dirIrr.toWattsPerSquareMeter
+                )
             }),
             Kelvin(
               averagedWeather.temp.toKelvinScale
