@@ -160,9 +160,9 @@ class HpModelTest extends Specification {
         thermalHouse)
 
     then:
-    hpModelCaseClass.sRated().getValue() == hpModelCaseObject.sRated().value
+    hpModelCaseClass.sRated().value == hpModelCaseObject.sRated().value
     hpModelCaseClass.cosPhiRated() == hpModelCaseObject.cosPhiRated()
-    hpModelCaseClass.pThermal().getValue() == hpModelCaseObject.pThermal().value
+    hpModelCaseClass.pThermal().value == hpModelCaseObject.pThermal().value
     hpModelCaseClass.thermalHouse() == hpModelCaseObject.thermalHouse()
   }
 }

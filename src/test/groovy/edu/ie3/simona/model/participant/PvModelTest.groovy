@@ -110,8 +110,8 @@ class PvModelTest extends Specification {
         pvInput.getNode().getGeoPosition().getX(),
         pvInput.albedo,
         pvInput.etaConv as ComparableQuantity<Dimensionless>,
-        getQuantity(Math.toRadians(pvInput.azimuth.getValue().doubleValue()), RADIAN),
-        getQuantity(Math.toRadians(pvInput.elevationAngle.getValue().doubleValue()), RADIAN),
+        getQuantity(Math.toRadians(pvInput.azimuth.value.doubleValue()), RADIAN),
+        getQuantity(Math.toRadians(pvInput.elevationAngle.value.doubleValue()), RADIAN),
         getQuantity(1d, SQUARE_METRE)
         )
   }
