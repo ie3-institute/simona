@@ -118,19 +118,19 @@ class WecModelTest extends Specification {
     equals(result, expected, TOLERANCE)
 
     where:
-    velocity | power
-    1.0      | 0
-    2.0      | -2948.80958
-    3.0      | -24573.41320
-    7.0      | -522922.23257
-    9.0      | -1140000
-    13.0     | -1140000
-    15.0     | -1140000
-    19.0     | -1140000
-    23.0     | -1140000
-    27.0     | -1140000
-    34.0     | -24573.39638
-    40.0     | 0
+    velocity || power
+    1.0      || 0
+    2.0      || -2948.80958
+    3.0      || -24573.41320
+    7.0      || -522922.23257
+    9.0      || -1140000
+    13.0     || -1140000
+    15.0     || -1140000
+    19.0     || -1140000
+    23.0     || -1140000
+    27.0     || -1140000
+    34.0     || -24573.39638
+    40.0     || 0
   }
 
   @Unroll
@@ -148,10 +148,10 @@ class WecModelTest extends Specification {
     equals(result, expected, TOLERANCE)
 
     where:
-    temperature | power
-    35          | -23377.23862
-    20          | -24573.41320
-    -25         | -29029.60338
+    temperature || power
+    35          || -23377.23862
+    20          || -24573.41320
+    -25         || -29029.60338
   }
 
   @Unroll
@@ -168,13 +168,13 @@ class WecModelTest extends Specification {
     betzFactor == expected
 
     where:
-    velocity | betzResult
-    2        | 0.115933516
-    2.5      | 0.2010945555
-    18       | 0.108671106
-    27       | 0.032198846
-    34       | 0.000196644
-    40       | 0.0
+    velocity || betzResult
+    2        || 0.115933516
+    2.5      || 0.2010945555
+    18       || 0.108671106
+    27       || 0.032198846
+    34       || 0.000196644
+    40       || 0.0
   }
 
   @Unroll
@@ -195,17 +195,17 @@ class WecModelTest extends Specification {
     equals(airDensity, expected, TOLERANCE)
 
     where:
-    temperature | pressure  | densityResult
-    -15         | 100129.44 | 1.35121
-    -5          | 99535.96  | 1.29311
-    0           | 99535.96  | 1.26944
-    5           | 100129.44 | 1.25405
-    20          | 100129.44 | 1.18988
-    25          | 100427.25 | 1.17341
-    37          | 100427.25 | 1.12801
+    temperature | pressure  || densityResult
+    -15         | 100129.44 || 1.35121
+    -5          | 99535.96  || 1.29311
+    0           | 99535.96  || 1.26944
+    5           | 100129.44 || 1.25405
+    20          | 100129.44 || 1.18988
+    25          | 100427.25 || 1.17341
+    37          | 100427.25 || 1.12801
     // test case, where no air pressure is given (see WecModel.calculateAirDensity)
-    0           | -1.0      | 1.2041
-    5           | -1.0      | 1.2041
-    40          | -1.0      | 1.2041
+    0           | -1.0      || 1.2041
+    5           | -1.0      || 1.2041
+    40          | -1.0      || 1.2041
   }
 }

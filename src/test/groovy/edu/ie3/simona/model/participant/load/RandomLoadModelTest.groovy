@@ -80,9 +80,9 @@ class RandomLoadModelTest extends Specification {
     abs(actual.sRated().subtract(expSRated).getValue().doubleValue()) < testingTolerance
 
     where:
-    reference                                                          | expSRated
-    new ActivePower(Quantities.getQuantity(268.6, WATT))               | Quantities.getQuantity(311.0105263157895, VOLTAMPERE)
-    new EnergyConsumption(Quantities.getQuantity(2000d, KILOWATTHOUR)) | Quantities.getQuantity(467.156124576697, VOLTAMPERE)
+    reference                                                          || expSRated
+    new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(311.0105263157895, VOLTAMPERE)
+    new EnergyConsumption(Quantities.getQuantity(2000d, KILOWATTHOUR)) || Quantities.getQuantity(467.156124576697, VOLTAMPERE)
   }
 
   def "A random load model is able to deliver the correct distribution on request"() {

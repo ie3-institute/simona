@@ -85,11 +85,11 @@ class BMModelTest extends Specification {
     k1Calc == k1Sol
 
     where:
-    time                                       | k1Sol
-    '2019-01-04T05:15:00+01:00[Europe/Berlin]' | 1d       // Friday
-    '2019-01-07T05:15:00+01:00[Europe/Berlin]' | 1d       // Monday
-    '2019-01-05T05:15:00+01:00[Europe/Berlin]' | 0.96d    // Saturday, 5:15AM
-    '2019-01-05T15:59:00+01:00[Europe/Berlin]' | 0.995d   // Sunday, 3:59PM
+    time                                       || k1Sol
+    '2019-01-04T05:15:00+01:00[Europe/Berlin]' || 1d       // Friday
+    '2019-01-07T05:15:00+01:00[Europe/Berlin]' || 1d       // Monday
+    '2019-01-05T05:15:00+01:00[Europe/Berlin]' || 0.96d    // Saturday, 5:15AM
+    '2019-01-05T15:59:00+01:00[Europe/Berlin]' || 0.995d   // Sunday, 3:59PM
   }
 
   def "Test calculateK2"() {
@@ -103,11 +103,11 @@ class BMModelTest extends Specification {
     k2Calc == k2Sol
 
     where:
-    time                                       | k2Sol
-    '2019-05-29T05:15:00+02:00[Europe/Berlin]' | 1.03d     // Day 149 of the year
-    '2019-05-30T05:15:00+02:00[Europe/Berlin]' | 0.61d     // Day 150 of the year
-    '2019-08-31T05:15:00+02:00[Europe/Berlin]' | 0.61d     // Day 243 of the year
-    '2019-09-01T05:15:00+02:00[Europe/Berlin]' | 1.03d     // Day 244 of the year
+    time                                       || k2Sol
+    '2019-05-29T05:15:00+02:00[Europe/Berlin]' || 1.03d     // Day 149 of the year
+    '2019-05-30T05:15:00+02:00[Europe/Berlin]' || 0.61d     // Day 150 of the year
+    '2019-08-31T05:15:00+02:00[Europe/Berlin]' || 0.61d     // Day 243 of the year
+    '2019-09-01T05:15:00+02:00[Europe/Berlin]' || 1.03d     // Day 244 of the year
   }
 
   def "Test calculatePTh"() {
@@ -121,11 +121,11 @@ class BMModelTest extends Specification {
     Math.abs(pThCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(pThSol, MEGAWATT).toSystemUnit().getValue().doubleValue()) < 0.0001
 
     where:
-    temp        | k1    | k2    | pThSol
-    19.28d      | 1d    | 1d    | 5.62d          // independent of temp
-    30d         | 2d    | 3d    | 33.72d
-    19.2799999d | 1d    | 1d    | 5.6147201076d  // dependent on temp
-    15d         | 1.01d | 0.61d | 6.296542d      // somewhat realistic
+    temp        | k1    | k2    || pThSol
+    19.28d      | 1d    | 1d    || 5.62d          // independent of temp
+    30d         | 2d    | 3d    || 33.72d
+    19.2799999d | 1d    | 1d    || 5.6147201076d  // dependent on temp
+    15d         | 1.01d | 0.61d || 6.296542d      // somewhat realistic
   }
 
   def "Test calculateUsage"() {
@@ -139,11 +139,11 @@ class BMModelTest extends Specification {
     Math.abs(usageCalc - usageSol) < 0.00000001
 
     where:
-    pTh      | usageSol
-    43.14d   | 1d               // exactly maximum heat
-    50d      | 1d               // more than maximum, cap to 1
-    20d      | 0.463606861382d  // less than max
-    0d       | 0d               // zero
+    pTh      || usageSol
+    43.14d   || 1d               // exactly maximum heat
+    50d      || 1d               // more than maximum, cap to 1
+    20d      || 0.463606861382d  // less than max
+    0d       || 0d               // zero
   }
 
   def "Test calculateEff"() {
@@ -157,11 +157,11 @@ class BMModelTest extends Specification {
     Math.abs(effCalc - effSol) < 0.000000001
 
     where:
-    usage        | effSol
-    1d           | 1d
-    0d           | 0.724d
-    0.75d        | 0.98425d
-    0.86446317d  | 0.993848918615d
+    usage        || effSol
+    1d           || 1d
+    0d           || 0.724d
+    0.75d        || 0.98425d
+    0.86446317d  || 0.993848918615d
   }
 
   def "Test calculateElOutput"() {
@@ -186,10 +186,10 @@ class BMModelTest extends Specification {
     Math.abs(pElCalc.toSystemUnit().value.doubleValue() - Quantities.getQuantity(pElSol, KILOWATT).toSystemUnit().value.doubleValue()) < 0.0001
 
     where:
-    feedInTariff | usage  | eff      | pElSol
-    0.051d       | 1d     | 1d       | -190d         // tariff greater than opex => full power
-    0.04d        | 0.75d  | 0.98425d | -140.255625d  // tariff too little, only serve heat demand
-    0.04d        | 1d     | 1d       | -190d         // tariff too little, but max heat demand
+    feedInTariff | usage  | eff      || pElSol
+    0.051d       | 1d     | 1d       || -190d         // tariff greater than opex => full power
+    0.04d        | 0.75d  | 0.98425d || -140.255625d  // tariff too little, only serve heat demand
+    0.04d        | 1d     | 1d       || -190d         // tariff too little, but max heat demand
   }
 
   def "Test applyLoadGradient"() {
@@ -204,11 +204,11 @@ class BMModelTest extends Specification {
     pElCalc == Quantities.getQuantity(pElSol, KILOWATT)
 
     where:
-    lastPower  | pEl    | pElSol
-    -100d      | -120d  | -109.5d  // increase of power, more than load gradient allows
-    -50d       | -55d   | -55d     // increase, within load gradient
-    -50d       | -41d   | -41d     // decrease, within load gradient
-    -30d       | -15    | -20.5d   // decrease, more than load gradient
+    lastPower  | pEl    || pElSol
+    -100d      | -120d  || -109.5d  // increase of power, more than load gradient allows
+    -50d       | -55d   || -55d     // increase, within load gradient
+    -50d       | -41d   || -41d     // decrease, within load gradient
+    -30d       | -15    || -20.5d   // decrease, more than load gradient
   }
 
   def "Test calculateP"() {
@@ -243,15 +243,15 @@ class BMModelTest extends Specification {
     Math.abs(powerCalc.toSystemUnit().value.doubleValue() - Quantities.getQuantity(powerSol, KILOWATT).toSystemUnit().value.doubleValue()) < 1e-12
 
     where:
-    time                                       | temp | costControlled | lastPower | powerSol
-    '2019-01-05T05:15:00+01:00[Europe/Berlin]' | 10   | true           | -40.0     | -49.5           // weekend day in heating season, power increase capped by load gradient
-    '2019-01-04T05:15:00+01:00[Europe/Berlin]' | 10   | true           | -80.0     | -70.5           // working day in heating season, power decrease capped by load gradient
-    '2019-01-04T05:15:00+01:00[Europe/Berlin]' | -20  | true           | -182.0    | -190            // peek load boiler activated, max output because cost < revenues
-    '2019-01-04T05:15:00+01:00[Europe/Berlin]' | -7   | true           | -182.0    | -190            // close to peak load, max output because cost < revenues
-    '2019-01-04T05:15:00+01:00[Europe/Berlin]' | -7   | false          | -150.0    | -152.16900643778735  // close to peak load, not cost controlled but just serving heat demand
-    '2019-07-07T10:15:00+02:00[Europe/Berlin]' | 19   | true           | -10.0     | -12.099949463243976    // weekend day outside heating season, increase not capped
-    '2019-07-05T05:15:00+02:00[Europe/Berlin]' | 20   | true           | -20.0     | -11.70638561892377   // working day outside heating season, decrease not capped
-    '2019-07-06T10:15:00+02:00[Europe/Berlin]' | 20   | true           | -0.0      | -9.5            // weekend day outside heating season, increase capped
-    '2019-07-05T05:15:00+02:00[Europe/Berlin]' | 22   | true           | -22.0     | -12.5           // working day outside heating season, decrease capped
+    time                                       | temp | costControlled | lastPower || powerSol
+    '2019-01-05T05:15:00+01:00[Europe/Berlin]' | 10   | true           | -40.0     || -49.5           // weekend day in heating season, power increase capped by load gradient
+    '2019-01-04T05:15:00+01:00[Europe/Berlin]' | 10   | true           | -80.0     || -70.5           // working day in heating season, power decrease capped by load gradient
+    '2019-01-04T05:15:00+01:00[Europe/Berlin]' | -20  | true           | -182.0    || -190            // peek load boiler activated, max output because cost < revenues
+    '2019-01-04T05:15:00+01:00[Europe/Berlin]' | -7   | true           | -182.0    || -190            // close to peak load, max output because cost < revenues
+    '2019-01-04T05:15:00+01:00[Europe/Berlin]' | -7   | false          | -150.0    || -152.16900643778735  // close to peak load, not cost controlled but just serving heat demand
+    '2019-07-07T10:15:00+02:00[Europe/Berlin]' | 19   | true           | -10.0     || -12.099949463243976    // weekend day outside heating season, increase not capped
+    '2019-07-05T05:15:00+02:00[Europe/Berlin]' | 20   | true           | -20.0     || -11.70638561892377   // working day outside heating season, decrease not capped
+    '2019-07-06T10:15:00+02:00[Europe/Berlin]' | 20   | true           | -0.0      || -9.5            // weekend day outside heating season, increase capped
+    '2019-07-05T05:15:00+02:00[Europe/Berlin]' | 22   | true           | -22.0     || -12.5           // working day outside heating season, decrease capped
   }
 }

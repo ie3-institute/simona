@@ -80,9 +80,9 @@ class FixedLoadModelTest extends Specification {
     abs(actual.activePower().subtract(expectedReferenceActivePower).to(MEGAWATT).value.doubleValue()) < testingTolerance
 
     where:
-    reference                                                          | expectedReferenceActivePower
-    new ActivePower(Quantities.getQuantity(268.6, WATT))               | Quantities.getQuantity(268.6, WATT)
-    new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) | Quantities.getQuantity(342.24, WATT)
+    reference                                                          || expectedReferenceActivePower
+    new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
+    new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(342.24, WATT)
   }
 
   def "A fixed load model should return approximately the same power in 10.000 calculations"() {
@@ -104,9 +104,9 @@ class FixedLoadModelTest extends Specification {
     }
 
     where:
-    reference                                                          | expectedPower
-    new ActivePower(Quantities.getQuantity(268.6, WATT))               | Quantities.getQuantity(268.6, WATT)
-    new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) | Quantities.getQuantity(342.24, WATT)
+    reference                                                          || expectedPower
+    new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
+    new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(342.24, WATT)
   }
 
   def "A fixed load model considers the (global) scaling factor correctly"() {
@@ -130,8 +130,8 @@ class FixedLoadModelTest extends Specification {
     }
 
     where:
-    reference                                                          | expectedPower
-    new ActivePower(Quantities.getQuantity(268.6, WATT))               | Quantities.getQuantity(268.6, WATT)
-    new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) | Quantities.getQuantity(342.24, WATT)
+    reference                                                          || expectedPower
+    new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
+    new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(342.24, WATT)
   }
 }

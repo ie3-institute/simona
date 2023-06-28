@@ -112,16 +112,16 @@ class ChpModelTest extends Specification {
     activePower.isEquivalentTo(getQuantity(expectedActivePower, KILOWATT))
 
     where:
-    chpState           | storageLvl | heatDemand  | expectedActivePower
-    chpStateNotRunning | 90         | 0           | 0                        // tests case (false, false, true)
-    chpStateNotRunning | 90         | 8 * 115     | 95                        // tests case (false, true, false)
-    chpStateNotRunning | 90         | 10          | 0                        // tests case (false, true, true)
-    chpStateRunning    | 90         | 0           | 95                        // tests case (true, false, true)
-    chpStateRunning    | 90         | 8 * 115     | 95                        // tests case (true, true, false)
-    chpStateRunning    | 90         | 10          | 95                        // tests case (true, true, true)
-    chpStateRunning    | 90         | 7 * 115 + 1 | 95                        // test case (_, true, false) and demand covered together with chp
-    chpStateRunning    | 90         | 9 * 115     | 95                        // test case (_, true, false) and demand not covered together with chp
-    chpStateRunning    | 92         | 1           | 95                        // test case (true, true, true) and storage volume exceeds maximum
+    chpState           | storageLvl | heatDemand  || expectedActivePower
+    chpStateNotRunning | 90         | 0           || 0                        // tests case (false, false, true)
+    chpStateNotRunning | 90         | 8 * 115     || 95                        // tests case (false, true, false)
+    chpStateNotRunning | 90         | 10          || 0                        // tests case (false, true, true)
+    chpStateRunning    | 90         | 0           || 95                        // tests case (true, false, true)
+    chpStateRunning    | 90         | 8 * 115     || 95                        // tests case (true, true, false)
+    chpStateRunning    | 90         | 10          || 95                        // tests case (true, true, true)
+    chpStateRunning    | 90         | 7 * 115 + 1 || 95                        // test case (_, true, false) and demand covered together with chp
+    chpStateRunning    | 90         | 9 * 115     || 95                        // test case (_, true, false) and demand not covered together with chp
+    chpStateRunning    | 92         | 1           || 95                        // test case (true, true, true) and storage volume exceeds maximum
     /* The following tests do not exist: (false, false, false), (true, false, false) */
   }
 
@@ -141,16 +141,16 @@ class ChpModelTest extends Specification {
     equals(thermalEnergy, expected, TOLERANCE)
 
     where:
-    chpState           | storageLvl | heatDemand  | expectedTotalEnergy
-    chpStateNotRunning | 90         | 0           | 0            // tests case (false, false, true)
-    chpStateNotRunning | 90         | 8 * 115     | 100    // tests case (false, true, false)
-    chpStateNotRunning | 90         | 10          | 0            // tests case (false, true, true)
-    chpStateRunning    | 90         | 0           | 100            // tests case (true, false, true)
-    chpStateRunning    | 90         | 8 * 115     | 100        // tests case (true, true, false)
-    chpStateRunning    | 90         | 10          | 100            // tests case (true, true, true)
-    chpStateRunning    | 90         | 7 * 115 + 1 | 100    // test case (_, true, false) and demand covered together with chp
-    chpStateRunning    | 90         | 9 * 115     | 100        // test case (_, true, false) and demand not covered together with chp
-    chpStateRunning    | 92         | 1           | 93                // test case (true, true, true) and storage volume exceeds maximum
+    chpState           | storageLvl | heatDemand  || expectedTotalEnergy
+    chpStateNotRunning | 90         | 0           || 0            // tests case (false, false, true)
+    chpStateNotRunning | 90         | 8 * 115     || 100    // tests case (false, true, false)
+    chpStateNotRunning | 90         | 10          || 0            // tests case (false, true, true)
+    chpStateRunning    | 90         | 0           || 100            // tests case (true, false, true)
+    chpStateRunning    | 90         | 8 * 115     || 100        // tests case (true, true, false)
+    chpStateRunning    | 90         | 10          || 100            // tests case (true, true, true)
+    chpStateRunning    | 90         | 7 * 115 + 1 || 100    // test case (_, true, false) and demand covered together with chp
+    chpStateRunning    | 90         | 9 * 115     || 100        // test case (_, true, false) and demand not covered together with chp
+    chpStateRunning    | 92         | 1           || 93                // test case (true, true, true) and storage volume exceeds maximum
     /* The following tests do not exist: (false, false, false), (true, false, false) */
   }
 
@@ -170,15 +170,15 @@ class ChpModelTest extends Specification {
 
     where:
     chpState           | storageLvl | heatDemand | expectedStorageLevel
-    chpStateNotRunning | 90         | 0         | 90                    // tests case (false, false, true)
-    chpStateNotRunning | 90         | 8 * 115   | 20                // tests case (false, true, false)
-    chpStateNotRunning | 90         | 10        | 89.1304                // tests case (false, true, true)
-    chpStateRunning    | 90         | 0         | 98.6956                    // tests case (true, false, true)
-    chpStateRunning    | 90         | 8 * 115   | 20                // tests case (true, true, false)
-    chpStateRunning    | 90         | 10        | 97.8260                // tests case (true, true, true)
-    chpStateRunning    | 90         | 806       | 28.6086                // test case (_, true, false) and demand covered together with chp
-    chpStateRunning    | 90         | 9 * 115   | 20                // test case (_, true, false) and demand not covered together with chp
-    chpStateRunning    | 92         | 1         | 100                        // test case (true, true, true) and storage volume exceeds maximum
+    chpStateNotRunning | 90         | 0         || 90                    // tests case (false, false, true)
+    chpStateNotRunning | 90         | 8 * 115   || 20                // tests case (false, true, false)
+    chpStateNotRunning | 90         | 10        || 89.1304                // tests case (false, true, true)
+    chpStateRunning    | 90         | 0         || 98.6956                    // tests case (true, false, true)
+    chpStateRunning    | 90         | 8 * 115   || 20                // tests case (true, true, false)
+    chpStateRunning    | 90         | 10        || 97.8260                // tests case (true, true, true)
+    chpStateRunning    | 90         | 806       || 28.6086                // test case (_, true, false) and demand covered together with chp
+    chpStateRunning    | 90         | 9 * 115   || 20                // test case (_, true, false) and demand not covered together with chp
+    chpStateRunning    | 92         | 1         || 100                        // test case (true, true, true) and storage volume exceeds maximum
     /* The following tests do not exist: (false, false, false), (true, false, false) */
   }
 
@@ -197,15 +197,15 @@ class ChpModelTest extends Specification {
 
     where:
     chpState           | storageLvl | heatDemand | expectedTimeTick | expectedRunningStatus
-    chpStateNotRunning | 90         | 0          | 7200             | false            // tests case (false, false, true)
-    chpStateNotRunning | 90         | 8 * 115    | 7200             | true    // tests case (false, true, false)
-    chpStateNotRunning | 90         | 10         | 7200             | false        // tests case (false, true, true)
-    chpStateRunning    | 90         | 0          | 7200             | true                // tests case (true, false, true)
-    chpStateRunning    | 90         | 8 * 115    | 7200             | true        // tests case (true, true, false)
-    chpStateRunning    | 90         | 10         | 7200             | true            // tests case (true, true, true)
-    chpStateRunning    | 90         | 806        | 7200             | true            // test case (_, true, false) and demand covered together with chp
-    chpStateRunning    | 90         | 9 * 115    | 7200             | true        // test case (_, true, false) and demand not covered together with chp
-    chpStateRunning    | 92         | 1          | 7200             | false            // test case (true, true, true) and storage volume exceeds maximum
+    chpStateNotRunning | 90         | 0         || 7200             | false            // tests case (false, false, true)
+    chpStateNotRunning | 90         | 8 * 115   || 7200             | true    // tests case (false, true, false)
+    chpStateNotRunning | 90         | 10        || 7200             | false        // tests case (false, true, true)
+    chpStateRunning    | 90         | 0         || 7200             | true                // tests case (true, false, true)
+    chpStateRunning    | 90         | 8 * 115   || 7200             | true        // tests case (true, true, false)
+    chpStateRunning    | 90         | 10        || 7200             | true            // tests case (true, true, true)
+    chpStateRunning    | 90         | 806       || 7200             | true            // test case (_, true, false) and demand covered together with chp
+    chpStateRunning    | 90         | 9 * 115   || 7200             | true        // test case (_, true, false) and demand not covered together with chp
+    chpStateRunning    | 92         | 1         || 7200             | false            // test case (true, true, true) and storage volume exceeds maximum
     /* The following tests do not exist: (false, false, false), (true, false, false) */
   }
 

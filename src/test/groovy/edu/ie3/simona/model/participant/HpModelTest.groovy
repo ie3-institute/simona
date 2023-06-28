@@ -109,16 +109,16 @@ class HpModelTest extends Specification {
     nextState.isRunning() == expectedRunningStatus
 
     where:
-    hpState                                                                   | expectedTimeTick | expectedRunningStatus | expectedActivePower        // (isRunning, tooHigh, tooLow)
-    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(17, CELSIUS)) | 7200             | true                  | 95                            // tests case (false, false, true)
-    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(18, CELSIUS)) | 7200             | false                 | 0                            // tests case (false, false, false)
-    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(22, CELSIUS)) | 7200             | false                 | 0                            // tests case (false, false, false)
-    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(23, CELSIUS)) | 7200             | false                 | 0                            // tests case (false, true, false)
+    hpState                                                                   || expectedTimeTick | expectedRunningStatus | expectedActivePower        // (isRunning, tooHigh, tooLow)
+    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(17, CELSIUS)) || 7200             | true                  | 95                            // tests case (false, false, true)
+    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(18, CELSIUS)) || 7200             | false                 | 0                            // tests case (false, false, false)
+    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(22, CELSIUS)) || 7200             | false                 | 0                            // tests case (false, false, false)
+    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(23, CELSIUS)) || 7200             | false                 | 0                            // tests case (false, true, false)
 
-    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(17, CELSIUS)) | 7200             | true                  | 95                            // tests case (true, false, true)
-    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(18, CELSIUS)) | 7200             | true                  | 95                            // tests case (true, false, false)
-    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(22, CELSIUS)) | 7200             | true                  | 95                            // tests case (true, false, false)
-    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(23, CELSIUS)) | 7200             | false                 | 0                            // tests case (true, true, false)
+    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(17, CELSIUS)) || 7200             | true                  | 95                            // tests case (true, false, true)
+    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(18, CELSIUS)) || 7200             | true                  | 95                            // tests case (true, false, false)
+    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(22, CELSIUS)) || 7200             | true                  | 95                            // tests case (true, false, false)
+    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(23, CELSIUS)) || 7200             | false                 | 0                            // tests case (true, true, false)
   }
 
   def "Check new inner temperature after calculating next state with #hpState:"() {
@@ -134,18 +134,18 @@ class HpModelTest extends Specification {
     QuantityUtil.equals(nextInnerTemperature, getQuantity(expectedNewInnerTemperature, CELSIUS), TOLERANCE)
 
     where:
-    hpState                                                                   | expectedNewInnerTemperature                                            // (isRunning, tooHigh, tooLow)
-    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(17, CELSIUS)) | 18.6                            // tests case (false, false, true)
-    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(18, CELSIUS)) | 16.4                            // tests case (false, false, false)
-    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(20, CELSIUS)) | 18                            // tests case (false, false, false)
-    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(22, CELSIUS)) | 19.6                            // tests case (false, false, false)
-    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(23, CELSIUS)) | 20.4                            // tests case (false, true, false)
+    hpState                                                                   || expectedNewInnerTemperature                                            // (isRunning, tooHigh, tooLow)
+    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(17, CELSIUS)) || 18.6                            // tests case (false, false, true)
+    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(18, CELSIUS)) || 16.4                            // tests case (false, false, false)
+    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(20, CELSIUS)) || 18                            // tests case (false, false, false)
+    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(22, CELSIUS)) || 19.6                            // tests case (false, false, false)
+    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(23, CELSIUS)) || 20.4                            // tests case (false, true, false)
 
-    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(17, CELSIUS)) | 18.6                            // tests case (true, false, true)
-    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(18, CELSIUS)) | 19.4                            // tests case (true, false, false)
-    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(20, CELSIUS)) | 21                            // tests case (false, false, false)
-    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(22, CELSIUS)) | 22.6                            // tests case (true, false, false)
-    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(23, CELSIUS)) | 20.4                            // tests case (true, true, false)
+    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(17, CELSIUS)) || 18.6                            // tests case (true, false, true)
+    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(18, CELSIUS)) || 19.4                            // tests case (true, false, false)
+    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(20, CELSIUS)) || 21                            // tests case (false, false, false)
+    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(22, CELSIUS)) || 22.6                            // tests case (true, false, false)
+    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(23, CELSIUS)) || 20.4                            // tests case (true, true, false)
   }
 
 
