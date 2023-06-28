@@ -47,7 +47,7 @@ class SystemParticipantTest extends Specification {
     def qCalc = loadMock.calculateReactivePower(power, adjustedVoltage)
 
     then: "compare the results in watt"
-    Math.abs(qCalc.subtract(Quantities.getQuantity(qSol, KILOVAR)).getValue().doubleValue()) < 0.0001
+    Math.abs(qCalc.subtract(Quantities.getQuantity(qSol, KILOVAR)).value.doubleValue()) < 0.0001
 
     where:
     varCharacteristicString   | pVal | qSol

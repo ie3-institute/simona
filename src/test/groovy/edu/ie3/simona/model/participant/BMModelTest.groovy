@@ -69,7 +69,7 @@ class BMModelTest extends Specification {
         bmType.getCosPhiRated(),
         "MockNode",
         true,
-        bmType.getOpex() as ComparableQuantity<EnergyPrice>,
+        bmType.opex as ComparableQuantity<EnergyPrice>,
         Quantities.getQuantity(0.051d, EURO_PER_KILOWATTHOUR),
         Quantities.getQuantity(5d, PERCENT_PER_HOUR))
   }
@@ -176,14 +176,14 @@ class BMModelTest extends Specification {
         bmType.getCosPhiRated(),
         "MockNode",
         true,
-        bmType.getOpex() as ComparableQuantity<EnergyPrice>,
+        bmType.opex as ComparableQuantity<EnergyPrice>,
         Quantities.getQuantity(feedInTariff, EURO_PER_KILOWATTHOUR),
         Quantities.getQuantity(5d, PERCENT_PER_HOUR))
 
     def pElCalc = bmModel.calculateElOutput(usage, eff)
 
     then: "compare in watts"
-    Math.abs(pElCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(pElSol, KILOWATT).toSystemUnit().getValue().doubleValue()) < 0.0001
+    Math.abs(pElCalc.toSystemUnit().value.doubleValue() - Quantities.getQuantity(pElSol, KILOWATT).toSystemUnit().value.doubleValue()) < 0.0001
 
     where:
     feedInTariff | usage  | eff      | pElSol
@@ -229,7 +229,7 @@ class BMModelTest extends Specification {
         bmType.getCosPhiRated(),
         "MockNode",
         costControlled,
-        bmType.getOpex() as ComparableQuantity<EnergyPrice>,
+        bmType.opex as ComparableQuantity<EnergyPrice>,
         Quantities.getQuantity(0.051d, EURO_PER_KILOWATTHOUR),
         Quantities.getQuantity(5d, PERCENT_PER_HOUR))
 
@@ -240,7 +240,7 @@ class BMModelTest extends Specification {
     def powerCalc = bmModel.calculateActivePower(relevantData)
 
     then: "compare in watts"
-    Math.abs(powerCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(powerSol, KILOWATT).toSystemUnit().getValue().doubleValue()) < 1e-12
+    Math.abs(powerCalc.toSystemUnit().value.doubleValue() - Quantities.getQuantity(powerSol, KILOWATT).toSystemUnit().value.doubleValue()) < 1e-12
 
     where:
     time                                       | temp | costControlled | lastPower | powerSol

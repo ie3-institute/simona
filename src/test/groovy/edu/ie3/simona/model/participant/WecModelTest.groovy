@@ -97,10 +97,10 @@ class WecModelTest extends Specification {
     wecModel.uuid() == inputModel.getUuid()
     wecModel.id() == inputModel.getId()
     wecModel.scalingFactor() == 1
-    wecModel.sRated() == inputModel.getType().getsRated()
-    wecModel.cosPhiRated() == inputModel.getType().getCosPhiRated()
-    wecModel.rotorArea() == inputModel.getType().getRotorArea()
-    wecModel.betzCurve() == new WecModel.WecCharacteristic$().apply(inputModel.getType().getCpCharacteristic())
+    wecModel.sRated() == inputModel.type.sRated
+    wecModel.cosPhiRated() == inputModel.type.cosPhiRated
+    wecModel.rotorArea() == inputModel.type.rotorArea
+    wecModel.betzCurve() == new WecModel.WecCharacteristic$().apply(inputModel.type.cpCharacteristic)
   }
 
   @Unroll

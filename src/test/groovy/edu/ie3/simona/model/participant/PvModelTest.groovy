@@ -99,19 +99,19 @@ class PvModelTest extends Specification {
     // build the PvModel
     double scalingFactor = 1.0d
     pvModel = PvModel.apply(
-        pvInput.getUuid(),
-        pvInput.getId(),
+        pvInput.uuid,
+        pvInput.id,
         OperationInterval.apply(0L, 86400L),
         scalingFactor,
         QControl.apply(pvInput.getqCharacteristics()),
         pvInput.getsRated() as ComparableQuantity<Power>,
-        pvInput.getCosPhiRated(),
+        pvInput.cosPhiRated,
         pvInput.getNode().getGeoPosition().getY(),
         pvInput.getNode().getGeoPosition().getX(),
-        pvInput.getAlbedo(),
-        pvInput.getEtaConv() as ComparableQuantity<Dimensionless>,
-        getQuantity(Math.toRadians(pvInput.getAzimuth().getValue().doubleValue()), RADIAN),
-        getQuantity(Math.toRadians(pvInput.getElevationAngle().getValue().doubleValue()), RADIAN),
+        pvInput.albedo,
+        pvInput.etaConv as ComparableQuantity<Dimensionless>,
+        getQuantity(Math.toRadians(pvInput.azimuth.getValue().doubleValue()), RADIAN),
+        getQuantity(Math.toRadians(pvInput.elevationAngle.getValue().doubleValue()), RADIAN),
         getQuantity(1d, SQUARE_METRE)
         )
   }
@@ -157,7 +157,7 @@ class PvModelTest extends Specification {
     Quantity<Angle> deltaCalc = pvModel.calcSunDeclinationDelta(dayAngleQuantity)
 
     then:
-    Math.abs(deltaCalc.getValue().doubleValue() - deltaSol) < 1e-15
+    Math.abs(deltaCalc.value.doubleValue() - deltaSol) < 1e-15
 
     where:
     j                  | deltaSol
@@ -177,7 +177,7 @@ class PvModelTest extends Specification {
     Quantity<Angle> omegaCalc = pvModel.calcHourAngleOmega(dateTime, dayAngleQuantity, longitudeQuantity)
 
     then:
-    Math.abs(omegaCalc.getValue().doubleValue() - omegaSol) < 1e-15
+    Math.abs(omegaCalc.value.doubleValue() - omegaSol) < 1e-15
 
     where:
     time                                       | j                  | longitude | omegaSol

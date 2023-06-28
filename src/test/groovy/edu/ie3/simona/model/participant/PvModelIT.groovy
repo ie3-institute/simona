@@ -57,8 +57,8 @@ class PvModelIT extends Specification implements PvModelITHelper {
     setDefault(US)
 
     pvModels = createPvModels()
-    weatherMap = getWeatherData()
-    resultsMap = getResultsData()
+    weatherMap = weatherData
+    resultsMap = resultsData
   }
 
   def "8 pv panels full year test"() {
@@ -94,7 +94,7 @@ class PvModelIT extends Specification implements PvModelITHelper {
 
         "collect the results and calculate the difference between the provided results and the calculated ones"
         double calc = model.calculatePower(0L, voltage, neededData).p().getValue().doubleValue()
-        double sol = resultsMap.get(dateTime).get(modelId).getValue().doubleValue()
+        double sol = resultsMap.get(dateTime).get(modelId).value.doubleValue()
 
         testRes.add(Math.abs(calc - sol))
 

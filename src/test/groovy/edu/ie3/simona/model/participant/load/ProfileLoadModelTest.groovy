@@ -147,7 +147,7 @@ class ProfileLoadModelTest extends Specification {
     when:
     def max = relevantDatas.stream().mapToDouble({ relevantData ->
       dut.calculateActivePower(relevantData).to(MEGAWATT).value.doubleValue()
-    }).max().getAsDouble()
+    }).max().asDouble
 
     then:
     abs(max - expectedMax) < testingTolerance
