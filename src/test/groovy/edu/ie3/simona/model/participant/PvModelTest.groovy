@@ -6,6 +6,9 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static tech.units.indriya.quantity.Quantities.getQuantity
+
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.OperatorInput
@@ -31,8 +34,7 @@ import javax.measure.quantity.Dimensionless
 import javax.measure.quantity.Power
 import java.time.ZonedDateTime
 
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static tech.units.indriya.quantity.Quantities.getQuantity
+
 
 /**
  * Test class that tries to cover all special cases of the current implementation of the PvModel

@@ -6,6 +6,8 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiP
 import edu.ie3.datamodel.models.input.system.characteristic.QV
@@ -18,7 +20,7 @@ import tech.units.indriya.quantity.Quantities
 import javax.measure.Quantity
 import javax.measure.quantity.Power
 
-import static edu.ie3.util.quantities.PowerSystemUnits.*
+
 
 class SystemParticipantTest extends Specification {
 

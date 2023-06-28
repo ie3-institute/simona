@@ -6,6 +6,13 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
+import static edu.ie3.util.quantities.PowerSystemUnits.PU
+import static java.util.Locale.US
+import static java.util.Locale.setDefault
+import static tech.units.indriya.quantity.Quantities.getQuantity
+import static tech.units.indriya.unit.Units.*
+
 import edu.ie3.datamodel.io.source.csv.CsvJointGridContainerSource
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.simona.model.SystemComponent
@@ -25,12 +32,7 @@ import javax.measure.quantity.Power
 import java.time.ZonedDateTime
 import java.util.zip.GZIPInputStream
 
-import static edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
-import static edu.ie3.util.quantities.PowerSystemUnits.PU
-import static java.util.Locale.US
-import static java.util.Locale.setDefault
-import static tech.units.indriya.quantity.Quantities.getQuantity
-import static tech.units.indriya.unit.Units.*
+
 
 /**
  * A simple integration test that uses pre-calculated data to check if the pv model works as expected.
