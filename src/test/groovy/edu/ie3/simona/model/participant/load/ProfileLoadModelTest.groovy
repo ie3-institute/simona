@@ -80,13 +80,13 @@ class ProfileLoadModelTest extends Specification {
     abs((actual.sRated() * actual.cosPhiRated()).subtract(expectedsRated).to(MEGAWATT).value.doubleValue()) < testingTolerance
 
     where:
-    profile | reference                                                          || expectedsRated
-    H0      | new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
-    H0      | new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(805.8089, WATT)
-    L0      | new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
-    L0      | new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(721.2, WATT)
-    G0      | new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
-    G0      | new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(721.2, WATT)
+    profile | reference                                                          | expectedsRated
+    H0      | new ActivePower(Quantities.getQuantity(268.6, WATT))               | Quantities.getQuantity(268.6, WATT)
+    H0      | new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) | Quantities.getQuantity(805.8089, WATT)
+    L0      | new ActivePower(Quantities.getQuantity(268.6, WATT))               | Quantities.getQuantity(268.6, WATT)
+    L0      | new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) | Quantities.getQuantity(721.2, WATT)
+    G0      | new ActivePower(Quantities.getQuantity(268.6, WATT))               | Quantities.getQuantity(268.6, WATT)
+    G0      | new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) | Quantities.getQuantity(721.2, WATT)
   }
 
   def "A profile load model should reach the targeted maximum power within a year"() {
@@ -117,10 +117,10 @@ class ProfileLoadModelTest extends Specification {
     abs(max - expectedMax) < testingTolerance
 
     where:
-    profile || expectedMax
-    H0      || 268.0029932985852E-6
-    L0      || 268.0029932985852E-6
-    G0      || 268.0029932985852E-6
+    profile | expectedMax
+    H0      | 268.0029932985852E-6
+    L0      | 268.0029932985852E-6
+    G0      | 268.0029932985852E-6
   }
 
   def "A profile load model should account for the (global) scaling factor correctly when scaling to maximum power within a year"() {
@@ -151,15 +151,15 @@ class ProfileLoadModelTest extends Specification {
     abs(max - expectedMax) < testingTolerance
 
     where:
-    globalScaling || expectedMax
-    0.25          || 67.00074832464630E-6
-    0.5           || 134.0014966492930E-6
-    0.75          || 201.0022449739390E-6
-    1.0           || 268.0029932985852E-6
-    1.25          || 335.0037416232310E-6
-    1.5           || 402.0044899478780E-6
-    1.75          || 469.0052382725240E-6
-    2.0           || 536.0059865971700E-6
+    globalScaling | expectedMax
+    0.25          | 67.00074832464630E-6
+    0.5           | 134.0014966492930E-6
+    0.75          | 201.0022449739390E-6
+    1.0           | 268.0029932985852E-6
+    1.25          | 335.0037416232310E-6
+    1.5           | 402.0044899478780E-6
+    1.75          | 469.0052382725240E-6
+    2.0           | 536.0059865971700E-6
   }
 
   def "A profile load model should reach the targeted annual energy consumption"() {
@@ -195,10 +195,10 @@ class ProfileLoadModelTest extends Specification {
     abs(annualEnergy - expectedEnergy) / expectedEnergy < testingTolerance
 
     where:
-    profile || expectedEnergy
-    H0      || 3000d
-    L0      || 3000d
-    G0      || 3000d
+    profile | expectedEnergy
+    H0      | 3000d
+    L0      | 3000d
+    G0      | 3000d
   }
 
   def "A profile load model should account for the (global) scaling factor correctly when scaling to annual energy consumption"() {
@@ -234,14 +234,14 @@ class ProfileLoadModelTest extends Specification {
     abs(annualEnergy - expectedEnergy) / expectedEnergy < testingTolerance
 
     where:
-    globalScaling || expectedEnergy
-    0.25          || 750d
-    0.5           || 1500d
-    0.75          || 2250d
-    1.0           || 3000d
-    1.25          || 3750d
-    1.5           || 4500d
-    1.75          || 5250d
-    2.0           || 6000d
+    globalScaling | expectedEnergy
+    0.25          | 750d
+    0.5           | 1500d
+    0.75          | 2250d
+    1.0           | 3000d
+    1.25          | 3750d
+    1.5           | 4500d
+    1.75          | 5250d
+    2.0           | 6000d
   }
 }

@@ -48,15 +48,15 @@ class SystemParticipantTest extends Specification {
     Math.abs(qCalc.subtract(Quantities.getQuantity(qSol, KILOVAR)).getValue().doubleValue()) < 0.0001
 
     where:
-    varCharacteristicString   | pVal || qSol
-    "cosPhiFixed:{(0.0,0.9)}" | 0    || 0
-    "cosPhiFixed:{(0.0,0.9)}" | 50   || 24.216105241892627000
-    "cosPhiFixed:{(0.0,0.9)}" | 100  || 48.432210483785254000
-    "cosPhiFixed:{(0.0,0.9)}" | 200  || 0
-    "cosPhiFixed:{(0.0,0.9)}" | -50  || -24.216105241892627000
-    "cosPhiFixed:{(0.0,0.9)}" | -100 || -48.432210483785254000
-    "cosPhiFixed:{(0.0,0.9)}" | -200 || 0
-    "cosPhiFixed:{(0.0,1.0)}" | 100  || 0
+    varCharacteristicString   | pVal | qSol
+    "cosPhiFixed:{(0.0,0.9)}" | 0    | 0
+    "cosPhiFixed:{(0.0,0.9)}" | 50   | 24.216105241892627000
+    "cosPhiFixed:{(0.0,0.9)}" | 100  | 48.432210483785254000
+    "cosPhiFixed:{(0.0,0.9)}" | 200  | 0
+    "cosPhiFixed:{(0.0,0.9)}" | -50  | -24.216105241892627000
+    "cosPhiFixed:{(0.0,0.9)}" | -100 | -48.432210483785254000
+    "cosPhiFixed:{(0.0,0.9)}" | -200 | 0
+    "cosPhiFixed:{(0.0,1.0)}" | 100  | 0
   }
 
   def "Test calculateQ for a load unit with cosphi_p"() {
@@ -85,9 +85,9 @@ class SystemParticipantTest extends Specification {
     Math.abs(qCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(qSol, KILOVAR).toSystemUnit().getValue().doubleValue()) < 0.0001
 
     where: // explained below
-    varCharacteristicString                                                                                                                                                                                                                     | p     || qSol
-    "cosPhiP:{(0,1),(0.05,1),(0.1,1),(0.15,1),(0.2,1),(0.25,1),(0.3,1),(0.35,1),(0.4,1),(0.45,1),(0.5,1),(0.55,0.99),(0.6,0.98),(0.65,0.97),(0.7,0.96),(0.75,0.95),(0.8,0.94),(0.85,0.93),(0.9,0.92),(0.95,0.91),(1,0.9)}"                      | 100.0 || 20.09975124224169
-    "cosPhiP:{(0,-1),(0.05,-1),(0.1,-1),(0.15,-1),(0.2,-1),(0.25,-1),(0.3,-1),(0.35,-1),(0.4,-1),(0.45,-1),(0.5,-1),(0.55,-0.99),(0.6,-0.98),(0.65,-0.97),(0.7,-0.96),(0.75,-0.95),(0.8,-0.94),(0.85,-0.93),(0.9,-0.92),(0.95,-0.91),(1,-0.9)}" | 100.0 || -20.09975124224169
+    varCharacteristicString                                                                                                                                                                                                                     | p     | qSol
+    "cosPhiP:{(0,1),(0.05,1),(0.1,1),(0.15,1),(0.2,1),(0.25,1),(0.3,1),(0.35,1),(0.4,1),(0.45,1),(0.5,1),(0.55,0.99),(0.6,0.98),(0.65,0.97),(0.7,0.96),(0.75,0.95),(0.8,0.94),(0.85,0.93),(0.9,0.92),(0.95,0.91),(1,0.9)}"                      | 100.0 | 20.09975124224169
+    "cosPhiP:{(0,-1),(0.05,-1),(0.1,-1),(0.15,-1),(0.2,-1),(0.25,-1),(0.3,-1),(0.35,-1),(0.4,-1),(0.45,-1),(0.5,-1),(0.55,-0.99),(0.6,-0.98),(0.65,-0.97),(0.7,-0.96),(0.75,-0.95),(0.8,-0.94),(0.85,-0.93),(0.9,-0.92),(0.95,-0.91),(1,-0.9)}" | 100.0 | -20.09975124224169
 
     // first line is "with P" -> positive Q (influence on voltage level: decrease) is expected
     // second line is "against P" -> negative Q (influence on voltage level: increase) is expected
@@ -119,9 +119,9 @@ class SystemParticipantTest extends Specification {
     Math.abs(qCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(qSol, KILOVAR).toSystemUnit().getValue().doubleValue()) < 0.0001
 
     where: // explained below
-    varCharacteristicString                                                                                                                                                                                                                                         | p      || qSol
-    "cosPhiP:{(-1,0.9),(-0.95,0.91),(-0.9,0.92),(-0.85,0.93),(-0.8,0.94),(-0.75,0.95),(-0.7,0.96),(-0.65,0.97),(-0.6,0.98),(-0.55,0.99),(-0.5,1),(-0.45,1),(-0.4,1),(-0.35,1),(-0.3,1),(-0.25,1),(-0.2,1),(-0.15,1),(-0.1,1),(-0.05,1),(0,1)}"                      | -100.0 || -14.177446878757818
-    "cosPhiP:{(-1,-0.9),(-0.95,-0.91),(-0.9,-0.92),(-0.85,-0.93),(-0.8,-0.94),(-0.75,-0.95),(-0.7,-0.96),(-0.65,-0.97),(-0.6,-0.98),(-0.55,-0.99),(-0.5,-1),(-0.45,-1),(-0.4,-1),(-0.35,-1),(-0.3,-1),(-0.25,-1),(-0.2,-1),(-0.15,-1),(-0.1,-1),(-0.05,-1),(0,-1)}" | -100.0 || 14.177446878757818
+    varCharacteristicString                                                                                                                                                                                                                                         | p       | qSol
+    "cosPhiP:{(-1,0.9),(-0.95,0.91),(-0.9,0.92),(-0.85,0.93),(-0.8,0.94),(-0.75,0.95),(-0.7,0.96),(-0.65,0.97),(-0.6,0.98),(-0.55,0.99),(-0.5,1),(-0.45,1),(-0.4,1),(-0.35,1),(-0.3,1),(-0.25,1),(-0.2,1),(-0.15,1),(-0.1,1),(-0.05,1),(0,1)}"                      | -100.0  | -14.177446878757818
+    "cosPhiP:{(-1,-0.9),(-0.95,-0.91),(-0.9,-0.92),(-0.85,-0.93),(-0.8,-0.94),(-0.75,-0.95),(-0.7,-0.96),(-0.65,-0.97),(-0.6,-0.98),(-0.55,-0.99),(-0.5,-1),(-0.45,-1),(-0.4,-1),(-0.35,-1),(-0.3,-1),(-0.25,-1),(-0.2,-1),(-0.15,-1),(-0.1,-1),(-0.05,-1),(0,-1)}" | -100.0  | 14.177446878757818
 
     // first line is "with P" -> negative Q (influence on voltage level: increase) is expected
     // second line is "against P" -> positive Q (influence on voltage level: decrease) is expected
@@ -154,16 +154,16 @@ class SystemParticipantTest extends Specification {
     Math.abs(qCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(qSoll, KILOVAR).toSystemUnit().getValue().doubleValue()) < 0.0001
 
     where:
-    adjustedVoltageVal || qSoll
-    0.9                || -39.79949748426482
-    0.93               || -39.79949748426482
-    0.95               ||  -19.89974874213241
-    0.97               || 0
-    1.00               || 0
-    1.03               || 0
-    1.05               || 19.89974874213241
-    1.07               || 39.79949748426482
-    1.1                || 39.79949748426482
+    adjustedVoltageVal | qSoll
+    0.9                | -39.79949748426482
+    0.93               | -39.79949748426482
+    0.95               |  -19.89974874213241
+    0.97               | 0
+    1.00               | 0
+    1.03               | 0
+    1.05               | 19.89974874213241
+    1.07               | 39.79949748426482
+    1.1                | 39.79949748426482
   }
 
   def "Test calculateQ for a standard q_v characteristic if active power is zero and cosPhiRated 1"() {
@@ -193,16 +193,16 @@ class SystemParticipantTest extends Specification {
     Math.abs(qCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(qSoll, KILOVAR).toSystemUnit().getValue().doubleValue()) < 0.0001
 
     where:
-    adjustedVoltageVal || qSoll
-    0.9                || 0
-    0.93               || 0
-    0.95               || 0
-    0.97               || 0
-    1.00               || 0
-    1.03               || 0
-    1.05               || 0
-    1.07               || 0
-    1.1                || 0
+    adjustedVoltageVal | qSoll
+    0.9                | 0
+    0.93               | 0
+    0.95               | 0
+    0.97               | 0
+    1.00               | 0
+    1.03               | 0
+    1.05               | 0
+    1.07               | 0
+    1.1                | 0
   }
 
   def "Test calculateQ for a standard q_v characteristic if active power is not zero and cosPhiRated 0.95"() {
@@ -232,16 +232,16 @@ class SystemParticipantTest extends Specification {
     Math.abs(qCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(qSoll, KILOVAR).toSystemUnit().getValue().doubleValue()) < 0.0001
 
     where:
-    adjustedVoltageVal || qSoll
-    0.9                || -62.449979983984
-    0.93               || -62.449979983984
-    0.95               || -31.224989991992
-    0.97               || 0
-    1.00               || 0
-    1.03               || 0
-    1.05               || 31.224989991992
-    1.07               || 62.449979983984
-    1.1                || 62.449979983984
+    adjustedVoltageVal | qSoll
+    0.9                | -62.449979983984
+    0.93               | -62.449979983984
+    0.95               | -31.224989991992
+    0.97               | 0
+    1.00               | 0
+    1.03               | 0
+    1.05               | 31.224989991992
+    1.07               | 62.449979983984
+    1.1                | 62.449979983984
   }
 
   def "Test calculateQ for a standard q_v characteristic if active power is 195 and cosPhiRated 0.95"() {
@@ -271,15 +271,15 @@ class SystemParticipantTest extends Specification {
     Math.abs(qCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(qSoll, KILOVAR).toSystemUnit().getValue().doubleValue()) < 0.0001
 
     where:
-    adjustedVoltageVal || qSoll
-    0.9                || -44.440972086578
-    0.93               || -44.440972086578
-    0.95               || -31.224989991992
-    0.97               || 0
-    1.00               || 0
-    1.03               || 0
-    1.05               || 31.224989991992
-    1.07               || 44.440972086578
-    1.1                || 44.440972086578
+    adjustedVoltageVal | qSoll
+    0.9                | -44.440972086578
+    0.93               | -44.440972086578
+    0.95               | -31.224989991992
+    0.97               | 0
+    1.00               | 0
+    1.03               | 0
+    1.05               | 31.224989991992
+    1.07               | 44.440972086578
+    1.1                | 44.440972086578
   }
 }

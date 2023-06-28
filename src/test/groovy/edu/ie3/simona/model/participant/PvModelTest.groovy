@@ -130,9 +130,9 @@ class PvModelTest extends Specification {
     Math.abs(qCalc.subtract(getQuantity(qSoll, KILOVAR)).getValue().doubleValue()) < 0.0001
 
     where:
-    pVal || qSoll
-    9.5  || 4.601059 // above sRated (no q limitation)
-    11   || 0        // above sMax (limit q becomes active)
+    pVal | qSoll
+    9.5  | 4.601059 // above sRated (no q limitation)
+    11   | 0        // above sMax (limit q becomes active)
   }
 
   def "Calculate day angle J"() {
@@ -143,10 +143,10 @@ class PvModelTest extends Specification {
     Math.abs(jCalc.getValue().doubleValue() - jSol) < 1e-15
 
     where:
-    time                                       || jSol
-    '2019-01-05T05:15:00+01:00[Europe/Berlin]' || 0.06885682528415985d
-    '2016-10-31T12:15:00+01:00[Europe/Berlin]' || 5.23311872159614873d // leap year => day = 305
-    '2017-10-31T12:15:00+01:00[Europe/Berlin]' || 5.21590451527510877d // regular year => day = 304
+    time                                       | jSol
+    '2019-01-05T05:15:00+01:00[Europe/Berlin]' | 0.06885682528415985d
+    '2016-10-31T12:15:00+01:00[Europe/Berlin]' | 5.23311872159614873d // leap year => day = 305
+    '2017-10-31T12:15:00+01:00[Europe/Berlin]' | 5.21590451527510877d // regular year => day = 304
   }
 
   def "Calculate declination angle delta"() {
@@ -158,12 +158,12 @@ class PvModelTest extends Specification {
     Math.abs(deltaCalc.getValue().doubleValue() - deltaSol) < 1e-15
 
     where:
-    j                  || deltaSol
-    0d                 || -0.402449d           // Jan 1st
-    2.943629280897834d || 0.409315420329718d   // Jun 21 (maximum: 23.45°)
-    6.024972212363987d || -0.406963611252886d   // Dec 21 (minimum: -23.45°)
-    4.52733626243351d  || 0.017908363617326d   // Sep 21 (0°)
-    1.359922299362157d || -0.001150591501958d   // Mar 21 (0°)
+    j                  | deltaSol
+    0d                 | -0.402449d           // Jan 1st
+    2.943629280897834d | 0.409315420329718d   // Jun 21 (maximum: 23.45°)
+    6.024972212363987d | -0.406963611252886d   // Dec 21 (minimum: -23.45°)
+    4.52733626243351d  | 0.017908363617326d   // Sep 21 (0°)
+    1.359922299362157d | -0.001150591501958d   // Mar 21 (0°)
   }
 
   def "Calculate hour angle omega"() {
@@ -178,14 +178,14 @@ class PvModelTest extends Specification {
     Math.abs(omegaCalc.getValue().doubleValue() - omegaSol) < 1e-15
 
     where:
-    time                                       | j                  | longitude || omegaSol
-    '2019-01-01T05:00:00+01:00[Europe/Berlin]' | 0d                 | 0.16d     || -1.946503016860923d  // long: ~9.17°E
-    '2019-01-01T10:05:00+01:00[Europe/Berlin]' | 0d                 | 0.16d     || -0.615689462215246d  // different time: 10:05
-    '2019-01-01T12:00:00+01:00[Europe/Berlin]' | 0d                 | 0.16d     || -0.113907302266876d  // 12:00
-    '2019-01-01T14:00:00+01:00[Europe/Berlin]' | 0d                 | 0.16d     || 0.409691473331422d  // 14:00
-    '2019-01-01T17:30:00+01:00[Europe/Berlin]' | 0d                 | 0.16d     || 1.325989330628445d  // 17:30
-    '2019-03-21T05:00:00+01:00[Europe/Berlin]' | 1.359922299362157d | 0.16d     || -1.967775075784021d  // different j (different date)
-    '2019-01-01T05:00:00+01:00[Europe/Berlin]' | 0d                 | 0.175d    || -1.931503016860923d  // different long, ~10°E
+    time                                       | j                  | longitude | omegaSol
+    '2019-01-01T05:00:00+01:00[Europe/Berlin]' | 0d                 | 0.16d     | -1.946503016860923d  // long: ~9.17°E
+    '2019-01-01T10:05:00+01:00[Europe/Berlin]' | 0d                 | 0.16d     | -0.615689462215246d  // different time: 10:05
+    '2019-01-01T12:00:00+01:00[Europe/Berlin]' | 0d                 | 0.16d     | -0.113907302266876d  // 12:00
+    '2019-01-01T14:00:00+01:00[Europe/Berlin]' | 0d                 | 0.16d     | 0.409691473331422d  // 14:00
+    '2019-01-01T17:30:00+01:00[Europe/Berlin]' | 0d                 | 0.16d     | 1.325989330628445d  // 17:30
+    '2019-03-21T05:00:00+01:00[Europe/Berlin]' | 1.359922299362157d | 0.16d     | -1.967775075784021d  // different j (different date)
+    '2019-01-01T05:00:00+01:00[Europe/Berlin]' | 0d                 | 0.175d    | -1.931503016860923d  // different long, ~10°E
   }
 
   def "Calculate sunset angle omegaSS"() {
@@ -199,10 +199,10 @@ class PvModelTest extends Specification {
     Math.abs(omegaSSCalc.getValue().doubleValue() - omegaSSSol) < 1e-15
 
     where:
-    latitude | delta      || omegaSSSol
-    0.9d     | -0.402449d || 1.004597540628618d  // lat: ~51.57°N
-    0.935d   | -0.402449d || 0.956011693657339d  // different lat: ~53.57°N
-    0.9d     | 0.017908d  || 1.593367569319828d  // different delta
+    latitude | delta      | omegaSSSol
+    0.9d     | -0.402449d | 1.004597540628618d  // lat: ~51.57°N
+    0.935d   | -0.402449d | 0.956011693657339d  // different lat: ~53.57°N
+    0.9d     | 0.017908d  | 1.593367569319828d  // different delta
   }
 
   def "Calculate solar altitude angle alphaS"() {
@@ -217,12 +217,12 @@ class PvModelTest extends Specification {
     Math.abs(alphaSCalc.getValue().doubleValue() - alphaSSol) < 1e-15
 
     where:
-    omega              | delta               | latitude || alphaSSol
-    1.946503016860923d | -0.402449d          | 0.9d     || -0.542959468135244d  // delta: Jan 1st, lat: ~51.57°N
-    1.967775075784021d | -0.001150591501958d | 0.9d     || -0.243639843356786d  // delta: March 21st
-    1.946503016860923d | -0.402449d          | 0.935d   || -0.541732285481946d  // delta: Jan 1st, lat: ~53.57°N
-    1.256637061d       | -0.402449d          | 0.698d   || -0.033897520990304d  // omega: 82°, delta: Jan 1st, lat: ~53.57°N
-    0.409691473331422d | -0.402449d          | 0.9d     || 0.219566101072938d  // omega: 14:00, delta: Jan 1st
+    omega              | delta               | latitude | alphaSSol
+    1.946503016860923d | -0.402449d          | 0.9d     | -0.542959468135244d  // delta: Jan 1st, lat: ~51.57°N
+    1.967775075784021d | -0.001150591501958d | 0.9d     | -0.243639843356786d  // delta: March 21st
+    1.946503016860923d | -0.402449d          | 0.935d   | -0.541732285481946d  // delta: Jan 1st, lat: ~53.57°N
+    1.256637061d       | -0.402449d          | 0.698d   | -0.033897520990304d  // omega: 82°, delta: Jan 1st, lat: ~53.57°N
+    0.409691473331422d | -0.402449d          | 0.9d     | 0.219566101072938d  // omega: 14:00, delta: Jan 1st
   }
 
   def "Calculate zenith angle thetaZ"() {
@@ -235,10 +235,10 @@ class PvModelTest extends Specification {
     Math.abs(thetaZCalc.getValue().doubleValue() - thetaZSol) < 1e-15
 
     where:
-    alphaS             || thetaZSol
-    0d                 || 1.570796326794897d  // 0°
-    0.785398163397448d || 0.785398163397449d  // 45°
-    1.570796326794897d || 0d                  // 90°
+    alphaS             | thetaZSol
+    0d                 | 1.570796326794897d  // 0°
+    0.785398163397448d | 0.785398163397449d  // 45°
+    1.570796326794897d | 0d                  // 90°
   }
 
   def "Calculate air mass"() {
@@ -251,10 +251,10 @@ class PvModelTest extends Specification {
     Math.abs(airMassCalc - airMassSol) < 1e-15
 
     where:
-    thetaZ             || airMassSol
-    0d                 || 1d                  // 0°
-    0.785398163397448d || 1.41321748045965d   // 45°
-    1.570796326794897d || 37.640108631323025d // 90°
+    thetaZ             | airMassSol
+    0d                 | 1d                  // 0°
+    0.785398163397448d | 1.41321748045965d   // 45°
+    1.570796326794897d | 37.640108631323025d // 90°
   }
 
   def "Calculate extraterrestrial radiation IO"() {
@@ -267,10 +267,10 @@ class PvModelTest extends Specification {
     Math.abs(I0Calc.getValue().doubleValue() - I0Sol) < 1e-15
 
     where:
-    j                  || I0Sol
-    0d                 || 1414.91335d           // Jan 1st
-    2.943629280897834d || 1322.494291080537598d // Jun 21st
-    4.52733626243351d  || 1355.944773587800003d // Sep 21st
+    j                  | I0Sol
+    0d                 | 1414.91335d           // Jan 1st
+    2.943629280897834d | 1322.494291080537598d // Jun 21st
+    4.52733626243351d  | 1355.944773587800003d // Sep 21st
   }
 
   def "Calculate the angle of incidence thetaG"() {
@@ -320,9 +320,9 @@ class PvModelTest extends Specification {
         TESTING_TOLERANCE)
 
     where: "the following parameters are given"
-    latitudeInDeg | deltaIn | omegaIn || alphaSOut
-    43d           | -14d    | -37.5d  || 23.4529893659531784299686037109330117049955654837550  // '2011-02-13T09:30:00'
-    43d           | 23.1d   | 97.5d   || 10.356151317506402829742934977890382350725031728508 // '2011-07-01T06:30:00'
+    latitudeInDeg | deltaIn | omegaIn | alphaSOut
+    43d           | -14d    | -37.5d  | 23.4529893659531784299686037109330117049955654837550  // '2011-02-13T09:30:00'
+    43d           | 23.1d   | 97.5d   | 10.356151317506402829742934977890382350725031728508 // '2011-07-01T06:30:00'
   }
 
   def "Calculate Rb (cos(thetaG)/cos(thetaZ))"() {
@@ -351,13 +351,13 @@ class PvModelTest extends Specification {
         TESTING_TOLERANCE)
 
     where: "the following parameters are given"
-    latitudeInDeg | deltaIn | omegaIn | slope | azimuth || thetaOut
-    45            | -7.15   | -82.5   | 60    | 0       || 80.949048340487770372059710314128606931745693791068  // thetaG
-    45            | -7.15   | -82.5   | 0     | 0       || 89.795654742951077439582101317248278436936658210074  // thetaZ
-    40            | -11.6   | -82.5   | 60    | 0       || 79.110119287443572813858647674599902596082559960114
-    40            | -11.6   | 82.5    | 60    | 0       || 79.110119287443572813858647674599902596082559960114
-    40            | -11.6   | -78.0   | 60    | 0       || 74.920720651851429547034443178659599205063808040294
-    40            | -11.6   | 78.0    | 60    | 0       || 74.920720651851429547034443178659599205063808040294
+    latitudeInDeg | deltaIn | omegaIn | slope | azimuth | thetaOut
+    45            | -7.15   | -82.5   | 60    | 0       | 80.949048340487770372059710314128606931745693791068  // thetaG
+    45            | -7.15   | -82.5   | 0     | 0       | 89.795654742951077439582101317248278436936658210074  // thetaZ
+    40            | -11.6   | -82.5   | 60    | 0       | 79.110119287443572813858647674599902596082559960114
+    40            | -11.6   | 82.5    | 60    | 0       | 79.110119287443572813858647674599902596082559960114
+    40            | -11.6   | -78.0   | 60    | 0       | 74.920720651851429547034443178659599205063808040294
+    40            | -11.6   | 78.0    | 60    | 0       | 74.920720651851429547034443178659599205063808040294
   }
 
   def "Calculate the estimate beam radiation eBeamS"() {
@@ -400,14 +400,14 @@ class PvModelTest extends Specification {
         TESTING_TOLERANCE)
 
     where: "the following parameters are given"
-    latitudeInDeg | slope | azimuth | deltaIn | omegaIn | thetaGIn || eBeamSSol
-    40d           | 0d    | 0d      | -11.6d  | -37.5d  | 37.0d    || 67.777778d            // flat surface => eBeamS = eBeamH
-    40d           | 60d   | 0d      | -11.6d  | -37.5d  | 37.0d    || 112.84217113154841369d// 2011-02-20T09:00:00
-    40d           | 60d   | 0d      | -11.6d  | -78.0d  | 75.0d    || 210.97937494450753662d// sunrise
-    40d           | 60d   | 0d      | -11.6d  | 62.0d   | 76.0d    || 199.165665362241176d  // sunset
-    40d           | 60d   | 0d      | -11.6d  | 69.0d   | 89.9d    || 245.776377666734070d  // sunset, cut off
-    40d           | 60d   | 0d      | -11.6d  | 75.0d   | 89.9d    || 0d                    // no sun
-    40d           | 60d   | -90.0d  | -11.6d  | 60.0d   | 91.0d    || 0d                    // no direct beam
+    latitudeInDeg | slope | azimuth | deltaIn | omegaIn | thetaGIn | eBeamSSol
+    40d           | 0d    | 0d      | -11.6d  | -37.5d  | 37.0d    | 67.777778d            // flat surface => eBeamS = eBeamH
+    40d           | 60d   | 0d      | -11.6d  | -37.5d  | 37.0d    | 112.84217113154841369d// 2011-02-20T09:00:00
+    40d           | 60d   | 0d      | -11.6d  | -78.0d  | 75.0d    | 210.97937494450753662d// sunrise
+    40d           | 60d   | 0d      | -11.6d  | 62.0d   | 76.0d    | 199.165665362241176d  // sunset
+    40d           | 60d   | 0d      | -11.6d  | 69.0d   | 89.9d    | 245.776377666734070d  // sunset, cut off
+    40d           | 60d   | 0d      | -11.6d  | 75.0d   | 89.9d    | 0d                    // no sun
+    40d           | 60d   | -90.0d  | -11.6d  | 60.0d   | 91.0d    | 0d                    // no direct beam
   }
 
   def "Calculate the estimate diffuse radiation eDifS"() {
@@ -438,8 +438,8 @@ class PvModelTest extends Specification {
         TESTING_TOLERANCE)
 
     where: "the following parameters are given"
-    thetaGIn | thetaZIn | slope | airMass           | I0                  || eDifSSol
-    37.0     | 62.2     | 60    | 2.13873080095658d | 1399.0077631849722d || 216.46615469650985d
+    thetaGIn | thetaZIn | slope | airMass           | I0                  | eDifSSol
+    37.0     | 62.2     | 60    | 2.13873080095658d | 1399.0077631849722d | 216.46615469650985d
   }
 
   def "Calculate the ground reflection eRefS"() {
@@ -465,7 +465,7 @@ class PvModelTest extends Specification {
         TESTING_TOLERANCE)
 
     where: "the following parameters are given"
-    slope | albedo || eRefSSol
-    60    | 0.60   || 42.20833319999999155833336d // '2011-02-20T09:00:00'
+    slope | albedo | eRefSSol
+    60    | 0.60   | 42.20833319999999155833336d // '2011-02-20T09:00:00'
   }
 }

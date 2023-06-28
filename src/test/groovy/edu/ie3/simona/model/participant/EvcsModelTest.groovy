@@ -71,11 +71,11 @@ class EvcsModelTest extends Specification {
         Quantities.getQuantity(solStoredEnergy, KILOWATTHOUR), TESTING_TOLERANCE)
 
     where:
-    evcsSRated | evSRated | evEStorage | evStoredEnergy | durationMins || solStoredEnergy | solChargedEnergy
-    100d       | 10d      | 20d        | 0d             | 60           || 10d             | 10d // charge a bit
-    100d       | 100d     | 20d        | 0d             | 60           || 20d             | 20d // charge to full
-    100d       | 100d     | 80d        | 30d            | 30           || 80d             | 50d // charge to full with non-empty start
-    100d       | 10d      | 20d        | 20d            | 60           || 20d             | 0d  // already full
+    evcsSRated | evSRated | evEStorage | evStoredEnergy | durationMins | solStoredEnergy | solChargedEnergy
+    100d       | 10d      | 20d        | 0d             | 60           | 10d             | 10d // charge a bit
+    100d       | 100d     | 20d        | 0d             | 60           | 20d             | 20d // charge to full
+    100d       | 100d     | 80d        | 30d            | 30           | 80d             | 50d // charge to full with non-empty start
+    100d       | 10d      | 20d        | 20d            | 60           | 20d             | 0d  // already full
   }
 
   def "Test calcActivePowerAndEvSoc"() {
@@ -112,14 +112,14 @@ class EvcsModelTest extends Specification {
         Quantities.getQuantity(solEv2Stored, KILOWATTHOUR), TESTING_TOLERANCE)
 
     where:
-    ev1SRated | ev1StoredEnergy | ev2SRated | ev2StoredEnergy | durationTicks || solPower | solEv1Stored | solEv2Stored
-    10d       | 0d              | 10d       | 0d              | 3600L         || 20d      | 10d          | 10d    // well below evcs sRated
-    10d       | 0d              | 10d       | 0d              | 900L          || 20d      | 2.5d         | 2.5d
-    50d       | 0d              | 50d       | 0d              | 7200L         || 50d      | 50d          | 50d
-    50d       | 0d              | 50d       | 0d              | 1800L         || 100d     | 25d          | 25d   // hitting evcs sRated exactly
-    100d      | 0d              | 25d       | 0d              | 1800L         || 100d     | 50d          | 0d    // going above evcs sRated
-    50d       | 25d             | 50d       | 25d             | 1800L         || 100d     | 50d          | 50d   // with non-zero start
-    50d       | 45d             | 50d       | 35d             | 3600L         || 20d      | 50d          | 50d
-    200d      | 25d             | 50d       | 50d             | 3600L         || 25d      | 50d          | 50d
+    ev1SRated | ev1StoredEnergy | ev2SRated | ev2StoredEnergy | durationTicks | solPower | solEv1Stored | solEv2Stored
+    10d       | 0d              | 10d       | 0d              | 3600L         | 20d      | 10d          | 10d    // well below evcs sRated
+    10d       | 0d              | 10d       | 0d              | 900L          | 20d      | 2.5d         | 2.5d
+    50d       | 0d              | 50d       | 0d              | 7200L         | 50d      | 50d          | 50d
+    50d       | 0d              | 50d       | 0d              | 1800L         | 100d     | 25d          | 25d   // hitting evcs sRated exactly
+    100d      | 0d              | 25d       | 0d              | 1800L         | 100d     | 50d          | 0d    // going above evcs sRated
+    50d       | 25d             | 50d       | 25d             | 1800L         | 100d     | 50d          | 50d   // with non-zero start
+    50d       | 45d             | 50d       | 35d             | 3600L         | 20d      | 50d          | 50d
+    200d      | 25d             | 50d       | 50d             | 3600L         | 25d      | 50d          | 50d
   }
 }
