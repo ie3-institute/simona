@@ -7,6 +7,7 @@
 package edu.ie3.util.scala.quantities
 
 import squants.Each
+import squants.electro.Volts
 import squants.energy.Energy
 import squants.space.{CubicMeters, Volume}
 
@@ -22,4 +23,16 @@ object SquantsUtils {
       )
     }
   }
+
+  implicit class RichElectricPotential(
+      electricPotential: squants.electro.ElectricPotential
+  ) {
+    def multiplyWithDimensionles(
+        that: squants.Dimensionless
+    ): squants.electro.ElectricPotential = Volts(
+      electricPotential.toVolts * that.toEach
+    )
+
+  }
+
 }

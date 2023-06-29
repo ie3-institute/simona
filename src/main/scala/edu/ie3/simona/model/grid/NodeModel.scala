@@ -68,9 +68,7 @@ case object NodeModel {
       nodeInput.getId,
       operationInterval,
       nodeInput.isSlack,
-      Each(
-        nodeInput.getvTarget().to(PowerSystemUnits.PU).getValue.doubleValue()
-      ),
+      Each(nodeInput.getvTarget.to(PowerSystemUnits.PU).getValue.doubleValue()),
       nodeInput.getVoltLvl
     )
 

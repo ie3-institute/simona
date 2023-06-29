@@ -8,6 +8,8 @@ package edu.ie3.simona.event.listener
 
 import edu.ie3.datamodel.models.result.connector.Transformer3WResult
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
+import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.quantities.PowerSystemUnits
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -60,12 +62,12 @@ private[listener] trait Transformer3wResultSupport {
           new Transformer3WResult(
             aResult.time,
             aResult.input,
-            aResult.currentMagnitude,
-            aResult.currentAngle,
-            bResult.currentMagnitude,
-            bResult.currentAngle,
-            cResult.currentMagnitude,
-            cResult.currentAngle,
+            Quantities.getQuantity(aResult.currentMagnitude.toAmperes * 1000, PowerSystemUnits.KILOAMPERE), //TODO: Add Ampere in PSU
+            Quantities.getQuantity(aResult.currentAngle.toDegrees, PowerSystemUnits.DEGREE_GEOM),
+          Quantities.getQuantity(bResult.currentMagnitude.toAmperes * 1000, PowerSystemUnits.KILOAMPERE),
+          Quantities.getQuantity(bResult.currentAngle.toDegrees, PowerSystemUnits.DEGREE_GEOM),
+    Quantities.getQuantity(cResult.currentMagnitude.toAmperes * 1000, PowerSystemUnits.KILOAMPERE),
+            Quantities.getQuantity(cResult.currentAngle.toDegrees, PowerSystemUnits.DEGREE_GEOM),
             aResult.tapPos
           )
         )
