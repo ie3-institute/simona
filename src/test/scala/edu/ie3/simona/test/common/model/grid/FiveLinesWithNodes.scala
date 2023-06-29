@@ -12,6 +12,7 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.grid.{LineModel, NodeModel}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import squants.{Amperes, Each}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
@@ -58,7 +59,7 @@ trait FiveLinesWithNodes {
       nodeId,
       OperationInterval(0L, 7200L),
       isSlack,
-      Quantities.getQuantity(1.0, PU),
+      Each(1.0d),
       GermanVoltageLevelUtils.parse(vNominal)
     )
   }
@@ -80,11 +81,11 @@ trait FiveLinesWithNodes {
       nodeA.uuid,
       nodeB.uuid,
       1,
-      Quantities.getQuantity(300, AMPERE),
-      Quantities.getQuantity(r.getValue.doubleValue(), PU),
-      Quantities.getQuantity(x.getValue.doubleValue(), PU),
-      Quantities.getQuantity(g.getValue.doubleValue(), PU),
-      Quantities.getQuantity(b.getValue.doubleValue(), PU)
+      Amperes(300d),
+      Each(r.getValue.doubleValue()),
+      Each(x.getValue.doubleValue()),
+      Each(g.getValue.doubleValue()),
+      Each(b.getValue.doubleValue())
     )
   }
 

@@ -62,12 +62,30 @@ private[listener] trait Transformer3wResultSupport {
           new Transformer3WResult(
             aResult.time,
             aResult.input,
-            Quantities.getQuantity(aResult.currentMagnitude.toAmperes * 1000, PowerSystemUnits.KILOAMPERE), //TODO: Add Ampere in PSU
-            Quantities.getQuantity(aResult.currentAngle.toDegrees, PowerSystemUnits.DEGREE_GEOM),
-          Quantities.getQuantity(bResult.currentMagnitude.toAmperes * 1000, PowerSystemUnits.KILOAMPERE),
-          Quantities.getQuantity(bResult.currentAngle.toDegrees, PowerSystemUnits.DEGREE_GEOM),
-    Quantities.getQuantity(cResult.currentMagnitude.toAmperes * 1000, PowerSystemUnits.KILOAMPERE),
-            Quantities.getQuantity(cResult.currentAngle.toDegrees, PowerSystemUnits.DEGREE_GEOM),
+            Quantities.getQuantity(
+              aResult.currentMagnitude.toAmperes * 1000,
+              PowerSystemUnits.KILOAMPERE
+            ), // TODO: Add Ampere in PSU
+            Quantities.getQuantity(
+              aResult.currentAngle.toDegrees,
+              PowerSystemUnits.DEGREE_GEOM
+            ),
+            Quantities.getQuantity(
+              bResult.currentMagnitude.toAmperes * 1000,
+              PowerSystemUnits.KILOAMPERE
+            ),
+            Quantities.getQuantity(
+              bResult.currentAngle.toDegrees,
+              PowerSystemUnits.DEGREE_GEOM
+            ),
+            Quantities.getQuantity(
+              cResult.currentMagnitude.toAmperes * 1000,
+              PowerSystemUnits.KILOAMPERE
+            ),
+            Quantities.getQuantity(
+              cResult.currentAngle.toDegrees,
+              PowerSystemUnits.DEGREE_GEOM
+            ),
             aResult.tapPos
           )
         )

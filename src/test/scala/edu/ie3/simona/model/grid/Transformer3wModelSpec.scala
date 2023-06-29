@@ -17,6 +17,7 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.Transformer3wTestData
 import edu.ie3.util.quantities.PowerSystemUnits._
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
+import squants.Each
 import tech.units.indriya.quantity.Quantities
 
 import scala.math.BigDecimal.RoundingMode
@@ -26,6 +27,7 @@ class Transformer3wModelSpec
     with TableDrivenPropertyChecks
     with Transformer3wTestData {
   val testingTolerance = 1e-5
+  implicit val dimensionlessTolerance: squants.Dimensionless = Each(1e-6)
 
   "A three winding transformer input model" should {
     "be validated without an exception from a valid input model" in {
@@ -83,22 +85,10 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseA
-          r should equalWithTolerance(
-            Quantities.getQuantity(1.03878e-3, PU),
-            1e-8
-          )
-          x should equalWithTolerance(
-            Quantities.getQuantity(166.34349e-3, PU),
-            1e-8
-          )
-          g should equalWithTolerance(
-            Quantities.getQuantity(1.874312e-6, PU),
-            1e-8
-          )
-          b should equalWithTolerance(
-            Quantities.getQuantity(-75.012912e-6, PU),
-            1e-8
-          )
+          r =~ Each(1.03878e-3)
+          x =~ Each(166.34349e-3)
+          g =~ Each(1.874312e-6)
+          b =~ Each(-75.012912e-6)
       }
 
       val yii: Complex = Transformer3wModel.y0(

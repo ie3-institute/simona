@@ -18,17 +18,32 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
-import edu.ie3.simona.agent.grid.GridAgentData.{GridAgentBaseData, PowerFlowDoneData}
+import edu.ie3.simona.agent.grid.GridAgentData.{
+  GridAgentBaseData,
+  PowerFlowDoneData
+}
 import edu.ie3.simona.agent.grid.ReceivedValues._
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
-import edu.ie3.simona.agent.state.GridAgentState.{CheckPowerDifferences, HandlePowerFlowCalculations, SimulateGrid}
+import edu.ie3.simona.agent.state.GridAgentState.{
+  CheckPowerDifferences,
+  HandlePowerFlowCalculations,
+  SimulateGrid
+}
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
 import edu.ie3.simona.ontology.messages.PowerMessage._
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, PowerFlowFailedMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  CompletionMessage,
+  PowerFlowFailedMessage,
+  ScheduleTriggerMessage,
+  TriggerWithIdMessage
+}
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import edu.ie3.simona.ontology.messages.VoltageMessage.{ProvideSlackVoltageMessage, RequestSlackVoltageMessage}
+import edu.ie3.simona.ontology.messages.VoltageMessage.{
+  ProvideSlackVoltageMessage,
+  RequestSlackVoltageMessage
+}
 import edu.ie3.simona.ontology.trigger.Trigger._
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.scala.quantities.Megavars
@@ -210,7 +225,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               }
               .map(_.vTarget)
               .getOrElse(Each(1d))
-          val vSlack = refSystem.nominalVoltage.multiplyWithDimensionles(vTarget)
+          val vSlack =
+            refSystem.nominalVoltage.multiplyWithDimensionles(vTarget)
 
           (
             vSlack,
