@@ -160,16 +160,12 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseB
-          r should equalWithTolerance(
-            Quantities.getQuantity(240.9972299e-6, PU),
-            1e-8
+          r =~ Each(
+            240.9972299e-6
           )
-          x should equalWithTolerance(
-            Quantities.getQuantity(24.99307479224e-3, PU),
-            1e-8
-          )
-          g shouldBe Quantities.getQuantity(0d, PU)
-          b shouldBe Quantities.getQuantity(0d, PU)
+          x =~ Each(24.99307479224e-3)
+          g =~ Each(0d)
+          b =~ Each(0d)
       }
 
       val yii: Complex = Transformer3wModel.y0(
@@ -241,16 +237,10 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseC
-          r should equalWithTolerance(
-            Quantities.getQuantity(3.185595567e-6, PU),
-            1e-8
-          )
-          x should equalWithTolerance(
-            Quantities.getQuantity(556.0941828e-6, PU),
-            1e-8
-          )
-          g shouldBe Quantities.getQuantity(0d, PU)
-          b shouldBe Quantities.getQuantity(0d, PU)
+          r =~ Each(3.185595567e-6)
+          x =~ Each(556.0941828e-6)
+          g =~ Each(0d)
+          b =~ Each(0d)
       }
 
       val yii: Complex = Transformer3wModel.y0(

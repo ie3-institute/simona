@@ -9,7 +9,6 @@ package edu.ie3.simona.model.grid
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-
 import breeze.math.Complex
 import breeze.numerics.abs
 import edu.ie3.datamodel.exceptions.InvalidGridException
@@ -31,16 +30,22 @@ import edu.ie3.simona.test.common.model.grid.{
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtil
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
+import squants.Each
+import squants.electro.{Amperes, Kilovolts}
+import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
 class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
   val quantityTolerance: Double = 1e-5
   val testingTolerancePf = 1e-9
+  implicit val electricCurrentTolerance: squants.electro.ElectricCurrent =
+    Amperes(1e-9)
+  implicit val dimensionlessTolerance: squants.Dimensionless = Each(1e-9)
 
   def mainRefSystem: RefSystem = {
-    val nominalPower = Quantities.getQuantity(400, KILOVOLTAMPERE)
-    val nominalVoltage = Quantities.getQuantity(0.4, KILOVOLT)
+    val nominalPower = Kilowatts(400d)
+    val nominalVoltage = Kilovolts(0.4d)
     RefSystem(nominalPower, nominalVoltage)
     /* Z_Ref = 0.4 Ω, Y_Ref = 2.5 Siemens */
   }
@@ -124,36 +129,12 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
 
           amount shouldBe inputModel.getParallelDevices
           voltRatioNominal shouldBe BigDecimal("25")
-          QuantityUtil.isEquivalentAbs(
-            iNomHv,
-            Quantities.getQuantity(36.3730670, AMPERE),
-            quantityTolerance
-          ) shouldBe true
-          QuantityUtil.isEquivalentAbs(
-            iNomLv,
-            Quantities.getQuantity(909.326674, AMPERE),
-            quantityTolerance
-          ) shouldBe true
-          QuantityUtil.isEquivalentAbs(
-            r,
-            Quantities.getQuantity(7.357e-3, PU),
-            quantityTolerance
-          ) shouldBe true
-          QuantityUtil.isEquivalentAbs(
-            x,
-            Quantities.getQuantity(24.30792e-3, PU),
-            quantityTolerance
-          ) shouldBe true
-          QuantityUtil.isEquivalentAbs(
-            g,
-            Quantities.getQuantity(0.0, PU),
-            quantityTolerance
-          ) shouldBe true
-          QuantityUtil.isEquivalentAbs(
-            b,
-            Quantities.getQuantity(-3.75e-3, PU),
-            quantityTolerance
-          ) shouldBe true
+          iNomHv =~ Amperes(36.3730670d)
+          iNomLv =~ Amperes(909.326674d)
+          r =~ Each(7.357e-3)
+          x =~ Each(24.30792e-3)
+          g =~ Each(0.0)
+          b =~ Each(-3.75e-3)
       }
 
       /* The following tests are with regard to the tap position = 0 */
