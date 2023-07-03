@@ -11,7 +11,10 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{ReactivePower, Vars}
 import squants.Each
 import squants.electro.Kilovolts
-import squants.energy.Watts
+import squants.energy.{Megawatts, Watts}
+import tech.units.indriya.quantity.Quantities
+
+import javax.measure.quantity.{ElectricPotential, Power}
 
 /** Provides the values a [[GridModel]] is referenced to as well as functions to
   * reference some standard parameters to the nominal impedance.
@@ -189,10 +192,24 @@ case object RefSystem {
     // hence we call them manually
     new PowerSystemUnits
 
-    // parsed quantities are transformed to PowerSystemUnits,
+    // parsed quantities are transformed to PowerSystemUnits first for parsing and to squants second,
     // which are compatible to other units used
-    val sNom = nominalPower
-    val vNom = nominalVoltage
+    val sNom = Megawatts(
+      Quantities
+        .getQuantity(nominalPower)
+        .asType(classOf[Power])
+        .to(PowerSystemUnits.MEGAVOLTAMPERE)
+        .getValue
+        .doubleValue()
+    )
+    val vNom = Kilovolts(
+      Quantities
+        .getQuantity(nominalVoltage)
+        .asType(classOf[ElectricPotential])
+        .to(PowerSystemUnits.KILOVOLT)
+        .getValue
+        .doubleValue()
+    )
     RefSystem(sNom, vNom)
   }
 
