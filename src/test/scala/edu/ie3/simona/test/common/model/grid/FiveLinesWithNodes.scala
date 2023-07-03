@@ -15,7 +15,6 @@ import edu.ie3.util.scala.OperationInterval
 import squants.{Amperes, Each}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
 
 import java.util.UUID
 import javax.measure.Quantity

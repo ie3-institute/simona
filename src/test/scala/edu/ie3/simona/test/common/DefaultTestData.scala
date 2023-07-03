@@ -12,7 +12,6 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import squants.electro.Kilovolts

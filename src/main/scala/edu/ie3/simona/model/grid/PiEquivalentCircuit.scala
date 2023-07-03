@@ -8,7 +8,6 @@ package edu.ie3.simona.model.grid
 
 import breeze.numerics.pow
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.util.quantities.PowerSystemUnits._
 import squants.Each
 
 import java.util.UUID
