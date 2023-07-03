@@ -42,7 +42,7 @@ class RefSystemTest extends Specification {
     QuantityUtil.isEquivalentAbs(refSystem.nominalImpedance(), Quantities.getQuantity(166.6666666666666666666666666666666d, OHM), 1E-10)
   }
 
-  def "An dimensionless impedance is transferred correctly between to reference system"() {
+  def "A dimensionless impedance is transferred correctly between reference systems"() {
     given:
     RefSystem from = RefSystem.apply(Quantities.getQuantity(60d, MEGAVOLTAMPERE), Quantities.getQuantity(110d, KILOVOLT))
     RefSystem to = RefSystem.apply(Quantities.getQuantity(40d, MEGAVOLTAMPERE), Quantities.getQuantity(110d, KILOVOLT))
@@ -57,7 +57,7 @@ class RefSystemTest extends Specification {
     Math.abs(actual.getValue().doubleValue() - expected.getValue().doubleValue()) < testTolerance
   }
 
-  def "An dimensionless admittance is transferred correctly between to reference system"() {
+  def "A dimensionless admittance is transferred correctly between reference systems"() {
     given:
     RefSystem from = RefSystem.apply(Quantities.getQuantity(60d, MEGAVOLTAMPERE), Quantities.getQuantity(110d, KILOVOLT))
     RefSystem to = RefSystem.apply(Quantities.getQuantity(40d, MEGAVOLTAMPERE), Quantities.getQuantity(110d, KILOVOLT))
