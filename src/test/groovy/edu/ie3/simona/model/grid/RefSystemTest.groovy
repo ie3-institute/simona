@@ -48,7 +48,7 @@ class RefSystemTest extends Specification {
     RefSystem from = RefSystem.apply(Sq.create(60d, Megawatts$.MODULE$), Sq.create(110d, Kilovolts$.MODULE$))
     RefSystem to = RefSystem.apply(Sq.create(40d, Megawatts$.MODULE$), Sq.create(110d, Kilovolts$.MODULE$))
     Dimensionless impedance = Sq.create(0.1d, Each$.MODULE$)
-    Dimensionless expected = Sq.create(0.15d, Each$.MODULE$)
+    Dimensionless expected = Sq.create(0.0666d, Each$.MODULE$)
 
     when:
     Dimensionless actual = RefSystem.transferImpedance(impedance, from, to)
@@ -62,7 +62,7 @@ class RefSystemTest extends Specification {
     RefSystem from = RefSystem.apply(Sq.create(60d, Megawatts$.MODULE$), Sq.create(110d, Kilovolts$.MODULE$))
     RefSystem to = RefSystem.apply(Sq.create(40d, Megawatts$.MODULE$), Sq.create(110d, Kilovolts$.MODULE$))
     Dimensionless admittance = Sq.create(0.1d, Each$.MODULE$)
-    Dimensionless expected = Sq.create(0.0666d, Each$.MODULE$)
+    Dimensionless expected = Sq.create(0.15d, Each$.MODULE$)
 
     when:
     Dimensionless actual = RefSystem.transferAdmittance(admittance, from, to)
