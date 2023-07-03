@@ -47,14 +47,14 @@ class RefSystemTest extends Specification {
     RefSystem from = RefSystem.apply(Quantities.getQuantity(60d, MEGAVOLTAMPERE), Quantities.getQuantity(110d, KILOVOLT))
     RefSystem to = RefSystem.apply(Quantities.getQuantity(40d, MEGAVOLTAMPERE), Quantities.getQuantity(110d, KILOVOLT))
     Quantity<Dimensionless> impedance = Quantities.getQuantity(0.1d, PU)
-    Quantity<Dimensionless> expected = Quantities.getQuantity(0.15d, PU)
+    Quantity<Dimensionless> expected = Quantities.getQuantity(0.0666d, PU)
 
     when:
     Quantity<Dimensionless> actual = RefSystem.transferImpedance(impedance, from, to)
 
     then:
     actual.getUnit() == impedance.getUnit()
-    testTolerance < Math.abs(actual.getValue().doubleValue() - expected.getValue().doubleValue())
+    Math.abs(actual.getValue().doubleValue() - expected.getValue().doubleValue()) < testTolerance
   }
 
   def "An dimensionless admittance is transferred correctly between to reference system"() {
@@ -62,13 +62,13 @@ class RefSystemTest extends Specification {
     RefSystem from = RefSystem.apply(Quantities.getQuantity(60d, MEGAVOLTAMPERE), Quantities.getQuantity(110d, KILOVOLT))
     RefSystem to = RefSystem.apply(Quantities.getQuantity(40d, MEGAVOLTAMPERE), Quantities.getQuantity(110d, KILOVOLT))
     Quantity<Dimensionless> admittance = Quantities.getQuantity(0.1d, PU)
-    Quantity<Dimensionless> expected = Quantities.getQuantity(0.0666d, PU)
+    Quantity<Dimensionless> expected = Quantities.getQuantity(0.15d, PU)
 
     when:
     Quantity<Dimensionless> actual = RefSystem.transferAdmittance(admittance, from, to)
 
     then:
     actual.getUnit() == admittance.getUnit()
-    testTolerance < Math.abs(actual.getValue().doubleValue() - expected.getValue().doubleValue())
+    Math.abs(actual.getValue().doubleValue() - expected.getValue().doubleValue()) < testTolerance
   }
 }
