@@ -10,8 +10,10 @@ import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.NodeInputTestData
 import edu.ie3.simona.test.common.model.grid.FiveLinesWithNodes
+import squants.Each
 
 class NodeInputModelSpec extends UnitSpec with NodeInputTestData {
+  implicit val dimensionlessTolerance: squants.Dimensionless = Each(1e-12)
 
   "A valid NodeInputModel" should {
 
@@ -41,7 +43,9 @@ class NodeInputModelSpec extends UnitSpec with NodeInputTestData {
           id shouldBe nodeInputNoSlackNs04KvA.getId
           operationInterval shouldBe defaultOperationInterval
           isSlack shouldBe nodeInputNoSlackNs04KvA.isSlack
-          vTarget shouldBe nodeInputNoSlackNs04KvA.getvTarget
+          vTarget =~ Each(
+            nodeInputNoSlackNs04KvA.getvTarget.getValue.doubleValue()
+          )
           voltLvl shouldBe nodeInputNoSlackNs04KvA.getVoltLvl
       }
 

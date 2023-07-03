@@ -16,7 +16,6 @@ import edu.ie3.util.scala.OperationInterval
 import squants.Each
 import squants.electro.{Amperes, Kilovolts}
 import squants.energy.Kilowatts
-import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
 import java.util.UUID
@@ -26,6 +25,8 @@ import java.util.UUID
 
 class LineSpec extends UnitSpec with LineInputTestData {
   implicit val dimensionlessTolerance: squants.Dimensionless = Each(1e-12)
+  implicit val electricCurrentTolerance: squants.electro.ElectricCurrent =
+    Amperes(1e-12)
 
   sealed trait ValidLineModel {
 
@@ -85,7 +86,9 @@ class LineSpec extends UnitSpec with LineInputTestData {
           nodeAUuid shouldBe lineInputMs10Kv.getNodeA.getUuid
           nodeBUuid shouldBe lineInputMs10Kv.getNodeB.getUuid
           amount shouldBe lineInputMs10Kv.getParallelDevices
-          iMax shouldBe lineInputMs10Kv.getType.getiMax()
+          iMax =~ Amperes(
+            lineInputMs10Kv.getType.getiMax().getValue.doubleValue()
+          )
 
           r =~ Each(0.0013109999999999999d)
           x =~ Each(0.0010680000000000002d)
@@ -149,8 +152,9 @@ class LineSpec extends UnitSpec with LineInputTestData {
       val iNodeB: squants.electro.ElectricCurrent =
         Amperes(145d)
 
-      LineModel.utilisation(validLineModel, iNodeA, iNodeB) shouldBe Quantities
-        .getQuantity(22.222222222222218, PERCENT)
+      LineModel.utilisation(validLineModel, iNodeA, iNodeB) =~ Each(
+        22.222222222222218
+      )
 
     }
 

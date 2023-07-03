@@ -90,7 +90,6 @@ trait PowerFlowSupport {
         receivedValuesStore.nodeToReceivedPower
           .get(nodeModel.uuid) match {
           case Some(actorRefsWithPower) =>
-            val powerUnit = gridMainRefSystem.nominalPower.unit
             val (p, q) = actorRefsWithPower
               .map { case (_, powerMsg) => powerMsg }
               .collect {
@@ -539,7 +538,7 @@ trait PowerFlowSupport {
       ef: (squants.Dimensionless, squants.Dimensionless)
   ) = ef match {
     case (e, f) =>
-      new Complex(e.value.doubleValue, f.value.doubleValue)
+      new Complex(e.toEach, f.toEach)
   }
 
   /** Prepare input for and perform newton raphson power flow calculation

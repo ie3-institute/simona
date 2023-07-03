@@ -38,7 +38,7 @@ final case class RefSystem private (
   def rInPu(
       r: squants.electro.ElectricalResistance
   ): squants.Dimensionless = {
-    Each(r / nominalImpedance)
+    Each(r.toOhms / nominalImpedance.toOhms)
   }
 
   /** Calculates the referenced reactance x (imaginary part of impedance z) of a
@@ -103,7 +103,7 @@ final case class RefSystem private (
     *   referenced active power value in p.u.
     */
   def pInPu(pInSi: squants.Power): squants.Dimensionless =
-    Each(pInSi / nominalPower)
+    Each(pInSi.toWatts / nominalPower.toWatts)
 
   /** Converts a provided reactive power value from p.u. into physical SI value
     *
@@ -163,7 +163,7 @@ final case class RefSystem private (
   def vInPu(
       vInSi: squants.electro.ElectricPotential
   ): squants.Dimensionless =
-    Each(vInSi / nominalVoltage)
+    Each(vInSi.toVolts / nominalVoltage.toVolts)
 }
 
 case object RefSystem {
