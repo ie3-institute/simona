@@ -160,9 +160,7 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseB
-          r =~ Each(
-            240.9972299e-6
-          )
+          r =~ Each(240.9972299e-6)
           x =~ Each(24.99307479224e-3)
           g =~ Each(0d)
           b =~ Each(0d)
