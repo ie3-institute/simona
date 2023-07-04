@@ -31,7 +31,7 @@ import edu.ie3.util.quantities.PowerSystemUnits._
 import org.scalatest.prop.TableDrivenPropertyChecks._
 import org.scalatest.prop.{TableFor2, TableFor4}
 import squants.electro.Kilovolts
-import squants.energy.Megawatts
+import squants.energy.{Kilowatts, Megawatts}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{OHM, PERCENT}
 
@@ -53,7 +53,7 @@ trait Transformer3wTestData extends DefaultTestData {
   }
 
   val mainRefSystemLv: RefSystem = {
-    val nominalPower = Megawatts(400d)
+    val nominalPower = Kilowatts(400d)
     val nominalVoltage = Kilovolts(20d)
     RefSystem(nominalPower, nominalVoltage)
   }
