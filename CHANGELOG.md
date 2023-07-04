@@ -97,6 +97,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Perform power flow calculation in highest grid, if a three winding transformer is apparent
   - Write out results
 - Fixed broken layout in RTD documentation [#500](https://github.com/ie3-institute/simona/issues/500)
+- Corrected tests in RefSystemTest [#560](https://github.com/ie3-institute/simona/issues/560)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)
