@@ -43,7 +43,7 @@ class RefSystemTest extends Specification {
     refSystem.nominalImpedance() =~ Sq.create (166.6666666666666666666666666666666d, Ohms$.MODULE$)
   }
 
-  def "An dimensionless impedance is transferred correctly between to reference system"() {
+  def "A dimensionless impedance is transferred correctly between reference systems"() {
     given:
     RefSystem from = RefSystem.apply(Sq.create(60d, Megawatts$.MODULE$), Sq.create(110d, Kilovolts$.MODULE$))
     RefSystem to = RefSystem.apply(Sq.create(40d, Megawatts$.MODULE$), Sq.create(110d, Kilovolts$.MODULE$))
@@ -57,7 +57,7 @@ class RefSystemTest extends Specification {
     actual =~ expected
   }
 
-  def "An dimensionless admittance is transferred correctly between to reference system"() {
+  def "A dimensionless admittance is transferred correctly between reference systems"() {
     given:
     RefSystem from = RefSystem.apply(Sq.create(60d, Megawatts$.MODULE$), Sq.create(110d, Kilovolts$.MODULE$))
     RefSystem to = RefSystem.apply(Sq.create(40d, Megawatts$.MODULE$), Sq.create(110d, Kilovolts$.MODULE$))
