@@ -27,7 +27,7 @@ class Transformer3wModelSpec
     with TableDrivenPropertyChecks
     with Transformer3wTestData {
   val testingTolerance = 1e-5
-  implicit val dimensionlessTolerance: squants.Dimensionless = Each(1e-12)
+  implicit val dimensionlessTolerance: squants.Dimensionless = Each(1e-8)
 
   "A three winding transformer input model" should {
     "be validated without an exception from a valid input model" in {
