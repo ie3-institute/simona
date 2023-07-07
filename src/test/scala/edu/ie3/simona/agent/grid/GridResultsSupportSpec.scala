@@ -120,10 +120,10 @@ class GridResultsSupportSpec
       }
 
       "calculate line results correctly" in new BasicGrid {
-        line01.enable()
+        line0To1.enable()
         val expectedLineResult = new LineResult(
           defaultSimulationStart,
-          line01.uuid,
+          line0To1.uuid,
           Quantities
             .getQuantity(24.94091597114390620787, Units.AMPERE),
           Quantities
@@ -154,7 +154,7 @@ class GridResultsSupportSpec
         )
 
         val lineResult: LineResult = calcLineResult(
-          line01,
+          line0To1,
           nodeAStateData,
           nodeBStateData,
           default400Kva10KvRefSystem.nominalCurrent,
@@ -186,9 +186,9 @@ class GridResultsSupportSpec
         ) shouldBe true
 
         // if line is disabled zero results are expected
-        line01.disable()
+        line0To1.disable()
         val disabledLineResult: LineResult = calcLineResult(
-          line01,
+          line0To1,
           nodeAStateData,
           nodeBStateData,
           default400Kva10KvRefSystem.nominalCurrent,
@@ -197,7 +197,7 @@ class GridResultsSupportSpec
 
         disabledLineResult shouldBe new LineResult(
           defaultSimulationStart,
-          line01.uuid,
+          line0To1.uuid,
           ScalaQuantityUtil.zero(Units.AMPERE),
           ScalaQuantityUtil.zero(DEGREE_GEOM),
           ScalaQuantityUtil.zero(Units.AMPERE),
@@ -467,44 +467,6 @@ class GridResultsSupportSpec
         StandardUnits.ELECTRIC_CURRENT_MAGNITUDE
       )
 
-      "calculating the port currents correctly" in {
-        forAll(
-          Table(
-            ("transformer", "expectedMagnitude", "expectedAngle"),
-            (transformerA, 0.61188, -45.00000),
-            (transformerB, 0.70710, -45.00000),
-            (transformerC, 0.70710, -45.00000)
-          )
-        ) {
-          (
-              transformer: Transformer3wModel,
-              expectedMagnitude: Double,
-              expectedAngle: Double
-          ) =>
-            {
-              val v1 = Complex(1.0, 0.0)
-              val v2 = Complex(0.97, -0.01)
-              calcPortCurrent(transformer, v1, v2, iNominal) match {
-                case (actualMagnitude, actualAngle) =>
-                  actualMagnitude should equalWithTolerance(
-                    Quantities.getQuantity(
-                      expectedMagnitude,
-                      StandardUnits.ELECTRIC_CURRENT_MAGNITUDE
-                    ),
-                    1e-4
-                  )
-                  actualAngle should equalWithTolerance(
-                    Quantities.getQuantity(
-                      expectedAngle,
-                      StandardUnits.ELECTRIC_CURRENT_ANGLE
-                    ),
-                    1e-4
-                  )
-              }
-            }
-        }
-      }
-
       val timeStamp =
         TimeUtil.withDefaults.toZonedDateTime("2021-06-10 14:45:00")
       "assemble correct result for transformer at node A" in {
@@ -531,7 +493,7 @@ class GridResultsSupportSpec
             tapPos shouldBe transformerA.currentTapPos
             currentMagnitude should equalWithTolerance(
               Quantities.getQuantity(
-                0.6118825,
+                13.15547500,
                 StandardUnits.ELECTRIC_CURRENT_MAGNITUDE
               ),
               1e-6
@@ -567,14 +529,14 @@ class GridResultsSupportSpec
             input shouldBe transformerB.uuid
             currentMagnitude should equalWithTolerance(
               Quantities.getQuantity(
-                0.7071067,
+                14.14213562,
                 StandardUnits.ELECTRIC_CURRENT_MAGNITUDE
               ),
               1e-6
             )
             currentAngle should equalWithTolerance(
               Quantities
-                .getQuantity(-45.000000, StandardUnits.ELECTRIC_CURRENT_ANGLE),
+                .getQuantity(135.000000, StandardUnits.ELECTRIC_CURRENT_ANGLE),
               1e-6
             )
           case wrong => fail(s"Got wrong result: '$wrong'")
@@ -603,14 +565,14 @@ class GridResultsSupportSpec
             input shouldBe transformerC.uuid
             currentMagnitude should equalWithTolerance(
               Quantities.getQuantity(
-                0.7071067,
+                14.14213562,
                 StandardUnits.ELECTRIC_CURRENT_MAGNITUDE
               ),
               1e-6
             )
             currentAngle should equalWithTolerance(
               Quantities
-                .getQuantity(-45.0000000, StandardUnits.ELECTRIC_CURRENT_ANGLE),
+                .getQuantity(135.0000000, StandardUnits.ELECTRIC_CURRENT_ANGLE),
               1e-6
             )
           case wrong => fail(s"Got wrong result: '$wrong'")
@@ -641,14 +603,14 @@ class GridResultsSupportSpec
             input shouldBe transformer3wInput.getUuid
             currentMagnitude should equalWithTolerance(
               Quantities.getQuantity(
-                0.00092397,
+                11.4542161,
                 StandardUnits.ELECTRIC_CURRENT_MAGNITUDE
               ),
               1e-6
             )
             currentAngle should equalWithTolerance(
               Quantities
-                .getQuantity(-72.648555, StandardUnits.ELECTRIC_CURRENT_ANGLE),
+                .getQuantity(-89.4475391, StandardUnits.ELECTRIC_CURRENT_ANGLE),
               1e-6
             )
           case wrong => fail(s"Got wrong result: '$wrong'")
