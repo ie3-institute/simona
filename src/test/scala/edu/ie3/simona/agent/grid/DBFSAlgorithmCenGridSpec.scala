@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.grid
 
 import akka.actor.ActorSystem
-import akka.testkit.{ImplicitSender, TestProbe}
+import akka.testkit.TestProbe
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -48,7 +48,7 @@ import scala.language.postfixOps
 class DBFSAlgorithmCenGridSpec
     extends TestKitWithShutdown(
       ActorSystem(
-        "DBFSAlgorithmSpec",
+        "DBFSAlgorithmCenGridSpec",
         ConfigFactory
           .parseString("""
             |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
@@ -58,7 +58,6 @@ class DBFSAlgorithmCenGridSpec
     )
     with DBFSMockGridAgents
     with ConfigTestData
-    with ImplicitSender
     with DbfsTestGrid {
 
   private val scheduler = TestProbe("scheduler")
@@ -78,7 +77,7 @@ class DBFSAlgorithmCenGridSpec
 
   private val inferiorGrid13 = InferiorGA(
     TestProbe("inferiorGridAgent_13"),
-    Seq(node3a.getUuid, node3b.getUuid)
+    Seq(node3.getUuid, node4.getUuid)
   )
 
   private val environmentRefs = EnvironmentRefs(
@@ -245,12 +244,12 @@ class DBFSAlgorithmCenGridSpec
         firstSweepNo,
         Seq(
           ExchangeVoltage(
-            node3a.getUuid,
+            node3.getUuid,
             Quantities.getQuantity(110, KILOVOLT),
             Quantities.getQuantity(0, KILOVOLT)
           ),
           ExchangeVoltage(
-            node3b.getUuid,
+            node4.getUuid,
             Quantities.getQuantity(110, KILOVOLT),
             Quantities.getQuantity(0, KILOVOLT)
           )
@@ -418,12 +417,12 @@ class DBFSAlgorithmCenGridSpec
         secondSweepNo,
         Seq(
           ExchangeVoltage(
-            node3a.getUuid,
+            node3.getUuid,
             Quantities.getQuantity(108.470028019077087, KILOVOLT),
             Quantities.getQuantity(19.104403047662570, KILOVOLT)
           ),
           ExchangeVoltage(
-            node3b.getUuid,
+            node4.getUuid,
             Quantities.getQuantity(108.482524607256866, KILOVOLT),
             Quantities.getQuantity(19.1025584700935336, KILOVOLT)
           )

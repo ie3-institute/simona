@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Dependabot updates to sphinx/readthedocs dependencies [#448](https://github.com/ie3-institute/simona/issues/448)
 - Check for grid validity with PSDM `ValidationUtils` [#460](https://github.com/ie3-institute/simona/issues/460)
 - Enhancing dev's guide [#363](https://github.com/ie3-institute/simona/issues/363)
+- Support PF calculation with closed switches [#474](https://github.com/ie3-institute/simona/issues/474)
 - Instantiation of Heat Pump Agents [#253](https://github.com/ie3-institute/simona/issues/253)
 - Output of accompanying thermal result models
 
@@ -64,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updating `CONTRIBUTING.md` [#201](https://github.com/ie3-institute/simona/issues/201)
 - Speeding up additionalActivationTicks in participant's BaseStateData [#421](https://github.com/ie3-institute/simona/pull/421)
 - Changed format of example grid `vn_simona` [#216](https://github.com/ie3-institute/simona/issues/216)
+- Renamed ChpData to ChpRelevantData [#494](https://github.com/ie3-institute/simona/issues/494)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
@@ -91,6 +93,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed configuration reference in user's guide [#224](https://github.com/ie3-institute/simona/issues/224)
 - Fixed ResultEventListener exiting too early with high volumes of results [#350](https://github.com/ie3-institute/simona/issues/350)
 - Fixed tests that unreliably fail [#359](https://github.com/ie3-institute/simona/issues/359)
+- Support for three winding transformers  [#63](https://github.com/ie3-institute/simona/issues/63)
+  - Handle incoming slack voltage accordingly
+  - Allow multiple sub grid gates at one node (also allows multiple two winding transformers at one node)
+  - Perform power flow calculation in highest grid, if a three winding transformer is apparent
+  - Write out results
+- Fixed broken layout in RTD documentation [#500](https://github.com/ie3-institute/simona/issues/500)
+- Corrected tests in RefSystemTest [#560](https://github.com/ie3-institute/simona/issues/560)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)
