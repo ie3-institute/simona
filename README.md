@@ -1,5 +1,5 @@
 <p align="center">
-<img src="docs/logo/logo_tightcrop_transparent.png" width="200px" alt="simona logo"/>
+<img src="docs/logo/logo_tightcrop_transparent.png" width="200px" alt="simona logo" align="center"/>
 </p>
 
 # SIMONA
