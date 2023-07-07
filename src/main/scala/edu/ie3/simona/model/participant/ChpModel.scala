@@ -53,7 +53,7 @@ final case class ChpModel(
     cosPhiRated: Double,
     pThermal: ComparableQuantity[Power],
     storage: ThermalStorage with MutableStorage
-) extends SystemParticipant[ChpData, ApparentPower](
+) extends SystemParticipant[ChpRelevantData, ApparentPower](
       uuid,
       id,
       operationInterval,
@@ -62,7 +62,7 @@ final case class ChpModel(
       sRated,
       cosPhiRated
     )
-    with ApparentPowerParticipant[ChpData] {
+    with ApparentPowerParticipant[ChpRelevantData] {
 
   val pRated: ComparableQuantity[Power] =
     sRated.multiply(cosPhiRated).to(StandardUnits.ACTIVE_POWER_IN)
