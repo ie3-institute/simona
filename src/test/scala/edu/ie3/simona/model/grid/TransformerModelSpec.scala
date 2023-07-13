@@ -9,14 +9,21 @@ package edu.ie3.simona.model.grid
 import breeze.math.Complex
 import breeze.numerics.abs
 import edu.ie3.datamodel.exceptions.InvalidGridException
-import edu.ie3.datamodel.models.input.connector.{ConnectorPort, Transformer2WInput}
+import edu.ie3.datamodel.models.input.connector.{
+  ConnectorPort,
+  Transformer2WInput
+}
 import edu.ie3.powerflow.NewtonRaphsonPF
 import edu.ie3.powerflow.model.NodeData.{PresetData, StateData}
 import edu.ie3.powerflow.model.StartData.WithForcedStartVoltages
 import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.powerflow.model.{NodeData, PowerFlowResult}
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.test.common.model.grid.{TapTestData, TransformerTestData, TransformerTestGrid}
+import edu.ie3.simona.test.common.model.grid.{
+  TapTestData,
+  TransformerTestData,
+  TransformerTestGrid
+}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
 import squants.Each
