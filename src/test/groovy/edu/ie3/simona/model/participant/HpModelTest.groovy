@@ -6,6 +6,8 @@
 
 package edu.ie3.simona.model.participant
 
+import squants.thermal.Celsius$
+
 import static edu.ie3.util.quantities.PowerSystemUnits.KILOVOLTAMPERE
 import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
 import static tech.units.indriya.quantity.Quantities.getQuantity
@@ -21,7 +23,7 @@ import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
 import edu.ie3.simona.model.participant.HpModel.HpData
 import edu.ie3.simona.model.participant.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalHouse
-
+import squants.energy.Kilowatts$
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.Sq
 

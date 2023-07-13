@@ -9,21 +9,14 @@ package edu.ie3.simona.model.grid
 import breeze.math.Complex
 import breeze.numerics.abs
 import edu.ie3.datamodel.exceptions.InvalidGridException
-import edu.ie3.datamodel.models.input.connector.{
-  ConnectorPort,
-  Transformer2WInput
-}
+import edu.ie3.datamodel.models.input.connector.{ConnectorPort, Transformer2WInput}
 import edu.ie3.powerflow.NewtonRaphsonPF
 import edu.ie3.powerflow.model.NodeData.{PresetData, StateData}
 import edu.ie3.powerflow.model.StartData.WithForcedStartVoltages
 import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.powerflow.model.{NodeData, PowerFlowResult}
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.test.common.model.grid.{
-  TapTestData,
-  TransformerTestData,
-  TransformerTestGrid
-}
+import edu.ie3.simona.test.common.model.grid.{TapTestData, TransformerTestData, TransformerTestGrid}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
 import squants.Each
@@ -129,8 +122,8 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
 
           amount shouldBe inputModel.getParallelDevices
           voltRatioNominal shouldBe BigDecimal("25")
-          (iNomHv ~= Amperes(36.3730670d)) shouldBe true
-          (iNomLv ~= Amperes(909.326674d)) shouldBe true
+          (iNomHv ~= Amperes(36.373066958946424d)) shouldBe true
+          (iNomLv ~= Amperes(909.3266739736606d)) shouldBe true
           (r ~= Each(7.357e-3)) shouldBe true
           (x ~= Each(24.30792e-3)) shouldBe true
           (g ~= Each(0.0)) shouldBe true
