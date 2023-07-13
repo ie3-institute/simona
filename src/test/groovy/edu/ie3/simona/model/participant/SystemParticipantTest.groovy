@@ -14,10 +14,8 @@ import edu.ie3.simona.test.common.model.MockParticipant
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.Sq
 import spock.lang.Specification
-import javax.measure.quantity.Power
-import squants.Dimensionless
-
-
+import squants.*
+import squants.energy.*
 
 class SystemParticipantTest extends Specification {
 

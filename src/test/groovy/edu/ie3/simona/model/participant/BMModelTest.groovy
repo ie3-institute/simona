@@ -29,7 +29,8 @@ import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 
-
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static tech.units.indriya.unit.Units.PERCENT
 
 /**
  * Test class that tries to cover all special cases of the current implementation of the {@link BMModel}
@@ -243,8 +244,6 @@ class BMModelTest extends Specification {
     when: "the power from the grid is calculated"
     def powerCalc = bmModel.calculateActivePower(relevantData)
 
-    then: "compare in watts"
-    Math.abs(powerCalc.toSystemUnit().value.doubleValue() - Quantities.getQuantity(powerSol, KILOWATT).toSystemUnit().value.doubleValue()) < 1e-12
     then: "compare in kilowatts"
     powerCalc - Sq.create(powerSol, Kilowatts$.MODULE$) < Sq.create(1e-12d, Kilowatts$.MODULE$)
 
