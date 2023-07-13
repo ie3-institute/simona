@@ -6,10 +6,14 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static tech.units.indriya.unit.Units.CELSIUS
+import static tech.units.indriya.unit.Units.PERCENT
+
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.type.BmTypeInput
-import edu.ie3.simona.model.participant.BMModel
+
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.quantities.interfaces.EnergyPrice
 import edu.ie3.util.scala.OperationInterval
@@ -21,9 +25,7 @@ import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static tech.units.indriya.unit.Units.CELSIUS
-import static tech.units.indriya.unit.Units.PERCENT
+
 
 /**
  * Test class that tries to cover all special cases of the current implementation of the {@link BMModel}
@@ -67,7 +69,7 @@ class BMModelTest extends Specification {
         bmType.getCosPhiRated(),
         "MockNode",
         true,
-        bmType.getOpex() as ComparableQuantity<EnergyPrice>,
+        bmType.opex as ComparableQuantity<EnergyPrice>,
         Quantities.getQuantity(0.051d, EURO_PER_KILOWATTHOUR),
         Quantities.getQuantity(5d, PERCENT_PER_HOUR))
   }
@@ -174,14 +176,14 @@ class BMModelTest extends Specification {
         bmType.getCosPhiRated(),
         "MockNode",
         true,
-        bmType.getOpex() as ComparableQuantity<EnergyPrice>,
+        bmType.opex as ComparableQuantity<EnergyPrice>,
         Quantities.getQuantity(feedInTariff, EURO_PER_KILOWATTHOUR),
         Quantities.getQuantity(5d, PERCENT_PER_HOUR))
 
     def pElCalc = bmModel.calculateElOutput(usage, eff)
 
     then: "compare in watts"
-    Math.abs(pElCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(pElSol, KILOWATT).toSystemUnit().getValue().doubleValue()) < 0.0001
+    Math.abs(pElCalc.toSystemUnit().value.doubleValue() - Quantities.getQuantity(pElSol, KILOWATT).toSystemUnit().value.doubleValue()) < 0.0001
 
     where:
     feedInTariff | usage  | eff      || pElSol
@@ -227,7 +229,7 @@ class BMModelTest extends Specification {
         bmType.getCosPhiRated(),
         "MockNode",
         costControlled,
-        bmType.getOpex() as ComparableQuantity<EnergyPrice>,
+        bmType.opex as ComparableQuantity<EnergyPrice>,
         Quantities.getQuantity(0.051d, EURO_PER_KILOWATTHOUR),
         Quantities.getQuantity(5d, PERCENT_PER_HOUR))
 
@@ -238,7 +240,7 @@ class BMModelTest extends Specification {
     def powerCalc = bmModel.calculateActivePower(relevantData)
 
     then: "compare in watts"
-    Math.abs(powerCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(powerSol, KILOWATT).toSystemUnit().getValue().doubleValue()) < 1e-12
+    Math.abs(powerCalc.toSystemUnit().value.doubleValue() - Quantities.getQuantity(powerSol, KILOWATT).toSystemUnit().value.doubleValue()) < 1e-12
 
     where:
     time                                       | temp | costControlled | lastPower || powerSol
