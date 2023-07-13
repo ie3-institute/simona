@@ -86,20 +86,20 @@ class LineSpec extends UnitSpec with LineInputTestData {
           nodeAUuid shouldBe lineInputMs10Kv.getNodeA.getUuid
           nodeBUuid shouldBe lineInputMs10Kv.getNodeB.getUuid
           amount shouldBe lineInputMs10Kv.getParallelDevices
-          iMax =~ Amperes(
+          (iMax ~= Amperes(
             lineInputMs10Kv.getType.getiMax().getValue.doubleValue()
-          )
+          )) shouldBe true
 
-          r =~ Each(0.0013109999999999999d)
-          x =~ Each(0.0010680000000000002d)
-          g =~ Each(0d)
-          b =~ Each(0.00000060375d)
+          (r ~= Each(0.0013109999999999999d)) shouldBe true
+          (x ~= Each(0.0010680000000000002d)) shouldBe true
+          (g ~= Each(0d)) shouldBe true
+          (b ~= Each(0.00000060375d)) shouldBe true
       }
 
-      validLineModel.b0() =~ Each(0.000000301875d)
-      validLineModel.bij() =~ Each(-373.5121155369499d)
-      validLineModel.g0() =~ Each(0d)
-      validLineModel.gij() =~ Each(458.4966137349637d)
+      (validLineModel.b0() ~= Each(0.000000301875d)) shouldBe true
+      (validLineModel.bij() ~= Each(-373.5121155369499d)) shouldBe true
+      (validLineModel.g0() ~= Each(0d)) shouldBe true
+      (validLineModel.gij() ~= Each(458.4966137349637d)) shouldBe true
 
     }
 
@@ -152,9 +152,9 @@ class LineSpec extends UnitSpec with LineInputTestData {
       val iNodeB: squants.electro.ElectricCurrent =
         Amperes(145d)
 
-      LineModel.utilisation(validLineModel, iNodeA, iNodeB) =~ Each(
+      (LineModel.utilisation(validLineModel, iNodeA, iNodeB) ~= Each(
         22.222222222222218
-      )
+      )) shouldBe true
 
     }
 

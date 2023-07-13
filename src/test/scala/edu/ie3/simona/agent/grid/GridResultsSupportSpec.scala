@@ -489,10 +489,10 @@ class GridResultsSupportSpec
             time shouldBe timeStamp
             input shouldBe transformerA.uuid
             tapPos shouldBe transformerA.currentTapPos
-            currentMagnitude =~ Amperes(
+            (currentMagnitude ~= Amperes(
               13.15547500d
-            ) shouldBe true
-            currentAngle =~ Degrees(-45.0000000d) shouldBe true
+            )) shouldBe true
+            (currentAngle ~= Degrees(-45.0000000d)) shouldBe true
           case wrong => fail(s"Got wrong result: '$wrong'")
         }
       }
@@ -517,8 +517,8 @@ class GridResultsSupportSpec
               ) =>
             time shouldBe timeStamp
             input shouldBe transformerB.uuid
-            currentMagnitude =~ Amperes(14.14213562d) shouldBe true
-            currentAngle =~ Degrees(135.000000d) shouldBe true
+            (currentMagnitude ~= Amperes(14.14213562d)) shouldBe true
+            (currentAngle ~= Degrees(135.000000d)) shouldBe true
           case wrong => fail(s"Got wrong result: '$wrong'")
         }
       }
@@ -543,10 +543,10 @@ class GridResultsSupportSpec
               ) =>
             time shouldBe timeStamp
             input shouldBe transformerC.uuid
-            currentMagnitude =~ Amperes(
+            (currentMagnitude ~= Amperes(
               14.14213562d
-            ) shouldBe true
-            currentAngle =~ Degrees(135.0000000d) shouldBe true
+            )) shouldBe true
+            (currentAngle ~= Degrees(135.0000000d)) shouldBe true
           case wrong => fail(s"Got wrong result: '$wrong'")
         }
       }
@@ -573,10 +573,10 @@ class GridResultsSupportSpec
               ) =>
             time shouldBe timeStamp
             input shouldBe transformer3wInput.getUuid
-            currentMagnitude =~ Amperes(
+            (currentMagnitude ~= Amperes(
               11.4542161d
-            ) shouldBe true
-            currentAngle =~ Degrees(-89.4475391d) shouldBe true
+            )) shouldBe true
+            (currentAngle ~= Degrees(-89.4475391d)) shouldBe true
           case wrong => fail(s"Got wrong result: '$wrong'")
         }
       }

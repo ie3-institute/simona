@@ -43,9 +43,9 @@ class NodeInputModelSpec extends UnitSpec with NodeInputTestData {
           id shouldBe nodeInputNoSlackNs04KvA.getId
           operationInterval shouldBe defaultOperationInterval
           isSlack shouldBe nodeInputNoSlackNs04KvA.isSlack
-          vTarget =~ Each(
+          (vTarget ~= Each(
             nodeInputNoSlackNs04KvA.getvTarget.getValue.doubleValue()
-          )
+          )) shouldBe true
           voltLvl shouldBe nodeInputNoSlackNs04KvA.getVoltLvl
       }
 

@@ -174,7 +174,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
         weightSum.scale(weightedWeather) match {
           case WeatherData(diffIrr, dirIrr, temp, windVel) =>
-            diffIrr =~ WattsPerSquareMeter(19.83)
+            diffIrr ~= WattsPerSquareMeter(19.83)
             dirIrr ~= WattsPerSquareMeter(3.01)
             temp ~= Kelvin(290.75)
             windVel ~= MetersPerSecond(10.6)

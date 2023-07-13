@@ -85,10 +85,10 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseA
-          r =~ Each(1.03878e-3) shouldBe true
-          x =~ Each(166.34349e-3) shouldBe true
-          g =~ Each(1.874312e-6) shouldBe true
-          b =~ Each(-75.012912e-6) shouldBe true
+          (r ~= Each(1.03878e-3)) shouldBe true
+          (x ~= Each(166.34349e-3)) shouldBe true
+          (g ~= Each(1.874312e-6)) shouldBe true
+          (b ~= Each(-75.012912e-6)) shouldBe true
       }
 
       val yii: Complex = Transformer3wModel.y0(
@@ -160,10 +160,10 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseB
-          r =~ Each(240.9972299e-6) shouldBe true
-          x =~ Each(24.99307479224e-3) shouldBe true
-          g =~ Each(0d) shouldBe true
-          b =~ Each(0d) shouldBe true
+          (r ~= Each(240.9972299e-6)) shouldBe true
+          (x ~= Each(24.99307479224e-3)) shouldBe true
+          (g ~= Each(0d)) shouldBe true
+          (b ~= Each(0d)) shouldBe true
       }
 
       val yii: Complex = Transformer3wModel.y0(
@@ -235,10 +235,10 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseC
-          r =~ Each(3.185595567e-6) shouldBe true
-          x =~ Each(556.0941828e-6) shouldBe true
-          g =~ Each(0d) shouldBe true
-          b =~ Each(0d) shouldBe true
+          (r ~= Each(3.185595567e-6)) shouldBe true
+          (x ~= Each(556.0941828e-6)) shouldBe true
+          (g ~= Each(0d)) shouldBe true
+          (b ~= Each(0d)) shouldBe true
       }
 
       val yii: Complex = Transformer3wModel.y0(

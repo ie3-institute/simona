@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.model.grid
 
-import java.time.ZonedDateTime
-import java.time.temporal.ChronoUnit
-import java.util.UUID
 import breeze.math.Complex
 import breeze.numerics.abs
 import edu.ie3.datamodel.exceptions.InvalidGridException
@@ -28,13 +25,16 @@ import edu.ie3.simona.test.common.model.grid.{
   TransformerTestGrid
 }
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.quantities.QuantityUtil
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
 import squants.Each
 import squants.electro.{Amperes, Kilovolts}
 import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
+
+import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
+import java.util.UUID
 
 class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
   val quantityTolerance: Double = 1e-5
@@ -129,12 +129,12 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
 
           amount shouldBe inputModel.getParallelDevices
           voltRatioNominal shouldBe BigDecimal("25")
-          iNomHv =~ Amperes(36.3730670d)
-          iNomLv =~ Amperes(909.326674d)
-          r =~ Each(7.357e-3)
-          x =~ Each(24.30792e-3)
-          g =~ Each(0.0)
-          b =~ Each(-3.75e-3)
+          (iNomHv ~= Amperes(36.3730670d)) shouldBe true
+          (iNomLv ~= Amperes(909.326674d)) shouldBe true
+          (r ~= Each(7.357e-3)) shouldBe true
+          (x ~= Each(24.30792e-3)) shouldBe true
+          (g ~= Each(0.0)) shouldBe true
+          (b ~= Each(-3.75e-3)) shouldBe true
       }
 
       /* The following tests are with regard to the tap position = 0 */
