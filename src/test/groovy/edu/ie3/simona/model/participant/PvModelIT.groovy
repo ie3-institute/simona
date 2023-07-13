@@ -6,6 +6,11 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
+import static java.util.Locale.US
+import static java.util.Locale.setDefault
+import static tech.units.indriya.quantity.Quantities.getQuantity
+
 import edu.ie3.datamodel.io.source.csv.CsvJointGridContainerSource
 import edu.ie3.datamodel.models.input.system.PvInput
 
@@ -29,13 +34,7 @@ import javax.measure.quantity.Power
 import java.time.ZonedDateTime
 import java.util.zip.GZIPInputStream
 
-import static edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
 
-import static java.util.Locale.US
-import static java.util.Locale.setDefault
-import static tech.units.indriya.quantity.Quantities.getQuantity
-import static tech.units.indriya.unit.Units.KELVIN
-import static tech.units.indriya.unit.Units.METRE_PER_SECOND
 
 /**
  * A simple integration test that uses pre-calculated data to check if the pv model works as expected.
@@ -60,8 +59,8 @@ class PvModelIT extends Specification implements PvModelITHelper {
     setDefault(US)
 
     pvModels = createPvModels()
-    weatherMap = getWeatherData()
-    resultsMap = getResultsData()
+    weatherMap = weatherData
+    resultsMap = resultsData
   }
 
   def "8 pv panels full year test"() {
@@ -102,7 +101,7 @@ class PvModelIT extends Specification implements PvModelITHelper {
 
         "collect the results and calculate the difference between the provided results and the calculated ones"
         double calc = model.calculatePower(0L, voltage, neededData).p().value().doubleValue()
-        double sol = resultsMap.get(dateTime).get(modelId).getValue().doubleValue()
+        double sol = resultsMap.get(dateTime).get(modelId).value.doubleValue()
 
         testRes.add(Math.abs(calc - sol))
 

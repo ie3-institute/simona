@@ -6,6 +6,12 @@
 
 package edu.ie3.simona.model.participant.load
 
+import static edu.ie3.datamodel.models.profile.BdewStandardLoadProfile.H0
+import static edu.ie3.simona.model.participant.load.LoadReference.ActivePower
+import static edu.ie3.simona.model.participant.load.LoadReference.EnergyConsumption
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static org.apache.commons.math3.util.FastMath.abs
+
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.OperatorInput
@@ -26,12 +32,6 @@ import edu.ie3.util.scala.quantities.Sq
 
 import java.time.temporal.ChronoUnit
 import java.util.stream.Collectors
-
-import static edu.ie3.datamodel.models.profile.BdewStandardLoadProfile.H0
-import static edu.ie3.simona.model.participant.load.LoadReference.ActivePower
-import static edu.ie3.simona.model.participant.load.LoadReference.EnergyConsumption
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static org.apache.commons.math3.util.FastMath.abs
 
 class RandomLoadModelTest extends Specification {
   def loadInput =  new LoadInput(

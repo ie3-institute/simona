@@ -6,6 +6,12 @@
 
 package edu.ie3.simona.model.participant.load
 
+import static edu.ie3.datamodel.models.profile.BdewStandardLoadProfile.*
+import static edu.ie3.simona.model.participant.load.LoadReference.ActivePower
+import static edu.ie3.simona.model.participant.load.LoadReference.EnergyConsumption
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static org.apache.commons.math3.util.FastMath.abs
+
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.OperatorInput
@@ -27,11 +33,6 @@ import tech.units.indriya.quantity.Quantities
 import java.time.temporal.ChronoUnit
 import java.util.stream.Collectors
 
-import static edu.ie3.datamodel.models.profile.BdewStandardLoadProfile.*
-import static edu.ie3.simona.model.participant.load.LoadReference.ActivePower
-import static edu.ie3.simona.model.participant.load.LoadReference.EnergyConsumption
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static org.apache.commons.math3.util.FastMath.abs
 
 
 class ProfileLoadModelTest extends Specification {
@@ -147,7 +148,7 @@ class ProfileLoadModelTest extends Specification {
     when:
     def max = relevantDatas.stream().mapToDouble({ relevantData ->
       dut.calculateActivePower(relevantData).toMegawatts().doubleValue()
-    }).max().getAsDouble()
+    }).max().asDouble
 
     then:
     abs(max - expectedMax) < wattTolerance

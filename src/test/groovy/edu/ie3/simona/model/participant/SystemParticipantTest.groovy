@@ -6,6 +6,8 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiP
 import edu.ie3.datamodel.models.input.system.characteristic.QV
@@ -14,8 +16,10 @@ import edu.ie3.simona.test.common.model.MockParticipant
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.Sq
 import spock.lang.Specification
-import squants.*
-import squants.energy.*
+import tech.units.indriya.quantity.Quantities
+import javax.measure.quantity.Power
+
+
 
 class SystemParticipantTest extends Specification {
 
