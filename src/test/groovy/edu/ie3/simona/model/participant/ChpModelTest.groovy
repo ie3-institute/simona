@@ -6,6 +6,12 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static tech.units.indriya.quantity.Quantities.getQuantity
+import static tech.units.indriya.unit.Units.CUBIC_METRE
+import static tech.units.indriya.unit.Units.PERCENT
+import static edu.ie3.util.quantities.QuantityUtil.equals
+
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.OperatorInput
@@ -15,19 +21,11 @@ import edu.ie3.datamodel.models.input.system.type.ChpTypeInput
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.simona.model.participant.ChpModel.ChpState
 import edu.ie3.simona.model.thermal.CylindricalThermalStorage
-import edu.ie3.simona.model.thermal.CylindricalThermalStorage$
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
 import tech.units.indriya.quantity.Quantities
-
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static tech.units.indriya.quantity.Quantities.getQuantity
-import static tech.units.indriya.unit.Units.CUBIC_METRE
-import static tech.units.indriya.unit.Units.PERCENT
-import static edu.ie3.util.quantities.QuantityUtil.equals
 
 class ChpModelTest extends Specification {
 
