@@ -103,5 +103,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)
 - Removed Gradle task puml2png (Converting Plantuml to png / svg files) since it is no longer needed  [#228](https://github.com/ie3-institute/simona/issues/228)
 - Remove RocketChat notification from Jenkinsfile [#234](https://github.com/ie3-institute/simona/issues/234)
+- Removed one-jar gradle plugin [#564](https://github.com/ie3-institute/simona/issues/564)
 
 [Unreleased]: https://github.com/ie3-institute/simona/compare/a14a093239f58fca9b2b974712686b33e5e5f939...HEAD
