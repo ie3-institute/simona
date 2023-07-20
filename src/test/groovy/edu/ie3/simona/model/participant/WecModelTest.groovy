@@ -6,6 +6,12 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static edu.ie3.datamodel.models.StandardUnits.*
+import static edu.ie3.util.quantities.QuantityUtil.equals
+import static edu.ie3.simona.model.participant.WecModel.WecRelevantData
+import static tech.units.indriya.quantity.Quantities.getQuantity
+
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.OperatorInput
@@ -20,11 +26,7 @@ import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
 
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static edu.ie3.datamodel.models.StandardUnits.*
-import static edu.ie3.util.quantities.QuantityUtil.equals
-import static edu.ie3.simona.model.participant.WecModel.WecRelevantData
-import static tech.units.indriya.quantity.Quantities.getQuantity
+
 
 class WecModelTest extends Specification {
 
@@ -95,10 +97,10 @@ class WecModelTest extends Specification {
     wecModel.uuid() == inputModel.getUuid()
     wecModel.id() == inputModel.getId()
     wecModel.scalingFactor() == 1
-    wecModel.sRated() == inputModel.getType().getsRated()
-    wecModel.cosPhiRated() == inputModel.getType().getCosPhiRated()
-    wecModel.rotorArea() == inputModel.getType().getRotorArea()
-    wecModel.betzCurve() == new WecModel.WecCharacteristic$().apply(inputModel.getType().getCpCharacteristic())
+    wecModel.sRated() == inputModel.type.sRated
+    wecModel.cosPhiRated() == inputModel.type.cosPhiRated
+    wecModel.rotorArea() == inputModel.type.rotorArea
+    wecModel.betzCurve() == new WecModel.WecCharacteristic$().apply(inputModel.type.cpCharacteristic)
   }
 
   @Unroll

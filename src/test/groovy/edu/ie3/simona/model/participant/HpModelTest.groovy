@@ -6,6 +6,11 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.KILOVOLTAMPERE
+import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
+import static tech.units.indriya.quantity.Quantities.getQuantity
+import static tech.units.indriya.unit.Units.CELSIUS
+
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.OperatorInput
@@ -22,10 +27,7 @@ import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
 
-import static edu.ie3.util.quantities.PowerSystemUnits.KILOVOLTAMPERE
-import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
-import static tech.units.indriya.quantity.Quantities.getQuantity
-import static tech.units.indriya.unit.Units.CELSIUS
+
 
 class HpModelTest extends Specification {
 
@@ -162,9 +164,9 @@ class HpModelTest extends Specification {
         thermalHouse)
 
     then:
-    hpModelCaseClass.sRated().getValue() == hpModelCaseObject.sRated().getValue()
+    hpModelCaseClass.sRated().value == hpModelCaseObject.sRated().value
     hpModelCaseClass.cosPhiRated() == hpModelCaseObject.cosPhiRated()
-    hpModelCaseClass.pThermal().getValue() == hpModelCaseObject.pThermal().getValue()
+    hpModelCaseClass.pThermal().value == hpModelCaseObject.pThermal().value
     hpModelCaseClass.thermalHouse() == hpModelCaseObject.thermalHouse()
   }
 }
