@@ -6,6 +6,9 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static org.apache.commons.math3.util.FastMath.abs
+
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.OperatorInput
@@ -18,8 +21,7 @@ import edu.ie3.util.TimeUtil
 import spock.lang.Specification
 import tech.units.indriya.quantity.Quantities
 
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static org.apache.commons.math3.util.FastMath.abs
+
 
 class FixedFeedModelTest extends Specification {
 
