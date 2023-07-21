@@ -6,6 +6,8 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiP
 import edu.ie3.datamodel.models.input.system.characteristic.QV
@@ -22,7 +24,7 @@ import javax.measure.Quantity
 import javax.measure.quantity.Dimensionless
 import javax.measure.quantity.Power
 
-import static edu.ie3.util.quantities.PowerSystemUnits.*
+
 
 class SystemParticipantTest extends Specification {
 
@@ -54,7 +56,7 @@ class SystemParticipantTest extends Specification {
     def qCalc = loadMock.calculateReactivePower(power, adjustedVoltage)
 
     then: "compare the results in watt"
-    Math.abs(qCalc.subtract(Quantities.getQuantity(qSol, KILOVAR)).getValue().doubleValue()) < 0.0001
+    Math.abs(qCalc.subtract(Quantities.getQuantity(qSol, KILOVAR)).value.doubleValue()) < 0.0001
 
     where:
     varCharacteristicString   | pVal || qSol
