@@ -77,13 +77,12 @@ object LogbackConfiguration extends LazyLogging {
     /* If applicable, apply the filters from existing file logger else log with "INFO"-Level */
     maybeFilterList match {
       case Some(filterList) =>
-        if (filterList.isEmpty) {       // No filters in appenders -> Empty List
+        if (filterList.isEmpty) { // No filters in appenders -> Empty List
           val filter = new ThresholdFilter()
           filter.setLevel("INFO")
           filter.start()
           fileAppender.addFilter(filter)
-        }
-        else {
+        } else {
           filterList.foreach(fileAppender.addFilter)
         }
     }
