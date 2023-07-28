@@ -20,7 +20,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.fixedfeedin.FixedFeedInAgent
 import edu.ie3.simona.agent.participant.load.LoadAgent
-import edu.ie3.simona.agent.participant.pv.PVAgent
+import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.wec.WecAgent
@@ -221,7 +221,9 @@ class GridAgentController(
     case input: FixedFeedInInput =>
       buildFixedFeedIn(
         input,
-        participantConfigUtil.getFixedFeedConfigOrDefault(input.getUuid),
+        participantConfigUtil.getOrDefault[FixedFeedInRuntimeConfig](
+          input.getUuid
+        ),
         environmentRefs.primaryServiceProxy,
         simulationStartDate,
         simulationEndDate,
@@ -232,7 +234,9 @@ class GridAgentController(
     case input: LoadInput =>
       buildLoad(
         input,
-        participantConfigUtil.getLoadConfigOrDefault(input.getUuid),
+        participantConfigUtil.getOrDefault[LoadRuntimeConfig](
+          input.getUuid
+        ),
         environmentRefs.primaryServiceProxy,
         simulationStartDate,
         simulationEndDate,
@@ -241,9 +245,11 @@ class GridAgentController(
         outputConfigUtil.getOrDefault(NotifierIdentifier.Load)
       )
     case input: PvInput =>
-      buildPV(
+      buildPv(
         input,
-        participantConfigUtil.getPvConfigOrDefault(input.getUuid),
+        participantConfigUtil.getOrDefault[PvRuntimeConfig](
+          input.getUuid
+        ),
         environmentRefs.primaryServiceProxy,
         environmentRefs.weather,
         simulationStartDate,
@@ -255,7 +261,9 @@ class GridAgentController(
     case input: WecInput =>
       buildWec(
         input,
-        participantConfigUtil.getWecConfigOrDefault(input.getUuid),
+        participantConfigUtil.getOrDefault[WecRuntimeConfig](
+          input.getUuid
+        ),
         environmentRefs.primaryServiceProxy,
         environmentRefs.weather,
         simulationStartDate,
@@ -267,7 +275,9 @@ class GridAgentController(
     case input: EvcsInput =>
       buildEvcs(
         input,
-        participantConfigUtil.getEvcsConfigOrDefault(input.getUuid),
+        participantConfigUtil.getOrDefault[EvcsRuntimeConfig](
+          input.getUuid
+        ),
         environmentRefs.primaryServiceProxy,
         environmentRefs.evDataService.getOrElse(
           throw new GridAgentInitializationException(
@@ -417,7 +427,7 @@ class GridAgentController(
     * later initialization of the agent.
     *
     * @param pvInput
-    *   PV input model to derive information from
+    *   Pv input model to derive information from
     * @param modelConfiguration
     *   User-provided configuration for this specific load model
     * @param primaryServiceProxy
@@ -435,10 +445,10 @@ class GridAgentController(
     * @param outputConfig
     *   Configuration of the output behavior
     * @return
-    *   A pair of [[PVAgent]] 's [[ActorRef]] as well as the equivalent
+    *   A pair of [[PvAgent]] 's [[ActorRef]] as well as the equivalent
     *   [[InitializeParticipantAgentTrigger]] to sent for initialization
     */
-  private def buildPV(
+  private def buildPv(
       pvInput: PvInput,
       modelConfiguration: PvRuntimeConfig,
       primaryServiceProxy: ActorRef,
@@ -458,7 +468,7 @@ class GridAgentController(
   ) =
     (
       gridAgentContext.simonaActorOf(
-        PVAgent.props(
+        PvAgent.props(
           environmentRefs.scheduler,
           listener
         ),

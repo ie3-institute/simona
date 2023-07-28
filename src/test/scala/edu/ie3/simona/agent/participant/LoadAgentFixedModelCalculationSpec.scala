@@ -87,9 +87,10 @@ class LoadAgentFixedModelCalculationSpec
   private val loadConfigUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
   )
-  private val modelConfig = loadConfigUtil.getLoadConfigOrDefault(
-    voltageSensitiveInput.getUuid
-  )
+  private val modelConfig =
+    loadConfigUtil.getOrDefault[LoadRuntimeConfig](
+      voltageSensitiveInput.getUuid
+    )
   private val services = None
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
@@ -217,7 +218,7 @@ class LoadAgentFixedModelCalculationSpec
           endDate shouldBe simulationEndDate
           services shouldBe None
           outputConfig shouldBe defaultOutputConfig
-          additionalActivationTicks shouldBe Array.emptyLongArray
+          additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,

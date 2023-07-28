@@ -19,7 +19,7 @@ import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 import tech.units.indriya.quantity.Quantities
 
-/** Simple test data to be used in tests for PVModel. Should be extended as
+/** Simple test data to be used in tests for PvModel. Should be extended as
   * needed.
   */
 trait PvInputTestData
@@ -44,7 +44,7 @@ trait PvInputTestData
 
   protected val pvInputModel = new PvInput(
     UUID.randomUUID(),
-    "Dummy_PVModel",
+    "Dummy_PvModel",
     new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvA,
@@ -52,7 +52,7 @@ trait PvInputTestData
     1,
     Quantities.getQuantity(12, StandardUnits.AZIMUTH),
     Quantities.getQuantity(10, StandardUnits.EFFICIENCY),
-    Quantities.getQuantity(100, StandardUnits.SOLAR_HEIGHT),
+    Quantities.getQuantity(100, StandardUnits.SOLAR_ELEVATION_ANGLE),
     12,
     11,
     false,

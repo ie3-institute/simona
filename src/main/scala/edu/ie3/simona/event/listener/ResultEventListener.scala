@@ -6,10 +6,10 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.{ActorRef, FSM, PoisonPill, Props, Stash}
-import akka.stream.Materializer
+import akka.actor._
+import akka.pattern.pipe
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
-import edu.ie3.datamodel.models.result.ResultEntity
+import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
@@ -23,6 +23,7 @@ import edu.ie3.simona.event.listener.ResultEventListener.{
   BaseData,
   Init,
   ResultEventListenerData,
+  SinkResponse,
   Transformer3wKey,
   UninitializedData
 }
@@ -31,19 +32,13 @@ import edu.ie3.simona.exceptions.{
   InitializationException,
   ProcessResultEventException
 }
-import edu.ie3.simona.io.result.{
-  ResultEntityCsvSink,
-  ResultEntityInfluxDbSink,
-  ResultEntitySink,
-  ResultSinkType
-}
+import edu.ie3.simona.io.result._
 import edu.ie3.simona.logging.SimonaFSMActorLogging
-import edu.ie3.simona.sim.SimonaSim.ServiceInitComplete
+import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.util.ResultFileHierarchy
 
-import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 
@@ -58,6 +53,10 @@ object ResultEventListener extends Transformer3wResultSupport {
   private final case object UninitializedData extends ResultEventListenerData
 
   private final case object Init
+
+  private final case class SinkResponse(
+      response: Map[Class[_], ResultEntitySink]
+  )
 
   /** [[ResultEventListener]] base data containing all information the listener
     * needs
@@ -75,15 +74,11 @@ object ResultEventListener extends Transformer3wResultSupport {
   ) extends ResultEventListenerData
 
   def props(
-      eventClassesToConsider: Set[Class[_ <: ResultEntity]],
-      resultFileHierarchy: ResultFileHierarchy,
-      supervisor: ActorRef
+      resultFileHierarchy: ResultFileHierarchy
   ): Props =
     Props(
       new ResultEventListener(
-        eventClassesToConsider,
-        resultFileHierarchy,
-        supervisor
+        resultFileHierarchy
       )
     )
 
@@ -91,73 +86,107 @@ object ResultEventListener extends Transformer3wResultSupport {
     * with the model names as strings. It generates one sink for each model
     * class.
     *
-    * @param eventClassesToConsider
-    *   Incoming event classes that should be considered
+    * @param resultFileHierarchy
+    *   The result file hierarchy
     * @return
     *   mapping of the model class to the sink for this model class
     */
   private def initializeSinks(
-      eventClassesToConsider: Set[Class[_ <: ResultEntity]],
       resultFileHierarchy: ResultFileHierarchy
-  )(implicit
-      materializer: Materializer
   ): Iterable[Future[(Class[_], ResultEntitySink)]] = {
     resultFileHierarchy.resultSinkType match {
       case _: ResultSinkType.Csv =>
-        eventClassesToConsider
+        resultFileHierarchy.resultEntitiesToConsider
           .map(resultClass => {
-            val fileName =
-              resultFileHierarchy.rawOutputDataFilePaths.getOrElse(
-                resultClass,
-                throw new FileHierarchyException(
-                  s"Unable to get file path for result class '${resultClass.getSimpleName}' from output file hierarchy! " +
-                    s"Available file result file paths: ${resultFileHierarchy.rawOutputDataFilePaths}"
+            resultFileHierarchy.rawOutputDataFilePaths
+              .get(resultClass)
+              .map(Future.successful)
+              .getOrElse(
+                Future.failed(
+                  new FileHierarchyException(
+                    s"Unable to get file path for result class '${resultClass.getSimpleName}' from output file hierarchy! " +
+                      s"Available file result file paths: ${resultFileHierarchy.rawOutputDataFilePaths}"
+                  )
                 )
               )
-            if (fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")) {
-              val sink =
-                ResultEntityCsvSink(
-                  fileName.replace(".gz", ""),
-                  new ResultEntityProcessor(resultClass),
-                  fileName.endsWith(".gz")
-                )
-              sink.map((resultClass, _))
-            } else {
-              throw new ProcessResultEventException(
-                s"Invalid output file format for file $fileName provided. Currently only '.csv' or '.csv.gz' is supported!"
-              )
-            }
+              .flatMap { fileName =>
+                if (fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")) {
+                  Future {
+                    (
+                      resultClass,
+                      ResultEntityCsvSink(
+                        fileName.replace(".gz", ""),
+                        new ResultEntityProcessor(resultClass),
+                        fileName.endsWith(".gz")
+                      )
+                    )
+                  }
+                } else {
+                  Future.failed(
+                    new ProcessResultEventException(
+                      s"Invalid output file format for file $fileName provided. Currently only '.csv' or '.csv.gz' is supported!"
+                    )
+                  )
+                }
+              }
           })
-
       case ResultSinkType.InfluxDb1x(url, database, scenario) =>
         // creates one connection per result entity that should be processed
-        eventClassesToConsider
+        resultFileHierarchy.resultEntitiesToConsider
           .map(resultClass =>
             ResultEntityInfluxDbSink(url, database, scenario).map(
               (resultClass, _)
             )
           )
+
+      case ResultSinkType.Kafka(
+            topicNodeRes,
+            runId,
+            bootstrapServers,
+            schemaRegistryUrl,
+            linger
+          ) =>
+        val clzs: Iterable[Class[_ <: ResultEntity]] = Set(
+          classOf[NodeResult] // currently, only NodeResults are sent out
+        )
+        clzs.map(clz =>
+          Future.successful(
+            (
+              clz,
+              ResultEntityKafkaSink[NodeResult](
+                topicNodeRes,
+                runId,
+                bootstrapServers,
+                schemaRegistryUrl,
+                linger
+              )
+            )
+          )
+        )
     }
   }
 }
 
 class ResultEventListener(
-    eventClassesToConsider: Set[Class[_ <: ResultEntity]],
-    resultFileHierarchy: ResultFileHierarchy,
-    supervisor: ActorRef
+    resultFileHierarchy: ResultFileHierarchy
 ) extends SimonaListener
     with FSM[AgentState, ResultEventListenerData]
     with SimonaFSMActorLogging
     with Stash {
 
-  implicit private val materializer: Materializer = Materializer(context)
-
   override def preStart(): Unit = {
     log.debug("Starting initialization!")
-    log.debug(
-      s"Events that will be processed: {}",
-      eventClassesToConsider.map(_.getSimpleName).mkString(",")
-    )
+    resultFileHierarchy.resultSinkType match {
+      case _: ResultSinkType.Kafka =>
+        log.debug("NodeResults will be processed by a Kafka sink.")
+      case _ =>
+        log.debug(
+          s"Events that will be processed: {}",
+          resultFileHierarchy.resultEntitiesToConsider
+            .map(_.getSimpleName)
+            .mkString(",")
+        )
+    }
     self ! Init
   }
 
@@ -287,30 +316,31 @@ class ResultEventListener(
       stash()
       stay()
 
-    case Event(baseData: BaseData, UninitializedData) =>
-      unstashAll()
-      goto(Idle) using baseData
+    case Event(StopMessage(_), _) =>
+      stash()
+      stay()
 
     case Event(Init, _) =>
       Future
         .sequence(
           ResultEventListener.initializeSinks(
-            eventClassesToConsider,
             resultFileHierarchy
           )
         )
-        .onComplete {
-          case Failure(exception) =>
-            throw new InitializationException(
-              "Cannot initialize result sinks!"
-            ).initCause(exception)
-            self ! PoisonPill
-          case Success(classToSink) =>
-            log.debug("Initialization complete!")
-            supervisor ! ServiceInitComplete
-            self ! BaseData(classToSink.toMap)
-        }
+        .map(result => SinkResponse(result.toMap))
+        .pipeTo(self)
       stay()
+
+    case Event(SinkResponse(classToSink), _) =>
+      // Sink Initialization succeeded
+      log.debug("Initialization complete!")
+
+      unstashAll()
+      goto(Idle) using BaseData(classToSink)
+
+    case Event(Status.Failure(ex), _) =>
+      throw new InitializationException("Unable to setup SimonaSim.", ex)
+
   }
 
   when(Idle) {
@@ -346,6 +376,16 @@ class ResultEventListener(
               )
           }
       stay() using updatedBaseData
+
+    case Event(StopMessage(_), _) =>
+      // set ReceiveTimeout message to be sent if no message has been received for 5 seconds
+      context.setReceiveTimeout(5.seconds)
+      stay()
+
+    case Event(ReceiveTimeout, _) =>
+      // there have been no messages for 5 seconds, let's end this
+      self ! PoisonPill
+      stay()
   }
 
   onTermination { case StopEvent(_, _, baseData: BaseData) =>
@@ -369,7 +409,7 @@ class ResultEventListener(
           }
         )
       ),
-      Duration(100, TimeUnit.MINUTES)
+      5.minutes
     )
 
     log.debug("Result I/O completed.")

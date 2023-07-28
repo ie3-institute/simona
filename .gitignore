@@ -225,9 +225,10 @@ output
 deploy.properties
 
 # pv model it data
-!src/test/resources/**/it-data
+!src/test/resources/**/it
 
 # avoid ignoring test jars
 !src/test/resources/**/*.jar
+
 # Ignore Gradle build output directory
 build

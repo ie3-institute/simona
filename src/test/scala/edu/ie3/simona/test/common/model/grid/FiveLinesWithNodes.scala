@@ -6,28 +6,30 @@
 
 package edu.ie3.simona.test.common.model.grid
 
-import java.util.UUID
-
 import breeze.linalg.DenseMatrix
 import breeze.math.{Complex => C}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.grid.{LineModel, NodeModel}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
-import javax.measure.Quantity
-import javax.measure.quantity.{Dimensionless, ElectricPotential}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
-/** A simple grid consisting of 6 nodes and 5 lines. Besides the [[NodeModel]] s
-  * and [[LineModels]] s it also contains the corresponding admittance matrix.
+import java.util.UUID
+import javax.measure.Quantity
+import javax.measure.quantity.{Dimensionless, ElectricPotential}
+
+/** A simple grid consisting of 6 nodes and 5 lines. Besides the [[NodeModel]]s
+  * and [[LineModel]]s it also contains the corresponding admittance matrix.
   *
+  * {{{
   * (5)
   * |
   * | (0)-----(3)-----(4)
   * |
   * | (1)-----(2)
+  * }}}
   *
   * Reference System: 400 kVA @ 10 kV --> Reference admittance: 4 mS
   *
@@ -70,22 +72,20 @@ trait FiveLinesWithNodes {
       Quantity[Dimensionless],
       Quantity[Dimensionless],
       Quantity[Dimensionless]
-  ) => LineModel = {
-    Quantities.getQuantity(300, MEGAVOLTAMPERE)
-    (lineId, uuid, nodeA, nodeB, r, x, g, b) =>
-      new LineModel(
-        UUID.fromString(uuid),
-        lineId,
-        OperationInterval(0L, 7200L),
-        nodeA.uuid,
-        nodeB.uuid,
-        1,
-        Quantities.getQuantity(300, AMPERE),
-        Quantities.getQuantity(r.getValue.doubleValue(), PU),
-        Quantities.getQuantity(x.getValue.doubleValue(), PU),
-        Quantities.getQuantity(g.getValue.doubleValue(), PU),
-        Quantities.getQuantity(b.getValue.doubleValue(), PU)
-      )
+  ) => LineModel = { (lineId, uuid, nodeA, nodeB, r, x, g, b) =>
+    new LineModel(
+      UUID.fromString(uuid),
+      lineId,
+      OperationInterval(0L, 7200L),
+      nodeA.uuid,
+      nodeB.uuid,
+      1,
+      Quantities.getQuantity(300, AMPERE),
+      Quantities.getQuantity(r.getValue.doubleValue(), PU),
+      Quantities.getQuantity(x.getValue.doubleValue(), PU),
+      Quantities.getQuantity(g.getValue.doubleValue(), PU),
+      Quantities.getQuantity(b.getValue.doubleValue(), PU)
+    )
   }
 
   def node0: NodeModel =
@@ -131,11 +131,11 @@ trait FiveLinesWithNodes {
       linesRatedVoltage
     )
 
-  protected def nodes: Set[NodeModel] =
-    Set(node0, node1, node2, node3, node4, node5)
+  protected def nodes: Seq[NodeModel] =
+    Seq(node0, node1, node2, node3, node4, node5)
 
-  val line01: LineModel = _lineCreator(
-    "line01",
+  val line0To1: LineModel = _lineCreator(
+    "line0To1",
     "95ce3bd5-8c56-403f-aaea-d605fb328542",
     node0,
     node1,
@@ -145,8 +145,8 @@ trait FiveLinesWithNodes {
     Quantities.getQuantity(0.0000048375, PU)
   )
 
-  val line12: LineModel = _lineCreator(
-    "line12",
+  val line1To2: LineModel = _lineCreator(
+    "line1To2",
     "f6de6796-e880-45c3-80a6-b7141f3b686c",
     node1,
     node2,
@@ -156,8 +156,8 @@ trait FiveLinesWithNodes {
     Quantities.getQuantity(0.00000645, PU)
   )
 
-  val line03: LineModel = _lineCreator(
-    "line03",
+  val line0To3: LineModel = _lineCreator(
+    "line0To3",
     "335ccb58-526f-4d80-ad4f-522b544913e2",
     node0,
     node3,
@@ -167,8 +167,8 @@ trait FiveLinesWithNodes {
     Quantities.getQuantity(0.000003225, PU)
   )
 
-  val line34: LineModel = _lineCreator(
-    "line34",
+  val line3To4: LineModel = _lineCreator(
+    "line3To4",
     "b3b592f6-2112-4254-aca3-d093d220ff0f",
     node3,
     node4,
@@ -178,8 +178,8 @@ trait FiveLinesWithNodes {
     Quantities.getQuantity(0.0000016125, PU)
   )
 
-  val line35: LineModel = _lineCreator(
-    "line35",
+  val line3To5: LineModel = _lineCreator(
+    "line3To5",
     "0ffa4c4a-c0fb-44b2-8073-c8c66cc105e8",
     node3,
     node5,
@@ -190,17 +190,17 @@ trait FiveLinesWithNodes {
   )
 
   protected val lines: Set[LineModel] =
-    Set(line01, line12, line03, line34, line35)
+    Set(line0To1, line1To2, line0To3, line3To4, line3To5)
 
   // nodeToIndexMap
   protected def nodeUuidToIndexMap: Map[UUID, Int] =
     Map(
-      UUID.fromString("51c03963-f28b-4892-9053-c6bb58d20a45") -> 0,
-      UUID.fromString("890fb76c-2c6c-4eea-a47d-cf0244750718") -> 1,
-      UUID.fromString("be77fa50-613e-4fc9-854a-cfb694443e2f") -> 2,
-      UUID.fromString("9a41fd03-fb9a-4966-925e-d847a28ca97d") -> 3,
-      UUID.fromString("7f058275-476a-4d84-b1fa-12381204ac4f") -> 4,
-      UUID.fromString("ea93feca-0947-4869-a961-9cf942143feb") -> 5
+      node0.uuid -> 0,
+      node1.uuid -> 1,
+      node2.uuid -> 2,
+      node3.uuid -> 3,
+      node4.uuid -> 4,
+      node5.uuid -> 5
     )
 
   // corresponding admittance matrix

@@ -117,7 +117,9 @@ class WecAgentModelCalculationSpec
     simonaConfig.simona.runtime.participant
   )
   private val modelConfig =
-    configUtil.getWecConfigOrDefault(voltageSensitiveInput.getUuid)
+    configUtil.getOrDefault[WecRuntimeConfig](
+      voltageSensitiveInput.getUuid
+    )
 
   private val withServices = Some(
     Vector(ActorWeatherService(weatherService.ref))
@@ -310,7 +312,7 @@ class WecAgentModelCalculationSpec
             simulationResultInfo = false,
             powerRequestReply = false
           )
-          additionalActivationTicks shouldBe Array.emptyLongArray
+          additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution * 10,

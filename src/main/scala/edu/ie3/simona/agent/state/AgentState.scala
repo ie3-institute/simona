@@ -26,6 +26,4 @@ object AgentState {
 
   case object Idle extends AgentState
 
-  case object Finish extends AgentState
-
 }

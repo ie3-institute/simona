@@ -6,14 +6,14 @@
 
 package edu.ie3.simona.model.grid
 
-import java.util.UUID
-
 import breeze.numerics.pow
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.util.quantities.PowerSystemUnits._
-import javax.measure.quantity.Dimensionless
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
+
+import java.util.UUID
+import javax.measure.quantity.Dimensionless
 
 /** Provides methods to calculate the branch and phase-to-ground susceptance as
   * well as conductance of a grid asset to be represented by π equivalent
@@ -48,11 +48,14 @@ trait PiEquivalentCircuit extends LazyLogging {
 
   private val bVal: Double = b.to(PU).getValue.doubleValue()
 
-  /** Computes the branch conductance of the grid element. Formula: y = 1 / (r +
-    * j*x)
-    * = (r - j*x) / (r² + x²)
-    * = (r / (r² + x²)) + j*(-x / (r² + x²))
-    * -> g = r / (r² + x²)
+  /** Computes the branch conductance of the grid element. Formula:
+    *
+    * {{{
+    * y = 1 / (r + j*x)
+    *   = (r - j*x) / (r² + x²)
+    *   = (r / (r² + x²)) + j*(-x / (r² + x²))
+    *   -> g = r / (r² + x²)
+    * }}}
     *
     * @return
     *   branch conductance g_ij between node i and j of the element in p.u.
@@ -68,10 +71,13 @@ trait PiEquivalentCircuit extends LazyLogging {
 
   /** Computes the branch susceptance of the grid element.
     *
-    * Formula: y = 1 / (r + j*x)
-    * = (r - j*x) / (r² + x²)
-    * = (r / (r² + x²)) + j*(-x / (r² + x²))
-    * -> b = -x / (r² + x²)
+    * Formula:
+    * {{{
+    * y = 1 / (r + j*x)
+    *   = (r - j*x) / (r² + x²)
+    *   = (r / (r² + x²)) + j*(-x / (r² + x²))
+    *   -> b = -x / (r² + x²)
+    * }}}
     *
     * @return
     *   branch susceptance b_ij between node i and j of the element in p.u.

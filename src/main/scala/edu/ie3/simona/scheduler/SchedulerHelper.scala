@@ -6,9 +6,7 @@
 
 package edu.ie3.simona.scheduler
 
-import java.util.PriorityQueue
 import akka.actor.ActorRef
-import com.google.common.collect.TreeMultimap
 import edu.ie3.simona.event.RuntimeEvent.{
   CheckWindowPassed,
   Done,
@@ -17,20 +15,19 @@ import edu.ie3.simona.event.RuntimeEvent.{
 }
 import edu.ie3.simona.exceptions.SchedulerException
 import edu.ie3.simona.logging.SimonaActorLogging
-import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
-import edu.ie3.simona.ontology.trigger.{ScheduledTrigger, Trigger}
-import edu.ie3.simona.ontology.trigger.Trigger.InitializeTrigger
-import edu.ie3.simona.scheduler.SimSchedulerStateData.SchedulerStateData
-import edu.ie3.simona.sim.SimonaSim
+import edu.ie3.simona.ontology.trigger.Trigger
+import edu.ie3.simona.scheduler.SimSchedulerStateData.{
+  ScheduledTrigger,
+  SchedulerStateData,
+  TriggerData
+}
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.TimeUtil
+import edu.ie3.util.scala.collection.mutable.{CountingMap, PriorityMultiQueue}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
-import scala.jdk.Accumulator
-import scala.jdk.CollectionConverters._
-import scala.jdk.StreamConverters._
 
 /** Main functionalities of [[SimScheduler]]. While the entry points for the
   * methods can be found in [[SimScheduler#schedulerReceive()]], the
@@ -50,72 +47,48 @@ trait SchedulerHelper extends SimonaActorLogging {
       TimeUtil.withDefaults.toZonedDateTime(simonaTimeConfig.endDateTime)
     )
 
-  private val parallelWindow = SimonaConstants.PARALLELISM_WINDOW
-
   // if currentTick % checkWindowTick == 0 and all completionMessages have been
   // received for currentTick, a CheckWindowPassed RuntimeEvent is issued
   private val schedulerReadyCheckWindow =
     simonaTimeConfig.schedulerReadyCheckWindow
 
-  /** Sends out all triggers of type [[InitializeTrigger]] inside the trigger
-    * queue in the provided state data. This method modifies the mutual trigger
-    * data inside of the provided [[SimSchedulerStateData]]. To indicate this
-    * behavior, the provided state data is returned again, because the return
-    * value is a modified, but not a copied version of the provided state data!
-    *
-    * @param stateData
-    *   the state data that should be processed
-    * @return
-    *   a modified version of the provided state data with all
-    *   [[InitializeTrigger]] send out and updated
-    *   [[SimSchedulerStateData.SchedulerStateData.trigger.awaitingResponseMap]]
-    *   and
-    *   [[SimSchedulerStateData.SchedulerStateData.trigger.triggerIdToScheduledTriggerMap accordingly]]
-    */
-  protected final def initializeAgents(
+  protected def sendEligibleTrigger(
       stateData: SchedulerStateData
-  ): SchedulerStateData = {
+  ): SchedulerStateData =
+    stateData.copy(
+      trigger =
+        sendEligibleTrigger(stateData.trigger, stateData.time.nowInTicks)
+    )
 
-    /* get the trigger information */
-    val triggerData = stateData.trigger
-    val triggerQueue = triggerData.triggerQueue
-    val awaitingResponseMap = triggerData.awaitingResponseMap
-    val triggerIdToScheduledTriggerMap =
-      triggerData.triggerIdToScheduledTriggerMap
+  /** Send out all trigger that are eligible to be send for the current state of
+    * the state data. This method modifies the trigger data within the provided
+    * [[SimSchedulerStateData]].
+    *
+    * @param triggerData
+    *   the trigger data that should be updated
+    * @param nowInTicks
+    *   the current tick
+    * @return
+    *   possibly modified trigger data with updated trigger information
+    */
+  protected def sendEligibleTrigger(
+      triggerData: TriggerData,
+      nowInTicks: Long
+  ): TriggerData = {
 
-    /* filter for initialization trigger only */
-    val initTriggers = triggerQueue.stream
-      .toScala(Accumulator)
-      .filter(schedTrigger =>
-        schedTrigger.triggerWithIdMessage.trigger match {
-          case _: InitializeTrigger => true
-          case _                    => false
-        }
-      )
-      .map(schedTrigger => {
-        /* actual init process */
-        val triggerWithIdMessage = schedTrigger.triggerWithIdMessage
+    triggerData.triggerQueue.pollTo(nowInTicks).foreach {
+      case scheduledTrigger @ ScheduledTrigger(triggerWithIdMessage, actor) =>
         // track that we wait for a response for this tick
-        awaitingResponseMap.put(
-          triggerWithIdMessage.trigger.tick,
-          schedTrigger
-        )
+        triggerData.awaitingResponseMap.add(triggerWithIdMessage.trigger.tick)
+
         // track the trigger id with the scheduled trigger
-        triggerIdToScheduledTriggerMap.put(
-          triggerWithIdMessage.triggerId,
-          schedTrigger
-        )
+        triggerData.triggerIdToScheduledTriggerMap +=
+          triggerWithIdMessage.triggerId -> scheduledTrigger
 
-        // send the trigger to its receiver agent
-        schedTrigger.agent ! triggerWithIdMessage
-        schedTrigger
-      })
-      .toVector
+        actor ! triggerWithIdMessage
+    }
 
-    // remove the triggers we send out from the trigger queue
-    triggerQueue.removeAll(initTriggers.asJava)
-
-    stateData
+    triggerData
   }
 
   /** The actual scheduling and moving forward in time process if possible. This
@@ -155,12 +128,11 @@ trait SchedulerHelper extends SimonaActorLogging {
         /* we do not want to pause the schedule, go on with normal schedule handling  */
         if (notFinishedAndTriggerAvailable(nowInTicks, stateData)) {
 
-          /* if we do not exceed nowInSeconds + parallelWindow OR do not wait on any responses we can send out new triggers */
+          /* if we do not exceed nowInSeconds OR do not wait on any responses we can send out new triggers */
           if (
             canWeSendTrigger(
               stateData.trigger.awaitingResponseMap,
-              nowInTicks,
-              parallelWindow
+              nowInTicks
             )
           ) {
 
@@ -174,12 +146,11 @@ trait SchedulerHelper extends SimonaActorLogging {
               eligibleTriggerSendStateData.time.nowInTicks
             )
 
-            /* if we do not exceed (nowInTicks+1) + parallelWindow OR do not wait on any responses, we can move on in time by one tick */
+            /* if we do not exceed (nowInTicks+1) OR do not wait on any responses, we can move on in time by one tick */
             if (
               nowInTicks <= endTick && canWeSendTrigger(
                 updatedStateData.trigger.awaitingResponseMap,
-                nowInTicks + 1,
-                parallelWindow
+                nowInTicks + 1
               )
             ) {
               doSimStep(
@@ -207,7 +178,7 @@ trait SchedulerHelper extends SimonaActorLogging {
           val stateDataAfterCheckWindow = maybeCheckWindowPassed(
             stateData,
             schedulerReadyCheckWindow,
-            nowInTicks - parallelWindow) */
+            nowInTicks) */
 
           maybeFinishSimulation(stateData)
         }
@@ -246,7 +217,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     /* if we are in tick pauseScheduleAtTick, it might be possible that we still need to schedule triggers due to
      * incoming triggers for this tick inside completion messages  */
     if (
-      !triggerQueueEmptyOrNextTriggerTickBiggerOrAfterEnd(
+      !noScheduledTriggersForCurrentTick(
         stateData.trigger.triggerQueue,
         pauseTick
       )
@@ -278,17 +249,16 @@ trait SchedulerHelper extends SimonaActorLogging {
     * @return
     *   a boolean
     */
-  private def triggerQueueEmptyOrNextTriggerTickBiggerOrAfterEnd(
-      triggerQueue: PriorityQueue[ScheduledTrigger],
+  private def noScheduledTriggersForCurrentTick(
+      triggerQueue: PriorityMultiQueue[Long, ScheduledTrigger],
       nowInTicks: Long
-  ): Boolean = triggerQueue.size() == 0 || {
-    val nextTriggerTick = triggerQueue
-      .peek()
-      .triggerWithIdMessage
-      .trigger
-      .tick
-    nextTriggerTick > nowInTicks || nextTriggerTick > endTick
-  }
+  ): Boolean =
+    triggerQueue.headKeyOption match {
+      case Some(nextTriggerTick) =>
+        nextTriggerTick > nowInTicks || nextTriggerTick > endTick
+      case None =>
+        true
+    }
 
   /** Checks if the simulation has not reached its endTick yet and if there are
     * still trigger available in the trigger queue that can be send out
@@ -305,81 +275,30 @@ trait SchedulerHelper extends SimonaActorLogging {
       nowInTicks: Long,
       stateData: SchedulerStateData
   ): Boolean =
-    nowInTicks <= endTick || !stateData.trigger.triggerQueue.isEmpty && stateData.trigger.triggerQueue
-      .peek()
-      .triggerWithIdMessage
-      .trigger
-      .tick <= endTick
+    nowInTicks <= endTick ||
+      stateData.trigger.triggerQueue.headKeyOption.exists(_ <= endTick)
 
   /** Checks if we can move on in time in the schedule by comparing the awaiting
-    * response map data with the current tick and the parallelWindow data
+    * response map data with the current tick
     *
     * @param awaitingResponseMap
     *   the map containing all information about triggers we still wait for
     *   completion messages
     * @param nowInTicks
     *   the current tick
-    * @param parallelWindow
-    *   the parallel window tick information
     * @return
     *   true if trigger can be send, false otherwise
     */
   private def canWeSendTrigger(
-      awaitingResponseMap: TreeMultimap[java.lang.Long, ScheduledTrigger],
-      nowInTicks: Long,
-      parallelWindow: Long
-  ): Boolean = {
-    awaitingResponseMap.isEmpty || nowInTicks - awaitingResponseMap
-      .keySet()
-      .first() <= parallelWindow
-  }
-
-  /** Send out all trigger that are eligible to be send for the current state of
-    * the state data
-    *
-    * @param stateData
-    *   the state data that should be processed
-    * @return
-    *   conditionally modified state data with updated trigger information
-    */
-  private def sendEligibleTrigger(
-      stateData: SchedulerStateData
-  ): SchedulerStateData = {
-
-    val updatedStateData = stateData.copy()
-    val triggerQueue = updatedStateData.trigger.triggerQueue
-    val nowInTicks = updatedStateData.time.nowInTicks
-
-    /* send out eligible trigger */
-    // this routine changes mutable data inside the loop for performance reasons
-    while (
-      !triggerQueue.isEmpty && triggerQueue
-        .peek()
-        .triggerWithIdMessage
-        .trigger
-        .tick <= nowInTicks
-    ) {
-
-      val scheduledTrigger = triggerQueue.poll()
-      val triggerWithIdMessage = scheduledTrigger.triggerWithIdMessage
-
-      // track that we wait for a response for this tick
-      updatedStateData.trigger.awaitingResponseMap.put(
-        triggerWithIdMessage.trigger.tick,
-        scheduledTrigger
-      )
-
-      // track the trigger id with the scheduled trigger
-      updatedStateData.trigger.triggerIdToScheduledTriggerMap.put(
-        triggerWithIdMessage.triggerId,
-        scheduledTrigger
-      )
-
-      scheduledTrigger.agent ! triggerWithIdMessage
+      awaitingResponseMap: CountingMap[Long],
+      nowInTicks: Long
+  ): Boolean =
+    awaitingResponseMap.minKeyOption match {
+      case Some(minKey) =>
+        nowInTicks <= minKey
+      case None =>
+        true // map empty, no completions awaited
     }
-
-    updatedStateData
-  }
 
   /** Checks if the provided state data and the current tick is eligible to
     * issue a [[CheckWindowPassed]] event
@@ -404,16 +323,16 @@ trait SchedulerHelper extends SimonaActorLogging {
     val awaitingResponseMap = stateData.trigger.awaitingResponseMap
 
     if (
-      nowInTicks > 0 && (nowInTicks % readyCheckVal == 0) && awaitingResponseMap
-        .get(nowInTicks)
-        .isEmpty
-      && triggerQueueEmptyOrNextTriggerTickBiggerOrAfterEnd(
+      nowInTicks > 0 && (nowInTicks % readyCheckVal == 0)
+      && !awaitingResponseMap.contains(nowInTicks)
+      && noScheduledTriggersForCurrentTick(
         stateData.trigger.triggerQueue,
         nowInTicks
-      ) && stateData.event.lastCheckWindowPassedTick < nowInTicks
+      )
+      && stateData.event.lastCheckWindowPassedTick < nowInTicks
     ) {
       // calculate duration
-      val duration = calcDuration(stateData.time.checkStepStartTime.toDouble)
+      val duration = calcDuration(stateData.time.checkStepStartTime)
 
       // notify listeners
       notifyListener(CheckWindowPassed(nowInTicks, duration))
@@ -449,8 +368,8 @@ trait SchedulerHelper extends SimonaActorLogging {
     /* ready notification can only be send if we don't have any triggers we wait for anymore in the current tick +
      * the next trigger in the queue is not the current tick */
     if (
-      stateData.trigger.awaitingResponseMap.get(nowInTicks).isEmpty
-      && triggerQueueEmptyOrNextTriggerTickBiggerOrAfterEnd(
+      !stateData.trigger.awaitingResponseMap.contains(nowInTicks)
+      && noScheduledTriggersForCurrentTick(
         stateData.trigger.triggerQueue,
         nowInTicks
       )
@@ -459,7 +378,7 @@ trait SchedulerHelper extends SimonaActorLogging {
       notifyListener(
         Ready(
           nowInTicks,
-          calcDuration(stateData.time.readyStepStartTime.toDouble)
+          calcDuration(stateData.time.readyStepStartTime)
         )
       )
 
@@ -490,7 +409,7 @@ trait SchedulerHelper extends SimonaActorLogging {
       stateData: SchedulerStateData
   ): SchedulerStateData = {
     if (
-      stateData.trigger.awaitingResponseMap.isEmpty && triggerQueueEmptyOrNextTriggerTickBiggerOrAfterEnd(
+      stateData.trigger.awaitingResponseMap.isEmpty && noScheduledTriggersForCurrentTick(
         stateData.trigger.triggerQueue,
         stateData.time.nowInTicks
       )
@@ -517,19 +436,20 @@ trait SchedulerHelper extends SimonaActorLogging {
       stateData: SchedulerStateData,
       errorInSim: Boolean = false
   ): SchedulerStateData = {
-    val totalSimDuration: Double = stateData.time.simStartTime
-      .map(startTime => calcDuration(startTime.toDouble))
+    val totalSimDuration: Long = stateData.time.simStartTime
+      .map(startTime => calcDuration(startTime))
       .getOrElse(0)
 
     /* unwatch all agents that have triggered themselves as the simulation will shutdown now */
-    stateData.trigger.triggerQueue.asScala.foreach(scheduledTrigger => {
-      context.unwatch(scheduledTrigger.agent)
-    })
+    stateData.trigger.triggerQueue.allValues.foreach(trig =>
+      context.unwatch(trig.agent)
+    )
 
     /* notify listeners */
+    /*The usage of min is necessary because the scheduler overshoots the target tick by 1 at the end of the simulation*/
     notifyListener(
       Done(
-        endTick,
+        Math.min(stateData.time.nowInTicks, endTick),
         totalSimDuration,
         stateData.runtime.noOfFailedPF,
         errorInSim
@@ -603,15 +523,12 @@ trait SchedulerHelper extends SimonaActorLogging {
   protected final def doSimStepOrInitAgents(
       stateData: SchedulerStateData
   ): SchedulerStateData = {
-    if (stateData.runtime.initComplete && stateData.runtime.scheduleStarted) {
+    if (stateData.runtime.initComplete && stateData.runtime.scheduleStarted)
       doSimStep(stateData)
-    } else if (
-      !stateData.runtime.initComplete && stateData.runtime.initStarted
-    ) {
-      initializeAgents(stateData)
-    } else {
+    else if (!stateData.runtime.initComplete && stateData.runtime.initStarted)
+      sendEligibleTrigger(stateData)
+    else
       stateData
-    }
   }
 
   /** Main method to handle all [[CompletionMessage]] s received by the
@@ -661,8 +578,7 @@ trait SchedulerHelper extends SimonaActorLogging {
         ) = updateAwaitingResponseAndTriggerIdToScheduledTriggerMap(
           triggerId,
           triggerData.awaitingResponseMap,
-          triggerData.triggerIdToScheduledTriggerMap,
-          triggerData.triggerIdToTickMap
+          triggerData.triggerIdToScheduledTriggerMap
         ).getOrElse {
           log.error(
             s"Received bad completion notice $completionMessage from ${sender().path}"
@@ -672,10 +588,6 @@ trait SchedulerHelper extends SimonaActorLogging {
             triggerData.triggerIdToScheduledTriggerMap
           )
         }
-
-        /* remove the trigger we just processed from the triggerIdToTickMap */
-        val updatedTriggerIdToTickMap =
-          triggerData.triggerIdToTickMap - completionMessage.triggerId
 
         /* unwatch sender */
         context.unwatch(sender())
@@ -690,25 +602,23 @@ trait SchedulerHelper extends SimonaActorLogging {
             trigger = triggerData.copy(
               awaitingResponseMap = updatedAwaitingResponseMap,
               triggerIdToScheduledTriggerMap =
-                updatedTriggerIdToScheduledTriggerMap,
-              triggerIdToTickMap = updatedTriggerIdToTickMap
+                updatedTriggerIdToScheduledTriggerMap
             )
           )
 
           /* if there are no triggers left to send and we are only receiving completion messages, we still might
            * pass a ready check window, this call is to ensure that for the last tick of the simulation a CheckWindowPassed()
-           * is issued lastTick % schedulerReadyCheckWindow == 0, parallel window does not account for last tick */
+           * is issued lastTick % schedulerReadyCheckWindow == 0 */
           maybeCheckWindowPassed(
             updatedStateData,
             schedulerReadyCheckWindow,
             stateData.time.nowInTicks - 1
           )
-          /* if resolution == schedulerCheckWindow we need to subtract the parallel window for the current tick as we might
-           * move on in time already will still receiving completion messages for nowInTicks - parallelWindow */
+
           maybeCheckWindowPassed(
             updatedStateData,
             schedulerReadyCheckWindow,
-            stateData.time.nowInTicks - parallelWindow
+            stateData.time.nowInTicks
           )
         } else {
           /* we are @ the init tick (SimonaSim#initTick), if no init triggers are in the queue and in the await map
@@ -719,7 +629,7 @@ trait SchedulerHelper extends SimonaActorLogging {
           /* steps to be carried out when init is done */
           val updateTime = if (initDone) {
             val initDuration = calcDuration(
-              stateData.time.initStartTime.toDouble
+              stateData.time.initStartTime
             )
 
             notifyListener(InitComplete(initDuration))
@@ -741,8 +651,7 @@ trait SchedulerHelper extends SimonaActorLogging {
             trigger = triggerData.copy(
               awaitingResponseMap = updatedAwaitingResponseMap,
               triggerIdToScheduledTriggerMap =
-                updatedTriggerIdToScheduledTriggerMap,
-              triggerIdToTickMap = updatedTriggerIdToTickMap
+                updatedTriggerIdToScheduledTriggerMap
             ),
             time = updateTime
           )
@@ -762,8 +671,6 @@ trait SchedulerHelper extends SimonaActorLogging {
     *   completion message has not been received yet
     * @param triggerIdToScheduledTriggerMap
     *   the mapping of the trigger id to the send out trigger
-    * @param triggerIdToTickMap
-    *   the mapping of the trigger id to the tick it has been send out
     * @return
     *   either a tuple with an updated awaiting response map and updated trigger
     *   id to scheduled trigger map or none if the provided trigger id is
@@ -771,36 +678,28 @@ trait SchedulerHelper extends SimonaActorLogging {
     */
   private def updateAwaitingResponseAndTriggerIdToScheduledTriggerMap(
       triggerId: Long,
-      awaitingResponseMap: TreeMultimap[java.lang.Long, ScheduledTrigger],
-      triggerIdToScheduledTriggerMap: mutable.Map[Long, ScheduledTrigger],
-      triggerIdToTickMap: Map[Long, Long]
+      awaitingResponseMap: CountingMap[Long],
+      triggerIdToScheduledTriggerMap: mutable.Map[Long, ScheduledTrigger]
   ): Option[
     (
-        TreeMultimap[java.lang.Long, ScheduledTrigger],
+        CountingMap[Long],
         mutable.Map[Long, ScheduledTrigger]
     )
   ] = {
-    triggerIdToTickMap.get(triggerId) match {
+    triggerIdToScheduledTriggerMap.get(triggerId) match {
       case None =>
         None
-      case Some(tick) =>
-        if (awaitingResponseMap.containsKey(tick)) {
-          val scheduledTrigger =
-            triggerIdToScheduledTriggerMap(triggerId)
+      case Some(scheduledTrigger) =>
+        val tick = scheduledTrigger.triggerWithIdMessage.trigger.tick
+        if (awaitingResponseMap.contains(tick)) {
 
-          val updatedAwaitingResponseMap =
-            TreeMultimap.create[java.lang.Long, ScheduledTrigger](
-              awaitingResponseMap
-            )
-          updatedAwaitingResponseMap.remove(tick, scheduledTrigger)
+          awaitingResponseMap.subtract(tick)
 
-          val updatedTriggerIdToScheduledTriggerMap =
-            triggerIdToScheduledTriggerMap
-          updatedTriggerIdToScheduledTriggerMap -= triggerId
+          triggerIdToScheduledTriggerMap -= triggerId
 
           Some(
-            updatedAwaitingResponseMap,
-            updatedTriggerIdToScheduledTriggerMap
+            awaitingResponseMap,
+            triggerIdToScheduledTriggerMap
           )
         } else {
           None
@@ -809,9 +708,10 @@ trait SchedulerHelper extends SimonaActorLogging {
   }
 
   /** Checks if initialization of the simulation is complete. It is complete, if
-    * two conditions are fulfilled: <ol> <li>there is no [[InitializeTrigger]]
-    * inside the provided trigger queue left</li> <li>there is no sent out
-    * [[InitializeTrigger]], which is not completed, yet</li> </ol>
+    * two conditions are fulfilled: <ol> <li>there is no trigger with tick
+    * [[SimonaConstants.INIT_SIM_TICK]] inside the provided trigger queue
+    * left</li> <li>there is no sent out trigger with tick
+    * [[SimonaConstants.INIT_SIM_TICK]], which is not completed, yet</li> </ol>
     *
     * @param awaitingResponseMap
     *   a map containing a tick to scheduled trigger mapping
@@ -821,28 +721,11 @@ trait SchedulerHelper extends SimonaActorLogging {
     *   true if init is done, false otherwise
     */
   private def isInitDone(
-      awaitingResponseMap: TreeMultimap[java.lang.Long, ScheduledTrigger],
-      triggerQueue: java.util.PriorityQueue[ScheduledTrigger]
-  ): Boolean = {
-    val initAwait = awaitingResponseMap
-      .get(SimonaConstants.INIT_SIM_TICK)
-      .asScala
-      .iterator
-      .exists(_.triggerWithIdMessage.trigger match {
-        case _: InitializeTrigger => true
-        case _                    => false
-      })
-
-    val initTriggerInQueue = triggerQueue
-      .iterator()
-      .asScala
-      .exists(_.triggerWithIdMessage.trigger match {
-        case _: InitializeTrigger => true
-        case _                    => false
-      })
-
-    !initAwait && !initTriggerInQueue
-  }
+      awaitingResponseMap: CountingMap[Long],
+      triggerQueue: PriorityMultiQueue[Long, ScheduledTrigger]
+  ): Boolean =
+    !awaitingResponseMap.contains(SimonaConstants.INIT_SIM_TICK) &&
+      !triggerQueue.headKeyOption.contains(SimonaConstants.INIT_SIM_TICK)
 
   /** Calculate the duration between a given start time and the current system
     * time in milliseconds
@@ -853,8 +736,8 @@ trait SchedulerHelper extends SimonaActorLogging {
     *   the duration between the given start time and the current system time in
     *   milliseconds
     */
-  protected def calcDuration(startTime: Double): Double = {
-    (System.nanoTime - startTime).doubleValue() / 1e6d // in msec
+  protected def calcDuration(startTime: Long): Long = {
+    (System.nanoTime - startTime) / 1000000L // in msec
   }
 
   /** Adds the provided trigger to the trigger queue to schedule it at the
@@ -868,7 +751,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     *   a copy of the provided state data with updated trigger data
     */
   protected final def scheduleTrigger(
-      triggerMessage: SchedulerMessage.ScheduleTriggerMessage,
+      triggerMessage: ScheduleTriggerMessage,
       stateData: SchedulerStateData
   ): SchedulerStateData =
     scheduleTrigger(
@@ -899,7 +782,7 @@ trait SchedulerHelper extends SimonaActorLogging {
     context.watch(actorToBeScheduled)
 
     // if the tick of this trigger is too much in the past, we cannot schedule it
-    if (stateData.time.nowInTicks - trigger.tick > parallelWindow) {
+    if (stateData.time.nowInTicks > trigger.tick) {
       actorToBeScheduled ! IllegalTriggerMessage(
         s"Cannot schedule an event $trigger at tick ${trigger.tick} when 'nowInSeconds' is at ${stateData.time.nowInTicks}!",
         actorToBeScheduled
@@ -919,26 +802,17 @@ trait SchedulerHelper extends SimonaActorLogging {
         )
 
       /* update trigger queue */
-      val updatedTriggerQueue =
-        new java.util.PriorityQueue[ScheduledTrigger](
-          stateData.trigger.triggerQueue
-        )
-      updatedTriggerQueue.add(
+      stateData.trigger.triggerQueue.add(
+        trigger.tick,
         ScheduledTrigger(
           triggerWithIdMessage,
           actorToBeScheduled
         )
       )
 
-      /* update triggerIdToTickMap */
-      val updatedTriggerIdToTickMap =
-        stateData.trigger.triggerIdToTickMap + (triggerWithIdMessage.triggerId -> trigger.tick)
-
       /* return copy of state data */
       stateData.copy(
         trigger = stateData.trigger.copy(
-          triggerQueue = updatedTriggerQueue,
-          triggerIdToTickMap = updatedTriggerIdToTickMap,
           triggerIdCounter = updatedTriggerIdCounter
         )
       )

@@ -87,9 +87,10 @@ class LoadAgentProfileModelCalculationSpec
   private val loadConfigUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
   )
-  private val modelConfig = loadConfigUtil.getLoadConfigOrDefault(
-    voltageSensitiveInput.getUuid
-  )
+  private val modelConfig =
+    loadConfigUtil.getOrDefault[LoadRuntimeConfig](
+      voltageSensitiveInput.getUuid
+    )
   private val services = None
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
@@ -217,7 +218,7 @@ class LoadAgentProfileModelCalculationSpec
           services shouldBe None
           outputConfig shouldBe defaultOutputConfig
           additionalActivationTicks
-            .corresponds(Array(900L, 1800L, 2700L, 3600L))(_ == _) shouldBe true
+            .corresponds(Seq(900L, 1800L, 2700L, 3600L))(_ == _) shouldBe true
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
