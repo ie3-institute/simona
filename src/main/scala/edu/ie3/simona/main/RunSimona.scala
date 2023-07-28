@@ -38,9 +38,6 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
     QuantityUtil.adjustNumberSystem()
 
     printOpener()
-    logger.info(
-      s"Starting SIMONA with interface '${getClass.getSimpleName.replaceAll("\\$", "")}'."
-    )
 
     setup(args).foreach(run)
 
@@ -60,8 +57,9 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
 
   // a fancy opener
   protected def printOpener(): Unit = {
-    println(
-      "   _____ ______  _______  _   _____       ___    ____ \n  / ___//  _/  |/  / __ \\/ | / /   |     |__ \\  / __ \\\n  \\__ \\ / // /|_/ / / / /  |/ / /| |     __/ / / / / /\n ___/ // // /  / / /_/ / /|  / ___ |    / __/_/ /_/ / \n/____/___/_/  /_/\\____/_/ |_/_/  |_|   /____(_)____/  \n                                                      "
+    logger.info(
+      s"Starting SIMONA with interface '${getClass.getSimpleName.replaceAll("\\$", "")}'.\n" + "   _____ ______  _______  _   _____       ___    ____ \n  / ___//  _/  |/  / __ \\/ | / /   |     |__ \\  / __ \\\n  \\__ \\ / // /|_/ / / / /  |/ / /| |     __/ / / / / /\n ___/ // // /  / / /_/ / /|  / ___ |    / __/_/ /_/ / \n/____/___/_/  /_/\\____/_/ |_/_/  |_|   /____(_)____/  \n                                                      "
+
     )
   }
 

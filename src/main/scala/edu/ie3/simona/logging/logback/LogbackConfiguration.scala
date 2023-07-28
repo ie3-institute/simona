@@ -42,9 +42,7 @@ object LogbackConfiguration extends LazyLogging {
             loggerContext
           )
         )
-        logger.info(
-          "\n   _____ ______  _______  _   _____       ___    ____ \n  / ___//  _/  |/  / __ \\/ | / /   |     |__ \\  / __ \\\n  \\__ \\ / // /|_/ / / / /  |/ / /| |     __/ / / / / /\n ___/ // // /  / / /_/ / /|  / ___ |    / __/_/ /_/ / \n/____/___/_/  /_/\\____/_/ |_/_/  |_|   /____(_)____/  \n                                                      "
-        ) // start all other appenders again
+
         rootLogger.iteratorForAppenders().asScala.foreach {
           case rf: RollingFileAppender[_] =>
             rf.getTriggeringPolicy.start()
@@ -78,12 +76,17 @@ object LogbackConfiguration extends LazyLogging {
     fileAppender.setName(appenderName)
     /* If applicable, apply the filters from existing file logger else log with "INFO"-Level */
     maybeFilterList match {
-      case Some(filterList) => filterList.foreach(fileAppender.addFilter)
-      case None =>
-        val filter = new ThresholdFilter()
-        filter.setLevel("INFO")
-        filter.start()
-        fileAppender.addFilter(filter)
+      case Some(filterList) => {
+        if (filterList.isEmpty) {       // No filters in appenders -> Empty List
+          val filter = new ThresholdFilter()
+          filter.setLevel("INFO")
+          filter.start()
+          fileAppender.addFilter(filter)
+        }
+        else {
+          filterList.foreach(fileAppender.addFilter)
+        }
+      }
     }
     fileAppender.start()
 
