@@ -6,9 +6,11 @@
 
 package edu.ie3.simona.model.participant
 
+import squants.energy.Kilowatts$
+import squants.space.SquareMeters$
+
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static edu.ie3.datamodel.models.StandardUnits.*
-import static edu.ie3.util.quantities.QuantityUtil.equals
 import static edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import static tech.units.indriya.quantity.Quantities.getQuantity
 
