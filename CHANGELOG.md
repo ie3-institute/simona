@@ -66,8 +66,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed ChpData to ChpRelevantData [#494](https://github.com/ie3-institute/simona/issues/494)
 
 ### Fixed
-- Location of `vn_simona` test grid (was partially in Berlin and Dortmund)
-- Take log file event filters from `logback.xml` when defining the run log appender
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
 - Let `ParticipantAgent` die after failed registration with secondary services (prevents stuck simulation) [#76](https://github.com/ie3-institute/simona/issues/76)
 - Fix default resolution of weather source wrapper [#78](https://github.com/ie3-institute/simona/issues/78)
@@ -100,6 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Write out results
 - Fixed broken layout in RTD documentation [#500](https://github.com/ie3-institute/simona/issues/500)
 - Corrected tests in RefSystemTest [#560](https://github.com/ie3-institute/simona/issues/560)
+- Take log file event filters from `logback.xml` when defining the run log appender [#108](https://github.com/ie3-institute/simona/issues/108)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)
