@@ -98,6 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Write out results
 - Fixed broken layout in RTD documentation [#500](https://github.com/ie3-institute/simona/issues/500)
 - Corrected tests in RefSystemTest [#560](https://github.com/ie3-institute/simona/issues/560)
+- Take log file event filters from `logback.xml` when defining the run log appender [#108](https://github.com/ie3-institute/simona/issues/108)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)
