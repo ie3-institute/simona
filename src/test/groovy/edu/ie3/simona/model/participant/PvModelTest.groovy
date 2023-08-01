@@ -103,15 +103,15 @@ class PvModelTest extends Specification {
         pvInput.id,
         OperationInterval.apply(0L, 86400L),
         scalingFactor,
-        QControl.apply(pvInput.getqCharacteristics()),
-        Sq.create(pvInput.getsRated().to(KILOWATT).getValue().doubleValue(), Kilowatts$.MODULE$),
+        QControl.apply(pvInput.qCharacteristics),
+        Sq.create(pvInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
         pvInput.cosPhiRated,
-        pvInput.getNode().getGeoPosition().getY(),
-        pvInput.getNode().getGeoPosition().getX(),
-        pvInput.getAlbedo(),
-        Sq.create(pvInput.getEtaConv().to(PU).getValue().doubleValue(), Each$.MODULE$),
-        Sq.create(pvInput.getAzimuth().to(RADIAN).getValue().doubleValue(), Radians$.MODULE$),
-        Sq.create(pvInput.getElevationAngle().getValue().doubleValue(), Radians$.MODULE$),
+        pvInput.node.geoPosition.y,
+        pvInput.node.geoPosition.x,
+        pvInput.albedo,
+        Sq.create(pvInput.etaConv.to(PU).value.doubleValue(), Each$.MODULE$),
+        Sq.create(pvInput.azimuth.to(RADIAN).value.doubleValue(), Radians$.MODULE$),
+        Sq.create(pvInput.elevationAngle.value.doubleValue(), Radians$.MODULE$),
         Sq.create(1d, SquareMeters$.MODULE$)
         )
   }
