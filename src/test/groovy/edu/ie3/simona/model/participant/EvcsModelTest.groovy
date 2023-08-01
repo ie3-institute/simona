@@ -6,6 +6,9 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static tech.units.indriya.unit.Units.MINUTE
+
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.type.evcslocation.EvcsLocationType
 import edu.ie3.simona.api.data.ev.model.EvModel
@@ -22,10 +25,6 @@ import squants.time.Minutes$
 import tech.units.indriya.quantity.Quantities
 
 import scala.collection.immutable.Set
-
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-
-
 
 class EvcsModelTest extends Specification {
 

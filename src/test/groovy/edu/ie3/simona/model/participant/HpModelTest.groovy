@@ -6,6 +6,10 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.KILOVOLTAMPERE
+import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
+import static tech.units.indriya.quantity.Quantities.getQuantity
+import static tech.units.indriya.unit.Units.CELSIUS
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.StandardUnits
@@ -25,15 +29,7 @@ import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
 
-import squants.energy.Kilowatts$
-import squants.thermal.Celsius$
 
-
-import static edu.ie3.util.quantities.PowerSystemUnits.KILOVOLTAMPERE
-import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
-
-import static tech.units.indriya.quantity.Quantities.getQuantity
-import static tech.units.indriya.unit.Units.CELSIUS
 
 class HpModelTest extends Specification {
 

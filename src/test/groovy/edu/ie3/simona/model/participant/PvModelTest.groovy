@@ -6,6 +6,9 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static tech.units.indriya.quantity.Quantities.getQuantity
+
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.OperatorInput
@@ -33,8 +36,7 @@ import squants.space.SquareMeters$
 
 import java.time.ZonedDateTime
 
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static tech.units.indriya.quantity.Quantities.getQuantity
+
 
 /**
  * Test class that tries to cover all special cases of the current implementation of the PvModel
@@ -97,13 +99,13 @@ class PvModelTest extends Specification {
     // build the PvModel
     double scalingFactor = 1.0d
     pvModel = PvModel.apply(
-        pvInput.getUuid(),
-        pvInput.getId(),
+        pvInput.uuid,
+        pvInput.id,
         OperationInterval.apply(0L, 86400L),
         scalingFactor,
         QControl.apply(pvInput.getqCharacteristics()),
         Sq.create(pvInput.getsRated().to(KILOWATT).getValue().doubleValue(), Kilowatts$.MODULE$),
-        pvInput.getCosPhiRated(),
+        pvInput.cosPhiRated,
         pvInput.getNode().getGeoPosition().getY(),
         pvInput.getNode().getGeoPosition().getX(),
         pvInput.getAlbedo(),

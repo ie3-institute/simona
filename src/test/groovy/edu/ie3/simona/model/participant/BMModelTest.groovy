@@ -6,6 +6,10 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static tech.units.indriya.unit.Units.CELSIUS
+import static tech.units.indriya.unit.Units.PERCENT
+
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.type.BmTypeInput
@@ -24,8 +28,7 @@ import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static tech.units.indriya.unit.Units.PERCENT
+
 
 /**
  * Test class that tries to cover all special cases of the current implementation of the {@link BMModel}
@@ -69,7 +72,7 @@ class BMModelTest extends Specification {
         bmType.getCosPhiRated(),
         "MockNode",
         true,
-        bmType.getOpex() as ComparableQuantity<EnergyPrice>,
+        bmType.opex as ComparableQuantity<EnergyPrice>,
         Quantities.getQuantity(0.051d, EURO_PER_KILOWATTHOUR),
         0.05)
   }
@@ -176,7 +179,7 @@ class BMModelTest extends Specification {
         bmType.getCosPhiRated(),
         "MockNode",
         true,
-        bmType.getOpex() as ComparableQuantity<EnergyPrice>,
+        bmType.opex as ComparableQuantity<EnergyPrice>,
         Quantities.getQuantity(feedInTariff, EURO_PER_KILOWATTHOUR),
         0.05)
 
@@ -229,7 +232,7 @@ class BMModelTest extends Specification {
         bmType.getCosPhiRated(),
         "MockNode",
         costControlled,
-        bmType.getOpex() as ComparableQuantity<EnergyPrice>,
+        bmType.opex as ComparableQuantity<EnergyPrice>,
         Quantities.getQuantity(0.051d, EURO_PER_KILOWATTHOUR),
         0.05)
 

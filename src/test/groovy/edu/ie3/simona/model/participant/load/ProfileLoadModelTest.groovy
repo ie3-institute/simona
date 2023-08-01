@@ -33,6 +33,8 @@ import tech.units.indriya.quantity.Quantities
 import java.time.temporal.ChronoUnit
 import java.util.stream.Collectors
 
+
+
 class ProfileLoadModelTest extends Specification {
   def loadInput =
   new LoadInput(
@@ -146,7 +148,7 @@ class ProfileLoadModelTest extends Specification {
     when:
     def max = relevantDatas.stream().mapToDouble({ relevantData ->
       dut.calculateActivePower(relevantData).toMegawatts().doubleValue()
-    }).max().getAsDouble()
+    }).max().asDouble
 
     then:
     abs(max - expectedMax) < wattTolerance

@@ -6,6 +6,12 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static edu.ie3.datamodel.models.StandardUnits.*
+import static edu.ie3.util.quantities.QuantityUtil.equals
+import static edu.ie3.simona.model.participant.WecModel.WecRelevantData
+import static tech.units.indriya.quantity.Quantities.getQuantity
+
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.OperatorInput
@@ -22,17 +28,11 @@ import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
 import squants.Each$
-import squants.energy.Kilowatts$
 import squants.motion.MetersPerSecond$
 import squants.motion.Pascals$
 
-import squants.space.SquareMeters$
 import squants.thermal.Celsius$
 
-import static edu.ie3.datamodel.models.StandardUnits.*
-import static edu.ie3.simona.model.participant.WecModel.WecRelevantData
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static tech.units.indriya.quantity.Quantities.getQuantity
 
 class WecModelTest extends Specification {
 
