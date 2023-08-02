@@ -78,8 +78,10 @@ final case class ChpModel(
     */
   override protected def calculateActivePower(
       chpData: ChpRelevantData
-  ): ComparableQuantity[Power] =
+  ): ComparableQuantity[Power] = {
+    calculateNextState(chpData)
     chpData.chpState.activePower
+  }
 
   /** Given a [[ChpRelevantData]] object, containing the [[ChpState]], the heat
     * demand and the current time tick, this function calculates the CHPs next
