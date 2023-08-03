@@ -75,7 +75,7 @@ final case class PvModel private (
   ): squants.Power = {
     // === Pv Panel Base Data  === //
     val latInRad = Radians(lat.toRadians) // latitude of location
-    val locInRad = Radians(lon.toRadians) // longitude of location
+    val lonInRad = Radians(lon.toRadians) // longitude of location
 
     // === Weather Base Data  === //
     /* The pv model calculates the power in-feed based on the solar irradiance that is received over a specific
@@ -93,10 +93,10 @@ final case class PvModel private (
       data.diffIrradiance * duration
 
     // === Beam Radiation Parameters  === //
-    val angleJ = calcJ(data.dateTime)
+    val angleJ = calcAngleJ(data.dateTime)
     val delta = calcSunDeclinationDelta(angleJ)
 
-    val omega = calcHourAngleOmega(data.dateTime, angleJ, locInRad)
+    val omega = calcHourAngleOmega(data.dateTime, angleJ, lonInRad)
 
     val omegaSS = calcSunsetAngleOmegaSS(latInRad, delta)
     val omegaSR = calcSunriseAngleOmegaSR(omegaSS)
@@ -120,14 +120,14 @@ final case class PvModel private (
     // === Diffuse Radiation Parameters ===//
     val thetaZ = calcZenithAngleThetaZ(alphaS)
     val airMass = calcAirMass(thetaZ)
-    val i0 = calcExtraterrestrialRadiationI0(angleJ)
+    val extraterrestrialRadiationI0 = calcExtraterrestrialRadiationI0(angleJ)
 
     // === Diffuse Radiation ===//
     val eDifS = calcDiffuseRadiationOnSlopedSurfacePerez(
       eDifH,
       eBeamH,
       airMass,
-      i0,
+      extraterrestrialRadiationI0,
       thetaZ,
       thetaG,
       gammaE
@@ -156,7 +156,7 @@ final case class PvModel private (
     * @return
     *   day angle J in radians
     */
-  private def calcJ(time: ZonedDateTime): squants.Angle = {
+  private def calcAngleJ(time: ZonedDateTime): squants.Angle = {
     val day = time.getDayOfYear // day of the year
     val j = 2d * Math.PI * ((day - 1d) / 365)
     Radians(j)
@@ -353,8 +353,8 @@ final case class PvModel private (
     ) + 0.000077 * sin(2d * jInRad)
 
     // solar constant in W/m2
-    val gsc = WattHoursPerSquareMeter(1367) // solar constant
-    gsc * e0
+    val GSC = WattHoursPerSquareMeter(1367) // solar constant
+    GSC * e0
   }
 
   /** Calculates the angle of incidence thetaG of beam radiation on a surface
@@ -541,7 +541,7 @@ final case class PvModel private (
     *   beam radiation on a horizontal surface
     * @param airMass
     *   the air mass
-    * @param i0
+    * @param extraterrestrialRadiationI0
     *   extraterrestrial radiation
     * @param thetaZ
     *   zenith angle
@@ -557,7 +557,7 @@ final case class PvModel private (
       eDifH: Irradiation,
       eBeamH: Irradiation,
       airMass: Double,
-      i0: Irradiation,
+      extraterrestrialRadiationI0: Irradiation,
       thetaZ: squants.Angle,
       thetaG: squants.Angle,
       gammaE: squants.Angle
@@ -567,7 +567,7 @@ final case class PvModel private (
     val gammaEValue = gammaE.toRadians
 
     // == brightness index beta  ==//
-    val beta = eDifH * airMass / i0
+    val beta = eDifH * airMass / extraterrestrialRadiationI0
 
     // == cloud index epsilon  ==//
     // if we have no clouds,  the epsilon bin is 8, as epsilon bin for an epsilon in [6.2, inf.[ = 8

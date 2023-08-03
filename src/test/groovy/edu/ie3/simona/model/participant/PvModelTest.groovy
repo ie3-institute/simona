@@ -139,7 +139,7 @@ class PvModelTest extends Specification {
 
   def "Calculate day angle J"() {
     when:
-    Angle jCalc = pvModel.calcJ(ZonedDateTime.parse(time))
+    Angle jCalc = pvModel.calcAngleJ(ZonedDateTime.parse(time))
 
     then:
     jCalc =~ Sq.create(jSol, Radians$.MODULE$)
