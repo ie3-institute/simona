@@ -253,7 +253,7 @@ object QControl {
       /* cosphi( P / P_N ) = cosphi( P / (S_N * cosphi_rated) ) */
       val pInPu =
         activePower / (sRated * cosPhiRated)
-      val instantCosPhi = cosPhi(Each(pInPu.asPu.getValue.doubleValue()))
+      val instantCosPhi = cosPhi(Each(pInPu))
       _cosPhiMultiplication(instantCosPhi.value.doubleValue, activePower)
     }
   }
