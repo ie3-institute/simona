@@ -212,7 +212,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
       weightSum.scale(weightedWeather) match {
         case WeatherData(_, _, temp, _) =>
-          temp ~= Kelvin(290d)
+          temp ~= Kelvin(290d) shouldBe True
       }
     }
 
