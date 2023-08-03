@@ -59,8 +59,7 @@ configurations {
 
 repositories {
   mavenCentral() // searches in Sonatype's central repository
-  maven { url 'https://jitpack.io' } // allows github repos as dependencies
-  maven { url 'https://oss.sonatype.org/content/repositories/snapshots' } // sonatype snapshot repo
+  maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots' } // sonatype snapshot repo
   maven { url 'https://packages.confluent.io/maven' } // confluent repo (kafka)
 }
 
@@ -91,7 +90,7 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
-  implementation('com.github.ie3-institute:simonaAPI:0.1-SNAPSHOT') {
+  implementation('com.github.ie3-institute:simonaAPI:0.2.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
