@@ -9,11 +9,9 @@ package edu.ie3.simona.model.participant
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.participant.BMModel.BMCalcRelevantData
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.quantities.interfaces.EnergyPrice
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.EnergyPrice
 import squants.energy.{Kilowatts, Megawatts}
-import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -31,8 +29,8 @@ final case class BMModel(
     cosPhi: Double,
     private val node: String,
     private val isCostControlled: Boolean,
-    private val opex: ComparableQuantity[EnergyPrice],
-    private val feedInTariff: ComparableQuantity[EnergyPrice],
+    private val opex: squants.market.Money,
+    private val feedInTariff: EnergyPrice,
     private val loadGradient: Double
 ) extends SystemParticipant[BMCalcRelevantData](
       uuid,
@@ -181,9 +179,12 @@ final case class BMModel(
       eff: Double
   ): squants.Power = {
     val currOpex = opex.divide(eff)
-    val avgOpex = currOpex.add(opex).divide(2)
+    val avgOpex = (currOpex + opex).divide(2)
 
-    if (isCostControlled && avgOpex.isLessThan(feedInTariff))
+    if (
+      isCostControlled && avgOpex.value.doubleValue() < feedInTariff.value
+        .doubleValue()
+    )
       sRated * (cosPhi) * (-1)
     else
       sRated * usage * eff * cosPhi * (-1)
