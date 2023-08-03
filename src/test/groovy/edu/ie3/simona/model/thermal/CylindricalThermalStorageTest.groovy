@@ -6,13 +6,16 @@
 
 package edu.ie3.simona.model.thermal
 
+import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters$
+
 import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
+
 import static tech.units.indriya.quantity.Quantities.getQuantity
 
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.util.scala.quantities.Sq
-import edu.ie3.util.scala.quantities.WattHoursPerKelvinCubicMeters$
+
 import spock.lang.Shared
 import spock.lang.Specification
 import squants.energy.*
@@ -43,7 +46,7 @@ class CylindricalThermalStorageTest extends Specification {
     def storedEnergy =
         CylindricalThermalStorage.volumeToEnergy(
         Sq.create(volume, CubicMeters$.MODULE$),
-        Sq.create(storageInput.c.value.doubleValue(), WattHoursPerKelvinCubicMeters$.MODULE$),
+        Sq.create(storageInput.c.value.doubleValue(), KilowattHoursPerKelvinCubicMeters$.MODULE$),
         Sq.create(storageInput.inletTemp.value.doubleValue(), Celsius$.MODULE$),
         Sq.create(storageInput.returnTemp.value.doubleValue(), Celsius$.MODULE$)
         )
@@ -54,7 +57,7 @@ class CylindricalThermalStorageTest extends Specification {
   def vol2Energy(Double volume) {
     return CylindricalThermalStorage.volumeToEnergy(
         Sq.create(volume, CubicMeters$.MODULE$),
-        Sq.create(storageInput.c.value.doubleValue(), WattHoursPerKelvinCubicMeters$.MODULE$),
+        Sq.create(storageInput.c.value.doubleValue(), KilowattHoursPerKelvinCubicMeters$.MODULE$),
         Sq.create(storageInput.inletTemp.value.doubleValue(), Celsius$.MODULE$),
         Sq.create(storageInput.returnTemp.value.doubleValue(), Celsius$.MODULE$))
   }
@@ -96,9 +99,11 @@ class CylindricalThermalStorageTest extends Specification {
 
     when:
     def usableThermalEnergy = storage.usableThermalEnergy()
+    def volumeFromUsableEnergy = CylindricalThermalStorage.energyToVolume(usableThermalEnergy, storage.c(), storage.inletTemp(), storage.returnTemp())
 
     then:
     Math.abs(usableThermalEnergy.toKilowattHours() - 50 * 10 * 1.15) < TESTING_TOLERANCE
+    Math.abs(volumeFromUsableEnergy.toCubicMeters() - 50) < TESTING_TOLERANCE
   }
 
   def "Check apply, validation and build method:"() {

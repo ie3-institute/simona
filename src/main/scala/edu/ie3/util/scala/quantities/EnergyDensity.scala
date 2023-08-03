@@ -7,14 +7,14 @@
 package edu.ie3.util.scala.quantities
 
 import squants._
-import squants.energy.WattHours
+import squants.energy.{KilowattHours, WattHours}
 import squants.space.CubicMeters
 
 import scala.util.Try
 
 /** Represents the EnergyDesity some substance or storage medium.
   *
-  * In Wh/m³
+  * In kWh/m³
   *
   * Based on [[squants.energy.EnergyDensity]] by garyKeorkunian
   */
@@ -25,11 +25,12 @@ final class EnergyDensity private (
 
   def dimension: EnergyDensity.type = EnergyDensity
 
-  def *(that: Volume): Energy = WattHours(
-    this.toWattHoursPerCubicMeter * that.toCubicMeters
+  def *(that: Volume): Energy = KilowattHours(
+    this.toKilowattHoursPerCubicMeter * that.toCubicMeters
   )
 
-  def toWattHoursPerCubicMeter: Double = to(WattHoursPerCubicMeter)
+  def toKilowattHoursPerCubicMeter: Double = to(KilowattHoursPerCubicMeter)
+
 }
 
 object EnergyDensity extends Dimension[EnergyDensity] {
@@ -37,9 +38,9 @@ object EnergyDensity extends Dimension[EnergyDensity] {
     new EnergyDensity(num.toDouble(n), unit)
   def apply(value: Any): Try[EnergyDensity] = parse(value)
   def name = "EnergyDensity"
-  def primaryUnit: WattHoursPerCubicMeter.type = WattHoursPerCubicMeter
-  def siUnit: WattHoursPerCubicMeter.type = WattHoursPerCubicMeter
-  def units: Set[UnitOfMeasure[EnergyDensity]] = Set(WattHoursPerCubicMeter)
+  def primaryUnit: KilowattHoursPerCubicMeter.type = KilowattHoursPerCubicMeter
+  def siUnit: KilowattHoursPerCubicMeter.type = KilowattHoursPerCubicMeter
+  def units: Set[UnitOfMeasure[EnergyDensity]] = Set(KilowattHoursPerCubicMeter)
 }
 
 trait EnergyDensityUnit
@@ -49,20 +50,10 @@ trait EnergyDensityUnit
     EnergyDensity(n, this)
 }
 
-object WattHoursPerCubicMeter
+object KilowattHoursPerCubicMeter
     extends EnergyDensityUnit
     with PrimaryUnit
     with SiUnit {
-  val symbol: String = WattHours.symbol + "/" + CubicMeters.symbol
-}
+  val symbol: String = "k" + WattHours.symbol + "/" + CubicMeters.symbol
 
-object EnergyDensityConversions {
-  lazy val wattHoursPerCubicMeter: EnergyDensity = WattHoursPerCubicMeter(1)
-
-  implicit class EnergyDensityConversions[A](n: A)(implicit num: Numeric[A]) {
-    def wattHoursPerCubicMeter: EnergyDensity = WattHoursPerCubicMeter(n)
-  }
-
-  implicit object EnergyDensityNumeric
-      extends AbstractQuantityNumeric[EnergyDensity](EnergyDensity.primaryUnit)
 }

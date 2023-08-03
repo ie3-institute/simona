@@ -15,8 +15,8 @@ import edu.ie3.datamodel.models.input.thermal.{
 import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
 import edu.ie3.util.scala.quantities.{
   DefaultQuantities,
-  SpecificHeatCapacity,
-  WattHoursPerKelvinCubicMeters
+  KilowattHoursPerKelvinCubicMeters,
+  SpecificHeatCapacity
 }
 import squants.space.CubicMeters
 import squants.thermal.Celsius
@@ -143,7 +143,7 @@ case object CylindricalThermalStorage {
       CubicMeters(input.getStorageVolumeLvlMin.getValue.doubleValue()),
       Celsius(input.getInletTemp.getValue.doubleValue()),
       Celsius(input.getReturnTemp.getValue.doubleValue()),
-      WattHoursPerKelvinCubicMeters(input.getC.getValue.doubleValue()),
+      KilowattHoursPerKelvinCubicMeters(input.getC.getValue.doubleValue()),
       initialStoredEnergy
     )
 

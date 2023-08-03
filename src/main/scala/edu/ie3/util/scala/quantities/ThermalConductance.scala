@@ -61,20 +61,3 @@ object WattsPerKelvin
     with SiUnit {
   val symbol: String = Watts.symbol + "/" + Kelvin.symbol
 }
-
-object ThermalConductanceConversions {
-  lazy val wattsPerKelvin: ThermalConductance =
-    WattsPerKelvin(1)
-
-  implicit class ThermalConductanceConversions[A](n: A)(implicit
-      num: Numeric[A]
-  ) {
-    def wattsPerKelvin: ThermalConductance =
-      WattsPerKelvin(n)
-  }
-
-  implicit object ThermalConductanceNumeric
-      extends AbstractQuantityNumeric[ThermalConductance](
-        ThermalConductance.primaryUnit
-      )
-}
