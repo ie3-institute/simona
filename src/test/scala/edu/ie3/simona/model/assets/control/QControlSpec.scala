@@ -124,14 +124,14 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
     "provide an interpolated value when the requested value is not part of the containing xy coordinates" in {
       val requestedValue = Each(0.75)
 
-      (validCosPhiP.cosPhi(requestedValue) ~= Each(-0.5))  shouldBe true
+      (validCosPhiP.cosPhi(requestedValue) ~= Each(-0.5)) shouldBe true
     }
 
     "provide the last known value when the requested value is outside of the containing xy coordinates" in {
 
-      (validCosPhiP.cosPhi(Each(2.0)) ~= Each(-0.2))  shouldBe true
+      (validCosPhiP.cosPhi(Each(2.0)) ~= Each(-0.2)) shouldBe true
 
-      (validCosPhiP.cosPhi(Each(-1.0)) ~= Each(-1.0))  shouldBe true
+      (validCosPhiP.cosPhi(Each(-1.0)) ~= Each(-1.0)) shouldBe true
     }
   }
 
