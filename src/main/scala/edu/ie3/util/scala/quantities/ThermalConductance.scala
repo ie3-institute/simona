@@ -27,13 +27,14 @@ final class ThermalConductance private (
   )
 
   def thermalConductanceToEnergy(
-      temperature: Temperature,
+      temperatureInner: Temperature,
+      temperatureOuter: Temperature,
       time: squants.Time
   ): Energy = WattHours(
-    this.toWattsPerKelvin * temperature.toCelsiusScale * time.toHours
+    this.toWattsPerKelvin * (temperatureInner.toKelvinScale - temperatureOuter.toKelvinScale) * time.toHours
   )
 
-  private def toWattsPerKelvin: Double = to(WattsPerKelvin)
+  def toWattsPerKelvin: Double = to(WattsPerKelvin)
 }
 
 object ThermalConductance extends Dimension[ThermalConductance] {

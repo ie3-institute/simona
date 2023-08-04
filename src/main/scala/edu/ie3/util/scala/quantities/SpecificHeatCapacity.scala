@@ -26,14 +26,19 @@ final class SpecificHeatCapacity private (
   def dimension: SpecificHeatCapacity.type = SpecificHeatCapacity
 
   def *(that: Temperature): EnergyDensity = KilowattHoursPerCubicMeter(
-    this.toKilowattHoursPerKelvinCubicMeters * that.toCelsiusScale
+    this.toKilowattHoursPerKelvinCubicMeters * that.toKelvinScale
   )
-  def multiply(temperature: Temperature, volume: Volume): Energy =
+
+  def *(temperatureA: Temperature, temperatureB: Temperature): EnergyDensity = KilowattHoursPerCubicMeter(
+    this.toKilowattHoursPerKelvinCubicMeters * math.abs(temperatureA.toKelvinScale - temperatureB.toKelvinScale)
+  )
+
+  def multiply(temperatureA: Temperature, temperatureB:Temperature, volume: Volume): Energy =
     KilowattHours(
-      this.toKilowattHoursPerKelvinCubicMeters * temperature.toCelsiusScale * volume.toCubicMeters
+      this.toKilowattHoursPerKelvinCubicMeters * math.abs(temperatureA.toKelvinScale - temperatureB.toKelvinScale) * volume.toCubicMeters
     )
 
-  private def toKilowattHoursPerKelvinCubicMeters: Double = to(
+  def toKilowattHoursPerKelvinCubicMeters: Double = to(
     KilowattHoursPerKelvinCubicMeters
   )
 }

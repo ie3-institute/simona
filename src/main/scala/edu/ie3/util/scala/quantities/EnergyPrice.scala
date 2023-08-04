@@ -6,7 +6,8 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants.market.EUR
+import squants.energy.Energy
+import squants.market.{EUR, Money}
 import squants.{Dimension, PrimaryUnit, SiUnit, UnitConverter, UnitOfMeasure}
 
 import scala.util.Try
@@ -20,6 +21,12 @@ final class EnergyPrice private (
 ) extends squants.Quantity[EnergyPrice] {
 
   def dimension: EnergyPrice.type = EnergyPrice
+
+  def *(that: Energy): Money = EUR(
+    this.toEuroPerKilowattHour * that.toKilowattHours
+  )
+
+  def toEuroPerKilowattHour: Double = to(EuroPerKilowatthour)
 
 }
 

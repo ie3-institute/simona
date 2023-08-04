@@ -31,7 +31,6 @@ final class ReactivePower private (
   protected[quantities] def time: Time = Hours(1)
 
   def toMillivars: Double = to(Millivars)
-
   def toVars: Double = to(Vars)
   def toKilovars: Double = to(Kilovars)
   def toMegavars: Double = to(Megavars)

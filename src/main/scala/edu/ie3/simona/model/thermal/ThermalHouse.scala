@@ -8,15 +8,11 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
-import edu.ie3.datamodel.models.input.thermal.{
-  ThermalBusInput,
-  ThermalHouseInput
-}
+import edu.ie3.datamodel.models.input.thermal.{ThermalBusInput, ThermalHouseInput}
 import edu.ie3.simona.model.thermal.ThermalHouse.temperatureTolerance
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
-import squants.energy.KilowattHours
-import squants.thermal.{Celsius, ThermalCapacity}
+import squants.thermal.{Celsius, JoulesPerKelvin, ThermalCapacity}
 import tech.units.indriya.unit.Units
 
 import java.util.UUID
@@ -192,8 +188,7 @@ final case class ThermalHouse(
       ambientTemperature: squants.Temperature,
       time: squants.Time
   ): squants.Energy = {
-    val temperatureDeviation = innerTemperature - ambientTemperature
-    ethLosses.thermalConductanceToEnergy(temperatureDeviation, time)
+    ethLosses.thermalConductanceToEnergy(innerTemperature, ambientTemperature, time)
   }
 
 }
@@ -228,12 +223,13 @@ case object ThermalHouse {
           .doubleValue
           * 1000 // kW/K to W/K
       ),
-      KilowattHours(
+      JoulesPerKelvin(
         input.getEthCapa
           .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN)
           .getValue
           .doubleValue
-      ) / Celsius(1d),
+        * 3.6e6 // kWh in Joule
+      ),
       squants.thermal.Celsius(
         input.getLowerTemperatureLimit.to(Units.CELSIUS).getValue.doubleValue
       ),

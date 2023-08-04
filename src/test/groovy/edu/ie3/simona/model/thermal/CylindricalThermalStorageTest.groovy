@@ -102,8 +102,8 @@ class CylindricalThermalStorageTest extends Specification {
     def volumeFromUsableEnergy = CylindricalThermalStorage.energyToVolume(usableThermalEnergy, storage.c(), storage.inletTemp(), storage.returnTemp())
 
     then:
-    Math.abs(usableThermalEnergy.toKilowattHours() - 50 * 10 * 1.15) < TESTING_TOLERANCE
-    Math.abs(volumeFromUsableEnergy.toCubicMeters() - 50) < TESTING_TOLERANCE
+    Math.abs(usableThermalEnergy.toKilowattHours()) - 50 * 10 * 1.15 < TESTING_TOLERANCE
+    Math.abs(volumeFromUsableEnergy.toCubicMeters()) - 50 < TESTING_TOLERANCE
   }
 
   def "Check apply, validation and build method:"() {

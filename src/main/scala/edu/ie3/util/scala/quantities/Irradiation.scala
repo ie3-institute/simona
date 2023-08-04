@@ -8,7 +8,6 @@ package edu.ie3.util.scala.quantities
 
 import squants._
 import squants.energy.WattHours
-import squants.radio.WattsPerSquareMeter
 import squants.space.SquareMeters
 
 import scala.util.Try
@@ -26,11 +25,11 @@ final class Irradiation private (val value: Double, val unit: IrradiationUnit)
   // the Hours(1).toSeconds is to convert watt hours to watt seconds which
   // isn't a normal supported type in Squants
 
-  def /(that: Time): radio.Irradiance = WattsPerSquareMeter(
-    this.toWattHoursPerSquareMeter / that.toSeconds
+  def /(that: Time): Irradiance = WattsPerSquareMeter(
+    this.toWattHoursPerSquareMeter / that.toHours
   )
 
-  private def toWattHoursPerSquareMeter: Double = to(WattHoursPerSquareMeter)
+  def toWattHoursPerSquareMeter: Double = to(WattHoursPerSquareMeter)
 }
 
 object Irradiation extends Dimension[Irradiation] {
