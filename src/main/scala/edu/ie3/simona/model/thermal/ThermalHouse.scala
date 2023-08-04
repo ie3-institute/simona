@@ -8,7 +8,10 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
-import edu.ie3.datamodel.models.input.thermal.{ThermalBusInput, ThermalHouseInput}
+import edu.ie3.datamodel.models.input.thermal.{
+  ThermalBusInput,
+  ThermalHouseInput
+}
 import edu.ie3.simona.model.thermal.ThermalHouse.temperatureTolerance
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
@@ -188,7 +191,11 @@ final case class ThermalHouse(
       ambientTemperature: squants.Temperature,
       time: squants.Time
   ): squants.Energy = {
-    ethLosses.thermalConductanceToEnergy(innerTemperature, ambientTemperature, time)
+    ethLosses.thermalConductanceToEnergy(
+      innerTemperature,
+      ambientTemperature,
+      time
+    )
   }
 
 }
@@ -228,7 +235,7 @@ case object ThermalHouse {
           .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN)
           .getValue
           .doubleValue
-        * 3.6e6 // kWh in Joule
+          * 3.6e6 // kWh in Joule
       ),
       squants.thermal.Celsius(
         input.getLowerTemperatureLimit.to(Units.CELSIUS).getValue.doubleValue
