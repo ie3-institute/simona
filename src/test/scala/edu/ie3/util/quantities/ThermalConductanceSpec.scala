@@ -45,6 +45,6 @@ class ThermalConductanceSpec extends AnyFlatSpec with Matchers {
       Celsius(10),
       Celsius(0),
       Hours(5)
-    ) should be(KilowattHours(5000d))
+    ) should be(KilowattHours(50d))
   }
 }

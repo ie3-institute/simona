@@ -188,7 +188,7 @@ case object CylindricalThermalStorage {
       inletTemp: squants.Temperature,
       returnTemp: squants.Temperature
   ): squants.Volume = {
-    val energyDensity = c * (returnTemp - inletTemp)
+    val energyDensity = c * (returnTemp, inletTemp)
 
     energy.divideByEnergyDensity(energyDensity)
   }
