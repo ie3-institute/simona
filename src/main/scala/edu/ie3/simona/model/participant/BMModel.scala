@@ -134,7 +134,7 @@ final case class BMModel(
       k2: Double
   ): squants.Power = {
     // linear regression: Heat-demand in relation to temperature (above 19.28°C: independent of temperature)
-    val pTh = temp.value.doubleValue match {
+    val pTh = temp.toCelsiusScale match {
       case x if x < 19.28 => (-1.076 * x + 26.36) * k1 * k2
       case _              => 5.62 * k1 * k2
     }

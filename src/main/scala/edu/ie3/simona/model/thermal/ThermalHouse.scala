@@ -226,7 +226,8 @@ case object ThermalHouse {
           .to(PowerSystemUnits.KILOWATT_PER_KELVIN)
           .getValue
           .doubleValue
-      ) * 1000, // to kW/K
+          * 1000 // kW/K to W/K
+      ),
       KilowattHours(
         input.getEthCapa
           .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN)
