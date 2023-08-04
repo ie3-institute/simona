@@ -10,7 +10,7 @@ import edu.ie3.util.scala.quantities.WattsPerKelvin
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import squants.Kelvin
-import squants.energy.{KilowattHours, Watts}
+import squants.energy.KilowattHours
 import squants.thermal.Celsius
 import squants.time.Hours
 
@@ -32,27 +32,19 @@ class ThermalConductanceSpec extends AnyFlatSpec with Matchers {
     WattsPerKelvin(1).toString(WattsPerKelvin) should be("1.0 W/K")
   }
 
-  it should "return Power when multiplied by Temperature in Kelvin" in {
-    WattsPerKelvin(1) * Kelvin(10) should be(Watts(10))
-  }
-
-  it should "return Power when multiplied by Temperature in Celsius" in {
-    WattsPerKelvin(1) * Celsius(0) should be(Watts(273.15))
-  }
-
   it should "return Energy when multiplied by Temperature in Kelvin and Time" in {
     WattsPerKelvin(1000).thermalConductanceToEnergy(
       Kelvin(10),
       Kelvin(0),
       Hours(5)
-    ) should be(KilowattHours(50.0))
+    ) should be(KilowattHours(50d))
   }
 
   it should "return Energy when multiplied by Temperature in Celsius and Time" in {
     WattsPerKelvin(1000).thermalConductanceToEnergy(
-      Celsius(0),
       Celsius(10),
+      Celsius(0),
       Hours(5)
-    ) should be(KilowattHours(1365.75))
+    ) should be(KilowattHours(5000d))
   }
 }

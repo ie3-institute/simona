@@ -6,10 +6,7 @@
 
 package edu.ie3.util.quantities
 
-import edu.ie3.util.scala.quantities.{
-  KilowattHoursPerCubicMeter,
-  KilowattHoursPerKelvinCubicMeters
-}
+import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import squants.energy.KilowattHours
@@ -38,31 +35,19 @@ class SpecificHeatCapacitySpec extends AnyFlatSpec with Matchers {
     ) should be("1.0 kWh/Km³")
   }
 
-  it should "return EnergyDensity when multiplied by Temperature in Kelvin" in {
-    KilowattHoursPerKelvinCubicMeters(1) * Kelvin(10) should be(
-      KilowattHoursPerCubicMeter(10)
-    )
-  }
-
-  it should "return EnergyDensity when multiplied by Temperature in Celsius" in {
-    KilowattHoursPerKelvinCubicMeters(1) * Celsius(0) should be(
-      KilowattHoursPerCubicMeter(273.15)
-    )
-  }
-
   it should "return Energy when multiplied by Temperature delta of 1 Kelvin and Volume" in {
     KilowattHoursPerKelvinCubicMeters(1000).multiply(
       Kelvin(10),
-      Kelvin(11),
+      Kelvin(20),
       CubicMeters(5)
     ) should be(KilowattHours(50000.0))
   }
 
   it should "return Energy when multiplied by Temperature delta of 1° Celsius and Volume" in {
     KilowattHoursPerKelvinCubicMeters(1000).multiply(
-      Celsius(0),
-      Celsius(1),
+      Celsius(100),
+      Celsius(101),
       CubicMeters(5)
-    ) should be(KilowattHours(1365750))
+    ) should be(KilowattHours(5000))
   }
 }

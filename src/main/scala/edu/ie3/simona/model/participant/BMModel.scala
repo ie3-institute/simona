@@ -185,7 +185,7 @@ final case class BMModel(
       isCostControlled && avgOpex.value.doubleValue() < feedInTariff.value
         .doubleValue()
     )
-      sRated * (cosPhi) * (-1)
+      sRated * cosPhi * (-1)
     else
       sRated * usage * eff * cosPhi * (-1)
   }

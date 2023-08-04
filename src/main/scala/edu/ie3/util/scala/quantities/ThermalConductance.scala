@@ -22,10 +22,6 @@ final class ThermalConductance private (
 
   def dimension: ThermalConductance.type = ThermalConductance
 
-  def *(temperature: Temperature): Power = Watts(
-    this.toWattsPerKelvin * temperature.toKelvinScale
-  )
-
   def thermalConductanceToEnergy(
       temperatureInner: Temperature,
       temperatureOuter: Temperature,
