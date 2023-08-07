@@ -1,5 +1,5 @@
 /*
- * © 2021. TU Dortmund University,
+ * © 2022. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
@@ -10,6 +10,58 @@ final case class SimonaConfig(
     simona: SimonaConfig.Simona
 )
 object SimonaConfig {
+  final case class BaseCsvParams(
+      override val csvSep: java.lang.String,
+      override val directoryPath: java.lang.String,
+      override val isHierarchic: scala.Boolean
+  ) extends CsvParams(csvSep, directoryPath, isHierarchic)
+  object BaseCsvParams {
+    def apply(
+        c: com.typesafe.config.Config,
+        parentPath: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): SimonaConfig.BaseCsvParams = {
+      SimonaConfig.BaseCsvParams(
+        csvSep = $_reqStr(parentPath, c, "csvSep", $tsCfgValidator),
+        directoryPath =
+          $_reqStr(parentPath, c, "directoryPath", $tsCfgValidator),
+        isHierarchic = $_reqBln(parentPath, c, "isHierarchic", $tsCfgValidator)
+      )
+    }
+    private def $_reqBln(
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): scala.Boolean = {
+      if (c == null) false
+      else
+        try c.getBoolean(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            false
+        }
+    }
+
+    private def $_reqStr(
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): java.lang.String = {
+      if (c == null) null
+      else
+        try c.getString(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            null
+        }
+    }
+
+  }
+
   final case class BaseOutputConfig(
       notifier: java.lang.String,
       powerRequestReply: scala.Boolean,
@@ -67,6 +119,12 @@ object SimonaConfig {
       val calculateMissingReactivePowerWithModel: scala.Boolean,
       val scaling: scala.Double,
       val uuids: scala.List[java.lang.String]
+  ) extends java.io.Serializable
+
+  sealed abstract class CsvParams(
+      val csvSep: java.lang.String,
+      val directoryPath: java.lang.String,
+      val isHierarchic: scala.Boolean
   )
 
   final case class EvcsRuntimeConfig(
@@ -208,12 +266,10 @@ object SimonaConfig {
         nodes = c.hasPathOrNull("nodes") && c.getBoolean("nodes"),
         notifier = $_reqStr(parentPath, c, "notifier", $tsCfgValidator),
         switches = c.hasPathOrNull("switches") && c.getBoolean("switches"),
-        transformers2w = c.hasPathOrNull("transformers2w") && c.getBoolean(
-          "transformers2w"
-        ),
-        transformers3w = c.hasPathOrNull("transformers3w") && c.getBoolean(
-          "transformers3w"
-        )
+        transformers2w =
+          c.hasPathOrNull("transformers2w") && c.getBoolean("transformers2w"),
+        transformers3w =
+          c.hasPathOrNull("transformers3w") && c.getBoolean("transformers3w")
       )
     }
     private def $_reqStr(
@@ -233,6 +289,13 @@ object SimonaConfig {
     }
 
   }
+
+  sealed abstract class KafkaParams(
+      val bootstrapServers: java.lang.String,
+      val linger: scala.Int,
+      val runId: java.lang.String,
+      val schemaRegistryUrl: java.lang.String
+  )
 
   final case class LoadRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: scala.Boolean,
@@ -294,6 +357,62 @@ object SimonaConfig {
           case e: com.typesafe.config.ConfigException =>
             $tsCfgValidator.addBadPath(parentPath + path, e)
             0
+        }
+    }
+
+    private def $_reqStr(
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): java.lang.String = {
+      if (c == null) null
+      else
+        try c.getString(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            null
+        }
+    }
+
+  }
+
+  final case class PrimaryDataCsvParams(
+      override val csvSep: java.lang.String,
+      override val directoryPath: java.lang.String,
+      override val isHierarchic: scala.Boolean,
+      timePattern: java.lang.String
+  ) extends CsvParams(csvSep, directoryPath, isHierarchic)
+  object PrimaryDataCsvParams {
+    def apply(
+        c: com.typesafe.config.Config,
+        parentPath: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): SimonaConfig.PrimaryDataCsvParams = {
+      SimonaConfig.PrimaryDataCsvParams(
+        timePattern =
+          if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
+          else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
+        csvSep = $_reqStr(parentPath, c, "csvSep", $tsCfgValidator),
+        directoryPath =
+          $_reqStr(parentPath, c, "directoryPath", $tsCfgValidator),
+        isHierarchic = $_reqBln(parentPath, c, "isHierarchic", $tsCfgValidator)
+      )
+    }
+    private def $_reqBln(
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): scala.Boolean = {
+      if (c == null) false
+      else
+        try c.getBoolean(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            false
         }
     }
 
@@ -379,7 +498,7 @@ object SimonaConfig {
       gridIds: scala.Option[scala.List[java.lang.String]],
       sNom: java.lang.String,
       vNom: java.lang.String,
-      voltLvls: scala.Option[scala.List[java.lang.String]]
+      voltLvls: scala.Option[scala.List[SimonaConfig.VoltLvlConfig]]
   )
   object RefSystemConfig {
     def apply(
@@ -399,11 +518,145 @@ object SimonaConfig {
         voltLvls =
           if (c.hasPathOrNull("voltLvls"))
             scala.Some(
-              $_L$_str(c.getList("voltLvls"), parentPath, $tsCfgValidator)
+              $_LSimonaConfig_VoltLvlConfig(
+                c.getList("voltLvls"),
+                parentPath,
+                $tsCfgValidator
+              )
             )
           else None
       )
     }
+    private def $_LSimonaConfig_VoltLvlConfig(
+        cl: com.typesafe.config.ConfigList,
+        parentPath: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): scala.List[SimonaConfig.VoltLvlConfig] = {
+      import scala.jdk.CollectionConverters._
+      cl.asScala
+        .map(cv =>
+          SimonaConfig.VoltLvlConfig(
+            cv.asInstanceOf[com.typesafe.config.ConfigObject].toConfig,
+            parentPath,
+            $tsCfgValidator
+          )
+        )
+        .toList
+    }
+    private def $_reqStr(
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): java.lang.String = {
+      if (c == null) null
+      else
+        try c.getString(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            null
+        }
+    }
+
+  }
+
+  final case class ResultKafkaParams(
+      override val bootstrapServers: java.lang.String,
+      override val linger: scala.Int,
+      override val runId: java.lang.String,
+      override val schemaRegistryUrl: java.lang.String,
+      topicNodeRes: java.lang.String
+  ) extends KafkaParams(bootstrapServers, linger, runId, schemaRegistryUrl)
+  object ResultKafkaParams {
+    def apply(
+        c: com.typesafe.config.Config,
+        parentPath: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): SimonaConfig.ResultKafkaParams = {
+      SimonaConfig.ResultKafkaParams(
+        topicNodeRes = $_reqStr(parentPath, c, "topicNodeRes", $tsCfgValidator),
+        bootstrapServers =
+          $_reqStr(parentPath, c, "bootstrapServers", $tsCfgValidator),
+        linger = $_reqInt(parentPath, c, "linger", $tsCfgValidator),
+        runId = $_reqStr(parentPath, c, "runId", $tsCfgValidator),
+        schemaRegistryUrl =
+          $_reqStr(parentPath, c, "schemaRegistryUrl", $tsCfgValidator)
+      )
+    }
+    private def $_reqInt(
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): scala.Int = {
+      if (c == null) 0
+      else
+        try c.getInt(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            0
+        }
+    }
+
+    private def $_reqStr(
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): java.lang.String = {
+      if (c == null) null
+      else
+        try c.getString(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            null
+        }
+    }
+
+  }
+
+  final case class RuntimeKafkaParams(
+      override val bootstrapServers: java.lang.String,
+      override val linger: scala.Int,
+      override val runId: java.lang.String,
+      override val schemaRegistryUrl: java.lang.String,
+      topic: java.lang.String
+  ) extends KafkaParams(bootstrapServers, linger, runId, schemaRegistryUrl)
+  object RuntimeKafkaParams {
+    def apply(
+        c: com.typesafe.config.Config,
+        parentPath: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): SimonaConfig.RuntimeKafkaParams = {
+      SimonaConfig.RuntimeKafkaParams(
+        topic = $_reqStr(parentPath, c, "topic", $tsCfgValidator),
+        bootstrapServers =
+          $_reqStr(parentPath, c, "bootstrapServers", $tsCfgValidator),
+        linger = $_reqInt(parentPath, c, "linger", $tsCfgValidator),
+        runId = $_reqStr(parentPath, c, "runId", $tsCfgValidator),
+        schemaRegistryUrl =
+          $_reqStr(parentPath, c, "schemaRegistryUrl", $tsCfgValidator)
+      )
+    }
+    private def $_reqInt(
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator
+    ): scala.Int = {
+      if (c == null) 0
+      else
+        try c.getInt(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            0
+        }
+    }
+
     private def $_reqStr(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
@@ -657,46 +910,10 @@ object SimonaConfig {
       )
       object Grid {
         final case class Datasource(
-            csvParams: scala.Option[
-              SimonaConfig.Simona.Input.Grid.Datasource.CsvParams
-            ],
+            csvParams: scala.Option[SimonaConfig.BaseCsvParams],
             id: java.lang.String
         )
         object Datasource {
-          final case class CsvParams(
-              csvSep: java.lang.String,
-              folderPath: java.lang.String
-          )
-          object CsvParams {
-            def apply(
-                c: com.typesafe.config.Config,
-                parentPath: java.lang.String,
-                $tsCfgValidator: $TsCfgValidator
-            ): SimonaConfig.Simona.Input.Grid.Datasource.CsvParams = {
-              SimonaConfig.Simona.Input.Grid.Datasource.CsvParams(
-                csvSep = $_reqStr(parentPath, c, "csvSep", $tsCfgValidator),
-                folderPath =
-                  $_reqStr(parentPath, c, "folderPath", $tsCfgValidator)
-              )
-            }
-            private def $_reqStr(
-                parentPath: java.lang.String,
-                c: com.typesafe.config.Config,
-                path: java.lang.String,
-                $tsCfgValidator: $TsCfgValidator
-            ): java.lang.String = {
-              if (c == null) null
-              else
-                try c.getString(path)
-                catch {
-                  case e: com.typesafe.config.ConfigException =>
-                    $tsCfgValidator.addBadPath(parentPath + path, e)
-                    null
-                }
-            }
-
-          }
-
           def apply(
               c: com.typesafe.config.Config,
               parentPath: java.lang.String,
@@ -706,7 +923,7 @@ object SimonaConfig {
               csvParams =
                 if (c.hasPathOrNull("csvParams"))
                   scala.Some(
-                    SimonaConfig.Simona.Input.Grid.Datasource.CsvParams(
+                    SimonaConfig.BaseCsvParams(
                       c.getConfig("csvParams"),
                       parentPath + "csvParams.",
                       $tsCfgValidator
@@ -755,7 +972,7 @@ object SimonaConfig {
           couchbaseParams: scala.Option[
             SimonaConfig.Simona.Input.Primary.CouchbaseParams
           ],
-          csvParams: scala.Option[SimonaConfig.Simona.Input.Primary.CsvParams],
+          csvParams: scala.Option[SimonaConfig.PrimaryDataCsvParams],
           influxDb1xParams: scala.Option[
             SimonaConfig.Simona.Input.Primary.InfluxDb1xParams
           ],
@@ -793,44 +1010,6 @@ object SimonaConfig {
                 else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
               url = $_reqStr(parentPath, c, "url", $tsCfgValidator),
               userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
-            )
-          }
-          private def $_reqStr(
-              parentPath: java.lang.String,
-              c: com.typesafe.config.Config,
-              path: java.lang.String,
-              $tsCfgValidator: $TsCfgValidator
-          ): java.lang.String = {
-            if (c == null) null
-            else
-              try c.getString(path)
-              catch {
-                case e: com.typesafe.config.ConfigException =>
-                  $tsCfgValidator.addBadPath(parentPath + path, e)
-                  null
-              }
-          }
-
-        }
-
-        final case class CsvParams(
-            csvSep: java.lang.String,
-            folderPath: java.lang.String,
-            timePattern: java.lang.String
-        )
-        object CsvParams {
-          def apply(
-              c: com.typesafe.config.Config,
-              parentPath: java.lang.String,
-              $tsCfgValidator: $TsCfgValidator
-          ): SimonaConfig.Simona.Input.Primary.CsvParams = {
-            SimonaConfig.Simona.Input.Primary.CsvParams(
-              csvSep = $_reqStr(parentPath, c, "csvSep", $tsCfgValidator),
-              folderPath =
-                $_reqStr(parentPath, c, "folderPath", $tsCfgValidator),
-              timePattern =
-                if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
-                else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'"
             )
           }
           private def $_reqStr(
@@ -910,10 +1089,8 @@ object SimonaConfig {
             jdbcUrl: java.lang.String,
             password: java.lang.String,
             schemaName: java.lang.String,
-            timeColumnName: java.lang.String,
             timePattern: java.lang.String,
-            userName: java.lang.String,
-            weatherTableName: java.lang.String
+            userName: java.lang.String
         )
         object SqlParams {
           def apply(
@@ -927,14 +1104,10 @@ object SimonaConfig {
               schemaName =
                 if (c.hasPathOrNull("schemaName")) c.getString("schemaName")
                 else "public",
-              timeColumnName =
-                $_reqStr(parentPath, c, "timeColumnName", $tsCfgValidator),
               timePattern =
                 if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
                 else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
-              userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator),
-              weatherTableName =
-                $_reqStr(parentPath, c, "weatherTableName", $tsCfgValidator)
+              userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
             )
           }
           private def $_reqStr(
@@ -974,12 +1147,11 @@ object SimonaConfig {
             csvParams =
               if (c.hasPathOrNull("csvParams"))
                 scala.Some(
-                  SimonaConfig.Simona.Input.Primary
-                    .CsvParams(
-                      c.getConfig("csvParams"),
-                      parentPath + "csvParams.",
-                      $tsCfgValidator
-                    )
+                  SimonaConfig.PrimaryDataCsvParams(
+                    c.getConfig("csvParams"),
+                    parentPath + "csvParams.",
+                    $tsCfgValidator
+                  )
                 )
               else None,
             influxDb1xParams =
@@ -995,12 +1167,11 @@ object SimonaConfig {
             sqlParams =
               if (c.hasPathOrNull("sqlParams"))
                 scala.Some(
-                  SimonaConfig.Simona.Input.Primary
-                    .SqlParams(
-                      c.getConfig("sqlParams"),
-                      parentPath + "sqlParams.",
-                      $tsCfgValidator
-                    )
+                  SimonaConfig.Simona.Input.Primary.SqlParams(
+                    c.getConfig("sqlParams"),
+                    parentPath + "sqlParams.",
+                    $tsCfgValidator
+                  )
                 )
               else None
           )
@@ -1016,9 +1187,7 @@ object SimonaConfig {
             couchbaseParams: scala.Option[
               SimonaConfig.Simona.Input.Weather.Datasource.CouchbaseParams
             ],
-            csvParams: scala.Option[
-              SimonaConfig.Simona.Input.Weather.Datasource.CsvParams
-            ],
+            csvParams: scala.Option[SimonaConfig.BaseCsvParams],
             influxDb1xParams: scala.Option[
               SimonaConfig.Simona.Input.Weather.Datasource.InfluxDb1xParams
             ],
@@ -1034,50 +1203,13 @@ object SimonaConfig {
         )
         object Datasource {
           final case class CoordinateSource(
-              csvParams: scala.Option[
-                SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.CsvParams
-              ],
+              csvParams: scala.Option[SimonaConfig.BaseCsvParams],
               gridModel: java.lang.String,
               sampleParams: scala.Option[
                 SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams
               ]
           )
           object CoordinateSource {
-            final case class CsvParams(
-                csvSep: java.lang.String,
-                folderPath: java.lang.String
-            )
-            object CsvParams {
-              def apply(
-                  c: com.typesafe.config.Config,
-                  parentPath: java.lang.String,
-                  $tsCfgValidator: $TsCfgValidator
-              ): SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.CsvParams = {
-                SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
-                  .CsvParams(
-                    csvSep = $_reqStr(parentPath, c, "csvSep", $tsCfgValidator),
-                    folderPath =
-                      $_reqStr(parentPath, c, "folderPath", $tsCfgValidator)
-                  )
-              }
-              private def $_reqStr(
-                  parentPath: java.lang.String,
-                  c: com.typesafe.config.Config,
-                  path: java.lang.String,
-                  $tsCfgValidator: $TsCfgValidator
-              ): java.lang.String = {
-                if (c == null) null
-                else
-                  try c.getString(path)
-                  catch {
-                    case e: com.typesafe.config.ConfigException =>
-                      $tsCfgValidator.addBadPath(parentPath + path, e)
-                      null
-                  }
-              }
-
-            }
-
             final case class SampleParams(
                 use: scala.Boolean
             )
@@ -1103,12 +1235,11 @@ object SimonaConfig {
                 csvParams =
                   if (c.hasPathOrNull("csvParams"))
                     scala.Some(
-                      SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
-                        .CsvParams(
-                          c.getConfig("csvParams"),
-                          parentPath + "csvParams.",
-                          $tsCfgValidator
-                        )
+                      SimonaConfig.BaseCsvParams(
+                        c.getConfig("csvParams"),
+                        parentPath + "csvParams.",
+                        $tsCfgValidator
+                      )
                     )
                   else None,
                 gridModel =
@@ -1157,40 +1288,6 @@ object SimonaConfig {
                 password = $_reqStr(parentPath, c, "password", $tsCfgValidator),
                 url = $_reqStr(parentPath, c, "url", $tsCfgValidator),
                 userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
-              )
-            }
-            private def $_reqStr(
-                parentPath: java.lang.String,
-                c: com.typesafe.config.Config,
-                path: java.lang.String,
-                $tsCfgValidator: $TsCfgValidator
-            ): java.lang.String = {
-              if (c == null) null
-              else
-                try c.getString(path)
-                catch {
-                  case e: com.typesafe.config.ConfigException =>
-                    $tsCfgValidator.addBadPath(parentPath + path, e)
-                    null
-                }
-            }
-
-          }
-
-          final case class CsvParams(
-              csvSep: java.lang.String,
-              folderPath: java.lang.String
-          )
-          object CsvParams {
-            def apply(
-                c: com.typesafe.config.Config,
-                parentPath: java.lang.String,
-                $tsCfgValidator: $TsCfgValidator
-            ): SimonaConfig.Simona.Input.Weather.Datasource.CsvParams = {
-              SimonaConfig.Simona.Input.Weather.Datasource.CsvParams(
-                csvSep = $_reqStr(parentPath, c, "csvSep", $tsCfgValidator),
-                folderPath =
-                  $_reqStr(parentPath, c, "folderPath", $tsCfgValidator)
               )
             }
             private def $_reqStr(
@@ -1281,9 +1378,8 @@ object SimonaConfig {
               jdbcUrl: java.lang.String,
               password: java.lang.String,
               schemaName: java.lang.String,
-              timeColumnName: java.lang.String,
-              userName: java.lang.String,
-              weatherTableName: java.lang.String
+              tableName: java.lang.String,
+              userName: java.lang.String
           )
           object SqlParams {
             def apply(
@@ -1297,11 +1393,9 @@ object SimonaConfig {
                 schemaName =
                   if (c.hasPathOrNull("schemaName")) c.getString("schemaName")
                   else "public",
-                timeColumnName =
-                  $_reqStr(parentPath, c, "timeColumnName", $tsCfgValidator),
-                userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator),
-                weatherTableName =
-                  $_reqStr(parentPath, c, "weatherTableName", $tsCfgValidator)
+                tableName =
+                  $_reqStr(parentPath, c, "tableName", $tsCfgValidator),
+                userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
               )
             }
             private def $_reqStr(
@@ -1352,7 +1446,7 @@ object SimonaConfig {
               csvParams =
                 if (c.hasPathOrNull("csvParams"))
                   scala.Some(
-                    SimonaConfig.Simona.Input.Weather.Datasource.CsvParams(
+                    SimonaConfig.BaseCsvParams(
                       c.getConfig("csvParams"),
                       parentPath + "csvParams.",
                       $tsCfgValidator
@@ -1371,7 +1465,8 @@ object SimonaConfig {
                   )
                 else None,
               resolution =
-                if (c.hasPathOrNull("resolution")) Some(c.getLong("resolution"))
+                if (c.hasPathOrNull("resolution"))
+                  Some(c.getLong("resolution").longValue())
                 else None,
               sampleParams =
                 if (c.hasPathOrNull("sampleParams"))
@@ -1469,9 +1564,7 @@ object SimonaConfig {
           SimonaConfig.Simona.Output.Base(
             addTimestampToOutputDir = !c.hasPathOrNull(
               "addTimestampToOutputDir"
-            ) || c.getBoolean(
-              "addTimestampToOutputDir"
-            ),
+            ) || c.getBoolean("addTimestampToOutputDir"),
             dir = $_reqStr(parentPath, c, "dir", $tsCfgValidator)
           )
         }
@@ -1539,13 +1632,15 @@ object SimonaConfig {
 
       final case class Sink(
           csv: scala.Option[SimonaConfig.Simona.Output.Sink.Csv],
-          influxDb1x: scala.Option[SimonaConfig.Simona.Output.Sink.InfluxDb1x]
+          influxDb1x: scala.Option[SimonaConfig.Simona.Output.Sink.InfluxDb1x],
+          kafka: scala.Option[SimonaConfig.ResultKafkaParams]
       )
       object Sink {
         final case class Csv(
             fileFormat: java.lang.String,
             filePrefix: java.lang.String,
-            fileSuffix: java.lang.String
+            fileSuffix: java.lang.String,
+            isHierarchic: scala.Boolean
         )
         object Csv {
           def apply(
@@ -1562,7 +1657,9 @@ object SimonaConfig {
                 else "",
               fileSuffix =
                 if (c.hasPathOrNull("fileSuffix")) c.getString("fileSuffix")
-                else ""
+                else "",
+              isHierarchic =
+                c.hasPathOrNull("isHierarchic") && c.getBoolean("isHierarchic")
             )
           }
         }
@@ -1627,12 +1724,11 @@ object SimonaConfig {
             csv =
               if (c.hasPathOrNull("csv"))
                 scala.Some(
-                  SimonaConfig.Simona.Output.Sink
-                    .Csv(
-                      c.getConfig("csv"),
-                      parentPath + "csv.",
-                      $tsCfgValidator
-                    )
+                  SimonaConfig.Simona.Output.Sink.Csv(
+                    c.getConfig("csv"),
+                    parentPath + "csv.",
+                    $tsCfgValidator
+                  )
                 )
               else None,
             influxDb1x =
@@ -1641,6 +1737,16 @@ object SimonaConfig {
                   SimonaConfig.Simona.Output.Sink.InfluxDb1x(
                     c.getConfig("influxDb1x"),
                     parentPath + "influxDb1x.",
+                    $tsCfgValidator
+                  )
+                )
+              else None,
+            kafka =
+              if (c.hasPathOrNull("kafka"))
+                scala.Some(
+                  SimonaConfig.ResultKafkaParams(
+                    c.getConfig("kafka"),
+                    parentPath + "kafka.",
                     $tsCfgValidator
                   )
                 )
@@ -1686,8 +1792,8 @@ object SimonaConfig {
     final case class Powerflow(
         maxSweepPowerDeviation: scala.Double,
         newtonraphson: SimonaConfig.Simona.Powerflow.Newtonraphson,
-        sweepTimeout: java.time.Duration,
-        resolution: java.time.Duration
+        resolution: java.time.Duration,
+        sweepTimeout: java.time.Duration
     )
     object Powerflow {
       final case class Newtonraphson(
@@ -1766,11 +1872,47 @@ object SimonaConfig {
     }
 
     final case class Runtime(
+        listener: SimonaConfig.Simona.Runtime.Listener,
         participant: SimonaConfig.Simona.Runtime.Participant,
         selected_subgrids: scala.Option[scala.List[scala.Int]],
         selected_volt_lvls: scala.Option[scala.List[SimonaConfig.VoltLvlConfig]]
     )
     object Runtime {
+      final case class Listener(
+          eventsToProcess: scala.Option[scala.List[java.lang.String]],
+          kafka: scala.Option[SimonaConfig.RuntimeKafkaParams]
+      )
+      object Listener {
+        def apply(
+            c: com.typesafe.config.Config,
+            parentPath: java.lang.String,
+            $tsCfgValidator: $TsCfgValidator
+        ): SimonaConfig.Simona.Runtime.Listener = {
+          SimonaConfig.Simona.Runtime.Listener(
+            eventsToProcess =
+              if (c.hasPathOrNull("eventsToProcess"))
+                scala.Some(
+                  $_L$_str(
+                    c.getList("eventsToProcess"),
+                    parentPath,
+                    $tsCfgValidator
+                  )
+                )
+              else None,
+            kafka =
+              if (c.hasPathOrNull("kafka"))
+                scala.Some(
+                  SimonaConfig.RuntimeKafkaParams(
+                    c.getConfig("kafka"),
+                    parentPath + "kafka.",
+                    $tsCfgValidator
+                  )
+                )
+              else None
+          )
+        }
+      }
+
       final case class Participant(
           evcs: SimonaConfig.Simona.Runtime.Participant.Evcs,
           fixedFeedIn: SimonaConfig.Simona.Runtime.Participant.FixedFeedIn,
@@ -2056,6 +2198,12 @@ object SimonaConfig {
           $tsCfgValidator: $TsCfgValidator
       ): SimonaConfig.Simona.Runtime = {
         SimonaConfig.Simona.Runtime(
+          listener = SimonaConfig.Simona.Runtime.Listener(
+            if (c.hasPathOrNull("listener")) c.getConfig("listener")
+            else com.typesafe.config.ConfigFactory.parseString("listener{}"),
+            parentPath + "listener.",
+            $tsCfgValidator
+          ),
           participant = SimonaConfig.Simona.Runtime.Participant(
             if (c.hasPathOrNull("participant")) c.getConfig("participant")
             else com.typesafe.config.ConfigFactory.parseString("participant{}"),
@@ -2276,7 +2424,7 @@ object SimonaConfig {
     java.lang.String.valueOf(cv.unwrapped())
   }
 
-  private final class $TsCfgValidator {
+  final class $TsCfgValidator {
     private val badPaths =
       scala.collection.mutable.ArrayBuffer[java.lang.String]()
 

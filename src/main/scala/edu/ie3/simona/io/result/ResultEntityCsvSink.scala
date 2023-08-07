@@ -6,26 +6,17 @@
 
 package edu.ie3.simona.io.result
 
-import akka.stream.scaladsl.{FileIO, Source}
-import akka.stream.{IOResult, Materializer}
-import akka.util.ByteString
+import akka.stream.IOResult
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.exceptions.EntityProcessorException
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.simona.exceptions.{FileIOException, ProcessResultEventException}
+import edu.ie3.simona.exceptions.ProcessResultEventException
 import edu.ie3.util.StringUtils
 import edu.ie3.util.io.FileIOUtils
 
-import java.nio.file.Paths
-import java.nio.file.StandardOpenOption.{
-  APPEND,
-  CREATE,
-  TRUNCATE_EXISTING,
-  WRITE
-}
+import java.io.{BufferedWriter, File, FileWriter, Writer}
 import java.{lang, util}
-import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
@@ -43,27 +34,18 @@ import scala.util.{Failure, Success}
   *   mapping of the class that should be processed
   * @param delimiter
   *   the delimiter of the .csv-file
-  * @param materializer
-  *   the materializer to be used by the stream that writes the output file
   */
 final case class ResultEntityCsvSink private (
     outfileName: String,
+    fileWriter: Writer,
     resultEntityProcessor: ResultEntityProcessor,
     compressOutputFiles: Boolean,
-    delimiter: String = ",",
-    bufferSize: Int = 50
-)(implicit materializer: Materializer)
-    extends ResultEntitySink
+    delimiter: String
+) extends ResultEntitySink
     with LazyLogging {
 
   private val logPrefix: String => String = (content: String) =>
     s"[${outfileName}Sink] $content"
-
-  /** Holds all incomplete tasks to allow await I/O operation termination on
-    * closing the sink
-    */
-  private val incompleteTasks: ArrayBuffer[Future[IOResult]] =
-    scala.collection.mutable.ArrayBuffer.empty[Future[IOResult]]
 
   /** Handling of a [[ResultEntity]] to perform the output writing to the
     * .csv-file. Actually writes the provided result entity into the .csv-file.
@@ -76,7 +58,7 @@ final case class ResultEntityCsvSink private (
     *   a future holding information about the handling process
     */
   def handleResultEntity(resultEntity: ResultEntity): Unit = {
-    incompleteTasks.addOne(try {
+    try {
       val attributeToValue = resultEntityProcessor
         .handleEntity(resultEntity)
         .orElse(new util.LinkedHashMap[String, String]())
@@ -84,7 +66,7 @@ final case class ResultEntityCsvSink private (
         .view
 
       val columns = resultEntityProcessor.getHeaderElements
-      val text = Source.single(if (attributeToValue.nonEmpty) {
+      val text = if (attributeToValue.nonEmpty) {
         val resString: String =
           columns
             .map { column =>
@@ -95,32 +77,13 @@ final case class ResultEntityCsvSink private (
         "\n".concat(resString)
       } else {
         "\n"
-      })
-      val file = Paths.get(outfileName)
-      text
-        .map(t => ByteString(t))
-        .runWith(FileIO.toPath(file, Set(WRITE, APPEND, CREATE)))
+      }
+
+      fileWriter.write(text)
     } catch {
       case e: EntityProcessorException =>
-        Future.failed[IOResult](
-          new FileIOException(
-            "Result entity " + resultEntity.getClass.getSimpleName + " is not part of model sink!",
-            e
-          )
-        )
-    })
-
-    /* cleanup incomplete tasks - filters out all finished future I/O operations */
-    if (incompleteTasks.size > bufferSize)
-      incompleteTasks --= incompleteTasks.filter { future =>
-        future.value match {
-          case Some(Success(_)) => true // keep the finished ones for removal
-          case Some(Failure(e)) =>
-            logger.error(logPrefix(s"Error writing output data: $e"))
-            throw new ProcessResultEventException(e)
-          case _ => false //
-        }
-      }
+        throw new ProcessResultEventException("Processing result failed", e)
+    }
   }
 
   /** Creat the initial the .csv-file and write the header in the first row
@@ -128,23 +91,14 @@ final case class ResultEntityCsvSink private (
     * @return
     *   a future with information on the I/O operation
     */
-  private def writeHeader(): Future[IOResult] = {
-    val headerElements = resultEntityProcessor.getHeaderElements
-    val file = Paths.get(outfileName)
+  private def writeHeader(): Unit = {
+    val text = resultEntityProcessor.getHeaderElements.view
+      .map(StringUtils.camelCaseToSnakeCase)
+      .mkString(",")
 
-    if (file.toFile.exists()) {
-      Future.successful[IOResult](IOResult.apply(0))
-    } else {
-      val text = Source(
-        headerElements.view.map(StringUtils.camelCaseToSnakeCase).mkString(",")
-      )
-
-      val headerFut = text
-        .map(t => ByteString(t))
-        .runWith(FileIO.toPath(file, Set(WRITE, TRUNCATE_EXISTING, CREATE)))
-      incompleteTasks.addOne(headerFut)
-      headerFut
-    }
+    fileWriter.write(text)
+    // flush out the headline immediately
+    fileWriter.flush()
   }
 
   private def zipAndDel(outFileName: String): Future[lang.Boolean] = {
@@ -173,10 +127,8 @@ final case class ResultEntityCsvSink private (
     */
   override def close(): Unit = {
     // wait until all I/O futures are completed
-    Await.result(
-      Future.sequence(incompleteTasks),
-      100.minutes
-    )
+    fileWriter.flush()
+    fileWriter.close()
 
     // compress files if necessary
     if (compressOutputFiles)
@@ -187,7 +139,7 @@ final case class ResultEntityCsvSink private (
 
 object ResultEntityCsvSink {
 
-  /** Default constructor to get an instance of [[ResultEntityCsvSource]] incl.
+  /** Default constructor to get an instance of [[ResultEntityCsvSink]] incl.
     * creation of the output file with the headers written
     *
     * @param outfileName
@@ -197,28 +149,31 @@ object ResultEntityCsvSink {
     *   mapping of the class that should be processed
     * @param delimiter
     *   the delimiter of the .csv-file
-    * @param bufferSize
-    *   maximum size of the buffer of this sink
-    * @param materializer
-    *   the materializer to be used by the stream that writes the output file
     * @return
-    *   instance of [[ResultEntityCsvSource]] to be used to write results
+    *   instance of [[ResultEntityCsvSink]] to be used to write results
     */
   def apply(
       outfileName: String,
       resultEntityProcessor: ResultEntityProcessor,
       compressOutputFiles: Boolean,
-      delimiter: String = ",",
-      bufferSize: Int = 50
-  )(implicit materializer: Materializer): Future[ResultEntityCsvSink] = {
+      delimiter: String = ","
+  ): ResultEntityCsvSink = {
+
+    val file = new File(outfileName)
+    val existedBefore = file.exists()
+
+    val writer = new BufferedWriter(new FileWriter(file, existedBefore), 32768)
+
     val resultEntityCsvSink = new ResultEntityCsvSink(
       outfileName,
+      writer,
       resultEntityProcessor,
       compressOutputFiles,
-      delimiter,
-      bufferSize
+      delimiter
     )
 
-    resultEntityCsvSink.writeHeader().map(_ => resultEntityCsvSink)
+    if (!existedBefore)
+      resultEntityCsvSink.writeHeader()
+    resultEntityCsvSink
   }
 }

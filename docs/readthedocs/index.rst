@@ -10,14 +10,14 @@ Welcome to the documentation of simona - an agent-based discrete-event power sys
 Institute of Energy Systems, Energy Efficiency and Energy Economics at TU Dortmund University, Germany.
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
    about
    usersguide
-   config/config
-   models/models
-   config/runtime/participant/load
-   protocols
+   config
+   models
+   developersguide
+   references
 
 Indices and tables
 ==================

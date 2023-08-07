@@ -8,12 +8,14 @@ package edu.ie3.simona.model.participant.load.profile
 
 import java.io.{InputStreamReader, Reader}
 import java.time.{Duration, ZonedDateTime}
-import java.time.temporal.ChronoUnit
 import java.util
 
 import breeze.numerics.round
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.{BdewLoadProfile, StandardLoadProfile}
+import edu.ie3.datamodel.models.profile.{
+  BdewStandardLoadProfile,
+  StandardLoadProfile
+}
 import edu.ie3.simona.model.participant.load.profile.LoadProfileStore.{
   initializeMaxConsumptionPerProfile,
   initializeTypeDayValues
@@ -66,7 +68,7 @@ class LoadProfileStore private (val reader: Reader) {
       case Some(typeDayValues) =>
         val quarterHourEnergy = typeDayValues.getQuarterHourEnergy(time)
         val load = loadProfile match {
-          case BdewLoadProfile.H0 =>
+          case BdewStandardLoadProfile.H0 =>
             /* For the residential average profile, a dynamization has to be taken into account */
             val t = time.getDayOfYear // leap years are ignored
             LoadProfileStore.dynamization(quarterHourEnergy, t)
@@ -164,7 +166,12 @@ object LoadProfileStore extends LazyLogging {
   def initializeTypeDayValues(
       reader: Reader = getDefaultReader
   ): Map[LoadProfileKey, TypeDayProfile] = {
-    val parser = CSVFormat.DEFAULT.withFirstRecordAsHeader.parse(reader)
+    val parser = CSVFormat.Builder
+      .create()
+      .setHeader()
+      .setSkipHeaderRecord(true)
+      .build()
+      .parse(reader)
     // records list is an ArrayList
     val records = parser.getRecords
 
@@ -199,9 +206,9 @@ object LoadProfileStore extends LazyLogging {
       profileMap.keySet.map(key => key.standardLoadProfile)
 
     knownLoadProfiles
-      .map(loadProfile => {
-        val maxConsumption = loadProfile match {
-          case BdewLoadProfile.H0 =>
+      .flatMap(loadProfile => {
+        (loadProfile match {
+          case BdewStandardLoadProfile.H0 =>
             // max load for h0 is expected to be exclusively found in winter,
             // thus we only search there.
             DayType.values
@@ -215,7 +222,7 @@ object LoadProfileStore extends LazyLogging {
                   .map(typeDay => dynamization(typeDay.getMaxValue, 366))
                   .getOrElse(0d)
               })
-              .max
+              .maxOption
           case _ =>
             (for (season <- Season.values; dayType <- DayType.values) yield {
               val key = profile.LoadProfileKey(loadProfile, season, dayType)
@@ -223,10 +230,8 @@ object LoadProfileStore extends LazyLogging {
                 case Some(value) => Option(value.getMaxValue)
                 case None        => None
               }
-            }).flatten.max
-        }
-
-        loadProfile -> maxConsumption
+            }).flatten.maxOption
+        }).map(maxConsumption => loadProfile -> maxConsumption)
       })
       .toMap
   }

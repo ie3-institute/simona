@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.test.common.input
 
-import java.util.UUID
-
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.connector.`type`.Transformer2WTypeInput
 import edu.ie3.datamodel.models.input.connector.{
@@ -17,16 +15,9 @@ import edu.ie3.datamodel.models.input.connector.{
   Transformer3WInput
 }
 import edu.ie3.datamodel.models.input.container.{
-  GraphicElements,
   JointGridContainer,
-  RawGridElements,
-  SystemParticipants
+  RawGridElements
 }
-import edu.ie3.datamodel.models.input.graphics.{
-  LineGraphicInput,
-  NodeGraphicInput
-}
-import edu.ie3.datamodel.models.input.system._
 import edu.ie3.datamodel.models.input.{
   MeasurementUnitInput,
   NodeInput,
@@ -34,16 +25,12 @@ import edu.ie3.datamodel.models.input.{
 }
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.DefaultTestData
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  DEGREE_GEOM,
-  KILOVOLT,
-  MEGAVOLTAMPERE,
-  PU
-}
-import javax.measure.MetricPrefix
+import edu.ie3.simona.util.TestGridFactory
+import edu.ie3.util.quantities.PowerSystemUnits._
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{OHM, PERCENT, SIEMENS}
+import tech.units.indriya.unit.Units.{OHM, PERCENT}
 
+import java.util.UUID
 import scala.jdk.CollectionConverters._
 
 /** Test data for a [[Transformer2WInput]].
@@ -90,8 +77,8 @@ trait TransformerInputTestData extends DefaultTestData {
     Quantities.getQuantity(40d, MEGAVOLTAMPERE),
     Quantities.getQuantity(110d, KILOVOLT),
     Quantities.getQuantity(10d, KILOVOLT),
-    Quantities.getQuantity(0d, MetricPrefix.NANO(SIEMENS)),
-    Quantities.getQuantity(1.1, MetricPrefix.NANO(SIEMENS)),
+    Quantities.getQuantity(0d, NANOSIEMENS),
+    Quantities.getQuantity(-1.1, NANOSIEMENS),
     Quantities.getQuantity(1.5, PERCENT),
     Quantities.getQuantity(0d, DEGREE_GEOM),
     false,
@@ -122,27 +109,9 @@ trait TransformerInputTestData extends DefaultTestData {
       Set.empty[SwitchInput].asJava,
       Set.empty[MeasurementUnitInput].asJava
     )
-    val systemParticipants = new SystemParticipants(
-      Set.empty[BmInput].asJava,
-      Set.empty[ChpInput].asJava,
-      Set.empty[EvcsInput].asJava,
-      Set.empty[EvInput].asJava,
-      Set.empty[FixedFeedInInput].asJava,
-      Set.empty[HpInput].asJava,
-      Set.empty[LoadInput].asJava,
-      Set.empty[PvInput].asJava,
-      Set.empty[StorageInput].asJava,
-      Set.empty[WecInput].asJava
-    )
-    val graphicElements = new GraphicElements(
-      Set.empty[NodeGraphicInput].asJava,
-      Set.empty[LineGraphicInput].asJava
-    )
-    new JointGridContainer(
-      "twoWindingTestGrid",
-      rawGridElements,
-      systemParticipants,
-      graphicElements
+    TestGridFactory.createJointGrid(
+      gridName = "twoWindingTestGrid",
+      rawGridElements = rawGridElements
     )
   }
 }

@@ -18,10 +18,16 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 }
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.EvcsModel
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
+import edu.ie3.simona.ontology.messages.services.EvMessage.{
+  DepartingEvsRequest,
+  EvFreeLotsRequest
+}
 import tech.units.indriya.ComparableQuantity
 
 import javax.measure.quantity.Power
@@ -56,6 +62,30 @@ class EvcsAgent(
     ](scheduler)
     with EvcsAgentFundamentals {
   override val alternativeResult: ApparentPower = ZERO_POWER
+
+  when(Idle) {
+    case Event(
+          EvFreeLotsRequest(tick),
+          modelBaseStateData: ParticipantModelBaseStateData[
+            ApparentPower,
+            EvcsRelevantData,
+            EvcsModel
+          ]
+        ) =>
+      handleFreeLotsRequest(tick, modelBaseStateData)
+      stay()
+    case Event(
+          DepartingEvsRequest(tick, departingEvs),
+          modelBaseStateData: ParticipantModelBaseStateData[
+            ApparentPower,
+            EvcsRelevantData,
+            EvcsModel
+          ]
+        ) =>
+      val updatedStateData =
+        handleDepartingEvsRequest(tick, modelBaseStateData, departingEvs)
+      stay() using updatedStateData
+  }
 
   /** Determine the average result within the given tick window
     *

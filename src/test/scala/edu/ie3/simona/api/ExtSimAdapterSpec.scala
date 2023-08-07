@@ -6,13 +6,15 @@
 
 package edu.ie3.simona.api
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, Terminated}
 import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.api.ExtSimAdapter.InitExtSimAdapter
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
+  Terminate,
+  TerminationCompleted,
   ActivityStartTrigger => ExtActivityStartTrigger,
   CompletionMessage => ExtCompletionMessage
 }
@@ -21,6 +23,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleTriggerMessage,
   TriggerWithIdMessage
 }
+import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
   InitializeExtSimAdapterTrigger
@@ -28,6 +31,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.common.TestKitWithShutdown
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.prop.TableDrivenPropertyChecks._
 
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.SeqHasAsJava
@@ -124,12 +128,12 @@ class ExtSimAdapterSpec
       )
 
       awaitCond(
-        !extData.receiveTriggerQueue.isEmpty,
+        !extData.receiveMessageQueue.isEmpty,
         max = 3.seconds,
         message = "No message received"
       )
-      extData.receiveTriggerQueue.size() shouldBe 1
-      extData.receiveTriggerQueue.take() shouldBe new ExtActivityStartTrigger(
+      extData.receiveMessageQueue.size() shouldBe 1
+      extData.receiveMessageQueue.take() shouldBe new ExtActivityStartTrigger(
         INIT_SIM_TICK
       )
       scheduler.expectNoMessage()
@@ -195,12 +199,12 @@ class ExtSimAdapterSpec
       )
 
       awaitCond(
-        !extData.receiveTriggerQueue.isEmpty,
+        !extData.receiveMessageQueue.isEmpty,
         max = 3.seconds,
         message = "No message received"
       )
-      extData.receiveTriggerQueue.size() shouldBe 1
-      extData.receiveTriggerQueue.take()
+      extData.receiveMessageQueue.size() shouldBe 1
+      extData.receiveMessageQueue.take()
       scheduler.expectNoMessage()
 
       extSimAdapter ! new ScheduleDataServiceMessage(
@@ -214,6 +218,55 @@ class ExtSimAdapterSpec
         )
       )
       dataService.expectNoMessage()
+    }
+
+    "terminate the external simulation and itself when told to" in {
+      forAll(Table("simSuccessful", true, false)) { (simSuccessful: Boolean) =>
+        val extSimAdapter = TestActorRef(
+          new ExtSimAdapter(scheduler.ref)
+        )
+
+        val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
+
+        scheduler.send(
+          extSimAdapter,
+          TriggerWithIdMessage(
+            InitializeExtSimAdapterTrigger(
+              InitExtSimAdapter(
+                extData
+              )
+            ),
+            1L,
+            extSimAdapter
+          )
+        )
+
+        scheduler.expectMsgType[CompletionMessage]
+
+        val stopWatcher = TestProbe()
+        stopWatcher.watch(extSimAdapter)
+
+        extSimAdapter ! StopMessage(simSuccessful)
+
+        awaitCond(
+          !extData.receiveMessageQueue.isEmpty,
+          max = 3.seconds,
+          message = "No message received"
+        )
+        extData.receiveMessageQueue.size() shouldBe 1
+        extData.receiveMessageQueue.take() shouldBe new Terminate(simSuccessful)
+
+        // up until now, extSimAdapter should still be running
+        stopWatcher.expectNoMessage()
+
+        extSimAdapter ! new TerminationCompleted()
+
+        // extSimAdapter should have terminated now
+        stopWatcher.expectMsgType[Terminated].actor shouldBe extSimAdapter
+
+        // scheduler is not involved in this
+        scheduler.expectNoMessage()
+      }
     }
   }
 

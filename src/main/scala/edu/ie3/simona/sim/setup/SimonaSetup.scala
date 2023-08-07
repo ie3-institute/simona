@@ -53,8 +53,7 @@ trait SimonaSetup {
     *   A sequence of actor references to runtime event listeners
     */
   def systemParticipantsListener(
-      context: ActorContext,
-      simonaSim: ActorRef
+      context: ActorContext
   ): Seq[ActorRef]
 
   /** Creates a primary service proxy. The proxy is the first instance to ask
@@ -140,12 +139,12 @@ trait SimonaSetup {
   protected val modifySubGridGateForThreeWindingSupport
       : SubGridGate => SubGridGate =
     (gate: SubGridGate) =>
-      gate.getLink match {
+      gate.link match {
         case transformer: Transformer3WInput =>
           new SubGridGate(
             transformer,
             transformer.getNodeInternal,
-            gate.getInferiorNode
+            gate.inferiorNode
           )
         case _ => gate
       }

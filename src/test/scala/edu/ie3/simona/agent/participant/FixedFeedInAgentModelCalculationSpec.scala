@@ -99,9 +99,10 @@ class FixedFeedInAgentModelCalculationSpec
   private val fixedFeedConfigUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
   )
-  private val modelConfig = fixedFeedConfigUtil.getFixedFeedConfigOrDefault(
-    voltageSensitiveInput.getUuid
-  )
+  private val modelConfig =
+    fixedFeedConfigUtil.getOrDefault[FixedFeedInRuntimeConfig](
+      voltageSensitiveInput.getUuid
+    )
   private val services = None
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
@@ -229,7 +230,7 @@ class FixedFeedInAgentModelCalculationSpec
           endDate shouldBe simulationEndDate
           services shouldBe None
           outputConfig shouldBe defaultOutputConfig
-          additionalActivationTicks shouldBe Array.emptyLongArray
+          additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
