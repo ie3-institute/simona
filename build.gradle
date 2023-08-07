@@ -27,7 +27,7 @@ ext {
   scalaBinaryVersion = '2.13.11'
   akkaVersion = '2.6.20'
   jtsVersion = '1.19.0'
-  confluentKafkaVersion = '7.3.1'
+  confluentKafkaVersion = '7.4.0'
   tscfgVersion = '1.0.2'
   scapegoatVersion = '2.1.2'
 
@@ -65,8 +65,8 @@ repositories {
 
 dependencies {
   constraints {
-    implementation( 'junit:junit:4.13.2+' ){
-      because "CVE-2020-15250 - Temporary folder vulnerability - https://github.com/advisories/GHSA-269g-pwp5-87pp"
+    implementation( 'com.fasterxml.jackson.core:jackson-databind:2.13.4.2+' ){
+      because "[CVE-2020-25649] CWE-611: Improper Restriction of XML External Entity Reference ('XXE')"
     }
   }
 
