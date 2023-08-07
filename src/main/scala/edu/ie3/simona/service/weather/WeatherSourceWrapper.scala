@@ -25,7 +25,6 @@ import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
   WeatherSource => PsdmWeatherSource
 }
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
   CouchbaseParams,
   InfluxDb1xParams,
@@ -44,17 +43,14 @@ import edu.ie3.simona.service.weather.{WeatherSource => SimonaWeatherSource}
 import edu.ie3.simona.util.TickUtil
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.DoubleUtils.ImplicitDouble
-import edu.ie3.util.exceptions.EmptyQuantityException
 import edu.ie3.util.interval.ClosedInterval
-import edu.ie3.util.quantities.PowerSystemUnits
+
 import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import squants.motion.MetersPerSecond
-import squants.thermal.{Celsius, Kelvin, Temperature}
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
+import squants.thermal.{Kelvin, Temperature}
 
 import java.time.ZonedDateTime
-import javax.measure.Quantity
+
 import scala.jdk.CollectionConverters.{IterableHasAsJava, MapHasAsScala}
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
@@ -180,52 +176,57 @@ private[weather] final case class WeatherSourceWrapper private (
         }
 
         /* Sum up weight and contributions */
-        (
-          WeatherData(
+
+        val diffIrradiance = WattsPerSquareMeter(
+          averagedWeather.diffIrr.toWattsPerSquareMeter
+        ) +
+          (diffIrrContrib match {
+            case irradiance: Irradiance =>
+              WattsPerSquareMeter(irradiance.toWattsPerSquareMeter)
+            case _ =>
+              WattsPerSquareMeter(
+                EMPTY_WEATHER_DATA.dirIrr.toWattsPerSquareMeter
+              )
+          })
+
+        val dirIrradience = WattsPerSquareMeter(
+          averagedWeather.dirIrr.toWattsPerSquareMeter
+        ) + (dirIrrContrib match {
+          case irradiance: Irradiance =>
+            WattsPerSquareMeter(irradiance.toWattsPerSquareMeter)
+          case _ =>
             WattsPerSquareMeter(
-              averagedWeather.diffIrr.toWattsPerSquareMeter
-            ) +
-              (diffIrrContrib match {
-                case irradiance: Irradiance =>
-                  WattsPerSquareMeter(irradiance.toWattsPerSquareMeter)
-                case _ =>
-                  WattsPerSquareMeter(
-                    EMPTY_WEATHER_DATA.dirIrr.toWattsPerSquareMeter
-                  )
-              }),
-            WattsPerSquareMeter(
-              averagedWeather.dirIrr.toWattsPerSquareMeter
-            ) + (dirIrrContrib match {
-              case irradiance: Irradiance =>
-                WattsPerSquareMeter(irradiance.toWattsPerSquareMeter)
+              EMPTY_WEATHER_DATA.dirIrr.toWattsPerSquareMeter
+            )
+        })
+
+        val temperature = Kelvin(
+          averagedWeather.temp.toKelvinScale
+        ) +
+          (tempContrib match {
+            case temperature: Temperature =>
+              Kelvin(temperature.toKelvinScale)
+            case _ =>
+              Kelvin(
+                EMPTY_WEATHER_DATA.temp.toKelvinScale
+              )
+          })
+
+        val windVelocity =
+          MetersPerSecond(
+            averagedWeather.windVel.toMetersPerSecond
+          ) +
+            (windVelContrib match {
+              case windVelocity: squants.Velocity =>
+                MetersPerSecond(windVelocity.toMetersPerSecond)
               case _ =>
-                WattsPerSquareMeter(
-                  EMPTY_WEATHER_DATA.dirIrr.toWattsPerSquareMeter
+                MetersPerSecond(
+                  EMPTY_WEATHER_DATA.windVel.toMetersPerSecond
                 )
-            }),
-            Kelvin(
-              averagedWeather.temp.toKelvinScale
-            ) +
-              (tempContrib match {
-                case temperature: Temperature =>
-                  Kelvin(temperature.toKelvinScale)
-                case _ =>
-                  Kelvin(
-                    EMPTY_WEATHER_DATA.temp.toKelvinScale
-                  )
-              }),
-            MetersPerSecond(
-              averagedWeather.windVel.toMetersPerSecond
-            ) +
-              (windVelContrib match {
-                case windVelocity: squants.Velocity =>
-                  MetersPerSecond(windVelocity.toMetersPerSecond)
-                case _ =>
-                  MetersPerSecond(
-                    EMPTY_WEATHER_DATA.windVel.toMetersPerSecond
-                  )
-              })
-          ),
+            })
+
+        (
+          WeatherData(diffIrradiance, dirIrradience, temperature, windVelocity),
           currentWeightSum.add(
             diffIrrWeight,
             dirIrrWeight,
