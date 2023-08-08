@@ -118,12 +118,6 @@ private[weather] final case class WeatherSourceWrapper private (
           * weather data), we do let it out and also return the "effective"
           * weight of 0d.
           */
-        def calculateContrib[Q <: squants.Quantity[Q]](
-            quantity: squants.Quantity[Q],
-            weight: Double
-        ): (squants.Quantity[Q], Double) = {
-          (quantity * weight, weight)
-        }
 
         /* Get pre-calculated weight for this coordinate */
         val weight = weightedCoordinates.weighting.getOrElse(
@@ -132,98 +126,40 @@ private[weather] final case class WeatherSourceWrapper private (
             0d
           }
         )
-
-        /* Determine actual weights and contributions */
-        val (diffIrrContrib, diffIrrWeight) = currentWeather.diffIrr match {
-          case EMPTY_WEATHER_DATA.diffIrr =>
-            logger.warn(s"Diffuse solar irradiance not available at $point.")
-            (EMPTY_WEATHER_DATA.diffIrr, 0d)
-          case nonEmptyDiffIrr =>
-            calculateContrib(
-              nonEmptyDiffIrr,
-              weight
-            )
-        }
-        val (dirIrrContrib, dirIrrWeight) = currentWeather.dirIrr match {
-          case EMPTY_WEATHER_DATA.`dirIrr` =>
-            logger.warn(s"Direct solar irradiance not available at $point.")
-            (EMPTY_WEATHER_DATA.dirIrr, 0d)
-          case nonEmptyDirIrr =>
-            calculateContrib(
-              nonEmptyDirIrr,
-              weight
-            )
-        }
-        val (tempContrib, tempWeight) = currentWeather.temp match {
-          case EMPTY_WEATHER_DATA.temp =>
-            logger.warn(s"Temperature not available at $point.")
-            (EMPTY_WEATHER_DATA.temp, 0d)
-          case nonEmptyTemp =>
-            calculateContrib(
-              nonEmptyTemp,
-              weight
-            )
-        }
-        val (windVelContrib, windVelWeight) = currentWeather.windVel match {
-          case EMPTY_WEATHER_DATA.windVel =>
-            logger.warn(s"Wind velocity not available at $point.")
-            (EMPTY_WEATHER_DATA.windVel, 0d)
-          case nonEmptyWindVel =>
-            calculateContrib(
-              nonEmptyWindVel,
-              weight
-            )
-        }
-
         /* Sum up weight and contributions */
 
-        val diffIrradiance = WattsPerSquareMeter(
-          averagedWeather.diffIrr.toWattsPerSquareMeter
-        ) +
-          (diffIrrContrib match {
-            case irradiance: Irradiance =>
-              WattsPerSquareMeter(irradiance.toWattsPerSquareMeter)
-            case _ =>
-              WattsPerSquareMeter(
-                EMPTY_WEATHER_DATA.dirIrr.toWattsPerSquareMeter
-              )
-          })
+        /* Determine actual weights and contributions */
+        val (diffIrradiance, diffIrrWeight) = currentWeather.diffIrr match {
+          case EMPTY_WEATHER_DATA.diffIrr =>
+            logger.warn(s"Diffuse solar irradiance not available at $point.")
+            (averagedWeather.diffIrr, 0d)
+          case nonEmptyDiffIrr =>
+            (averagedWeather.diffIrr + nonEmptyDiffIrr * weight, weight)
+        }
 
-        val dirIrradience = WattsPerSquareMeter(
-          averagedWeather.dirIrr.toWattsPerSquareMeter
-        ) + (dirIrrContrib match {
-          case irradiance: Irradiance =>
-            WattsPerSquareMeter(irradiance.toWattsPerSquareMeter)
-          case _ =>
-            WattsPerSquareMeter(
-              EMPTY_WEATHER_DATA.dirIrr.toWattsPerSquareMeter
-            )
-        })
+        val (dirIrradience, dirIrrWeight) = currentWeather.dirIrr match {
+          case EMPTY_WEATHER_DATA.`dirIrr` =>
+            logger.warn(s"Direct solar irradiance not available at $point.")
+            (averagedWeather.dirIrr, 0d)
+          case nonEmptyDirIrr =>
+            (averagedWeather.dirIrr + nonEmptyDirIrr * weight, weight)
+        }
 
-        val temperature = Kelvin(
-          averagedWeather.temp.toKelvinScale
-        ) +
-          (tempContrib match {
-            case temperature: Temperature =>
-              Kelvin(temperature.toKelvinScale)
-            case _ =>
-              Kelvin(
-                EMPTY_WEATHER_DATA.temp.toKelvinScale
-              )
-          })
+        val (temperature, tempWeight) = currentWeather.temp match {
+          case EMPTY_WEATHER_DATA.temp =>
+            logger.warn(s"Temperature not available at $point.")
+            (averagedWeather.temp, 0d)
+          case nonEmptyTemp =>
+            (averagedWeather.temp + nonEmptyTemp * weight, weight)
+        }
 
-        val windVelocity =
-          MetersPerSecond(
-            averagedWeather.windVel.toMetersPerSecond
-          ) +
-            (windVelContrib match {
-              case windVelocity: squants.Velocity =>
-                MetersPerSecond(windVelocity.toMetersPerSecond)
-              case _ =>
-                MetersPerSecond(
-                  EMPTY_WEATHER_DATA.windVel.toMetersPerSecond
-                )
-            })
+        val (windVelocity, windVelWeight) = currentWeather.windVel match {
+          case EMPTY_WEATHER_DATA.windVel =>
+            logger.warn(s"Wind velocity not available at $point.")
+            (averagedWeather.windVel, 0d)
+          case nonEmptyWindVel =>
+            (averagedWeather.windVel + nonEmptyWindVel * weight, weight)
+        }
 
         (
           WeatherData(diffIrradiance, dirIrradience, temperature, windVelocity),
