@@ -135,7 +135,7 @@ class ProfileLoadModelTest extends Specification {
         foreSeenOperationInterval,
         globalScaling,
         QControl.apply(loadInput.qCharacteristics),
-        Sq.create(loadInput.getsRated().to(KILOWATT).getValue().doubleValue(), Kilowatts$.MODULE$),
+        Sq.create(loadInput.getsRated().to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
         loadInput.cosPhiRated,
         H0,
         new ActivePower(Sq.create(268.6d, Watts$.MODULE$))
