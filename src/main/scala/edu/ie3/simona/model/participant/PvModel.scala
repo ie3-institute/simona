@@ -353,8 +353,8 @@ final case class PvModel private (
     ) + 0.000077 * sin(2d * jInRad)
 
     // solar constant in W/m2
-    val GSC = WattHoursPerSquareMeter(1367) // solar constant
-    GSC * e0
+    val Gsc = WattHoursPerSquareMeter(1367) // solar constant
+    Gsc * e0
   }
 
   /** Calculates the angle of incidence thetaG of beam radiation on a surface
