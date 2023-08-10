@@ -47,9 +47,9 @@ final class SpecificHeatCapacity private (
   /** Calculates the Energy of a medium with a given specific heat capacity
     * based on the temperature delta and it's volume.
     * @param temperatureA
-    *   First temperature
+    *   First temperature of the medium (e.g. inlet temperature)
     * @param temperatureB
-    *   Second temperature
+    *   Second temperature of the medium (e.g. outlet temperature)
     * @param volume
     *   Volume of the medium
     * @return
