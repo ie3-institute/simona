@@ -12,7 +12,7 @@ import squants.space.{CubicMeters, Volume}
 
 object SquantsUtils {
   implicit class RichEnergy(energy: Energy) {
-    def divideByEnergyDensity(that: EnergyDensity): Volume = CubicMeters(
+    def calcVolume(that: EnergyDensity): Volume = CubicMeters(
       energy.toKilowattHours / that.toKilowattHoursPerCubicMeter
     )
 

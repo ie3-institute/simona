@@ -25,14 +25,38 @@ final class SpecificHeatCapacity private (
 
   def dimension: SpecificHeatCapacity.type = SpecificHeatCapacity
 
-  def *(temperatureA: Temperature, temperatureB: Temperature): EnergyDensity =
+  /** Calculates the EnergyDensity of a medium with a given specific heat
+    * capacity based on the temperature delta.
+    * @param temperatureA
+    *   First temperature
+    * @param temperatureB
+    *   Second temperature
+    * @return
+    *   Density of the energy stored in the medium
+    */
+  def calcEnergyDensity(
+      temperatureA: Temperature,
+      temperatureB: Temperature
+  ): EnergyDensity =
     KilowattHoursPerCubicMeter(
       this.toKilowattHoursPerKelvinCubicMeters * math.abs(
         temperatureA.toKelvinScale - temperatureB.toKelvinScale
       )
     )
 
-  def multiply(
+  /** Calculates the Energy of a medium with a given specific heat capacity
+    * based on the temperature delta and it's volume.
+    * @param temperatureA
+    *   First temperature
+    * @param temperatureB
+    *   Second temperature
+    * @param volume
+    *   Volume of the medium
+    * @return
+    *   Energy stored in the medium
+    */
+
+  def calcEnergy(
       temperatureA: Temperature,
       temperatureB: Temperature,
       volume: Volume

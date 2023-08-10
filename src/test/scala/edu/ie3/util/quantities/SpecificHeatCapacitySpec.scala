@@ -36,15 +36,15 @@ class SpecificHeatCapacitySpec extends AnyFlatSpec with Matchers {
   }
 
   it should "return Energy when multiplied by Temperature delta of 1 Kelvin and Volume" in {
-    KilowattHoursPerKelvinCubicMeters(1000).multiply(
+    KilowattHoursPerKelvinCubicMeters(1000).calcEnergy(
       Kelvin(10),
       Kelvin(20),
       CubicMeters(5)
     ) should be(KilowattHours(50000.0))
   }
 
-  it should "return Energy when multiplied by Temperature delta of 1° Celsius and Volume" in {
-    KilowattHoursPerKelvinCubicMeters(1000).multiply(
+  it should "return Energy when multiplied by Temperature delta of 1 degree Celsius and Volume" in {
+    KilowattHoursPerKelvinCubicMeters(1000).calcEnergy(
       Celsius(100),
       Celsius(101),
       CubicMeters(5)
