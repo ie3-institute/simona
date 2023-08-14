@@ -114,14 +114,8 @@ class PrimaryServiceWorkerSpec
       )
       service.init(maliciousInitData) match {
         case Failure(exception) =>
-          exception.getClass shouldBe classOf[FactoryException]
-          exception.getMessage shouldBe "The provided fields [p, q, time, uuid] with data \n" +
-            "{p -> 1250.0,\n" +
-            "q -> 411.0,\n" +
-            "time -> 2020-01-01T00:15:00Z,\n" +
-            "uuid -> 43dd0a7b-7a7e-4393-b516-a0ddbcbf073b} are invalid for instance of PValue. \n" +
-            "The following fields (without complex objects e.g. nodes, operators, ...) to be passed to a constructor of 'PValue' are possible (NOT case-sensitive!):\n" +
-            "0: [p, time, uuid]\n"
+          exception.getClass shouldBe classOf[IllegalArgumentException]
+          exception.getMessage shouldBe "[Unable to obtain time series with UUID '3fbfaa97-cff4-46d4-95ba-a95665e87c26'. Please check arguments!]"
         case Success(_) =>
           fail("Initialisation with unsupported init data is meant to fail.")
       }

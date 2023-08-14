@@ -412,15 +412,14 @@ case object WeatherSourceSpec {
       val points: util.Collection[Point] =
         if (idToCoordinate.size < n) {
           val foundPoints: util.ArrayList[Point] = new util.ArrayList()
-          var distance: ComparableQuantity[Length] =
-            Quantities.getQuantity(10000, Units.METRE)
+          val distance: DistanceWrapper = new DistanceWrapper()
 
           while (foundPoints.size() < n) {
             foundPoints.clear()
-            distance = distance.multiply(2)
+            distance * 2
 
             val envelope: Envelope =
-              GeoUtils.calculateBoundingBox(coordinate, distance)
+              GeoUtils.calculateBoundingBox(coordinate, distance.distance)
 
             coordinateToId.keySet.foreach { point =>
               if (envelope.contains(point.getCoordinate)) {
@@ -435,6 +434,15 @@ case object WeatherSourceSpec {
         }
 
       calculateCoordinateDistances(coordinate, n, points)
+    }
+  }
+
+  final class DistanceWrapper {
+    var distance: ComparableQuantity[Length] =
+      Quantities.getQuantity(10000, Units.METRE)
+
+    def *(value: Int): Unit = {
+      distance = distance.multiply(value)
     }
   }
 }

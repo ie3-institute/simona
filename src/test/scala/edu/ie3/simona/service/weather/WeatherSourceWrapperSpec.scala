@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.service.weather
 
+import edu.ie3.datamodel.io.factory.timeseries.IconTimeBasedWeatherValueFactory
 import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
   WeatherSource => PsdmWeatherSource
@@ -302,7 +303,11 @@ object WeatherSourceWrapperSpec {
   private val coordinate13NoTemp = GeoUtils.buildPoint(52, 10)
   private val coordinateEmpty = GeoUtils.buildPoint(53, 10)
 
-  case object DummyPsdmWeatherSource extends PsdmWeatherSource(null, null) {
+  case object DummyPsdmWeatherSource
+      extends PsdmWeatherSource(
+        DummyIdCoordinateSource,
+        new IconTimeBasedWeatherValueFactory()
+      ) {
 
     private val dummyValues = Map(
       coordinate1a -> new WeatherValue(
