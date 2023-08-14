@@ -50,6 +50,7 @@ import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
+import java.nio.file.Path
 import java.time.ZonedDateTime
 import javax.measure.Quantity
 import javax.measure.quantity.Length
@@ -229,7 +230,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
 
   def apply(
       csvSep: String,
-      directoryPath: String,
+      directoryPath: Path,
       idCoordinateSourceFunction: () => IdCoordinateSource,
       timestampPattern: Option[String],
       scheme: String,

@@ -302,7 +302,7 @@ object WeatherSourceWrapperSpec {
   private val coordinate13NoTemp = GeoUtils.buildPoint(52, 10)
   private val coordinateEmpty = GeoUtils.buildPoint(53, 10)
 
-  case object DummyPsdmWeatherSource extends PsdmWeatherSource {
+  case object DummyPsdmWeatherSource extends PsdmWeatherSource(null, null) {
 
     private val dummyValues = Map(
       coordinate1a -> new WeatherValue(

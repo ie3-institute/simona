@@ -6,13 +6,13 @@
 
 package edu.ie3.simona.service.weather
 
-import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.factory.timeseries.{
   CosmoIdCoordinateFactory,
   IconIdCoordinateFactory,
   IdCoordinateFactory,
-  SqlCoordinateFactory
+  SqlIdCoordinateFactory
 }
+import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
@@ -21,11 +21,11 @@ import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
-import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.exceptions.{
   InvalidConfigParameterException,
   ServiceException
 }
+import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
@@ -40,11 +40,13 @@ import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
 import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.io.CsvDataSourceWrapper
 import org.locationtech.jts.geom.{Coordinate, Point}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
+import java.nio.file.Paths
 import java.time.ZonedDateTime
 import javax.measure.Quantity
 import javax.measure.quantity.{Dimensionless, Length}
@@ -359,7 +361,7 @@ object WeatherSource {
           (simulationStart: ZonedDateTime) =>
             WeatherSourceWrapper(
               csvSep,
-              directoryPath,
+              Paths.get(directoryPath),
               coordinateSourceFunction,
               timestampPattern,
               scheme,
@@ -466,10 +468,12 @@ object WeatherSource {
         )
         () =>
           new CsvIdCoordinateSource(
-            csvSep,
-            directoryPath,
-            new FileNamingStrategy(),
-            idCoordinateFactory
+            idCoordinateFactory,
+            new CsvDataSourceWrapper(
+              csvSep,
+              Paths.get(directoryPath),
+              new FileNamingStrategy()
+            )
           )
       case Some(
             Some(
@@ -489,7 +493,7 @@ object WeatherSource {
             new SqlConnector(jdbcUrl, userName, password),
             schemaName,
             tableName,
-            new SqlCoordinateFactory()
+            new SqlIdCoordinateFactory()
           )
       case Some(
             Some(

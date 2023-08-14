@@ -23,12 +23,11 @@ import akka.stream.scaladsl.{
 import akka.stream.{FlowShape, Materializer}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.exceptions.FactoryException
-import edu.ie3.datamodel.io.factory.FactoryData.MapWithRowIndex
 import edu.ie3.datamodel.io.factory.SimpleEntityData
 import edu.ie3.datamodel.io.factory.result.SystemParticipantResultFactory
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
-import edu.ie3.datamodel.utils.options.Try
+import edu.ie3.datamodel.utils.Try
 import edu.ie3.simona.exceptions.{FileIOException, ProcessResultEventException}
 import org.apache.commons.io.FilenameUtils
 
@@ -72,23 +71,21 @@ final case class ResultEntityCsvSource(
     )
 
   private def parseLine(model: Class[ResultEntity], filePath: String)(
-      rowWithHeadline: MapWithRowIndex
+      rowWithHeadline: Map[String, String]
   ): Future[_ <: ResultEntity] = Future {
 
-    val simpleEntityData = new SimpleEntityData(rowWithHeadline, model)
+    val simpleEntityData = new SimpleEntityData(rowWithHeadline.asJava, model)
     val option: Try[SystemParticipantResult, FactoryException] =
       resultFactory.get(simpleEntityData)
 
     if (option.isSuccess) {
-      option.getData
+      option.getData.get()
     } else {
       logger.error(
-        s"Unable to parse line in $filePath\nline ${rowWithHeadline
-            .index()}: ${rowWithHeadline.fieldsToAttribute().values}\nWill ignore that line!"
+        s"Unable to parse line in $filePath\nline: ${rowWithHeadline.values}\nWill ignore that line!"
       )
       throw new ProcessResultEventException(
-        s"Unable to parse line in $filePath\nline ${rowWithHeadline
-            .index()}: ${rowWithHeadline.fieldsToAttribute().values}\nWill ignore that line!"
+        s"Unable to parse line in $filePath\nline: ${rowWithHeadline.values}\nWill ignore that line!"
       )
     }
   }
@@ -115,9 +112,6 @@ final case class ResultEntityCsvSource(
           .fromInputStream(() => inputStream)
           .via(CsvParsing.lineScanner())
           .via(CsvToMap.toMapAsStrings())
-          .map { fields =>
-            new MapWithRowIndex(nr.next().toString, fields.asJava)
-          }
           .mapAsync(parallelism = nonIOParallelism)(
             parseLine(model, file.getPath)
           )

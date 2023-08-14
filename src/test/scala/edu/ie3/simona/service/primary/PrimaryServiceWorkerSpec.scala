@@ -43,7 +43,7 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import tech.units.indriya.quantity.Quantities
 
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.util.{Failure, Success}
@@ -60,7 +60,7 @@ class PrimaryServiceWorkerSpec
     )
     with TimeSeriesTestData {
   // this works both on Windows and Unix systems
-  val baseDirectoryPath: String = Paths
+  val baseDirectoryPath: Path = Paths
     .get(
       this.getClass
         .getResource(
@@ -68,14 +68,13 @@ class PrimaryServiceWorkerSpec
         )
         .toURI
     )
-    .toString
 
   val validInitData: CsvInitPrimaryServiceStateData =
     CsvInitPrimaryServiceStateData(
       timeSeriesUuid = uuidP,
       csvSep = ";",
       directoryPath = baseDirectoryPath,
-      filePath = "its_p_" + uuidP,
+      filePath = Paths.get("its_p_" + uuidP),
       fileNamingStrategy = new FileNamingStrategy(),
       simulationStart =
         TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
@@ -109,7 +108,7 @@ class PrimaryServiceWorkerSpec
           TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
         csvSep = ";",
         directoryPath = baseDirectoryPath,
-        filePath = "its_pq_" + uuidPq,
+        filePath = Paths.get("its_pq_" + uuidPq),
         fileNamingStrategy = new FileNamingStrategy(),
         timePattern = TimeUtil.withDefaults.getDtfPattern
       )
@@ -198,7 +197,7 @@ class PrimaryServiceWorkerSpec
         baseDirectoryPath,
         new FileNamingStrategy(),
         uuidP,
-        "its_p_" + uuidP,
+        Paths.get("its_p_" + uuidP),
         classOf[PValue],
         new TimeBasedSimpleValueFactory[PValue](classOf[PValue])
       ),

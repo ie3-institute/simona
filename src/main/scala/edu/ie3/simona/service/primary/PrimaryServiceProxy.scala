@@ -62,6 +62,7 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   SqlInitPrimaryServiceStateData
 }
 
+import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -196,12 +197,12 @@ case class PrimaryServiceProxy(
         Success(
           new CsvTimeSeriesMappingSource(
             csvSep,
-            directoryPath,
+            Paths.get(directoryPath),
             fileNamingStrategy
           ),
           new CsvTimeSeriesMetaInformationSource(
             csvSep,
-            directoryPath,
+            Paths.get(directoryPath),
             fileNamingStrategy
           )
         )
@@ -426,7 +427,7 @@ case class PrimaryServiceProxy(
                 csvMetaData.getUuid,
                 simulationStart,
                 csvSep,
-                directoryPath,
+                Paths.get(directoryPath),
                 csvMetaData.getFullFilePath,
                 new FileNamingStrategy(),
                 timePattern
