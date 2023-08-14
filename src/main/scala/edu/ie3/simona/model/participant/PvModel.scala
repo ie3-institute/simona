@@ -13,9 +13,9 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities._
+import squants._
 import squants.energy.Kilowatts
 import squants.space.SquareMeters
-import squants._
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
@@ -711,7 +711,7 @@ final case class PvModel private (
      * area. The yield also takes care of generator and temperature correction factors as well as the converter's
      * efficiency */
     val `actYield` =
-      eTotalInWhPerSM * 0.001 * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
+      eTotalInWhPerSM * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
 
     /* Calculate the foreseen active power output without boundary condition adaptions */
     val proposal = sRated * (-1) * (
