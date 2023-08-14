@@ -23,15 +23,7 @@ import squants.mass.{Kilograms, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pressure}
 import squants.space.SquareMeters
 import squants.thermal.JoulesPerKelvin
-import squants.{
-  Area,
-  Density,
-  Dimensionless,
-  Each,
-  Power,
-  Temperature,
-  Velocity
-}
+import squants._
 import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime

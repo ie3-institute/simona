@@ -15,7 +15,7 @@ import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities._
 import squants.energy.Kilowatts
 import squants.space.SquareMeters
-import squants.{Angle, Area, Dimensionless, Each, Power, Radians, Seconds, Time}
+import squants._
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
@@ -710,12 +710,12 @@ final case class PvModel private (
     /* The actual yield of this sum of available panels. As the solar irradiance summed up over the total panel surface
      * area. The yield also takes care of generator and temperature correction factors as well as the converter's
      * efficiency */
-    val `yield` =
+    val `actYield` =
       eTotalInWhPerSM * 0.001 * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
 
     /* Calculate the foreseen active power output without boundary condition adaptions */
     val proposal = sRated * (-1) * (
-      `yield` / irradiationSTC
+      `actYield` / irradiationSTC
     ) * cosPhiRated
 
     /* Do sanity check, if the proposed feed in is above the estimated maximum to be apparent active power of the plant */
