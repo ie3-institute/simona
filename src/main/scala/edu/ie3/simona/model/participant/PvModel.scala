@@ -13,10 +13,9 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities._
-import squants.Each
 import squants.energy.Kilowatts
-import squants.space.{Radians, SquareMeters}
-import squants.time.Seconds
+import squants.space.SquareMeters
+import squants.{Angle, Area, Dimensionless, Each, Power, Radians, Seconds, Time}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
@@ -31,15 +30,15 @@ final case class PvModel private (
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: squants.Power,
+    sRated: Power,
     cosPhiRated: Double,
     private val lat: Double,
     private val lon: Double,
     private val albedo: Double,
-    private val etaConv: squants.Dimensionless,
-    private val alphaE: squants.Angle,
-    private val gammaE: squants.Angle,
-    private val moduleSurface: squants.Area = SquareMeters(1d)
+    private val etaConv: Dimensionless,
+    private val alphaE: Angle,
+    private val gammaE: Angle,
+    private val moduleSurface: Area = SquareMeters(1d)
 ) extends SystemParticipant[PvRelevantData](
       uuid,
       id,
@@ -53,10 +52,10 @@ final case class PvModel private (
   /** Override sMax as the power output of a pv unit could become easily up to
     * 10% higher than the sRated value found in the technical sheets
     */
-  override protected val sMax: squants.Power = sRated * 1.1
+  override protected val sMax: Power = sRated * 1.1
 
   /** Permissible maximum active power feed in (therefore negative) */
-  protected val pMax: squants.Power = sMax * cosPhiRated * -1d
+  protected val pMax: Power = sMax * cosPhiRated * -1d
 
   /** Reference yield at standard testing conditions (STC) */
   private val yieldSTC = WattsPerSquareMeter(1000d)
@@ -72,7 +71,7 @@ final case class PvModel private (
     */
   override protected def calculateActivePower(
       data: PvRelevantData
-  ): squants.Power = {
+  ): Power = {
     // === Pv Panel Base Data  === //
     val latInRad = Radians(lat.toRadians) // latitude of location
     val lonInRad = Radians(lon.toRadians) // longitude of location
@@ -82,7 +81,7 @@ final case class PvModel private (
      * time frame (which actually is the solar irradiation). Hence, a multiplication with the time frame within
      * this irradiance is received is required. */
 
-    val duration: squants.Time = Seconds(data.weatherDataFrameLength)
+    val duration: Time = Seconds(data.weatherDataFrameLength)
 
     // eBeamH and eDifH needs to be extract to their double values in some places
     // hence a conversion to watt-hour per square meter is required, to avoid
@@ -156,7 +155,7 @@ final case class PvModel private (
     * @return
     *   day angle J in radians
     */
-  private def calcAngleJ(time: ZonedDateTime): squants.Angle = {
+  private def calcAngleJ(time: ZonedDateTime): Angle = {
     val day = time.getDayOfYear // day of the year
     val j = 2d * Math.PI * ((day - 1d) / 365)
     Radians(j)
@@ -173,8 +172,8 @@ final case class PvModel private (
     *   declination angle in radians
     */
   private def calcSunDeclinationDelta(
-      angleJ: squants.Angle
-  ): squants.Angle = {
+      angleJ: Angle
+  ): Angle = {
     val jInRad = angleJ.toRadians
     Radians(
       0.006918 - 0.399912 * cos(jInRad) + 0.070257 * sin(
@@ -204,9 +203,9 @@ final case class PvModel private (
     */
   private def calcHourAngleOmega(
       time: ZonedDateTime,
-      angleJ: squants.Angle,
-      longitudeInRad: squants.Angle
-  ): squants.Angle = {
+      angleJ: Angle,
+      longitudeInRad: Angle
+  ): Angle = {
     val jInRad = angleJ.toRadians
     val lambda = longitudeInRad.toDegrees
     val et = Quantities.getQuantity(
@@ -238,9 +237,9 @@ final case class PvModel private (
     *   sunset angle omegaSS in radians
     */
   private def calcSunsetAngleOmegaSS(
-      latitudeInRad: squants.Angle,
-      delta: squants.Angle
-  ): squants.Angle = {
+      latitudeInRad: Angle,
+      delta: Angle
+  ): Angle = {
     val latInRad = latitudeInRad.toRadians
     val deltaValue = delta.toRadians
 
@@ -250,7 +249,7 @@ final case class PvModel private (
   /** Calculates the sunrise hour angle omegaSR given omegaSS.
     */
   private val calcSunriseAngleOmegaSR =
-    (omegaSS: squants.Angle) => omegaSS * (-1)
+    (omegaSS: Angle) => omegaSS * (-1)
 
   /** Calculates the solar altitude angle alphaS which represents the angle
     * between the horizontal and the line to the sun, that is, the complement of
@@ -266,10 +265,10 @@ final case class PvModel private (
     *   solar altitude angle alphaS in radians
     */
   private def calcSolarAltitudeAngleAlphaS(
-      omega: squants.Angle,
-      delta: squants.Angle,
-      latitudeInRad: squants.Angle
-  ): squants.Angle = {
+      omega: Angle,
+      delta: Angle,
+      latitudeInRad: Angle
+  ): Angle = {
     val latInRad = latitudeInRad.toRadians
     val deltaValue = delta.toRadians
     val omegaValue = omega.toRadians
@@ -298,8 +297,8 @@ final case class PvModel private (
     *   the zenith angle in radians
     */
   private def calcZenithAngleThetaZ(
-      alphaS: squants.Angle
-  ): squants.Angle = {
+      alphaS: Angle
+  ): Angle = {
     val alphaSValue = alphaS.toRadians
 
     // the zenith angle is defined as 90° - gammaS in Radian
@@ -315,7 +314,7 @@ final case class PvModel private (
     * @return
     *   air mass
     */
-  private def calcAirMass(thetaZ: squants.Angle): Double = {
+  private def calcAirMass(thetaZ: Angle): Double = {
     val thetaZValue = thetaZ.toRadians
 
     // radius of the earth in kilometers
@@ -341,7 +340,7 @@ final case class PvModel private (
     *   extraterrestrial radiation I0
     */
   private def calcExtraterrestrialRadiationI0(
-      angleJ: squants.Angle
+      angleJ: Angle
   ): Irradiation = {
     val jInRad = angleJ.toRadians
 
@@ -376,12 +375,12 @@ final case class PvModel private (
     *   angle of incidence thetaG in radians
     */
   private def calcAngleOfIncidenceThetaG(
-      delta: squants.Angle,
-      latitudeInRad: squants.Angle,
-      gammaE: squants.Angle,
-      alphaE: squants.Angle,
-      omega: squants.Angle
-  ): squants.Angle = {
+      delta: Angle,
+      latitudeInRad: Angle,
+      gammaE: Angle,
+      alphaE: Angle,
+      omega: Angle
+  ): Angle = {
     val deltaValue = delta.toRadians
     val omegaValue = omega.toRadians
     val gammaEValue = gammaE.toRadians
@@ -423,11 +422,11 @@ final case class PvModel private (
     *   otherwise
     */
   private def calculateBeamOmegas(
-      thetaG: squants.Angle,
-      omega: squants.Angle,
-      omegaSS: squants.Angle,
-      omegaSR: squants.Angle
-  ): Option[(squants.Angle, squants.Angle)] = {
+      thetaG: Angle,
+      omega: Angle,
+      omegaSS: Angle,
+      omegaSR: Angle
+  ): Option[(Angle, Angle)] = {
     val thetaGValue = thetaG.toRadians
     val omegaSSValue = omegaSS.toRadians
     val omegaSRValue = omegaSR.toRadians
@@ -486,11 +485,11 @@ final case class PvModel private (
     */
   private def calcBeamRadiationOnSlopedSurface(
       eBeamH: Irradiation,
-      omegas: Option[(squants.Angle, squants.Angle)],
-      delta: squants.Angle,
-      latitudeInRad: squants.Angle,
-      gammaE: squants.Angle,
-      alphaE: squants.Angle
+      omegas: Option[(Angle, Angle)],
+      delta: Angle,
+      latitudeInRad: Angle,
+      gammaE: Angle,
+      alphaE: Angle
   ): Irradiation = {
 
     omegas match {
@@ -558,9 +557,9 @@ final case class PvModel private (
       eBeamH: Irradiation,
       airMass: Double,
       extraterrestrialRadiationI0: Irradiation,
-      thetaZ: squants.Angle,
-      thetaG: squants.Angle,
-      gammaE: squants.Angle
+      thetaZ: Angle,
+      thetaG: Angle,
+      gammaE: Angle
   ): Irradiation = {
     val thetaZValue = thetaZ.toRadians
     val thetaGValue = thetaG.toRadians
@@ -659,7 +658,7 @@ final case class PvModel private (
   private def calcReflectedRadiationOnSlopedSurface(
       eBeamH: Irradiation,
       eDifH: Irradiation,
-      gammaE: squants.Angle,
+      gammaE: Angle,
       albedo: Double
   ): Irradiation = {
     val gammaEValue = gammaE.toRadians
@@ -670,7 +669,7 @@ final case class PvModel private (
     */
   private def generatorCorrectionFactor(
       time: ZonedDateTime,
-      gammaE: squants.Angle
+      gammaE: Angle
   ): Double = {
     val gammaEValInDe = gammaE.toDegrees
 
@@ -705,7 +704,7 @@ final case class PvModel private (
       eTotalInWhPerSM: Irradiation,
       time: ZonedDateTime,
       irradiationSTC: Irradiation
-  ): squants.Power = {
+  ): Power = {
     val genCorr = generatorCorrectionFactor(time, gammaE)
     val tempCorr = temperatureCorrectionFactor(time)
     /* The actual yield of this sum of available panels. As the solar irradiance summed up over the total panel surface
@@ -852,15 +851,15 @@ case object PvModel {
       operationInterval: OperationInterval,
       scalingFactor: Double,
       qControl: QControl,
-      sRated: squants.Power,
+      sRated: Power,
       cosPhiRated: Double,
       lat: Double,
       lon: Double,
       albedo: Double,
-      etaConv: squants.Dimensionless,
-      alphaE: squants.Angle,
-      gammaE: squants.Angle,
-      moduleSurface: squants.Area = SquareMeters(1d)
+      etaConv: Dimensionless,
+      alphaE: Angle,
+      gammaE: Angle,
+      moduleSurface: Area = SquareMeters(1d)
   ): PvModel = {
     val model = new PvModel(
       uuid,

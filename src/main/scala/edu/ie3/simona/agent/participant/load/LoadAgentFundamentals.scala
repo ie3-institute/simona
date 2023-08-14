@@ -54,11 +54,10 @@ import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.ReactivePower
-import squants.Each
+import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
@@ -249,7 +248,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        squants.Power => ReactivePower
+        Power => ReactivePower
       ] = None
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
@@ -313,7 +312,7 @@ case object LoadAgentFundamentals {
           FixedLoadRelevantData.type,
           FixedLoadModel
         ],
-        squants.Dimensionless
+        Dimensionless
     ) => ApparentPower = (
         tick: Long,
         baseStateData: ParticipantModelBaseStateData[
@@ -321,7 +320,7 @@ case object LoadAgentFundamentals {
           FixedLoadRelevantData.type,
           FixedLoadModel
         ],
-        voltage: squants.Dimensionless
+        voltage: Dimensionless
     ) =>
       baseStateData.model.calculatePower(tick, voltage, FixedLoadRelevantData)
   }
@@ -354,7 +353,7 @@ case object LoadAgentFundamentals {
           ProfileRelevantData,
           ProfileLoadModel
         ],
-        squants.Dimensionless
+        Dimensionless
     ) => ApparentPower = (tick, baseStateData, voltage) => {
       val profileLoadModel = baseStateData.model
       val profileRelevantData = ProfileRelevantData(
@@ -392,7 +391,7 @@ case object LoadAgentFundamentals {
           RandomRelevantData,
           RandomLoadModel
         ],
-        squants.Dimensionless
+        Dimensionless
     ) => ApparentPower = (tick, baseStateData, voltage) => {
       val randomLoadModel = baseStateData.model
       val profileRelevantData = RandomRelevantData(

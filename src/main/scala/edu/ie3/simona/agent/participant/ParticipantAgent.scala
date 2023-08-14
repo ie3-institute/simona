@@ -54,6 +54,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeParticipantAgentTrigger
 }
 import edu.ie3.util.scala.quantities.ReactivePower
+import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
 
@@ -617,7 +618,7 @@ abstract class ParticipantAgent[
   val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[PD, CD, M],
-      squants.Dimensionless
+      Dimensionless
   ) => PD
 
   /** Abstractly calculate the power output of the participant without needing
@@ -644,11 +645,11 @@ abstract class ParticipantAgent[
       baseStateData: ParticipantModelBaseStateData[PD, CD, M],
       currentTick: Long,
       scheduler: ActorRef,
-      nodalVoltage: squants.Dimensionless,
+      nodalVoltage: Dimensionless,
       calculateModelPowerFunc: (
           Long,
           ParticipantModelBaseStateData[PD, CD, M],
-          squants.Dimensionless
+          Dimensionless
       ) => PD
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
@@ -708,8 +709,8 @@ abstract class ParticipantAgent[
   def answerPowerRequestAndStayWithUpdatedStateData(
       baseStateData: BaseStateData[PD],
       requestTick: Long,
-      eInPu: squants.Dimensionless,
-      fInPu: squants.Dimensionless,
+      eInPu: Dimensionless,
+      fInPu: Dimensionless,
       alternativeResult: PD
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
@@ -724,7 +725,7 @@ abstract class ParticipantAgent[
   def announceAssetPowerRequestReply(
       baseStateData: BaseStateData[_],
       currentTick: Long,
-      activePower: squants.Power,
+      activePower: Power,
       reactivePower: ReactivePower
   )(implicit outputConfig: ParticipantNotifierConfig): Unit
 
@@ -761,7 +762,7 @@ case object ParticipantAgent {
   def getAndCheckNodalVoltage(
       baseStateData: BaseStateData[_ <: PrimaryData],
       currentTick: Long
-  ): squants.Dimensionless = {
+  ): Dimensionless = {
     baseStateData.voltageValueStore.last(currentTick) match {
       case Some((_, voltage)) => voltage
       case None =>
