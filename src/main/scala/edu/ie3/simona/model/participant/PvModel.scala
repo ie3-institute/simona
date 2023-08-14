@@ -14,7 +14,7 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities._
 import squants._
-import squants.energy.Kilowatts
+import squants.energy.{Kilowatts, Megawatts}
 import squants.space.SquareMeters
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
@@ -60,7 +60,9 @@ final case class PvModel private (
   /** Reference yield at standard testing conditions (STC) */
   private val yieldSTC = WattsPerSquareMeter(1000d)
 
-  private val activationThreshold = sRated * cosPhiRated * 0.000001 * -1d
+  private val activationThreshold = Megawatts(
+    sRated.toMegawatts * cosPhiRated * 0.001 * -1d
+  )
 
   /** Calculate the active power behaviour of the model
     *
@@ -714,17 +716,17 @@ final case class PvModel private (
       eTotalInWhPerSM * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
 
     /* Calculate the foreseen active power output without boundary condition adaptions */
-    val proposal = sRated * (-1) * (
+    val proposal = Megawatts(sRated.toMegawatts) * (-1) * (
       `actYield` / irradiationSTC
     ) * cosPhiRated
 
     /* Do sanity check, if the proposed feed in is above the estimated maximum to be apparent active power of the plant */
-    if (proposal < pMax)
+    if (proposal < Megawatts(pMax.toMegawatts))
       logger.warn(
         "The fed in active power is higher than the estimated maximum active power of this plant ({} < {}). " +
           "Did you provide wrong weather input data?",
         proposal,
-        pMax
+        Megawatts(pMax.toMegawatts)
       )
 
     /* If the output is marginally small, suppress the output, as we are likely to be in night and then only produce incorrect output */
