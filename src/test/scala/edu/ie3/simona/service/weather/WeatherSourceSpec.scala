@@ -17,11 +17,14 @@ import edu.ie3.simona.service.weather.WeatherSourceSpec._
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
-import org.locationtech.jts.geom.Point
+import org.locationtech.jts.geom.{Envelope, Point}
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
 import java.util
 import java.util.Optional
+import javax.measure.quantity.Length
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 import scala.util.{Failure, Success}
@@ -312,6 +315,8 @@ case object WeatherSourceSpec {
   case object DummyWeatherSource extends WeatherSource {
     override protected val idCoordinateSource: IdCoordinateSource =
       DummyIdCoordinateSource
+    override protected val distance: ComparableQuantity[Length] =
+      Quantities.getQuantity(400000, Units.METRE)
 
     /** Get the weather data for the given tick as a weighted average taking
       * into account the given weighting of weather coordinates.
@@ -378,5 +383,58 @@ case object WeatherSourceSpec {
 
     override def getAllCoordinates: util.Collection[Point] =
       idToCoordinate.values.toVector.asJava
+
+    def getClosestCoordinates(
+        coordinate: Point,
+        n: Int,
+        distance: ComparableQuantity[Length]
+    ): util.List[CoordinateDistance] = {
+      val points: Set[Point] = coordinateToId.keySet
+
+      val envelope: Envelope =
+        GeoUtils.calculateBoundingBox(coordinate, distance)
+
+      val reducedPoints: Set[Point] = points.flatMap { point =>
+        if (envelope.contains(point.getCoordinate)) {
+          Some(point)
+        } else {
+          None
+        }
+      }
+
+      calculateCoordinateDistances(coordinate, n, reducedPoints.asJava)
+    }
+
+    override def getNearestCoordinates(
+        coordinate: Point,
+        n: Int
+    ): util.List[CoordinateDistance] = {
+      val points: util.Collection[Point] =
+        if (idToCoordinate.size < n) {
+          val foundPoints: util.ArrayList[Point] = new util.ArrayList()
+          var distance: ComparableQuantity[Length] =
+            Quantities.getQuantity(10000, Units.METRE)
+
+          while (foundPoints.size() < n) {
+            foundPoints.clear()
+            distance = distance.multiply(2)
+
+            val envelope: Envelope =
+              GeoUtils.calculateBoundingBox(coordinate, distance)
+
+            coordinateToId.keySet.foreach { point =>
+              if (envelope.contains(point.getCoordinate)) {
+                foundPoints.add(point)
+              }
+            }
+          }
+
+          foundPoints
+        } else {
+          coordinateToId.keySet.asJava
+        }
+
+      calculateCoordinateDistances(coordinate, n, points)
+    }
   }
 }
