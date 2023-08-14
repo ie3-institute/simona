@@ -8,19 +8,14 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
-import edu.ie3.datamodel.models.input.thermal.{
-  CylindricalStorageInput,
-  ThermalBusInput
-}
+import edu.ie3.datamodel.models.input.thermal.{CylindricalStorageInput, ThermalBusInput}
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
-import edu.ie3.util.scala.quantities.{
-  DefaultQuantities,
-  KilowattHoursPerKelvinCubicMeters,
-  SpecificHeatCapacity
-}
-import squants.{Temperature, Volume, Energy}
+import edu.ie3.util.scala.quantities.{DefaultQuantities, KilowattHoursPerKelvinCubicMeters, SpecificHeatCapacity}
+import squants.{Energy, Temperature, Volume}
 import squants.space.CubicMeters
 import squants.thermal.Celsius
+import tech.units.indriya.unit.Units
 
 import java.util.UUID
 
@@ -140,11 +135,11 @@ case object CylindricalThermalStorage {
       input.getOperator,
       input.getOperationTime,
       input.getThermalBus,
-      CubicMeters(input.getStorageVolumeLvl.getValue.doubleValue()),
-      CubicMeters(input.getStorageVolumeLvlMin.getValue.doubleValue()),
-      Celsius(input.getInletTemp.getValue.doubleValue()),
-      Celsius(input.getReturnTemp.getValue.doubleValue()),
-      KilowattHoursPerKelvinCubicMeters(input.getC.getValue.doubleValue()),
+      CubicMeters(input.getStorageVolumeLvl.to(Units.CUBIC_METRE).getValue.doubleValue()),
+      CubicMeters(input.getStorageVolumeLvlMin.to(Units.CUBIC_METRE).getValue.doubleValue()),
+      Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()),
+      Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue()),
+      KilowattHoursPerKelvinCubicMeters(input.getC.to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE).getValue.doubleValue()),
       initialStoredEnergy
     )
 

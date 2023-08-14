@@ -352,7 +352,7 @@ case object ChpModel {
       operationInterval,
       scalingFactor = 1.0,
       qControl,
-      Kilowatts(chpInput.getType.getsRated.getValue.doubleValue()),
+      Kilowatts(chpInput.getType.getsRated.to(PowerSystemUnits.KILOWATT).getValue.doubleValue()),
       chpInput.getType.getCosPhiRated,
       Kilowatts(
         chpInput.getType.getpThermal
