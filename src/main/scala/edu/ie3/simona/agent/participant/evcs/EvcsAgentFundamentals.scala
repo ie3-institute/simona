@@ -47,7 +47,7 @@ import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DIS
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Kilovars
-import squants.Each
+import squants.{Each, Dimensionless}
 import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
@@ -219,7 +219,7 @@ protected trait EvcsAgentFundamentals
   override val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[ApparentPower, EvcsRelevantData, EvcsModel],
-      squants.Dimensionless
+      Dimensionless
   ) => ApparentPower =
     (_, _, _) =>
       throw new InvalidRequestException(

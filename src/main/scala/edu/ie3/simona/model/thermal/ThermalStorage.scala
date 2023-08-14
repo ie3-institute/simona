@@ -10,6 +10,7 @@ import java.util.UUID
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
+import squants.Energy
 import squants.energy.WattHours
 
 /** Thermal storage model.
@@ -32,6 +33,6 @@ abstract class ThermalStorage(
     operationTime: OperationTime,
     bus: ThermalBusInput
 ) {
-  protected val zeroEnergy: squants.Energy =
+  protected val zeroEnergy: Energy =
     WattHours(0d)
 }

@@ -20,6 +20,7 @@ import edu.ie3.simona.ontology.messages.VoltageMessage.{
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
+import squants.Power
 import squants.energy.Megawatts
 
 import java.util.UUID
@@ -32,7 +33,7 @@ import scala.language.postfixOps
   */
 trait DBFSMockGridAgents extends UnitSpec {
   private val floatPrecision: Double = 0.00000000001
-  private implicit val powerTolerance: squants.Power = Megawatts(1e-10)
+  private implicit val powerTolerance: Power = Megawatts(1e-10)
   private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-10)
 
   sealed trait GAActorAndModel {

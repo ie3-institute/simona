@@ -18,6 +18,7 @@ import edu.ie3.util.scala.quantities.{
   KilowattHoursPerKelvinCubicMeters,
   SpecificHeatCapacity
 }
+import squants.{Temperature, Volume, Energy}
 import squants.space.CubicMeters
 import squants.thermal.Celsius
 
@@ -54,12 +55,12 @@ final case class CylindricalThermalStorage(
     operatorInput: OperatorInput,
     operationTime: OperationTime,
     bus: ThermalBusInput,
-    storageVolumeLvlMax: squants.Volume,
-    storageVolumeLvlMin: squants.Volume,
-    inletTemp: squants.Temperature,
-    returnTemp: squants.Temperature,
+    storageVolumeLvlMax: Volume,
+    storageVolumeLvlMin: Volume,
+    inletTemp: Temperature,
+    returnTemp: Temperature,
     c: SpecificHeatCapacity,
-    override protected var _storedEnergy: squants.Energy
+    override protected var _storedEnergy: Energy
 ) extends ThermalStorage(
       uuid,
       id,
@@ -69,7 +70,7 @@ final case class CylindricalThermalStorage(
     )
     with MutableStorage {
 
-  private def minEnergyThreshold: squants.Energy =
+  private def minEnergyThreshold: Energy =
     CylindricalThermalStorage.volumeToEnergy(
       storageVolumeLvlMin,
       c,
@@ -77,7 +78,7 @@ final case class CylindricalThermalStorage(
       returnTemp
     )
 
-  private def maxEnergyThreshold: squants.Energy =
+  private def maxEnergyThreshold: Energy =
     CylindricalThermalStorage.volumeToEnergy(
       storageVolumeLvlMax,
       c,
@@ -85,12 +86,12 @@ final case class CylindricalThermalStorage(
       returnTemp
     )
 
-  override def usableThermalEnergy: squants.Energy =
+  override def usableThermalEnergy: Energy =
     _storedEnergy - minEnergyThreshold
 
   override def tryToStoreAndReturnRemainder(
-      addedEnergy: squants.Energy
-  ): Option[squants.Energy] = {
+      addedEnergy: Energy
+  ): Option[Energy] = {
     if (addedEnergy > zeroEnergy) {
       _storedEnergy = _storedEnergy + addedEnergy
       if (_storedEnergy > maxEnergyThreshold) {
@@ -103,8 +104,8 @@ final case class CylindricalThermalStorage(
   }
 
   override def tryToTakeAndReturnLack(
-      takenEnergy: squants.Energy
-  ): Option[squants.Energy] = {
+      takenEnergy: Energy
+  ): Option[Energy] = {
     if (takenEnergy > zeroEnergy) {
       _storedEnergy = _storedEnergy - takenEnergy
       if (_storedEnergy < minEnergyThreshold) {
@@ -131,7 +132,7 @@ case object CylindricalThermalStorage {
     */
   def apply(
       input: CylindricalStorageInput,
-      initialStoredEnergy: squants.Energy = DefaultQuantities.zeroKWH
+      initialStoredEnergy: Energy = DefaultQuantities.zeroKWH
   ): CylindricalThermalStorage =
     new CylindricalThermalStorage(
       input.getUuid,
@@ -161,11 +162,11 @@ case object CylindricalThermalStorage {
     *   energy
     */
   def volumeToEnergy(
-      volume: squants.Volume,
+      volume: Volume,
       c: SpecificHeatCapacity,
-      inletTemp: squants.Temperature,
-      returnTemp: squants.Temperature
-  ): squants.Energy = {
+      inletTemp: Temperature,
+      returnTemp: Temperature
+  ): Energy = {
     c.calcEnergy(returnTemp, inletTemp, volume)
   }
 
@@ -183,11 +184,11 @@ case object CylindricalThermalStorage {
     *   volume
     */
   def energyToVolume(
-      energy: squants.Energy,
+      energy: Energy,
       c: SpecificHeatCapacity,
-      inletTemp: squants.Temperature,
-      returnTemp: squants.Temperature
-  ): squants.Volume = {
+      inletTemp: Temperature,
+      returnTemp: Temperature
+  ): Volume = {
     val energyDensity = c.calcEnergyDensity(returnTemp, inletTemp)
 
     energy.calcVolume(energyDensity)

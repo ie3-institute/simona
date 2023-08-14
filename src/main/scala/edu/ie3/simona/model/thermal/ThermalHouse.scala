@@ -15,6 +15,7 @@ import edu.ie3.datamodel.models.input.thermal.{
 import edu.ie3.simona.model.thermal.ThermalHouse.temperatureTolerance
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
+import squants.{Energy, Power, Temperature, Time}
 import squants.thermal.{Celsius, JoulesPerKelvin, ThermalCapacity}
 import tech.units.indriya.unit.Units
 
@@ -46,8 +47,8 @@ final case class ThermalHouse(
     bus: ThermalBusInput,
     ethLosses: ThermalConductance,
     ethCapa: ThermalCapacity,
-    lowerBoundaryTemperature: squants.Temperature,
-    upperBoundaryTemperature: squants.Temperature
+    lowerBoundaryTemperature: Temperature,
+    upperBoundaryTemperature: Temperature
 ) extends ThermalSink(
       uuid,
       id,
@@ -62,7 +63,7 @@ final case class ThermalHouse(
     *   true, if inner temperature is too high
     */
   def isInnerTemperatureTooHigh(
-      innerTemperature: squants.Temperature
+      innerTemperature: Temperature
   ): Boolean =
     innerTemperature > Celsius(
       upperBoundaryTemperature + temperatureTolerance
@@ -74,8 +75,8 @@ final case class ThermalHouse(
     *   true, if inner temperature is too low
     */
   def isInnerTemperatureTooLow(
-      innerTemperature: squants.Temperature,
-      boundaryTemperature: squants.Temperature = lowerBoundaryTemperature
+      innerTemperature: Temperature,
+      boundaryTemperature: Temperature = lowerBoundaryTemperature
   ): Boolean =
     innerTemperature < Celsius(
       boundaryTemperature - temperatureTolerance
@@ -95,11 +96,11 @@ final case class ThermalHouse(
     *   new inner temperature
     */
   def newInnerTemperature(
-      thermalPower: squants.Power,
-      duration: squants.Time,
-      currentInnerTemperature: squants.Temperature,
-      ambientTemperature: squants.Temperature
-  ): squants.Temperature = {
+      thermalPower: Power,
+      duration: Time,
+      currentInnerTemperature: Temperature,
+      ambientTemperature: Temperature
+  ): Temperature = {
     val thermalEnergyChange = calcThermalEnergyChange(
       calcThermalEnergyGain(thermalPower, duration),
       calcThermalEnergyLoss(
@@ -124,9 +125,9 @@ final case class ThermalHouse(
     *   new inner temperature
     */
   private def calcNewInnerTemperature(
-      oldInnerTemperature: squants.Temperature,
-      temperatureChange: squants.Temperature
-  ): squants.Temperature =
+      oldInnerTemperature: Temperature,
+      temperatureChange: Temperature
+  ): Temperature =
     Celsius(
       oldInnerTemperature + temperatureChange
     )
@@ -140,8 +141,8 @@ final case class ThermalHouse(
     *   temperature change
     */
   private def calcInnerTemperatureChange(
-      thermalEnergyChange: squants.Energy
-  ): squants.Temperature = {
+      thermalEnergyChange: Energy
+  ): Temperature = {
     thermalEnergyChange / ethCapa
   }
 
@@ -155,9 +156,9 @@ final case class ThermalHouse(
     *   thermal energy change
     */
   private def calcThermalEnergyChange(
-      thermalEnergyGain: squants.Energy,
-      thermalEnergyLoss: squants.Energy
-  ): squants.Energy =
+      thermalEnergyGain: Energy,
+      thermalEnergyLoss: Energy
+  ): Energy =
     thermalEnergyGain - thermalEnergyLoss
 
   /** Calculate the thermal energy gain, e.g. due to a running heat pump
@@ -170,9 +171,9 @@ final case class ThermalHouse(
     *   resulting thermal energy gain
     */
   private def calcThermalEnergyGain(
-      pThermal: squants.Power,
-      time: squants.Time
-  ): squants.Energy = pThermal * time
+      pThermal: Power,
+      time: Time
+  ): Energy = pThermal * time
 
   /** Calculate the thermal energy loss due to the temperature deviation over
     * the time step
@@ -187,10 +188,10 @@ final case class ThermalHouse(
     *   resulting thermal energy loss
     */
   private def calcThermalEnergyLoss(
-      innerTemperature: squants.Temperature,
-      ambientTemperature: squants.Temperature,
-      time: squants.Time
-  ): squants.Energy = {
+      innerTemperature: Temperature,
+      ambientTemperature: Temperature,
+      time: Time
+  ): Energy = {
     ethLosses.thermalConductanceToEnergy(
       innerTemperature,
       ambientTemperature,
@@ -212,7 +213,7 @@ case object ThermalHouse {
     *   a ready-to-use [[ThermalHouse]] with referenced electric parameters
     */
 
-  protected final def temperatureTolerance: squants.Temperature = Celsius(0.01)
+  protected final def temperatureTolerance: Temperature = Celsius(0.01)
 
   def apply(
       input: ThermalHouseInput
@@ -237,10 +238,10 @@ case object ThermalHouse {
           .doubleValue
           * 3.6e6 // kWh in Joule
       ),
-      squants.thermal.Celsius(
+      Celsius(
         input.getLowerTemperatureLimit.to(Units.CELSIUS).getValue.doubleValue
       ),
-      squants.thermal.Celsius(
+      Celsius(
         input.getUpperTemperatureLimit.to(Units.CELSIUS).getValue.doubleValue
       )
     )

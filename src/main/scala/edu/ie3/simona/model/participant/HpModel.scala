@@ -15,6 +15,7 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
 import squants.energy.Kilowatts
+import squants.{Power, Temperature, Time}
 
 import java.util.UUID
 
@@ -47,9 +48,9 @@ final case class HpModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: squants.Power,
+    sRated: Power,
     cosPhiRated: Double,
-    pThermal: squants.Power,
+    pThermal: Power,
     thermalHouse: ThermalHouse
 ) extends SystemParticipant[HpData](
       uuid,
@@ -61,7 +62,7 @@ final case class HpModel(
       cosPhiRated
     ) {
 
-  private val pRated: squants.Power =
+  private val pRated: Power =
     sRated * cosPhiRated * scalingFactor
 
   /** As this is a state-full model (with respect to the current operation
@@ -77,7 +78,7 @@ final case class HpModel(
     */
   override protected def calculateActivePower(
       hpData: HpData
-  ): squants.Power = {
+  ): Power = {
     calculateNextState(hpData)
     hpData.hpState.activePower
   }
@@ -137,7 +138,7 @@ final case class HpModel(
         (pRated, pThermal * scalingFactor)
       else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
 
-    val duration: squants.Time =
+    val duration: Time =
       hpData.hpState.lastTimeTick.durationUntil(hpData.currentTimeTick)
 
     val newInnerTemperature = thermalHouse.newInnerTemperature(
@@ -177,8 +178,8 @@ case object HpModel {
   final case class HpState(
       isRunning: Boolean,
       lastTimeTick: Long,
-      activePower: squants.Power,
-      innerTemperature: squants.Temperature
+      activePower: Power,
+      innerTemperature: Temperature
   )
 
   /** Main data required for simulation/calculation, containing a [[HpState]]
@@ -195,7 +196,7 @@ case object HpModel {
   final case class HpData(
       hpState: HpState,
       currentTimeTick: Long,
-      ambientTemperature: squants.Temperature
+      ambientTemperature: Temperature
   ) extends CalcRelevantData
 
   /** Internal method to construct a new [[HpModel]] based on a provided

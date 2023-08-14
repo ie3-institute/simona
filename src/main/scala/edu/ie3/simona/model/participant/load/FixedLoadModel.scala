@@ -47,7 +47,7 @@ final case class FixedLoadModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: squants.Power,
+    sRated: Power,
     cosPhiRated: Double,
     reference: LoadReference
 ) extends LoadModel[FixedLoadRelevantData.type](
@@ -77,7 +77,7 @@ final case class FixedLoadModel(
     */
   override protected def calculateActivePower(
       data: FixedLoadRelevantData.type = FixedLoadRelevantData
-  ): squants.Power = activePower * scalingFactor
+  ): Power = activePower * scalingFactor
 }
 
 object FixedLoadModel {

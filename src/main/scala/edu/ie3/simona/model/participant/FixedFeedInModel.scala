@@ -14,6 +14,7 @@ import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
+import squants.Power
 import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
@@ -42,7 +43,7 @@ final case class FixedFeedInModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: squants.Power,
+    sRated: Power,
     cosPhiRated: Double
 ) extends SystemParticipant[FixedRelevantData.type](
       uuid,
@@ -64,7 +65,7 @@ final case class FixedFeedInModel(
     */
   override protected def calculateActivePower(
       data: FixedRelevantData.type = FixedRelevantData
-  ): squants.Power =
+  ): Power =
     sRated * (-1) * cosPhiRated * scalingFactor
 }
 

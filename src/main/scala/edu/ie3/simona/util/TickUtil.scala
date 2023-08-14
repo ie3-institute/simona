@@ -8,6 +8,7 @@ package edu.ie3.simona.util
 
 import breeze.numerics.floor
 import edu.ie3.util.TimeUtil
+import squants.Time
 import squants.time.Seconds
 
 import java.time.ZonedDateTime
@@ -39,14 +40,14 @@ object TickUtil {
       startDateTime.plusSeconds(tick)
 
     /** Calculates time spam of given time bin resolution */
-    def toTimespan: squants.Time =
+    def toTimespan: Time =
       Seconds(tick)
 
     /** Calculate the length for the time interval */
     def durationUntil(
         otherTick: Long,
-        tickDuration: squants.Time = Seconds(1d)
-    ): squants.Time =
+        tickDuration: Time = Seconds(1d)
+    ): Time =
       tickDuration * (otherTick - tick).toDouble
 
   }

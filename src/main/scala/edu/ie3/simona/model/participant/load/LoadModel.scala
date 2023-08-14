@@ -8,13 +8,12 @@ package edu.ie3.simona.model.participant.load
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.LoadInput
-
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl
-
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
+import squants.{Energy, Power}
 import squants.energy.Megawatts
 
 import java.util.UUID
@@ -30,7 +29,7 @@ abstract class LoadModel[D <: LoadRelevantData](
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: squants.Power,
+    sRated: Power,
     cosPhiRated: Double
 ) extends SystemParticipant[D](
       uuid,
@@ -64,9 +63,9 @@ case object LoadModel extends LazyLogging {
     */
   def scaleSRatedActivePower(
       inputModel: LoadInput,
-      activePower: squants.Power,
+      activePower: Power,
       safetyFactor: Double = 1d
-  ): squants.Power = {
+  ): Power = {
     val sRated = Megawatts(
       inputModel.getsRated
         .to(PowerSystemUnits.MEGAWATT)
@@ -101,10 +100,10 @@ case object LoadModel extends LazyLogging {
     */
   def scaleSRatedEnergy(
       inputModel: LoadInput,
-      energyConsumption: squants.Energy,
-      profileMaxPower: squants.Power,
-      profileEnergyScaling: squants.Energy
-  ): squants.Power = {
+      energyConsumption: Energy,
+      profileMaxPower: Power,
+      profileEnergyScaling: Energy
+  ): Power = {
     (profileMaxPower / inputModel.getCosPhiRated) * (
       energyConsumption / profileEnergyScaling
     )

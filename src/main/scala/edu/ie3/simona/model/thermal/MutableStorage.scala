@@ -6,6 +6,8 @@
 
 package edu.ie3.simona.model.thermal
 
+import squants.Energy
+
 /** This trait enables implementations of a [[ThermalStorage]], which need a
   * mutable storage. The trait can only be used by subclasses of
   * [[ThermalStorage]] (look [[self]]). <p> <strong>Important:</strong> The
@@ -16,9 +18,9 @@ trait MutableStorage {
 
   /** Current storage level
     */
-  protected var _storedEnergy: squants.Energy
+  protected var _storedEnergy: Energy
 
-  def isDemandCoveredByStorage(demand: squants.Energy): Boolean =
+  def isDemandCoveredByStorage(demand: Energy): Boolean =
     usableThermalEnergy >= demand
 
   /** Overridden in such manner, that this method returns the usable thermal
@@ -28,7 +30,7 @@ trait MutableStorage {
     * @return
     *   usable energy
     */
-  def usableThermalEnergy: squants.Energy
+  def usableThermalEnergy: Energy
 
   /** Add energy to storage and check if stored energy exceeds maximum. Return
     * the potential surplus energy.
@@ -39,8 +41,8 @@ trait MutableStorage {
     *   surplus
     */
   def tryToStoreAndReturnRemainder(
-      addedEnergy: squants.Energy
-  ): Option[squants.Energy]
+      addedEnergy: Energy
+  ): Option[Energy]
 
   /** Take energy from storage and check if stored energy falls to minimum.
     * Return the potential lack of energy.
@@ -51,6 +53,6 @@ trait MutableStorage {
     *   lack
     */
   def tryToTakeAndReturnLack(
-      takenEnergy: squants.Energy
-  ): Option[squants.Energy]
+      takenEnergy: Energy
+  ): Option[Energy]
 }

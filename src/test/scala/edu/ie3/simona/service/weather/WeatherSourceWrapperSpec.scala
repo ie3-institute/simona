@@ -29,6 +29,7 @@ import edu.ie3.util.geo.GeoUtils
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import org.locationtech.jts.geom.Point
+import squants.{Temperature, Velocity}
 import squants.motion.MetersPerSecond
 import squants.thermal.{Celsius, Kelvin}
 import tech.units.indriya.quantity.Quantities
@@ -41,8 +42,8 @@ import scala.jdk.CollectionConverters.{MapHasAsJava, SetHasAsJava}
 class WeatherSourceWrapperSpec extends UnitSpec {
 
   implicit val toleranceIrradiance: Irradiance = WattsPerSquareMeter(0.1d)
-  implicit val toleranceVelocity: squants.Velocity = MetersPerSecond(0.01d)
-  implicit val tolerance: squants.Temperature = Celsius(0.01d)
+  implicit val toleranceVelocity: Velocity = MetersPerSecond(0.01d)
+  implicit val tolerance: Temperature = Celsius(0.01d)
 
   "A weather source wrapper" should {
     val ctor = classOf[WeatherSourceWrapper].getDeclaredConstructor(
@@ -125,7 +126,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
     "return temperature quantity on absolute scale" in {
       val weightedCoordinates = WeightedCoordinates(Map(coordinate1a -> 1))
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
-      result.temp.unit shouldBe squants.thermal.Kelvin
+      result.temp.unit shouldBe Kelvin
     }
   }
 

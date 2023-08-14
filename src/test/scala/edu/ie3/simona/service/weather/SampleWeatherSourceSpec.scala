@@ -19,6 +19,7 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.mockito.MockitoSugar
+import squants.{Temperature, Velocity}
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities
@@ -33,8 +34,8 @@ class SampleWeatherSourceSpec
   implicit val simulationStart: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2011-01-01 00:00:00")
   implicit val toleranceIrradiance: Irradiance = WattsPerSquareMeter(0.1)
-  implicit val toleranceVelocity: squants.Velocity = MetersPerSecond(0.01)
-  implicit val toleranceTemperature: squants.Temperature = Celsius(0.01)
+  implicit val toleranceVelocity: Velocity = MetersPerSecond(0.01)
+  implicit val toleranceTemperature: Temperature = Celsius(0.01)
   val source: SampleWeatherSource = new SampleWeatherSource()
 
   "The sample weather source" should {

@@ -6,6 +6,12 @@
 
 package edu.ie3.simona.model.participant
 
+import squants.Dimensionless
+import squants.Each$
+import squants.energy.Kilowatts$
+import squants.space.Radians$
+import squants.space.SquareMeters$
+
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static tech.units.indriya.quantity.Quantities.getQuantity
 
@@ -27,16 +33,9 @@ import org.locationtech.jts.geom.Point
 import scala.Option
 import spock.lang.Shared
 import spock.lang.Specification
-import squants.Dimensionless
-import squants.Each$
-import squants.energy.Kilowatts$
 import squants.space.Angle
-import squants.space.Radians$
-import squants.space.SquareMeters$
 
 import java.time.ZonedDateTime
-
-
 
 /**
  * Test class that tries to cover all special cases of the current implementation of the PvModel
@@ -387,7 +386,7 @@ class PvModelTest extends Specification {
     //Sunrise Angle (Sunset Angle * (-1))
     Angle omegaSR = omegaSS.$times(-1d)
     //omega1 and omega2
-    Option<scala.Tuple2<squants.space.Angle, squants.space.Angle>> omegas = pvModel.calculateBeamOmegas(thetaG, omega, omegaSS, omegaSR)
+    Option<scala.Tuple2<Angle, Angle>> omegas = pvModel.calculateBeamOmegas(thetaG, omega, omegaSS, omegaSR)
 
     expect:
     "- should calculate the beam contribution,"

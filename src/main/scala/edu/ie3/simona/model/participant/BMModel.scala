@@ -11,6 +11,7 @@ import edu.ie3.simona.model.participant.BMModel.BMCalcRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.EnergyPrice
+import squants.{Temperature, Money, Power, Dimensionless}
 import squants.energy.{Kilowatts, Megawatts}
 
 import java.time.ZonedDateTime
@@ -25,11 +26,11 @@ final case class BMModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: squants.Power,
+    sRated: Power,
     cosPhi: Double,
     private val node: String,
     private val isCostControlled: Boolean,
-    private val opex: squants.market.Money,
+    private val opex: Money,
     private val feedInTariff: EnergyPrice,
     private val loadGradient: Double
 ) extends SystemParticipant[BMCalcRelevantData](
@@ -44,11 +45,11 @@ final case class BMModel(
 
   /** Saves power output of last cycle. Needed for load gradient
     */
-  private var _lastPower: Option[squants.Power] = None
+  private var _lastPower: Option[Power] = None
 
   override def calculatePower(
       tick: Long,
-      voltage: squants.Dimensionless,
+      voltage: Dimensionless,
       data: BMCalcRelevantData
   ): ApparentPower = {
     val result = super.calculatePower(tick, voltage, data)
@@ -66,7 +67,7 @@ final case class BMModel(
     */
   override protected def calculateActivePower(
       data: BMCalcRelevantData
-  ): squants.Power = {
+  ): Power = {
     // Calculate heat demand //
     val (k1, k2) = (calculateK1(data.date), calculateK2(data.date))
     val pTh = calculatePTh(data.temperature, k1, k2)
@@ -129,10 +130,10 @@ final case class BMModel(
     *   heat demand in Megawatt
     */
   private def calculatePTh(
-      temp: squants.Temperature,
+      temp: Temperature,
       k1: Double,
       k2: Double
-  ): squants.Power = {
+  ): Power = {
     // linear regression: Heat-demand in relation to temperature (above 19.28°C: independent of temperature)
     val pTh = temp.toCelsiusScale match {
       case x if x < 19.28 => (-1.076 * x + 26.36) * k1 * k2
@@ -148,7 +149,7 @@ final case class BMModel(
     * @return
     *   usage
     */
-  private def calculateUsage(pTh: squants.Power): Double = {
+  private def calculateUsage(pTh: Power): Double = {
     // if demand exceeds capacity -> activate peak load boiler (no effect on electrical output)
     val maxHeat = Megawatts(43.14)
     val usageUnchecked = pTh / maxHeat
@@ -177,7 +178,7 @@ final case class BMModel(
   private def calculateElOutput(
       usage: Double,
       eff: Double
-  ): squants.Power = {
+  ): Power = {
     val currOpex = opex.divide(eff)
     val avgOpex = (currOpex + opex).divide(2)
 
@@ -197,8 +198,8 @@ final case class BMModel(
     *   electrical output after load gradient has been applied
     */
   private def applyLoadGradient(
-      pEl: squants.Power
-  ): squants.Power = {
+      pEl: Power
+  ): Power = {
     _lastPower match {
       case None => pEl
       case Some(lastPowerVal) =>
@@ -227,6 +228,6 @@ case object BMModel {
     */
   final case class BMCalcRelevantData(
       date: ZonedDateTime,
-      temperature: squants.Temperature
+      temperature: Temperature
   ) extends CalcRelevantData
 }

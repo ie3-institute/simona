@@ -16,6 +16,7 @@ import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomReleva
 import edu.ie3.simona.model.participant.load.{DayType, LoadModel, LoadReference}
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.OperationInterval
+import squants.Power
 import squants.energy.{KilowattHours, Kilowatts, Watts}
 
 import java.time.ZonedDateTime
@@ -51,7 +52,7 @@ final case class RandomLoadModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: squants.Power,
+    sRated: Power,
     cosPhiRated: Double,
     reference: LoadReference
 ) extends LoadModel[RandomRelevantData](
@@ -89,7 +90,7 @@ final case class RandomLoadModel(
   @tailrec
   override protected def calculateActivePower(
       data: RandomRelevantData
-  ): squants.Power = {
+  ): Power = {
     val gev = getGevDistribution(data.date)
 
     /* Get a next random power (in kW) */
@@ -171,7 +172,7 @@ case object RandomLoadModel {
     * @return
     *   Reference power to use for later model calculations
     */
-  private val randomMaxPower: squants.Power = Watts(159d)
+  private val randomMaxPower: Power = Watts(159d)
 
   def apply(
       input: LoadInput,
