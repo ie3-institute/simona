@@ -17,8 +17,8 @@ object SquantsUtils {
     )
   }
   implicit class RichPower(power: squants.Power) {
-      def /(that: ReactivePower): squants.Dimensionless = Each(
-        power.toWatts / that.toVars
-      )
-    }
+    def /(that: ReactivePower): squants.Dimensionless = Each(
+      power.toWatts / that.toVars
+    )
+  }
 }
