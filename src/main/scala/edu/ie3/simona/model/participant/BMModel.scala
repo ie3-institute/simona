@@ -11,8 +11,8 @@ import edu.ie3.simona.model.participant.BMModel.BMCalcRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.EnergyPrice
-import squants.{Temperature, Money, Power, Dimensionless}
 import squants.energy.{Kilowatts, Megawatts}
+import squants.{Dimensionless, Money, Power, Temperature}
 
 import java.time.ZonedDateTime
 import java.util.UUID

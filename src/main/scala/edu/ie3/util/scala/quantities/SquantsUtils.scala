@@ -15,11 +15,10 @@ object SquantsUtils {
     def calcVolume(that: EnergyDensity): Volume = CubicMeters(
       energy.toKilowattHours / that.toKilowattHoursPerCubicMeter
     )
-
-    implicit class RichPower(power: squants.Power) {
+  }
+  implicit class RichPower(power: squants.Power) {
       def /(that: ReactivePower): squants.Dimensionless = Each(
         power.toWatts / that.toVars
       )
     }
-  }
 }
