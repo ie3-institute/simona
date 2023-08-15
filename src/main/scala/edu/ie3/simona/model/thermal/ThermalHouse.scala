@@ -213,7 +213,7 @@ case object ThermalHouse {
     *   a ready-to-use [[ThermalHouse]] with referenced electric parameters
     */
 
-  protected final def temperatureTolerance: Temperature = Celsius(0.01)
+  protected def temperatureTolerance: Temperature = Celsius(0.01)
 
   def apply(
       input: ThermalHouseInput
