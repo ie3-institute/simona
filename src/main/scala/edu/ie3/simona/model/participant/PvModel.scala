@@ -712,21 +712,21 @@ final case class PvModel private (
     /* The actual yield of this sum of available panels. As the solar irradiance summed up over the total panel surface
      * area. The yield also takes care of generator and temperature correction factors as well as the converter's
      * efficiency */
-    val `actYield` =
+    val actYield =
       eTotalInWhPerSM * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
 
     /* Calculate the foreseen active power output without boundary condition adaptions */
     val proposal = Megawatts(sRated.toMegawatts) * (-1) * (
-      `actYield` / irradiationSTC
+      actYield / irradiationSTC
     ) * cosPhiRated
 
     /* Do sanity check, if the proposed feed in is above the estimated maximum to be apparent active power of the plant */
-    if (proposal < Megawatts(pMax.toMegawatts))
+    if (proposal < pMax)
       logger.warn(
         "The fed in active power is higher than the estimated maximum active power of this plant ({} < {}). " +
           "Did you provide wrong weather input data?",
         proposal,
-        Megawatts(pMax.toMegawatts)
+        pMax
       )
 
     /* If the output is marginally small, suppress the output, as we are likely to be in night and then only produce incorrect output */
