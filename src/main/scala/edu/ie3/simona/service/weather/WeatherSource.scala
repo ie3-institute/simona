@@ -40,7 +40,7 @@ import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
 import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.io.CsvDataSourceWrapper
+import edu.ie3.util.scala.io.CsvDataSourceAdapter
 import org.locationtech.jts.geom.{Coordinate, Point}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
@@ -469,7 +469,7 @@ object WeatherSource {
         () =>
           new CsvIdCoordinateSource(
             idCoordinateFactory,
-            new CsvDataSourceWrapper(
+            new CsvDataSourceAdapter(
               csvSep,
               Paths.get(directoryPath),
               new FileNamingStrategy()

@@ -409,40 +409,7 @@ case object WeatherSourceSpec {
         coordinate: Point,
         n: Int
     ): util.List[CoordinateDistance] = {
-      val points: util.Collection[Point] =
-        if (idToCoordinate.size < n) {
-          val foundPoints: util.ArrayList[Point] = new util.ArrayList()
-          val distance: DistanceWrapper = new DistanceWrapper()
-
-          while (foundPoints.size() < n) {
-            foundPoints.clear()
-            distance * 2
-
-            val envelope: Envelope =
-              GeoUtils.calculateBoundingBox(coordinate, distance.distance)
-
-            coordinateToId.keySet.foreach { point =>
-              if (envelope.contains(point.getCoordinate)) {
-                foundPoints.add(point)
-              }
-            }
-          }
-
-          foundPoints
-        } else {
-          coordinateToId.keySet.asJava
-        }
-
-      calculateCoordinateDistances(coordinate, n, points)
-    }
-  }
-
-  final class DistanceWrapper {
-    var distance: ComparableQuantity[Length] =
-      Quantities.getQuantity(10000, Units.METRE)
-
-    def *(value: Int): Unit = {
-      distance = distance.multiply(value)
+      calculateCoordinateDistances(coordinate, n, coordinateToId.keySet.asJava)
     }
   }
 }

@@ -115,7 +115,7 @@ class PrimaryServiceWorkerSpec
       service.init(maliciousInitData) match {
         case Failure(exception) =>
           exception.getClass shouldBe classOf[IllegalArgumentException]
-          exception.getMessage shouldBe "[Unable to obtain time series with UUID '3fbfaa97-cff4-46d4-95ba-a95665e87c26'. Please check arguments!]"
+          exception.getMessage shouldBe "Unable to obtain time series with UUID '3fbfaa97-cff4-46d4-95ba-a95665e87c26'. Please check arguments!"
         case Success(_) =>
           fail("Initialisation with unsupported init data is meant to fail.")
       }
