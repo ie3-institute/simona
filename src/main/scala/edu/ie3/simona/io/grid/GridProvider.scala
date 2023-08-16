@@ -37,7 +37,7 @@ object GridProvider extends LazyLogging {
               simulationName,
               params.csvSep,
               Path.of(params.directoryPath),
-              true
+              params.isHierarchic
             )
 
             Try(ValidationUtils.check(jointGridContainer)) match {
