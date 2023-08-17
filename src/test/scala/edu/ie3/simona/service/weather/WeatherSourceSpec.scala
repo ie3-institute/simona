@@ -6,9 +6,26 @@
 
 package edu.ie3.simona.service.weather
 
+import edu.ie3.datamodel.io.factory.timeseries.{
+  CosmoIdCoordinateFactory,
+  IconIdCoordinateFactory,
+  IdCoordinateFactory
+}
 import edu.ie3.datamodel.io.source.IdCoordinateSource
-import edu.ie3.simona.exceptions.ServiceException
+import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
+import edu.ie3.datamodel.io.source.sql.SqlIdCoordinateSource
+import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.{
+  SampleParams,
+  SqlParams
+}
+import edu.ie3.simona.exceptions.{
+  InvalidConfigParameterException,
+  ServiceException
+}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
+import edu.ie3.simona.service.weather.SampleWeatherSource.SampleIdCoordinateSource
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates
@@ -22,12 +39,13 @@ import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
+import java.security.InvalidParameterException
 import java.util
 import java.util.Optional
 import javax.measure.quantity.Length
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 class WeatherSourceSpec extends UnitSpec {
   private val coordinate0 = GeoUtils.buildPoint(51.47, 7.41)
@@ -297,6 +315,41 @@ class WeatherSourceSpec extends UnitSpec {
             "Determining the nearest weighted coordinates was meant to succeed.",
             exception
           )
+      }
+    }
+
+    "return correct coordinate factory" in {
+      val checkCoordinateFactory =
+        PrivateMethod[IdCoordinateFactory](Symbol("checkCoordinateFactory"))
+
+      val cases = Table(
+        ("gridModel", "expectedClass", "failureMessage"),
+        (
+          "",
+          classOf[InvalidConfigParameterException],
+          "No grid model defined!"
+        ),
+        ("icon", classOf[IconIdCoordinateFactory], ""),
+        ("cosmo", classOf[CosmoIdCoordinateFactory], ""),
+        (
+          "else",
+          classOf[InvalidConfigParameterException],
+          "Grid model 'else' is not supported!"
+        )
+      )
+
+      forAll(cases) { (gridModel, expectedClass, failureMessage) =>
+        val actual =
+          Try(WeatherSource invokePrivate checkCoordinateFactory(gridModel))
+
+        actual match {
+          case Success(factory) =>
+            factory.getClass shouldBe expectedClass
+
+          case Failure(exception) =>
+            exception.getClass shouldBe expectedClass
+            exception.getMessage shouldBe failureMessage
+        }
       }
     }
   }
