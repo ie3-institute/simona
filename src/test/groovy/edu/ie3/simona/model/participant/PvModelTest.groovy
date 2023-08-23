@@ -348,7 +348,7 @@ class PvModelTest extends Specification {
     -35.3d        | -17.51d         | -4.2d          | 30d        | +170d      || 14.882390116876563d                     // Goswami Priciples of Solar Engineering Example 2.7b
   }
 
-  def "testing the equality of zenith angle of a horizontal surface and thetaG of a sloped surface"() {
+  def "Testing the equality of zenith angle of a horizontal surface and thetaG of a sloped surface"() {
 
     "Iqbal Figure 1.6.2 - the angle of incidence of a surface sloped by angle beta at " +
         "latitude phi should be same as the zenith angle of an unsloped surface" +
