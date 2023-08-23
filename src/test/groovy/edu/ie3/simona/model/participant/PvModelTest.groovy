@@ -299,28 +299,42 @@ class PvModelTest extends Specification {
 
   def "Calculate the angle of incidence thetaG"() {
 
-    "Calculate the angle of incidence of beam radiation on a surface located at Madison (lat: 43◦ N), Wisconsin, " +
-        "at 10:30 (solar time) on February 13 if the surface is tilted 45◦ from the horizontal and pointed 15◦ " +
+    "Calculate the angle of incidence of beam radiation on a surface located at a Latitude" +
+        "at a certain hour angle (solar time) on a given declination (date) if the surface " +
+        "is tilted by a certain slope from the horizontal and pointed to a certain panel azimuth " +
         "west of south."
 
     "== Calculate the angle of incidence thetaG =="
-    when:
+    given:
     // Declination Angle delta of the sun at solar noon
-    Quantity<Angle> delta = getQuantity(Math.toRadians(-14), RADIAN)
+    Quantity<Angle> deltaRad = getQuantity(Math.toRadians(deltaIn), RADIAN)
     //Latitude in Radian
-    Quantity<Angle> latitudeInRad = getQuantity(Math.toRadians(43d), RADIAN)
+    Quantity<Angle> latitudeInRad = getQuantity(Math.toRadians(latitudeInDeg), RADIAN)
     //Hour Angle
-    Quantity<Angle> omega = getQuantity(Math.toRadians(-22.5), RADIAN)
+    Quantity<Angle> omegaRad = getQuantity(Math.toRadians(omegaDeg), RADIAN)
     //Inclination Angle of the surface
-    Quantity<Angle> gammaE = getQuantity(Math.toRadians(45), RADIAN)
+    Quantity<Angle> gammaERad = getQuantity(Math.toRadians(gammaEDeg), RADIAN)
     //Sun's azimuth
-    Quantity<Angle> alphaE = getQuantity(Math.toRadians(15), RADIAN)
+    Quantity<Angle> alphaERad = getQuantity(Math.toRadians(alphaEDeg), RADIAN)
 
-    then:
+    expect:
+    "- should calculate the angle of incidence thetaG "
     QuantityUtil.isEquivalentAbs(
-        pvModel.calcAngleOfIncidenceThetaG(delta, latitudeInRad, gammaE, alphaE, omega).to(DEGREE_GEOM),
-        getQuantity(35.176193345578606393727080835951995075234213360724, DEGREE_GEOM),
+        pvModel.calcAngleOfIncidenceThetaG(deltaRad, latitudeInRad, gammaERad, alphaERad, omegaRad).to(DEGREE_GEOM),
+        getQuantity(thetaGOut, DEGREE_GEOM),
         TESTING_TOLERANCE)
+
+    where: "the following parameters are given"
+    latitudeInDeg | deltaIn         | omegaDeg       | gammaEDeg  | alphaEDeg  || thetaGOut
+    43d           | -14d            | -22.5d         | 45d        | 15d        || 35.176193345578606393727080835951995075234213360724d  // Duffie
+    51.516667d    | +18.4557514d    | -15.00225713d  | 30d        | +0d        || 14.420271449960717d                     // Iqbal
+    51.516667d    | +18.4557514d    | -15.00225713d  | 90d        | +0d        || 58.652873100176244d                     // Iqbal
+    35.0d         | +23.2320597d    | +30.00053311d  | 45d        | 10d        || 39.62841449023578d                      // Kalogirou - Solar Energy Engineering Example 2.7  ISBN 978-0-12-374501-9; DOI https://doi.org/10.1016/B978-0-12-374501-9.X0001-5
+    35.0d         | +23.2320597d    | +30.00053311d  | 45d        | 90d        || 18.946300807438607d                     // Kalogirou - Solar Energy Engineering Example 2.7 changed to 90° panel azimuth to WEST
+    35.0d         | +23.2320597d    | +74.648850625d | 45d        | 90d        || 21.954803473807292d                     // Kalogirou - Solar Energy Engineering Example 2.7  90° panel azimuth to WEST at 17:00
+    35.0d         | +23.2320597d    | +74.648850625d | 45d        | -90d       || 109.00780288303966d                     // Kalogirou - Solar Energy Engineering Example 2.7  90° panel azimuth to EAST at 17:00
+    27.96d        | -17.51d         | -11.1d         | 30d        | +10d       || 22.384603601536398d                     // Goswami Priciples of Solar Engineering Example 2.7a
+    -35.3d        | -17.51d         | -4.2d          | 30d        | +170d      || 14.882390116876563d                     // Goswami Priciples of Solar Engineering Example 2.7b
   }
 
   def "Calculate the solar altitude (azimuth) angle alphaS"() {
