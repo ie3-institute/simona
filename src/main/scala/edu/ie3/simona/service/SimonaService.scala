@@ -55,8 +55,7 @@ abstract class SimonaService[
           InitializeServiceTrigger(
             initializeStateData: InitializeServiceStateData
           ),
-          triggerId,
-          _
+          triggerId
         ) =>
       // init might take some time and could go wrong if invalid initialize service data is received
       // execute complete and unstash only if init is carried out successfully
@@ -119,7 +118,7 @@ abstract class SimonaService[
       }
 
     // activity start trigger for this service
-    case TriggerWithIdMessage(ActivityStartTrigger(tick), triggerId, _) =>
+    case TriggerWithIdMessage(ActivityStartTrigger(tick), triggerId) =>
       /* The scheduler sends out an activity start trigger. Announce new data to all registered recipients. */
       val (updatedStateData, maybeNewTriggers) =
         announceInformation(tick)(stateData)
@@ -159,7 +158,7 @@ abstract class SimonaService[
     */
   def init(
       initServiceData: InitializeServiceStateData
-  ): Try[(S, Option[Seq[ScheduleTriggerMessage]])]
+  ): Try[(S, Option[ScheduleTriggerMessage])]
 
   /** Handle a request to register for information from this service
     *
@@ -190,6 +189,6 @@ abstract class SimonaService[
     */
   protected def announceInformation(tick: Long)(implicit
       serviceStateData: S
-  ): (S, Option[Seq[ScheduleTriggerMessage]])
+  ): (S, Option[ScheduleTriggerMessage])
 
 }

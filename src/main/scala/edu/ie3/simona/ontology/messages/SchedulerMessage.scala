@@ -24,8 +24,13 @@ object SchedulerMessage {
     */
   case object InitSimMessage extends SchedulerMessage
 
+  final case class InitTimeAdvancer(
+      autoStart: Boolean = true
+  ) extends SchedulerMessage
+
   /** Tell the [[SimScheduler]] to start the simulation
     */
+  // TODO rename to StartSimMessage
   final case class StartScheduleMessage(
       pauseScheduleAtTick: Option[Long] = None
   ) extends SchedulerMessage
@@ -48,12 +53,12 @@ object SchedulerMessage {
     *
     * @param triggerId
     *   the triggerId we want to confirm the completion
-    * @param newTriggers
-    *   optional new triggers to schedule
+    * @param newTrigger
+    *   optional new trigger to schedule
     */
   final case class CompletionMessage(
       triggerId: Long,
-      newTriggers: Option[Seq[ScheduleTriggerMessage]] = None
+      newTrigger: Option[ScheduleTriggerMessage] = None
   ) extends SchedulerMessage
 
   /** a message that is send by the scheduler to an agent including an unique id
@@ -61,8 +66,7 @@ object SchedulerMessage {
     */
   final case class TriggerWithIdMessage(
       trigger: Trigger,
-      triggerId: Long,
-      receiverActor: ActorRef
+      triggerId: Long
   ) extends SchedulerMessage
 
   /** respond to agent that the send trigger is illegal

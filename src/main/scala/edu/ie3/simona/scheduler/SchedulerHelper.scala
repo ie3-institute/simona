@@ -561,10 +561,8 @@ trait SchedulerHelper extends SimonaActorLogging {
   ): SchedulerStateData = {
 
     /* schedule new triggers, if any */
-    val updatedStateData = completionMessage.newTriggers.map(
-      _.foldLeft(inputStateData)((updatedStateData, newTrigger) =>
-        scheduleTrigger(newTrigger, updatedStateData)
-      )
+    val updatedStateData = completionMessage.newTrigger.map(
+      scheduleTrigger(_, inputStateData)
     ) match {
       /* after scheduling the new triggers, if any, we go on with either the same or updated state data */
       case stateDataOpt =>
@@ -779,6 +777,7 @@ trait SchedulerHelper extends SimonaActorLogging {
   ): SchedulerStateData = {
 
     // watch the actor to be scheduled to know when it dies
+    // FIXME the actor who created this actor should watch
     context.watch(actorToBeScheduled)
 
     // if the tick of this trigger is too much in the past, we cannot schedule it
@@ -797,8 +796,7 @@ trait SchedulerHelper extends SimonaActorLogging {
       val triggerWithIdMessage =
         TriggerWithIdMessage(
           trigger,
-          updatedTriggerIdCounter,
-          actorToBeScheduled
+          updatedTriggerIdCounter
         )
 
       /* update trigger queue */

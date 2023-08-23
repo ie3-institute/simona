@@ -174,8 +174,7 @@ class ParticipantAgentExternalSourceSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          mockAgent
+          triggerId
         )
       )
 
@@ -215,24 +214,17 @@ class ParticipantAgentExternalSourceSpec
         RegistrationSuccessfulMessage(Some(4711L))
       )
 
-      scheduler.expectMsgClass(classOf[CompletionMessage]) match {
-        case CompletionMessage(actualTriggerId, newTriggers) =>
-          actualTriggerId shouldBe triggerId
-          newTriggers match {
-            case Some(triggers) =>
-              triggers.size shouldBe 1
-              triggers.exists {
-                case ScheduleTriggerMessage(
-                      ActivityStartTrigger(tick),
-                      actorToBeScheduled
-                    ) =>
-                  tick == 4711L && actorToBeScheduled == mockAgent
-                case unexpected =>
-                  fail(s"Received unexpected trigger message $unexpected")
-              } shouldBe true
-            case None => fail("Expected to get a trigger for tick 4711.")
-          }
-      }
+      scheduler.expectMsg(
+        CompletionMessage(
+          triggerId,
+          Some(
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(4711L),
+              mockAgent
+            )
+          )
+        )
+      )
 
       /* ... as well as corresponding state and state data */
       mockAgent.stateName shouldBe Idle
@@ -283,8 +275,7 @@ class ParticipantAgentExternalSourceSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          mockAgent
+          triggerId
         )
       )
 
@@ -375,8 +366,7 @@ class ParticipantAgentExternalSourceSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          mockAgent
+          initialiseTriggerId
         )
       )
 
@@ -442,8 +432,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -452,11 +441,9 @@ class ParticipantAgentExternalSourceSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(1800L),
-                mockAgent
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(1800L),
+              mockAgent
             )
           )
         )
@@ -517,8 +504,7 @@ class ParticipantAgentExternalSourceSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          mockAgent
+          initialiseTriggerId
         )
       )
 
@@ -538,8 +524,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -587,11 +572,9 @@ class ParticipantAgentExternalSourceSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(1800L),
-                mockAgent
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(1800L),
+              mockAgent
             )
           )
         )
@@ -652,8 +635,7 @@ class ParticipantAgentExternalSourceSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0L,
-          mockAgent
+          0L
         )
       )
 
@@ -695,8 +677,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -704,11 +685,9 @@ class ParticipantAgentExternalSourceSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(1800L),
-                mockAgent
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(1800L),
+              mockAgent
             )
           )
         )
@@ -810,8 +789,7 @@ class ParticipantAgentExternalSourceSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0,
-          mockAgent
+          0
         )
       )
 
@@ -843,19 +821,16 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           1L,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(1800L),
-                mockAgent
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(1800L),
+              mockAgent
             )
           )
         )
@@ -877,19 +852,16 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(1800L),
-          2L,
-          scheduler.ref
+          2L
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           2L,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(2700L),
-                mockAgent
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(2700L),
+              mockAgent
             )
           )
         )
@@ -911,8 +883,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(2700L),
-          3L,
-          scheduler.ref
+          3L
         )
       )
       scheduler.expectMsg(CompletionMessage(3L, None))

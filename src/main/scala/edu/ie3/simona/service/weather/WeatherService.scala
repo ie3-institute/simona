@@ -129,7 +129,7 @@ final case class WeatherService(
     */
   override def init(
       initServiceData: InitializeServiceStateData
-  ): Try[(WeatherInitializedStateData, Option[Seq[ScheduleTriggerMessage]])] =
+  ): Try[(WeatherInitializedStateData, Option[ScheduleTriggerMessage])] =
     initServiceData match {
       case InitWeatherServiceStateData(sourceDefinition) =>
         val weatherSource =
@@ -299,7 +299,7 @@ final case class WeatherService(
     */
   override protected def announceInformation(tick: Long)(implicit
       serviceStateData: WeatherInitializedStateData
-  ): (WeatherInitializedStateData, Option[Seq[ScheduleTriggerMessage]]) = {
+  ): (WeatherInitializedStateData, Option[ScheduleTriggerMessage]) = {
 
     /* Pop the next activation tick and update the state data */
     val (

@@ -328,8 +328,7 @@ class PrimaryServiceProxySpec
 
       proxyRef ! TriggerWithIdMessage(
         InitializeServiceTrigger(initStateData),
-        0L,
-        self
+        0L
       )
       expectMsg(CompletionMessage(0L, None))
     }
@@ -669,8 +668,7 @@ class PrimaryServiceProxySpec
       )
       fakeProxyRef ! TriggerWithIdMessage(
         InitializeServiceTrigger(initStateData),
-        0L,
-        self
+        0L
       )
       expectMsg(CompletionMessage(0L, None))
 

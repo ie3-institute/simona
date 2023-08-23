@@ -183,8 +183,7 @@ class WecAgentModelCalculationSpec
               )
             )
           ),
-          triggerId,
-          wecAgent
+          triggerId
         )
       )
 
@@ -271,8 +270,7 @@ class WecAgentModelCalculationSpec
               )
             )
           ),
-          triggerId,
-          wecAgent
+          triggerId
         )
       )
 
@@ -338,9 +336,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           triggerId,
           Some(
-            Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(4711), wecAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(4711), wecAgent)
           )
         )
       )
@@ -400,8 +396,7 @@ class WecAgentModelCalculationSpec
               )
             )
           ),
-          triggerId,
-          wecAgent
+          triggerId
         )
       )
 
@@ -491,8 +486,7 @@ class WecAgentModelCalculationSpec
               )
             )
           ),
-          initialiseTriggerId,
-          wecAgent
+          initialiseTriggerId
         )
       )
 
@@ -557,8 +551,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -568,7 +561,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
           )
         )
       )
@@ -655,8 +648,7 @@ class WecAgentModelCalculationSpec
               )
             )
           ),
-          initialiseTriggerId,
-          wecAgent
+          initialiseTriggerId
         )
       )
 
@@ -677,8 +669,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -728,7 +719,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
           )
         )
       )
@@ -817,8 +808,7 @@ class WecAgentModelCalculationSpec
               )
             )
           ),
-          0L,
-          wecAgent
+          0L
         )
       )
 
@@ -860,8 +850,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -871,7 +860,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
           )
         )
       )
@@ -926,8 +915,7 @@ class WecAgentModelCalculationSpec
               )
             )
           ),
-          0L,
-          wecAgent
+          0L
         )
       )
 
@@ -962,15 +950,14 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
           )
         )
       )
@@ -993,15 +980,14 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(1800L),
-          3L,
-          scheduler.ref
+          3L
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           3L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(2700L), wecAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(2700L), wecAgent)
           )
         )
       )
@@ -1024,8 +1010,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(2700L),
-          5L,
-          scheduler.ref
+          5L
         )
       )
       scheduler.expectMsg(CompletionMessage(5L))

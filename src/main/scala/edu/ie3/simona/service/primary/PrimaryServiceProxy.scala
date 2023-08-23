@@ -108,14 +108,13 @@ case class PrimaryServiceProxy(
               simulationStart
             )
           ),
-          triggerId,
-          _
+          triggerId
         ) =>
       /* The proxy is asked to initialize itself. If that happened successfully, change the logic of receiving
        * messages */
       prepareStateData(primaryConfig, simulationStart) match {
         case Success(stateData) =>
-          sender() ! CompletionMessage(triggerId, newTriggers = None)
+          sender() ! CompletionMessage(triggerId, newTrigger = None)
           context become onMessage(stateData)
         case Failure(exception) =>
           log.error(

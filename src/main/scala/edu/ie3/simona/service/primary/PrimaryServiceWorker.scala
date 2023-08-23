@@ -61,7 +61,7 @@ final case class PrimaryServiceWorker[V <: Value](
   ): Try[
     (
         PrimaryServiceInitializedStateData[V],
-        Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+        Option[SchedulerMessage.ScheduleTriggerMessage]
     )
   ] = {
     (initServiceData match {
@@ -203,7 +203,7 @@ final case class PrimaryServiceWorker[V <: Value](
       tick: Long
   )(implicit serviceBaseStateData: PrimaryServiceInitializedStateData[V]): (
       PrimaryServiceInitializedStateData[V],
-      Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+      Option[SchedulerMessage.ScheduleTriggerMessage]
   ) = {
     /* Get the information to distribute */
     val wallClockTime = tick.toDateTime(serviceBaseStateData.startDateTime)
@@ -235,7 +235,7 @@ final case class PrimaryServiceWorker[V <: Value](
       baseStateData: PrimaryServiceInitializedStateData[V]
   ): (
       PrimaryServiceInitializedStateData[V],
-      Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+      Option[SchedulerMessage.ScheduleTriggerMessage]
   ) = {
     val (maybeNextActivationTick, remainderActivationTicks) =
       baseStateData.activationTicks.pop
@@ -271,7 +271,7 @@ final case class PrimaryServiceWorker[V <: Value](
       serviceBaseStateData: PrimaryServiceInitializedStateData[V]
   ): (
       PrimaryServiceInitializedStateData[V],
-      Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+      Option[SchedulerMessage.ScheduleTriggerMessage]
   ) = value.toPrimaryData match {
     case Success(primaryData) =>
       announcePrimaryData(tick, primaryData, serviceBaseStateData)
@@ -303,7 +303,7 @@ final case class PrimaryServiceWorker[V <: Value](
       serviceBaseStateData: PrimaryServiceInitializedStateData[V]
   ): (
       PrimaryServiceInitializedStateData[V],
-      Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+      Option[SchedulerMessage.ScheduleTriggerMessage]
   ) = {
     val (maybeNextTick, remainderActivationTicks) =
       serviceBaseStateData.activationTicks.pop

@@ -61,18 +61,15 @@ final case class ExtSimAdapter(scheduler: ActorRef)
           InitializeExtSimAdapterTrigger(
             InitExtSimAdapter(extSimData)
           ),
-          triggerId,
-          _
+          triggerId
         ) =>
       // triggering first time at init tick
       sender() ! CompletionMessage(
         triggerId,
         Some(
-          Seq(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(INIT_SIM_TICK),
-              self
-            )
+          ScheduleTriggerMessage(
+            ActivityStartTrigger(INIT_SIM_TICK),
+            self
           )
         )
       )
@@ -82,7 +79,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
   }
 
   def receiveIdle(implicit stateData: ExtSimAdapterStateData): Receive = {
-    case TriggerWithIdMessage(ActivityStartTrigger(tick), triggerId, _) =>
+    case TriggerWithIdMessage(ActivityStartTrigger(tick), triggerId) =>
       stateData.extSimData.queueExtMsg(
         new ExtActivityStartTrigger(tick)
       )

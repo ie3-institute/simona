@@ -81,8 +81,7 @@ class ExtEvDataServiceSpec
               extEvData(evService)
             )
           ),
-          triggerId,
-          evService
+          triggerId
         )
       )
 
@@ -120,8 +119,7 @@ class ExtEvDataServiceSpec
               extEvData(evService)
             )
           ),
-          1L,
-          evService
+          1L
         )
       )
 
@@ -146,8 +144,7 @@ class ExtEvDataServiceSpec
               extEvData(evService)
             )
           ),
-          1L,
-          evService
+          1L
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -193,8 +190,7 @@ class ExtEvDataServiceSpec
               extData
             )
           ),
-          1L,
-          evService
+          1L
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -206,8 +202,7 @@ class ExtEvDataServiceSpec
             ActivityStartTrigger(
               0L
             ),
-            2L,
-            evService
+            2L
           ),
           scheduler.ref
         )
@@ -233,8 +228,7 @@ class ExtEvDataServiceSpec
               extData
             )
           ),
-          1L,
-          evService
+          1L
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -272,8 +266,7 @@ class ExtEvDataServiceSpec
           ActivityStartTrigger(
             tick
           ),
-          triggerId,
-          evService
+          triggerId
         )
       )
 
@@ -345,8 +338,7 @@ class ExtEvDataServiceSpec
               extData
             )
           ),
-          1L,
-          evService
+          1L
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -369,8 +361,7 @@ class ExtEvDataServiceSpec
           ActivityStartTrigger(
             tick
           ),
-          triggerId,
-          evService
+          triggerId
         )
       )
 
@@ -408,8 +399,7 @@ class ExtEvDataServiceSpec
               extData
             )
           ),
-          1L,
-          evService
+          1L
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -452,8 +442,7 @@ class ExtEvDataServiceSpec
           ActivityStartTrigger(
             tick
           ),
-          triggerId,
-          evService
+          triggerId
         )
       )
 
@@ -529,8 +518,7 @@ class ExtEvDataServiceSpec
               extData
             )
           ),
-          1L,
-          evService
+          1L
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -573,8 +561,7 @@ class ExtEvDataServiceSpec
           ActivityStartTrigger(
             tick
           ),
-          triggerId,
-          evService
+          triggerId
         )
       )
 
@@ -592,23 +579,12 @@ class ExtEvDataServiceSpec
         )
       )
 
-      scheduler.expectMsg(
-        CompletionMessage(
-          triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(tick),
-                evcs1.ref
-              ),
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(tick),
-                evcs2.ref
-              )
-            )
-          )
-        )
+      scheduler.expectMsgAllOf(
+        ScheduleTriggerMessage(ActivityStartTrigger(tick), evcs1.ref),
+        ScheduleTriggerMessage(ActivityStartTrigger(tick), evcs2.ref)
       )
+
+      scheduler.expectMsg(CompletionMessage(triggerId, None))
 
       // no response expected
       extData.receiveTriggerQueue shouldBe empty
@@ -631,8 +607,7 @@ class ExtEvDataServiceSpec
               extData
             )
           ),
-          1L,
-          evService
+          1L
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -668,8 +643,7 @@ class ExtEvDataServiceSpec
           ActivityStartTrigger(
             tick
           ),
-          triggerId,
-          evService
+          triggerId
         )
       )
 
@@ -683,18 +657,13 @@ class ExtEvDataServiceSpec
       )
 
       scheduler.expectMsg(
-        CompletionMessage(
-          triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(tick),
-                evcs1.ref
-              )
-            )
-          )
+        ScheduleTriggerMessage(
+          ActivityStartTrigger(tick),
+          evcs1.ref
         )
       )
+
+      scheduler.expectMsg(CompletionMessage(triggerId, None))
 
       // no response expected
       extData.receiveTriggerQueue shouldBe empty

@@ -35,8 +35,6 @@ import edu.ie3.util.TimeUtil
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object GridAgent {
@@ -103,8 +101,7 @@ class GridAgent(
             InitializeGridAgentTrigger(
               gridAgentInitData: GridAgentInitData
             ),
-            triggerId,
-            _
+            triggerId
           ),
           _
         ) =>
@@ -177,7 +174,7 @@ class GridAgent(
       goto(Idle) using gridAgentBaseData replying CompletionMessage(
         triggerId,
         Some(
-          Vector(ScheduleTriggerMessage(ActivityStartTrigger(resolution), self))
+          ScheduleTriggerMessage(ActivityStartTrigger(resolution), self)
         )
       )
   }
@@ -191,7 +188,7 @@ class GridAgent(
       stay()
 
     case Event(
-          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId, _),
+          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId),
           gridAgentBaseData: GridAgentBaseData
         ) =>
       log.debug("received activity start trigger {}", triggerId)
@@ -201,11 +198,9 @@ class GridAgent(
       goto(SimulateGrid) using gridAgentBaseData replying CompletionMessage(
         triggerId,
         Some(
-          Vector(
-            ScheduleTriggerMessage(
-              StartGridSimulationTrigger(currentTick),
-              self
-            )
+          ScheduleTriggerMessage(
+            StartGridSimulationTrigger(currentTick),
+            self
           )
         )
       )

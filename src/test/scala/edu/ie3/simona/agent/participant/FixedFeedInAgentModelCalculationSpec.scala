@@ -159,8 +159,7 @@ class FixedFeedInAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          fixedFeedAgent
+          triggerId
         )
       )
 
@@ -201,9 +200,7 @@ class FixedFeedInAgentModelCalculationSpec
         CompletionMessage(
           triggerId,
           Some(
-            List(
-              ScheduleTriggerMessage(ActivityStartTrigger(0L), fixedFeedAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(0L), fixedFeedAgent)
           )
         )
       )
@@ -283,8 +280,7 @@ class FixedFeedInAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          fixedFeedAgent
+          triggerId
         )
       )
 
@@ -363,8 +359,7 @@ class FixedFeedInAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          fixedFeedAgent
+          initialiseTriggerId
         )
       )
 
@@ -382,8 +377,7 @@ class FixedFeedInAgentModelCalculationSpec
         fixedFeedAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          activityStartTriggerId,
-          fixedFeedAgent
+          activityStartTriggerId
         )
       )
 
@@ -456,8 +450,7 @@ class FixedFeedInAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0L,
-          fixedFeedAgent
+          0L
         )
       )
 
@@ -470,8 +463,7 @@ class FixedFeedInAgentModelCalculationSpec
         fixedFeedAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1,
-          fixedFeedAgent
+          1
         )
       )
 
@@ -538,8 +530,7 @@ class FixedFeedInAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0,
-          fixedFeedAgent
+          0
         )
       )
 
@@ -552,8 +543,7 @@ class FixedFeedInAgentModelCalculationSpec
         fixedFeedAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1,
-          fixedFeedAgent
+          1
         )
       )
 

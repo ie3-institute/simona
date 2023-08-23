@@ -70,8 +70,7 @@ class ExtSimAdapterSpec
               extData
             )
           ),
-          triggerId,
-          extSimAdapter
+          triggerId
         )
       )
 
@@ -79,11 +78,9 @@ class ExtSimAdapterSpec
         CompletionMessage(
           triggerId,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(INIT_SIM_TICK),
-                extSimAdapter
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(INIT_SIM_TICK),
+              extSimAdapter
             )
           )
         )
@@ -107,8 +104,7 @@ class ExtSimAdapterSpec
               extData
             )
           ),
-          1L,
-          extSimAdapter
+          1L
         )
       )
 
@@ -122,8 +118,7 @@ class ExtSimAdapterSpec
           ActivityStartTrigger(
             INIT_SIM_TICK
           ),
-          triggerId,
-          extSimAdapter
+          triggerId
         )
       )
 
@@ -150,11 +145,9 @@ class ExtSimAdapterSpec
         CompletionMessage(
           triggerId,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(nextTick),
-                extSimAdapter
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(nextTick),
+              extSimAdapter
             )
           )
         )
@@ -177,8 +170,7 @@ class ExtSimAdapterSpec
               extData
             )
           ),
-          1L,
-          extSimAdapter
+          1L
         )
       )
 
@@ -193,8 +185,7 @@ class ExtSimAdapterSpec
           ActivityStartTrigger(
             tick
           ),
-          triggerId,
-          extSimAdapter
+          triggerId
         )
       )
 
@@ -236,8 +227,7 @@ class ExtSimAdapterSpec
                 extData
               )
             ),
-            1L,
-            extSimAdapter
+            1L
           )
         )
 

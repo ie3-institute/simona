@@ -39,14 +39,14 @@ object ServiceStateData {
 
   object ServiceActivationBaseStateData {
 
-    /** Build an optional [[Seq]] of [[ScheduleTriggerMessage]] s based on the
-      * given optional next tick and the sender
+    /** Build an optional [[ScheduleTriggerMessage]] based on the given optional
+      * next tick and the sender
       */
     val tickToScheduleTriggerMessages
-        : (Option[Long], ActorRef) => Option[Seq[ScheduleTriggerMessage]] =
+        : (Option[Long], ActorRef) => Option[ScheduleTriggerMessage] =
       (maybeTick, sender) =>
         maybeTick.map(tick =>
-          Seq(ScheduleTriggerMessage(ActivityStartTrigger(tick), sender))
+          ScheduleTriggerMessage(ActivityStartTrigger(tick), sender)
         )
   }
 }

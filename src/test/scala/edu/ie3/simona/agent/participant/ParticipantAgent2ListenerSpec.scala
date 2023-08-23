@@ -129,8 +129,7 @@ class ParticipantAgent2ListenerSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0,
-          mockAgent
+          0
         )
       )
 
@@ -148,8 +147,7 @@ class ParticipantAgent2ListenerSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1,
-          mockAgent
+          1
         )
       )
 
@@ -213,8 +211,7 @@ class ParticipantAgent2ListenerSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0,
-          mockAgent
+          0
         )
       )
 
@@ -232,8 +229,7 @@ class ParticipantAgent2ListenerSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1,
-          mockAgent
+          1
         )
       )
 
@@ -284,8 +280,7 @@ class ParticipantAgent2ListenerSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0,
-          mockAgent
+          0
         )
       )
 
@@ -298,8 +293,7 @@ class ParticipantAgent2ListenerSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1,
-          mockAgent
+          1
         )
       )
 
@@ -376,8 +370,7 @@ class ParticipantAgent2ListenerSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0,
-          mockAgent
+          0
         )
       )
 
@@ -390,8 +383,7 @@ class ParticipantAgent2ListenerSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1,
-          mockAgent
+          1
         )
       )
 

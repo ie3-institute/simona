@@ -112,8 +112,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
         centerGridAgent,
         TriggerWithIdMessage(
           InitializeGridAgentTrigger(gridAgentInitData),
-          triggerId,
-          centerGridAgent
+          triggerId
         )
       )
 
@@ -121,11 +120,9 @@ class DBFSAlgorithmFailedPowerFlowSpec
         CompletionMessage(
           0,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(3600),
-                centerGridAgent
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(3600),
+              centerGridAgent
             )
           )
         )
@@ -142,8 +139,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
         centerGridAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(3600),
-          activityStartTriggerId,
-          centerGridAgent
+          activityStartTriggerId
         )
       )
 
@@ -152,11 +148,9 @@ class DBFSAlgorithmFailedPowerFlowSpec
         CompletionMessage(
           1,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                StartGridSimulationTrigger(3600),
-                centerGridAgent
-              )
+            ScheduleTriggerMessage(
+              StartGridSimulationTrigger(3600),
+              centerGridAgent
             )
           )
         )
@@ -173,8 +167,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
         centerGridAgent,
         TriggerWithIdMessage(
           StartGridSimulationTrigger(3600),
-          startGridSimulationTriggerId,
-          centerGridAgent
+          startGridSimulationTriggerId
         )
       )
 
@@ -259,11 +252,9 @@ class DBFSAlgorithmFailedPowerFlowSpec
         CompletionMessage(
           2,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(7200),
-                centerGridAgent
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(7200),
+              centerGridAgent
             )
           )
         )

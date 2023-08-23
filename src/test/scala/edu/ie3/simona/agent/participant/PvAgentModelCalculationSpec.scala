@@ -177,8 +177,7 @@ class PvAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          pvAgent
+          triggerId
         )
       )
 
@@ -256,8 +255,7 @@ class PvAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          pvAgent
+          triggerId
         )
       )
 
@@ -357,9 +355,7 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           triggerId,
           Some(
-            Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(4711), pvAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(4711), pvAgent)
           )
         )
       )
@@ -412,8 +408,7 @@ class PvAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          pvAgent
+          triggerId
         )
       )
 
@@ -498,8 +493,7 @@ class PvAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          pvAgent
+          initialiseTriggerId
         )
       )
 
@@ -560,8 +554,7 @@ class PvAgentModelCalculationSpec
         pvAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -571,7 +564,7 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent)
           )
         )
       )
@@ -652,8 +645,7 @@ class PvAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          pvAgent
+          initialiseTriggerId
         )
       )
 
@@ -674,8 +666,7 @@ class PvAgentModelCalculationSpec
         pvAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -721,7 +712,7 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent)
           )
         )
       )
@@ -804,8 +795,7 @@ class PvAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0L,
-          pvAgent
+          0L
         )
       )
 
@@ -847,8 +837,7 @@ class PvAgentModelCalculationSpec
         pvAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(3600L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -858,7 +847,7 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent)
           )
         )
       )
@@ -910,8 +899,7 @@ class PvAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0L,
-          pvAgent
+          0L
         )
       )
 
@@ -946,15 +934,14 @@ class PvAgentModelCalculationSpec
         pvAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent)
           )
         )
       )
@@ -977,15 +964,14 @@ class PvAgentModelCalculationSpec
         pvAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(3600L),
-          3L,
-          scheduler.ref
+          3L
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           3L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent)
           )
         )
       )
@@ -1008,8 +994,7 @@ class PvAgentModelCalculationSpec
         pvAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(7200L),
-          5L,
-          scheduler.ref
+          5L
         )
       )
       scheduler.expectMsg(CompletionMessage(5L))

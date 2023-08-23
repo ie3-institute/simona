@@ -26,8 +26,6 @@ import edu.ie3.simona.util.SimonaConstants
 import org.mockito.Mockito.doReturn
 import org.scalatestplus.mockito.MockitoSugar.mock
 
-import scala.reflect.ClassTag
-
 class SimSchedulerSpec
     extends TestKitWithShutdown(
       ActorSystem(
@@ -103,12 +101,10 @@ class SimSchedulerSpec
       val receivedTrigger1 =
         triggeredAgent1.expectMsgType[TriggerWithIdMessage]
       receivedTrigger1.trigger shouldBe initTrigger1
-      receivedTrigger1.receiverActor shouldBe triggeredAgent1.ref
 
       val receivedTrigger2 =
         triggeredAgent2.expectMsgType[TriggerWithIdMessage]
       receivedTrigger2.trigger shouldBe initTrigger2
-      receivedTrigger2.receiverActor shouldBe triggeredAgent2.ref
 
       triggeredAgent1.send(
         simScheduler,
@@ -156,12 +152,10 @@ class SimSchedulerSpec
       val receivedTrigger1 =
         triggeredAgent1.expectMsgType[TriggerWithIdMessage]
       receivedTrigger1.trigger shouldBe initTrigger1
-      receivedTrigger1.receiverActor shouldBe triggeredAgent1.ref
 
       val receivedTrigger2 =
         triggeredAgent2.expectMsgType[TriggerWithIdMessage]
       receivedTrigger2.trigger shouldBe initTrigger2
-      receivedTrigger2.receiverActor shouldBe triggeredAgent2.ref
 
       triggeredAgent1.send(
         simScheduler,
@@ -203,7 +197,7 @@ class SimSchedulerSpec
       triggeredAgent1.expectInitAndComplete(
         simScheduler,
         resultEventListener,
-        Seq(0L, 900L)
+        Some(0L)
       )
 
       resultEventListener.expectMsgType[InitComplete]
@@ -212,7 +206,6 @@ class SimSchedulerSpec
       val receivedTrigger1Start =
         triggeredAgent1.expectMsgType[TriggerWithIdMessage]
       receivedTrigger1Start.trigger shouldBe ActivityStartTrigger(0L)
-      receivedTrigger1Start.receiverActor shouldBe triggeredAgent1.ref
     }
 
     "send triggers as expected when triggered at x*schedulerReadyCheckWindow" in {
@@ -232,7 +225,7 @@ class SimSchedulerSpec
       triggeredAgent1.expectInitAndComplete(
         simScheduler,
         resultEventListener,
-        Seq(0L)
+        Some(0L)
       )
 
       resultEventListener.expectMsgType[InitComplete]
@@ -245,7 +238,7 @@ class SimSchedulerSpec
         simScheduler,
         resultEventListener,
         0L,
-        Seq(900L)
+        Some(900L)
       )
 
       // no CheckWindowPassed at tick 0
@@ -255,7 +248,7 @@ class SimSchedulerSpec
         simScheduler,
         resultEventListener,
         900L,
-        Seq(1800L)
+        Some(1800L)
       )
 
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 900L
@@ -264,7 +257,7 @@ class SimSchedulerSpec
         simScheduler,
         resultEventListener,
         1800L,
-        Seq(2700L)
+        Some(2700L)
       )
 
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 1800L
@@ -273,7 +266,7 @@ class SimSchedulerSpec
         simScheduler,
         resultEventListener,
         2700L,
-        Seq(3600L)
+        Some(3600L)
       )
 
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 2700L
@@ -312,7 +305,7 @@ class SimSchedulerSpec
       triggeredAgent1.expectInitAndComplete(
         simScheduler,
         resultEventListener,
-        Seq(3600L)
+        Some(3600L)
       )
 
       resultEventListener.expectMsgType[InitComplete]
@@ -360,7 +353,7 @@ class SimSchedulerSpec
       triggeredAgent1.expectInitAndComplete(
         simScheduler,
         resultEventListener,
-        Seq(3600L)
+        Some(3600L)
       )
 
       resultEventListener.expectMsgType[InitComplete]
@@ -411,7 +404,7 @@ class SimSchedulerSpec
       triggeredAgent1.expectInitAndComplete(
         simScheduler,
         resultEventListener,
-        Seq(3600L)
+        Some(3600L)
       )
 
       resultEventListener.expectMsgType[InitComplete]
@@ -429,7 +422,7 @@ class SimSchedulerSpec
         simScheduler,
         resultEventListener,
         3600L,
-        Seq(7200L)
+        Some(7200L)
       )
 
       resultEventListener.expectMsgType[CheckWindowPassed].tick shouldBe 3600L
@@ -478,7 +471,7 @@ class SimSchedulerSpec
       triggeredAgent1.expectInitAndComplete(
         simScheduler,
         resultEventListener,
-        Seq(3600L)
+        Some(3600L)
       )
 
       resultEventListener.expectMsgType[InitComplete]
@@ -543,7 +536,7 @@ class SimSchedulerSpec
         _.expectInitAndComplete(
           simScheduler,
           resultEventListener,
-          Seq(1L)
+          Some(1L)
         )
       }
 
@@ -563,7 +556,7 @@ class SimSchedulerSpec
             simScheduler,
             resultEventListener,
             tick,
-            Seq(tick + 1)
+            Some(tick + 1)
           )
         }
         // we expect exactly one check window passed event as
@@ -578,7 +571,7 @@ class SimSchedulerSpec
           simScheduler,
           resultEventListener,
           10L,
-          Seq(11L)
+          Some(11L)
         )
       )
 
@@ -614,7 +607,7 @@ class SimSchedulerSpec
       triggeredAgent1.expectInitAndComplete(
         simScheduler,
         resultEventListener,
-        Seq(900L)
+        Some(900L)
       )
 
       resultEventListener.expectMsgType[InitComplete]
@@ -670,7 +663,7 @@ class SimSchedulerSpec
       triggeredAgent1.expectInitAndComplete(
         simScheduler,
         resultEventListener,
-        Seq(900L)
+        Some(900L)
       )
 
       resultEventListener.expectMsgType[InitComplete]
@@ -700,7 +693,7 @@ class SimSchedulerSpec
       triggeredAgent1.expectInitAndComplete(
         simScheduler,
         resultEventListener,
-        Seq(0L)
+        Some(0L)
       )
 
       resultEventListener.expectMsgType[InitComplete]
@@ -750,7 +743,7 @@ class SimSchedulerSpec
       triggeredAgent1.expectInitAndComplete(
         simScheduler,
         resultEventListener,
-        Seq(0L)
+        Some(0L)
       )
 
       resultEventListener.expectMsgType[InitComplete]
@@ -802,7 +795,7 @@ class SimSchedulerSpec
       triggeredAgent1.expectInitAndComplete(
         simScheduler,
         resultEventListener,
-        Seq(0L)
+        Some(0L)
       )
 
       resultEventListener.expectMsgType[InitComplete]
@@ -825,7 +818,7 @@ class SimSchedulerSpec
       triggeredAgent1.expectInitAndComplete(
         simScheduler,
         resultEventListener,
-        Seq(0L)
+        Some(0L)
       )
 
       resultEventListener.expectMsgType[InitComplete]
@@ -878,34 +871,34 @@ object SimSchedulerSpec extends UnitSpec {
     def expectInitAndComplete(
         simScheduler: TestActorRef[SimScheduler],
         resultEventListener: TestProbe,
-        newTicks: Seq[Long] = Seq.empty
+        newTick: Option[Long] = None
     ): Unit =
       expectTriggerAndComplete[InitializeTrigger](
         simScheduler,
         resultEventListener,
         SimonaConstants.INIT_SIM_TICK,
-        newTicks
+        newTick
       )
 
     def expectAstAndComplete(
         simScheduler: TestActorRef[SimScheduler],
         resultEventListener: TestProbe,
         expectedTick: Long,
-        newTicks: Seq[Long] = Seq.empty
+        newTick: Option[Long] = None
     ): Unit =
       expectTriggerAndComplete[ActivityStartTrigger](
         simScheduler,
         resultEventListener,
         expectedTick,
-        newTicks
+        newTick
       )
 
     private def expectTriggerAndComplete[T <: Trigger](
         simScheduler: TestActorRef[SimScheduler],
         resultEventListener: TestProbe,
         expectedTick: Long,
-        newTicks: Seq[Long] = Seq.empty
-    )(implicit tag: ClassTag[T]): Unit = {
+        newTick: Option[Long] = None
+    ): Unit = {
       val receivedTrigger =
         triggeredAgent.expectMsgType[TriggerWithIdMessage]
 
@@ -915,19 +908,16 @@ object SimSchedulerSpec extends UnitSpec {
         case unexpected =>
           fail(s"Received unexpected trigger $unexpected")
       }
-      receivedTrigger.receiverActor shouldBe triggeredAgent.ref
 
       // when an agent is triggered, we can be sure that no result event
       // is fired at least until the corresponding completion has been sent out
       resultEventListener.expectNoMessage()
 
-      val newTriggers =
-        Option.when(newTicks.nonEmpty)(
-          newTicks.map(tick =>
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(tick),
-              triggeredAgent.ref
-            )
+      val newTrigger =
+        newTick.map(tick =>
+          ScheduleTriggerMessage(
+            ActivityStartTrigger(tick),
+            triggeredAgent.ref
           )
         )
 
@@ -935,7 +925,7 @@ object SimSchedulerSpec extends UnitSpec {
         simScheduler,
         CompletionMessage(
           receivedTrigger.triggerId,
-          newTriggers
+          newTrigger
         )
       )
     }

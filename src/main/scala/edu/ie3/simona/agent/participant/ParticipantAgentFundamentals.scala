@@ -147,12 +147,12 @@ protected trait ParticipantAgentFundamentals[
 
     /* Confirm final initialization */
     val (_, triggerId) = releaseTickAndTriggerId()
-    val newTriggerMessages =
+    val newTriggerMessage =
       ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
         senderToMaybeTick._2,
         self
       )
-    scheduler ! CompletionMessage(triggerId, newTriggerMessages)
+    scheduler ! CompletionMessage(triggerId, newTriggerMessage)
     goto(Idle) using stateData
   }
 
@@ -717,11 +717,11 @@ protected trait ParticipantAgentFundamentals[
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     /* Determine the very next tick, where activation is required */
-    val (maybeActivationTriggers, updatedBaseStateData) =
+    val (maybeActivationTrigger, updatedBaseStateData) =
       popNextActivationTrigger(baseStateData)
 
     val (_, triggerId) = releaseTickAndTriggerId()
-    scheduler ! CompletionMessage(triggerId, maybeActivationTriggers)
+    scheduler ! CompletionMessage(triggerId, maybeActivationTrigger)
     unstashAll()
     goto(Idle) using updatedBaseStateData
   }
@@ -735,29 +735,27 @@ protected trait ParticipantAgentFundamentals[
     * @param baseStateData
     *   Base state data to be updated
     * @return
-    *   An [[Option]] to a [[Seq]] of new [[ScheduleTriggerMessage]] s as well
-    *   as the updated base state data. If the next activation tick is an
-    *   additional activation, this tick is removed from the list of desired
-    *   additional activations.
+    *   An [[Option]] of new [[ScheduleTriggerMessage]] as well as the updated
+    *   base state data. If the next activation tick is an additional
+    *   activation, this tick is removed from the list of desired additional
+    *   activations.
     */
   def popNextActivationTrigger(
       baseStateData: BaseStateData[PD]
-  ): (Option[Seq[ScheduleTriggerMessage]], BaseStateData[PD]) = {
+  ): (Option[ScheduleTriggerMessage], BaseStateData[PD]) = {
     /* Determine what comes next: An additional activation or new data - or both at once */
     val nextAdditionalActivation =
       baseStateData.additionalActivationTicks.headOption
     val nextDataTick =
       baseStateData.foreseenDataTicks.values.toSeq.sorted.headOption.flatten
 
-    /* return a [[Option]] to a [[Seq]] of [[ScheduleTriggerMessage]]s */
-    def toMessageSeq: (Long, ActorRef) => Option[Seq[ScheduleTriggerMessage]] =
+    /* return a [[Option]] of [[ScheduleTriggerMessage]]s */
+    def toMessage: (Long, ActorRef) => Option[ScheduleTriggerMessage] =
       (tick: Long, actorToBeTriggered: ActorRef) =>
         Some(
-          Seq(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(tick),
-              actorToBeTriggered
-            )
+          ScheduleTriggerMessage(
+            ActivityStartTrigger(tick),
+            actorToBeTriggered
           )
         )
 
@@ -765,7 +763,7 @@ protected trait ParticipantAgentFundamentals[
       case (None, Some(dataTick)) =>
         /* There is only a data tick available */
         (
-          toMessageSeq(dataTick, self),
+          toMessage(dataTick, self),
           baseStateData
         )
       case (Some(additionalTick), Some(dataTick))
@@ -773,7 +771,7 @@ protected trait ParticipantAgentFundamentals[
         /* The next foreseen activation will be based on foreseen data arrival. Do nothing else, then creating a
          * trigger. */
         (
-          toMessageSeq(dataTick, self),
+          toMessage(dataTick, self),
           baseStateData
         )
       case (Some(additionalTick), _) =>
@@ -791,7 +789,7 @@ protected trait ParticipantAgentFundamentals[
         )
 
         (
-          toMessageSeq(additionalTick, self),
+          toMessage(additionalTick, self),
           updatedBaseStateData
         )
       case (None, None) =>
