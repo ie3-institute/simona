@@ -212,10 +212,11 @@ class PvModelTest extends Specification {
     Math.abs(omegaSSCalc.getValue().doubleValue() - omegaSSSol) < 1e-15
 
     where:
-    latitude | delta      || omegaSSSol
-    0.9d     | -0.402449d || 1.004597540628618d  // lat: ~51.57°N
-    0.935d   | -0.402449d || 0.956011693657339d  // different lat: ~53.57°N
-    0.9d     | 0.017908d  || 1.593367569319828d  // different delta
+    latitude     | delta       || omegaSSSol
+    0.9d         | -0.402449d  || 1.004597540628618d  // lat: ~51.57°N
+    0.935d       | -0.402449d  || 0.956011693657339d  // different lat: ~53.57°N
+    0.9d         | 0.017908d   || 1.593367569319828d  // different delta
+    0.157952297  | 0.384670567 || 1.635323424114512d  // //Example 2.2 Goswami Priciples of Solar Engineering
   }
 
   def "Calculate solar altitude angle alphaS"() {
