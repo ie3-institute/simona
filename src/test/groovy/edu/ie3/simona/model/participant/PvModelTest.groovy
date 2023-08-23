@@ -348,6 +348,41 @@ class PvModelTest extends Specification {
     -35.3d        | -17.51d         | -4.2d          | 30d        | +170d      || 14.882390116876563d                     // Goswami Priciples of Solar Engineering Example 2.7b
   }
 
+  def "Testing the equality of zenith angle of a horizontal surface and thetaG of a sloped surface"() {
+
+    "Iqbal Figure 1.6.2 - the angle of incidence of a surface sloped by angle beta at " +
+        "latitude phi should be same as the zenith angle of an unsloped surface" +
+        "positioned at latitude phi - beta " +
+        ""
+
+    given:
+    "- using pre-calculated parameters"
+    //Latitude in Radian
+    Quantity<Angle> latitudeInRad = getQuantity(Math.toRadians(latitudeInDeg), RADIAN)
+    // Declination Angle delta of the sun at solar noon
+    Quantity<Angle> delta = getQuantity(Math.toRadians(deltaIn), RADIAN)
+    //Hour Angle
+    Quantity<Angle> omega = getQuantity(Math.toRadians(omegaIn), RADIAN)
+    //Inclination Angle of the surface
+    Quantity<Angle> gammaE = getQuantity(Math.toRadians(slope), RADIAN)
+    //Sun's azimuth
+    Quantity<Angle> alphaE = getQuantity(Math.toRadians(azimuth), RADIAN)
+
+    expect:
+    "- should calculate the angle of incidence thetaG "
+    QuantityUtil.isEquivalentAbs(
+        pvModel.calcAngleOfIncidenceThetaG(delta, latitudeInRad, gammaE, alphaE, omega).to(DEGREE_GEOM),
+        getQuantity(thetaOut, DEGREE_GEOM),
+        TESTING_TOLERANCE)
+
+    where: "the following parameters are given"
+    latitudeInDeg | deltaIn      | omegaIn       | slope  | azimuth || thetaOut
+    45d            | -7.15       | -82.5d        | 60d    | 0       || 80.949048340487770372059710314128606931745693791068  // thetaG
+    15d            | -7.15       | -82.5d        | 30d    | 0       || 80.949048340487770372059710314128606931745693791068  // same test but 15° South with 15° less sloped surface
+    0d             | -7.15       | -82.5d        | 15d    | 0       || 80.949048340487770372059710314128606931745693791068  // same test but 15° South with 15° less sloped surface
+    52.3d          | 23.4337425  | 2.15114395d   | 0d     | 0       || (90-61.08684958461749d)        // Berlin 21.06. 12:00 => thetaG = 90 - alphaS
+    70.3d          | 23.4337425  | 2.15114395d   | 18d    | 0       || (90-61.08684958461749d)        // same test but 18° North with 18° sloped surface
+  }
 
   def "Calculate Rb (cos(thetaG)/cos(thetaZ))"() {
 
