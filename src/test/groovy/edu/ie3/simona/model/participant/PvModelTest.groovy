@@ -198,7 +198,7 @@ class PvModelTest extends Specification {
     '2011-06-21T14:00:00+02:00[Europe/Berlin]' | 2.9436292808978d    | 0.2337d     || 0.48937076969989723d   // long of Berlin (13.39E),
     '2011-06-21T15:00:00+02:00[Europe/Berlin]' | 2.9436292808978d    | 0.2337d     || 0.7511701574990467d    // long of Berlin (13.39E),
     '2011-04-05T16:00:00+02:00[Europe/Berlin]' | 1.6181353941777565d | 0.2337d     || 1.0062695999127789d    // long of Berlin (13.39E),
-    '2011-06-21T12:00:00+02:00[Europe/Berlin]' | 2.9436292808978d    | 0.5449d     || 0.27696378657422793d   // long of Cairo (31.22E),
+    '2011-06-21T12:00:00+02:00[Europe/Berlin]' | 2.9436292808978d    | 0.5449d     || 0.2769719941015987d    // long of Cairo (31.22E),
   }
 
   def "Calculate sunset angle omegaSS"() {
@@ -247,17 +247,17 @@ class PvModelTest extends Specification {
     0d                 | -0.305432619d       | 0.518013722     || 0.7473499857948969    // omega: 0 = Solar Noon, delta: February 01st, lat/lon: Gainsville (29.68 N, 82.27 W) //Example 2.1a Goswami Priciples of Solar Engineering
     -1.374970385d      | +0.380755678d       | 0.157952297     || 0.2391202791125743d   // omega: -78.78° = 7:00 a.m., delta: June 01st, lat/lon: Tocumen Panama (9.05 N, 79.37 W) //Example 2.2a Goswami Priciples of Solar Engineering
     0d                 | -0.268780705d       | -0.616101226    || 1.2234758057948967d   // omega: 0° = Solar noon., delta: November 01st, lat/lon: Canberra Australia (35.3 S, 149.1 E) //Example 2.3b Goswami Priciples of Solar Engineering
-    43d                | -14d                | -37.5d          || 23.4529893659531784299686037109330117049955654837550  // '2011-02-13T09:30:00' from Duffie
-    43d                | 23.1d               | 97.5d           || 10.356151317506402829742934977890382350725031728508 // '2011-07-01T06:30:00' from Duffie
+    Math.toRadians(-37.5d)        | Math.toRadians(-14d)         | Math.toRadians(43d)     || Math.toRadians(23.4529893659531784299686037109330117049955654837550d)  // '2011-02-13T09:30:00' from Duffie
+    Math.toRadians(97.5d)         | Math.toRadians(23.1d)        | Math.toRadians(43d)     || Math.toRadians(10.356151317506402829742934977890382350725031728508d) // '2011-07-01T06:30:00' from Duffie
     // Reference: Quaschning, Regenerative Energiesysteme figure 2.15 and figure 2.16   // gammaS@Quaschning = alphaS@SIMONA !
-    52.3d              | 23.4337425d         | -47.15114406    || 44.12595614280154d    // Berlin (13.2E 52.3N) '2011-06-21T09:00:00' MEZ
-    52.3d              | 23.4337425d         | -32.15114394d   || 52.15790489243239d    // Berlin (13.2E 52.3N) '2011-06-21T10:00:00' MEZ
-    52.3d              | 23.4337425d         | -17.15114381d   || 58.29851278388936d    // Berlin (13.2E 52.3N) '2011-06-21T11:00:00' MEZ
-    52.3d              | 23.4337425d         | -2.151143686d   || 61.086849596127955d   // Berlin (13.2E 52.3N) '2011-06-21T12:00:00' MEZ
-    52.3d              | 23.4337425d         | 12.84885587d    || 59.50792770681503d    // Berlin (13.2E 52.3N) '2011-06-21T13:00:00' MEZ
-    52.3d              | 23.4337425d         | 27.84885599d    || 54.170777340509574d   // Berlin (13.2E 52.3N) '2011-06-21T14:00:00' MEZ
-    52.3d              | 7.79402247d         | 58.28178946d    || 25.203526133755485d   // Berlin (13.2E 52.3N) '2011-09-04T16:00:00' MEZ
-    30.1d              | 23.4337425d         | 0.948855924d    || 83.28023248079408d    // Cairo  (31.3E 30.1N)  '2011-06-21T12:00:00' MEZ+1h
+    Math.toRadians(-47.15114406)  | Math.toRadians(23.4337425d)  | Math.toRadians(52.3d)   || Math.toRadians(44.12595614280154d)    // Berlin (13.2E 52.3N) '2011-06-21T09:00:00' MEZ
+    Math.toRadians(-32.15114394d) | Math.toRadians(23.4337425d)  | Math.toRadians(52.3d)   || Math.toRadians(52.15790489243239d)    // Berlin (13.2E 52.3N) '2011-06-21T10:00:00' MEZ
+    Math.toRadians(-17.15114381d) | Math.toRadians(23.4337425d)  | Math.toRadians(52.3d)   || Math.toRadians(58.29851278388936d)    // Berlin (13.2E 52.3N) '2011-06-21T11:00:00' MEZ
+    Math.toRadians(-2.151143686d) | Math.toRadians(23.4337425d)  | Math.toRadians(52.3d)   || Math.toRadians(61.086849596117524d)   // Berlin (13.2E 52.3N) '2011-06-21T12:00:00' MEZ
+    Math.toRadians(12.84885587d)  | Math.toRadians(23.4337425d)  | Math.toRadians(52.3d)   || Math.toRadians(59.50792770681503d)    // Berlin (13.2E 52.3N) '2011-06-21T13:00:00' MEZ
+    Math.toRadians(27.84885599d)  | Math.toRadians(23.4337425d)  | Math.toRadians(52.3d)   || Math.toRadians(54.170777340509574d)   // Berlin (13.2E 52.3N) '2011-06-21T14:00:00' MEZ
+    Math.toRadians(58.28178946d)  | Math.toRadians(7.79402247d)  | Math.toRadians(52.3d)   || Math.toRadians(25.203526133755485d)   // Berlin (13.2E 52.3N) '2011-09-04T16:00:00' MEZ
+    Math.toRadians(0.948855924d)  | Math.toRadians(23.4337425d)  | Math.toRadians(30.1d)   || Math.toRadians(83.28023248078854d)     // Cairo  (31.3E 30.1N)  '2011-06-21T12:00:00' MEZ+1h
   }
 
   def "Calculate zenith angle thetaZ"() {
