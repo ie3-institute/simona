@@ -68,7 +68,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed ChpData to ChpRelevantData [#494](https://github.com/ie3-institute/simona/issues/494)
 - Updated gradle to 8.2.1, cleaned up `build.gradle` and `Jenkinsfile` [#572](https://github.com/ie3-institute/simona/issues/572)
 - Respect for scaling factor when simulating the system participants [#81](https://github.com/ie3-institute/simona/issues/81)
-- Harmonize participant model instantiation [#81](https://github.com/ie3-institute/simona/issues/81)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
