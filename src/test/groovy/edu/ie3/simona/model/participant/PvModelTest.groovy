@@ -184,14 +184,21 @@ class PvModelTest extends Specification {
     Math.abs(omegaCalc.value.doubleValue() - omegaSol) < 1e-15
 
     where:
-    time                                       | j                  | longitude || omegaSol
-    '2019-01-01T05:00:00+01:00[Europe/Berlin]' | 0d                 | 0.16d     || -1.946503016860923d  // long: ~9.17°E
-    '2019-01-01T10:05:00+01:00[Europe/Berlin]' | 0d                 | 0.16d     || -0.615689462215246d  // different time: 10:05
-    '2019-01-01T12:00:00+01:00[Europe/Berlin]' | 0d                 | 0.16d     || -0.113907302266876d  // 12:00
-    '2019-01-01T14:00:00+01:00[Europe/Berlin]' | 0d                 | 0.16d     || 0.409691473331422d  // 14:00
-    '2019-01-01T17:30:00+01:00[Europe/Berlin]' | 0d                 | 0.16d     || 1.325989330628445d  // 17:30
-    '2019-03-21T05:00:00+01:00[Europe/Berlin]' | 1.359922299362157d | 0.16d     || -1.967775075784021d  // different j (different date)
-    '2019-01-01T05:00:00+01:00[Europe/Berlin]' | 0d                 | 0.175d    || -1.931503016860923d  // different long, ~10°E
+    time                                       | j                   | longitude   || omegaSol
+    '2019-01-01T05:00:00+01:00[Europe/Berlin]' | 0d                  | 0.16d       || -1.946503016860923d    // long: ~9.17°E
+    '2019-01-01T10:05:00+01:00[Europe/Berlin]' | 0d                  | 0.16d       || -0.615689462215246d    // different time: 10:05
+    '2019-01-01T12:00:00+01:00[Europe/Berlin]' | 0d                  | 0.16d       || -0.113907302266876d    // 12:00
+    '2019-01-01T14:00:00+01:00[Europe/Berlin]' | 0d                  | 0.16d       || 0.409691473331422d     // 14:00
+    '2019-01-01T17:30:00+01:00[Europe/Berlin]' | 0d                  | 0.16d       || 1.325989330628445d     // 17:30
+    '2019-03-21T05:00:00+01:00[Europe/Berlin]' | 1.359922299362157d  | 0.16d       || -1.967775075784021d    // different j (different date)
+    '2019-01-01T05:00:00+01:00[Europe/Berlin]' | 0d                  | 0.175d      || -1.931503016860923d    // different long, ~10°E
+    '2011-06-21T11:00:00+02:00[Europe/Berlin]' | 2.9436292808978d    | 0.2337d     || -0.29602739369755104d  // long of Berlin (13.39E),
+    '2011-06-21T12:00:00+02:00[Europe/Berlin]' | 2.9436292808978d    | 0.2337d     || -0.034228005898401644d // long of Berlin (13.39E),
+    '2011-06-21T13:00:00+02:00[Europe/Berlin]' | 2.9436292808978d    | 0.2337d     || 0.2275713819007478d    // long of Berlin (13.39E),
+    '2011-06-21T14:00:00+02:00[Europe/Berlin]' | 2.9436292808978d    | 0.2337d     || 0.48937076969989723d   // long of Berlin (13.39E),
+    '2011-06-21T15:00:00+02:00[Europe/Berlin]' | 2.9436292808978d    | 0.2337d     || 0.7511701574990467d    // long of Berlin (13.39E),
+    '2011-04-05T16:00:00+02:00[Europe/Berlin]' | 1.6181353941777565d | 0.2337d     || 1.0062695999127789d    // long of Berlin (13.39E),
+    '2011-06-21T12:00:00+02:00[Europe/Berlin]' | 2.9436292808978d    | 0.5449d     || 0.27696378657422793d   // long of Cairo (31.22E),
   }
 
   def "Calculate sunset angle omegaSS"() {
