@@ -231,12 +231,22 @@ class PvModelTest extends Specification {
     Math.abs(alphaSCalc.getValue().doubleValue() - alphaSSol) < 1e-15
 
     where:
-    omega              | delta               | latitude || alphaSSol
-    1.946503016860923d | -0.402449d          | 0.9d     || -0.542959468135244d  // delta: Jan 1st, lat: ~51.57°N
-    1.967775075784021d | -0.001150591501958d | 0.9d     || -0.243639843356786d  // delta: March 21st
-    1.946503016860923d | -0.402449d          | 0.935d   || -0.541732285481946d  // delta: Jan 1st, lat: ~53.57°N
-    1.256637061d       | -0.402449d          | 0.698d   || -0.033897520990304d  // omega: 82°, delta: Jan 1st, lat: ~53.57°N
-    0.409691473331422d | -0.402449d          | 0.9d     || 0.219566101072938d  // omega: 14:00, delta: Jan 1st
+    omega              | delta               | latitude        || alphaSSol
+    1.946503016860923d | -0.402449d          | 0.9d            || -0.542959468135244d   // delta: Jan 1st, lat: ~51.57°N
+    1.967775075784021d | -0.001150591501958d | 0.9d            || -0.243639843356786d   // delta: March 21st
+    1.946503016860923d | -0.402449d          | 0.935d          || -0.541732285481946d   // delta: Jan 1st, lat: ~53.57°N
+    1.256637061d       | -0.402449d          | 0.698d          || -0.033897520990304d   // omega: 82°, delta: Jan 1st, lat: ~39.99°N
+    0.409691473331422d | -0.402449d          | 0.9d            || 0.219566101072938d    // omega: 14:00, delta: Jan 1st
+    -0.85019406d       | -0.00720875d        | 0.9128072d      || 0.40911138927659646d  // omega: -48.71° = 09:00, delta: March 21st, lat: Berlin
+    +0.22425484d       | +0.40899596d        | 0.9128072d      || 1.0386092658376944d   // omega: +12.84° = 14:00 MESZ = 13:00 MEZ, delta: June 21st, lat: Berlin
+    -0.81703281d       | -0.00720875d        | 0.54628806d     || 0.619982384489836d    // omega: -36.9809° = 09:00, delta: March 21st, lat: Cairo
+    -0.00438329d       | +0.40899596d        | 0.54628806d     || 1.4334492081530734d   // omega: -0.25° = 12:00, delta: June 21st, lat: Cairo
+    +0.0126074d        | -0.40842934d        | 0.54628806d     || 0.6160025701438165d   // omega: +0.7223° = 12:00, delta: Dez 21st, lat: Cairo
+    -0.78639785d       | +0.1549651d         | 0.54628806d     || 0.7430566034615067d   // omega: -45.05° = 09:00, delta: Sep 1st, lat: Cairo
+    +1.04619786d       | 0.1549651d          | 0.54628806d     || 0.5270965151470974d   // omega: +59.943° = 16:00, delta: Sep 1st, lat: Cairo
+    0d                 | -0.305432619d       | 0.518013722     || 0.7473499857948969    // omega: 0 = Solar Noon, delta: February 01st, lat/lon: Gainsville (29.68 N, 82.27 W) //Example 2.1a Goswami Priciples of Solar Engineering
+    -1.374970385d      | +0.380755678d       | 0.157952297     || 0.2391202791125743d   // omega: -78.78° = 7:00 a.m., delta: June 01st, lat/lon: Tocumen Panama (9.05 N, 79.37 W) //Example 2.2a Goswami Priciples of Solar Engineering
+    0d                 | -0.268780705d       | -0.616101226    || 1.2234758057948967d   // omega: 0° = Solar noon., delta: November 01st, lat/lon: Canberra Australia (35.3 S, 149.1 E) //Example 2.3b Goswami Priciples of Solar Engineering
   }
 
   def "Calculate zenith angle thetaZ"() {
