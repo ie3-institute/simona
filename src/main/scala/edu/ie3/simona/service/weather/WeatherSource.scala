@@ -48,14 +48,13 @@ import tech.units.indriya.unit.Units
 
 import java.nio.file.Paths
 import java.time.ZonedDateTime
-import javax.measure.Quantity
 import javax.measure.quantity.{Dimensionless, Length}
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 trait WeatherSource {
   protected val idCoordinateSource: IdCoordinateSource
-  protected val distance: ComparableQuantity[Length]
+  protected val maxCoordinateDistance: ComparableQuantity[Length]
 
   /** Determine the relevant coordinates around the queried one together with
     * their weighting factors in averaging
@@ -65,22 +64,17 @@ trait WeatherSource {
     * @param amountOfInterpolationCoords
     *   The minimum required amount of coordinates with weather data surrounding
     *   the given coordinate that will be used for interpolation
-    * @param maxInterpolationCoordinateDistance
-    *   The allowed max distance of agent coordinates to the surrounding weather
-    *   coordinates
     * @return
     *   The result of the attempt to determine the closest coordinates with
     *   their weighting
     */
   def getWeightedCoordinates(
       coordinate: WeatherSource.AgentCoordinates,
-      amountOfInterpolationCoords: Int,
-      maxInterpolationCoordinateDistance: Quantity[Length]
+      amountOfInterpolationCoords: Int
   ): Try[WeatherSource.WeightedCoordinates] = {
     getNearestCoordinatesWithDistances(
       coordinate,
-      amountOfInterpolationCoords,
-      maxInterpolationCoordinateDistance
+      amountOfInterpolationCoords
     ) match {
       case Success(nearestCoordinates) =>
         determineWeights(nearestCoordinates)
@@ -104,21 +98,21 @@ trait WeatherSource {
     * @param amountOfInterpolationCoords
     *   The minimum required amount of coordinates with weather data surrounding
     *   the given coordinate that will be used for interpolation
-    * @param maxInterpolationCoordinateDistance
-    *   The allowed max distance of agent coordinates to the surrounding weather
-    *   coordinates
     * @return
     */
   def getNearestCoordinatesWithDistances(
       coordinate: WeatherSource.AgentCoordinates,
-      amountOfInterpolationCoords: Int,
-      maxInterpolationCoordinateDistance: Quantity[Length]
+      amountOfInterpolationCoords: Int
   ): Try[Iterable[CoordinateDistance]] = {
     val queryPoint = coordinate.toPoint
 
     /* Go and get the nearest coordinates, that are known to the weather source */
     val nearestCoords = idCoordinateSource
-      .getClosestCoordinates(queryPoint, amountOfInterpolationCoords, distance)
+      .getClosestCoordinates(
+        queryPoint,
+        amountOfInterpolationCoords,
+        maxCoordinateDistance
+      )
       .asScala
 
     nearestCoords.find(coordinateDistance =>
@@ -130,19 +124,20 @@ trait WeatherSource {
       case None if nearestCoords.size < amountOfInterpolationCoords =>
         Failure(
           ServiceException(
-            s"There are not enough coordinates for averaging. Found ${nearestCoords.size} but need $amountOfInterpolationCoords."
+            s"There are not enough coordinates for averaging. Found ${nearestCoords.size} within the given distance of " +
+              s"$maxCoordinateDistance but need $amountOfInterpolationCoords. Please make sure that there are enough coordinates within the given distance."
           )
         )
       case None =>
         /* Check if enough coordinates are within the coordinate distance limit */
         val nearestCoordsInMaxDistance = nearestCoords.filter(coordDistance =>
           coordDistance.getDistance
-            .isLessThan(maxInterpolationCoordinateDistance)
+            .isLessThan(maxCoordinateDistance)
         )
         if (nearestCoordsInMaxDistance.size < amountOfInterpolationCoords) {
           Failure(
             ServiceException(
-              s"There are not enough coordinates within the max coordinate distance of $maxInterpolationCoordinateDistance. Found ${nearestCoordsInMaxDistance.size} but need $amountOfInterpolationCoords."
+              s"There are not enough coordinates within the max coordinate distance of $maxCoordinateDistance. Found ${nearestCoordsInMaxDistance.size} but need $amountOfInterpolationCoords. Please make sure that there are enough coordinates within the given distance."
             )
           )
         } else {
@@ -344,7 +339,10 @@ object WeatherSource {
     val scheme: String = weatherDataSourceCfg.scheme
     val resolution: Option[Long] = weatherDataSourceCfg.resolution
     val distance: ComparableQuantity[Length] =
-      Quantities.getQuantity(weatherDataSourceCfg.distance, Units.METRE)
+      Quantities.getQuantity(
+        weatherDataSourceCfg.maxCoordinateDistance,
+        Units.METRE
+      )
 
     // check that only one source is defined
     if (definedWeatherSources.size > 1)

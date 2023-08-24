@@ -16,7 +16,6 @@ import edu.ie3.simona.service.weather.WeatherSource.{
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.mockito.MockitoSugar
 import tech.units.indriya.quantity.Quantities
@@ -41,8 +40,7 @@ class SampleWeatherSourceSpec
 
       source.getWeightedCoordinates(
         queryCoordinate,
-        4,
-        Quantities.getQuantity(28, PowerSystemUnits.KILOMETRE)
+        4
       ) match {
         case Success(WeightedCoordinates(weighting)) =>
           weighting.corresponds(

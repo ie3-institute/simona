@@ -12,20 +12,11 @@ import edu.ie3.datamodel.io.factory.timeseries.{
   IdCoordinateFactory
 }
 import edu.ie3.datamodel.io.source.IdCoordinateSource
-import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
-import edu.ie3.datamodel.io.source.sql.SqlIdCoordinateSource
-import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.{
-  SampleParams,
-  SqlParams
-}
 import edu.ie3.simona.exceptions.{
   InvalidConfigParameterException,
   ServiceException
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
-import edu.ie3.simona.service.weather.SampleWeatherSource.SampleIdCoordinateSource
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates
@@ -33,13 +24,12 @@ import edu.ie3.simona.service.weather.WeatherSource.{
 import edu.ie3.simona.service.weather.WeatherSourceSpec._
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
-import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
+import edu.ie3.util.quantities.QuantityUtil
 import org.locationtech.jts.geom.{Envelope, Point}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
-import java.security.InvalidParameterException
 import java.util
 import java.util.Optional
 import javax.measure.quantity.Length
@@ -54,22 +44,20 @@ class WeatherSourceSpec extends UnitSpec {
     "issue a ServiceException, if there are not enough coordinates available" in {
       DummyWeatherSource.getNearestCoordinatesWithDistances(
         AgentCoordinates(coordinate0.getY, coordinate0.getX),
-        9,
-        Quantities.getQuantity(28, PowerSystemUnits.KILOMETRE)
+        9
       ) match {
         case Failure(exception: ServiceException) =>
-          exception.getMessage shouldBe "There are not enough coordinates for averaging. Found 8 but need 9."
+          exception.getMessage shouldBe "There are not enough coordinates for averaging. Found 8 within the given distance of 400000 m but need 9. Please make sure that there are enough coordinates within the given distance."
         case _ => fail("You shall not pass!")
       }
     }
     "issue a ServiceException, if there are not enough coordinates in max distance available" in {
       DummyWeatherSource.getNearestCoordinatesWithDistances(
         AgentCoordinates(coordinate0.getY, coordinate0.getX),
-        5,
-        Quantities.getQuantity(5, PowerSystemUnits.KILOMETRE)
+        9
       ) match {
         case Failure(exception: ServiceException) =>
-          exception.getMessage shouldBe "There are not enough coordinates within the max coordinate distance of 5 km. Found 4 but need 5."
+          exception.getMessage shouldBe "There are not enough coordinates for averaging. Found 8 within the given distance of 400000 m but need 9. Please make sure that there are enough coordinates within the given distance."
         case _ => fail("You shall not pass!")
       }
     }
@@ -78,8 +66,7 @@ class WeatherSourceSpec extends UnitSpec {
       val agentCoordinates = AgentCoordinates(51.3, 7.3)
       DummyWeatherSource.getNearestCoordinatesWithDistances(
         agentCoordinates,
-        4,
-        Quantities.getQuantity(28, PowerSystemUnits.KILOMETRE)
+        4
       ) match {
         case Failure(exception: ServiceException) =>
           exception.getMessage shouldBe "The queried point shall be surrounded by 4 weather coordinates, which are in each quadrant. This is not the case."
@@ -98,8 +85,7 @@ class WeatherSourceSpec extends UnitSpec {
 
       DummyWeatherSource.getNearestCoordinatesWithDistances(
         agentCoordinates,
-        4,
-        Quantities.getQuantity(28, PowerSystemUnits.KILOMETRE)
+        4
       ) match {
         case Success(coordinateDistances) =>
           coordinateDistances.size shouldBe 1
@@ -145,8 +131,7 @@ class WeatherSourceSpec extends UnitSpec {
 
       DummyWeatherSource.getNearestCoordinatesWithDistances(
         agentCoordinates,
-        4,
-        Quantities.getQuantity(28, PowerSystemUnits.KILOMETRE)
+        4
       ) match {
         case Success(coordinateDistances) =>
           coordinateDistances.size shouldBe 4
@@ -254,13 +239,12 @@ class WeatherSourceSpec extends UnitSpec {
       /* Query more coordinates, than are apparent */
       DummyWeatherSource.getWeightedCoordinates(
         AgentCoordinates(coordinate0.getY, coordinate0.getX),
-        9,
-        Quantities.getQuantity(28, PowerSystemUnits.KILOMETRE)
+        9
       ) match {
         case Failure(exception: ServiceException) =>
           exception.getMessage shouldBe "Determination of coordinate weights failed."
           exception.getCause shouldBe ServiceException(
-            "There are not enough coordinates for averaging. Found 8 but need 9."
+            "There are not enough coordinates for averaging. Found 8 within the given distance of 400000 m but need 9. Please make sure that there are enough coordinates within the given distance."
           )
         case _ => fail("You shall not pass!")
       }
@@ -271,8 +255,7 @@ class WeatherSourceSpec extends UnitSpec {
 
       DummyWeatherSource.getWeightedCoordinates(
         agentCoordinates,
-        4,
-        Quantities.getQuantity(28, PowerSystemUnits.KILOMETRE)
+        4
       ) match {
         case Success(WeightedCoordinates(weighting)) =>
           weighting.size shouldBe 1
@@ -300,8 +283,7 @@ class WeatherSourceSpec extends UnitSpec {
 
       DummyWeatherSource.getWeightedCoordinates(
         agentCoordinates,
-        4,
-        Quantities.getQuantity(28, PowerSystemUnits.KILOMETRE)
+        4
       ) match {
         case Success(WeightedCoordinates(weighting)) =>
           weighting.corresponds(expectedWeighting) {
@@ -368,7 +350,7 @@ case object WeatherSourceSpec {
   case object DummyWeatherSource extends WeatherSource {
     override protected val idCoordinateSource: IdCoordinateSource =
       DummyIdCoordinateSource
-    override protected val distance: ComparableQuantity[Length] =
+    override protected val maxCoordinateDistance: ComparableQuantity[Length] =
       Quantities.getQuantity(400000, Units.METRE)
 
     /** Get the weather data for the given tick as a weighted average taking

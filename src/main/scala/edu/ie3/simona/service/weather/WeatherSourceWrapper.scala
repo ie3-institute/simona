@@ -76,7 +76,7 @@ private[weather] final case class WeatherSourceWrapper private (
     source: PsdmWeatherSource,
     override val idCoordinateSource: IdCoordinateSource,
     resolution: Long,
-    override val distance: ComparableQuantity[Length]
+    maxCoordinateDistance: ComparableQuantity[Length]
 )(
     private implicit val simulationStart: ZonedDateTime
 ) extends SimonaWeatherSource
@@ -235,7 +235,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       timestampPattern: Option[String],
       scheme: String,
       resolution: Option[Long],
-      distance: ComparableQuantity[Length]
+      maxCoordinateDistance: ComparableQuantity[Length]
   )(implicit simulationStart: ZonedDateTime): WeatherSourceWrapper = {
     val idCoordinateSource = idCoordinateSourceFunction()
     val source = new CsvWeatherSource(
@@ -252,7 +252,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       source,
       idCoordinateSource,
       resolution.getOrElse(DEFAULT_RESOLUTION),
-      distance
+      maxCoordinateDistance
     )
   }
 
@@ -262,7 +262,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       timestampPattern: Option[String],
       scheme: String,
       resolution: Option[Long],
-      distance: ComparableQuantity[Length]
+      maxCoordinateDistance: ComparableQuantity[Length]
   )(implicit simulationStart: ZonedDateTime): WeatherSourceWrapper = {
     val couchbaseConnector = new CouchbaseConnector(
       couchbaseParams.url,
@@ -286,7 +286,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       source,
       idCoordinateSource,
       resolution.getOrElse(DEFAULT_RESOLUTION),
-      distance
+      maxCoordinateDistance
     )
   }
 
@@ -296,7 +296,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       timestampPattern: Option[String],
       scheme: String,
       resolution: Option[Long],
-      distance: ComparableQuantity[Length]
+      maxCoordinateDistance: ComparableQuantity[Length]
   )(implicit simulationStart: ZonedDateTime): WeatherSourceWrapper = {
     val influxDb1xConnector =
       new InfluxDbConnector(influxDbParams.url, influxDbParams.database)
@@ -313,7 +313,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       source,
       idCoordinateSource,
       resolution.getOrElse(DEFAULT_RESOLUTION),
-      distance
+      maxCoordinateDistance
     )
   }
 
@@ -323,7 +323,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       timestampPattern: Option[String],
       scheme: String,
       resolution: Option[Long],
-      distance: ComparableQuantity[Length]
+      maxCoordinateDistance: ComparableQuantity[Length]
   )(implicit simulationStart: ZonedDateTime): WeatherSourceWrapper = {
     val sqlConnector = new SqlConnector(
       sqlParams.jdbcUrl,
@@ -345,7 +345,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       source,
       idCoordinateSource,
       resolution.getOrElse(DEFAULT_RESOLUTION),
-      distance
+      maxCoordinateDistance
     )
   }
 

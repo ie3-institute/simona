@@ -1188,10 +1188,10 @@ object SimonaConfig {
               SimonaConfig.Simona.Input.Weather.Datasource.CouchbaseParams
             ],
             csvParams: scala.Option[SimonaConfig.BaseCsvParams],
-            distance: scala.Double,
             influxDb1xParams: scala.Option[
               SimonaConfig.Simona.Input.Weather.Datasource.InfluxDb1xParams
             ],
+            maxCoordinateDistance: scala.Double,
             resolution: scala.Option[scala.Long],
             sampleParams: scala.Option[
               SimonaConfig.Simona.Input.Weather.Datasource.SampleParams
@@ -1515,9 +1515,6 @@ object SimonaConfig {
                     )
                   )
                 else None,
-              distance =
-                if (c.hasPathOrNull("distance")) c.getDouble("distance")
-                else 10000,
               influxDb1xParams =
                 if (c.hasPathOrNull("influxDb1xParams"))
                   scala.Some(
@@ -1529,6 +1526,10 @@ object SimonaConfig {
                       )
                   )
                 else None,
+              maxCoordinateDistance =
+                if (c.hasPathOrNull("maxCoordinateDistance"))
+                  c.getDouble("maxCoordinateDistance")
+                else 50000,
               resolution =
                 if (c.hasPathOrNull("resolution"))
                   Some(c.getLong("resolution").longValue())

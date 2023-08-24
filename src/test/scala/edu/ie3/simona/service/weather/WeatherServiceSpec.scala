@@ -31,7 +31,6 @@ import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.service.weather.WeatherSource.AgentCoordinates
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.PrivateMethodTester
 import org.scalatest.wordspec.AnyWordSpecLike
 import tech.units.indriya.quantity.Quantities
@@ -107,8 +106,7 @@ class WeatherServiceSpec
       TimeUtil.withDefaults.toZonedDateTime(
         simonaConfig.simona.time.endDateTime
       ),
-      4,
-      Quantities.getQuantity(28, PowerSystemUnits.KILOMETRE)
+      4
     )
   )
 
