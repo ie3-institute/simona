@@ -150,7 +150,7 @@ final case class PrimaryServiceWorker[V <: Value](
           source
         )
       val triggerMessage =
-        ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
+        ServiceActivationBaseStateData.tickToScheduleTriggerMessage(
           maybeNextTick,
           self
         )
@@ -240,7 +240,7 @@ final case class PrimaryServiceWorker[V <: Value](
     val (maybeNextActivationTick, remainderActivationTicks) =
       baseStateData.activationTicks.pop
     val triggerMessages =
-      ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
+      ServiceActivationBaseStateData.tickToScheduleTriggerMessage(
         maybeNextActivationTick,
         self
       )
@@ -308,7 +308,7 @@ final case class PrimaryServiceWorker[V <: Value](
     val (maybeNextTick, remainderActivationTicks) =
       serviceBaseStateData.activationTicks.pop
     val triggerMessages = ServiceActivationBaseStateData
-      .tickToScheduleTriggerMessages(maybeNextTick, self)
+      .tickToScheduleTriggerMessage(maybeNextTick, self)
     val updatedStateData =
       serviceBaseStateData.copy(
         maybeNextActivationTick = maybeNextTick,

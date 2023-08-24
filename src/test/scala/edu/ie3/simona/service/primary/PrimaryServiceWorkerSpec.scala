@@ -151,9 +151,7 @@ class PrimaryServiceWorkerSpec
           }
           /* We expect a request to be triggered in tick 0 */
           maybeTriggerMessages shouldBe Some(
-            Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(0L), serviceRef)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(0L), serviceRef)
           )
         case Failure(_) =>
           fail("Initialisation with supported init data is not meant to fail.")
@@ -208,7 +206,7 @@ class PrimaryServiceWorkerSpec
       val announcePrimaryData = PrivateMethod[
         (
             PrimaryServiceInitializedStateData[PValue],
-            Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+            Option[SchedulerMessage.ScheduleTriggerMessage]
         )
       ](Symbol("announcePrimaryData"))
       val tick = 0L
@@ -221,7 +219,7 @@ class PrimaryServiceWorkerSpec
         primaryData,
         serviceStateData
       ) match {
-        case (updatedStateData, maybeTriggerMessages) =>
+        case (updatedStateData, maybeTriggerMessage) =>
           /* Check updated state data */
           inside(updatedStateData) {
             case PrimaryServiceInitializedStateData(
@@ -235,22 +233,13 @@ class PrimaryServiceWorkerSpec
               activationTicks.size shouldBe 0
           }
           /* Check trigger messages */
-          maybeTriggerMessages match {
-            case Some(triggerSeq) =>
-              triggerSeq.size shouldBe 1
-              triggerSeq.headOption match {
-                case Some(
-                      ScheduleTriggerMessage(
-                        ActivityStartTrigger(triggerTick),
-                        actorToBeScheduled
-                      )
-                    ) =>
-                  triggerTick shouldBe 900L
-                  actorToBeScheduled shouldBe serviceRef
-                case Some(value) =>
-                  fail(s"Got wrong trigger messages: '$value'.")
-                case None => fail("Did expect to get at least on trigger.")
-              }
+          maybeTriggerMessage match {
+            case Some(trigger) =>
+              trigger shouldBe
+                ScheduleTriggerMessage(
+                  ActivityStartTrigger(900L),
+                  serviceRef
+                )
             case None => fail("Expect a trigger message for tick 900.")
           }
       }
@@ -270,7 +259,7 @@ class PrimaryServiceWorkerSpec
     val processDataAndAnnounce = PrivateMethod[
       (
           PrimaryServiceInitializedStateData[PValue],
-          Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+          Option[SchedulerMessage.ScheduleTriggerMessage]
       )
     ](Symbol("processDataAndAnnounce"))
 
@@ -296,12 +285,16 @@ class PrimaryServiceWorkerSpec
                 _,
                 _
               ),
-              maybeTriggerMessages
+              maybeTriggerMessage
             ) =>
           nextActivationTick shouldBe Some(900L)
-          maybeTriggerMessages match {
-            case Some(triggerSeq) => triggerSeq.size shouldBe 1
-            case None             => fail("Expect a trigger for tick 900.")
+          maybeTriggerMessage match {
+            case Some(triggerSeq) =>
+              triggerSeq shouldBe ScheduleTriggerMessage(
+                ActivityStartTrigger(900L),
+                serviceRef
+              )
+            case None => fail("Expect a trigger for tick 900.")
           }
       }
       expectNoMessage()
@@ -351,9 +344,9 @@ class PrimaryServiceWorkerSpec
         triggerId
       )
       inside(expectMsgClass(classOf[CompletionMessage])) {
-        case CompletionMessage(actualTriggerId, newTriggers) =>
+        case CompletionMessage(actualTriggerId, newTrigger) =>
           actualTriggerId shouldBe triggerId
-          newTriggers match { // TODO simplify
+          newTrigger match {
             case Some(trigger) => trigger.trigger.tick shouldBe 1800L
             case None          => fail("Expect a trigger for tick 1800.")
           }

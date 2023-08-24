@@ -42,7 +42,7 @@ object ServiceStateData {
     /** Build an optional [[ScheduleTriggerMessage]] based on the given optional
       * next tick and the sender
       */
-    val tickToScheduleTriggerMessages
+    val tickToScheduleTriggerMessage
         : (Option[Long], ActorRef) => Option[ScheduleTriggerMessage] =
       (maybeTick, sender) =>
         maybeTick.map(tick =>

@@ -148,7 +148,7 @@ protected trait ParticipantAgentFundamentals[
     /* Confirm final initialization */
     val (_, triggerId) = releaseTickAndTriggerId()
     val newTriggerMessage =
-      ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
+      ServiceActivationBaseStateData.tickToScheduleTriggerMessage(
         senderToMaybeTick._2,
         self
       )

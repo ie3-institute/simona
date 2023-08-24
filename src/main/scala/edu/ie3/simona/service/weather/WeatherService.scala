@@ -154,7 +154,7 @@ final case class WeatherService(
         Success(
           weatherInitializedStateData,
           ServiceActivationBaseStateData
-            .tickToScheduleTriggerMessages(maybeNextTick, self)
+            .tickToScheduleTriggerMessage(maybeNextTick, self)
         )
 
       case invalidData =>
@@ -327,7 +327,7 @@ final case class WeatherService(
 
     (
       updatedStateData,
-      ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
+      ServiceActivationBaseStateData.tickToScheduleTriggerMessage(
         maybeNextTick,
         self
       )
