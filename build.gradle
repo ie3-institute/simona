@@ -27,7 +27,7 @@ ext {
   scalaBinaryVersion = '2.13.11'
   akkaVersion = '2.6.20'
   jtsVersion = '1.19.0'
-  confluentKafkaVersion = '7.3.1'
+  confluentKafkaVersion = '7.4.0'
   tscfgVersion = '1.0.2'
   scapegoatVersion = '2.1.2'
 
@@ -59,15 +59,14 @@ configurations {
 
 repositories {
   mavenCentral() // searches in Sonatype's central repository
-  maven { url 'https://jitpack.io' } // allows github repos as dependencies
-  maven { url 'https://oss.sonatype.org/content/repositories/snapshots' } // sonatype snapshot repo
+  maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots' } // sonatype snapshot repo
   maven { url 'https://packages.confluent.io/maven' } // confluent repo (kafka)
 }
 
 dependencies {
   constraints {
-    implementation( 'junit:junit:4.13.2+' ){
-      because "CVE-2020-15250 - Temporary folder vulnerability - https://github.com/advisories/GHSA-269g-pwp5-87pp"
+    implementation( 'com.fasterxml.jackson.core:jackson-databind:2.15.2+' ){
+      because "[CVE-2020-25649] CWE-611: Improper Restriction of XML External Entity Reference ('XXE')"
     }
   }
 
@@ -100,12 +99,12 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // akka scala logging
-  implementation "ch.qos.logback:logback-classic:1.4.8"
+  implementation "ch.qos.logback:logback-classic:1.4.11"
 
   /* testing */
   testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
   testImplementation 'org.scalatestplus:mockito-3-4_2.13:3.2.10.0'
-  testImplementation 'org.mockito:mockito-core:5.4.0' // mocking framework
+  testImplementation 'org.mockito:mockito-core:5.5.0' // mocking framework
   testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.16"
   testRuntimeOnly 'com.vladsch.flexmark:flexmark-all:0.64.8' //scalatest html output
   testImplementation group: 'org.pegdown', name: 'pegdown', version: '1.6.0'
