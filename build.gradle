@@ -28,7 +28,7 @@ ext {
   akkaVersion = '2.6.20'
   jtsVersion = '1.19.0'
   confluentKafkaVersion = '7.4.0'
-  tscfgVersion = '1.0.2'
+  tscfgVersion = '1.0.0'
   scapegoatVersion = '2.1.2'
 
   testContainerVersion = '0.40.17'

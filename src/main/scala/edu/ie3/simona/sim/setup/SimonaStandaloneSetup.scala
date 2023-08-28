@@ -16,6 +16,7 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridTopologyGraph
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgentData.GridAgentBaseData.PreDefVoltSeq
 import edu.ie3.simona.agent.grid.{GridAgent, GridAgentData}
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.ExtSimAdapter.InitExtSimAdapter
@@ -104,6 +105,10 @@ class SimonaStandaloneSetup(
             "Was asked to setup agent for sub grid " + currentSubGrid + ", but did not found it's actor reference."
           )
         )
+
+        val slackVoltageSeries =
+          simonaConfig.simona.input.grid.slackVoltageSource
+            .map(PreDefVoltSeq.apply)
 
         /* build the grid agent data and check for its validity */
         val gridAgentInitData = SimonaStandaloneSetup.buildGridAgentInitData(

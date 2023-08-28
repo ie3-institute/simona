@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.grid
 
 import akka.actor.{ActorRef, Props, Stash}
+import edu.ie3.simona.agent.grid.GridAgentData.GridAgentBaseData.PreDefVoltSeq
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentInitData,
@@ -130,14 +131,16 @@ class GridAgent(
       val refSystem = gridAgentInitData.refSystem
 
       // get the [[GridModel]]
+      val simulationStart = TimeUtil.withDefaults
+        .toZonedDateTime(simonaConfig.simona.time.startDateTime)
+      val simulationEnd = TimeUtil.withDefaults.toZonedDateTime(
+        simonaConfig.simona.time.endDateTime
+      )
       val gridModel = GridModel(
         subGridContainer,
         refSystem,
-        TimeUtil.withDefaults
-          .toZonedDateTime(simonaConfig.simona.time.startDateTime),
-        TimeUtil.withDefaults.toZonedDateTime(
-          simonaConfig.simona.time.endDateTime
-        )
+        simulationStart,
+        simulationEnd
       )
 
       /* Reassure, that there are also calculation models for the given uuids */
@@ -155,6 +158,15 @@ class GridAgent(
             nodeUuid -> actorSet
         }
 
+      // only gets applied if the grid agent is the superior grid agent
+      val maybePreDefSlackVoltSeq =
+        if (gridAgentInitData.superiorGridNodeUuids.isEmpty) {
+          simonaConfig.simona.input.grid.slackVoltageSource
+            .map(PreDefVoltSeq.apply(simulationStart, _))
+        } else {
+          None
+        }
+
       // create the GridAgentBaseData
       val gridAgentBaseData = GridAgentBaseData(
         gridModel,
@@ -169,7 +181,8 @@ class GridAgent(
           simonaConfig.simona.powerflow.sweepTimeout
         ),
         log,
-        actorName
+        actorName,
+        maybePreDefSlackVoltSeq
       )
 
       log.debug("Je suis initialized")

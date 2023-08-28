@@ -762,6 +762,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
       val gridModel = gridAgentBaseData.gridEnv.gridModel
 
+      val maybePredefSlackVoltages =
+        gridAgentBaseData.preDefSlackVoltages.map(_.getClosest(currentTick))
+
       /* This is the highest grid agent, therefore no data is received for the slack node. Suppress, that it is looked
        * up in the empty store. */
       val (operationPoint, slackNodeVoltages) = composeOperatingPoint(
@@ -771,7 +774,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         gridModel.nodeUuidToIndexMap,
         gridAgentBaseData.receivedValueStore,
         gridModel.mainRefSystem,
-        targetVoltageFromReceivedData = false
+        targetVoltageFromReceivedData = false,
+        preDefSlackVoltage = maybePredefSlackVoltages
       )
 
       /* Regarding the power flow result of this grid, there are two cases. If this is the "highest" grid in a

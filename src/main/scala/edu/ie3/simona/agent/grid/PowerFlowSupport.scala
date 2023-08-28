@@ -73,7 +73,8 @@ trait PowerFlowSupport {
       receivedValuesStore: ReceivedValuesStore,
       gridMainRefSystem: RefSystem,
       targetVoltageFromReceivedData: Boolean = true,
-      ignoreTargetVoltage: Boolean = false
+      ignoreTargetVoltage: Boolean = false,
+      preDefSlackVoltage: Option[Double] = None
   ): (Array[PresetData], WithForcedStartVoltages) = {
     val (operatingPoints, stateData) = nodes.map { nodeModel =>
       // note: currently we only support pq nodes as we not distinguish between pq/pv nodes -
@@ -145,14 +146,19 @@ trait PowerFlowSupport {
             gridMainRefSystem
           )
         } else {
-          // Either the received data shall not be considered or the node is not a slack node
-          Complex.one *
-            (if (!ignoreTargetVoltage)
-               nodeModel.vTarget
-                 .to(PowerSystemUnits.PU)
-                 .getValue
-                 .doubleValue()
-             else 1.0)
+          preDefSlackVoltage match {
+            case Some(preDefSlackVoltage) =>
+              Complex.one * preDefSlackVoltage
+            case None =>
+              // Either the received data shall not be considered or the node is not a slack node
+              Complex.one *
+                (if (!ignoreTargetVoltage)
+                   nodeModel.vTarget
+                     .to(PowerSystemUnits.PU)
+                     .getValue
+                     .doubleValue()
+                 else 1.0)
+          }
         }
 
       val optStateData = Option.when(nodeModel.isSlack)(

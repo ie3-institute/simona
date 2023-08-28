@@ -1,5 +1,5 @@
 /*
- * © 2022. TU Dortmund University,
+ * © 2023. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
@@ -906,7 +906,10 @@ object SimonaConfig {
     )
     object Input {
       final case class Grid(
-          datasource: SimonaConfig.Simona.Input.Grid.Datasource
+          datasource: SimonaConfig.Simona.Input.Grid.Datasource,
+          slackVoltageSource: scala.Option[
+            SimonaConfig.Simona.Input.Grid.SlackVoltageSource
+          ]
       )
       object Grid {
         final case class Datasource(
@@ -951,6 +954,44 @@ object SimonaConfig {
 
         }
 
+        final case class SlackVoltageSource(
+            csvSep: java.lang.String,
+            directoryPath: java.lang.String,
+            timePattern: java.lang.String
+        )
+        object SlackVoltageSource {
+          def apply(
+              c: com.typesafe.config.Config,
+              parentPath: java.lang.String,
+              $tsCfgValidator: $TsCfgValidator
+          ): SimonaConfig.Simona.Input.Grid.SlackVoltageSource = {
+            SimonaConfig.Simona.Input.Grid.SlackVoltageSource(
+              csvSep = $_reqStr(parentPath, c, "csvSep", $tsCfgValidator),
+              directoryPath =
+                $_reqStr(parentPath, c, "directoryPath", $tsCfgValidator),
+              timePattern =
+                if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
+                else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'"
+            )
+          }
+          private def $_reqStr(
+              parentPath: java.lang.String,
+              c: com.typesafe.config.Config,
+              path: java.lang.String,
+              $tsCfgValidator: $TsCfgValidator
+          ): java.lang.String = {
+            if (c == null) null
+            else
+              try c.getString(path)
+              catch {
+                case e: com.typesafe.config.ConfigException =>
+                  $tsCfgValidator.addBadPath(parentPath + path, e)
+                  null
+              }
+          }
+
+        }
+
         def apply(
             c: com.typesafe.config.Config,
             parentPath: java.lang.String,
@@ -963,7 +1004,17 @@ object SimonaConfig {
                 com.typesafe.config.ConfigFactory.parseString("datasource{}"),
               parentPath + "datasource.",
               $tsCfgValidator
-            )
+            ),
+            slackVoltageSource =
+              if (c.hasPathOrNull("slackVoltageSource"))
+                scala.Some(
+                  SimonaConfig.Simona.Input.Grid.SlackVoltageSource(
+                    c.getConfig("slackVoltageSource"),
+                    parentPath + "slackVoltageSource.",
+                    $tsCfgValidator
+                  )
+                )
+              else None
           )
         }
       }
