@@ -31,7 +31,7 @@ ext {
   tscfgVersion = '1.0.2'
   scapegoatVersion = '2.1.2'
 
-  testContainerVersion = '0.40.17'
+  testContainerVersion = '0.41.0'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
 }
