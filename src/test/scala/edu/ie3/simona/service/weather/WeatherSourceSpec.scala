@@ -6,11 +6,21 @@
 
 package edu.ie3.simona.service.weather
 
-import edu.ie3.datamodel.io.factory.timeseries.{CosmoIdCoordinateFactory, IconIdCoordinateFactory, IdCoordinateFactory}
+import edu.ie3.datamodel.io.factory.timeseries.{
+  CosmoIdCoordinateFactory,
+  IconIdCoordinateFactory,
+  IdCoordinateFactory
+}
 import edu.ie3.datamodel.io.source.IdCoordinateSource
-import edu.ie3.simona.exceptions.{InvalidConfigParameterException, ServiceException}
+import edu.ie3.simona.exceptions.{
+  InvalidConfigParameterException,
+  ServiceException
+}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
-import edu.ie3.simona.service.weather.WeatherSource.{AgentCoordinates, WeightedCoordinates}
+import edu.ie3.simona.service.weather.WeatherSource.{
+  AgentCoordinates,
+  WeightedCoordinates
+}
 import edu.ie3.simona.service.weather.WeatherSourceSpec._
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}

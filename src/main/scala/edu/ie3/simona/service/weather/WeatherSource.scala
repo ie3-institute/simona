@@ -52,6 +52,7 @@ import java.nio.file.Paths
 import java.time.ZonedDateTime
 import javax.measure.quantity.{Dimensionless, Length}
 import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
 trait WeatherSource {
@@ -554,46 +555,46 @@ object WeatherSource {
       weatherValue: WeatherValue
   ): WeatherData = {
     WeatherData(
-      weatherValue.getSolarIrradiance.getDiffuseIrradiance
-        .map(irradiance =>
+      weatherValue.getSolarIrradiance.getDiffuseIrradiance.toScala match {
+        case Some(irradiance) =>
           WattsPerSquareMeter(
             irradiance
               .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
               .getValue
               .doubleValue()
           )
-        )
-        .orElse(EMPTY_WEATHER_DATA.diffIrr),
-      weatherValue.getSolarIrradiance.getDirectIrradiance
-        .map(irradiance =>
+        case None => EMPTY_WEATHER_DATA.diffIrr
+      },
+      weatherValue.getSolarIrradiance.getDirectIrradiance.toScala match {
+        case Some(irradiance) =>
           WattsPerSquareMeter(
             irradiance
               .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
               .getValue
               .doubleValue()
           )
-        )
-        .orElse(EMPTY_WEATHER_DATA.dirIrr),
-      weatherValue.getTemperature.getTemperature
-        .map(temperature =>
+        case None => EMPTY_WEATHER_DATA.dirIrr
+      },
+      weatherValue.getTemperature.getTemperature.toScala match {
+        case Some(temperature) =>
           Kelvin(
             temperature
               .to(Units.KELVIN)
               .getValue
               .doubleValue()
           )
-        )
-        .orElse(EMPTY_WEATHER_DATA.temp),
-      weatherValue.getWind.getVelocity
-        .map(windVel =>
+        case None => EMPTY_WEATHER_DATA.temp
+      },
+      weatherValue.getWind.getVelocity.toScala match {
+        case Some(windVel) =>
           MetersPerSecond(
             windVel
               .to(Units.METRE_PER_SECOND)
               .getValue
               .doubleValue()
           )
-        )
-        .orElse(EMPTY_WEATHER_DATA.windVel)
+        case None => EMPTY_WEATHER_DATA.windVel
+      }
     )
 
   }
