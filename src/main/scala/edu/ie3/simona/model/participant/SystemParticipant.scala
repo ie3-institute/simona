@@ -9,14 +9,16 @@ package edu.ie3.simona.model.participant
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.scala.quantities.{
+  DefaultQuantities,
+  Megavars,
+  ReactivePower
+}
+import squants.Dimensionless
+import squants.energy.{Kilowatts, Power}
 
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
 
 /** Common properties of mathematical models for system participants
   *
@@ -43,7 +45,7 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: ComparableQuantity[Power],
+    sRated: Power,
     cosPhiRated: Double
 ) extends SystemComponent(uuid, id, operationInterval) {
 
@@ -52,8 +54,7 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     * overwritten if the system participant's apparent power can be higher than
     * sRated.
     */
-  protected val sMax: ComparableQuantity[Power] =
-    sRated.to(PowerSystemUnits.KILOVOLTAMPERE)
+  protected val sMax: Power = sRated
 
   /** Calculate the power behaviour based on the given data.
     *
@@ -68,18 +69,18 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     */
   def calculatePower(
       tick: Long,
-      voltage: ComparableQuantity[Dimensionless],
+      voltage: Dimensionless,
       data: CD
   ): ApparentPower = {
     if (isInOperation(tick)) {
-      val activePower = calculateActivePower(data).to(MEGAWATT)
+      val activePower = calculateActivePower(data)
       val reactivePower =
-        calculateReactivePower(activePower, voltage).to(MEGAVAR)
+        calculateReactivePower(activePower, voltage)
       ApparentPower(activePower, reactivePower)
     } else {
       ApparentPower(
-        Quantities.getQuantity(0d, MEGAWATT),
-        Quantities.getQuantity(0d, MEGAVAR)
+        DefaultQuantities.zeroMW,
+        DefaultQuantities.zeroMVAr
       )
     }
   }
@@ -91,7 +92,7 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     * @return
     *   Active power
     */
-  protected def calculateActivePower(data: CD): ComparableQuantity[Power]
+  protected def calculateActivePower(data: CD): Power
 
   /** Get a partial function, that transfers the current active into reactive
     * power based on the participants properties and the given nodal voltage
@@ -99,13 +100,16 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     * @param nodalVoltage
     *   The currently given nodal voltage
     * @return
-    *   A [[PartialFunction]] from [[ComparableQuantity]] of type [[Power]] to
-    *   [[ComparableQuantity]] of type [[Power]]
+    *   A [[PartialFunction]] from [[Power]] to [[ReactivePower]]
     */
   def activeToReactivePowerFunc(
-      nodalVoltage: ComparableQuantity[Dimensionless]
-  ): ComparableQuantity[Power] => ComparableQuantity[Power] =
-    qControl.activeToReactivePowerFunc(sRated, cosPhiRated, nodalVoltage)
+      nodalVoltage: Dimensionless
+  ): Power => ReactivePower =
+    qControl.activeToReactivePowerFunc(
+      sRated,
+      cosPhiRated,
+      nodalVoltage
+    )
 
   /** Calculate the reactive power of the model
     *
@@ -117,9 +121,9 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     *   Reactive power
     */
   def calculateReactivePower(
-      activePower: ComparableQuantity[Power],
-      voltage: ComparableQuantity[Dimensionless]
-  ): ComparableQuantity[Power] = {
+      activePower: Power,
+      voltage: Dimensionless
+  ): ReactivePower = {
     limitReactivePower(
       activePower,
       activeToReactivePowerFunc(voltage)(activePower)
@@ -137,21 +141,23 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     *   reactivePower
     */
   private def limitReactivePower(
-      activePower: ComparableQuantity[Power],
-      reactivePower: ComparableQuantity[Power]
-  ): ComparableQuantity[Power] = {
+      activePower: Power,
+      reactivePower: ReactivePower
+  ): ReactivePower = {
     {
-      val apparentPower: ComparableQuantity[Power] = Quantities.getQuantity(
+      val apparentPower: Power = Kilowatts(
         Math
           .sqrt(
-            Math.pow(activePower.to(KILOWATT).getValue.doubleValue, 2) + Math
-              .pow(reactivePower.to(KILOVAR).getValue.doubleValue, 2)
-          ),
-        KILOVOLTAMPERE
+            Math.pow(activePower.toKilowatts, 2) + Math
+              .pow(reactivePower.toKilovars, 2)
+          )
       )
 
-      if (apparentPower.isGreaterThan(sMax)) {
-        logger.warn(
+      // tolerance for double inaccuracies
+      val sMaxWithTolerance = sMax * 1.00001d
+
+      if (apparentPower > sMaxWithTolerance) {
+        logger.debug(
           s"The var characteristics \'$qControl\' of model \'$id\' ($uuid) imposes an apparent " +
             s"power (= $apparentPower) that exceeds " +
             s"rated apparent power specifications (= $sMax). " +
@@ -159,25 +165,20 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
             s"in correspondence to the existing active power $activePower."
         )
 
-        val powerSquaredDifference = Math
-          .pow(sMax.to(MEGAVOLTAMPERE).getValue.doubleValue, 2) -
-          Math.pow(activePower.to(MEGAWATT).getValue.doubleValue, 2)
+        val powerSquaredDifference = Math.pow(sMax.toMegawatts, 2) -
+          Math.pow(activePower.toMegawatts, 2)
 
         if (powerSquaredDifference < 0) {
           logger.warn(
             s"Difference between sMax and active power is negative when limiting reactive power. " +
               s"Set reactive power to 0!"
           )
-          Quantities.getQuantity(0, MEGAVAR)
+          Megavars(0d)
         } else {
-          Quantities
-            .getQuantity(
-              Math.sqrt(powerSquaredDifference),
-              MEGAVAR
-            )
-            .multiply(
-              if (reactivePower.getValue.doubleValue < 0) -1 else 1
-            ) // preserve the sign of reactive power
+          Megavars(
+            Math.sqrt(powerSquaredDifference)
+          ) * (if (reactivePower.toMegavars < 0) -1
+               else 1) // preserve the sign of reactive power
         }
       } else
         reactivePower
