@@ -20,6 +20,7 @@ import edu.ie3.datamodel.models.result.connector.{
 }
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.SqlParams
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.notifier.{Notifier, ParticipantNotifierConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
@@ -281,7 +282,6 @@ object ConfigUtil {
           s"The provided folderPath for .csv-files '$folderPath' for '$csvParamsName' configuration is invalid! Please correct the path!"
         )
     }
-
   }
 
   object DatabaseConfigUtil extends LazyLogging {
