@@ -9,9 +9,15 @@ package edu.ie3.simona.agent.grid
 import akka.actor.ActorRef
 import akka.testkit.TestProbe
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
-import edu.ie3.simona.ontology.messages.PowerMessage.{ProvideGridPowerMessage, RequestGridPowerMessage}
+import edu.ie3.simona.ontology.messages.PowerMessage.{
+  ProvideGridPowerMessage,
+  RequestGridPowerMessage
+}
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import edu.ie3.simona.ontology.messages.VoltageMessage.{ProvideSlackVoltageMessage, RequestSlackVoltageMessage}
+import edu.ie3.simona.ontology.messages.VoltageMessage.{
+  ProvideSlackVoltageMessage,
+  RequestSlackVoltageMessage
+}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import squants.Power
