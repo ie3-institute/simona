@@ -327,7 +327,7 @@ class PvModelTest extends Specification {
     //Inclination Angle of the surface
     Angle gammaE = Sq.create(Math.toRadians(gammaEDeg), Radians$.MODULE$)
     //Sun's azimuth
-    Angle alphaE = Sq.create(Math.toRadians(alphaEDeg)), Radians$.MODULE$)
+    Angle alphaE = Sq.create(Math.toRadians(alphaEDeg), Radians$.MODULE$)
 
     expect:
     "- should calculate the angle of incidence thetaG "
