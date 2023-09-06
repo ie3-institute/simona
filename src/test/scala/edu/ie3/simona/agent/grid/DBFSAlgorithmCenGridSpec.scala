@@ -32,6 +32,8 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
 import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.scala.quantities.Megavars
+import squants.energy.Megawatts
 import tech.units.indriya.quantity.Quantities
 
 import scala.language.postfixOps
@@ -263,8 +265,8 @@ class DBFSAlgorithmCenGridSpec
           inferiorGrid11.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(0, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             )
           )
         )
@@ -276,8 +278,8 @@ class DBFSAlgorithmCenGridSpec
           inferiorGrid12.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(0, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             )
           )
         )
@@ -289,8 +291,8 @@ class DBFSAlgorithmCenGridSpec
           inferiorGrid13.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(0, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             )
           )
         )
@@ -324,13 +326,13 @@ class DBFSAlgorithmCenGridSpec
         Seq(
           ExchangePower(
             supNodeA.getUuid,
-            Quantities.getQuantity(0, MEGAWATT),
-            Quantities.getQuantity(0, MEGAVAR)
+            Megawatts(0.0),
+            Megavars(0.0)
           ),
           ExchangePower(
             supNodeB.getUuid,
-            Quantities.getQuantity(0.160905770717798, MEGAWATT),
-            Quantities.getQuantity(-1.4535602349123878, MEGAVAR)
+            Megawatts(0.160905770717798),
+            Megavars(-1.4535602349123878)
           )
         )
       )
@@ -435,8 +437,8 @@ class DBFSAlgorithmCenGridSpec
           inferiorGrid11.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(0, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             )
           )
         )
@@ -448,8 +450,8 @@ class DBFSAlgorithmCenGridSpec
           inferiorGrid12.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(0, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             )
           )
         )
@@ -461,8 +463,8 @@ class DBFSAlgorithmCenGridSpec
           inferiorGrid13.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(0, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             )
           )
         )
@@ -473,13 +475,13 @@ class DBFSAlgorithmCenGridSpec
         Seq(
           ExchangePower(
             supNodeA.getUuid,
-            Quantities.getQuantity(0, MEGAWATT),
-            Quantities.getQuantity(0, MEGAVAR)
+            Megawatts(0.0),
+            Megavars(0.0)
           ),
           ExchangePower(
             supNodeB.getUuid,
-            Quantities.getQuantity(0.16090577067051856, MEGAWATT),
-            Quantities.getQuantity(-1.4535602358772026, MEGAVAR)
+            Megawatts(0.16090577067051856),
+            Megavars(-1.4535602358772026)
           )
         )
       )

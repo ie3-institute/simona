@@ -12,15 +12,9 @@ import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData
-import edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
-import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
 import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.TableDrivenPropertyChecks
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.WATT
-
-import javax.measure.Quantity
-import javax.measure.quantity.Power
+import squants.energy.{KilowattHours, Watts}
 
 class LoadModelSpec
     extends UnitSpec
@@ -28,7 +22,7 @@ class LoadModelSpec
     with PrivateMethodTester
     with TableDrivenPropertyChecks {
 
-  implicit val quantityTolerance: Double = 1e-6 // Equals to 1 W power
+  private implicit val powerTolerance: squants.Power = Watts(1)
 
   "The load model object" should {
 
@@ -39,19 +33,17 @@ class LoadModelSpec
       val params = Table(
         ("reference", "sRated"),
         (
-          LoadReference.ActivePower(Quantities.getQuantity(268.6, WATT)),
-          Quantities.getQuantity(282.7368421052632, PowerSystemUnits.VOLTAMPERE)
+          LoadReference.ActivePower(Watts(268.6)),
+          Watts(282.7368421052632)
         ),
         (
-          LoadReference.EnergyConsumption(
-            Quantities.getQuantity(3000d, KILOWATTHOUR)
-          ),
-          Quantities.getQuantity(848.2105263157896, PowerSystemUnits.VOLTAMPERE)
+          LoadReference.EnergyConsumption(KilowattHours(3000.0)),
+          Watts(848.2105263157896)
         )
       )
 
       forAll(params) {
-        (foreSeenReference: LoadReference, expsRated: Quantity[Power]) =>
+        (foreSeenReference: LoadReference, expsRated: squants.Power) =>
           {
             val actual = ProfileLoadModel(
               loadInput,
@@ -76,11 +68,7 @@ class LoadModelSpec
                 operationInterval shouldBe defaultOperationInterval
                 scalingFactor shouldBe foreSeenScalingFactor
                 qControl shouldBe QControl(loadInput.getqCharacteristics)
-                QuantityUtil.isEquivalentAbs(
-                  sRated,
-                  expsRated,
-                  quantityTolerance
-                ) shouldBe true
+                (sRated ~= expsRated) shouldBe true
                 cosPhiRated shouldBe loadInput.getCosPhiRated
                 loadProfile shouldBe loadInput.getLoadProfile
                 reference shouldBe foreSeenReference
@@ -94,19 +82,17 @@ class LoadModelSpec
       val params = Table(
         ("reference", "sRated"),
         (
-          LoadReference.ActivePower(Quantities.getQuantity(268.6, WATT)),
-          Quantities.getQuantity(311.0105263157895, PowerSystemUnits.VOLTAMPERE)
+          LoadReference.ActivePower(Watts(268.6)),
+          Watts(311.0105263157895)
         ),
         (
-          LoadReference.EnergyConsumption(
-            Quantities.getQuantity(3000d, KILOWATTHOUR)
-          ),
-          Quantities.getQuantity(700.7341868650454, PowerSystemUnits.VOLTAMPERE)
+          LoadReference.EnergyConsumption(KilowattHours(3000.0)),
+          Watts(700.7341868650454)
         )
       )
 
       forAll(params) {
-        (foreSeenReference: LoadReference, expsRated: Quantity[Power]) =>
+        (foreSeenReference: LoadReference, expsRated: squants.Power) =>
           {
             val actual = RandomLoadModel(
               loadInput,
@@ -130,11 +116,7 @@ class LoadModelSpec
                 operationInterval shouldBe defaultOperationInterval
                 scalingFactor shouldBe foreSeenScalingFactor
                 qControl shouldBe QControl(loadInput.getqCharacteristics)
-                QuantityUtil.isEquivalentAbs(
-                  sRated,
-                  expsRated,
-                  quantityTolerance
-                ) shouldBe true
+                (sRated ~= expsRated) shouldBe true
                 cosPhiRated shouldBe loadInput.getCosPhiRated
                 reference shouldBe foreSeenReference
             }

@@ -12,6 +12,7 @@ import edu.ie3.simona.test.matchers.QuantityMatchers
 import edu.ie3.util.scala.quantities.{QuantityUtil => PSQuantityUtil}
 import org.scalatest._
 import org.scalatest.matchers.should
+import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.wordspec.AnyWordSpecLike
 
 /** Base class to be used with all scala unit tests. All data that should be
@@ -30,6 +31,7 @@ trait UnitSpec
     with Inside
     with Inspectors
     with PrivateMethodTester
+    with TableDrivenPropertyChecks
     with LazyLogging
     with TryValues
     with AppendedClues {
