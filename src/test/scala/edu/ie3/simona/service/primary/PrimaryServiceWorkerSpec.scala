@@ -41,6 +41,7 @@ import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import squants.energy.{Kilowatts, Watts}
 import tech.units.indriya.quantity.Quantities
 
 import java.nio.file.{Path, Paths}
@@ -80,6 +81,8 @@ class PrimaryServiceWorkerSpec
         TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
       timePattern = "yyyy-MM-dd'T'HH:mm:ss'Z'"
     )
+
+  private implicit val powerTolerance: squants.Power = Watts(0.1)
 
   "A primary service actor" should {
     val serviceRef =
@@ -206,8 +209,7 @@ class PrimaryServiceWorkerSpec
         )
       ](Symbol("announcePrimaryData"))
       val tick = 0L
-      val primaryData =
-        ActivePower(Quantities.getQuantity(50d, PowerSystemUnits.KILOWATT))
+      val primaryData = ActivePower(Kilowatts(50.0))
       val serviceStateData = validStateData.copy()
 
       service invokePrivate announcePrimaryData(
@@ -332,7 +334,7 @@ class PrimaryServiceWorkerSpec
       expectMsg(
         ProvidePrimaryDataMessage(
           tick,
-          ActivePower(Quantities.getQuantity(50d, PowerSystemUnits.KILOWATT)),
+          ActivePower(Kilowatts(50.0)),
           Some(900L)
         )
       )
@@ -374,9 +376,7 @@ class PrimaryServiceWorkerSpec
         tick shouldBe 900L
         inside(data) {
           case ActivePower(p) =>
-            p should equalWithTolerance(
-              Quantities.getQuantity(1250d, StandardUnits.ACTIVE_POWER_IN)
-            )
+            (p ~= Kilowatts(1250.0)) shouldBe true
           case _ => fail("Expected to get active power only.")
         }
         nextDataTick shouldBe None

@@ -44,7 +44,8 @@ class WeatherSourceSpec extends UnitSpec {
     "issue a ServiceException, if there are not enough coordinates available" in {
       DummyWeatherSource.getNearestCoordinatesWithDistances(
         AgentCoordinates(coordinate0.getY, coordinate0.getX),
-        9
+        9,
+        Quantities.getQuantity(28d, PowerSystemUnits.KILOMETRE)
       ) match {
         case Failure(exception: ServiceException) =>
           exception.getMessage shouldBe "There are not enough coordinates for averaging. Found 8 within the given distance of 400000 m but need 9. Please make sure that there are enough coordinates within the given distance."

@@ -39,7 +39,7 @@ trait LineInputTestData extends DefaultTestData with NodeInputTestData {
     Quantities.getQuantity(0, SIEMENS_PER_KILOMETRE),
     Quantities.getQuantity(0.437, OHM_PER_KILOMETRE),
     Quantities.getQuantity(0.356, OHM_PER_KILOMETRE),
-    Quantities.getQuantity(300, AMPERE),
+    Quantities.getQuantity(300d, AMPERE),
     Quantities.getQuantity(10, KILOVOLT)
   )
 

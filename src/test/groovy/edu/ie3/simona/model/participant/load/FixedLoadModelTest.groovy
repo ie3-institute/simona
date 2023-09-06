@@ -10,19 +10,23 @@ import static edu.ie3.simona.model.participant.load.LoadReference.ActivePower
 import static edu.ie3.simona.model.participant.load.LoadReference.EnergyConsumption
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static org.apache.commons.math3.util.FastMath.abs
-import static tech.units.indriya.unit.Units.WATT
 
-import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
+import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.TimeUtil
 import spock.lang.Specification
+import edu.ie3.util.scala.quantities.Sq
+import squants.energy.KilowattHours$
+import squants.energy.Kilowatts$
+
+import squants.energy.Watts$
 import tech.units.indriya.quantity.Quantities
 
 
@@ -61,7 +65,7 @@ class FixedLoadModelTest extends Specification {
   simulationEndDate,
   loadInput.operationTime
   )
-  def testingTolerance = 1e-6 // Equals to 1 W power
+  def wattTolerance = 1 // Equals to 1 W power
 
   def "A fixed load model should be instantiated from valid input correctly"() {
     when:
@@ -71,18 +75,18 @@ class FixedLoadModelTest extends Specification {
         foreSeenOperationInterval,
         1.0,
         QControl.apply(loadInput.qCharacteristics),
-        loadInput.sRated,
+        Sq.create(loadInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
         loadInput.cosPhiRated,
         reference
         )
 
     then:
-    abs(actual.activePower().subtract(expectedReferenceActivePower).to(MEGAWATT).value.doubleValue()) < testingTolerance
+    abs(actual.activePower().toWatts() - expectedReferenceActivePower.doubleValue()) < wattTolerance
 
     where:
-    reference                                                          || expectedReferenceActivePower
-    new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
-    new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(342.24, WATT)
+    reference                                                       || expectedReferenceActivePower
+    new ActivePower(Sq.create(268.6d, Watts$.MODULE$))              || 268.6
+    new EnergyConsumption(Sq.create(3000d, KilowattHours$.MODULE$)) || 342.24
   }
 
   def "A fixed load model should return approximately the same power in 10.000 calculations"() {
@@ -93,20 +97,21 @@ class FixedLoadModelTest extends Specification {
         foreSeenOperationInterval,
         1.0,
         QControl.apply(loadInput.qCharacteristics),
-        loadInput.sRated,
+        Sq.create(loadInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
         loadInput.cosPhiRated,
         reference
         )
 
     then:
     for (cnt in 0..10000) {
-      abs((dut.calculateActivePower(FixedLoadModel.FixedLoadRelevantData$.MODULE$)).subtract(expectedPower).to(MEGAWATT).value.doubleValue()) < testingTolerance
+      abs((dut.calculateActivePower(FixedLoadModel.FixedLoadRelevantData$.MODULE$)).toWatts().doubleValue()
+          - (expectedPower).toMegawatts().doubleValue()) < wattTolerance
     }
 
     where:
     reference                                                          || expectedPower
-    new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
-    new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(342.24, WATT)
+    new ActivePower(Sq.create(268.6d, Watts$.MODULE$))                 || Sq.create(268.6d, Watts$.MODULE$)
+    new EnergyConsumption(Sq.create(3000d, KilowattHours$.MODULE$))    || Sq.create(342.24d, Watts$.MODULE$)
   }
 
   def "A fixed load model considers the (global) scaling factor correctly"() {
@@ -121,17 +126,17 @@ class FixedLoadModelTest extends Specification {
           foreSeenOperationInterval,
           scale,
           QControl.apply(loadInput.qCharacteristics),
-          loadInput.sRated,
+          Sq.create(loadInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
           loadInput.cosPhiRated,
           reference
           )
 
-      abs((dut.calculateActivePower(relevantData)).subtract(expectedPower * scale).to(MEGAWATT).value.doubleValue()) < testingTolerance
+      abs(dut.calculateActivePower(relevantData).toWatts() - ((expectedPower * scale).doubleValue())) < wattTolerance
     }
 
     where:
-    reference                                                          || expectedPower
-    new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(268.6, WATT)
-    new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR)) || Quantities.getQuantity(342.24, WATT)
+    reference                                                           || expectedPower
+    new ActivePower(Sq.create(268.6d, Watts$.MODULE$))                  || 268.6
+    new EnergyConsumption(Sq.create(3000d, KilowattHours$.MODULE$))     || 342.24
   }
 }

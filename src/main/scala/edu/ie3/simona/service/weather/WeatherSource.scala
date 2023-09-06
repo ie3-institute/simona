@@ -43,6 +43,9 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.io.CsvDataSourceAdapter
 import org.locationtech.jts.geom.{Coordinate, Point}
 import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.scala.quantities.WattsPerSquareMeter
+import squants.motion.MetersPerSecond
+import squants.thermal.{Celsius, Kelvin}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -542,10 +545,10 @@ object WeatherSource {
     * "empty" concept best.
     */
   val EMPTY_WEATHER_DATA: WeatherData = WeatherData(
-    Quantities.getQuantity(0d, StandardUnits.SOLAR_IRRADIANCE),
-    Quantities.getQuantity(0d, StandardUnits.SOLAR_IRRADIANCE),
-    Quantities.getQuantity(0d, Units.KELVIN).to(StandardUnits.TEMPERATURE),
-    Quantities.getQuantity(0d, StandardUnits.WIND_VELOCITY)
+    WattsPerSquareMeter(0.0),
+    WattsPerSquareMeter(0.0),
+    Kelvin(0d),
+    MetersPerSecond(0d)
   )
 
   def toWeatherData(
@@ -553,13 +556,47 @@ object WeatherSource {
   ): WeatherData = {
     WeatherData(
       weatherValue.getSolarIrradiance.getDiffuseIrradiance
+        .map(irradiance =>
+          WattsPerSquareMeter(
+            irradiance
+              .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
+              .getValue
+              .doubleValue()
+          )
+        )
         .orElse(EMPTY_WEATHER_DATA.diffIrr),
       weatherValue.getSolarIrradiance.getDirectIrradiance
+        .map(irradiance =>
+          WattsPerSquareMeter(
+            irradiance
+              .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
+              .getValue
+              .doubleValue()
+          )
+        )
         .orElse(EMPTY_WEATHER_DATA.dirIrr),
       weatherValue.getTemperature.getTemperature
+        .map(temperature =>
+          Kelvin(
+            temperature
+              .to(Units.KELVIN)
+              .getValue
+              .doubleValue()
+          )
+        )
         .orElse(EMPTY_WEATHER_DATA.temp),
-      weatherValue.getWind.getVelocity.orElse(EMPTY_WEATHER_DATA.windVel)
+      weatherValue.getWind.getVelocity
+        .map(windVel =>
+          MetersPerSecond(
+            windVel
+              .to(Units.METRE_PER_SECOND)
+              .getValue
+              .doubleValue()
+          )
+        )
+        .orElse(EMPTY_WEATHER_DATA.windVel)
     )
+
   }
 
   /** Weather package private case class to combine the provided agent
@@ -592,5 +629,4 @@ object WeatherSource {
     val ICON: Value = Value("icon")
     val COSMO: Value = Value("cosmo")
   }
-
 }
