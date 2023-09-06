@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.service.weather
 
+import edu.ie3.datamodel.io.factory.timeseries.IconTimeBasedWeatherValueFactory
 import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
   WeatherSource => PsdmWeatherSource
@@ -29,33 +30,39 @@ import edu.ie3.util.geo.GeoUtils
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import org.locationtech.jts.geom.Point
+import tech.units.indriya.ComparableQuantity
+import squants.{Temperature, Velocity}
 import squants.motion.MetersPerSecond
 import squants.thermal.{Celsius, Kelvin}
 import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
 import java.time.{ZoneId, ZonedDateTime}
 import java.util
 import java.util.{Optional, UUID}
+import javax.measure.quantity.Length
 import scala.jdk.CollectionConverters.{MapHasAsJava, SetHasAsJava}
 
 class WeatherSourceWrapperSpec extends UnitSpec {
 
   implicit val toleranceIrradiance: Irradiance = WattsPerSquareMeter(0.1d)
-  implicit val toleranceVelocity: squants.Velocity = MetersPerSecond(0.01d)
-  implicit val tolerance: squants.Temperature = Celsius(0.01d)
+  implicit val toleranceVelocity: Velocity = MetersPerSecond(0.01d)
+  implicit val tolerance: Temperature = Celsius(0.01d)
 
   "A weather source wrapper" should {
-    val ctor = classOf[WeatherSourceWrapper].getDeclaredConstructor(
+    val actor = classOf[WeatherSourceWrapper].getDeclaredConstructor(
       classOf[PsdmWeatherSource],
       classOf[IdCoordinateSource],
       classOf[Long],
+      classOf[ComparableQuantity[Length]],
       classOf[ZonedDateTime]
     )
-    ctor.setAccessible(true)
-    val source = ctor.newInstance(
+    actor.setAccessible(true)
+    val source = actor.newInstance(
       WeatherSourceWrapperSpec.DummyPsdmWeatherSource,
       DummyIdCoordinateSource,
       360L,
+      Quantities.getQuantity(10000, Units.METRE),
       ZonedDateTime.now()
     )
     val date = ZonedDateTime.of(2021, 1, 15, 18, 0, 0, 0, ZoneId.of("UTC"))
@@ -71,13 +78,10 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       )
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
       val sumOfAll = 1 + 1 + 1 + 13
-      result.dirIrr ~= WattsPerSquareMeter(sumOfAll / 4)
-
-      result.diffIrr ~= WattsPerSquareMeter(sumOfAll / 4)
-
-      result.temp ~= Celsius(sumOfAll / 4)
-
-      result.windVel ~= MetersPerSecond(sumOfAll / 4)
+      (result.dirIrr ~= WattsPerSquareMeter(sumOfAll / 4)) shouldBe true
+      (result.diffIrr ~= WattsPerSquareMeter(sumOfAll / 4)) shouldBe true
+      (result.temp ~= Celsius(sumOfAll / 4)) shouldBe true
+      (result.windVel ~= MetersPerSecond(sumOfAll / 4)) shouldBe true
 
     }
 
@@ -92,13 +96,10 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       )
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
       val sumOfAll = 1 + 1 + 1 + 13
-      result.dirIrr ~= WattsPerSquareMeter(sumOfAll / 4)
-
-      result.diffIrr ~= WattsPerSquareMeter(sumOfAll / 4)
-
-      result.temp ~= Celsius((1 + 1 + 1) / 3)
-
-      result.windVel ~= MetersPerSecond(sumOfAll / 4)
+      (result.dirIrr ~= WattsPerSquareMeter(sumOfAll / 4)) shouldBe true
+      (result.diffIrr ~= WattsPerSquareMeter(sumOfAll / 4)) shouldBe true
+      (result.temp ~= Celsius((1 + 1 + 1) / 3)) shouldBe true
+      (result.windVel ~= MetersPerSecond(sumOfAll / 4)) shouldBe true
     }
 
     "Calculate the correct weighted value for 4 coordinates with 0.25 weight each, where one is empty" in {
@@ -112,32 +113,26 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       )
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
       val sumOfAll = 1 + 1 + 1
-      result.dirIrr ~= WattsPerSquareMeter(sumOfAll / 3)
-
-      result.diffIrr ~= WattsPerSquareMeter(sumOfAll / 3)
-
-      result.temp ~= Celsius(sumOfAll / 3)
-
-      result.windVel ~= MetersPerSecond(sumOfAll / 3)
+      (result.dirIrr ~= WattsPerSquareMeter(sumOfAll / 3)) shouldBe true
+      (result.diffIrr ~= WattsPerSquareMeter(sumOfAll / 3)) shouldBe true
+      (result.temp ~= Celsius(sumOfAll / 3)) shouldBe true
+      (result.windVel ~= MetersPerSecond(sumOfAll / 3)) shouldBe true
 
     }
 
     "calculate the correct weighted value for 1 coordinate with a weight of 1" in {
       val weightedCoordinates = WeightedCoordinates(Map(coordinate13 -> 1d))
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
-      result.dirIrr ~= WattsPerSquareMeter(13d)
-
-      result.diffIrr ~= WattsPerSquareMeter(13d)
-
-      result.temp ~= Celsius(13d)
-
-      result.windVel ~= MetersPerSecond(13d)
+      (result.dirIrr ~= WattsPerSquareMeter(13d)) shouldBe true
+      (result.diffIrr ~= WattsPerSquareMeter(13d)) shouldBe true
+      (result.temp ~= Celsius(13d)) shouldBe true
+      (result.windVel ~= MetersPerSecond(13d)) shouldBe true
     }
 
     "return temperature quantity on absolute scale" in {
       val weightedCoordinates = WeightedCoordinates(Map(coordinate1a -> 1))
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
-      result.temp.unit shouldBe squants.thermal.Kelvin
+      result.temp.unit shouldBe Kelvin
     }
   }
 
@@ -174,10 +169,10 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
         weightSum.scale(weightedWeather) match {
           case WeatherData(diffIrr, dirIrr, temp, windVel) =>
-            diffIrr ~= WattsPerSquareMeter(19.83)
-            dirIrr ~= WattsPerSquareMeter(3.01)
-            temp ~= Kelvin(290.75)
-            windVel ~= MetersPerSecond(10.6)
+            (diffIrr ~= WattsPerSquareMeter(19.83)) shouldBe true
+            (dirIrr ~= WattsPerSquareMeter(3.01)) shouldBe true
+            (temp ~= Kelvin(290.75)) shouldBe true
+            (windVel ~= MetersPerSecond(10.6)) shouldBe true
         }
       }
     }
@@ -224,7 +219,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
       weightSum.scale(weightedWeather) match {
         case WeatherData(_, _, temp, _) =>
-          temp ~= Kelvin(290d)
+          (temp ~= Kelvin(290d)) shouldBe true
       }
     }
 
@@ -239,13 +234,10 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
       weightSum.scale(weatherData) match {
         case WeatherData(diffIrr, dirIrr, temp, windVel) =>
-          diffIrr ~= WattsPerSquareMeter(4.0)
-
-          dirIrr ~= WattsPerSquareMeter(2.0)
-
-          temp ~= Kelvin(1.25d)
-
-          windVel ~= MetersPerSecond(1.0d)
+          (diffIrr ~= WattsPerSquareMeter(4.0)) shouldBe true
+          (dirIrr ~= WattsPerSquareMeter(2.0)) shouldBe true
+          (temp ~= Kelvin(1.25d)) shouldBe true
+          (windVel ~= MetersPerSecond(1.0d)) shouldBe true
 
       }
     }
@@ -262,7 +254,11 @@ object WeatherSourceWrapperSpec {
   private val coordinate13NoTemp = GeoUtils.buildPoint(52, 10)
   private val coordinateEmpty = GeoUtils.buildPoint(53, 10)
 
-  case object DummyPsdmWeatherSource extends PsdmWeatherSource {
+  case object DummyPsdmWeatherSource
+      extends PsdmWeatherSource(
+        DummyIdCoordinateSource,
+        new IconTimeBasedWeatherValueFactory()
+      ) {
 
     private val dummyValues = Map(
       coordinate1a -> new WeatherValue(

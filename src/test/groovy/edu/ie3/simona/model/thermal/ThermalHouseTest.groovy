@@ -6,6 +6,11 @@
 
 package edu.ie3.simona.model.thermal
 
+import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR_PER_KELVIN
+import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATT_PER_KELVIN
+import static tech.units.indriya.quantity.Quantities.getQuantity
+import static tech.units.indriya.unit.Units.CELSIUS
+
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
 import edu.ie3.util.scala.quantities.Sq
@@ -15,10 +20,7 @@ import squants.energy.*
 import squants.thermal.*
 import squants.time.*
 
-import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR_PER_KELVIN
-import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATT_PER_KELVIN
-import static tech.units.indriya.quantity.Quantities.getQuantity
-import static tech.units.indriya.unit.Units.CELSIUS
+
 
 class ThermalHouseTest extends Specification {
 
@@ -81,7 +83,7 @@ class ThermalHouseTest extends Specification {
     Sq.create(10d, KilowattHours$.MODULE$) - thermalEnergyLoss < Sq.create(TOLERANCE, KilowattHours$.MODULE$)
     Sq.create(90d, KilowattHours$.MODULE$) - thermalEnergyChange < Sq.create(TOLERANCE, KilowattHours$.MODULE$)
     Sq.create(9d, Kelvin$.MODULE$) - innerTemperatureChange < Sq.create(TOLERANCE, Kelvin$.MODULE$)
-    Sq.create(29d, Celsius$.MODULE$) - newInnerTemperature < Sq.create(TOLERANCE,Celsius$.MODULE$)
+    Sq.create(29d, Celsius$.MODULE$) - newInnerTemperature < Sq.create(TOLERANCE, Celsius$.MODULE$)
   }
 
   def "Comprising function to calculate new inner temperature works as expected"() {
@@ -120,8 +122,8 @@ class ThermalHouseTest extends Specification {
     thermalHouse.operatorInput() == thermalHouseInput.operator
     thermalHouse.operationTime() == thermalHouseInput.operationTime
     thermalHouse.bus() == thermalHouseInput.thermalBus
-    thermalHouse.ethLosses().value().doubleValue() == thermalHouseInput.ethLosses.to(KILOWATT_PER_KELVIN).getValue().doubleValue() * 1000
-    (thermalHouse.ethCapa().$times(Sq.create(1d, Kelvin$.MODULE$))).toKilowattHours() == thermalHouseInput.ethCapa.to(KILOWATTHOUR_PER_KELVIN).getValue().doubleValue()
+    thermalHouse.ethLosses().value().doubleValue() == thermalHouseInput.ethLosses.to(KILOWATT_PER_KELVIN).value.doubleValue() * 1000
+    (thermalHouse.ethCapa().$times(Sq.create(1d, Kelvin$.MODULE$))).toKilowattHours() == thermalHouseInput.ethCapa.to(KILOWATTHOUR_PER_KELVIN).value.doubleValue()
     thermalHouse.lowerBoundaryTemperature() == Sq.create(18, Celsius$.MODULE$)
     thermalHouse.upperBoundaryTemperature() == Sq.create(22, Celsius$.MODULE$)
   }

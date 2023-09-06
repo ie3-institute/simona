@@ -15,13 +15,12 @@ import edu.ie3.simona.service.weather.WeatherSource.{
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.mockito.MockitoSugar
+import squants.{Temperature, Velocity}
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import scala.util.{Failure, Success}
@@ -33,8 +32,8 @@ class SampleWeatherSourceSpec
   implicit val simulationStart: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2011-01-01 00:00:00")
   implicit val toleranceIrradiance: Irradiance = WattsPerSquareMeter(0.1)
-  implicit val toleranceVelocity: squants.Velocity = MetersPerSecond(0.01)
-  implicit val toleranceTemperature: squants.Temperature = Celsius(0.01)
+  implicit val toleranceVelocity: Velocity = MetersPerSecond(0.01)
+  implicit val toleranceTemperature: Temperature = Celsius(0.01)
   val source: SampleWeatherSource = new SampleWeatherSource()
 
   "The sample weather source" should {
@@ -46,8 +45,7 @@ class SampleWeatherSourceSpec
 
       source.getWeightedCoordinates(
         queryCoordinate,
-        4,
-        Quantities.getQuantity(28, PowerSystemUnits.KILOMETRE)
+        4
       ) match {
         case Success(WeightedCoordinates(weighting)) =>
           weighting.corresponds(
@@ -94,13 +92,13 @@ class SampleWeatherSourceSpec
       actual.windVel.unit shouldBe MetersPerSecond
 
       /* Values meet expectations */
-      actual.diffIrr ~= WattsPerSquareMeter(72.7656)
+      (actual.diffIrr ~= WattsPerSquareMeter(72.7656)) shouldBe true
 
-      actual.dirIrr ~= WattsPerSquareMeter(80.1172)
+      (actual.dirIrr ~= WattsPerSquareMeter(80.1172)) shouldBe true
 
-      actual.windVel ~= MetersPerSecond(11.11602)
+      (actual.windVel ~= MetersPerSecond(11.11602)) shouldBe true
 
-      actual.temp ~= Celsius(6.459)
+      (actual.temp ~= Celsius(6.459)) shouldBe true
 
     }
 
@@ -111,16 +109,16 @@ class SampleWeatherSourceSpec
       source.getWeather(tick, weightedCoordinates) match {
         case WeatherData(diffIrr, dirIrr, temp, windVel) =>
           diffIrr.unit shouldBe WattsPerSquareMeter
-          diffIrr ~= WattsPerSquareMeter(72.7656)
+          (diffIrr ~= WattsPerSquareMeter(72.7656)) shouldBe true
 
           dirIrr.unit shouldBe WattsPerSquareMeter
-          dirIrr ~= WattsPerSquareMeter(80.1172)
+          (dirIrr ~= WattsPerSquareMeter(80.1172)) shouldBe true
 
           temp.unit shouldBe Celsius
-          temp ~= Celsius(6.459d)
+          (temp ~= Celsius(6.459d)) shouldBe true
 
           windVel.unit shouldBe MetersPerSecond
-          windVel ~= MetersPerSecond(11.11602d)
+          (windVel ~= MetersPerSecond(11.11602d)) shouldBe true
 
       }
     }

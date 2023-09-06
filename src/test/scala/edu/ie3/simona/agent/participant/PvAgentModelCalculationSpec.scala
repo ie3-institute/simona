@@ -67,7 +67,7 @@ import edu.ie3.util.scala.quantities.{
   WattsPerSquareMeter
 }
 import org.scalatest.PrivateMethodTester
-import squants.Each
+import squants.{Each, Power}
 import squants.energy.{Kilowatts, Megawatts, Watts}
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
@@ -126,7 +126,7 @@ class PvAgentModelCalculationSpec
   )
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
-  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val powerTolerance: Power = Watts(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   "A pv agent with model calculation depending on no secondary data service" should {

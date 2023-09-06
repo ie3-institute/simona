@@ -31,14 +31,14 @@ final class ScalaNumberSystem extends DefaultNumberSystem {
       y: Number,
       roundRemainderTowardsZero: Boolean
   ): Array[Number] = {
-    val sign_x = signum(x)
-    val sign_y = signum(y)
+    val signX = signum(x)
+    val signY = signum(y)
 
-    val sign = sign_x * sign_y
+    val sign = signX * signY
     // handle corner cases when x or y are zero
     if (sign == 0) {
-      if (sign_y == 0) throw new ArithmeticException("division by zero")
-      if (sign_x == 0) Array[Number](0, 0)
+      if (signY == 0) throw new ArithmeticException("division by zero")
+      if (signX == 0) Array[Number](0, 0)
     }
 
     val div = x.doubleValue / y.intValue()

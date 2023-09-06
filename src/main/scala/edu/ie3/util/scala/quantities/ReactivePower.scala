@@ -6,21 +6,9 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants.energy.{Power, WattHours, Watts, WattsPerHour}
-import squants.time.{Hours, TimeIntegral}
-import squants.{
-  Dimension,
-  Each,
-  Energy,
-  MetricSystem,
-  PowerRamp,
-  PrimaryUnit,
-  Quantity,
-  SiUnit,
-  Time,
-  UnitConverter,
-  UnitOfMeasure
-}
+import squants.energy._
+import squants.time.{Hours, Time, TimeIntegral}
+import squants._
 
 import scala.util.Try
 
@@ -43,7 +31,6 @@ final class ReactivePower private (
   protected[quantities] def time: Time = Hours(1)
 
   def toMillivars: Double = to(Millivars)
-
   def toVars: Double = to(Vars)
   def toKilovars: Double = to(Kilovars)
   def toMegavars: Double = to(Megavars)

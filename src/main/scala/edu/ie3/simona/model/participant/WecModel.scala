@@ -20,10 +20,10 @@ import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
 import squants.energy.{Kilowatts, Watts}
 import squants.mass.{Kilograms, KilogramsPerCubicMeter}
-import squants.motion.MetersPerSecond
+import squants.motion.{MetersPerSecond, Pressure}
 import squants.space.SquareMeters
 import squants.thermal.JoulesPerKelvin
-import squants.{Each, Velocity}
+import squants._
 import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
@@ -58,9 +58,9 @@ final case class WecModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: squants.Power,
+    sRated: Power,
     cosPhiRated: Double,
-    rotorArea: squants.Area,
+    rotorArea: Area,
     betzCurve: WecCharacteristic
 ) extends SystemParticipant[WecRelevantData](
       uuid,
@@ -74,11 +74,11 @@ final case class WecModel(
 
   /** Universal gas constant, actually in J/(K * mol)
     */
-  private val R = JoulesPerKelvin(8.31446261815324d)
+  private val UniversalGasConstantR = JoulesPerKelvin(8.31446261815324d)
 
   /** Molar mass of air, actually in kg/mol
     */
-  private val AIR_MOLAR_MASS = Kilograms(0.0289647d)
+  private val MolarMassAir = Kilograms(0.0289647d)
 
   /** Calculate the active power output of the [[WecModel]]. First determine the
     * power, then check if it exceeds rated apparent power.
@@ -90,7 +90,7 @@ final case class WecModel(
     */
   override protected def calculateActivePower(
       wecData: WecRelevantData
-  ): squants.Power = {
+  ): Power = {
     val activePower = determinePower(wecData)
     val pMax = sMax * cosPhiRated
 
@@ -120,7 +120,7 @@ final case class WecModel(
     */
   private def determinePower(
       wecData: WecRelevantData
-  ): squants.Power = {
+  ): Power = {
     val betzCoefficient = determineBetzCoefficient(wecData.windVelocity)
 
     /** air density in kg/m³
@@ -152,8 +152,8 @@ final case class WecModel(
     *   betz coefficient cₚ
     */
   private def determineBetzCoefficient(
-      windVelocity: squants.Velocity
-  ): squants.Dimensionless = {
+      windVelocity: Velocity
+  ): Dimensionless = {
     betzCurve.interpolateXy(windVelocity) match {
       case (_, cp) => cp
     }
@@ -172,9 +172,9 @@ final case class WecModel(
     * @return
     */
   private def calculateAirDensity(
-      temperature: squants.Temperature,
-      airPressure: Option[squants.motion.Pressure]
-  ): squants.Density = {
+      temperature: Temperature,
+      airPressure: Option[Pressure]
+  ): Density = {
     airPressure match {
       case None =>
         KilogramsPerCubicMeter(1.2041d)
@@ -182,7 +182,7 @@ final case class WecModel(
         // kg * mol^-1 * J * m^-3 * J^-1 * K * mol * K^-1
         // = kg * m^-3
         KilogramsPerCubicMeter(
-          AIR_MOLAR_MASS.toKilograms * pressure.toPascals / (R.toJoulesPerKelvin * temperature.toKelvinScale)
+          MolarMassAir.toKilograms * pressure.toPascals / (UniversalGasConstantR.toJoulesPerKelvin * temperature.toKelvinScale)
         )
     }
   }
@@ -197,9 +197,9 @@ object WecModel {
     */
   final case class WecCharacteristic private (
       override val xyCoordinates: SortedSet[
-        XYPair[Velocity, squants.Dimensionless]
+        XYPair[Velocity, Dimensionless]
       ]
-  ) extends Characteristic[Velocity, squants.Dimensionless]
+  ) extends Characteristic[Velocity, Dimensionless]
 
   object WecCharacteristic {
     import scala.jdk.CollectionConverters._
@@ -210,9 +210,9 @@ object WecModel {
     def apply(input: WecCharacteristicInput): WecCharacteristic =
       new WecCharacteristic(
         collection.immutable
-          .SortedSet[XYPair[Velocity, squants.Dimensionless]]() ++
+          .SortedSet[XYPair[Velocity, Dimensionless]]() ++
           input.getPoints.asScala.map(p =>
-            XYPair[Velocity, squants.Dimensionless](
+            XYPair[Velocity, Dimensionless](
               MetersPerSecond(p.getX.to(METRE_PER_SECOND).getValue.doubleValue),
               Each(p.getY.to(PU).getValue.doubleValue)
             )
@@ -231,9 +231,9 @@ object WecModel {
     *   current air pressure
     */
   final case class WecRelevantData(
-      windVelocity: squants.Velocity,
-      temperature: squants.Temperature,
-      airPressure: Option[squants.motion.Pressure]
+      windVelocity: Velocity,
+      temperature: Temperature,
+      airPressure: Option[Pressure]
   ) extends CalcRelevantData
 
   def apply(

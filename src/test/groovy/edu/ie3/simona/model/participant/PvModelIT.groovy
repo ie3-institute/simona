@@ -6,7 +6,10 @@
 
 package edu.ie3.simona.model.participant
 
+import java.nio.file.Path
+
 import static edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
+
 import static java.util.Locale.US
 import static java.util.Locale.setDefault
 import static tech.units.indriya.quantity.Quantities.getQuantity
@@ -33,8 +36,6 @@ import javax.measure.Quantity
 import javax.measure.quantity.Power
 import java.time.ZonedDateTime
 import java.util.zip.GZIPInputStream
-
-
 
 /**
  * A simple integration test that uses pre-calculated data to check if the pv model works as expected.
@@ -135,7 +136,7 @@ trait PvModelITHelper {
     "load the grid input data from the corresponding resources folder"
 
     def csvGridSource = CsvJointGridContainerSource.read("it_grid", ";",
-        this.getClass().getResource("_pv/it/grid_data").file)
+        Path.of(this.getClass().getResource("_pv/it/grid_data").toURI()), false)
 
     def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2011-01-01 00:00:00")
     def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2012-01-01 00:00:00")

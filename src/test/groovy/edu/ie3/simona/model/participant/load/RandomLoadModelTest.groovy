@@ -94,7 +94,7 @@ class RandomLoadModelTest extends Specification {
         foreSeenOperationInterval,
         1.0,
         QControl.apply(loadInput.qCharacteristics),
-        Sq.create(loadInput.getsRated().to(KILOWATT).getValue().doubleValue(), Kilowatts$.MODULE$),
+        Sq.create(loadInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
         loadInput.cosPhiRated,
         new ActivePower(Sq.create(268.6d, Watts$.MODULE$))
         )
@@ -130,7 +130,7 @@ class RandomLoadModelTest extends Specification {
         foreSeenOperationInterval,
         1.0,
         QControl.apply(loadInput.qCharacteristics),
-        Sq.create(loadInput.getsRated().to(KILOWATT).getValue().doubleValue(), Kilowatts$.MODULE$),
+        Sq.create(loadInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
         loadInput.cosPhiRated,
         new EnergyConsumption(Sq.create(3000d, KilowattHours$.MODULE$))
         )
@@ -159,7 +159,7 @@ class RandomLoadModelTest extends Specification {
         foreSeenOperationInterval,
         1.0,
         QControl.apply(loadInput.qCharacteristics),
-        Sq.create(loadInput.getsRated().to(KILOWATT).getValue().doubleValue(), Kilowatts$.MODULE$),
+        Sq.create(loadInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
         loadInput.cosPhiRated,
         new ActivePower(Sq.create(268.6d, Watts$.MODULE$))
         )

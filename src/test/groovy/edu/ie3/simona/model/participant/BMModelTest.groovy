@@ -6,31 +6,29 @@
 
 package edu.ie3.simona.model.participant
 
+import squants.market.EUR$
+import edu.ie3.util.scala.quantities.EuroPerKilowatthour$
+
 import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static tech.units.indriya.unit.Units.CELSIUS
 import static tech.units.indriya.unit.Units.PERCENT
 
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.type.BmTypeInput
-
 import squants.energy.Megawatts$
 import squants.thermal.Celsius$
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.util.quantities.interfaces.EnergyPrice
 import edu.ie3.util.scala.OperationInterval
 import scala.Some
 import spock.lang.Shared
 import spock.lang.Specification
 import squants.energy.Kilowatts$
 import edu.ie3.util.scala.quantities.Sq
-import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static tech.units.indriya.unit.Units.PERCENT
+
 
 /**
  * Test class that tries to cover all special cases of the current implementation of the {@link BMModel}
@@ -74,8 +72,8 @@ class BMModelTest extends Specification {
         bmType.getCosPhiRated(),
         "MockNode",
         true,
-        bmType.opex as ComparableQuantity<EnergyPrice>,
-        Quantities.getQuantity(0.051d, EURO_PER_KILOWATTHOUR),
+        Sq.create(bmType.opex.value.doubleValue(), EUR$.MODULE$),
+        Sq.create(0.051d, EuroPerKilowatthour$.MODULE$),
         0.05)
   }
 
@@ -181,13 +179,13 @@ class BMModelTest extends Specification {
         bmType.getCosPhiRated(),
         "MockNode",
         true,
-        bmType.opex as ComparableQuantity<EnergyPrice>,
-        Quantities.getQuantity(feedInTariff, EURO_PER_KILOWATTHOUR),
+        Sq.create(bmType.opex.value.doubleValue(), EUR$.MODULE$),
+        Sq.create(feedInTariff, EuroPerKilowatthour$.MODULE$),
         0.05)
 
     def pElCalc = bmModel.calculateElOutput(usage, eff)
 
-    then: "compare in Kilowatts"
+    then: "compare in watts"
     pElCalc - Sq.create(pElSol, Kilowatts$.MODULE$) < Sq.create(0.0001d, Kilowatts$.MODULE$)
 
     where:
@@ -234,8 +232,8 @@ class BMModelTest extends Specification {
         bmType.getCosPhiRated(),
         "MockNode",
         costControlled,
-        bmType.opex as ComparableQuantity<EnergyPrice>,
-        Quantities.getQuantity(0.051d, EURO_PER_KILOWATTHOUR),
+        Sq.create(bmType.opex.value.doubleValue(), EUR$.MODULE$),
+        Sq.create(0.051d, EuroPerKilowatthour$.MODULE$),
         0.05)
 
     // modify data store: add last output power, one hour in the past

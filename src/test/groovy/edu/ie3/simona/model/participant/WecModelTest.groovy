@@ -6,9 +6,11 @@
 
 package edu.ie3.simona.model.participant
 
+import squants.energy.Kilowatts$
+import squants.space.SquareMeters$
+
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static edu.ie3.datamodel.models.StandardUnits.*
-import static edu.ie3.util.quantities.QuantityUtil.equals
 import static edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import static tech.units.indriya.quantity.Quantities.getQuantity
 
@@ -22,20 +24,16 @@ import edu.ie3.datamodel.models.input.system.type.WecTypeInput
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.Sq
-import scala.None
 import scala.Option
 import scala.Some
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
 import squants.Each$
-import squants.energy.Kilowatts$
 import squants.motion.MetersPerSecond$
 import squants.motion.Pascals$
-import squants.motion.Pressure
-import squants.space.SquareMeters$
-import squants.thermal.Celsius$
 
+import squants.thermal.Celsius$
 
 
 class WecModelTest extends Specification {
@@ -104,13 +102,13 @@ class WecModelTest extends Specification {
     when:
     def wecModel = buildWecModel()
     then:
-    wecModel.uuid() == inputModel.getUuid()
-    wecModel.id() == inputModel.getId()
+    wecModel.uuid() == inputModel.uuid
+    wecModel.id() == inputModel.id
     wecModel.scalingFactor() == 1
-    wecModel.sRated() == Sq.create((inputModel.getType().getsRated().value.doubleValue()), Kilowatts$.MODULE$)
-    wecModel.cosPhiRated() == inputModel.getType().getCosPhiRated()
-    wecModel.rotorArea() == Sq.create((inputModel.getType().getRotorArea().value.doubleValue()), SquareMeters$.MODULE$)
-    wecModel.betzCurve() == new WecModel.WecCharacteristic$().apply(inputModel.getType().getCpCharacteristic())
+    wecModel.sRated() == Sq.create(inputModel.type.sRated.value.doubleValue(), Kilowatts$.MODULE$)
+    wecModel.cosPhiRated() == inputModel.type.cosPhiRated
+    wecModel.rotorArea() == Sq.create(inputModel.type.rotorArea.value.doubleValue(), SquareMeters$.MODULE$)
+    wecModel.betzCurve() == new WecModel.WecCharacteristic$().apply(inputModel.type.cpCharacteristic)
   }
 
   @Unroll

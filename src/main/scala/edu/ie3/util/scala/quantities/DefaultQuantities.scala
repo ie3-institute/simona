@@ -6,15 +6,15 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants.Each
+import squants.{Each, Energy, Power, Dimensionless}
 import squants.energy.{KilowattHours, Kilowatts, Megawatts}
 
 object DefaultQuantities {
 
-  val zeroKWH: squants.Energy = KilowattHours(0d)
-  val zeroKW: squants.Power = Kilowatts(0d)
-  val zeroMW: squants.Power = Megawatts(0d)
+  val zeroKWH: Energy = KilowattHours(0d)
+  val zeroKW: Power = Kilowatts(0d)
+  val zeroMW: Power = Megawatts(0d)
   val zeroMVAr: ReactivePower = Megavars(0d)
-  val zeroPU: squants.Dimensionless = Each(0d)
+  val zeroPU: Dimensionless = Each(0d)
 
 }

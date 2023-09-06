@@ -15,7 +15,8 @@ import edu.ie3.util.scala.quantities.{
   Megavars,
   ReactivePower
 }
-import squants.energy.Kilowatts
+import squants.Dimensionless
+import squants.energy.{Kilowatts, Power}
 
 import java.util.UUID
 
@@ -44,7 +45,7 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: squants.Power,
+    sRated: Power,
     cosPhiRated: Double
 ) extends SystemComponent(uuid, id, operationInterval) {
 
@@ -53,7 +54,7 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     * overwritten if the system participant's apparent power can be higher than
     * sRated.
     */
-  protected val sMax: squants.Power = sRated
+  protected val sMax: Power = sRated
 
   /** Calculate the power behaviour based on the given data.
     *
@@ -68,7 +69,7 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     */
   def calculatePower(
       tick: Long,
-      voltage: squants.Dimensionless,
+      voltage: Dimensionless,
       data: CD
   ): ApparentPower = {
     if (isInOperation(tick)) {
@@ -91,7 +92,7 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     * @return
     *   Active power
     */
-  protected def calculateActivePower(data: CD): squants.Power
+  protected def calculateActivePower(data: CD): Power
 
   /** Get a partial function, that transfers the current active into reactive
     * power based on the participants properties and the given nodal voltage
@@ -99,11 +100,11 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     * @param nodalVoltage
     *   The currently given nodal voltage
     * @return
-    *   A [[PartialFunction]] from [[squants.Power]] to [[ReactivePower]]
+    *   A [[PartialFunction]] from [[Power]] to [[ReactivePower]]
     */
   def activeToReactivePowerFunc(
-      nodalVoltage: squants.Dimensionless
-  ): squants.Power => ReactivePower =
+      nodalVoltage: Dimensionless
+  ): Power => ReactivePower =
     qControl.activeToReactivePowerFunc(
       sRated * scalingFactor,
       cosPhiRated,
@@ -120,8 +121,8 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     *   Reactive power
     */
   def calculateReactivePower(
-      activePower: squants.Power,
-      voltage: squants.Dimensionless
+      activePower: Power,
+      voltage: Dimensionless
   ): ReactivePower = {
     limitReactivePower(
       activePower,
@@ -140,11 +141,11 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     *   reactivePower
     */
   private def limitReactivePower(
-      activePower: squants.Power,
+      activePower: Power,
       reactivePower: ReactivePower
   ): ReactivePower = {
     {
-      val apparentPower: squants.Power = Kilowatts(
+      val apparentPower: Power = Kilowatts(
         Math
           .sqrt(
             Math.pow(activePower.toKilowatts, 2) + Math

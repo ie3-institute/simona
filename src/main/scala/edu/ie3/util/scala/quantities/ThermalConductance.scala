@@ -22,18 +22,26 @@ final class ThermalConductance private (
 
   def dimension: ThermalConductance.type = ThermalConductance
 
-  def *(temperature: Temperature): Power = Watts(
-    this.toWattsPerKelvin * temperature.toKelvinScale
-  )
-
+  /** Calculates the energy gain (temperatureOuter > temperatureInner) or energy
+    * loss (temperatureOuter < temperatureInner) based on a given thermal
+    * conductance and a temperature delta and the time duration.
+    * @param temperatureInner
+    *   Inner temperature of a medium
+    * @param temperatureOuter
+    *   Temperature outside the medium
+    * @param time
+    *   Time duration
+    * @return
+    */
   def thermalConductanceToEnergy(
-      temperature: Temperature,
+      temperatureInner: Temperature,
+      temperatureOuter: Temperature,
       time: squants.Time
   ): Energy = WattHours(
-    this.toWattsPerKelvin * temperature.toCelsiusScale * time.toHours
+    this.toWattsPerKelvin * (temperatureInner.toKelvinScale - temperatureOuter.toKelvinScale) * time.toHours
   )
 
-  private def toWattsPerKelvin: Double = to(WattsPerKelvin)
+  def toWattsPerKelvin: Double = to(WattsPerKelvin)
 }
 
 object ThermalConductance extends Dimension[ThermalConductance] {
@@ -60,21 +68,4 @@ object WattsPerKelvin
     with PrimaryUnit
     with SiUnit {
   val symbol: String = Watts.symbol + "/" + Kelvin.symbol
-}
-
-object ThermalConductanceConversions {
-  lazy val wattsPerKelvin: ThermalConductance =
-    WattsPerKelvin(1)
-
-  implicit class ThermalConductanceConversions[A](n: A)(implicit
-      num: Numeric[A]
-  ) {
-    def wattsPerKelvin: ThermalConductance =
-      WattsPerKelvin(n)
-  }
-
-  implicit object ThermalConductanceNumeric
-      extends AbstractQuantityNumeric[ThermalConductance](
-        ThermalConductance.primaryUnit
-      )
 }

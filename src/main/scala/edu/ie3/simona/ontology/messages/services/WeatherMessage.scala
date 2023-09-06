@@ -12,6 +12,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ServiceRegistrationMessage
 }
 import edu.ie3.util.scala.quantities.Irradiance
+import squants.{Temperature, Velocity}
 
 sealed trait WeatherMessage
 
@@ -68,8 +69,8 @@ object WeatherMessage {
   final case class WeatherData(
       diffIrr: Irradiance,
       dirIrr: Irradiance,
-      temp: squants.Temperature,
-      windVel: squants.Velocity
+      temp: Temperature,
+      windVel: Velocity
   ) extends SecondaryData
 
 }

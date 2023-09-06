@@ -12,7 +12,6 @@ import edu.ie3.simona.exceptions.QControlException
 import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.util.quantities.PowerSystemUnits.PU
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import squants.Each
 import tech.units.indriya.AbstractUnit
@@ -154,8 +153,9 @@ object QControl {
     def q(
         vInPu: squants.Dimensionless,
         qMax: ReactivePower
-    ): ReactivePower =
+    ): ReactivePower = {
       qMax * interpolateXy(vInPu)._2.toEach
+    }
 
     /** Obtain the function, that transfers active into reactive power
       *
@@ -251,7 +251,7 @@ object QControl {
       /* cosphi( P / P_N ) = cosphi( P / (S_N * cosphi_rated) ) */
       val pInPu =
         activePower / (sRated * cosPhiRated)
-      val instantCosPhi = cosPhi(Each(pInPu.asPu.getValue.doubleValue()))
+      val instantCosPhi = cosPhi(Each(pInPu))
       _cosPhiMultiplication(instantCosPhi.value.doubleValue, activePower)
     }
   }

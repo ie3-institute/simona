@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent
 
 import edu.ie3.simona.util.SimonaConstants
+import squants.Dimensionless
 
 /** Represents a value store to hold data of former ticks
   *
@@ -91,8 +92,8 @@ case object ValueStore {
     */
   def forVoltage(
       maxTickSpan: Long,
-      initialPerUnit: squants.Dimensionless
-  ): ValueStore[squants.Dimensionless] =
+      initialPerUnit: Dimensionless
+  ): ValueStore[Dimensionless] =
     new ValueStore(
       maxTickSpan,
       Map(SimonaConstants.FIRST_TICK_IN_SIMULATION -> initialPerUnit)

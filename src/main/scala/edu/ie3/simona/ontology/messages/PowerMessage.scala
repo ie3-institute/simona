@@ -8,6 +8,7 @@ package edu.ie3.simona.ontology.messages
 
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.util.scala.quantities.ReactivePower
+import squants.{Dimensionless, Power}
 
 import java.util.UUID
 
@@ -22,7 +23,7 @@ object PowerMessage {
   sealed trait PowerResponseMessage extends PowerMessage
 
   sealed trait ProvidePowerMessage extends PowerResponseMessage {
-    def p: squants.Power
+    def p: Power
 
     def q: ReactivePower
   }
@@ -39,8 +40,8 @@ object PowerMessage {
     */
   final case class RequestAssetPowerMessage(
       currentTick: Long,
-      eInPu: squants.Dimensionless,
-      fInPu: squants.Dimensionless
+      eInPu: Dimensionless,
+      fInPu: Dimensionless
   ) extends PowerRequestMessage
 
   /** Provide power values as a reply to a [[RequestAssetPowerMessage]]
@@ -51,7 +52,7 @@ object PowerMessage {
     *   Unchanged reactive power
     */
   final case class AssetPowerChangedMessage(
-      override val p: squants.Power,
+      override val p: Power,
       override val q: ReactivePower
   ) extends ProvidePowerMessage
 
@@ -65,7 +66,7 @@ object PowerMessage {
     *   Reactive power from the previous request
     */
   final case class AssetPowerUnchangedMessage(
-      override val p: squants.Power,
+      override val p: Power,
       override val q: ReactivePower
   ) extends ProvidePowerMessage
 
@@ -103,7 +104,7 @@ object PowerMessage {
       */
     final case class ExchangePower(
         nodeUuid: UUID,
-        override val p: squants.Power,
+        override val p: Power,
         override val q: ReactivePower
     ) extends ProvidePowerMessage
   }

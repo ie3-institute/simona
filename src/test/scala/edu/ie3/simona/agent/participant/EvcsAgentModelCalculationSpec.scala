@@ -55,7 +55,7 @@ import edu.ie3.simona.test.common.EvTestData
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
-import squants.Each
+import squants.{Each, Energy, Power}
 import squants.energy.{Megawatts, WattHours, Watts}
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
@@ -77,8 +77,8 @@ class EvcsAgentModelCalculationSpec
   private implicit val noReceiveTimeOut: Timeout = 1.second
 
   private val testingTolerance = 1e-6
-  private implicit val energyTolerance: squants.Energy = WattHours(0.1)
-  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val energyTolerance: Energy = WattHours(0.1)
+  private implicit val powerTolerance: Power = Watts(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   /* Alter the input model to have a voltage sensitive reactive power calculation */
@@ -473,7 +473,7 @@ class EvcsAgentModelCalculationSpec
 
       /* I'm not interested in the content of the RegistrationMessage */
       evService.expectMsgType[RegisterForEvDataMessage]
-      evService.send(evcsAgent, RegistrationSuccessfulMessage(Some(0L)))
+      evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[CompletionMessage]

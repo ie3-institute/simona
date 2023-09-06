@@ -6,6 +6,12 @@
 
 package edu.ie3.simona.model.participant
 
+import squants.Dimensionless
+import squants.Each$
+import squants.energy.Kilowatts$
+import squants.space.Radians$
+import squants.space.SquareMeters$
+
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static tech.units.indriya.quantity.Quantities.getQuantity
 
@@ -27,16 +33,9 @@ import org.locationtech.jts.geom.Point
 import scala.Option
 import spock.lang.Shared
 import spock.lang.Specification
-import squants.Dimensionless
-import squants.Each$
-import squants.energy.Kilowatts$
 import squants.space.Angle
-import squants.space.Radians$
-import squants.space.SquareMeters$
 
 import java.time.ZonedDateTime
-
-
 
 /**
  * Test class that tries to cover all special cases of the current implementation of the PvModel
@@ -103,15 +102,15 @@ class PvModelTest extends Specification {
         pvInput.id,
         OperationInterval.apply(0L, 86400L),
         scalingFactor,
-        QControl.apply(pvInput.getqCharacteristics()),
-        Sq.create(pvInput.getsRated().to(KILOWATT).getValue().doubleValue(), Kilowatts$.MODULE$),
+        QControl.apply(pvInput.qCharacteristics),
+        Sq.create(pvInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
         pvInput.cosPhiRated,
-        pvInput.getNode().getGeoPosition().getY(),
-        pvInput.getNode().getGeoPosition().getX(),
+        pvInput.node.geoPosition.y,
+        pvInput.node.geoPosition.x,
         pvInput.albedo,
-        Sq.create(pvInput.getEtaConv().to(PU).getValue().doubleValue(), Each$.MODULE$),
-        Sq.create(pvInput.getAzimuth().to(RADIAN).getValue().doubleValue(), Radians$.MODULE$),
-        Sq.create(pvInput.getElevationAngle().getValue().doubleValue(), Radians$.MODULE$),
+        Sq.create(pvInput.etaConv.to(PU).value.doubleValue(), Each$.MODULE$),
+        Sq.create(pvInput.azimuth.to(RADIAN).value.doubleValue(), Radians$.MODULE$),
+        Sq.create(pvInput.elevationAngle.value.doubleValue(), Radians$.MODULE$),
         Sq.create(1d, SquareMeters$.MODULE$)
         )
   }
@@ -139,7 +138,7 @@ class PvModelTest extends Specification {
 
   def "Calculate day angle J"() {
     when:
-    Angle jCalc = pvModel.calcJ(ZonedDateTime.parse(time))
+    Angle jCalc = pvModel.calcAngleJ(ZonedDateTime.parse(time))
 
     then:
     jCalc =~ Sq.create(jSol, Radians$.MODULE$)
@@ -387,7 +386,7 @@ class PvModelTest extends Specification {
     //Sunrise Angle (Sunset Angle * (-1))
     Angle omegaSR = omegaSS.$times(-1d)
     //omega1 and omega2
-    Option<scala.Tuple2<squants.space.Angle, squants.space.Angle>> omegas = pvModel.calculateBeamOmegas(thetaG, omega, omegaSS, omegaSR)
+    Option<scala.Tuple2<Angle, Angle>> omegas = pvModel.calculateBeamOmegas(thetaG, omega, omegaSS, omegaSR)
 
     expect:
     "- should calculate the beam contribution,"
