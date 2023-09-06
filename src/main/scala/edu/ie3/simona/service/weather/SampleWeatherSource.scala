@@ -7,16 +7,16 @@
 package edu.ie3.simona.service.weather
 
 import edu.ie3.datamodel.io.source.IdCoordinateSource
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.util.TickUtil
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.geo.CoordinateDistance
-import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.locationtech.jts.geom.Point
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
+import squants.Kelvin
+import squants.motion.MetersPerSecond
+import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoField.{HOUR_OF_DAY, MONTH_OF_YEAR, YEAR}
@@ -69,27 +69,27 @@ final class SampleWeatherSource(
       else wallClockTime.get(YEAR)
     val index = (((year - 2011) * 288) + (month * 24) + hour) + 1
     val weatherResult = WeatherData(
-      Quantities
-        .getQuantity(
-          SampleWeatherSource.diffuseRadiation(index),
-          PowerSystemUnits.WATT_PER_SQUAREMETRE
-        )
-        .to(StandardUnits.SOLAR_IRRADIANCE),
-      Quantities
-        .getQuantity(
-          SampleWeatherSource.directRadiation(index),
-          PowerSystemUnits.WATT_PER_SQUAREMETRE
-        )
-        .to(StandardUnits.SOLAR_IRRADIANCE),
-      Quantities
-        .getQuantity(
-          SampleWeatherSource.temperature(index),
-          Units.KELVIN
-        )
-        .to(StandardUnits.TEMPERATURE),
-      Quantities.getQuantity(
-        SampleWeatherSource.windVelocity(index),
-        StandardUnits.WIND_VELOCITY
+      WattsPerSquareMeter(
+        SampleWeatherSource
+          .diffuseRadiation(index)
+          .doubleValue
+      ),
+      WattsPerSquareMeter(
+        SampleWeatherSource
+          .directRadiation(index)
+          .doubleValue
+      ),
+      Celsius(
+        Kelvin(
+          SampleWeatherSource
+            .temperature(index)
+            .doubleValue
+        ).toCelsiusScale
+      ),
+      MetersPerSecond(
+        SampleWeatherSource
+          .windVelocity(index)
+          .doubleValue
       )
     )
     weatherResult

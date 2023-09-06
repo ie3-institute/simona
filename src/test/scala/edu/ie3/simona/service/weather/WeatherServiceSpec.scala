@@ -11,7 +11,6 @@ import akka.testkit.{EventFilter, ImplicitSender, TestActorRef}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
@@ -32,8 +31,11 @@ import edu.ie3.simona.service.weather.WeatherSource.AgentCoordinates
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.scalatest.PrivateMethodTester
 import org.scalatest.wordspec.AnyWordSpecLike
+import squants.motion.MetersPerSecond
+import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
@@ -192,7 +194,7 @@ class WeatherServiceSpec
       expectNoMessage()
     }
 
-    "sends out correct weather information upon activity start trigger and request the triggering for the next tick" in {
+    "send out correct weather information upon activity start trigger and request the triggering for the next tick" in {
       /* Send out an activity start trigger as the scheduler */
       weatherActor ! TriggerWithIdMessage(ActivityStartTrigger(0L), 1L, self)
 
@@ -205,10 +207,10 @@ class WeatherServiceSpec
         case ProvideWeatherMessage(tick, weatherValue, nextDataTick) =>
           tick shouldBe 0L
           weatherValue shouldBe WeatherData(
-            Quantities.getQuantity(0.0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0.0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(-2.372, StandardUnits.TEMPERATURE),
-            Quantities.getQuantity(4.16474, StandardUnits.WIND_VELOCITY)
+            WattsPerSquareMeter(0d),
+            WattsPerSquareMeter(0d),
+            Celsius(-2.3719999999999573),
+            MetersPerSecond(4.16474)
           )
           nextDataTick shouldBe Some(3600L)
         case CompletionMessage(triggerId, nextTriggers) =>
@@ -243,10 +245,10 @@ class WeatherServiceSpec
         case ProvideWeatherMessage(tick, weatherValue, nextDataTick) =>
           tick shouldBe 3600L
           weatherValue shouldBe WeatherData(
-            Quantities.getQuantity(0.0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0.0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(-2.526, StandardUnits.TEMPERATURE),
-            Quantities.getQuantity(4.918092, StandardUnits.WIND_VELOCITY)
+            WattsPerSquareMeter(0d),
+            WattsPerSquareMeter(0d),
+            Celsius(-2.5259999999999536),
+            MetersPerSecond(4.918092)
           )
           nextDataTick shouldBe None
         case CompletionMessage(triggerId, nextTriggers) =>
