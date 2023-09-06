@@ -37,8 +37,8 @@ import edu.ie3.simona.test.common.{
   TestKitWithShutdown,
   UnitSpec
 }
-import edu.ie3.util.quantities.PowerSystemUnits._
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.scala.quantities.Megavars
+import squants.energy.Megawatts
 
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
@@ -198,8 +198,8 @@ class DBFSAlgorithmSupGridSpec
               requestedConnectionNodeUuids.map { uuid =>
                 ExchangePower(
                   uuid,
-                  Quantities.getQuantity(0, KILOWATT),
-                  Quantities.getQuantity(0, KILOVAR)
+                  Megawatts(0.0),
+                  Megavars(0.0)
                 )
               }
             )
@@ -268,24 +268,24 @@ class DBFSAlgorithmSupGridSpec
         val deviations =
           Array(
             (
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(0, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             ),
             (
-              Quantities.getQuantity(100, KILOWATT),
-              Quantities.getQuantity(100, KILOVAR)
+              Megawatts(0.1),
+              Megavars(0.1)
             ),
             (
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(100, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.1)
             ),
             (
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(0, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             ),
             (
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(0, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             )
           )
 

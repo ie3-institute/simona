@@ -6,6 +6,9 @@
 
 package edu.ie3.simona.model.participant
 
+import squants.energy.Kilowatts$
+import squants.thermal.Celsius$
+
 import static edu.ie3.util.quantities.PowerSystemUnits.KILOVOLTAMPERE
 import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
 import static tech.units.indriya.quantity.Quantities.getQuantity
@@ -21,8 +24,10 @@ import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
 import edu.ie3.simona.model.participant.HpModel.HpData
 import edu.ie3.simona.model.participant.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalHouse
-import edu.ie3.util.quantities.QuantityUtil
+
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.Sq
+
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -31,8 +36,6 @@ import spock.lang.Unroll
 
 class HpModelTest extends Specification {
 
-  @Shared
-  static final Double TOLERANCE = 0.0001
   @Shared
   HpInput hpInput
 
@@ -66,15 +69,15 @@ class HpModelTest extends Specification {
         null,
         1.0,
         null,
-        getQuantity(100, KILOWATT),
+        Sq.create(100d, Kilowatts$.MODULE$),
         0.95,
-        getQuantity(15, KILOWATT),
+        Sq.create(15d, Kilowatts$.MODULE$),
         thermalHouse
         )
   }
 
   static def buildHpData(HpState hpState) {
-    return new HpData(hpState, 7200, getQuantity(10, CELSIUS))
+    return new HpData(hpState, 7200L,  Sq.create(10d, Celsius$.MODULE$))
   }
 
   static def buildThermalHouse(Double lowerBoundaryTemperature, Double upperBoundaryTemperature) {
@@ -105,20 +108,19 @@ class HpModelTest extends Specification {
 
     then:
     nextState.lastTimeTick() == expectedTimeTick
-    nextState.activePower().isEquivalentTo(getQuantity(expectedActivePower, KILOWATT))
+    nextState.activePower() =~ expectedActivePower
     nextState.isRunning() == expectedRunningStatus
 
     where:
-    hpState                                                                   || expectedTimeTick | expectedRunningStatus | expectedActivePower        // (isRunning, tooHigh, tooLow)
-    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(17, CELSIUS)) || 7200             | true                  | 95                            // tests case (false, false, true)
-    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(18, CELSIUS)) || 7200             | false                 | 0                            // tests case (false, false, false)
-    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(22, CELSIUS)) || 7200             | false                 | 0                            // tests case (false, false, false)
-    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(23, CELSIUS)) || 7200             | false                 | 0                            // tests case (false, true, false)
-
-    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(17, CELSIUS)) || 7200             | true                  | 95                            // tests case (true, false, true)
-    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(18, CELSIUS)) || 7200             | true                  | 95                            // tests case (true, false, false)
-    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(22, CELSIUS)) || 7200             | true                  | 95                            // tests case (true, false, false)
-    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(23, CELSIUS)) || 7200             | false                 | 0                            // tests case (true, true, false)
+    hpState                                                                                          || expectedTimeTick | expectedRunningStatus | expectedActivePower        // (isRunning, tooHigh, tooLow)
+    new HpState(false, 0L, Sq.create(0d, Kilowatts$.MODULE$), Sq.create(17d, Celsius$.MODULE$))      || 7200             | true                  | 95                            // tests case (false, false, true)
+    new HpState(false, 0L, Sq.create(0d, Kilowatts$.MODULE$), Sq.create(18d, Celsius$.MODULE$))      || 7200             | false                 | 0                            // tests case (false, false, false)
+    new HpState(false, 0L, Sq.create(0d, Kilowatts$.MODULE$), Sq.create(22d, Celsius$.MODULE$))      || 7200             | false                 | 0                            // tests case (false, false, false)
+    new HpState(false, 0L, Sq.create(0d, Kilowatts$.MODULE$), Sq.create(23d, Celsius$.MODULE$))      || 7200             | false                 | 0                            // tests case (false, true, false)
+    new HpState(true, 0L, Sq.create(95d, Kilowatts$.MODULE$), Sq.create(17d, Celsius$.MODULE$))      || 7200             | true                  | 95                            // tests case (true, false, true)
+    new HpState(true, 0L, Sq.create(95d, Kilowatts$.MODULE$), Sq.create(18d, Celsius$.MODULE$))      || 7200             | true                  | 95                            // tests case (true, false, false)
+    new HpState(true, 0L, Sq.create(95d, Kilowatts$.MODULE$), Sq.create(22d, Celsius$.MODULE$))      || 7200             | true                  | 95                            // tests case (true, false, false)
+    new HpState(true, 0L, Sq.create(95d, Kilowatts$.MODULE$), Sq.create(23d, Celsius$.MODULE$))      || 7200             | false                 | 0                            // tests case (true, true, false)
   }
 
   def "Check new inner temperature after calculating next state with #hpState:"() {
@@ -131,21 +133,21 @@ class HpModelTest extends Specification {
     def nextInnerTemperature = hpModel.calculateNextState(hpData).innerTemperature()
 
     then:
-    QuantityUtil.equals(nextInnerTemperature, getQuantity(expectedNewInnerTemperature, CELSIUS), TOLERANCE)
+    nextInnerTemperature =~ expectedNewInnerTemperature
 
     where:
-    hpState                                                                   || expectedNewInnerTemperature                                            // (isRunning, tooHigh, tooLow)
-    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(17, CELSIUS)) || 18.6                            // tests case (false, false, true)
-    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(18, CELSIUS)) || 16.4                            // tests case (false, false, false)
-    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(20, CELSIUS)) || 18                            // tests case (false, false, false)
-    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(22, CELSIUS)) || 19.6                            // tests case (false, false, false)
-    new HpState(false, 0, getQuantity(0, KILOWATT), getQuantity(23, CELSIUS)) || 20.4                            // tests case (false, true, false)
+    hpState                                                                                     || expectedNewInnerTemperature // (isRunning, tooHigh, tooLow)
+    new HpState(false, 0L, Sq.create(0d, Kilowatts$.MODULE$), Sq.create(17d, Celsius$.MODULE$)) || 18.6  // tests case (false, false, true)
+    new HpState(false, 0L, Sq.create(0d, Kilowatts$.MODULE$), Sq.create(18d, Celsius$.MODULE$)) || 16.4  // tests case (false, false, false)
+    new HpState(false, 0L, Sq.create(0d, Kilowatts$.MODULE$), Sq.create(20d, Celsius$.MODULE$)) || 18    // tests case (false, false, false)
+    new HpState(false, 0L, Sq.create(0d, Kilowatts$.MODULE$), Sq.create(22d, Celsius$.MODULE$)) || 19.6  // tests case (false, false, false)
+    new HpState(false, 0L, Sq.create(0d, Kilowatts$.MODULE$), Sq.create(23d, Celsius$.MODULE$)) || 20.4  // tests case (false, true, false)
 
-    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(17, CELSIUS)) || 18.6                            // tests case (true, false, true)
-    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(18, CELSIUS)) || 19.4                            // tests case (true, false, false)
-    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(20, CELSIUS)) || 21                            // tests case (false, false, false)
-    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(22, CELSIUS)) || 22.6                            // tests case (true, false, false)
-    new HpState(true, 0, getQuantity(95, KILOWATT), getQuantity(23, CELSIUS)) || 20.4                            // tests case (true, true, false)
+    new HpState(true, 0L, Sq.create(95d, Kilowatts$.MODULE$), Sq.create(17d, Celsius$.MODULE$)) || 18.6  // tests case (true, false, true)
+    new HpState(true, 0L, Sq.create(95d, Kilowatts$.MODULE$), Sq.create(18d, Celsius$.MODULE$)) || 19.4  // tests case (true, false, false)
+    new HpState(true, 0L, Sq.create(95d, Kilowatts$.MODULE$), Sq.create(20d, Celsius$.MODULE$)) || 21    // tests case (false, false, false)
+    new HpState(true, 0L, Sq.create(95d, Kilowatts$.MODULE$), Sq.create(22d, Celsius$.MODULE$)) || 22.6  // tests case (true, false, false)
+    new HpState(true, 0L, Sq.create(95d, Kilowatts$.MODULE$), Sq.create(23d, Celsius$.MODULE$)) || 20.4  // tests case (true, true, false)
   }
 
 
@@ -160,9 +162,9 @@ class HpModelTest extends Specification {
         thermalHouse)
 
     then:
-    hpModelCaseClass.sRated().value == hpModelCaseObject.sRated().value
+    hpModelCaseClass.sRated() == hpModelCaseObject.sRated()
     hpModelCaseClass.cosPhiRated() == hpModelCaseObject.cosPhiRated()
-    hpModelCaseClass.pThermal().value == hpModelCaseObject.pThermal().value
+    hpModelCaseClass.pThermal() == hpModelCaseObject.pThermal()
     hpModelCaseClass.thermalHouse() == hpModelCaseObject.thermalHouse()
   }
 }
