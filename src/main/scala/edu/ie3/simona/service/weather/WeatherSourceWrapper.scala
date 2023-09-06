@@ -45,16 +45,9 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.DoubleUtils.ImplicitDouble
 import edu.ie3.util.interval.ClosedInterval
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
-
-import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
-import squants.motion.MetersPerSecond
-import squants.thermal.{Kelvin, Temperature}
 
 import java.nio.file.Path
 import java.time.ZonedDateTime
-import javax.measure.Quantity
 import javax.measure.quantity.Length
 
 import scala.jdk.CollectionConverters.{IterableHasAsJava, MapHasAsScala}

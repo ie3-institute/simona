@@ -7,21 +7,12 @@
 package edu.ie3.simona.service.weather
 
 import edu.ie3.datamodel.io.factory.timeseries.IconTimeBasedWeatherValueFactory
-import edu.ie3.datamodel.io.source.{
-  IdCoordinateSource,
-  WeatherSource => PsdmWeatherSource
-}
+import edu.ie3.datamodel.io.source.{IdCoordinateSource, WeatherSource => PsdmWeatherSource}
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.timeseries.individual.{
-  IndividualTimeSeries,
-  TimeBasedValue
-}
+import edu.ie3.datamodel.models.timeseries.individual.{IndividualTimeSeries, TimeBasedValue}
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.simona.service.weather.WeatherSource.{
-  EMPTY_WEATHER_DATA,
-  WeightedCoordinates
-}
+import edu.ie3.simona.service.weather.WeatherSource.{EMPTY_WEATHER_DATA, WeightedCoordinates}
 import edu.ie3.simona.service.weather.WeatherSourceSpec.DummyIdCoordinateSource
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
 import edu.ie3.simona.service.weather.WeatherSourceWrapperSpec._
@@ -35,11 +26,11 @@ import squants.{Temperature, Velocity}
 import squants.motion.MetersPerSecond
 import squants.thermal.{Celsius, Kelvin}
 import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
 import java.time.{ZoneId, ZonedDateTime}
 import java.util
 import java.util.{Optional, UUID}
-import javax.measure.Quantity.Scale
 import javax.measure.quantity.Length
 import scala.jdk.CollectionConverters.{MapHasAsJava, SetHasAsJava}
 

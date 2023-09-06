@@ -6,21 +6,11 @@
 
 package edu.ie3.simona.service.weather
 
-import edu.ie3.datamodel.io.factory.timeseries.{
-  CosmoIdCoordinateFactory,
-  IconIdCoordinateFactory,
-  IdCoordinateFactory
-}
+import edu.ie3.datamodel.io.factory.timeseries.{CosmoIdCoordinateFactory, IconIdCoordinateFactory, IdCoordinateFactory}
 import edu.ie3.datamodel.io.source.IdCoordinateSource
-import edu.ie3.simona.exceptions.{
-  InvalidConfigParameterException,
-  ServiceException
-}
+import edu.ie3.simona.exceptions.{InvalidConfigParameterException, ServiceException}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
-import edu.ie3.simona.service.weather.WeatherSource.{
-  AgentCoordinates,
-  WeightedCoordinates
-}
+import edu.ie3.simona.service.weather.WeatherSource.{AgentCoordinates, WeightedCoordinates}
 import edu.ie3.simona.service.weather.WeatherSourceSpec._
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
@@ -44,8 +34,7 @@ class WeatherSourceSpec extends UnitSpec {
     "issue a ServiceException, if there are not enough coordinates available" in {
       DummyWeatherSource.getNearestCoordinatesWithDistances(
         AgentCoordinates(coordinate0.getY, coordinate0.getX),
-        9,
-        Quantities.getQuantity(28d, PowerSystemUnits.KILOMETRE)
+        9
       ) match {
         case Failure(exception: ServiceException) =>
           exception.getMessage shouldBe "There are not enough coordinates for averaging. Found 8 within the given distance of 400000 m but need 9. Please make sure that there are enough coordinates within the given distance."
