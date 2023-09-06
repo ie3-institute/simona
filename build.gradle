@@ -7,7 +7,7 @@ plugins {
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
   id 'pmd' // code check, working on source code
-  id 'com.diffplug.spotless' version '6.20.0'// code format
+  id 'com.diffplug.spotless' version '6.21.0'// code format
   id "com.github.ben-manes.versions" version '0.47.0'
   id "de.undercouch.download" version "5.5.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
@@ -31,7 +31,7 @@ ext {
   tscfgVersion = '1.0.2'
   scapegoatVersion = '2.1.2'
 
-  testContainerVersion = '0.40.17'
+  testContainerVersion = '0.41.0'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
 }
