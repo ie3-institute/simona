@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.service.weather
 
+import edu.ie3.datamodel.io.factory.timeseries.IconTimeBasedWeatherValueFactory
 import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
   WeatherSource => PsdmWeatherSource
@@ -29,14 +30,17 @@ import edu.ie3.util.geo.GeoUtils
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import org.locationtech.jts.geom.Point
+import tech.units.indriya.ComparableQuantity
 import squants.{Temperature, Velocity}
 import squants.motion.MetersPerSecond
 import squants.thermal.{Celsius, Kelvin}
 import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
 import java.time.{ZoneId, ZonedDateTime}
 import java.util
 import java.util.{Optional, UUID}
+import javax.measure.quantity.Length
 import scala.jdk.CollectionConverters.{MapHasAsJava, SetHasAsJava}
 
 class WeatherSourceWrapperSpec extends UnitSpec {
@@ -46,17 +50,19 @@ class WeatherSourceWrapperSpec extends UnitSpec {
   implicit val tolerance: Temperature = Celsius(0.01d)
 
   "A weather source wrapper" should {
-    val ctor = classOf[WeatherSourceWrapper].getDeclaredConstructor(
+    val actor = classOf[WeatherSourceWrapper].getDeclaredConstructor(
       classOf[PsdmWeatherSource],
       classOf[IdCoordinateSource],
       classOf[Long],
+      classOf[ComparableQuantity[Length]],
       classOf[ZonedDateTime]
     )
-    ctor.setAccessible(true)
-    val source = ctor.newInstance(
+    actor.setAccessible(true)
+    val source = actor.newInstance(
       WeatherSourceWrapperSpec.DummyPsdmWeatherSource,
       DummyIdCoordinateSource,
       360L,
+      Quantities.getQuantity(10000, Units.METRE),
       ZonedDateTime.now()
     )
     val date = ZonedDateTime.of(2021, 1, 15, 18, 0, 0, 0, ZoneId.of("UTC"))
@@ -248,7 +254,11 @@ object WeatherSourceWrapperSpec {
   private val coordinate13NoTemp = GeoUtils.buildPoint(52, 10)
   private val coordinateEmpty = GeoUtils.buildPoint(53, 10)
 
-  case object DummyPsdmWeatherSource extends PsdmWeatherSource {
+  case object DummyPsdmWeatherSource
+      extends PsdmWeatherSource(
+        DummyIdCoordinateSource,
+        new IconTimeBasedWeatherValueFactory()
+      ) {
 
     private val dummyValues = Map(
       coordinate1a -> new WeatherValue(

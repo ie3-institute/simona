@@ -14,6 +14,9 @@ import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.geo.CoordinateDistance
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.locationtech.jts.geom.Point
+import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 import squants.Kelvin
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
@@ -22,14 +25,18 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoField.{HOUR_OF_DAY, MONTH_OF_YEAR, YEAR}
 import java.util
 import java.util.{Collections, Optional}
+import javax.measure.quantity.Length
 import scala.jdk.CollectionConverters._
 
 final class SampleWeatherSource(
     private implicit val simulationStart: ZonedDateTime
 ) extends WeatherSource {
   private val resolution = 3600L
-  override protected val idCoordinateSource: IdCoordinateSource =
+  override protected val idCoordinateSource: IdCoordinateSource = {
     SampleWeatherSource.SampleIdCoordinateSource
+  }
+  override val maxCoordinateDistance: ComparableQuantity[Length] =
+    Quantities.getQuantity(50000d, Units.METRE)
 
   /** Get the weather data for the given tick as a weighted average taking into
     * account the given weighting of weather coordinates.
@@ -128,9 +135,25 @@ object SampleWeatherSource {
     override def getAllCoordinates: util.Collection[Point] =
       Collections.singletonList(NodeInput.DEFAULT_GEO_POSITION)
 
+    override def getClosestCoordinates(
+        coordinate: Point,
+        n: Int,
+        distance: ComparableQuantity[Length]
+    ): util.List[CoordinateDistance] = {
+      if (coordinate.getY.abs <= 90 && coordinate.getX.abs <= 180)
+        Vector(
+          new CoordinateDistance(
+            coordinate,
+            coordinate
+          )
+        ).asJava
+      else
+        Vector.empty[CoordinateDistance].asJava
+    }
+
     override def getNearestCoordinates(
         coordinate: Point,
-        n: Int
+        i: Int
     ): util.List[CoordinateDistance] = {
       if (coordinate.getY.abs <= 90 && coordinate.getX.abs <= 180)
         Vector(
