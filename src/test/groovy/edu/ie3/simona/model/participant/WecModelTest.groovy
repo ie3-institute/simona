@@ -6,9 +6,11 @@
 
 package edu.ie3.simona.model.participant
 
+import squants.energy.Kilowatts$
+import squants.space.SquareMeters$
+
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static edu.ie3.datamodel.models.StandardUnits.*
-import static edu.ie3.util.quantities.QuantityUtil.equals
 import static edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import static tech.units.indriya.quantity.Quantities.getQuantity
 
@@ -21,11 +23,17 @@ import edu.ie3.datamodel.models.input.system.characteristic.WecCharacteristicInp
 import edu.ie3.datamodel.models.input.system.type.WecTypeInput
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.EmptyQuantity
+import edu.ie3.util.scala.quantities.Sq
+import scala.Option
+import scala.Some
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
+import squants.Each$
+import squants.motion.MetersPerSecond$
+import squants.motion.Pascals$
 
+import squants.thermal.Celsius$
 
 
 class WecModelTest extends Specification {
@@ -94,12 +102,12 @@ class WecModelTest extends Specification {
     when:
     def wecModel = buildWecModel()
     then:
-    wecModel.uuid() == inputModel.getUuid()
-    wecModel.id() == inputModel.getId()
+    wecModel.uuid() == inputModel.uuid
+    wecModel.id() == inputModel.id
     wecModel.scalingFactor() == 1
-    wecModel.sRated() == inputModel.type.sRated
+    wecModel.sRated() == Sq.create(inputModel.type.sRated.value.doubleValue(), Kilowatts$.MODULE$)
     wecModel.cosPhiRated() == inputModel.type.cosPhiRated
-    wecModel.rotorArea() == inputModel.type.rotorArea
+    wecModel.rotorArea() == Sq.create(inputModel.type.rotorArea.value.doubleValue(), SquareMeters$.MODULE$)
     wecModel.betzCurve() == new WecModel.WecCharacteristic$().apply(inputModel.type.cpCharacteristic)
   }
 
@@ -107,105 +115,104 @@ class WecModelTest extends Specification {
   def "Check active power output depending on velocity #velocity m/s"() {
     given:
     def wecModel = buildWecModel()
-    def wecData = new WecRelevantData(getQuantity(velocity, METRE_PER_SECOND),
-        getQuantity(20, CELSIUS), getQuantity(101325, PASCAL))
+    def wecData = new WecRelevantData(
+        Sq.create(velocity, MetersPerSecond$.MODULE$),
+        Sq.create(20, Celsius$.MODULE$),
+        new Some (Sq.create(101325d, Pascals$.MODULE$)))
 
     when:
-    def result = wecModel.calculateActivePower(wecData).to(WATT)
-    def expected = getQuantity(power, WATT)
+    def result = wecModel.calculateActivePower(wecData)
 
     then:
-    equals(result, expected, TOLERANCE)
+    Math.abs((result.toWatts() - power.doubleValue())) < TOLERANCE
 
     where:
     velocity || power
-    1.0      || 0
-    2.0      || -2948.80958
-    3.0      || -24573.41320
-    7.0      || -522922.23257
-    9.0      || -1140000
-    13.0     || -1140000
-    15.0     || -1140000
-    19.0     || -1140000
-    23.0     || -1140000
-    27.0     || -1140000
-    34.0     || -24573.39638
-    40.0     || 0
+    1.0d      || 0
+    2.0d      || -2948.80958
+    3.0d      || -24573.41320
+    7.0d      || -522922.23257
+    9.0d      || -1140000
+    13.0d     || -1140000
+    15.0d     || -1140000
+    19.0d     || -1140000
+    23.0d     || -1140000
+    27.0d     || -1140000
+    34.0d     || -24573.39638
+    40.0d     || 0
   }
 
   @Unroll
   def "Check active power output depending on temperature #temperature Celsius"() {
     given:
     def wecModel = buildWecModel()
-    def wecData = new WecRelevantData(getQuantity(3.0, METRE_PER_SECOND),
-        getQuantity(temperature, CELSIUS), getQuantity(101325, PASCAL))
+    def wecData = new WecRelevantData(Sq.create(3.0d, MetersPerSecond$.MODULE$),
+        Sq.create(temperature, Celsius$.MODULE$), new Some( Sq.create(101325d, Pascals$.MODULE$)))
 
     when:
-    def result = wecModel.calculateActivePower(wecData).to(WATT)
-    def expected = getQuantity(power, WATT)
+    def result = wecModel.calculateActivePower(wecData)
 
     then:
-    equals(result, expected, TOLERANCE)
+    result.toWatts() =~ power
 
     where:
     temperature || power
-    35          || -23377.23862
-    20          || -24573.41320
-    -25         || -29029.60338
+    35d          || -23377.23862d
+    20d          || -24573.41320d
+    -25d         || -29029.60338d
   }
 
   @Unroll
   def "Check determineBetzCoefficient method with wind velocity #velocity m/s:"() {
     given:
     def wecModel = buildWecModel()
-    def windVel = getQuantity(velocity, WIND_VELOCITY)
+    def windVel = Sq.create(velocity, MetersPerSecond$.MODULE$)
 
     when:
     def betzFactor = wecModel.determineBetzCoefficient(windVel)
-    def expected = getQuantity(betzResult, PU)
+    def expected = Sq.create(betzResult, Each$.MODULE$)
 
     then:
     betzFactor == expected
 
     where:
     velocity || betzResult
-    2        || 0.115933516
-    2.5      || 0.2010945555
-    18       || 0.108671106
-    27       || 0.032198846
-    34       || 0.000196644
-    40       || 0.0
+    2d        || 0.115933516d
+    2.5d      || 0.2010945555d
+    18d       || 0.108671106d
+    27d       || 0.032198846d
+    34d       || 0.000196644d
+    40d       || 0.0d
   }
 
   @Unroll
   def "Check calculateAirDensity method with temperature #temperature degrees Celsius and air pressure #pressure Pascal:"() {
     given:
     def wecModel = buildWecModel()
-    def temperatureV = getQuantity(temperature, CELSIUS)
-    def pressureV = EmptyQuantity.of(PASCAL)
+    def temperatureV = Sq.create(temperature, Celsius$.MODULE$)
+    def pressureV = Option.empty()
 
     when:
     if (pressure > 0) {
-      pressureV = getQuantity(pressure, PASCAL)
+      pressureV = new Some(Sq.create(pressure, Pascals$.MODULE$))
     }
-    def airDensity = wecModel.calculateAirDensity(temperatureV, pressureV).to(KILOGRAM_PER_CUBIC_METRE)
-    def expected = getQuantity(densityResult, KILOGRAM_PER_CUBIC_METRE)
+    def airDensity = wecModel.calculateAirDensity(temperatureV, pressureV).toKilogramsPerCubicMeter()
 
     then:
-    equals(airDensity, expected, TOLERANCE)
+    Math.abs(airDensity - densityResult) < TOLERANCE
 
     where:
-    temperature | pressure  || densityResult
-    -15         | 100129.44 || 1.35121
-    -5          | 99535.96  || 1.29311
-    0           | 99535.96  || 1.26944
-    5           | 100129.44 || 1.25405
-    20          | 100129.44 || 1.18988
-    25          | 100427.25 || 1.17341
-    37          | 100427.25 || 1.12801
+    temperature  | pressure   || densityResult
+    -15d         | 100129.44d || 1.35121d
+    -5d          | 99535.96d  || 1.29311d
+    0d           | 99535.96d  || 1.26944d
+    5d           | 100129.44d || 1.25405d
+    20d          | 100129.44d || 1.18988d
+    25d          | 100427.25d || 1.17341d
+    37d          | 100427.25d || 1.12801d
     // test case, where no air pressure is given (see WecModel.calculateAirDensity)
-    0           | -1.0      || 1.2041
-    5           | -1.0      || 1.2041
-    40          | -1.0      || 1.2041
+    0d           | -1.0d      || 1.2041d
+    5d           | -1.0d      || 1.2041d
+    40d          | -1.0d      || 1.2041d
   }
 }

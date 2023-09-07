@@ -20,6 +20,7 @@ import edu.ie3.simona.model.grid._
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvidePowerMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
@@ -114,7 +115,10 @@ trait PowerFlowSupport {
                   Quantities.getQuantity(0, powerUnit)
                 )
               ) { case ((pSum, qSum), powerMessage) =>
-                (pSum.add(powerMessage.p), qSum.add(powerMessage.q))
+                (
+                  pSum.add(powerMessage.p.toMegawatts.asMegaWatt),
+                  qSum.add(powerMessage.q.toMegavars.asMegaVar)
+                )
               }
 
             new Complex(
