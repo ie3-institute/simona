@@ -6,18 +6,14 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static tech.units.indriya.quantity.Quantities.getQuantity
 import squants.Dimensionless
 import squants.Each$
 import squants.energy.Kilowatts$
 import squants.space.Degrees$
 import squants.space.Radians$
 import squants.space.SquareMeters$
-
-import javax.measure.Quantity
-
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static tech.units.indriya.quantity.Quantities.getQuantity
-
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.OperatorInput
@@ -37,7 +33,6 @@ import scala.Option
 import spock.lang.Shared
 import spock.lang.Specification
 import squants.space.Angle
-
 import java.time.ZonedDateTime
 
 /**
