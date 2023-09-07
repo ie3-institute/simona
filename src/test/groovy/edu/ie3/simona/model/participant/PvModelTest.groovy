@@ -370,7 +370,7 @@ class PvModelTest extends Specification {
     Angle alphaE = Sq.create(Math.toRadians(azimuth), RADIAN)
 
 
-      expect:
+    expect:
     "- should calculate the angle of incidence thetaG"
     pvModel.calcAngleOfIncidenceThetaG(delta, latitudeInRad, gammaE, alphaE, omega).value.doubleValue() =~ thetaOut
 
