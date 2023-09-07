@@ -179,7 +179,7 @@ case object TransformerModel {
     )
 
     // iNomHv, iNomLv
-    val _calcINom
+    val calcINom
         : squants.electro.ElectricPotential => squants.electro.ElectricCurrent = {
       portVoltage: squants.electro.ElectricPotential =>
         Watts(
@@ -192,12 +192,12 @@ case object TransformerModel {
     }
     val (iNomHv, iNomLv) =
       (
-        _calcINom(
+        calcINom(
           Kilovolts(
             trafoType.getvRatedA.to(KILOVOLT).getValue.doubleValue()
           )
         ),
-        _calcINom(
+        calcINom(
           Kilovolts(
             trafoType.getvRatedB.to(KILOVOLT).getValue.doubleValue()
           )

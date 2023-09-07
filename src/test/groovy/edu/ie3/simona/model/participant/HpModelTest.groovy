@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import squants.energy.Kilowatts$
 import squants.thermal.Celsius$
 
 import static edu.ie3.util.quantities.PowerSystemUnits.KILOVOLTAMPERE
