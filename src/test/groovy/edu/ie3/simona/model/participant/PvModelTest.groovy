@@ -9,6 +9,7 @@ package edu.ie3.simona.model.participant
 import squants.Dimensionless
 import squants.Each$
 import squants.energy.Kilowatts$
+import squants.space.Degrees$
 import squants.space.Radians$
 import squants.space.SquareMeters$
 
@@ -152,7 +153,7 @@ class PvModelTest extends Specification {
     '2017-10-31T12:15:00+01:00[Europe/Berlin]' || 5.21590451527510877d // regular year => day = 304
     '2011-06-21T13:00:00+02:00[Europe/Berlin]' || 2.9436292808978335d // regular year => day = 172
     '2011-04-05T16:00:00+02:00[Europe/Berlin]' || 1.6181353941777565d // regular year => day = 95
-    '2011-09-21T00:00:00+02:00[Europe/Berlin]' || 4.52733626243351d // regular year => day = 254
+    '2011-09-21T00:00:00+02:00[Europe/Berlin]' || 4.5273362624335105d // regular year => day = 254
     '2011-03-21T00:00:00+01:00[Europe/Berlin]' || 1.359922299362157d // regular year => day = 80
   }
 
@@ -193,10 +194,10 @@ class PvModelTest extends Specification {
     '2019-01-01T17:30:00+01:00[Europe/Berlin]' | 0d                  | 0.16d       || 1.3259893306284447d     // 17:30
     '2019-03-21T05:00:00+01:00[Europe/Berlin]' | 1.359922299362157d  | 0.16d       || -1.9677750757840207d    // different j (different date)
     '2019-01-01T05:00:00+01:00[Europe/Berlin]' | 0d                  | 0.175d      || -1.9315030168609224d    // different long, ~10°E
-    '2011-06-21T11:00:00+02:00[Europe/Berlin]' | 2.9436292808978d    | 0.2337d     || -0.29602739369755104d  // long of Berlin (13.39E),
+    '2011-06-21T11:00:00+02:00[Europe/Berlin]' | 2.9436292808978d    | 0.2337d     || -0.2960273936975511d  // long of Berlin (13.39E),
     '2011-06-21T12:00:00+02:00[Europe/Berlin]' | 2.9436292808978d    | 0.2337d     || -0.034228005898401644d // long of Berlin (13.39E),
     '2011-06-21T13:00:00+02:00[Europe/Berlin]' | 2.9436292808978d    | 0.2337d     || 0.2275713819007478d    // long of Berlin (13.39E),
-    '2011-06-21T14:00:00+02:00[Europe/Berlin]' | 2.9436292808978d    | 0.2337d     || 0.48937076969989723d   // long of Berlin (13.39E),
+    '2011-06-21T14:00:00+02:00[Europe/Berlin]' | 2.9436292808978d    | 0.2337d     || 0.4893707696998972d   // long of Berlin (13.39E),
     '2011-06-21T15:00:00+02:00[Europe/Berlin]' | 2.9436292808978d    | 0.2337d     || 0.7511701574990467d    // long of Berlin (13.39E),
     '2011-04-05T16:00:00+02:00[Europe/Berlin]' | 1.6181353941777565d | 0.2337d     || 1.0062695999127789d    // long of Berlin (13.39E),
     '2011-06-21T12:00:00+02:00[Europe/Berlin]' | 2.9436292808978d    | 0.5449d     || 0.2769719941015987d    // long of Cairo (31.22E),
@@ -213,11 +214,11 @@ class PvModelTest extends Specification {
     omegaSSCalc =~ Sq.create(omegaSSSol, Radians$.MODULE$)
 
     where:
-    latitude     | delta       || omegaSSSol
-    0.9d         | -0.402449d  || 1.0045975406286176d  // lat: ~51.57°N
-    0.935d       | -0.402449d  || 0.956011693657339d   // different lat: ~53.57°N
-    0.9d         | 0.017908d   || 1.5933675693198284d  // different delta
-    0.157952297  | 0.384670567 || 1.635323424114512d  // //Example 2.2 Goswami Priciples of Solar Engineering
+    latitude     | delta        || omegaSSSol
+    0.9d         | -0.402449d   || 1.0045975406286176d  // lat: ~51.57°N
+    0.935d       | -0.402449d   || 0.956011693657339d   // different lat: ~53.57°N
+    0.9d         | 0.017908d    || 1.5933675693198284d  // different delta
+    0.157952297d | 0.384670567d || 1.635323424114512d  // //Example 2.2 Goswami Priciples of Solar Engineering
   }
 
   def "Calculate solar altitude angle alphaS"() {
@@ -245,9 +246,9 @@ class PvModelTest extends Specification {
     +0.0126074d        | -0.40842934d        | 0.54628806d     || 0.6160025701438165d   // omega: +0.7223° = 12:00, delta: Dez 21st, lat: Cairo
     -0.78639785d       | +0.1549651d         | 0.54628806d     || 0.7430566034615067d   // omega: -45.05° = 09:00, delta: Sep 1st, lat: Cairo
     +1.04619786d       | 0.1549651d          | 0.54628806d     || 0.5270965151470974d   // omega: +59.943° = 16:00, delta: Sep 1st, lat: Cairo
-    0d                 | -0.305432619d       | 0.518013722     || 0.7473499857948969    // omega: 0 = Solar Noon, delta: February 01st, lat/lon: Gainsville (29.68 N, 82.27 W) //Example 2.1a Goswami Priciples of Solar Engineering
-    -1.374970385d      | +0.380755678d       | 0.157952297     || 0.2391202791125743d   // omega: -78.78° = 7:00 a.m., delta: June 01st, lat/lon: Tocumen Panama (9.05 N, 79.37 W) //Example 2.2a Goswami Priciples of Solar Engineering
-    0d                 | -0.268780705d       | -0.616101226    || 1.2234758057948967d   // omega: 0° = Solar noon., delta: November 01st, lat/lon: Canberra Australia (35.3 S, 149.1 E) //Example 2.3b Goswami Priciples of Solar Engineering
+    0d                 | -0.305432619d       | 0.518013722d    || 0.7473499857948969d   // omega: 0 = Solar Noon, delta: February 01st, lat/lon: Gainsville (29.68 N, 82.27 W) //Example 2.1a Goswami Priciples of Solar Engineering
+    -1.374970385d      | +0.380755678d       | 0.157952297d    || 0.2391202791125743d   // omega: -78.78° = 7:00 a.m., delta: June 01st, lat/lon: Tocumen Panama (9.05 N, 79.37 W) //Example 2.2a Goswami Priciples of Solar Engineering
+    0d                 | -0.268780705d       | -0.616101226d   || 1.2234758057948967d   // omega: 0° = Solar noon., delta: November 01st, lat/lon: Canberra Australia (35.3 S, 149.1 E) //Example 2.3b Goswami Priciples of Solar Engineering
     Math.toRadians(-37.5d)        | Math.toRadians(-14d)         | Math.toRadians(43d)     || Math.toRadians(23.4529893659531784299686037109330117049955654837550d)  // '2011-02-13T09:30:00' from Duffie
     Math.toRadians(97.5d)         | Math.toRadians(23.1d)        | Math.toRadians(43d)     || Math.toRadians(10.356151317506402829742934977890382350725031728508d) // '2011-07-01T06:30:00' from Duffie
     // Reference: Quaschning, Regenerative Energiesysteme figure 2.15 and figure 2.16   // gammaS@Quaschning = alphaS@SIMONA !
@@ -258,7 +259,7 @@ class PvModelTest extends Specification {
     Math.toRadians(12.84885587d)  | Math.toRadians(23.4337425d)  | Math.toRadians(52.3d)   || Math.toRadians(59.50792770681503d)    // Berlin (13.2E 52.3N) '2011-06-21T13:00:00' MEZ
     Math.toRadians(27.84885599d)  | Math.toRadians(23.4337425d)  | Math.toRadians(52.3d)   || Math.toRadians(54.170777340509574d)   // Berlin (13.2E 52.3N) '2011-06-21T14:00:00' MEZ
     Math.toRadians(58.28178946d)  | Math.toRadians(7.79402247d)  | Math.toRadians(52.3d)   || Math.toRadians(25.203526133755485d)   // Berlin (13.2E 52.3N) '2011-09-04T16:00:00' MEZ
-    Math.toRadians(0.948855924d)  | Math.toRadians(23.4337425d)  | Math.toRadians(30.1d)   || Math.toRadians(83.28023248078854d)     // Cairo  (31.3E 30.1N)  '2011-06-21T12:00:00' MEZ+1h
+    Math.toRadians(0.948855924d)  | Math.toRadians(23.4337425d)  | Math.toRadians(30.1d)   || Math.toRadians(83.28023248078853d)   // Cairo  (31.3E 30.1N)  '2011-06-21T12:00:00' MEZ+1h
   }
 
   def "Calculate zenith angle thetaZ"() {
@@ -319,31 +320,31 @@ class PvModelTest extends Specification {
     "== Calculate the angle of incidence thetaG =="
     given:
     // Declination Angle delta of the sun at solar noon
-    Angle delta = Sq.create(Math.toRadians(deltaIn), Radians$.MODULE$)
+    Angle deltaRad = Sq.create(Math.toRadians(deltaIn), Radians$.MODULE$)
     //Latitude in Radian
     Angle latitudeInRad = Sq.create(Math.toRadians(latitudeInDeg), Radians$.MODULE$)
     //Hour Angle
-    Angle omega = Sq.create(Math.toRadians(omegaDeg), Radians$.MODULE$)
+    Angle omegaRad = Sq.create(Math.toRadians(omegaDeg), Radians$.MODULE$)
     //Inclination Angle of the surface
-    Angle gammaE = Sq.create(Math.toRadians(gammaEDeg), Radians$.MODULE$)
+    Angle gammaERad = Sq.create(Math.toRadians(gammaEDeg), Radians$.MODULE$)
     //Sun's azimuth
-    Angle alphaE = Sq.create(Math.toRadians(alphaEDeg), Radians$.MODULE$)
+    Angle alphaERad = Sq.create(Math.toRadians(alphaEDeg), Radians$.MODULE$)
 
-    expect:
+    when:
+    Angle thetaG = pvModel.calcAngleOfIncidenceThetaG(deltaRad, latitudeInRad, gammaERad, alphaERad, omegaRad)
+
+    then:
     "- should calculate the angle of incidence thetaG "
-    QuantityUtil.isEquivalentAbs(
-        pvModel.calcAngleOfIncidenceThetaG(deltaRad, latitudeInRad, gammaERad, alphaERad, omegaRad).to(DEGREE_GEOM),
-        getQuantity(thetaGOut, DEGREE_GEOM),
-        TESTING_TOLERANCE)
+    thetaG.toDegrees() =~ Sq.create(thetaGOut, Degrees$.MODULE$).toDegrees()
 
     where: "the following parameters are given"
     latitudeInDeg | deltaIn         | omegaDeg       | gammaEDeg  | alphaEDeg  || thetaGOut
     43d           | -14d            | -22.5d         | 45d        | 15d        || 35.176193345578606393727080835951995075234213360724d  // Duffie
-    51.516667d    | +18.4557514d    | -15.00225713d  | 30d        | +0d        || 14.420271449960717d                     // Iqbal
-    51.516667d    | +18.4557514d    | -15.00225713d  | 90d        | +0d        || 58.652873100176244d                     // Iqbal
-    35.0d         | +23.2320597d    | +30.00053311d  | 45d        | 10d        || 39.62841449023578d                      // Kalogirou - Solar Energy Engineering Example 2.7  ISBN 978-0-12-374501-9; DOI https://doi.org/10.1016/B978-0-12-374501-9.X0001-5
+    51.516667d    | +18.4557514d    | -15.00225713d  | 30d        | +0d        || 14.420271449960715d                     // Iqbal
+    51.516667d    | +18.4557514d    | -15.00225713d  | 90d        | +0d        || 58.65287310017624d                     // Iqbal
+    35.0d         | +23.2320597d    | +30.00053311d  | 45d        | 10d        || 39.62841449023577d                      // Kalogirou - Solar Energy Engineering Example 2.7  ISBN 978-0-12-374501-9; DOI https://doi.org/10.1016/B978-0-12-374501-9.X0001-5
     35.0d         | +23.2320597d    | +30.00053311d  | 45d        | 90d        || 18.946300807438607d                     // Kalogirou - Solar Energy Engineering Example 2.7 changed to 90° panel azimuth to WEST
-    35.0d         | +23.2320597d    | +74.648850625d | 45d        | 90d        || 21.954803473807292d                     // Kalogirou - Solar Energy Engineering Example 2.7  90° panel azimuth to WEST at 17:00
+    35.0d         | +23.2320597d    | +74.648850625d | 45d        | 90d        || 21.95480347380729d                     // Kalogirou - Solar Energy Engineering Example 2.7  90° panel azimuth to WEST at 17:00
     35.0d         | +23.2320597d    | +74.648850625d | 45d        | -90d       || 109.00780288303966d                     // Kalogirou - Solar Energy Engineering Example 2.7  90° panel azimuth to EAST at 17:00
     27.96d        | -17.51d         | -11.1d         | 30d        | +10d       || 22.384603601536398d                     // Goswami Priciples of Solar Engineering Example 2.7a
     -35.3d        | -17.51d         | -4.2d          | 30d        | +170d      || 14.882390116876563d                     // Goswami Priciples of Solar Engineering Example 2.7b
@@ -359,29 +360,30 @@ class PvModelTest extends Specification {
     given:
     "- using pre-calculated parameters"
     //Latitude in Radian
-    Angle latitudeInRad = Sq.create(Math.toRadians(latitudeInDeg), RADIAN)
+    Angle latitudeInRad = Sq.create(Math.toRadians(latitudeInDeg), Radians$.MODULE$)
     // Declination Angle delta of the sun at solar noon
     Angle delta = Sq.create(Math.toRadians(deltaIn), Radians$.MODULE$)
     //Hour Angle
     Angle omega = Sq.create(Math.toRadians(omegaIn), Radians$.MODULE$)
     //Inclination Angle of the surface
-    Angle gammaE = Sq.create(Math.toRadians(slope), RADIAN)
+    Angle gammaE = Sq.create(Math.toRadians(slope), Radians$.MODULE$)
     //Sun's azimuth
-    Angle alphaE = Sq.create(Math.toRadians(azimuth), RADIAN)
+    Angle alphaE = Sq.create(Math.toRadians(azimuth), Radians$.MODULE$)
 
+    // should calculate the angle of incidence thetaG
+    when:
+    Angle thetaG = pvModel.calcAngleOfIncidenceThetaG(delta, latitudeInRad, gammaE, alphaE, omega)
 
-    expect:
-    "- should calculate the angle of incidence thetaG"
-    pvModel.calcAngleOfIncidenceThetaG(delta, latitudeInRad, gammaE, alphaE, omega).value.doubleValue() =~ thetaOut
-
+    then:
+    thetaG.toDegrees() =~ thetaOut
 
     where: "the following parameters are given"
     latitudeInDeg | deltaIn      | omegaIn       | slope  | azimuth || thetaOut
-    45d            | -7.15       | -82.5d        | 60d    | 0       || 80.949048340487770372059710314128606931745693791068  // thetaG
-    15d            | -7.15       | -82.5d        | 30d    | 0       || 80.949048340487770372059710314128606931745693791068  // same test but 15° South with 15° less sloped surface
-    0d             | -7.15       | -82.5d        | 15d    | 0       || 80.949048340487770372059710314128606931745693791068  // same test but 15° South with 15° less sloped surface
-    52.3d          | 23.4337425  | 2.15114395d   | 0d     | 0       || (28.91315041538251d)        // Berlin 21.06. 12:00 => thetaG = 90 - alphaS
-    70.3d          | 23.4337425  | 2.15114395d   | 18d    | 0       || (28.91315041538251d)        // same test but 18° North with 18° sloped surface
+    45d            | -7.15       | -82.5d        | 60d    | 0       || 80.94904834048776d  // thetaG
+    15d            | -7.15       | -82.5d        | 30d    | 0       || 80.94904834048776d  // same test but 15° South with 15° less sloped surface
+    0d             | -7.15       | -82.5d        | 15d    | 0       || 80.94904834048776d  // same test but 15° South with 15° less sloped surface
+    52.3d          | 23.4337425  | 2.15114395d   | 0d     | 0       || 28.91315041538251d  // Berlin 21.06. 12:00 => thetaG = 90 - alphaS
+    70.3d          | 23.4337425  | 2.15114395d   | 18d    | 0       || 28.91315041538251d  // same test but 18° North with 18° sloped surface
   }
 
   def "Calculate Rb (cos(thetaG)/cos(thetaZ))"() {
