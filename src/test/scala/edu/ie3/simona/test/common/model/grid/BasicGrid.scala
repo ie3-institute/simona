@@ -6,7 +6,11 @@
 
 package edu.ie3.simona.test.common.model.grid
 
-import edu.ie3.simona.model.grid.{NodeModel, TransformerModel, TransformerTappingModel}
+import edu.ie3.simona.model.grid.{
+  NodeModel,
+  TransformerModel,
+  TransformerTappingModel
+}
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits._
 import squants.{Amperes, Each}
