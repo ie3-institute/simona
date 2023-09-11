@@ -105,8 +105,8 @@ final case class HpModel(
   override def calculateHeat(
       tick: Long,
       data: HpRelevantData
-  ): ComparableQuantity[Power] =
-    data.hpState.qDot.to(StandardUnits.ACTIVE_POWER_RESULT)
+  ): Power =
+    data.hpState.qDot
 
   /** Given a [[HpRelevantData]] object, containing the [[HpState]], other
     * values and the current time tick, this function calculates the heat pump's
@@ -210,9 +210,21 @@ case object HpModel {
       operationInterval,
       scaling,
       qControl,
-      inputModel.getType.getsRated(),
+      Kilowatts(
+        inputModel.getType
+          .getsRated()
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
       inputModel.getType.getCosPhiRated,
-      inputModel.getType.getpThermal(),
+      Kilowatts(
+        inputModel.getType
+          .getpThermal()
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
       thermalHouse
     )
 
@@ -239,7 +251,7 @@ case object HpModel {
       isRunning: Boolean,
       lastTimeTick: Long,
       activePower: Power,
-      qDot: ComparableQuantity[Power],
+      qDot: Power,
       innerTemperature: Temperature
   )
 

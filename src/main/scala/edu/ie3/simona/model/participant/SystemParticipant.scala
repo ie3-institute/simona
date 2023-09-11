@@ -94,7 +94,7 @@ abstract class SystemParticipant[
     */
   protected def calculateApparentPower(
       tick: Long,
-      voltage: ComparableQuantity[Dimensionless],
+      voltage: Dimensionless,
       data: CD
   ): ApparentPower = {
     if (isInOperation(tick)) {

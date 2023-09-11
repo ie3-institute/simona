@@ -7,15 +7,13 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import tech.units.indriya.ComparableQuantity
-
-import javax.measure.quantity.Dimensionless
+import squants.Dimensionless
 
 trait ApparentPowerParticipant[CD <: CalcRelevantData] {
   this: SystemParticipant[CD, ApparentPower] =>
   override def calculatePower(
       tick: Long,
-      voltage: ComparableQuantity[Dimensionless],
+      voltage: Dimensionless,
       data: CD
   ): ApparentPower = calculateApparentPower(tick, voltage, data)
 }

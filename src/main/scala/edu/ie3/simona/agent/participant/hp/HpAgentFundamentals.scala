@@ -50,13 +50,17 @@ import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.thermal.ThermalHouse
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.PU
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.scala.quantities.Megavars
+import squants.{Dimensionless, Each, Power, Temperature}
+import squants.energy.Megawatts
+import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power, Temperature}
 import scala.collection.SortedSet
 import scala.compat.java8.OptionConverters.RichOptionalGeneric
 import scala.reflect.{ClassTag, classTag}
@@ -74,9 +78,9 @@ trait HpAgentFundamentals
   override protected val pdClassTag: ClassTag[ApparentPowerAndHeat] =
     classTag[ApparentPowerAndHeat]
   override val alternativeResult: ApparentPowerAndHeat = ApparentPowerAndHeat(
-    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
-    Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT),
-    Quantities.getQuantity(0d, StandardUnits.HEAT_DEMAND)
+    Megawatts(0d),
+    Megavars(0d),
+    Megawatts(0d)
   )
 
   /** Partial function, that is able to transfer
@@ -90,7 +94,7 @@ trait HpAgentFundamentals
         HpRelevantData,
         HpModel
       ],
-      ComparableQuantity[Dimensionless]
+      Dimensionless
   ) => ApparentPowerAndHeat =
     (_, _, _) =>
       throw new InvalidRequestException(
@@ -172,8 +176,14 @@ trait HpAgentFundamentals
               val thermalHouseResult = new ThermalHouseResult(
                 currentTick.toDateTime(modelBaseStateData.startDate),
                 hpModel.thermalHouse.uuid,
-                power.qDot,
-                relevantData.hpState.innerTemperature
+                Quantities.getQuantity(
+                  power.qDot.toMegawatts,
+                  PowerSystemUnits.MEGAWATT
+                ),
+                Quantities.getQuantity(
+                  relevantData.hpState.innerTemperature.toCelsiusScale,
+                  Units.CELSIUS
+                )
               )
 
               (
@@ -196,12 +206,12 @@ trait HpAgentFundamentals
   }
 
   private def startingState(
-      targetTemperature: ComparableQuantity[Temperature]
+      targetTemperature: Temperature
   ): HpState = HpState(
     isRunning = false,
     -1,
-    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
-    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
+    Megawatts(0d),
+    Megawatts(0d),
     targetTemperature
   )
 
@@ -251,9 +261,13 @@ trait HpAgentFundamentals
           requestVoltageDeviationThreshold,
           ValueStore.forVoltage(
             resolution * 10,
-            inputModel.electricalInputModel.getNode
-              .getvTarget()
-              .to(PU)
+            Each(
+              inputModel.electricalInputModel.getNode
+                .getvTarget()
+                .to(PU)
+                .getValue
+                .doubleValue()
+            )
           ),
           ValueStore.forResult(resolution, 10),
           ValueStore(resolution * 10),
@@ -337,7 +351,7 @@ trait HpAgentFundamentals
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        Power => Power
       ]
   ): ApparentPowerAndHeat =
     ParticipantAgentFundamentals.averageApparentPowerAndHeat(
@@ -366,8 +380,8 @@ trait HpAgentFundamentals
   ): SystemParticipantResult = new HpResult(
     dateTime,
     uuid,
-    result.p,
-    result.q,
-    result.qDot
+    Quantities.getQuantity(result.p.toKilowatts, PowerSystemUnits.KILOWATT),
+    Quantities.getQuantity(result.q.toKilovars, PowerSystemUnits.KILOVAR),
+    Quantities.getQuantity(result.qDot.toKilowatts, PowerSystemUnits.KILOWATT)
   )
 }

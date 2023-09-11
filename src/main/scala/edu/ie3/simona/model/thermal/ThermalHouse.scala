@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.thermal
 
-import java.util.UUID
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.{
@@ -16,9 +15,8 @@ import edu.ie3.datamodel.models.input.thermal.{
 import edu.ie3.simona.model.thermal.ThermalHouse.temperatureTolerance
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
-
-import squants.{Energy, Power, Temperature, Time}
 import squants.thermal.{Celsius, JoulesPerKelvin, ThermalCapacity}
+import squants.{Energy, Power, Temperature, Time}
 import tech.units.indriya.unit.Units
 
 import java.util.UUID
@@ -55,7 +53,7 @@ final case class ThermalHouse(
     bus: ThermalBusInput,
     ethLosses: ThermalConductance,
     ethCapa: ThermalCapacity,
-    targetTemperature: ComparableQuantity[Temperature],
+    targetTemperature: Temperature,
     lowerBoundaryTemperature: Temperature,
     upperBoundaryTemperature: Temperature
 ) extends ThermalSink(
@@ -247,8 +245,9 @@ case object ThermalHouse {
           .doubleValue
           * 3.6e6 // kWh in Joule
       ),
-      //TODO DF Squants
-      input.getTargetTemperature
+      Celsius(
+        input.getTargetTemperature.to(Units.CELSIUS).getValue.doubleValue
+      ),
       Celsius(
         input.getLowerTemperatureLimit.to(Units.CELSIUS).getValue.doubleValue
       ),

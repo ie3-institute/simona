@@ -184,7 +184,7 @@ class SystemParticipantTest extends Specification {
     given: "the mocked system participant model with a q_v characteristic"
 
     Power p = Sq.create(0, Kilowatts$.MODULE$)
-//TODO DF Squants
+    //TODO DF Squants
     def loadMock = new MockParticipant(
         UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
         "System participant calculateQ Test",
@@ -228,7 +228,7 @@ class SystemParticipantTest extends Specification {
     given: "the mocked system participant model with a q_v characteristic"
 
     Power p = Sq.create(100, Kilowatts$.MODULE$)
-//TODO DF Squants
+    //TODO DF Squants
     def loadMock = new MockParticipant(
         UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
         "System participant calculateQ Test",
@@ -272,7 +272,7 @@ class SystemParticipantTest extends Specification {
     given: "the mocked system participant model with a q_v characteristic"
 
     Power p = Sq.create(195, Kilowatts$.MODULE$)
-//TODO DF Squants
+    //TODO DF Squants
     def loadMock = new MockParticipant(
         UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
         "System participant calculateQ Test",
