@@ -33,13 +33,21 @@ import edu.ie3.simona.exceptions.agent.InvalidRequestException
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
-import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT, PU}
+import edu.ie3.util.quantities.PowerSystemUnits.{
+  KILOVARHOUR,
+  KILOWATTHOUR,
+  MEGAVAR,
+  MEGAWATT,
+  PU
+}
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.{Kilovars, Megavars, ReactivePower}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito.doReturn
 import org.scalatestplus.mockito.MockitoSugar.mock
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import squants.Each
+import squants.energy.{Kilowatts, Megawatts}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -86,12 +94,12 @@ class ParticipantAgentMock(
         FixedRelevantData.type,
         SystemParticipant[FixedRelevantData.type, ApparentPower]
       ],
-      ComparableQuantity[Dimensionless]
+      squants.Dimensionless
   ) => ApparentPower = (_, _, _) =>
     // output different from default (0, 0)
     ApparentPower(
-      Quantities.getQuantity(2, MEGAWATT),
-      Quantities.getQuantity(1, MEGAVAR)
+      Megawatts(2.0),
+      Megavars(1.0)
     )
 
   /** Abstractly calculate the power output of the participant with all needed
@@ -158,9 +166,9 @@ class ParticipantAgentMock(
     SystemParticipant[FixedRelevantData.type, ApparentPower]
   ] = {
     val func = CosPhiFixed(0.95).activeToReactivePowerFunc(
-      Quantities.getQuantity(0, StandardUnits.S_RATED),
+      Kilowatts(0.0),
       0.95d,
-      Quantities.getQuantity(1, PU)
+      Each(1.0)
     )
     val participant: SystemParticipant[FixedRelevantData.type, ApparentPower] =
       mock[SystemParticipant[FixedRelevantData.type, ApparentPower]]
@@ -181,7 +189,7 @@ class ParticipantAgentMock(
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution,
-        Quantities.getQuantity(1d, PU)
+        Each(1.0)
       ),
       ValueStore.forResult(resolution, 2),
       ValueStore(resolution),
@@ -253,7 +261,7 @@ class ParticipantAgentMock(
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        squants.Power => ReactivePower
       ] = None
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
@@ -283,8 +291,8 @@ class ParticipantAgentMock(
     new SystemParticipantResult(
       dateTime,
       uuid,
-      result.p,
-      result.q
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
     ) {}
 }
 

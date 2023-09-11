@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import java.time.ZonedDateTime
-import java.util.UUID
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
@@ -15,11 +13,14 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 
-import javax.measure.quantity.Power
-import tech.units.indriya.ComparableQuantity
+import squants.Power
+import squants.energy.Kilowatts
+
+import java.time.ZonedDateTime
+import java.util.UUID
 
 /** Fixed feed generation model delivering constant power
   *
@@ -44,7 +45,7 @@ final case class FixedFeedInModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: ComparableQuantity[Power],
+    sRated: Power,
     cosPhiRated: Double
 ) extends SystemParticipant[FixedRelevantData.type, ApparentPower](
       uuid,
@@ -67,12 +68,8 @@ final case class FixedFeedInModel(
     */
   override protected def calculateActivePower(
       data: FixedRelevantData.type = FixedRelevantData
-  ): ComparableQuantity[Power] =
-    sRated
-      .multiply(-1)
-      .multiply(cosPhiRated)
-      .multiply(scalingFactor)
-      .to(MEGAWATT)
+  ): Power =
+    sRated * (-1) * cosPhiRated * scalingFactor
 }
 
 case object FixedFeedInModel extends LazyLogging {
@@ -97,7 +94,12 @@ case object FixedFeedInModel extends LazyLogging {
       operationInterval,
       modelConfiguration.scaling,
       QControl.apply(inputModel.getqCharacteristics),
-      inputModel.getsRated,
+      Kilowatts(
+        inputModel.getsRated
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
       inputModel.getCosPhiRated
     )
     model.enable()

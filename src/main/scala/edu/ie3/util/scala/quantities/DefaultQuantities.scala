@@ -6,14 +6,15 @@
 
 package edu.ie3.util.scala.quantities
 
-import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT, KILOWATTHOUR}
-import javax.measure.quantity.{Energy, Power}
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities.getQuantity
+import squants.{Each, Energy, Power, Dimensionless}
+import squants.energy.{KilowattHours, Kilowatts, Megawatts}
 
-case object DefaultQuantities {
+object DefaultQuantities {
 
-  val zeroKWH: ComparableQuantity[Energy] = getQuantity(0d, KILOWATTHOUR)
-  val zeroKW: ComparableQuantity[Power] = getQuantity(0d, KILOWATT)
+  val zeroKWH: Energy = KilowattHours(0d)
+  val zeroKW: Power = Kilowatts(0d)
+  val zeroMW: Power = Megawatts(0d)
+  val zeroMVAr: ReactivePower = Megavars(0d)
+  val zeroPU: Dimensionless = Each(0d)
 
 }
