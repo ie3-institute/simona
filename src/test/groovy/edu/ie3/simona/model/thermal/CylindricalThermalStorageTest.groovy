@@ -7,6 +7,10 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters$
+import edu.ie3.util.scala.quantities.Sq
+import squants.energy.Kilowatts$
+import squants.space.CubicMeters$
+import squants.thermal.Celsius$
 
 import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
 import static edu.ie3.util.quantities.QuantityUtil.isEquivalentAbs
@@ -50,26 +54,26 @@ class CylindricalThermalStorageTest extends Specification {
     def thermalStorage = CylindricalThermalStorage.apply(storageInput, storedEnergy)
     return thermalStorage
   }
-//TODO DF Squants
+
   def vol2Energy(Double volume) {
-    return CylindricalThermalStorage.volumeToEnergy(getQuantity(volume, StandardUnits.VOLUME), storageInput.c, storageInput.inletTemp, storageInput.returnTemp)
+    return CylindricalThermalStorage.volumeToEnergy(Sq.create(volume, CubicMeters$.MODULE$), storageInput.c, storageInput.inletTemp, storageInput.returnTemp)
   }
 
   def "Check storage level operations:"() {
     given:
     def storage = buildThermalStorage(storageInput, 70)
-//TODO DF Squants
+
     when:
     def initialLevel = storage._storedEnergy()
     storage._storedEnergy_$eq(vol2Energy(50))
     def newLevel1 = storage._storedEnergy()
     def surplus = storage.tryToStoreAndReturnRemainder(vol2Energy(55)).get()
     def newLevel2 = storage._storedEnergy()
-    def isCovering = storage.isDemandCoveredByStorage(getQuantity(5, KILOWATTHOUR))
+    def isCovering = storage.isDemandCoveredByStorage(Sq.create(5, KilowattHours$.MODULE$))
     def lack = storage.tryToTakeAndReturnLack(vol2Energy(95)).get()
     def newLevel3 = storage._storedEnergy()
-    def notCovering = storage.isDemandCoveredByStorage(getQuantity(1, KILOWATTHOUR))
-
+    def notCovering = storage.isDemandCoveredByStorage(Sq.create(1, KilowattHours$.MODULE$))
+    //TODO DF Squants?
     then:
     isEquivalentAbs(initialLevel, vol2Energy(70), TESTING_TOLERANCE)
     isEquivalentAbs(newLevel1, vol2Energy(50), TESTING_TOLERANCE)
@@ -106,15 +110,15 @@ class CylindricalThermalStorageTest extends Specification {
     storage.operationTime() == storageInput.operationTime
     storage.bus() == storageInput.thermalBus
   }
-//TODO DF Squants
+
   def "Check mutable state update:"() {
     when:
     def storage = buildThermalStorage(storageInput, 70)
     def lastState = new ThermalStorage.ThermalStorageState(tick, Quantities.getQuantity(storedEnergy, KILOWATTHOUR), Quantities.getQuantity(qDot, KILOWATT))
-    def result = storage.updateState(newTick, Quantities.getQuantity(newQDot, KILOWATT), lastState)
+    def result = storage.updateState(newTick, Sq.create(newQDot, Kilowatts$.MODULE$), lastState)
 
     then:
-    QuantityUtil.equals(result._1().storedEnergy(), Quantities.getQuantity(expectedStoredEnergy, KILOWATTHOUR), TOLERANCE)
+    QuantityUtil.equals(result._1().storedEnergy(), Sq.create(expectedStoredEnergy, KilowattHours$.MODULE$), TOLERANCE)
     result._2.defined
     result._2.get() == expectedThreshold
 

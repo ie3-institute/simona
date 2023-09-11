@@ -15,7 +15,7 @@ trait ApparentPowerParticipant[CD <: CalcRelevantData] {
   this: SystemParticipant[CD, ApparentPower] =>
   override def calculatePower(
       tick: Long,
-      voltage: ComparableQuantity[Dimensionless],
+      voltage: Dimensionless,
       data: CD
   ): ApparentPower = calculateApparentPower(tick, voltage, data)
 }

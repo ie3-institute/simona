@@ -6,13 +6,14 @@
 
 package edu.ie3.simona.model.thermal
 
-import java.util.UUID
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
+import edu.ie3.util.scala.quantities.DefaultQuantities
 import squants.{Energy, Power}
-import squants.energy.WattHours
+
+import java.util.UUID
 
 /** Thermal storage model.
   *
@@ -39,27 +40,27 @@ abstract class ThermalStorage(
     operatorInput: OperatorInput,
     operationTime: OperationTime,
     bus: ThermalBusInput,
-    minEnergyThreshold: ComparableQuantity[Energy],
-    maxEnergyThreshold: ComparableQuantity[Energy],
-    chargingPower: ComparableQuantity[Power]
+    minEnergyThreshold: Energy,
+    maxEnergyThreshold: Energy,
+    chargingPower: Power
 ) {
-  //TODO DF Squants
-  protected val zeroEnergy: ComparableQuantity[Energy] =
+  // TODO DF Squants
+  protected val zeroEnergy: Energy =
     DefaultQuantities.zeroKWH
 
   def getUuid: UUID = uuid
 
-  def getMinEnergyThreshold: ComparableQuantity[Energy] = minEnergyThreshold
+  def getMinEnergyThreshold: Energy = minEnergyThreshold
 
-  def getMaxEnergyThreshold: ComparableQuantity[Energy] = maxEnergyThreshold
+  def getMaxEnergyThreshold: Energy = maxEnergyThreshold
 
-  def getChargingPower: ComparableQuantity[Power] = chargingPower
+  def getChargingPower: Power = chargingPower
 
   def startingState: ThermalStorageState
 
   def updateState(
       tick: Long,
-      qDot: ComparableQuantity[Power],
+      qDot: Power,
       lastState: ThermalStorageState
   ): (ThermalStorageState, Option[ThermalThreshold])
 }
@@ -67,8 +68,8 @@ abstract class ThermalStorage(
 object ThermalStorage {
   final case class ThermalStorageState(
       tick: Long,
-      storedEnergy: ComparableQuantity[Energy],
-      qDot: ComparableQuantity[Power]
+      storedEnergy: Energy,
+      qDot: Power
   )
 
   object ThermalStorageThreshold {

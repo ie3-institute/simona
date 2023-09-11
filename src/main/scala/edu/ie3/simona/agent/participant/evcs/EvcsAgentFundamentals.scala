@@ -389,7 +389,7 @@ protected trait EvcsAgentFundamentals
     updateValueStoresInformListeners(
       modelBaseStateData,
       tick,
-      //TODO DF Squants
+      // TODO DF Squants
       AccompaniedSimulationResult(result),
       updatedRelevantData
     )
@@ -461,7 +461,7 @@ protected trait EvcsAgentFundamentals
         updateValueStoresInformListeners(
           modelBaseStateData,
           tick,
-          //TODO DF Squants
+          // TODO DF Squants
           AccompaniedSimulationResult(result),
           updatedRelevantData
         )

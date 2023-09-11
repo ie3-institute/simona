@@ -6,12 +6,10 @@
 
 package edu.ie3.simona.model.thermal
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import squants.Energy
+import squants.energy.Kilowatts
 
-import javax.measure.quantity.Energy
 import scala.util.Random
 
 trait RandomStorageState {
@@ -20,14 +18,12 @@ trait RandomStorageState {
 
   override def startingState: ThermalStorage.ThermalStorageState = {
     def rnd: Double = new Random(seed).nextDouble()
-    def storedEnergy: ComparableQuantity[Energy] = getMinEnergyThreshold.add(
-      getMaxEnergyThreshold.subtract(getMinEnergyThreshold).multiply(rnd)
-    )
+    def storedEnergy: Energy = getMaxEnergyThreshold * rnd
 
     ThermalStorageState(
       -1L,
       storedEnergy,
-      Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
+      Kilowatts(0d)
     )
   }
 }

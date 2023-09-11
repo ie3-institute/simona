@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.participant
 
 import akka.actor.{ActorRef, FSM, Props}
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
@@ -40,7 +39,7 @@ import edu.ie3.util.quantities.PowerSystemUnits.{
   MEGAWATT,
   PU
 }
-import edu.ie3.util.scala.quantities.QuantityUtil
+import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito.doReturn

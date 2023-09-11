@@ -8,6 +8,7 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
+import squants.energy.Megawatts
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
@@ -17,15 +18,15 @@ trait ApparentPowerAndHeatParticipant[CD <: CalcRelevantData] {
   this: SystemParticipant[CD, ApparentPowerAndHeat] =>
   override def calculatePower(
       tick: Long,
-      voltage: ComparableQuantity[Dimensionless],
+      voltage: Dimensionless,
       data: CD
   ): ApparentPowerAndHeat = {
     val apparentPower = calculateApparentPower(tick, voltage, data)
     val heat =
       if (isInOperation(tick))
-        calculateHeat(tick, data).to(StandardUnits.ACTIVE_POWER_RESULT)
+        calculateHeat(tick, data)
       else
-        Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
+        Megawatts(0d)
 
     ApparentPowerAndHeat(apparentPower.p, apparentPower.q, heat)
   }

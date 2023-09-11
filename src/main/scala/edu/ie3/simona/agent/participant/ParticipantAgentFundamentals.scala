@@ -82,7 +82,8 @@ import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
 import squants.energy.Megawatts
-import squants.{Power, Dimensionless, Each}
+import squants.{Dimensionless, Each, Energy, Power}
+import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -1785,7 +1786,7 @@ case object ParticipantAgentFundamentals {
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        Power => Power
       ] = None,
       log: LoggingAdapter
   ): ApparentPowerAndHeat = {
@@ -1804,7 +1805,7 @@ case object ParticipantAgentFundamentals {
           "Unable to determine average active power. Apply 0 instead. Cause:\n\t{}",
           exception
         )
-        Quantities.getQuantity(0d, MEGAWATT)
+        Megawatts(0d)
     }
     val q = QuantityUtil.average(
       tickToResults.map { case (tick, pd) =>
@@ -1826,7 +1827,7 @@ case object ParticipantAgentFundamentals {
           "Unable to determine average reactive power. Apply 0 instead. Cause:\n\t{}",
           exception
         )
-        Quantities.getQuantity(0d, MEGAVAR)
+        Megavars(0d)
     }
     val qDot = QuantityUtil.average(
       tickToResults.map { case (tick, pd) => tick -> pd.qDot },
@@ -1843,7 +1844,7 @@ case object ParticipantAgentFundamentals {
           "Unable to determine average thermal power. Apply 0 instead. Cause:\n\t{}",
           exception
         )
-        Quantities.getQuantity(0d, MEGAWATT)
+        Megawatts(0d)
     }
 
     ApparentPowerAndHeat(p, q, qDot)
