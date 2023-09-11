@@ -90,14 +90,14 @@ object QuantityUtil {
     *   Averaged quantity
     */
   def average[Q <: Quantity[Q], QI <: Quantity[QI]](
-      values: Map[Long, ComparableQuantity[Q]],
+      values: Map[Long, Q],
       windowStart: Long,
       windowEnd: Long,
       integrationQuantityClass: Class[QI],
       integrationUnit: javax.measure.Unit[QI],
       averagingQuantityClass: Class[Q],
       averagingUnit: javax.measure.Unit[Q]
-  ): Try[ComparableQuantity[Q]] = {
+  ): Try[Q] = {
     if (windowStart == windowEnd)
       Failure(
         new IllegalArgumentException("Cannot average over trivial time window.")
@@ -141,12 +141,12 @@ object QuantityUtil {
     *   Integration over given values from window start to window end
     */
   def integrate[Q <: Quantity[Q], QI <: Quantity[QI]](
-      values: Map[Long, ComparableQuantity[Q]],
+      values: Map[Long, Q],
       windowStart: Long,
       windowEnd: Long,
       integrationQuantityClass: Class[QI],
       integrationUnit: javax.measure.Unit[QI]
-  ): ComparableQuantity[QI] = {
+  ): QI = {
 
     /** Case class to hold current state of integration
       *
@@ -158,9 +158,9 @@ object QuantityUtil {
       *   Value, that has been seen at the last tick
       */
     final case class IntegrationState(
-        currentIntegral: ComparableQuantity[QI],
+        currentIntegral: QI,
         lastTick: Long,
-        lastValue: ComparableQuantity[Q]
+        lastValue: Q
     )
 
     /* Determine the starting and ending value for the integral */
@@ -217,14 +217,14 @@ object QuantityUtil {
     *   apparent
     */
   private def startingValue[Q <: Quantity[Q]](
-      values: Map[Long, ComparableQuantity[Q]],
+      values: Map[Long, Q],
       windowStart: Long
-  ): ComparableQuantity[Q] = {
+  ): Q = {
     values
       .filter { case (tick, _) =>
         tick <= windowStart
       }
-      .maxOption[(Long, ComparableQuantity[Q])](Ordering.by(_._1)) match {
+      .maxOption[(Long, Q)](Ordering.by(_._1)) match {
       case Some((_, value)) => value
       case None =>
         val unit = values.headOption
@@ -251,14 +251,14 @@ object QuantityUtil {
     *   tick
     */
   private def endingValue[Q <: Quantity[Q]](
-      values: Map[Long, ComparableQuantity[Q]],
+      values: Map[Long, Q],
       windowEnd: Long
-  ): (Long, ComparableQuantity[Q]) = {
+  ): (Long, Q) = {
     values
       .filter { case (tick, _) =>
         tick <= windowEnd
       }
-      .maxOption[(Long, ComparableQuantity[Q])](Ordering.by(_._1)) match {
+      .maxOption[(Long, Q)](Ordering.by(_._1)) match {
       case Some(tickToValue) => tickToValue
       case None =>
         throw new QuantityException(

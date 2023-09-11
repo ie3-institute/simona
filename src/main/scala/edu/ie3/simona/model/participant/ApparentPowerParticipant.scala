@@ -7,9 +7,8 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import tech.units.indriya.ComparableQuantity
+import squants.Dimensionless
 
-import javax.measure.quantity.Dimensionless
 
 trait ApparentPowerParticipant[CD <: CalcRelevantData] {
   this: SystemParticipant[CD, ApparentPower] =>
