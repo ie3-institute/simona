@@ -6,17 +6,16 @@
 
 package edu.ie3.simona.model.thermal
 
+import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters$
+
 import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
-import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
 import static edu.ie3.util.quantities.QuantityUtil.isEquivalentAbs
 import static tech.units.indriya.quantity.Quantities.getQuantity
 
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
-import edu.ie3.util.quantities.QuantityUtil
 import spock.lang.Shared
 import spock.lang.Specification
-import tech.units.indriya.quantity.Quantities
 
 class CylindricalThermalStorageTest extends Specification {
 
@@ -26,6 +25,7 @@ class CylindricalThermalStorageTest extends Specification {
   CylindricalStorageInput storageInput
   @Shared
   static final Double TOLERANCE = 0.0001
+
 
   def setupSpec() {
     storageInput = new CylindricalStorageInput(
@@ -40,11 +40,17 @@ class CylindricalThermalStorageTest extends Specification {
   }
 
   static def buildThermalStorage(CylindricalStorageInput storageInput, Double volume) {
-    def storedEnergy = CylindricalThermalStorage.volumeToEnergy(getQuantity(volume, StandardUnits.VOLUME), storageInput.c, storageInput.inletTemp, storageInput.returnTemp)
+    def storedEnergy =
+        CylindricalThermalStorage.volumeToEnergy(
+        Sq.create(volume, CubicMeters$.MODULE$),
+        Sq.create(storageInput.c.value.doubleValue(), KilowattHoursPerKelvinCubicMeters$.MODULE$),
+        Sq.create(storageInput.inletTemp.value.doubleValue(), Celsius$.MODULE$),
+        Sq.create(storageInput.returnTemp.value.doubleValue(), Celsius$.MODULE$)
+        )
     def thermalStorage = CylindricalThermalStorage.apply(storageInput, storedEnergy)
     return thermalStorage
   }
-
+//TODO DF Squants
   def vol2Energy(Double volume) {
     return CylindricalThermalStorage.volumeToEnergy(getQuantity(volume, StandardUnits.VOLUME), storageInput.c, storageInput.inletTemp, storageInput.returnTemp)
   }
@@ -52,7 +58,7 @@ class CylindricalThermalStorageTest extends Specification {
   def "Check storage level operations:"() {
     given:
     def storage = buildThermalStorage(storageInput, 70)
-
+//TODO DF Squants
     when:
     def initialLevel = storage._storedEnergy()
     storage._storedEnergy_$eq(vol2Energy(50))
@@ -83,7 +89,6 @@ class CylindricalThermalStorageTest extends Specification {
     def usableThermalEnergy = storage.usableThermalEnergy()
     //FIXME
     //def volumeFromUsableEnergy = CylindricalThermalStorage.energyToVolume(usableThermalEnergy, storage.c(), storage.inletTemp(), storage.returnTemp())
-
     then:
     isEquivalentAbs(usableThermalEnergy, getQuantity(5 * 115, KILOWATTHOUR), TESTING_TOLERANCE)
     //FIXME
@@ -101,7 +106,7 @@ class CylindricalThermalStorageTest extends Specification {
     storage.operationTime() == storageInput.operationTime
     storage.bus() == storageInput.thermalBus
   }
-
+//TODO DF Squants
   def "Check mutable state update:"() {
     when:
     def storage = buildThermalStorage(storageInput, 70)

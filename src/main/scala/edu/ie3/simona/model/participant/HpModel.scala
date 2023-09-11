@@ -7,21 +7,19 @@
 package edu.ie3.simona.model.participant
 
 import java.util.UUID
+
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.HpModel._
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
-import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalHouse}
+import edu.ie3.simona.model.thermal.ThermalHouse
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
-
-import javax.measure.quantity.{Power, Temperature}
+import javax.measure.quantity.{Power, Temperature, Time}
 import tech.units.indriya.ComparableQuantity
-
-import java.time.ZonedDateTime
+import edu.ie3.simona.util.TickUtil.TickLong
 
 /** Model of a heat pump (HP) with a [[ThermalHouse]] medium and its current
   * [[HpState]].
@@ -53,9 +51,9 @@ final case class HpModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: ComparableQuantity[Power],
+    sRated: Power,
     cosPhiRated: Double,
-    pThermal: ComparableQuantity[Power],
+    pThermal: Power,
     thermalGrid: ThermalGrid
 ) extends SystemParticipant[
       HpRelevantData,
@@ -71,11 +69,8 @@ final case class HpModel(
     )
     with ApparentPowerAndHeatParticipant[HpRelevantData] {
 
-  private val pRated: ComparableQuantity[Power] =
-    sRated
-      .multiply(cosPhiRated)
-      .multiply(scalingFactor)
-      .to(StandardUnits.ACTIVE_POWER_IN)
+  private val pRated: Power =
+    sRated * cosPhiRated * scalingFactor
 
   /** As this is a state-full model (with respect to the current operation
     * condition and inner temperature), the power calculation operates on the
@@ -90,7 +85,7 @@ final case class HpModel(
     */
   override protected def calculateActivePower(
       relevantData: HpRelevantData
-  ): ComparableQuantity[Power] = {
+  ): Power = {
     relevantData.hpState = calculateNextState(relevantData)
     relevantData.hpState.activePower
   }
@@ -161,9 +156,9 @@ final case class HpModel(
   private def calcState(hpData: HpRelevantData, isRunning: Boolean): HpState = {
     val (newActivePower, newThermalPower) =
       if (isRunning)
-        (pRated, pThermal.multiply(scalingFactor))
+        (pRated, pThermal * scalingFactor)
       else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
-
+    //TODO DF Squants
     /* Push thermal energy to the thermal grid and get it's updated state in return */
     val thermalGridState = hpData match {
       case HpRelevantData(hpState, currentTimeTick, ambientTemperature) =>
@@ -259,7 +254,7 @@ case object HpModel {
   final case class HpRelevantData(
       var hpState: HpState,
       currentTimeTick: Long,
-      ambientTemperature: ComparableQuantity[Temperature]
+      ambientTemperature: Temperature
   ) extends CalcRelevantData
 
   /** Internal method to construct a new [[HpModel]] based on a provided
@@ -288,9 +283,19 @@ case object HpModel {
       operationInterval,
       scalingFactor = 1.0,
       qControl,
-      hpInput.getType.getsRated,
+      Kilowatts(
+        hpInput.getType.getsRated
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
       hpInput.getType.getCosPhiRated,
-      hpInput.getType.getpThermal,
+      Kilowatts(
+        hpInput.getType.getpThermal
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
       thermalGrid
     )
 

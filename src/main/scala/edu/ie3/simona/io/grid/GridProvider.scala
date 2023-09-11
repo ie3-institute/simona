@@ -18,6 +18,7 @@ import edu.ie3.datamodel.models.input.container.{
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.config.SimonaConfig
 
+import java.nio.file.Path
 import scala.util.{Failure, Success, Try}
 
 /** Takes [[edu.ie3.simona.config.SimonaConfig.Simona.Input.Grid.Datasource]] as
@@ -40,7 +41,8 @@ object GridProvider extends LazyLogging {
             val jointGridContainer = CsvJointGridContainerSource.read(
               simulationName,
               params.csvSep,
-              params.directoryPath
+              Path.of(params.directoryPath),
+              params.isHierarchic
             )
 
             Try(ValidationUtils.check(jointGridContainer)) match {

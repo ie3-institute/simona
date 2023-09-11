@@ -8,7 +8,6 @@ package edu.ie3.simona.model.participant.load
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.LoadInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
@@ -17,16 +16,12 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant
 }
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
-import edu.ie3.simona.model.participant.load.random.RandomLoadModel
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.PowerSystemUnits.MEGAVOLTAMPERE
 import edu.ie3.util.scala.OperationInterval
-import tech.units.indriya.ComparableQuantity
+import squants.{Energy, Power}
+import squants.energy.Megawatts
 
-import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Energy, Power}
 
 /** Abstract super class of a load model.
   *
@@ -39,7 +34,7 @@ abstract class LoadModel[D <: LoadRelevantData](
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: ComparableQuantity[Power],
+    sRated: Power,
     cosPhiRated: Double
 ) extends SystemParticipant[D, ApparentPower](
       uuid,
@@ -74,18 +69,18 @@ case object LoadModel extends LazyLogging {
     */
   def scaleSRatedActivePower(
       inputModel: LoadInput,
-      activePower: ComparableQuantity[Power],
+      activePower: Power,
       safetyFactor: Double = 1d
-  ): ComparableQuantity[Power] = {
-    val pRated = inputModel.getsRated().multiply(inputModel.getCosPhiRated)
-    val referenceScalingFactor = activePower.divide(pRated)
-    inputModel
-      .getsRated()
-      .to(MEGAVOLTAMPERE)
-      .multiply(referenceScalingFactor)
-      .multiply(safetyFactor)
-      .asType(classOf[Power])
-      .to(PowerSystemUnits.MEGAVOLTAMPERE)
+  ): Power = {
+    val sRated = Megawatts(
+      inputModel.getsRated
+        .to(PowerSystemUnits.MEGAWATT)
+        .getValue
+        .doubleValue
+    )
+    val pRated = sRated * inputModel.getCosPhiRated
+    val referenceScalingFactor = activePower / pRated
+    sRated * referenceScalingFactor * safetyFactor
   }
 
   /** Scale profile based load model's sRated based on the provided yearly
@@ -111,21 +106,13 @@ case object LoadModel extends LazyLogging {
     */
   def scaleSRatedEnergy(
       inputModel: LoadInput,
-      energyConsumption: ComparableQuantity[Energy],
-      profileMaxPower: ComparableQuantity[Power],
-      profileEnergyScaling: ComparableQuantity[Energy]
-  ): ComparableQuantity[Power] = {
-    profileMaxPower
-      .divide(inputModel.getCosPhiRated)
-      .to(MEGAVOLTAMPERE)
-      .multiply(
-        energyConsumption
-          .divide(profileEnergyScaling)
-          .asType(classOf[Dimensionless])
-          .to(PowerSystemUnits.PU)
-      )
-      .asType(classOf[Power])
-      .to(PowerSystemUnits.MEGAVOLTAMPERE)
+      energyConsumption: Energy,
+      profileMaxPower: Power,
+      profileEnergyScaling: Energy
+  ): Power = {
+    (profileMaxPower / inputModel.getCosPhiRated) * (
+      energyConsumption / profileEnergyScaling
+    )
   }
 
 }

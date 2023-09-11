@@ -11,10 +11,8 @@ import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.util.scala.quantities.DefaultQuantities
-
-import javax.measure.quantity.{Energy, Power}
-import tech.units.indriya.ComparableQuantity
+import squants.{Energy, Power}
+import squants.energy.WattHours
 
 /** Thermal storage model.
   *
@@ -45,6 +43,7 @@ abstract class ThermalStorage(
     maxEnergyThreshold: ComparableQuantity[Energy],
     chargingPower: ComparableQuantity[Power]
 ) {
+  //TODO DF Squants
   protected val zeroEnergy: ComparableQuantity[Energy] =
     DefaultQuantities.zeroKWH
 

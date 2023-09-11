@@ -47,11 +47,13 @@ import edu.ie3.simona.ontology.messages.services.EvMessage.{
 }
 import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DISTANCE
 import edu.ie3.util.quantities.PowerSystemUnits.PU
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.Kilovars
+import squants.{Each, Dimensionless}
+import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.Dimensionless
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
@@ -186,9 +188,13 @@ protected trait EvcsAgentFundamentals
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         timeBin * 10,
-        inputModel.electricalInputModel.getNode
-          .getvTarget()
-          .to(PU)
+        Each(
+          inputModel.electricalInputModel.getNode
+            .getvTarget()
+            .to(PU)
+            .getValue
+            .doubleValue
+        )
       ),
       ValueStore.forResult(timeBin, 10),
       ValueStore(timeBin * 10),
@@ -215,7 +221,7 @@ protected trait EvcsAgentFundamentals
   override val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[ApparentPower, EvcsRelevantData, EvcsModel],
-      ComparableQuantity[Dimensionless]
+      Dimensionless
   ) => ApparentPower =
     (_, _, _) =>
       throw new InvalidRequestException(
@@ -246,8 +252,6 @@ protected trait EvcsAgentFundamentals
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
-    implicit val startDateTime: ZonedDateTime =
-      collectionStateData.baseStateData.startDate
 
     collectionStateData.baseStateData match {
       case modelBaseStateData: ParticipantModelBaseStateData[
@@ -385,6 +389,7 @@ protected trait EvcsAgentFundamentals
     updateValueStoresInformListeners(
       modelBaseStateData,
       tick,
+      //TODO DF Squants
       AccompaniedSimulationResult(result),
       updatedRelevantData
     )
@@ -456,6 +461,7 @@ protected trait EvcsAgentFundamentals
         updateValueStoresInformListeners(
           modelBaseStateData,
           tick,
+          //TODO DF Squants
           AccompaniedSimulationResult(result),
           updatedRelevantData
         )
@@ -596,8 +602,8 @@ protected trait EvcsAgentFundamentals
     new EvcsResult(
       dateTime,
       uuid,
-      result.p,
-      result.q
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
     )
 
   /** Checks whether requested departing EVs are consistent with currently

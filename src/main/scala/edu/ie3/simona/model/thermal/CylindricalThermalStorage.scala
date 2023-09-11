@@ -6,26 +6,19 @@
 
 package edu.ie3.simona.model.thermal
 
-import breeze.linalg.max
+import java.util.UUID
+import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
   ThermalBusInput
 }
-import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
-  StorageEmpty,
-  StorageFull
-}
 import edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
 import edu.ie3.util.quantities.interfaces.SpecificHeatCapacity
+
+import javax.measure.quantity.{Energy, Temperature, Volume}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
-
-import java.util.UUID
-import javax.measure.quantity._
 
 /** A cylindrical thermal storage used for implementations, which require a
   * mutable storage. <p> <strong>Important:</strong> The field storageLvl is a
@@ -54,10 +47,10 @@ final case class CylindricalThermalStorage(
     operatorInput: OperatorInput,
     operationTime: OperationTime,
     bus: ThermalBusInput,
-    minEnergyThreshold: ComparableQuantity[Energy],
-    maxEnergyThreshold: ComparableQuantity[Energy],
-    chargingPower: ComparableQuantity[Power],
-    override protected var _storedEnergy: ComparableQuantity[Energy]
+    minEnergyThreshold: Energy,
+    maxEnergyThreshold: Energy,
+    chargingPower: Power,
+    override protected var _storedEnergy: Energy
 ) extends ThermalStorage(
       uuid,
       id,
@@ -69,7 +62,7 @@ final case class CylindricalThermalStorage(
       chargingPower
     )
     with MutableStorage {
-
+  //TODO DF Squants
   /** Updates the given last state. Based on the then set thermal influx, the
     * current state is calculated. Positive values of influx are consider to
     * flow into the storage. Additionally, the tick, when the next threshold is
@@ -131,16 +124,16 @@ final case class CylindricalThermalStorage(
     (ThermalStorageState(tick, updatedEnergy, qDot), nextThreshold)
   }
 
-  override def usableThermalEnergy: ComparableQuantity[Energy] =
-    _storedEnergy.subtract(minEnergyThreshold)
+  override def usableThermalEnergy: Energy =
+    _storedEnergy - minEnergyThreshold
 
   override def tryToStoreAndReturnRemainder(
-      addedEnergy: ComparableQuantity[Energy]
-  ): Option[ComparableQuantity[Energy]] = {
-    if (addedEnergy isGreaterThan zeroEnergy) {
-      _storedEnergy = _storedEnergy add addedEnergy
-      if (_storedEnergy isGreaterThan maxEnergyThreshold) {
-        val surplus = _storedEnergy subtract maxEnergyThreshold
+      addedEnergy: Energy
+  ): Option[Energy] = {
+    if (addedEnergy > zeroEnergy) {
+      _storedEnergy = _storedEnergy + addedEnergy
+      if (_storedEnergy > maxEnergyThreshold) {
+        val surplus = _storedEnergy - maxEnergyThreshold
         _storedEnergy = maxEnergyThreshold
         return Option(surplus)
       }
@@ -149,12 +142,12 @@ final case class CylindricalThermalStorage(
   }
 
   override def tryToTakeAndReturnLack(
-      takenEnergy: ComparableQuantity[Energy]
-  ): Option[ComparableQuantity[Energy]] = {
-    if (takenEnergy isGreaterThan zeroEnergy) {
-      _storedEnergy = _storedEnergy subtract takenEnergy
-      if (_storedEnergy isLessThan minEnergyThreshold) {
-        val lack = minEnergyThreshold subtract _storedEnergy
+      takenEnergy: Energy
+  ): Option[Energy] = {
+    if (takenEnergy > zeroEnergy) {
+      _storedEnergy = _storedEnergy - takenEnergy
+      if (_storedEnergy < minEnergyThreshold) {
+        val lack = minEnergyThreshold - _storedEnergy
         _storedEnergy = minEnergyThreshold
         return Option(lack)
       }
@@ -183,8 +176,7 @@ case object CylindricalThermalStorage {
     */
   def apply(
       input: CylindricalStorageInput,
-      initialStoredEnergy: ComparableQuantity[Energy] =
-        Quantities.getQuantity(0, KILOWATTHOUR)
+      initialStoredEnergy: Energy = DefaultQuantities.zeroKWH
   ): CylindricalThermalStorage = {
     val minEnergyThreshold: ComparableQuantity[Energy] =
       CylindricalThermalStorage.volumeToEnergy(
@@ -209,13 +201,13 @@ case object CylindricalThermalStorage {
       .divide(Quantities.getQuantity(1d, Units.HOUR))
       .asType(classOf[Power])
       .to(StandardUnits.ACTIVE_POWER_IN)
-
     new CylindricalThermalStorage(
       input.getUuid,
       input.getId,
       input.getOperator,
       input.getOperationTime,
       input.getThermalBus,
+      //TODO DF Squants
       minEnergyThreshold,
       maxEnergyThreshold,
       chargingPower,
@@ -237,15 +229,13 @@ case object CylindricalThermalStorage {
     *   energy
     */
   def volumeToEnergy(
-      volume: ComparableQuantity[Volume],
-      c: ComparableQuantity[SpecificHeatCapacity],
-      inletTemp: ComparableQuantity[Temperature],
-      returnTemp: ComparableQuantity[Temperature]
-  ): ComparableQuantity[Energy] =
-    volume
-      .multiply(c)
-      .multiply(returnTemp.subtract(inletTemp))
-      .asType(classOf[Energy])
+      volume: Volume,
+      c: SpecificHeatCapacity,
+      inletTemp: Temperature,
+      returnTemp: Temperature
+  ): Energy = {
+    c.calcEnergy(returnTemp, inletTemp, volume)
+  }
 
   /** Equation from docs for the relation between stored heat and volume change.
     *
@@ -261,13 +251,13 @@ case object CylindricalThermalStorage {
     *   volume
     */
   def energyToVolume(
-      energy: ComparableQuantity[Energy],
-      c: ComparableQuantity[SpecificHeatCapacity],
-      inletTemp: ComparableQuantity[Temperature],
-      returnTemp: ComparableQuantity[Temperature]
-  ): ComparableQuantity[Volume] =
-    energy
-      .divide(c.multiply(returnTemp.subtract(inletTemp)))
-      .asType(classOf[Volume])
+      energy: Energy,
+      c: SpecificHeatCapacity,
+      inletTemp: Temperature,
+      returnTemp: Temperature
+  ): Volume = {
+    val energyDensity = c.calcEnergyDensity(returnTemp, inletTemp)
 
+    energy.calcVolume(energyDensity)
+  }
 }

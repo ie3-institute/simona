@@ -10,7 +10,6 @@ import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.TestFSMRef
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV
 import edu.ie3.simona.agent.ValueStore
@@ -62,14 +61,17 @@ import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.PvInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KILOWATT,
-  MEGAVAR,
-  MEGAWATT,
-  PU
+import edu.ie3.util.scala.quantities.{
+  Megavars,
+  ReactivePower,
+  Vars,
+  WattsPerSquareMeter
 }
-import edu.ie3.util.quantities.QuantityUtil
 import org.scalatest.PrivateMethodTester
+import squants.{Each, Power}
+import squants.energy.{Kilowatts, Megawatts, Watts}
+import squants.motion.MetersPerSecond
+import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND}
 
@@ -105,7 +107,7 @@ class PvAgentModelCalculationSpec
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
+      LoadReference.ActivePower(Kilowatts(0d))
     )
   private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
@@ -124,6 +126,9 @@ class PvAgentModelCalculationSpec
     )
   )
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+
+  private implicit val powerTolerance: Power = Watts(0.1)
+  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   "A pv agent with model calculation depending on no secondary data service" should {
     "be instantiated correctly" in {
@@ -336,7 +341,7 @@ class PvAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution * 10,
-            Map(0L -> Quantities.getQuantity(1d, PU))
+            Map(0L -> Each(1.0))
           )
           resultValueStore shouldBe ValueStore.forResult(resolution, 10)
           requestValueStore shouldBe ValueStore[ApparentPower](resolution * 10)
@@ -358,7 +363,7 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           triggerId,
           Some(
-            Seq(
+            scala.collection.immutable.Seq(
               ScheduleTriggerMessage(ActivityStartTrigger(4711), pvAgent)
             )
           )
@@ -436,13 +441,13 @@ class PvAgentModelCalculationSpec
 
       pvAgent ! RequestAssetPowerMessage(
         0L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
       expectMsg(
         AssetPowerChangedMessage(
-          Quantities.getQuantity(0d, MEGAWATT),
-          Quantities.getQuantity(0d, MEGAVAR)
+          Megawatts(0d),
+          Megavars(0d)
         )
       )
 
@@ -454,8 +459,8 @@ class PvAgentModelCalculationSpec
             resolution * 10,
             Map(
               0L -> ApparentPower(
-                Quantities.getQuantity(0d, MEGAWATT),
-                Quantities.getQuantity(0d, MEGAVAR)
+                Megawatts(0d),
+                Megavars(0d)
               )
             )
           )
@@ -519,10 +524,10 @@ class PvAgentModelCalculationSpec
 
       /* Send out new data */
       val weatherData = WeatherData(
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(1.815, CELSIUS),
-        Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+        WattsPerSquareMeter(0d),
+        WattsPerSquareMeter(0d),
+        Celsius(1.815d),
+        MetersPerSecond(7.726576d)
       )
 
       weatherService.send(
@@ -572,7 +577,9 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent))
+            scala.collection.immutable.Seq(
+              ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent)
+            )
           )
         )
       )
@@ -601,16 +608,8 @@ class PvAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 900.")
               ) match {
                 case ApparentPower(p, q) =>
-                  QuantityUtil.isEquivalentAbs(
-                    p,
-                    Quantities.getQuantity(0, MEGAWATT),
-                    1e-16
-                  ) shouldBe true
-                  QuantityUtil.isEquivalentAbs(
-                    q,
-                    Quantities.getQuantity(0, MEGAVAR),
-                    1e-16
-                  ) shouldBe true
+                  (p ~= Megawatts(0.0)) shouldBe true
+                  (q ~= Megavars(0.0)) shouldBe true
               }
           }
         case _ =>
@@ -706,10 +705,10 @@ class PvAgentModelCalculationSpec
 
       /* Providing the awaited data will lead to the foreseen transitions */
       val weatherData = WeatherData(
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(1.815, CELSIUS),
-        Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+        WattsPerSquareMeter(0d),
+        WattsPerSquareMeter(0d),
+        Celsius(1.815d),
+        MetersPerSecond(7.726576d)
       )
 
       weatherService.send(
@@ -722,7 +721,9 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent))
+            scala.collection.immutable.Seq(
+              ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent)
+            )
           )
         )
       )
@@ -753,16 +754,8 @@ class PvAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 0.")
               ) match {
                 case ApparentPower(p, q) =>
-                  QuantityUtil.isEquivalentAbs(
-                    p,
-                    Quantities.getQuantity(0, MEGAWATT),
-                    1e-16
-                  ) shouldBe true
-                  QuantityUtil.isEquivalentAbs(
-                    q,
-                    Quantities.getQuantity(0, MEGAVAR),
-                    1e-16
-                  ) shouldBe true
+                  (p ~= Megawatts(0.0)) shouldBe true
+                  (q ~= Megavars(0.0)) shouldBe true
               }
           }
         case _ =>
@@ -825,18 +818,18 @@ class PvAgentModelCalculationSpec
       /* Ask the agent for average power in tick 7200 */
       pvAgent ! RequestAssetPowerMessage(
         7200L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(pvAgent.stateName == Idle)
 
       /* Send out the expected data and wait for the reply */
       val weatherData = WeatherData(
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(1.815, CELSIUS),
-        Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+        WattsPerSquareMeter(0d),
+        WattsPerSquareMeter(0d),
+        Celsius(1.815d),
+        MetersPerSecond(7.726576d)
       )
       weatherService.send(
         pvAgent,
@@ -859,7 +852,9 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent))
+            scala.collection.immutable.Seq(
+              ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent)
+            )
           )
         )
       )
@@ -867,14 +862,8 @@ class PvAgentModelCalculationSpec
       /* Appreciate the answer to my previous request */
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -935,10 +924,10 @@ class PvAgentModelCalculationSpec
         ProvideWeatherMessage(
           0L,
           WeatherData(
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(1.815, CELSIUS),
-            Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+            WattsPerSquareMeter(0d),
+            WattsPerSquareMeter(0d),
+            Celsius(1.815d),
+            MetersPerSecond(7.726576d)
           ),
           Some(3600L)
         )
@@ -955,7 +944,9 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent))
+            scala.collection.immutable.Seq(
+              ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent)
+            )
           )
         )
       )
@@ -966,10 +957,10 @@ class PvAgentModelCalculationSpec
         ProvideWeatherMessage(
           3600L,
           WeatherData(
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(1.815, CELSIUS),
-            Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+            WattsPerSquareMeter(0d),
+            WattsPerSquareMeter(0d),
+            Celsius(1.815d),
+            MetersPerSecond(7.726576d)
           ),
           Some(7200L)
         )
@@ -986,7 +977,9 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           3L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent))
+            scala.collection.immutable.Seq(
+              ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent)
+            )
           )
         )
       )
@@ -997,10 +990,10 @@ class PvAgentModelCalculationSpec
         ProvideWeatherMessage(
           7200L,
           WeatherData(
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(1.815, CELSIUS),
-            Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+            WattsPerSquareMeter(0d),
+            WattsPerSquareMeter(0d),
+            Celsius(1.815d),
+            MetersPerSecond(7.726576d)
           ),
           None
         )
@@ -1018,20 +1011,14 @@ class PvAgentModelCalculationSpec
       /* Ask the agent for average power in tick 7500 */
       pvAgent ! RequestAssetPowerMessage(
         7500L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
         case answer => fail(s"Did not expect to get that answer: $answer")
       }
     }
@@ -1041,21 +1028,15 @@ class PvAgentModelCalculationSpec
       /* Ask again with (nearly) unchanged information */
       pvAgent ! RequestAssetPowerMessage(
         7500L,
-        Quantities.getQuantity(1.000000000000001d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.000000000000001d),
+        Each(0d)
       )
 
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -1063,21 +1044,15 @@ class PvAgentModelCalculationSpec
       /* Ask again with changed information */
       pvAgent ! RequestAssetPowerMessage(
         7500L,
-        Quantities.getQuantity(0.98, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(0.98),
+        Each(0d)
       )
 
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(-780.6e-6, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(-780.6e-6)) shouldBe true
       }
     }
   }
