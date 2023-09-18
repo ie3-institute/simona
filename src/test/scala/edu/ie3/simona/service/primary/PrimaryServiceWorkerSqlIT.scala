@@ -11,7 +11,6 @@ import akka.testkit.{TestActorRef, TestProbe}
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.io.naming.DatabaseNamingStrategy
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.value.{HeatAndSValue, PValue}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePower,
@@ -37,9 +36,10 @@ import edu.ie3.simona.test.common.AgentSpec
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.test.helper.TestContainerHelper
 import edu.ie3.util.TimeUtil
+import edu.ie3.util.scala.quantities.Kilovars
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.prop.TableDrivenPropertyChecks
-import tech.units.indriya.quantity.Quantities
+import squants.energy.Kilowatts
 
 class PrimaryServiceWorkerSqlIT
     extends AgentSpec(
@@ -103,9 +103,9 @@ class PrimaryServiceWorkerSqlIT
           uuidPqh,
           0L,
           ApparentPowerAndHeat(
-            Quantities.getQuantity(1000.0d, StandardUnits.ACTIVE_POWER_IN),
-            Quantities.getQuantity(329.0d, StandardUnits.REACTIVE_POWER_IN),
-            Quantities.getQuantity(8000.0, StandardUnits.HEAT_DEMAND_PROFILE)
+            Kilowatts(1000.0),
+            Kilovars(329.0),
+            Kilowatts(8000.0)
           ),
           Some(900L)
         ),
@@ -117,7 +117,7 @@ class PrimaryServiceWorkerSqlIT
           uuidP,
           0L,
           ActivePower(
-            Quantities.getQuantity(1000.0d, StandardUnits.ACTIVE_POWER_IN)
+            Kilowatts(1000.0)
           ),
           Some(900L)
         )
