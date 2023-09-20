@@ -322,7 +322,8 @@ object ConfigUtil {
       ) match {
         case Failure(exception) =>
           throw new IllegalArgumentException(
-            s"Unable to reach configured SQL database with url '${sql.jdbcUrl}' and user name '${sql.userName}'. Exception: $exception"
+            s"Unable to reach configured SQL database with url '${sql.jdbcUrl}' and user name '${sql.userName}'. Exception: $exception",
+            exception
           )
         case Success(connection) =>
           val validConnection = connection.isValid(5000)
@@ -377,7 +378,8 @@ object ConfigUtil {
       ) match {
         case Failure(exception) =>
           throw new IllegalArgumentException(
-            s"Unable to reach configured Couchbase database with url '${couchbase.url}', bucket '${couchbase.bucketName}' and user name '${couchbase.userName}'. Exception: $exception"
+            s"Unable to reach configured Couchbase database with url '${couchbase.url}', bucket '${couchbase.bucketName}' and user name '${couchbase.userName}'. Exception: $exception",
+            exception
           )
         case Success(connector) =>
           val validConnection = connector.isConnectionValid
@@ -403,7 +405,8 @@ object ConfigUtil {
       ) match {
         case Failure(exception) =>
           throw new IllegalArgumentException(
-            s"Unable to reach configured influxDb1x with url '$url' for '$influxDb1xParamsName' configuration and database '$database'. Exception: $exception"
+            s"Unable to reach configured influxDb1x with url '$url' for '$influxDb1xParamsName' configuration and database '$database'. Exception: $exception",
+            exception
           )
         case Success(validConnection) if !validConnection =>
           throw new IllegalArgumentException(
