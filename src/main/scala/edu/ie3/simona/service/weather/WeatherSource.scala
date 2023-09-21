@@ -44,7 +44,7 @@ import org.locationtech.jts.geom.{Coordinate, Point}
 import tech.units.indriya.ComparableQuantity
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import squants.motion.MetersPerSecond
-import squants.thermal.{Celsius, Kelvin}
+import squants.thermal.Kelvin
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
