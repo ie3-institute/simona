@@ -689,21 +689,14 @@ case object GridModel {
   ): ControlGroupModel = {
     /* Determine the voltage regulation criterion for each of the available nodes */
     val nodeUuidToRegulationCriterion = nodeUuids.map { uuid =>
-      uuid -> { (complexVoltage: Complex) =>
-        {
-          complexVoltage.abs match {
-            case vMag if {
-                  vMag > vMax
-                } =>
-              Some(vMax - vMag)
-            case vMag if {
-                  vMag < vMax
-                } =>
-              Some(vMin - vMag)
+      uuid -> {
+        (complexVoltage: Complex) =>
+          val vMag = complexVoltage.abs
+          vMag match {
+            case mag if mag > vMax => Some(vMax - mag).map(Quantities.getQuantity(_, PowerSystemUnits.PU))
+            case mag if mag < vMin => Some(vMin - mag).map(Quantities.getQuantity(_, PowerSystemUnits.PU))
             case _ => None
           }
-        }
-          .map(Quantities.getQuantity(_, PowerSystemUnits.PU))
       }
     }.toMap
 
