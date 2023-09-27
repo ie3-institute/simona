@@ -28,8 +28,9 @@ import edu.ie3.simona.test.matchers.QuantityMatchers
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.prop.TableDrivenPropertyChecks
+import squants.Power
+import squants.energy.{KilowattHours, Kilowatts, Watts}
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
 
 import java.util.UUID
 
@@ -37,6 +38,7 @@ class RandomLoadModelSpec
     extends UnitSpec
     with TableDrivenPropertyChecks
     with QuantityMatchers {
+  implicit val tolerance: Power = Watts(1d)
   "Having a random load model" when {
     val loadInput =
       new LoadInput(
@@ -77,23 +79,15 @@ class RandomLoadModelSpec
 
     "instantiating it" should {
       "deliver a proper model" in {
-        forAll(
+        (
           Table(
             ("reference", "expectedSRated"),
-            (
-              ActivePower(Quantities.getQuantity(268.6, Units.WATT)),
-              Quantities
-                .getQuantity(311.0105263157895, PowerSystemUnits.VOLTAMPERE)
-            ),
-            (
-              EnergyConsumption(
-                Quantities.getQuantity(2000d, PowerSystemUnits.KILOWATTHOUR)
-              ),
-              Quantities
-                .getQuantity(467.156124576697, PowerSystemUnits.VOLTAMPERE)
-            )
-          )
-        ) { (reference, expectedSRated) =>
+            (ActivePower(Watts(268.6)), Watts(311.0105263157895d))
+          ),
+          (EnergyConsumption(KilowattHours(2000d)), Watts(467.156124576697d))
+        )
+
+        { (reference: ActivePower, expectedSRated: Power) =>
           val actual = RandomLoadModel(
             loadInput,
             foreSeenOperationInterval,
@@ -101,10 +95,7 @@ class RandomLoadModelSpec
             reference
           )
 
-          actual.sRated should equalWithTolerance(
-            expectedSRated.to(PowerSystemUnits.MEGAVOLTAMPERE),
-            testingTolerance
-          )
+          actual.sRated =~ expectedSRated
         }
       }
     }
@@ -117,9 +108,15 @@ class RandomLoadModelSpec
           foreSeenOperationInterval,
           1.0,
           QControl.apply(loadInput.getqCharacteristics()),
-          loadInput.getsRated(),
+          Kilowatts(
+            loadInput
+              .getsRated()
+              .to(PowerSystemUnits.KILOWATT)
+              .getValue
+              .doubleValue()
+          ),
           loadInput.getCosPhiRated,
-          new ActivePower(Quantities.getQuantity(268.6, Units.WATT))
+          new ActivePower(Watts(268.6))
         )
         /* Working day, 61th quarter hour */
         val queryDate =

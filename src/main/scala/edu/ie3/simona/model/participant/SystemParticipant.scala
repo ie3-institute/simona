@@ -77,8 +77,8 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
       val reactivePower =
         calculateReactivePower(activePower, voltage)
       ApparentPower(
-        activePower.multiply(scalingFactor),
-        reactivePower.multiply(scalingFactor)
+        activePower * scalingFactor,
+        reactivePower * scalingFactor
       )
     } else {
       ApparentPower(

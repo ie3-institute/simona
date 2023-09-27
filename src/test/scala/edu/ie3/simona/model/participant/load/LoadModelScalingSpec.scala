@@ -26,16 +26,18 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.prop.TableDrivenPropertyChecks
-import tech.units.indriya.ComparableQuantity
+import squants.energy.{KilowattHours, Kilowatts, Watts}
+import squants.time.Minutes
+import squants.{Dimensionless, Each, Energy, Percent, Power}
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Energy, Power}
 
 class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
+  implicit val tolerance: Dimensionless = Each(1e-10)
+
   "Testing correct scaling of load models" when {
     val simulationStartDate =
       TimeUtil.withDefaults.toZonedDateTime("2019-01-01 00:00:00")
@@ -76,7 +78,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
 
       val targetEnergyConsumption =
-        Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR)
+        KilowattHours(3000d)
       "reach the targeted annual energy consumption" taggedAs SnailTest in {
         /* Test against a permissible deviation of 2 %. As per official documentation of the bdew load profiles
          * [https://www.bdew.de/media/documents/2000131_Anwendung-repraesentativen_Lastprofile-Step-by-step.pdf] 1.5 %
@@ -95,9 +97,15 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             profileLoadInput.getUuid,
             profileLoadInput.getId,
             foreSeenOperationInterval,
-            1.0,
+            1.0d,
             QControl.apply(profileLoadInput.getqCharacteristics()),
-            profileLoadInput.getsRated(),
+            Kilowatts(
+              profileLoadInput
+                .getsRated()
+                .to(PowerSystemUnits.KILOWATT)
+                .getValue
+                .doubleValue()
+            ),
             profileLoadInput.getCosPhiRated,
             profile,
             EnergyConsumption(targetEnergyConsumption)
@@ -108,17 +116,14 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             dut,
             simulationStartDate,
             targetEnergyConsumption
-          ) should beLessThanWithTolerance(
-            Quantities.getQuantity(2d, Units.PERCENT),
-            1e-1
-          )
+          ) =~ Percent(2d)
         }
       }
 
       "correctly account for the scaling factor, when targeting a given annual energy consumption" taggedAs SnailTest in {
         val scalingFactor = 1.5
         val expectedEnergy =
-          Quantities.getQuantity(4500d, PowerSystemUnits.KILOWATTHOUR)
+          KilowattHours(4500d)
 
         val dut = ProfileLoadModel(
           profileLoadInput.getUuid,
@@ -126,7 +131,13 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           foreSeenOperationInterval,
           scalingFactor,
           QControl.apply(profileLoadInput.getqCharacteristics()),
-          profileLoadInput.getsRated(),
+          Kilowatts(
+            profileLoadInput
+              .getsRated()
+              .to(PowerSystemUnits.KILOWATT)
+              .getValue
+              .doubleValue()
+          ),
           profileLoadInput.getCosPhiRated,
           BdewStandardLoadProfile.H0,
           EnergyConsumption(targetEnergyConsumption)
@@ -137,16 +148,12 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           dut,
           simulationStartDate,
           expectedEnergy
-        ) should beLessThanWithTolerance(
-          Quantities.getQuantity(2d, Units.PERCENT),
-          1e-1
-        )
+        ) =~ Percent(2d)
       }
 
-      val targetMaximumPower =
-        Quantities.getQuantity(268.6, Units.WATT)
+      val targetMaximumPower = Watts(268.6)
       "approximately reach the maximum power" taggedAs SnailTest in {
-
+        implicit val tolerance: Power = Watts(1d)
         forAll(
           Table(
             "profile",
@@ -161,21 +168,25 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             foreSeenOperationInterval,
             1.0,
             QControl.apply(profileLoadInput.getqCharacteristics()),
-            profileLoadInput.getsRated(),
+            Kilowatts(
+              profileLoadInput
+                .getsRated()
+                .to(PowerSystemUnits.KILOWATT)
+                .getValue
+                .doubleValue()
+            ),
             profileLoadInput.getCosPhiRated,
             profile,
             ActivePower(targetMaximumPower)
           )
           dut.enable()
+
           calculatePowerFromRelevantData(
             simulationStartDate,
             dut
           ).maxOption match {
             case Some(maximumPower) =>
-              maximumPower should equalWithTolerance(
-                targetMaximumPower.to(PowerSystemUnits.MEGAWATT),
-                testingTolerance
-              )
+              maximumPower =~ targetMaximumPower
             case None => fail("Unable to determine maximum power.")
           }
         }
@@ -184,15 +195,21 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
       "correctly account for the scaling factor when targeting at maximum power" taggedAs SnailTest in {
         val scalingFactor = 1.5
         val expectedMaximum =
-          Quantities.getQuantity(402.0044899478780, Units.WATT)
-
+          Watts(402.0044899478780)
+        implicit val tolerance: Power = Watts(1d)
         val dut = ProfileLoadModel(
           profileLoadInput.getUuid,
           profileLoadInput.getId,
           foreSeenOperationInterval,
           scalingFactor,
           QControl.apply(profileLoadInput.getqCharacteristics()),
-          profileLoadInput.getsRated(),
+          Kilowatts(
+            profileLoadInput
+              .getsRated()
+              .to(PowerSystemUnits.KILOWATT)
+              .getValue
+              .doubleValue()
+          ),
           profileLoadInput.getCosPhiRated,
           BdewStandardLoadProfile.H0,
           ActivePower(targetMaximumPower)
@@ -204,10 +221,8 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           dut
         ).maxOption match {
           case Some(maximumPower) =>
-            maximumPower should equalWithTolerance(
-              expectedMaximum.to(PowerSystemUnits.MEGAWATT),
-              testingTolerance
-            )
+            maximumPower =~ expectedMaximum
+
           case None => fail("Unable to determine maximum power.")
         }
       }
@@ -246,7 +261,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
 
       val targetEnergyConsumption =
-        Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR)
+        KilowattHours(3000d)
       "reach the targeted annual energy consumption" taggedAs SnailTest in {
         val dut = RandomLoadModel(
           randomLoadInput.getUuid,
@@ -254,7 +269,13 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           foreSeenOperationInterval,
           1.0,
           QControl.apply(randomLoadInput.getqCharacteristics()),
-          randomLoadInput.getsRated(),
+          Kilowatts(
+            randomLoadInput
+              .getsRated()
+              .to(PowerSystemUnits.KILOWATT)
+              .getValue
+              .doubleValue()
+          ),
           randomLoadInput.getCosPhiRated,
           EnergyConsumption(targetEnergyConsumption)
         )
@@ -264,16 +285,13 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           dut,
           simulationStartDate,
           targetEnergyConsumption
-        ) should beLessThanWithTolerance(
-          Quantities.getQuantity(1d, Units.PERCENT),
-          1e-1
-        )
+        ) =~ Percent(1d)
       }
 
       "correctly account for the scaling factor, when targeting a given annual energy consumption" taggedAs SnailTest in {
         val scalingFactor = 1.5
         val expectedEnergy =
-          Quantities.getQuantity(4500d, PowerSystemUnits.KILOWATTHOUR)
+          KilowattHours(4500d)
 
         val dut = RandomLoadModel(
           randomLoadInput.getUuid,
@@ -281,7 +299,13 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           foreSeenOperationInterval,
           scalingFactor,
           QControl.apply(randomLoadInput.getqCharacteristics()),
-          randomLoadInput.getsRated(),
+          Kilowatts(
+            randomLoadInput
+              .getsRated()
+              .to(PowerSystemUnits.KILOWATT)
+              .getValue
+              .doubleValue()
+          ),
           randomLoadInput.getCosPhiRated,
           EnergyConsumption(targetEnergyConsumption)
         )
@@ -291,13 +315,10 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           dut,
           simulationStartDate,
           expectedEnergy
-        ) should beLessThanWithTolerance(
-          Quantities.getQuantity(2d, Units.PERCENT),
-          1e-1
-        )
+        ) =~ Percent(2d)
       }
 
-      val targetMaximumPower = Quantities.getQuantity(268.6, Units.WATT)
+      val targetMaximumPower = Watts(268.6)
       "approximately reach the maximum power" taggedAs SnailTest in {
         val dut = RandomLoadModel(
           randomLoadInput.getUuid,
@@ -305,7 +326,13 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           foreSeenOperationInterval,
           1.0,
           QControl.apply(randomLoadInput.getqCharacteristics()),
-          randomLoadInput.getsRated(),
+          Kilowatts(
+            randomLoadInput
+              .getsRated()
+              .to(PowerSystemUnits.KILOWATT)
+              .getValue
+              .doubleValue()
+          ),
           randomLoadInput.getCosPhiRated,
           ActivePower(targetMaximumPower)
         )
@@ -321,23 +348,27 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         getRelativeResult(
           quantile95,
           targetMaximumPower
-        ) should beLessThanWithTolerance(
-          Quantities.getQuantity(1d, Units.PERCENT),
-          1e-1
-        )
+        ) =~ Percent(1d)
+
       }
 
       "correctly account for the scaling factor when targeting at maximum power" taggedAs SnailTest in {
         val scalingFactor = 1.5
-        val expectedMaximum = targetMaximumPower.multiply(scalingFactor)
-
+        val expectedMaximum = targetMaximumPower * scalingFactor
+        implicit val tolerance: Power = Watts(1d)
         val dut = RandomLoadModel(
           randomLoadInput.getUuid,
           randomLoadInput.getId,
           foreSeenOperationInterval,
           scalingFactor,
           QControl.apply(randomLoadInput.getqCharacteristics()),
-          randomLoadInput.getsRated(),
+          Kilowatts(
+            randomLoadInput
+              .getsRated()
+              .to(PowerSystemUnits.KILOWATT)
+              .getValue
+              .doubleValue()
+          ),
           randomLoadInput.getCosPhiRated,
           ActivePower(targetMaximumPower)
         )
@@ -348,34 +379,18 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         ).sorted.toArray
         /* Tolerance is equivalent to 10 W difference between the 95%-percentile of the obtained random results and the
          * target maximum power. Because of the stochastic nature, the maximum power cannot be met perfectly */
-        RandomLoadModelSpec.get95Quantile(powers) should equalWithTolerance(
-          expectedMaximum.to(PowerSystemUnits.MEGAWATT),
-          1e-5
-        )
+        RandomLoadModelSpec.get95Quantile(powers) =~ expectedMaximum
       }
     }
   }
 
-  def getRelativeResult(
-      avgResult: ComparableQuantity[_],
-      expectedResult: ComparableQuantity[_]
-  ): ComparableQuantity[Dimensionless] = {
-    val result = Quantities
-      .getQuantity(100, Units.PERCENT)
-      .subtract(
-        Quantities.getQuantity(
-          abs(
-            avgResult
-              .divide(expectedResult)
-              .asType(classOf[Dimensionless])
-              .to(Units.PERCENT)
-              .getValue
-              .doubleValue()
-          ),
-          Units.PERCENT
-        )
-      )
-    Quantities.getQuantity(abs(result.getValue.doubleValue()), Units.PERCENT)
+  def getRelativeResult[Q <: squants.Quantity[Q]](
+      avgResult: Q,
+      expectedResult: Q
+  ): Dimensionless = {
+    val result = Percent(100) -
+      Percent(abs(avgResult.divide(expectedResult)))
+    Percent(abs(result.value.doubleValue()))
   }
 
   def getRelevantData[
@@ -412,8 +427,8 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
   ](
       dut: T,
       simulationStartDate: ZonedDateTime,
-      expectedEnergy: ComparableQuantity[Energy]
-  ): ComparableQuantity[Dimensionless] = {
+      expectedEnergy: Energy
+  ): Dimensionless = {
 
     val relevantDatas = getRelevantData(dut, simulationStartDate)
 
@@ -425,20 +440,17 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             dut
               .calculatePower(
                 tick,
-                Quantities.getQuantity(0d, PowerSystemUnits.PU),
+                Each(0d),
                 relevantData
               )
-              .p
-              .multiply(Quantities.getQuantity(15d, Units.MINUTE))
-              .asType(classOf[Energy])
-              .to(PowerSystemUnits.KILOWATTHOUR)
+              .p * Minutes(15d)
           }
-          .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
-            _.add(_)
+          .fold(KilowattHours(0))(
+            _ + _
           )
       }
-      .fold(Quantities.getQuantity(0, PowerSystemUnits.KILOWATTHOUR))(
-        _.add(_)
+      .fold(KilowattHours(0d))(
+        _ + _
       )
       .divide(totalRuns)
 
@@ -455,7 +467,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
   ](
       simulationStartDate: ZonedDateTime,
       dut: T
-  ): IndexedSeq[ComparableQuantity[Power]] = {
+  ): IndexedSeq[Power] = {
 
     val relevantDatas = getRelevantData(dut, simulationStartDate)
 
@@ -467,7 +479,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             dut
               .calculatePower(
                 tick,
-                Quantities.getQuantity(0d, PowerSystemUnits.PU),
+                Each(0d),
                 relevantData
               )
               .p

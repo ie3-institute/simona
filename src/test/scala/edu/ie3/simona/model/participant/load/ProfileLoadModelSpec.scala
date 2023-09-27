@@ -22,12 +22,14 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.prop.TableDrivenPropertyChecks
+import squants.Power
+import squants.energy.{KilowattHours, Watts}
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
 
 import java.util.UUID
 
 class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
+  implicit val tolerance: Power = Watts(1d)
   "Having a profile load model" when {
     val loadInput =
       new LoadInput(
@@ -64,7 +66,6 @@ class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
         simulationEndDate,
         loadInput.getOperationTime
       )
-    val testingTolerance = 1e-6 // Equals to 1 W power
 
     "instantiating it" should {
       "deliver a proper model" in {
@@ -73,39 +74,39 @@ class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             ("profile", "reference", "expectedsRated"),
             (
               BdewStandardLoadProfile.H0,
-              ActivePower(Quantities.getQuantity(268.6, Units.WATT)),
-              Quantities.getQuantity(282.74, PowerSystemUnits.VOLTAMPERE)
+              ActivePower(Watts(268.6)),
+              Watts(282.74d)
             ),
             (
               BdewStandardLoadProfile.H0,
               EnergyConsumption(
-                Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR)
+                KilowattHours(3000d)
               ),
-              Quantities.getQuantity(848.22, PowerSystemUnits.VOLTAMPERE)
+              Watts(848.22d)
             ),
             (
               BdewStandardLoadProfile.L0,
-              ActivePower(Quantities.getQuantity(268.6, Units.WATT)),
-              Quantities.getQuantity(282.74, PowerSystemUnits.VOLTAMPERE)
+              ActivePower(Watts(268.6)),
+              Watts(282.74d)
             ),
             (
               BdewStandardLoadProfile.L0,
               EnergyConsumption(
-                Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR)
+                KilowattHours(3000d)
               ),
-              Quantities.getQuantity(759.158, PowerSystemUnits.VOLTAMPERE)
+              Watts(759.158d)
             ),
             (
               BdewStandardLoadProfile.G0,
-              ActivePower(Quantities.getQuantity(268.6, Units.WATT)),
-              Quantities.getQuantity(282.74, PowerSystemUnits.VOLTAMPERE)
+              ActivePower(Watts(268.6)),
+              Watts(282.74d)
             ),
             (
               BdewStandardLoadProfile.G0,
               EnergyConsumption(
-                Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR)
+                KilowattHours(3000d)
               ),
-              Quantities.getQuantity(759.158, PowerSystemUnits.VOLTAMPERE)
+              Watts(759.158d)
             )
           )
         ) { (profile, reference, expectedSRated) =>
@@ -116,10 +117,7 @@ class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             reference
           )
 
-          actual.sRated should equalWithTolerance(
-            expectedSRated.to(PowerSystemUnits.MEGAVOLTAMPERE),
-            testingTolerance
-          )
+          actual.sRated =~ expectedSRated
         }
       }
     }
