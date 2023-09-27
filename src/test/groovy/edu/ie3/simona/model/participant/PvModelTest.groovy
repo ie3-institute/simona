@@ -183,7 +183,7 @@ class PvModelTest extends Specification {
     where:
     time                                       | j                   | longitude   || omegaSol
     '2019-01-01T05:00:00+01:00[Europe/Berlin]' | 0d                  | 0.16d       || -1.9465030168609223d    // long: ~9.17°E
-    '2019-01-01T10:05:00+01:00[Europe/Berlin]' | 0d                  | 0.16d       || -0.6156894622152462d    // different time: 10:05
+    '2019-01-01T10:05:00+01:00[Europe/Berlin]' | 0d                  | 0.16d       || -0.6156894622152458d    // different time: 10:05
     '2019-01-01T12:00:00+01:00[Europe/Berlin]' | 0d                  | 0.16d       || -0.11390730226687622d    // 12:00
     '2019-01-01T14:00:00+01:00[Europe/Berlin]' | 0d                  | 0.16d       || 0.40969147333142264d     // 14:00
     '2019-01-01T17:30:00+01:00[Europe/Berlin]' | 0d                  | 0.16d       || 1.3259893306284447d     // 17:30
