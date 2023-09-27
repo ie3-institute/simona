@@ -97,10 +97,11 @@ object FixedLoadModel {
       scalingFactor,
       QControl(input.getqCharacteristics()),
       Kilowatts(
-      input.getsRated
-        .to(PowerSystemUnits.KILOWATT)
-        .getValue
-        .doubleValue),
+        input.getsRated
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
       input.getCosPhiRated,
       reference
     )
