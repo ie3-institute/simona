@@ -6,8 +6,7 @@
 
 package edu.ie3.simona.model.thermal
 
-import javax.measure.quantity.Temperature
-import tech.units.indriya.ComparableQuantity
+import squants.Temperature
 
 /** This trait enables implementations of a [[ThermalHouse]], which need a
   * mutable inner temperature. The trait can only be used by subclasses of
@@ -19,9 +18,9 @@ trait MutableTemperature {
 
   /** Inner temperature level
     */
-  protected var _innerTemperature: ComparableQuantity[Temperature]
+  protected var _innerTemperature: Temperature
 
-  final def getInnerTemperature: ComparableQuantity[Temperature] =
+  final def getInnerTemperature: Temperature =
     _innerTemperature
 
   /** Set innerTemperature to a new value.
@@ -32,7 +31,7 @@ trait MutableTemperature {
     *   old inner temperature
     */
   def setInnerTemperature(
-      newValue: ComparableQuantity[Temperature]
+      newValue: Temperature
   ): Unit =
     _innerTemperature = newValue
 

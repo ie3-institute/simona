@@ -16,7 +16,7 @@ import edu.ie3.util.scala.quantities._
 import squants._
 import squants.energy.{Kilowatts, Megawatts}
 import squants.space.SquareMeters
-import tech.units.indriya.quantity.Quantities
+import squants.time.Minutes
 import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
@@ -210,19 +210,15 @@ final case class PvModel private (
   ): Angle = {
     val jInRad = angleJ.toRadians
     val lambda = longitudeInRad.toDegrees
-    val et = Quantities.getQuantity(
+    val et = Minutes(
       0.0066 + 7.3525 * cos(jInRad + 1.4992378274631293) + 9.9359 * cos(
         2d * jInRad + 1.9006635554218247
-      ) + 0.3387 * cos(3d * jInRad + 1.8360863730980346),
-      MINUTE
+      ) + 0.3387 * cos(3d * jInRad + 1.8360863730980346)
     )
 
-    val lmt = Quantities.getQuantity(
-      time.getHour * 60d + time.getMinute - 4d * (15d - lambda),
-      MINUTE
-    )
-    val st = lmt.add(et).to(HOUR)
-    val stValue = st.getValue.doubleValue
+    val lmt = Minutes(time.getHour * 60d + time.getMinute - 4d * (15d - lambda))
+    val st = lmt + et
+    val stValue = st.toHours
 
     Radians((stValue - 12).toRadians * 15d)
   }
