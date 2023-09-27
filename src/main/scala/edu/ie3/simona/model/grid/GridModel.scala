@@ -440,11 +440,11 @@ case object GridModel {
       )
 
     // electrical struct data
-    if (gridModel.mainRefSystem.nominalPower.getValue.doubleValue < 0.0)
+    if (gridModel.mainRefSystem.nominalPower.value.doubleValue < 0.0)
       throw new InvalidGridException(
         s"Nominal Power of a grid cannot be < 0. Please correct the value of the reference system for grid no ${gridModel.subnetNo}"
       )
-    if (gridModel.mainRefSystem.nominalVoltage.getValue.doubleValue < 0.0)
+    if (gridModel.mainRefSystem.nominalVoltage.value.doubleValue < 0.0)
       throw new InvalidGridException(
         s"Nominal Voltage of a grid cannot be < 0. Please correct the value of the reference system for grid no ${gridModel.subnetNo}"
       )
