@@ -107,7 +107,7 @@ case object GridModel {
 
   /** Represents an empty Transformer control groups
     */
-  val EMPTY_GRID_CONTROLS: GridControls = GridControls(
+  val emptyGridControls: GridControls = GridControls(
     Set.empty[ControlGroupModel]
   )
 
@@ -687,14 +687,19 @@ case object GridModel {
     val nodeUuidToRegulationCriterion = nodeUuids.map { uuid =>
       uuid -> { (complexVoltage: Complex) =>
         {
-          val vMag = complexVoltage.abs
-          if (vMag > vMax)
-            Some(vMax - vMag)
-          else if (vMag < vMin)
-            Some(vMin - vMag)
-          else
-            None
-        }.map(Quantities.getQuantity(_, PowerSystemUnits.PU))
+          complexVoltage.abs match {
+            case vMag if {
+                  vMag > vMax
+                } =>
+              Some(vMax - vMag)
+            case vMag if {
+                  vMag < vMax
+                } =>
+              Some(vMin - vMag)
+            case _ => None
+          }
+        }
+          .map(Quantities.getQuantity(_, PowerSystemUnits.PU))
       }
     }.toMap
 
@@ -707,16 +712,20 @@ case object GridModel {
           _.isGreaterThan(Quantities.getQuantity(0d, PowerSystemUnits.PU))
         )
 
-        if (negativeRequests.nonEmpty && positiveRequests.nonEmpty) {
-          /* There are requests for higher and lower voltages at the same time => do nothing! */
-          None
-        } else if (negativeRequests.nonEmpty) {
-          /* There are only requests for lower voltages => decide for the lowest required voltage */
-          negativeRequests.minOption
-        } else {
-          /* There are only requests for higher voltages => decide for the highest required voltage */
-          positiveRequests.maxOption
+        (negativeRequests.nonEmpty, positiveRequests.nonEmpty) match {
+          case (true, true) =>
+            /* There are requests for higher and lower voltages at the same time => do nothing! */
+            None
+          case (true, false) =>
+            /* There are only requests for lower voltages => decide for the lowest required voltage */
+            negativeRequests.minOption
+          case (false, true) =>
+            /* There are only requests for higher voltages => decide for the highest required voltage */
+            positiveRequests.maxOption
+          case _ =>
+            None
         }
+
       }
 
     ControlGroupModel(nodeUuidToRegulationCriterion, harmonizationFunction)
