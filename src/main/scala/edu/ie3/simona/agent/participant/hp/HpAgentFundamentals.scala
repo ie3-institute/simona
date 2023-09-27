@@ -52,10 +52,9 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.PU
-import edu.ie3.util.scala.quantities.Megavars
-import squants.{Dimensionless, Each, Power, Temperature}
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import squants.energy.Megawatts
-import squants.thermal.Celsius
+import squants.{Dimensionless, Each, Power, Temperature}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -351,7 +350,7 @@ trait HpAgentFundamentals
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        Power => Power
+        Power => ReactivePower
       ]
   ): ApparentPowerAndHeat =
     ParticipantAgentFundamentals.averageApparentPowerAndHeat(

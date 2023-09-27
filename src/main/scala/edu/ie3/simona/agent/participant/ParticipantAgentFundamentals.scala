@@ -79,10 +79,9 @@ import edu.ie3.simona.ontology.trigger.Trigger.ParticipantTrigger.StartCalculati
 import edu.ie3.simona.service.ServiceStateData.ServiceActivationBaseStateData
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
-import squants.energy.Megawatts
-import squants.{Dimensionless, Each, Energy, Power}
+import squants.energy.{Energy, Megawatts}
+import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -1721,17 +1720,17 @@ case object ParticipantAgentFundamentals {
   ): ApparentPower = {
     val p = QuantityUtil.average(
       tickToResults.map { case (tick, pd) =>
-        tick -> pd.p.toMegawatts.asMegaWatt
+        tick -> pd.p
       },
       windowStart,
       windowEnd,
-      classOf[javax.measure.quantity.Energy],
-      KILOWATTHOUR,
-      classOf[javax.measure.quantity.Power],
-      MEGAWATT
+      classOf[Energy],
+      Energy.siUnit,
+      classOf[Power],
+      squants.energy.Power.siUnit
     ) match {
       case Success(pSuccess) =>
-        Megawatts(pSuccess.to(MEGAWATT).getValue.doubleValue)
+        pSuccess
       case Failure(exception) =>
         log.warning(
           "Unable to determine average active power. Apply 0 instead. Cause:\n\t{}",
@@ -1739,23 +1738,24 @@ case object ParticipantAgentFundamentals {
         )
         Megawatts(0d)
     }
+
     val q = QuantityUtil.average(
       tickToResults.map { case (tick, pd) =>
         activeToReactivePowerFuncOpt match {
           case Some(qFunc) =>
-            tick -> qFunc(pd.toApparentPower.p).toMegavars.asMegaVar
-          case None => tick -> pd.toApparentPower.q.toMegavars.asMegaVar
+            tick -> qFunc(pd.toApparentPower.p)
+          case None => tick -> pd.toApparentPower.q
         }
       },
       windowStart,
       windowEnd,
-      classOf[javax.measure.quantity.Energy],
-      KILOVARHOUR,
-      classOf[javax.measure.quantity.Power],
-      MEGAVAR
+      classOf[Energy],
+      Energy.siUnit,
+      classOf[ReactivePower],
+      ReactivePower.siUnit
     ) match {
       case Success(pSuccess) =>
-        Megavars(pSuccess.to(MEGAVAR).getValue.doubleValue)
+        pSuccess
       case Failure(exception) =>
         log.warning(
           "Unable to determine average reactive power. Apply 0 instead. Cause:\n\t{}",
@@ -1785,7 +1785,7 @@ case object ParticipantAgentFundamentals {
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        Power => Power
+        Power => ReactivePower
       ] = None,
       log: LoggingAdapter
   ): ApparentPowerAndHeat = {
@@ -1794,9 +1794,9 @@ case object ParticipantAgentFundamentals {
       windowStart,
       windowEnd,
       classOf[Energy],
-      KILOWATTHOUR,
+      Energy.siUnit,
       classOf[Power],
-      MEGAWATT
+      squants.energy.Power.siUnit
     ) match {
       case Success(pSuccess) => pSuccess
       case Failure(exception) =>
@@ -1816,9 +1816,9 @@ case object ParticipantAgentFundamentals {
       windowStart,
       windowEnd,
       classOf[Energy],
-      KILOVARHOUR,
-      classOf[Power],
-      MEGAVAR
+      Energy.siUnit,
+      classOf[ReactivePower],
+      ReactivePower.siUnit
     ) match {
       case Success(pSuccess) => pSuccess
       case Failure(exception) =>
@@ -1833,9 +1833,9 @@ case object ParticipantAgentFundamentals {
       windowStart,
       windowEnd,
       classOf[Energy],
-      KILOWATTHOUR,
+      Energy.siUnit,
       classOf[Power],
-      MEGAWATT
+      squants.energy.Power.siUnit
     ) match {
       case Success(qDotSuccess) => qDotSuccess
       case Failure(exception) =>
