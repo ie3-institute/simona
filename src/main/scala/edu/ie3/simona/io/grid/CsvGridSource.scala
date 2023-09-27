@@ -10,10 +10,13 @@ import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source._
 import edu.ie3.datamodel.io.source.csv._
 import edu.ie3.datamodel.models.input.container._
-import edu.ie3.datamodel.models.input.thermal.{ThermalBusInput, ThermalHouseInput, ThermalStorageInput}
+import edu.ie3.datamodel.models.input.thermal.{
+  ThermalBusInput,
+  ThermalHouseInput,
+  ThermalStorageInput
+}
 
 import scala.jdk.CollectionConverters._
-import scala.jdk.OptionConverters._
 
 object CsvGridSource {
   def readGrid(
@@ -22,18 +25,27 @@ object CsvGridSource {
       baseFolder: String,
       fileNamingStrategy: FileNamingStrategy
   ): Option[JointGridContainer] = {
-    val csvDataSource = new CsvDataSource(csvSep, baseFolder, fileNamingStrategy)
+    val csvDataSource =
+      new CsvDataSource(csvSep, baseFolder, fileNamingStrategy)
     // build the sources
     val csvTypeSource: TypeSource = new TypeSource(csvDataSource)
 
-    val csvRawGridSource: RawGridSource = new RawGridSource(csvTypeSource, csvDataSource)
+    val csvRawGridSource: RawGridSource =
+      new RawGridSource(csvTypeSource, csvDataSource)
 
-    val csvThermalSource: ThermalSource = new ThermalSource(csvTypeSource, csvDataSource)
+    val csvThermalSource: ThermalSource =
+      new ThermalSource(csvTypeSource, csvDataSource)
 
     val csvSystemParticipantSource: SystemParticipantSource =
-      new SystemParticipantSource(csvTypeSource,csvThermalSource,csvRawGridSource,csvDataSource)
+      new SystemParticipantSource(
+        csvTypeSource,
+        csvThermalSource,
+        csvRawGridSource,
+        csvDataSource
+      )
 
-    val csvGraphicSource: GraphicSource = new GraphicSource(csvTypeSource,csvRawGridSource,csvDataSource)
+    val csvGraphicSource: GraphicSource =
+      new GraphicSource(csvTypeSource, csvRawGridSource, csvDataSource)
 
     // read and get the models
     val rawGridElements = csvRawGridSource.getGridData
@@ -64,10 +76,12 @@ object CsvGridSource {
       baseFolder: String,
       fileNamingStrategy: FileNamingStrategy
   ): Map[ThermalBusInput, ThermalGrid] = {
-    val csvDataSource = new CsvDataSource(csvSep, baseFolder, fileNamingStrategy)
+    val csvDataSource =
+      new CsvDataSource(csvSep, baseFolder, fileNamingStrategy)
     val csvTypeSource: TypeSource =
       new TypeSource(csvDataSource)
-    val csvThermalSource: ThermalSource = new ThermalSource(csvTypeSource, csvDataSource)
+    val csvThermalSource: ThermalSource =
+      new ThermalSource(csvTypeSource, csvDataSource)
     val operators = csvTypeSource.getOperators
     val busses = csvThermalSource.getThermalBuses()
     val houses = csvThermalSource
