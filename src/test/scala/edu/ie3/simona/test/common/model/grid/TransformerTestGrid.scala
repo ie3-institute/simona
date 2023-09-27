@@ -30,6 +30,8 @@ import edu.ie3.simona.util.TestGridFactory
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import squants.electro.Kilovolts
+import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
@@ -62,8 +64,8 @@ trait TransformerTestGrid {
     )
 
   def mainRefSystem: RefSystem = {
-    val nominalPower = Quantities.getQuantity(400, KILOVOLTAMPERE)
-    val nominalVoltage = Quantities.getQuantity(0.4, KILOVOLT)
+    val nominalPower = Kilowatts(400d)
+    val nominalVoltage = Kilovolts(0.4d)
     RefSystem(nominalPower, nominalVoltage)
     /* Z_Ref = 0.4 Ω, Y_Ref = 2.5 Siemens */
   }

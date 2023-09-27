@@ -16,6 +16,7 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.BasicGridWithSwitches
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Megavars
+import squants.electro.Kilovolts
 import squants.energy.Megawatts
 import tech.units.indriya.ComparableQuantity
 
@@ -47,8 +48,8 @@ class PowerFlowSupportSpec
         node6.uuid -> Some(
           ExchangeVoltage(
             node6.uuid,
-            110d.asKiloVolt,
-            0d.asKiloVolt
+            Kilovolts(110d),
+            Kilovolts(0d)
           )
         )
       ),
