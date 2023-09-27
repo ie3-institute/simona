@@ -36,6 +36,7 @@ import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Megavars
+import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
 import scala.concurrent.duration.DurationInt
@@ -201,8 +202,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
         Seq(
           ExchangeVoltage(
             node1.getUuid,
-            110d.asKiloVolt,
-            0d.asKiloVolt
+            Kilovolts(110d),
+            Kilovolts(0d)
           )
         )
       )
@@ -229,8 +230,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
           Seq(
             ExchangeVoltage(
               supNodeA.getUuid,
-              380d.asKiloVolt,
-              0d.asKiloVolt
+              Kilovolts(380d),
+              Kilovolts(0d)
             )
           )
         )
