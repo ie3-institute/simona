@@ -685,97 +685,90 @@ case object GridModel {
   ): ControlGroupModel = {
     /* Determine the voltage regulation criterion for each of the available nodes */
     val nodeUuidToRegulationCriterion = nodeUuids.map { uuid =>
-      uuid -> { (complexVoltage: Complex) =>
-        {
-          complexVoltage.abs match {
-            case vMag if {
-                  vMag > vMax
-                } =>
-              Some(vMax - vMag)
-            case vMag if {
-                  vMag < vMax
-                } =>
-              Some(vMin - vMag)
+      uuid -> {
+        (complexVoltage: Complex) =>
+          val vMag = complexVoltage.abs
+          vMag match {
+            case mag if mag > vMax => Some(vMax - mag).map(Quantities.getQuantity(_, PowerSystemUnits.PU))
+            case mag if mag < vMin => Some(vMin - mag).map(Quantities.getQuantity(_, PowerSystemUnits.PU))
             case _ => None
           }
-        }
-          .map(Quantities.getQuantity(_, PowerSystemUnits.PU))
       }
     }.toMap
 
-    val harmonizationFunction =
-      (regulationRequests: Array[ComparableQuantity[Dimensionless]]) => {
-        val negativeRequests = regulationRequests.filter(
-          _.isLessThan(Quantities.getQuantity(0d, PowerSystemUnits.PU))
-        )
-        val positiveRequests = regulationRequests.filter(
-          _.isGreaterThan(Quantities.getQuantity(0d, PowerSystemUnits.PU))
-        )
+      val harmonizationFunction =
+        (regulationRequests: Array[ComparableQuantity[Dimensionless]]) => {
+          val negativeRequests = regulationRequests.filter(
+            _.isLessThan(Quantities.getQuantity(0d, PowerSystemUnits.PU))
+          )
+          val positiveRequests = regulationRequests.filter(
+            _.isGreaterThan(Quantities.getQuantity(0d, PowerSystemUnits.PU))
+          )
 
-        (negativeRequests.nonEmpty, positiveRequests.nonEmpty) match {
-          case (true, true) =>
-            /* There are requests for higher and lower voltages at the same time => do nothing! */
-            None
-          case (true, false) =>
-            /* There are only requests for lower voltages => decide for the lowest required voltage */
-            negativeRequests.minOption
-          case (false, true) =>
-            /* There are only requests for higher voltages => decide for the highest required voltage */
-            positiveRequests.maxOption
-          case _ =>
-            None
+          (negativeRequests.nonEmpty, positiveRequests.nonEmpty) match {
+            case (true, true) =>
+              /* There are requests for higher and lower voltages at the same time => do nothing! */
+              None
+            case (true, false) =>
+              /* There are only requests for lower voltages => decide for the lowest required voltage */
+              negativeRequests.minOption
+            case (false, true) =>
+              /* There are only requests for higher voltages => decide for the highest required voltage */
+              positiveRequests.maxOption
+            case _ =>
+              None
+          }
+
         }
 
-      }
+      ControlGroupModel(nodeUuidToRegulationCriterion, harmonizationFunction)
+    }
 
-    ControlGroupModel(nodeUuidToRegulationCriterion, harmonizationFunction)
+    /** Updates the internal state of the [[GridModel.nodeUuidToIndexMap]] to
+      * account for changes on switches (open / close) It is highly recommended (=
+      * mandatory) to call this method every time a node admittance matrix is
+      * needed after a switch status has changed.
+      *
+      * @param gridModel
+      * the grid model we operate on
+      */
+    def updateUuidToIndexMap(gridModel: GridModel): Unit = {
+
+      val switches = gridModel.gridComponents.switches
+      val nodes = gridModel.gridComponents.nodes
+
+      val nodesAndSwitches: ListSet[SystemComponent] = ListSet
+        .empty[SystemComponent] ++ switches ++ nodes
+
+      val updatedNodeToUuidMap = nodesAndSwitches
+        .filter(_.isInOperation)
+        .filter {
+          case switch: SwitchModel => switch.isClosed
+          case _: NodeModel => true
+        }
+        .zipWithIndex
+        .foldLeft(Map.empty[UUID, Int]) {
+          case (map, (gridComponent, componentId)) =>
+            gridComponent match {
+              case switchModel: SwitchModel =>
+                map ++ Map(
+                  switchModel.nodeAUuid -> componentId,
+                  switchModel.nodeBUuid -> componentId
+                )
+
+              case nodeModel: NodeModel =>
+                if (!map.contains(nodeModel.uuid)) {
+                  val idx = map.values.toList.sorted.lastOption
+                    .getOrElse(
+                      -1
+                    ) + 1 // if we didn't found anything in the list, we don't have switches and want to start @ 0
+                  map + (nodeModel.uuid -> idx)
+                } else {
+                  map
+                }
+            }
+        }
+
+      gridModel._nodeUuidToIndexMap = updatedNodeToUuidMap
+    }
   }
-
-  /** Updates the internal state of the [[GridModel.nodeUuidToIndexMap]] to
-    * account for changes on switches (open / close) It is highly recommended (=
-    * mandatory) to call this method every time a node admittance matrix is
-    * needed after a switch status has changed.
-    *
-    * @param gridModel
-    *   the grid model we operate on
-    */
-  def updateUuidToIndexMap(gridModel: GridModel): Unit = {
-
-    val switches = gridModel.gridComponents.switches
-    val nodes = gridModel.gridComponents.nodes
-
-    val nodesAndSwitches: ListSet[SystemComponent] = ListSet
-      .empty[SystemComponent] ++ switches ++ nodes
-
-    val updatedNodeToUuidMap = nodesAndSwitches
-      .filter(_.isInOperation)
-      .filter {
-        case switch: SwitchModel => switch.isClosed
-        case _: NodeModel        => true
-      }
-      .zipWithIndex
-      .foldLeft(Map.empty[UUID, Int]) {
-        case (map, (gridComponent, componentId)) =>
-          gridComponent match {
-            case switchModel: SwitchModel =>
-              map ++ Map(
-                switchModel.nodeAUuid -> componentId,
-                switchModel.nodeBUuid -> componentId
-              )
-
-            case nodeModel: NodeModel =>
-              if (!map.contains(nodeModel.uuid)) {
-                val idx = map.values.toList.sorted.lastOption
-                  .getOrElse(
-                    -1
-                  ) + 1 // if we didn't found anything in the list, we don't have switches and want to start @ 0
-                map + (nodeModel.uuid -> idx)
-              } else {
-                map
-              }
-          }
-      }
-
-    gridModel._nodeUuidToIndexMap = updatedNodeToUuidMap
-  }
-}
