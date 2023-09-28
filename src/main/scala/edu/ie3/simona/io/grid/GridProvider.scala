@@ -84,7 +84,7 @@ object GridProvider extends LazyLogging {
           CsvGridSource
             .readThermalGrids(
               params.csvSep,
-              params.directoryPath,
+              Path.of(params.directoryPath),
               new FileNamingStrategy()
             )
         case None =>

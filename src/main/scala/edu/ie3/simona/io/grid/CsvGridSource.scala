@@ -10,19 +10,16 @@ import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source._
 import edu.ie3.datamodel.io.source.csv._
 import edu.ie3.datamodel.models.input.container._
-import edu.ie3.datamodel.models.input.thermal.{
-  ThermalBusInput,
-  ThermalHouseInput,
-  ThermalStorageInput
-}
+import edu.ie3.datamodel.models.input.thermal.{ThermalBusInput, ThermalHouseInput, ThermalStorageInput}
 
+import java.nio.file.Path
 import scala.jdk.CollectionConverters._
 
-object CsvGridSource {
+object CsvGridSource{
   def readGrid(
       gridName: String,
       csvSep: String,
-      baseFolder: String,
+      baseFolder: Path,
       fileNamingStrategy: FileNamingStrategy
   ): Option[JointGridContainer] = {
     val csvDataSource =
@@ -73,7 +70,7 @@ object CsvGridSource {
 
   def readThermalGrids(
       csvSep: String,
-      baseFolder: String,
+      baseFolder: Path,
       fileNamingStrategy: FileNamingStrategy
   ): Map[ThermalBusInput, ThermalGrid] = {
     val csvDataSource =
