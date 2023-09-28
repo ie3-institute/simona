@@ -44,10 +44,11 @@ import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.io.CsvDataSourceAdapter
 import edu.ie3.util.scala.quantities.QuantitySquantsConversions._
-import edu.ie3.util.scala.quantities.WattsPerSquareMeter
+import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import org.locationtech.jts.geom.{Coordinate, Point}
 import squants.motion.MetersPerSecond
 import squants.thermal.Kelvin
+import squants.{Temperature, Velocity}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
@@ -593,54 +594,51 @@ object WeatherSource extends LazyLogging {
       dateTime: ZonedDateTime
   ): WeatherData = {
     // gets a value option
-    val valueOption: Option[WeatherValue] =
-      timeSeries.getValue(dateTime).toScala
+    val valueOption = timeSeries.getValue(dateTime).toScala
 
     // check which data is missing
-    val (diffIrr, dirIrr, temp, windVel) = valueOption match {
+    val (diffIrr, dirIrr, temp, windVel) = getOptions(valueOption)
+
+    WeatherData(
+      diffIrr.getOrElse(
+        interpolate(timeSeries, dateTime, "diffIrr", EMPTY_WEATHER_DATA.diffIrr)
+      ),
+      dirIrr.getOrElse(
+        interpolate(timeSeries, dateTime, "dirIrr", EMPTY_WEATHER_DATA.dirIrr)
+      ),
+      temp.getOrElse(
+        interpolate(timeSeries, dateTime, "temp", EMPTY_WEATHER_DATA.temp)
+      ),
+      windVel.getOrElse(
+        interpolate(timeSeries, dateTime, "windVel", EMPTY_WEATHER_DATA.windVel)
+      )
+    )
+  }
+
+  /** Method to get the data of a [[WeatherValue]].
+    *
+    * @param valueOption
+    *   value with data
+    * @return
+    *   a tuple of options
+    */
+  def getOptions(valueOption: Option[WeatherValue]): (
+      Option[Irradiance],
+      Option[Irradiance],
+      Option[Temperature],
+      Option[Velocity]
+  ) = {
+    valueOption match {
       case Some(value) =>
         val solar = value.getSolarIrradiance
         (
-          solar.getDiffuseIrradiance.toScala,
-          solar.getDirectIrradiance.toScala,
-          value.getTemperature.getTemperature.toScala,
-          value.getWind.getVelocity.toScala
+          solar.getDiffuseIrradiance.toScala.map(v => v.toSquants),
+          solar.getDirectIrradiance.toScala.map(v => v.toSquants),
+          value.getTemperature.getTemperature.toScala.map(v => v.toSquants),
+          value.getWind.getVelocity.toScala.map(v => v.toSquants)
         )
       case None => (None, None, None, None)
     }
-
-    WeatherData(
-      diffIrr match {
-        case Some(irradiance) => irradiance.toSquants
-        case None =>
-          interpolate(
-            timeSeries,
-            dateTime,
-            "diffIrr",
-            EMPTY_WEATHER_DATA.diffIrr
-          )
-      },
-      dirIrr match {
-        case Some(irradiance) => irradiance.toSquants
-        case None =>
-          interpolate(timeSeries, dateTime, "dirIrr", EMPTY_WEATHER_DATA.dirIrr)
-      },
-      temp match {
-        case Some(temperature) => temperature.toSquants
-        case None =>
-          interpolate(timeSeries, dateTime, "temp", EMPTY_WEATHER_DATA.temp)
-      },
-      windVel match {
-        case Some(velocity) => velocity.toSquants
-        case None =>
-          interpolate(
-            timeSeries,
-            dateTime,
-            "windVel",
-            EMPTY_WEATHER_DATA.windVel
-          )
-      }
-    )
   }
 
   /** Weather package private case class to combine the provided agent
