@@ -169,11 +169,13 @@ object SimonaSimFailSpec {
             new SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource(
               None,
               "foo",
+              None,
               None
             ),
             None,
             None,
             None,
+            50000d,
             None,
             None,
             "bar",

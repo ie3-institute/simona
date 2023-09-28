@@ -7,48 +7,48 @@
 package edu.ie3.simona.service.weather
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.io.factory.timeseries.{
-  CosmoIdCoordinateFactory,
-  IconIdCoordinateFactory,
-  IdCoordinateFactory
-}
+import edu.ie3.datamodel.io.factory.timeseries.{CosmoIdCoordinateFactory, IconIdCoordinateFactory, IdCoordinateFactory}
+  IdCoordinateFactory,
+  SqlIdCoordinateFactory
+import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
+import edu.ie3.datamodel.io.source.sql.SqlIdCoordinateSource
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.timeseries.individual.IndividualTimeSeries
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
-import edu.ie3.simona.exceptions.{
-  InvalidConfigParameterException,
-  ServiceException
-}
+import edu.ie3.simona.exceptions.{InvalidConfigParameterException, ServiceException}
+import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   QuantityWithWeight,
   WeatherData
 }
-import edu.ie3.simona.service.weather.WeatherSource.{
-  AgentCoordinates,
-  WeightedCoordinates
-}
+import edu.ie3.simona.service.weather.WeatherSource.{AgentCoordinates, WeightedCoordinates, logger}
 import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
-import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
-  checkCouchbaseParams,
-  checkInfluxDb1xParams,
-  checkSqlParams
-}
+import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{checkCouchbaseParams, checkInfluxDb1xParams, checkSqlParams}
 import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.interfaces.Irradiance
+import edu.ie3.util.scala.io.CsvDataSourceAdapter
+import edu.ie3.util.quantities.interfaces.Irradiance
 import org.locationtech.jts.geom.{Coordinate, Point}
+import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.scala.quantities.WattsPerSquareMeter
+import squants.motion.MetersPerSecond
+import squants.thermal.Kelvin
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
+import java.nio.file.Paths
 import java.time.ZonedDateTime
+import javax.measure.quantity.{Dimensionless, Length}
 import java.time.temporal.ChronoUnit
 import javax.measure.Quantity
 import javax.measure.quantity.{Dimensionless, Length, Speed, Temperature}
@@ -58,6 +58,7 @@ import scala.util.{Failure, Success, Try}
 
 trait WeatherSource {
   protected val idCoordinateSource: IdCoordinateSource
+  protected val maxCoordinateDistance: ComparableQuantity[Length]
 
   /** Determine the relevant coordinates around the queried one together with
     * their weighting factors in averaging
@@ -67,22 +68,17 @@ trait WeatherSource {
     * @param amountOfInterpolationCoords
     *   The minimum required amount of coordinates with weather data surrounding
     *   the given coordinate that will be used for interpolation
-    * @param maxInterpolationCoordinateDistance
-    *   The allowed max distance of agent coordinates to the surrounding weather
-    *   coordinates
     * @return
     *   The result of the attempt to determine the closest coordinates with
     *   their weighting
     */
   def getWeightedCoordinates(
       coordinate: WeatherSource.AgentCoordinates,
-      amountOfInterpolationCoords: Int,
-      maxInterpolationCoordinateDistance: Quantity[Length]
+      amountOfInterpolationCoords: Int
   ): Try[WeatherSource.WeightedCoordinates] = {
     getNearestCoordinatesWithDistances(
       coordinate,
-      amountOfInterpolationCoords,
-      maxInterpolationCoordinateDistance
+      amountOfInterpolationCoords
     ) match {
       case Success(nearestCoordinates) =>
         determineWeights(nearestCoordinates)
@@ -106,21 +102,21 @@ trait WeatherSource {
     * @param amountOfInterpolationCoords
     *   The minimum required amount of coordinates with weather data surrounding
     *   the given coordinate that will be used for interpolation
-    * @param maxInterpolationCoordinateDistance
-    *   The allowed max distance of agent coordinates to the surrounding weather
-    *   coordinates
     * @return
     */
   def getNearestCoordinatesWithDistances(
       coordinate: WeatherSource.AgentCoordinates,
-      amountOfInterpolationCoords: Int,
-      maxInterpolationCoordinateDistance: Quantity[Length]
+      amountOfInterpolationCoords: Int
   ): Try[Iterable[CoordinateDistance]] = {
     val queryPoint = coordinate.toPoint
 
     /* Go and get the nearest coordinates, that are known to the weather source */
     val nearestCoords = idCoordinateSource
-      .getNearestCoordinates(queryPoint, amountOfInterpolationCoords)
+      .getClosestCoordinates(
+        queryPoint,
+        amountOfInterpolationCoords,
+        maxCoordinateDistance
+      )
       .asScala
 
     nearestCoords.find(coordinateDistance =>
@@ -132,19 +128,20 @@ trait WeatherSource {
       case None if nearestCoords.size < amountOfInterpolationCoords =>
         Failure(
           ServiceException(
-            s"There are not enough coordinates for averaging. Found ${nearestCoords.size} but need $amountOfInterpolationCoords."
+            s"There are not enough coordinates for averaging. Found ${nearestCoords.size} within the given distance of " +
+              s"$maxCoordinateDistance but need $amountOfInterpolationCoords. Please make sure that there are enough coordinates within the given distance."
           )
         )
       case None =>
         /* Check if enough coordinates are within the coordinate distance limit */
         val nearestCoordsInMaxDistance = nearestCoords.filter(coordDistance =>
           coordDistance.getDistance
-            .isLessThan(maxInterpolationCoordinateDistance)
+            .isLessThan(maxCoordinateDistance)
         )
         if (nearestCoordsInMaxDistance.size < amountOfInterpolationCoords) {
           Failure(
             ServiceException(
-              s"There are not enough coordinates within the max coordinate distance of $maxInterpolationCoordinateDistance. Found ${nearestCoordsInMaxDistance.size} but need $amountOfInterpolationCoords."
+              s"There are not enough coordinates within the max coordinate distance of $maxCoordinateDistance. Found ${nearestCoordsInMaxDistance.size} but need $amountOfInterpolationCoords. Please make sure that there are enough coordinates within the given distance."
             )
           )
         } else {
@@ -295,7 +292,7 @@ trait WeatherSource {
   ): Array[Long]
 }
 
-object WeatherSource extends LazyLogging {
+object WeatherSource {
 
   def apply(
       dataSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource,
@@ -345,6 +342,11 @@ object WeatherSource extends LazyLogging {
     val timestampPattern: Option[String] = weatherDataSourceCfg.timestampPattern
     val scheme: String = weatherDataSourceCfg.scheme
     val resolution: Option[Long] = weatherDataSourceCfg.resolution
+    val distance: ComparableQuantity[Length] =
+      Quantities.getQuantity(
+        weatherDataSourceCfg.maxCoordinateDistance,
+        Units.METRE
+      )
 
     // check that only one source is defined
     if (definedWeatherSources.size > 1)
@@ -361,11 +363,12 @@ object WeatherSource extends LazyLogging {
           (simulationStart: ZonedDateTime) =>
             WeatherSourceWrapper(
               csvSep,
-              directoryPath,
+              Paths.get(directoryPath),
               coordinateSourceFunction,
               timestampPattern,
               scheme,
-              resolution
+              resolution,
+              distance
             )(simulationStart)
         case Some(Some(params: CouchbaseParams)) =>
           checkCouchbaseParams(params)
@@ -375,7 +378,8 @@ object WeatherSource extends LazyLogging {
               coordinateSourceFunction,
               timestampPattern,
               scheme,
-              resolution
+              resolution,
+              distance
             )(simulationStart)
         case Some(Some(params @ InfluxDb1xParams(database, _, url))) =>
           checkInfluxDb1xParams("WeatherSource", url, database)
@@ -385,7 +389,8 @@ object WeatherSource extends LazyLogging {
               coordinateSourceFunction,
               timestampPattern,
               scheme,
-              resolution
+              resolution,
+              distance
             )(simulationStart)
         case Some(Some(params: SqlParams)) =>
           checkSqlParams(params)
@@ -395,7 +400,8 @@ object WeatherSource extends LazyLogging {
               coordinateSourceFunction,
               timestampPattern,
               scheme,
-              resolution
+              resolution,
+              distance
             )(simulationStart)
         case Some(Some(_: SampleParams)) =>
           // sample weather, no check required
@@ -439,10 +445,11 @@ object WeatherSource extends LazyLogging {
   private def checkCoordinateSource(
       coordinateSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
   ): () => IdCoordinateSource = {
-    val supportedCoordinateSources = Set("csv", "sample")
+    val supportedCoordinateSources = Set("csv", "sql", "sample")
     val definedCoordSources = Vector(
       coordinateSourceConfig.sampleParams,
-      coordinateSourceConfig.csvParams
+      coordinateSourceConfig.csvParams,
+      coordinateSourceConfig.sqlParams
     ).filter(_.isDefined)
 
     // check that only one source is defined
@@ -463,10 +470,32 @@ object WeatherSource extends LazyLogging {
         )
         () =>
           new CsvIdCoordinateSource(
-            csvSep,
-            directoryPath,
-            new FileNamingStrategy(),
-            idCoordinateFactory
+            idCoordinateFactory,
+            new CsvDataSourceAdapter(
+              csvSep,
+              Paths.get(directoryPath),
+              new FileNamingStrategy()
+            )
+          )
+      case Some(
+            Some(
+              sqlParams @ SqlParams(
+                jdbcUrl,
+                userName,
+                password,
+                schemaName,
+                tableName
+              )
+            )
+          ) =>
+        checkSqlParams(sqlParams)
+
+        () =>
+          new SqlIdCoordinateSource(
+            new SqlConnector(jdbcUrl, userName, password),
+            schemaName,
+            tableName,
+            new SqlIdCoordinateFactory()
           )
       case Some(
             Some(
@@ -517,35 +546,83 @@ object WeatherSource extends LazyLogging {
     * "empty" concept best.
     */
   val EMPTY_WEATHER_DATA: WeatherData = WeatherData(
-    Quantities.getQuantity(0d, StandardUnits.SOLAR_IRRADIANCE),
-    Quantities.getQuantity(0d, StandardUnits.SOLAR_IRRADIANCE),
-    Quantities.getQuantity(0d, Units.KELVIN).to(StandardUnits.TEMPERATURE),
-    Quantities.getQuantity(0d, StandardUnits.WIND_VELOCITY)
+    WattsPerSquareMeter(0.0),
+    WattsPerSquareMeter(0.0),
+    Kelvin(0d),
+    MetersPerSecond(0d)
   )
+
+  def toWeatherData(
+      weatherValue: WeatherValue
+  ): WeatherData = {
+    WeatherData(
+      weatherValue.getSolarIrradiance.getDiffuseIrradiance.toScala match {
+        case Some(irradiance) =>
+          WattsPerSquareMeter(
+            irradiance
+              .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
+              .getValue
+              .doubleValue()
+          )
+        case None => EMPTY_WEATHER_DATA.diffIrr
+      },
+      weatherValue.getSolarIrradiance.getDirectIrradiance.toScala match {
+        case Some(irradiance) =>
+          WattsPerSquareMeter(
+            irradiance
+              .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
+              .getValue
+              .doubleValue()
+          )
+        case None => EMPTY_WEATHER_DATA.dirIrr
+      },
+      weatherValue.getTemperature.getTemperature.toScala match {
+        case Some(temperature) =>
+          Kelvin(
+            temperature
+              .to(Units.KELVIN)
+              .getValue
+              .doubleValue()
+          )
+        case None => EMPTY_WEATHER_DATA.temp
+      },
+      weatherValue.getWind.getVelocity.toScala match {
+        case Some(windVel) =>
+          MetersPerSecond(
+            windVel
+              .to(Units.METRE_PER_SECOND)
+              .getValue
+              .doubleValue()
+          )
+        case None => EMPTY_WEATHER_DATA.windVel
+      }
+    )
+  }
 
   /** Methode to get weather data from a time series. This method automatically
     * interpolates missing values.
+    *
     * @param timeSeries
-    *   with weather values
+    * with weather values
     * @param dateTime
-    *   timestamp in question
+    * timestamp in question
     * @return
-    *   weather data object
+    * weather data object
     */
   def getWeatherData(
-      timeSeries: IndividualTimeSeries[WeatherValue],
-      dateTime: ZonedDateTime
-  ): WeatherData = {
+                      timeSeries: IndividualTimeSeries[WeatherValue],
+                      dateTime: ZonedDateTime
+                    ): WeatherData = {
     // gets a value option
     val valueOption: Option[WeatherValue] =
       timeSeries.getValue(dateTime).toScala
 
     val (diffIrr, dirIrr, temp, windVel): (
-        Option[ComparableQuantity[Irradiance]],
+      Option[ComparableQuantity[Irradiance]],
         Option[ComparableQuantity[Irradiance]],
         Option[ComparableQuantity[Temperature]],
         Option[ComparableQuantity[Speed]]
-    ) = valueOption match {
+      ) = valueOption match {
       case Some(value) =>
         (
           getQuantity(value, "diffIrr"),
@@ -599,20 +676,20 @@ object WeatherSource extends LazyLogging {
   /** Method for interpolation of weather values.
     *
     * @param timeSeries
-    *   with weather data
+    * with weather data
     * @param dateTime
-    *   timestamp for which an interpolation is needed
+    * timestamp for which an interpolation is needed
     * @param searchedValue
-    *   string containing the searched value
+    * string containing the searched value
     * @return
-    *   interpolated weather data
+    * interpolated weather data
     */
   private def interpolateValue[V <: Quantity[V]](
-      timeSeries: IndividualTimeSeries[WeatherValue],
-      dateTime: ZonedDateTime,
-      searchedValue: String,
-      empty: ComparableQuantity[V]
-  ): ComparableQuantity[V] = {
+                                                  timeSeries: IndividualTimeSeries[WeatherValue],
+                                                  dateTime: ZonedDateTime,
+                                                  searchedValue: String,
+                                                  empty: ComparableQuantity[V]
+                                                ): ComparableQuantity[V] = {
     if (timeSeries.getEntries.size() < 3) {
       logger.info(
         s"Not enough entries in time series $timeSeries to interpolate weather data. At least three values are needed, found ${timeSeries.getEntries.size()}."
@@ -640,22 +717,22 @@ object WeatherSource extends LazyLogging {
     * and a next value.
     *
     * @param dateTime
-    *   timestamp which is interpolated
+    * timestamp which is interpolated
     * @param previousOption
-    *   option of quantity and time difference
+    * option of quantity and time difference
     * @param nextOption
-    *   option of quantity and time difference
+    * option of quantity and time difference
     * @param empty
-    *   weather data
+    * weather data
     * @return
-    *   option of interpolated quantity
+    * option of interpolated quantity
     */
   def interpolate[V <: Quantity[V]](
-      dateTime: ZonedDateTime,
-      previousOption: Option[QuantityWithWeight[V]],
-      nextOption: Option[QuantityWithWeight[V]],
-      empty: ComparableQuantity[V]
-  ): ComparableQuantity[V] = {
+                                     dateTime: ZonedDateTime,
+                                     previousOption: Option[QuantityWithWeight[V]],
+                                     nextOption: Option[QuantityWithWeight[V]],
+                                     empty: ComparableQuantity[V]
+                                   ): ComparableQuantity[V] = {
     (previousOption, nextOption) match {
       case (Some(previousValue), Some(nextValue)) =>
         val previousWeight: Long = previousValue.weight
@@ -678,28 +755,29 @@ object WeatherSource extends LazyLogging {
 
   /** Method to get an quantity with its weight from an interval of a time
     * series.
+    *
     * @param timeSeries
-    *   given time series
+    * given time series
     * @param timestamp
-    *   given timestamp
+    * given timestamp
     * @param intervalStart
-    *   start of the interval
+    * start of the interval
     * @param intervalEnd
-    *   end of the interval
+    * end of the interval
     * @param searchedValue
-    *   value that is searched
+    * value that is searched
     * @tparam V
-    *   unit of the quantity
+    * unit of the quantity
     * @return
-    *   an option of a quantity with a weight
+    * an option of a quantity with a weight
     */
   def getValue[V <: Quantity[V]](
-      timeSeries: IndividualTimeSeries[WeatherValue],
-      timestamp: ZonedDateTime,
-      intervalStart: ZonedDateTime,
-      intervalEnd: ZonedDateTime,
-      searchedValue: String
-  ): Option[QuantityWithWeight[V]] = {
+                                  timeSeries: IndividualTimeSeries[WeatherValue],
+                                  timestamp: ZonedDateTime,
+                                  intervalStart: ZonedDateTime,
+                                  intervalEnd: ZonedDateTime,
+                                  searchedValue: String
+                                ): Option[QuantityWithWeight[V]] = {
     val values: List[QuantityWithWeight[V]] =
       timeSeries.getEntries.asScala.flatMap { weatherValue =>
         val time: ZonedDateTime = weatherValue.getTime
@@ -717,7 +795,7 @@ object WeatherSource extends LazyLogging {
             getQuantity(weatherValue.getValue, searchedValue)
           option match {
             case Some(value) => Some(QuantityWithWeight(value, weight))
-            case None        => None
+            case None => None
           }
         } else {
           // if timestamp is not inside is not inside the interval none is returned
@@ -738,19 +816,20 @@ object WeatherSource extends LazyLogging {
   }
 
   /** Method to get a specific value from a "WeatherValue"
+    *
     * @param weatherValue
-    *   given value
+    * given value
     * @param searchedValue
-    *   value that is searched
+    * value that is searched
     * @tparam V
-    *   unit of the quantity
+    * unit of the quantity
     * @return
-    *   an option for a quantity
+    * an option for a quantity
     */
   private def getQuantity[V <: Quantity[V]](
-      weatherValue: WeatherValue,
-      searchedValue: String
-  ): Option[ComparableQuantity[V]] = {
+                                             weatherValue: WeatherValue,
+                                             searchedValue: String
+                                           ): Option[ComparableQuantity[V]] = {
     (searchedValue match {
       case "diffIrr" =>
         weatherValue.getSolarIrradiance.getDiffuseIrradiance.toScala
@@ -801,5 +880,4 @@ object WeatherSource extends LazyLogging {
     val ICON: Value = Value("icon")
     val COSMO: Value = Value("cosmo")
   }
-
 }

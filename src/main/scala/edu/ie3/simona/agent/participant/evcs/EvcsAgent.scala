@@ -28,9 +28,8 @@ import edu.ie3.simona.ontology.messages.services.EvMessage.{
   DepartingEvsRequest,
   EvFreeLotsRequest
 }
-import tech.units.indriya.ComparableQuantity
-
-import javax.measure.quantity.Power
+import edu.ie3.util.scala.quantities.ReactivePower
+import squants.Power
 
 object EvcsAgent {
   def props(
@@ -105,7 +104,7 @@ class EvcsAgent(
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        Power => ReactivePower
       ]
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(

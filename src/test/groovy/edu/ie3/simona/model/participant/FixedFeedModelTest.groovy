@@ -18,7 +18,9 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.TimeUtil
+import edu.ie3.util.scala.quantities.Sq
 import spock.lang.Specification
+import squants.energy.*
 import tech.units.indriya.quantity.Quantities
 
 
@@ -53,9 +55,8 @@ class FixedFeedModelTest extends Specification {
   simulationEndDate,
   fixedFeedInput.operationTime
   )
-  def testingTolerance = 1e-6 // Equals to 1 W power
 
-  def expectedPower = fixedFeedInput.sRated * -1 * fixedFeedInput.cosPhiRated * 1.0
+  def expectedPower = Sq.create(fixedFeedInput.sRated.value.doubleValue() * -1 * fixedFeedInput.cosPhiRated * 1.0, Kilowatts$.MODULE$)
 
   def "A fixed feed model should return approximately correct power calculations"() {
     when:
@@ -65,11 +66,17 @@ class FixedFeedModelTest extends Specification {
         foreSeenOperationInterval,
         1.0,
         QControl.apply(fixedFeedInput.qCharacteristics),
-        fixedFeedInput.sRated,
+        Sq.create(
+        fixedFeedInput.sRated
+        .to(KILOWATT)
+        .value.doubleValue()
+        .doubleValue(),
+        Kilowatts$.MODULE$
+        ),
         fixedFeedInput.cosPhiRated
         )
 
     then:
-    abs((actualModel.calculateActivePower(CalcRelevantData.FixedRelevantData$.MODULE$)).subtract(expectedPower).to(MEGAWATT).value.doubleValue()) < testingTolerance
+    actualModel.calculateActivePower(CalcRelevantData.FixedRelevantData$.MODULE$) =~ expectedPower
   }
 }

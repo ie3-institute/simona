@@ -6,16 +6,16 @@
 
 package edu.ie3.simona.test.common.model.grid
 
-import java.util.UUID
-
 import breeze.math.Complex
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.util.quantities.PowerSystemUnits._
 import org.scalatest.prop.TableDrivenPropertyChecks.Table
 import org.scalatest.prop.{TableFor5, TableFor9}
-import tech.units.indriya.quantity.Quantities
+import squants.electro.Kilovolts
+import squants.energy.Kilowatts
 
+import java.util.UUID
 import scala.jdk.CollectionConverters._
 
 /** This test data refers to a life-like transformer, the SGB Smit DTTH 630 kVA
@@ -30,8 +30,8 @@ trait TransformerTestData extends TransformerTestGrid {
   val maxIterations = 50
   val refSystem: RefSystem =
     RefSystem(
-      Quantities.getQuantity(400d, KILOVOLTAMPERE),
-      Quantities.getQuantity(0.4d, KILOVOLT)
+      Kilowatts(400d),
+      Kilovolts(0.4d)
     )
 
   val nodeUuidToIndexMap: Map[UUID, Int] = gridTapHv.getRawGrid.getNodes.asScala

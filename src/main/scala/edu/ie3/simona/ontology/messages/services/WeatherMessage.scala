@@ -11,11 +11,8 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
   ServiceRegistrationMessage
 }
-import edu.ie3.util.quantities.interfaces.Irradiance
-import tech.units.indriya.ComparableQuantity
-
-import javax.measure.Quantity
-import javax.measure.quantity.{Speed, Temperature}
+import edu.ie3.util.scala.quantities.Irradiance
+import squants.{Temperature, Velocity}
 
 sealed trait WeatherMessage
 
@@ -70,10 +67,10 @@ object WeatherMessage {
     *   Wind velocity
     */
   final case class WeatherData(
-      diffIrr: ComparableQuantity[Irradiance],
-      dirIrr: ComparableQuantity[Irradiance],
-      temp: ComparableQuantity[Temperature],
-      windVel: ComparableQuantity[Speed]
+      diffIrr: Irradiance,
+      dirIrr: Irradiance,
+      temp: Temperature,
+      windVel: Velocity
   ) extends SecondaryData
 
   /** Container class for a weather quantity with a weight. It is primarily used
