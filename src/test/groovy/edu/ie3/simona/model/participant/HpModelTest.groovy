@@ -24,9 +24,8 @@ import edu.ie3.simona.model.participant.HpModel.HpData
 import edu.ie3.simona.model.participant.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalHouse
 import squants.energy.Kilowatts$
-import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.Sq
-
+import edu.ie3.util.TimeUtil
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
