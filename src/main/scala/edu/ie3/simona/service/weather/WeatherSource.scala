@@ -7,39 +7,45 @@
 package edu.ie3.simona.service.weather
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.io.factory.timeseries.{CosmoIdCoordinateFactory, IconIdCoordinateFactory, IdCoordinateFactory}
+import edu.ie3.datamodel.io.connectors.SqlConnector
+import edu.ie3.datamodel.io.factory.timeseries.{
+  CosmoIdCoordinateFactory,
+  IconIdCoordinateFactory,
   IdCoordinateFactory,
   SqlIdCoordinateFactory
-import edu.ie3.datamodel.io.connectors.SqlConnector
+}
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
 import edu.ie3.datamodel.io.source.sql.SqlIdCoordinateSource
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.timeseries.individual.IndividualTimeSeries
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
-import edu.ie3.simona.exceptions.{InvalidConfigParameterException, ServiceException}
 import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  QuantityWithWeight,
-  WeatherData
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
+import edu.ie3.simona.exceptions.{
+  InvalidConfigParameterException,
+  ServiceException
 }
-import edu.ie3.simona.service.weather.WeatherSource.{AgentCoordinates, WeightedCoordinates, logger}
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
+import edu.ie3.simona.service.weather.WeatherSource.{
+  AgentCoordinates,
+  WeightedCoordinates
+}
+import edu.ie3.simona.service.weather.WeatherValueInterpolation.interpolate
 import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
-import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{checkCouchbaseParams, checkInfluxDb1xParams, checkSqlParams}
+import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
+  checkCouchbaseParams,
+  checkInfluxDb1xParams,
+  checkSqlParams
+}
 import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.interfaces.Irradiance
 import edu.ie3.util.scala.io.CsvDataSourceAdapter
-import edu.ie3.util.quantities.interfaces.Irradiance
-import org.locationtech.jts.geom.{Coordinate, Point}
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.scala.quantities.QuantitySquantsConversions._
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
+import org.locationtech.jts.geom.{Coordinate, Point}
 import squants.motion.MetersPerSecond
 import squants.thermal.Kelvin
 import tech.units.indriya.ComparableQuantity
@@ -49,9 +55,6 @@ import tech.units.indriya.unit.Units
 import java.nio.file.Paths
 import java.time.ZonedDateTime
 import javax.measure.quantity.{Dimensionless, Length}
-import java.time.temporal.ChronoUnit
-import javax.measure.Quantity
-import javax.measure.quantity.{Dimensionless, Length, Speed, Temperature}
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
@@ -292,7 +295,7 @@ trait WeatherSource {
   ): Array[Long]
 }
 
-object WeatherSource {
+object WeatherSource extends LazyLogging {
 
   def apply(
       dataSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource,
@@ -557,44 +560,20 @@ object WeatherSource {
   ): WeatherData = {
     WeatherData(
       weatherValue.getSolarIrradiance.getDiffuseIrradiance.toScala match {
-        case Some(irradiance) =>
-          WattsPerSquareMeter(
-            irradiance
-              .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
-              .getValue
-              .doubleValue()
-          )
-        case None => EMPTY_WEATHER_DATA.diffIrr
+        case Some(irradiance) => irradiance.toSquants
+        case None             => EMPTY_WEATHER_DATA.diffIrr
       },
       weatherValue.getSolarIrradiance.getDirectIrradiance.toScala match {
-        case Some(irradiance) =>
-          WattsPerSquareMeter(
-            irradiance
-              .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
-              .getValue
-              .doubleValue()
-          )
-        case None => EMPTY_WEATHER_DATA.dirIrr
+        case Some(irradiance) => irradiance.toSquants
+        case None             => EMPTY_WEATHER_DATA.dirIrr
       },
       weatherValue.getTemperature.getTemperature.toScala match {
-        case Some(temperature) =>
-          Kelvin(
-            temperature
-              .to(Units.KELVIN)
-              .getValue
-              .doubleValue()
-          )
-        case None => EMPTY_WEATHER_DATA.temp
+        case Some(temperature) => temperature.toSquants
+        case None              => EMPTY_WEATHER_DATA.temp
       },
       weatherValue.getWind.getVelocity.toScala match {
-        case Some(windVel) =>
-          MetersPerSecond(
-            windVel
-              .to(Units.METRE_PER_SECOND)
-              .getValue
-              .doubleValue()
-          )
-        case None => EMPTY_WEATHER_DATA.windVel
+        case Some(windVel) => windVel.toSquants
+        case None          => EMPTY_WEATHER_DATA.windVel
       }
     )
   }
@@ -603,251 +582,65 @@ object WeatherSource {
     * interpolates missing values.
     *
     * @param timeSeries
-    * with weather values
+    *   with weather values
     * @param dateTime
-    * timestamp in question
+    *   timestamp in question
     * @return
-    * weather data object
+    *   weather data object
     */
   def getWeatherData(
-                      timeSeries: IndividualTimeSeries[WeatherValue],
-                      dateTime: ZonedDateTime
-                    ): WeatherData = {
+      timeSeries: IndividualTimeSeries[WeatherValue],
+      dateTime: ZonedDateTime
+  ): WeatherData = {
     // gets a value option
     val valueOption: Option[WeatherValue] =
       timeSeries.getValue(dateTime).toScala
 
-    val (diffIrr, dirIrr, temp, windVel): (
-      Option[ComparableQuantity[Irradiance]],
-        Option[ComparableQuantity[Irradiance]],
-        Option[ComparableQuantity[Temperature]],
-        Option[ComparableQuantity[Speed]]
-      ) = valueOption match {
+    // check which data is missing
+    val (diffIrr, dirIrr, temp, windVel) = valueOption match {
       case Some(value) =>
+        val solar = value.getSolarIrradiance
         (
-          getQuantity(value, "diffIrr"),
-          getQuantity(value, "dirIrr"),
-          getQuantity(value, "temp"),
-          getQuantity(value, "windVel")
+          solar.getDiffuseIrradiance.toScala,
+          solar.getDirectIrradiance.toScala,
+          value.getTemperature.getTemperature.toScala,
+          value.getWind.getVelocity.toScala
         )
-      case None =>
-        // if no values are found all values are interpolated
-        logger.warn(s"No weather value found for timestamp $dateTime.")
-
-        (None, None, None, None)
+      case None => (None, None, None, None)
     }
 
     WeatherData(
-      diffIrr.getOrElse(
-        interpolateValue(
-          timeSeries,
-          dateTime,
-          "diffIrr",
-          EMPTY_WEATHER_DATA.diffIrr
-        )
-      ),
-      dirIrr.getOrElse(
-        interpolateValue(
-          timeSeries,
-          dateTime,
-          "dirIrr",
-          EMPTY_WEATHER_DATA.dirIrr
-        )
-      ),
-      temp.getOrElse(
-        interpolateValue(
-          timeSeries,
-          dateTime,
-          "temp",
-          EMPTY_WEATHER_DATA.temp
-        )
-      ),
-      windVel.getOrElse(
-        interpolateValue(
-          timeSeries,
-          dateTime,
-          "windVel",
-          EMPTY_WEATHER_DATA.windVel
-        )
-      )
+      diffIrr match {
+        case Some(irradiance) => irradiance.toSquants
+        case None =>
+          interpolate(
+            timeSeries,
+            dateTime,
+            "diffIrr",
+            EMPTY_WEATHER_DATA.diffIrr
+          )
+      },
+      dirIrr match {
+        case Some(irradiance) => irradiance.toSquants
+        case None =>
+          interpolate(timeSeries, dateTime, "dirIrr", EMPTY_WEATHER_DATA.dirIrr)
+      },
+      temp match {
+        case Some(temperature) => temperature.toSquants
+        case None =>
+          interpolate(timeSeries, dateTime, "temp", EMPTY_WEATHER_DATA.temp)
+      },
+      windVel match {
+        case Some(velocity) => velocity.toSquants
+        case None =>
+          interpolate(
+            timeSeries,
+            dateTime,
+            "windVel",
+            EMPTY_WEATHER_DATA.windVel
+          )
+      }
     )
-  }
-
-  /** Method for interpolation of weather values.
-    *
-    * @param timeSeries
-    * with weather data
-    * @param dateTime
-    * timestamp for which an interpolation is needed
-    * @param searchedValue
-    * string containing the searched value
-    * @return
-    * interpolated weather data
-    */
-  private def interpolateValue[V <: Quantity[V]](
-                                                  timeSeries: IndividualTimeSeries[WeatherValue],
-                                                  dateTime: ZonedDateTime,
-                                                  searchedValue: String,
-                                                  empty: ComparableQuantity[V]
-                                                ): ComparableQuantity[V] = {
-    if (timeSeries.getEntries.size() < 3) {
-      logger.info(
-        s"Not enough entries in time series $timeSeries to interpolate weather data. At least three values are needed, found ${timeSeries.getEntries.size()}."
-      )
-      empty
-    } else {
-      val intervalStart: ZonedDateTime = dateTime.minusHours(2)
-      val intervalEnd: ZonedDateTime = dateTime.plusHours(2)
-
-      val previous: Option[QuantityWithWeight[V]] = getValue(
-        timeSeries,
-        dateTime,
-        intervalStart,
-        dateTime,
-        searchedValue
-      )
-      val next: Option[QuantityWithWeight[V]] =
-        getValue(timeSeries, dateTime, dateTime, intervalEnd, searchedValue)
-
-      interpolate(dateTime, previous, next, empty)
-    }
-  }
-
-  /** Method to interpolate a quantity for a specific timestamp with a previous
-    * and a next value.
-    *
-    * @param dateTime
-    * timestamp which is interpolated
-    * @param previousOption
-    * option of quantity and time difference
-    * @param nextOption
-    * option of quantity and time difference
-    * @param empty
-    * weather data
-    * @return
-    * option of interpolated quantity
-    */
-  def interpolate[V <: Quantity[V]](
-                                     dateTime: ZonedDateTime,
-                                     previousOption: Option[QuantityWithWeight[V]],
-                                     nextOption: Option[QuantityWithWeight[V]],
-                                     empty: ComparableQuantity[V]
-                                   ): ComparableQuantity[V] = {
-    (previousOption, nextOption) match {
-      case (Some(previousValue), Some(nextValue)) =>
-        val previousWeight: Long = previousValue.weight
-        val nextWeight: Long = nextValue.weight
-        val interval: Long = previousWeight + nextWeight
-        val previousQuantity: ComparableQuantity[V] = previousValue.quantity
-        val nextQuantity: ComparableQuantity[V] = nextValue.quantity
-
-        val weightedQuantity1 = previousQuantity.multiply(previousWeight)
-        val weightedQuantity2 = nextQuantity.multiply(nextWeight)
-
-        weightedQuantity1.add(weightedQuantity2).divide(interval)
-      case (_, _) =>
-        logger.warn(
-          s"Interpolating value with unit ${empty.getUnit} for timestamp $dateTime was not possible. The default value is used."
-        )
-        empty
-    }
-  }
-
-  /** Method to get an quantity with its weight from an interval of a time
-    * series.
-    *
-    * @param timeSeries
-    * given time series
-    * @param timestamp
-    * given timestamp
-    * @param intervalStart
-    * start of the interval
-    * @param intervalEnd
-    * end of the interval
-    * @param searchedValue
-    * value that is searched
-    * @tparam V
-    * unit of the quantity
-    * @return
-    * an option of a quantity with a weight
-    */
-  def getValue[V <: Quantity[V]](
-                                  timeSeries: IndividualTimeSeries[WeatherValue],
-                                  timestamp: ZonedDateTime,
-                                  intervalStart: ZonedDateTime,
-                                  intervalEnd: ZonedDateTime,
-                                  searchedValue: String
-                                ): Option[QuantityWithWeight[V]] = {
-    val values: List[QuantityWithWeight[V]] =
-      timeSeries.getEntries.asScala.flatMap { weatherValue =>
-        val time: ZonedDateTime = weatherValue.getTime
-
-        // calculates the time difference to the given timestamp
-        val weight = if (time.isBefore(timestamp)) {
-          ChronoUnit.SECONDS.between(time, timestamp)
-        } else {
-          ChronoUnit.SECONDS.between(timestamp, time)
-        }
-
-        // check is the found timestamp is in the defined interval
-        if (time.isAfter(intervalStart) && time.isBefore(intervalEnd)) {
-          val option: Option[ComparableQuantity[V]] =
-            getQuantity(weatherValue.getValue, searchedValue)
-          option match {
-            case Some(value) => Some(QuantityWithWeight(value, weight))
-            case None => None
-          }
-        } else {
-          // if timestamp is not inside is not inside the interval none is returned
-          None
-        }
-      }.toList
-
-    if (values.isEmpty) {
-      None
-    } else {
-      // sorting the list to return the value with the least time difference
-      val sortedSet: Set[QuantityWithWeight[V]] = values.sortBy { x =>
-        x.weight
-      }.toSet
-
-      sortedSet.headOption
-    }
-  }
-
-  /** Method to get a specific value from a "WeatherValue"
-    *
-    * @param weatherValue
-    * given value
-    * @param searchedValue
-    * value that is searched
-    * @tparam V
-    * unit of the quantity
-    * @return
-    * an option for a quantity
-    */
-  private def getQuantity[V <: Quantity[V]](
-                                             weatherValue: WeatherValue,
-                                             searchedValue: String
-                                           ): Option[ComparableQuantity[V]] = {
-    (searchedValue match {
-      case "diffIrr" =>
-        weatherValue.getSolarIrradiance.getDiffuseIrradiance.toScala
-      case "dirIrr" =>
-        weatherValue.getSolarIrradiance.getDirectIrradiance.toScala
-      case "temp" =>
-        weatherValue.getTemperature.getTemperature.toScala
-      case "windVel" =>
-        weatherValue.getWind.getVelocity.toScala
-    }) match {
-      case Some(value) =>
-        if (value.isInstanceOf[V]) {
-          Some(value.asInstanceOf[ComparableQuantity[V]])
-        } else {
-          None
-        }
-      case None => None
-    }
   }
 
   /** Weather package private case class to combine the provided agent
