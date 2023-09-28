@@ -199,10 +199,10 @@ class GridResultsSupportSpec
         disabledLineResult shouldBe new LineResult(
           defaultSimulationStart,
           line0To1.uuid,
-          ScalaQuantityUtil.zero(Units.AMPERE),
-          ScalaQuantityUtil.zero(DEGREE_GEOM),
-          ScalaQuantityUtil.zero(Units.AMPERE),
-          ScalaQuantityUtil.zero(DEGREE_GEOM)
+          ScalaQuantityUtil.zeroCompQuantity(Units.AMPERE),
+          ScalaQuantityUtil.zeroCompQuantity(DEGREE_GEOM),
+          ScalaQuantityUtil.zeroCompQuantity(Units.AMPERE),
+          ScalaQuantityUtil.zeroCompQuantity(DEGREE_GEOM)
         )
       }
 
@@ -403,10 +403,10 @@ class GridResultsSupportSpec
         val expectedResult: Transformer2WResult = new Transformer2WResult(
           TimeUtil.withDefaults.toZonedDateTime("2020-06-08 09:03:00"),
           transformerModel.uuid,
-          ScalaQuantityUtil.zero(AMPERE),
-          ScalaQuantityUtil.zero(DEGREE_GEOM),
-          ScalaQuantityUtil.zero(AMPERE),
-          ScalaQuantityUtil.zero(DEGREE_GEOM),
+          ScalaQuantityUtil.zeroCompQuantity(AMPERE),
+          ScalaQuantityUtil.zeroCompQuantity(DEGREE_GEOM),
+          ScalaQuantityUtil.zeroCompQuantity(AMPERE),
+          ScalaQuantityUtil.zeroCompQuantity(DEGREE_GEOM),
           transformerModel.currentTapPos
         )
 
