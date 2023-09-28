@@ -14,12 +14,12 @@ import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.matchers.QuantityMatchers
-import edu.ie3.util.quantities.PowerSystemUnits
-import tech.units.indriya.quantity.Quantities
+import squants.{Dimensionless, Each}
 
 import java.util.UUID
 
 class TransformerControlGroupSpec extends UnitSpec with QuantityMatchers {
+  implicit val tolerance: Dimensionless = Each(1e-10)
   "Checking the function of transformer control groups" should {
     val buildTransformerControlModels = PrivateMethod[TransformerControlGroup](
       Symbol("buildTransformerControlModels")
@@ -100,9 +100,7 @@ class TransformerControlGroupSpec extends UnitSpec with QuantityMatchers {
 
       actual match {
         case Some(regulationNeed) =>
-          regulationNeed should equalWithTolerance(
-            Quantities.getQuantity(0.05, PowerSystemUnits.PU)
-          )
+          regulationNeed =~ Each(0.05d)
         case None => fail("Did expect to receive a regulation need.")
       }
     }
@@ -122,9 +120,7 @@ class TransformerControlGroupSpec extends UnitSpec with QuantityMatchers {
 
       actual match {
         case Some(regulationNeed) =>
-          regulationNeed should equalWithTolerance(
-            Quantities.getQuantity(-0.05, PowerSystemUnits.PU)
-          )
+          regulationNeed =~ Each(-990.05d)
         case None => fail("Did expect to receive a regulation need.")
       }
     }

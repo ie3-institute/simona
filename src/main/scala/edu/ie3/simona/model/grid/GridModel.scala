@@ -26,16 +26,14 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseC
 }
 import edu.ie3.simona.util.CollectionUtils
-import edu.ie3.util.quantities.PowerSystemUnits
+
 import org.jgrapht.Graph
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import squants.{Dimensionless, Each}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.Dimensionless
 import scala.collection.immutable.ListSet
 import scala.jdk.CollectionConverters._
 
@@ -689,22 +687,18 @@ case object GridModel {
         val vMag = complexVoltage.abs
         vMag match {
           case mag if mag > vMax =>
-            Some(vMax - mag).map(Quantities.getQuantity(_, PowerSystemUnits.PU))
+            Some(vMax - mag).map(Each(_))
           case mag if mag < vMin =>
-            Some(vMin - mag).map(Quantities.getQuantity(_, PowerSystemUnits.PU))
+            Some(vMin - mag).map(Each(_))
           case _ => None
         }
       }
     }.toMap
 
     val harmonizationFunction =
-      (regulationRequests: Array[ComparableQuantity[Dimensionless]]) => {
-        val negativeRequests = regulationRequests.filter(
-          _.isLessThan(Quantities.getQuantity(0d, PowerSystemUnits.PU))
-        )
-        val positiveRequests = regulationRequests.filter(
-          _.isGreaterThan(Quantities.getQuantity(0d, PowerSystemUnits.PU))
-        )
+      (regulationRequests: Array[Dimensionless]) => {
+        val negativeRequests = regulationRequests.array.filter(_ < Each(0d))
+        val positiveRequests = regulationRequests.filter(_ > Each(0d))
 
         (negativeRequests.nonEmpty, positiveRequests.nonEmpty) match {
           case (true, true) =>
