@@ -24,7 +24,7 @@ ext {
   javaVersion = JavaVersion.VERSION_17
 
   scalaVersion = '2.13'
-  scalaBinaryVersion = '2.13.11'
+  scalaBinaryVersion = '2.13.12'
   akkaVersion = '2.6.20'
   jtsVersion = '1.19.0'
   confluentKafkaVersion = '7.4.0'
