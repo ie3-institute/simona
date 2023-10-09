@@ -10,7 +10,6 @@ import akka.actor.ActorSystem
 import akka.testkit.TestFSMRef
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
@@ -58,8 +57,17 @@ import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.model.participant.HpTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.quantities.QuantityUtil
+import edu.ie3.util.scala.quantities.{
+  Megavars,
+  ReactivePower,
+  Vars,
+  WattsPerSquareMeter
+}
 import org.scalatest.PrivateMethodTester
+import squants.energy.{Kilowatts, Megawatts, Watts}
+import squants.motion.MetersPerSecond
+import squants.thermal.Celsius
+import squants.{Each, Power, Temperature}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
@@ -84,7 +92,9 @@ class HpAgentModelCalculationSpec
   implicit val simulationStart: ZonedDateTime = defaultSimulationStart
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
-
+  implicit val powerTolerance: Power = Watts(1e-3)
+  implicit val reactivepowerTolerance: ReactivePower = Vars(1e-3)
+  implicit val temperatureTolerance: Temperature = Celsius(1e-10)
   /* Alter the input model to have a voltage sensitive reactive power calculation */
   val hpInput: HpInput = inputModel
 
@@ -429,13 +439,13 @@ class HpAgentModelCalculationSpec
 
       hpAgent ! RequestAssetPowerMessage(
         0L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
       expectMsg(
         AssetPowerChangedMessage(
-          Quantities.getQuantity(0d, MEGAWATT),
-          Quantities.getQuantity(0d, MEGAVAR)
+          Megawatts(0d),
+          Megavars(0d)
         )
       )
 
@@ -447,9 +457,9 @@ class HpAgentModelCalculationSpec
             resolution * 10,
             Map(
               0L -> ApparentPowerAndHeat(
-                Quantities.getQuantity(0d, MEGAWATT),
-                Quantities.getQuantity(0d, MEGAVAR),
-                Quantities.getQuantity(0d, MEGAWATT)
+                Megawatts(0d),
+                Megavars(0d),
+                Megawatts(0d)
               )
             )
           )
@@ -461,6 +471,7 @@ class HpAgentModelCalculationSpec
     }
 
     "do correct transitions faced to new data in Idle" in {
+
       val hpAgent = TestFSMRef(
         new HpAgent(
           scheduler = scheduler.ref,
@@ -514,10 +525,10 @@ class HpAgentModelCalculationSpec
 
       /* Send out new data */
       val weatherData = WeatherData(
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(1.815, CELSIUS),
-        Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+        WattsPerSquareMeter(0d),
+        WattsPerSquareMeter(0d),
+        Celsius(1.815d),
+        MetersPerSecond(7.726576d)
       )
 
       weatherService.send(
@@ -593,22 +604,16 @@ class HpAgentModelCalculationSpec
                     ) =>
                   isRunning shouldBe false
                   lastTimeTick shouldBe 0L
-                  activePower should equalWithTolerance(
-                    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-                  )
-                  qDot should equalWithTolerance(
-                    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-                  )
-                  innerTemperature should equalWithTolerance(
-                    Quantities.getQuantity(
-                      20.9999769069444444444444444444444,
-                      StandardUnits.TEMPERATURE
-                    )
-                  )
+                  (activePower =~
+                    Kilowatts(0d)) shouldBe true
+
+                  (qDot =~ Kilowatts(0d)) shouldBe true
+                  (innerTemperature =~
+                    Celsius(
+                      20.9999769069444444444444444444444d
+                    )) shouldBe true
                   currentTimeTick shouldBe 0L
-                  ambientTemperature should equalWithTolerance(
-                    Quantities.getQuantity(1.815, StandardUnits.TEMPERATURE)
-                  )
+                  (ambientTemperature =~ Celsius(1.815d)) shouldBe true
                 case None =>
                   fail("Did expect to get hp relevant data for tick 0L")
               }
@@ -623,21 +628,9 @@ class HpAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 900.")
               ) match {
                 case ApparentPowerAndHeat(p, q, qDot) =>
-                  QuantityUtil.isEquivalentAbs(
-                    p,
-                    Quantities.getQuantity(0, MEGAWATT),
-                    1e-16
-                  ) shouldBe true
-                  QuantityUtil.isEquivalentAbs(
-                    q,
-                    Quantities.getQuantity(0, MEGAVAR),
-                    1e-16
-                  ) shouldBe true
-                  QuantityUtil.isEquivalentAbs(
-                    qDot,
-                    Quantities.getQuantity(0, MEGAWATT),
-                    1e-16
-                  ) shouldBe true
+                  (p =~ Megawatts(0d)) shouldBe true
+                  q =~ Megavars(0d) shouldBe true
+                  qDot =~ Megawatts(0d) shouldBe true
               }
           }
         case _ =>
@@ -734,10 +727,10 @@ class HpAgentModelCalculationSpec
 
       /* Providing the awaited data will lead to the foreseen transitions */
       val weatherData = WeatherData(
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(1.815, CELSIUS),
-        Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+        WattsPerSquareMeter(0d),
+        WattsPerSquareMeter(0d),
+        Celsius(1.815d),
+        MetersPerSecond(7.726576d)
       )
 
       weatherService.send(
@@ -778,22 +771,16 @@ class HpAgentModelCalculationSpec
                     ) =>
                   isRunning shouldBe false
                   lastTimeTick shouldBe 0L
-                  activePower should equalWithTolerance(
-                    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-                  )
-                  qDot should equalWithTolerance(
-                    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-                  )
-                  innerTemperature should equalWithTolerance(
-                    Quantities.getQuantity(
-                      20.9999769069444444444444444444444,
-                      StandardUnits.TEMPERATURE
-                    )
-                  )
+                  (activePower =~
+                    Kilowatts(0d)) shouldBe true
+                  (qDot =~ Kilowatts(0d)) shouldBe true
+                  (innerTemperature =~ Celsius(
+                    20.9999769069444444444444444444444
+                  )) shouldBe true
+
                   currentTimeTick shouldBe 0L
-                  ambientTemperature should equalWithTolerance(
-                    Quantities.getQuantity(1.815, StandardUnits.TEMPERATURE)
-                  )
+                  (ambientTemperature =~
+                    Celsius(1.815d)) shouldBe true
                 case None =>
                   fail("Did expect to get hp relevant data for tick 0L")
               }
@@ -808,20 +795,10 @@ class HpAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 0.")
               ) match {
                 case ApparentPowerAndHeat(p, q, qDot) =>
-                  QuantityUtil.isEquivalentAbs(
-                    p,
-                    Quantities.getQuantity(0, MEGAWATT),
-                    1e-16
-                  ) shouldBe true
-                  QuantityUtil.isEquivalentAbs(
-                    q,
-                    Quantities.getQuantity(0, MEGAVAR),
-                    1e-16
-                  ) shouldBe true
-                  QuantityUtil.isEquivalentAbs(
-                    qDot,
-                    Quantities.getQuantity(0, MEGAWATT),
-                    1e-16
+                  (p =~ Megawatts(0d)) shouldBe true
+                  (q =~ Megavars(0d)) shouldBe true
+                  (
+                    qDot =~ Megawatts(0d)
                   ) shouldBe true
               }
           }
@@ -886,18 +863,18 @@ class HpAgentModelCalculationSpec
       /* Ask the agent for average power in tick 7200 */
       hpAgent ! RequestAssetPowerMessage(
         7200L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(hpAgent.stateName == Idle)
 
       /* Send out the expected data and wait for the reply */
       val weatherData = WeatherData(
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(1.815, CELSIUS),
-        Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+        WattsPerSquareMeter(0d),
+        WattsPerSquareMeter(0d),
+        Celsius(1.815d),
+        MetersPerSecond(7.726576d)
       )
       weatherService.send(
         hpAgent,
@@ -928,14 +905,8 @@ class HpAgentModelCalculationSpec
       /* Appreciate the answer to my previous request */
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p =~ Megawatts(0d)) shouldBe true
+          (q =~ Megavars(0d)) shouldBe true
       }
     }
 
@@ -997,10 +968,10 @@ class HpAgentModelCalculationSpec
         ProvideWeatherMessage(
           0L,
           WeatherData(
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(1.815, CELSIUS),
-            Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+            WattsPerSquareMeter(0d),
+            WattsPerSquareMeter(0d),
+            Celsius(1.815d),
+            MetersPerSecond(7.726576d)
           ),
           Some(3600L)
         )
@@ -1028,10 +999,10 @@ class HpAgentModelCalculationSpec
         ProvideWeatherMessage(
           3600L,
           WeatherData(
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(1.815, CELSIUS),
-            Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+            WattsPerSquareMeter(0d),
+            WattsPerSquareMeter(0d),
+            Celsius(1.815d),
+            MetersPerSecond(7.726576d)
           ),
           Some(7200L)
         )
@@ -1059,10 +1030,10 @@ class HpAgentModelCalculationSpec
         ProvideWeatherMessage(
           7200L,
           WeatherData(
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(1.815, CELSIUS),
-            Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+            WattsPerSquareMeter(0d),
+            WattsPerSquareMeter(0d),
+            Celsius(1.815d),
+            MetersPerSecond(7.726576d)
           ),
           None
         )
@@ -1080,20 +1051,15 @@ class HpAgentModelCalculationSpec
       /* Ask the agent for average power in tick 7500 */
       hpAgent ! RequestAssetPowerMessage(
         7500L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p =~ Megawatts(0d)) shouldBe true
+          (q =~ Megavars(0d)) shouldBe true
+
         case answer => fail(s"Did not expect to get that answer: $answer")
       }
     }
@@ -1103,21 +1069,15 @@ class HpAgentModelCalculationSpec
       /* Ask again with (nearly) unchanged information */
       hpAgent ! RequestAssetPowerMessage(
         7500L,
-        Quantities.getQuantity(1.000000000000001d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.000000000000001d),
+        Each(0d)
       )
 
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p =~ Megawatts(0d)) shouldBe true
+          (q =~ Megavars(0d)) shouldBe true
       }
     }
 
@@ -1125,21 +1085,16 @@ class HpAgentModelCalculationSpec
       /* Ask again with changed information */
       hpAgent ! RequestAssetPowerMessage(
         7500L,
-        Quantities.getQuantity(0.98, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(0.98d),
+        Each(0d)
       )
 
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p =~ Megawatts(0d)) shouldBe true
+          (q =~ Megavars(0d)) shouldBe true
+
       }
     }
   }

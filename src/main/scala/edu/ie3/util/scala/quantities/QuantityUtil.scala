@@ -9,11 +9,9 @@ package edu.ie3.util.scala.quantities
 import edu.ie3.simona.exceptions.QuantityException
 import edu.ie3.util.quantities.{QuantityUtil => PSQuantityUtil}
 import squants.{Quantity, UnitOfMeasure}
-import squants.time.Seconds
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.function.Calculus
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
 
 import scala.collection.mutable
 import scala.util.{Failure, Try}
@@ -86,7 +84,6 @@ object QuantityUtil {
       averagingQuantityClass: Class[Q],
       averagingUnit: UnitOfMeasure[Q]
   ): Try[Q] = {
-
     if (windowStart == windowEnd)
       Failure(
         new IllegalArgumentException("Cannot average over trivial time window.")
@@ -97,14 +94,15 @@ object QuantityUtil {
       )
     else
       Try {
-        integrationUnit(
+        averagingUnit(
           integrate(
             values,
             windowStart,
             windowEnd,
             integrationQuantityClass,
             integrationUnit
-          ) / ((windowEnd - windowStart).toDouble)
+          ).value.doubleValue
+            / (windowEnd - windowStart)
         )
       }
   }
@@ -183,7 +181,8 @@ object QuantityUtil {
             ) =>
           /* Calculate the partial integral over the last know value since it's occurrence and the instance when the newest value comes in */
           val duration = (tick - lastTick).toDouble
-          val partialIntegral = integrationUnit(lastValue * duration)
+          val partialIntegral =
+            integrationUnit(lastValue.value.doubleValue * duration)
           val updatedIntegral = currentIntegral + partialIntegral
 
           IntegrationState(updatedIntegral, tick, value)

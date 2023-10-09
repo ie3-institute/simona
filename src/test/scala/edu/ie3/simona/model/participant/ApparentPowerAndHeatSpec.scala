@@ -13,31 +13,28 @@ import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.OperationInterval
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
+import squants.Each
+import squants.energy.{Power, Megawatts, Watts}
 
 import java.util.UUID
-import javax.measure.quantity.Power
 
 class ApparentPowerAndHeatSpec extends UnitSpec {
+  implicit val powerTolerance: Power = Watts(1e-3)
+  implicit val reactivePowerTolerance: ReactivePower = Vars(1e-3)
   "Mixing in the trait for apparent power and heat participants" when {
     "requesting a result outside of the operation interval" should {
       "return zero result" in {
         ApparentPowerAndHeatMock.calculatePower(
           50L,
-          Quantities.getQuantity(1.0, StandardUnits.VOLTAGE_MAGNITUDE),
+          Each(1.0d),
           FixedRelevantData
         ) match {
           case ApparentPowerAndHeat(p, q, qDot) =>
-            p should equalWithTolerance(
-              Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
-            )
-            q should equalWithTolerance(
-              Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT)
-            )
-            qDot should equalWithTolerance(
-              Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
-            )
+            (p =~ Megawatts(0d)) shouldBe true
+            (q =~ Megavars(0d)) shouldBe true
+            (qDot =~ Megawatts(0d)) shouldBe true
+
         }
       }
     }
@@ -45,19 +42,14 @@ class ApparentPowerAndHeatSpec extends UnitSpec {
       "return the correct values" in {
         ApparentPowerAndHeatMock.calculatePower(
           10L,
-          Quantities.getQuantity(1.0, StandardUnits.VOLTAGE_MAGNITUDE),
+          Each(1.0d),
           FixedRelevantData
         ) match {
           case ApparentPowerAndHeat(p, q, qDot) =>
-            p should equalWithTolerance(
-              Quantities.getQuantity(43d, StandardUnits.ACTIVE_POWER_RESULT)
-            )
-            q should equalWithTolerance(
-              Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT)
-            )
-            qDot should equalWithTolerance(
-              Quantities.getQuantity(42d, StandardUnits.ACTIVE_POWER_RESULT)
-            )
+            (p =~ Megawatts(43d)) shouldBe true
+            (q =~ Megavars(0d)) shouldBe true
+            (qDot =~ Megawatts(42d)) shouldBe true
+
         }
       }
     }
@@ -72,7 +64,7 @@ object ApparentPowerAndHeatSpec {
         OperationInterval.apply(0L, 42L),
         1.0,
         CosPhiFixed(0.97),
-        Quantities.getQuantity(42d, StandardUnits.ACTIVE_POWER_IN),
+        Megawatts(42d),
         0.97
       )
       with ApparentPowerAndHeatParticipant[FixedRelevantData.type] {
@@ -91,8 +83,8 @@ object ApparentPowerAndHeatSpec {
     override def calculateHeat(
         tick: Long,
         data: CalcRelevantData.FixedRelevantData.type
-    ): ComparableQuantity[Power] =
-      Quantities.getQuantity(42d, StandardUnits.ACTIVE_POWER_RESULT)
+    ): Power =
+      Megawatts(42d)
 
     /** Calculate the active power behaviour of the model
       *
@@ -103,7 +95,7 @@ object ApparentPowerAndHeatSpec {
       */
     override protected def calculateActivePower(
         data: CalcRelevantData.FixedRelevantData.type
-    ): ComparableQuantity[Power] =
-      Quantities.getQuantity(43d, StandardUnits.ACTIVE_POWER_RESULT)
+    ): Power =
+      Megawatts(43d)
   }
 }

@@ -24,7 +24,6 @@ class SystemParticipantTest extends Specification {
 
   def "Test calculateQ for a load or generation unit with fixed cosphi"() {
     given: "the mocked system participant model with a q_v characteristic"
-    //TODO DF Squants
     def loadMock = new MockParticipant(
         UUID.fromString("b69f6675-5284-4e28-add5-b76952ec1ec2"),
         "System participant calculateQ Test",
@@ -56,23 +55,22 @@ class SystemParticipantTest extends Specification {
 
   def "Test calculateQ for a load unit with cosphi_p"() {
     given: "the mocked load model"
-    //TODO DF Squants
     def loadMock = new MockParticipant(
         UUID.fromString("3d28b9f7-929a-48e3-8696-ad2330a04225"),
         "Load calculateQ Test",
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new CosPhiP(varCharacteristicString)),
-        Quantities.getQuantity(102, KILOWATT),
+        Sq.create(102d, Kilowatts$.MODULE$),
         1d) {
           @Override
-          Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
+          Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, CalcRelevantData data) {
             return super.calculateApparentPower(tick, voltage, data)
           }
 
           @Override
-          ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
-            return Quantities.getQuantity(0, MEGAWATT)
+          Power calculateActivePower(CalcRelevantData data) {
+            return Sq.create(0, Megawatts$.MODULE$)
           }
         }
 
@@ -103,16 +101,16 @@ class SystemParticipantTest extends Specification {
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new CosPhiP(varCharacteristicString)),
-        Quantities.getQuantity(101, KILOWATT),
+        Sq.create(101d, Kilowatts$.MODULE$),
         1d) {
           @Override
-          Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
+          Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, CalcRelevantData data) {
             return super.calculateApparentPower(tick, voltage, data)
           }
 
           @Override
-          ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
-            return Quantities.getQuantity(0, MEGAWATT)
+          Power calculateActivePower(CalcRelevantData data) {
+            return Sq.create(0, Megawatts$.MODULE$)
           }
         }
 
@@ -145,16 +143,16 @@ class SystemParticipantTest extends Specification {
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-        Quantities.getQuantity(200, KILOWATT),
+        Sq.create(200d, Kilowatts$.MODULE$),
         0.98) {
           @Override
-          Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
+          Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, CalcRelevantData data) {
             return super.calculateApparentPower(tick, voltage, data)
           }
 
           @Override
-          ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
-            return Quantities.getQuantity(0, MEGAWATT)
+          Power calculateActivePower(CalcRelevantData data) {
+            return Sq.create(0, Megawatts$.MODULE$)
           }
         }
 
@@ -182,23 +180,23 @@ class SystemParticipantTest extends Specification {
     given: "the mocked system participant model with a q_v characteristic"
 
     Power p = Sq.create(0, Kilowatts$.MODULE$)
-    //TODO DF Squants
+
     def loadMock = new MockParticipant(
         UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
         "System participant calculateQ Test",
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-        Quantities.getQuantity(200, KILOWATT),
+        Sq.create(200d, Kilowatts$.MODULE$),
         1d) {
           @Override
-          Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
+          Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, CalcRelevantData data) {
             return super.calculateApparentPower(tick, voltage, data)
           }
 
           @Override
-          ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
-            return Quantities.getQuantity(0, MEGAWATT)
+          Power calculateActivePower(CalcRelevantData data) {
+            return Sq.create(0, Megawatts$.MODULE$)
           }
         }
 
@@ -226,23 +224,23 @@ class SystemParticipantTest extends Specification {
     given: "the mocked system participant model with a q_v characteristic"
 
     Power p = Sq.create(100, Kilowatts$.MODULE$)
-    //TODO DF Squants
+
     def loadMock = new MockParticipant(
         UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
         "System participant calculateQ Test",
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-        Quantities.getQuantity(200, KILOWATT),
+        Sq.create(200d, Kilowatts$.MODULE$),
         0.95) {
           @Override
-          Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
+          Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, CalcRelevantData data) {
             return super.calculateApparentPower(tick, voltage, data)
           }
 
           @Override
-          ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
-            return Quantities.getQuantity(0, MEGAWATT)
+          Power calculateActivePower(CalcRelevantData data) {
+            return Sq.create(0, Megawatts$.MODULE$)
           }
         }
 
@@ -270,23 +268,23 @@ class SystemParticipantTest extends Specification {
     given: "the mocked system participant model with a q_v characteristic"
 
     Power p = Sq.create(195, Kilowatts$.MODULE$)
-    //TODO DF Squants
+
     def loadMock = new MockParticipant(
         UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
         "System participant calculateQ Test",
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-        Quantities.getQuantity(200, KILOWATT),
+        Sq.create(200d, Kilowatts$.MODULE$),
         0.95) {
           @Override
-          Data.PrimaryData.ApparentPower calculatePower(long tick, ComparableQuantity<Dimensionless> voltage, CalcRelevantData data) {
+          Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, CalcRelevantData data) {
             return super.calculateApparentPower(tick, voltage, data)
           }
 
           @Override
-          ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
-            return Quantities.getQuantity(0, MEGAWATT)
+          Power calculateActivePower(CalcRelevantData data) {
+            return Sq.create(0, Megawatts$.MODULE$)
           }
         }
 

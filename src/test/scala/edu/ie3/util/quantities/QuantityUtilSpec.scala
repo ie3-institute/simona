@@ -10,35 +10,34 @@ import edu.ie3.simona.exceptions.QuantityException
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.QuantityUtil
 import org.scalatest.prop.TableDrivenPropertyChecks
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.{ProductUnit, Units}
+import squants.energy.{Kilowatts, MegawattHours, WattHours, Watts}
+import squants.{Energy, Power}
 
-import javax.measure.Quantity
-import javax.measure.quantity.{Energy, Power}
 import scala.util.{Failure, Success}
 
 class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
-  private val unit = PowerSystemUnits.KILOWATT
-  private val integrationUnit =
-    new ProductUnit[Energy](PowerSystemUnits.KILOWATT.multiply(Units.SECOND))
+  implicit val powerTolerance: Power = Watts(1e-3)
+  implicit val energyTolerance: Energy = WattHours(1e-6)
+  private val unit = Kilowatts
+  private val integrationUnit = WattHours
   private val integrationClass = classOf[Energy]
   private val averagingClass = classOf[Power]
   private val values = Map(
-    2L -> Quantities.getQuantity(5d, unit),
-    4L -> Quantities.getQuantity(15d, unit),
-    6L -> Quantities.getQuantity(-5d, unit),
-    8L -> Quantities.getQuantity(-10d, unit)
+    2L -> unit(5d),
+    4L -> unit(15d),
+    6L -> unit(-5d),
+    8L -> unit(-10d)
   )
 
   "Integrating over quantities" when {
     "determining the start value" should {
       val startingValue =
-        PrivateMethod[Quantity[Power]](Symbol("startingValue"))
+        PrivateMethod[Power](Symbol("startingValue"))
 
       "throw an exception, if values are empty and unit of \"empty\" quantity cannot be determined" in {
         intercept[QuantityException] {
           QuantityUtil invokePrivate startingValue(
-            Map.empty[Long, Quantity[Power]],
+            Map.empty[Long, Power],
             1L
           )
         }.getMessage shouldBe "Unable to determine unit for dummy starting value."
@@ -48,24 +47,24 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
         QuantityUtil invokePrivate startingValue(
           values,
           1L
-        ) should equalWithTolerance(
-          Quantities.getQuantity(0d, unit)
-        )
+        ) should be
+        unit(0d)
+
       }
 
       "bring correct value, if there is something before window starts" in {
         QuantityUtil invokePrivate startingValue(
           values,
           2L
-        ) should equalWithTolerance(
-          Quantities.getQuantity(5d, unit)
-        )
+        ) should be
+        unit(5d)
+
       }
     }
 
     "determining the end value" should {
       val endingValue =
-        PrivateMethod[(Long, Quantity[Power])](Symbol("endingValue"))
+        PrivateMethod[(Long, Power)](Symbol("endingValue"))
 
       "throw and exception, if there is no value before the window ends" in {
         intercept[QuantityException] {
@@ -77,7 +76,7 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
         QuantityUtil invokePrivate endingValue(values, 2L) match {
           case (tick, value) =>
             tick shouldBe 2L
-            value should equalWithTolerance(Quantities.getQuantity(5d, unit))
+            (value =~ unit(5d)) shouldBe true
         }
       }
     }
@@ -86,10 +85,10 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
       "lead to correct values" in {
         val cases = Table(
           ("windowStart", "windowEnd", "expectedResult"),
-          (1L, 3L, Quantities.getQuantity(5d, integrationUnit)),
-          (2L, 4L, Quantities.getQuantity(10d, integrationUnit)),
-          (2L, 8L, Quantities.getQuantity(30d, integrationUnit)),
-          (0L, 12L, Quantities.getQuantity(-10d, integrationUnit))
+          (1L, 3L, integrationUnit(5d)),
+          (2L, 4L, integrationUnit(10d)),
+          (2L, 8L, integrationUnit(30d)),
+          (0L, 12L, integrationUnit(-10d))
         )
 
         forAll(cases) { (windowStart, windowEnd, expectedResult) =>
@@ -99,7 +98,7 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
             windowEnd,
             integrationClass,
             integrationUnit
-          ) should equalWithTolerance(expectedResult, 1e-6)
+          ) =~ expectedResult
         }
       }
     }
@@ -156,10 +155,10 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
       "lead to correct values" in {
         val cases = Table(
           ("windowStart", "windowEnd", "expectedResult"),
-          (1L, 3L, Quantities.getQuantity(2.5d, unit)),
-          (2L, 4L, Quantities.getQuantity(5d, unit)),
-          (2L, 8L, Quantities.getQuantity(5d, unit)),
-          (0L, 12L, Quantities.getQuantity(-0.8333333, unit))
+          (1L, 3L, unit(2.5d)),
+          (2L, 4L, unit(5d)),
+          (2L, 8L, unit(5d)),
+          (0L, 12L, unit(-0.8333333))
         )
 
         forAll(cases) { (windowStart, windowEnd, expectedResult) =>
@@ -173,7 +172,7 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
             unit
           ) match {
             case Success(result) =>
-              result should equalWithTolerance(expectedResult, 1e-6)
+              result =~ expectedResult
             case Failure(exception) =>
               fail(
                 "Averaging with fine input should pass, but failed.",
