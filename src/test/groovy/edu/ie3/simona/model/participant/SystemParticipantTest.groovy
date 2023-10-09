@@ -62,17 +62,7 @@ class SystemParticipantTest extends Specification {
         1d,
         QControl.apply(new CosPhiP(varCharacteristicString)),
         Sq.create(102d, Kilowatts$.MODULE$),
-        1d) {
-          @Override
-          Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, CalcRelevantData data) {
-            return super.calculateApparentPower(tick, voltage, data)
-          }
-
-          @Override
-          Power calculateActivePower(CalcRelevantData data) {
-            return Sq.create(0, Megawatts$.MODULE$)
-          }
-        }
+        1d)
 
     Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$) // needed for method call but not applicable for cosphi_p
 
@@ -102,17 +92,7 @@ class SystemParticipantTest extends Specification {
         1d,
         QControl.apply(new CosPhiP(varCharacteristicString)),
         Sq.create(101d, Kilowatts$.MODULE$),
-        1d) {
-          @Override
-          Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, CalcRelevantData data) {
-            return super.calculateApparentPower(tick, voltage, data)
-          }
-
-          @Override
-          Power calculateActivePower(CalcRelevantData data) {
-            return Sq.create(0, Megawatts$.MODULE$)
-          }
-        }
+        1d)
 
     Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$) // needed for method call but not applicable for cosphi_p
 
@@ -144,17 +124,7 @@ class SystemParticipantTest extends Specification {
         1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
         Sq.create(200d, Kilowatts$.MODULE$),
-        0.98) {
-          @Override
-          Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, CalcRelevantData data) {
-            return super.calculateApparentPower(tick, voltage, data)
-          }
-
-          @Override
-          Power calculateActivePower(CalcRelevantData data) {
-            return Sq.create(0, Megawatts$.MODULE$)
-          }
-        }
+        0.98)
 
     when: "the reactive power is calculated"
     Dimensionless adjustedVoltage = Sq.create(adjustedVoltageVal.doubleValue(), Each$.MODULE$)
@@ -188,17 +158,7 @@ class SystemParticipantTest extends Specification {
         1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
         Sq.create(200d, Kilowatts$.MODULE$),
-        1d) {
-          @Override
-          Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, CalcRelevantData data) {
-            return super.calculateApparentPower(tick, voltage, data)
-          }
-
-          @Override
-          Power calculateActivePower(CalcRelevantData data) {
-            return Sq.create(0, Megawatts$.MODULE$)
-          }
-        }
+        1d)
 
     when: "the reactive power is calculated"
     Dimensionless adjustedVoltage = Sq.create(adjustedVoltageVal.doubleValue(), Each$.MODULE$)
@@ -232,17 +192,7 @@ class SystemParticipantTest extends Specification {
         1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
         Sq.create(200d, Kilowatts$.MODULE$),
-        0.95) {
-          @Override
-          Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, CalcRelevantData data) {
-            return super.calculateApparentPower(tick, voltage, data)
-          }
-
-          @Override
-          Power calculateActivePower(CalcRelevantData data) {
-            return Sq.create(0, Megawatts$.MODULE$)
-          }
-        }
+        0.95)
 
     when: "the reactive power is calculated"
     Dimensionless adjustedVoltage = Sq.create(adjustedVoltageVal.doubleValue(), Each$.MODULE$)
@@ -276,17 +226,7 @@ class SystemParticipantTest extends Specification {
         1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
         Sq.create(200d, Kilowatts$.MODULE$),
-        0.95) {
-          @Override
-          Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, CalcRelevantData data) {
-            return super.calculateApparentPower(tick, voltage, data)
-          }
-
-          @Override
-          Power calculateActivePower(CalcRelevantData data) {
-            return Sq.create(0, Megawatts$.MODULE$)
-          }
-        }
+        0.95)
 
     when: "the reactive power is calculated"
     Dimensionless adjustedVoltage = Sq.create(adjustedVoltageVal.doubleValue(), Each$.MODULE$)

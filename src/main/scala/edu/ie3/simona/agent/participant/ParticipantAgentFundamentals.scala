@@ -80,7 +80,7 @@ import edu.ie3.simona.service.ServiceStateData.ServiceActivationBaseStateData
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
-import squants.energy.{Energy, Megawatts}
+import squants.energy.{Energy, KilowattHours, Megawatts}
 import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
@@ -1725,9 +1725,9 @@ case object ParticipantAgentFundamentals {
       windowStart,
       windowEnd,
       classOf[Energy],
-      Energy.siUnit,
+      KilowattHours,
       classOf[Power],
-      squants.energy.Power.siUnit
+      Megawatts
     ) match {
       case Success(pSuccess) =>
         pSuccess
@@ -1750,9 +1750,9 @@ case object ParticipantAgentFundamentals {
       windowStart,
       windowEnd,
       classOf[Energy],
-      Energy.siUnit,
+      KilowattHours,
       classOf[ReactivePower],
-      ReactivePower.siUnit
+      Megavars
     ) match {
       case Success(pSuccess) =>
         pSuccess
@@ -1794,9 +1794,9 @@ case object ParticipantAgentFundamentals {
       windowStart,
       windowEnd,
       classOf[Energy],
-      Energy.siUnit,
+      KilowattHours,
       classOf[Power],
-      squants.energy.Power.siUnit
+      Megawatts
     ) match {
       case Success(pSuccess) => pSuccess
       case Failure(exception) =>
@@ -1816,9 +1816,9 @@ case object ParticipantAgentFundamentals {
       windowStart,
       windowEnd,
       classOf[Energy],
-      Energy.siUnit,
+      KilowattHours,
       classOf[ReactivePower],
-      ReactivePower.siUnit
+      Megavars
     ) match {
       case Success(pSuccess) => pSuccess
       case Failure(exception) =>
@@ -1833,9 +1833,9 @@ case object ParticipantAgentFundamentals {
       windowStart,
       windowEnd,
       classOf[Energy],
-      Energy.siUnit,
+      KilowattHours,
       classOf[Power],
-      squants.energy.Power.siUnit
+      Megawatts
     ) match {
       case Success(qDotSuccess) => qDotSuccess
       case Failure(exception) =>

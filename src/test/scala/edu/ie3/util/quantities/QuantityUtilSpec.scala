@@ -10,7 +10,7 @@ import edu.ie3.simona.exceptions.QuantityException
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.QuantityUtil
 import org.scalatest.prop.TableDrivenPropertyChecks
-import squants.energy.{Kilowatts, MegawattHours, WattHours, Watts}
+import squants.energy.{Kilojoules, Kilowatts, WattHours, Watts}
 import squants.{Energy, Power}
 
 import scala.util.{Failure, Success}
@@ -19,7 +19,7 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
   implicit val powerTolerance: Power = Watts(1e-3)
   implicit val energyTolerance: Energy = WattHours(1e-6)
   private val unit = Kilowatts
-  private val integrationUnit = WattHours
+  private val integrationUnit = Kilojoules
   private val integrationClass = classOf[Energy]
   private val averagingClass = classOf[Power]
   private val values = Map(
