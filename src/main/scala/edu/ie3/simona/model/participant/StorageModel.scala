@@ -177,11 +177,15 @@ final case class StorageModel(
         else
           // divide by eta if we're discharging
           // (draining the battery more than we get as output)
-          setPower * eta.toEach // FIXME this should be division
+          setPower * eta.toEach // FIXME this should be division. Check as well with SoC Calculation.
       }
 
     val currentState =
-      StorageState(currentStoredEnergy, netPower, data.currentTick)
+      StorageState(
+        currentStoredEnergy,
+        netPower,
+        data.currentTick
+      ) // FIXME this should be setPower instead of netPower ? Because the EM receives / sees Power after considering eta / output power. Internal "discharging" needs to be done with netpower! Check whether EM get's setpower or netPower.
 
     // if the storage is at minimum or maximum charged energy AND we are charging
     // or discharging, flex options will be different at the next activation
