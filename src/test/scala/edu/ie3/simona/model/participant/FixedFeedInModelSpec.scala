@@ -13,10 +13,9 @@ import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil
-import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT, MEGAVOLTAMPERE}
-import edu.ie3.util.quantities.QuantityUtil
+import edu.ie3.util.quantities.PowerSystemUnits.MEGAVOLTAMPERE
 import org.scalatest.PrivateMethodTester
-import tech.units.indriya.quantity.Quantities
+import squants.energy.{Kilowatts, Megawatts, Watts}
 
 class FixedFeedInModelSpec
     extends UnitSpec
@@ -24,7 +23,9 @@ class FixedFeedInModelSpec
     with DefaultTestData
     with PrivateMethodTester {
 
-  implicit val quantityTolerance: Double = 1e-6 // Equals to 1 W power
+  private implicit val powerTolerance: squants.Power = Watts(
+    1.0
+  ) // Equals to 1 W power
 
   "The fixed feed in model object" should {
 
@@ -34,7 +35,7 @@ class FixedFeedInModelSpec
       val simonaConfig: SimonaConfig =
         createSimonaConfig(
           LoadModelBehaviour.FIX,
-          LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
+          LoadReference.ActivePower(Kilowatts(0.0))
         )
       val modelConfig = ConfigUtil
         .ParticipantConfigUtil(
@@ -64,11 +65,9 @@ class FixedFeedInModelSpec
           operationInterval shouldBe defaultOperationInterval
           scalingFactor shouldBe foreSeenScalingFactor
           qControl shouldBe QControl(fixedFeedInput.getqCharacteristics)
-          QuantityUtil.isEquivalentAbs(
-            sRated,
-            fixedFeedInput.getsRated().to(MEGAVOLTAMPERE),
-            quantityTolerance
-          ) shouldBe true
+          (sRated ~= Megawatts(
+            fixedFeedInput.getsRated().to(MEGAVOLTAMPERE).getValue.doubleValue
+          )) shouldBe true
           cosPhiRated shouldBe fixedFeedInput.getCosPhiRated
       }
     }

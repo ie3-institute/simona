@@ -24,7 +24,9 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.Kilovars
 import org.scalatest.prop.TableDrivenPropertyChecks
+import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
 
 import scala.util.{Failure, Success}
@@ -97,7 +99,7 @@ class RichValueSpec extends UnitSpec with TableDrivenPropertyChecks {
         ("value", "primaryData"),
         (
           new PValue(Quantities.getQuantity(50d, PowerSystemUnits.KILOWATT)),
-          ActivePower(Quantities.getQuantity(50d, PowerSystemUnits.KILOWATT))
+          ActivePower(Kilowatts(50d))
         ),
         (
           new HeatAndPValue(
@@ -105,8 +107,8 @@ class RichValueSpec extends UnitSpec with TableDrivenPropertyChecks {
             Quantities.getQuantity(12.5, PowerSystemUnits.KILOWATT)
           ),
           ActivePowerAndHeat(
-            Quantities.getQuantity(50d, PowerSystemUnits.KILOWATT),
-            Quantities.getQuantity(12.5d, PowerSystemUnits.KILOWATT)
+            Kilowatts(50d),
+            Kilowatts(12.5d)
           )
         ),
         (
@@ -115,8 +117,8 @@ class RichValueSpec extends UnitSpec with TableDrivenPropertyChecks {
             Quantities.getQuantity(25d, PowerSystemUnits.KILOVAR)
           ),
           ApparentPower(
-            Quantities.getQuantity(50d, PowerSystemUnits.KILOWATT),
-            Quantities.getQuantity(25d, PowerSystemUnits.KILOVAR)
+            Kilowatts(50d),
+            Kilovars(25d)
           )
         ),
         (
@@ -126,9 +128,9 @@ class RichValueSpec extends UnitSpec with TableDrivenPropertyChecks {
             Quantities.getQuantity(12.5, PowerSystemUnits.KILOWATT)
           ),
           ApparentPowerAndHeat(
-            Quantities.getQuantity(50d, PowerSystemUnits.KILOWATT),
-            Quantities.getQuantity(25d, PowerSystemUnits.KILOVAR),
-            Quantities.getQuantity(12.5d, PowerSystemUnits.KILOWATT)
+            Kilowatts(50d),
+            Kilovars(25d),
+            Kilowatts(12.5)
           )
         )
       )
