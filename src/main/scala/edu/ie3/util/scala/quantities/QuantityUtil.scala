@@ -101,7 +101,7 @@ object QuantityUtil {
             windowEnd,
             integrationQuantityClass,
             integrationUnit
-          ).value.doubleValue
+          ).to(integrationUnit)
             / (windowEnd - windowStart)
         )
       }

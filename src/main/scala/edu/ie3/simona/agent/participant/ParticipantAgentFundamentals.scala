@@ -79,8 +79,13 @@ import edu.ie3.simona.ontology.trigger.Trigger.ParticipantTrigger.StartCalculati
 import edu.ie3.simona.service.ServiceStateData.ServiceActivationBaseStateData
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
-import squants.energy.{Energy, KilowattHours, Megawatts}
+import edu.ie3.util.scala.quantities.{
+  Kilovars,
+  Megavars,
+  QuantityUtil,
+  ReactivePower
+}
+import squants.energy.{Energy, KilowattHours, Kilowatts, Megawatts}
 import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
@@ -1720,7 +1725,7 @@ case object ParticipantAgentFundamentals {
   ): ApparentPower = {
     val p = QuantityUtil.average(
       tickToResults.map { case (tick, pd) =>
-        tick -> pd.p
+        tick -> Megawatts(pd.p.toMegawatts)
       },
       windowStart,
       windowEnd,
@@ -1743,8 +1748,8 @@ case object ParticipantAgentFundamentals {
       tickToResults.map { case (tick, pd) =>
         activeToReactivePowerFuncOpt match {
           case Some(qFunc) =>
-            tick -> qFunc(pd.toApparentPower.p)
-          case None => tick -> pd.toApparentPower.q
+            tick -> Megavars(qFunc(pd.toApparentPower.p).toMegavars)
+          case None => tick -> Megavars(pd.toApparentPower.q.toMegavars)
         }
       },
       windowStart,
@@ -1790,7 +1795,9 @@ case object ParticipantAgentFundamentals {
       log: LoggingAdapter
   ): ApparentPowerAndHeat = {
     val p = QuantityUtil.average(
-      tickToResults.map { case (tick, pd) => tick -> pd.p },
+      tickToResults.map { case (tick, pd) =>
+        tick -> Megawatts(pd.p.toMegawatts)
+      },
       windowStart,
       windowEnd,
       classOf[Energy],
@@ -1809,8 +1816,9 @@ case object ParticipantAgentFundamentals {
     val q = QuantityUtil.average(
       tickToResults.map { case (tick, pd) =>
         activeToReactivePowerFuncOpt match {
-          case Some(qFunc) => tick -> qFunc(pd.toApparentPower.p)
-          case None        => tick -> pd.toApparentPower.q
+          case Some(qFunc) =>
+            tick -> Megavars(qFunc(pd.toApparentPower.p).toMegavars)
+          case None => tick -> Megavars(pd.toApparentPower.q.toMegavars)
         }
       },
       windowStart,
@@ -1829,7 +1837,9 @@ case object ParticipantAgentFundamentals {
         Megavars(0d)
     }
     val qDot = QuantityUtil.average(
-      tickToResults.map { case (tick, pd) => tick -> pd.qDot },
+      tickToResults.map { case (tick, pd) =>
+        tick -> Megawatts(pd.qDot.toMegawatts)
+      },
       windowStart,
       windowEnd,
       classOf[Energy],
