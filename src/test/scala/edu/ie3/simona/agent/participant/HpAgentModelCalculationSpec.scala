@@ -67,8 +67,7 @@ import org.scalatest.PrivateMethodTester
 import squants.energy.{Kilowatts, Megawatts, Watts}
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
-import squants.{Each, Power, Temperature}
-import tech.units.indriya.quantity.Quantities
+import squants.{Dimensionless, Each, Power, Temperature}
 import tech.units.indriya.unit.Units._
 
 import java.io.File
@@ -95,6 +94,7 @@ class HpAgentModelCalculationSpec
   implicit val powerTolerance: Power = Watts(1e-3)
   implicit val reactivepowerTolerance: ReactivePower = Vars(1e-3)
   implicit val temperatureTolerance: Temperature = Celsius(1e-10)
+  implicit val dimensionlessTolerance: Dimensionless = Each(1e-10)
   /* Alter the input model to have a voltage sensitive reactive power calculation */
   val hpInput: HpInput = inputModel
 
@@ -336,7 +336,7 @@ class HpAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution * 10,
-            Map(0L -> Quantities.getQuantity(1d, PU))
+            Map(0L -> Each(1d))
           )
           resultValueStore shouldBe ValueStore.forResult(resolution, 10)
           requestValueStore shouldBe ValueStore[ApparentPowerAndHeat](
