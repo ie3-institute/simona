@@ -194,7 +194,7 @@ object ResultFileHierarchy extends LazyLogging {
 
     rawOutputDataDir
       .concat(fileSeparator)
-      .concat(filename)
+      .concat(filename.toString)
       .concat(fileEnding)
   }
 

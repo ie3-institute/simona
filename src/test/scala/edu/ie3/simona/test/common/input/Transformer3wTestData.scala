@@ -30,6 +30,8 @@ import edu.ie3.simona.util.TestGridFactory
 import edu.ie3.util.quantities.PowerSystemUnits._
 import org.scalatest.prop.TableDrivenPropertyChecks._
 import org.scalatest.prop.{TableFor2, TableFor4}
+import squants.electro.Kilovolts
+import squants.energy.{Kilowatts, Megawatts}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{OHM, PERCENT}
 
@@ -39,20 +41,20 @@ import scala.jdk.CollectionConverters._
 /** Test data for a [[Transformer3WInput]] */
 trait Transformer3wTestData extends DefaultTestData {
   val mainRefSystemEhv: RefSystem = {
-    val nominalPower = Quantities.getQuantity(1000, MEGAVOLTAMPERE)
-    val nominalVoltage = Quantities.getQuantity(380, KILOVOLT)
+    val nominalPower = Megawatts(1000d)
+    val nominalVoltage = Kilovolts(380d)
     RefSystem(nominalPower, nominalVoltage)
   }
 
   val mainRefSystemHv: RefSystem = {
-    val nominalPower = Quantities.getQuantity(60, MEGAVOLTAMPERE)
-    val nominalVoltage = Quantities.getQuantity(110, KILOVOLT)
+    val nominalPower = Megawatts(60d)
+    val nominalVoltage = Kilovolts(110d)
     RefSystem(nominalPower, nominalVoltage)
   }
 
   val mainRefSystemLv: RefSystem = {
-    val nominalPower = Quantities.getQuantity(400, KILOVOLTAMPERE)
-    val nominalVoltage = Quantities.getQuantity(20, KILOVOLT)
+    val nominalPower = Kilowatts(400d)
+    val nominalVoltage = Kilovolts(20d)
     RefSystem(nominalPower, nominalVoltage)
   }
 

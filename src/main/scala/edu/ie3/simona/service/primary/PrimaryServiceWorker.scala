@@ -35,6 +35,7 @@ import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 
+import java.nio.file.Path
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters._
@@ -374,8 +375,8 @@ object PrimaryServiceWorker {
       override val timeSeriesUuid: UUID,
       override val simulationStart: ZonedDateTime,
       csvSep: String,
-      directoryPath: String,
-      filePath: String,
+      directoryPath: Path,
+      filePath: Path,
       fileNamingStrategy: FileNamingStrategy,
       timePattern: String
   ) extends InitPrimaryServiceStateData
