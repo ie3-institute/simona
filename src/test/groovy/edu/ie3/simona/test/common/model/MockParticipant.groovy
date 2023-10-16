@@ -28,7 +28,7 @@ class MockParticipant extends SystemParticipant<CalcRelevantData, ModelState> {
   OperationInterval operationInterval,
   Double scalingFactor,
   QControl qControl,
-  ComparableQuantity<Power> sRated,
+  Power sRated,
   Double cosPhiRated
   ) {
     super(
@@ -43,9 +43,11 @@ class MockParticipant extends SystemParticipant<CalcRelevantData, ModelState> {
   }
 
   @Override
-  ComparableQuantity<Power> calculateActivePower(CalcRelevantData data) {
-    return Quantities.getQuantity(0, MEGAWATT)
+  Data.PrimaryData.ApparentPower calculateActivePower(long tick, Dimensionless voltage, CalcRelevantData data) {
+      return super.calculateApparentPower(tick, voltage, maybeModelState, data)
   }
+    Power calculateActivePower(CalcRelevantData data) {
+   return Sq.create(0, Megawatts$.MODULE$)
 
   @Override
   FlexibilityMessage.ProvideFlexOptions determineFlexOptions(CalcRelevantData data, ModelState lastState) {

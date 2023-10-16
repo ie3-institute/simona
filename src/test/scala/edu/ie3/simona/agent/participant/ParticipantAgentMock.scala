@@ -38,12 +38,13 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito.doReturn
 import org.scalatestplus.mockito.MockitoSugar.mock
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import squants.Each
+import squants.energy.{Kilowatts, Megawatts}
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Dimensionless, Power}
+import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
 /** Creating a mocking participant agent
@@ -88,12 +89,12 @@ class ParticipantAgentMock(
         ConstantState.type,
         SystemParticipant[FixedRelevantData.type, ConstantState.type]
       ],
-      ComparableQuantity[Dimensionless]
+      squants.Dimensionless
   ) => ApparentPower = (_, _, _) =>
     // output different from default (0, 0)
     ApparentPower(
-      Quantities.getQuantity(2, MEGAWATT),
-      Quantities.getQuantity(1, MEGAVAR)
+      Megawatts(2.0),
+      Megavars(1.0)
     )
 
   /** Abstractly calculate the power output of the participant with all needed
@@ -167,9 +168,9 @@ class ParticipantAgentMock(
     SystemParticipant[FixedRelevantData.type, ConstantState.type]
   ] = {
     val func = CosPhiFixed(0.95).activeToReactivePowerFunc(
-      Quantities.getQuantity(0, StandardUnits.S_RATED),
+      Kilowatts(0.0),
       0.95d,
-      Quantities.getQuantity(1, PU)
+      Each(1.0)
     )
     val participant
         : SystemParticipant[FixedRelevantData.type, ConstantState.type] =
@@ -182,12 +183,12 @@ class ParticipantAgentMock(
       participant,
       None,
       outputConfig,
-      Array.emptyLongArray,
+      SortedSet.empty,
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution,
-        Quantities.getQuantity(1d, PU)
+        Each(1.0)
       ),
       ValueStore.forResult(resolution, 2),
       ValueStore(resolution),
@@ -291,7 +292,7 @@ class ParticipantAgentMock(
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        squants.Power => ReactivePower
       ] = None
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
@@ -321,8 +322,8 @@ class ParticipantAgentMock(
     new SystemParticipantResult(
       dateTime,
       uuid,
-      result.p,
-      result.q
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
     ) {}
 }
 

@@ -40,14 +40,14 @@ import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.model.participant.{ModelState, WecModel}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.util.quantities.EmptyQuantity
 import edu.ie3.util.quantities.PowerSystemUnits._
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.unit.Units.PASCAL
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.ReactivePower
+import squants.{Power, Dimensionless, Each}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
+import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
 protected trait WecAgentFundamentals
@@ -130,14 +130,18 @@ protected trait WecAgentFundamentals
       model,
       services,
       outputConfig,
-      Array.emptyLongArray, // Additional activation of the wec agent is not needed
+      SortedSet.empty, // Additional activation of the wec agent is not needed
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution,
-        inputModel.getNode
-          .getvTarget()
-          .to(PU)
+        Each(
+          inputModel.getNode
+            .getvTarget()
+            .to(PU)
+            .getValue
+            .doubleValue()
+        )
       ),
       ValueStore(resolution),
       ValueStore(resolution),
@@ -241,7 +245,7 @@ protected trait WecAgentFundamentals
         ConstantState.type,
         WecModel
       ],
-      ComparableQuantity[Dimensionless]
+      Dimensionless
   ) => ApparentPower =
     (
         _: Long,
@@ -251,7 +255,7 @@ protected trait WecAgentFundamentals
           ConstantState.type,
           WecModel
         ],
-        _: ComparableQuantity[Dimensionless]
+        _: Dimensionless
     ) =>
       throw new InvalidRequestException(
         "WEC model cannot be run without secondary data."
@@ -328,7 +332,7 @@ protected trait WecAgentFundamentals
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        Power => ReactivePower
       ] = None
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
@@ -358,7 +362,7 @@ protected trait WecAgentFundamentals
     new WecResult(
       dateTime,
       uuid,
-      result.p,
-      result.q
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
     )
 }

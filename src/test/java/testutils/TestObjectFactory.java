@@ -23,7 +23,6 @@ import edu.ie3.datamodel.utils.GridAndGeoUtils;
 import edu.ie3.util.quantities.interfaces.SpecificConductance;
 import edu.ie3.util.quantities.interfaces.SpecificResistance;
 import java.util.UUID;
-import javax.measure.MetricPrefix;
 import javax.measure.quantity.ElectricCurrent;
 import javax.measure.quantity.ElectricPotential;
 import tech.units.indriya.ComparableQuantity;
@@ -73,25 +72,25 @@ public class TestObjectFactory {
       r = Quantities.getQuantity(0.4429999888, OHM_PER_KILOMETRE);
       x = Quantities.getQuantity(0.0722566023, OHM_PER_KILOMETRE);
       g = Quantities.getQuantity(0, SIEMENS_PER_KILOMETRE);
-      b = Quantities.getQuantity(163.3630065918, MetricPrefix.MICRO(SIEMENS_PER_KILOMETRE));
+      b = Quantities.getQuantity(163.3630065918, MICRO_SIEMENS_PER_KILOMETRE);
       iMax = Quantities.getQuantity(195, AMPERE);
     } else if (voltageLvl == MV_10KV || voltageLvl == MV_20KV) {
       r = Quantities.getQuantity(0.2070000023, OHM_PER_KILOMETRE);
       x = Quantities.getQuantity(0.069114998, OHM_PER_KILOMETRE);
       g = Quantities.getQuantity(0, SIEMENS_PER_KILOMETRE);
-      b = Quantities.getQuantity(191.6369934082, MetricPrefix.MICRO(SIEMENS_PER_KILOMETRE));
+      b = Quantities.getQuantity(191.6369934082, MICRO_SIEMENS_PER_KILOMETRE);
       iMax = Quantities.getQuantity(300, AMPERE);
     } else if (voltageLvl == MV_30KV) {
       r = Quantities.getQuantity(0.13, OHM_PER_KILOMETRE);
       x = Quantities.getQuantity(0.12, OHM_PER_KILOMETRE);
       g = Quantities.getQuantity(0, SIEMENS_PER_KILOMETRE);
-      b = Quantities.getQuantity(0, MetricPrefix.MICRO(SIEMENS_PER_KILOMETRE));
+      b = Quantities.getQuantity(0, MICRO_SIEMENS_PER_KILOMETRE);
       iMax = Quantities.getQuantity(423, AMPERE);
     } else if (voltageLvl == HV) {
       r = Quantities.getQuantity(0.109999999403954, OHM_PER_KILOMETRE);
       x = Quantities.getQuantity(0.379999995231628, OHM_PER_KILOMETRE);
       g = Quantities.getQuantity(0, SIEMENS_PER_KILOMETRE);
-      b = Quantities.getQuantity(3, MetricPrefix.MICRO(SIEMENS_PER_KILOMETRE));
+      b = Quantities.getQuantity(3, MICRO_SIEMENS_PER_KILOMETRE);
       iMax = Quantities.getQuantity(550, AMPERE);
     } else {
       throw new IllegalArgumentException("Unknown voltage level " + voltageLvl);

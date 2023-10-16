@@ -29,8 +29,9 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResp
 import edu.ie3.simona.ontology.trigger.Trigger._
 import edu.ie3.simona.test.common.model.grid.DbfsTestGridWithParticipants
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
-import edu.ie3.util.quantities.PowerSystemUnits.{KILOVOLT, MEGAVAR, MEGAWATT}
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.scala.quantities.Megavars
+import squants.electro.Kilovolts
+import squants.energy.Megawatts
 
 import scala.language.postfixOps
 
@@ -230,8 +231,8 @@ class DBFSAlgorithmParticipantSpec
           Seq(
             ExchangeVoltage(
               supNodeA.getUuid,
-              Quantities.getQuantity(380, KILOVOLT),
-              Quantities.getQuantity(0, KILOVOLT)
+              Kilovolts(380d),
+              Kilovolts(0d)
             )
           )
         )
@@ -251,8 +252,8 @@ class DBFSAlgorithmParticipantSpec
         Seq(
           ExchangePower(
             supNodeA.getUuid,
-            Quantities.getQuantity(135.90837346741768, MEGAWATT),
-            Quantities.getQuantity(60.98643348675892, MEGAVAR)
+            Megawatts(135.90837346741768),
+            Megavars(60.98643348675892)
           )
         )
       )
@@ -278,8 +279,8 @@ class DBFSAlgorithmParticipantSpec
           Seq(
             ExchangeVoltage(
               supNodeA.getUuid,
-              Quantities.getQuantity(374.2269461446, KILOVOLT),
-              Quantities.getQuantity(65.9863075134, KILOVOLT)
+              Kilovolts(374.2269461446d),
+              Kilovolts(65.9863075134d)
             )
           )
         )
@@ -291,8 +292,8 @@ class DBFSAlgorithmParticipantSpec
         Seq(
           ExchangePower(
             supNodeA.getUuid,
-            Quantities.getQuantity(135.90837346741768, MEGAWATT),
-            Quantities.getQuantity(60.98643348675892, MEGAVAR)
+            Megawatts(135.90837346741768),
+            Megavars(60.98643348675892)
           )
         )
       )

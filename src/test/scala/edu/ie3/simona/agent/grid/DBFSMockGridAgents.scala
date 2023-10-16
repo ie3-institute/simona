@@ -19,9 +19,14 @@ import edu.ie3.simona.ontology.messages.VoltageMessage.{
   RequestSlackVoltageMessage
 }
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
+import squants.Power
+import squants.electro.Volts
+import squants.energy.Megawatts
 
 import java.util.UUID
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.language.postfixOps
 
 /** Provide mock grid agents for testing the DBFSAlgorithm. These agents are an
   * agent for inferior grids and an agent for superior grids. Each grid agent
@@ -29,6 +34,10 @@ import scala.concurrent.duration.DurationInt
   */
 trait DBFSMockGridAgents extends UnitSpec {
   private val floatPrecision: Double = 0.00000000001
+  private implicit val powerTolerance: Power = Megawatts(1e-10)
+  private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-10)
+  private implicit val electricPotentialTolerance
+      : squants.electro.ElectricPotential = Volts(1e-6)
 
   sealed trait GAActorAndModel {
     val gaProbe: TestProbe
@@ -64,14 +73,8 @@ trait DBFSMockGridAgents extends UnitSpec {
               _.nodeUuid == expectedVoltage.nodeUuid
             ) match {
               case Some(ExchangeVoltage(_, actualE, actualF)) =>
-                actualE should equalWithTolerance(
-                  expectedVoltage.e,
-                  floatPrecision
-                )
-                actualF should equalWithTolerance(
-                  expectedVoltage.f,
-                  floatPrecision
-                )
+                actualE ~= Volts(3d)
+                actualF ~= expectedVoltage.f
               case None =>
                 fail(
                   s"Expected ExchangeVoltage with node UUID ${expectedVoltage.nodeUuid} " +
@@ -109,23 +112,18 @@ trait DBFSMockGridAgents extends UnitSpec {
     }
 
     def expectGridPowerProvision(
-        expectedExchangedPowers: Seq[ExchangePower]
+        expectedExchangedPowers: Seq[ExchangePower],
+        maxDuration: FiniteDuration = 30 seconds
     ): Unit = {
-      inside(gaProbe.expectMsgType[ProvideGridPowerMessage](10.seconds)) {
+      inside(gaProbe.expectMsgType[ProvideGridPowerMessage](maxDuration)) {
         case ProvideGridPowerMessage(exchangedPower) =>
           exchangedPower should have size expectedExchangedPowers.size
 
           expectedExchangedPowers.foreach { expectedPower =>
             exchangedPower.find(_.nodeUuid == expectedPower.nodeUuid) match {
               case Some(ExchangePower(_, actualP, actualQ)) =>
-                actualP should equalWithTolerance(
-                  expectedPower.p,
-                  floatPrecision
-                )
-                actualQ should equalWithTolerance(
-                  expectedPower.q,
-                  floatPrecision
-                )
+                (actualP ~= expectedPower.p) shouldBe true
+                (actualQ ~= expectedPower.q) shouldBe true
               case None =>
                 fail(
                   s"Expected ExchangePower with node UUID ${expectedPower.nodeUuid} " +

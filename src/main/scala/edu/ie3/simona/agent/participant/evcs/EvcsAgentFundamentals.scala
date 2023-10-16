@@ -45,7 +45,10 @@ import edu.ie3.simona.ontology.messages.services.EvMessage.{
 }
 import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DISTANCE
 import edu.ie3.util.quantities.PowerSystemUnits.PU
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.Kilovars
+import squants.{Each, Dimensionless}
+import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -184,14 +187,18 @@ protected trait EvcsAgentFundamentals
       model,
       servicesOpt,
       outputConfig,
-      Array.emptyLongArray, // Additional activation of the evcs agent is not needed
+      SortedSet.empty, // Additional activation of the evcs agent is not needed
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution, // FIXME probably need to increase this for grid oriented scheduling
-        inputModel.getNode
-          .getvTarget()
-          .to(PU)
+        Each(
+          inputModel.getNode
+            .getvTarget()
+            .to(PU)
+            .getValue
+            .doubleValue
+        )
       ),
       ValueStore(resolution),
       ValueStore(resolution),
@@ -271,7 +278,7 @@ protected trait EvcsAgentFundamentals
         EvcsState,
         EvcsModel
       ],
-      ComparableQuantity[Dimensionless]
+      Dimensionless
   ) => ApparentPower =
     (_, _, _) =>
       throw new InvalidRequestException(
@@ -435,7 +442,10 @@ protected trait EvcsAgentFundamentals
     updateValueStoresInformListeners(
       modelBaseStateData,
       tick,
-      result,
+      ApparentPower(
+        Kilowatts(result.p.value.doubleValue),
+        Kilovars(result.q.value.doubleValue)
+      ),
       stateWithoutDeparting
     )
   }
@@ -504,7 +514,10 @@ protected trait EvcsAgentFundamentals
         updateValueStoresInformListeners(
           modelBaseStateData,
           tick,
-          result,
+          ApparentPower(
+            Kilowatts(result.p.value.doubleValue),
+            Kilovars(result.q.value.doubleValue)
+          ),
           stateWithArriving
         )
       } else {
@@ -646,8 +659,8 @@ protected trait EvcsAgentFundamentals
     new EvcsResult(
       dateTime,
       uuid,
-      result.p,
-      result.q
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
     )
 
   /** Checks whether requested departing EVs are consistent with currently

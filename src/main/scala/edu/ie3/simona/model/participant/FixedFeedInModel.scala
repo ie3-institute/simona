@@ -20,11 +20,11 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
 import edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
-import tech.units.indriya.ComparableQuantity
+import squants.Power
+import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.Power
 
 /** Fixed feed generation model delivering constant power
   *
@@ -49,7 +49,7 @@ final case class FixedFeedInModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: ComparableQuantity[Power],
+    sRated: Power,
     cosPhiRated: Double
 ) extends SystemParticipant[FixedRelevantData.type, ConstantState.type](
       uuid,
@@ -72,11 +72,7 @@ final case class FixedFeedInModel(
   override protected def calculateActivePower(
       data: FixedRelevantData.type = FixedRelevantData
   ): ComparableQuantity[Power] =
-    sRated
-      .multiply(-1)
-      .multiply(cosPhiRated)
-      .multiply(scalingFactor)
-      .to(MEGAWATT)
+    sRated * (-1) * cosPhiRated * scalingFactor
 
   override def determineFlexOptions(
       data: FixedRelevantData.type,
@@ -84,13 +80,13 @@ final case class FixedFeedInModel(
   ): ProvideFlexOptions = {
     val power = calculateActivePower(data)
 
-    ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
+    ProvideMinMaxFlexOptions(uuid, power, power, Megawatts(0d))
   }
 
   override def handleControlledPowerChange(
       data: FixedRelevantData.type,
       lastState: ConstantState.type,
-      setPower: ComparableQuantity[Power]
+      setPower: Power
   ): (ConstantState.type, FlexChangeIndicator) =
     (lastState, FlexChangeIndicator())
 }
@@ -117,7 +113,12 @@ object FixedFeedInModel extends LazyLogging {
       operationInterval,
       modelConfiguration.scaling,
       QControl.apply(inputModel.getqCharacteristics),
-      inputModel.getsRated,
+      Kilowatts(
+        inputModel.getsRated
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
       inputModel.getCosPhiRated
     )
     model.enable()

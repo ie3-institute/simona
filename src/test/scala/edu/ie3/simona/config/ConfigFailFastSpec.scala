@@ -16,19 +16,20 @@ import edu.ie3.simona.config.SimonaConfig.{BaseCsvParams, ResultKafkaParams}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
+import edu.ie3.util.TimeUtil
 
-import java.time.Duration
+import java.time.{Duration, ZonedDateTime}
 import java.time.temporal.ChronoUnit
 
 class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
   "Validating the configs" when {
     "validating the simona config" when {
       "Checking date input" should {
-        val checkDateTime = PrivateMethod[Unit](Symbol("checkDateTime"))
+        val checkTimeConfig = PrivateMethod[Unit](Symbol("checkTimeConfig"))
 
         "let valid input pass" in {
           noException shouldBe thrownBy {
-            ConfigFailFast invokePrivate checkDateTime(
+            ConfigFailFast invokePrivate checkTimeConfig(
               new Time(
                 "2020-06-18 13:41:00",
                 None,
@@ -39,18 +40,42 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           }
         }
 
-        "identify invalid input" in {
+        "identify invalid date or time configuration" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast invokePrivate checkDateTime(
+            ConfigFailFast invokePrivate checkTimeConfig(
               new Time(
                 "2020-06-18 13:41:00",
                 None,
-                "total non-sense",
+                "2020-07-18 13:41:00",
                 true
               )
             )
-          }.getMessage shouldBe "Invalid dateTimeString for config parameter simonaConfig.simona.time.startDateTime: total non-sense. Please " +
-            "ensure that your date/time parameter match the following pattern: ‘yyyy-MM-dd HH:mm:ss'"
+          }.getMessage shouldBe "Invalid time configuration." +
+            "Please ensure that the start time of the simulation is before the end time."
+        }
+      }
+
+      "Checking date string" should {
+        val createDateTime =
+          PrivateMethod[ZonedDateTime](Symbol("createDateTime"))
+
+        val dateTimeString: String = "2020-05-18 13:41:00"
+
+        "let valid input pass" in {
+
+          ConfigFailFast invokePrivate createDateTime(
+            dateTimeString
+          ) shouldBe TimeUtil.withDefaults.toZonedDateTime(dateTimeString)
+
+        }
+
+        "identify invalid input" in {
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate createDateTime(
+              "total non-sense"
+            )
+          }.getMessage shouldBe "Invalid dateTimeString: total non-sense." +
+            "Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd HH:mm:ss'"
         }
       }
 
@@ -897,11 +922,13 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 Some(
                   SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
                     .SampleParams(true)
-                )
+                ),
+                None
               ),
               None,
               None,
               None,
+              50000d,
               Some(360L),
               Some(
                 SimonaConfig.Simona.Input.Weather.Datasource.SampleParams(true)

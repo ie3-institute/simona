@@ -47,14 +47,9 @@ import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KILOWATT,
-  MEGAVAR,
-  MEGAWATT,
-  PU
-}
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
+import squants.Each
+import squants.energy.{Kilowatts, Megawatts, Watts}
 
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
@@ -85,11 +80,13 @@ class FixedFeedInAgentModelCalculationSpec
   protected val simulationEndDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00")
 
-  private val testingTolerance = 1e-6 // Equality on the basis of 1 W
+  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
+
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
+      LoadReference.ActivePower(Kilowatts(0d))
     )
   private val defaultOutputConfig = ParticipantNotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
@@ -234,11 +231,11 @@ class FixedFeedInAgentModelCalculationSpec
           endDate shouldBe simulationEndDate
           services shouldBe None
           outputConfig shouldBe defaultOutputConfig
-          additionalActivationTicks shouldBe Array.emptyLongArray
+          additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            Map(0L -> Quantities.getQuantity(1d, PU))
+            Map(0L -> Each(1.0))
           )
           resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPower](
@@ -301,13 +298,13 @@ class FixedFeedInAgentModelCalculationSpec
 
       fixedFeedAgent ! RequestAssetPowerMessage(
         0L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
       expectMsg(
         AssetPowerChangedMessage(
-          Quantities.getQuantity(0d, MEGAWATT),
-          Quantities.getQuantity(0d, MEGAVAR)
+          Megawatts(0d),
+          Megavars(0d)
         )
       )
 
@@ -319,8 +316,8 @@ class FixedFeedInAgentModelCalculationSpec
             resolution,
             Map(
               0L -> ApparentPower(
-                Quantities.getQuantity(0d, MEGAWATT),
-                Quantities.getQuantity(0d, MEGAVAR)
+                Megawatts(0d),
+                Megavars(0d)
               )
             )
           )
@@ -401,14 +398,8 @@ class FixedFeedInAgentModelCalculationSpec
             case Some((tick, entry)) =>
               tick shouldBe 0L
               inside(entry) { case ApparentPower(p, q) =>
-                p should equalWithTolerance(
-                  Quantities.getQuantity(-268.603e-6, MEGAWATT),
-                  testingTolerance
-                )
-                q should equalWithTolerance(
-                  Quantities.getQuantity(0d, MEGAVAR),
-                  testingTolerance
-                )
+                (p ~= Megawatts(-268.603e-6)) shouldBe true
+                (q ~= Megavars(0.0)) shouldBe true
               }
             case None =>
               fail("Result value store does not contain entry for tick 900.")
@@ -484,20 +475,14 @@ class FixedFeedInAgentModelCalculationSpec
       /* Ask the agent for average power in tick 3000 */
       fixedFeedAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(-268.603e-6, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(-268.603e-6)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -565,20 +550,14 @@ class FixedFeedInAgentModelCalculationSpec
       /* Ask the agent for average power in tick 3000 */
       fixedFeedAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(-268.603e-6, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(-268.603e-6)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
         case answer => fail(s"Did not expect to get that answer: $answer")
       }
     }
@@ -588,22 +567,15 @@ class FixedFeedInAgentModelCalculationSpec
       /* Ask again with unchanged information */
       fixedFeedAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(1.000000000000001d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.000000000000001d),
+        Each(0d)
       )
 
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(-268.603e-6, PowerSystemUnits.MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities
-              .getQuantity(0d, PowerSystemUnits.MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(-268.603e-6)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -611,21 +583,15 @@ class FixedFeedInAgentModelCalculationSpec
       /* Ask again with changed information */
       fixedFeedAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(0.98, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(0.98),
+        Each(0d)
       )
 
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(-0.000268603, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(-22.07138418e-6, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(-0.000268603)) shouldBe true
+          (q ~= Megavars(-22.07138418e-6)) shouldBe true
       }
     }
   }

@@ -62,12 +62,11 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   FinishGridSimulationTrigger,
   InitializeParticipantAgentTrigger
 }
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.scala.quantities.ReactivePower
+import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
-import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.ClassTag
-
 /** Common properties to participant agents
   *
   * @tparam PD
@@ -168,7 +167,7 @@ abstract class ParticipantAgent[
 
       /* Remove this tick from the array of foreseen activation ticks */
       val additionalActivationTicks =
-        modelBaseStateData.additionalActivationTicks.filter(_ > currentTick)
+        modelBaseStateData.additionalActivationTicks.rangeFrom(currentTick + 1)
 
       val updatedBaseStateData = BaseStateData.updateBaseStateData(
         modelBaseStateData,
@@ -723,7 +722,7 @@ abstract class ParticipantAgent[
   val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[PD, CD, MS, M],
-      ComparableQuantity[Dimensionless]
+      Dimensionless
   ) => PD
 
   /** Abstractly calculate the power output of the participant without needing
@@ -750,11 +749,11 @@ abstract class ParticipantAgent[
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
       currentTick: Long,
       scheduler: ActorRef,
-      nodalVoltage: ComparableQuantity[Dimensionless],
+      nodalVoltage: Dimensionless,
       calculateModelPowerFunc: (
           Long,
           ParticipantModelBaseStateData[PD, CD, MS, M],
-          ComparableQuantity[Dimensionless]
+          Dimensionless
       ) => PD
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
@@ -845,8 +844,8 @@ abstract class ParticipantAgent[
   def answerPowerRequestAndStayWithUpdatedStateData(
       baseStateData: BaseStateData[PD],
       requestTick: Long,
-      eInPu: ComparableQuantity[Dimensionless],
-      fInPu: ComparableQuantity[Dimensionless],
+      eInPu: Dimensionless,
+      fInPu: Dimensionless,
       alternativeResult: PD
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
@@ -861,8 +860,8 @@ abstract class ParticipantAgent[
   def announceAssetPowerRequestReply(
       baseStateData: BaseStateData[_],
       currentTick: Long,
-      activePower: ComparableQuantity[Power],
-      reactivePower: ComparableQuantity[Power]
+      activePower: Power,
+      reactivePower: ReactivePower
   )(implicit outputConfig: ParticipantNotifierConfig): Unit
 
   /** Abstract definition to clean up agent value stores after power flow
@@ -898,7 +897,7 @@ object ParticipantAgent {
   def getAndCheckNodalVoltage(
       baseStateData: BaseStateData[_ <: PrimaryData],
       currentTick: Long
-  ): ComparableQuantity[Dimensionless] = {
+  ): Dimensionless = {
     baseStateData.voltageValueStore.last(currentTick) match {
       case Some((_, voltage)) => voltage
       case None =>

@@ -12,17 +12,12 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApp
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.model.participant.{
-  CalcRelevantData,
-  ModelState,
-  SystemParticipant
-}
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
+import squants.Dimensionless
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.Dimensionless
+
 
 /** Trait to denote the common properties to all basic state data in participant
   * agents
@@ -51,7 +46,7 @@ trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
     * information needed, we might have the need to schedule ourselves for
     * activation triggers
     */
-  val additionalActivationTicks: Array[Long]
+  val additionalActivationTicks: SortedSet[Long]
 
   /** A mapping from service reference to it's foreseen next availability of
     * data
@@ -72,7 +67,7 @@ trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
     * set to 1.0 p.u. per default. If more information are available, the
     * attribute shall be overridden
     */
-  val voltageValueStore: ValueStore[ComparableQuantity[Dimensionless]]
+  val voltageValueStore: ValueStore[Dimensionless]
 
   /** Determines the output behaviour of this model
     */
@@ -154,12 +149,12 @@ object BaseStateData {
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
       override val outputConfig: ParticipantNotifierConfig,
-      override val additionalActivationTicks: Array[Long],
+      override val additionalActivationTicks: SortedSet[Long],
       override val foreseenDataTicks: Map[ActorRef, Option[Long]],
       fillUpReactivePowerWithModelFunc: Boolean = false,
       requestVoltageDeviationThreshold: Double,
       override val voltageValueStore: ValueStore[
-        ComparableQuantity[Dimensionless]
+        Dimensionless
       ],
       override val resultValueStore: ValueStore[P],
       override val requestValueStore: ValueStore[P]
@@ -212,11 +207,11 @@ object BaseStateData {
         Vector[SecondaryDataService[_ <: SecondaryData]]
       ],
       override val outputConfig: ParticipantNotifierConfig,
-      override val additionalActivationTicks: Array[Long],
+      override val additionalActivationTicks: SortedSet[Long],
       override val foreseenDataTicks: Map[ActorRef, Option[Long]],
       requestVoltageDeviationThreshold: Double,
       override val voltageValueStore: ValueStore[
-        ComparableQuantity[Dimensionless]
+        Dimensionless
       ],
       override val resultValueStore: ValueStore[PD],
       override val requestValueStore: ValueStore[PD],
@@ -254,7 +249,7 @@ object BaseStateData {
     * @param updatedVoltageValueStore
     *   Value store with updated voltage information
     * @param updatedAdditionalActivationTicks
-    *   An array of additional activation ticks
+    *   Additional activation ticks
     * @param updatedForeseenTicks
     *   Mapping from [[ActorRef]] to foreseen ticks
     * @tparam PD
@@ -266,8 +261,8 @@ object BaseStateData {
       baseStateData: BaseStateData[PD],
       updatedResultValueStore: ValueStore[PD],
       updatedRequestValueStore: ValueStore[PD],
-      updatedVoltageValueStore: ValueStore[ComparableQuantity[Dimensionless]],
-      updatedAdditionalActivationTicks: Array[Long],
+      updatedVoltageValueStore: ValueStore[Dimensionless],
+      updatedAdditionalActivationTicks: SortedSet[Long],
       updatedForeseenTicks: Map[ActorRef, Option[Long]]
   ): BaseStateData[PD] = {
     baseStateData match {

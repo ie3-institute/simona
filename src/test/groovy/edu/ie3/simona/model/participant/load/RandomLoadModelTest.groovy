@@ -6,6 +6,12 @@
 
 package edu.ie3.simona.model.participant.load
 
+import static edu.ie3.datamodel.models.profile.BdewStandardLoadProfile.H0
+import static edu.ie3.simona.model.participant.load.LoadReference.ActivePower
+import static edu.ie3.simona.model.participant.load.LoadReference.EnergyConsumption
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static org.apache.commons.math3.util.FastMath.abs
+
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.OperatorInput
@@ -17,20 +23,15 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
 import edu.ie3.simona.model.participant.load.random.RandomLoadParameters
 import edu.ie3.util.TimeUtil
+import squants.energy.*
 import spock.lang.Specification
-import tech.units.indriya.quantity.Quantities
 
-import javax.measure.quantity.Energy
+import squants.time.Minutes$
+import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.scala.quantities.Sq
+
 import java.time.temporal.ChronoUnit
 import java.util.stream.Collectors
-
-import static edu.ie3.datamodel.models.profile.BdewStandardLoadProfile.H0
-import static edu.ie3.simona.model.participant.load.LoadReference.ActivePower
-import static edu.ie3.simona.model.participant.load.LoadReference.EnergyConsumption
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static org.apache.commons.math3.util.FastMath.abs
-import static tech.units.indriya.unit.Units.MINUTE
-import static tech.units.indriya.unit.Units.WATT
 
 class RandomLoadModelTest extends Specification {
   def loadInput =  new LoadInput(
@@ -77,12 +78,12 @@ class RandomLoadModelTest extends Specification {
         )
 
     then:
-    abs(actual.sRated().subtract(expSRated).getValue().doubleValue()) < testingTolerance
+    abs(actual.sRated().toWatts().doubleValue() - (expSRated.value().doubleValue())) < testingTolerance
 
     where:
     reference                                                          || expSRated
-    new ActivePower(Quantities.getQuantity(268.6, WATT))               || Quantities.getQuantity(311.0105263157895, VOLTAMPERE)
-    new EnergyConsumption(Quantities.getQuantity(2000d, KILOWATTHOUR)) || Quantities.getQuantity(467.156124576697, VOLTAMPERE)
+    new ActivePower(Sq.create(268.6d, Watts$.MODULE$))                 || Sq.create(311.0105263157895d, Watts$.MODULE$)
+    new EnergyConsumption(Sq.create(2000d, KilowattHours$.MODULE$))    || Sq.create(467.156124576697d, Watts$.MODULE$)
   }
 
   def "A random load model is able to deliver the correct distribution on request"() {
@@ -93,9 +94,9 @@ class RandomLoadModelTest extends Specification {
         foreSeenOperationInterval,
         1.0,
         QControl.apply(loadInput.qCharacteristics),
-        loadInput.sRated,
+        Sq.create(loadInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
         loadInput.cosPhiRated,
-        new ActivePower(Quantities.getQuantity(268.6, WATT))
+        new ActivePower(Sq.create(268.6d, Watts$.MODULE$))
         )
     /* Working day, 61th quarter hour */
     def queryDate = TimeUtil.withDefaults.toZonedDateTime('2019-07-19 15:21:00')
@@ -129,9 +130,9 @@ class RandomLoadModelTest extends Specification {
         foreSeenOperationInterval,
         1.0,
         QControl.apply(loadInput.qCharacteristics),
-        loadInput.sRated,
+        Sq.create(loadInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
         loadInput.cosPhiRated,
-        new EnergyConsumption(Quantities.getQuantity(3000d, KILOWATTHOUR))
+        new EnergyConsumption(Sq.create(3000d, KilowattHours$.MODULE$))
         )
     def relevantDatas = (0..35040).stream().map({ cnt ->
       new RandomLoadModel.RandomRelevantData(
@@ -139,13 +140,11 @@ class RandomLoadModelTest extends Specification {
     }).collect(Collectors.toSet())
 
     when:
-    def avgEnergy = (0..10).parallelStream().mapToDouble(
-        { runCnt ->
-          relevantDatas.parallelStream().mapToDouble(
-              { relevantData ->
-                (dut.calculateActivePower(relevantData) * Quantities.getQuantity(15d, MINUTE)).asType(Energy).to(KILOWATTHOUR).value.doubleValue()
-              }).sum()
-        }).average().orElse(0d)
+    def avgEnergy = (0..10).parallelStream().mapToDouble( { runCnt ->
+      relevantDatas.parallelStream().mapToDouble( { relevantData ->
+        (dut.calculateActivePower(relevantData).$times(Sq.create(15d, Minutes$.MODULE$))).toKilowattHours()
+      }).sum()
+    }).average().orElse(0d)
 
     then:
     abs(avgEnergy - 3000) / 3000 < 0.01
@@ -160,9 +159,9 @@ class RandomLoadModelTest extends Specification {
         foreSeenOperationInterval,
         1.0,
         QControl.apply(loadInput.qCharacteristics),
-        loadInput.sRated,
+        Sq.create(loadInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
         loadInput.cosPhiRated,
-        new ActivePower(Quantities.getQuantity(268.6, WATT))
+        new ActivePower(Sq.create(268.6d, Watts$.MODULE$))
         )
     def relevantDatas = (0..35040).stream().map({ cnt ->
       new RandomLoadModel.RandomRelevantData(
@@ -172,7 +171,7 @@ class RandomLoadModelTest extends Specification {
     when:
     def powers = (0..10).parallelStream().flatMap({ runCnt ->
       relevantDatas.stream().parallel().map({ data ->
-        dut.calculateActivePower(data).to(WATT).getValue().doubleValue()
+        dut.calculateActivePower(data).toWatts().doubleValue()
       })
     }).sorted().toArray() as Double[]
     def quantilePower = get95Quantile(powers)
