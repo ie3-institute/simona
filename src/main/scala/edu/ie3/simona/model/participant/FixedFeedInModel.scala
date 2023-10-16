@@ -17,11 +17,10 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideFlexOptions,
   ProvideMinMaxFlexOptions
 }
-import edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import squants.Power
-import squants.energy.Kilowatts
+import squants.energy.{Kilowatts, Megawatts}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -71,7 +70,7 @@ final case class FixedFeedInModel(
     */
   override protected def calculateActivePower(
       data: FixedRelevantData.type = FixedRelevantData
-  ): ComparableQuantity[Power] =
+  ): Power =
     sRated * (-1) * cosPhiRated * scalingFactor
 
   override def determineFlexOptions(

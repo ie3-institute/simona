@@ -20,6 +20,7 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import squants.{Energy, Power}
 import squants.energy.Megawatts
+import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
 
@@ -59,7 +60,7 @@ abstract class LoadModel[D <: LoadRelevantData](
   override def handleControlledPowerChange(
       data: D,
       lastState: ConstantState.type,
-      setPower: ComparableQuantity[Power]
+      setPower: Power
   ): (ConstantState.type, FlexChangeIndicator) =
     (lastState, FlexChangeIndicator())
 }

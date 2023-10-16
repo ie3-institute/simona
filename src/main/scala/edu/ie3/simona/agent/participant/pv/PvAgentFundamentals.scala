@@ -253,7 +253,7 @@ protected trait PvAgentFundamentals
         PvModel
       ],
       currentTick: Long,
-      activePower: ComparableQuantity[Power]
+      activePower: Power
   ): ApparentPower = {
     val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
 

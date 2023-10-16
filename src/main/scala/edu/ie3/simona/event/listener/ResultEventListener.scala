@@ -379,9 +379,9 @@ class ResultEventListener(
       stay() using updatedBaseData
 
     case Event(
-    FlexOptionsResultEvent(flexOptionsResult),
-    baseData: BaseData
-    ) =>
+          FlexOptionsResultEvent(flexOptionsResult),
+          baseData: BaseData
+        ) =>
       val updateBaseData = handleResult(flexOptionsResult, baseData)
       stay() using updateBaseData
 
@@ -394,7 +394,6 @@ class ResultEventListener(
       // there have been no messages for 5 seconds, let's end this
       self ! PoisonPill
       stay()
-
 
   }
 

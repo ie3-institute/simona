@@ -13,9 +13,7 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideFlexOptions,
   ProvideMinMaxFlexOptions
 }
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.quantities.interfaces.{DimensionlessRate, EnergyPrice}
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.EnergyPrice
 import squants.energy.{Kilowatts, Megawatts}
@@ -229,13 +227,13 @@ final case class BMModel(
   ): ProvideFlexOptions = {
     val power = calculateActivePower(data)
 
-    ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
+    ProvideMinMaxFlexOptions(uuid, power, power, Megawatts(0d))
   }
 
   override def handleControlledPowerChange(
       data: BMCalcRelevantData,
       lastState: BmState,
-      setPower: ComparableQuantity[Power]
+      setPower: Power
   ): (BmState, FlexChangeIndicator) = (lastState, FlexChangeIndicator())
 }
 

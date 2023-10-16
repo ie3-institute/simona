@@ -80,10 +80,10 @@ import edu.ie3.simona.ontology.trigger.Trigger.ParticipantTrigger.StartCalculati
 import edu.ie3.simona.service.ServiceStateData.ServiceActivationBaseStateData
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
-import squants.energy.Megawatts
-import squants.{Power, Dimensionless, Each}
+import squants.energy.{KilowattHours, Megawatts}
+import squants.{Dimensionless, Each, Energy, Power}
+import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -671,9 +671,9 @@ protected trait ParticipantAgentFundamentals[
           new FlexOptionsResult(
             tick.toDateTime,
             modelUuid,
-            referencePower,
-            minPower,
-            maxPower
+            Quantities.getQuantity(referencePower.toMegawatts, MEGAWATT),
+            Quantities.getQuantity(minPower.toMegawatts, MEGAWATT),
+            Quantities.getQuantity(maxPower.toMegawatts, MEGAWATT)
           )
       }
 
@@ -811,7 +811,7 @@ protected trait ParticipantAgentFundamentals[
   protected def determineResultingFlexPower(
       flexStateData: FlexStateData,
       flexCtrl: IssueFlexControl
-  ): ComparableQuantity[Power] = {
+  ): Power = {
     val (_, flexOptions) = flexStateData.flexOptionsStore
       .last()
       .getOrElse(
@@ -825,11 +825,11 @@ protected trait ParticipantAgentFundamentals[
         flexCtrl match {
           case IssuePowerCtrl(_, setPower) =>
             // sanity check: setPower is in range of latest flex options
-            if (setPower.isLessThan(pMin))
+            if (setPower < pMin)
               throw new RuntimeException(
                 s"The set power $setPower must not be lower than the minimum power $pMin!"
               )
-            if (setPower.isGreaterThan(pMax)) {
+            if (setPower > pMax) {
               throw new RuntimeException(
                 s"The set power $setPower must not be greater than the maximum power $pMax!"
               )
@@ -1968,17 +1968,17 @@ case object ParticipantAgentFundamentals {
   ): ApparentPower = {
     val p = QuantityUtil.average(
       tickToResults.map { case (tick, pd) =>
-        tick -> pd.p.toMegawatts.asMegaWatt
+        tick -> Megawatts(pd.p.toMegawatts)
       },
       windowStart,
       windowEnd,
-      classOf[javax.measure.quantity.Energy],
-      KILOWATTHOUR,
-      classOf[javax.measure.quantity.Power],
-      MEGAWATT
+      classOf[Energy],
+      KilowattHours,
+      classOf[Power],
+      Megawatts
     ) match {
       case Success(pSuccess) =>
-        Megawatts(pSuccess.to(MEGAWATT).getValue.doubleValue)
+        pSuccess
       case Failure(exception) =>
         log.warning(
           "Unable to determine average active power. Apply 0 instead. Cause:\n\t{}",
@@ -1990,19 +1990,19 @@ case object ParticipantAgentFundamentals {
       tickToResults.map { case (tick, pd) =>
         activeToReactivePowerFuncOpt match {
           case Some(qFunc) =>
-            tick -> qFunc(pd.toApparentPower.p).toMegavars.asMegaVar
-          case None => tick -> pd.toApparentPower.q.toMegavars.asMegaVar
+            tick -> Megavars(qFunc(pd.toApparentPower.p).toMegavars)
+          case None => tick -> Megavars(pd.toApparentPower.q.toMegavars)
         }
       },
       windowStart,
       windowEnd,
-      classOf[javax.measure.quantity.Energy],
-      KILOVARHOUR,
-      classOf[javax.measure.quantity.Power],
-      MEGAVAR
+      classOf[Energy],
+      KilowattHours,
+      classOf[ReactivePower],
+      Megavars
     ) match {
       case Success(pSuccess) =>
-        Megavars(pSuccess.to(MEGAVAR).getValue.doubleValue)
+        pSuccess
       case Failure(exception) =>
         log.warning(
           "Unable to determine average reactive power. Apply 0 instead. Cause:\n\t{}",

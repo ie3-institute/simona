@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.model.participant.HpModel._
 import edu.ie3.simona.model.participant.ModelState.ConstantState
@@ -14,12 +13,13 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalHouse
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
-import java.util.UUID
 import squants.energy.Kilowatts
 import squants.{Power, Temperature, Time}
 
+import java.util.UUID
 
 /** Model of a heat pump (HP) with a [[ThermalHouse]] medium and its current
   * [[HpState]].
@@ -166,7 +166,7 @@ final case class HpModel(
   override def handleControlledPowerChange(
       data: HpData,
       lastState: ConstantState.type,
-      setPower: ComparableQuantity[Power]
+      setPower: Power
   ): (ConstantState.type, FlexChangeIndicator) =
     ??? // TODO actual implementation
 

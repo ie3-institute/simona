@@ -67,6 +67,7 @@ import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
 import scala.reflect.ClassTag
+
 /** Common properties to participant agents
   *
   * @tparam PD
@@ -811,7 +812,7 @@ abstract class ParticipantAgent[
   protected def calculateResult(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
       tick: Long,
-      activePower: ComparableQuantity[Power]
+      activePower: Power
   ): PD
 
   /** Determining the reply to an

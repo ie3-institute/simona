@@ -15,13 +15,12 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.EvcsModel.{EvcsRelevantData, EvcsState}
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
-import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.{DefaultQuantities, Megavars}
-import squants.energy
 import squants.energy.{KilowattHours, Kilowatts, Megawatts}
 import squants.time.Seconds
+import squants.{Power, energy}
 import tech.units.indriya.quantity.Quantities.getQuantity
 
 import java.time.ZonedDateTime
@@ -273,7 +272,7 @@ final case class EvcsModel(
   override def handleControlledPowerChange(
       data: EvcsRelevantData,
       lastState: EvcsState,
-      setPower: ComparableQuantity[Power]
+      setPower: Power
   ): (EvcsState, FlexChangeIndicator) = ??? // TODO actual implementation
 }
 

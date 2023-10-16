@@ -40,15 +40,13 @@ import edu.ie3.simona.model.participant.{FixedFeedInModel, ModelState}
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.quantities.PowerSystemUnits.PU
-import tech.units.indriya.ComparableQuantity
-import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
-import squants.{Each, Power, Dimensionless}
+import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
+import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
 protected trait FixedFeedInAgentFundamentals
@@ -200,7 +198,7 @@ protected trait FixedFeedInAgentFundamentals
         FixedFeedInModel
       ],
       currentTick: Long,
-      activePower: ComparableQuantity[Power]
+      activePower: Power
   ): ApparentPower = {
     val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
 

@@ -13,11 +13,17 @@ import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.statedata.BaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  ModelState,
+  SystemParticipant
+}
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -41,7 +47,7 @@ import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT}
 import org.mockito.Mockito.when
 import org.scalatest.PrivateMethodTester
 import org.scalatestplus.mockito.MockitoSugar
-import squants.Each
+import squants.{Each, Power}
 import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
 

@@ -25,7 +25,11 @@ import edu.ie3.simona.exceptions.agent.{
 }
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.SystemParticipant
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  ModelState,
+  SystemParticipant
+}
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
 import edu.ie3.simona.model.participant.load.{FixedLoadModel, LoadReference}
@@ -40,7 +44,7 @@ import org.mockito.Mockito.when
 import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor3, TableFor5}
 import org.scalatestplus.mockito.MockitoSugar
-import squants.Each
+import squants.{Each, Power}
 import squants.energy.{Kilowatts, Megawatts}
 
 import java.util.UUID
@@ -79,7 +83,21 @@ class ParticipantAgentFundamentalsSpec
     TestFSMRef(
       new ParticipantAgentMock(
         scheduler = self
-      )
+      ) {
+        override protected def calculateResult(
+            baseStateData: ParticipantModelBaseStateData[
+              ApparentPower,
+              CalcRelevantData.FixedRelevantData.type,
+              ModelState.ConstantState.type,
+              SystemParticipant[
+                CalcRelevantData.FixedRelevantData.type,
+                ModelState.ConstantState.type
+              ]
+            ],
+            tick: Long,
+            activePower: Power
+        ): ApparentPower = ???
+      }
     )
   val mockAgent: ParticipantAgentMock = mockAgentTestRef.underlyingActor
 

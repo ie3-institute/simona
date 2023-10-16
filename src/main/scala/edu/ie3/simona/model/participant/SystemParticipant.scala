@@ -10,7 +10,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.{
@@ -120,7 +119,7 @@ abstract class SystemParticipant[CD <: CalcRelevantData, MS <: ModelState](
   def handleControlledPowerChange(
       data: CD,
       lastState: MS,
-      setPower: ComparableQuantity[Power]
+      setPower: Power
   ): (MS, FlexChangeIndicator)
 
   /** Get a partial function, that transfers the current active into reactive

@@ -207,8 +207,7 @@ protected trait WecAgentFundamentals
     WecRelevantData(
       weatherData.windVel,
       weatherData.temp,
-      EmptyQuantity
-        .of(PASCAL) // weather data does not support air pressure
+      None // weather data does not support air pressure
     )
   }
 
@@ -220,7 +219,7 @@ protected trait WecAgentFundamentals
         WecModel
       ],
       currentTick: Long,
-      activePower: ComparableQuantity[Power]
+      activePower: Power
   ): ApparentPower = {
     val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
 

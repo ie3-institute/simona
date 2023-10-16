@@ -7,10 +7,9 @@
 package edu.ie3.simona.ontology.messages
 
 import edu.ie3.simona.ontology.trigger.Trigger
-import tech.units.indriya.ComparableQuantity
+import squants.Power
 
 import java.util.UUID
-import javax.measure.quantity.Power
 
 // TODO adapt scaladoc
 sealed trait FlexibilityMessage
@@ -49,9 +48,9 @@ object FlexibilityMessage {
     */
   final case class ProvideMinMaxFlexOptions(
       override val modelUuid: UUID,
-      referencePower: ComparableQuantity[Power],
-      minPower: ComparableQuantity[Power],
-      maxPower: ComparableQuantity[Power]
+      referencePower: Power,
+      minPower: Power,
+      maxPower: Power
   ) extends ProvideFlexOptions
 
   /** Message sent by EmAgent that specifies a power target that needs to be
@@ -62,7 +61,7 @@ object FlexibilityMessage {
     */
   final case class IssuePowerCtrl(
       tick: Long,
-      setPower: ComparableQuantity[Power]
+      setPower: Power
   ) extends IssueFlexControl
 
   /** Message sent by EmAgent indicating that no power target is set and the

@@ -6,22 +6,19 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.ChpInput
 import edu.ie3.simona.model.participant.ChpModel._
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.{MutableStorage, ThermalStorage}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
 import squants.{Energy, Power, Seconds, Time}
 import squants.energy.{KilowattHours, Kilowatts}
 
 import java.util.UUID
-
-import java.util.UUID
-import javax.measure.quantity.{Energy, Power, Time}
 
 /** Model of a combined heat and power plant (CHP) with a [[ThermalStorage]]
   * medium and its current [[ChpState]].
@@ -55,7 +52,7 @@ final case class ChpModel(
     cosPhiRated: Double,
     pThermal: Power,
     storage: ThermalStorage with MutableStorage
-) extends SystemParticipant[ChpData, ConstantState.type](
+) extends SystemParticipant[ChpRelevantData, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -289,14 +286,14 @@ final case class ChpModel(
     Seconds(chpData.currentTimeTick - chpData.chpState.lastTimeTick)
 
   override def determineFlexOptions(
-      data: ChpData,
+      data: ChpRelevantData,
       lastState: ConstantState.type
   ): ProvideFlexOptions = ??? // TODO actual implementation
 
   override def handleControlledPowerChange(
-      data: ChpData,
+      data: ChpRelevantData,
       lastState: ConstantState.type,
-      setPower: ComparableQuantity[Power]
+      setPower: Power
   ): (ConstantState.type, FlexChangeIndicator) =
     ??? // TODO actual implementation
 }

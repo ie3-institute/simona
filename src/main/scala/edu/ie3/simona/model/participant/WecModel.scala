@@ -21,15 +21,9 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideFlexOptions,
   ProvideMinMaxFlexOptions
 }
-import edu.ie3.util.quantities.EmptyQuantity
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KILOGRAM_PER_CUBIC_METRE,
-  MEGAWATT
-}
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.quantities.interfaces.{Density, HeatCapacity}
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import squants.energy.{Kilowatts, Watts}
+import squants.energy.{Kilowatts, Megawatts, Watts}
 import squants.mass.{Kilograms, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pressure}
 import squants.space.SquareMeters
@@ -204,13 +198,13 @@ final case class WecModel(
   ): ProvideFlexOptions = {
     val power = calculateActivePower(data)
 
-    ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
+    ProvideMinMaxFlexOptions(uuid, power, power, Megawatts(0d))
   }
 
   override def handleControlledPowerChange(
       data: WecRelevantData,
       lastState: ConstantState.type,
-      setPower: ComparableQuantity[Power]
+      setPower: Power
   ): (ConstantState.type, FlexChangeIndicator) =
     (lastState, FlexChangeIndicator())
 }
@@ -241,7 +235,7 @@ object WecModel {
           input.getPoints.asScala.map(p =>
             XYPair[Velocity, Dimensionless](
               MetersPerSecond(p.getX.to(METRE_PER_SECOND).getValue.doubleValue),
-              Each(p.getY.to(PU).getValue.doubleValue)
+              Each(p.getY.to(PowerSystemUnits.PU).getValue.doubleValue)
             )
           )
       )
@@ -281,7 +275,12 @@ object WecModel {
       operationInterval,
       scalingFactor,
       QControl(inputModel.getqCharacteristics),
-      Kilowatts(inputModel.getType.getsRated.to(KILOWATT).getValue.doubleValue),
+      Kilowatts(
+        inputModel.getType.getsRated
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
       inputModel.getType.getCosPhiRated,
       SquareMeters(
         inputModel.getType.getRotorArea.to(SQUARE_METRE).getValue.doubleValue

@@ -28,11 +28,8 @@ class SystemParticipantTest extends Specification {
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new CosPhiFixed(varCharacteristicString)),
-        Quantities.getQuantity(200, KILOVOLTAMPERE),
-        1d)
-        Sq.create(200, Kilowatts$.MODULE$),
-        1d)
-    Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$) // needed for method call but not applicable for cosphi_p
+        Sq.create(200, Kilowatts$.MODULE$),    1d)
+
     Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$) // needed for method call but not applicable for cosphi_p
 
     when: "the reactive power is calculated"

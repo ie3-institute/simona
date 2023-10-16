@@ -232,7 +232,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
         LM
       ],
       currentTick: Long,
-      activePower: ComparableQuantity[Power]
+      activePower: Power
   ): ApparentPower = {
     val voltage = getAndCheckNodalVoltage(baseStateData, currentTick)
 

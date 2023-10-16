@@ -742,13 +742,13 @@ final case class PvModel private (
   ): ProvideFlexOptions = {
     val power = calculateActivePower(data)
 
-    ProvideMinMaxFlexOptions(uuid, power, power, 0d.asMegaWatt)
+    ProvideMinMaxFlexOptions(uuid, power, power, Megawatts(0d))
   }
 
   override def handleControlledPowerChange(
       data: PvRelevantData,
       lastState: ConstantState.type,
-      setPower: ComparableQuantity[Power]
+      setPower: Power
   ): (ConstantState.type, FlexChangeIndicator) =
     (lastState, FlexChangeIndicator())
 }

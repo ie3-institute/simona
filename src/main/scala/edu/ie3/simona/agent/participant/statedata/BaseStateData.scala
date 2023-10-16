@@ -12,12 +12,17 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApp
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  ModelState,
+  SystemParticipant
+}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import squants.Dimensionless
 
 import java.time.ZonedDateTime
 import java.util.UUID
-
+import scala.collection.SortedSet
 
 /** Trait to denote the common properties to all basic state data in participant
   * agents

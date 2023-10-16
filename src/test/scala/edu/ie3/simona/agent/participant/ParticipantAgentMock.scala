@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.participant
 
 import akka.actor.{ActorRef, FSM, Props}
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
@@ -31,9 +30,13 @@ import edu.ie3.simona.exceptions.agent.InvalidRequestException
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
-import edu.ie3.simona.model.participant.{ModelState, SystemParticipant}
-import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT, PU}
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  ModelState,
+  SystemParticipant
+}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito.doReturn
@@ -43,7 +46,7 @@ import squants.energy.{Kilowatts, Megawatts}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
+import javax.measure.quantity.Power
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
@@ -247,7 +250,7 @@ class ParticipantAgentMock(
   ): FixedRelevantData.type =
     FixedRelevantData
 
-  override protected def calculateResult(
+  protected def calculateResult(
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         FixedRelevantData.type,
@@ -255,9 +258,9 @@ class ParticipantAgentMock(
         SystemParticipant[FixedRelevantData.type, ConstantState.type]
       ],
       tick: Long,
-      activePower: ComparableQuantity[Power]
+      activePower: Power
   ): ApparentPower =
-    ApparentPower(0d.asMegaWatt, 0d.asMegaWatt)
+    ApparentPower(Megawatts(0d), Megavars(0d))
 
   /** To clean up agent value stores after power flow convergence. This is
     * necessary for agents whose results are time dependent e.g. storage agents
@@ -325,6 +328,20 @@ class ParticipantAgentMock(
       result.p.toMegawatts.asMegaWatt,
       result.q.toMegavars.asMegaVar
     ) {}
+
+  override protected def calculateResult(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        CalcRelevantData.FixedRelevantData.type,
+        ModelState.ConstantState.type,
+        SystemParticipant[
+          CalcRelevantData.FixedRelevantData.type,
+          ModelState.ConstantState.type
+        ]
+      ],
+      tick: Long,
+      activePower: squants.Power
+  ): ApparentPower = ???
 }
 
 case object ParticipantAgentMock {
