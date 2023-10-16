@@ -588,8 +588,8 @@ protected trait ParticipantAgentFundamentals[
               )
             case Failure(exception) =>
               log.error(
-                "Was not able to extract received primary data correctly. Tear down the simulation. Failed with",
-                exception
+                "Was not able to extract received primary data correctly. Tear down the simulation. Failed with " +
+                  exception
               )
               throw exception
           }
