@@ -259,7 +259,7 @@ trait HpAgentFundamentals
           Map.empty,
           requestVoltageDeviationThreshold,
           ValueStore.forVoltage(
-            resolution * 10,
+            resolution,
             Each(
               inputModel.electricalInputModel.getNode
                 .getvTarget()
@@ -268,9 +268,9 @@ trait HpAgentFundamentals
                 .doubleValue()
             )
           ),
-          ValueStore.forResult(resolution, 10),
-          ValueStore(resolution * 10),
-          ValueStore(resolution * 10)
+          ValueStore(resolution),
+          ValueStore(resolution),
+          ValueStore(resolution)
         )
       case unsupported =>
         throw new AgentInitializationException(

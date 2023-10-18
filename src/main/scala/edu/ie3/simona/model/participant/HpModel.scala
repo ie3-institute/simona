@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.participant
 
 import java.util.UUID
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.model.SystemComponent
@@ -21,8 +20,6 @@ import edu.ie3.util.scala.quantities.DefaultQuantities
 
 import squants.energy.Kilowatts
 import squants.{Power, Temperature, Time}
-
-import java.util.UUID
 
 import java.time.ZonedDateTime
 
