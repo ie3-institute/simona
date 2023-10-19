@@ -241,7 +241,7 @@ protected trait EvcsAgentFundamentals
   ): EvcsRelevantData = {
     // always only take arrivals for the current tick
     // or empty sequence if none arrived
-baseStateData.receivedSecondaryDataStore
+    baseStateData.receivedSecondaryDataStore
       .getOrElse(tick, Map.empty)
       .collectFirst {
         // filter secondary data for arriving EVs data
@@ -250,7 +250,7 @@ baseStateData.receivedSecondaryDataStore
       }
       .getOrElse(Seq.empty)
 
- baseStateData.voltageValueStore.asMap
+    baseStateData.voltageValueStore.asMap
       .map { case (tick, voltage) =>
         tick.toDateTime(baseStateData.startDate) -> voltage
       }
