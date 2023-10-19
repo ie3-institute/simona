@@ -44,6 +44,7 @@ import edu.ie3.simona.ontology.messages.services.EvMessage.{
   FreeLotsResponse
 }
 import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DISTANCE
+import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Kilovars
@@ -238,9 +239,22 @@ protected trait EvcsAgentFundamentals
       ],
       tick: Long
   ): EvcsRelevantData = {
-    // TODO implement
+    // always only take arrivals for the current tick
+    // or empty sequence if none arrived
+    val movements = baseStateData.receivedSecondaryDataStore
+      .getOrElse(tick, Map.empty)
+      .collectFirst {
+        // filter secondary data for arriving EVs data
+        case (_, evcsData: ArrivingEvsData) =>
+          evcsData.arrivals
+      }
+      .getOrElse(Seq.empty)
 
-    throw new NotImplementedError()
+    val voltages = baseStateData.voltageValueStore.asMap
+      .map { case (tick, voltage) =>
+        tick.toDateTime(baseStateData.startDate) -> voltage
+      }
+    EvcsRelevantData(tick)
   }
 
   override protected def calculateResult(
@@ -320,7 +334,7 @@ protected trait EvcsAgentFundamentals
     baseStateData.receivedSecondaryDataStore
       .getOrElse(currentTick, Map.empty)
       .collectFirst {
-        // filter secondary data for EV movements data
+        // filter secondary data for arriving EVs data
         case (_, arrivingEvs: ArrivingEvsData) =>
           handleArrivingEvsAndGoIdle(
             currentTick,
