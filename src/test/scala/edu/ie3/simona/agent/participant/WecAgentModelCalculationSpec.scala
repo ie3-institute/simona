@@ -68,14 +68,11 @@ import edu.ie3.util.scala.quantities.{
   Vars,
   WattsPerSquareMeter
 }
-import edu.ie3.util.quantities.QuantityUtil
 import org.scalatest.PrivateMethodTester
 import squants.Each
 import squants.energy.{Kilowatts, Megawatts, Watts}
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND}
 
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit

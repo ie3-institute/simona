@@ -11,7 +11,6 @@ import akka.testkit.TestFSMRef
 import akka.util.Timeout
 import breeze.numerics.{acos, tan}
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.ValueStore
