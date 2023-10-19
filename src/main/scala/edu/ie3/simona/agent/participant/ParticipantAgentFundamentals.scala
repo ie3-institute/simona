@@ -58,6 +58,7 @@ import edu.ie3.simona.exceptions.agent.{
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.{
   CalcRelevantData,
+  FlexChangeIndicator,
   ModelState,
   SystemParticipant
 }
@@ -737,44 +738,15 @@ protected trait ParticipantAgentFundamentals[
       case _ =>
     }
 
-    // revoke old tick and remove it from state data, if applicable
-    val revokeRequest =
-      flexStateData.scheduledRequest
-        .filter {
-          // revoke old tick if it exists and is placed in the future
-          _ > flexCtrl.tick
-        }
-
-    // remove from additionalTicks and from flex state data
-    val clearedBaseStateData =
-      if (revokeRequest.nonEmpty)
-        baseStateData.copy(
-          flexStateData = Some(
-            flexStateData.copy(scheduledRequest = None)
-          )
-        )
-      else
-        baseStateData
-
-    // add new tick and updated relevant data, if applicable
-    val updatedStateData: ParticipantModelBaseStateData[PD, CD, MS, M] =
-      flexChangeIndicator.changesAtTick
-        .map { requestTick =>
-          // save new tick
-          clearedBaseStateData.copy(
-            flexStateData = clearedBaseStateData.flexStateData.map(
-              _.copy(scheduledRequest = Some(requestTick))
-            )
-          )
-        }
-        .getOrElse(clearedBaseStateData)
-        .copy(
-          stateDataStore = ValueStore.updateValueStore(
-            baseStateData.stateDataStore,
-            flexCtrl.tick,
-            updatedState
-          )
-        )
+    val revokeRequest = identifyRequests2Revoke(flexStateData, flexCtrl)
+    val updatedStateData = revokeOldTicksUpdateStateData(
+      revokeRequest,
+      flexCtrl,
+      flexChangeIndicator,
+      updatedState,
+      baseStateData,
+      flexStateData
+    )
 
     // Send out results etc.
     val stateDataWithResults = handleCalculatedResult(
@@ -806,6 +778,64 @@ protected trait ParticipantAgentFundamentals[
       )
     } else
       stay() using stateDataWithResults
+  }
+
+  /** Identifies and return ticks with existing future Flexibility Controls that
+    * needs to removed now since the Control has changed if applicable
+    */
+
+  private def identifyRequests2Revoke(
+      flexStateData: FlexStateData,
+      flexCtrl: IssueFlexControl
+  ): Option[Long] = {
+
+    flexStateData.scheduledRequest
+      .filter {
+        _ > flexCtrl.tick
+      }
+  }
+
+  /** Removes the identified ticks and returns updates StateData
+    */
+
+  private def revokeOldTicksUpdateStateData(
+      revokeRequest: Option[Long],
+      flexCtrl: IssueFlexControl,
+      flexChangeIndicator: FlexChangeIndicator,
+      updatedState: MS,
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+      flexStateData: FlexStateData
+  ): (ParticipantModelBaseStateData[PD, CD, MS, M]) = {
+
+    // remove from additionalTicks and from flex state data
+    val clearedBaseStateData =
+      if (revokeRequest.nonEmpty)
+        baseStateData.copy(
+          flexStateData = Some(
+            flexStateData.copy(scheduledRequest = None)
+          )
+        )
+      else
+        baseStateData
+
+    flexChangeIndicator.changesAtTick
+      .map { requestTick =>
+        // save new tick
+        clearedBaseStateData.copy(
+          flexStateData = clearedBaseStateData.flexStateData.map(
+            _.copy(scheduledRequest = Some(requestTick))
+          )
+        )
+      }
+      .getOrElse(clearedBaseStateData)
+      .copy(
+        stateDataStore = ValueStore.updateValueStore(
+          baseStateData.stateDataStore,
+          flexCtrl.tick,
+          updatedState
+        )
+      )
+
   }
 
   protected def determineResultingFlexPower(
