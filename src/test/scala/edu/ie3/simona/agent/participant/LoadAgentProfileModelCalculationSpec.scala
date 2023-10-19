@@ -52,6 +52,7 @@ import squants.Each
 import squants.energy.{Kilowatts, Megawatts, Watts}
 
 import java.util.concurrent.TimeUnit
+import scala.collection.SortedMap
 
 class LoadAgentProfileModelCalculationSpec
     extends ParticipantAgentSpec(
@@ -230,7 +231,7 @@ class LoadAgentProfileModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            Map(0L -> Each(1.0))
+            SortedMap(0L -> Each(1.0))
           )
           resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPower](
@@ -309,7 +310,7 @@ class LoadAgentProfileModelCalculationSpec
             ApparentPower
           ](
             resolution,
-            Map(
+            SortedMap(
               0L -> ApparentPower(
                 Megawatts(0d),
                 Megavars(0d)

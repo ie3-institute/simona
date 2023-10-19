@@ -49,7 +49,7 @@ import squants.energy.{Kilowatts, Megawatts}
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import scala.collection.SortedSet
+import scala.collection.{SortedMap, SortedSet}
 
 class ParticipantAgentFundamentalsSpec
     extends AgentSpec(
@@ -454,7 +454,7 @@ class ParticipantAgentFundamentalsSpec
       val requestTick = 1800L
       val resultValueStore = ValueStore(
         900,
-        Map(
+        SortedMap(
           800L -> ApparentPower(
             Megawatts(0.0),
             Megavars(0.0)
@@ -483,7 +483,7 @@ class ParticipantAgentFundamentalsSpec
       )
       val requestValueStore = ValueStore(
         900,
-        Map(
+        SortedMap(
           900L -> ApparentPower(
             Megawatts(0.0),
             Megavars(0.0)
@@ -533,7 +533,7 @@ class ParticipantAgentFundamentalsSpec
       val requestTick = 1800L
       val resultValueStore = ValueStore(
         900,
-        Map(
+        SortedMap(
           800L -> ApparentPower(
             Megawatts(0.0),
             Megavars(0.0)
@@ -542,7 +542,7 @@ class ParticipantAgentFundamentalsSpec
       )
       val requestValueStore = ValueStore(
         900,
-        Map(
+        SortedMap(
           900L -> ApparentPower(
             Megawatts(0.0),
             Megavars(0.0)

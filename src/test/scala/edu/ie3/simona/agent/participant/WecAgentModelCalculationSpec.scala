@@ -324,7 +324,7 @@ class WecAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            immutable.Map(0L -> Each(1.0))
+            immutable.SortedMap(0L -> Each(1.0))
           )
           resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPower](resolution)
@@ -451,7 +451,7 @@ class WecAgentModelCalculationSpec
             ApparentPower
           ](
             resolution,
-            immutable.Map(
+            immutable.SortedMap(
               0L -> ApparentPower(
                 Megawatts(0d),
                 Megavars(0d)

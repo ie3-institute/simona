@@ -74,6 +74,7 @@ import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND}
 
 import java.util.concurrent.TimeUnit
+import scala.collection.SortedMap
 
 class PvAgentModelCalculationSpec
     extends ParticipantAgentSpec(
@@ -342,7 +343,7 @@ class PvAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            Map(0L -> Each(1.0))
+            SortedMap(0L -> Each(1.0))
           )
           resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPower](resolution)
@@ -458,7 +459,7 @@ class PvAgentModelCalculationSpec
             ApparentPower
           ](
             resolution,
-            Map(
+            SortedMap(
               0L -> ApparentPower(
                 Megawatts(0d),
                 Megavars(0d)

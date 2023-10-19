@@ -57,6 +57,7 @@ import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import squants.{Each, Energy, Power}
 import squants.energy.{Megawatts, WattHours, Watts}
 
+import scala.collection.SortedMap
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 class EvcsAgentModelCalculationSpec
@@ -311,7 +312,7 @@ class EvcsAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            Map(0L -> Each(1.0))
+            SortedMap(0L -> Each(1.0))
           )
           resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPower](resolution)
@@ -418,7 +419,7 @@ class EvcsAgentModelCalculationSpec
             ApparentPower
           ](
             resolution,
-            Map(
+            SortedMap(
               0L -> ApparentPower(
                 Megawatts(0.0),
                 Megavars(0.0)
