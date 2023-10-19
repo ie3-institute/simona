@@ -8,12 +8,8 @@ package edu.ie3.simona.util
 
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.CollectionUtils._
-import edu.ie3.util.quantities.PowerSystemUnits._
 import squants.Each
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities.getQuantity
-
-import javax.measure.quantity.Dimensionless
+import squants.Dimensionless
 
 class CollectionUtilsSpec extends UnitSpec {
 
@@ -38,13 +34,13 @@ class CollectionUtilsSpec extends UnitSpec {
       )
 
       def returnedSequence1: Seq[
-        (squants.Dimensionless, squants.Dimensionless)
+        (Dimensionless, Dimensionless)
       ] = closestKeyValuePairs(map, Each(1.5))
       def returnedSequence2: Seq[
-        (squants.Dimensionless, squants.Dimensionless)
+        (Dimensionless, Dimensionless)
       ] = closestKeyValuePairs(map, Each(2.5))
       def returnedSequence3: Seq[
-        (squants.Dimensionless, squants.Dimensionless)
+        (Dimensionless, Dimensionless)
       ] = closestKeyValuePairs(map, Each(3d))
 
       returnedSequence1 shouldBe Seq(
