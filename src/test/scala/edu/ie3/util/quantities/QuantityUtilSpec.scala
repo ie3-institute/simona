@@ -20,8 +20,6 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
   implicit val energyTolerance: Energy = WattHours(1e-6)
   private val unit = Kilowatts
   private val integrationUnit = Kilojoules
-  private val integrationClass = classOf[Energy]
-  private val averagingClass = classOf[Power]
   private val values = Map(
     2L -> unit(5d),
     4L -> unit(15d),
@@ -92,10 +90,10 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
 
         forAll(cases) { (windowStart, windowEnd, expectedResult) =>
-          QuantityUtil.integrate(
+          QuantityUtil.integrate[Power, Energy](
             values,
             windowStart,
-            windowEnd,
+            windowEnd
           ) =~ expectedResult
         }
       }
@@ -105,10 +103,10 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
   "Averaging over quantities" when {
     "putting in wrong information" should {
       "fail, if window start and end are the same" in {
-        QuantityUtil.average(
+        QuantityUtil.average[Power, Energy](
           values,
           0L,
-          0L,
+          0L
         ) match {
           case Failure(exception: IllegalArgumentException) =>
             exception.getMessage shouldBe "Cannot average over trivial time window."
@@ -123,10 +121,10 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
       }
 
       "fail, if window start is after window end" in {
-        QuantityUtil.average(
+        QuantityUtil.average[Power, Energy](
           values,
           3L,
-          0L,
+          0L
         ) match {
           case Failure(exception: IllegalArgumentException) =>
             exception.getMessage shouldBe "Window end is before window start."
@@ -152,10 +150,10 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
 
         forAll(cases) { (windowStart, windowEnd, expectedResult) =>
-          QuantityUtil.average(
+          QuantityUtil.average[Power, Energy](
             values,
             windowStart,
-            windowEnd,
+            windowEnd
           ) match {
             case Success(result) =>
               result =~ expectedResult

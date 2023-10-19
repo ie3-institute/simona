@@ -68,11 +68,13 @@ object QuantityUtil {
     * @return
     *   Averaged quantity
     */
-  def average[Q <: Quantity[Q] with TimeDerivative[QI], QI <: Quantity[QI] with TimeIntegral[Q]](
+  def average[Q <: Quantity[Q] with TimeDerivative[QI], QI <: Quantity[
+    QI
+  ] with TimeIntegral[Q]](
       values: Map[Long, Q],
       windowStart: Long,
-      windowEnd: Long,
-  ): Try[QI] = {
+      windowEnd: Long
+  ): Try[Q] = {
     if (windowStart == windowEnd)
       Failure(
         new IllegalArgumentException("Cannot average over trivial time window.")
@@ -83,11 +85,11 @@ object QuantityUtil {
       )
     else
       Try {
-          integrate(
-            values,
-            windowStart,
-            windowEnd,
-          ) / (windowEnd - windowStart)
+        integrate[Q, QI](
+          values,
+          windowStart,
+          windowEnd
+        ) / Seconds(windowEnd - windowStart)
       }
   }
 
@@ -107,10 +109,12 @@ object QuantityUtil {
     * @return
     *   Integration over given values from window start to window end
     */
-  def integrate[Q <: Quantity[Q] with TimeDerivative[QI], QI <: Quantity[QI] with TimeIntegral[Q]](
+  def integrate[Q <: Quantity[Q] with TimeDerivative[QI], QI <: Quantity[
+    QI
+  ] with TimeIntegral[Q]](
       values: Map[Long, Q],
       windowStart: Long,
-      windowEnd: Long,
+      windowEnd: Long
   ): QI = {
 
     /** Case class to hold current state of integration
@@ -158,12 +162,9 @@ object QuantityUtil {
               (tick, value)
             ) =>
           /* Calculate the partial integral over the last know value since it's occurrence and the instance when the newest value comes in */
-          val duration = (tick - lastTick).toDouble
-          val partialIntegral = {
-            lastValue * duration
-          }
+          val duration = Seconds(tick - lastTick)
+          val partialIntegral = lastValue * duration
           val updatedIntegral = currentIntegral + partialIntegral
-
           IntegrationState(updatedIntegral, tick, value)
       }
       .currentIntegral

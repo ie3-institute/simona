@@ -1683,12 +1683,12 @@ case object ParticipantAgentFundamentals {
       ] = None,
       log: LoggingAdapter
   ): ApparentPower = {
-    val p = QuantityUtil.average(
+    val p = QuantityUtil.average[Power, Energy](
       tickToResults.map { case (tick, pd) =>
         tick -> Megawatts(pd.p.toMegawatts)
       },
       windowStart,
-      windowEnd,
+      windowEnd
     ) match {
       case Success(pSuccess) =>
         pSuccess
@@ -1700,19 +1700,21 @@ case object ParticipantAgentFundamentals {
         Megawatts(0d)
     }
 
-    val q = QuantityUtil.average(
+    val q = QuantityUtil.average[Power, Energy](
       tickToResults.map { case (tick, pd) =>
         activeToReactivePowerFuncOpt match {
           case Some(qFunc) =>
-            tick -> Megavars(qFunc(pd.toApparentPower.p).toMegavars)
-          case None => tick -> Megavars(pd.toApparentPower.q.toMegavars)
+            // NOTE: The type conversion to Megawatts is done to satisfy the methods type constraints
+            // and is undone after unpacking the results
+            tick -> Megawatts(qFunc(pd.toApparentPower.p).toMegavars)
+          case None => tick -> Megawatts(pd.toApparentPower.q.toMegavars)
         }
       },
       windowStart,
-      windowEnd,
+      windowEnd
     ) match {
       case Success(pSuccess) =>
-        pSuccess
+        Megavars(pSuccess.toMegawatts)
       case Failure(exception) =>
         log.warning(
           "Unable to determine average reactive power. Apply 0 instead. Cause:\n\t{}",
