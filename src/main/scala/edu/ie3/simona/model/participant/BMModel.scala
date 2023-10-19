@@ -16,7 +16,7 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.EnergyPrice
-import squants.energy.{Kilowatts, Megawatts}
+import squants.energy.Megawatts
 import squants.{Dimensionless, Money, Power, Temperature}
 
 import java.time.ZonedDateTime
@@ -58,7 +58,7 @@ final case class BMModel(
       data: BMCalcRelevantData
   ): ApparentPower = {
     val result = super.calculatePower(tick, voltage, data)
-    _lastPower = Some(Kilowatts(result.p.value.doubleValue))
+    _lastPower = Some(result.p)
 
     result
   }
