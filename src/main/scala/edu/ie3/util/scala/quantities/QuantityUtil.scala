@@ -99,7 +99,6 @@ object QuantityUtil {
             values,
             windowStart,
             windowEnd,
-            integrationQuantityClass,
             integrationUnit
           ).to(integrationUnit)
             / (windowEnd - windowStart)
@@ -127,11 +126,10 @@ object QuantityUtil {
     * @return
     *   Integration over given values from window start to window end
     */
-  def integrate[Q <: squants.Quantity[Q], QI <: squants.Quantity[QI]](
+  def integrate[Q <: Quantity[Q], QI <: Quantity[QI]](
       values: Map[Long, Q],
       windowStart: Long,
       windowEnd: Long,
-      integrationQuantityClass: Class[QI],
       integrationUnit: UnitOfMeasure[QI]
   ): QI = {
 
