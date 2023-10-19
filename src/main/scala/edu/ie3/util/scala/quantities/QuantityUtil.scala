@@ -8,6 +8,7 @@ package edu.ie3.util.scala.quantities
 
 import edu.ie3.simona.exceptions.QuantityException
 import edu.ie3.util.quantities.{QuantityUtil => PSQuantityUtil}
+import squants.UnitOfMeasure
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.function.Calculus
 import tech.units.indriya.quantity.Quantities
@@ -33,9 +34,13 @@ object QuantityUtil {
       )
     )
 
-  def zero[Q <: Quantity[Q]](
+  def zeroCompQuantity[Q <: Quantity[Q]](
       unit: javax.measure.Unit[Q]
   ): ComparableQuantity[Q] = Quantities.getQuantity(0, unit)
+
+  def zero[Q <: squants.Quantity[Q]](
+      unit: UnitOfMeasure[Q]
+  ): Q = unit(0d)
 
   @deprecated(
     "Use reduceOption { (power1, power2) => power1.add(power2) } instead"
