@@ -96,8 +96,6 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
             values,
             windowStart,
             windowEnd,
-            integrationClass,
-            integrationUnit
           ) =~ expectedResult
         }
       }
@@ -111,10 +109,6 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
           values,
           0L,
           0L,
-          integrationClass,
-          integrationUnit,
-          averagingClass,
-          unit
         ) match {
           case Failure(exception: IllegalArgumentException) =>
             exception.getMessage shouldBe "Cannot average over trivial time window."
@@ -133,10 +127,6 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
           values,
           3L,
           0L,
-          integrationClass,
-          integrationUnit,
-          averagingClass,
-          unit
         ) match {
           case Failure(exception: IllegalArgumentException) =>
             exception.getMessage shouldBe "Window end is before window start."
@@ -166,10 +156,6 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
             values,
             windowStart,
             windowEnd,
-            integrationClass,
-            integrationUnit,
-            averagingClass,
-            unit
           ) match {
             case Success(result) =>
               result =~ expectedResult

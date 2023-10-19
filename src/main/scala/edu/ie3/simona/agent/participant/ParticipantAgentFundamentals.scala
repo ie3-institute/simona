@@ -1689,10 +1689,6 @@ case object ParticipantAgentFundamentals {
       },
       windowStart,
       windowEnd,
-      classOf[Energy],
-      KilowattHours,
-      classOf[Power],
-      Megawatts
     ) match {
       case Success(pSuccess) =>
         pSuccess
@@ -1714,10 +1710,6 @@ case object ParticipantAgentFundamentals {
       },
       windowStart,
       windowEnd,
-      classOf[Energy],
-      KilowattHours,
-      classOf[ReactivePower],
-      Megavars
     ) match {
       case Success(pSuccess) =>
         pSuccess
