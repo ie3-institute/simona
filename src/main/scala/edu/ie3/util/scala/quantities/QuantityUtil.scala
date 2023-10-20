@@ -41,18 +41,6 @@ object QuantityUtil {
       unit: UnitOfMeasure[Q]
   ): Q = unit(0d)
 
-  implicit class ConvertibleQuantity[Q <: javax.measure.Quantity[Q]](
-      private val q: javax.measure.Quantity[Q]
-  ) extends AnyVal {
-
-    /** Converts the quantity to an instance of [[ComparableQuantity]]
-      *
-      * @return
-      *   the provided quantity as comparable quantity
-      */
-    def asComparable: ComparableQuantity[Q] = PSQuantityUtil.asComparable(q)
-  }
-
   /** Average given values over given tick window
     *
     * @param values
