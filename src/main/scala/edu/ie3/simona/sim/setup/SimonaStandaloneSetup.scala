@@ -106,10 +106,6 @@ class SimonaStandaloneSetup(
           )
         )
 
-        val slackVoltageSeries =
-          simonaConfig.simona.input.grid.slackVoltageSource
-            .map(PreDefVoltSeq.apply)
-
         /* build the grid agent data and check for its validity */
         val gridAgentInitData = SimonaStandaloneSetup.buildGridAgentInitData(
           subGridContainer,

@@ -12,7 +12,7 @@ import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentBaseData.PreDefVoltSeq
+  import edu.ie3.simona.agent.grid.GridAgentData.GridAgentBaseData.PreDefVoltSeq
 import edu.ie3.simona.agent.grid.ReceivedValues.{
   ReceivedPowerValues,
   ReceivedSlackVoltageValues
@@ -118,7 +118,7 @@ object GridAgentData {
             )
             val (beforeTime, beforeValue) = before
             val after = afterAll.headOption.getOrElse(
-              throw new IllegalStateException()("No values after time")
+              throw new IllegalStateException("No values after time")
             )
             val (afterTime, afterValue) = after
 
