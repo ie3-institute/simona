@@ -12,7 +12,7 @@ import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
-  import edu.ie3.simona.agent.grid.GridAgentData.GridAgentBaseData.PreDefVoltSeq
+import edu.ie3.simona.agent.grid.GridAgentData.GridAgentBaseData.PreDefVoltSeq
 import edu.ie3.simona.agent.grid.ReceivedValues.{
   ReceivedPowerValues,
   ReceivedSlackVoltageValues
@@ -31,7 +31,7 @@ import org.apache.commons.csv.CSVFormat.Builder
 import org.apache.commons.csv.CSVParser
 
 import java.nio.file.Paths
-import java.time.ZonedDateTime
+import java.time.{LocalDateTime, ZonedDateTime}
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 import scala.jdk.CollectionConverters.IterableHasAsScala
@@ -145,6 +145,7 @@ object GridAgentData {
         }
       }
     }
+
     object PreDefVoltSeq {
       def apply(
           simulationStart: ZonedDateTime,
@@ -160,11 +161,16 @@ object GridAgentData {
         )
         val records = parser.getRecords.asScala.toSeq
         val formatter = DateTimeFormatter.ofPattern(timePattern)
+        val zone = simulationStart.getZone
         val values = records.map { record =>
-          (
-            ZonedDateTime.parse(record.get(0), formatter),
-            record.get(1).toDouble
-          )
+          {
+            val dateTime =
+              LocalDateTime.parse(record.get(0), formatter).atZone(zone)
+            (
+              dateTime,
+              record.get(1).toDouble
+            )
+          }
         }
         PreDefVoltSeq(simulationStart, values)
       }
