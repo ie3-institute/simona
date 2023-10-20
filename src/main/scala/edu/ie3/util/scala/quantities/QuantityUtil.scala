@@ -8,7 +8,8 @@ package edu.ie3.util.scala.quantities
 
 import edu.ie3.simona.exceptions.QuantityException
 import edu.ie3.util.quantities.{QuantityUtil => PSQuantityUtil}
-import squants.{Quantity, UnitOfMeasure}
+import squants.time.{Hours, TimeDerivative, TimeIntegral}
+import squants.{Quantity, Seconds, UnitOfMeasure}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.function.Calculus
 import tech.units.indriya.quantity.Quantities
@@ -36,7 +37,7 @@ object QuantityUtil {
       unit: javax.measure.Unit[Q]
   ): ComparableQuantity[Q] = Quantities.getQuantity(0, unit)
 
-  def zero[Q <: squants.Quantity[Q]](
+  def zero[Q <: Quantity[Q]](
       unit: UnitOfMeasure[Q]
   ): Q = unit(0d)
 
@@ -60,14 +61,6 @@ object QuantityUtil {
     *   First tick, that shall be included in the integral
     * @param windowEnd
     *   Last tick, that shall be included in the integral
-    * @param integrationQuantityClass
-    *   Class of [[squants.Quantity]] that will evolve from integration
-    * @param integrationUnit
-    *   Unit to use for the integral
-    * @param averagingQuantityClass
-    *   Class of [[squants.Quantity]] that will evolve from averaging
-    * @param averagingUnit
-    *   Target unit of averaged quantities
     * @tparam Q
     *   Type of [[squants.Quantity]] that should be integrated
     * @tparam QI
@@ -75,14 +68,12 @@ object QuantityUtil {
     * @return
     *   Averaged quantity
     */
-  def average[Q <: Quantity[Q], QI <: Quantity[QI]](
+  def average[Q <: Quantity[Q] with TimeDerivative[QI], QI <: Quantity[
+    QI
+  ] with TimeIntegral[Q]](
       values: Map[Long, Q],
       windowStart: Long,
-      windowEnd: Long,
-      integrationQuantityClass: Class[QI],
-      integrationUnit: UnitOfMeasure[QI],
-      averagingQuantityClass: Class[Q],
-      averagingUnit: UnitOfMeasure[Q]
+      windowEnd: Long
   ): Try[Q] = {
     if (windowStart == windowEnd)
       Failure(
@@ -94,15 +85,11 @@ object QuantityUtil {
       )
     else
       Try {
-        averagingUnit(
-          integrate(
-            values,
-            windowStart,
-            windowEnd,
-            integrationUnit
-          ).to(integrationUnit)
-            / (windowEnd - windowStart)
-        )
+        integrate[Q, QI](
+          values,
+          windowStart,
+          windowEnd
+        ) / Seconds(windowEnd - windowStart)
       }
   }
 
@@ -115,10 +102,6 @@ object QuantityUtil {
     *   First tick, that shall be included in the integral
     * @param windowEnd
     *   Last tick, that shall be included in the integral
-    * @param integrationQuantityClass
-    *   Class of [[Quantity]] that will evolve from integration
-    * @param integrationUnit
-    *   Unit to use for the integral
     * @tparam Q
     *   Type of [[Quantity]] that should be integrated
     * @tparam QI
@@ -126,11 +109,12 @@ object QuantityUtil {
     * @return
     *   Integration over given values from window start to window end
     */
-  def integrate[Q <: Quantity[Q], QI <: Quantity[QI]](
+  def integrate[Q <: Quantity[Q] with TimeDerivative[QI], QI <: Quantity[
+    QI
+  ] with TimeIntegral[Q]](
       values: Map[Long, Q],
       windowStart: Long,
-      windowEnd: Long,
-      integrationUnit: UnitOfMeasure[QI]
+      windowEnd: Long
   ): QI = {
 
     /** Case class to hold current state of integration
@@ -168,7 +152,7 @@ object QuantityUtil {
     valuesWithinWindow
       .foldLeft(
         IntegrationState(
-          integrationUnit(0d),
+          startValue * Hours(0),
           windowStart,
           startValue
         )
@@ -178,11 +162,9 @@ object QuantityUtil {
               (tick, value)
             ) =>
           /* Calculate the partial integral over the last know value since it's occurrence and the instance when the newest value comes in */
-          val duration = (tick - lastTick).toDouble
-          val partialIntegral =
-            integrationUnit(lastValue.value.doubleValue * duration)
+          val duration = Seconds(tick - lastTick)
+          val partialIntegral = lastValue * duration
           val updatedIntegral = currentIntegral + partialIntegral
-
           IntegrationState(updatedIntegral, tick, value)
       }
       .currentIntegral
