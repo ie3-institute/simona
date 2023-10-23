@@ -1,9 +1,11 @@
-## Home Energy Management System
+(HomeEnergyManagementSystem)
+
+# Home Energy Management System
 
 The Home Energy Management System takes care to follow implemented Control Schemes of agents in households with prosumer behaviour. It manages the behaviour of load, storage (home storage and EVs) as well as PV production for a certain household.
 
-### Assumptions of implemented control schemes
-#### Optimize Self Consumption
+## Assumptions of implemented control schemes
+### Optimize Self Consumption
 
 If there is more energy produced at the household then there is demand the HEMS acts as follows:
 Load < Production at Household
@@ -26,9 +28,9 @@ Load > Production at household
 * 
 * 0 != PowerDemandGridAgent + PvInput - PowerDemandLoadAgent - PowerDemandHomeStorage - PowerDemandEvcs
 
-#### Price Signal
+### Price Signal
 
-### Time Steps
+## Time Steps
 
 Further developments could be done on implementing the possibility to choose between updating the value store at a fixed interval (or at every power flow calculation) and the actual implementation with updating value store when triggered by the agents
 
