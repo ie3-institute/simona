@@ -15,6 +15,9 @@ import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessag
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.BasicGridWithSwitches
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.Megavars
+import squants.electro.Kilovolts
+import squants.energy.Megawatts
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
@@ -45,8 +48,8 @@ class PowerFlowSupportSpec
         node6.uuid -> Some(
           ExchangeVoltage(
             node6.uuid,
-            110d.asKiloVolt,
-            0d.asKiloVolt
+            Kilovolts(110d),
+            Kilovolts(0d)
           )
         )
       ),
@@ -55,8 +58,8 @@ class PowerFlowSupportSpec
           ActorRef.noSender -> Some(
             ExchangePower(
               node1.uuid,
-              1d.asMegaWatt,
-              0d.asMegaVar
+              Megawatts(1d),
+              Megavars(0d)
             )
           )
         )

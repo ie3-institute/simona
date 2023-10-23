@@ -6,17 +6,17 @@
 
 package edu.ie3.simona.model.grid
 
-import java.time.ZonedDateTime
-import java.util.UUID
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.voltagelevels.VoltageLevel
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import tech.units.indriya.ComparableQuantity
+import squants.Each
 
-import javax.measure.quantity.Dimensionless
+import java.time.ZonedDateTime
+import java.util.UUID
 
 /** This model represents an electric node
   *
@@ -38,7 +38,7 @@ final case class NodeModel(
     id: String,
     operationInterval: OperationInterval,
     isSlack: Boolean,
-    vTarget: ComparableQuantity[Dimensionless],
+    vTarget: squants.Dimensionless,
     voltLvl: VoltageLevel
 ) extends SystemComponent(
       uuid,
@@ -68,7 +68,7 @@ case object NodeModel {
       nodeInput.getId,
       operationInterval,
       nodeInput.isSlack,
-      nodeInput.getvTarget(),
+      Each(nodeInput.getvTarget.to(PowerSystemUnits.PU).getValue.doubleValue()),
       nodeInput.getVoltLvl
     )
 

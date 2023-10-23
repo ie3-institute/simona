@@ -7,10 +7,9 @@
 package edu.ie3.simona.ontology.messages
 
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
-import javax.measure.quantity.ElectricPotential
+import squants.electro.ElectricPotential
 
 sealed trait VoltageMessage
 
@@ -55,8 +54,8 @@ object VoltageMessage {
       */
     final case class ExchangeVoltage(
         nodeUuid: UUID,
-        e: ComparableQuantity[ElectricPotential],
-        f: ComparableQuantity[ElectricPotential]
+        e: ElectricPotential,
+        f: ElectricPotential
     )
   }
 

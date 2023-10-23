@@ -7,13 +7,11 @@
 package edu.ie3.simona.model.thermal
 
 import java.util.UUID
-
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
-import edu.ie3.util.scala.quantities.DefaultQuantities
-import javax.measure.quantity.Energy
-import tech.units.indriya.ComparableQuantity
+import squants.Energy
+import squants.energy.WattHours
 
 /** Thermal storage model.
   *
@@ -35,6 +33,6 @@ abstract class ThermalStorage(
     operationTime: OperationTime,
     bus: ThermalBusInput
 ) {
-  protected val zeroEnergy: ComparableQuantity[Energy] =
-    DefaultQuantities.zeroKWH
+  protected val zeroEnergy: Energy =
+    WattHours(0d)
 }

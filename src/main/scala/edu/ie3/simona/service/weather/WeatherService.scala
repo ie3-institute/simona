@@ -32,13 +32,9 @@ import edu.ie3.simona.service.weather.WeatherSource.{
 }
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
-import javax.measure.Quantity
-import javax.measure.quantity.Length
 import scala.util.{Failure, Success, Try}
 
 object WeatherService {
@@ -47,17 +43,14 @@ object WeatherService {
       scheduler: ActorRef,
       startDateTime: ZonedDateTime,
       simulationEnd: ZonedDateTime,
-      amountOfInterpolationCoordinates: Int = 4,
-      maxInterpolationCoordinateDistance: Quantity[Length] =
-        Quantities.getQuantity(28, PowerSystemUnits.KILOMETRE)
+      amountOfInterpolationCoordinates: Int = 4
   ): Props =
     Props(
       new WeatherService(
         scheduler,
         startDateTime,
         simulationEnd,
-        amountOfInterpolationCoordinates,
-        maxInterpolationCoordinateDistance
+        amountOfInterpolationCoordinates
       )
     )
 
@@ -107,8 +100,7 @@ final case class WeatherService(
     override val scheduler: ActorRef,
     private implicit val simulationStart: ZonedDateTime,
     simulationEnd: ZonedDateTime,
-    private val amountOfInterpolationCoords: Int,
-    private val maxInterpolationCoordinateDistance: Quantity[Length]
+    private val amountOfInterpolationCoords: Int
 ) extends SimonaService[
       WeatherInitializedStateData
     ](scheduler) {
@@ -232,8 +224,7 @@ final case class WeatherService(
         /* The coordinate itself is not known yet. Try to figure out, which weather coordinates are relevant */
         serviceStateData.weatherSource.getWeightedCoordinates(
           agentCoord,
-          amountOfInterpolationCoords,
-          maxInterpolationCoordinateDistance
+          amountOfInterpolationCoords
         ) match {
           case Success(weightedCoordinates) =>
             agentToBeRegistered ! RegistrationSuccessfulMessage(

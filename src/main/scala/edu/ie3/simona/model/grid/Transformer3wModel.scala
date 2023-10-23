@@ -7,9 +7,6 @@
 package edu.ie3.simona.model.grid
 
 import breeze.linalg.max
-
-import java.time.ZonedDateTime
-import java.util.UUID
 import breeze.math.Complex
 import breeze.numerics.pow
 import com.typesafe.scalalogging.LazyLogging
@@ -30,12 +27,16 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import squants.electro.{Kilovolts, Ohms, Siemens}
+import squants.energy.Megawatts
+import tech.units.indriya.AbstractUnit
+import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units.{OHM, SIEMENS}
 
+import java.time.ZonedDateTime
+import java.util.UUID
 import javax.measure.Quantity
 import javax.measure.quantity.{Dimensionless, ElectricPotential}
-import tech.units.indriya.{AbstractUnit, ComparableQuantity}
-import tech.units.indriya.quantity.Quantities
-
 import scala.math.BigDecimal.RoundingMode
 
 /** This model represents a three winding transformer incorporating a virtual
@@ -90,10 +91,10 @@ final case class Transformer3wModel(
     override protected val transformerTappingModel: TransformerTappingModel,
     amount: Int,
     powerFlowCase: Transformer3wPowerFlowCase,
-    protected val r: ComparableQuantity[Dimensionless],
-    protected val x: ComparableQuantity[Dimensionless],
-    protected val g: ComparableQuantity[Dimensionless],
-    protected val b: ComparableQuantity[Dimensionless]
+    protected val r: squants.Dimensionless,
+    protected val x: squants.Dimensionless,
+    protected val g: squants.Dimensionless,
+    protected val b: squants.Dimensionless
 ) extends SystemComponent(
       uuid,
       id,
@@ -276,10 +277,10 @@ case object Transformer3wModel extends LazyLogging {
       transformerTappingModel,
       transformer3wInput.getParallelDevices,
       powerFlowCase,
-      Quantities.getQuantity(r.getValue.doubleValue(), PU),
-      Quantities.getQuantity(x.getValue.doubleValue(), PU),
-      Quantities.getQuantity(g.getValue.doubleValue(), PU),
-      Quantities.getQuantity(b.getValue.doubleValue(), PU)
+      r,
+      x,
+      g,
+      b
     )
 
     // if the transformer3w input model is in operation, enable the model
@@ -315,13 +316,20 @@ case object Transformer3wModel extends LazyLogging {
       refSystem: RefSystem,
       powerFlowCase: Transformer3wPowerFlowCase
   ): (
-      ComparableQuantity[Dimensionless],
-      ComparableQuantity[Dimensionless],
-      ComparableQuantity[Dimensionless],
-      ComparableQuantity[Dimensionless]
+      squants.Dimensionless,
+      squants.Dimensionless,
+      squants.Dimensionless,
+      squants.Dimensionless
   ) = {
     val transformerRefSystem =
-      RefSystem(transformerType.getsRatedA, transformerType.getvRatedA)
+      RefSystem(
+        Megawatts(
+          transformerType.getsRatedA.to(MEGAVOLTAMPERE).getValue.doubleValue()
+        ),
+        Kilovolts(
+          transformerType.getvRatedA.to(KILOVOLT).getValue.doubleValue()
+        )
+      )
 
     /* Get the physical equivalent circuit diagram parameters from type. They come with reference to the highest
      * voltage side, therefore, in power flow case B and C, they need to be adapted. */
@@ -366,13 +374,13 @@ case object Transformer3wModel extends LazyLogging {
     /* Translate the single parameters to dimensionless units based on the grid's reference system */
     (
       /* r */
-      refSystem.rInPu(rTrafo),
+      refSystem.rInPu(Ohms(rTrafo.to(OHM).getValue.doubleValue())),
       /* x */
-      refSystem.xInPu(xTrafo),
+      refSystem.xInPu(Ohms(xTrafo.to(OHM).getValue.doubleValue())),
       /* g */
-      refSystem.gInPu(gTrafo),
+      refSystem.gInPu(Siemens(gTrafo.to(SIEMENS).getValue.doubleValue())),
       /* b */
-      refSystem.bInPu(bTrafo)
+      refSystem.bInPu(Siemens(bTrafo.to(SIEMENS).getValue.doubleValue()))
     )
   }
 
@@ -523,10 +531,10 @@ case object Transformer3wModel extends LazyLogging {
     val amount = transformer3wModel.amount
     transformer3wModel.powerFlowCase match {
       case PowerFlowCaseA if port.equals(Transformer3wPort.INTERNAL) =>
-        val gij = transformer3wModel.gij().getValue.doubleValue()
-        val bij = transformer3wModel.bij().getValue.doubleValue()
-        val gii = transformer3wModel.g0().getValue.doubleValue()
-        val bii = transformer3wModel.b0().getValue.doubleValue()
+        val gij = transformer3wModel.gij().value.doubleValue()
+        val bij = transformer3wModel.bij().value.doubleValue()
+        val gii = transformer3wModel.g0().value.doubleValue()
+        val bii = transformer3wModel.b0().value.doubleValue()
         amount * ((1 - 1 / transformer3wModel.tapRatio) * Complex(
           gij,
           bij
@@ -552,8 +560,8 @@ case object Transformer3wModel extends LazyLogging {
     */
   def yij(transformer3wModel: Transformer3wModel): Complex = {
     val amount = transformer3wModel.amount
-    val gij = transformer3wModel.gij().getValue.doubleValue()
-    val bij = transformer3wModel.bij().getValue.doubleValue()
+    val gij = transformer3wModel.gij().value.doubleValue()
+    val bij = transformer3wModel.bij().value.doubleValue()
     transformer3wModel.powerFlowCase match {
       case PowerFlowCaseA =>
         amount * Complex(gij, bij) / transformer3wModel.tapRatio
