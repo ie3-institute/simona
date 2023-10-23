@@ -6,13 +6,9 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import squants.energy.Megawatts
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-
-import javax.measure.quantity.{Dimensionless, Power}
+import squants.{Dimensionless, Power}
 
 trait ApparentPowerAndHeatParticipant[CD <: CalcRelevantData] {
   this: SystemParticipant[CD, ApparentPowerAndHeat] =>
@@ -40,5 +36,5 @@ trait ApparentPowerAndHeatParticipant[CD <: CalcRelevantData] {
     * @return
     *   Heat production or consumption of the asset
     */
-  def calculateHeat(tick: Long, data: CD): ComparableQuantity[Power]
+  def calculateHeat(tick: Long, data: CD): Power
 }

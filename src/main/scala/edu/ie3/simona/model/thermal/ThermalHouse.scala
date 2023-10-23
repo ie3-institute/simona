@@ -334,7 +334,7 @@ final case class ThermalHouse(
     * @return
     *   The next threshold, that will be reached
     */
-  // TODO DF Squants
+
   private def nextThreshold(
       tick: Long,
       qDotExternal: Power,
@@ -395,7 +395,7 @@ final case class ThermalHouse(
     else {
       val duration =
         flexibleEnergy / (qDot * math.signum(qDot.value.doubleValue()))
-      tick + duration
+      tick + duration.toSeconds.toLong
     }
   }
 }

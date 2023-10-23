@@ -45,7 +45,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.PU
-import edu.ie3.util.scala.quantities.Megavars
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import squants.{Dimensionless, Each, Power}
 import squants.energy.Megawatts
 import tech.units.indriya.quantity.Quantities
@@ -313,7 +313,7 @@ trait HpAgentFundamentals
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        Power => Power
+        Power => ReactivePower
       ]
   ): ApparentPowerAndHeat =
     ParticipantAgentFundamentals.averageApparentPowerAndHeat(

@@ -7,6 +7,7 @@
 package edu.ie3.simona.io.grid
 
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
+import edu.ie3.datamodel.io.source._
 import edu.ie3.datamodel.io.source.csv._
 import edu.ie3.datamodel.models.input.container._
 import edu.ie3.datamodel.models.input.thermal.{
@@ -15,60 +16,49 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalStorageInput
 }
 
+import java.nio.file.Path
 import scala.jdk.CollectionConverters._
-import scala.jdk.OptionConverters._
 
 object CsvGridSource {
   def readGrid(
       gridName: String,
       csvSep: String,
-      baseFolder: String,
+      baseFolder: Path,
       fileNamingStrategy: FileNamingStrategy
   ): Option[JointGridContainer] = {
-
+    val csvDataSource =
+      new CsvDataSource(csvSep, baseFolder, fileNamingStrategy)
     // build the sources
-    val csvTypeSource: CsvTypeSource =
-      new CsvTypeSource(csvSep, baseFolder, fileNamingStrategy)
-    val csvRawGridSource: CsvRawGridSource = new CsvRawGridSource(
-      csvSep,
-      baseFolder,
-      fileNamingStrategy,
-      csvTypeSource
-    )
-    val csvThermalSource: CsvThermalSource = new CsvThermalSource(
-      csvSep,
-      baseFolder,
-      fileNamingStrategy,
-      csvTypeSource
-    )
-    val csvSystemParticipantSource: CsvSystemParticipantSource =
-      new CsvSystemParticipantSource(
-        csvSep,
-        baseFolder,
-        fileNamingStrategy,
+    val csvTypeSource: TypeSource = new TypeSource(csvDataSource)
+
+    val csvRawGridSource: RawGridSource =
+      new RawGridSource(csvTypeSource, csvDataSource)
+
+    val csvThermalSource: ThermalSource =
+      new ThermalSource(csvTypeSource, csvDataSource)
+
+    val csvSystemParticipantSource: SystemParticipantSource =
+      new SystemParticipantSource(
         csvTypeSource,
         csvThermalSource,
-        csvRawGridSource
+        csvRawGridSource,
+        csvDataSource
       )
-    val csvGraphicSource: CsvGraphicSource = new CsvGraphicSource(
-      csvSep,
-      baseFolder,
-      fileNamingStrategy,
-      csvTypeSource,
-      csvRawGridSource
-    )
+
+    val csvGraphicSource: GraphicSource =
+      new GraphicSource(csvTypeSource, csvRawGridSource, csvDataSource)
 
     // read and get the models
-    val rawGridElements = csvRawGridSource.getGridData.toScala
+    val rawGridElements = csvRawGridSource.getGridData
     val systemParticipants =
-      csvSystemParticipantSource.getSystemParticipants.toScala
-    val graphicElements = csvGraphicSource.getGraphicElements.toScala
+      csvSystemParticipantSource.getSystemParticipants
+    val graphicElements = csvGraphicSource.getGraphicElements
 
     (rawGridElements, systemParticipants, graphicElements) match {
       case (
-            Some(rawGridElements),
-            Some(systemParticipants),
-            Some(graphicElements)
+            rawGridElements,
+            systemParticipants,
+            graphicElements
           ) =>
         Some(
           new JointGridContainer(
@@ -84,17 +74,15 @@ object CsvGridSource {
 
   def readThermalGrids(
       csvSep: String,
-      baseFolder: String,
+      baseFolder: Path,
       fileNamingStrategy: FileNamingStrategy
   ): Map[ThermalBusInput, ThermalGrid] = {
-    val csvTypeSource: CsvTypeSource =
-      new CsvTypeSource(csvSep, baseFolder, fileNamingStrategy)
-    val csvThermalSource: CsvThermalSource = new CsvThermalSource(
-      csvSep,
-      baseFolder,
-      fileNamingStrategy,
-      csvTypeSource
-    )
+    val csvDataSource =
+      new CsvDataSource(csvSep, baseFolder, fileNamingStrategy)
+    val csvTypeSource: TypeSource =
+      new TypeSource(csvDataSource)
+    val csvThermalSource: ThermalSource =
+      new ThermalSource(csvTypeSource, csvDataSource)
     val operators = csvTypeSource.getOperators
     val busses = csvThermalSource.getThermalBuses()
     val houses = csvThermalSource
