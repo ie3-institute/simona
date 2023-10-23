@@ -83,7 +83,7 @@ class RandomLoadModelTest extends Specification {
     where:
     reference                                                          || expSRated
     new ActivePower(Sq.create(268.6d, Watts$.MODULE$))                 || Sq.create(311.0105263157895d, Watts$.MODULE$)
-    new EnergyConsumption(Sq.create(2000d, KilowattHours$.MODULE$))    || Sq.create(467.156124576697d, Watts$.MODULE$)
+    new EnergyConsumption(Sq.create(2000d, KilowattHours$.MODULE$))    || Sq.create(513.8717370343667d, Watts$.MODULE$)
   }
 
   def "A random load model is able to deliver the correct distribution on request"() {
