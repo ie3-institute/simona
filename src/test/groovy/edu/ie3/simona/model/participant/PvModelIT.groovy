@@ -6,32 +6,36 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.io.naming.FileNamingStrategy
+import java.nio.file.Path
+
+import static edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
+
+import static java.util.Locale.US
+import static java.util.Locale.setDefault
+import static tech.units.indriya.quantity.Quantities.getQuantity
+
+import edu.ie3.datamodel.io.source.csv.CsvJointGridContainerSource
 import edu.ie3.datamodel.models.input.system.PvInput
-import edu.ie3.simona.io.grid.CsvGridSource
-import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.control.QControl
+
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.interfaces.Irradiance
+
+import edu.ie3.util.scala.quantities.Sq
+
+import edu.ie3.util.scala.quantities.WattsPerSquareMeter$
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVRecord
 import spock.lang.Shared
 import spock.lang.Specification
-import tech.units.indriya.ComparableQuantity
+import squants.*
+import squants.motion.MetersPerSecond$
+import squants.thermal.Kelvin$
 
 import javax.measure.Quantity
-import javax.measure.quantity.Dimensionless
+
 import javax.measure.quantity.Power
 import java.time.ZonedDateTime
 import java.util.zip.GZIPInputStream
-
-import static edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
-import static edu.ie3.util.quantities.PowerSystemUnits.PU
-import static java.util.Locale.US
-import static java.util.Locale.setDefault
-import static tech.units.indriya.quantity.Quantities.getQuantity
-import static tech.units.indriya.unit.Units.*
 
 /**
  * A simple integration test that uses pre-calculated data to check if the pv model works as expected.
@@ -56,8 +60,8 @@ class PvModelIT extends Specification implements PvModelITHelper {
     setDefault(US)
 
     pvModels = createPvModels()
-    weatherMap = getWeatherData()
-    resultsMap = getResultsData()
+    weatherMap = weatherData
+    resultsMap = resultsData
   }
 
   def "8 pv panels full year test"() {
@@ -88,12 +92,17 @@ class PvModelIT extends Specification implements PvModelITHelper {
 
         "build the needed data"
         WeatherMessage.WeatherData weather = modelToWeatherMap.get(modelId)
-        PvModel.PvRelevantData neededData = new PvModel.PvRelevantData(dateTime,3600L, weather.diffIrr() as ComparableQuantity<Irradiance>, weather.dirIrr() as ComparableQuantity<Irradiance>)
-        ComparableQuantity<Dimensionless> voltage = getQuantity(1.414213562, PU)
+        PvModel.PvRelevantData neededData = new PvModel.PvRelevantData(
+            dateTime,
+            3600L,
+            weather.diffIrr(),
+            weather.dirIrr()
+            )
+        Dimensionless voltage = Sq.create(1.414213562d, Each$.MODULE$)
 
         "collect the results and calculate the difference between the provided results and the calculated ones"
-        double calc = model.calculatePower(0L, voltage, neededData).p().getValue().doubleValue()
-        double sol = resultsMap.get(dateTime).get(modelId).getValue().doubleValue()
+        double calc = model.calculatePower(0L, voltage, neededData).p().value().doubleValue()
+        double sol = resultsMap.get(dateTime).get(modelId).value.doubleValue()
 
         testRes.add(Math.abs(calc - sol))
 
@@ -102,7 +111,6 @@ class PvModelIT extends Specification implements PvModelITHelper {
 
         modelI++
       }
-
     }
 
     then: "we expect the calculated result to be quasi equal the provided results data"
@@ -127,34 +135,19 @@ trait PvModelITHelper {
   HashMap<String, PvModel> createPvModels() {
     "load the grid input data from the corresponding resources folder"
 
-    def csvGridSource = CsvGridSource.readGrid("it_grid", ";",
-        this.getClass().getResource("_pv/it/grid_data").file,
-        new FileNamingStrategy())
+    def csvGridSource = CsvJointGridContainerSource.read("it_grid", ";",
+        Path.of(this.getClass().getResource("_pv/it/grid_data").toURI()), false)
 
     def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2011-01-01 00:00:00")
     def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2012-01-01 00:00:00")
 
     HashMap<String, PvModel> pvModels = new HashMap<>()
-    for (PvInput inputModel : csvGridSource.get().getSystemParticipants().getPvPlants()) {
+    for (PvInput inputModel : csvGridSource.systemParticipants.pvPlants) {
       PvModel model = PvModel.apply(
-          inputModel.getUuid(),
-          inputModel.getId(),
-          SystemComponent.determineOperationInterval(
-          simulationStartDate,
-          simulationEndDate,
-          inputModel.getOperationTime()
-          ),
+          inputModel,
           1d,
-          QControl.apply(inputModel.getqCharacteristics()),
-          inputModel.getsRated(),
-          inputModel.getCosPhiRated(),
-          inputModel.getNode().getGeoPosition().getY(),
-          inputModel.getNode().getGeoPosition().getX(),
-          inputModel.getAlbedo(),
-          inputModel.getEtaConv(),
-          inputModel.getAzimuth(),
-          inputModel.getElevationAngle(),
-          getQuantity(1d, SQUARE_METRE)
+          simulationStartDate,
+          simulationEndDate
           )
 
       pvModels.put(inputModel.getId(), model)
@@ -187,13 +180,10 @@ trait PvModelITHelper {
       double windVel = 0
 
       WeatherMessage.WeatherData weather = new WeatherMessage.WeatherData(
-          (ComparableQuantity<Irradiance>) getQuantity(row.get(22)
-          .replace("Wh/m²", "W/m²")
-          .split("\u0000")[0]),
-          (ComparableQuantity<Irradiance>) getQuantity(row.get(21)
-          .replace("Wh/m²", "W/m²")),
-          getQuantity(temp, KELVIN),
-          getQuantity(windVel, METRE_PER_SECOND))
+          Sq.create(row.get(22).replace("Wh/m²", "").toDouble(), WattsPerSquareMeter$.MODULE$),
+          Sq.create(row.get(21).replace("Wh/m²", "").toDouble(), WattsPerSquareMeter$.MODULE$),
+          Sq.create(temp, Kelvin$.MODULE$),
+          Sq.create(windVel, MetersPerSecond$.MODULE$))
 
       modelToWeatherMap.put(modelId, weather)
     }

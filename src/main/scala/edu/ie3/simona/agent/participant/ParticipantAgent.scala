@@ -8,10 +8,12 @@ package edu.ie3.simona.agent.participant
 
 import akka.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.simona.agent.SimonaAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
+import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FromOutsideBaseStateData,
   ParticipantModelBaseStateData
@@ -33,8 +35,6 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   Calculate,
   HandleInformation
 }
-import edu.ie3.simona.agent.SimonaAgent
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
@@ -53,10 +53,10 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   FinishGridSimulationTrigger,
   InitializeParticipantAgentTrigger
 }
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.scala.quantities.ReactivePower
+import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
-import javax.measure.quantity.{Dimensionless, Power}
 
 /** Common properties to participant agents
   *
@@ -152,7 +152,7 @@ abstract class ParticipantAgent[
 
       /* Remove this tick from the array of foreseen activation ticks */
       val additionalActivationTicks =
-        modelBaseStateData.additionalActivationTicks.filter(_ > currentTick)
+        modelBaseStateData.additionalActivationTicks.rangeFrom(currentTick + 1)
       goto(Calculate) using BaseStateData.updateBaseStateData(
         modelBaseStateData,
         modelBaseStateData.resultValueStore,
@@ -627,7 +627,7 @@ abstract class ParticipantAgent[
   val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[PD, CD, M],
-      ComparableQuantity[Dimensionless]
+      Dimensionless
   ) => PD
 
   /** Abstractly calculate the power output of the participant without needing
@@ -654,11 +654,11 @@ abstract class ParticipantAgent[
       baseStateData: ParticipantModelBaseStateData[PD, CD, M],
       currentTick: Long,
       scheduler: ActorRef,
-      nodalVoltage: ComparableQuantity[Dimensionless],
+      nodalVoltage: Dimensionless,
       calculateModelPowerFunc: (
           Long,
           ParticipantModelBaseStateData[PD, CD, M],
-          ComparableQuantity[Dimensionless]
+          Dimensionless
       ) => PD
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
@@ -718,8 +718,8 @@ abstract class ParticipantAgent[
   def answerPowerRequestAndStayWithUpdatedStateData(
       baseStateData: BaseStateData[PD],
       requestTick: Long,
-      eInPu: ComparableQuantity[Dimensionless],
-      fInPu: ComparableQuantity[Dimensionless],
+      eInPu: Dimensionless,
+      fInPu: Dimensionless,
       alternativeResult: PD
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
@@ -734,8 +734,8 @@ abstract class ParticipantAgent[
   def announceAssetPowerRequestReply(
       baseStateData: BaseStateData[_],
       currentTick: Long,
-      activePower: ComparableQuantity[Power],
-      reactivePower: ComparableQuantity[Power]
+      activePower: Power,
+      reactivePower: ReactivePower
   )(implicit outputConfig: ParticipantNotifierConfig): Unit
 
   /** Abstract definition to clean up agent value stores after power flow
@@ -771,7 +771,7 @@ case object ParticipantAgent {
   def getAndCheckNodalVoltage(
       baseStateData: BaseStateData[_ <: PrimaryData],
       currentTick: Long
-  ): ComparableQuantity[Dimensionless] = {
+  ): Dimensionless = {
     baseStateData.voltageValueStore.last(currentTick) match {
       case Some((_, voltage)) => voltage
       case None =>

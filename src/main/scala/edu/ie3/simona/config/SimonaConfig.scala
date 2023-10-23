@@ -1,5 +1,5 @@
 /*
- * © 2022. TU Dortmund University,
+ * © 2023. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
@@ -1251,6 +1251,7 @@ object SimonaConfig {
             influxDb1xParams: scala.Option[
               SimonaConfig.Simona.Input.Weather.Datasource.InfluxDb1xParams
             ],
+            maxCoordinateDistance: scala.Double,
             resolution: scala.Option[scala.Long],
             sampleParams: scala.Option[
               SimonaConfig.Simona.Input.Weather.Datasource.SampleParams
@@ -1267,6 +1268,9 @@ object SimonaConfig {
               gridModel: java.lang.String,
               sampleParams: scala.Option[
                 SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams
+              ],
+              sqlParams: scala.Option[
+                SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SqlParams
               ]
           )
           object CoordinateSource {
@@ -1284,6 +1288,53 @@ object SimonaConfig {
                     use = !c.hasPathOrNull("use") || c.getBoolean("use")
                   )
               }
+            }
+
+            final case class SqlParams(
+                jdbcUrl: java.lang.String,
+                password: java.lang.String,
+                schemaName: java.lang.String,
+                tableName: java.lang.String,
+                userName: java.lang.String
+            )
+            object SqlParams {
+              def apply(
+                  c: com.typesafe.config.Config,
+                  parentPath: java.lang.String,
+                  $tsCfgValidator: $TsCfgValidator
+              ): SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SqlParams = {
+                SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
+                  .SqlParams(
+                    jdbcUrl =
+                      $_reqStr(parentPath, c, "jdbcUrl", $tsCfgValidator),
+                    password =
+                      $_reqStr(parentPath, c, "password", $tsCfgValidator),
+                    schemaName =
+                      if (c.hasPathOrNull("schemaName"))
+                        c.getString("schemaName")
+                      else "public",
+                    tableName =
+                      $_reqStr(parentPath, c, "tableName", $tsCfgValidator),
+                    userName =
+                      $_reqStr(parentPath, c, "userName", $tsCfgValidator)
+                  )
+              }
+              private def $_reqStr(
+                  parentPath: java.lang.String,
+                  c: com.typesafe.config.Config,
+                  path: java.lang.String,
+                  $tsCfgValidator: $TsCfgValidator
+              ): java.lang.String = {
+                if (c == null) null
+                else
+                  try c.getString(path)
+                  catch {
+                    case e: com.typesafe.config.ConfigException =>
+                      $tsCfgValidator.addBadPath(parentPath + path, e)
+                      null
+                  }
+              }
+
             }
 
             def apply(
@@ -1312,6 +1363,17 @@ object SimonaConfig {
                         .SampleParams(
                           c.getConfig("sampleParams"),
                           parentPath + "sampleParams.",
+                          $tsCfgValidator
+                        )
+                    )
+                  else None,
+                sqlParams =
+                  if (c.hasPathOrNull("sqlParams"))
+                    scala.Some(
+                      SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
+                        .SqlParams(
+                          c.getConfig("sqlParams"),
+                          parentPath + "sqlParams.",
                           $tsCfgValidator
                         )
                     )
@@ -1524,6 +1586,10 @@ object SimonaConfig {
                       )
                   )
                 else None,
+              maxCoordinateDistance =
+                if (c.hasPathOrNull("maxCoordinateDistance"))
+                  c.getDouble("maxCoordinateDistance")
+                else 50000,
               resolution =
                 if (c.hasPathOrNull("resolution"))
                   Some(c.getLong("resolution").longValue())

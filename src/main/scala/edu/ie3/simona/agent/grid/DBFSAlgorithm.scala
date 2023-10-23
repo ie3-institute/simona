@@ -46,12 +46,13 @@ import edu.ie3.simona.ontology.messages.VoltageMessage.{
 }
 import edu.ie3.simona.ontology.trigger.Trigger._
 import edu.ie3.simona.util.TickUtil._
-import edu.ie3.util.quantities.PowerSystemUnits._
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.scala.quantities.Megavars
+import edu.ie3.util.scala.quantities.SquantsUtils.RichElectricPotential
+import squants.Each
+import squants.energy.Megawatts
 
 import java.time.{Duration, ZonedDateTime}
 import java.util.UUID
-import javax.measure.quantity.ElectricPotential
 import scala.concurrent.{ExecutionContext, Future}
 
 /** Trait that is normally mixed into every [[GridAgent]] to enable distributed
@@ -213,8 +214,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             currentSweepNo - 1
           )
 
-          val refSystemVUnit =
-            gridAgentBaseData.gridEnv.gridModel.mainRefSystem.nominalVoltage.getUnit
+          val refSystem =
+            gridAgentBaseData.gridEnv.gridModel.mainRefSystem
 
           /* Determine the slack node voltage under consideration of the target voltage set point */
           val vTarget =
@@ -223,17 +224,13 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                 uuid == nodeUuid && isSlack
               }
               .map(_.vTarget)
-              .getOrElse(Quantities.getQuantity(1d, PU))
-          val vSlack = vTarget
-            .multiply(
-              gridAgentBaseData.gridEnv.gridModel.mainRefSystem.nominalVoltage
-            )
-            .asType(classOf[ElectricPotential])
-            .to(refSystemVUnit)
+              .getOrElse(Each(1d))
+          val vSlack =
+            refSystem.nominalVoltage.multiplyWithDimensionles(vTarget)
 
           (
             vSlack,
-            Quantities.getQuantity(0, refSystemVUnit)
+            refSystem.vInSi(0d)
           )
         } match {
           case (slackE, slackF) =>
@@ -327,14 +324,14 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                         // To model the exchanged power from the superior grid's point of view, -1 has to be multiplied.
                         // (Inferior grid is a feed in facility to superior grid, which is negative then). Analogously for load case.
                         (
-                          refSystem.pInSi(pInPu).multiply(-1),
-                          refSystem.qInSi(qInPu).multiply(-1)
+                          refSystem.pInSi(pInPu) * (-1),
+                          refSystem.qInSi(qInPu) * (-1)
                         )
                       case _ =>
                         /* TODO: As long as there are no multiple slack nodes, provide "real" power only for the slack node */
                         (
-                          Quantities.getQuantity(0d, MEGAWATT),
-                          Quantities.getQuantity(0d, MEGAVAR)
+                          Megawatts(0d),
+                          Megavars(0d)
                         )
                     }
                     .getOrElse {
@@ -344,7 +341,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                     }
                 }
                 .map { case (nodeUuid, (p, q)) =>
-                  ProvideGridPowerMessage.ExchangePower(nodeUuid, p, q)
+                  ProvideGridPowerMessage.ExchangePower(
+                    nodeUuid,
+                    p,
+                    q
+                  )
                 }
 
               /* Determine the remaining replies */
@@ -856,8 +857,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             val allowedDeviation =
               gridAgentBaseData.powerFlowParams.maxSweepPowerDeviation
 
-            (previousSweepNodePower - currentSweepNodePower)
-              .toScalaVector()
+            (previousSweepNodePower - currentSweepNodePower).toScalaVector
               .find(complex => {
                 Math.abs(complex.real) >= allowedDeviation |
                   Math.abs(complex.imag) >= allowedDeviation
@@ -876,8 +876,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
                 log.debug(
                   "Final deviation: {}",
-                  (previousSweepNodePower - currentSweepNodePower)
-                    .toScalaVector()
+                  (previousSweepNodePower - currentSweepNodePower).toScalaVector
                 )
 
                 // go back to SimulateGrid and trigger a finish
@@ -1102,8 +1101,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                       )
                     case None =>
                       (
-                        Quantities.getQuantity(1, PU),
-                        Quantities.getQuantity(0, PU)
+                        Each(1d),
+                        Each(0d)
                       )
                   }
 

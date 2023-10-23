@@ -37,11 +37,12 @@ import edu.ie3.simona.test.common.{
   TestKitWithShutdown,
   UnitSpec
 }
-import edu.ie3.util.quantities.PowerSystemUnits._
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.scala.quantities.Megavars
+import squants.energy.Megawatts
 
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
+import scala.language.postfixOps
 
 /** Test to ensure the functions that a [[GridAgent]] in superior position
   * should be able to do if the DBFSAlgorithm is used. The scheduler, the
@@ -197,8 +198,8 @@ class DBFSAlgorithmSupGridSpec
               requestedConnectionNodeUuids.map { uuid =>
                 ExchangePower(
                   uuid,
-                  Quantities.getQuantity(0, KILOWATT),
-                  Quantities.getQuantity(0, KILOVAR)
+                  Megawatts(0.0),
+                  Megavars(0.0)
                 )
               }
             )
@@ -206,7 +207,8 @@ class DBFSAlgorithmSupGridSpec
 
           // we expect a completion message here and that the agent goes back to simulate grid
           // and waits until the newly scheduled StartGridSimulationTrigger is send
-          scheduler.expectMsgPF() {
+          // wait 30 seconds max for power flow to finish
+          scheduler.expectMsgPF(30 seconds) {
             case CompletionMessage(
                   2,
                   Some(
@@ -267,24 +269,24 @@ class DBFSAlgorithmSupGridSpec
         val deviations =
           Array(
             (
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(0, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             ),
             (
-              Quantities.getQuantity(100, KILOWATT),
-              Quantities.getQuantity(100, KILOVAR)
+              Megawatts(0.1),
+              Megavars(0.1)
             ),
             (
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(100, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.1)
             ),
             (
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(0, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             ),
             (
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(0, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             )
           )
 
@@ -363,7 +365,8 @@ class DBFSAlgorithmSupGridSpec
           // and waits until the newly scheduled StartGridSimulationTrigger is send
 
           // Simulate Grid
-          scheduler.expectMsgPF(30.seconds) {
+          // wait 30 seconds max for power flow to finish
+          scheduler.expectMsgPF(30 seconds) {
             case CompletionMessage(
                   _,
                   Some(

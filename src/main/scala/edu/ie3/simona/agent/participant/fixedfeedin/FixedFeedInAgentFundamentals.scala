@@ -37,22 +37,15 @@ import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.FixedFeedInModel
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KILOVARHOUR,
-  KILOWATTHOUR,
-  MEGAVAR,
-  MEGAWATT,
-  PU
-}
-import edu.ie3.util.scala.quantities.QuantityUtil
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.quantities.PowerSystemUnits.PU
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.ReactivePower
+import squants.{Each, Power, Dimensionless}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Energy, Power}
+import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
-import scala.util.{Failure, Success}
 
 protected trait FixedFeedInAgentFundamentals
     extends ParticipantAgentFundamentals[
@@ -126,11 +119,11 @@ protected trait FixedFeedInAgentFundamentals
        *  3) The tick, it turns off (in time dependent operation)
        * Coinciding ticks are summarized and the last tick is removed, as the change in operation status
        * doesn't affect anything then */
-      List[Long](
+      SortedSet[Long](
         SimonaConstants.FIRST_TICK_IN_SIMULATION,
         model.operationInterval.start,
         model.operationInterval.end
-      ).distinct.sorted.filterNot(_ == lastTickInSimulation).toArray
+      ).filterNot(_ == lastTickInSimulation)
 
     ParticipantModelBaseStateData(
       simulationStartDate,
@@ -143,9 +136,13 @@ protected trait FixedFeedInAgentFundamentals
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution,
-        inputModel.getNode
-          .getvTarget()
-          .to(PU)
+        Each(
+          inputModel.getNode
+            .getvTarget()
+            .to(PU)
+            .getValue
+            .doubleValue
+        )
       ),
       ValueStore.forResult(resolution, 2),
       ValueStore(resolution),
@@ -172,7 +169,7 @@ protected trait FixedFeedInAgentFundamentals
         FixedRelevantData.type,
         FixedFeedInModel
       ],
-      ComparableQuantity[Dimensionless]
+      Dimensionless
   ) => ApparentPower = (
       currentTick: Long,
       baseStateData: ParticipantModelBaseStateData[
@@ -180,7 +177,7 @@ protected trait FixedFeedInAgentFundamentals
         FixedRelevantData.type,
         FixedFeedInModel
       ],
-      voltage: ComparableQuantity[Dimensionless]
+      voltage: Dimensionless
   ) =>
     baseStateData.model match {
       case fixedModel: FixedFeedInModel =>
@@ -237,7 +234,7 @@ protected trait FixedFeedInAgentFundamentals
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        Power => ReactivePower
       ] = None
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
@@ -267,7 +264,7 @@ protected trait FixedFeedInAgentFundamentals
     new FixedFeedInResult(
       dateTime,
       uuid,
-      result.p,
-      result.q
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
     )
 }

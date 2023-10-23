@@ -7,8 +7,6 @@
 package edu.ie3.simona.agent.grid
 
 import akka.event.{LoggingAdapter, NoLogging}
-
-import java.util.{Objects, UUID}
 import breeze.math.Complex
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
@@ -41,19 +39,20 @@ import edu.ie3.simona.test.common.model.grid.{
 }
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  DEGREE_GEOM,
-  KILOVOLTAMPERE,
-  PU
-}
-import edu.ie3.util.quantities.{PowerSystemUnits, QuantityUtil}
+import edu.ie3.util.quantities.PowerSystemUnits.{DEGREE_GEOM, PU}
+import edu.ie3.util.quantities.QuantityUtil
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.{QuantityUtil => ScalaQuantityUtil}
 import org.scalatest.prop.TableDrivenPropertyChecks
+import squants.Each
+import squants.electro.{Amperes, Volts}
+import squants.energy.Kilowatts
+import squants.space.Degrees
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
-import tech.units.indriya.unit.Units.{AMPERE, VOLT}
+import tech.units.indriya.unit.Units.AMPERE
 
+import java.util.{Objects, UUID}
 import scala.math.{cos, sin}
 
 class GridResultsSupportSpec
@@ -63,6 +62,8 @@ class GridResultsSupportSpec
     with TableDrivenPropertyChecks {
 
   override protected val log: LoggingAdapter = NoLogging
+  implicit val currentTolerance: squants.electro.ElectricCurrent = Amperes(1e-6)
+  implicit val angleTolerance: squants.Angle = Degrees(1e-6)
 
   "Preparing grid results" when {
     "calculating node results" should {
@@ -120,10 +121,10 @@ class GridResultsSupportSpec
       }
 
       "calculate line results correctly" in new BasicGrid {
-        line01.enable()
+        line0To1.enable()
         val expectedLineResult = new LineResult(
           defaultSimulationStart,
-          line01.uuid,
+          line0To1.uuid,
           Quantities
             .getQuantity(24.94091597114390620787, Units.AMPERE),
           Quantities
@@ -154,7 +155,7 @@ class GridResultsSupportSpec
         )
 
         val lineResult: LineResult = calcLineResult(
-          line01,
+          line0To1,
           nodeAStateData,
           nodeBStateData,
           default400Kva10KvRefSystem.nominalCurrent,
@@ -186,9 +187,9 @@ class GridResultsSupportSpec
         ) shouldBe true
 
         // if line is disabled zero results are expected
-        line01.disable()
+        line0To1.disable()
         val disabledLineResult: LineResult = calcLineResult(
-          line01,
+          line0To1,
           nodeAStateData,
           nodeBStateData,
           default400Kva10KvRefSystem.nominalCurrent,
@@ -197,11 +198,11 @@ class GridResultsSupportSpec
 
         disabledLineResult shouldBe new LineResult(
           defaultSimulationStart,
-          line01.uuid,
-          ScalaQuantityUtil.zero(Units.AMPERE),
-          ScalaQuantityUtil.zero(DEGREE_GEOM),
-          ScalaQuantityUtil.zero(Units.AMPERE),
-          ScalaQuantityUtil.zero(DEGREE_GEOM)
+          line0To1.uuid,
+          ScalaQuantityUtil.zeroCompQuantity(Units.AMPERE),
+          ScalaQuantityUtil.zeroCompQuantity(DEGREE_GEOM),
+          ScalaQuantityUtil.zeroCompQuantity(Units.AMPERE),
+          ScalaQuantityUtil.zeroCompQuantity(DEGREE_GEOM)
         )
       }
 
@@ -253,8 +254,8 @@ class GridResultsSupportSpec
 
             /* Set up grid's reference system */
             val refSys = RefSystem(
-              Quantities.getQuantity(400d, KILOVOLTAMPERE),
-              Quantities.getQuantity(400d, VOLT)
+              Kilowatts(400d),
+              Volts(400d)
             )
 
             /* Artificial time stamp */
@@ -402,10 +403,10 @@ class GridResultsSupportSpec
         val expectedResult: Transformer2WResult = new Transformer2WResult(
           TimeUtil.withDefaults.toZonedDateTime("2020-06-08 09:03:00"),
           transformerModel.uuid,
-          ScalaQuantityUtil.zero(AMPERE),
-          ScalaQuantityUtil.zero(DEGREE_GEOM),
-          ScalaQuantityUtil.zero(AMPERE),
-          ScalaQuantityUtil.zero(DEGREE_GEOM),
+          ScalaQuantityUtil.zeroCompQuantity(AMPERE),
+          ScalaQuantityUtil.zeroCompQuantity(DEGREE_GEOM),
+          ScalaQuantityUtil.zeroCompQuantity(AMPERE),
+          ScalaQuantityUtil.zeroCompQuantity(DEGREE_GEOM),
           transformerModel.currentTapPos
         )
 
@@ -414,8 +415,8 @@ class GridResultsSupportSpec
           nodeStateDataHv,
           nodeStateDataLv,
           RefSystem(
-            Quantities.getQuantity(400d, KILOVOLTAMPERE),
-            Quantities.getQuantity(400d, VOLT)
+            Kilowatts(400d),
+            Volts(400d)
           ).nominalCurrent,
           TimeUtil.withDefaults.toZonedDateTime("2020-06-08 09:03:00")
         ) shouldBe expectedResult
@@ -446,64 +447,23 @@ class GridResultsSupportSpec
         ),
         1,
         PowerFlowCaseA,
-        Quantities.getQuantity(0.1d, PowerSystemUnits.PU),
-        Quantities.getQuantity(0.2d, PowerSystemUnits.PU),
-        Quantities.getQuantity(0.3d, PowerSystemUnits.PU),
-        Quantities.getQuantity(0.4d, PowerSystemUnits.PU)
+        Each(0.1d),
+        Each(0.2d),
+        Each(0.3d),
+        Each(0.4d)
       )
       transformerA.initTapping()
       val transformerB = transformerA.copy(
         powerFlowCase = PowerFlowCaseB,
-        g = Quantities.getQuantity(0d, PowerSystemUnits.PU),
-        b = Quantities.getQuantity(0d, PowerSystemUnits.PU)
+        g = Each(0d),
+        b = Each(0d)
       )
       val transformerC = transformerA.copy(
         powerFlowCase = PowerFlowCaseC,
-        g = Quantities.getQuantity(0d, PowerSystemUnits.PU),
-        b = Quantities.getQuantity(0d, PowerSystemUnits.PU)
+        g = Each(0d),
+        b = Each(0d)
       )
-      val iNominal = Quantities.getQuantity(
-        100d,
-        StandardUnits.ELECTRIC_CURRENT_MAGNITUDE
-      )
-
-      "calculating the port currents correctly" in {
-        forAll(
-          Table(
-            ("transformer", "expectedMagnitude", "expectedAngle"),
-            (transformerA, 0.61188, -45.00000),
-            (transformerB, 0.70710, -45.00000),
-            (transformerC, 0.70710, -45.00000)
-          )
-        ) {
-          (
-              transformer: Transformer3wModel,
-              expectedMagnitude: Double,
-              expectedAngle: Double
-          ) =>
-            {
-              val v1 = Complex(1.0, 0.0)
-              val v2 = Complex(0.97, -0.01)
-              calcPortCurrent(transformer, v1, v2, iNominal) match {
-                case (actualMagnitude, actualAngle) =>
-                  actualMagnitude should equalWithTolerance(
-                    Quantities.getQuantity(
-                      expectedMagnitude,
-                      StandardUnits.ELECTRIC_CURRENT_MAGNITUDE
-                    ),
-                    1e-4
-                  )
-                  actualAngle should equalWithTolerance(
-                    Quantities.getQuantity(
-                      expectedAngle,
-                      StandardUnits.ELECTRIC_CURRENT_ANGLE
-                    ),
-                    1e-4
-                  )
-              }
-            }
-        }
-      }
+      val iNominal = Amperes(100d)
 
       val timeStamp =
         TimeUtil.withDefaults.toZonedDateTime("2021-06-10 14:45:00")
@@ -529,18 +489,10 @@ class GridResultsSupportSpec
             time shouldBe timeStamp
             input shouldBe transformerA.uuid
             tapPos shouldBe transformerA.currentTapPos
-            currentMagnitude should equalWithTolerance(
-              Quantities.getQuantity(
-                0.6118825,
-                StandardUnits.ELECTRIC_CURRENT_MAGNITUDE
-              ),
-              1e-6
-            )
-            currentAngle should equalWithTolerance(
-              Quantities
-                .getQuantity(-45.0000000, StandardUnits.ELECTRIC_CURRENT_ANGLE),
-              1e-6
-            )
+            (currentMagnitude ~= Amperes(
+              13.15547500d
+            )) shouldBe true
+            (currentAngle ~= Degrees(-45.0000000d)) shouldBe true
           case wrong => fail(s"Got wrong result: '$wrong'")
         }
       }
@@ -565,18 +517,8 @@ class GridResultsSupportSpec
               ) =>
             time shouldBe timeStamp
             input shouldBe transformerB.uuid
-            currentMagnitude should equalWithTolerance(
-              Quantities.getQuantity(
-                0.7071067,
-                StandardUnits.ELECTRIC_CURRENT_MAGNITUDE
-              ),
-              1e-6
-            )
-            currentAngle should equalWithTolerance(
-              Quantities
-                .getQuantity(-45.000000, StandardUnits.ELECTRIC_CURRENT_ANGLE),
-              1e-6
-            )
+            (currentMagnitude ~= Amperes(14.14213562d)) shouldBe true
+            (currentAngle ~= Degrees(135.000000d)) shouldBe true
           case wrong => fail(s"Got wrong result: '$wrong'")
         }
       }
@@ -601,18 +543,10 @@ class GridResultsSupportSpec
               ) =>
             time shouldBe timeStamp
             input shouldBe transformerC.uuid
-            currentMagnitude should equalWithTolerance(
-              Quantities.getQuantity(
-                0.7071067,
-                StandardUnits.ELECTRIC_CURRENT_MAGNITUDE
-              ),
-              1e-6
-            )
-            currentAngle should equalWithTolerance(
-              Quantities
-                .getQuantity(-45.0000000, StandardUnits.ELECTRIC_CURRENT_ANGLE),
-              1e-6
-            )
+            (currentMagnitude ~= Amperes(
+              14.14213562d
+            )) shouldBe true
+            (currentAngle ~= Degrees(135.0000000d)) shouldBe true
           case wrong => fail(s"Got wrong result: '$wrong'")
         }
       }
@@ -639,18 +573,10 @@ class GridResultsSupportSpec
               ) =>
             time shouldBe timeStamp
             input shouldBe transformer3wInput.getUuid
-            currentMagnitude should equalWithTolerance(
-              Quantities.getQuantity(
-                0.00092397,
-                StandardUnits.ELECTRIC_CURRENT_MAGNITUDE
-              ),
-              1e-6
-            )
-            currentAngle should equalWithTolerance(
-              Quantities
-                .getQuantity(-72.648555, StandardUnits.ELECTRIC_CURRENT_ANGLE),
-              1e-6
-            )
+            (currentMagnitude ~= Amperes(
+              11.4542161d
+            )) shouldBe true
+            (currentAngle ~= Degrees(-89.4475391d)) shouldBe true
           case wrong => fail(s"Got wrong result: '$wrong'")
         }
       }

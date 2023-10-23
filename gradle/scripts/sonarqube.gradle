@@ -30,7 +30,6 @@ sonarqube {
     property 'sonar.exclusions', [
       "src/main/scala/edu/ie3/simona/config/SimonaConfig.scala"
     ]
-
   }
 }
 

@@ -7,9 +7,7 @@
 package edu.ie3.simona.agent
 
 import edu.ie3.simona.util.SimonaConstants
-import tech.units.indriya.ComparableQuantity
-
-import javax.measure.quantity.Dimensionless
+import squants.Dimensionless
 import scala.collection.SortedSet
 
 /** Represents a value store to hold data of former ticks
@@ -106,8 +104,8 @@ object ValueStore {
     */
   def forVoltage(
       maxTickSpan: Long,
-      initialPerUnit: ComparableQuantity[Dimensionless]
-  ): ValueStore[ComparableQuantity[Dimensionless]] =
+      initialPerUnit: Dimensionless
+  ): ValueStore[Dimensionless] =
     new ValueStore(
       maxTickSpan,
       Map(SimonaConstants.FIRST_TICK_IN_SIMULATION -> initialPerUnit)

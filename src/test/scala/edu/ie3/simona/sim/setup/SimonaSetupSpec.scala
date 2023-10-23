@@ -32,8 +32,7 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
     throw new NotImplementedException("This is a dummy setup")
 
   override def systemParticipantsListener(
-      context: ActorContext,
-      supervisor: ActorRef
+      context: ActorContext
   ): Seq[ActorRef] = throw new NotImplementedException("This is a dummy setup")
 
   override def primaryServiceProxy(
