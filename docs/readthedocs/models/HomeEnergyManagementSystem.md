@@ -33,3 +33,4 @@ Load > Production at household
 Further developments could be done on implementing the possibility to choose between updating the value store at a fixed interval (or at every power flow calculation) and the actual implementation with updating value store when triggered by the agents
 
 <!-- Sequence Diagramm einfügen, Aktivierung der Kinder des HEMS durch HEMS, Trigger für HEMS (bei fester Zeitscheibe) oder Trigger in Zeitintervallen der Kinder (oder konfigurierbar?)) Aktivierung / Trigger des LoadAgent aktualisierung des ValueStore -->
+<!-- Todo: HEMS in EMS ändern, Generischer Beschreiben um auch EMS in Substation zu repräsentieren -->

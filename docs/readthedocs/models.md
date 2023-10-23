@@ -31,3 +31,12 @@ models/load_model
 models/pv_model
 models/wec_model
 ```
+
+## Control Related Models
+
+```{toctree}
+---
+maxdepth: 1
+---
+models/HomeEnergyManagementSystem
+```
