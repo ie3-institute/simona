@@ -100,6 +100,10 @@ case object LoadModel extends LazyLogging {
     * @param profileEnergyScaling
     *   the energy scaling factor of the profile (= amount of yearly energy the
     *   profile is scaled to)
+    * @param safetyFactor
+    *   a safety factor to address potential higher sRated values than the
+    *   original scaling would provide (e.g. when using unrestricted probability
+    *   functions)
     * @return
     *   he inputs model sRated scaled to the provided energy consumption
     */
@@ -107,11 +111,12 @@ case object LoadModel extends LazyLogging {
       inputModel: LoadInput,
       energyConsumption: Energy,
       profileMaxPower: Power,
-      profileEnergyScaling: Energy
+      profileEnergyScaling: Energy,
+      safetyFactor: Double = 1d
   ): Power = {
     (profileMaxPower / inputModel.getCosPhiRated) * (
       energyConsumption / profileEnergyScaling
-    )
+    ) * safetyFactor
   }
 
 }

@@ -6,13 +6,12 @@
 
 package edu.ie3.simona.event.listener
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import org.scalatest.prop.TableDrivenPropertyChecks
-import org.scalatestplus.mockito.MockitoSugar.mock
-import tech.units.indriya.quantity.Quantities
+import squants.electro.Amperes
+import squants.space.Degrees
 
 import java.util.UUID
 import scala.util.{Failure, Success}
@@ -27,21 +26,21 @@ class ThreeWindingResultHandlingSpec
       val mockAResult = PartialTransformer3wResult.PortA(
         TimeUtil.withDefaults.toZonedDateTime("2021-06-23 20:51:00"),
         UUID.randomUUID(),
-        Quantities.getQuantity(1d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
-        Quantities.getQuantity(2d, StandardUnits.ELECTRIC_CURRENT_ANGLE),
+        Amperes(1d),
+        Degrees(2d),
         -5
       )
       val mockBResult = PartialTransformer3wResult.PortB(
         TimeUtil.withDefaults.toZonedDateTime("2021-06-23 20:51:00"),
         UUID.randomUUID(),
-        Quantities.getQuantity(3d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
-        Quantities.getQuantity(4d, StandardUnits.ELECTRIC_CURRENT_ANGLE)
+        Amperes(3d),
+        Degrees(4d)
       )
       val mockCResult = PartialTransformer3wResult.PortC(
         TimeUtil.withDefaults.toZonedDateTime("2021-06-23 20:51:00"),
         UUID.randomUUID(),
-        Quantities.getQuantity(5d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
-        Quantities.getQuantity(6d, StandardUnits.ELECTRIC_CURRENT_ANGLE)
+        Amperes(5d),
+        Degrees(6d)
       )
 
       "correctly indicate readiness" in {
