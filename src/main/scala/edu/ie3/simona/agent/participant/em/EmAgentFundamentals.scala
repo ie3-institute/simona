@@ -31,11 +31,13 @@ import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.InvalidRequestException
 import edu.ie3.simona.model.participant.EmModel
 import edu.ie3.simona.model.participant.EmModel.EmRelevantData
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.ReactivePower
+import squants.{Dimensionless, Power}
+import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
 import scala.reflect.{ClassTag, classTag}
 
 /** TODO unused methods
@@ -61,7 +63,7 @@ trait EmAgentFundamentals
         EmRelevantData,
         EmModel
       ],
-      ComparableQuantity[Dimensionless]
+      Dimensionless
   ) => ApparentPower =
     (
         _: Long,
@@ -70,7 +72,7 @@ trait EmAgentFundamentals
           EmRelevantData,
           EmModel
         ],
-        _: ComparableQuantity[Dimensionless]
+        _: Dimensionless
     ) =>
       throw new InvalidRequestException(
         "WEC model cannot be run without secondary data."
@@ -133,7 +135,7 @@ trait EmAgentFundamentals
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        Power => ReactivePower
       ]
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
@@ -160,6 +162,11 @@ trait EmAgentFundamentals
       dateTime: ZonedDateTime,
       result: ApparentPower
   ): SystemParticipantResult =
-    new EmResult(dateTime, uuid, result.p, result.q)
+    new EmResult(
+      dateTime,
+      uuid,
+      Quantities.getQuantity(result.p.toMegawatts, PowerSystemUnits.MEGAWATT),
+      Quantities.getQuantity(result.q.toMegavars, PowerSystemUnits.MEGAVAR)
+    )
 
 }

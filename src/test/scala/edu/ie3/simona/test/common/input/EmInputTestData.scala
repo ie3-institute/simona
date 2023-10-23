@@ -17,7 +17,7 @@ import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
-import tech.units.indriya.quantity.Quantities
+import squants.energy.Kilowatts
 
 import java.util.UUID
 
@@ -52,7 +52,7 @@ trait EmInputTestData extends NodeInputTestData with PvInputTestData {
     createSimonaConfig(
       LoadModelBehaviour.FIX,
       LoadReference.ActivePower(
-        Quantities.getQuantity(0d, KILOWATT)
+        Kilowatts(0d)
       )
     )
 

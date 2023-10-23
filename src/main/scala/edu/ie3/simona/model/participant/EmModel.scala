@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system._
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.em.EmAgent.FlexCorrespondence
@@ -19,16 +18,17 @@ import edu.ie3.simona.model.participant.EmModel.{
 }
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.{
+  PowerSystemUnits,
+  QuantityUtil => PsuQuantityUtil
+}
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.QuantityUtil
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-import edu.ie3.util.quantities.{QuantityUtil => PsuQuantityUtil}
+import edu.ie3.util.scala.quantities.{Kilovars, Megavars}
+import squants.energy.{Kilowatts, Megawatts}
+import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
 
 final case class EmModel private (
     uuid: UUID,
@@ -42,7 +42,7 @@ final case class EmModel private (
       operationInterval,
       scalingFactor,
       qControl,
-      Quantities.getQuantity(0, PowerSystemUnits.KILOWATT), // FIXME dummy
+      Kilowatts(0d), // FIXME dummy
       0 // FIXME dummy
     ) {
 
@@ -50,7 +50,7 @@ final case class EmModel private (
     */
   def determineDeviceControl(
       flexOptions: Seq[(SystemParticipantInput, ProvideMinMaxFlexOptions)]
-  ): Seq[(UUID, ComparableQuantity[Power])] = {
+  ): Seq[(UUID, Power)] = {
 
     val suggestedPower =
       flexOptions
@@ -58,7 +58,7 @@ final case class EmModel private (
           suggestedPower
         }
         .reduceOption { (power1, power2) =>
-          power1.add(power2)
+          power1 + power2
         }
         .getOrElse(throw new RuntimeException("No flexibilities provided"))
 
@@ -72,43 +72,37 @@ final case class EmModel private (
       flex
     }
 
-    if (
-      suggestedPower.isLessThan(QuantityUtil.zero(PowerSystemUnits.KILOWATT))
-    ) {
+    if (suggestedPower < Kilowatts(0d)) {
       // excess power, try to store it/increase load
 
       val orderedParticipants = Seq(evcsOpt, storageOpt, heatPumpOpt).flatten
 
       orderedParticipants.foldLeft(
-        (Seq.empty[(UUID, ComparableQuantity[Power])], Option(suggestedPower))
+        (Seq.empty[(UUID, Power)], Option(suggestedPower))
       ) {
         case (
               (issueCtrlMsgs, Some(remainingExcessPower)),
               (spi, flexOption: ProvideMinMaxFlexOptions)
             ) =>
           val differenceNoControl =
-            flexOption.referencePower.subtract(flexOption.maxPower)
+            flexOption.referencePower - flexOption.maxPower
 
           if (
-            PsuQuantityUtil.isEquivalentAbs(
-              QuantityUtil.zero(PowerSystemUnits.KILOWATT),
-              differenceNoControl,
-              relativeTolerance
-            )
+            differenceNoControl.toMegawatts.abs < relativeTolerance // => Tolerance of 1 W
           ) {
             (issueCtrlMsgs, Some(remainingExcessPower))
-          } else if (remainingExcessPower.isLessThan(differenceNoControl)) {
+          } else if (remainingExcessPower > differenceNoControl) {
             // we cannot cover the excess feed-in with just this flexibility,
             // thus use all of the flexibility
             (
               issueCtrlMsgs :+ (spi.getUuid, flexOption.maxPower),
-              Some(remainingExcessPower.subtract(differenceNoControl))
+              Some(remainingExcessPower - differenceNoControl)
             )
           } else {
             // this flexibility covers more than we need to reach zero excess,
             // thus we only use as much as we need
             val powerCtrl =
-              flexOption.referencePower.subtract(remainingExcessPower)
+              flexOption.referencePower - remainingExcessPower
 
             (
               issueCtrlMsgs :+ (spi.getUuid, powerCtrl),
@@ -128,35 +122,32 @@ final case class EmModel private (
       val orderedParticipants = Seq(storageOpt, evcsOpt, heatPumpOpt).flatten
 
       orderedParticipants.foldLeft(
-        (Seq.empty[(UUID, ComparableQuantity[Power])], Option(suggestedPower))
+        (Seq.empty[(UUID, Power)], Option(suggestedPower))
       ) {
         case (
               (issueCtrlMsgs, Some(remainingExcessPower)),
               (spi, flexOption: ProvideMinMaxFlexOptions)
             ) =>
           val differenceNoControl =
-            flexOption.referencePower.subtract(flexOption.minPower)
+            flexOption.referencePower - flexOption.minPower
 
           if (
-            PsuQuantityUtil.isEquivalentAbs(
-              QuantityUtil.zero(PowerSystemUnits.KILOWATT),
-              differenceNoControl,
+            differenceNoControl.toMegawatts.abs <
               relativeTolerance
-            )
           ) {
             (issueCtrlMsgs, Some(remainingExcessPower))
-          } else if (remainingExcessPower.isGreaterThan(differenceNoControl)) {
+          } else if (remainingExcessPower > differenceNoControl) {
             // we cannot cover the excess load with just this flexibility,
             // thus use all of the flexibility
             (
               issueCtrlMsgs :+ (spi.getUuid, flexOption.minPower),
-              Some(remainingExcessPower.subtract(differenceNoControl))
+              Some(remainingExcessPower - differenceNoControl)
             )
           } else {
             // this flexibility covers more than we need to reach zero excess,
             // thus we only use as much as we need
             val powerCtrl =
-              flexOption.referencePower.subtract(remainingExcessPower)
+              flexOption.referencePower - remainingExcessPower
 
             (
               issueCtrlMsgs :+ (spi.getUuid, powerCtrl),
@@ -175,31 +166,40 @@ final case class EmModel private (
 
   override def calculatePower(
       tick: Long,
-      voltage: ComparableQuantity[Dimensionless],
+      voltage: Dimensionless,
       data: EmRelevantData
   ): ApparentPower =
     data.flexCorrespondences
       .map { correspondence =>
         correspondence.participantResult
-          .map(res => ApparentPower(res.getP, res.getQ))
+          .map(res =>
+            ApparentPower(
+              Kilowatts(
+                res.getP.to(PowerSystemUnits.KILOWATT).getValue.doubleValue()
+              ),
+              Kilovars(
+                res.getQ.to(PowerSystemUnits.KILOVAR).getValue.doubleValue()
+              )
+            )
+          )
           .getOrElse(
             throw new RuntimeException(s"No result received in $correspondence")
           )
       }
       .reduceOption { (power1, power2) =>
-        ApparentPower(power1.p.add(power2.p), power1.q.add(power2.q))
+        ApparentPower(power1.p + power2.p, power1.q + power2.q)
       }
-      .map { power =>
+      .map { power: ApparentPower =>
         ApparentPower(
-          power.p.to(StandardUnits.ACTIVE_POWER_RESULT),
-          power.q.to(StandardUnits.REACTIVE_POWER_RESULT)
+          power.p,
+          power.q
         )
       }
       .getOrElse(zeroApparentPower)
 
   override protected def calculateActivePower(
       data: EmRelevantData
-  ): ComparableQuantity[Power] =
+  ): Power =
     throw new NotImplementedError("Use calculatePower directly")
 }
 
@@ -208,8 +208,8 @@ object EmModel {
   private val relativeTolerance = 1e-6d
 
   private val zeroApparentPower = ApparentPower(
-    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
-    Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT)
+    Megawatts(0d),
+    Megavars(0d)
   )
 
   /** Class that holds all relevant data for Energy Management calculation

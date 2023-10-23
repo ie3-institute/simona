@@ -39,6 +39,8 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.scalatestplus.mockito.MockitoSugar
+import squants.Power
+import squants.energy.{Kilowatts, Watts}
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
@@ -69,7 +71,7 @@ class EmAgentSelfOptSpec
     simulationResultInfo = true,
     powerRequestReply = false
   )
-
+  implicit val powerTolerance: Power = Watts(1e-3)
   private val tolerance = 1e-10d
 
   "An em agent" should {
@@ -211,9 +213,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           pvInput.getUuid,
-          Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+          Kilowatts(-5d),
+          Kilowatts(-5d),
+          Kilowatts(0d)
         )
       )
 
@@ -224,9 +226,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           evcsInput.getUuid,
-          Quantities.getQuantity(2d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(-11d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(11d, PowerSystemUnits.KILOWATT)
+          Kilowatts(2d),
+          Kilowatts(-11d),
+          Kilowatts(11d)
         )
       )
 
@@ -246,7 +248,7 @@ class EmAgentSelfOptSpec
 
       evcsAgent.expectMsgType[IssuePowerCtrl] match {
         case IssuePowerCtrl(0L, setPower) =>
-          setPower should equalWithTolerance(5d.asKiloWatt, tolerance)
+          setPower =~ Kilowatts(5d)
       }
       evcsAgent.send(
         emAgent,
@@ -347,9 +349,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           evcsInput.getUuid,
-          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(-11d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+          Kilowatts(0d),
+          Kilowatts(-11d),
+          Kilowatts(0d)
         )
       )
 
@@ -551,9 +553,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           pvInput.getUuid,
-          Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+          Kilowatts(-5d),
+          Kilowatts(-5d),
+          Kilowatts(0d)
         )
       )
 
@@ -564,9 +566,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           evcsInput.getUuid,
-          Quantities.getQuantity(2d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(-11d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(11d, PowerSystemUnits.KILOWATT)
+          Kilowatts(2d),
+          Kilowatts(-11d),
+          Kilowatts(11d)
         )
       )
 
@@ -586,7 +588,7 @@ class EmAgentSelfOptSpec
 
       evcsAgent.expectMsgType[IssuePowerCtrl] match {
         case IssuePowerCtrl(0L, setPower) =>
-          setPower should equalWithTolerance(5d.asKiloWatt, tolerance)
+          setPower =~ Kilowatts(5d)
       }
       evcsAgent.send(
         emAgent,
@@ -693,9 +695,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           pvInput.getUuid,
-          Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+          Kilowatts(-3d),
+          Kilowatts(-3d),
+          Kilowatts(0d)
         )
       )
 
@@ -729,7 +731,7 @@ class EmAgentSelfOptSpec
       // evcs is now sent control too
       evcsAgent.expectMsgType[IssuePowerCtrl] match {
         case IssuePowerCtrl(300L, setPower) =>
-          setPower should equalWithTolerance(3d.asKiloWatt, tolerance)
+          setPower =~ Kilowatts(3d)
       }
 
       scheduler.expectNoMessage()
@@ -926,9 +928,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           pvInput.getUuid,
-          Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(-5d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+          Kilowatts(-5d),
+          Kilowatts(-5d),
+          Kilowatts(0d)
         )
       )
 
@@ -939,9 +941,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           evcsInput.getUuid,
-          Quantities.getQuantity(2d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(11d, PowerSystemUnits.KILOWATT)
+          Kilowatts(2d),
+          Kilowatts(0d),
+          Kilowatts(11d)
         )
       )
 
@@ -961,7 +963,7 @@ class EmAgentSelfOptSpec
 
       evcsAgent.expectMsgType[IssuePowerCtrl] match {
         case IssuePowerCtrl(0L, setPower) =>
-          setPower should equalWithTolerance(5d.asKiloWatt, tolerance)
+          setPower =~ Kilowatts(5d)
       }
 
       evcsAgent.send(
@@ -1069,9 +1071,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           pvInput.getUuid,
-          Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(-3d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(0d, PowerSystemUnits.KILOWATT)
+          Kilowatts(-3d),
+          Kilowatts(-3d),
+          Kilowatts(0d)
         )
       )
 
@@ -1082,9 +1084,9 @@ class EmAgentSelfOptSpec
         emAgent,
         ProvideMinMaxFlexOptions(
           evcsInput.getUuid,
-          Quantities.getQuantity(2d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(-11d, PowerSystemUnits.KILOWATT),
-          Quantities.getQuantity(11d, PowerSystemUnits.KILOWATT)
+          Kilowatts(2d),
+          Kilowatts(-11d),
+          Kilowatts(11d)
         )
       )
 
@@ -1117,7 +1119,7 @@ class EmAgentSelfOptSpec
 
       evcsAgent.expectMsgType[IssuePowerCtrl] match {
         case IssuePowerCtrl(300L, setPower) =>
-          setPower should equalWithTolerance(3d.asKiloWatt, tolerance)
+          setPower =~ Kilowatts(3d)
       }
       evcsAgent.send(
         emAgent,

@@ -47,11 +47,11 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.quantities.PowerSystemUnits.PU
-import tech.units.indriya.ComparableQuantity
+import squants.{Dimensionless, Each}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.Dimensionless
+import scala.collection.SortedSet
 
 object EmAgent {
   def props(
@@ -94,11 +94,11 @@ object EmAgent {
         Vector[SecondaryDataService[_ <: SecondaryData]]
       ],
       outputConfig: ParticipantNotifierConfig,
-      additionalActivationTicks: Array[Long],
+      additionalActivationTicks: SortedSet[Long],
       foreseenDataTicks: Map[ActorRef, Option[Long]],
       requestVoltageDeviationThreshold: Double,
       voltageValueStore: ValueStore[
-        ComparableQuantity[Dimensionless]
+        Dimensionless
       ],
       resultValueStore: ValueStore[ApparentPower],
       requestValueStore: ValueStore[ApparentPower],
@@ -204,14 +204,18 @@ class EmAgent(
         model,
         services,
         outputConfig,
-        Array.empty,
+        SortedSet.empty,
         Map.empty,
         requestVoltageDeviationThreshold,
         ValueStore.forVoltage(
           resolution,
-          inputModel.getNode
-            .getvTarget()
-            .to(PU)
+          Each(
+            inputModel.getNode
+              .getvTarget()
+              .to(PU)
+              .getValue
+              .doubleValue()
+          )
         ),
         ValueStore(resolution),
         ValueStore(resolution),
@@ -594,11 +598,11 @@ class EmAgent(
               ) match {
                 case ProvideMinMaxFlexOptions(uuid, _, minPower, maxPower) =>
                   // sanity checks after strat calculation
-                  if (power.isLessThan(minPower))
+                  if (power < minPower)
                     throw new RuntimeException(
                       s"The set power $power for $uuid must not be lower than the minimum power $minPower!"
                     )
-                  if (power.isGreaterThan(maxPower)) {
+                  if (power > maxPower) {
                     throw new RuntimeException(
                       s"The set power $power for $uuid must not be greater than the maximum power $maxPower!"
                     )

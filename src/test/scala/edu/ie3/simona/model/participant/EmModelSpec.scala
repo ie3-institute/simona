@@ -20,11 +20,13 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import org.mockito.Mockito.when
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.mockito.MockitoSugar
+import squants.energy.{Kilowatts, Megawatts, Watts}
+import squants.{Each, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -35,6 +37,8 @@ class EmModelSpec
     with EmInputTestData
     with MockitoSugar {
 
+  implicit val powerTolerance: Power = Watts(1e-3)
+  implicit val reactivePowerTolerance: ReactivePower = Vars(1e-3)
   protected implicit val simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
   protected val simulationEndDate: ZonedDateTime =
@@ -133,36 +137,36 @@ class EmModelSpec
               loadInputModel,
               ProvideMinMaxFlexOptions(
                 load,
-                loadPower.asKiloWatt,
-                loadPower.asKiloWatt,
-                loadPower.asKiloWatt
+                Kilowatts(loadPower),
+                Kilowatts(loadPower),
+                Kilowatts(loadPower)
               )
             ),
             (
               pvInputModel,
               ProvideMinMaxFlexOptions(
                 pv,
-                pvPower.asKiloWatt,
-                pvPower.asKiloWatt,
-                0d.asKiloWatt
+                Kilowatts(pvPower),
+                Kilowatts(pvPower),
+                Kilowatts(0d)
               )
             ),
             (
               evcsInputModel,
               ProvideMinMaxFlexOptions(
                 evcs,
-                evcsSuggested.asKiloWatt,
-                evcsMin.asKiloWatt,
-                evcsMax.asKiloWatt
+                Kilowatts(evcsSuggested),
+                Kilowatts(evcsMin),
+                Kilowatts(evcsMax)
               )
             ),
             (
               storageInputModel,
               ProvideMinMaxFlexOptions(
                 strg,
-                0d.asKiloWatt,
-                storageMin.asKiloWatt,
-                storageMax.asKiloWatt
+                Kilowatts(0d),
+                Kilowatts(storageMin),
+                Kilowatts(storageMax)
               )
             )
           )
@@ -180,10 +184,7 @@ class EmModelSpec
               )
             )
 
-            power
-              .to(PowerSystemUnits.KILOWATT)
-              .getValue
-              .doubleValue() should ===(expectedRes +- 1e-6d)
+            (power =~ Kilowatts(expectedRes)) shouldBe true
           }
       }
     }
@@ -213,16 +214,10 @@ class EmModelSpec
       )
 
       val actualResult =
-        model.calculatePower(0L, 1d.asPu, EmRelevantData(flexCorrespondences))
+        model.calculatePower(0L, Each(1d), EmRelevantData(flexCorrespondences))
 
-      actualResult.p should equalWithTolerance(
-        0.008d.asMegaWatt,
-        1e-9d
-      )
-      actualResult.q should equalWithTolerance(
-        0.0007d.asMegaVar,
-        1e-9d
-      )
+      (actualResult.p =~ Megawatts(0.008d)) shouldBe true
+      (actualResult.q =~ Megavars(0.0007d)) shouldBe true
     }
   }
 
