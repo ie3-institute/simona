@@ -127,7 +127,9 @@ private[weather] final case class WeatherSourceWrapper private (
         /* Determine actual weights and contributions */
         val (diffIrradiance, diffIrrWeight) = currentWeather.diffIrr match {
           case EMPTY_WEATHER_DATA.diffIrr =>
-            logger.warn(s"Diffuse solar irradiance not available at $point.")
+            // Some data sets do not provide diffuse irradiance, so we do not
+            // warn here
+            logger.debug("Diffuse solar irradiance not available at $point.")
             (averagedWeather.diffIrr, 0d)
           case nonEmptyDiffIrr =>
             (averagedWeather.diffIrr + nonEmptyDiffIrr * weight, weight)
