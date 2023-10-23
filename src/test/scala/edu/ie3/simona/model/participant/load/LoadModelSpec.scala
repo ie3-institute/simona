@@ -87,7 +87,7 @@ class LoadModelSpec
         ),
         (
           LoadReference.EnergyConsumption(KilowattHours(3000.0)),
-          Watts(700.7341868650454)
+          Watts(770.8076055515501)
         )
       )
 

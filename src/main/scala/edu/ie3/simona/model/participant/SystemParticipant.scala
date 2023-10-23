@@ -173,8 +173,7 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
 
         if (powerSquaredDifference < 0) {
           logger.warn(
-            s"Difference between sMax and active power is negative when limiting reactive power. " +
-              s"Set reactive power to 0!"
+            s"Active power of model exceeds sRated. Set reactive power to 0!"
           )
           Megavars(0d)
         } else {
