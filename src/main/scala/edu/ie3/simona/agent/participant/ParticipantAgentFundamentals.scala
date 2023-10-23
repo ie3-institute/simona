@@ -80,7 +80,7 @@ import edu.ie3.simona.service.ServiceStateData.ServiceActivationBaseStateData
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
-import squants.energy.{KilowattHours, Megawatts}
+import squants.energy.Megawatts
 import squants.{Dimensionless, Each, Energy, Power}
 
 import java.time.ZonedDateTime
@@ -1783,16 +1783,12 @@ case object ParticipantAgentFundamentals {
       ] = None,
       log: LoggingAdapter
   ): ApparentPowerAndHeat = {
-    val p = QuantityUtil.average(
+    val p = QuantityUtil.average[Power, Energy](
       tickToResults.map { case (tick, pd) =>
         tick -> Megawatts(pd.p.toMegawatts)
       },
       windowStart,
-      windowEnd,
-      classOf[Energy],
-      KilowattHours,
-      classOf[Power],
-      Megawatts
+      windowEnd
     ) match {
       case Success(pSuccess) => pSuccess
       case Failure(exception) =>
@@ -1802,22 +1798,21 @@ case object ParticipantAgentFundamentals {
         )
         Megawatts(0d)
     }
-    val q = QuantityUtil.average(
+
+    val q = QuantityUtil.average[Power, Energy](
       tickToResults.map { case (tick, pd) =>
         activeToReactivePowerFuncOpt match {
           case Some(qFunc) =>
-            tick -> Megavars(qFunc(pd.toApparentPower.p).toMegavars)
-          case None => tick -> Megavars(pd.toApparentPower.q.toMegavars)
+            // NOTE: The type conversion to Megawatts is done to satisfy the methods type constraints
+            // and is undone after unpacking the results
+            tick -> Megawatts(qFunc(pd.toApparentPower.p).toMegavars)
+          case None => tick -> Megawatts(pd.toApparentPower.q.toMegavars)
         }
       },
       windowStart,
-      windowEnd,
-      classOf[Energy],
-      KilowattHours,
-      classOf[ReactivePower],
-      Megavars
+      windowEnd
     ) match {
-      case Success(pSuccess) => pSuccess
+      case Success(pSuccess) => Megavars(pSuccess.toMegawatts)
       case Failure(exception) =>
         log.warning(
           "Unable to determine average reactive power. Apply 0 instead. Cause:\n\t{}",
@@ -1825,16 +1820,12 @@ case object ParticipantAgentFundamentals {
         )
         Megavars(0d)
     }
-    val qDot = QuantityUtil.average(
+    val qDot = QuantityUtil.average[Power, Energy](
       tickToResults.map { case (tick, pd) =>
         tick -> Megawatts(pd.qDot.toMegawatts)
       },
       windowStart,
-      windowEnd,
-      classOf[Energy],
-      KilowattHours,
-      classOf[Power],
-      Megawatts
+      windowEnd
     ) match {
       case Success(qDotSuccess) => qDotSuccess
       case Failure(exception) =>
