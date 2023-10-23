@@ -130,7 +130,7 @@ dependencies {
   implementation "com.typesafe.akka:akka-cluster-tools_${scalaVersion}:${akkaVersion}"
 
   /* config */
-  implementation 'com.typesafe:config:1.4.2'
+  implementation 'com.typesafe:config:1.4.3'
   implementation "com.github.carueda:tscfg_2.13:$tscfgVersion"
   implementation "com.github.scopt:scopt_${scalaVersion}:4.1.0" // cmd args parser
 
