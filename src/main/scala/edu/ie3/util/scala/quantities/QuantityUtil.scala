@@ -8,12 +8,12 @@ package edu.ie3.util.scala.quantities
 
 import edu.ie3.simona.exceptions.QuantityException
 import edu.ie3.util.quantities.{QuantityUtil => PSQuantityUtil}
+import squants.time.{Hours, TimeDerivative, TimeIntegral}
+import squants.{Quantity, Seconds, UnitOfMeasure}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.function.Calculus
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
 
-import javax.measure.Quantity
 import scala.collection.mutable
 import scala.util.{Failure, Try}
 
@@ -33,38 +33,13 @@ object QuantityUtil {
       )
     )
 
-  def zero[Q <: Quantity[Q]](
+  def zeroCompQuantity[Q <: javax.measure.Quantity[Q]](
       unit: javax.measure.Unit[Q]
   ): ComparableQuantity[Q] = Quantities.getQuantity(0, unit)
 
-  @deprecated(
-    "Use reduceOption { (power1, power2) => power1.add(power2) } instead"
-  )
-  def add[Q <: Quantity[Q]](
-      quantities: Iterable[Quantity[Q]]
-  ): Option[Quantity[Q]] = {
-    if (quantities.nonEmpty) {
-      val iterator = quantities.iterator
-      val sum = iterator.next()
-      while (iterator.hasNext) {
-        val next = iterator.next()
-        if (!PSQuantityUtil.isEmpty(next)) sum.add(next)
-      }
-      Some(sum)
-    } else None
-  }
-
-  implicit class ConvertibleQuantity[Q <: Quantity[Q]](
-      private val q: Quantity[Q]
-  ) extends AnyVal {
-
-    /** Converts the quantity to an instance of [[ComparableQuantity]]
-      *
-      * @return
-      *   the provided quantity as comparable quantity
-      */
-    def asComparable: ComparableQuantity[Q] = PSQuantityUtil.asComparable(q)
-  }
+  def zero[Q <: Quantity[Q]](
+      unit: UnitOfMeasure[Q]
+  ): Q = unit(0d)
 
   /** Average given values over given tick window
     *
@@ -74,30 +49,20 @@ object QuantityUtil {
     *   First tick, that shall be included in the integral
     * @param windowEnd
     *   Last tick, that shall be included in the integral
-    * @param integrationQuantityClass
-    *   Class of [[ComparableQuantity]] that will evolve from integration
-    * @param integrationUnit
-    *   Unit to use for the integral
-    * @param averagingQuantityClass
-    *   Class of [[ComparableQuantity]] that will evolve from averaging
-    * @param averagingUnit
-    *   Target unit of averaged quantities
     * @tparam Q
-    *   Type of [[ComparableQuantity]] that should be integrated
+    *   Type of [[squants.Quantity]] that should be integrated
     * @tparam QI
-    *   Type of [[ComparableQuantity]] that will be the integral
+    *   Type of [[squants.Quantity]] that will be the integral
     * @return
     *   Averaged quantity
     */
-  def average[Q <: Quantity[Q], QI <: Quantity[QI]](
-      values: Map[Long, ComparableQuantity[Q]],
+  def average[Q <: Quantity[Q] with TimeDerivative[QI], QI <: Quantity[
+    QI
+  ] with TimeIntegral[Q]](
+      values: Map[Long, Q],
       windowStart: Long,
-      windowEnd: Long,
-      integrationQuantityClass: Class[QI],
-      integrationUnit: javax.measure.Unit[QI],
-      averagingQuantityClass: Class[Q],
-      averagingUnit: javax.measure.Unit[Q]
-  ): Try[ComparableQuantity[Q]] = {
+      windowEnd: Long
+  ): Try[Q] = {
     if (windowStart == windowEnd)
       Failure(
         new IllegalArgumentException("Cannot average over trivial time window.")
@@ -108,15 +73,11 @@ object QuantityUtil {
       )
     else
       Try {
-        integrate(
+        integrate[Q, QI](
           values,
           windowStart,
-          windowEnd,
-          integrationQuantityClass,
-          integrationUnit
-        ).divide(Quantities.getQuantity(windowEnd - windowStart, Units.SECOND))
-          .asType(averagingQuantityClass)
-          .to(averagingUnit)
+          windowEnd
+        ) / Seconds(windowEnd - windowStart)
       }
   }
 
@@ -129,24 +90,20 @@ object QuantityUtil {
     *   First tick, that shall be included in the integral
     * @param windowEnd
     *   Last tick, that shall be included in the integral
-    * @param integrationQuantityClass
-    *   Class of [[ComparableQuantity]] that will evolve from integration
-    * @param integrationUnit
-    *   Unit to use for the integral
     * @tparam Q
-    *   Type of [[ComparableQuantity]] that should be integrated
+    *   Type of [[Quantity]] that should be integrated
     * @tparam QI
-    *   Type of [[ComparableQuantity]] that will be the integral
+    *   Type of [[Quantity]] that will be the integral
     * @return
     *   Integration over given values from window start to window end
     */
-  def integrate[Q <: Quantity[Q], QI <: Quantity[QI]](
-      values: Map[Long, ComparableQuantity[Q]],
+  def integrate[Q <: Quantity[Q] with TimeDerivative[QI], QI <: Quantity[
+    QI
+  ] with TimeIntegral[Q]](
+      values: Map[Long, Q],
       windowStart: Long,
-      windowEnd: Long,
-      integrationQuantityClass: Class[QI],
-      integrationUnit: javax.measure.Unit[QI]
-  ): ComparableQuantity[QI] = {
+      windowEnd: Long
+  ): QI = {
 
     /** Case class to hold current state of integration
       *
@@ -158,9 +115,9 @@ object QuantityUtil {
       *   Value, that has been seen at the last tick
       */
     final case class IntegrationState(
-        currentIntegral: ComparableQuantity[QI],
+        currentIntegral: QI,
         lastTick: Long,
-        lastValue: ComparableQuantity[Q]
+        lastValue: Q
     )
 
     /* Determine the starting and ending value for the integral */
@@ -183,7 +140,7 @@ object QuantityUtil {
     valuesWithinWindow
       .foldLeft(
         IntegrationState(
-          Quantities.getQuantity(0d, integrationUnit),
+          startValue * Hours(0),
           windowStart,
           startValue
         )
@@ -193,15 +150,12 @@ object QuantityUtil {
               (tick, value)
             ) =>
           /* Calculate the partial integral over the last know value since it's occurrence and the instance when the newest value comes in */
-          val duration = Quantities.getQuantity(tick - lastTick, Units.SECOND)
-          val partialIntegral =
-            lastValue.multiply(duration).asType(integrationQuantityClass)
-          val updatedIntegral = currentIntegral.add(partialIntegral)
-
+          val duration = Seconds(tick - lastTick)
+          val partialIntegral = lastValue * duration
+          val updatedIntegral = currentIntegral + partialIntegral
           IntegrationState(updatedIntegral, tick, value)
       }
       .currentIntegral
-      .to(integrationUnit)
   }
 
   /** Determine the starting value for the integration
@@ -216,25 +170,25 @@ object QuantityUtil {
     *   Either the first value <b>before</b> the window starts or 0, if not
     *   apparent
     */
-  private def startingValue[Q <: Quantity[Q]](
-      values: Map[Long, ComparableQuantity[Q]],
+  private def startingValue[Q <: squants.Quantity[Q]](
+      values: Map[Long, Q],
       windowStart: Long
-  ): ComparableQuantity[Q] = {
+  ): Q = {
     values
       .filter { case (tick, _) =>
         tick <= windowStart
       }
-      .maxOption[(Long, ComparableQuantity[Q])](Ordering.by(_._1)) match {
+      .maxOption[(Long, Q)](Ordering.by(_._1)) match {
       case Some((_, value)) => value
       case None =>
         val unit = values.headOption
-          .map(_._2.getUnit)
+          .map(_._2.unit)
           .getOrElse(
             throw new QuantityException(
               "Unable to determine unit for dummy starting value."
             )
           )
-        Quantities.getQuantity(0d, unit)
+        unit(0d)
     }
   }
 
@@ -251,14 +205,14 @@ object QuantityUtil {
     *   tick
     */
   private def endingValue[Q <: Quantity[Q]](
-      values: Map[Long, ComparableQuantity[Q]],
+      values: Map[Long, Q],
       windowEnd: Long
-  ): (Long, ComparableQuantity[Q]) = {
+  ): (Long, Q) = {
     values
       .filter { case (tick, _) =>
         tick <= windowEnd
       }
-      .maxOption[(Long, ComparableQuantity[Q])](Ordering.by(_._1)) match {
+      .maxOption[(Long, Q)](Ordering.by(_._1)) match {
       case Some(tickToValue) => tickToValue
       case None =>
         throw new QuantityException(

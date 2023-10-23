@@ -346,10 +346,10 @@ private[grid] trait GridResultsSupport {
       new LineResult(
         timestamp,
         line.uuid,
-        QuantityUtil.zero(Units.AMPERE),
-        QuantityUtil.zero(PowerSystemUnits.DEGREE_GEOM),
-        QuantityUtil.zero(Units.AMPERE),
-        QuantityUtil.zero(PowerSystemUnits.DEGREE_GEOM)
+        QuantityUtil.zeroCompQuantity(Units.AMPERE),
+        QuantityUtil.zeroCompQuantity(PowerSystemUnits.DEGREE_GEOM),
+        QuantityUtil.zeroCompQuantity(Units.AMPERE),
+        QuantityUtil.zeroCompQuantity(PowerSystemUnits.DEGREE_GEOM)
       )
     }
   }
@@ -415,10 +415,10 @@ private[grid] trait GridResultsSupport {
       new Transformer2WResult(
         timestamp,
         trafo2w.uuid,
-        QuantityUtil.zero(Units.AMPERE),
-        QuantityUtil.zero(PowerSystemUnits.DEGREE_GEOM),
-        QuantityUtil.zero(Units.AMPERE),
-        QuantityUtil.zero(PowerSystemUnits.DEGREE_GEOM),
+        QuantityUtil.zeroCompQuantity(Units.AMPERE),
+        QuantityUtil.zeroCompQuantity(PowerSystemUnits.DEGREE_GEOM),
+        QuantityUtil.zeroCompQuantity(Units.AMPERE),
+        QuantityUtil.zeroCompQuantity(PowerSystemUnits.DEGREE_GEOM),
         trafo2w.currentTapPos
       )
     }

@@ -8,11 +8,11 @@ plugins {
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
   id 'pmd' // code check, working on source code
   id 'com.diffplug.spotless' version '6.22.0'// code format
-  id "com.github.ben-manes.versions" version '0.48.0'
+  id "com.github.ben-manes.versions" version '0.49.0'
   id "de.undercouch.download" version "5.5.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id "com.github.johnrengelman.shadow" version "8.1.1" // fat jar
-  id "org.sonarqube" version "4.4.0.3356" // sonarqube
+  id "org.sonarqube" version "4.4.1.3373" // sonarqube
   id "org.scoverage" version "8.0.3" // scala code coverage scoverage
   id "com.github.maiflai.scalatest" version "0.32" // run scalatest without specific spec task
   id 'org.hidetake.ssh' version '2.11.2'
@@ -24,7 +24,7 @@ ext {
   javaVersion = JavaVersion.VERSION_17
 
   scalaVersion = '2.13'
-  scalaBinaryVersion = '2.13.11'
+  scalaBinaryVersion = '2.13.12'
   akkaVersion = '2.6.20'
   jtsVersion = '1.19.0'
   confluentKafkaVersion = '7.4.0'
@@ -65,7 +65,7 @@ repositories {
 
 dependencies {
   constraints {
-    implementation( 'com.fasterxml.jackson.core:jackson-databind:2.15.2+' ){
+    implementation( 'com.fasterxml.jackson.core:jackson-databind:2.15.3+' ){
       because "[CVE-2020-25649] CWE-611: Improper Restriction of XML External Entity Reference ('XXE')"
     }
   }
@@ -104,7 +104,7 @@ dependencies {
   /* testing */
   testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
   testImplementation 'org.scalatestplus:mockito-3-4_2.13:3.2.10.0'
-  testImplementation 'org.mockito:mockito-core:5.5.0' // mocking framework
+  testImplementation 'org.mockito:mockito-core:5.6.0' // mocking framework
   testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.17"
   testRuntimeOnly 'com.vladsch.flexmark:flexmark-all:0.64.8' //scalatest html output
   testImplementation group: 'org.pegdown', name: 'pegdown', version: '1.6.0'
@@ -130,7 +130,7 @@ dependencies {
   implementation "com.typesafe.akka:akka-cluster-tools_${scalaVersion}:${akkaVersion}"
 
   /* config */
-  implementation 'com.typesafe:config:1.4.2'
+  implementation 'com.typesafe:config:1.4.3'
   implementation "com.github.carueda:tscfg_2.13:$tscfgVersion"
   implementation "com.github.scopt:scopt_${scalaVersion}:4.1.0" // cmd args parser
 
