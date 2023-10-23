@@ -13,7 +13,7 @@ import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.EmModel.{
   EmRelevantData,
-  relativeTolerance,
+  powerTolerance,
   zeroApparentPower
 }
 import edu.ie3.simona.model.participant.control.QControl
@@ -21,7 +21,7 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOpti
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.{Kilovars, Megavars}
-import squants.energy.{Kilowatts, Megawatts}
+import squants.energy.{Kilowatts, Megawatts, Watts}
 import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
@@ -71,7 +71,6 @@ final case class EmModel private (
 
     if (suggestedPower < Kilowatts(0d)) {
       // excess power, try to store it/increase load
-
       val orderedParticipants = Seq(evcsOpt, storageOpt, heatPumpOpt).flatten
 
       orderedParticipants.foldLeft(
@@ -84,28 +83,15 @@ final case class EmModel private (
           val differenceNoControl =
             flexOption.referencePower - flexOption.maxPower
 
-          if (
-            differenceNoControl.toMegawatts.abs < relativeTolerance // => Tolerance of 1 W
-          ) {
-            (issueCtrlMsgs, Some(remainingExcessPower))
-          } else if (remainingExcessPower < differenceNoControl) {
-            // we cannot cover the excess feed-in with just this flexibility,
-            // thus use all of the flexibility
-            (
-              issueCtrlMsgs :+ (spi.getUuid, flexOption.maxPower),
-              Some(remainingExcessPower - differenceNoControl)
-            )
-          } else {
-            // this flexibility covers more than we need to reach zero excess,
-            // thus we only use as much as we need
-            val powerCtrl =
-              flexOption.referencePower - remainingExcessPower
+          determineFlex(
+            true,
+            differenceNoControl,
+            issueCtrlMsgs,
+            remainingExcessPower,
+            spi,
+            flexOption
+          )
 
-            (
-              issueCtrlMsgs :+ (spi.getUuid, powerCtrl),
-              None
-            )
-          }
         case ((issueCtrlMsgs, None), (_, _)) =>
           // if no excess feed-in remains, do nothing
           (issueCtrlMsgs, None)
@@ -117,7 +103,6 @@ final case class EmModel private (
       // excess load, try to cover it with stored energy/by reducing load
 
       val orderedParticipants = Seq(storageOpt, evcsOpt, heatPumpOpt).flatten
-
       orderedParticipants.foldLeft(
         (Seq.empty[(UUID, Power)], Option(suggestedPower))
       ) {
@@ -128,29 +113,14 @@ final case class EmModel private (
           val differenceNoControl =
             flexOption.referencePower - flexOption.minPower
 
-          if (
-            differenceNoControl.toMegawatts.abs <
-              relativeTolerance
-          ) {
-            (issueCtrlMsgs, Some(remainingExcessPower))
-          } else if (remainingExcessPower > differenceNoControl) {
-            // we cannot cover the excess load with just this flexibility,
-            // thus use all of the flexibility
-            (
-              issueCtrlMsgs :+ (spi.getUuid, flexOption.minPower),
-              Some(remainingExcessPower - differenceNoControl)
-            )
-          } else {
-            // this flexibility covers more than we need to reach zero excess,
-            // thus we only use as much as we need
-            val powerCtrl =
-              flexOption.referencePower - remainingExcessPower
-
-            (
-              issueCtrlMsgs :+ (spi.getUuid, powerCtrl),
-              None
-            )
-          }
+          determineFlex(
+            false,
+            differenceNoControl,
+            issueCtrlMsgs,
+            remainingExcessPower,
+            spi,
+            flexOption
+          )
         case ((issueCtrlMsgs, None), (_, _)) =>
           // if no excess load remains, do nothing
           (issueCtrlMsgs, None)
@@ -158,7 +128,80 @@ final case class EmModel private (
         case (issueCtrlMsgs, _) => issueCtrlMsgs
       }
     }
+  }
 
+  /** Determine the power output of provides FlexOptions. Below a
+    * \@powerTolerance no FlexOption will be called.
+    * @param MaxOptions
+    *   true for evaluating against the maximum FlexOption, false for evaluating
+    *   against the minimum FlexOption
+    * @param differenceNoControl
+    *   Represents the power that remains if no control is carried out or the
+    *   power to be balanced out
+    * @param issueCtrlMsgs
+    *
+    * @param remainingExcessPower
+    *
+    * @param spi
+    *   SystemParticipantInput
+    * @param flexOption
+    *   FlexOption under evaluation
+    * @return
+    */
+
+  def determineFlex(
+      maxOptions: Boolean,
+      differenceNoControl: Power,
+      issueCtrlMsgs: Seq[(UUID, Power)],
+      remainingExcessPower: Power,
+      spi: SystemParticipantInput,
+      flexOption: ProvideMinMaxFlexOptions
+  ) = {
+    differenceNoControl match {
+
+      case diff if diff.abs < powerTolerance =>
+        (issueCtrlMsgs, Some(remainingExcessPower))
+
+      case diff
+          if maxOptions && diff > remainingExcessPower && diff.abs >= powerTolerance =>
+        // we cannot cover the excess feed-in with just this flexibility,
+        // thus use all of the flexibility
+        (
+          issueCtrlMsgs :+ (spi.getUuid, flexOption.maxPower),
+          Some(remainingExcessPower - differenceNoControl)
+        )
+      case diff
+          if maxOptions && diff <= remainingExcessPower && diff.abs >= powerTolerance =>
+        // this flexibility covers more than we need to reach zero excess,
+        // thus we only use as much as we need
+        val powerCtrl =
+          flexOption.referencePower - remainingExcessPower
+        (
+          issueCtrlMsgs :+ (spi.getUuid, powerCtrl),
+          None
+        )
+
+      case diff
+          if !maxOptions && diff < remainingExcessPower && diff.abs >= powerTolerance =>
+        // we cannot cover the excess load with just this flexibility,
+        // thus use all of the flexibility
+        (
+          issueCtrlMsgs :+ (spi.getUuid, flexOption.minPower),
+          Some(remainingExcessPower - differenceNoControl)
+        )
+      case diff
+          if !maxOptions && diff >= remainingExcessPower && diff.abs >= powerTolerance =>
+        // this flexibility covers more than we need to reach zero excess,
+        // thus we only use as much as we need
+        val powerCtrl =
+          flexOption.referencePower - remainingExcessPower
+
+        (
+          issueCtrlMsgs :+ (spi.getUuid, powerCtrl),
+          None
+        )
+
+    }
   }
 
   override def calculatePower(
@@ -202,7 +245,7 @@ final case class EmModel private (
 
 object EmModel {
 
-  private val relativeTolerance = 1e-6d
+  private val powerTolerance: Power = Watts(1d)
 
   private val zeroApparentPower = ApparentPower(
     Megawatts(0d),
