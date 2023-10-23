@@ -18,10 +18,7 @@ import edu.ie3.simona.model.participant.EmModel.{
 }
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.util.quantities.{
-  PowerSystemUnits,
-  QuantityUtil => PsuQuantityUtil
-}
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.{Kilovars, Megavars}
 import squants.energy.{Kilowatts, Megawatts}
@@ -91,7 +88,7 @@ final case class EmModel private (
             differenceNoControl.toMegawatts.abs < relativeTolerance // => Tolerance of 1 W
           ) {
             (issueCtrlMsgs, Some(remainingExcessPower))
-          } else if (remainingExcessPower > differenceNoControl) {
+          } else if (remainingExcessPower < differenceNoControl) {
             // we cannot cover the excess feed-in with just this flexibility,
             // thus use all of the flexibility
             (
