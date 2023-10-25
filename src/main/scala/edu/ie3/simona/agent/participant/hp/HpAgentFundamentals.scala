@@ -7,12 +7,7 @@
 package edu.ie3.simona.agent.participant.hp
 
 import akka.actor.{ActorRef, FSM}
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
-import edu.ie3.datamodel.models.input.thermal.{
-  ThermalBusInput,
-  ThermalHouseInput
-}
 import edu.ie3.datamodel.models.result.system.{
   HpResult,
   SystemParticipantResult
@@ -307,15 +302,8 @@ trait HpAgentFundamentals
           thermalGrid.houses().stream().findFirst().asScala
       }
     }.getOrElse {
-      new ThermalHouseInput(
-        UUID.randomUUID(),
-        "Random thermal house",
-        new ThermalBusInput(UUID.randomUUID(), "Random thermal bus"),
-        Quantities.getQuantity(1d, StandardUnits.THERMAL_TRANSMISSION),
-        Quantities.getQuantity(100d, StandardUnits.HEAT_CAPACITY),
-        Quantities.getQuantity(21d, StandardUnits.TEMPERATURE),
-        Quantities.getQuantity(23d, StandardUnits.TEMPERATURE),
-        Quantities.getQuantity(19d, StandardUnits.TEMPERATURE)
+      throw new AgentInitializationException(
+        s"HpAgent cannot be initialized without a Thermal House!"
       )
     }
 

@@ -56,7 +56,6 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.model.participant.HpTestData
 import edu.ie3.simona.util.ConfigUtil
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.quantities.{
   Megavars,
   ReactivePower,
@@ -68,7 +67,6 @@ import squants.energy.{Kilowatts, Megawatts, Watts}
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 import squants.{Dimensionless, Each, Power, Temperature}
-import tech.units.indriya.unit.Units._
 
 import java.io.File
 import java.time.ZonedDateTime
