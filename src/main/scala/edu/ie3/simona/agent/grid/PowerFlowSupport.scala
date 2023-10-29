@@ -19,14 +19,11 @@ import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid._
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvidePowerMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.scala.quantities.Kilovars
+import squants.electro.ElectricPotential
+import squants.energy.Kilowatts
 
 import java.util.UUID
-import javax.measure.Quantity
-import javax.measure.quantity.{Dimensionless, ElectricPotential}
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
@@ -93,7 +90,6 @@ trait PowerFlowSupport {
         receivedValuesStore.nodeToReceivedPower
           .get(nodeModel.uuid) match {
           case Some(actorRefsWithPower) =>
-            val powerUnit = gridMainRefSystem.nominalPower.getUnit
             val (p, q) = actorRefsWithPower
               .map { case (_, powerMsg) => powerMsg }
               .collect {
@@ -110,19 +106,19 @@ trait PowerFlowSupport {
               }
               .foldLeft(
                 (
-                  Quantities.getQuantity(0, powerUnit),
-                  Quantities.getQuantity(0, powerUnit)
+                  Kilowatts(0d),
+                  Kilovars(0d)
                 )
               ) { case ((pSum, qSum), powerMessage) =>
                 (
-                  pSum.add(powerMessage.p.toMegawatts.asMegaWatt),
-                  qSum.add(powerMessage.q.toMegavars.asMegaVar)
+                  pSum + powerMessage.p,
+                  qSum + powerMessage.q
                 )
               }
 
             new Complex(
-              gridMainRefSystem.pInPu(p).getValue.doubleValue(),
-              gridMainRefSystem.qInPu(q).getValue.doubleValue()
+              gridMainRefSystem.pInPu(p).value.doubleValue,
+              gridMainRefSystem.qInPu(q).value.doubleValue
             )
           case None => new Complex(0, 0)
         }
@@ -152,10 +148,7 @@ trait PowerFlowSupport {
           // Either the received data shall not be considered or the node is not a slack node
           Complex.one *
             (if (!ignoreTargetVoltage)
-               nodeModel.vTarget
-                 .to(PowerSystemUnits.PU)
-                 .getValue
-                 .doubleValue()
+               nodeModel.vTarget.toEach
              else 1.0)
         }
 
@@ -467,7 +460,8 @@ trait PowerFlowSupport {
           s"Unable to find transformer for slack node $nodeUuid!"
         )
     }) match {
-      case (e, f) => toComplex(toPu(e, f, gridRefSystem))
+      case (e: ElectricPotential, f: ElectricPotential) =>
+        toComplex(toPu(e, f, gridRefSystem))
     }
   }
 
@@ -484,12 +478,12 @@ trait PowerFlowSupport {
     *   Transferred physical voltage
     */
   private def transferToVoltageLevel(
-      e: Quantity[ElectricPotential],
-      f: Quantity[ElectricPotential],
+      e: ElectricPotential,
+      f: ElectricPotential,
       transformerModel: TransformerModel
-  ): (Quantity[ElectricPotential], Quantity[ElectricPotential]) = {
+  ): (ElectricPotential, ElectricPotential) = {
     val voltRatio = transformerModel.voltRatioNominal
-    (e.divide(voltRatio), f.divide(voltRatio))
+    (e.divide(voltRatio.toDouble), f.divide(voltRatio.toDouble))
   }
 
   /** Transfer physical nodal voltage to correct voltage level, respecting the
@@ -505,12 +499,12 @@ trait PowerFlowSupport {
     *   Transferred physical voltage
     */
   private def transferToVoltageLevel(
-      e: Quantity[ElectricPotential],
-      f: Quantity[ElectricPotential],
+      e: ElectricPotential,
+      f: ElectricPotential,
       transformerModel: Transformer3wModel
-  ): (Quantity[ElectricPotential], Quantity[ElectricPotential]) = {
+  ): (ElectricPotential, ElectricPotential) = {
     val voltRatio = Transformer3wModel.voltRatio(transformerModel)
-    (e.divide(voltRatio), f.divide(voltRatio))
+    (e.divide(voltRatio.toDouble), f.divide(voltRatio.toDouble))
   }
 
   /** Make the voltage dimensionless
@@ -525,10 +519,10 @@ trait PowerFlowSupport {
     *   Nodal voltage in [[edu.ie3.util.quantities.PowerSystemUnits#PU]]
     */
   private def toPu(
-      e: Quantity[ElectricPotential],
-      f: Quantity[ElectricPotential],
+      e: ElectricPotential,
+      f: ElectricPotential,
       gridRefSystem: RefSystem
-  ): (ComparableQuantity[Dimensionless], ComparableQuantity[Dimensionless]) = (
+  ): (squants.Dimensionless, squants.Dimensionless) = (
     gridRefSystem.vInPu(e),
     gridRefSystem.vInPu(f)
   )
@@ -541,10 +535,10 @@ trait PowerFlowSupport {
     *   A [[Complex]] from real and imaginary part
     */
   private def toComplex(
-      ef: (ComparableQuantity[Dimensionless], ComparableQuantity[Dimensionless])
+      ef: (squants.Dimensionless, squants.Dimensionless)
   ) = ef match {
     case (e, f) =>
-      new Complex(e.getValue.doubleValue(), f.getValue.doubleValue())
+      new Complex(e.toEach, f.toEach)
   }
 
   /** Prepare input for and perform newton raphson power flow calculation

@@ -546,8 +546,8 @@ class EvcsAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 900.")
               ) match {
                 case ApparentPower(p, q) =>
-                  p =~ Megawatts(0d) shouldBe true
-                  q =~ Megavars(0d) shouldBe true
+                  (p ~= Megawatts(0d)) shouldBe true
+                  (q ~= Megavars(0d)) shouldBe true
               }
           }
         case _ =>
@@ -675,8 +675,8 @@ class EvcsAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 900.")
               ) match {
                 case ApparentPower(p, q) =>
-                  p =~ Megawatts(0d) shouldBe true
-                  q =~ Megavars(0d) shouldBe true
+                  (p ~= Megawatts(0d)) shouldBe true
+                  (q ~= Megavars(0d)) shouldBe true
               }
           }
         case _ =>

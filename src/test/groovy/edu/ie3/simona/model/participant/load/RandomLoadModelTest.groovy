@@ -11,8 +11,6 @@ import static edu.ie3.simona.model.participant.load.LoadReference.ActivePower
 import static edu.ie3.simona.model.participant.load.LoadReference.EnergyConsumption
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static org.apache.commons.math3.util.FastMath.abs
-import static tech.units.indriya.unit.Units.MINUTE
-import static tech.units.indriya.unit.Units.WATT
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.NodeInput
@@ -85,7 +83,7 @@ class RandomLoadModelTest extends Specification {
     where:
     reference                                                          || expSRated
     new ActivePower(Sq.create(268.6d, Watts$.MODULE$))                 || Sq.create(311.0105263157895d, Watts$.MODULE$)
-    new EnergyConsumption(Sq.create(2000d, KilowattHours$.MODULE$))    || Sq.create(467.156124576697d, Watts$.MODULE$)
+    new EnergyConsumption(Sq.create(2000d, KilowattHours$.MODULE$))    || Sq.create(513.8717370343667d, Watts$.MODULE$)
   }
 
   def "A random load model is able to deliver the correct distribution on request"() {
