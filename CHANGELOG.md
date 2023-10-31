@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Check for grid validity with PSDM `ValidationUtils` [#460](https://github.com/ie3-institute/simona/issues/460)
 - Enhancing dev's guide [#363](https://github.com/ie3-institute/simona/issues/363)
 - Support PF calculation with closed switches [#474](https://github.com/ie3-institute/simona/issues/474)
+- Add safety factor sRated calculation [#629](https://github.com/ie3-institute/simona/issues/629)
 - Added capability of SystemParticipants to handle flexibility requests regarding self-optimization [#308](https://github.com/ie3-institute/simona/issues/308)
 
 ### Changed
@@ -72,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved initialization of weather based agents [#145](https://github.com/ie3-institute/simona/issues/145)
 - Changed from ComparableQuantity to squants fast and typesafe calculations [#490](https://github.com/ie3-institute/simona/issues/490)
 - Changed from ComparableQuantity to squants in power flow [#554](https://github.com/ie3-institute/simona/issues/554)
+- Reduce log level on missing diffuse irradiance [#629](https://github.com/ie3-institute/simona/issues/629)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)

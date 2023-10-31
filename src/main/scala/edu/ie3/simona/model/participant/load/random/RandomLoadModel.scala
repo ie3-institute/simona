@@ -200,7 +200,8 @@ object RandomLoadModel {
           input,
           energyConsumption,
           randomMaxPower,
-          randomProfileEnergyScaling
+          randomProfileEnergyScaling,
+          1.1
         )
 
         RandomLoadModel(
