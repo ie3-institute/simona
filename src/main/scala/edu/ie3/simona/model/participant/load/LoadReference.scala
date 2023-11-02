@@ -11,9 +11,7 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.util.StringUtils
 import edu.ie3.util.quantities.PowerSystemUnits.{MEGAWATT, MEGAWATTHOUR}
 import squants.energy.{MegawattHours, Megawatts}
-
-import javax.measure.quantity.{Energy, Power}
-import tech.units.indriya.ComparableQuantity
+import squants.{Energy, Power}
 
 /** Denoting difference referencing scenarios for scaling load model output
   */
@@ -29,7 +27,7 @@ object LoadReference {
     * @param power
     *   Foreseen active power
     */
-  final case class ActivePower(power: squants.Power) extends LoadReference {
+  final case class ActivePower(power: Power) extends LoadReference {
     override val key: String = "power"
   }
 
@@ -40,7 +38,7 @@ object LoadReference {
     *   Annual energy consumption to reach
     */
   final case class EnergyConsumption(
-      energyConsumption: squants.Energy
+      energyConsumption: Energy
   ) extends LoadReference {
     override val key: String = "energy"
   }

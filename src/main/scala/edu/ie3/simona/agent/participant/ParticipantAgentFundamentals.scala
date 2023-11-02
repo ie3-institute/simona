@@ -90,12 +90,12 @@ import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
-import squants.energy.Megawatts
+import squants.energy.{KilowattHours, Megawatts}
+import squants.{Dimensionless, Each, Energy, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import javax.measure.quantity.{Energy, Power}
 import scala.collection.SortedSet
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
@@ -199,7 +199,7 @@ protected trait ParticipantAgentFundamentals[
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution,
-        squants.Each(
+        Each(
           inputModel.electricalInputModel.getNode
             .getvTarget()
             .to(PU)
@@ -1010,7 +1010,7 @@ protected trait ParticipantAgentFundamentals[
   def getReactivePowerFunction(
       tick: Long,
       baseStateData: FromOutsideBaseStateData[M, PD]
-  ): squants.Power => ReactivePower =
+  ): Power => ReactivePower =
     if (baseStateData.fillUpReactivePowerWithModelFunc) {
       /* Use the model's active to reactive power function */
       val currentNodalVoltage =
@@ -1018,14 +1018,14 @@ protected trait ParticipantAgentFundamentals[
           .last(tick)
           .map(_._2)
           .getOrElse(
-            squants.Each(1d)
+            Each(1d)
           )
-      p: squants.Power =>
+      p: Power =>
         baseStateData.model
           .activeToReactivePowerFunc(
             currentNodalVoltage
           )(p)
-    } else { _: squants.Power =>
+    } else { _: Power =>
       /* Use trivial reactive power */
       Megavars(0d)
     }
@@ -1041,7 +1041,7 @@ protected trait ParticipantAgentFundamentals[
     */
   def prepareData(
       data: Map[ActorRef, Option[_ <: Data]],
-      reactivePowerFunction: squants.Power => ReactivePower
+      reactivePowerFunction: Power => ReactivePower
   ): Try[PD] =
     data.headOption
       .flatMap { case (_, maybeData) =>
@@ -1216,8 +1216,8 @@ protected trait ParticipantAgentFundamentals[
   override def answerPowerRequestAndStayWithUpdatedStateData(
       baseStateData: BaseStateData[PD],
       requestTick: Long,
-      eInPu: squants.Dimensionless,
-      fInPu: squants.Dimensionless,
+      eInPu: Dimensionless,
+      fInPu: Dimensionless,
       alternativeResult: PD
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     /* Check, if there is any calculation foreseen for this tick. If so, wait with the response. */
@@ -1240,7 +1240,7 @@ protected trait ParticipantAgentFundamentals[
         requestTick
       )
       /* Update the voltage value store */
-      val nodalVoltage = squants.Each(
+      val nodalVoltage = Each(
         sqrt(
           pow(eInPu.toEach, 2) + pow(
             fInPu.toEach,
@@ -1308,9 +1308,9 @@ protected trait ParticipantAgentFundamentals[
       baseStateData: BaseStateData[PD],
       mostRecentRequest: Option[(Long, PD)],
       requestTick: Long,
-      voltageValueStore: ValueStore[squants.Dimensionless],
-      nodalVoltage: squants.Dimensionless,
-      lastNodalVoltage: Option[(Long, squants.Dimensionless)]
+      voltageValueStore: ValueStore[Dimensionless],
+      nodalVoltage: Dimensionless,
+      lastNodalVoltage: Option[(Long, Dimensionless)]
   ): Option[FSM.State[AgentState, ParticipantStateData[PD]]] = {
     implicit val outputConfig: NotifierConfig =
       baseStateData.outputConfig
@@ -1340,8 +1340,8 @@ protected trait ParticipantAgentFundamentals[
               ] =>
             /* Check, if the last request has been made with the same nodal voltage. If not, recalculate the reactive
              * power. */
-            implicit val puTolerance: squants.Dimensionless =
-              squants.Each(modelBaseStateData.requestVoltageDeviationThreshold)
+            implicit val puTolerance: Dimensionless =
+              Each(modelBaseStateData.requestVoltageDeviationThreshold)
 
             lastNodalVoltage match {
               case Some((voltageTick, lastVoltage))
@@ -1395,8 +1395,8 @@ protected trait ParticipantAgentFundamentals[
       requestTick: Long,
       baseStateData: BaseStateData[PD],
       mostRecentRequest: Option[(Long, PD)],
-      nodalVoltage: squants.Dimensionless,
-      updatedVoltageValueStore: ValueStore[squants.Dimensionless],
+      nodalVoltage: Dimensionless,
+      updatedVoltageValueStore: ValueStore[Dimensionless],
       alternativeResult: PD
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     /* No fast reply possible --> Some calculations have to be made */
@@ -1589,8 +1589,8 @@ protected trait ParticipantAgentFundamentals[
       baseData: BaseStateData[PD],
       relevantResults: RelevantResultValues[PD],
       requestTick: Long,
-      nodalVoltage: squants.Dimensionless,
-      voltageValueStore: ValueStore[squants.Dimensionless],
+      nodalVoltage: Dimensionless,
+      voltageValueStore: ValueStore[Dimensionless],
       alternativeResult: PD
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     if (relevantResults.relevantData.nonEmpty) {
@@ -1646,8 +1646,8 @@ protected trait ParticipantAgentFundamentals[
       requestTick: Long,
       windowStartTick: Long,
       windowEndTick: Long,
-      nodalVoltage: squants.Dimensionless,
-      voltageValueStore: ValueStore[squants.Dimensionless]
+      nodalVoltage: Dimensionless,
+      voltageValueStore: ValueStore[Dimensionless]
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     val averageResult = determineAverageResult(
       baseData,
@@ -1686,7 +1686,7 @@ protected trait ParticipantAgentFundamentals[
       tickToResult: Map[Long, PD],
       windowStartTick: Long,
       windowEndTick: Long,
-      nodalVoltage: squants.Dimensionless
+      nodalVoltage: Dimensionless
   ): PD = {
     /* Determine, how the single model would transfer the active into reactive power */
     val activeToReactivePowerFunction = baseStateData match {
@@ -1723,7 +1723,7 @@ protected trait ParticipantAgentFundamentals[
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        squants.Power => ReactivePower
+        Power => ReactivePower
       ] = None
   ): PD
 
@@ -1748,7 +1748,7 @@ protected trait ParticipantAgentFundamentals[
       baseStateData: BaseStateData[PD],
       averageResult: PD,
       requestTick: Long,
-      voltageValueStore: ValueStore[squants.Dimensionless]
+      voltageValueStore: ValueStore[Dimensionless]
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     val updatedRequestValueStore =
       ValueStore.updateValueStore(
@@ -1867,7 +1867,7 @@ protected trait ParticipantAgentFundamentals[
   override def announceAssetPowerRequestReply(
       baseStateData: BaseStateData[_],
       tick: Long,
-      activePower: squants.Power,
+      activePower: Power,
       reactivePower: ReactivePower
   )(implicit outputConfig: NotifierConfig): Unit =
     if (outputConfig.powerRequestReply) {
@@ -2037,23 +2037,19 @@ case object ParticipantAgentFundamentals {
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        squants.Power => ReactivePower
+        Power => ReactivePower
       ] = None,
       log: LoggingAdapter
   ): ApparentPower = {
-    val p = QuantityUtil.average(
+    val p = QuantityUtil.average[Power, Energy](
       tickToResults.map { case (tick, pd) =>
-        tick -> pd.p.toMegawatts.asMegaWatt
+        tick -> pd.p
       },
       windowStart,
-      windowEnd,
-      classOf[Energy],
-      KILOWATTHOUR,
-      classOf[Power],
-      MEGAWATT
+      windowEnd
     ) match {
       case Success(pSuccess) =>
-        Megawatts(pSuccess.to(MEGAWATT).getValue.doubleValue)
+        pSuccess
       case Failure(exception) =>
         log.warning(
           "Unable to determine average active power. Apply 0 instead. Cause:\n\t{}",
@@ -2061,23 +2057,22 @@ case object ParticipantAgentFundamentals {
         )
         Megawatts(0d)
     }
-    val q = QuantityUtil.average(
+
+    val q = QuantityUtil.average[Power, Energy](
       tickToResults.map { case (tick, pd) =>
         activeToReactivePowerFuncOpt match {
           case Some(qFunc) =>
-            tick -> qFunc(pd.toApparentPower.p).toMegavars.asMegaVar
-          case None => tick -> pd.toApparentPower.q.toMegavars.asMegaVar
+            // NOTE: The type conversion to Megawatts is done to satisfy the methods type constraints
+            // and is undone after unpacking the results
+            tick -> Megawatts(qFunc(pd.toApparentPower.p).toMegavars)
+          case None => tick -> Megawatts(pd.toApparentPower.q.toMegavars)
         }
       },
       windowStart,
-      windowEnd,
-      classOf[Energy],
-      KILOVARHOUR,
-      classOf[Power],
-      MEGAVAR
+      windowEnd
     ) match {
       case Success(pSuccess) =>
-        Megavars(pSuccess.to(MEGAVAR).getValue.doubleValue)
+        Megavars(pSuccess.toMegawatts)
       case Failure(exception) =>
         log.warning(
           "Unable to determine average reactive power. Apply 0 instead. Cause:\n\t{}",
@@ -2107,23 +2102,19 @@ case object ParticipantAgentFundamentals {
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        squants.Power => ReactivePower
+        Power => ReactivePower
       ] = None,
       log: LoggingAdapter
   ): ApparentPowerAndHeat = {
-    val p = QuantityUtil.average(
+    val p = QuantityUtil.average[Power, Energy](
       tickToResults.map { case (tick, pd) =>
-        tick -> pd.p.toMegawatts.asMegaWatt
+        tick -> pd.p
       },
       windowStart,
-      windowEnd,
-      classOf[Energy],
-      KILOWATTHOUR,
-      classOf[Power],
-      MEGAWATT
+      windowEnd
     ) match {
       case Success(pSuccess) =>
-        Megawatts(pSuccess.to(MEGAWATT).getValue.doubleValue)
+        pSuccess
       case Failure(exception) =>
         log.warning(
           "Unable to determine average active power. Apply 0 instead. Cause:\n\t{}",
@@ -2131,23 +2122,21 @@ case object ParticipantAgentFundamentals {
         )
         Megawatts(0d)
     }
-    val q = QuantityUtil.average(
+    val q = QuantityUtil.average[Power, Energy](
       tickToResults.map { case (tick, pd) =>
         activeToReactivePowerFuncOpt match {
           case Some(qFunc) =>
-            tick -> qFunc(pd.toApparentPower.p).toMegavars.asMegaVar
-          case None => tick -> pd.toApparentPower.q.toMegavars.asMegaVar
+            // NOTE: The type conversion to Megawatts is done to satisfy the methods type constraints
+            // and is undone after unpacking the results
+            tick -> Megawatts(qFunc(pd.toApparentPower.p).toMegavars)
+          case None => tick -> Megawatts(pd.toApparentPower.q.toMegavars)
         }
       },
       windowStart,
-      windowEnd,
-      classOf[Energy],
-      KILOVARHOUR,
-      classOf[Power],
-      MEGAVAR
+      windowEnd
     ) match {
       case Success(pSuccess) =>
-        Megavars(pSuccess.to(MEGAVAR).getValue.doubleValue)
+        Megavars(pSuccess.toMegawatts)
       case Failure(exception) =>
         log.warning(
           "Unable to determine average reactive power. Apply 0 instead. Cause:\n\t{}",
@@ -2155,19 +2144,15 @@ case object ParticipantAgentFundamentals {
         )
         Megavars(0d)
     }
-    val qDot = QuantityUtil.average(
+    val qDot = QuantityUtil.average[Power, Energy](
       tickToResults.map { case (tick, pd) =>
-        tick -> pd.qDot.toMegawatts.asMegaWatt
+        tick -> pd.qDot
       },
       windowStart,
-      windowEnd,
-      classOf[Energy],
-      KILOWATTHOUR,
-      classOf[Power],
-      MEGAWATT
+      windowEnd
     ) match {
       case Success(qDotSuccess) =>
-        Megawatts(qDotSuccess.to(MEGAWATT).getValue.doubleValue)
+        qDotSuccess
       case Failure(exception) =>
         log.warning(
           "Unable to determine average thermal power. Apply 0 instead. Cause:\n\t{}",

@@ -10,7 +10,6 @@ import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.TestFSMRef
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV
 import edu.ie3.simona.agent.ValueStore
@@ -55,11 +54,16 @@ import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.PvInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
-import squants.Each
+import edu.ie3.util.scala.quantities.{
+  Megavars,
+  ReactivePower,
+  Vars,
+  WattsPerSquareMeter
+}
 import squants.energy.{Kilowatts, Megawatts, Watts}
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND}
+import squants.motion.MetersPerSecond
+import squants.thermal.Celsius
+import squants.{Each, Power}
 
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
@@ -119,7 +123,7 @@ class PvAgentModelCalculationSpec
   )
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
-  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val powerTolerance: Power = Watts(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   "A pv agent with model calculation depending on no secondary data service" should {
@@ -363,7 +367,7 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           triggerId,
           Some(
-            Seq(
+            scala.collection.immutable.Seq(
               ScheduleTriggerMessage(ActivityStartTrigger(4711), pvAgent)
             )
           )
@@ -526,10 +530,10 @@ class PvAgentModelCalculationSpec
 
       /* Send out new data */
       val weatherData = WeatherData(
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(1.815, CELSIUS),
-        Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+        WattsPerSquareMeter(0d),
+        WattsPerSquareMeter(0d),
+        Celsius(1.815d),
+        MetersPerSecond(7.726576d)
       )
 
       weatherService.send(
@@ -579,7 +583,9 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent))
+            scala.collection.immutable.Seq(
+              ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent)
+            )
           )
         )
       )
@@ -701,10 +707,10 @@ class PvAgentModelCalculationSpec
 
       /* Providing the awaited data will lead to the foreseen transitions */
       val weatherData = WeatherData(
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(1.815, CELSIUS),
-        Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+        WattsPerSquareMeter(0d),
+        WattsPerSquareMeter(0d),
+        Celsius(1.815d),
+        MetersPerSecond(7.726576d)
       )
 
       weatherService.send(
@@ -717,7 +723,9 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent))
+            scala.collection.immutable.Seq(
+              ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent)
+            )
           )
         )
       )
@@ -816,10 +824,10 @@ class PvAgentModelCalculationSpec
 
       /* Send out the expected data and wait for the reply */
       val weatherData = WeatherData(
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(1.815, CELSIUS),
-        Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+        WattsPerSquareMeter(0d),
+        WattsPerSquareMeter(0d),
+        Celsius(1.815d),
+        MetersPerSecond(7.726576d)
       )
       weatherService.send(
         pvAgent,
@@ -842,7 +850,9 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent))
+            scala.collection.immutable.Seq(
+              ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent)
+            )
           )
         )
       )
@@ -913,10 +923,10 @@ class PvAgentModelCalculationSpec
         ProvideWeatherMessage(
           0L,
           WeatherData(
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(1.815, CELSIUS),
-            Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+            WattsPerSquareMeter(0d),
+            WattsPerSquareMeter(0d),
+            Celsius(1.815d),
+            MetersPerSecond(7.726576d)
           ),
           Some(3600L)
         )
@@ -933,7 +943,9 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent))
+            scala.collection.immutable.Seq(
+              ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent)
+            )
           )
         )
       )
@@ -944,10 +956,10 @@ class PvAgentModelCalculationSpec
         ProvideWeatherMessage(
           3600L,
           WeatherData(
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(1.815, CELSIUS),
-            Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+            WattsPerSquareMeter(0d),
+            WattsPerSquareMeter(0d),
+            Celsius(1.815d),
+            MetersPerSecond(7.726576d)
           ),
           Some(7200L)
         )
@@ -964,7 +976,9 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           3L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent))
+            scala.collection.immutable.Seq(
+              ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent)
+            )
           )
         )
       )
@@ -975,10 +989,10 @@ class PvAgentModelCalculationSpec
         ProvideWeatherMessage(
           7200L,
           WeatherData(
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(1.815, CELSIUS),
-            Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+            WattsPerSquareMeter(0d),
+            WattsPerSquareMeter(0d),
+            Celsius(1.815d),
+            MetersPerSecond(7.726576d)
           ),
           None
         )

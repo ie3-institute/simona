@@ -6,6 +6,8 @@
 
 package edu.ie3.simona.model.thermal
 
+import squants.Temperature
+
 /** This trait enables implementations of a [[ThermalHouse]], which need a
   * mutable inner temperature. The trait can only be used by subclasses of
   * [[ThermalHouse]] (look [[self]]). <p> <strong>Important:</strong> The field
@@ -16,9 +18,9 @@ trait MutableTemperature {
 
   /** Inner temperature level
     */
-  protected var _innerTemperature: squants.Temperature
+  protected var _innerTemperature: Temperature
 
-  final def getInnerTemperature: squants.Temperature =
+  final def getInnerTemperature: Temperature =
     _innerTemperature
 
   /** Set innerTemperature to a new value.
@@ -29,7 +31,7 @@ trait MutableTemperature {
     *   old inner temperature
     */
   def setInnerTemperature(
-      newValue: squants.Temperature
+      newValue: Temperature
   ): Unit =
     _innerTemperature = newValue
 

@@ -54,11 +54,13 @@ import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Megavars
 import squants.Each
 import squants.energy.Megawatts
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.Kilovars
+import squants.{Each, Dimensionless}
+import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.Dimensionless
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
@@ -328,7 +330,7 @@ protected trait EvcsAgentFundamentals
         EvcsModel
       ],
       EvcsState,
-      squants.Dimensionless
+      Dimensionless
   ) => ApparentPower =
     (_, _, _, _) =>
       throw new InvalidRequestException(

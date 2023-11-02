@@ -6,18 +6,18 @@
 
 package edu.ie3.simona.test.common
 
-import java.time.{ZoneId, ZonedDateTime}
-
 import com.typesafe.config.{Config, ConfigFactory}
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
-import tech.units.indriya.quantity.Quantities
+import squants.electro.Kilovolts
+import squants.energy.Kilowatts
+
+import java.time.{ZoneId, ZonedDateTime}
 
 /** Default values to be used in tests. Should be extended as needed.
   */
@@ -59,8 +59,8 @@ trait DefaultTestData {
   )
 
   protected val default400Kva10KvRefSystem: RefSystem = RefSystem(
-    Quantities.getQuantity(400, KILOVOLTAMPERE),
-    Quantities.getQuantity(10, KILOVOLT)
+    Kilowatts(400d),
+    Kilovolts(10d)
   )
 
   /** Creates a [[SimonaConfig]], that provides the desired participant model

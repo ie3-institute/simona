@@ -18,6 +18,7 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant
 }
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
+import squants.Dimensionless
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -71,7 +72,7 @@ trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
     * set to 1.0 p.u. per default. If more information are available, the
     * attribute shall be overridden
     */
-  val voltageValueStore: ValueStore[squants.Dimensionless]
+  val voltageValueStore: ValueStore[Dimensionless]
 
   /** Determines the output behaviour of this model
     */
@@ -159,7 +160,7 @@ object BaseStateData {
       fillUpReactivePowerWithModelFunc: Boolean = false,
       requestVoltageDeviationThreshold: Double,
       override val voltageValueStore: ValueStore[
-        squants.Dimensionless
+        Dimensionless
       ],
       override val resultValueStore: ValueStore[P],
       override val requestValueStore: ValueStore[P]
@@ -216,7 +217,7 @@ object BaseStateData {
       override val foreseenDataTicks: Map[ActorRef, Option[Long]],
       requestVoltageDeviationThreshold: Double,
       override val voltageValueStore: ValueStore[
-        squants.Dimensionless
+        Dimensionless
       ],
       override val resultValueStore: ValueStore[PD],
       override val requestValueStore: ValueStore[PD],
@@ -273,7 +274,7 @@ object BaseStateData {
       baseStateData: BaseStateData[PD],
       updatedResultValueStore: ValueStore[PD],
       updatedRequestValueStore: ValueStore[PD],
-      updatedVoltageValueStore: ValueStore[squants.Dimensionless],
+      updatedVoltageValueStore: ValueStore[Dimensionless],
       updatedAdditionalActivationTicks: SortedSet[Long],
       updatedForeseenTicks: Map[ActorRef, Option[Long]]
   ): BaseStateData[PD] = {

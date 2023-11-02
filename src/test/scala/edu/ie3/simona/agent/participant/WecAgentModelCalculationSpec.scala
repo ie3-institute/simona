@@ -10,7 +10,6 @@ import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.TestFSMRef
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV
 import edu.ie3.simona.agent.ValueStore
@@ -63,12 +62,17 @@ import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.WecInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
+import edu.ie3.util.scala.quantities.{
+  Megavars,
+  ReactivePower,
+  Vars,
+  WattsPerSquareMeter
+}
 import org.scalatest.PrivateMethodTester
 import squants.Each
 import squants.energy.{Kilowatts, Megawatts, Watts}
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND}
+import squants.motion.MetersPerSecond
+import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
@@ -344,7 +348,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           triggerId,
           Some(
-            Seq(
+            immutable.Seq(
               ScheduleTriggerMessage(ActivityStartTrigger(4711), wecAgent)
             )
           )
@@ -523,10 +527,10 @@ class WecAgentModelCalculationSpec
 
       /* Send out new data */
       val weatherData = WeatherData(
-        Quantities.getQuantity(50, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(100, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, CELSIUS),
-        Quantities.getQuantity(0, METRE_PER_SECOND)
+        WattsPerSquareMeter(50d),
+        WattsPerSquareMeter(100d),
+        Celsius(0d),
+        MetersPerSecond(0d)
       )
 
       weatherService.send(
@@ -581,7 +585,9 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
+            immutable.Seq(
+              ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
+            )
           )
         )
       )
@@ -717,10 +723,10 @@ class WecAgentModelCalculationSpec
 
       /* Providing the awaited data will lead to the foreseen transitions */
       val weatherData = WeatherData(
-        Quantities.getQuantity(50, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(100, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, CELSIUS),
-        Quantities.getQuantity(0, METRE_PER_SECOND)
+        WattsPerSquareMeter(50d),
+        WattsPerSquareMeter(100d),
+        Celsius(0d),
+        MetersPerSecond(0d)
       )
 
       weatherService.send(
@@ -733,7 +739,9 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
+            immutable.Seq(
+              ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
+            )
           )
         )
       )
@@ -841,10 +849,10 @@ class WecAgentModelCalculationSpec
 
       /* Send out the expected data and wait for the reply */
       val weatherData = WeatherData(
-        Quantities.getQuantity(50, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(100, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, CELSIUS),
-        Quantities.getQuantity(0, METRE_PER_SECOND)
+        WattsPerSquareMeter(50d),
+        WattsPerSquareMeter(100d),
+        Celsius(0d),
+        MetersPerSecond(0d)
       )
       weatherService.send(
         wecAgent,
@@ -867,7 +875,9 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
+            immutable.Seq(
+              ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
+            )
           )
         )
       )
@@ -942,10 +952,10 @@ class WecAgentModelCalculationSpec
         ProvideWeatherMessage(
           900L,
           WeatherData(
-            Quantities.getQuantity(50, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(100, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, CELSIUS),
-            Quantities.getQuantity(0, METRE_PER_SECOND)
+            WattsPerSquareMeter(50d),
+            WattsPerSquareMeter(100d),
+            Celsius(0d),
+            MetersPerSecond(0d)
           ),
           Some(1800L)
         )
@@ -962,7 +972,9 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
+            immutable.Seq(
+              ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
+            )
           )
         )
       )
@@ -973,10 +985,10 @@ class WecAgentModelCalculationSpec
         ProvideWeatherMessage(
           1800L,
           WeatherData(
-            Quantities.getQuantity(50, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(100, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, CELSIUS),
-            Quantities.getQuantity(0, METRE_PER_SECOND)
+            WattsPerSquareMeter(50d),
+            WattsPerSquareMeter(100d),
+            Celsius(0d),
+            MetersPerSecond(0d)
           ),
           Some(2700L)
         )
@@ -993,7 +1005,9 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           3L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(2700L), wecAgent))
+            immutable.Seq(
+              ScheduleTriggerMessage(ActivityStartTrigger(2700L), wecAgent)
+            )
           )
         )
       )
@@ -1004,10 +1018,10 @@ class WecAgentModelCalculationSpec
         ProvideWeatherMessage(
           2700L,
           WeatherData(
-            Quantities.getQuantity(50, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(100, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, CELSIUS),
-            Quantities.getQuantity(0, METRE_PER_SECOND)
+            WattsPerSquareMeter(50d),
+            WattsPerSquareMeter(100d),
+            Celsius(0d),
+            MetersPerSecond(0d)
           ),
           None
         )

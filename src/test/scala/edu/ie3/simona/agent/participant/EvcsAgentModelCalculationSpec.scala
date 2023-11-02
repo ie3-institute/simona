@@ -8,7 +8,6 @@ package edu.ie3.simona.agent.participant
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestFSMRef, TestProbe}
-import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV
@@ -28,8 +27,8 @@ import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvModelWrapper}
 import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsState
+import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvModelWrapper}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -59,8 +58,8 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
-import squants.Each
-import squants.energy.{KilowattHours, Kilowatts, Megawatts, WattHours, Watts}
+import squants.energy._
+import squants.{Each, Energy, Power}
 
 import java.time.temporal.ChronoUnit
 import scala.collection.SortedMap
@@ -82,8 +81,8 @@ class EvcsAgentModelCalculationSpec
   private implicit val receiveTimeout: FiniteDuration = 10.seconds
 
   private val testingTolerance = 1e-6
-  private implicit val energyTolerance: squants.Energy = WattHours(0.1)
-  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val energyTolerance: Energy = WattHours(0.1)
+  private implicit val powerTolerance: Power = Watts(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   /* Alter the input model to have a voltage sensitive reactive power calculation */
@@ -612,8 +611,15 @@ class EvcsAgentModelCalculationSpec
           /* The store for simulation results has been extended */
           baseStateData.resultValueStore match {
             case ValueStore(_, store) =>
-              // FIXME: Please double-check if an empty result store is actually correct here!
-              store.keys shouldBe empty
+              store.size shouldBe 1
+              store.getOrElse(
+                0L,
+                fail("Expected a simulation result for tick 900.")
+              ) match {
+                case ApparentPower(p, q) =>
+                  (p ~= Megawatts(0d)) shouldBe true
+                  (q ~= Megavars(0d)) shouldBe true
+              }
           }
         case _ =>
           fail(
@@ -764,8 +770,15 @@ class EvcsAgentModelCalculationSpec
           /* The store for simulation results has been extended */
           baseStateData.resultValueStore match {
             case ValueStore(_, store) =>
-              // FIXME: Please double-check if an empty result store is actually correct here!
-              store shouldBe empty
+              store.size shouldBe 1
+              store.getOrElse(
+                0L,
+                fail("Expected a simulation result for tick 900.")
+              ) match {
+                case ApparentPower(p, q) =>
+                  (p ~= Megawatts(0d)) shouldBe true
+                  (q ~= Megavars(0d)) shouldBe true
+              }
           }
         case _ =>
           fail(

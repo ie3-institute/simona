@@ -11,7 +11,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.interfaces.EnergyPrice
 import edu.ie3.util.scala.quantities.{Kilovars, Megavars, ReactivePower}
-import squants.energy.{Kilowatts, Megawatts}
+import squants.energy.{Power, Kilowatts, Megawatts}
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
@@ -34,7 +34,7 @@ object Data {
     * given
     */
   sealed trait PrimaryData extends Data {
-    val p: squants.Power
+    val p: Power
     def toApparentPower: ApparentPower
   }
 
@@ -57,7 +57,7 @@ object Data {
     /** Adding thermal power
       */
     sealed trait Heat {
-      val qDot: squants.Power
+      val qDot: Power
     }
 
     val ZERO_POWER: ApparentPower = ApparentPower(
@@ -70,7 +70,7 @@ object Data {
       * @param p
       *   Active power
       */
-    final case class ActivePower(override val p: squants.Power)
+    final case class ActivePower(override val p: Power)
         extends PrimaryData
         with EnrichableData[ApparentPower] {
       override def toApparentPower: ApparentPower =
@@ -91,7 +91,7 @@ object Data {
       *   Reactive power
       */
     final case class ApparentPower(
-        override val p: squants.Power,
+        override val p: Power,
         override val q: ReactivePower
     ) extends PrimaryDataWithApparentPower[ApparentPower] {
       override def toApparentPower: ApparentPower = this
@@ -108,8 +108,8 @@ object Data {
       *   Heat demand
       */
     final case class ActivePowerAndHeat(
-        override val p: squants.Power,
-        override val qDot: squants.Power
+        override val p: Power,
+        override val qDot: Power
     ) extends PrimaryData
         with Heat
         with EnrichableData[ApparentPowerAndHeat] {
@@ -133,9 +133,9 @@ object Data {
       *   Heat demand
       */
     final case class ApparentPowerAndHeat(
-        override val p: squants.Power,
+        override val p: Power,
         override val q: ReactivePower,
-        override val qDot: squants.Power
+        override val qDot: Power
     ) extends PrimaryDataWithApparentPower[ApparentPowerAndHeat]
         with Heat {
       override def toApparentPower: ApparentPower =

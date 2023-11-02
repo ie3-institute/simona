@@ -23,6 +23,7 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
+import squants.{Energy, Power}
 import squants.energy.Megawatts
 
 import java.util.UUID
@@ -38,7 +39,7 @@ abstract class LoadModel[D <: LoadRelevantData](
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: squants.Power,
+    sRated: Power,
     cosPhiRated: Double
 ) extends SystemParticipant[D, ApparentPower, ConstantState.type](
       uuid,
@@ -64,7 +65,7 @@ abstract class LoadModel[D <: LoadRelevantData](
   override def handleControlledPowerChange(
       data: D,
       lastState: ConstantState.type,
-      setPower: squants.Power
+      setPower: Power
   ): (ConstantState.type, FlexChangeIndicator) =
     (lastState, FlexChangeIndicator())
 }
@@ -91,9 +92,9 @@ case object LoadModel extends LazyLogging {
     */
   def scaleSRatedActivePower(
       inputModel: LoadInput,
-      activePower: squants.Power,
+      activePower: Power,
       safetyFactor: Double = 1d
-  ): squants.Power = {
+  ): Power = {
     val sRated = Megawatts(
       inputModel.getsRated
         .to(PowerSystemUnits.MEGAWATT)
@@ -123,18 +124,23 @@ case object LoadModel extends LazyLogging {
     * @param profileEnergyScaling
     *   the energy scaling factor of the profile (= amount of yearly energy the
     *   profile is scaled to)
+    * @param safetyFactor
+    *   a safety factor to address potential higher sRated values than the
+    *   original scaling would provide (e.g. when using unrestricted probability
+    *   functions)
     * @return
     *   he inputs model sRated scaled to the provided energy consumption
     */
   def scaleSRatedEnergy(
       inputModel: LoadInput,
-      energyConsumption: squants.Energy,
-      profileMaxPower: squants.Power,
-      profileEnergyScaling: squants.Energy
-  ): squants.Power = {
+      energyConsumption: Energy,
+      profileMaxPower: Power,
+      profileEnergyScaling: Energy,
+      safetyFactor: Double = 1d
+  ): Power = {
     (profileMaxPower / inputModel.getCosPhiRated) * (
       energyConsumption / profileEnergyScaling
-    )
+    ) * safetyFactor
   }
 
 }

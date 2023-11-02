@@ -14,9 +14,13 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
-import squants.energy.{Kilowatts, Megawatts}
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.scala.quantities.{
+  DefaultQuantities,
+  Megavars,
+  ReactivePower
+}
+import squants.Dimensionless
+import squants.energy.{Kilowatts, Power}
 
 import java.util.UUID
 
@@ -53,7 +57,7 @@ abstract class SystemParticipant[
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: squants.Power, // TODO ApparentPower type
+    sRated: Power,
     cosPhiRated: Double
 ) extends SystemComponent(uuid, id, operationInterval) {
 
@@ -62,7 +66,7 @@ abstract class SystemParticipant[
     * overwritten if the system participant's apparent power can be higher than
     * sRated.
     */
-  protected val sMax: squants.Power = sRated
+  protected val sMax: Power = sRated
 
   /** Calculate the power behaviour based on the given data.
     *
@@ -79,7 +83,7 @@ abstract class SystemParticipant[
     */
   def calculatePower(
       tick: Long,
-      voltage: squants.Dimensionless,
+      voltage: Dimensionless,
       modelState: MS,
       data: CD
   ): PD
@@ -108,8 +112,8 @@ abstract class SystemParticipant[
       ApparentPower(activePower, reactivePower)
     } else {
       ApparentPower(
-        Megawatts(0d),
-        Megavars(0d)
+        DefaultQuantities.zeroMW,
+        DefaultQuantities.zeroMVAr
       )
     }
   }
@@ -126,7 +130,7 @@ abstract class SystemParticipant[
   protected def calculateActivePower(
       modelState: MS,
       data: CD
-  ): squants.Power
+  ): Power
 
   /** @param data
     * @param lastState
@@ -149,7 +153,7 @@ abstract class SystemParticipant[
   def handleControlledPowerChange(
       data: CD,
       lastState: MS,
-      setPower: squants.Power
+      setPower: Power
   ): (MS, FlexChangeIndicator)
 
   /** Get a partial function, that transfers the current active into reactive
@@ -158,11 +162,11 @@ abstract class SystemParticipant[
     * @param nodalVoltage
     *   The currently given nodal voltage
     * @return
-    *   A [[PartialFunction]] from [[squants.Power]] to [[ReactivePower]]
+    *   A [[PartialFunction]] from [[Power]] to [[ReactivePower]]
     */
   def activeToReactivePowerFunc(
-      nodalVoltage: squants.Dimensionless
-  ): squants.Power => ReactivePower =
+      nodalVoltage: Dimensionless
+  ): Power => ReactivePower =
     qControl.activeToReactivePowerFunc(
       sRated * scalingFactor,
       cosPhiRated,
@@ -179,8 +183,8 @@ abstract class SystemParticipant[
     *   Reactive power
     */
   def calculateReactivePower(
-      activePower: squants.Power,
-      voltage: squants.Dimensionless
+      activePower: Power,
+      voltage: Dimensionless
   ): ReactivePower = {
     limitReactivePower(
       activePower,
@@ -199,11 +203,11 @@ abstract class SystemParticipant[
     *   reactivePower
     */
   private def limitReactivePower(
-      activePower: squants.Power,
+      activePower: Power,
       reactivePower: ReactivePower
   ): ReactivePower = {
     {
-      val apparentPower: squants.Power = Kilowatts(
+      val apparentPower: Power = Kilowatts(
         Math
           .sqrt(
             Math.pow(activePower.toKilowatts, 2) + Math
@@ -227,9 +231,8 @@ abstract class SystemParticipant[
           Math.pow(activePower.toMegawatts, 2)
 
         if (powerSquaredDifference < 0) {
-          logger.debug(
-            s"Difference between sMax and active power is negative when limiting reactive power. " +
-              s"Set reactive power to 0!"
+          logger.warn(
+            s"Active power of model exceeds sRated. Set reactive power to 0!"
           )
           Megavars(0d)
         } else {

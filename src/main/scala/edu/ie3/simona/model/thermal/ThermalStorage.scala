@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import squants.Seconds
+import squants.{Energy, Power, Seconds}
 import squants.energy.KilowattHours
 
 import java.util.UUID
@@ -40,9 +40,9 @@ abstract class ThermalStorage(
     operatorInput: OperatorInput,
     operationTime: OperationTime,
     bus: ThermalBusInput,
-    minEnergyThreshold: squants.Energy,
-    maxEnergyThreshold: squants.Energy,
-    chargingPower: squants.Power
+    minEnergyThreshold: Energy,
+    maxEnergyThreshold: Energy,
+    chargingPower: Power
 ) {
   protected val zeroEnergy: squants.Energy =
     KilowattHours(0d)
@@ -54,23 +54,23 @@ abstract class ThermalStorage(
 
   def getUuid: UUID = uuid
 
-  def getMinEnergyThreshold: squants.Energy = minEnergyThreshold
+  def getMinEnergyThreshold: Energy = minEnergyThreshold
 
-  def getMaxEnergyThreshold: squants.Energy = maxEnergyThreshold
+  def getMaxEnergyThreshold: Energy = maxEnergyThreshold
 
-  def getChargingPower: squants.Power = chargingPower
+  def getChargingPower: Power = chargingPower
 
   def startingState: ThermalStorageState
 
-  def isFull(energy: squants.Energy): Boolean =
+  def isFull(energy: Energy): Boolean =
     energy > (maxEnergyThreshold - toleranceMargin)
 
-  def isEmpty(energy: squants.Energy): Boolean =
+  def isEmpty(energy: Energy): Boolean =
     energy < (minEnergyThreshold + toleranceMargin)
 
   def updateState(
       tick: Long,
-      qDot: squants.Power,
+      qDot: Power,
       lastState: ThermalStorageState
   ): (ThermalStorageState, Option[ThermalThreshold])
 }
@@ -78,8 +78,8 @@ abstract class ThermalStorage(
 object ThermalStorage {
   final case class ThermalStorageState(
       tick: Long,
-      storedEnergy: squants.Energy,
-      qDot: squants.Power
+      storedEnergy: Energy,
+      qDot: Power
   )
 
   object ThermalStorageThreshold {

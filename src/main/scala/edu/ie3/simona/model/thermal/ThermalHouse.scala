@@ -22,16 +22,16 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
   temperatureTolerance
 }
 import edu.ie3.util.quantities.PowerSystemUnits
-import squants.Kelvin
+import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
 import squants.energy.{KilowattHours, Kilowatts, MegawattHours, Megawatts}
 import squants.thermal.ThermalCapacity
 import squants.time.{Hours, Seconds}
+import squants.{Energy, Kelvin, Power, Temperature, Time}
 import tech.units.indriya.unit.Units
 
 import java.util.UUID
 
-/** A thermal house model including a variable inner temperature <p> *
-  * <strong>Important:</strong> The field innerTemperature is a variable.
+/** A thermal house model
   *
   * @param uuid
   *   the element's uuid
@@ -60,11 +60,11 @@ final case class ThermalHouse(
     operatorInput: OperatorInput,
     operationTime: OperationTime,
     bus: ThermalBusInput,
-    ethLosses: squants.Power, // FIXME thermal conductance, power per 1K
+    ethLosses: ThermalConductance,
     ethCapa: ThermalCapacity,
-    targetTemperature: squants.Temperature,
-    lowerBoundaryTemperature: squants.Temperature,
-    upperBoundaryTemperature: squants.Temperature
+    targetTemperature: Temperature,
+    lowerBoundaryTemperature: Temperature,
+    upperBoundaryTemperature: Temperature
 ) extends ThermalSink(
       uuid,
       id,
@@ -156,7 +156,7 @@ final case class ThermalHouse(
     *   true, if inner temperature is too high
     */
   def isInnerTemperatureTooHigh(
-      innerTemperature: squants.Temperature
+      innerTemperature: Temperature
   ): Boolean =
     innerTemperature > Kelvin(
       upperBoundaryTemperature.toKelvinScale - temperatureTolerance.toKelvinScale
@@ -168,8 +168,8 @@ final case class ThermalHouse(
     *   true, if inner temperature is too low
     */
   def isInnerTemperatureTooLow(
-      innerTemperature: squants.Temperature,
-      boundaryTemperature: squants.Temperature = lowerBoundaryTemperature
+      innerTemperature: Temperature,
+      boundaryTemperature: Temperature = lowerBoundaryTemperature
   ): Boolean =
     innerTemperature < Kelvin(
       boundaryTemperature.toKelvinScale + temperatureTolerance.toKelvinScale
@@ -189,11 +189,11 @@ final case class ThermalHouse(
     *   new inner temperature
     */
   private def newInnerTemperature(
-      thermalPower: squants.Power,
-      duration: squants.Time,
-      currentInnerTemperature: squants.Temperature,
-      ambientTemperature: squants.Temperature
-  ): squants.Temperature = {
+      thermalPower: Power,
+      duration: Time,
+      currentInnerTemperature: Temperature,
+      ambientTemperature: Temperature
+  ): Temperature = {
     val thermalEnergyChange = calcThermalEnergyChange(
       calcThermalEnergyGain(thermalPower, duration),
       calcThermalEnergyLoss(
@@ -218,9 +218,9 @@ final case class ThermalHouse(
     *   new inner temperature
     */
   private def calcNewInnerTemperature(
-      oldInnerTemperature: squants.Temperature,
-      temperatureChange: squants.Temperature
-  ): squants.Temperature =
+      oldInnerTemperature: Temperature,
+      temperatureChange: Temperature
+  ): Temperature =
     Kelvin(oldInnerTemperature.toKelvinScale + temperatureChange.toKelvinScale)
 
   /** Calculate the temperature change for the thermal house form the thermal
@@ -232,8 +232,8 @@ final case class ThermalHouse(
     *   temperature change
     */
   private def calcInnerTemperatureChange(
-      thermalEnergyChange: squants.Energy
-  ): squants.Temperature = {
+      thermalEnergyChange: Energy
+  ): Temperature = {
     thermalEnergyChange / ethCapa
   }
 
@@ -247,9 +247,9 @@ final case class ThermalHouse(
     *   thermal energy change
     */
   private def calcThermalEnergyChange(
-      thermalEnergyGain: squants.Energy,
-      thermalEnergyLoss: squants.Energy
-  ): squants.Energy =
+      thermalEnergyGain: Energy,
+      thermalEnergyLoss: Energy
+  ): Energy =
     thermalEnergyGain - thermalEnergyLoss
 
   /** Calculate the thermal energy gain, e.g. due to a running heat pump
@@ -262,9 +262,9 @@ final case class ThermalHouse(
     *   resulting thermal energy gain
     */
   private def calcThermalEnergyGain(
-      pThermal: squants.Power,
-      time: squants.Time
-  ): squants.Energy = pThermal * time
+      pThermal: Power,
+      time: Time
+  ): Energy = pThermal * time
 
   /** Calculate the thermal energy loss due to the temperature deviation over
     * the time step
@@ -279,13 +279,15 @@ final case class ThermalHouse(
     *   resulting thermal energy loss
     */
   private def calcThermalEnergyLoss(
-      innerTemperature: squants.Temperature,
-      ambientTemperature: squants.Temperature,
-      time: squants.Time
-  ): squants.Energy = {
-    val temperatureDeviation =
-      innerTemperature.toKelvinScale - ambientTemperature.toKelvinScale
-    (ethLosses * time) * temperatureDeviation
+      innerTemperature: Temperature,
+      ambientTemperature: Temperature,
+      time: Time
+  ): Energy = {
+    ethLosses.thermalConductanceToEnergy(
+      innerTemperature,
+      ambientTemperature,
+      time
+    )
   }
 
   /** Update the current state of the house
@@ -303,8 +305,8 @@ final case class ThermalHouse(
   def updateState(
       tick: Long,
       state: ThermalHouseState,
-      ambientTemperature: squants.Temperature,
-      qDot: squants.Power
+      ambientTemperature: Temperature,
+      qDot: Power
   ): (ThermalHouseState, Option[ThermalThreshold]) = {
     val duration = Seconds(tick - state.tick)
     val updatedInnerTemperature = newInnerTemperature(
@@ -342,9 +344,9 @@ final case class ThermalHouse(
     */
   private def nextThreshold(
       tick: Long,
-      qDotExternal: squants.Power,
-      innerTemperature: squants.Temperature,
-      ambientTemperature: squants.Temperature
+      qDotExternal: Power,
+      innerTemperature: Temperature,
+      ambientTemperature: Temperature
   ): Option[ThermalThreshold] = {
     val artificialDuration = Hours(1d)
     val loss = calcThermalEnergyLoss(
@@ -410,11 +412,12 @@ object ThermalHouse {
     input.getOperator,
     input.getOperationTime,
     input.getThermalBus,
-    Kilowatts(
+    WattsPerKelvin(
       input.getEthLosses
         .to(PowerSystemUnits.KILOWATT_PER_KELVIN)
         .getValue
         .doubleValue
+        * 1000 // kW/K to W/K
     ),
     KilowattHours(
       input.getEthCapa

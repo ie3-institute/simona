@@ -8,6 +8,7 @@ package edu.ie3.simona.agent.participant
 
 import akka.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.simona.agent.SimonaAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
@@ -65,6 +66,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeParticipantAgentTrigger
 }
 import edu.ie3.util.scala.quantities.ReactivePower
+import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
 import scala.reflect.ClassTag
@@ -788,7 +790,7 @@ abstract class ParticipantAgent[
       lastModelState: MS,
       currentTick: Long,
       scheduler: ActorRef,
-      nodalVoltage: squants.Dimensionless
+      nodalVoltage: Dimensionless
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Abstractly calculate the power output of the participant utilising
@@ -903,8 +905,8 @@ abstract class ParticipantAgent[
   def answerPowerRequestAndStayWithUpdatedStateData(
       baseStateData: BaseStateData[PD],
       requestTick: Long,
-      eInPu: squants.Dimensionless,
-      fInPu: squants.Dimensionless,
+      eInPu: Dimensionless,
+      fInPu: Dimensionless,
       alternativeResult: PD
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
@@ -919,7 +921,7 @@ abstract class ParticipantAgent[
   def announceAssetPowerRequestReply(
       baseStateData: BaseStateData[_],
       currentTick: Long,
-      activePower: squants.Power,
+      activePower: Power,
       reactivePower: ReactivePower
   )(implicit outputConfig: NotifierConfig): Unit
 
@@ -956,7 +958,7 @@ object ParticipantAgent {
   def getAndCheckNodalVoltage(
       baseStateData: BaseStateData[_ <: PrimaryData],
       currentTick: Long
-  ): squants.Dimensionless = {
+  ): Dimensionless = {
     baseStateData.voltageValueStore.last(currentTick) match {
       case Some((_, voltage)) => voltage
       case None =>

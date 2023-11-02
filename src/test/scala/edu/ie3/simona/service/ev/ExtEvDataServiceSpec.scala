@@ -494,10 +494,10 @@ class ExtEvDataServiceSpec
       )
 
       evcs1.expectMsg(
-        DepartingEvsRequest(tick, Seq(evA.getUuid))
+        DepartingEvsRequest(tick, scala.collection.immutable.Seq(evA.getUuid))
       )
       evcs2.expectMsg(
-        DepartingEvsRequest(tick, Seq(evB.getUuid))
+        DepartingEvsRequest(tick, scala.collection.immutable.Seq(evB.getUuid))
       )
 
       scheduler.expectMsg(
@@ -514,10 +514,7 @@ class ExtEvDataServiceSpec
 
       evcs1.send(
         evService,
-        DepartingEvsResponse(
-          evcs1UUID,
-          Set(EvModelWrapper(updatedEvA))
-        )
+        DepartingEvsResponse(evcs1UUID, Set(EvModelWrapper(updatedEvA)))
       )
 
       // nothing should happen yet, waiting for second departed ev
@@ -529,10 +526,7 @@ class ExtEvDataServiceSpec
 
       evcs2.send(
         evService,
-        DepartingEvsResponse(
-          evcs2UUID,
-          Set(EvModelWrapper(updatedEvB))
-        )
+        DepartingEvsResponse(evcs2UUID, Set(EvModelWrapper(updatedEvB)))
       )
 
       // ev service should recognize that all evs that are expected are returned,
@@ -625,7 +619,7 @@ class ExtEvDataServiceSpec
       evcs1.expectMsg(
         ProvideEvDataMessage(
           tick,
-          ArrivingEvsData(Seq(EvModelWrapper(evA)))
+          ArrivingEvsData(scala.collection.immutable.Seq(EvModelWrapper(evA)))
         )
       )
 
@@ -724,9 +718,7 @@ class ExtEvDataServiceSpec
       evcs1.expectMsg(
         ProvideEvDataMessage(
           tick,
-          ArrivingEvsData(
-            Seq(EvModelWrapper(evA))
-          )
+          ArrivingEvsData(Seq(EvModelWrapper(evA)))
         )
       )
 

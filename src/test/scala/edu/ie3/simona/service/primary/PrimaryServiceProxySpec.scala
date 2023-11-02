@@ -54,7 +54,7 @@ import edu.ie3.util.TimeUtil
 import org.scalatest.PartialFunctionValues
 import org.scalatest.prop.TableDrivenPropertyChecks
 
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 import java.util.{Objects, UUID}
@@ -76,7 +76,7 @@ class PrimaryServiceProxySpec
     with PartialFunctionValues
     with TimeSeriesTestData {
   // this works both on Windows and Unix systems
-  val baseDirectoryPath: String = Paths
+  val baseDirectoryPath: Path = Paths
     .get(
       this.getClass
         .getResource(
@@ -84,7 +84,6 @@ class PrimaryServiceProxySpec
         )
         .toURI
     )
-    .toString
   val csvSep = ";"
   val fileNamingStrategy = new FileNamingStrategy()
   val validPrimaryConfig: PrimaryConfig =
@@ -93,7 +92,7 @@ class PrimaryServiceProxySpec
       Some(
         PrimaryDataCsvParams(
           csvSep,
-          baseDirectoryPath,
+          baseDirectoryPath.toString,
           isHierarchic = false,
           TimeUtil.withDefaults.getDtfPattern
         )
@@ -377,7 +376,7 @@ class PrimaryServiceProxySpec
       )
       val metaInformation = new CsvIndividualTimeSeriesMetaInformation(
         metaPq,
-        "its_pq_" + uuidPq
+        Paths.get("its_pq_" + uuidPq)
       )
 
       proxy invokePrivate toInitData(
@@ -477,7 +476,7 @@ class PrimaryServiceProxySpec
       val fakeProxy: PrimaryServiceProxy = fakeProxyRef.underlyingActor
       val metaInformation = new CsvIndividualTimeSeriesMetaInformation(
         metaPq,
-        "its_pq_" + uuidPq
+        Paths.get("its_pq_" + uuidPq)
       )
 
       fakeProxy invokePrivate initializeWorker(

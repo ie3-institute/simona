@@ -48,7 +48,7 @@ import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
-import squants.Each
+import squants.{Each, Power, Dimensionless}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -251,7 +251,7 @@ protected trait FixedFeedInAgentFundamentals
         FixedFeedInModel
       ],
       ConstantState.type,
-      squants.Dimensionless
+      Dimensionless
   ) => ApparentPower = (
       currentTick: Long,
       baseStateData: ParticipantModelBaseStateData[
@@ -261,7 +261,7 @@ protected trait FixedFeedInAgentFundamentals
         FixedFeedInModel
       ],
       ConstantState,
-      voltage: squants.Dimensionless
+      voltage: Dimensionless
   ) =>
     baseStateData.model match {
       case fixedModel: FixedFeedInModel =>
@@ -331,7 +331,7 @@ protected trait FixedFeedInAgentFundamentals
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        squants.Power => ReactivePower
+        Power => ReactivePower
       ] = None
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(

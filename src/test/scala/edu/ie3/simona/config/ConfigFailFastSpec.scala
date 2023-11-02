@@ -928,11 +928,13 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 Some(
                   SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
                     .SampleParams(true)
-                )
+                ),
+                None
               ),
               None,
               None,
               None,
+              50000d,
               Some(360L),
               Some(
                 SimonaConfig.Simona.Input.Weather.Datasource.SampleParams(true)

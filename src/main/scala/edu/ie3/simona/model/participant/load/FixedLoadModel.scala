@@ -17,6 +17,7 @@ import edu.ie3.simona.model.participant.load.LoadReference.{
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
+import squants.Power
 import squants.energy.Kilowatts
 import squants.time.Days
 
@@ -47,7 +48,7 @@ final case class FixedLoadModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: squants.Power,
+    sRated: Power,
     cosPhiRated: Double,
     reference: LoadReference
 ) extends LoadModel[FixedLoadRelevantData.type](
@@ -60,7 +61,7 @@ final case class FixedLoadModel(
       cosPhiRated
     ) {
 
-  private val activePower = reference match {
+  val activePower: Power = reference match {
     case ActivePower(power) => power
     case EnergyConsumption(energyConsumption) =>
       val duration = Days(365d)
@@ -78,7 +79,7 @@ final case class FixedLoadModel(
   override protected def calculateActivePower(
       modelState: ConstantState.type,
       data: FixedLoadRelevantData.type = FixedLoadRelevantData
-  ): squants.Power = activePower * scalingFactor
+  ): Power = activePower * scalingFactor
 }
 
 object FixedLoadModel {

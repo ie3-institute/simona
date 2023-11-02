@@ -6,13 +6,12 @@
 
 package edu.ie3.simona.model.assets.control
 
-import java.util
 import edu.ie3.datamodel.models.input.system.characteristic
 import edu.ie3.datamodel.models.input.system.characteristic.{
+  CharacteristicPoint,
   CosPhiP => CosPhiPInput,
   QV => QVInput
 }
-import edu.ie3.datamodel.models.input.system.characteristic.CharacteristicPoint
 import edu.ie3.simona.exceptions.QControlException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.control.QControl.{
@@ -31,12 +30,15 @@ import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 import squants.Each
 import tech.units.indriya.quantity.Quantities._
 
+import java.util
+import javax.measure.quantity.Dimensionless
 import scala.collection.immutable.TreeSet
 
 class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
 
   private val defaultTolerance = 1e-12
   private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-12)
+  private implicit val tolerance: squants.Dimensionless = Each(1e-12)
 
   val validCosPhiPInput: characteristic.CosPhiP = new CosPhiPInput(
     "cosPhiP:{(0.0,-1.0),(0.5,-0.8),(1.0,-0.2)}"
@@ -49,8 +51,8 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
   def createXYPair(
       d1: Double,
       d2: Double
-  ): XYPair[Dimensionless, Dimensionless] = {
-    XYPair(getQuantity(d1, PU), getQuantity(d2, PU))
+  ): XYPair[squants.Dimensionless, squants.Dimensionless] = {
+    XYPair(Each(d1), Each(d2))
   }
 
   "A valid QControl object" should {
@@ -118,34 +120,21 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
     }
 
     "provide correct values when the requested value is part of the containing xy coordinates" in {
-      val requestedValue = getQuantity(0.5, PU)
-      QuantityUtil.isEquivalentAbs(
-        validCosPhiP.cosPhi(requestedValue),
-        getQuantity(-0.8, PU)
-      ) shouldBe true
+      val requestedValue = Each(0.5)
+      (validCosPhiP.cosPhi(requestedValue) ~= Each(-0.8)) shouldBe true
     }
 
     "provide an interpolated value when the requested value is not part of the containing xy coordinates" in {
-      val requestedValue = getQuantity(0.75, PU)
-      QuantityUtil.isEquivalentAbs(
-        validCosPhiP.cosPhi(requestedValue),
-        getQuantity(-0.5, PU),
-        defaultTolerance
-      ) shouldBe true
+      val requestedValue = Each(0.75)
+
+      (validCosPhiP.cosPhi(requestedValue) ~= Each(-0.5)) shouldBe true
     }
 
     "provide the last known value when the requested value is outside of the containing xy coordinates" in {
-      QuantityUtil.isEquivalentAbs(
-        validCosPhiP.cosPhi(getQuantity(2.0, PU)),
-        getQuantity(-0.2, PU),
-        defaultTolerance
-      ) shouldBe true
 
-      QuantityUtil.isEquivalentAbs(
-        validCosPhiP.cosPhi(getQuantity(-1.0, PU)),
-        getQuantity(-1.0, PU),
-        defaultTolerance
-      ) shouldBe true
+      (validCosPhiP.cosPhi(Each(2.0)) ~= Each(-0.2)) shouldBe true
+
+      (validCosPhiP.cosPhi(Each(-1.0)) ~= Each(-1.0)) shouldBe true
     }
   }
 

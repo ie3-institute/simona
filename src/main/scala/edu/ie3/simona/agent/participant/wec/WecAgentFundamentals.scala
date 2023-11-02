@@ -43,12 +43,10 @@ import edu.ie3.simona.model.participant.{
   WecModel
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.util.quantities.EmptyQuantity
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
-import squants.Each
-import tech.units.indriya.unit.Units.PASCAL
+import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -217,8 +215,7 @@ protected trait WecAgentFundamentals
     WecRelevantData(
       weatherData.windVel,
       weatherData.temp,
-      EmptyQuantity
-        .of(PASCAL) // weather data does not support air pressure
+      None
     )
   }
 
@@ -276,7 +273,7 @@ protected trait WecAgentFundamentals
         WecModel
       ],
       ConstantState.type,
-      squants.Dimensionless
+      Dimensionless
   ) => ApparentPower =
     (
         _: Long,
@@ -287,7 +284,7 @@ protected trait WecAgentFundamentals
           WecModel
         ],
         _,
-        _: squants.Dimensionless
+        _: Dimensionless
     ) =>
       throw new InvalidRequestException(
         "WEC model cannot be run without secondary data."
@@ -325,8 +322,6 @@ protected trait WecAgentFundamentals
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
-    implicit val startDateTime: ZonedDateTime = baseStateData.startDate
-
     val voltage =
       getAndCheckNodalVoltage(baseStateData, currentTick)
 
@@ -369,7 +364,7 @@ protected trait WecAgentFundamentals
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        squants.Power => ReactivePower
+        Power => ReactivePower
       ] = None
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(

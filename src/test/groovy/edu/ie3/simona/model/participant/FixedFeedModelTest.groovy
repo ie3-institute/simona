@@ -6,6 +6,9 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static org.apache.commons.math3.util.FastMath.abs
+
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.OperatorInput
@@ -20,8 +23,7 @@ import spock.lang.Specification
 import squants.energy.*
 import tech.units.indriya.quantity.Quantities
 
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static org.apache.commons.math3.util.FastMath.abs
+
 
 class FixedFeedModelTest extends Specification {
 
@@ -53,9 +55,8 @@ class FixedFeedModelTest extends Specification {
   simulationEndDate,
   fixedFeedInput.operationTime
   )
-  def testingTolerance = 1e-6 // Equals to 1 W power
 
-  def expectedPower = fixedFeedInput.sRated.to(MEGAWATT).getValue().doubleValue() * -1 * fixedFeedInput.cosPhiRated * 1.0
+  def expectedPower = Sq.create(fixedFeedInput.sRated.value.doubleValue() * -1 * fixedFeedInput.cosPhiRated * 1.0, Kilowatts$.MODULE$)
 
   def "A fixed feed model should return approximately correct power calculations"() {
     when:
@@ -68,7 +69,7 @@ class FixedFeedModelTest extends Specification {
         Sq.create(
         fixedFeedInput.sRated
         .to(KILOWATT)
-        .getValue()
+        .value.doubleValue()
         .doubleValue(),
         Kilowatts$.MODULE$
         ),
@@ -76,8 +77,6 @@ class FixedFeedModelTest extends Specification {
         )
 
     then:
-    abs(
-        actualModel.calculateActivePower(ModelState.ConstantState$.MODULE$, CalcRelevantData.FixedRelevantData$.MODULE$).toMegawatts() - expectedPower
-        ) < testingTolerance
+    actualModel.calculateActivePower(ModelState.ConstantState$.MODULE$, CalcRelevantData.FixedRelevantData$.MODULE$) =~ expectedPower
   }
 }

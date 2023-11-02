@@ -355,7 +355,7 @@ class ResultEventListener(
 
     case Event(ThermalResultEvent(thermalResult), baseData: BaseData) =>
       val updatedBaseData = handleResult(thermalResult, baseData)
-      stay using updatedBaseData
+      stay() using updatedBaseData
 
     case Event(
           PowerFlowResultEvent(

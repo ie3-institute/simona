@@ -58,7 +58,7 @@ import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.ReactivePower
-import squants.Each
+import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -320,7 +320,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        squants.Power => ReactivePower
+        Power => ReactivePower
       ] = None
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
@@ -397,7 +397,7 @@ object LoadAgentFundamentals {
           FixedLoadModel
         ],
         ConstantState.type,
-        squants.Dimensionless
+        Dimensionless
     ) => ApparentPower = (
         tick: Long,
         baseStateData: ParticipantModelBaseStateData[
@@ -407,7 +407,7 @@ object LoadAgentFundamentals {
           FixedLoadModel
         ],
         ConstantState,
-        voltage: squants.Dimensionless
+        voltage: Dimensionless
     ) =>
       baseStateData.model.calculatePower(
         tick,
@@ -484,7 +484,7 @@ object LoadAgentFundamentals {
           ProfileLoadModel
         ],
         ConstantState.type,
-        squants.Dimensionless
+        Dimensionless
     ) => ApparentPower = (tick, baseStateData, _, voltage) => {
       val profileRelevantData =
         createCalcRelevantData(baseStateData, tick)
@@ -565,7 +565,7 @@ object LoadAgentFundamentals {
           RandomLoadModel
         ],
         ConstantState.type,
-        squants.Dimensionless
+        Dimensionless
     ) => ApparentPower = (tick, baseStateData, _, voltage) => {
       val profileRelevantData =
         createCalcRelevantData(baseStateData, tick)

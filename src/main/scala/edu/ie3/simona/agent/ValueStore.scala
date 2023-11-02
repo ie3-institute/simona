@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent
 
 import edu.ie3.simona.util.SimonaConstants
+import squants.Dimensionless
 
 import scala.collection.SortedMap
 
@@ -105,8 +106,8 @@ object ValueStore {
     */
   def forVoltage(
       maxTickSpan: Long,
-      initialPerUnit: squants.Dimensionless
-  ): ValueStore[squants.Dimensionless] =
+      initialPerUnit: Dimensionless
+  ): ValueStore[Dimensionless] =
     new ValueStore(
       maxTickSpan,
       SortedMap(SimonaConstants.FIRST_TICK_IN_SIMULATION -> initialPerUnit)

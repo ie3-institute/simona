@@ -50,8 +50,7 @@ import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import squants.Each
 import squants.energy.Megawatts
-import squants.thermal.{Celsius, Kelvin}
-import tech.units.indriya.unit.Units.KELVIN
+import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -215,8 +214,6 @@ trait HpAgentFundamentals
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] = {
-    implicit val startDateTime: ZonedDateTime =
-      baseStateData.startDate
 
     /* Determine needed information */
     val voltage =
@@ -398,7 +395,7 @@ trait HpAgentFundamentals
 
     HpRelevantData(
       tick,
-      Kelvin(weatherData.temp.to(KELVIN).getValue.doubleValue)
+      weatherData.temp.inKelvin
     )
   }
 

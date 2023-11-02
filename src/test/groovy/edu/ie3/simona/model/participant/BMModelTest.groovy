@@ -6,23 +6,29 @@
 
 package edu.ie3.simona.model.participant
 
+import squants.market.EUR$
+import edu.ie3.util.scala.quantities.EuroPerKilowatthour$
+
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static tech.units.indriya.unit.Units.PERCENT
+
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.type.BmTypeInput
+import squants.energy.Megawatts$
+import squants.thermal.Celsius$
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.util.quantities.interfaces.EnergyPrice
 import edu.ie3.util.scala.OperationInterval
 import scala.Some
 import spock.lang.Shared
 import spock.lang.Specification
-import tech.units.indriya.ComparableQuantity
+import squants.energy.Kilowatts$
+import edu.ie3.util.scala.quantities.Sq
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static tech.units.indriya.unit.Units.CELSIUS
-import static tech.units.indriya.unit.Units.PERCENT
+
 
 /**
  * Test class that tries to cover all special cases of the current implementation of the {@link BMModel}
@@ -62,13 +68,13 @@ class BMModelTest extends Specification {
         OperationInterval.apply(0L, 86400L),
         scalingFactor,
         QControl.apply(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
-        Quantities.getQuantity(190, KILOVOLTAMPERE),
+        Sq.create(190, Kilowatts$.MODULE$),
         bmType.getCosPhiRated(),
         "MockNode",
         true,
-        bmType.getOpex() as ComparableQuantity<EnergyPrice>,
-        Quantities.getQuantity(0.051d, EURO_PER_KILOWATTHOUR),
-        Quantities.getQuantity(5d, PERCENT_PER_HOUR))
+        Sq.create(bmType.opex.value.doubleValue(), EUR$.MODULE$),
+        Sq.create(0.051d, EuroPerKilowatthour$.MODULE$),
+        0.05)
   }
 
   def "Test calculateK1"() {
@@ -112,10 +118,10 @@ class BMModelTest extends Specification {
     BMModel bmModel = getStandardModel()
 
     when:
-    def pThCalc = bmModel.calculatePTh(Quantities.getQuantity(temp, CELSIUS), k1, k2)
+    def pThCalc = bmModel.calculatePTh(Sq.create(temp, Celsius$.MODULE$), k1, k2)
 
     then: "compare in watts"
-    Math.abs(pThCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(pThSol, MEGAWATT).toSystemUnit().getValue().doubleValue()) < 0.0001
+    pThCalc - Sq.create(pThSol, Megawatts$.MODULE$) < Sq.create(0.0001d, Megawatts$.MODULE$)
 
     where:
     temp        | k1    | k2    || pThSol
@@ -130,7 +136,7 @@ class BMModelTest extends Specification {
     BMModel bmModel = getStandardModel()
 
     when:
-    def usageCalc = bmModel.calculateUsage(Quantities.getQuantity(pTh, MEGAWATT))
+    def usageCalc = bmModel.calculateUsage(Sq.create(pTh, Megawatts$.MODULE$))
 
     then:
     Math.abs(usageCalc - usageSol) < 0.00000001
@@ -169,18 +175,18 @@ class BMModelTest extends Specification {
         OperationInterval.apply(0L, 86400L),
         scalingFactor,
         QControl.apply(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
-        Quantities.getQuantity(190, KILOVOLTAMPERE),
+        Sq.create(190, Kilowatts$.MODULE$),
         bmType.getCosPhiRated(),
         "MockNode",
         true,
-        bmType.getOpex() as ComparableQuantity<EnergyPrice>,
-        Quantities.getQuantity(feedInTariff, EURO_PER_KILOWATTHOUR),
-        Quantities.getQuantity(5d, PERCENT_PER_HOUR))
+        Sq.create(bmType.opex.value.doubleValue(), EUR$.MODULE$),
+        Sq.create(feedInTariff, EuroPerKilowatthour$.MODULE$),
+        0.05)
 
     def pElCalc = bmModel.calculateElOutput(usage, eff)
 
     then: "compare in watts"
-    Math.abs(pElCalc.toSystemUnit().getValue().doubleValue() - Quantities.getQuantity(pElSol, KILOWATT).toSystemUnit().getValue().doubleValue()) < 0.0001
+    pElCalc - Sq.create(pElSol, Kilowatts$.MODULE$) < Sq.create(0.0001d, Kilowatts$.MODULE$)
 
     where:
     feedInTariff | usage  | eff      || pElSol
@@ -192,13 +198,13 @@ class BMModelTest extends Specification {
   def "Test applyLoadGradient"() {
     given:
     BMModel bmModel = getStandardModel()
-    bmModel._lastPower = new Some(Quantities.getQuantity(lastPower, KILOWATT))
+    bmModel._lastPower = new Some(Sq.create(lastPower, Kilowatts$.MODULE$))
 
     when:
-    def pElCalc = bmModel.applyLoadGradient(Quantities.getQuantity(pEl, KILOWATT))
+    def pElCalc = bmModel.applyLoadGradient(Sq.create(pEl, Kilowatts$.MODULE$))
 
     then:
-    pElCalc == Quantities.getQuantity(pElSol, KILOWATT)
+    pElCalc == Sq.create(pElSol, Kilowatts$.MODULE$)
 
     where:
     lastPower  | pEl    || pElSol
@@ -214,7 +220,7 @@ class BMModelTest extends Specification {
     ZonedDateTime dateTime = ZonedDateTime.parse(time)
 
     /* Prepare the calculation relevant data */
-    BMModel.BMCalcRelevantData relevantData = new BMModel.BMCalcRelevantData(dateTime, Quantities.getQuantity(temp, CELSIUS))
+    BMModel.BMCalcRelevantData relevantData = new BMModel.BMCalcRelevantData(dateTime, Sq.create(temp, Celsius$.MODULE$))
 
     BMModel bmModel = new BMModel(
         UUID.fromString("08a8134d-04b7-45de-a937-9a55fab4e1af"),
@@ -222,33 +228,33 @@ class BMModelTest extends Specification {
         OperationInterval.apply(0L, 86400L),
         scalingFactor,
         QControl.apply(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
-        Quantities.getQuantity(190, KILOVOLTAMPERE),
+        Sq.create(190, Kilowatts$.MODULE$),
         bmType.getCosPhiRated(),
         "MockNode",
         costControlled,
-        bmType.getOpex() as ComparableQuantity<EnergyPrice>,
-        Quantities.getQuantity(0.051d, EURO_PER_KILOWATTHOUR),
-        Quantities.getQuantity(5d, PERCENT_PER_HOUR))
+        Sq.create(bmType.opex.value.doubleValue(), EUR$.MODULE$),
+        Sq.create(0.051d, EuroPerKilowatthour$.MODULE$),
+        0.05)
 
     // modify data store: add last output power, one hour in the past
-    bmModel._lastPower = new Some(Quantities.getQuantity(lastPower, KILOWATT))
+    bmModel._lastPower = new Some(Sq.create(lastPower, Kilowatts$.MODULE$))
 
     when: "the power from the grid is calculated"
     def powerCalc = bmModel.calculateActivePower(new BMModel.BmState(), relevantData)
 
     then: "compare in kilowatts"
-    Math.abs(powerCalc.toKilowatts() - powerSol.doubleValue()) < 1e-12
+    powerCalc - Sq.create(powerSol, Kilowatts$.MODULE$) < Sq.create(1e-12d, Kilowatts$.MODULE$)
 
     where:
     time                                       | temp | costControlled | lastPower || powerSol
-    '2019-01-05T05:15:00+01:00[Europe/Berlin]' | 10   | true           | -40.0     || -49.5           // weekend day in heating season, power increase capped by load gradient
-    '2019-01-04T05:15:00+01:00[Europe/Berlin]' | 10   | true           | -80.0     || -70.5           // working day in heating season, power decrease capped by load gradient
-    '2019-01-04T05:15:00+01:00[Europe/Berlin]' | -20  | true           | -182.0    || -190            // peek load boiler activated, max output because cost < revenues
-    '2019-01-04T05:15:00+01:00[Europe/Berlin]' | -7   | true           | -182.0    || -190            // close to peak load, max output because cost < revenues
-    '2019-01-04T05:15:00+01:00[Europe/Berlin]' | -7   | false          | -150.0    || -152.16900643778735  // close to peak load, not cost controlled but just serving heat demand
-    '2019-07-07T10:15:00+02:00[Europe/Berlin]' | 19   | true           | -10.0     || -12.099949463243976    // weekend day outside heating season, increase not capped
-    '2019-07-05T05:15:00+02:00[Europe/Berlin]' | 20   | true           | -20.0     || -11.70638561892377   // working day outside heating season, decrease not capped
-    '2019-07-06T10:15:00+02:00[Europe/Berlin]' | 20   | true           | -0.0      || -9.5            // weekend day outside heating season, increase capped
-    '2019-07-05T05:15:00+02:00[Europe/Berlin]' | 22   | true           | -22.0     || -12.5           // working day outside heating season, decrease capped
+    '2019-01-05T05:15:00+01:00[Europe/Berlin]' | 10   | true           | -40.0d     || -49.5d           // weekend day in heating season, power increase capped by load gradient
+    '2019-01-04T05:15:00+01:00[Europe/Berlin]' | 10   | true           | -80.0d     || -70.5d           // working day in heating season, power decrease capped by load gradient
+    '2019-01-04T05:15:00+01:00[Europe/Berlin]' | -20  | true           | -182.0d    || -190d            // peek load boiler activated, max output because cost < revenues
+    '2019-01-04T05:15:00+01:00[Europe/Berlin]' | -7   | true           | -182.0d    || -190d            // close to peak load, max output because cost < revenues
+    '2019-01-04T05:15:00+01:00[Europe/Berlin]' | -7   | false          | -150.0d    || -152.16900643778735d  // close to peak load, not cost controlled but just serving heat demand
+    '2019-07-07T10:15:00+02:00[Europe/Berlin]' | 19   | true           | -10.0d     || -12.099949463243976d    // weekend day outside heating season, increase not capped
+    '2019-07-05T05:15:00+02:00[Europe/Berlin]' | 20   | true           | -20.0d     || -11.70638561892377d   // working day outside heating season, decrease not capped
+    '2019-07-06T10:15:00+02:00[Europe/Berlin]' | 20   | true           | -0.0d      || -9.5d            // weekend day outside heating season, increase capped
+    '2019-07-05T05:15:00+02:00[Europe/Berlin]' | 22   | true           | -22.0d     || -12.5d           // working day outside heating season, decrease capped
   }
 }

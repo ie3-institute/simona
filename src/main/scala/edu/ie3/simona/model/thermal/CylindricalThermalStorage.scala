@@ -6,25 +6,32 @@
 
 package edu.ie3.simona.model.thermal
 
+import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
   ThermalBusInput
 }
-import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,
   StorageFull
 }
-import edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
-import edu.ie3.util.quantities.interfaces.SpecificHeatCapacity
-import squants.energy.{KilowattHours, Kilowatts, Megawatts}
+import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
+import edu.ie3.util.scala.quantities.{
+  DefaultQuantities,
+  KilowattHoursPerKelvinCubicMeters,
+  SpecificHeatCapacity
+}
+import squants.energy.{Kilowatts, Megawatts}
+import squants.space.CubicMeters
+import squants.thermal.Celsius
 import squants.time.{Hours, Seconds}
-import tech.units.indriya.ComparableQuantity
+import squants.{Energy, Power, Temperature, Volume}
+import tech.units.indriya.unit.Units
 
 import java.util.UUID
-import javax.measure.quantity._
 
 /** A cylindrical thermal storage used for implementations, which require a
   * mutable storage. <p> <strong>Important:</strong> The field storageLvl is a
@@ -53,10 +60,10 @@ final case class CylindricalThermalStorage(
     operatorInput: OperatorInput,
     operationTime: OperationTime,
     bus: ThermalBusInput,
-    minEnergyThreshold: squants.Energy,
-    maxEnergyThreshold: squants.Energy,
-    chargingPower: squants.Power,
-    override protected var _storedEnergy: squants.Energy
+    minEnergyThreshold: Energy,
+    maxEnergyThreshold: Energy,
+    chargingPower: Power,
+    override protected var _storedEnergy: Energy
 ) extends ThermalStorage(
       uuid,
       id,
@@ -121,12 +128,12 @@ final case class CylindricalThermalStorage(
     (ThermalStorageState(tick, updatedEnergy, qDot), nextThreshold)
   }
 
-  override def usableThermalEnergy: squants.Energy =
+  override def usableThermalEnergy: Energy =
     _storedEnergy - minEnergyThreshold
 
   override def tryToStoreAndReturnRemainder(
-      addedEnergy: squants.Energy
-  ): Option[squants.Energy] = {
+      addedEnergy: Energy
+  ): Option[Energy] = {
     if (addedEnergy > zeroEnergy) {
       _storedEnergy = _storedEnergy + addedEnergy
       if (_storedEnergy > maxEnergyThreshold) {
@@ -139,8 +146,8 @@ final case class CylindricalThermalStorage(
   }
 
   override def tryToTakeAndReturnLack(
-      takenEnergy: squants.Energy
-  ): Option[squants.Energy] = {
+      takenEnergy: Energy
+  ): Option[Energy] = {
     if (takenEnergy > zeroEnergy) {
       _storedEnergy = _storedEnergy - takenEnergy
       if (_storedEnergy < minEnergyThreshold) {
@@ -173,35 +180,42 @@ case object CylindricalThermalStorage {
     */
   def apply(
       input: CylindricalStorageInput,
-      initialStoredEnergy: squants.Energy = KilowattHours(0d)
+      initialStoredEnergy: Energy = DefaultQuantities.zeroKWH
   ): CylindricalThermalStorage = {
     val minEnergyThreshold: squants.Energy =
-      KilowattHours(
-        CylindricalThermalStorage
-          .volumeToEnergy(
-            input.getStorageVolumeLvlMin,
-            input.getC,
-            input.getInletTemp,
-            input.getReturnTemp
-          )
-          .to(KILOWATTHOUR)
-          .getValue
-          .doubleValue
-      )
+      CylindricalThermalStorage
+        .volumeToEnergy(
+          CubicMeters(
+            input.getStorageVolumeLvlMin
+              .to(Units.CUBIC_METRE)
+              .getValue
+              .doubleValue
+          ),
+          KilowattHoursPerKelvinCubicMeters(
+            input.getC
+              .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
+              .getValue
+              .doubleValue()
+          ),
+          Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()),
+          Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue())
+        )
 
     val maxEnergyThreshold: squants.Energy =
-      KilowattHours(
-        CylindricalThermalStorage
-          .volumeToEnergy(
-            input.getStorageVolumeLvl,
-            input.getC,
-            input.getInletTemp,
-            input.getReturnTemp
-          )
-          .to(KILOWATTHOUR)
-          .getValue
-          .doubleValue
-      )
+      CylindricalThermalStorage
+        .volumeToEnergy(
+          CubicMeters(
+            input.getStorageVolumeLvl.to(Units.CUBIC_METRE).getValue.doubleValue
+          ),
+          KilowattHoursPerKelvinCubicMeters(
+            input.getC
+              .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
+              .getValue
+              .doubleValue()
+          ),
+          Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()),
+          Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue())
+        )
 
     /* TODO: Currently, the input model does not define any maximum charge power. Assume, that the usable energy can
      *   be charged / discharged within the interval of an hour */
@@ -234,14 +248,35 @@ case object CylindricalThermalStorage {
     *   energy
     */
   def volumeToEnergy(
-      volume: ComparableQuantity[Volume],
-      c: ComparableQuantity[SpecificHeatCapacity],
-      inletTemp: ComparableQuantity[Temperature],
-      returnTemp: ComparableQuantity[Temperature]
-  ): ComparableQuantity[Energy] =
-    volume
-      .multiply(c)
-      .multiply(returnTemp.subtract(inletTemp))
-      .asType(classOf[Energy])
-      .to(StandardUnits.ENERGY_IN)
+      volume: Volume,
+      c: SpecificHeatCapacity,
+      inletTemp: Temperature,
+      returnTemp: Temperature
+  ): Energy = {
+    c.calcEnergy(returnTemp, inletTemp, volume)
+  }
+
+  /** Equation from docs for the relation between stored heat and volume change.
+    *
+    * @param energy
+    *   available energy
+    * @param c
+    *   Specific heat capacity
+    * @param inletTemp
+    *   Inlet temperature
+    * @param returnTemp
+    *   Return temperature
+    * @return
+    *   volume
+    */
+  def energyToVolume(
+      energy: Energy,
+      c: SpecificHeatCapacity,
+      inletTemp: Temperature,
+      returnTemp: Temperature
+  ): Volume = {
+    val energyDensity = c.calcEnergyDensity(returnTemp, inletTemp)
+
+    energy.calcVolume(energyDensity)
+  }
 }

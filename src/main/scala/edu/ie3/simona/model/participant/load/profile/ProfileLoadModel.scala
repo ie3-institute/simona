@@ -15,6 +15,7 @@ import edu.ie3.simona.model.participant.load.LoadReference._
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModel, LoadReference}
 import edu.ie3.util.scala.OperationInterval
+import squants.Power
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -46,7 +47,7 @@ final case class ProfileLoadModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: squants.Power,
+    sRated: Power,
     cosPhiRated: Double,
     loadProfile: StandardLoadProfile,
     reference: LoadReference
@@ -86,9 +87,9 @@ final case class ProfileLoadModel(
   override protected def calculateActivePower(
       modelState: ConstantState.type,
       data: ProfileRelevantData
-  ): squants.Power = {
+  ): Power = {
     /* The power comes in W and is delivered all 15 minutes */
-    val averagePower: squants.Power = loadProfileStore
+    val averagePower: Power = loadProfileStore
       .entry(data.date, loadProfile)
 
     val activePower = reference match {

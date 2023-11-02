@@ -48,11 +48,10 @@ import edu.ie3.simona.model.participant.{
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherService.FALLBACK_WEATHER_STEM_DISTANCE
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT_PER_SQUAREMETRE, PU}
+import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
-import squants.Each
-import squants.energy.Kilowatts
+import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -239,12 +238,8 @@ protected trait PvAgentFundamentals
     PvRelevantData(
       dateTime,
       tickInterval,
-      Kilowatts(
-        weatherData.diffIrr.to(KILOWATT_PER_SQUAREMETRE).getValue.doubleValue
-      ),
-      Kilowatts(
-        weatherData.dirIrr.to(KILOWATT_PER_SQUAREMETRE).getValue.doubleValue
-      )
+      weatherData.diffIrr,
+      weatherData.dirIrr
     )
   }
 
@@ -302,7 +297,7 @@ protected trait PvAgentFundamentals
         PvModel
       ],
       ConstantState.type,
-      squants.Dimensionless
+      Dimensionless
   ) => ApparentPower =
     (_, _, _, _) =>
       throw new InvalidRequestException(
@@ -321,8 +316,8 @@ protected trait PvAgentFundamentals
     *
     * @param baseStateData
     *   The base state data with collected secondary data
-    * @param maybeLastModelState
-    *   Optional last model state
+    * @param lastModelState
+    *   Last model state
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
@@ -383,7 +378,7 @@ protected trait PvAgentFundamentals
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        squants.Power => ReactivePower
+        Power => ReactivePower
       ] = None
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(

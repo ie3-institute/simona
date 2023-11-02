@@ -54,18 +54,20 @@ class ThermalHouseTest extends Specification {
     isLower == isTooLow
 
     where:
-    innerTemperature || isTooHigh | isTooLow
-    20               || false     | false
-    18               || false     | true
-    22               || true      | false
-    17               || false     | true
-    23               || true      | false
+    innerTemperature  || isTooHigh | isTooLow
+    17d               || false     | true
+    17.98d            || false     | true
+    18d               || false     | false
+    20d               || false     | false
+    22d               || false     | false
+    22.02d            || true      | false
+    23d               || true      | false
   }
 
   def "Calculation of thermal energy change and new inner temperature is performed correctly"() {
     given:
-    def thermalHouse = buildThermalHouse(18, 22)
-    def innerTemperature = Sq.create(20, Celsius$.MODULE$)
+    def thermalHouse = buildThermalHouse(18d, 22d)
+    def innerTemperature = Sq.create(20d, Celsius$.MODULE$)
 
     when:
     def thermalEnergyGain = thermalHouse.calcThermalEnergyGain(Sq.create(100, Kilowatts$.MODULE$), Sq.create(3600, Seconds$.MODULE$))
@@ -84,11 +86,11 @@ class ThermalHouseTest extends Specification {
 
   def "Comprising function to calculate new inner temperature works as expected"() {
     given:
-    def thermalHouse = buildThermalHouse(18, 22)
-    def thermalPower = Sq.create(100, Kilowatts$.MODULE$)
-    def duration = Sq.create(3600, Seconds$.MODULE$)
-    def currentInnerTemperature = Sq.create(20, Celsius$.MODULE$)
-    def ambientTemperature = Sq.create(10, Celsius$.MODULE$)
+    def thermalHouse = buildThermalHouse(18d, 22d)
+    def thermalPower = Sq.create(100d, Kilowatts$.MODULE$)
+    def duration = Sq.create(3600d, Seconds$.MODULE$)
+    def currentInnerTemperature = Sq.create(20d, Celsius$.MODULE$)
+    def ambientTemperature = Sq.create(10d, Celsius$.MODULE$)
 
     when:
     def newInnerTemperature = thermalHouse.newInnerTemperature(thermalPower, duration, currentInnerTemperature, ambientTemperature)

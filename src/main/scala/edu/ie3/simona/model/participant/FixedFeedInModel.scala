@@ -17,6 +17,7 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
+import squants.Power
 import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
@@ -45,7 +46,7 @@ final case class FixedFeedInModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: squants.Power,
+    sRated: Power,
     cosPhiRated: Double
 ) extends SystemParticipant[
       FixedRelevantData.type,
@@ -73,7 +74,7 @@ final case class FixedFeedInModel(
   override protected def calculateActivePower(
       modelState: ConstantState.type,
       data: FixedRelevantData.type = FixedRelevantData
-  ): squants.Power =
+  ): Power =
     sRated * (-1) * cosPhiRated * scalingFactor
 
   override def determineFlexOptions(
@@ -88,7 +89,7 @@ final case class FixedFeedInModel(
   override def handleControlledPowerChange(
       data: FixedRelevantData.type,
       lastState: ConstantState.type,
-      setPower: squants.Power
+      setPower: Power
   ): (ConstantState.type, FlexChangeIndicator) =
     (lastState, FlexChangeIndicator())
 }

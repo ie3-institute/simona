@@ -9,7 +9,6 @@ package edu.ie3.simona.service.primary
 import akka.actor.ActorSystem
 import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.exceptions.FactoryException
 import edu.ie3.datamodel.io.factory.timeseries.TimeBasedSimpleValueFactory
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesSource
@@ -44,7 +43,7 @@ import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import squants.energy.{Kilowatts, Watts}
 import tech.units.indriya.quantity.Quantities
 
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.util.{Failure, Success}
@@ -61,7 +60,7 @@ class PrimaryServiceWorkerSpec
     )
     with TimeSeriesTestData {
   // this works both on Windows and Unix systems
-  val baseDirectoryPath: String = Paths
+  val baseDirectoryPath: Path = Paths
     .get(
       this.getClass
         .getResource(
@@ -69,14 +68,13 @@ class PrimaryServiceWorkerSpec
         )
         .toURI
     )
-    .toString
 
   val validInitData: CsvInitPrimaryServiceStateData =
     CsvInitPrimaryServiceStateData(
       timeSeriesUuid = uuidP,
       csvSep = ";",
       directoryPath = baseDirectoryPath,
-      filePath = "its_p_" + uuidP,
+      filePath = Paths.get("its_p_" + uuidP),
       fileNamingStrategy = new FileNamingStrategy(),
       simulationStart =
         TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
@@ -112,20 +110,14 @@ class PrimaryServiceWorkerSpec
           TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
         csvSep = ";",
         directoryPath = baseDirectoryPath,
-        filePath = "its_pq_" + uuidPq,
+        filePath = Paths.get("its_pq_" + uuidPq),
         fileNamingStrategy = new FileNamingStrategy(),
         timePattern = TimeUtil.withDefaults.getDtfPattern
       )
       service.init(maliciousInitData) match {
         case Failure(exception) =>
-          exception.getClass shouldBe classOf[FactoryException]
-          exception.getMessage shouldBe "The provided fields [p, q, time, uuid] with data \n" +
-            "{p -> 1250.0,\n" +
-            "q -> 411.0,\n" +
-            "time -> 2020-01-01T00:15:00Z,\n" +
-            "uuid -> 43dd0a7b-7a7e-4393-b516-a0ddbcbf073b} are invalid for instance of PValue. \n" +
-            "The following fields (without complex objects e.g. nodes, operators, ...) to be passed to a constructor of 'PValue' are possible (NOT case-sensitive!):\n" +
-            "0: [p, time, uuid]\n"
+          exception.getClass shouldBe classOf[IllegalArgumentException]
+          exception.getMessage shouldBe "Unable to obtain time series with UUID '3fbfaa97-cff4-46d4-95ba-a95665e87c26'. Please check arguments!"
         case Success(_) =>
           fail("Initialisation with unsupported init data is meant to fail.")
       }
@@ -201,7 +193,7 @@ class PrimaryServiceWorkerSpec
         baseDirectoryPath,
         new FileNamingStrategy(),
         uuidP,
-        "its_p_" + uuidP,
+        Paths.get("its_p_" + uuidP),
         classOf[PValue],
         new TimeBasedSimpleValueFactory[PValue](classOf[PValue])
       ),

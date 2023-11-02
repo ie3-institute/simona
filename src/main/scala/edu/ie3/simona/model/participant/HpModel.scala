@@ -23,7 +23,9 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import squants.energy.{Kilowatts, Megawatts}
+import edu.ie3.util.scala.quantities.DefaultQuantities
+import squants.energy.Kilowatts
+import squants.{Power, Temperature}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -58,9 +60,9 @@ final case class HpModel(
     operationInterval: OperationInterval,
     scalingFactor: Double,
     qControl: QControl,
-    sRated: squants.Power,
+    sRated: Power,
     cosPhiRated: Double,
-    pThermal: squants.Power,
+    pThermal: Power,
     thermalGrid: ThermalGrid
 ) extends SystemParticipant[
       HpRelevantData,
@@ -77,7 +79,7 @@ final case class HpModel(
     )
     with ApparentPowerAndHeatParticipant[HpRelevantData, HpState] {
 
-  private val pRated: squants.Power =
+  private val pRated: Power =
     sRated * cosPhiRated * scalingFactor
 
   /** As this is a state-full model (with respect to the current operation
@@ -96,7 +98,7 @@ final case class HpModel(
   override protected def calculateActivePower(
       modelState: HpState,
       relevantData: HpRelevantData
-  ): squants.Power = modelState.activePower
+  ): Power = modelState.activePower
 
   /** "Calculate" the heat output of the heat pump. The hp's state is already
     * updated, because the calculation of apparent power in
@@ -185,7 +187,7 @@ final case class HpModel(
     val (newActivePower, newThermalPower) =
       if (isRunning)
         (pRated, pThermal * scalingFactor)
-      else (Megawatts(0d), Megawatts(0d))
+      else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
 
     /* Push thermal energy to the thermal grid and get it's updated state in return */
     val (thermalGridState, maybeThreshold) = relevantData match {
@@ -351,9 +353,9 @@ object HpModel {
   final case class HpState(
       isRunning: Boolean,
       lastTimeTick: Long,
-      ambientTemperature: squants.Temperature,
-      activePower: squants.Power,
-      qDot: squants.Power,
+      ambientTemperature: Temperature,
+      activePower: Power,
+      qDot: Power,
       thermalGridState: ThermalGridState,
       maybeThermalThreshold: Option[ThermalThreshold]
   ) extends ModelState
@@ -371,7 +373,7 @@ object HpModel {
     */
   final case class HpRelevantData(
       currentTimeTick: Long,
-      ambientTemperature: squants.Temperature
+      ambientTemperature: Temperature
   ) extends CalcRelevantData
 
   /** Internal method to construct a new [[HpModel]] based on a provided
