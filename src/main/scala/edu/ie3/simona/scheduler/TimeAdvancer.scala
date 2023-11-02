@@ -11,26 +11,27 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import edu.ie3.simona.actor.ActorUtil.stopOnError
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.event.RuntimeEvent.{Initializing, Simulating}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
 import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
-class TimeAdvancer {
+object TimeAdvancer {
 
   // notify listener as well
 
   def apply(
       scheduler: actor.typed.ActorRef[SchedulerMessage],
       eventListener: Option[ActorRef[RuntimeEvent]],
+      checkWindow: Long,
       endTick: Long
   ): Behavior[SchedulerMessage] = Behaviors.receive {
     case (ctx, InitTimeAdvancer(autoStart)) =>
       if (autoStart)
         ctx.self ! StartScheduleMessage()
       inactive(
-        TimeAdvancerData(scheduler, eventListener, endTick),
+        TimeAdvancerData(scheduler, endTick),
+        eventListener.map(RuntimeNotifier(_, checkWindow)),
         INIT_SIM_TICK,
         0L
       )
@@ -38,25 +39,26 @@ class TimeAdvancer {
 
   private def inactive(
       data: TimeAdvancerData,
+      notifier: Option[RuntimeNotifier],
       nextActiveTick: Long,
       nextTriggerId: Long
   ): Behavior[SchedulerMessage] = Behaviors.receive {
     case (_, StartScheduleMessage(pauseSimAtTick)) =>
+      val updatedNotifier = notifier.map {
+        _.starting(
+          nextActiveTick,
+          pauseSimAtTick.getOrElse(data.endTick)
+        )
+      }
+
       data.scheduler ! TriggerWithIdMessage(
         ActivityStartTrigger(nextActiveTick),
         nextTriggerId
       )
-      // TODO continue
-      data.eventListener.foreach {
-        _ ! (nextActiveTick match {
-          case INIT_SIM_TICK => Initializing
-          case _ =>
-            Simulating(nextActiveTick, pauseSimAtTick.getOrElse(data.endTick))
-        })
-      }
 
       active(
         data,
+        updatedNotifier,
         nextActiveTick,
         nextTriggerId,
         pauseSimAtTick
@@ -65,6 +67,7 @@ class TimeAdvancer {
 
   private def active(
       data: TimeAdvancerData,
+      notifier: Option[RuntimeNotifier],
       activeTick: Long,
       expectedTriggerId: Long,
       pauseSimAtTick: Option[Long]
@@ -80,13 +83,21 @@ class TimeAdvancer {
                 .filter(_ > nextTrig.trigger.tick)
                 .map { _ =>
                   // pause, inactivate
+
+                  val updatedNotifier = notifier.map { _.pausing(activeTick) }
+
                   inactive(
                     data,
+                    updatedNotifier,
                     nextTrig.trigger.tick,
                     nextTriggerId
                   )
                 }
                 .getOrElse {
+                  val updatedNotifier = notifier.map {
+                    _.completing(activeTick)
+                  }
+
                   // activate next
                   data.scheduler ! TriggerWithIdMessage(
                     nextTrig.trigger,
@@ -94,6 +105,7 @@ class TimeAdvancer {
                   )
                   active(
                     data,
+                    updatedNotifier,
                     nextTrig.trigger.tick,
                     nextTriggerId,
                     pauseSimAtTick
@@ -102,10 +114,9 @@ class TimeAdvancer {
             }
         }
         .getOrElse {
-          stopOnError(
-            ctx,
-            s"No next tick returned after tick $activeTick completed."
-          )
+          notifier.foreach { _.finishing(activeTick, error = false) }
+
+          Behaviors.stopped
         }
   }
 
