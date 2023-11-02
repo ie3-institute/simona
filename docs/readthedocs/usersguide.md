@@ -1,5 +1,5 @@
 # User's Guide
-
+## JDK-Installation
 ## Getting Started
 
 The user's guide is here to give you a basic rundown of all the things you need to know to get you up and running. We will give you some information on how to install and setup SIMONA as well as some insights into configuring a simulation run.
