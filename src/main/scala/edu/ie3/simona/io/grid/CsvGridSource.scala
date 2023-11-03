@@ -16,6 +16,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalStorageInput
 }
 
+import java.nio.file.Path
 import scala.jdk.CollectionConverters._
 
 object CsvGridSource {
@@ -25,7 +26,8 @@ object CsvGridSource {
       baseFolder: String,
       fileNamingStrategy: FileNamingStrategy
   ): Map[ThermalBusInput, ThermalGrid] = {
-    val dataSource = new CsvDataSource(csvSep, baseFolder, fileNamingStrategy)
+    val dataSource =
+      new CsvDataSource(csvSep, Path.of(baseFolder), fileNamingStrategy)
     val typeSource = new TypeSource(dataSource)
     val thermalSource = new ThermalSource(
       typeSource,
