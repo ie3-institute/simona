@@ -24,11 +24,11 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexStateData,
   ParticipantModelBaseStateData
 }
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
   ParticipantStateData
 }
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
@@ -52,12 +52,8 @@ import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT, PU}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Megavars
-import squants.Each
+import squants.{Dimensionless, Each}
 import squants.energy.Megawatts
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.Kilovars
-import squants.{Each, Dimensionless}
-import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -349,8 +345,8 @@ protected trait EvcsAgentFundamentals
     *
     * @param baseStateData
     *   The base state data with collected secondary data
-    * @param maybeLastModelState
-    *   Optional last model state
+    * @param lastModelState
+    *   Last model state
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
@@ -369,8 +365,6 @@ protected trait EvcsAgentFundamentals
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
-    implicit val startDateTime: ZonedDateTime = baseStateData.startDate
-
     /* extract EV data from secondary data, which should have been requested and received before */
     baseStateData.receivedSecondaryDataStore
       .getOrElse(currentTick, Map.empty)
@@ -575,7 +569,8 @@ protected trait EvcsAgentFundamentals
   /** Handles a evcs movements message that contains information on arriving and
     * departing vehicles. After applying the movements to the last known set of
     * parked evs, returns departing evs and calculates new scheduling. Sends
-    * completion message to scheduler without scheduling new activations.
+    * completion message to scheduler without scheduling new activations. FIXME
+    * scaladoc
     *
     * @param currentTick
     *   The current tick that has been triggered
