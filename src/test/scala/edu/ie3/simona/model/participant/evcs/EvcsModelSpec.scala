@@ -20,7 +20,6 @@ import edu.ie3.simona.test.common.model.participant.EvcsTestData
 import edu.ie3.simona.test.helper.TableDrivenHelper
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.Each
 import squants.energy.{KilowattHours, Kilowatts}
@@ -292,7 +291,7 @@ class EvcsModelSpec
                 actual.getTime shouldBe startTick.toDateTime(simulationStart)
                 actual.getInputModel shouldBe ev.uuid
                 actual.getP should beEquivalentTo(p.asKiloWatt)
-                actual.getQ should beEquivalentTo(zeroKW)
+                actual.getQ should beEquivalentTo(0d.asKiloVar)
             }
 
             actualEvcsResults should have size expectedEvResults.size
@@ -301,7 +300,7 @@ class EvcsModelSpec
                 actual.getTime shouldBe startTick.toDateTime(simulationStart)
                 actual.getInputModel shouldBe evcsStandardModel.getUuid
                 actual.getP should beEquivalentTo(p.asKiloWatt)
-                actual.getQ should beEquivalentTo(zeroKW)
+                actual.getQ should beEquivalentTo(0d.asKiloVar)
             }
         }
 
@@ -400,7 +399,7 @@ class EvcsModelSpec
           case (actual, (startTick, p, soc)) =>
             actual.getTime shouldBe startTick.toDateTime(simulationStart)
             actual.getP should beEquivalentTo(p.asKiloWatt)
-            actual.getQ should beEquivalentTo(zeroKW)
+            actual.getQ should beEquivalentTo(0d.asKiloVar)
             actual.getSoc should beEquivalentTo(soc.asPercent)
         }
 
@@ -411,7 +410,7 @@ class EvcsModelSpec
           case (actual, (startTick, p, soc)) =>
             actual.getTime shouldBe startTick.toDateTime(simulationStart)
             actual.getP should beEquivalentTo(p.asKiloWatt)
-            actual.getQ should beEquivalentTo(zeroKW)
+            actual.getQ should beEquivalentTo(0d.asKiloVar)
             actual.getSoc should beEquivalentTo(soc.asPercent)
         }
 
@@ -421,7 +420,7 @@ class EvcsModelSpec
             actual.getTime shouldBe startTick.toDateTime(simulationStart)
             actual.getInputModel shouldBe evcsStandardModel.getUuid
             actual.getP should beEquivalentTo(p.asKiloWatt)
-            actual.getQ should beEquivalentTo(zeroKW)
+            actual.getQ should beEquivalentTo(0d.asKiloVar)
         }
       }
 
@@ -486,7 +485,7 @@ class EvcsModelSpec
           case (actual, (startTick, p, soc)) =>
             actual.getTime shouldBe startTick.toDateTime(simulationStart)
             actual.getP should beEquivalentTo(p.asKiloWatt)
-            actual.getQ should beEquivalentTo(zeroKW)
+            actual.getQ should beEquivalentTo(0d.asKiloVar)
             actual.getSoc should beEquivalentTo(soc.asPercent)
         }
 
@@ -496,7 +495,7 @@ class EvcsModelSpec
             actual.getTime shouldBe startTick.toDateTime(simulationStart)
             actual.getInputModel shouldBe evcsStandardModel.getUuid
             actual.getP should beEquivalentTo(p.asKiloWatt)
-            actual.getQ should beEquivalentTo(zeroKW)
+            actual.getQ should beEquivalentTo(0d.asKiloVar)
         }
       }
 

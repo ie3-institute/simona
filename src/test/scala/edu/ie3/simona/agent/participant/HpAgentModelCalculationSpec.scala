@@ -10,7 +10,6 @@ import akka.actor.ActorSystem
 import akka.testkit.TestFSMRef
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
@@ -58,13 +57,17 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.model.participant.HpTestData
 import edu.ie3.simona.util.ConfigUtil
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
+import edu.ie3.util.scala.quantities.{
+  Megavars,
+  ReactivePower,
+  Vars,
+  WattsPerSquareMeter
+}
 import org.scalatest.PrivateMethodTester
 import squants.energy.{Kilowatts, Megawatts, Watts}
+import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 import squants.{Dimensionless, Each}
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
 
 import java.io.File
 import java.time.ZonedDateTime
@@ -537,10 +540,10 @@ class HpAgentModelCalculationSpec
 
       /* Send out new data */
       val weatherData = WeatherData(
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(1.815, CELSIUS),
-        Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+        WattsPerSquareMeter(0),
+        WattsPerSquareMeter(0),
+        Celsius(1.815),
+        MetersPerSecond(7.726576)
       )
 
       weatherService.send(
@@ -738,10 +741,10 @@ class HpAgentModelCalculationSpec
 
       /* Providing the awaited data will lead to the foreseen transitions */
       val weatherData = WeatherData(
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(1.815, CELSIUS),
-        Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+        WattsPerSquareMeter(0),
+        WattsPerSquareMeter(0),
+        Celsius(1.815),
+        MetersPerSecond(7.726576)
       )
 
       weatherService.send(
@@ -879,10 +882,10 @@ class HpAgentModelCalculationSpec
 
       /* Send out the expected data and wait for the reply */
       val weatherData = WeatherData(
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(1.815, CELSIUS),
-        Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+        WattsPerSquareMeter(0),
+        WattsPerSquareMeter(0),
+        Celsius(1.815),
+        MetersPerSecond(7.726576)
       )
       weatherService.send(
         hpAgent,
@@ -978,10 +981,10 @@ class HpAgentModelCalculationSpec
         ProvideWeatherMessage(
           0L,
           WeatherData(
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(1.815, CELSIUS),
-            Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+            WattsPerSquareMeter(0),
+            WattsPerSquareMeter(0),
+            Celsius(1.815),
+            MetersPerSecond(7.726576)
           ),
           Some(3600L)
         )
@@ -1009,10 +1012,10 @@ class HpAgentModelCalculationSpec
         ProvideWeatherMessage(
           3600L,
           WeatherData(
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(1.815, CELSIUS),
-            Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+            WattsPerSquareMeter(0),
+            WattsPerSquareMeter(0),
+            Celsius(1.815),
+            MetersPerSecond(7.726576)
           ),
           Some(7200L)
         )
@@ -1040,10 +1043,10 @@ class HpAgentModelCalculationSpec
         ProvideWeatherMessage(
           7200L,
           WeatherData(
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(1.815, CELSIUS),
-            Quantities.getQuantity(7.726576, METRE_PER_SECOND)
+            WattsPerSquareMeter(0),
+            WattsPerSquareMeter(0),
+            Celsius(1.815),
+            MetersPerSecond(7.726576)
           ),
           None
         )

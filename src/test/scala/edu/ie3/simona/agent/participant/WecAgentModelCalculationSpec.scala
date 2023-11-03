@@ -348,7 +348,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           triggerId,
           Some(
-            immutable.Seq(
+            Seq(
               ScheduleTriggerMessage(ActivityStartTrigger(4711), wecAgent)
             )
           )
@@ -585,7 +585,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            immutable.Seq(
+            Seq(
               ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
             )
           )
@@ -739,7 +739,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            immutable.Seq(
+            Seq(
               ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
             )
           )
@@ -875,7 +875,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            immutable.Seq(
+            Seq(
               ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
             )
           )
@@ -972,7 +972,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            immutable.Seq(
+            Seq(
               ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
             )
           )
@@ -1005,7 +1005,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           3L,
           Some(
-            immutable.Seq(
+            Seq(
               ScheduleTriggerMessage(ActivityStartTrigger(2700L), wecAgent)
             )
           )

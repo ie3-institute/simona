@@ -9,7 +9,6 @@ package edu.ie3.simona.agent.participant
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.{
   LoadInput,
   PvInput,
@@ -62,9 +61,10 @@ import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.scalatestplus.mockito.MockitoSugar
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND}
+import squants.motion.MetersPerSecond
+import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
 
@@ -318,10 +318,10 @@ class EmAgentIT
           ProvideWeatherMessage(
             0L,
             WeatherData(
-              Quantities.getQuantity(400d, StandardUnits.SOLAR_IRRADIANCE),
-              Quantities.getQuantity(200d, StandardUnits.SOLAR_IRRADIANCE),
-              Quantities.getQuantity(0d, CELSIUS),
-              Quantities.getQuantity(0d, METRE_PER_SECOND)
+              WattsPerSquareMeter(400d),
+              WattsPerSquareMeter(200d),
+              Celsius(0d),
+              MetersPerSecond(0d)
             ),
             Some(7200L)
           )
@@ -374,10 +374,10 @@ class EmAgentIT
           ProvideWeatherMessage(
             7200L,
             WeatherData(
-              Quantities.getQuantity(300d, StandardUnits.SOLAR_IRRADIANCE),
-              Quantities.getQuantity(500d, StandardUnits.SOLAR_IRRADIANCE),
-              Quantities.getQuantity(0d, CELSIUS),
-              Quantities.getQuantity(0d, METRE_PER_SECOND)
+              WattsPerSquareMeter(300d),
+              WattsPerSquareMeter(500d),
+              Celsius(0d),
+              MetersPerSecond(0d)
             ),
             Some(14400L)
           )
@@ -477,10 +477,10 @@ class EmAgentIT
           ProvideWeatherMessage(
             14400L,
             WeatherData(
-              Quantities.getQuantity(5d, StandardUnits.SOLAR_IRRADIANCE),
-              Quantities.getQuantity(5d, StandardUnits.SOLAR_IRRADIANCE),
-              Quantities.getQuantity(0d, CELSIUS),
-              Quantities.getQuantity(0d, METRE_PER_SECOND)
+              WattsPerSquareMeter(5d),
+              WattsPerSquareMeter(5d),
+              Celsius(0d),
+              MetersPerSecond(0d)
             ),
             Some(21600L)
           )
@@ -734,10 +734,10 @@ class EmAgentIT
             ProvideWeatherMessage(
               0L,
               WeatherData(
-                Quantities.getQuantity(400d, StandardUnits.SOLAR_IRRADIANCE),
-                Quantities.getQuantity(200d, StandardUnits.SOLAR_IRRADIANCE),
-                Quantities.getQuantity(0d, CELSIUS),
-                Quantities.getQuantity(0d, METRE_PER_SECOND)
+                WattsPerSquareMeter(400d),
+                WattsPerSquareMeter(200d),
+                Celsius(0d),
+                MetersPerSecond(0d)
               ),
               Some(7200L)
             )
@@ -792,10 +792,10 @@ class EmAgentIT
             ProvideWeatherMessage(
               7200L,
               WeatherData(
-                Quantities.getQuantity(300d, StandardUnits.SOLAR_IRRADIANCE),
-                Quantities.getQuantity(500d, StandardUnits.SOLAR_IRRADIANCE),
-                Quantities.getQuantity(0d, CELSIUS),
-                Quantities.getQuantity(0d, METRE_PER_SECOND)
+                WattsPerSquareMeter(300d),
+                WattsPerSquareMeter(500d),
+                Celsius(0d),
+                MetersPerSecond(0d)
               ),
               Some(14400L)
             )
@@ -853,10 +853,10 @@ class EmAgentIT
             ProvideWeatherMessage(
               14400L,
               WeatherData(
-                Quantities.getQuantity(5d, StandardUnits.SOLAR_IRRADIANCE),
-                Quantities.getQuantity(5d, StandardUnits.SOLAR_IRRADIANCE),
-                Quantities.getQuantity(0d, CELSIUS),
-                Quantities.getQuantity(0d, METRE_PER_SECOND)
+                WattsPerSquareMeter(5d),
+                WattsPerSquareMeter(5d),
+                Celsius(0d),
+                MetersPerSecond(0d)
               ),
               Some(21600L)
             )
@@ -908,10 +908,10 @@ class EmAgentIT
             ProvideWeatherMessage(
               21600L,
               WeatherData(
-                Quantities.getQuantity(5d, StandardUnits.SOLAR_IRRADIANCE),
-                Quantities.getQuantity(5d, StandardUnits.SOLAR_IRRADIANCE),
-                Quantities.getQuantity(0d, CELSIUS),
-                Quantities.getQuantity(0d, METRE_PER_SECOND)
+                WattsPerSquareMeter(5d),
+                WattsPerSquareMeter(5d),
+                Celsius(0d),
+                MetersPerSecond(0d)
               ),
               Some(28800L)
             )

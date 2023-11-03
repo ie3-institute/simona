@@ -14,6 +14,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
 }
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.util.scala.quantities.WattsPerKelvin
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.Kelvin
 import squants.energy.{Kilowatts, Watts}
@@ -243,7 +244,7 @@ class HpModelSpec
       "the house is heated up and storage has space" should {
         "deliver positive flexibility" in {
           val house = thermalHouse(18, 22)
-            .copy(ethLosses = Kilowatts(0.2))
+            .copy(ethLosses = WattsPerKelvin(200))
           val grid = thermalGrid(house, Some(thermalStorage))
           val hp = hpModel(grid)
           val relevantData = hpData.copy(currentTimeTick =

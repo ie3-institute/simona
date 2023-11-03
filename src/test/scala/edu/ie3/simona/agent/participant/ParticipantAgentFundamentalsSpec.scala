@@ -34,14 +34,13 @@ import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.test.common.AgentSpec
 import edu.ie3.simona.test.common.model.participant.LoadTestData
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import org.mockito.Mockito.when
 import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor3, TableFor5}
 import org.scalatestplus.mockito.MockitoSugar
-import squants.Each
+import squants.{Each, Power}
 import squants.energy.{Kilowatts, Megawatts, Watts}
 
 import java.util.UUID
@@ -64,8 +63,8 @@ class ParticipantAgentFundamentalsSpec
     with TableDrivenPropertyChecks {
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
-  implicit val pTolerance: squants.Power = Megawatts(0.001)
-  implicit val qTolerance: ReactivePower = Megavars(0.001)
+  private implicit val pTolerance: Power = Watts(0.1)
+  private implicit val qTolerance: ReactivePower = Vars(0.1)
 
   private val outputConfig: NotifierConfig =
     NotifierConfig(
@@ -84,9 +83,6 @@ class ParticipantAgentFundamentalsSpec
       )
     )
   val mockAgent: ParticipantAgentMock = mockAgentTestRef.underlyingActor
-
-  private implicit val powerTolerance: squants.Power = Watts(0.1)
-  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   private val powerValues =
     Map(
