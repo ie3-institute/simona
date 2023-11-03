@@ -18,24 +18,17 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
 object TimeAdvancer {
 
-  // notify listener as well
-
   def apply(
       scheduler: actor.typed.ActorRef[SchedulerMessage],
       eventListener: Option[ActorRef[RuntimeEvent]],
       checkWindow: Long,
       endTick: Long
-  ): Behavior[SchedulerMessage] = Behaviors.receive {
-    case (ctx, InitTimeAdvancer(autoStart)) =>
-      if (autoStart)
-        ctx.self ! StartScheduleMessage()
-      inactive(
-        TimeAdvancerData(scheduler, endTick),
-        eventListener.map(RuntimeNotifier(_, checkWindow)),
-        INIT_SIM_TICK,
-        0L
-      )
-  }
+  ): Behavior[SchedulerMessage] = inactive(
+    TimeAdvancerData(scheduler, endTick),
+    eventListener.map(RuntimeNotifier(_, checkWindow)),
+    INIT_SIM_TICK,
+    0L
+  )
 
   private def inactive(
       data: TimeAdvancerData,
@@ -82,10 +75,9 @@ object TimeAdvancer {
               pauseSimAtTick
                 .filter(_ > nextTrig.trigger.tick)
                 .map { _ =>
-                  // pause, inactivate
-
                   val updatedNotifier = notifier.map { _.pausing(activeTick) }
 
+                  // pause, inactivate
                   inactive(
                     data,
                     updatedNotifier,
@@ -94,8 +86,17 @@ object TimeAdvancer {
                   )
                 }
                 .getOrElse {
-                  val updatedNotifier = notifier.map {
-                    _.completing(activeTick)
+                  val updatedNotifier = notifier.map { notifier =>
+                    val notifierCompleted =
+                      notifier.completing(nextTrig.trigger.tick - 1)
+
+                    if (activeTick == INIT_SIM_TICK)
+                      notifierCompleted.starting(
+                        nextTrig.trigger.tick,
+                        pauseSimAtTick.getOrElse(data.endTick)
+                      )
+                    else
+                      notifierCompleted
                   }
 
                   // activate next

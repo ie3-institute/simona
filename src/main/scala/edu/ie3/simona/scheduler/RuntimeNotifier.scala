@@ -9,6 +9,7 @@ package edu.ie3.simona.scheduler
 import akka.actor.typed.ActorRef
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent._
+import edu.ie3.simona.exceptions.SchedulerException
 import edu.ie3.simona.scheduler.RuntimeNotifier.now
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
@@ -75,7 +76,19 @@ case class RuntimeNotifier(
         completedWindows.foreach { tick =>
           eventListener ! CheckWindowPassed(tick, nowTime - lastCheckWindowTime)
         }
-        copy(lastCheckWindow = completedTick, lastCheckWindowTime = nowTime)
+        val lastPassedCheckWindow = completedWindows.lastOption.getOrElse(
+          throw new SchedulerException(
+            "This should not happen, as completedWindows are non-empty"
+          )
+        )
+        copy(
+          lastCheckWindow = lastPassedCheckWindow,
+          lastCheckWindowTime = nowTime
+        )
+
+      case _ =>
+        // no check windows passed
+        this
     }
   }
 

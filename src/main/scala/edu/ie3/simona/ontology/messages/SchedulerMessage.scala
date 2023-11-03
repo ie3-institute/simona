@@ -24,10 +24,6 @@ object SchedulerMessage {
     */
   case object InitSimMessage extends SchedulerMessage
 
-  final case class InitTimeAdvancer(
-      autoStart: Boolean = true
-  ) extends SchedulerMessage
-
   /** Tell the [[SimScheduler]] to start the simulation
     */
   // TODO rename to StartSimMessage
