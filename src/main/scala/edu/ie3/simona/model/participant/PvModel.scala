@@ -410,8 +410,8 @@ final case class PvModel private (
     val omegaOneHour = toRadians(15d)
     val omegaHalfHour = omegaOneHour / 2d
 
-    var omega1InRad = omega.toRadians // requested hour
-    var omega2InRad = omega1InRad + omegaOneHour // requested hour plus 1 hour
+    val omega1InRad = omega.toRadians // requested hour
+    val omega2InRad = omega1InRad + omegaOneHour // requested hour plus 1 hour
 
     // (thetaG < 90°): sun is visible
     // (thetaG > 90°), otherwise: sun is behind the surface  -> no direct radiation
@@ -422,19 +422,18 @@ final case class PvModel private (
       && omega1InRad < omegaSSInRad - omegaHalfHour
     ) {
 
-      if (omega1InRad < omegaSRInRad) {
-        // requested time earlier than sunrise?
-        omega1InRad = omegaSRInRad
-        omega2InRad = omegaSRInRad + omegaOneHour
-      }
+      val (finalOmega1, finalOmega2) =
+        if (omega1InRad < omegaSRInRad) {
+          // requested time earlier than sunrise
+          (omegaSRInRad, omegaSRInRad + omegaOneHour)
+        } else if (omega2InRad > omegaSSInRad) {
+          // sunset earlier than requested time
+          (omegaSSInRad - omegaOneHour, omegaSSInRad)
+        } else {
+          (omega1InRad, omega2InRad)
+        }
 
-      if (omega2InRad > omegaSSInRad) {
-        // sunset earlier than requested time?
-        omega1InRad = omegaSSInRad - omegaOneHour
-        omega2InRad = omegaSSInRad
-      }
-
-      Option(Radians(omega1InRad), Radians(omega2InRad))
+      Some(Radians(finalOmega1), Radians(finalOmega2))
     } else
       None
   }

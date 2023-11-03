@@ -38,13 +38,13 @@ import static java.util.Locale.setDefault
 class PvModelIT extends Specification implements PvModelITHelper {
 
   @Shared
-  HashMap<String, PvModel> pvModels
+  Map<String, PvModel> pvModels
 
   @Shared
-  HashMap<ZonedDateTime, HashMap<String, WeatherMessage.WeatherData>> weatherMap
+  Map<ZonedDateTime, Map<String, WeatherMessage.WeatherData>> weatherMap
 
   @Shared
-  HashMap<ZonedDateTime, HashMap<String, Power>> resultsMap
+  Map<ZonedDateTime, Map<String, Power>> resultsMap
 
 
   def setupSpec() {
@@ -74,7 +74,7 @@ class PvModelIT extends Specification implements PvModelITHelper {
 
     for (ZonedDateTime dateTime : keyList) {
 
-      HashMap modelToWeatherMap = weatherMap.get(dateTime)
+      Map<String, WeatherMessage.WeatherData> modelToWeatherMap = weatherMap.get(dateTime)
 
       String[] row = new String[2*modelCount+1]
       row[0] = dateTime.toString()
@@ -125,7 +125,7 @@ trait PvModelITHelper {
     return CSV_FORMAT.parse(br)
   }
 
-  HashMap<String, PvModel> createPvModels() {
+  Map<String, PvModel> createPvModels() {
     "load the grid input data from the corresponding resources folder"
 
     def csvGridSource = CsvJointGridContainerSource.read("it_grid", ";",
@@ -134,7 +134,7 @@ trait PvModelITHelper {
     def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2011-01-01 00:00:00")
     def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2012-01-01 00:00:00")
 
-    HashMap<String, PvModel> pvModels = new HashMap<>()
+    Map<String, PvModel> pvModels = new HashMap<>()
     for (PvInput inputModel : csvGridSource.systemParticipants.pvPlants) {
       PvModel model = PvModel.apply(
           inputModel,
@@ -149,15 +149,15 @@ trait PvModelITHelper {
     return pvModels
   }
 
-  HashMap<ZonedDateTime, HashMap<String, WeatherMessage.WeatherData>> getWeatherData() {
+  Map<ZonedDateTime, Map<String, WeatherMessage.WeatherData>> getWeatherData() {
     "read the weather data from the provided weather data file"
     final String fileName = "_pv/it/weather.tar.gz"
     final def csvRecords = getCsvRecords(fileName)
 
-    HashMap<ZonedDateTime, HashMap<String, WeatherMessage.WeatherData>> weatherMap = new HashMap<>()
+    Map<ZonedDateTime, Map<String, WeatherMessage.WeatherData>> weatherMap = new HashMap<>()
     for (row in csvRecords) {
       ZonedDateTime time = TimeUtil.withDefaults.toZonedDateTime(row.get(0))
-      HashMap modelToWeatherMap
+      Map<String, WeatherMessage.WeatherData> modelToWeatherMap
       if (weatherMap.containsKey(time)) {
         modelToWeatherMap = weatherMap.get(time)
       }
@@ -184,7 +184,7 @@ trait PvModelITHelper {
     return weatherMap
   }
 
-  HashMap<ZonedDateTime, HashMap<String, Power>> getResultsData() {
+  Map<ZonedDateTime, Map<String, Power>> getResultsData() {
     "read the results data from the provided file"
     final String fileName = "_pv/it/results2.tar.gz"
     def csvRecords = getCsvRecords(fileName)
@@ -202,14 +202,14 @@ trait PvModelITHelper {
       "pv_west_2"
     ]
 
-    HashMap<ZonedDateTime, HashMap<String, Power>> resultsMap = new HashMap<>()
+    Map<ZonedDateTime, Map<String, Power>> resultsMap = new HashMap<>()
     for(row in csvRecords) {
       // last line is trash
       if (row.get(0).startsWith('\u0000'))
         break
 
       ZonedDateTime time = ZonedDateTime.parse(row.get(0))
-      HashMap<String, Power> modelToPowerMap = new HashMap<>()
+      Map<String, Power> modelToPowerMap = new HashMap<>()
       for (int i = 1; i < headers.length; i++) {
         String modelId = headers[i]
         String rawValue = row[i]
