@@ -11,15 +11,12 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
-  ProvideFlexOptions,
-  ProvideMinMaxFlexOptions
-}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{ProvideFlexOptions, ProvideMinMaxFlexOptions}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities._
 import squants._
-import squants.energy.Kilowatts
+import squants.energy.{Kilowatts, Megawatts}
 import squants.space.{Degrees, SquareMeters}
 import squants.time.Minutes
 import tech.units.indriya.unit.Units._
