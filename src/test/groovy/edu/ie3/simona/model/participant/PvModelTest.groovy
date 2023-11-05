@@ -148,7 +148,7 @@ class PvModelTest extends Specification {
     '2017-10-31T12:15:00+01:00[Europe/Berlin]' || 5.21590451527510877d // regular year => day = 304
     '2011-06-21T13:00:00+02:00[Europe/Berlin]' || 2.9436292808978335d // regular year => day = 172
     '2011-04-05T16:00:00+02:00[Europe/Berlin]' || 1.6181353941777565d // regular year => day = 95
-    '2011-09-21T00:00:00+02:00[Europe/Berlin]' || 4.5273362624335105d // regular year => day = 254
+    '2011-09-21T00:00:00+02:00[Europe/Berlin]' || 4.5273362624335105d // regular year => day = 264
     '2011-03-21T00:00:00+01:00[Europe/Berlin]' || 1.359922299362157d // regular year => day = 80
   }
 
