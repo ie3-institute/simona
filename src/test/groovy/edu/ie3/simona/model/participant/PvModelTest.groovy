@@ -6,7 +6,8 @@
 
 package edu.ie3.simona.model.participant
 
-
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static tech.units.indriya.quantity.Quantities.getQuantity
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.NodeInput
@@ -26,7 +27,6 @@ import org.locationtech.jts.geom.Point
 import scala.Option
 import spock.lang.Shared
 import spock.lang.Specification
-import squants.space.Angle
 import squants.*
 import squants.energy.*
 import squants.space.*
@@ -101,8 +101,8 @@ class PvModelTest extends Specification {
         QControl.apply(pvInput.qCharacteristics),
         Sq.create(pvInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
         pvInput.cosPhiRated,
-        pvInput.node.geoPosition.y,
-        pvInput.node.geoPosition.x,
+        Sq.create(pvInput.node.geoPosition.y, Degrees$.MODULE$),
+        Sq.create(pvInput.node.geoPosition.x, Degrees$.MODULE$),
         pvInput.albedo,
         Sq.create(pvInput.etaConv.to(PU).value.doubleValue(), Each$.MODULE$),
         Sq.create(pvInput.azimuth.to(RADIAN).value.doubleValue(), Radians$.MODULE$),
