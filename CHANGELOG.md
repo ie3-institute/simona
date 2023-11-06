@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add safety factor sRated calculation [#629](https://github.com/ie3-institute/simona/issues/629)
+
+### Changed
+- Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
+- Improved initialization of weather based agents [#145](https://github.com/ie3-institute/simona/issues/145)
+- Changed from ComparableQuantity to squants fast and typesafe calculations [#490](https://github.com/ie3-institute/simona/issues/490)
+- Changed from ComparableQuantity to squants in power flow [#554](https://github.com/ie3-institute/simona/issues/554)
+- Reduce log level on missing diffuse irradiance [#629](https://github.com/ie3-institute/simona/issues/629)
+
 ## [3.0.0] - 2023-08-07
 
 ### Added
@@ -21,7 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Check for grid validity with PSDM `ValidationUtils` [#460](https://github.com/ie3-institute/simona/issues/460)
 - Enhancing dev's guide [#363](https://github.com/ie3-institute/simona/issues/363)
 - Support PF calculation with closed switches [#474](https://github.com/ie3-institute/simona/issues/474)
-- Add safety factor sRated calculation [#629](https://github.com/ie3-institute/simona/issues/629)
 
 ### Changed
 - Re-organizing test resources into their respective packages [#105](https://github.com/ie3-institute/simona/issues/105)
@@ -69,11 +78,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed format of example grid `vn_simona` [#216](https://github.com/ie3-institute/simona/issues/216)
 - Renamed ChpData to ChpRelevantData [#494](https://github.com/ie3-institute/simona/issues/494)
 - Updated gradle to 8.2.1, cleaned up `build.gradle` and `Jenkinsfile` [#572](https://github.com/ie3-institute/simona/issues/572)
-- Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
-- Improved initialization of weather based agents [#145](https://github.com/ie3-institute/simona/issues/145)
-- Changed from ComparableQuantity to squants fast and typesafe calculations [#490](https://github.com/ie3-institute/simona/issues/490)
-- Changed from ComparableQuantity to squants in power flow [#554](https://github.com/ie3-institute/simona/issues/554)
-- Reduce log level on missing diffuse irradiance [#629](https://github.com/ie3-institute/simona/issues/629)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
