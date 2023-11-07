@@ -144,7 +144,7 @@ object Scheduler {
       triggerId: Long
   ): Option[String] =
     Option
-      .when(activationData.awaitingCompletions <= 0) {
+      .when(activationData.triggerIdToActiveTrigger.isEmpty) {
         s"No completions expected, received completion for trigger id $triggerId"
       }
       .orElse {
@@ -176,11 +176,7 @@ object Scheduler {
 
                 actor ! triggerWithId
 
-                // track that we wait for a response for this tick
                 updatedActivationData
-                  .copy(awaitingCompletions =
-                    updatedActivationData.awaitingCompletions + 1
-                  )
               }
               .getOrElse(updatedActivationData)
 
@@ -221,7 +217,7 @@ object Scheduler {
       triggerId: Long
   ): ActivationData = {
     data.triggerIdToActiveTrigger.remove(triggerId)
-    data.copy(awaitingCompletions = data.awaitingCompletions - 1)
+    data
   }
 
   /** Returns true if current tick can be completed with parent.
@@ -230,7 +226,7 @@ object Scheduler {
       data: SchedulerData,
       activationData: ActivationData
   ): Boolean =
-    activationData.awaitingCompletions == 0 &&
+    activationData.triggerIdToActiveTrigger.isEmpty &&
       !data.triggerQueue.headKeyOption.contains(activationData.tick)
 
   private def completeWithParent(

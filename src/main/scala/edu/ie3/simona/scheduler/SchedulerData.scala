@@ -36,7 +36,6 @@ object SchedulerData {
       activationTriggerId: Long,
       triggerIdToActiveTrigger: mutable.Map[Long, ActorRef] =
         mutable.Map.empty[Long, ActorRef],
-      awaitingCompletions: Int = 0
   )
 
 }
