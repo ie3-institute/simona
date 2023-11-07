@@ -35,7 +35,7 @@ object SchedulerData {
       tick: Long,
       activationTriggerId: Long,
       triggerIdToActiveTrigger: mutable.Map[Long, ActorRef] =
-        mutable.Map.empty[Long, ActorRef],
+        mutable.Map.empty[Long, ActorRef]
   )
 
 }
