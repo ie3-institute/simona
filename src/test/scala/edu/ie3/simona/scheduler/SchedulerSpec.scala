@@ -314,6 +314,10 @@ class SchedulerSpec
       triggeredAgent2.expectNoMessage()
     }
 
+    // TODO scheduling with parent, unlocking
+
+    /* ERRORS */
+
     "stop when activated with wrong tick" in {
       val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(

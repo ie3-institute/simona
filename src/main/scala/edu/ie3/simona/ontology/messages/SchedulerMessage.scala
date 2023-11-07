@@ -6,9 +6,13 @@
 
 package edu.ie3.simona.ontology.messages
 
+import akka.actor
 import akka.actor.ActorRef
 import edu.ie3.simona.ontology.trigger.Trigger
+import edu.ie3.simona.scheduler.ScheduleLock.LockMsg
 import edu.ie3.simona.scheduler.SimScheduler
+
+import java.util.UUID
 
 sealed trait SchedulerMessage
 
@@ -41,7 +45,8 @@ object SchedulerMessage {
     */
   final case class ScheduleTriggerMessage(
       trigger: Trigger,
-      actorToBeScheduled: ActorRef
+      actorToBeScheduled: ActorRef,
+      unlockKey: Option[(actor.typed.ActorRef[LockMsg], UUID)] = None
   ) extends SchedulerMessage
 
   /** Confirm the end of an action e.g. fsm state transitions for one tick to
@@ -64,6 +69,7 @@ object SchedulerMessage {
       trigger: Trigger,
       triggerId: Long
   ) extends SchedulerMessage
+      with LockMsg
 
   /** respond to agent that the send trigger is illegal
     */

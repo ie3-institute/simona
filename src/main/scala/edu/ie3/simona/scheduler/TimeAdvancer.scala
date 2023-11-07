@@ -16,6 +16,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage._
 import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
+/** TODO */
 object TimeAdvancer {
 
   def apply(
@@ -56,6 +57,9 @@ object TimeAdvancer {
         nextTriggerId,
         pauseSimAtTick
       )
+
+    // FIXME handle STM as well
+    // theoretically, we could receive STMs while inactive, so let's just handle them as well
   }
 
   private def active(
@@ -119,6 +123,9 @@ object TimeAdvancer {
 
           Behaviors.stopped
         }
+
+    // FIXME handle STM as well
+    // this should rarely happen, but just in case an STM arrives right after a completion
   }
 
   private def checkCompletion(

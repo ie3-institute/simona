@@ -20,8 +20,10 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.trigger.Trigger
 import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
+import edu.ie3.simona.scheduler.ScheduleLock.Unlock
 import edu.ie3.simona.scheduler.SchedulerData.ActivationData
 
+/** TODO */
 object Scheduler {
 
   def apply(
@@ -43,11 +45,26 @@ object Scheduler {
           }
         }
 
-      case (ctx, ScheduleTriggerMessage(trigger, actorToBeScheduled)) =>
+      case (
+            ctx,
+            ScheduleTriggerMessage(trigger, actorToBeScheduled, unlockKey)
+          ) =>
         checkTriggerSchedule(lastActiveTick + 1L, trigger)
           .map(stopOnError(ctx, _))
           .getOrElse {
-            // FIXME also potentially schedule with parent
+            // also potentially schedule with parent if the new tick is earlier
+            // than the currently scheduled tick of this scheduler, or if nothing
+            // has been scheduled yet
+            if (data.triggerQueue.headKeyOption.forall(trigger.tick < _))
+              data.parent ! ScheduleTriggerMessage(
+                ActivityStartTrigger(trigger.tick),
+                ctx.self.toClassic,
+                unlockKey
+              )
+            else {
+              // we don't need to escalate to the parent, this means that we can release the lock (if applicable)
+              unlockKey.foreach { case (lock, key) => lock ! Unlock(key) }
+            }
             inactive(scheduleTrigger(data, trigger, actorToBeScheduled))
           }
 
@@ -64,10 +81,16 @@ object Scheduler {
       activationData: ActivationData
   ): Behavior[SchedulerMessage] = Behaviors.receive {
 
-    case (ctx, ScheduleTriggerMessage(trigger, actorToBeScheduled)) =>
+    case (
+          ctx,
+          ScheduleTriggerMessage(trigger, actorToBeScheduled, unlockKey)
+        ) =>
       checkTriggerSchedule(activationData.tick, trigger)
         .map(stopOnError(ctx, _))
         .getOrElse {
+          // since we're active, we can directly the key with the lock (if applicable)
+          unlockKey.foreach { case (lock, key) => lock ! Unlock(key) }
+
           sendCurrentTriggers(
             scheduleTrigger(data, trigger, actorToBeScheduled),
             activationData

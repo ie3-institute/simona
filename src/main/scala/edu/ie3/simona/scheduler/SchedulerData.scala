@@ -24,7 +24,7 @@ final case class SchedulerData(
       ActorRef
     ],
     actorToTrigger: mutable.Map[ActorRef, TriggerWithIdMessage] =
-      mutable.Map.empty // TODO can be removed once this is handled by the receiving actor
+      mutable.Map.empty
 )
 
 object SchedulerData {
