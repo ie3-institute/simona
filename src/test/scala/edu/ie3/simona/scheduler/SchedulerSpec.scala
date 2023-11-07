@@ -158,7 +158,7 @@ class SchedulerSpec
       )
     }
 
-    "send triggers as expected when triggered at x*schedulerReadyCheckWindow" in {
+    "work as expected when scheduling two actors for different ticks" in {
       val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)

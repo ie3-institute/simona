@@ -47,6 +47,7 @@ object Scheduler {
         checkTriggerSchedule(lastActiveTick + 1L, trigger)
           .map(stopOnError(ctx, _))
           .getOrElse {
+            // FIXME also potentially schedule with parent
             inactive(scheduleTrigger(data, trigger, actorToBeScheduled))
           }
 
@@ -82,23 +83,19 @@ object Scheduler {
       checkCompletion(activationData, triggerId)
         .toLeft(handleCompletion(activationData, triggerId))
         .flatMap { updatedActivationData =>
-          val eitherData = Right(data).withLeft[String]
-
           // schedule new triggers, if present
           newTrigger
             .map { newTrigger =>
-              eitherData.flatMap { currentData =>
-                checkTriggerSchedule(tick, newTrigger.trigger)
-                  .toLeft(
-                    scheduleTrigger(
-                      currentData,
-                      newTrigger.trigger,
-                      newTrigger.actorToBeScheduled
-                    )
+              checkTriggerSchedule(tick, newTrigger.trigger)
+                .toLeft(
+                  scheduleTrigger(
+                    data,
+                    newTrigger.trigger,
+                    newTrigger.actorToBeScheduled
                   )
-              }
+                )
             }
-            .getOrElse(eitherData)
+            .getOrElse(Right(data))
             .map((_, updatedActivationData))
         }
         .map { case (updatedData, updatedActivationData) =>
