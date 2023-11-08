@@ -9,10 +9,7 @@ package edu.ie3.simona.agent.participant.evcs
 import akka.actor.{ActorRef, FSM}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.EvcsInput
-import edu.ie3.datamodel.models.result.system.{
-  EvcsResult,
-  SystemParticipantResult
-}
+import edu.ie3.datamodel.models.result.system.{EvcsResult, SystemParticipantResult}
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
@@ -23,34 +20,21 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
-import edu.ie3.simona.agent.participant.statedata.{
-  DataCollectionStateData,
-  ParticipantStateData
-}
+import edu.ie3.simona.agent.participant.statedata.{DataCollectionStateData, ParticipantStateData}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.exceptions.agent.{
-  AgentInitializationException,
-  InconsistentStateException,
-  InvalidRequestException
-}
+import edu.ie3.simona.exceptions.agent.{AgentInitializationException, InconsistentStateException, InvalidRequestException}
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.EvcsModel
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
-import edu.ie3.simona.ontology.messages.services.EvMessage.{
-  ArrivingEvsData,
-  DepartingEvsResponse,
-  FreeLotsResponse
-}
+import edu.ie3.simona.ontology.messages.services.EvMessage.{ArrivingEvsData, DepartingEvsResponse, FreeLotsResponse}
 import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DISTANCE
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.Kilovars
-import squants.{Each, Dimensionless}
-import squants.energy.Kilowatts
+import squants.{Dimensionless, Each}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -389,7 +373,6 @@ protected trait EvcsAgentFundamentals
     updateValueStoresInformListeners(
       modelBaseStateData,
       tick,
-      // TODO DF Squants
       AccompaniedSimulationResult(result),
       updatedRelevantData
     )
@@ -461,7 +444,6 @@ protected trait EvcsAgentFundamentals
         updateValueStoresInformListeners(
           modelBaseStateData,
           tick,
-          // TODO DF Squants
           AccompaniedSimulationResult(result),
           updatedRelevantData
         )
@@ -537,7 +519,7 @@ protected trait EvcsAgentFundamentals
     announceSimulationResult(
       baseStateData,
       tick,
-      AccompaniedSimulationResult(result)
+      result
     )(baseStateData.outputConfig)
 
     /* Update the base state data */

@@ -8,30 +8,16 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
-import edu.ie3.datamodel.models.input.thermal.{
-  ThermalBusInput,
-  ThermalHouseInput
-}
+import edu.ie3.datamodel.models.input.thermal.{ThermalBusInput, ThermalHouseInput}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
-  HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureUpperBoundaryReached
-}
-import edu.ie3.simona.model.thermal.ThermalHouse.{
-  ThermalHouseState,
-  temperatureTolerance
-}
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{HouseTemperatureLowerBoundaryReached, HouseTemperatureUpperBoundaryReached}
+import edu.ie3.simona.model.thermal.ThermalHouse.{ThermalHouseState, temperatureTolerance}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.{
-  KilowattHoursPerKelvinCubicMeters,
-  SpecificHeatCapacity,
-  ThermalConductance,
-  WattsPerKelvin
-}
+import edu.ie3.util.scala.quantities.{KilowattHoursPerKelvinCubicMeters, ThermalConductance, WattsPerKelvin}
 import squants.energy.{KilowattHours, MegawattHours, Megawatts}
 import squants.space.CubicMeters
-import squants.thermal.{Celsius, Kelvin}
+import squants.thermal.{Celsius, Kelvin, ThermalCapacity}
 import squants.time.Hours
 import squants.{Energy, Power, Temperature, Time}
 import tech.units.indriya.unit.Units
@@ -69,8 +55,7 @@ final case class ThermalHouse(
     operationTime: OperationTime,
     bus: ThermalBusInput,
     ethLosses: ThermalConductance,
-    ethCapa: SpecificHeatCapacity,
-    targetTemperature: Temperature,
+    ethCapa: ThermalCapacity,
     targetTemperature: Temperature,
     lowerBoundaryTemperature: Temperature,
     upperBoundaryTemperature: Temperature
