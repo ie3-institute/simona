@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.scheduler
 
-import akka.actor
 import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.typed.{ActorRef, Behavior}
 import edu.ie3.simona.actor.ActorUtil.stopOnError
 import edu.ie3.simona.event.RuntimeEvent
@@ -16,28 +16,32 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage._
 import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
-/** TODO */
+/** Unit that is in control of time advancement within the simulation.
+  * Represents the root entity of any scheduler hierarchy.
+  */
 object TimeAdvancer {
 
   def apply(
-      scheduler: actor.typed.ActorRef[SchedulerMessage],
       eventListener: Option[ActorRef[RuntimeEvent]],
       checkWindow: Long,
       endTick: Long
-  ): Behavior[SchedulerMessage] = inactive(
-    TimeAdvancerData(scheduler, endTick),
-    eventListener.map(RuntimeNotifier(_, checkWindow)),
-    INIT_SIM_TICK,
-    0L
-  )
+  ): Behavior[SchedulerMessage] = Behaviors.receiveMessage {
+    case ScheduleTriggerMessage(trigger, actorToBeScheduled, _) =>
+      inactive(
+        TimeAdvancerData(actorToBeScheduled.toTyped, endTick),
+        eventListener.map(RuntimeNotifier(_, checkWindow)),
+        trigger.tick,
+        0L
+      )
+  }
 
   private def inactive(
       data: TimeAdvancerData,
       notifier: Option[RuntimeNotifier],
       nextActiveTick: Long,
       nextTriggerId: Long
-  ): Behavior[SchedulerMessage] = Behaviors.receive {
-    case (_, StartScheduleMessage(pauseSimAtTick)) =>
+  ): Behavior[SchedulerMessage] = Behaviors.receiveMessage {
+    case StartScheduleMessage(pauseSimAtTick) =>
       val updatedNotifier = notifier.map {
         _.starting(
           nextActiveTick,
@@ -45,7 +49,7 @@ object TimeAdvancer {
         )
       }
 
-      data.scheduler ! TriggerWithIdMessage(
+      data.schedulee ! TriggerWithIdMessage(
         ActivityStartTrigger(nextActiveTick),
         nextTriggerId
       )
@@ -57,9 +61,6 @@ object TimeAdvancer {
         nextTriggerId,
         pauseSimAtTick
       )
-
-    // FIXME handle STM as well
-    // theoretically, we could receive STMs while inactive, so let's just handle them as well
   }
 
   private def active(
@@ -104,7 +105,7 @@ object TimeAdvancer {
                   }
 
                   // activate next
-                  data.scheduler ! TriggerWithIdMessage(
+                  data.schedulee ! TriggerWithIdMessage(
                     nextTrig.trigger,
                     nextTriggerId
                   )
@@ -123,9 +124,6 @@ object TimeAdvancer {
 
           Behaviors.stopped
         }
-
-    // FIXME handle STM as well
-    // this should rarely happen, but just in case an STM arrives right after a completion
   }
 
   private def checkCompletion(

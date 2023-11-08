@@ -23,7 +23,10 @@ import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.scheduler.ScheduleLock.Unlock
 import edu.ie3.simona.scheduler.SchedulerData.ActivationData
 
-/** TODO */
+/** Scheduler that activates actors at specific ticks and keeps them
+  * synchronized by waiting for the completions of all activations. Can be
+  * stacked into scheduler hierarchies.
+  */
 object Scheduler {
 
   def apply(
@@ -52,10 +55,15 @@ object Scheduler {
         checkTriggerSchedule(lastActiveTick + 1L, trigger)
           .map(stopOnError(ctx, _))
           .getOrElse {
-            // also potentially schedule with parent if the new tick is earlier
-            // than the currently scheduled tick of this scheduler, or if nothing
-            // has been scheduled yet
-            if (data.triggerQueue.headKeyOption.forall(trigger.tick < _))
+            val oldEarliestTick = data.triggerQueue.headKeyOption
+
+            val updatedData = scheduleTrigger(data, trigger, actorToBeScheduled)
+            val newEarliestTick = updatedData.triggerQueue.headKeyOption
+
+            // also potentially schedule with parent if the new earliest tick is
+            // different from the old earliest tick (including if nothing had
+            // been scheduled before)
+            if (newEarliestTick != oldEarliestTick)
               data.parent ! ScheduleTriggerMessage(
                 ActivityStartTrigger(trigger.tick),
                 ctx.self.toClassic,
@@ -65,7 +73,7 @@ object Scheduler {
               // we don't need to escalate to the parent, this means that we can release the lock (if applicable)
               unlockKey.foreach { case (lock, key) => lock ! Unlock(key) }
             }
-            inactive(scheduleTrigger(data, trigger, actorToBeScheduled))
+            inactive(updatedData)
           }
 
       case (ctx, unexpected: SchedulerMessage) =>
@@ -88,7 +96,9 @@ object Scheduler {
       checkTriggerSchedule(activationData.tick, trigger)
         .map(stopOnError(ctx, _))
         .getOrElse {
-          // since we're active, we can directly the key with the lock (if applicable)
+          // if there's a lock:
+          // since we're active and any scheduled activation can still influence our next activation,
+          // we can directly unlock the lock with the key
           unlockKey.foreach { case (lock, key) => lock ! Unlock(key) }
 
           sendCurrentTriggers(

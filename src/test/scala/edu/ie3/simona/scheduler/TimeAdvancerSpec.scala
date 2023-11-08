@@ -13,6 +13,7 @@ import edu.ie3.simona.event.RuntimeEvent._
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
 import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -29,8 +30,13 @@ class TimeAdvancerSpec
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
-        TimeAdvancer(scheduler.ref, Some(listener.ref), 900, 7200)
+        TimeAdvancer(Some(listener.ref), 900, 7200)
       )
+      timeAdvancer ! ScheduleTriggerMessage(
+        ActivityStartTrigger(INIT_SIM_TICK),
+        scheduler.ref.toClassic
+      )
+
       listener.expectNoMessage()
       scheduler.expectNoMessage()
 

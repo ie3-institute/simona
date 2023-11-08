@@ -10,6 +10,6 @@ import akka.actor.typed.ActorRef
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 
 case class TimeAdvancerData(
-    scheduler: ActorRef[SchedulerMessage],
+    schedulee: ActorRef[SchedulerMessage],
     endTick: Long
 )

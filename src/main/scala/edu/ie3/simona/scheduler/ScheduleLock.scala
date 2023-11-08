@@ -17,22 +17,46 @@ import edu.ie3.simona.ontology.trigger.Trigger
 
 import java.util.UUID
 
-/** TODO
+/** Simple lock that can be placed on a [[Scheduler]], which means that the
+  * scheduler cannot complete the the tick that the lock was scheduled for,
+  * until the lock has been dissolved. For example, when scheduling activations
+  * of some actors, we need to prevent simulation time from advancing until
+  * scheduling all of them has finished.
   */
 object ScheduleLock {
   trait LockMsg
 
+  /** Trigger that should be scheduled for a tick that we want to prevent the
+    * scheduler from completing
+    * @param parent
+    *   the scheduler to lock
+    * @param tick
+    *   the tick to lock. Is only needed for the [[Trigger]] superclass
+    */
   final case class InitLock(
       parent: ActorRef[SchedulerMessage],
       tick: Long
   ) extends Trigger
 
+  /** @param key
+    *   the key that unlocks (part of) the lock
+    */
   final case class Unlock(key: UUID) extends LockMsg
 
+  /** @param awaitedKeys
+    *   the keys that have to be supplied in order to unlock this lock
+    */
   def apply(awaitedKeys: Set[UUID]): Behavior[LockMsg] =
-    Behaviors.receiveMessage {
-      case TriggerWithIdMessage(InitLock(parent, _), triggerId) =>
-        active(awaitedKeys, parent, triggerId)
+    Behaviors.withStash(100) { buffer =>
+      Behaviors.receiveMessage {
+        case TriggerWithIdMessage(InitLock(parent, _), triggerId) =>
+          buffer.unstashAll(active(awaitedKeys, parent, triggerId))
+
+        case unlock: Unlock =>
+          // stash unlock messages until we are initialized
+          buffer.stash(unlock)
+          Behaviors.same
+      }
     }
 
   private def active(
