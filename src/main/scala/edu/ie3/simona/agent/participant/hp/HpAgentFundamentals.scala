@@ -49,6 +49,7 @@ import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import squants.{Dimensionless, Each, Power}
 import squants.energy.Megawatts
 import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -241,8 +242,9 @@ trait HpAgentFundamentals
           Map.empty,
           requestVoltageDeviationThreshold,
           ValueStore.forVoltage(
-            resolution * 10,
+            resolution,
             Each(
+              Each(
               inputModel.electricalInputModel.getNode
                 .getvTarget()
                 .to(PU)
@@ -250,9 +252,9 @@ trait HpAgentFundamentals
                 .doubleValue()
             )
           ),
-          ValueStore.forResult(resolution, 10),
-          ValueStore(resolution * 10),
-          ValueStore(resolution * 10)
+          ValueStore(resolution),
+          ValueStore(resolution),
+          ValueStore(resolution)
         )
       case unsupported =>
         throw new AgentInitializationException(

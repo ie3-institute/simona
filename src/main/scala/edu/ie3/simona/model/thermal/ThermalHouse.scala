@@ -71,6 +71,7 @@ final case class ThermalHouse(
     ethLosses: ThermalConductance,
     ethCapa: SpecificHeatCapacity,
     targetTemperature: Temperature,
+    targetTemperature: Temperature,
     lowerBoundaryTemperature: Temperature,
     upperBoundaryTemperature: Temperature
 ) extends ThermalSink(

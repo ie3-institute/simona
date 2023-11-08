@@ -13,10 +13,8 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.Sq
 import spock.lang.Specification
-
-
-
-
+import squants.*
+import squants.energy.*
 
 class SystemParticipantTest extends Specification {
 

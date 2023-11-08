@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.participant
 
+import java.util.UUID
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.model.SystemComponent
@@ -106,7 +107,7 @@ final case class HpModel(
       tick: Long,
       data: HpRelevantData
   ): Power =
-    Megawatts(data.hpState.qDot.toMegawatts)
+    data.hpState.qDot
 
   /** Given a [[HpRelevantData]] object, containing the [[HpState]], other
     * values and the current time tick, this function calculates the heat pump's

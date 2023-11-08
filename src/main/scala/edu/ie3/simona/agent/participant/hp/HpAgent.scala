@@ -34,10 +34,8 @@ object HpAgent {
   )
 }
 
-class HpAgent(
-    scheduler: ActorRef,
-    override val listener: Iterable[ActorRef]
-) extends ParticipantAgent[
+class HpAgent(scheduler: ActorRef, override val listener: Iterable[ActorRef])
+    extends ParticipantAgent[
       ApparentPowerAndHeat,
       HpRelevantData,
       ParticipantStateData[

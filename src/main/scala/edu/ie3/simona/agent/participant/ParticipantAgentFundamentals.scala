@@ -1785,7 +1785,8 @@ case object ParticipantAgentFundamentals {
   ): ApparentPowerAndHeat = {
     val p = QuantityUtil.average[Power, Energy](
       tickToResults.map { case (tick, pd) =>
-        tick -> pd.p
+        tick -> Megawatts(pd.p
+     .toMegawatts)
       },
       windowStart,
       windowEnd
@@ -1822,7 +1823,8 @@ case object ParticipantAgentFundamentals {
     }
     val qDot = QuantityUtil.average[Power, Energy](
       tickToResults.map { case (tick, pd) =>
-        tick -> pd.qDot
+        tick -> Megawatts(pd.qDot
+     .toMegawatts)
       },
       windowStart,
       windowEnd
