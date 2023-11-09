@@ -38,8 +38,11 @@ ext {
 
 group = 'com.github.ie3-institute'
 description = 'simona'
-sourceCompatibility = javaVersion
-targetCompatibility = javaVersion
+
+java {
+  sourceCompatibility = javaVersion
+  targetCompatibility = javaVersion
+}
 
 apply from: scriptsLocation + 'pmd.gradle'
 apply from: scriptsLocation + 'spotless.gradle'
