@@ -22,6 +22,9 @@ import edu.ie3.simona.model.thermal.{
   ThermalStorage
 }
 import edu.ie3.util.quantities.PowerSystemUnits
+import squants.energy.{KilowattHours, Kilowatts}
+import squants.thermal.Celsius
+import squants.{Power, Temperature}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -55,9 +58,9 @@ trait HpModelTestData {
     null,
     1.0,
     null,
-    Quantities.getQuantity(100, PowerSystemUnits.KILOWATT),
+    Kilowatts(100d),
     0.95,
-    Quantities.getQuantity(15, PowerSystemUnits.KILOWATT),
+    Kilowatts(15d),
     thermalGrid
   )
 
@@ -101,27 +104,27 @@ trait HpModelTestData {
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
     null,
-    Quantities.getQuantity(20d, StandardUnits.ENERGY_IN),
-    Quantities.getQuantity(500d, StandardUnits.ENERGY_IN),
-    Quantities.getQuantity(10d, StandardUnits.ACTIVE_POWER_IN),
-    Quantities.getQuantity(0d, StandardUnits.ENERGY_IN)
+    KilowattHours(20d),
+    KilowattHours(500d),
+    Kilowatts(10d),
+    KilowattHours(0d)
   )
 
-  protected def thermalState(
-      temperature: Double,
-      qDot: Double = 0d
+  def thermalState(
+      temperature: Temperature,
+      qDot: Power = Kilowatts(0d)
   ): ThermalGridState = ThermalGridState(
     Some(
       ThermalHouseState(
         0L,
-        Quantities.getQuantity(temperature, StandardUnits.TEMPERATURE),
-        Quantities.getQuantity(qDot, StandardUnits.ACTIVE_POWER_IN)
+        temperature,
+        qDot
       )
     ),
     None
   )
 
   protected def hpData(hpState: HpState): HpRelevantData =
-    HpRelevantData(hpState, 7200, Quantities.getQuantity(10, Units.CELSIUS))
+    HpRelevantData(hpState, 7200, Celsius(10d))
 
 }

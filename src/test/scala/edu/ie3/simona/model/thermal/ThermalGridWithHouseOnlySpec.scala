@@ -6,22 +6,23 @@
 
 package edu.ie3.simona.model.thermal
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
-  HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureUpperBoundaryReached
-}
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{HouseTemperatureLowerBoundaryReached, HouseTemperatureUpperBoundaryReached}
 import edu.ie3.simona.test.common.UnitSpec
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
+import squants.energy.{Kilowatts, Megawatts, WattHours, Watts}
+import squants.thermal.Celsius
+import squants.{Energy, Power, Temperature}
 
 import scala.jdk.CollectionConverters._
 
 class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
+
+  implicit val tempTolerance: Temperature = Celsius(1e-3)
+  implicit val powerTolerance: Power = Watts(1e-3)
+  implicit val energyTolerance: Energy = WattHours(1e-3)
+
   "Testing thermal grid generation with only a house" should {
     "instantiating correctly from input data" in new ThermalHouseTestData {
       val thermalGridInput =
@@ -48,11 +49,9 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         Set.empty[ThermalStorageInput].asJava
       )
     )
-    val ambientTemperature = Quantities.getQuantity(12d, Units.CELSIUS)
-    val qDotInfeed =
-      Quantities.getQuantity(15d, StandardUnits.ACTIVE_POWER_IN)
-    val qDotConsumption =
-      Quantities.getQuantity(-42d, StandardUnits.ACTIVE_POWER_IN)
+    val ambientTemperature = Celsius(12d)
+    val qDotInfeed = Kilowatts(15d)
+    val qDotConsumption = Kilowatts(-42d)
 
     "requesting the starting state" should {
       "deliver proper results" in {
@@ -62,12 +61,9 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 None
               ) =>
             tick shouldBe expectedHouseStartingState.tick
-            innerTemperature should equalWithTolerance(
-              expectedHouseStartingState.innerTemperature
-            )
-            thermalInfeed should equalWithTolerance(
-              expectedHouseStartingState.qDot
-            )
+            innerTemperature =~ expectedHouseStartingState.innerTemperature
+            thermalInfeed =~ expectedHouseStartingState.qDot
+
           case _ => fail("Determination of starting state failed")
         }
       }
@@ -88,8 +84,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           ThermalGrid.startingState(thermalGrid)
         )
 
-        gridDemand.required should equalWithTolerance(houseDemand.required)
-        gridDemand.possible should equalWithTolerance(houseDemand.possible)
+        gridDemand.required =~ houseDemand.required
+        gridDemand.possible =~ houseDemand.possible
       }
     }
 
@@ -102,8 +98,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       "deliver the house state by just letting it cool down, if just no infeed is given" in {
         val tick = 0L
         val gridState = ThermalGrid.startingState(thermalGrid)
-        val externalQDot =
-          Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
+        val externalQDot = Megawatts(0d)
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
@@ -119,11 +114,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 None
               ) =>
             tick shouldBe 0L
-            innerTemperature should equalWithTolerance(
-              Quantities.getQuantity(18.9999d, Units.CELSIUS),
-              1e-3
-            )
-            qDot should equalWithTolerance(externalQDot)
+            innerTemperature =~ Celsius(18.9999d)
+            qDot =~ externalQDot
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
@@ -149,13 +141,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 None
               ) =>
             tick shouldBe 0L
-            innerTemperature should equalWithTolerance(
-              Quantities.getQuantity(18.9999d, Units.CELSIUS),
-              1e-3
-            )
-            qDot should equalWithTolerance(
-              Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
-            )
+            innerTemperature =~ Celsius(18.9999d)
+            qDot =~ Megawatts(0d)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
@@ -188,11 +175,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 None
               ) =>
             tick shouldBe 0L
-            innerTemperature should equalWithTolerance(
-              Quantities.getQuantity(18.9999d, Units.CELSIUS),
-              1e-3
-            )
-            qDot should equalWithTolerance(qDotInfeed)
+            innerTemperature =~ Celsius(18.9999d)
+            qDot =~ qDotInfeed
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
@@ -217,11 +201,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 Some(HouseTemperatureUpperBoundaryReached(thresholdTick))
               ) =>
             tick shouldBe 0L
-            innerTemperature should equalWithTolerance(
-              Quantities.getQuantity(18.9999d, Units.CELSIUS),
-              1e-3
-            )
-            qDot should equalWithTolerance(qDotInfeed)
+            innerTemperature =~ Celsius(18.9999d)
+            qDot =~ qDotInfeed
             thresholdTick shouldBe 7372L
           case _ => fail("Thermal grid state updated failed")
         }
@@ -242,13 +223,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 Some(HouseTemperatureLowerBoundaryReached(thresholdTick))
               ) =>
             tick shouldBe 0L
-            innerTemperature should equalWithTolerance(
-              Quantities.getQuantity(18.9999d, Units.CELSIUS),
-              1e-3
-            )
-            qDot should equalWithTolerance(
-              Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
-            )
+            innerTemperature =~Celsius(18.9999d)
+            qDot =~ Megawatts(0d)
             thresholdTick shouldBe 154284L
           case _ => fail("Thermal grid state updated failed")
         }
@@ -259,7 +235,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           0L,
           ThermalGrid.startingState(thermalGrid),
           ambientTemperature,
-          Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
+          Megawatts(0d)
         ) match {
           case (
                 ThermalGridState(
@@ -269,13 +245,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 Some(HouseTemperatureLowerBoundaryReached(thresholdTick))
               ) =>
             tick shouldBe 0L
-            innerTemperature should equalWithTolerance(
-              Quantities.getQuantity(18.9999d, Units.CELSIUS),
-              1e-3
-            )
-            qDot should equalWithTolerance(
-              Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT)
-            )
+            innerTemperature =~ Celsius(18.9999d)
+            qDot =~ Kilowatts(0d)
             thresholdTick shouldBe 154284L
           case _ => fail("Thermal grid state updated failed")
         }

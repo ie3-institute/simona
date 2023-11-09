@@ -603,21 +603,15 @@ class HpAgentModelCalculationSpec
                     ) =>
                   isRunning shouldBe false
                   lastTimeTick shouldBe 0L
-                  activePower should equalWithTolerance(
-                    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-                  )
-                  qDot should equalWithTolerance(
-                    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-                  )
+                  activePower =~ Kilowatts(0d)
+
+                  qDot =~
+                    Kilowatts(430431d)
 
                   thermalGridState.houseState match {
                     case Some(ThermalHouseState(_, innerTemperature, _)) =>
-                      innerTemperature should equalWithTolerance(
-                        Quantities.getQuantity(
-                          20.9999769069444444444444444444444,
-                          StandardUnits.TEMPERATURE
-                        )
-                      )
+                      innerTemperature =~
+                        Celsius(20.9999769069444444444444444444444)
                     case None =>
                       fail(
                         s"Expected to get a result for thermal house '${inputModel.getUuid}'"
@@ -783,20 +777,14 @@ class HpAgentModelCalculationSpec
                     ) =>
                   isRunning shouldBe false
                   lastTimeTick shouldBe 0L
-                  activePower should equalWithTolerance(
-                    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-                  )
-                  qDot should equalWithTolerance(
-                    Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_IN)
-                  )
+                  activePower =~ Kilowatts(0d)
+
+                  qDot =~ Kilowatts(0d)
 
                   thermalGridState.houseState match {
                     case Some(ThermalHouseState(_, innerTemperature, _)) =>
-                      innerTemperature should equalWithTolerance(
-                        Quantities.getQuantity(
-                          20.9999769069444444444444444444444,
-                          StandardUnits.TEMPERATURE
-                        )
+                      innerTemperature =~ Celsius(
+                        20.9999769069444444444444444444444
                       )
                     case None =>
                       fail(

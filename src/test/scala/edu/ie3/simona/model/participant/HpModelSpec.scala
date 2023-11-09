@@ -9,15 +9,19 @@ package edu.ie3.simona.model.participant
 import edu.ie3.simona.model.participant.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.prop.TableDrivenPropertyChecks
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
+import squants.energy.{Kilowatts, Watts}
+import squants.thermal.Celsius
+import squants.{Power, Temperature}
 
 class HpModelSpec
     extends UnitSpec
     with TableDrivenPropertyChecks
     with HpModelTestData {
+
+  implicit val tempTolerance: Temperature = Celsius(1e-3)
+  implicit val powerTolerance: Power = Watts(1e-3)
+
   "Testing the heat pump model" when {
     val testingTolerance = 0.0001
 
@@ -35,9 +39,9 @@ class HpModelSpec
             HpState(
               isRunning = false,
               0,
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              thermalState(17)
+              Kilowatts(0d),
+              Kilowatts(0d),
+              thermalState(Celsius(17d))
             ),
             7200,
             true,
@@ -48,9 +52,9 @@ class HpModelSpec
             HpState(
               isRunning = false,
               0,
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              thermalState(18)
+              Kilowatts(0d),
+              Kilowatts(0d),
+              thermalState(Celsius(18))
             ),
             7200,
             true,
@@ -61,9 +65,9 @@ class HpModelSpec
             HpState(
               isRunning = false,
               0,
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              thermalState(20)
+              Kilowatts(0d),
+              Kilowatts(0d),
+              thermalState(Celsius(20))
             ),
             7200,
             true,
@@ -74,9 +78,9 @@ class HpModelSpec
             HpState(
               isRunning = false,
               0,
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              thermalState(22)
+              Kilowatts(0d),
+              Kilowatts(0d),
+              thermalState(Celsius(22))
             ),
             7200,
             false,
@@ -87,9 +91,9 @@ class HpModelSpec
             HpState(
               isRunning = false,
               0,
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(0, PowerSystemUnits.KILOWATT),
-              thermalState(23)
+              Kilowatts(0d),
+              Kilowatts(0d),
+              thermalState(Celsius(23))
             ),
             7200,
             false,
@@ -100,9 +104,9 @@ class HpModelSpec
             HpState(
               isRunning = true,
               0,
-              Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
-              thermalState(17)
+              Kilowatts(95d),
+              Kilowatts(80d),
+              thermalState(Celsius(17))
             ),
             7200,
             true,
@@ -113,9 +117,9 @@ class HpModelSpec
             HpState(
               isRunning = true,
               0,
-              Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
-              thermalState(18)
+              Kilowatts(95d),
+              Kilowatts(80d),
+              thermalState(Celsius(18))
             ),
             7200,
             true,
@@ -126,9 +130,9 @@ class HpModelSpec
             HpState(
               isRunning = true,
               0,
-              Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
-              thermalState(20)
+              Kilowatts(95d),
+              Kilowatts(80d),
+              thermalState(Celsius(20))
             ),
             7200,
             true,
@@ -139,9 +143,9 @@ class HpModelSpec
             HpState(
               isRunning = true,
               0,
-              Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
-              thermalState(22)
+              Kilowatts(95d),
+              Kilowatts(80d),
+              thermalState(Celsius(22))
             ),
             7200,
             true,
@@ -152,9 +156,9 @@ class HpModelSpec
             HpState(
               isRunning = true,
               0,
-              Quantities.getQuantity(95, PowerSystemUnits.KILOWATT),
-              Quantities.getQuantity(80, PowerSystemUnits.KILOWATT),
-              thermalState(25)
+              Kilowatts(95d),
+              Kilowatts(80d),
+              thermalState(Celsius(25))
             ),
             7200,
             false,
@@ -186,18 +190,10 @@ class HpModelSpec
                   ) =>
                 isRunning shouldBe expectedRunningState
                 lastTimeTick shouldBe expectedTick
-                activePower should equalWithTolerance(
-                  Quantities.getQuantity(
-                    expectedActivePower,
-                    PowerSystemUnits.KILOWATT
-                  )
-                )
+                activePower =~ Kilowatts(expectedActivePower)
 
-                thermalHouseState.innerTemperature should equalWithTolerance(
-                  Quantities.getQuantity(
-                    expectedInnerTemperature,
-                    Units.CELSIUS
-                  )
+                thermalHouseState.innerTemperature =~ Celsius(
+                  expectedInnerTemperature
                 )
             }
         }
