@@ -9,7 +9,10 @@ package edu.ie3.simona.model.thermal
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{HouseTemperatureLowerBoundaryReached, HouseTemperatureUpperBoundaryReached}
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
+  HouseTemperatureLowerBoundaryReached,
+  HouseTemperatureUpperBoundaryReached
+}
 import edu.ie3.simona.test.common.UnitSpec
 import squants.energy.{Kilowatts, Megawatts, WattHours, Watts}
 import squants.thermal.Celsius
@@ -223,7 +226,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 Some(HouseTemperatureLowerBoundaryReached(thresholdTick))
               ) =>
             tick shouldBe 0L
-            innerTemperature =~Celsius(18.9999d)
+            innerTemperature =~ Celsius(18.9999d)
             qDot =~ Megawatts(0d)
             thresholdTick shouldBe 154284L
           case _ => fail("Thermal grid state updated failed")
