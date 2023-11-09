@@ -135,7 +135,7 @@ final case class ThermalHouse(
       targetTemperature: Temperature,
       startTemperature: Temperature
   ): Energy = {
-    ethCapa.calcEnergy(targetTemperature, startTemperature, CubicMeters(1d))
+    ethCapa * (targetTemperature - startTemperature)
   }
 
   /** Check if inner temperature is higher than preferred maximum temperature
@@ -410,12 +410,13 @@ object ThermalHouse {
         .getValue
         .doubleValue * 1000
     ),
-    // FIXME in PDSDM? Should be KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE
-    KilowattHoursPerKelvinCubicMeters(
+    JoulesPerKelvin(
       input.getEthCapa
         .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN)
         .getValue
         .doubleValue
+      // from kWh to Joule
+        * 3.6e6
     ),
     Celsius(input.getTargetTemperature.to(Units.CELSIUS).getValue.doubleValue),
     Celsius(
