@@ -27,7 +27,7 @@ object SquantsUtils {
       electricPotential: squants.electro.ElectricPotential
   ) {
     def multiplyWithDimensionles(
-      that: squants.Dimensionless
+        that: squants.Dimensionless
     ): squants.electro.ElectricPotential = Volts(
       electricPotential.toVolts * that.toEach
     )

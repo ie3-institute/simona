@@ -9,6 +9,7 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiP
 import edu.ie3.datamodel.models.input.system.characteristic.QV
+import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.Sq
