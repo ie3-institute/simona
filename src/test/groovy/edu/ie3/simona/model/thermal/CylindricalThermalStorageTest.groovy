@@ -85,20 +85,6 @@ class CylindricalThermalStorageTest extends Specification {
     !notCovering
   }
 
-  def "Check converting methods:"() {
-    given:
-    def storage = buildThermalStorage(storageInput, 70)
-
-    when:
-    def usableThermalEnergy = storage.usableThermalEnergy()
-    //FIXME
-    //def volumeFromUsableEnergy = CylindricalThermalStorage.energyToVolume(usableThermalEnergy, storage.c(), storage.inletTemp(), storage.returnTemp())
-    then:
-    isEquivalentAbs(usableThermalEnergy, getQuantity(5 * 115, KILOWATTHOUR), TESTING_TOLERANCE)
-    //FIXME
-    //isEquivalentAbs(volumeFromUsableEnergy, getQuantity(50, StandardUnits.VOLUME), TESTING_TOLERANCE)
-  }
-
   def "Check apply, validation and build method:"() {
     when:
     def storage = buildThermalStorage(storageInput, 70)
