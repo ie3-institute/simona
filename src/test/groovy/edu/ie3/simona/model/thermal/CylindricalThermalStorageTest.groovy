@@ -76,11 +76,11 @@ class CylindricalThermalStorageTest extends Specification {
     def notCovering = storage.isDemandCoveredByStorage(Sq.create(1d, KilowattHours$.MODULE$))
     then:
     initialLevel =~ vol2Energy(70d)
-    newLevel1=~ vol2Energy(50d)
-    surplus=~ vol2Energy(5d)
-    newLevel2=~ vol2Energy(100d)
-    lack=~ vol2Energy(15d)
-    newLevel3=~ vol2Energy(20d)
+    newLevel1 =~ vol2Energy(50d)
+    surplus =~ vol2Energy(5d)
+    newLevel2 =~ vol2Energy(100d)
+    lack =~ vol2Energy(15d)
+    newLevel3 =~ vol2Energy(20d)
     isCovering
     !notCovering
   }
@@ -100,7 +100,7 @@ class CylindricalThermalStorageTest extends Specification {
   def "Check mutable state update:"() {
     when:
     def storage = buildThermalStorage(storageInput, 70d)
-    def lastState = new ThermalStorage.ThermalStorageState(tick, Sq.create(storedEnergy, KilowattHours$.MODULE$), Sq.create(qDot,Kilowatts$.MODULE$))
+    def lastState = new ThermalStorage.ThermalStorageState(tick, Sq.create(storedEnergy, KilowattHours$.MODULE$), Sq.create(qDot, Kilowatts$.MODULE$))
     def result = storage.updateState(newTick, Sq.create(newQDot, Kilowatts$.MODULE$), lastState)
 
     then:

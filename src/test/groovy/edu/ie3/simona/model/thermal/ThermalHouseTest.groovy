@@ -80,7 +80,7 @@ class ThermalHouseTest extends Specification {
 
     then:
     Sq.create(100d, KilowattHours$.MODULE$) - thermalEnergyGain < Sq.create(TOLERANCE, KilowattHours$.MODULE$)
-    Sq.create(10d, KilowattHours$.MODULE$) - thermalEnergyLoss< Sq.create(TOLERANCE, KilowattHours$.MODULE$)
+    Sq.create(10d, KilowattHours$.MODULE$) - thermalEnergyLoss < Sq.create(TOLERANCE, KilowattHours$.MODULE$)
     Sq.create(90d, KilowattHours$.MODULE$) - thermalEnergyChange < Sq.create(TOLERANCE, KilowattHours$.MODULE$)
     Sq.create(9d, Kelvin$.MODULE$) - innerTemperatureChange < Sq.create(TOLERANCE, Kelvin$.MODULE$)
     Sq.create(29d, Celsius$.MODULE$) - newInnerTemperature < Sq.create(TOLERANCE, Celsius$.MODULE$)
