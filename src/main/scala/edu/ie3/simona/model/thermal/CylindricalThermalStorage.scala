@@ -106,17 +106,26 @@ final case class CylindricalThermalStorage(
     }
 
     /* Determine, when a threshold is reached */
-    val nextThreshold =
-      if (qDot > Megawatts(0d)) {
-        val duration = (maxEnergyThreshold - updatedEnergy) / qDot
-        Some(StorageFull(tick + Math.max(duration.toSeconds.toLong, 0L)))
-      } else if (qDot < Megawatts(0d)) {
-        val duration =
-          ((updatedEnergy - minEnergyThreshold) / qDot * (-1))
-        Some(StorageEmpty(tick + Math.max(duration.toSeconds.toLong, 0L)))
-      } else {
-        return (ThermalStorageState(tick, updatedEnergy, qDot), None)
+    val nextThreshold = {
+      qDot match {
+        case positive if qDot > Megawatts(0d) => {
+          val duration = (maxEnergyThreshold - updatedEnergy) / qDot
+          Some(StorageFull(tick + Math.max(duration.toSeconds.toLong, 0L)))
+        }
+        case negative if qDot < Megawatts(0d) => {
+          val duration = ((updatedEnergy - minEnergyThreshold) / qDot * (-1))
+          Some(StorageEmpty(tick + Math.max(duration.toSeconds.toLong, 0L)))
+        }
+
+        case equal if qDot == Megawatts(0d) => {
+
+          ThermalStorageState(tick, updatedEnergy, qDot)
+          None
+        }
+
       }
+
+    }
     (ThermalStorageState(tick, updatedEnergy, qDot), nextThreshold)
   }
 
