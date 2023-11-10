@@ -57,13 +57,13 @@ class ThermalHouseTest extends Specification {
 
     where:
     innerTemperature         || isTooHigh | isTooLow
-    17d || false     | true
-    17.98d            || false     | true
-    18d || false     | true
-    20d               || true      | false
-    22d || false     | false
-    22.02d            || true      | false
-    23d || true      | false
+    17d                      || false     | true
+    17.98d                   || false     | true
+    18d                      || false     | true
+    20d                      || false     | false
+    22d                      || true      | false
+    22.02d                   || true      | false
+    23d                      || true      | false
   }
 
   def "Calculation of thermal energy change and new inner temperature is performed correctly"() {
