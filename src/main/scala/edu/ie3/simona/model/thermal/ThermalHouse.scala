@@ -329,10 +329,10 @@ final case class ThermalHouse(
     */
 
   private def nextThreshold(
-      tick: Long,
-      qDotExternal: Power,
-      innerTemperature: Temperature,
-      ambientTemperature: Temperature
+    tick: Long,
+    qDotExternal: Power,
+    innerTemperature: Temperature,
+    ambientTemperature: Temperature
   ): Option[ThermalThreshold] = {
     val artificialDuration = Hours(1d)
     val loss = calcThermalEnergyLoss(
@@ -342,34 +342,31 @@ final case class ThermalHouse(
     ) / artificialDuration
 
     val resultingQDot = qDotExternal - loss
-    if (
-      resultingQDot <
-        Megawatts(0d)
-    ) {
-      /* House has more losses than gain */
-      val nextTick = nextActivation(
-        tick,
-        innerTemperature,
-        lowerBoundaryTemperature,
-        resultingQDot
-      )
-      Some(HouseTemperatureLowerBoundaryReached(nextTick))
-    } else if (
-      resultingQDot > (
-        Megawatts(0d)
-      )
-    ) {
-      /* House has more gain than losses */
-      val nextTick = nextActivation(
-        tick,
-        upperBoundaryTemperature,
-        innerTemperature,
-        resultingQDot
-      )
-      Some(HouseTemperatureUpperBoundaryReached(nextTick))
-    } else {
-      /* House is in perfect balance */
-      None
+
+    resultingQDot match {
+      case qDot if qDot < Megawatts(0d) =>
+        /* House has more losses than gain */
+        val nextTick = nextActivation(
+          tick,
+          innerTemperature,
+          lowerBoundaryTemperature,
+          resultingQDot
+        )
+        Some(HouseTemperatureLowerBoundaryReached(nextTick))
+
+      case qDot if qDot > Megawatts(0d) =>
+        /* House has more gain than losses */
+        val nextTick = nextActivation(
+          tick,
+          upperBoundaryTemperature,
+          innerTemperature,
+          resultingQDot
+        )
+        Some(HouseTemperatureUpperBoundaryReached(nextTick))
+
+      case _ =>
+        /* House is in perfect balance */
+        None
     }
   }
 
