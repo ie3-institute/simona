@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import java.util.UUID
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.model.SystemComponent
@@ -17,7 +16,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
-import squants.energy.{Kilowatts, Megawatts}
+import squants.energy.Kilowatts
 import squants.{Power, Temperature}
 
 import java.time.ZonedDateTime
@@ -160,7 +159,6 @@ final case class HpModel(
       if (isRunning)
         (pRated, pThermal * scalingFactor)
       else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
-    // TODO DF Squants
     /* Push thermal energy to the thermal grid and get it's updated state in return */
     val thermalGridState = hpData match {
       case HpRelevantData(hpState, currentTimeTick, ambientTemperature) =>

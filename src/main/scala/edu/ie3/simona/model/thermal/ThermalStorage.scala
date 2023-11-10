@@ -44,7 +44,6 @@ abstract class ThermalStorage(
     maxEnergyThreshold: Energy,
     chargingPower: Power
 ) {
-  // TODO DF Squants
   protected val zeroEnergy: Energy =
     DefaultQuantities.zeroKWH
 

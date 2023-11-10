@@ -7,13 +7,8 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.input.thermal.{
-  CylindricalStorageInput,
-  ThermalHouseInput
-}
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
+import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import tech.units.indriya.quantity.Quantities.getQuantity
-import tech.units.indriya.unit.Units
 
 import java.util.UUID
 

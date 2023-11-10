@@ -9,10 +9,7 @@ package edu.ie3.simona.model.thermal
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
-  HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureUpperBoundaryReached
-}
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{HouseTemperatureLowerBoundaryReached, HouseTemperatureUpperBoundaryReached}
 import edu.ie3.simona.test.common.UnitSpec
 import squants.energy.{Kilowatts, Megawatts, WattHours, Watts}
 import squants.thermal.Celsius
@@ -64,8 +61,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 None
               ) =>
             tick shouldBe expectedHouseStartingState.tick
-            innerTemperature =~ expectedHouseStartingState.innerTemperature
-            thermalInfeed =~ expectedHouseStartingState.qDot
+            (innerTemperature =~ expectedHouseStartingState.innerTemperature) shouldBe true
+            (thermalInfeed =~ expectedHouseStartingState.qDot) shouldBe true
 
           case _ => fail("Determination of starting state failed")
         }
@@ -87,8 +84,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           ThermalGrid.startingState(thermalGrid)
         )
 
-        gridDemand.required =~ houseDemand.required
-        gridDemand.possible =~ houseDemand.possible
+        (gridDemand.required =~ houseDemand.required) shouldBe true
+        (gridDemand.possible =~ houseDemand.possible) shouldBe true
       }
     }
 
@@ -117,8 +114,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 None
               ) =>
             tick shouldBe 0L
-            innerTemperature =~ Celsius(18.9999d)
-            qDot =~ externalQDot
+            (innerTemperature =~ Celsius(18.9999d)) shouldBe true
+            (qDot =~ externalQDot) shouldBe true
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
@@ -144,8 +141,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 None
               ) =>
             tick shouldBe 0L
-            innerTemperature =~ Celsius(18.9999d)
-            qDot =~ Megawatts(0d)
+            (innerTemperature =~ Celsius(18.9999d)) shouldBe true
+            (qDot =~ Megawatts(0d)) shouldBe true
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
@@ -178,8 +175,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 None
               ) =>
             tick shouldBe 0L
-            innerTemperature =~ Celsius(18.9999d)
-            qDot =~ qDotInfeed
+            (innerTemperature =~ Celsius(18.9999d)) shouldBe true
+            (qDot =~ qDotInfeed) shouldBe true
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
@@ -204,8 +201,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 Some(HouseTemperatureUpperBoundaryReached(thresholdTick))
               ) =>
             tick shouldBe 0L
-            innerTemperature =~ Celsius(18.9999d)
-            qDot =~ qDotInfeed
+            (innerTemperature =~ Celsius(18.9999d)) shouldBe true
+            (qDot =~ qDotInfeed) shouldBe true
             thresholdTick shouldBe 7372L
           case _ => fail("Thermal grid state updated failed")
         }
@@ -226,8 +223,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 Some(HouseTemperatureLowerBoundaryReached(thresholdTick))
               ) =>
             tick shouldBe 0L
-            innerTemperature =~ Celsius(18.9999d)
-            qDot =~ Megawatts(0d)
+            (innerTemperature =~ Celsius(18.9999d)) shouldBe true
+            (qDot =~ Megawatts(0d)) shouldBe true
             thresholdTick shouldBe 154284L
           case _ => fail("Thermal grid state updated failed")
         }
@@ -248,8 +245,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 Some(HouseTemperatureLowerBoundaryReached(thresholdTick))
               ) =>
             tick shouldBe 0L
-            innerTemperature =~ Celsius(18.9999d)
-            qDot =~ Kilowatts(0d)
+            (innerTemperature =~ Celsius(18.9999d)) shouldBe true
+            (qDot =~ Kilowatts(0d)) shouldBe true
             thresholdTick shouldBe 154284L
           case _ => fail("Thermal grid state updated failed")
         }

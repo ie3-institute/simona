@@ -9,15 +9,9 @@ package edu.ie3.simona.model.thermal
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.datamodel.models.result.thermal.{
-  CylindricalStorageResult,
-  ThermalHouseResult
-}
+import edu.ie3.datamodel.models.result.thermal.{CylindricalStorageResult, ThermalHouseResult}
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
-import edu.ie3.simona.model.thermal.ThermalGrid.{
-  ThermalEnergyDemand,
-  ThermalGridState
-}
+import edu.ie3.simona.model.thermal.ThermalGrid.{ThermalEnergyDemand, ThermalGridState}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.HouseTemperatureUpperBoundaryReached
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
@@ -30,7 +24,6 @@ import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
-import javax.measure.quantity.Dimensionless
 import scala.jdk.CollectionConverters.SetHasAsScala
 
 /** Calculation model for a thermal grid. It is assumed, that all elements are
@@ -492,9 +485,8 @@ object ThermalGrid {
       possible + rhs.possible
     )
 
-    def hasRequiredDemand: Boolean = required > (
-      MegawattHours(0d)
-    )
+    def hasRequiredDemand: Boolean = required > MegawattHours(0d)
+
     def hasAdditionalDemand: Boolean = possible > required
   }
   object ThermalEnergyDemand {

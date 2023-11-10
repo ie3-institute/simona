@@ -6,31 +6,22 @@
 
 package edu.ie3.simona.model.thermal
 
-import java.util.UUID
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
-import edu.ie3.datamodel.models.input.thermal.{
-  CylindricalStorageInput,
-  ThermalBusInput
-}
+import edu.ie3.datamodel.models.input.thermal.{CylindricalStorageInput, ThermalBusInput}
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
-  StorageEmpty,
-  StorageFull
-}
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{StorageEmpty, StorageFull}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
-import edu.ie3.util.scala.quantities.{
-  DefaultQuantities,
-  KilowattHoursPerKelvinCubicMeters,
-  SpecificHeatCapacity
-}
-import squants.{Energy, Power, Temperature}
+import edu.ie3.util.scala.quantities.{DefaultQuantities, KilowattHoursPerKelvinCubicMeters, SpecificHeatCapacity}
 import squants.energy.{Kilowatts, Megawatts}
 import squants.space.{CubicMeters, Volume}
 import squants.thermal.Celsius
 import squants.time.{Hours, Seconds}
+import squants.{Energy, Power, Temperature}
 import tech.units.indriya.unit.Units
+
+import java.util.UUID
 
 /** A cylindrical thermal storage used for implementations, which require a
   * mutable storage. <p> <strong>Important:</strong> The field storageLvl is a

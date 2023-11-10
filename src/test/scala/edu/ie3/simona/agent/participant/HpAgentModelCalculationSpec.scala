@@ -603,15 +603,17 @@ class HpAgentModelCalculationSpec
                     ) =>
                   isRunning shouldBe false
                   lastTimeTick shouldBe 0L
-                  activePower =~ Kilowatts(0d)
+                  (activePower =~ Kilowatts(0d)) shouldBe true
 
                   qDot =~
                     Kilowatts(430431d)
 
                   thermalGridState.houseState match {
                     case Some(ThermalHouseState(_, innerTemperature, _)) =>
-                      innerTemperature =~
-                        Celsius(20.9999769069444444444444444444444)
+                      (innerTemperature =~
+                        Celsius(
+                          20.9999769069444444444444444444444
+                        )) shouldBe true
                     case None =>
                       fail(
                         s"Expected to get a result for thermal house '${inputModel.getUuid}'"
@@ -777,15 +779,15 @@ class HpAgentModelCalculationSpec
                     ) =>
                   isRunning shouldBe false
                   lastTimeTick shouldBe 0L
-                  activePower =~ Kilowatts(0d)
+                  (activePower =~ Kilowatts(0d)) shouldBe true
 
-                  qDot =~ Kilowatts(0d)
+                  (qDot =~ Kilowatts(0d)) shouldBe true
 
                   thermalGridState.houseState match {
                     case Some(ThermalHouseState(_, innerTemperature, _)) =>
-                      innerTemperature =~ Celsius(
+                      (innerTemperature =~ Celsius(
                         20.9999769069444444444444444444444
-                      )
+                      )) shouldBe true
                     case None =>
                       fail(
                         s"Expected to get a result for thermal house '${inputModel.getUuid}'"

@@ -9,20 +9,13 @@ package edu.ie3.simona.model.thermal
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
-  HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureUpperBoundaryReached
-}
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{HouseTemperatureLowerBoundaryReached, HouseTemperatureUpperBoundaryReached}
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
-  StorageEmpty,
-  StorageFull
-}
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{StorageEmpty, StorageFull}
 import edu.ie3.simona.test.common.UnitSpec
-import squants.energy.{KilowattHours, Kilowatts, WattHours, Watts}
+import squants.energy._
 import squants.thermal.Celsius
 import squants.{Energy, Power, Temperature}
-import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
 import scala.jdk.CollectionConverters._
@@ -81,14 +74,10 @@ class ThermalGridWithHouseAndStorageSpec
               ) =>
             houseTick shouldBe expectedHouseStartingState.tick
             storageTick shouldBe expectedHouseStartingState.tick
-            innerTemperature =~
-              expectedHouseStartingState.innerTemperature * 430431
-
-            storedEnergy =~ expectedStorageStartingState.storedEnergy
-
-            qDotHouse =~ expectedHouseStartingState.qDot
-
-            qDotStorage =~ expectedStorageStartingState.qDot
+            (innerTemperature =~ expectedHouseStartingState.innerTemperature) shouldBe true
+            (storedEnergy =~ expectedStorageStartingState.storedEnergy) shouldBe true
+            (qDotHouse =~ expectedHouseStartingState.qDot) shouldBe true
+            (qDotStorage =~ expectedStorageStartingState.qDot) shouldBe true
 
           case _ => fail("Determination of starting state failed")
         }
@@ -105,8 +94,8 @@ class ThermalGridWithHouseAndStorageSpec
           ThermalGrid.startingState(thermalGrid)
         )
 
-        gridDemand.required =~ KilowattHours(0d)
-        gridDemand.possible =~ KilowattHours(0.031050 + 0.920)
+        (gridDemand.required =~ MegawattHours(0d)) shouldBe true
+        (gridDemand.possible =~  MegawattHours(0.031050 + 0.920)) shouldBe true
       }
 
       "consider stored energy to reduce house demand" in {
@@ -123,8 +112,8 @@ class ThermalGridWithHouseAndStorageSpec
           )
         )
 
-        gridDemand.required =~ KilowattHours(0d)
-        gridDemand.possible =~ KilowattHours(1.041200)
+        (gridDemand.required =~ MegawattHours(0d)) shouldBe true
+        (gridDemand.possible =~ MegawattHours(1.041200)) shouldBe true
       }
 
       "consider stored energy to reduce house demand if stored energy is not enough" in {
@@ -141,8 +130,8 @@ class ThermalGridWithHouseAndStorageSpec
           )
         )
 
-        gridDemand.required =~ KilowattHours(0.0086499)
-        gridDemand.possible =~ KilowattHours(1.4186499)
+        (gridDemand.required =~ MegawattHours(0.0086499)) shouldBe true
+        (gridDemand.possible =~ MegawattHours(1.4186499)) shouldBe true
       }
     }
 
@@ -179,8 +168,8 @@ class ThermalGridWithHouseAndStorageSpec
                 )
               ) =>
             storageTick shouldBe 0L
-            storedEnergy =~ initialLoading
-            qDotStorage =~ externalQDot
+            (storedEnergy =~ initialLoading) shouldBe true
+            (qDotStorage =~ externalQDot) shouldBe true
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
@@ -215,12 +204,12 @@ class ThermalGridWithHouseAndStorageSpec
                 )
               ) =>
             houseTick shouldBe 0L
-            innerTemperature =~ Celsius(18.9999d)
-            qDotHouse =~ Kilowatts(0d)
+            (innerTemperature =~ Celsius(18.9999d)) shouldBe true
+            (qDotHouse =~ Kilowatts(0d)) shouldBe true
 
             storageTick shouldBe 0L
-            storedEnergy =~ initialLoading
-            qDotStorage =~ externalQDot
+            (storedEnergy =~ initialLoading) shouldBe true
+            (qDotStorage =~ externalQDot) shouldBe true
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(StorageEmpty(17142L))
@@ -462,9 +451,9 @@ class ThermalGridWithHouseAndStorageSpec
             houseTick shouldBe tick
             storageTick shouldBe tick
 
-            revisedQDotHouse =~ thermalStorage.chargingPower
+            (revisedQDotHouse =~ thermalStorage.chargingPower) shouldBe true
 
-            revisedQDotStorage =~ thermalStorage.chargingPower * (-1)
+            (revisedQDotStorage =~ thermalStorage.chargingPower * (-1)) shouldBe true
 
             houseColdTick shouldBe 3718L
             storageEmptyTick shouldBe 3678L
@@ -500,15 +489,15 @@ class ThermalGridWithHouseAndStorageSpec
                 )
               ) =>
             houseTick shouldBe 0L
-            innerTemperature =~ Celsius(18.9999d)
-            qDotHouse =~ externalQDot
+            (innerTemperature =~ Celsius(18.9999d)) shouldBe true
+            (qDotHouse =~ externalQDot) shouldBe true
 
             storageTick shouldBe -1L
-            storedEnergy =~ initialGridState.storageState
+            (storedEnergy =~ initialGridState.storageState
               .map(_.storedEnergy)
-              .getOrElse(fail("No initial storage state found"))
+              .getOrElse(fail("No initial storage state found"))) shouldBe true
 
-            qDotStorage =~ Kilowatts(0d)
+            (qDotStorage =~ Kilowatts(0d)) shouldBe true
 
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
@@ -543,16 +532,18 @@ class ThermalGridWithHouseAndStorageSpec
                 )
               ) =>
             houseTick shouldBe 0L
-            innerTemperature =~ Celsius(20.99999167d)
-            qDotHouse =~ Kilowatts(0d)
+            (innerTemperature =~ Celsius(20.99999167d)) shouldBe true
+            (qDotHouse =~ Kilowatts(0d)) shouldBe true
 
             storageTick shouldBe 0L
-            storedEnergy =~
+            (storedEnergy =~
               gridState.storageState
                 .map(_.storedEnergy)
-                .getOrElse(fail("No initial storage state found"))
+                .getOrElse(
+                  fail("No initial storage state found")
+                )) shouldBe true
 
-            qDotStorage =~ externalQDot
+            (qDotStorage =~ externalQDot) shouldBe true
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(

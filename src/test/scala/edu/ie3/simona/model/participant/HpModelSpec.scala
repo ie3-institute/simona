@@ -190,11 +190,11 @@ class HpModelSpec
                   ) =>
                 isRunning shouldBe expectedRunningState
                 lastTimeTick shouldBe expectedTick
-                activePower =~ Kilowatts(expectedActivePower)
+                (activePower =~ Kilowatts(expectedActivePower)) shouldBe true
 
-                thermalHouseState.innerTemperature =~ Celsius(
+                (thermalHouseState.innerTemperature =~ Celsius(
                   expectedInnerTemperature
-                )
+                )) shouldBe true
             }
         }
       }
