@@ -327,6 +327,58 @@ class SchedulerSpec
       agent2.expectNoMessage()
     }
 
+    "work correctly with five actors getting triggered for ten ticks" in {
+      val parent = TestProbe[SchedulerMessage]("parent")
+      val scheduler = spawn(
+        Scheduler(parent.ref)
+      )
+
+      val triggeredAgents = Range
+        .inclusive(1, 5)
+        .map(i => TestProbe[TriggerWithIdMessage](s"agent_$i"))
+
+      triggeredAgents.foreach(actor =>
+        // send to init trigger to scheduler
+        scheduler ! ScheduleTriggerMessage(
+          createMockInitTrigger(),
+          actor.ref.toClassic
+        )
+      )
+
+      parent.expectMessage(
+        ScheduleTriggerMessage(
+          ActivityStartTrigger(INIT_SIM_TICK),
+          scheduler.toClassic
+        )
+      )
+
+      for (tick <- -1 to 9) {
+        val triggerId = tick + 2
+        scheduler ! TriggerWithIdMessage(ActivityStartTrigger(tick), triggerId)
+
+        triggeredAgents.foreach {
+          _.expectTriggerAndComplete(
+            scheduler,
+            tick,
+            Some(tick + 1)
+          )
+        }
+
+        parent.expectMessage(
+          CompletionMessage(
+            triggerId,
+            Some(
+              ScheduleTriggerMessage(
+                ActivityStartTrigger(tick + 1),
+                scheduler.ref.toClassic
+              )
+            )
+          )
+        )
+      }
+
+    }
+
     "unlock a scheduling lock when active" in {
       val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
