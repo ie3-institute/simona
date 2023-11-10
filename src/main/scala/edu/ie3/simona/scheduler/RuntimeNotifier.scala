@@ -9,15 +9,17 @@ package edu.ie3.simona.scheduler
 import akka.actor.typed.ActorRef
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent._
-import edu.ie3.simona.exceptions.SchedulerException
 import edu.ie3.simona.scheduler.RuntimeNotifier.now
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
-/** @param eventListener
+/** Determines runtime events at different stages of the simulation and notifies
+  * listeners
+  *
+  * @param eventListener
   *   The event listener to send runtime notifications to
   * @param readyCheckWindow
   *   Size of a check window in ticks
-  * @param lastCheckWindow
+  * @param lastCheck
   *   Last check window for which a notification has been issued
   * @param simStartTime
   *   Time in milliseconds when the simulation as a whole was started (before
@@ -27,79 +29,140 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
   *   initialization or after a pause)
   * @param lastCheckWindowTime
   *   Time when in milliseconds when
-  * @param numberOfFailedPf
-  *   The number of failed powerflow calculations encountered so far
   */
 case class RuntimeNotifier(
     eventListener: ActorRef[RuntimeEvent],
     readyCheckWindow: Long,
-    lastCheckWindow: Long = 0L,
-    simStartTime: Long = -1L,
-    lastStartTime: Long = -1L,
-    lastCheckWindowTime: Long = -1L,
-    numberOfFailedPf: Int = 0
+    lastCheck: Long = -1,
+    simStartTime: Long = -1,
+    lastStartTime: Long = -1,
+    lastCheckWindowTime: Long = -1
 ) {
 
-  def starting(newTick: Long, pauseOrEndTick: Long): RuntimeNotifier = {
+  /** Notifier listeners that simulation has started or continued with given
+    * tick
+    * @param tick
+    *   Tick that the simulation has started or continued with
+    * @param pauseTick
+    *   Next tick that the simulation pauses (if applicable)
+    * @param endTick
+    *   Last tick of the simulation
+    * @return
+    *   Updated notifier
+    */
+  def starting(
+      tick: Long,
+      pauseTick: Option[Long],
+      endTick: Long
+  ): RuntimeNotifier = {
     val nowTime = now()
 
-    eventListener ! (newTick match {
+    val pauseOrEndTick = pauseTick.map(math.min(_, endTick)).getOrElse(endTick)
+
+    notify(tick match {
       case INIT_SIM_TICK => Initializing
       case _ =>
-        Simulating(newTick, pauseOrEndTick)
+        Simulating(tick, pauseOrEndTick)
     })
 
-    if (newTick > 0L)
+    if (tick > 0L)
       copy(lastStartTime = nowTime)
     else
       copy(simStartTime = nowTime, lastStartTime = nowTime)
   }
 
-  def pausing(lastActiveTick: Long): RuntimeNotifier = {
-    eventListener ! Ready(lastActiveTick, now() - simStartTime)
+  /** Notifier listeners that simulation is pausing at given tick
+    * @param pauseTick
+    *   Last tick before simulation pauses or ends
+    * @return
+    *   Updated notifier
+    */
+  def pausing(pauseTick: Long): RuntimeNotifier = {
+    notify(Ready(pauseTick, now() - simStartTime))
 
     this
   }
 
+  /** Notifier listeners that simulation has completed the given tick. This
+    * usually means issuing CheckWindowPassed messages.
+    *
+    * @param completedTick
+    *   Tick that has just been completed
+    * @return
+    *   Updated notifier
+    */
   def completing(completedTick: Long): RuntimeNotifier = {
     val nowTime = now()
 
+    // check if InitComplete should be sent, then adjust lastCheck
+    val adjustedLastCheck = if (lastCheck <= -1) {
+      if (completedTick >= INIT_SIM_TICK)
+        notify(InitComplete(nowTime - simStartTime))
+      0
+    } else
+      lastCheck
+
     val completedWindows =
-      (lastCheckWindow + readyCheckWindow) to completedTick by readyCheckWindow
+      (adjustedLastCheck + readyCheckWindow) to completedTick by readyCheckWindow
 
-    completedTick match {
-      case INIT_SIM_TICK =>
-        eventListener ! InitComplete(nowTime - simStartTime)
-        this
-
-      case _ if completedWindows.nonEmpty =>
+    completedWindows.lastOption
+      .map { lastPassedCheck =>
+        // at least one window has been passed
         completedWindows.foreach { tick =>
-          eventListener ! CheckWindowPassed(tick, nowTime - lastCheckWindowTime)
+          notify(CheckWindowPassed(tick, nowTime - lastCheckWindowTime))
         }
-        val lastPassedCheckWindow = completedWindows.lastOption.getOrElse(
-          throw new SchedulerException(
-            "This should not happen, as completedWindows are non-empty"
-          )
-        )
+
         copy(
-          lastCheckWindow = lastPassedCheckWindow,
+          lastCheck = lastPassedCheck,
           lastCheckWindowTime = nowTime
         )
-
-      case _ =>
+      }
+      .getOrElse {
         // no check windows passed
-        this
-    }
+        copy(lastCheck = adjustedLastCheck)
+      }
   }
 
-  def finishing(lastActiveTick: Long, error: Boolean): Unit = {
-    eventListener ! Done(
-      lastActiveTick,
-      simStartTime - now(),
-      numberOfFailedPf,
-      error
+  /** Notifier listeners that simulation has ended successfully with given tick
+    *
+    * @param endTick
+    *   Last tick of the simulation
+    */
+  def finishing(endTick: Long): Unit = {
+    notify(
+      Done(
+        endTick,
+        simStartTime - now(),
+        0,
+        errorInSim = false
+      )
     )
   }
+
+  /** Notifier listeners that simulation has ended with error at given tick
+    *
+    * @param endTick
+    *   last tick of the simulation (usually when error happened)
+    * @param errorMsg
+    *   The error message
+    */
+  def error(endTick: Long, errorMsg: String): Unit = {
+    notify(
+      Error(errorMsg)
+    )
+
+    notify(
+      Done(
+        endTick,
+        simStartTime - now(),
+        0,
+        errorInSim = true
+      )
+    )
+  }
+
+  private def notify(event: RuntimeEvent): Unit =
+    eventListener ! event
 
 }
 

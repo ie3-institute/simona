@@ -82,7 +82,7 @@ object RuntimeEvent {
   final case class Done(
       tick: Long,
       duration: Long,
-      noOfFailedPF: Int,
+      noOfFailedPF: Int, // FIXME remove
       errorInSim: Boolean
   ) extends RuntimeEvent
 

@@ -17,43 +17,51 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 
+/** Also tests [[RuntimeNotifier]]
+  */
 class TimeAdvancerSpec
     extends ScalaTestWithActorTestKit
     with AnyWordSpecLike
     with should.Matchers {
 
-  "The TimeAdvancer" should {
+  "The TimeAdvancer should work correctly" when {
 
-    "finish simulation correctly without pauseTick" in {
-
+    "started without pauseTick" in {
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
         TimeAdvancer(Some(listener.ref), 900, 7200)
       )
+
+      val trig1 = ActivityStartTrigger(INIT_SIM_TICK)
       timeAdvancer ! ScheduleTriggerMessage(
-        ActivityStartTrigger(INIT_SIM_TICK),
+        trig1,
         scheduler.ref.toClassic
       )
 
       listener.expectNoMessage()
       scheduler.expectNoMessage()
 
+      // start simulation
       timeAdvancer ! StartScheduleMessage()
-      listener.expectMessage(Initializing)
-      val tm1 = scheduler.expectMessageType[TriggerWithIdMessage]
-      tm1.trigger shouldBe ActivityStartTrigger(-1)
 
+      // tick -1 is activated
+      val tm1 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm1.trigger shouldBe trig1
+      listener.expectMessage(Initializing)
+
+      // tick -1 is completed
       val trig2 = ActivityStartTrigger(0)
       timeAdvancer ! CompletionMessage(
         tm1.triggerId,
         Some(ScheduleTriggerMessage(trig2, scheduler.ref.toClassic))
       )
-      // tick 0 is activated
+      listener.expectMessageType[InitComplete]
+
+      // tick 0 is activated automatically
       val tm2 = scheduler.expectMessageType[TriggerWithIdMessage]
       tm2.trigger shouldBe trig2
-      listener.expectMessageType[InitComplete]
       listener.expectMessage(Simulating(0, 7200))
 
       // tick 0 is completed
@@ -66,7 +74,7 @@ class TimeAdvancerSpec
       listener.expectMessageType[CheckWindowPassed].tick shouldBe 1800
       listener.expectMessageType[CheckWindowPassed].tick shouldBe 2700
 
-      // tick 3600 is activated
+      // tick 3600 is activated automatically
       val tm3 = scheduler.expectMessageType[TriggerWithIdMessage]
       tm3.trigger shouldBe trig3
       listener.expectNoMessage()
@@ -82,14 +90,14 @@ class TimeAdvancerSpec
       listener.expectMessageType[CheckWindowPassed].tick shouldBe 5400
       listener.expectMessageType[CheckWindowPassed].tick shouldBe 6300
 
-      // tick 7200 is activated
+      // tick 7200 is activated automatically
       val tm4 = scheduler.expectMessageType[TriggerWithIdMessage]
       tm4.trigger shouldBe trig4
       listener.expectNoMessage()
 
       // tick 7200 is completed
       timeAdvancer ! CompletionMessage(
-        tm3.triggerId,
+        tm4.triggerId,
         None
       )
       val doneMsg = listener.expectMessageType[Done]
@@ -97,6 +105,549 @@ class TimeAdvancerSpec
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
+      scheduler.expectTerminated(timeAdvancer)
+    }
+
+    "paused and started after initialization" in {
+      val scheduler = TestProbe[SchedulerMessage]("scheduler")
+      val listener = TestProbe[RuntimeEvent]("listener")
+
+      val timeAdvancer = spawn(
+        TimeAdvancer(Some(listener.ref), 900, 3600)
+      )
+      val trig1 = ActivityStartTrigger(INIT_SIM_TICK)
+      timeAdvancer ! ScheduleTriggerMessage(
+        trig1,
+        scheduler.ref.toClassic
+      )
+
+      listener.expectNoMessage()
+      scheduler.expectNoMessage()
+
+      // start simulation
+      timeAdvancer ! StartScheduleMessage(Some(INIT_SIM_TICK))
+
+      // tick -1 is activated
+      val tm1 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm1.trigger shouldBe trig1
+      listener.expectMessage(Initializing)
+
+      // tick -1 is completed
+      val trig2 = ActivityStartTrigger(3600)
+      timeAdvancer ! CompletionMessage(
+        tm1.triggerId,
+        Some(ScheduleTriggerMessage(trig2, scheduler.ref.toClassic))
+      )
+      listener.expectMessageType[InitComplete]
+      listener.expectMessageType[Ready].tick shouldBe INIT_SIM_TICK
+
+      // simulation should be paused
+      scheduler.expectNoMessage()
+      listener.expectNoMessage()
+
+      // start again
+      timeAdvancer ! StartScheduleMessage()
+
+      // tick 3600 is activated
+      val tm2 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm2.trigger shouldBe trig2
+      listener.expectMessage(Simulating(0, 3600))
+
+      // tick 3600 is completed
+      timeAdvancer ! CompletionMessage(
+        tm2.triggerId,
+        None
+      )
+      // check window events should only come now, since we paused at -1 before
+      listener.expectMessageType[CheckWindowPassed].tick shouldBe 900
+      listener.expectMessageType[CheckWindowPassed].tick shouldBe 1800
+      listener.expectMessageType[CheckWindowPassed].tick shouldBe 2700
+
+      val doneMsg = listener.expectMessageType[Done]
+      doneMsg.tick shouldBe 3600
+      doneMsg.noOfFailedPF shouldBe 0
+      doneMsg.errorInSim shouldBe false
+
+      scheduler.expectTerminated(timeAdvancer)
+    }
+
+    "paused and started and there is a gap between StartSchedule tick and next activation tick" in {
+      val scheduler = TestProbe[SchedulerMessage]("scheduler")
+      val listener = TestProbe[RuntimeEvent]("listener")
+
+      val timeAdvancer = spawn(
+        TimeAdvancer(Some(listener.ref), 900, 5400)
+      )
+      val trig1 = ActivityStartTrigger(INIT_SIM_TICK)
+      timeAdvancer ! ScheduleTriggerMessage(
+        trig1,
+        scheduler.ref.toClassic
+      )
+
+      listener.expectNoMessage()
+      scheduler.expectNoMessage()
+
+      // start simulation
+      timeAdvancer ! StartScheduleMessage(Some(3600))
+
+      // tick -1 is activated
+      val tm1 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm1.trigger shouldBe trig1
+      listener.expectMessage(Initializing)
+
+      // tick -1 is completed
+      val trig2 = ActivityStartTrigger(0)
+      timeAdvancer ! CompletionMessage(
+        tm1.triggerId,
+        Some(ScheduleTriggerMessage(trig2, scheduler.ref.toClassic))
+      )
+      listener.expectMessageType[InitComplete]
+
+      // tick 0 is activated automatically
+      val tm2 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm2.trigger shouldBe trig2
+      listener.expectMessage(Simulating(0, 3600))
+
+      // tick 0 is completed
+      val trig3 = ActivityStartTrigger(5400)
+      timeAdvancer ! CompletionMessage(
+        tm2.triggerId,
+        Some(ScheduleTriggerMessage(trig3, scheduler.ref.toClassic))
+      )
+      listener.expectMessageType[CheckWindowPassed].tick shouldBe 900
+      listener.expectMessageType[CheckWindowPassed].tick shouldBe 1800
+      listener.expectMessageType[CheckWindowPassed].tick shouldBe 2700
+      listener.expectMessageType[CheckWindowPassed].tick shouldBe 3600
+      listener.expectMessageType[Ready].tick shouldBe 3600
+
+      // simulation should be paused
+      scheduler.expectNoMessage()
+      listener.expectNoMessage()
+
+      // start again
+      timeAdvancer ! StartScheduleMessage()
+
+      // tick 5400 is activated
+      val tm3 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm3.trigger shouldBe trig3
+      listener.expectMessage(Simulating(3601, 5400))
+
+      // tick 5400 is completed
+      timeAdvancer ! CompletionMessage(
+        tm3.triggerId,
+        None
+      )
+      listener.expectMessageType[CheckWindowPassed].tick shouldBe 4500
+      val doneMsg = listener.expectMessageType[Done]
+      doneMsg.tick shouldBe 5400
+      doneMsg.noOfFailedPF shouldBe 0
+      doneMsg.errorInSim shouldBe false
+
+      scheduler.expectTerminated(timeAdvancer)
+    }
+
+    "paused and endTick - pauseScheduleAtTick == 1" in {
+      val scheduler = TestProbe[SchedulerMessage]("scheduler")
+      val listener = TestProbe[RuntimeEvent]("listener")
+
+      val timeAdvancer = spawn(
+        TimeAdvancer(Some(listener.ref), 900, 3600)
+      )
+      val trig1 = ActivityStartTrigger(INIT_SIM_TICK)
+      timeAdvancer ! ScheduleTriggerMessage(
+        trig1,
+        scheduler.ref.toClassic
+      )
+
+      listener.expectNoMessage()
+      scheduler.expectNoMessage()
+
+      // start simulation
+      timeAdvancer ! StartScheduleMessage(Some(3599))
+
+      // tick -1 is activated
+      val tm1 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm1.trigger shouldBe trig1
+      listener.expectMessage(Initializing)
+
+      // tick -1 is completed
+      val trig2 = ActivityStartTrigger(0)
+      timeAdvancer ! CompletionMessage(
+        tm1.triggerId,
+        Some(ScheduleTriggerMessage(trig2, scheduler.ref.toClassic))
+      )
+      listener.expectMessageType[InitComplete]
+
+      // tick 0 is activated automatically
+      val tm2 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm2.trigger shouldBe trig2
+      listener.expectMessage(Simulating(0, 3599))
+
+      // tick 0 is completed
+      val trig3 = ActivityStartTrigger(3600)
+      timeAdvancer ! CompletionMessage(
+        tm2.triggerId,
+        Some(ScheduleTriggerMessage(trig3, scheduler.ref.toClassic))
+      )
+      listener.expectMessageType[CheckWindowPassed].tick shouldBe 900
+      listener.expectMessageType[CheckWindowPassed].tick shouldBe 1800
+      listener.expectMessageType[CheckWindowPassed].tick shouldBe 2700
+      listener.expectMessageType[Ready].tick shouldBe 3599
+
+      // simulation should be paused
+      scheduler.expectNoMessage()
+      listener.expectNoMessage()
+
+      // start again
+      timeAdvancer ! StartScheduleMessage()
+
+      // tick 3600 is activated
+      val tm3 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm3.trigger shouldBe trig3
+      listener.expectMessage(Simulating(3600, 3600))
+
+      // tick 3600 is completed
+      timeAdvancer ! CompletionMessage(
+        tm3.triggerId
+      )
+      val doneMsg = listener.expectMessageType[Done]
+      doneMsg.tick shouldBe 3600
+      doneMsg.noOfFailedPF shouldBe 0
+      doneMsg.errorInSim shouldBe false
+
+      scheduler.expectTerminated(timeAdvancer)
+    }
+
+    "activation has been scheduled after endTick" in {
+      val scheduler = TestProbe[SchedulerMessage]("scheduler")
+      val listener = TestProbe[RuntimeEvent]("listener")
+
+      val timeAdvancer = spawn(
+        TimeAdvancer(Some(listener.ref), 1800, 3600)
+      )
+      val trig1 = ActivityStartTrigger(0)
+      timeAdvancer ! ScheduleTriggerMessage(
+        trig1,
+        scheduler.ref.toClassic
+      )
+
+      listener.expectNoMessage()
+      scheduler.expectNoMessage()
+
+      // start simulation
+      timeAdvancer ! StartScheduleMessage()
+
+      // tick 0 is activated
+      val tm1 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm1.trigger shouldBe trig1
+      listener.expectMessage(Simulating(0, 3600))
+
+      // tick 0 is completed
+      val trig2 = ActivityStartTrigger(3601)
+      timeAdvancer ! CompletionMessage(
+        tm1.triggerId,
+        Some(ScheduleTriggerMessage(trig2, scheduler.ref.toClassic))
+      )
+      listener.expectMessageType[InitComplete]
+      listener.expectMessageType[CheckWindowPassed].tick shouldBe 1800
+
+      // tick 3601 should not be activated!
+      scheduler.expectNoMessage()
+
+      val doneMsg = listener.expectMessageType[Done]
+      doneMsg.tick shouldBe 3600
+      doneMsg.noOfFailedPF shouldBe 0
+      doneMsg.errorInSim shouldBe false
+
+      scheduler.expectTerminated(timeAdvancer)
+    }
+
+    "no next trigger has been supplied" in {
+      val scheduler = TestProbe[SchedulerMessage]("scheduler")
+      val listener = TestProbe[RuntimeEvent]("listener")
+
+      val timeAdvancer = spawn(
+        TimeAdvancer(Some(listener.ref), 900, 3600)
+      )
+      val trig1 = ActivityStartTrigger(0)
+      timeAdvancer ! ScheduleTriggerMessage(
+        trig1,
+        scheduler.ref.toClassic
+      )
+
+      listener.expectNoMessage()
+      scheduler.expectNoMessage()
+
+      // start simulation
+      timeAdvancer ! StartScheduleMessage()
+
+      // tick 0 is activated
+      val tm1 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm1.trigger shouldBe trig1
+      listener.expectMessage(Simulating(0, 3600))
+
+      // tick 0 is completed
+      timeAdvancer ! CompletionMessage(
+        tm1.triggerId,
+        None
+      )
+      listener.expectMessageType[InitComplete]
+      listener.expectMessageType[CheckWindowPassed].tick shouldBe 900
+      listener.expectMessageType[CheckWindowPassed].tick shouldBe 1800
+      listener.expectMessageType[CheckWindowPassed].tick shouldBe 2700
+
+      // scheduler should not be activated!
+      scheduler.expectNoMessage()
+
+      val doneMsg = listener.expectMessageType[Done]
+      doneMsg.tick shouldBe 3600
+      doneMsg.noOfFailedPF shouldBe 0
+      doneMsg.errorInSim shouldBe false
+
+      scheduler.expectTerminated(timeAdvancer)
+    }
+
+    "endTick < pauseScheduleAtTick" in {
+      val scheduler = TestProbe[SchedulerMessage]("scheduler")
+      val listener = TestProbe[RuntimeEvent]("listener")
+
+      val timeAdvancer = spawn(
+        TimeAdvancer(Some(listener.ref), 1800, 3600)
+      )
+      val trig1 = ActivityStartTrigger(0)
+      timeAdvancer ! ScheduleTriggerMessage(
+        trig1,
+        scheduler.ref.toClassic
+      )
+
+      listener.expectNoMessage()
+      scheduler.expectNoMessage()
+
+      // start simulation
+      timeAdvancer ! StartScheduleMessage(Some(7200))
+
+      // tick 0 is activated
+      val tm1 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm1.trigger shouldBe trig1
+      listener.expectMessage(Simulating(0, 3600))
+
+      // tick 0 is completed
+      timeAdvancer ! CompletionMessage(
+        tm1.triggerId,
+        None
+      )
+      listener.expectMessageType[InitComplete]
+      listener.expectMessageType[CheckWindowPassed].tick shouldBe 1800
+
+      // scheduler should not be activated!
+      scheduler.expectNoMessage()
+
+      val doneMsg = listener.expectMessageType[Done]
+      doneMsg.tick shouldBe 3600
+      doneMsg.noOfFailedPF shouldBe 0
+      doneMsg.errorInSim shouldBe false
+
+      scheduler.expectTerminated(timeAdvancer)
+    }
+
+    "endTick == pauseScheduleAtTick" in {
+      val scheduler = TestProbe[SchedulerMessage]("scheduler")
+      val listener = TestProbe[RuntimeEvent]("listener")
+
+      val timeAdvancer = spawn(
+        TimeAdvancer(Some(listener.ref), 900, 1800)
+      )
+      val trig1 = ActivityStartTrigger(0)
+      timeAdvancer ! ScheduleTriggerMessage(
+        trig1,
+        scheduler.ref.toClassic
+      )
+
+      listener.expectNoMessage()
+      scheduler.expectNoMessage()
+
+      // start simulation
+      timeAdvancer ! StartScheduleMessage(Some(1800))
+
+      // tick 0 is activated
+      val tm1 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm1.trigger shouldBe trig1
+      listener.expectMessage(Simulating(0, 1800))
+
+      // tick 0 is completed
+      timeAdvancer ! CompletionMessage(
+        tm1.triggerId,
+        None
+      )
+      listener.expectMessageType[InitComplete]
+      listener.expectMessageType[CheckWindowPassed].tick shouldBe 900
+
+      // scheduler should not be activated!
+      scheduler.expectNoMessage()
+
+      val doneMsg = listener.expectMessageType[Done]
+      doneMsg.tick shouldBe 1800
+      doneMsg.noOfFailedPF shouldBe 0
+      doneMsg.errorInSim shouldBe false
+
+      scheduler.expectTerminated(timeAdvancer)
+    }
+  }
+
+  "The TimeAdvancer should stop" when {
+
+    "wrong next tick has been supplied" in {
+      val scheduler = TestProbe[SchedulerMessage]("scheduler")
+      val listener = TestProbe[RuntimeEvent]("listener")
+
+      val timeAdvancer = spawn(
+        TimeAdvancer(Some(listener.ref), 900, 1800)
+      )
+      val trig1 = ActivityStartTrigger(0)
+      timeAdvancer ! ScheduleTriggerMessage(
+        trig1,
+        scheduler.ref.toClassic
+      )
+
+      // start simulation
+      timeAdvancer ! StartScheduleMessage(Some(1800))
+
+      // tick 0 is activated
+      val tm1 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm1.trigger shouldBe trig1
+      listener.expectMessage(Simulating(0, 1800))
+
+      // tick 0 is completed
+      // INIT_SIM_TICK is earlier than 0, should fail
+      val trig2 = ActivityStartTrigger(INIT_SIM_TICK)
+      timeAdvancer ! CompletionMessage(
+        tm1.triggerId,
+        Some(ScheduleTriggerMessage(trig2, scheduler.ref.toClassic))
+      )
+      listener.expectMessageType[Error].errMsg should include(
+        "tick -1, although current active tick was 0"
+      )
+      val doneMsg = listener.expectMessageType[Done]
+      doneMsg.tick shouldBe 0
+      doneMsg.noOfFailedPF shouldBe 0
+      doneMsg.errorInSim shouldBe true
+
+      // scheduler should not be activated!
+      scheduler.expectNoMessage()
+
+      scheduler.expectTerminated(timeAdvancer)
+    }
+
+    "activation is completed with wrong triggerId" in {
+      val scheduler = TestProbe[SchedulerMessage]("scheduler")
+      val listener = TestProbe[RuntimeEvent]("listener")
+
+      val timeAdvancer = spawn(
+        TimeAdvancer(Some(listener.ref), 900, 1800)
+      )
+      val trig1 = ActivityStartTrigger(0)
+      timeAdvancer ! ScheduleTriggerMessage(
+        trig1,
+        scheduler.ref.toClassic
+      )
+
+      // start simulation
+      timeAdvancer ! StartScheduleMessage()
+
+      // tick 0 is activated
+      val tm1 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm1.trigger shouldBe trig1
+      listener.expectMessage(Simulating(0, 1800))
+
+      // tick 0 is completed
+      val trig2 = ActivityStartTrigger(INIT_SIM_TICK)
+      timeAdvancer ! CompletionMessage(
+        tm1.triggerId + 1, // WRONG trigger id
+        Some(ScheduleTriggerMessage(trig2, scheduler.ref.toClassic))
+      )
+      listener.expectMessageType[Error].errMsg should include("was expected")
+      val doneMsg = listener.expectMessageType[Done]
+      doneMsg.tick shouldBe 0
+      doneMsg.noOfFailedPF shouldBe 0
+      doneMsg.errorInSim shouldBe true
+
+      // scheduler should not be activated!
+      scheduler.expectNoMessage()
+
+      scheduler.expectTerminated(timeAdvancer)
+    }
+
+    "receiving error message while uninitialized" in {
+      val scheduler = TestProbe[SchedulerMessage]("scheduler")
+      val listener = TestProbe[RuntimeEvent]("listener")
+
+      val timeAdvancer = spawn(
+        TimeAdvancer(Some(listener.ref), 900, 1800)
+      )
+
+      // Send stop message
+      timeAdvancer ! Stop("Test message")
+
+      // we cannot check the console, thus just check if time advancer died
+      scheduler.expectTerminated(timeAdvancer)
+    }
+
+    "receiving error message while inactive" in {
+      val scheduler = TestProbe[SchedulerMessage]("scheduler")
+      val listener = TestProbe[RuntimeEvent]("listener")
+
+      val timeAdvancer = spawn(
+        TimeAdvancer(Some(listener.ref), 900, 1800)
+      )
+      val trig1 = ActivityStartTrigger(1)
+      timeAdvancer ! ScheduleTriggerMessage(
+        trig1,
+        scheduler.ref.toClassic
+      )
+
+      // Send stop message
+      timeAdvancer ! Stop("Test message")
+
+      listener.expectMessageType[Error].errMsg should include("Test message")
+      val doneMsg = listener.expectMessageType[Done]
+      doneMsg.tick shouldBe 1
+      doneMsg.noOfFailedPF shouldBe 0
+      doneMsg.errorInSim shouldBe true
+
+      scheduler.expectTerminated(timeAdvancer)
+    }
+
+    "receiving error message while active" in {
+      val scheduler = TestProbe[SchedulerMessage]("scheduler")
+      val listener = TestProbe[RuntimeEvent]("listener")
+
+      val timeAdvancer = spawn(
+        TimeAdvancer(Some(listener.ref), 900, 1800)
+      )
+      val trig1 = ActivityStartTrigger(0)
+      timeAdvancer ! ScheduleTriggerMessage(
+        trig1,
+        scheduler.ref.toClassic
+      )
+
+      // start simulation
+      timeAdvancer ! StartScheduleMessage()
+
+      // tick 0 is activated
+      val tm1 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm1.trigger shouldBe trig1
+      listener.expectMessage(Simulating(0, 1800))
+
+      // Send stop message
+      timeAdvancer ! Stop("Test message")
+
+      listener.expectMessageType[Error].errMsg should include("Test message")
+      val doneMsg = listener.expectMessageType[Done]
+      doneMsg.tick shouldBe 0
+      doneMsg.noOfFailedPF shouldBe 0
+      doneMsg.errorInSim shouldBe true
+
+      scheduler.expectTerminated(timeAdvancer)
     }
 
   }
