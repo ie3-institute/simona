@@ -50,7 +50,8 @@ class PriorityMultiBiSetSpec extends UnitSpec {
     }
 
     "behave correctly when adding and retrieving multiple values" in {
-      val queue = PriorityMultiBiSet.empty[Key, Value]
+      // trying the second constructor here
+      val queue = PriorityMultiBiSet.empty[Key, Value](5)
 
       queue.set(3, item3)
 

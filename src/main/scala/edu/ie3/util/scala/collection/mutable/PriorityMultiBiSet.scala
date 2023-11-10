@@ -8,11 +8,11 @@ package edu.ie3.util.scala.collection.mutable
 
 import scala.collection.{SortedSet, mutable}
 
-/** TODO adapt
-  *
-  * Queue that is specialized at holding many values of type [[V]] for the same
-  * key of type [[K]]. Mutable structure. Values are stored in a [[mutable.Set]]
-  * (with adding and removing items in about constant time).
+/** Queue that is specialized at holding many values of type [[V]] for the same
+  * key of type [[K]], while only allowing each value to be linked to one key.
+  * Mathematically, the relation between keys and values is thus not univalent
+  * (right-unique), but injective. Values are stored in a [[mutable.Set]] (with
+  * adding and removing items in about constant time).
   *
   * @param queue
   *   Queue that holds keys in order and thus provides a way to quickly retrieve
@@ -21,6 +21,9 @@ import scala.collection.{SortedSet, mutable}
   *   HashMap that provides direct access to each list given the key that it was
   *   added with. This is useful for quickly adding values to new and existing
   *   keys, running in nearly O(1).
+  * @param back
+  *   HashMap that links values back to keys. Used to fastly ensure every value
+  *   is only stored once.
   * @tparam K
   *   Type of the key, which needs to be sortable by means of [[Ordering]]
   * @tparam V
@@ -45,6 +48,12 @@ final case class PriorityMultiBiSet[K: Ordering, V] private (
     */
   def keySet: SortedSet[K] = queue
 
+  /** Get the key that given value is mapped for, if it exists.
+    * @param value
+    *   Value to retrieve the key for
+    * @return
+    *   The key
+    */
   def getKeyOf(value: V): Option[K] =
     back.get(value)
 
@@ -71,6 +80,14 @@ final case class PriorityMultiBiSet[K: Ordering, V] private (
     }
   }
 
+  /** Removes the given value for given key, if it exists.
+    * @param key
+    *   The key for which the value should be removed
+    * @param value
+    *   The value
+    * @return
+    *   Whether the key-value pair existed
+    */
   def remove(key: K, value: V): Boolean = {
     back.remove(value)
 
@@ -102,6 +119,7 @@ final case class PriorityMultiBiSet[K: Ordering, V] private (
         table -= key
         queue -= key
 
+        // return an immutable set
         val immutableSet = Set.from(set)
 
         // also remove from reverse map
@@ -143,15 +161,16 @@ object PriorityMultiBiSet {
     )
 
   /** Creates and returns an empty PriorityMultiQueue for given types. The
-    * initialKeyCapacity and loadFactor are used in the creation of the HashMap.
+    * initialKeyCapacity and loadFactor are used in the creation of the
+    * HashMaps.
     *
     * @param initialKeyCapacity
-    *   The initial capacity of of the HashMap for keys. The capacity increments
-    *   (i.e. the map is recreated with a higher capacity) once the amount
-    *   denoted by loadFactor is hit.
+    *   The initial capacity of both HashMaps. The capacity increments (i.e. the
+    *   map is recreated with a higher capacity) once the amount denoted by
+    *   loadFactor is hit.
     * @param loadFactor
-    *   The loadFactor of the HashMap. If the size of the map reaches capacity *
-    *   loadFactor, the underlying table is replaced with a larger one.
+    *   The loadFactor of the HashMaps. If the size of the map reaches capacity
+    *   * loadFactor, the underlying table is replaced with a larger one.
     * @tparam K
     *   Type of the key, which needs to be sortable by means of [[Ordering]]
     * @tparam V
@@ -169,6 +188,9 @@ object PriorityMultiBiSet {
         initialKeyCapacity,
         loadFactor
       ),
-      mutable.HashMap[V, K]()
+      new mutable.HashMap[V, K](
+        initialKeyCapacity,
+        loadFactor
+      )
     )
 }
