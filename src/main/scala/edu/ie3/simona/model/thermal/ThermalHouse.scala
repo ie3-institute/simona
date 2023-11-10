@@ -408,7 +408,9 @@ object ThermalHouse {
       input.getEthLosses
         .to(PowerSystemUnits.KILOWATT_PER_KELVIN)
         .getValue
-        .doubleValue * 1000
+        .doubleValue
+        // Kilowatt in Watt
+        * 1000
     ),
     JoulesPerKelvin(
       input.getEthCapa
