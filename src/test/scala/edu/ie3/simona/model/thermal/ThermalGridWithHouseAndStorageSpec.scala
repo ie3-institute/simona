@@ -468,7 +468,7 @@ class ThermalGridWithHouseAndStorageSpec
           Symbol("handleInfeed")
         )
 
-      "heat the use, if the upper temperature in the house is not reached" in {
+      "heat the house, if the upper temperature in the house is not reached" in {
         val tick = 0L
         val initialGridState = ThermalGrid.startingState(thermalGrid)
         val externalQDot = qDotInfeed
