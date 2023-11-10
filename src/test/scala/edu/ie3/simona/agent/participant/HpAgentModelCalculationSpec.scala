@@ -605,8 +605,8 @@ class HpAgentModelCalculationSpec
                   lastTimeTick shouldBe 0L
                   (activePower =~ Kilowatts(0d)) shouldBe true
 
-                  qDot =~
-                    Kilowatts(430431d)
+                  (qDot =~
+                    Kilowatts(0d)) shouldBe true
 
                   thermalGridState.houseState match {
                     case Some(ThermalHouseState(_, innerTemperature, _)) =>
