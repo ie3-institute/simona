@@ -30,7 +30,7 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
   * @param lastCheckWindowTime
   *   Time when in milliseconds when
   */
-case class RuntimeNotifier(
+final case class RuntimeNotifier(
     eventListener: ActorRef[RuntimeEvent],
     readyCheckWindow: Long,
     lastCheck: Long = -1,
