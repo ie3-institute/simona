@@ -74,7 +74,6 @@ final case class CylindricalThermalStorage(
       chargingPower
     )
     with MutableStorage {
-  // TODO DF Squants
   /** Updates the given last state. Based on the then set thermal influx, the
     * current state is calculated. Positive values of influx are consider to
     * flow into the storage. Additionally, the tick, when the next threshold is
@@ -110,11 +109,11 @@ final case class CylindricalThermalStorage(
     val nextThreshold =
       if (qDot > Megawatts(0d)) {
         val duration = (maxEnergyThreshold - updatedEnergy) / qDot
-        Some(StorageFull(tick + Math.max(duration.value.longValue(), 0L)))
+        Some(StorageFull(tick + Math.max(duration.toSeconds.toLong, 0L)))
       } else if (qDot < Megawatts(0d)) {
         val duration =
           ((updatedEnergy - minEnergyThreshold) / qDot * (-1))
-        Some(StorageEmpty(tick + Math.max(duration.value.longValue(), 0L)))
+        Some(StorageEmpty(tick + Math.max(duration.toSeconds.toLong, 0L)))
       } else {
         return (ThermalStorageState(tick, updatedEnergy, qDot), None)
       }
