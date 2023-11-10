@@ -94,8 +94,8 @@ class ThermalGridWithHouseAndStorageSpec
           ThermalGrid.startingState(thermalGrid)
         )
 
-        (gridDemand.required =~ MegawattHours(0d)) shouldBe true
-        (gridDemand.possible =~  MegawattHours(0.031050 + 0.920)) shouldBe true
+        (gridDemand.required =~ KilowattHours(0d)) shouldBe true
+        (gridDemand.possible =~  KilowattHours(31.05009722 + 920)) shouldBe true
       }
 
       "consider stored energy to reduce house demand" in {
@@ -112,8 +112,8 @@ class ThermalGridWithHouseAndStorageSpec
           )
         )
 
-        (gridDemand.required =~ MegawattHours(0d)) shouldBe true
-        (gridDemand.possible =~ MegawattHours(1.041200)) shouldBe true
+        (gridDemand.required =~ KilowattHours(0d)) shouldBe true
+        (gridDemand.possible =~ KilowattHours(1041.200111111)) shouldBe true
       }
 
       "consider stored energy to reduce house demand if stored energy is not enough" in {
@@ -129,9 +129,8 @@ class ThermalGridWithHouseAndStorageSpec
             )
           )
         )
-
-        (gridDemand.required =~ MegawattHours(0.0086499)) shouldBe true
-        (gridDemand.possible =~ MegawattHours(1.4186499)) shouldBe true
+        (gridDemand.required =~ KilowattHours(8.64987499999)) shouldBe true
+        (gridDemand.possible =~ KilowattHours(1418.64987499999)) shouldBe true
       }
     }
 
@@ -547,7 +546,7 @@ class ThermalGridWithHouseAndStorageSpec
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
-          StorageFull(220799L)
+          StorageFull(220800L)
         )
       }
     }
