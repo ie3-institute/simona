@@ -60,7 +60,7 @@ class CylindricalThermalStorageTest extends Specification {
         )
   }
 
-  def "Check storage level operations:"() {
+  def "Check storage level operations"() {
     given:
     def storage = buildThermalStorage(storageInput, 70)
 
@@ -85,7 +85,7 @@ class CylindricalThermalStorageTest extends Specification {
     !notCovering
   }
 
-  def "Check apply, validation and build method:"() {
+  def "Check apply, validation and build method"() {
     when:
     def storage = buildThermalStorage(storageInput, 70)
 
@@ -97,7 +97,7 @@ class CylindricalThermalStorageTest extends Specification {
     storage.bus() == storageInput.thermalBus
   }
 
-  def "Check mutable state update:"() {
+  def "Check mutable state update"() {
     when:
     def storage = buildThermalStorage(storageInput, 70d)
     def lastState = new ThermalStorage.ThermalStorageState(tick, Sq.create(storedEnergy, KilowattHours$.MODULE$), Sq.create(qDot, Kilowatts$.MODULE$))
@@ -119,7 +119,7 @@ class CylindricalThermalStorageTest extends Specification {
     0L   | 240.0d       | -9.0d  | 3600L   | -5000.0d || 231.0d                | new ThermalStorage.ThermalStorageThreshold.StorageEmpty(3600L)
   }
 
-  def "Check mutable state update, if no threshold is reached:"() {
+  def "Check mutable state update, if no threshold is reached"() {
     when:
     def storage = buildThermalStorage(storageInput, 70)
     def lastState = new ThermalStorage.ThermalStorageState(tick, Sq.create(storedEnergy, KilowattHours$.MODULE$), Sq.create(qDot, Kilowatts$.MODULE$))
