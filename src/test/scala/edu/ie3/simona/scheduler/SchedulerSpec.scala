@@ -333,8 +333,7 @@ class SchedulerSpec
         Scheduler(parent.ref)
       )
 
-      val triggeredAgents = Range
-        .inclusive(1, 5)
+      val triggeredAgents = (1 to 5)
         .map(i => TestProbe[TriggerWithIdMessage](s"agent_$i"))
 
       triggeredAgents.foreach(actor =>
