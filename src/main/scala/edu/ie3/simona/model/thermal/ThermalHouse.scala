@@ -8,19 +8,10 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
-import edu.ie3.datamodel.models.input.thermal.{
-  ThermalBusInput,
-  ThermalHouseInput
-}
+import edu.ie3.datamodel.models.input.thermal.{ThermalBusInput, ThermalHouseInput}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
-  HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureUpperBoundaryReached
-}
-import edu.ie3.simona.model.thermal.ThermalHouse.{
-  ThermalHouseState,
-  temperatureTolerance
-}
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{HouseTemperatureLowerBoundaryReached, HouseTemperatureUpperBoundaryReached}
+import edu.ie3.simona.model.thermal.ThermalHouse.{ThermalHouseState, temperatureTolerance}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
@@ -135,7 +126,7 @@ final case class ThermalHouse(
       targetTemperature: Temperature,
       startTemperature: Temperature
   ): Energy = {
-    ethCapa * (targetTemperature - startTemperature)
+    ethCapa * Kelvin(targetTemperature.toKelvinScale - startTemperature.toKelvinScale)
   }
 
   /** Check if inner temperature is higher than preferred maximum temperature
@@ -155,7 +146,6 @@ final case class ThermalHouse(
     */
   def isInnerTemperatureTooLow(
       innerTemperature: Temperature,
-      boundaryTemperature: Temperature = lowerBoundaryTemperature
   ): Boolean =
     innerTemperature < (lowerBoundaryTemperature + temperatureTolerance)
 
@@ -205,9 +195,7 @@ final case class ThermalHouse(
       oldInnerTemperature: Temperature,
       temperatureChange: Temperature
   ): Temperature =
-    Celsius(
       oldInnerTemperature + temperatureChange
-    )
 
   /** Calculate the temperature change for the thermal house form the thermal
     * energy change
