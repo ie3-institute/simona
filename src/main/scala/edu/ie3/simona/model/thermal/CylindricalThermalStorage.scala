@@ -99,13 +99,11 @@ final case class CylindricalThermalStorage(
     val energyBalance = lastState.qDot * Seconds(tick - lastState.tick)
 
     val newEnergy = lastState.storedEnergy + energyBalance
-    val updatedEnergy =
-      if (newEnergy > maxEnergyThreshold)
-        maxEnergyThreshold
-      else if (newEnergy < minEnergyThreshold)
-        minEnergyThreshold
-      else
-        newEnergy
+    val updatedEnergy = newEnergy match {
+      case energy if energy > maxEnergyThreshold => maxEnergyThreshold
+      case energy if energy < minEnergyThreshold => minEnergyThreshold
+      case energy                                => energy
+    }
 
     /* Determine, when a threshold is reached */
     val nextThreshold =
