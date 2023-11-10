@@ -11,7 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Instantiation of Heat Pump Agents [#253](https://github.com/ie3-institute/simona/issues/253)
 - Output of accompanying thermal result models
 
-
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
 - Improved initialization of weather based agents [#145](https://github.com/ie3-institute/simona/issues/145)
