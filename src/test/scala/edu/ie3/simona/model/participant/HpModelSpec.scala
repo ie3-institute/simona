@@ -24,7 +24,6 @@ class HpModelSpec
 
   "Testing the heat pump model" when {
 
-
     "calculating the next state with different states" should {
       "deliver correct tick, power and running state" in {
         val cases = Table(

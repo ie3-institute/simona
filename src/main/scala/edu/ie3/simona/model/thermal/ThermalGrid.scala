@@ -9,9 +9,15 @@ package edu.ie3.simona.model.thermal
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.datamodel.models.result.thermal.{CylindricalStorageResult, ThermalHouseResult}
+import edu.ie3.datamodel.models.result.thermal.{
+  CylindricalStorageResult,
+  ThermalHouseResult
+}
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
-import edu.ie3.simona.model.thermal.ThermalGrid.{ThermalEnergyDemand, ThermalGridState}
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalEnergyDemand,
+  ThermalGridState
+}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.HouseTemperatureUpperBoundaryReached
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
