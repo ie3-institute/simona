@@ -329,10 +329,10 @@ final case class ThermalHouse(
     */
 
   private def nextThreshold(
-    tick: Long,
-    qDotExternal: Power,
-    innerTemperature: Temperature,
-    ambientTemperature: Temperature
+      tick: Long,
+      qDotExternal: Power,
+      innerTemperature: Temperature,
+      ambientTemperature: Temperature
   ): Option[ThermalThreshold] = {
     val artificialDuration = Hours(1d)
     val loss = calcThermalEnergyLoss(

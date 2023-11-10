@@ -26,12 +26,7 @@ import edu.ie3.simona.agent.participant.statedata.{
   DataCollectionStateData,
   ParticipantStateData
 }
-import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ZERO_POWER
-}
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
+
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
