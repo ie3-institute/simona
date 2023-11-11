@@ -34,10 +34,9 @@ import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.util.io.FileIOUtils
 
 import java.io.{File, FileInputStream}
+import java.util.UUID
 import java.util.zip.GZIPInputStream
-import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.io.Source
@@ -210,7 +209,7 @@ class ResultEventListenerSpec
           Vector(dummySwitchResult),
           Vector(dummyLineResult),
           Vector(dummyTrafo2wResult),
-          Vector.empty[PartialTransformer3wResult]
+          Iterable.empty[PartialTransformer3wResult]
         )
 
         val outputFiles = Map(
@@ -283,168 +282,26 @@ class ResultEventListenerSpec
     }
 
     "handling three winding transformer results" should {
-      val registerPartialTransformer3wResult =
-        PrivateMethod[Map[Transformer3wKey, AggregatedTransformer3wResult]](
-          Symbol("registerPartialTransformer3wResult")
+      def powerflow3wResult(
+          partialResult: PartialTransformer3wResult
+      ): PowerFlowResultEvent =
+        PowerFlowResultEvent(
+          Iterable.empty[NodeResult],
+          Iterable.empty[SwitchResult],
+          Iterable.empty[LineResult],
+          Iterable.empty[Transformer2WResult],
+          Iterable(partialResult)
         )
-      val fileHierarchy =
-        resultFileHierarchy(5, ".csv", Set(classOf[Transformer3WResult]))
-      val listener = testKit.spawn(
-        ResultEventListener(
-          fileHierarchy
-        )
-      )
-
-      "register a fresh entry, when nothing yet is apparent" in {
-        val actual =
-          ResultEventListener invokePrivate registerPartialTransformer3wResult(
-            resultA,
-            Map.empty[Transformer3wKey, AggregatedTransformer3wResult]
-          )
-        actual.size shouldBe 1
-        actual.get(Transformer3wKey(inputModel, time)) match {
-          case Some(AggregatedTransformer3wResult(Some(a), None, None)) =>
-            a shouldBe resultA
-          case Some(value) => fail(s"Received the wrong value: '$value'")
-          case None        => fail("Expected to get a result")
-        }
-      }
-
-      "neglects, if something yet has been sent" in {
-        val results = Map(
-          Transformer3wKey(
-            resultA.input,
-            resultA.time
-          ) -> AggregatedTransformer3wResult(
-            Some(resultA),
-            None,
-            None
-          )
-        )
-
-        val actual =
-          ResultEventListener invokePrivate registerPartialTransformer3wResult(
-            resultA,
-            results
-          )
-        actual.size shouldBe 1
-        actual.get(Transformer3wKey(inputModel, time)) match {
-          case Some(AggregatedTransformer3wResult(Some(a), None, None)) =>
-            a shouldBe resultA
-          case Some(value) => fail(s"Received the wrong value: '$value'")
-          case None        => fail("Expected to get a result")
-        }
-      }
-
-      "appends a new result, if that key yet is apparent" in {
-        val results = Map(
-          Transformer3wKey(
-            resultA.input,
-            resultA.time
-          ) -> AggregatedTransformer3wResult(
-            Some(resultA),
-            None,
-            None
-          )
-        )
-
-        val actual =
-          ResultEventListener invokePrivate registerPartialTransformer3wResult(
-            resultB,
-            results
-          )
-        actual.size shouldBe 1
-        actual.get(Transformer3wKey(inputModel, time)) match {
-          case Some(AggregatedTransformer3wResult(Some(a), Some(b), None)) =>
-            a shouldBe resultA
-            b shouldBe resultB
-          case Some(value) => fail(s"Received the wrong value: '$value'")
-          case None        => fail("Expected to get a result")
-        }
-      }
-
-      val flushComprehensiveResults =
-        PrivateMethod[Map[Transformer3wKey, AggregatedTransformer3wResult]](
-          Symbol("flushComprehensiveResults")
-        )
-      val resultANext = resultA.copy(time = resultA.time.plusHours(1L))
-
-      /** Dummy sink, that only puts the received results to a mutable set
-        *
-        * @param results
-        *   All results, that have been received
-        */
-      final case class DummySink(
-          results: mutable.Set[ResultEntity] = mutable.Set.empty[ResultEntity]
-      ) extends ResultEntitySink {
-        override def handleResultEntity(resultEntity: ResultEntity): Unit =
-          results.add(resultEntity)
-        override def close(): Unit = {}
-      }
-      val sink = DummySink()
-      val sinks = Map(
-        classOf[Transformer3WResult] -> sink
-      )
-      "not flush anything, if nothing is ready to be flushed" in {
-        val results = Map(
-          Transformer3wKey(
-            resultA.input,
-            resultA.time
-          ) -> AggregatedTransformer3wResult(
-            Some(resultA),
-            None,
-            Some(resultC)
-          ),
-          Transformer3wKey(
-            resultANext.input,
-            resultANext.time
-          ) -> AggregatedTransformer3wResult(
-            Some(resultANext),
-            None,
-            None
-          )
-        )
-        val actual =
-          ResultEventListener invokePrivate flushComprehensiveResults(
-            results,
-            sinks
-          )
-        actual.size shouldBe 2
-        sink.results.isEmpty shouldBe true
-      }
-
-      "flush comprehensive results" in {
-        val results = Map(
-          Transformer3wKey(
-            resultA.input,
-            resultA.time
-          ) -> AggregatedTransformer3wResult(
-            Some(resultA),
-            Some(resultB),
-            Some(resultC)
-          ),
-          Transformer3wKey(
-            resultANext.input,
-            resultANext.time
-          ) -> AggregatedTransformer3wResult(
-            Some(resultANext),
-            None,
-            None
-          )
-        )
-        val actual =
-          ResultEventListener invokePrivate flushComprehensiveResults(
-            results,
-            sinks
-          )
-        actual.size shouldBe 1
-        sink.results.headOption match {
-          case Some(result) => result shouldBe expected
-          case None         => fail("Expected to get a result.")
-        }
-      }
 
       "correctly reacts on received results" in {
+        val fileHierarchy =
+          resultFileHierarchy(5, ".csv", Set(classOf[Transformer3WResult]))
+        val listener = testKit.spawn(
+          ResultEventListener(
+            fileHierarchy
+          )
+        )
+
         val outputFile = new File(
           fileHierarchy.rawOutputDataFilePaths.getOrElse(
             classOf[Transformer3WResult],
@@ -462,32 +319,24 @@ class ResultEventListenerSpec
         getFileLinesLength(outputFile) shouldBe 1
 
         /* Face the listener with data, as long as they are not comprehensive */
-        listener ! PowerFlowResultEvent(
-          Vector.empty[NodeResult],
-          Vector.empty[SwitchResult],
-          Vector.empty[LineResult],
-          Vector.empty[Transformer2WResult],
-          Vector(resultA)
-        )
-        listener ! PowerFlowResultEvent(
-          Vector.empty[NodeResult],
-          Vector.empty[SwitchResult],
-          Vector.empty[LineResult],
-          Vector.empty[Transformer2WResult],
-          Vector(resultC)
-        )
+        listener ! powerflow3wResult(resultA)
+
+        listener ! powerflow3wResult(resultC)
+
+        /* Also add unrelated result for different input model */
+        val otherResultA = resultA.copy(input = UUID.randomUUID())
+        listener ! powerflow3wResult(otherResultA)
+
+        /* Add result A again, which should lead to a failure internally,
+        but everything should still continue normally
+         */
+        listener ! powerflow3wResult(resultA)
 
         /* Make sure, that there still is no content in file */
         getFileLinesLength(outputFile) shouldBe 1
 
-        /* Complete awaited results */
-        listener ! PowerFlowResultEvent(
-          Vector.empty[NodeResult],
-          Vector.empty[SwitchResult],
-          Vector.empty[LineResult],
-          Vector.empty[Transformer2WResult],
-          Vector(resultB)
-        )
+        /* Complete awaited result */
+        listener ! powerflow3wResult(resultB)
 
         // stop listener so that result is flushed out
         listener ! StopMessage(true)
