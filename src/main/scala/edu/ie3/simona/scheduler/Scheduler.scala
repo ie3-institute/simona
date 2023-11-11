@@ -73,7 +73,7 @@ object Scheduler {
               // we don't need to escalate to the parent, this means that we can release the lock (if applicable)
               unlockKey.foreach { case (lock, key) => lock ! Unlock(key) }
             }
-            inactive(updatedData)
+            inactive(updatedData, lastActiveTick)
           }
 
       case (ctx, unexpected: SchedulerMessage) =>
@@ -135,7 +135,7 @@ object Scheduler {
           if (isTickCompleted(updatedData, updatedActivationData)) {
             // send completion to parent, if all completed
             completeWithParent(updatedData, updatedActivationData, ctx)
-            inactive(updatedData)
+            inactive(updatedData, tick)
           } else {
             // there might be new triggers for current tick, send them out
             sendCurrentTriggers(updatedData, updatedActivationData) match {

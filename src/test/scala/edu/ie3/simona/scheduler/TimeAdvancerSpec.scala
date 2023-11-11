@@ -494,7 +494,7 @@ class TimeAdvancerSpec
     }
   }
 
-  "The TimeAdvancer should stop" when {
+  "The TimeAdvancer should fail and stop" when {
 
     "wrong next tick has been supplied" in {
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
