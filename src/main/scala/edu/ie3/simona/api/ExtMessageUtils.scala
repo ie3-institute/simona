@@ -26,6 +26,7 @@ object ExtMessageUtils {
     def toSimona(triggerId: Long, triggerActor: ActorRef): CompletionMessage = {
       val newTrigger =
         // FIXME ext CompletionMessage should have only one next trigger
+        // FIXME also update the documentation in usersguide.md accordingly
         extCompl.newTriggers.asScala.headOption.map { tick =>
           ScheduleTriggerMessage(ActivityStartTrigger(tick), triggerActor)
         }
