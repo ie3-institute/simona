@@ -683,5 +683,3 @@ class SchedulerSpec
   }
 
 }
-
-object SchedulerSpec {}
