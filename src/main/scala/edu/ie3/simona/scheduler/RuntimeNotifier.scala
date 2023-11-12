@@ -32,7 +32,7 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
   */
 final case class RuntimeNotifier(
     eventListener: ActorRef[RuntimeEvent],
-    readyCheckWindow: Long,
+    readyCheckWindow: Option[Int],
     lastCheck: Long = -1,
     simStartTime: Long = -1,
     lastStartTime: Long = -1,
@@ -102,23 +102,26 @@ final case class RuntimeNotifier(
     } else
       lastCheck
 
-    val completedWindows =
-      (adjustedLastCheck + readyCheckWindow) to completedTick by readyCheckWindow
+    readyCheckWindow
+      .flatMap { checkWindow =>
+        val completedWindows =
+          (adjustedLastCheck + checkWindow) to completedTick by checkWindow
 
-    completedWindows.lastOption
-      .map { lastPassedCheck =>
-        // at least one window has been passed
-        completedWindows.foreach { tick =>
-          notify(CheckWindowPassed(tick, nowTime - lastCheckWindowTime))
-        }
+        completedWindows.lastOption
+          .map { lastPassedCheck =>
+            // at least one window has been passed
+            completedWindows.foreach { tick =>
+              notify(CheckWindowPassed(tick, nowTime - lastCheckWindowTime))
+            }
 
-        copy(
-          lastCheck = lastPassedCheck,
-          lastCheckWindowTime = nowTime
-        )
+            copy(
+              lastCheck = lastPassedCheck,
+              lastCheckWindowTime = nowTime
+            )
+          }
       }
       .getOrElse {
-        // no check windows passed
+        // no check window set or no windows passed
         copy(lastCheck = adjustedLastCheck)
       }
   }

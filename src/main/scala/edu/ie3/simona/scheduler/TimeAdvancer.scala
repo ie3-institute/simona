@@ -30,7 +30,7 @@ object TimeAdvancer {
     */
   def apply(
       eventListener: Option[ActorRef[RuntimeEvent]],
-      checkWindow: Long,
+      checkWindow: Option[Int],
       endTick: Long
   ): Behavior[SchedulerMessage] = Behaviors.receive {
     case (_, ScheduleTriggerMessage(trigger, actorToBeScheduled, _)) =>

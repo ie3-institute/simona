@@ -26,12 +26,12 @@ class TimeAdvancerSpec
 
   "The TimeAdvancer should work correctly" when {
 
-    "started without pauseTick" in {
+    "started checkWindow but without pauseTick" in {
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
-        TimeAdvancer(Some(listener.ref), 900, 7200)
+        TimeAdvancer(Some(listener.ref), Some(900), 7200)
       )
 
       val trig1 = ActivityStartTrigger(INIT_SIM_TICK)
@@ -108,12 +108,75 @@ class TimeAdvancerSpec
       scheduler.expectTerminated(timeAdvancer)
     }
 
+    "started without checkWindow and pauseTick" in {
+      val scheduler = TestProbe[SchedulerMessage]("scheduler")
+      val listener = TestProbe[RuntimeEvent]("listener")
+
+      val timeAdvancer = spawn(
+        TimeAdvancer(Some(listener.ref), None, 3600)
+      )
+
+      val trig1 = ActivityStartTrigger(INIT_SIM_TICK)
+      timeAdvancer ! ScheduleTriggerMessage(
+        trig1,
+        scheduler.ref.toClassic
+      )
+
+      listener.expectNoMessage()
+      scheduler.expectNoMessage()
+
+      // start simulation
+      timeAdvancer ! StartScheduleMessage()
+
+      // tick -1 is activated
+      val tm1 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm1.trigger shouldBe trig1
+      listener.expectMessage(Initializing)
+
+      // tick -1 is completed
+      val trig2 = ActivityStartTrigger(0)
+      timeAdvancer ! CompletionMessage(
+        tm1.triggerId,
+        Some(ScheduleTriggerMessage(trig2, scheduler.ref.toClassic))
+      )
+      listener.expectMessageType[InitComplete]
+
+      // tick 0 is activated automatically
+      val tm2 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm2.trigger shouldBe trig2
+      listener.expectMessage(Simulating(0, 3600))
+
+      // tick 0 is completed
+      val trig3 = ActivityStartTrigger(3600)
+      timeAdvancer ! CompletionMessage(
+        tm2.triggerId,
+        Some(ScheduleTriggerMessage(trig3, scheduler.ref.toClassic))
+      )
+
+      // tick 3600 is activated automatically
+      val tm3 = scheduler.expectMessageType[TriggerWithIdMessage]
+      tm3.trigger shouldBe trig3
+      listener.expectNoMessage()
+
+      // tick 3600 is completed
+      timeAdvancer ! CompletionMessage(
+        tm3.triggerId
+      )
+
+      val doneMsg = listener.expectMessageType[Done]
+      doneMsg.tick shouldBe 3600
+      doneMsg.noOfFailedPF shouldBe 0
+      doneMsg.errorInSim shouldBe false
+
+      scheduler.expectTerminated(timeAdvancer)
+    }
+
     "paused and started after initialization" in {
       val scheduler = TestProbe[SchedulerMessage]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
-        TimeAdvancer(Some(listener.ref), 900, 3600)
+        TimeAdvancer(Some(listener.ref), Some(900), 3600)
       )
       val trig1 = ActivityStartTrigger(INIT_SIM_TICK)
       timeAdvancer ! ScheduleTriggerMessage(
@@ -176,7 +239,7 @@ class TimeAdvancerSpec
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
-        TimeAdvancer(Some(listener.ref), 900, 5400)
+        TimeAdvancer(Some(listener.ref), Some(900), 5400)
       )
       val trig1 = ActivityStartTrigger(INIT_SIM_TICK)
       timeAdvancer ! ScheduleTriggerMessage(
@@ -251,7 +314,7 @@ class TimeAdvancerSpec
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
-        TimeAdvancer(Some(listener.ref), 900, 3600)
+        TimeAdvancer(Some(listener.ref), Some(900), 3600)
       )
       val trig1 = ActivityStartTrigger(INIT_SIM_TICK)
       timeAdvancer ! ScheduleTriggerMessage(
@@ -323,7 +386,7 @@ class TimeAdvancerSpec
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
-        TimeAdvancer(Some(listener.ref), 1800, 3600)
+        TimeAdvancer(Some(listener.ref), Some(1800), 3600)
       )
       val trig1 = ActivityStartTrigger(0)
       timeAdvancer ! ScheduleTriggerMessage(
@@ -367,7 +430,7 @@ class TimeAdvancerSpec
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
-        TimeAdvancer(Some(listener.ref), 900, 3600)
+        TimeAdvancer(Some(listener.ref), Some(900), 3600)
       )
       val trig1 = ActivityStartTrigger(0)
       timeAdvancer ! ScheduleTriggerMessage(
@@ -412,7 +475,7 @@ class TimeAdvancerSpec
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
-        TimeAdvancer(Some(listener.ref), 1800, 3600)
+        TimeAdvancer(Some(listener.ref), Some(1800), 3600)
       )
       val trig1 = ActivityStartTrigger(0)
       timeAdvancer ! ScheduleTriggerMessage(
@@ -455,7 +518,7 @@ class TimeAdvancerSpec
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
-        TimeAdvancer(Some(listener.ref), 900, 1800)
+        TimeAdvancer(Some(listener.ref), Some(900), 1800)
       )
       val trig1 = ActivityStartTrigger(0)
       timeAdvancer ! ScheduleTriggerMessage(
@@ -501,7 +564,7 @@ class TimeAdvancerSpec
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
-        TimeAdvancer(Some(listener.ref), 900, 1800)
+        TimeAdvancer(Some(listener.ref), Some(900), 1800)
       )
       val trig1 = ActivityStartTrigger(0)
       timeAdvancer ! ScheduleTriggerMessage(
@@ -543,7 +606,7 @@ class TimeAdvancerSpec
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
-        TimeAdvancer(Some(listener.ref), 900, 1800)
+        TimeAdvancer(Some(listener.ref), Some(900), 1800)
       )
       val trig1 = ActivityStartTrigger(0)
       timeAdvancer ! ScheduleTriggerMessage(
@@ -582,7 +645,7 @@ class TimeAdvancerSpec
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
-        TimeAdvancer(Some(listener.ref), 900, 1800)
+        TimeAdvancer(Some(listener.ref), None, 1800)
       )
 
       // Send stop message
@@ -597,7 +660,7 @@ class TimeAdvancerSpec
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
-        TimeAdvancer(Some(listener.ref), 900, 1800)
+        TimeAdvancer(Some(listener.ref), None, 1800)
       )
       val trig1 = ActivityStartTrigger(1)
       timeAdvancer ! ScheduleTriggerMessage(
@@ -622,7 +685,7 @@ class TimeAdvancerSpec
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
-        TimeAdvancer(Some(listener.ref), 900, 1800)
+        TimeAdvancer(Some(listener.ref), Some(900), 1800)
       )
       val trig1 = ActivityStartTrigger(0)
       timeAdvancer ! ScheduleTriggerMessage(
