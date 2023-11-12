@@ -8,7 +8,8 @@ package edu.ie3.simona.event.listener
 
 import akka.actor.testkit.typed.scaladsl.{
   ActorTestKit,
-  ScalaTestWithActorTestKit
+  ScalaTestWithActorTestKit,
+  TestProbe
 }
 import akka.testkit.TestKit.awaitCond
 import com.typesafe.config.ConfigValueFactory
@@ -132,14 +133,14 @@ class ResultEventListenerSpec
       "check if actor dies when it should die" in {
         val fileHierarchy =
           resultFileHierarchy(2, ".ttt", Set(classOf[Transformer3WResult]))
-        val testProbe = testKit.createTestProbe("testProbe")
-        val listener = testKit.spawn(
+        val testProbe = TestProbe("testProbe")
+        val listener = spawn(
           ResultEventListener(
             fileHierarchy
           )
         )
 
-        listener.tell(StopMessage(true))
+        listener ! StopMessage(true)
         testProbe expectTerminated (listener, 10 seconds)
       }
     }
@@ -148,7 +149,7 @@ class ResultEventListenerSpec
       "process a valid participants result correctly" in {
         val specificOutputFileHierarchy = resultFileHierarchy(3, ".csv")
 
-        val listenerRef = testKit.spawn(
+        val listenerRef = spawn(
           ResultEventListener(
             specificOutputFileHierarchy
           )
@@ -184,7 +185,7 @@ class ResultEventListenerSpec
 
         val resultFileSource = Source.fromFile(outputFile)
 
-        val resultFileLines = resultFileSource.getLines().toVector
+        val resultFileLines = resultFileSource.getLines().toSeq
 
         resultFileLines.size shouldBe 2
         resultFileLines.lastOption.getOrElse(
@@ -198,17 +199,17 @@ class ResultEventListenerSpec
 
       "process a valid power flow result correctly" in {
         val specificOutputFileHierarchy = resultFileHierarchy(4, ".csv")
-        val listenerRef = testKit.spawn(
+        val listenerRef = spawn(
           ResultEventListener(
             specificOutputFileHierarchy
           )
         )
 
         listenerRef ! PowerFlowResultEvent(
-          Vector(dummyNodeResult),
-          Vector(dummySwitchResult),
-          Vector(dummyLineResult),
-          Vector(dummyTrafo2wResult),
+          Iterable(dummyNodeResult),
+          Iterable(dummySwitchResult),
+          Iterable(dummyLineResult),
+          Iterable(dummyTrafo2wResult),
           Iterable.empty[PartialTransformer3wResult]
         )
 
@@ -267,7 +268,7 @@ class ResultEventListenerSpec
         outputFiles.foreach { case (resultRowString, outputFile) =>
           val resultFileSource = Source.fromFile(outputFile)
 
-          val resultFileLines = resultFileSource.getLines().toVector
+          val resultFileLines = resultFileSource.getLines().toSeq
 
           resultFileLines.size shouldBe 2
           resultFileLines.lastOption.getOrElse(
@@ -296,7 +297,7 @@ class ResultEventListenerSpec
       "correctly reacts on received results" in {
         val fileHierarchy =
           resultFileHierarchy(5, ".csv", Set(classOf[Transformer3WResult]))
-        val listener = testKit.spawn(
+        val listener = spawn(
           ResultEventListener(
             fileHierarchy
           )
@@ -349,7 +350,7 @@ class ResultEventListenerSpec
         )
         /* Check the result */
         val resultFileSource = Source.fromFile(outputFile)
-        val resultFileLines = resultFileSource.getLines().toVector
+        val resultFileLines = resultFileSource.getLines().toSeq
 
         resultFileLines.size shouldBe 2
         val resultLine = resultFileLines.lastOption.getOrElse(
@@ -371,7 +372,7 @@ class ResultEventListenerSpec
     "shutting down" should {
       "shutdown and compress the data when requested to do so without any errors" in {
         val specificOutputFileHierarchy = resultFileHierarchy(6, ".csv.gz")
-        val listenerRef = testKit.spawn(
+        val listenerRef = spawn(
           ResultEventListener(
             specificOutputFileHierarchy
           )
@@ -433,7 +434,7 @@ class ResultEventListenerSpec
           )
         )
 
-        val resultFileLines = resultFileSource.getLines().toVector
+        val resultFileLines = resultFileSource.getLines().toSeq
         resultFileLines.size shouldBe 2
         resultFileLines.lastOption.getOrElse(
           fail(
