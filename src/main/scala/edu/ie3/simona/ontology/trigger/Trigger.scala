@@ -64,7 +64,7 @@ object Trigger {
   ) extends InitializeTrigger
 
   /** Trigger to start a general activity e.g. reactivate the actor. May only be
-    * sent by SimScheduler
+    * sent by [[edu.ie3.simona.scheduler.Scheduler]]
     */
   final case class ActivityStartTrigger(tick: Long) extends Trigger
 

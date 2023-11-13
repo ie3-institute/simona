@@ -109,7 +109,7 @@ final case class WeatherService(
     * initialization data. This method should perform all heavyweight tasks
     * before the actor becomes ready. The return values are a) the state data of
     * the initialized service and b) optional triggers that should be send to
-    * the [[edu.ie3.simona.scheduler.SimScheduler]] together with the completion
+    * the [[edu.ie3.simona.scheduler.Scheduler]] together with the completion
     * message that is send in response to the trigger that is send to start the
     * initialization process
     *

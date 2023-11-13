@@ -1008,8 +1008,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   /** Normally only reached by the superior (dummy) agent!
     *
     * Triggers a state transition to [[SimulateGrid]], informs the
-    * [[edu.ie3.simona.scheduler.SimScheduler]] about the finish of this sweep
-    * and requests a new trigger for itself for a new sweep (which means a new
+    * [[edu.ie3.simona.scheduler.Scheduler]] about the finish of this sweep and
+    * requests a new trigger for itself for a new sweep (which means a new
     * [[StartGridSimulationTrigger]])
     *
     * @param gridAgentBaseData
