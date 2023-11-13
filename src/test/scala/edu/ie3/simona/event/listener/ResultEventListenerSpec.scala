@@ -6,8 +6,10 @@
 
 package edu.ie3.simona.event.listener
 
+import akka.actor.testkit.typed.CapturedLogEvent
 import akka.actor.testkit.typed.scaladsl.{
   ActorTestKit,
+  BehaviorTestKit,
   ScalaTestWithActorTestKit,
   TestProbe
 }
@@ -33,6 +35,7 @@ import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.util.io.FileIOUtils
+import org.slf4j.event.Level
 
 import java.io.{File, FileInputStream}
 import java.util.UUID

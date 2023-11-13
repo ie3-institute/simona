@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
@@ -246,21 +246,48 @@ object ResultEventListener extends Transformer3wResultSupport {
           )
       }
 
-      val sinkResponse: SinkResponse = Await.result(
-        Future
-          .sequence(
-            ResultEventListener.initializeSinks(
-              resultFileHierarchy
-            )
-          )
-          .map(result => SinkResponse(result.toMap)),
-        1.hour
-      )
+      Future
+        .sequence(ResultEventListener.initializeSinks(resultFileHierarchy))
+        .map { result =>
+          ctx.self ! SinkResponse(result.toMap)
+        }
 
-      ctx.log.debug("Initialization complete!")
-
-      idle(BaseData(sinkResponse.response))
+      init()
     }
+  }
+
+  private def init(): Behavior[ResultEvent] = Behaviors.withStash(100) {
+    buffer =>
+      Behaviors
+        .receive[ResultEvent] {
+          case (ctx, SinkResponse(response)) =>
+            ctx.log.debug("Initialization complete!")
+            buffer.unstashAll(idle(BaseData(response)))
+          case (ctx, StopMessage(_)) =>
+            // set ReceiveTimeout message to be sent if no message has been received for 5 seconds
+            ctx.setReceiveTimeout(5.seconds, Stop)
+            Behaviors.same
+
+          case (_, Stop) =>
+            // there have been no messages for 5 seconds, let's end this
+            Behaviors.stopped
+
+          case (_, Failed(ex)) =>
+            throw new InitializationException("Unable to setup SimonaSim.", ex)
+
+          case (ctx, unsupported) =>
+            ctx.log.warn(
+              "Received the following message while initializing sinks: {}",
+              unsupported
+            )
+            buffer.stash(unsupported)
+            Behaviors.same
+        }
+        .receiveSignal { case (ctx, PostStop) =>
+          ctx.log.debug("Result I/O completed.")
+          ctx.log.debug("Shutdown.")
+          Behaviors.same
+        }
   }
 
   private def idle(baseData: BaseData): Behavior[ResultEvent] =
@@ -310,7 +337,6 @@ object ResultEventListener extends Transformer3wResultSupport {
 
           case (Failed(ex), _) =>
             throw new InitializationException("Unable to setup SimonaSim.", ex)
-
         }
       }
       .receiveSignal { case (ctx, PostStop) =>
