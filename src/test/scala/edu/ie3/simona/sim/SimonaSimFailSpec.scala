@@ -6,7 +6,10 @@
 
 package edu.ie3.simona.sim
 
-import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import akka.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  ClassicActorSystemOps
+}
 import akka.actor.{Actor, ActorContext, ActorRef, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
@@ -18,7 +21,6 @@ import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   InitSimMessage,
-  ScheduleTriggerMessage,
   SimulationFailureMessage,
   StartScheduleMessage
 }
@@ -46,16 +48,12 @@ class SimonaSimFailSpec
   "A SimonaSim" should {
     "properly fail on uncaught exception" in {
       val timeAdvancer = TestProbe("timeAdvancer")
-      val primaryService = TestProbe("primaryService").ref
-      val weatherService = TestProbe("weatherService").ref
 
       val failSim = TestActorRef.create[FailSim](
         system,
         Props(
           new FailSim(
             system,
-            primaryService,
-            weatherService,
             timeAdvancer.ref.toTyped[SchedulerMessage]
           )
         )
@@ -78,14 +76,10 @@ class SimonaSimFailSpec
 object SimonaSimFailSpec {
   class FailSim(
       actorSystem: ActorSystem,
-      primaryService: ActorRef,
-      weatherService: ActorRef,
       timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage]
   ) extends SimonaSim(
         new DummySetup(
           actorSystem,
-          primaryService,
-          weatherService,
           timeAdvancer
         )
       ) {
@@ -103,8 +97,6 @@ object SimonaSimFailSpec {
 
   class DummySetup(
       actorSystem: ActorSystem,
-      primaryService: ActorRef,
-      weatherService: ActorRef,
       timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage],
       override val args: Array[String] = Array.empty[String]
   ) extends SimonaSetup {
@@ -124,7 +116,9 @@ object SimonaSimFailSpec {
     override def runtimeEventListener(
         context: ActorContext
     ): akka.actor.typed.ActorRef[RuntimeEvent] =
-      ActorRef.noSender.toTyped[RuntimeEvent]
+      akka.actor.testkit.typed.scaladsl
+        .TestProbe[RuntimeEvent]()(actorSystem.toTyped)
+        .ref
 
     /** Creates a sequence of system participant event listeners
       *
@@ -154,7 +148,7 @@ object SimonaSimFailSpec {
         scheduler: ActorRef
     ): (ActorRef, PrimaryServiceProxy.InitPrimaryServiceProxyStateData) =
       (
-        primaryService,
+        TestProbe("primaryService")(actorSystem).ref,
         InitPrimaryServiceProxyStateData(
           new Primary(None, None, None, None),
           ZonedDateTime.now()
@@ -176,7 +170,7 @@ object SimonaSimFailSpec {
         scheduler: ActorRef
     ): (ActorRef, WeatherService.InitWeatherServiceStateData) =
       (
-        weatherService,
+        TestProbe("weatherService")(actorSystem).ref,
         InitWeatherServiceStateData(
           new SimonaConfig.Simona.Input.Weather.Datasource(
             new SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource(
@@ -214,7 +208,7 @@ object SimonaSimFailSpec {
     override def scheduler(
         context: ActorContext,
         timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage]
-    ): ActorRef = ActorRef.noSender
+    ): ActorRef = TestProbe("scheduler")(actorSystem).ref
 
     /** Creates all the needed grid agents
       *
