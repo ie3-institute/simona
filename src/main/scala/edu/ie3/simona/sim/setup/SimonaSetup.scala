@@ -11,6 +11,8 @@ import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.event.RuntimeEvent
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 
@@ -43,7 +45,9 @@ trait SimonaSetup {
     * @return
     *   A sequence of actor references to runtime event listeners
     */
-  def runtimeEventListener(context: ActorContext): Seq[ActorRef]
+  def runtimeEventListener(
+      context: ActorContext
+  ): akka.actor.typed.ActorRef[RuntimeEvent]
 
   /** Creates a sequence of system participant event listeners
     *
@@ -102,16 +106,25 @@ trait SimonaSetup {
       scheduler: ActorRef
   ): ExtSimSetupData
 
+  def timeAdvancer(
+      context: ActorContext,
+      runtimeEventListener: akka.actor.typed.ActorRef[RuntimeEvent]
+  ): akka.actor.typed.ActorRef[SchedulerMessage]
+
   /** Creates a scheduler service
     *
     * @param context
     *   Actor context to use
+    * @param timeAdvancer
+    *   The time advancer
+    * @param runtimeEventListener
+    *   runtime event listener, if applicable
     * @return
     *   An actor reference to the scheduler
     */
   def scheduler(
       context: ActorContext,
-      runtimeEventListener: Seq[ActorRef]
+      timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage]
   ): ActorRef
 
   /** Creates all the needed grid agents

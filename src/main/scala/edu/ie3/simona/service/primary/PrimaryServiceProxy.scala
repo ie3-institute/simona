@@ -114,7 +114,7 @@ case class PrimaryServiceProxy(
        * messages */
       prepareStateData(primaryConfig, simulationStart) match {
         case Success(stateData) =>
-          sender() ! CompletionMessage(triggerId, newTrigger = None)
+          scheduler ! CompletionMessage(triggerId, newTrigger = None)
           context become onMessage(stateData)
         case Failure(exception) =>
           log.error(

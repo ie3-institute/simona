@@ -64,7 +64,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
           triggerId
         ) =>
       // triggering first time at init tick
-      sender() ! CompletionMessage(
+      scheduler ! CompletionMessage(
         triggerId,
         Some(
           ScheduleTriggerMessage(

@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.sim
 
+import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.{Actor, ActorContext, ActorRef, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
@@ -13,10 +14,13 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary
+import edu.ie3.simona.event.RuntimeEvent
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   InitSimMessage,
   ScheduleTriggerMessage,
-  SimulationFailureMessage
+  SimulationFailureMessage,
+  StartScheduleMessage
 }
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
@@ -41,25 +45,27 @@ class SimonaSimFailSpec
     ) {
   "A SimonaSim" should {
     "properly fail on uncaught exception" in {
-      val scheduler = TestProbe("scheduler")
+      val timeAdvancer = TestProbe("timeAdvancer")
       val primaryService = TestProbe("primaryService").ref
       val weatherService = TestProbe("weatherService").ref
 
       val failSim = TestActorRef.create[FailSim](
         system,
         Props(
-          new FailSim(system, primaryService, weatherService, scheduler.ref)
+          new FailSim(
+            system,
+            primaryService,
+            weatherService,
+            timeAdvancer.ref.toTyped[SchedulerMessage]
+          )
         )
       )
-      /*Expect the initialization triggers for weather and the primary service */
-      scheduler.expectMsgType[ScheduleTriggerMessage]
-      scheduler.expectMsgType[ScheduleTriggerMessage]
 
       /* Init the simulation */
       failSim ! InitSimMessage
 
       /* The sim asks the scheduler to start it's schedule */
-      scheduler.expectMsg(InitSimMessage)
+      timeAdvancer.expectMsg(StartScheduleMessage())
 
       /* Trigger the child to fail */
       failSim.underlyingActor.getChild ! "fail"
@@ -74,9 +80,14 @@ object SimonaSimFailSpec {
       actorSystem: ActorSystem,
       primaryService: ActorRef,
       weatherService: ActorRef,
-      scheduler: ActorRef
+      timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage]
   ) extends SimonaSim(
-        new DummySetup(actorSystem, primaryService, weatherService, scheduler)
+        new DummySetup(
+          actorSystem,
+          primaryService,
+          weatherService,
+          timeAdvancer
+        )
       ) {
     val child: ActorRef = context.actorOf(Props(new Loser))
     context.watch(child)
@@ -94,7 +105,7 @@ object SimonaSimFailSpec {
       actorSystem: ActorSystem,
       primaryService: ActorRef,
       weatherService: ActorRef,
-      scheduler: ActorRef,
+      timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage],
       override val args: Array[String] = Array.empty[String]
   ) extends SimonaSetup {
 
@@ -110,8 +121,10 @@ object SimonaSimFailSpec {
       * @return
       *   A sequence of actor references to runtime event listeners
       */
-    override def runtimeEventListener(context: ActorContext): Seq[ActorRef] =
-      Seq.empty[ActorRef]
+    override def runtimeEventListener(
+        context: ActorContext
+    ): akka.actor.typed.ActorRef[RuntimeEvent] =
+      ActorRef.noSender.toTyped[RuntimeEvent]
 
     /** Creates a sequence of system participant event listeners
       *
@@ -185,6 +198,11 @@ object SimonaSimFailSpec {
         )
       )
 
+    override def timeAdvancer(
+        context: ActorContext,
+        runtimeEventListener: akka.actor.typed.ActorRef[RuntimeEvent]
+    ): akka.actor.typed.ActorRef[SchedulerMessage] = timeAdvancer
+
     /** Creates a scheduler service
       *
       * @param context
@@ -194,8 +212,8 @@ object SimonaSimFailSpec {
       */
     override def scheduler(
         context: ActorContext,
-        runtimeEventListener: Seq[ActorRef]
-    ): ActorRef = scheduler
+        timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage]
+    ): ActorRef = ActorRef.noSender
 
     /** Creates all the needed grid agents
       *

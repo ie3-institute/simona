@@ -171,12 +171,14 @@ class GridAgent(
 
       log.debug("Je suis initialized")
 
-      goto(Idle) using gridAgentBaseData replying CompletionMessage(
+      environmentRefs.scheduler ! CompletionMessage(
         triggerId,
         Some(
           ScheduleTriggerMessage(ActivityStartTrigger(resolution), self)
         )
       )
+
+      goto(Idle) using gridAgentBaseData
   }
 
   when(Idle) {
@@ -195,7 +197,7 @@ class GridAgent(
 
       unstashAll()
 
-      goto(SimulateGrid) using gridAgentBaseData replying CompletionMessage(
+      environmentRefs.scheduler ! CompletionMessage(
         triggerId,
         Some(
           ScheduleTriggerMessage(
@@ -204,6 +206,8 @@ class GridAgent(
           )
         )
       )
+
+      goto(SimulateGrid) using gridAgentBaseData
 
     case Event(StopMessage(_), data: GridAgentBaseData) =>
       // shutdown children
