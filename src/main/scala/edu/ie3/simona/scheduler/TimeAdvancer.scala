@@ -36,7 +36,7 @@ object TimeAdvancer {
       checkWindow: Option[Int],
       endTick: Long
   ): Behavior[SchedulerMessage] = Behaviors.receivePartial {
-    case (_, ScheduleTriggerMessage(trigger, actorToBeScheduled, _)) =>
+    case (_, ScheduleTriggerMessage(trigger, actorToBeScheduled)) =>
       inactive(
         TimeAdvancerData(simulation, actorToBeScheduled.toTyped, endTick),
         eventListener.map(RuntimeNotifier(_, checkWindow)),

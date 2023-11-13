@@ -20,7 +20,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.trigger.Trigger
 import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
-import edu.ie3.simona.scheduler.ScheduleLock.Unlock
 import edu.ie3.simona.scheduler.SchedulerData.ActivationData
 
 /** Scheduler that activates actors at specific ticks and keeps them
@@ -50,7 +49,7 @@ object Scheduler {
 
       case (
             ctx,
-            ScheduleTriggerMessage(trigger, actorToBeScheduled, unlockKey)
+            ScheduleTriggerMessage(trigger, actorToBeScheduled)
           ) =>
         checkTriggerSchedule(lastActiveTick + 1L, trigger)
           .map(stopOnError(ctx, _))
@@ -66,13 +65,9 @@ object Scheduler {
             if (newEarliestTick != oldEarliestTick)
               data.parent ! ScheduleTriggerMessage(
                 ActivityStartTrigger(trigger.tick),
-                ctx.self.toClassic,
-                unlockKey
+                ctx.self.toClassic
               )
-            else {
-              // we don't need to escalate to the parent, this means that we can release the lock (if applicable)
-              unlockKey.foreach { case (lock, key) => lock ! Unlock(key) }
-            }
+
             inactive(updatedData, lastActiveTick)
           }
 
@@ -91,16 +86,11 @@ object Scheduler {
 
     case (
           ctx,
-          ScheduleTriggerMessage(trigger, actorToBeScheduled, unlockKey)
+          ScheduleTriggerMessage(trigger, actorToBeScheduled)
         ) =>
       checkTriggerSchedule(activationData.tick, trigger)
         .map(stopOnError(ctx, _))
         .getOrElse {
-          // if there's a lock:
-          // since we're active and any scheduled activation can still influence our next activation,
-          // we can directly unlock the lock with the key
-          unlockKey.foreach { case (lock, key) => lock ! Unlock(key) }
-
           sendCurrentTriggers(
             scheduleTrigger(data, trigger, actorToBeScheduled),
             activationData

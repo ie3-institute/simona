@@ -112,8 +112,7 @@ class DBFSAlgorithmParticipantSpec
                   PrimaryData,
                   InitializeStateData[PrimaryData]
                 ],
-                loadAgent,
-                _
+                loadAgent
               ) =>
             (loadAgent, initializeTrigger)
         }
