@@ -35,7 +35,7 @@ object TimeAdvancer {
       eventListener: Option[ActorRef[RuntimeEvent]],
       checkWindow: Option[Int],
       endTick: Long
-  ): Behavior[SchedulerMessage] = Behaviors.receive {
+  ): Behavior[SchedulerMessage] = Behaviors.receivePartial {
     case (_, ScheduleTriggerMessage(trigger, actorToBeScheduled, _)) =>
       inactive(
         TimeAdvancerData(simulation, actorToBeScheduled.toTyped, endTick),
@@ -69,7 +69,7 @@ object TimeAdvancer {
       startingTick: Long,
       nextActiveTick: Long,
       nextTriggerId: Long
-  ): Behavior[SchedulerMessage] = Behaviors.receive {
+  ): Behavior[SchedulerMessage] = Behaviors.receivePartial {
     case (_, StartScheduleMessage(pauseTick)) =>
       val updatedNotifier = notifier.map {
         _.starting(
@@ -116,7 +116,7 @@ object TimeAdvancer {
       activeTick: Long,
       expectedTriggerId: Long,
       pauseTick: Option[Long]
-  ): Behavior[SchedulerMessage] = Behaviors.receive {
+  ): Behavior[SchedulerMessage] = Behaviors.receivePartial {
     case (ctx, CompletionMessage(triggerId, nextTrigger)) =>
       checkCompletion(activeTick, expectedTriggerId, nextTrigger, triggerId)
         .map(endWithFailure(ctx, data.simulation, notifier, activeTick, _))
