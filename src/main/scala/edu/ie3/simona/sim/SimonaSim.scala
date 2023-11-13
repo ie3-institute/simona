@@ -79,7 +79,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
 
   /* start scheduler */
   val timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage] =
-    simonaSetup.timeAdvancer(context, runtimeEventListener)
+    simonaSetup.timeAdvancer(context, self, runtimeEventListener)
   val scheduler: ActorRef = simonaSetup.scheduler(context, timeAdvancer)
 
   /* start services */

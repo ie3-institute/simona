@@ -21,7 +21,9 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
   */
 object TimeAdvancer {
 
-  /** @param eventListener
+  /** @param simulation
+    *   The root actor of the simulation
+    * @param eventListener
     *   listener that receives runtime events
     * @param checkWindow
     *   interval in which check window messages are sent
@@ -29,13 +31,14 @@ object TimeAdvancer {
     *   last tick of the simulation
     */
   def apply(
+      simulation: akka.actor.ActorRef,
       eventListener: Option[ActorRef[RuntimeEvent]],
       checkWindow: Option[Int],
       endTick: Long
   ): Behavior[SchedulerMessage] = Behaviors.receive {
     case (_, ScheduleTriggerMessage(trigger, actorToBeScheduled, _)) =>
       inactive(
-        TimeAdvancerData(actorToBeScheduled.toTyped, endTick),
+        TimeAdvancerData(simulation, actorToBeScheduled.toTyped, endTick),
         eventListener.map(RuntimeNotifier(_, checkWindow)),
         trigger.tick,
         trigger.tick,
@@ -43,8 +46,7 @@ object TimeAdvancer {
       )
 
     case (ctx, Stop(errorMsg: String)) =>
-      // there is no event listener yet, thus just print to console
-      stopOnError(ctx, errorMsg)
+      endWithFailure(ctx, simulation, None, INIT_SIM_TICK, errorMsg)
   }
 
   /** TimeAdvancer is inactive and waiting for a StartScheduleMessage to start
@@ -91,7 +93,7 @@ object TimeAdvancer {
       )
 
     case (ctx, Stop(errorMsg: String)) =>
-      endWithFailure(ctx, notifier, startingTick, errorMsg)
+      endWithFailure(ctx, data.simulation, notifier, startingTick, errorMsg)
   }
 
   /** TimeAdvancer is active and waiting for the current activation of the
@@ -117,7 +119,7 @@ object TimeAdvancer {
   ): Behavior[SchedulerMessage] = Behaviors.receive {
     case (ctx, CompletionMessage(triggerId, nextTrigger)) =>
       checkCompletion(activeTick, expectedTriggerId, nextTrigger, triggerId)
-        .map(endWithFailure(ctx, notifier, activeTick, _))
+        .map(endWithFailure(ctx, data.simulation, notifier, activeTick, _))
         .getOrElse {
           val nextTriggerId = triggerId + 1L
 
@@ -183,7 +185,7 @@ object TimeAdvancer {
         }
 
     case (ctx, Stop(errorMsg: String)) =>
-      endWithFailure(ctx, notifier, activeTick, errorMsg)
+      endWithFailure(ctx, data.simulation, notifier, activeTick, errorMsg)
 
   }
 
@@ -191,6 +193,8 @@ object TimeAdvancer {
       data: TimeAdvancerData,
       notifier: Option[RuntimeNotifier]
   ): Behavior[SchedulerMessage] = {
+    data.simulation ! SimulationSuccessfulMessage
+
     notifier.foreach {
       // we do not want a check window message for the endTick
       _.completing(data.endTick - 1)
@@ -203,11 +207,14 @@ object TimeAdvancer {
 
   private def endWithFailure(
       ctx: ActorContext[SchedulerMessage],
+      simulation: akka.actor.ActorRef,
       notifier: Option[RuntimeNotifier],
       tick: Long,
       errorMsg: String
   ): Behavior[SchedulerMessage] = {
+    simulation ! SimulationFailureMessage
     notifier.foreach(_.error(tick, errorMsg))
+
     stopOnError(ctx, errorMsg)
   }
 
@@ -230,12 +237,15 @@ object TimeAdvancer {
   /** This data container stores objects that are not supposed to change for a
     * [[TimeAdvancer]] during simulation
     *
+    * @param simulation
+    *   The root actor of the simulation
     * @param schedulee
     *   scheduler or other actor whose time advancement is controlled
     * @param endTick
     *   the last tick of the simulation
     */
   private final case class TimeAdvancerData(
+      simulation: akka.actor.ActorRef,
       schedulee: ActorRef[SchedulerMessage],
       endTick: Long
   )

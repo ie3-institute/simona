@@ -59,6 +59,7 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
 
   override def timeAdvancer(
       context: ActorContext,
+      simulation: ActorRef,
       runtimeEventListener: akka.actor.typed.ActorRef[RuntimeEvent]
   ): akka.actor.typed.ActorRef[SchedulerMessage] =
     throw new NotImplementedException("This is a dummy setup")

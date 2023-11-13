@@ -200,6 +200,7 @@ object SimonaSimFailSpec {
 
     override def timeAdvancer(
         context: ActorContext,
+        simulation: ActorRef,
         runtimeEventListener: akka.actor.typed.ActorRef[RuntimeEvent]
     ): akka.actor.typed.ActorRef[SchedulerMessage] = timeAdvancer
 

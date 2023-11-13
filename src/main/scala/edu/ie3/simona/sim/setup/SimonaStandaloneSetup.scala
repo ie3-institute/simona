@@ -217,6 +217,7 @@ class SimonaStandaloneSetup(
 
   override def timeAdvancer(
       context: ActorContext,
+      simulation: ActorRef,
       runtimeEventListener: akka.actor.typed.ActorRef[RuntimeEvent]
   ): akka.actor.typed.ActorRef[SchedulerMessage] = {
     val startDateTime = TimeUtil.withDefaults.toZonedDateTime(
@@ -228,6 +229,7 @@ class SimonaStandaloneSetup(
 
     context.spawn(
       TimeAdvancer(
+        simulation,
         Some(runtimeEventListener),
         simonaConfig.simona.time.schedulerReadyCheckWindow,
         endDateTime.toTick(startDateTime)
