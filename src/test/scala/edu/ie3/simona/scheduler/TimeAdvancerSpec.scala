@@ -104,8 +104,6 @@ class TimeAdvancerSpec
       doneMsg.tick shouldBe 7200
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
-
-      scheduler.expectTerminated(timeAdvancer)
     }
 
     "started without checkWindow and pauseTick" in {
@@ -167,8 +165,6 @@ class TimeAdvancerSpec
       doneMsg.tick shouldBe 3600
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
-
-      scheduler.expectTerminated(timeAdvancer)
     }
 
     "paused and started after initialization" in {
@@ -230,8 +226,6 @@ class TimeAdvancerSpec
       doneMsg.tick shouldBe 3600
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
-
-      scheduler.expectTerminated(timeAdvancer)
     }
 
     "paused and started and there is a gap between StartSchedule tick and next activation tick" in {
@@ -305,8 +299,6 @@ class TimeAdvancerSpec
       doneMsg.tick shouldBe 5400
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
-
-      scheduler.expectTerminated(timeAdvancer)
     }
 
     "paused and endTick - pauseScheduleAtTick == 1" in {
@@ -377,8 +369,6 @@ class TimeAdvancerSpec
       doneMsg.tick shouldBe 3600
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
-
-      scheduler.expectTerminated(timeAdvancer)
     }
 
     "activation has been scheduled after endTick" in {
@@ -421,8 +411,6 @@ class TimeAdvancerSpec
       doneMsg.tick shouldBe 3600
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
-
-      scheduler.expectTerminated(timeAdvancer)
     }
 
     "no next trigger has been supplied" in {
@@ -466,8 +454,6 @@ class TimeAdvancerSpec
       doneMsg.tick shouldBe 3600
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
-
-      scheduler.expectTerminated(timeAdvancer)
     }
 
     "endTick < pauseScheduleAtTick" in {
@@ -509,8 +495,6 @@ class TimeAdvancerSpec
       doneMsg.tick shouldBe 3600
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
-
-      scheduler.expectTerminated(timeAdvancer)
     }
 
     "endTick == pauseScheduleAtTick" in {
@@ -552,8 +536,6 @@ class TimeAdvancerSpec
       doneMsg.tick shouldBe 1800
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
-
-      scheduler.expectTerminated(timeAdvancer)
     }
   }
 

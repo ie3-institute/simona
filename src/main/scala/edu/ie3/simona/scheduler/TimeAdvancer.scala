@@ -197,7 +197,8 @@ object TimeAdvancer {
         .finishing(data.endTick)
     }
 
-    Behaviors.stopped
+    // we do not stop here, but wait until we are terminated
+    Behaviors.empty
   }
 
   private def endWithFailure(

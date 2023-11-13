@@ -131,6 +131,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
   /* watch all actors */
   systemParticipantsListener.foreach(context.watch)
   context.watch(runtimeEventListener.toClassic)
+  context.watch(timeAdvancer.toClassic)
   context.watch(scheduler)
   context.watch(primaryServiceProxy)
   context.watch(weatherService)
