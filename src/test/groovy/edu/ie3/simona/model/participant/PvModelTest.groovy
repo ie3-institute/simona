@@ -9,6 +9,7 @@ package edu.ie3.simona.model.participant
 import squants.Dimensionless
 import squants.Each$
 import squants.energy.Kilowatts$
+import squants.space.Degrees$
 import squants.space.Radians$
 import squants.space.SquareMeters$
 
@@ -105,8 +106,8 @@ class PvModelTest extends Specification {
         QControl.apply(pvInput.qCharacteristics),
         Sq.create(pvInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
         pvInput.cosPhiRated,
-        pvInput.node.geoPosition.y,
-        pvInput.node.geoPosition.x,
+        Sq.create(pvInput.node.geoPosition.y, Degrees$.MODULE$),
+        Sq.create(pvInput.node.geoPosition.x, Degrees$.MODULE$),
         pvInput.albedo,
         Sq.create(pvInput.etaConv.to(PU).value.doubleValue(), Each$.MODULE$),
         Sq.create(pvInput.azimuth.to(RADIAN).value.doubleValue(), Radians$.MODULE$),
