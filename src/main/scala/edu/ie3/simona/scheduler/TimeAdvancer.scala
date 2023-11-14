@@ -7,19 +7,44 @@
 package edu.ie3.simona.scheduler
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
-import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.typed.{ActorRef, Behavior}
 import edu.ie3.simona.actor.ActorUtil.stopOnError
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage._
-import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
+import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+  Completion,
+  ScheduleActivation
+}
+import edu.ie3.simona.sim.SimMessage.{
+  SimulationFailureMessage,
+  SimulationSuccessfulMessage
+}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
 /** Unit that is in control of time advancement within the simulation.
   * Represents the root entity of any scheduler hierarchy.
   */
 object TimeAdvancer {
+
+  trait Incoming
+
+  /** Starts simulation by activating the next (or first) tick
+    *
+    * @param pauseTick
+    *   Last tick that can be activated or completed before the simulation is
+    *   paused
+    */
+  final case class StartSimMessage(
+      pauseTick: Option[Long] = None
+  ) extends Incoming
+
+  /** Notifies TimeAdvancer that the simulation should stop because of some
+    * error
+    *
+    * @param errorMsg
+    *   The error message
+    */
+  final case class Stop(errorMsg: String) extends Incoming
 
   /** @param simulation
     *   The root actor of the simulation
@@ -35,14 +60,13 @@ object TimeAdvancer {
       eventListener: Option[ActorRef[RuntimeEvent]],
       checkWindow: Option[Int],
       endTick: Long
-  ): Behavior[SchedulerMessage] = Behaviors.receivePartial {
-    case (_, ScheduleTriggerMessage(trigger, actorToBeScheduled, _)) =>
+  ): Behavior[Incoming] = Behaviors.receivePartial {
+    case (_, ScheduleActivation(actor, tick, _)) =>
       inactive(
-        TimeAdvancerData(simulation, actorToBeScheduled.toTyped, endTick),
+        TimeAdvancerData(simulation, actor, endTick),
         eventListener.map(RuntimeNotifier(_, checkWindow)),
-        trigger.tick,
-        trigger.tick,
-        0L
+        tick,
+        tick
       )
 
     case (ctx, Stop(errorMsg: String)) =>
@@ -60,17 +84,14 @@ object TimeAdvancer {
     *   pause
     * @param nextActiveTick
     *   tick that the schedulee wants to be activated for next
-    * @param nextTriggerId
-    *   next trigger id to use for activation
     */
   private def inactive(
       data: TimeAdvancerData,
       notifier: Option[RuntimeNotifier],
       startingTick: Long,
-      nextActiveTick: Long,
-      nextTriggerId: Long
-  ): Behavior[SchedulerMessage] = Behaviors.receivePartial {
-    case (_, StartScheduleMessage(pauseTick)) =>
+      nextActiveTick: Long
+  ): Behavior[Incoming] = Behaviors.receivePartial {
+    case (_, StartSimMessage(pauseTick)) =>
       val updatedNotifier = notifier.map {
         _.starting(
           startingTick,
@@ -79,16 +100,12 @@ object TimeAdvancer {
         )
       }
 
-      data.schedulee ! TriggerWithIdMessage(
-        ActivityStartTrigger(nextActiveTick),
-        nextTriggerId
-      )
+      data.schedulee ! Activation(nextActiveTick)
 
       active(
         data,
         updatedNotifier,
         nextActiveTick,
-        nextTriggerId,
         pauseTick
       )
 
@@ -105,8 +122,6 @@ object TimeAdvancer {
     *   notifier for runtime events
     * @param activeTick
     *   tick that is currently active
-    * @param expectedTriggerId
-    *   the trigger id that we expect to receive with completion
     * @param pauseTick
     *   the tick that we should pause at (if applicable)
     */
@@ -114,26 +129,23 @@ object TimeAdvancer {
       data: TimeAdvancerData,
       notifier: Option[RuntimeNotifier],
       activeTick: Long,
-      expectedTriggerId: Long,
       pauseTick: Option[Long]
-  ): Behavior[SchedulerMessage] = Behaviors.receivePartial {
-    case (ctx, CompletionMessage(triggerId, nextTrigger)) =>
-      checkCompletion(activeTick, expectedTriggerId, nextTrigger, triggerId)
+  ): Behavior[Incoming] = Behaviors.receivePartial {
+    case (ctx, Completion(_, maybeNewTick)) =>
+      checkCompletion(activeTick, maybeNewTick)
         .map(endWithFailure(ctx, data.simulation, notifier, activeTick, _))
         .getOrElse {
-          val nextTriggerId = triggerId + 1L
 
-          (nextTrigger, pauseTick) match {
-            case (Some(nextTrig), _) if nextTrig.trigger.tick > data.endTick =>
+          (maybeNewTick, pauseTick) match {
+            case (Some(newTick), _) if newTick > data.endTick =>
               // next tick is after endTick, finish simulation
               endSuccessfully(data, notifier)
 
-            case (Some(nextTrig), Some(pauseTick))
-                if nextTrig.trigger.tick > pauseTick =>
+            case (Some(newTick), Some(pauseTick)) if newTick > pauseTick =>
               // next tick is after pause tick, pause sim
               val updatedNotifier = notifier.map {
                 _.completing(
-                  math.min(nextTrig.trigger.tick - 1, pauseTick)
+                  math.min(newTick - 1, pauseTick)
                 )
                   .pausing(pauseTick)
               }
@@ -143,19 +155,18 @@ object TimeAdvancer {
                 data,
                 updatedNotifier,
                 pauseTick + 1,
-                nextTrig.trigger.tick,
-                nextTriggerId
+                newTick
               )
 
-            case (Some(nextTrig), _) =>
+            case (Some(newTick), _) =>
               // next tick is ok, continue
               val updatedNotifier = notifier.map { notifier =>
                 val notifierCompleted =
-                  notifier.completing(nextTrig.trigger.tick - 1)
+                  notifier.completing(newTick - 1)
 
                 if (activeTick == INIT_SIM_TICK)
                   notifierCompleted.starting(
-                    nextTrig.trigger.tick,
+                    newTick,
                     pauseTick,
                     data.endTick
                   )
@@ -164,15 +175,11 @@ object TimeAdvancer {
               }
 
               // activate next
-              data.schedulee ! TriggerWithIdMessage(
-                nextTrig.trigger,
-                nextTriggerId
-              )
+              data.schedulee ! Activation(newTick)
               active(
                 data,
                 updatedNotifier,
-                nextTrig.trigger.tick,
-                nextTriggerId,
+                newTick,
                 pauseTick
               )
 
@@ -192,7 +199,7 @@ object TimeAdvancer {
   private def endSuccessfully(
       data: TimeAdvancerData,
       notifier: Option[RuntimeNotifier]
-  ): Behavior[SchedulerMessage] = {
+  ): Behavior[Incoming] = {
     data.simulation ! SimulationSuccessfulMessage
 
     notifier.foreach {
@@ -206,12 +213,12 @@ object TimeAdvancer {
   }
 
   private def endWithFailure(
-      ctx: ActorContext[SchedulerMessage],
+      ctx: ActorContext[Incoming],
       simulation: akka.actor.ActorRef,
       notifier: Option[RuntimeNotifier],
       tick: Long,
       errorMsg: String
-  ): Behavior[SchedulerMessage] = {
+  ): Behavior[Incoming] = {
     simulation ! SimulationFailureMessage
     notifier.foreach(_.error(tick, errorMsg))
 
@@ -220,19 +227,11 @@ object TimeAdvancer {
 
   private def checkCompletion(
       activeTick: Long,
-      expectedTriggerId: Long,
-      nextTrigger: Option[ScheduleTriggerMessage],
-      triggerId: Long
+      maybeNewTick: Option[Long]
   ): Option[String] =
-    Option
-      .when(triggerId != expectedTriggerId) {
-        s"Received completion message with trigger id $triggerId, although $expectedTriggerId was expected."
-      }
-      .orElse {
-        nextTrigger.filter(_.trigger.tick <= activeTick).map { nextTrig =>
-          s"The next trigger has tick ${nextTrig.trigger.tick}, although current active tick was $activeTick."
-        }
-      }
+    maybeNewTick.filter(_ <= activeTick).map { newTick =>
+      s"The next trigger has tick $newTick, although current active tick was $activeTick."
+    }
 
   /** This data container stores objects that are not supposed to change for a
     * [[TimeAdvancer]] during simulation
@@ -246,7 +245,7 @@ object TimeAdvancer {
     */
   private final case class TimeAdvancerData(
       simulation: akka.actor.ActorRef,
-      schedulee: ActorRef[SchedulerMessage],
+      schedulee: ActorRef[Activation],
       endTick: Long
   )
 }

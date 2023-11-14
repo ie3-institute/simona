@@ -12,10 +12,10 @@ import java.util.concurrent.TimeUnit
 import akka.pattern.ask
 import akka.util.Timeout
 import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, SimonaConfig}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  InitSimMessage,
+import edu.ie3.simona.sim.SimMessage.{
   SimulationFailureMessage,
-  SimulationSuccessfulMessage
+  SimulationSuccessfulMessage,
+  StartSimulation
 }
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
@@ -60,7 +60,7 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
     )
 
     // run the simulation
-    val terminated = simonaSim ? InitSimMessage
+    val terminated = simonaSim ? StartSimulation()
 
     Await.result(terminated, timeout.duration) match {
       case SimulationFailureMessage | SimulationSuccessfulMessage =>

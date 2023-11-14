@@ -29,26 +29,6 @@ object SchedulerMessage {
     */
   case object InitSimMessage extends SchedulerMessage
 
-  /** Starts simulation by activating the next (or first) tick
-    * @param pauseTick
-    *   Last tick that can be activated or completed before the simulation is
-    *   paused
-    *
-    * TODO rename to StartSimMessage
-    */
-  final case class StartScheduleMessage(
-      pauseTick: Option[Long] = None
-  ) extends SchedulerMessage
-
-  /** Notifies TimeAdvancer that the simulation should stop because of some
-    * error
-    * @param errorMsg
-    *   The error message
-    *
-    * TODO only for TimeAdvancer
-    */
-  final case class Stop(errorMsg: String) extends SchedulerMessage
-
   /** schedule a new trigger TO the [[edu.ie3.simona.scheduler.Scheduler]]. This
     * message should send only to the [[edu.ie3.simona.scheduler.Scheduler]]
     *
@@ -91,15 +71,6 @@ object SchedulerMessage {
       reason: String,
       receiverActor: ActorRef
   ) extends SchedulerMessage
-
-  /** Reported back from the scheduler if an error occurred during the
-    * simulation
-    */
-  case object SimulationFailureMessage extends SchedulerMessage
-
-  /** Reported back from the scheduler if the simulation terminated as expected
-    */
-  case object SimulationSuccessfulMessage extends SchedulerMessage
 
   /** Reported back by the superior [[edu.ie3.simona.agent.grid.GridAgent]] to
     * the scheduler of the power flow of the

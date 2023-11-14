@@ -22,13 +22,20 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
-import edu.ie3.simona.ontology.messages.{SchedulerMessage, StopMessage}
+import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeGridAgentTrigger,
   InitializeServiceTrigger
 }
+import edu.ie3.simona.scheduler.TimeAdvancer
+import edu.ie3.simona.scheduler.TimeAdvancer.StartSimMessage
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
+import edu.ie3.simona.sim.SimMessage.{
+  SimulationFailureMessage,
+  SimulationSuccessfulMessage,
+  StartSimulation
+}
 import edu.ie3.simona.sim.SimonaSim.{
   EmergencyShutdownInitiated,
   SimonaSimStateData
@@ -78,7 +85,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
     simonaSetup.runtimeEventListener(context)
 
   /* start scheduler */
-  val timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage] =
+  val timeAdvancer: akka.actor.typed.ActorRef[TimeAdvancer.Incoming] =
     simonaSetup.timeAdvancer(context, self, runtimeEventListener)
   val scheduler: ActorRef = simonaSetup.scheduler(context, timeAdvancer)
 
@@ -151,11 +158,11 @@ class SimonaSim(simonaSetup: SimonaSetup)
       }
 
       // tell scheduler to process all init messages
-      timeAdvancer ! StartScheduleMessage()
+      timeAdvancer ! StartSimMessage()
       context become simonaSimReceive(data.copy(initSimSender = sender()))
 
-    case StartScheduleMessage(pauseScheduleAtTick) =>
-      timeAdvancer ! StartScheduleMessage(pauseScheduleAtTick)
+    case StartSimulation(pauseScheduleAtTick) =>
+      timeAdvancer ! StartSimMessage(pauseScheduleAtTick)
 
     case msg @ (SimulationSuccessfulMessage | SimulationFailureMessage) =>
       val simulationSuccessful = msg match {

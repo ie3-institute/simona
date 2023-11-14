@@ -27,7 +27,6 @@ import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
-import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeExtSimAdapterTrigger,
   InitializeServiceTrigger
@@ -219,7 +218,7 @@ class SimonaStandaloneSetup(
       context: ActorContext,
       simulation: ActorRef,
       runtimeEventListener: akka.actor.typed.ActorRef[RuntimeEvent]
-  ): akka.actor.typed.ActorRef[SchedulerMessage] = {
+  ): akka.actor.typed.ActorRef[TimeAdvancer.Incoming] = {
     val startDateTime = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
@@ -240,7 +239,7 @@ class SimonaStandaloneSetup(
 
   override def scheduler(
       context: ActorContext,
-      timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage]
+      timeAdvancer: akka.actor.typed.ActorRef[TimeAdvancer.Incoming]
   ): ActorRef =
     context
       .spawn(

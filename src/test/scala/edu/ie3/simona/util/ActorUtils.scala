@@ -6,51 +6,31 @@
 
 package edu.ie3.simona.util
 
-import akka.actor.testkit.typed.scaladsl.FishingOutcomes.fail
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorRef
-import akka.actor.typed.scaladsl.adapter.TypedActorRefOps
-import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.Completion
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessageTyped}
 import edu.ie3.simona.ontology.trigger.Trigger
-import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 object ActorUtils {
   implicit class RichTriggeredAgent(
-      private val triggeredAgent: TestProbe[TriggerWithIdMessage]
+      private val triggeredAgent: TestProbe[Activation]
   ) {
 
     def expectTriggerAndComplete[T <: Trigger](
-        scheduler: ActorRef[SchedulerMessage],
+        scheduler: ActorRef[SchedulerMessageTyped],
         expectedTick: Long,
         newTick: Option[Long] = None
     ): Unit = {
       val receivedTrigger =
-        triggeredAgent.expectMessageType[TriggerWithIdMessage]
+        triggeredAgent.expectMessageType[Activation]
 
-      receivedTrigger.trigger match {
-        case trigger: T =>
-          trigger.tick shouldBe expectedTick
-        case unexpected =>
-          fail(s"Received unexpected trigger $unexpected")
-      }
+      receivedTrigger.tick shouldBe expectedTick
 
-      val newTrigger =
-        newTick.map(tick =>
-          ScheduleTriggerMessage(
-            ActivityStartTrigger(tick),
-            triggeredAgent.ref.toClassic
-          )
-        )
-
-      scheduler ! CompletionMessage(
-        receivedTrigger.triggerId,
-        newTrigger
+      scheduler ! Completion(
+        triggeredAgent.ref,
+        newTick
       )
     }
 

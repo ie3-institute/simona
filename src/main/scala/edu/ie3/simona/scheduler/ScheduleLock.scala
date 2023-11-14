@@ -8,12 +8,11 @@ package edu.ie3.simona.scheduler
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
-import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  TriggerWithIdMessage
+import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+  Completion,
+  ScheduleActivation
 }
-import edu.ie3.simona.ontology.trigger.Trigger
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessageTyped}
 
 import java.util.UUID
 
@@ -26,31 +25,48 @@ import java.util.UUID
 object ScheduleLock {
   trait LockMsg
 
-  /** Trigger that should be scheduled for a tick that we want to prevent the
-    * scheduler from completing
-    * @param parent
-    *   the scheduler to lock
-    * @param tick
-    *   the tick to lock. Is only needed for the [[Trigger]] superclass
-    */
-  final case class InitLock(
-      parent: ActorRef[SchedulerMessage],
-      tick: Long
-  ) extends Trigger
-
   /** @param key
     *   the key that unlocks (part of) the lock
     */
   final case class Unlock(key: UUID) extends LockMsg
 
-  /** @param awaitedKeys
-    *   the keys that have to be supplied in order to unlock this lock
+  private final case class WrappedActivation(tick: Long) extends LockMsg
+
+  /** @param scheduler
+    *   The scheduler to lock
+    * @param awaitedKeys
+    *   The keys that have to be supplied in order to unlock this lock
+    * @param tick
+    *   The tick to lock
     */
-  def apply(awaitedKeys: Set[UUID]): Behavior[LockMsg] =
+  def apply(
+      scheduler: ActorRef[SchedulerMessageTyped],
+      awaitedKeys: Set[UUID],
+      tick: Long
+  ): Behavior[LockMsg] =
+    Behaviors.setup { ctx =>
+      val adapter =
+        ctx.messageAdapter[Activation](msg => WrappedActivation(msg.tick))
+      scheduler ! ScheduleActivation(adapter, tick)
+
+      uninitialized(scheduler, awaitedKeys, adapter)
+    }
+
+  /** @param scheduler
+    *   The scheduler to lock
+    * @param awaitedKeys
+    *   The keys that have to be supplied in order to unlock this lock
+    * @return
+    */
+  def uninitialized(
+      scheduler: ActorRef[SchedulerMessageTyped],
+      awaitedKeys: Set[UUID],
+      adapter: ActorRef[Activation]
+  ): Behavior[LockMsg] =
     Behaviors.withStash(100) { buffer =>
       Behaviors.receiveMessage {
-        case TriggerWithIdMessage(InitLock(parent, _), triggerId) =>
-          buffer.unstashAll(active(awaitedKeys, parent, triggerId))
+        case WrappedActivation(_) =>
+          buffer.unstashAll(active(awaitedKeys, scheduler, adapter))
 
         case unlock: Unlock =>
           // stash unlock messages until we are initialized
@@ -61,15 +77,15 @@ object ScheduleLock {
 
   private def active(
       awaitedKeys: Set[UUID],
-      parent: ActorRef[SchedulerMessage],
-      triggerId: Long
+      parent: ActorRef[SchedulerMessageTyped],
+      adapter: ActorRef[Activation]
   ): Behavior[LockMsg] = Behaviors.receiveMessage { case Unlock(key) =>
     val updatedKeys = awaitedKeys - key
 
     if (updatedKeys.nonEmpty)
-      active(updatedKeys, parent, triggerId)
+      active(updatedKeys, parent, adapter)
     else {
-      parent ! CompletionMessage(triggerId)
+      parent ! Completion(adapter)
       Behaviors.stopped
     }
   }

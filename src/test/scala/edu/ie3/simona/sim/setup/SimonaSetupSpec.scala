@@ -15,7 +15,7 @@ import edu.ie3.datamodel.models.input.connector.{
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.ontology.messages.SchedulerMessage
+import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.UnitSpec
@@ -61,12 +61,12 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
       context: ActorContext,
       simulation: ActorRef,
       runtimeEventListener: akka.actor.typed.ActorRef[RuntimeEvent]
-  ): akka.actor.typed.ActorRef[SchedulerMessage] =
+  ): akka.actor.typed.ActorRef[TimeAdvancer.Incoming] =
     throw new NotImplementedException("This is a dummy setup")
 
   override def scheduler(
       context: ActorContext,
-      timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage]
+      timeAdvancer: akka.actor.typed.ActorRef[TimeAdvancer.Incoming]
   ): ActorRef = throw new NotImplementedException("This is a dummy setup")
 
   override def gridAgents(

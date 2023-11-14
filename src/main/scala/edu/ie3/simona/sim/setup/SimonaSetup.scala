@@ -12,7 +12,7 @@ import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.ontology.messages.SchedulerMessage
+import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 
@@ -110,7 +110,7 @@ trait SimonaSetup {
       context: ActorContext,
       simulation: ActorRef,
       runtimeEventListener: akka.actor.typed.ActorRef[RuntimeEvent]
-  ): akka.actor.typed.ActorRef[SchedulerMessage]
+  ): akka.actor.typed.ActorRef[TimeAdvancer.Incoming]
 
   /** Creates a scheduler service
     *
@@ -118,14 +118,12 @@ trait SimonaSetup {
     *   Actor context to use
     * @param timeAdvancer
     *   The time advancer
-    * @param runtimeEventListener
-    *   runtime event listener, if applicable
     * @return
     *   An actor reference to the scheduler
     */
   def scheduler(
       context: ActorContext,
-      timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage]
+      timeAdvancer: akka.actor.typed.ActorRef[TimeAdvancer.Incoming]
   ): ActorRef
 
   /** Creates all the needed grid agents
