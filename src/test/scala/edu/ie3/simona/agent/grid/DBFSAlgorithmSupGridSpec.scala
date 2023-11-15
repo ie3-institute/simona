@@ -22,10 +22,12 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvideGridPowerMessage,
   RequestGridPowerMessage
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.Completion
+import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+  Completion,
+  ScheduleActivation
+}
 import edu.ie3.simona.ontology.trigger.Trigger.{
   FinishGridSimulationTrigger,
-  InitializeGridAgentTrigger,
   StartGridSimulationTrigger
 }
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
@@ -78,28 +80,31 @@ class DBFSAlgorithmSupGridSpec
   val resultListener: TestProbe = TestProbe("resultListener")
 
   "A GridAgent actor in superior position with async test" should {
-    val subnetGatesToActorRef: Map[SubGridGate, ActorRef] =
-      ehvSubGridGates.map(gate => gate -> hvGrid.ref).toMap
-
-    val gridAgentInitData =
-      GridAgentInitData(
-        ehvGridContainer,
-        subnetGatesToActorRef,
-        RefSystem("5000 MVA", "380 kV")
-      )
-
     val superiorGridAgentFSM = system.actorOf(
       GridAgent.props(
         environmentRefs,
         simonaConfig,
-        gridAgentInitData,
         listener = Iterable(resultListener.ref)
       )
     )
 
-    s"initialize itself when it receives a $InitializeGridAgentTrigger with corresponding data" in {
-      scheduler.send(superiorGridAgentFSM, Activation(INIT_SIM_TICK))
+    s"initialize itself when it receives an init activation" in {
+      val subnetGatesToActorRef: Map[SubGridGate, ActorRef] =
+        ehvSubGridGates.map(gate => gate -> hvGrid.ref).toMap
 
+      val gridAgentInitData =
+        GridAgentInitData(
+          ehvGridContainer,
+          subnetGatesToActorRef,
+          RefSystem("5000 MVA", "380 kV")
+        )
+
+      superiorGridAgentFSM ! GridAgent.Init(gridAgentInitData)
+      scheduler.expectMsg(
+        ScheduleActivation(superiorGridAgentFSM.toTyped, INIT_SIM_TICK)
+      )
+
+      scheduler.send(superiorGridAgentFSM, Activation(INIT_SIM_TICK))
       scheduler.expectMsg(Completion(superiorGridAgentFSM.toTyped, Some(3600)))
 
     }

@@ -142,7 +142,7 @@ trait SimonaSetup {
       context: ActorContext,
       environmentRefs: EnvironmentRefs,
       systemParticipantListener: Seq[ActorRef]
-  ): Map[ActorRef, GridAgentInitData]
+  ): Iterable[ActorRef]
 
   /** SIMONA links sub grids connected by a three winding transformer a bit
     * different. Therefore, the internal node has to be set as superior node.

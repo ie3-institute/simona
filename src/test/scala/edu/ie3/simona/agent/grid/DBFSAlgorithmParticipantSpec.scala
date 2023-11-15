@@ -70,46 +70,50 @@ class DBFSAlgorithmParticipantSpec
   )
 
   "Test participant" should {
-    // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
-    val subGridGateToActorRef: Map[SubGridGate, ActorRef] =
-      hvSubGridGates.map { gate =>
-        gate -> superiorGridAgent.ref
-      }.toMap
-
-    val gridAgentInitData = GridAgentInitData(
-      hvGridContainer,
-      subGridGateToActorRef,
-      RefSystem("2000 MVA", "110 kV")
-    )
-
     val gridAgentWithParticipants = system.actorOf(
       GridAgent.props(
         environmentRefs,
         simonaConfig,
-        gridAgentInitData,
         Iterable(resultListener.ref)
       )
     )
 
     s"initialize itself when it receives an init activation" in {
 
+      // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
+      val subGridGateToActorRef: Map[SubGridGate, ActorRef] =
+        hvSubGridGates.map { gate =>
+          gate -> superiorGridAgent.ref
+        }.toMap
+
+      val gridAgentInitData = GridAgentInitData(
+        hvGridContainer,
+        subGridGateToActorRef,
+        RefSystem("2000 MVA", "110 kV")
+      )
+
+      gridAgentWithParticipants ! GridAgent.Init(gridAgentInitData)
+      scheduler.expectMsg(
+        ScheduleActivation(gridAgentWithParticipants.toTyped, INIT_SIM_TICK)
+      )
+
       // send init data to agent and expect a CompletionMessage
       scheduler.send(gridAgentWithParticipants, Activation(INIT_SIM_TICK))
 
-      val (loadAgent, initializeTrigger) =
+      val loadAgent =
         scheduler.expectMsgPF() {
           case ScheduleActivation(
                 loadAgent,
                 INIT_SIM_TICK,
                 _
               ) =>
-            (loadAgent, initializeTrigger)
+            loadAgent
         }
 
       scheduler.expectMsg(
-        ScheduleActivation(
+        Completion(
           gridAgentWithParticipants.toTyped,
-          3600
+          Some(3600)
         )
       )
 

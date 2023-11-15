@@ -19,14 +19,10 @@ import akka.actor.{
 }
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
 import edu.ie3.simona.ontology.messages.StopMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  InitializeGridAgentTrigger,
-  InitializeServiceTrigger
-}
+import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.TimeAdvancer.StartSimMessage
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
@@ -122,7 +118,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
   }
 
   /* start grid agents  */
-  val gridAgents: Map[ActorRef, GridAgentInitData] = simonaSetup.gridAgents(
+  val gridAgents: Iterable[ActorRef] = simonaSetup.gridAgents(
     context,
     EnvironmentRefs(
       scheduler,
@@ -140,21 +136,13 @@ class SimonaSim(simonaSetup: SimonaSetup)
   context.watch(scheduler)
   context.watch(primaryServiceProxy)
   context.watch(weatherService)
-  gridAgents.keySet.foreach(context.watch)
+  gridAgents.foreach(context.watch)
 
   override def receive: Receive = simonaSimReceive(SimonaSimStateData())
 
   def simonaSimReceive(data: SimonaSim.SimonaSimStateData): Receive = {
 
     case InitSim =>
-      // initialize grid agents
-      gridAgents.foreach { case (gridAgent, gridAgentInitData) =>
-        scheduler ! ScheduleTriggerMessage(
-          InitializeGridAgentTrigger(gridAgentInitData),
-          gridAgent
-        )
-      }
-
       // tell scheduler to process all init messages
       timeAdvancer ! StartSimMessage()
       context become simonaSimReceive(data.copy(initSimSender = sender()))
@@ -262,7 +250,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
   def stopAllChildrenGracefully(
       simulationSuccessful: Boolean
   ): Unit = {
-    gridAgents.foreach { case (gridAgentRef, _) =>
+    gridAgents.foreach { gridAgentRef =>
       context.unwatch(gridAgentRef)
       gridAgentRef ! StopMessage(simulationSuccessful)
     }

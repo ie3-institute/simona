@@ -26,11 +26,11 @@ import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessag
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.simona.ontology.trigger.Trigger.{
   FinishGridSimulationTrigger,
-  InitializeGridAgentTrigger,
   StartGridSimulationTrigger
 }
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
@@ -100,7 +100,7 @@ class DBFSAlgorithmCenGridSpec
         )
       )
 
-    s"initialize itself when it receives a $InitializeGridAgentTrigger with corresponding data" in {
+    s"initialize itself when it receives an init activation" in {
 
       // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
       val subGridGateToActorRef = hvSubGridGates.map {
@@ -122,16 +122,16 @@ class DBFSAlgorithmCenGridSpec
           RefSystem("2000 MVA", "110 kV")
         )
 
-      // send init data to agent and expect a CompletionMessage
-      scheduler.send(
-        centerGridAgent,
-        InitializeGridAgentTrigger(gridAgentInitData)
+      centerGridAgent ! GridAgent.Init(gridAgentInitData)
+      scheduler.expectMsg(
+        ScheduleActivation(centerGridAgent.toTyped, INIT_SIM_TICK)
       )
 
+      scheduler.send(centerGridAgent, Activation(INIT_SIM_TICK))
       scheduler.expectMsg(
-        ScheduleActivation(
+        Completion(
           centerGridAgent.toTyped,
-          3600
+          Some(3600)
         )
       )
 

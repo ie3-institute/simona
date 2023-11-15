@@ -14,7 +14,6 @@ import akka.actor.{Actor, ActorContext, ActorRef, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary
 import edu.ie3.simona.event.RuntimeEvent
@@ -223,7 +222,7 @@ object SimonaSimFailSpec {
         context: ActorContext,
         environmentRefs: EnvironmentRefs,
         systemParticipantListener: Seq[ActorRef]
-    ): Map[ActorRef, GridAgentInitData] = Map.empty[ActorRef, GridAgentInitData]
+    ): Iterable[ActorRef] = Iterable.empty
 
     override def extSimulations(
         context: ActorContext,

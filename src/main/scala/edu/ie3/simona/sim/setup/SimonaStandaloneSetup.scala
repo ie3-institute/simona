@@ -16,7 +16,7 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridTopologyGraph
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.{GridAgent, GridAgentData}
+import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
@@ -38,8 +38,8 @@ import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProx
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.util.ResultFileHierarchy
-import edu.ie3.util.TimeUtil
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
+import edu.ie3.util.TimeUtil
 
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters._
@@ -62,7 +62,7 @@ class SimonaStandaloneSetup(
       context: ActorContext,
       environmentRefs: EnvironmentRefs,
       systemParticipantListener: Seq[ActorRef]
-  ): Map[ActorRef, GridAgentData.GridAgentInitData] = {
+  ): Iterable[ActorRef] = {
 
     /* get the grid */
     val subGridTopologyGraph = GridProvider
@@ -113,9 +113,10 @@ class SimonaStandaloneSetup(
           configRefSystems
         )
 
-        currentActorRef -> gridAgentInitData
+        currentActorRef ! GridAgent.Init(gridAgentInitData)
+
+        currentActorRef
       })
-      .toMap
   }
 
   override def primaryServiceProxy(

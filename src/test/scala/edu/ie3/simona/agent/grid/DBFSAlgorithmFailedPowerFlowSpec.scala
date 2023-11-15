@@ -20,21 +20,19 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   FailedPowerFlow,
   ProvideGridPowerMessage
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage
+import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+  Completion,
+  ScheduleActivation
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.ScheduleActivation
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
   FinishGridSimulationTrigger,
-  InitializeGridAgentTrigger,
   StartGridSimulationTrigger
 }
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
@@ -90,7 +88,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
         )
       )
 
-    s"initialize itself when it receives a $InitializeGridAgentTrigger with corresponding data" in {
+    s"initialize itself when it receives an init activation" in {
       // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
       val subGridGateToActorRef = hvSubGridGatesPF.map {
         case gate if gate.getInferiorSubGrid == hvGridContainerPF.getSubnet =>
@@ -109,16 +107,16 @@ class DBFSAlgorithmFailedPowerFlowSpec
           RefSystem("2000 MVA", "110 kV")
         )
 
-      // send init data to agent and expect a CompletionMessage
-      scheduler.send(
-        centerGridAgent,
-        InitializeGridAgentTrigger(gridAgentInitData)
+      centerGridAgent ! GridAgent.Init(gridAgentInitData)
+      scheduler.expectMsg(
+        ScheduleActivation(centerGridAgent.toTyped, INIT_SIM_TICK)
       )
 
+      scheduler.send(centerGridAgent, Activation(INIT_SIM_TICK))
       scheduler.expectMsg(
-        ScheduleActivation(
+        Completion(
           centerGridAgent.toTyped,
-          3600
+          Some(3600)
         )
       )
 
@@ -126,29 +124,23 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
     s"go to $SimulateGrid when it receives an activity start trigger" in {
 
-      val activityStartTriggerId = 1
-
       // send init data to agent
-      scheduler.send(centerGridAgent, Activation(3600))
+      scheduler.send(
+        centerGridAgent,
+        Activation(3600)
+      )
 
       // we expect a completion message
       scheduler.expectMsg(
-        CompletionMessage(
-          1,
-          Some(
-            ScheduleTriggerMessage(
-              StartGridSimulationTrigger(3600),
-              centerGridAgent
-            )
-          )
+        Completion(
+          centerGridAgent.toTyped,
+          Some(3600)
         )
       )
     }
 
     s"start the simulation when a $StartGridSimulationTrigger is sent, handle failed power flow if it occurs" in {
       val sweepNo = 0
-
-      val startGridSimulationTriggerId = 2
 
       // send the start grid simulation trigger
       scheduler.send(centerGridAgent, Activation(3600))
@@ -231,14 +223,9 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a CompletionMessage
       scheduler.expectMsg(
-        CompletionMessage(
-          2,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(7200),
-              centerGridAgent
-            )
-          )
+        Completion(
+          centerGridAgent.toTyped,
+          Some(7200)
         )
       )
 

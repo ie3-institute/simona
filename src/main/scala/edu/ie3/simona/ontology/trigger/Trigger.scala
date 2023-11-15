@@ -40,13 +40,6 @@ object Trigger {
       initializeStateData: I
   ) extends InitializeTrigger
 
-  /** Trigger to initialize grid agents
-    */
-  @Deprecated
-  final case class InitializeGridAgentTrigger(
-      gridAgentInitData: GridAgentInitData
-  ) extends InitializeTrigger
-
   /** Trigger to start a general activity e.g. reactivate the actor. May only be
     * sent by [[edu.ie3.simona.scheduler.Scheduler]]
     */

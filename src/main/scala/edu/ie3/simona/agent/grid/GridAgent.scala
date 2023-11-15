@@ -8,13 +8,14 @@ package edu.ie3.simona.agent.grid
 
 import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.{ActorRef, Props, Stash}
+import edu.ie3.simona.agent.grid.GridAgent.Init
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentInitData,
   GridAgentUninitializedData
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
-import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
+import edu.ie3.simona.agent.state.GridAgentState.{Initializing, SimulateGrid}
 import edu.ie3.simona.agent.{EnvironmentRefs, SimonaAgent}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
@@ -25,7 +26,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
   ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
-import edu.ie3.simona.ontology.trigger.Trigger.InitializeGridAgentTrigger
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 
@@ -38,23 +38,28 @@ object GridAgent {
   def props(
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
-      gridAgentInitData: GridAgentInitData,
       listener: Iterable[ActorRef]
   ): Props =
     Props(
       new GridAgent(
         environmentRefs,
         simonaConfig,
-        gridAgentInitData,
         listener
       )
     )
+
+  /** GridAgent initialization data can only be constructed once all GridAgent
+    * actors are created. Thus, we need an extra initialization message.
+    * @param gridAgentInitData
+    *   The initialization data
+    */
+  final case class Init(gridAgentInitData: GridAgentInitData)
+
 }
 
 class GridAgent(
     val environmentRefs: EnvironmentRefs,
     simonaConfig: SimonaConfig,
-    gridAgentInitData: GridAgentInitData,
     val listener: Iterable[ActorRef]
 ) extends SimonaAgent[GridAgentData]
     with DBFSAlgorithm
@@ -95,10 +100,22 @@ class GridAgent(
   startWith(Uninitialized, GridAgentUninitializedData)
 
   when(Uninitialized) {
+    case Event(
+          Init(gridAgentInitData),
+          _
+        ) =>
+      environmentRefs.scheduler ! ScheduleActivation(
+        self.toTyped,
+        INIT_SIM_TICK
+      )
 
+      goto(Initializing) using gridAgentInitData
+  }
+
+  when(Initializing) {
     case Event(
           Activation(INIT_SIM_TICK),
-          _
+          gridAgentInitData: GridAgentInitData
         ) =>
       // fail fast sanity checks
       failFast(gridAgentInitData)
