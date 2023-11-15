@@ -18,7 +18,6 @@ import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.{GridAgent, GridAgentData}
 import edu.ie3.simona.api.ExtSimAdapter
-import edu.ie3.simona.api.ExtSimAdapter.InitExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
@@ -175,9 +174,8 @@ class SimonaStandaloneSetup(
           s"$index"
         )
         val extSimAdapterData = new ExtSimAdapterData(extSimAdapter, args)
-        val initExtSimAdapter = InitializeExtSimAdapterTrigger(
-          InitExtSimAdapter(extSimAdapterData)
-        )
+        val initExtSimAdapter =
+          InitializeExtSimAdapterTrigger(extSimAdapterData)
 
         // setup data services that belong to this external simulation
         val (extData, extDataInit): (

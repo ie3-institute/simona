@@ -13,6 +13,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
   ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessageTyped}
+import edu.ie3.simona.scheduler.ScheduleLock.LockMsg
 
 import java.util.UUID
 
@@ -31,6 +32,11 @@ object ScheduleLock {
   final case class Unlock(key: UUID) extends LockMsg
 
   private final case class WrappedActivation(tick: Long) extends LockMsg
+
+  final case class ScheduleKey(lock: ActorRef[LockMsg], key: UUID) {
+    def unlock(): Unit =
+      lock ! Unlock(key)
+  }
 
   /** @param scheduler
     *   The scheduler to lock

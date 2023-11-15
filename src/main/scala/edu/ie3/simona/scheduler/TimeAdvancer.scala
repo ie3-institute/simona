@@ -15,10 +15,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
   Completion,
   ScheduleActivation
 }
-import edu.ie3.simona.sim.SimMessage.{
-  SimulationFailureMessage,
-  SimulationSuccessfulMessage
-}
+import edu.ie3.simona.sim.SimMessage.{SimulationFailure, SimulationSuccessful}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
 /** Unit that is in control of time advancement within the simulation.
@@ -200,7 +197,7 @@ object TimeAdvancer {
       data: TimeAdvancerData,
       notifier: Option[RuntimeNotifier]
   ): Behavior[Incoming] = {
-    data.simulation ! SimulationSuccessfulMessage
+    data.simulation ! SimulationSuccessful
 
     notifier.foreach {
       // we do not want a check window message for the endTick
@@ -219,7 +216,7 @@ object TimeAdvancer {
       tick: Long,
       errorMsg: String
   ): Behavior[Incoming] = {
-    simulation ! SimulationFailureMessage
+    simulation ! SimulationFailure
     notifier.foreach(_.error(tick, errorMsg))
 
     stopOnError(ctx, errorMsg)

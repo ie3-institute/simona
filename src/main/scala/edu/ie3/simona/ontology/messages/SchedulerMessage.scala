@@ -13,6 +13,7 @@ import edu.ie3.simona.scheduler.ScheduleLock.LockMsg
 
 import java.util.UUID
 
+@Deprecated
 sealed trait SchedulerMessage
 
 /** Messages that should be send and received to and from
@@ -23,12 +24,6 @@ sealed trait SchedulerMessage
   */
 object SchedulerMessage {
 
-  /** Tell the [[edu.ie3.simona.scheduler.Scheduler]] to initialize the
-    * simulation with all
-    * [[edu.ie3.simona.ontology.trigger.Trigger.InitializeTrigger]] s
-    */
-  case object InitSimMessage extends SchedulerMessage
-
   /** schedule a new trigger TO the [[edu.ie3.simona.scheduler.Scheduler]]. This
     * message should send only to the [[edu.ie3.simona.scheduler.Scheduler]]
     *
@@ -37,6 +32,7 @@ object SchedulerMessage {
     * @param actorToBeScheduled
     *   the agent that should receive the trigger
     */
+  @Deprecated
   final case class ScheduleTriggerMessage(
       trigger: Trigger,
       actorToBeScheduled: ActorRef,
@@ -51,6 +47,7 @@ object SchedulerMessage {
     * @param newTrigger
     *   optional new trigger to schedule
     */
+  @Deprecated
   final case class CompletionMessage(
       triggerId: Long,
       newTrigger: Option[ScheduleTriggerMessage] = None
@@ -59,6 +56,7 @@ object SchedulerMessage {
   /** a message that is send by the scheduler to an agent including an unique id
     * to keep track of it until a corresponding completion message is received
     */
+  @Deprecated
   final case class TriggerWithIdMessage(
       trigger: Trigger,
       triggerId: Long
@@ -67,6 +65,7 @@ object SchedulerMessage {
 
   /** respond to agent that the send trigger is illegal
     */
+  @Deprecated
   final case class IllegalTriggerMessage(
       reason: String,
       receiverActor: ActorRef
@@ -77,6 +76,7 @@ object SchedulerMessage {
     * [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] failed. If this message is not
     * send, the scheduler *assumes* that everything went well during power flow!
     */
+  @Deprecated
   case object PowerFlowFailedMessage extends SchedulerMessage
 
 }

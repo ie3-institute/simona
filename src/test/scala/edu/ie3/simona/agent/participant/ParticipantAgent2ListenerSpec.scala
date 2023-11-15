@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.participant
 
+import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.TestFSMRef
 import akka.util.Timeout
@@ -19,24 +20,19 @@ import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
   RequestAssetPowerMessage
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  FinishGridSimulationTrigger,
-  InitializeParticipantAgentTrigger
-}
+import edu.ie3.simona.ontology.trigger.Trigger.FinishGridSimulationTrigger
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.DefaultTestData
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT}
 import org.mockito.Mockito.when
 import org.scalatest.PrivateMethodTester
@@ -86,69 +82,58 @@ class ParticipantAgent2ListenerSpec
   private val sources = None
 
   "A participant agent" should {
-    "inform listeners about new simulation results, when asked to do" in {
-      val mockAgent = TestFSMRef(
-        new ParticipantAgentMock(
-          scheduler = scheduler.ref,
-          listener = systemListener
-        )
+    val initStateData
+        : ParticipantNotifierConfig => ParticipantInitializeStateData[
+          SystemParticipantInput,
+          BaseRuntimeConfig,
+          ApparentPower
+        ] = outputConfig =>
+      ParticipantInitializeStateData[
+        SystemParticipantInput,
+        BaseRuntimeConfig,
+        ApparentPower
+      ](
+        inputModel = mockInputModel,
+        modelConfig = mock[BaseRuntimeConfig],
+        secondaryDataServices = sources,
+        simulationStartDate = defaultSimulationStart,
+        simulationEndDate = defaultSimulationEnd,
+        resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+        requestVoltageDeviationThreshold =
+          simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+        outputConfig = outputConfig,
+        primaryServiceProxy = primaryServiceProxy.ref
       )
 
+    "inform listeners about new simulation results, when asked to do" in {
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = ParticipantNotifierConfig(
         simulationResultInfo = true,
         powerRequestReply = false
       )
 
-      /* Trigger the initialisation */
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              SystemParticipantInput,
-              BaseRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = mockInputModel,
-              modelConfig = mock[BaseRuntimeConfig],
-              secondaryDataServices = sources,
-              simulationStartDate = defaultSimulationStart,
-              simulationEndDate = defaultSimulationEnd,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = outputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          0
+      val mockAgent = TestFSMRef(
+        new ParticipantAgentMock(
+          scheduler = scheduler.ref,
+          initStateData = initStateData(outputConfig),
+          listener = systemListener
         )
       )
+
+      /* Trigger the initialisation */
+      scheduler.send(mockAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
 
-      scheduler.receiveOne(receiveTimeOut.duration) match {
-        case _: CompletionMessage =>
-          logger.debug("Agent completed initialization.")
-      }
+      scheduler.expectMsg(Completion(mockAgent.toTyped))
 
       /* Trigger the data generation in tick 0 */
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(0L),
-          1
-        )
-      )
+      scheduler.send(mockAgent, Activation(0))
 
       /* Receive the completion message for the calculation */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       logger.debug("Agent completed model calculation.")
 
       /* Receive the listener announcement */
@@ -169,137 +154,64 @@ class ParticipantAgent2ListenerSpec
     }
 
     "not inform listeners about new simulation results, when not asked to do" in {
-      val mockAgent = TestFSMRef(
-        new ParticipantAgentMock(
-          scheduler = scheduler.ref,
-          listener = systemListener
-        )
-      )
-
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = ParticipantNotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false
       )
 
-      /* Trigger the initialisation */
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              SystemParticipantInput,
-              BaseRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = mockInputModel,
-              modelConfig = mock[BaseRuntimeConfig],
-              secondaryDataServices = sources,
-              simulationStartDate = defaultSimulationStart,
-              simulationEndDate = defaultSimulationEnd,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = outputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          0
+      val mockAgent = TestFSMRef(
+        new ParticipantAgentMock(
+          scheduler = scheduler.ref,
+          initStateData = initStateData(outputConfig),
+          listener = systemListener
         )
       )
+
+      /* Trigger the initialisation */
+      scheduler.send(mockAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
 
-      scheduler.receiveOne(receiveTimeOut.duration) match {
-        case _: CompletionMessage =>
-          logger.debug("Agent completed initialization.")
-      }
+      scheduler.expectMsg(Completion(mockAgent.toTyped))
 
       /* Trigger the data generation in tick 0 */
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(0L),
-          1
-        )
-      )
+      scheduler.send(mockAgent, Activation(0))
 
       /* Receive the completion message for the calculation and no listener announcement */
-      scheduler.expectMsgClass(
-        receiveTimeOut.duration,
-        classOf[CompletionMessage]
-      )
+      scheduler.expectMsgType[Completion]
       expectNoMessage(noReceiveTimeOut.duration)
     }
 
     "not inform listeners about request reply, when asked to do (currently not implemented)" in {
-      val mockAgent = TestFSMRef(
-        new ParticipantAgentMock(
-          scheduler = scheduler.ref,
-          listener = systemListener
-        )
-      )
-
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = ParticipantNotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = true
       )
 
-      /* Trigger the initialisation */
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              SystemParticipantInput,
-              BaseRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = mockInputModel,
-              modelConfig = mock[BaseRuntimeConfig],
-              secondaryDataServices = sources,
-              simulationStartDate = defaultSimulationStart,
-              simulationEndDate = defaultSimulationEnd,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = outputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          0
+      val mockAgent = TestFSMRef(
+        new ParticipantAgentMock(
+          scheduler = scheduler.ref,
+          initStateData = initStateData(outputConfig),
+          listener = systemListener
         )
       )
+
+      /* Trigger the initialisation */
+      scheduler.send(mockAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
 
       /* Trigger the data generation in tick 0 */
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(0L),
-          1
-        )
-      )
+      scheduler.send(mockAgent, Activation(0))
 
       /* Appreciate the existence of two CompletionMessages */
-      val completedTriggerIds = scheduler.receiveWhile(messages = 2) {
-        case msg: CompletionMessage => msg.triggerId
-      }
-      logger.debug(
-        s"Received CompletionMessages for the following trigger ids: $completedTriggerIds"
-      )
+      scheduler.expectMsg(Completion(mockAgent.toTyped))
 
       /* Ask the agent for average power in tick 3000 */
       mockAgent ! RequestAssetPowerMessage(
@@ -328,68 +240,32 @@ class ParticipantAgent2ListenerSpec
     }
 
     "not inform listeners about request reply, when not asked to do" in {
-      val mockAgent = TestFSMRef(
-        new ParticipantAgentMock(
-          scheduler = scheduler.ref,
-          listener = systemListener
-        )
-      )
-
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = ParticipantNotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false
       )
 
-      /* Trigger the initialisation */
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              SystemParticipantInput,
-              BaseRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = mockInputModel,
-              modelConfig = mock[BaseRuntimeConfig],
-              secondaryDataServices = sources,
-              simulationStartDate = defaultSimulationStart,
-              simulationEndDate = defaultSimulationEnd,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = outputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          0
+      val mockAgent = TestFSMRef(
+        new ParticipantAgentMock(
+          scheduler = scheduler.ref,
+          initStateData = initStateData(outputConfig),
+          listener = systemListener
         )
       )
+
+      /* Trigger the initialisation */
+      scheduler.send(mockAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
 
       /* Trigger the data generation in tick 0 */
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(0L),
-          1
-        )
-      )
+      scheduler.send(mockAgent, Activation(0))
 
       /* Appreciate the existence of two CompletionMessages */
-      val completedTriggerIds = scheduler.receiveWhile(messages = 2) {
-        case msg: CompletionMessage => msg.triggerId
-      }
-      logger.debug(
-        s"Received CompletionMessages for the following trigger ids: $completedTriggerIds"
-      )
+      scheduler.expectMsg(Completion(mockAgent.toTyped))
 
       /* Ask the agent for average power in tick 3000 */
       mockAgent ! RequestAssetPowerMessage(

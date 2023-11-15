@@ -32,8 +32,9 @@ import edu.ie3.simona.scheduler.TimeAdvancer.StartSimMessage
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimMessage.{
-  SimulationFailureMessage,
-  SimulationSuccessfulMessage,
+  InitSim,
+  SimulationFailure,
+  SimulationSuccessful,
   StartSimulation
 }
 import edu.ie3.simona.sim.SimonaSim.{
@@ -117,10 +118,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
   // init ext simulation actors
   extSimulationData.allActorsAndInitTriggers.foreach {
     case (actor, initTrigger) =>
-      scheduler ! ScheduleTriggerMessage(
-        initTrigger,
-        actor
-      )
+      actor ! initTrigger
   }
 
   /* start grid agents  */
@@ -148,7 +146,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
 
   def simonaSimReceive(data: SimonaSim.SimonaSimStateData): Receive = {
 
-    case InitSimMessage =>
+    case InitSim =>
       // initialize grid agents
       gridAgents.foreach { case (gridAgent, gridAgentInitData) =>
         scheduler ! ScheduleTriggerMessage(
@@ -164,14 +162,14 @@ class SimonaSim(simonaSetup: SimonaSetup)
     case StartSimulation(pauseScheduleAtTick) =>
       timeAdvancer ! StartSimMessage(pauseScheduleAtTick)
 
-    case msg @ (SimulationSuccessfulMessage | SimulationFailureMessage) =>
+    case msg @ (SimulationSuccessful | SimulationFailure) =>
       val simulationSuccessful = msg match {
-        case SimulationSuccessfulMessage =>
+        case SimulationSuccessful =>
           logger.info(
             "Simulation terminated successfully. Stopping children ..."
           )
           true
-        case SimulationFailureMessage =>
+        case SimulationFailure =>
           logger.error(
             "An error occurred during the simulation. See stacktrace for details."
           )
@@ -192,7 +190,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
       logger.debug(
         "Simulation guardian is aware, that emergency shutdown has been initiated. Inform the init sender."
       )
-      data.initSimSender ! SimulationFailureMessage
+      data.initSimSender ! SimulationFailure
       context.become(emergencyShutdownReceive)
 
     case Terminated(actorRef) =>
@@ -248,9 +246,9 @@ class SimonaSim(simonaSetup: SimonaSetup)
         )
 
         val msg =
-          if (successful) SimulationSuccessfulMessage
-          else SimulationFailureMessage
-        // inform initSimMessage Sender
+          if (successful) SimulationSuccessful
+          else SimulationFailure
+        // inform InitSim Sender
         initSimSender ! msg
       }
 

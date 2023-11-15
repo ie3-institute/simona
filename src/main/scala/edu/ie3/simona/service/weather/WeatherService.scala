@@ -6,11 +6,10 @@
 
 package edu.ie3.simona.service.weather
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.{ActorContext, ActorRef, Props}
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage
@@ -121,7 +120,7 @@ final case class WeatherService(
     */
   override def init(
       initServiceData: InitializeServiceStateData
-  ): Try[(WeatherInitializedStateData, Option[ScheduleTriggerMessage])] =
+  ): Try[(WeatherInitializedStateData, Option[Long])] =
     initServiceData match {
       case InitWeatherServiceStateData(sourceDefinition) =>
         val weatherSource =
@@ -145,8 +144,7 @@ final case class WeatherService(
 
         Success(
           weatherInitializedStateData,
-          ServiceActivationBaseStateData
-            .tickToScheduleTriggerMessage(maybeNextTick, self)
+          maybeNextTick
         )
 
       case invalidData =>
@@ -289,8 +287,9 @@ final case class WeatherService(
     *   in response to the trigger that was sent to start this announcement
     */
   override protected def announceInformation(tick: Long)(implicit
-      serviceStateData: WeatherInitializedStateData
-  ): (WeatherInitializedStateData, Option[ScheduleTriggerMessage]) = {
+      serviceStateData: WeatherInitializedStateData,
+      ctx: ActorContext
+  ): (WeatherInitializedStateData, Option[Long]) = {
 
     /* Pop the next activation tick and update the state data */
     val (
@@ -318,10 +317,7 @@ final case class WeatherService(
 
     (
       updatedStateData,
-      ServiceActivationBaseStateData.tickToScheduleTriggerMessage(
-        maybeNextTick,
-        self
-      )
+      maybeNextTick
     )
   }
 

@@ -7,9 +7,7 @@
 package edu.ie3.simona.ontology.trigger
 
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.agent.participant.statedata.InitializeStateData
-import edu.ie3.simona.api.ExtSimAdapter.InitExtSimAdapter
+import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.util.SimonaConstants
 
@@ -27,38 +25,24 @@ object Trigger {
     override val tick: Long = SimonaConstants.INIT_SIM_TICK
   }
 
-  /** Trigger with additional information needed to initialize a participant
-    * agent. With the receive, the initialization process should be triggered.
-    *
-    * @param initData
-    *   Additional information needed for agent initialization
-    * @tparam PD
-    *   Type of [[PrimaryData]], that will be covered by the agent
-    * @tparam I
-    *   Type of [[InitializeStateData]], that is needed by the agent
-    */
-  final case class InitializeParticipantAgentTrigger[
-      PD <: PrimaryData,
-      +I <: InitializeStateData[PD]
-  ](
-      initData: I
-  ) extends InitializeTrigger
-
   /** Trigger to initialize ExtSimScheduler
     */
+  @Deprecated
   final case class InitializeExtSimAdapterTrigger(
-      initializeStateData: InitExtSimAdapter
+      extSimAdapterData: ExtSimAdapterData
   ) extends InitializeTrigger
 
   /** Trigger to initialize the service agents (normally during simulation
     * initialization)
     */
+  @Deprecated
   final case class InitializeServiceTrigger[+I <: ServiceStateData](
       initializeStateData: I
   ) extends InitializeTrigger
 
   /** Trigger to initialize grid agents
     */
+  @Deprecated
   final case class InitializeGridAgentTrigger(
       gridAgentInitData: GridAgentInitData
   ) extends InitializeTrigger
@@ -66,6 +50,7 @@ object Trigger {
   /** Trigger to start a general activity e.g. reactivate the actor. May only be
     * sent by [[edu.ie3.simona.scheduler.Scheduler]]
     */
+  @Deprecated
   final case class ActivityStartTrigger(tick: Long) extends Trigger
 
   sealed trait ParticipantTrigger extends Trigger

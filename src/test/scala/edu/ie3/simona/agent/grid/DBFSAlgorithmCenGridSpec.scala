@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.grid
 
 import akka.actor.ActorSystem
+import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.testkit.TestProbe
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -14,24 +15,22 @@ import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.RefSystem
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+  Completion,
+  ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
   FinishGridSimulationTrigger,
   InitializeGridAgentTrigger,
   StartGridSimulationTrigger
 }
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.quantities.Megavars
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
@@ -102,7 +101,6 @@ class DBFSAlgorithmCenGridSpec
       )
 
     s"initialize itself when it receives a $InitializeGridAgentTrigger with corresponding data" in {
-      val triggerId = 0
 
       // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
       val subGridGateToActorRef = hvSubGridGates.map {
@@ -127,21 +125,13 @@ class DBFSAlgorithmCenGridSpec
       // send init data to agent and expect a CompletionMessage
       scheduler.send(
         centerGridAgent,
-        TriggerWithIdMessage(
-          InitializeGridAgentTrigger(gridAgentInitData),
-          triggerId
-        )
+        InitializeGridAgentTrigger(gridAgentInitData)
       )
 
       scheduler.expectMsg(
-        CompletionMessage(
-          0,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(3600),
-              centerGridAgent
-            )
-          )
+        ScheduleActivation(
+          centerGridAgent.toTyped,
+          3600
         )
       )
 
@@ -149,42 +139,25 @@ class DBFSAlgorithmCenGridSpec
 
     s"go to $SimulateGrid when it receives an activity start trigger" in {
 
-      val activityStartTriggerId = 1
-
       scheduler.send(
         centerGridAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(3600),
-          activityStartTriggerId
-        )
+        Activation(3600)
       )
 
       scheduler.expectMsg(
-        CompletionMessage(
-          1,
-          Some(
-            ScheduleTriggerMessage(
-              StartGridSimulationTrigger(3600),
-              centerGridAgent
-            )
-          )
+        Completion(
+          centerGridAgent.toTyped,
+          Some(3600)
         )
       )
     }
 
     s"start the simulation when a $StartGridSimulationTrigger is send" in {
 
-      val startGridSimulationTriggerId = 2
       val firstSweepNo = 0
 
       // send the start grid simulation trigger
-      scheduler.send(
-        centerGridAgent,
-        TriggerWithIdMessage(
-          StartGridSimulationTrigger(3600),
-          startGridSimulationTriggerId
-        )
-      )
+      scheduler.send(centerGridAgent, Activation(3600))
 
       /* We expect one grid power request message per inferior grid */
 
@@ -495,14 +468,9 @@ class DBFSAlgorithmCenGridSpec
 
       // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a CompletionMessage
       scheduler.expectMsg(
-        CompletionMessage(
-          2,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(7200),
-              centerGridAgent
-            )
-          )
+        Completion(
+          centerGridAgent.toTyped,
+          Some(7200)
         )
       )
 

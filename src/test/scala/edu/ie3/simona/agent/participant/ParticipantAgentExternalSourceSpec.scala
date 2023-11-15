@@ -6,12 +6,12 @@
 
 package edu.ie3.simona.agent.participant
 
+import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.TestFSMRef
 import akka.util.Timeout
 import breeze.numerics.{acos, tan}
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.ValueStore
@@ -34,27 +34,21 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
-import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
+import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
   RequestAssetPowerMessage
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger
-}
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.ProvidePrimaryDataMessage
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.DefaultTestData
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{Kilovars, Megavars, ReactivePower, Vars}
 import org.mockito.ArgumentMatchers.any
@@ -66,7 +60,6 @@ import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import javax.measure.quantity.{Dimensionless, Power}
 import scala.collection.SortedSet
 import scala.util.{Failure, Success}
 
@@ -110,8 +103,6 @@ class ParticipantAgentExternalSourceSpec
     )
   ).thenReturn(activeToReactivePowerFunction)
 
-  private val testingTolerance = 1e-6 // Equality on the basis of 1 W
-
   private val simonaConfig: SimonaConfig = createSimonaConfig(
     LoadModelBehaviour.FIX,
     LoadReference.ActivePower(Kilowatts(0.0))
@@ -127,10 +118,28 @@ class ParticipantAgentExternalSourceSpec
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   "A participant agent with externally given data provider" should {
+    val initStateData = ParticipantInitializeStateData[
+      SystemParticipantInput,
+      BaseRuntimeConfig,
+      ApparentPower
+    ](
+      inputModel = mockInputModel,
+      modelConfig = mock[BaseRuntimeConfig],
+      secondaryDataServices = None,
+      simulationStartDate = defaultSimulationStart,
+      simulationEndDate = defaultSimulationEnd,
+      resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+      requestVoltageDeviationThreshold =
+        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+      outputConfig = defaultOutputConfig,
+      primaryServiceProxy = primaryServiceProxy.ref
+    )
+
     "be instantiated correctly" in {
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
-          scheduler = scheduler.ref
+          scheduler = scheduler.ref,
+          initStateData = initStateData
         )
       )
 
@@ -148,38 +157,12 @@ class ParticipantAgentExternalSourceSpec
     "end in correct state with correct state data after initialisation" in {
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
-          scheduler = scheduler.ref
+          scheduler = scheduler.ref,
+          initStateData = initStateData
         )
       )
 
-      val triggerId = 0L
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              SystemParticipantInput,
-              BaseRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = mockInputModel,
-              modelConfig = mock[BaseRuntimeConfig],
-              secondaryDataServices = None,
-              simulationStartDate = defaultSimulationStart,
-              simulationEndDate = defaultSimulationEnd,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          triggerId
-        )
-      )
+      scheduler.send(mockAgent, Activation(INIT_SIM_TICK))
 
       /* Expect a registration message */
       primaryServiceProxy.expectMsg(
@@ -217,17 +200,7 @@ class ParticipantAgentExternalSourceSpec
         RegistrationSuccessfulMessage(Some(4711L))
       )
 
-      scheduler.expectMsg(
-        CompletionMessage(
-          triggerId,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(4711L),
-              mockAgent
-            )
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(mockAgent.toTyped, Some(4711L)))
 
       /* ... as well as corresponding state and state data */
       mockAgent.stateName shouldBe Idle
@@ -249,38 +222,12 @@ class ParticipantAgentExternalSourceSpec
     "answer with zero power, if asked directly after initialisation" in {
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
-          scheduler = scheduler.ref
+          scheduler = scheduler.ref,
+          initStateData = initStateData
         )
       )
 
-      val triggerId = 0
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              SystemParticipantInput,
-              BaseRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = mockInputModel,
-              modelConfig = mock[BaseRuntimeConfig],
-              secondaryDataServices = None,
-              simulationStartDate = defaultSimulationStart,
-              simulationEndDate = defaultSimulationEnd,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          triggerId
-        )
-      )
+      scheduler.send(mockAgent, Activation(INIT_SIM_TICK))
 
       /* I'm not interested in the content of the RegistrationMessage */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
@@ -290,7 +237,7 @@ class ParticipantAgentExternalSourceSpec
       )
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       awaitAssert(mockAgent.stateName shouldBe Idle)
 
       /* State data has already been tested */
@@ -340,38 +287,12 @@ class ParticipantAgentExternalSourceSpec
     "do correct transitions faced to new data in Idle" in {
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
-          scheduler = scheduler.ref
+          scheduler = scheduler.ref,
+          initStateData = initStateData
         )
       )
 
-      val initialiseTriggerId = 0
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              SystemParticipantInput,
-              BaseRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = mockInputModel,
-              modelConfig = mock[BaseRuntimeConfig],
-              secondaryDataServices = None,
-              simulationStartDate = defaultSimulationStart,
-              simulationEndDate = defaultSimulationEnd,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          initialiseTriggerId
-        )
-      )
+      scheduler.send(mockAgent, Activation(INIT_SIM_TICK))
 
       /* I'm not interested in the content of the RegistrationMessage */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
@@ -381,7 +302,7 @@ class ParticipantAgentExternalSourceSpec
       )
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       awaitAssert(mockAgent.stateName shouldBe Idle)
 
       /* Send out new data */
@@ -431,26 +352,10 @@ class ParticipantAgentExternalSourceSpec
       }
 
       /* Trigger the agent */
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(900L),
-          1L
-        )
-      )
+      scheduler.send(mockAgent, Activation(900))
 
       /* Expect confirmation */
-      scheduler.expectMsg(
-        CompletionMessage(
-          1L,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(1800L),
-              mockAgent
-            )
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(mockAgent.toTyped, Some(1800)))
 
       /* Expect the state change to idle with updated base state data */
       mockAgent.stateName shouldBe Idle
@@ -478,38 +383,12 @@ class ParticipantAgentExternalSourceSpec
     "do correct transitions triggered for activation in idle" in {
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
-          scheduler = scheduler.ref
+          scheduler = scheduler.ref,
+          initStateData = initStateData
         )
       )
 
-      val initialiseTriggerId = 0
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              SystemParticipantInput,
-              BaseRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = mockInputModel,
-              modelConfig = mock[BaseRuntimeConfig],
-              secondaryDataServices = None,
-              simulationStartDate = defaultSimulationStart,
-              simulationEndDate = defaultSimulationEnd,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          initialiseTriggerId
-        )
-      )
+      scheduler.send(mockAgent, Activation(INIT_SIM_TICK))
 
       /* I'm not interested in the content of the RegistrationMessage */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
@@ -519,17 +398,11 @@ class ParticipantAgentExternalSourceSpec
       )
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       awaitAssert(mockAgent.stateName shouldBe Idle)
 
       /* Send out an activity start trigger */
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(900L),
-          1L
-        )
-      )
+      scheduler.send(mockAgent, Activation(900))
 
       /* Find yourself in appropriate state with state data */
       mockAgent.stateName shouldBe HandleInformation
@@ -571,17 +444,7 @@ class ParticipantAgentExternalSourceSpec
       )
 
       /* Expect confirmation */
-      scheduler.expectMsg(
-        CompletionMessage(
-          1L,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(1800L),
-              mockAgent
-            )
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(mockAgent.toTyped, Some(1800)))
 
       /* Expect the state change to idle with updated base state data */
       mockAgent.stateName shouldBe Idle
@@ -609,38 +472,13 @@ class ParticipantAgentExternalSourceSpec
     "does not provide power if data is awaited in an earlier tick, but answers it, if all expected data is there" in {
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
-          scheduler = scheduler.ref
+          scheduler = scheduler.ref,
+          initStateData = initStateData
         )
       )
 
       /* Trigger the initialisation */
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              SystemParticipantInput,
-              BaseRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = mockInputModel,
-              modelConfig = mock[BaseRuntimeConfig],
-              secondaryDataServices = None,
-              simulationStartDate = defaultSimulationStart,
-              simulationEndDate = defaultSimulationEnd,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          0L
-        )
-      )
+      scheduler.send(mockAgent, Activation(INIT_SIM_TICK))
 
       /* I'm not interested in the content of the RegistrationMessage */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
@@ -650,7 +488,7 @@ class ParticipantAgentExternalSourceSpec
       )
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       awaitAssert(mockAgent.stateName shouldBe Idle)
 
       /* Ask the agent for average power in tick 1800 */
@@ -676,25 +514,9 @@ class ParticipantAgentExternalSourceSpec
       )
 
       /* Trigger the agent */
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(900L),
-          1L
-        )
-      )
+      scheduler.send(mockAgent, Activation(900))
 
-      scheduler.expectMsg(
-        CompletionMessage(
-          1L,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(1800L),
-              mockAgent
-            )
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(mockAgent.toTyped, Some(1800)))
 
       /* Appreciate the answer to my previous request */
       expectMsgType[AssetPowerChangedMessage]
@@ -702,7 +524,8 @@ class ParticipantAgentExternalSourceSpec
 
     val mockAgent = TestFSMRef(
       new ParticipantAgentMock(
-        scheduler = scheduler.ref
+        scheduler = scheduler.ref,
+        initStateData = initStateData
       )
     )
 
@@ -758,33 +581,7 @@ class ParticipantAgentExternalSourceSpec
 
     "provide correct average power after three data ticks are available" in {
       /* Trigger the initialisation */
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              SystemParticipantInput,
-              BaseRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = mockInputModel,
-              modelConfig = mock[BaseRuntimeConfig],
-              secondaryDataServices = None,
-              simulationStartDate = defaultSimulationStart,
-              simulationEndDate = defaultSimulationEnd,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          0
-        )
-      )
+      scheduler.send(mockAgent, Activation(INIT_SIM_TICK))
 
       /* I'm not interested in the content of the RegistrationMessage */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
@@ -794,7 +591,7 @@ class ParticipantAgentExternalSourceSpec
       )
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       awaitAssert(mockAgent.stateName shouldBe Idle)
 
       /* Send out the three data points */
@@ -810,24 +607,8 @@ class ParticipantAgentExternalSourceSpec
           Some(1800L)
         )
       )
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(900L),
-          1L
-        )
-      )
-      scheduler.expectMsg(
-        CompletionMessage(
-          1L,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(1800L),
-              mockAgent
-            )
-          )
-        )
-      )
+      scheduler.send(mockAgent, Activation(900))
+      scheduler.expectMsg(Completion(mockAgent.toTyped, Some(1800)))
 
       /* ... for tick 1800 */
       primaryServiceProxy.send(
@@ -841,24 +622,8 @@ class ParticipantAgentExternalSourceSpec
           Some(2700L)
         )
       )
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(1800L),
-          2L
-        )
-      )
-      scheduler.expectMsg(
-        CompletionMessage(
-          2L,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(2700L),
-              mockAgent
-            )
-          )
-        )
-      )
+      scheduler.send(mockAgent, Activation(1800))
+      scheduler.expectMsg(Completion(mockAgent.toTyped, Some(2700)))
 
       /* ... for tick 2700 */
       primaryServiceProxy.send(
@@ -872,14 +637,8 @@ class ParticipantAgentExternalSourceSpec
           None
         )
       )
-      scheduler.send(
-        mockAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(2700L),
-          3L
-        )
-      )
-      scheduler.expectMsg(CompletionMessage(3L, None))
+      scheduler.send(mockAgent, Activation(2700))
+      scheduler.expectMsg(Completion(mockAgent.toTyped))
 
       awaitAssert(mockAgent.stateName == Idle)
 
@@ -933,7 +692,9 @@ class ParticipantAgentExternalSourceSpec
 
     "preparing incoming primary data" when {
       val participantAgent =
-        TestFSMRef(new ParticipantAgentMock(scheduler.ref)).underlyingActor
+        TestFSMRef(
+          new ParticipantAgentMock(scheduler.ref, initStateData = initStateData)
+        ).underlyingActor
       val reactivePowerFunction = (_: squants.Power) => Kilovars(0.0)
 
       "sending unsupported data" should {

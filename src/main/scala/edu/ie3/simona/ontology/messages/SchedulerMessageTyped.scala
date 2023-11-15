@@ -7,7 +7,7 @@
 package edu.ie3.simona.ontology.messages
 
 import akka.actor.typed.ActorRef
-import edu.ie3.simona.scheduler.ScheduleLock.LockMsg
+import edu.ie3.simona.scheduler.ScheduleLock.{LockMsg, ScheduleKey}
 import edu.ie3.simona.scheduler.{Scheduler, TimeAdvancer}
 
 import java.util.UUID
@@ -26,7 +26,7 @@ object SchedulerMessageTyped {
   final case class ScheduleActivation(
       actor: ActorRef[Activation],
       tick: Long,
-      unlockKey: Option[(ActorRef[LockMsg], UUID)] = None
+      unlockKey: Option[ScheduleKey] = None
   ) extends SchedulerMessageTyped
 
 }

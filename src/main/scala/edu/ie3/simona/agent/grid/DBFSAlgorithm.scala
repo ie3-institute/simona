@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
+import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.{ActorRef, FSM}
 import akka.pattern.{ask, pipe}
 import akka.util.{Timeout => AkkaTimeout}
@@ -32,13 +33,12 @@ import edu.ie3.simona.agent.state.GridAgentState.{
 }
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage._
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  PowerFlowFailedMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+  PowerFlowFailedMessage
 }
+import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.Completion
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.simona.ontology.messages.VoltageMessage.{
   ProvideSlackVoltageMessage,
@@ -70,16 +70,13 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     // first part of the grid simulation, same for all gridAgents on all levels
     // we start with a forward-sweep by requesting the data from our child assets and grids (if any)
     case Event(
-          TriggerWithIdMessage(
-            StartGridSimulationTrigger(currentTick),
-            triggerId
-          ),
+          Activation(currentTick),
           gridAgentBaseData: GridAgentBaseData
         ) =>
       log.debug("Start sweep number: {}", gridAgentBaseData.currentSweepNo)
       // hold tick and trigger for the whole time the dbfs is executed or
       // at least until the the first full sweep is done (for superior grid agent only)
-      holdTickAndTriggerId(currentTick, triggerId)
+      holdTick(currentTick)
 
       // we start the grid simulation by requesting the p/q values of all the nodes we are responsible for
       // as well as the slack voltage power from our superior grid
@@ -445,17 +442,12 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       )
 
       // / release tick and trigger for the whole simulation (StartGridSimulationTrigger)
-      val (_, simTriggerId) = releaseTickAndTriggerId()
+      releaseTickAndTriggerId()
 
       // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
-      environmentRefs.scheduler ! CompletionMessage(
-        simTriggerId,
-        Some(
-          ScheduleTriggerMessage(
-            ActivityStartTrigger(currentTick + resolution),
-            self
-          )
-        )
+      environmentRefs.scheduler ! Completion(
+        self.toTyped,
+        Some(currentTick + resolution)
       )
 
       // return to Idle
@@ -1025,12 +1017,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       currentTick: Long
   ): FSM.State[AgentState, GridAgentData] = {
 
-    val (_, oldTrigger) = releaseTickAndTriggerId()
-    environmentRefs.scheduler ! CompletionMessage(
-      oldTrigger,
-      Some(
-        ScheduleTriggerMessage(StartGridSimulationTrigger(currentTick), self)
-      )
+    releaseTickAndTriggerId()
+    environmentRefs.scheduler ! Completion(
+      self.toTyped,
+      Some(currentTick)
     )
 
     goto(SimulateGrid) using gridAgentBaseData

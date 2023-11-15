@@ -7,12 +7,14 @@
 package edu.ie3.simona.agent.grid
 
 import akka.actor.ActorSystem
+import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
 import edu.ie3.simona.model.grid.RefSystem
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   FailedPowerFlow,
@@ -20,9 +22,9 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+  ScheduleTriggerMessage
 }
+import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.ScheduleActivation
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.simona.ontology.trigger.Trigger.{
@@ -33,7 +35,6 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 }
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Megavars
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
@@ -90,8 +91,6 @@ class DBFSAlgorithmFailedPowerFlowSpec
       )
 
     s"initialize itself when it receives a $InitializeGridAgentTrigger with corresponding data" in {
-      val triggerId = 0
-
       // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
       val subGridGateToActorRef = hvSubGridGatesPF.map {
         case gate if gate.getInferiorSubGrid == hvGridContainerPF.getSubnet =>
@@ -113,21 +112,13 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // send init data to agent and expect a CompletionMessage
       scheduler.send(
         centerGridAgent,
-        TriggerWithIdMessage(
-          InitializeGridAgentTrigger(gridAgentInitData),
-          triggerId
-        )
+        InitializeGridAgentTrigger(gridAgentInitData)
       )
 
       scheduler.expectMsg(
-        CompletionMessage(
-          0,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(3600),
-              centerGridAgent
-            )
-          )
+        ScheduleActivation(
+          centerGridAgent.toTyped,
+          3600
         )
       )
 
@@ -138,13 +129,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       val activityStartTriggerId = 1
 
       // send init data to agent
-      scheduler.send(
-        centerGridAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(3600),
-          activityStartTriggerId
-        )
-      )
+      scheduler.send(centerGridAgent, Activation(3600))
 
       // we expect a completion message
       scheduler.expectMsg(
@@ -166,13 +151,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       val startGridSimulationTriggerId = 2
 
       // send the start grid simulation trigger
-      scheduler.send(
-        centerGridAgent,
-        TriggerWithIdMessage(
-          StartGridSimulationTrigger(3600),
-          startGridSimulationTriggerId
-        )
-      )
+      scheduler.send(centerGridAgent, Activation(3600))
 
       // we expect a request for grid power values here for sweepNo $sweepNo
       val powerRequestSender = inferiorGridAgent.expectGridPowerRequest()

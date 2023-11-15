@@ -28,21 +28,16 @@ import edu.ie3.datamodel.io.source.{
   TimeSeriesMetaInformationSource
 }
 import edu.ie3.datamodel.models.value.Value
+import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
   Primary => PrimaryConfig
 }
-import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.exceptions.{
   InitializationException,
   InvalidConfigParameterException
 }
 import edu.ie3.simona.logging.SimonaActorLogging
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
@@ -101,20 +96,17 @@ case class PrimaryServiceProxy(
     *   How receiving should be handled with gained insight of myself
     */
   private def uninitialized: Receive = {
-    case TriggerWithIdMessage(
-          InitializeServiceTrigger(
-            InitPrimaryServiceProxyStateData(
-              primaryConfig,
-              simulationStart
-            )
-          ),
-          triggerId
+    case InitializeServiceTrigger(
+          InitPrimaryServiceProxyStateData(
+            primaryConfig,
+            simulationStart
+          )
         ) =>
       /* The proxy is asked to initialize itself. If that happened successfully, change the logic of receiving
        * messages */
       prepareStateData(primaryConfig, simulationStart) match {
         case Success(stateData) =>
-          scheduler ! CompletionMessage(triggerId, newTrigger = None)
+          // FIXME currently no completion needed
           context become onMessage(stateData)
         case Failure(exception) =>
           log.error(
@@ -357,10 +349,7 @@ case class PrimaryServiceProxy(
       primaryConfig
     ) match {
       case Success(initData) =>
-        scheduler ! ScheduleTriggerMessage(
-          InitializeServiceTrigger(initData),
-          workerRef
-        )
+        workerRef ! InitializeServiceTrigger(initData)
         Success(workerRef)
       case Failure(cause) =>
         workerRef ! PoisonPill

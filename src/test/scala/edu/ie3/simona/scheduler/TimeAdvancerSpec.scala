@@ -17,10 +17,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
 }
 import edu.ie3.simona.scheduler.TimeAdvancer.{StartSimMessage, Stop}
 import edu.ie3.simona.sim.SimMessage
-import edu.ie3.simona.sim.SimMessage.{
-  SimulationFailureMessage,
-  SimulationSuccessfulMessage
-}
+import edu.ie3.simona.sim.SimMessage.{SimulationFailure, SimulationSuccessful}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -96,7 +93,7 @@ class TimeAdvancerSpec
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
-      simulation.expectMessage(SimulationSuccessfulMessage)
+      simulation.expectMessage(SimulationSuccessful)
     }
 
     "started without checkWindow and pauseTick" in {
@@ -143,7 +140,7 @@ class TimeAdvancerSpec
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
-      simulation.expectMessage(SimulationSuccessfulMessage)
+      simulation.expectMessage(SimulationSuccessful)
     }
 
     "paused and started after initialization" in {
@@ -200,7 +197,7 @@ class TimeAdvancerSpec
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
-      simulation.expectMessage(SimulationSuccessfulMessage)
+      simulation.expectMessage(SimulationSuccessful)
     }
 
     "paused and started and there is a gap between StartSchedule tick and next activation tick" in {
@@ -263,7 +260,7 @@ class TimeAdvancerSpec
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
-      simulation.expectMessage(SimulationSuccessfulMessage)
+      simulation.expectMessage(SimulationSuccessful)
     }
 
     "paused and endTick - pauseScheduleAtTick == 1" in {
@@ -324,7 +321,7 @@ class TimeAdvancerSpec
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
-      simulation.expectMessage(SimulationSuccessfulMessage)
+      simulation.expectMessage(SimulationSuccessful)
     }
 
     "activation has been scheduled after endTick" in {
@@ -365,7 +362,7 @@ class TimeAdvancerSpec
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
-      simulation.expectMessage(SimulationSuccessfulMessage)
+      simulation.expectMessage(SimulationSuccessful)
     }
 
     "no next trigger has been supplied" in {
@@ -408,7 +405,7 @@ class TimeAdvancerSpec
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
-      simulation.expectMessage(SimulationSuccessfulMessage)
+      simulation.expectMessage(SimulationSuccessful)
     }
 
     "endTick < pauseScheduleAtTick" in {
@@ -449,7 +446,7 @@ class TimeAdvancerSpec
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
-      simulation.expectMessage(SimulationSuccessfulMessage)
+      simulation.expectMessage(SimulationSuccessful)
     }
 
     "endTick == pauseScheduleAtTick" in {
@@ -490,7 +487,7 @@ class TimeAdvancerSpec
       doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
-      simulation.expectMessage(SimulationSuccessfulMessage)
+      simulation.expectMessage(SimulationSuccessful)
     }
   }
 
@@ -534,7 +531,7 @@ class TimeAdvancerSpec
 
       scheduler.expectTerminated(timeAdvancer)
 
-      simulation.expectMessage(SimulationFailureMessage)
+      simulation.expectMessage(SimulationFailure)
     }
 
     "receiving error message while uninitialized" in {
@@ -552,7 +549,7 @@ class TimeAdvancerSpec
       // we cannot check the console, thus just check if time advancer died
       scheduler.expectTerminated(timeAdvancer)
 
-      simulation.expectMessage(SimulationFailureMessage)
+      simulation.expectMessage(SimulationFailure)
     }
 
     "receiving error message while inactive" in {
@@ -576,7 +573,7 @@ class TimeAdvancerSpec
 
       scheduler.expectTerminated(timeAdvancer)
 
-      simulation.expectMessage(SimulationFailureMessage)
+      simulation.expectMessage(SimulationFailure)
     }
 
     "receiving error message while active" in {
@@ -612,7 +609,7 @@ class TimeAdvancerSpec
 
       scheduler.expectTerminated(timeAdvancer)
 
-      simulation.expectMessage(SimulationFailureMessage)
+      simulation.expectMessage(SimulationFailure)
     }
 
   }

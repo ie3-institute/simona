@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
+import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.{ActorRef, Props, Stash}
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
@@ -19,17 +20,13 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestGridPowerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+  Completion,
+  ScheduleActivation
 }
-import edu.ie3.simona.ontology.messages.StopMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeGridAgentTrigger,
-  StartGridSimulationTrigger
-}
+import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
+import edu.ie3.simona.ontology.trigger.Trigger.InitializeGridAgentTrigger
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 
 import java.time.ZonedDateTime
@@ -41,12 +38,14 @@ object GridAgent {
   def props(
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
+      gridAgentInitData: GridAgentInitData,
       listener: Iterable[ActorRef]
   ): Props =
     Props(
       new GridAgent(
         environmentRefs,
         simonaConfig,
+        gridAgentInitData,
         listener
       )
     )
@@ -55,6 +54,7 @@ object GridAgent {
 class GridAgent(
     val environmentRefs: EnvironmentRefs,
     simonaConfig: SimonaConfig,
+    gridAgentInitData: GridAgentInitData,
     val listener: Iterable[ActorRef]
 ) extends SimonaAgent[GridAgentData]
     with DBFSAlgorithm
@@ -97,12 +97,7 @@ class GridAgent(
   when(Uninitialized) {
 
     case Event(
-          TriggerWithIdMessage(
-            InitializeGridAgentTrigger(
-              gridAgentInitData: GridAgentInitData
-            ),
-            triggerId
-          ),
+          Activation(INIT_SIM_TICK),
           _
         ) =>
       // fail fast sanity checks
@@ -171,11 +166,9 @@ class GridAgent(
 
       log.debug("Je suis initialized")
 
-      environmentRefs.scheduler ! CompletionMessage(
-        triggerId,
-        Some(
-          ScheduleTriggerMessage(ActivityStartTrigger(resolution), self)
-        )
+      environmentRefs.scheduler ! ScheduleActivation(
+        self.toTyped,
+        resolution
       )
 
       goto(Idle) using gridAgentBaseData
@@ -190,21 +183,14 @@ class GridAgent(
       stay()
 
     case Event(
-          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId),
+          Activation(tick),
           gridAgentBaseData: GridAgentBaseData
         ) =>
-      log.debug("received activity start trigger {}", triggerId)
-
       unstashAll()
 
-      environmentRefs.scheduler ! CompletionMessage(
-        triggerId,
-        Some(
-          ScheduleTriggerMessage(
-            StartGridSimulationTrigger(currentTick),
-            self
-          )
-        )
+      environmentRefs.scheduler ! Completion(
+        self.toTyped,
+        Some(tick)
       )
 
       goto(SimulateGrid) using gridAgentBaseData

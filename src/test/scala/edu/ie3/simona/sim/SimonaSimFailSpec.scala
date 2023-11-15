@@ -18,14 +18,13 @@ import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.ontology.messages.SchedulerMessage.InitSimMessage
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.TimeAdvancer.StartSimMessage
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
-import edu.ie3.simona.sim.SimMessage.SimulationFailureMessage
+import edu.ie3.simona.sim.SimMessage.{InitSim, SimulationFailure}
 import edu.ie3.simona.sim.SimonaSimFailSpec.FailSim
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 import edu.ie3.simona.test.common.AgentSpec
@@ -52,13 +51,13 @@ class SimonaSimFailSpec
         Props(
           new FailSim(
             system,
-            timeAdvancer.ref.toTyped[TimeAdvancer.Incoming]
+            timeAdvancer.ref.toTyped
           )
         )
       )
 
       /* Init the simulation */
-      failSim ! InitSimMessage
+      failSim ! InitSim
 
       /* The sim asks the scheduler to start it's schedule */
       timeAdvancer.expectMsg(StartSimMessage())
@@ -66,7 +65,7 @@ class SimonaSimFailSpec
       /* Trigger the child to fail */
       failSim.underlyingActor.getChild ! "fail"
 
-      expectMsg(SimulationFailureMessage)
+      expectMsg(SimulationFailure)
     }
   }
 }

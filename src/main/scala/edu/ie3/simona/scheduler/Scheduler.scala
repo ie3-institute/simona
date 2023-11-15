@@ -75,7 +75,7 @@ object Scheduler {
               )
             else {
               // we don't need to escalate to the parent, this means that we can release the lock (if applicable)
-              unlockKey.foreach { case (lock, key) => lock ! Unlock(key) }
+              unlockKey.foreach { _.unlock() }
             }
             inactive(updatedData, lastActiveTick)
           }
@@ -102,7 +102,7 @@ object Scheduler {
           // if there's a lock:
           // since we're active and any scheduled activation can still influence our next activation,
           // we can directly unlock the lock with the key
-          unlockKey.foreach { case (lock, key) => lock ! Unlock(key) }
+          unlockKey.foreach { _.unlock() }
 
           sendCurrentTriggers(
             scheduleTrigger(data, actor, newTick),

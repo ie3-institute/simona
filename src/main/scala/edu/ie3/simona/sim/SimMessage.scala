@@ -9,6 +9,10 @@ package edu.ie3.simona.sim
 trait SimMessage
 object SimMessage {
 
+  /** Tell the [[SimonaSim]] to initialize the simulation
+    */
+  case object InitSim extends SimMessage
+
   /** Starts simulation by activating the next (or first) tick
     *
     * @param pauseTick
@@ -22,10 +26,10 @@ object SimMessage {
   /** Reported back from the scheduler if an error occurred during the
     * simulation
     */
-  case object SimulationFailureMessage extends SimMessage
+  case object SimulationFailure extends SimMessage
 
   /** Reported back from the scheduler if the simulation terminated as expected
     */
-  case object SimulationSuccessfulMessage extends SimMessage
+  case object SimulationSuccessful extends SimMessage
 
 }
