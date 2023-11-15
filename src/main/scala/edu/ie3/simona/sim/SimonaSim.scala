@@ -111,12 +111,6 @@ class SimonaSim(simonaSetup: SimonaSetup)
     weatherService
   )
 
-  // init ext simulation actors
-  extSimulationData.allActorsAndInitTriggers.foreach {
-    case (actor, initTrigger) =>
-      actor ! initTrigger
-  }
-
   /* start grid agents  */
   val gridAgents: Iterable[ActorRef] = simonaSetup.gridAgents(
     context,

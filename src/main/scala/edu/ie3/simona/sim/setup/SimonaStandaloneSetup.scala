@@ -26,10 +26,7 @@ import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  InitializeExtSimAdapterTrigger,
-  InitializeServiceTrigger
-}
+import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
 import edu.ie3.simona.scheduler.{Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
@@ -175,8 +172,7 @@ class SimonaStandaloneSetup(
           s"$index"
         )
         val extSimAdapterData = new ExtSimAdapterData(extSimAdapter, args)
-        val initExtSimAdapter =
-          InitializeExtSimAdapterTrigger(extSimAdapterData)
+        val initExtSimAdapter = ExtSimAdapter.Init(extSimAdapterData)
 
         // setup data services that belong to this external simulation
         val (extData, extDataInit): (

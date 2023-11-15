@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.ontology.trigger
 
-import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.util.SimonaConstants
 
@@ -23,13 +22,6 @@ object Trigger {
   sealed trait InitializeTrigger extends Trigger {
     override val tick: Long = SimonaConstants.INIT_SIM_TICK
   }
-
-  /** Trigger to initialize ExtSimScheduler
-    */
-  @Deprecated
-  final case class InitializeExtSimAdapterTrigger(
-      extSimAdapterData: ExtSimAdapterData
-  ) extends InitializeTrigger
 
   /** Trigger to initialize the service agents (normally during simulation
     * initialization)

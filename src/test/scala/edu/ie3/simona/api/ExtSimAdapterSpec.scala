@@ -6,10 +6,10 @@
 
 package edu.ie3.simona.api
 
+import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.{ActorSystem, Terminated}
 import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.api.ExtSimAdapter.InitExtSimAdapter
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
@@ -18,20 +18,15 @@ import edu.ie3.simona.api.simulation.ontology.{
   ActivityStartTrigger => ExtActivityStartTrigger,
   CompletionMessage => ExtCompletionMessage
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+  Completion,
+  ScheduleActivation
 }
-import edu.ie3.simona.ontology.messages.StopMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeExtSimAdapterTrigger
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
+import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
 import edu.ie3.simona.test.common.TestKitWithShutdown
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatest.prop.TableDrivenPropertyChecks._
 
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.SeqHasAsJava
@@ -60,30 +55,9 @@ class ExtSimAdapterSpec
 
       val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
 
-      val triggerId = 1L
-
-      scheduler.send(
-        extSimAdapter,
-        TriggerWithIdMessage(
-          InitializeExtSimAdapterTrigger(
-            InitExtSimAdapter(
-              extData
-            )
-          ),
-          triggerId
-        )
-      )
-
+      scheduler.send(extSimAdapter, ExtSimAdapter.Init(extData))
       scheduler.expectMsg(
-        CompletionMessage(
-          triggerId,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(INIT_SIM_TICK),
-              extSimAdapter
-            )
-          )
-        )
+        ScheduleActivation(extSimAdapter.toTyped, INIT_SIM_TICK)
       )
     }
   }
@@ -96,31 +70,12 @@ class ExtSimAdapterSpec
 
       val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
 
-      scheduler.send(
-        extSimAdapter,
-        TriggerWithIdMessage(
-          InitializeExtSimAdapterTrigger(
-            InitExtSimAdapter(
-              extData
-            )
-          ),
-          1L
-        )
+      scheduler.send(extSimAdapter, ExtSimAdapter.Init(extData))
+      scheduler.expectMsg(
+        ScheduleActivation(extSimAdapter.toTyped, INIT_SIM_TICK)
       )
 
-      scheduler.expectMsgType[CompletionMessage]
-
-      val triggerId = 2L
-
-      scheduler.send(
-        extSimAdapter,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(
-            INIT_SIM_TICK
-          ),
-          triggerId
-        )
-      )
+      scheduler.send(extSimAdapter, Activation(INIT_SIM_TICK))
 
       awaitCond(
         !extData.receiveMessageQueue.isEmpty,
@@ -141,17 +96,7 @@ class ExtSimAdapterSpec
         )
       )
 
-      scheduler.expectMsg(
-        CompletionMessage(
-          triggerId,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(nextTick),
-              extSimAdapter
-            )
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(extSimAdapter.toTyped, Some(nextTick)))
     }
 
     "schedule the data service when it is told to" in {
@@ -162,32 +107,12 @@ class ExtSimAdapterSpec
       val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
       val dataService = TestProbe("dataService")
 
-      scheduler.send(
-        extSimAdapter,
-        TriggerWithIdMessage(
-          InitializeExtSimAdapterTrigger(
-            InitExtSimAdapter(
-              extData
-            )
-          ),
-          1L
-        )
+      scheduler.send(extSimAdapter, ExtSimAdapter.Init(extData))
+      scheduler.expectMsg(
+        ScheduleActivation(extSimAdapter.toTyped, INIT_SIM_TICK)
       )
 
-      scheduler.expectMsgType[CompletionMessage]
-
-      val triggerId = 2L
-      val tick = 0L
-
-      scheduler.send(
-        extSimAdapter,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(
-            tick
-          ),
-          triggerId
-        )
-      )
+      scheduler.send(extSimAdapter, Activation(INIT_SIM_TICK))
 
       awaitCond(
         !extData.receiveMessageQueue.isEmpty,
@@ -196,19 +121,15 @@ class ExtSimAdapterSpec
       )
       extData.receiveMessageQueue.size() shouldBe 1
       extData.receiveMessageQueue.take()
-      scheduler.expectNoMessage()
 
       extSimAdapter ! new ScheduleDataServiceMessage(
         dataService.ref
       )
 
-      scheduler.expectMsg(
-        ScheduleTriggerMessage(
-          ActivityStartTrigger(tick),
-          dataService.ref
-        )
-      )
-      dataService.expectNoMessage()
+      scheduler.expectNoMessage()
+      dataService
+        .expectMsgType[ScheduleServiceActivation]
+        .tick shouldBe INIT_SIM_TICK
     }
 
     "terminate the external simulation and itself when told to" in {
@@ -219,19 +140,10 @@ class ExtSimAdapterSpec
 
         val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
 
-        scheduler.send(
-          extSimAdapter,
-          TriggerWithIdMessage(
-            InitializeExtSimAdapterTrigger(
-              InitExtSimAdapter(
-                extData
-              )
-            ),
-            1L
-          )
+        scheduler.send(extSimAdapter, ExtSimAdapter.Init(extData))
+        scheduler.expectMsg(
+          ScheduleActivation(extSimAdapter.toTyped, INIT_SIM_TICK)
         )
-
-        scheduler.expectMsgType[CompletionMessage]
 
         val stopWatcher = TestProbe()
         stopWatcher.watch(extSimAdapter)

@@ -11,7 +11,7 @@ import akka.actor.typed.scaladsl.adapter.{
   ClassicActorRefOps
 }
 import akka.actor.{Actor, ActorRef, PoisonPill, Props}
-import edu.ie3.simona.api.ExtSimAdapter.ExtSimAdapterStateData
+import edu.ie3.simona.api.ExtSimAdapter.{ExtSimAdapterStateData, Init}
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
@@ -26,12 +26,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
   ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
-import edu.ie3.simona.ontology.messages.{
-  Activation,
-  SchedulerMessageTyped,
-  StopMessage
-}
-import edu.ie3.simona.ontology.trigger.Trigger.InitializeExtSimAdapterTrigger
+import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -46,6 +41,8 @@ object ExtSimAdapter {
       new ExtSimAdapter(scheduler)
     )
 
+  final case class Init(extSimData: ExtSimAdapterData)
+
   final case class ExtSimAdapterStateData(
       extSimData: ExtSimAdapterData,
       currentTick: Option[Long] = None
@@ -55,16 +52,15 @@ object ExtSimAdapter {
 final case class ExtSimAdapter(scheduler: ActorRef)
     extends Actor
     with SimonaActorLogging {
-  override def receive: Receive = {
-    case InitializeExtSimAdapterTrigger(extSimAdapterData) =>
-      // triggering first time at init tick
-      scheduler ! ScheduleActivation(
-        self.toTyped,
-        INIT_SIM_TICK
-      )
-      context become receiveIdle(
-        ExtSimAdapterStateData(extSimAdapterData)
-      )
+  override def receive: Receive = { case Init(extSimAdapterData) =>
+    // triggering first time at init tick
+    scheduler ! ScheduleActivation(
+      self.toTyped,
+      INIT_SIM_TICK
+    )
+    context become receiveIdle(
+      ExtSimAdapterStateData(extSimAdapterData)
+    )
   }
 
   private def receiveIdle(implicit
