@@ -12,6 +12,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
   Completion,
   ScheduleActivation
 }
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.ActorUtils.RichTriggeredAgent
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -64,7 +65,7 @@ class ScheduleLockIT
       childScheduler ! ScheduleActivation(
         agent2.ref,
         30,
-        Some(scheduleLock, key)
+        Some(ScheduleKey(scheduleLock, key))
       )
 
       // because of activated agents, child/parentScheduler should not be able to complete yet
@@ -128,7 +129,7 @@ class ScheduleLockIT
       childScheduler ! ScheduleActivation(
         agent.ref,
         40,
-        Some(scheduleLock, key)
+        Some(ScheduleKey(scheduleLock, key))
       )
 
       timeAdvancer.expectMessage(Completion(lockActivation, Some(40)))

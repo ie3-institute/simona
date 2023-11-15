@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.ontology.trigger
 
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.util.SimonaConstants

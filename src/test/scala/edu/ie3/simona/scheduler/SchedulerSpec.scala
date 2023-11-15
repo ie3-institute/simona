@@ -12,7 +12,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
   ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessageTyped}
-import edu.ie3.simona.scheduler.ScheduleLock.{LockMsg, Unlock}
+import edu.ie3.simona.scheduler.ScheduleLock.{LockMsg, ScheduleKey, Unlock}
 import edu.ie3.simona.util.ActorUtils.RichTriggeredAgent
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.scalatest.matchers.should
@@ -258,7 +258,11 @@ class SchedulerSpec
       agent1.expectMessage(Activation(60))
 
       val key = UUID.randomUUID()
-      scheduler ! ScheduleActivation(agent2.ref, 120, Some(lock.ref, key))
+      scheduler ! ScheduleActivation(
+        agent2.ref,
+        120,
+        Some(ScheduleKey(lock.ref, key))
+      )
 
       // no new scheduling when active
       parent.expectNoMessage()
@@ -285,7 +289,7 @@ class SchedulerSpec
       scheduler ! ScheduleActivation(
         agent1.ref,
         60,
-        Some(lock.ref, key)
+        Some(ScheduleKey(lock.ref, key))
       )
 
       // no new scheduling for same tick
@@ -314,7 +318,7 @@ class SchedulerSpec
       scheduler ! ScheduleActivation(
         agent1.ref,
         59,
-        Some(lock.ref, key)
+        Some(ScheduleKey(lock.ref, key))
       )
 
       // lock should not receive unlock message by scheduler
@@ -322,7 +326,11 @@ class SchedulerSpec
 
       // responsibility of unlocking forwarded to parent
       parent.expectMessage(
-        ScheduleActivation(schedulerActivation, 59, Some(lock.ref, key))
+        ScheduleActivation(
+          schedulerActivation,
+          59,
+          Some(ScheduleKey(lock.ref, key))
+        )
       )
     }
 
