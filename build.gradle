@@ -68,7 +68,7 @@ repositories {
 
 dependencies {
   constraints {
-    implementation( 'com.fasterxml.jackson.core:jackson-databind:2.15.3+' ){
+    implementation( 'com.fasterxml.jackson.core:jackson-databind:2.16.0+' ){
       because "[CVE-2020-25649] CWE-611: Improper Restriction of XML External Entity Reference ('XXE')"
     }
   }
