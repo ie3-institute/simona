@@ -6,16 +6,17 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.event.ResultEvent
+import edu.ie3.simona.event.ResultMessage
 import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
   PowerFlowResultEvent
 }
+import edu.ie3.simona.event.ResultMessage.{Failed, SinkResponse, Stop}
 import edu.ie3.simona.exceptions.{
   FileHierarchyException,
   InitializationException,
@@ -32,13 +33,6 @@ import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 
 object ResultEventListener extends Transformer3wResultSupport {
-
-  private final case class SinkResponse(
-      response: Map[Class[_], ResultEntitySink]
-  ) extends ResultEvent
-
-  private final case class Failed(ex: Exception) extends ResultEvent
-  private final case object Stop extends ResultEvent
 
   /** [[ResultEventListener]] base data containing all information the listener
     * needs
@@ -230,9 +224,9 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   def apply(
       resultFileHierarchy: ResultFileHierarchy
-  ): Behavior[ResultEvent] = {
+  ): Behavior[ResultMessage] = {
 
-    Behaviors.setup[ResultEvent] { ctx: ActorContext[ResultEvent] =>
+    Behaviors.setup[ResultMessage] { ctx: ActorContext[ResultMessage] =>
       ctx.log.debug("Starting initialization!")
       resultFileHierarchy.resultSinkType match {
         case _: ResultSinkType.Kafka =>
@@ -246,20 +240,23 @@ object ResultEventListener extends Transformer3wResultSupport {
           )
       }
 
-      Future
-        .sequence(ResultEventListener.initializeSinks(resultFileHierarchy))
-        .map { result =>
-          ctx.self ! SinkResponse(result.toMap)
-        }
+      ctx.pipeToSelf(
+        Future.sequence(
+          ResultEventListener.initializeSinks(resultFileHierarchy)
+        )
+      ) {
+        case Failure(exception: Exception) => Failed(exception)
+        case Success(result)               => SinkResponse(result.toMap)
+      }
 
       init()
     }
   }
 
-  private def init(): Behavior[ResultEvent] = Behaviors.withStash(100) {
+  private def init(): Behavior[ResultMessage] = Behaviors.withStash(100) {
     buffer =>
       Behaviors
-        .receive[ResultEvent] {
+        .receive[ResultMessage] {
           case (ctx, SinkResponse(response)) =>
             ctx.log.debug("Initialization complete!")
             buffer.unstashAll(idle(BaseData(response)))
@@ -290,9 +287,9 @@ object ResultEventListener extends Transformer3wResultSupport {
         }
   }
 
-  private def idle(baseData: BaseData): Behavior[ResultEvent] =
+  private def idle(baseData: BaseData): Behavior[ResultMessage] =
     Behaviors
-      .receive[ResultEvent] { case (ctx, event) =>
+      .receive[ResultMessage] { case (ctx, event) =>
         (event, baseData) match {
           case (ParticipantResultEvent(systemParticipantResult), baseData) =>
             val updatedBaseData =
