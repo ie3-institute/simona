@@ -25,7 +25,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.WorkerRegistrationMessage
-import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   ProvidePrimaryDataMessage,
@@ -40,6 +40,8 @@ import edu.ie3.util.scala.quantities.Kilovars
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.Kilowatts
+
+import java.util.UUID
 
 class PrimaryServiceWorkerSqlIT
     extends AgentSpec(
@@ -87,6 +89,7 @@ class PrimaryServiceWorkerSqlIT
   "A primary service actor with SQL source" should {
     "initialize and send out data when activated" in {
       val scheduler = TestProbe("Scheduler")
+      val lock = TestProbe("lock")
 
       val cases = Table(
         (
@@ -147,18 +150,13 @@ class PrimaryServiceWorkerSqlIT
             new DatabaseNamingStrategy()
           )
 
-          val lock =
-            ScheduleLock.singleKey(
-              TSpawner,
-              scheduler.ref.toTyped,
-              INIT_SIM_TICK
-            )
+          val key1 = ScheduleKey(lock.ref.toTyped, UUID.randomUUID())
           scheduler.send(
             serviceRef,
-            SimonaService.Create(initData, lock)
+            SimonaService.Create(initData, key1)
           )
           scheduler.expectMsg(
-            ScheduleActivation(serviceRef.toTyped, INIT_SIM_TICK, Some(lock))
+            ScheduleActivation(serviceRef.toTyped, INIT_SIM_TICK, Some(key1))
           )
 
           scheduler.send(serviceRef, Activation(INIT_SIM_TICK))

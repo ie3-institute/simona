@@ -76,6 +76,8 @@ class PrimaryServiceProxySqlIT
     container.close()
   }
 
+  private val scheduler = TestProbe("Scheduler")
+
   // function definition because postgres parameters are only available after initialization
   private def sqlParams: SqlParams = SqlParams(
     jdbcUrl = container.jdbcUrl,
@@ -85,9 +87,7 @@ class PrimaryServiceProxySqlIT
     timePattern = "yyyy-MM-dd HH:mm:ss"
   )
 
-  "A primary service proxy with SQL source" should {
-    val scheduler = TestProbe("Scheduler")
-
+  private def createProxy(): TestActorRef[PrimaryServiceProxy] = {
     val initData = InitPrimaryServiceProxyStateData(
       SimonaConfig.Simona.Input.Primary(
         None,
@@ -98,23 +98,31 @@ class PrimaryServiceProxySqlIT
       simulationStart
     )
 
-    val proxyRef = TestActorRef(
+    TestActorRef(
       PrimaryServiceProxy.props(
         scheduler.ref,
         initData,
         simulationStart
       )
     )
+  }
+
+  "A primary service proxy with SQL source" should {
 
     "initialize when given proper SQL input configs" in {
+      val proxyRef = createProxy()
 
       scheduler.send(proxyRef, Activation(INIT_SIM_TICK))
-
       scheduler.expectMsg(Completion(proxyRef.toTyped))
     }
 
     "handle participant request correctly if participant has primary data" in {
       val systemParticipantProbe = TestProbe("SystemParticipant")
+
+      val proxyRef = createProxy()
+
+      scheduler.send(proxyRef, Activation(INIT_SIM_TICK))
+      scheduler.expectMsg(Completion(proxyRef.toTyped))
 
       systemParticipantProbe.send(
         proxyRef,
@@ -122,6 +130,7 @@ class PrimaryServiceProxySqlIT
           UUID.fromString("b86e95b0-e579-4a80-a534-37c7a470a409")
         )
       )
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
 
       val initActivation = scheduler.expectMsgType[ScheduleActivation]
       initActivation.tick shouldBe INIT_SIM_TICK
@@ -141,6 +150,11 @@ class PrimaryServiceProxySqlIT
 
     "handle participant request correctly if participant does not have primary data" in {
       val systemParticipantProbe = TestProbe("SystemParticipant")
+
+      val proxyRef = createProxy()
+
+      scheduler.send(proxyRef, Activation(INIT_SIM_TICK))
+      scheduler.expectMsg(Completion(proxyRef.toTyped))
 
       systemParticipantProbe.send(
         proxyRef,
