@@ -39,6 +39,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   WorkerRegistrationMessage
 }
+import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
   PrimaryServiceStateData,
@@ -240,7 +241,7 @@ class PrimaryServiceProxySpec
       simulationStart
     )
   val proxyRef: TestActorRef[PrimaryServiceProxy] = TestActorRef(
-    new PrimaryServiceProxy(self, initStateData, simulationStart)
+    new PrimaryServiceProxy(scheduler.ref, initStateData, simulationStart)
   )
   val proxy: PrimaryServiceProxy = proxyRef.underlyingActor
 
@@ -438,7 +439,7 @@ class PrimaryServiceProxySpec
     "succeed on fine input data" in {
       /* We "fake" the creation of the worker to infiltrate a test probe. This empowers us to check, if a matching init
        * message is sent to the worker */
-      val testProbe = TestProbe("workerTestProbe")
+      val worker = TestProbe("workerTestProbe")
       val fakeProxyRef =
         TestActorRef(
           new PrimaryServiceProxy(
@@ -449,7 +450,7 @@ class PrimaryServiceProxySpec
             override protected def classToWorkerRef[V <: Value](
                 valueClass: Class[V],
                 timeSeriesUuid: String
-            ): ActorRef = testProbe.ref
+            ): ActorRef = worker.ref
 
             // needs to be overwritten as to make it available to the private method tester
             @SuppressWarnings(Array("NoOpOverride"))
@@ -471,6 +472,8 @@ class PrimaryServiceProxySpec
         Paths.get("its_pq_" + uuidPq)
       )
 
+      scheduler.expectNoMessage()
+
       fakeProxy invokePrivate initializeWorker(
         metaInformation,
         simulationStart,
@@ -478,9 +481,34 @@ class PrimaryServiceProxySpec
       ) match {
         case Success(workerRef) =>
           /* Check, if expected init message has been sent */
-          val initActivation = scheduler.expectMsgType[ScheduleActivation]
-          initActivation.tick shouldBe INIT_SIM_TICK
-          initActivation.unlockKey should not be empty
+          workerRef shouldBe worker.ref
+
+          inside(worker.expectMsgType[SimonaService.Create[_]]) {
+            case SimonaService.Create(
+                  CsvInitPrimaryServiceStateData(
+                    actualTimeSeriesUuid,
+                    actualSimulationStart,
+                    actualCsvSep,
+                    directoryPath,
+                    filePath,
+                    fileNamingStrategy,
+                    timePattern
+                  ),
+                  _
+                ) =>
+              actualTimeSeriesUuid shouldBe uuidPq
+              actualSimulationStart shouldBe simulationStart
+              actualCsvSep shouldBe csvSep
+              directoryPath shouldBe baseDirectoryPath
+              filePath shouldBe metaInformation.getFullFilePath
+              classOf[FileNamingStrategy].isAssignableFrom(
+                fileNamingStrategy.getClass
+              ) shouldBe true
+              timePattern shouldBe TimeUtil.withDefaults.getDtfPattern
+          }
+
+          // receiving schedule activation, don't know why but ok...
+          scheduler.expectMsgType[ScheduleActivation]
 
           /* Kill the worker aka. test probe */
           workerRef ! PoisonPill
@@ -586,15 +614,19 @@ class PrimaryServiceProxySpec
 
     "spin off a worker, if needed and forward the registration request" in {
       /* We once again fake the class, so that we can infiltrate a probe */
-      val probe = TestProbe("workerTestProbe")
+      val worker = TestProbe("workerTestProbe")
       val fakeProxyRef =
         TestActorRef(
-          new PrimaryServiceProxy(self, initStateData, simulationStart) {
+          new PrimaryServiceProxy(
+            scheduler.ref,
+            initStateData,
+            simulationStart
+          ) {
             override protected def initializeWorker(
                 metaInformation: IndividualTimeSeriesMetaInformation,
                 simulationStart: ZonedDateTime,
                 primaryConfig: PrimaryConfig
-            ): Try[ActorRef] = Success(probe.ref)
+            ): Try[ActorRef] = Success(worker.ref)
 
             // needs to be overwritten as to make it available to the private method tester
             @SuppressWarnings(Array("NoOpOverride"))
@@ -620,7 +652,7 @@ class PrimaryServiceProxySpec
         proxyStateData,
         self
       )
-      probe.expectMsg(WorkerRegistrationMessage(self))
+      worker.expectMsg(WorkerRegistrationMessage(self))
     }
   }
 
@@ -636,15 +668,19 @@ class PrimaryServiceProxySpec
 
     "succeed, if model is handled" in {
       /* We once again fake the class, so that we can infiltrate a probe */
-      val probe = TestProbe("workerTestProbe")
+      val worker = TestProbe("workerTestProbe")
       val fakeProxyRef =
         TestActorRef(
-          new PrimaryServiceProxy(self, initStateData, simulationStart) {
+          new PrimaryServiceProxy(
+            scheduler.ref,
+            initStateData,
+            simulationStart
+          ) {
             override protected def initializeWorker(
                 metaInformation: IndividualTimeSeriesMetaInformation,
                 simulationStart: ZonedDateTime,
                 primaryConfig: PrimaryConfig
-            ): Try[ActorRef] = Success(probe.ref)
+            ): Try[ActorRef] = Success(worker.ref)
           }
         )
 
@@ -653,11 +689,11 @@ class PrimaryServiceProxySpec
         fakeProxyRef,
         Activation(INIT_SIM_TICK)
       )
-      scheduler.expectMsg(Completion(fakeProxyRef.toTyped, Some(0)))
+      scheduler.expectMsg(Completion(fakeProxyRef.toTyped))
 
       /* Try to register with fake proxy */
       fakeProxyRef ! PrimaryServiceRegistrationMessage(modelUuid)
-      probe.expectMsg(WorkerRegistrationMessage(self))
+      worker.expectMsg(WorkerRegistrationMessage(self))
     }
   }
 }

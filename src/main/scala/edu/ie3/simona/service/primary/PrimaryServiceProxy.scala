@@ -40,6 +40,7 @@ import edu.ie3.simona.exceptions.{
 }
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
@@ -108,12 +109,12 @@ case class PrimaryServiceProxy(
         initStateData.simulationStart
       ) match {
         case Success(stateData) =>
-          // FIXME currently no completion needed
+          scheduler ! Completion(self.toTyped)
           context become onMessage(stateData)
         case Failure(exception) =>
           log.error(
-            s"Unable to initialize the $actorName. Shut it down.",
-            exception
+            exception,
+            s"Unable to initialize the $actorName. Shut it down."
           )
           self ! PoisonPill
       }
