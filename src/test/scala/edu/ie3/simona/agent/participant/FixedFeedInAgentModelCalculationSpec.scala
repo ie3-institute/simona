@@ -180,7 +180,7 @@ class FixedFeedInAgentModelCalculationSpec
       primaryServiceProxy.send(fixedFeedAgent, RegistrationFailedMessage)
 
       /* Expect a completion notification */
-      scheduler.expectMsg(Completion(fixedFeedAgent.toTyped, None))
+      scheduler.expectMsg(Completion(fixedFeedAgent.toTyped, Some(0)))
 
       /* ... as well as corresponding state and state data */
       fixedFeedAgent.stateName shouldBe Idle
@@ -350,9 +350,7 @@ class FixedFeedInAgentModelCalculationSpec
       /* Trigger the data generation in tick 0 */
       scheduler.send(fixedFeedAgent, Activation(0))
 
-      scheduler.expectMsg(
-        Completion(fixedFeedAgent.toTyped, Some(3600))
-      ) // TODO ?
+      scheduler.expectMsg(Completion(fixedFeedAgent.toTyped))
 
       awaitAssert(fixedFeedAgent.stateName shouldBe Idle)
 
@@ -392,9 +390,7 @@ class FixedFeedInAgentModelCalculationSpec
       /* Trigger the data generation in tick 0 */
       scheduler.send(fixedFeedAgent, Activation(0))
 
-      scheduler.expectMsg(
-        Completion(fixedFeedAgent.toTyped, Some(3600))
-      ) // TODO ?
+      scheduler.expectMsg(Completion(fixedFeedAgent.toTyped))
 
       /* Ask the agent for average power in tick 3000 */
       fixedFeedAgent ! RequestAssetPowerMessage(

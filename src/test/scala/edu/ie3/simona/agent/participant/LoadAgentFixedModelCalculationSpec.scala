@@ -51,7 +51,7 @@ import java.util.concurrent.TimeUnit
 class LoadAgentFixedModelCalculationSpec
     extends ParticipantAgentSpec(
       ActorSystem(
-        "LoadAgentSpec",
+        "LoadAgentFixedModelCalculationSpec",
         ConfigFactory
           .parseString("""
             |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
@@ -174,7 +174,7 @@ class LoadAgentFixedModelCalculationSpec
       primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
 
       /* Expect a completion notification */
-      scheduler.expectMsg(Completion(loadAgent.toTyped, None))
+      scheduler.expectMsg(Completion(loadAgent.toTyped, Some(0)))
 
       /* ... as well as corresponding state and state data */
       loadAgent.stateName shouldBe Idle
@@ -344,9 +344,7 @@ class LoadAgentFixedModelCalculationSpec
       /* Trigger the data generation in tick 0 */
       scheduler.send(loadAgent, Activation(0))
 
-      scheduler.expectMsg(
-        Completion(loadAgent.toTyped, Some(3600))
-      ) // TODO ?
+      scheduler.expectMsg(Completion(loadAgent.toTyped))
 
       awaitAssert(loadAgent.stateName shouldBe Idle)
 
@@ -386,9 +384,7 @@ class LoadAgentFixedModelCalculationSpec
       /* Trigger the data generation in tick 0 */
       scheduler.send(loadAgent, Activation(0))
 
-      scheduler.expectMsg(
-        Completion(loadAgent.toTyped, Some(3600))
-      ) // TODO ?
+      scheduler.expectMsg(Completion(loadAgent.toTyped))
 
       /* Ask the agent for average power in tick 3000 */
       loadAgent ! RequestAssetPowerMessage(
