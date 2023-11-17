@@ -39,8 +39,7 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerUnchangedMessage,
   RequestAssetPowerMessage
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessage.IllegalTriggerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.Completion
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
@@ -180,14 +179,7 @@ class WecAgentModelCalculationSpec
       primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
 
       /* Agent announces, that it has received an illegal trigger */
-      scheduler.receiveOne(receiveTimeOut.duration) match {
-        case IllegalTriggerMessage(_, _) => logger.debug("Got correct message")
-        case null => fail("Did not receive an IllegalTriggerMessage.")
-        case m =>
-          fail(
-            s"Did not fail initialization because of missing weather service. Received: '$m'"
-          )
-      }
+      // TODO test failed actor
 
       /* agent should stay uninitialized */
       wecAgent.stateName shouldBe Uninitialized

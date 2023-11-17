@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.grid
 
 import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.{ActorRef, Props, Stash}
-import edu.ie3.simona.agent.grid.GridAgent.Init
+import edu.ie3.simona.agent.grid.GridAgent.Create
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentInitData,
@@ -21,11 +21,12 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestGridPowerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 
@@ -53,8 +54,45 @@ object GridAgent {
     * @param gridAgentInitData
     *   The initialization data
     */
-  final case class Init(gridAgentInitData: GridAgentInitData)
+  final case class Create(
+      gridAgentInitData: GridAgentInitData,
+      unlockKey: ScheduleKey
+  )
 
+  /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
+    * execute a power flow calculation
+    *
+    * @param tick
+    *   current tick
+    */
+  final case class DoPowerFlowTrigger(tick: Long, currentSweepNo: Int)
+
+  /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
+    * activate the superior grid agent to check for deviation after two sweeps
+    * and see if the power flow converges
+    *
+    * @param tick
+    *   current tick
+    */
+  final case class CheckPowerDifferencesTrigger(tick: Long)
+
+  /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
+    * trigger the [[edu.ie3.simona.agent.grid.GridAgent]] s to prepare
+    * themselves for a new sweep
+    *
+    * @param tick
+    *   current tick
+    */
+  final case class PrepareNextSweepTrigger(tick: Long)
+
+  /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
+    * indicate that a result has been found and each
+    * [[edu.ie3.simona.agent.grid.GridAgent]] should do it's cleanup work
+    *
+    * @param tick
+    *   current tick
+    */
+  final case class FinishGridSimulationTrigger(tick: Long)
 }
 
 class GridAgent(
@@ -101,12 +139,13 @@ class GridAgent(
 
   when(Uninitialized) {
     case Event(
-          Init(gridAgentInitData),
+          Create(gridAgentInitData, unlockKey),
           _
         ) =>
       environmentRefs.scheduler ! ScheduleActivation(
         self.toTyped,
-        INIT_SIM_TICK
+        INIT_SIM_TICK,
+        Some(unlockKey)
       )
 
       goto(Initializing) using gridAgentInitData

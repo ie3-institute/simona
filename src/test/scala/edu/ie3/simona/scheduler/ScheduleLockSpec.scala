@@ -7,13 +7,15 @@
 package edu.ie3.simona.scheduler
 
 import akka.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
+import akka.actor.typed.{ActorRef, Behavior}
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+import edu.ie3.simona.ontology.messages.SchedulerMessage
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
-import edu.ie3.simona.scheduler.ScheduleLock.Unlock
+import edu.ie3.simona.scheduler.ScheduleLock.{Spawner, Unlock}
+import edu.ie3.simona.test.common.TestSpawnerTyped
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -22,19 +24,16 @@ import java.util.UUID
 class ScheduleLockSpec
     extends ScalaTestWithActorTestKit
     with AnyWordSpecLike
-    with should.Matchers {
+    with should.Matchers
+    with TestSpawnerTyped {
 
   "The ScheduleLock" should {
 
     "work as expected" in {
-      val scheduler = TestProbe[SchedulerMessageTyped]("scheduler")
+      val scheduler = TestProbe[SchedulerMessage]("scheduler")
 
-      val key1 = UUID.randomUUID()
-      val key2 = UUID.randomUUID()
-
-      val scheduleLock = spawn(
-        ScheduleLock(scheduler.ref, Set(key1, key2), 300)
-      )
+      val scheduleLocks =
+        ScheduleLock.multiKey(TSpawner, scheduler.ref, 300, 2).toSeq
 
       val sa = scheduler.expectMessageType[ScheduleActivation]
       sa.tick shouldBe 300
@@ -44,40 +43,37 @@ class ScheduleLockSpec
       // initialize lock
       lockActivation ! Activation(300)
 
-      // unlock one of both keys
-      scheduleLock ! Unlock(key2)
+      // use one of both keys
+      scheduleLocks(1).unlock()
       scheduler.expectNoMessage()
 
-      // unlock second key, should unlock now
-      scheduleLock ! Unlock(key1)
+      // use second key, should unlock now
+      scheduleLocks(2).unlock()
 
       scheduler.expectMessage(Completion(lockActivation))
-      scheduler.expectTerminated(scheduleLock)
+      scheduler.expectTerminated(scheduleLocks(1).lock)
     }
 
     "stashes unlock messages when not yet initialized" in {
-      val scheduler = TestProbe[SchedulerMessageTyped]("scheduler")
+      val scheduler = TestProbe[SchedulerMessage]("scheduler")
 
-      val key = UUID.randomUUID()
-
-      val scheduleLock = spawn(
-        ScheduleLock(scheduler.ref, Set(key), 300)
-      )
+      val scheduleLock =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, 300)
 
       val sa = scheduler.expectMessageType[ScheduleActivation]
       sa.tick shouldBe 300
       sa.unlockKey shouldBe None
       val lockActivation = sa.actor
 
-      // unlock one of both keys
-      scheduleLock ! Unlock(key)
+      // use key
+      scheduleLock.unlock()
       scheduler.expectNoMessage()
 
       // initialize lock, which should unlock right away now
       lockActivation ! Activation(300)
 
       scheduler.expectMessage(Completion(lockActivation))
-      scheduler.expectTerminated(scheduleLock)
+      scheduler.expectTerminated(scheduleLock.lock)
     }
   }
 

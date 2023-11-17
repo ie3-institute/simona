@@ -18,13 +18,14 @@ import edu.ie3.simona.api.simulation.ontology.{
   ActivityStartTrigger => ExtActivityStartTrigger,
   CompletionMessage => ExtCompletionMessage
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
 import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
-import edu.ie3.simona.test.common.TestKitWithShutdown
+import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.test.common.{TestKitWithShutdown, TestSpawnerClassic}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -42,7 +43,8 @@ class ExtSimAdapterSpec
                      |""".stripMargin)
       )
     )
-    with AnyWordSpecLike {
+    with AnyWordSpecLike
+    with TestSpawnerClassic {
 
   private val scheduler = TestProbe("scheduler")
   private val mainArgs = Array.empty[String]
@@ -55,9 +57,11 @@ class ExtSimAdapterSpec
 
       val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
 
-      scheduler.send(extSimAdapter, ExtSimAdapter.Init(extData))
+      val lock =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      scheduler.send(extSimAdapter, ExtSimAdapter.Create(extData, lock))
       scheduler.expectMsg(
-        ScheduleActivation(extSimAdapter.toTyped, INIT_SIM_TICK)
+        ScheduleActivation(extSimAdapter.toTyped, INIT_SIM_TICK, Some(lock))
       )
     }
   }
@@ -70,9 +74,11 @@ class ExtSimAdapterSpec
 
       val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
 
-      scheduler.send(extSimAdapter, ExtSimAdapter.Init(extData))
+      val lock =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      scheduler.send(extSimAdapter, ExtSimAdapter.Create(extData, lock))
       scheduler.expectMsg(
-        ScheduleActivation(extSimAdapter.toTyped, INIT_SIM_TICK)
+        ScheduleActivation(extSimAdapter.toTyped, INIT_SIM_TICK, Some(lock))
       )
 
       scheduler.send(extSimAdapter, Activation(INIT_SIM_TICK))
@@ -107,9 +113,11 @@ class ExtSimAdapterSpec
       val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
       val dataService = TestProbe("dataService")
 
-      scheduler.send(extSimAdapter, ExtSimAdapter.Init(extData))
+      val lock =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      scheduler.send(extSimAdapter, ExtSimAdapter.Create(extData, lock))
       scheduler.expectMsg(
-        ScheduleActivation(extSimAdapter.toTyped, INIT_SIM_TICK)
+        ScheduleActivation(extSimAdapter.toTyped, INIT_SIM_TICK, Some(lock))
       )
 
       scheduler.send(extSimAdapter, Activation(INIT_SIM_TICK))
@@ -140,9 +148,11 @@ class ExtSimAdapterSpec
 
         val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
 
-        scheduler.send(extSimAdapter, ExtSimAdapter.Init(extData))
+        val lock =
+          ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+        scheduler.send(extSimAdapter, ExtSimAdapter.Create(extData, lock))
         scheduler.expectMsg(
-          ScheduleActivation(extSimAdapter.toTyped, INIT_SIM_TICK)
+          ScheduleActivation(extSimAdapter.toTyped, INIT_SIM_TICK, Some(lock))
         )
 
         val stopWatcher = TestProbe()

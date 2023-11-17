@@ -7,6 +7,7 @@
 package edu.ie3.simona.service.primary
 
 import akka.actor.ActorSystem
+import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.io.factory.timeseries.TimeBasedSimpleValueFactory
@@ -15,19 +16,11 @@ import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesSource
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.value.{HeatDemandValue, PValue}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ActivePower
-import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.WorkerRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeServiceTrigger
-}
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   CsvInitPrimaryServiceStateData,
   InitPrimaryServiceStateData,
@@ -125,7 +118,7 @@ class PrimaryServiceWorkerSpec
 
     "be instantiated correctly if faced to valid init data" in {
       service.init(validInitData) match {
-        case Success((stateData, maybeTriggerMessages)) =>
+        case Success((stateData, maybeNextTick)) =>
           /* Initialisation was successful. Check state data and triggers, that will be sent to scheduler */
           stateData match {
             case PrimaryServiceInitializedStateData(
@@ -145,20 +138,15 @@ class PrimaryServiceWorkerSpec
               subscribers.isEmpty shouldBe true
           }
           /* We expect a request to be triggered in tick 0 */
-          maybeTriggerMessages shouldBe Some(
-            ScheduleTriggerMessage(ActivityStartTrigger(0L), serviceRef)
-          )
+          maybeNextTick shouldBe Some(0)
         case Failure(_) =>
           fail("Initialisation with supported init data is not meant to fail.")
       }
     }
 
     /* Init the service actor */
-    serviceRef ! TriggerWithIdMessage(
-      InitializeServiceTrigger(validInitData),
-      0L
-    )
-    expectMsgType[CompletionMessage]
+    serviceRef ! Activation(0)
+    expectMsgType[Completion]
 
     "refuse registration for wrong registration request" in {
       serviceRef ! RegisterForWeatherMessage(51.4843281, 7.4116482)
@@ -174,8 +162,8 @@ class PrimaryServiceWorkerSpec
 
       /* We cannot directly check, if the requesting actor is among the subscribers, therefore we ask the actor to
        * provide data to all subscribed actors and check, if the subscribed probe gets one */
-      serviceRef ! TriggerWithIdMessage(ActivityStartTrigger(0L), 1L)
-      expectMsgType[CompletionMessage]
+      serviceRef ! Activation(0)
+      expectMsgType[Completion]
       systemParticipant.expectMsgAllClassOf(classOf[ProvidePrimaryDataMessage])
     }
 
@@ -201,7 +189,7 @@ class PrimaryServiceWorkerSpec
       val announcePrimaryData = PrivateMethod[
         (
             PrimaryServiceInitializedStateData[PValue],
-            Option[SchedulerMessage.ScheduleTriggerMessage]
+            Option[Long]
         )
       ](Symbol("announcePrimaryData"))
       val tick = 0L
@@ -213,7 +201,7 @@ class PrimaryServiceWorkerSpec
         primaryData,
         serviceStateData
       ) match {
-        case (updatedStateData, maybeTriggerMessage) =>
+        case (updatedStateData, maybeNextTick) =>
           /* Check updated state data */
           inside(updatedStateData) {
             case PrimaryServiceInitializedStateData(
@@ -227,33 +215,27 @@ class PrimaryServiceWorkerSpec
               activationTicks.size shouldBe 0
           }
           /* Check trigger messages */
-          maybeTriggerMessage match {
-            case Some(trigger) =>
-              trigger shouldBe
-                ScheduleTriggerMessage(
-                  ActivityStartTrigger(900L),
-                  serviceRef
-                )
-            case None => fail("Expect a trigger message for tick 900.")
-          }
+          maybeNextTick shouldBe Some(900L)
       }
       /* Check, if correct message is sent */
       expectMsgClass(classOf[ProvidePrimaryDataMessage]) match {
         case ProvidePrimaryDataMessage(
               actualTick,
               actualData,
-              actualNextDataTick
+              actualNextDataTick,
+              unlockKey
             ) =>
           actualTick shouldBe 0L
           actualData shouldBe primaryData
           actualNextDataTick shouldBe Some(900L)
+          unlockKey shouldBe None
       }
     }
 
     val processDataAndAnnounce = PrivateMethod[
       (
           PrimaryServiceInitializedStateData[PValue],
-          Option[SchedulerMessage.ScheduleTriggerMessage]
+          Option[Long]
       )
     ](Symbol("processDataAndAnnounce"))
 
@@ -279,17 +261,10 @@ class PrimaryServiceWorkerSpec
                 _,
                 _
               ),
-              maybeTriggerMessage
+              maybeNextTick
             ) =>
           nextActivationTick shouldBe Some(900L)
-          maybeTriggerMessage match {
-            case Some(triggerSeq) =>
-              triggerSeq shouldBe ScheduleTriggerMessage(
-                ActivityStartTrigger(900L),
-                serviceRef
-              )
-            case None => fail("Expect a trigger for tick 900.")
-          }
+          maybeNextTick shouldBe Some(900L)
       }
       expectNoMessage()
     }
@@ -332,36 +307,20 @@ class PrimaryServiceWorkerSpec
     }
 
     "should not announce anything, if time step is not covered in source" in {
-      val triggerId = 2L
-      serviceRef ! TriggerWithIdMessage(
-        ActivityStartTrigger(200L),
-        triggerId
-      )
-      inside(expectMsgClass(classOf[CompletionMessage])) {
-        case CompletionMessage(actualTriggerId, newTrigger) =>
-          actualTriggerId shouldBe triggerId
-          newTrigger match {
-            case Some(trigger) => trigger.trigger.tick shouldBe 1800L
-            case None          => fail("Expect a trigger for tick 1800.")
-          }
-      }
+
+      serviceRef ! Activation(200)
+
+      expectMsg(Completion(serviceRef.toTyped, Some(1800)))
       expectNoMessage()
     }
 
     "should announce something, if the time step is covered in source" in {
-      val triggerId = 3L
-      serviceRef ! TriggerWithIdMessage(
-        ActivityStartTrigger(900L),
-        triggerId
-      )
-      inside(expectMsgClass(classOf[CompletionMessage])) {
-        case CompletionMessage(actualTriggerId, newTriggers) =>
-          actualTriggerId shouldBe triggerId
-          newTriggers shouldBe None
-      }
+      serviceRef ! Activation(900)
+      expectMsg(Completion(serviceRef.toTyped))
+
       inside(
         systemParticipant.expectMsgClass(classOf[ProvidePrimaryDataMessage])
-      ) { case ProvidePrimaryDataMessage(tick, data, nextDataTick) =>
+      ) { case ProvidePrimaryDataMessage(tick, data, nextDataTick, unlockKey) =>
         tick shouldBe 900L
         inside(data) {
           case ActivePower(p) =>
@@ -369,6 +328,7 @@ class PrimaryServiceWorkerSpec
           case _ => fail("Expected to get active power only.")
         }
         nextDataTick shouldBe None
+        unlockKey shouldBe None
       }
     }
   }

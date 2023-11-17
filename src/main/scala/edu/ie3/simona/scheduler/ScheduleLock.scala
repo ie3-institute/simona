@@ -6,14 +6,14 @@
 
 package edu.ie3.simona.scheduler
 
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorRef, Behavior}
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+import akka.actor.typed.scaladsl.adapter.ClassicActorContextOps
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import akka.actor.typed.{ActorRef, Behavior, Scheduler}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessageTyped}
-import edu.ie3.simona.scheduler.ScheduleLock.LockMsg
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 
 import java.util.UUID
 
@@ -26,6 +26,8 @@ import java.util.UUID
 object ScheduleLock {
   trait LockMsg
 
+  private final case class Init(adapter: ActorRef[Activation]) extends LockMsg
+
   /** @param key
     *   the key that unlocks (part of) the lock
     */
@@ -33,9 +35,91 @@ object ScheduleLock {
 
   private final case class WrappedActivation(tick: Long) extends LockMsg
 
+  private def lockAdapter(lock: ActorRef[LockMsg]): Behavior[Activation] =
+    Behaviors.receiveMessage { case Activation(tick) =>
+      lock ! WrappedActivation(tick)
+      // We can stop after forwarding the activation (there will be only one)
+      Behaviors.stopped
+    }
+
   final case class ScheduleKey(lock: ActorRef[LockMsg], key: UUID) {
     def unlock(): Unit =
       lock ! Unlock(key)
+  }
+
+  trait Spawner {
+    def spawn[T](behavior: Behavior[T]): ActorRef[T]
+  }
+
+  private final case class TypedSpawner(ctx: ActorContext[_]) extends Spawner {
+    override def spawn[T](behavior: Behavior[T]): ActorRef[T] =
+      ctx.spawnAnonymous(behavior)
+  }
+
+  private final case class ClassicSpawner(ctx: akka.actor.ActorContext)
+      extends Spawner {
+    override def spawn[T](behavior: Behavior[T]): ActorRef[T] =
+      ctx.spawnAnonymous(behavior)
+  }
+
+  def singleKey(
+      ctx: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+      tick: Long
+  ): ScheduleKey =
+    singleKey(TypedSpawner(ctx), scheduler, tick)
+
+  def singleKey(
+      ctx: akka.actor.ActorContext,
+      scheduler: ActorRef[SchedulerMessage],
+      tick: Long
+  ): ScheduleKey =
+    singleKey(ClassicSpawner(ctx), scheduler, tick)
+
+  def singleKey(
+      spawner: Spawner,
+      scheduler: ActorRef[SchedulerMessage],
+      tick: Long
+  ): ScheduleKey =
+    multiKey(spawner, scheduler, tick, 1).headOption.getOrElse(
+      throw new RuntimeException("Should not happen")
+    )
+
+  def multiKey(
+      ctx: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+      tick: Long,
+      count: Int
+  ): Iterable[ScheduleKey] =
+    multiKey(TypedSpawner(ctx), scheduler, tick, count)
+
+  def multiKey(
+      ctx: akka.actor.ActorContext,
+      scheduler: ActorRef[SchedulerMessage],
+      tick: Long,
+      count: Int
+  ): Iterable[ScheduleKey] =
+    multiKey(ClassicSpawner(ctx), scheduler, tick, count)
+
+  def multiKey(
+      spawner: Spawner,
+      scheduler: ActorRef[SchedulerMessage],
+      tick: Long,
+      count: Int
+  ): Iterable[ScheduleKey] = {
+    val keys = (1 to count).map(_ => UUID.randomUUID())
+
+    val lock = spawner.spawn(ScheduleLock(scheduler, keys.toSet, tick))
+
+    val adapter = spawner.spawn(lockAdapter(lock))
+    lock ! Init(adapter)
+
+    // We have to schedule the activation right away. If there is any
+    // possibility for delay via a third actor, the lock could be
+    // placed too late.
+    scheduler ! ScheduleActivation(adapter, tick)
+
+    keys.map(ScheduleKey(lock, _))
   }
 
   /** @param scheduler
@@ -45,17 +129,21 @@ object ScheduleLock {
     * @param tick
     *   The tick to lock
     */
-  def apply(
-      scheduler: ActorRef[SchedulerMessageTyped],
+  private def apply(
+      scheduler: ActorRef[SchedulerMessage],
       awaitedKeys: Set[UUID],
       tick: Long
   ): Behavior[LockMsg] =
-    Behaviors.setup { ctx =>
-      val adapter =
-        ctx.messageAdapter[Activation](msg => WrappedActivation(msg.tick))
-      scheduler ! ScheduleActivation(adapter, tick)
+    Behaviors.withStash(100) { buffer =>
+      Behaviors.receiveMessage {
+        case Init(adapter) =>
+          buffer.unstashAll(active(awaitedKeys, scheduler, adapter))
 
-      uninitialized(scheduler, awaitedKeys, adapter)
+        case msg =>
+          // stash all messages until we are initialized
+          buffer.stash(msg)
+          Behaviors.same
+      }
     }
 
   /** @param scheduler
@@ -65,7 +153,7 @@ object ScheduleLock {
     * @return
     */
   def uninitialized(
-      scheduler: ActorRef[SchedulerMessageTyped],
+      scheduler: ActorRef[SchedulerMessage],
       awaitedKeys: Set[UUID],
       adapter: ActorRef[Activation]
   ): Behavior[LockMsg] =
@@ -83,7 +171,7 @@ object ScheduleLock {
 
   private def active(
       awaitedKeys: Set[UUID],
-      parent: ActorRef[SchedulerMessageTyped],
+      parent: ActorRef[SchedulerMessage],
       adapter: ActorRef[Activation]
   ): Behavior[LockMsg] = Behaviors.receiveMessage { case Unlock(key) =>
     val updatedKeys = awaitedKeys - key

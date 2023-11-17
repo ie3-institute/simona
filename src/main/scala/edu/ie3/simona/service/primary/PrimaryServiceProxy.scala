@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.service.primary
 
+import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
@@ -38,13 +39,14 @@ import edu.ie3.simona.exceptions.{
   InvalidConfigParameterException
 }
 import edu.ie3.simona.logging.SimonaActorLogging
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   WorkerRegistrationMessage
 }
-import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
-import edu.ie3.simona.service.ServiceStateData
+import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
@@ -56,6 +58,7 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   InitPrimaryServiceStateData,
   SqlInitPrimaryServiceStateData
 }
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
@@ -79,6 +82,7 @@ import scala.util.{Failure, Success, Try}
   */
 case class PrimaryServiceProxy(
     scheduler: ActorRef,
+    initStateData: InitPrimaryServiceProxyStateData,
     private implicit val startDateTime: ZonedDateTime
 ) extends Actor
     with SimonaActorLogging {
@@ -96,15 +100,13 @@ case class PrimaryServiceProxy(
     *   How receiving should be handled with gained insight of myself
     */
   private def uninitialized: Receive = {
-    case InitializeServiceTrigger(
-          InitPrimaryServiceProxyStateData(
-            primaryConfig,
-            simulationStart
-          )
-        ) =>
+    case Activation(INIT_SIM_TICK) =>
       /* The proxy is asked to initialize itself. If that happened successfully, change the logic of receiving
        * messages */
-      prepareStateData(primaryConfig, simulationStart) match {
+      prepareStateData(
+        initStateData.primaryConfig,
+        initStateData.simulationStart
+      ) match {
         case Success(stateData) =>
           // FIXME currently no completion needed
           context become onMessage(stateData)
@@ -349,7 +351,10 @@ case class PrimaryServiceProxy(
       primaryConfig
     ) match {
       case Success(initData) =>
-        workerRef ! InitializeServiceTrigger(initData)
+        workerRef ! SimonaService.Create(
+          initData,
+          ScheduleLock.singleKey(context, scheduler.toTyped, INIT_SIM_TICK)
+        )
         Success(workerRef)
       case Failure(cause) =>
         workerRef ! PoisonPill
@@ -485,8 +490,12 @@ case class PrimaryServiceProxy(
 
 object PrimaryServiceProxy {
 
-  def props(scheduler: ActorRef, startDateTime: ZonedDateTime): Props = Props(
-    new PrimaryServiceProxy(scheduler, startDateTime)
+  def props(
+      scheduler: ActorRef,
+      initStateData: InitPrimaryServiceProxyStateData,
+      startDateTime: ZonedDateTime
+  ): Props = Props(
+    new PrimaryServiceProxy(scheduler, initStateData, startDateTime)
   )
 
   /** State data with needed information to initialize this primary service

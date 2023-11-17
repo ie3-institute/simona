@@ -42,7 +42,7 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerUnchangedMessage,
   RequestAssetPowerMessage
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.Completion
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.ProvidePrimaryDataMessage

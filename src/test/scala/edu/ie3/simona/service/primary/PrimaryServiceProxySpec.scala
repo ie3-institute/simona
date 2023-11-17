@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.service.primary
 
+import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.{ActorRef, ActorSystem, PoisonPill}
 import akka.testkit.{TestActorRef, TestProbe}
 import akka.util.Timeout
@@ -28,17 +29,16 @@ import edu.ie3.simona.exceptions.{
   InitializationException,
   InvalidConfigParameterException
 }
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+  Completion,
+  ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   WorkerRegistrationMessage
 }
-import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
   PrimaryServiceStateData,
@@ -48,8 +48,9 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   CsvInitPrimaryServiceStateData,
   InitPrimaryServiceStateData
 }
-import edu.ie3.simona.test.common.AgentSpec
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
+import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import org.scalatest.PartialFunctionValues
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -74,7 +75,8 @@ class PrimaryServiceProxySpec
     )
     with TableDrivenPropertyChecks
     with PartialFunctionValues
-    with TimeSeriesTestData {
+    with TimeSeriesTestData
+    with TestSpawnerClassic {
   // this works both on Windows and Unix systems
   val baseDirectoryPath: Path = Paths
     .get(
@@ -232,8 +234,13 @@ class PrimaryServiceProxySpec
     }
   }
 
+  val initStateData: InitPrimaryServiceProxyStateData =
+    InitPrimaryServiceProxyStateData(
+      validPrimaryConfig,
+      simulationStart
+    )
   val proxyRef: TestActorRef[PrimaryServiceProxy] = TestActorRef(
-    new PrimaryServiceProxy(self, simulationStart)
+    new PrimaryServiceProxy(self, initStateData, simulationStart)
   )
   val proxy: PrimaryServiceProxy = proxyRef.underlyingActor
 
@@ -320,16 +327,10 @@ class PrimaryServiceProxySpec
 
   "Sending initialization information to an uninitialized actor" should {
     "lead to a completion message without trigger requests" in {
-      val initStateData = InitPrimaryServiceProxyStateData(
-        validPrimaryConfig,
-        simulationStart
-      )
 
-      proxyRef ! TriggerWithIdMessage(
-        InitializeServiceTrigger(initStateData),
-        0L
-      )
-      expectMsg(CompletionMessage(0L, None))
+      scheduler.send(proxyRef, Activation(INIT_SIM_TICK))
+
+      scheduler.expectMsg(Completion(proxyRef.toTyped))
     }
   }
 
@@ -439,25 +440,31 @@ class PrimaryServiceProxySpec
        * message is sent to the worker */
       val testProbe = TestProbe("workerTestProbe")
       val fakeProxyRef =
-        TestActorRef(new PrimaryServiceProxy(scheduler.ref, simulationStart) {
-          override protected def classToWorkerRef[V <: Value](
-              valueClass: Class[V],
-              timeSeriesUuid: String
-          ): ActorRef = testProbe.ref
+        TestActorRef(
+          new PrimaryServiceProxy(
+            scheduler.ref,
+            initStateData,
+            simulationStart
+          ) {
+            override protected def classToWorkerRef[V <: Value](
+                valueClass: Class[V],
+                timeSeriesUuid: String
+            ): ActorRef = testProbe.ref
 
-          // needs to be overwritten as to make it available to the private method tester
-          @SuppressWarnings(Array("NoOpOverride"))
-          override protected def initializeWorker(
-              metaInformation: IndividualTimeSeriesMetaInformation,
-              simulationStart: ZonedDateTime,
-              primaryConfig: PrimaryConfig
-          ): Try[ActorRef] =
-            super.initializeWorker(
-              metaInformation,
-              simulationStart,
-              primaryConfig
-            )
-        })
+            // needs to be overwritten as to make it available to the private method tester
+            @SuppressWarnings(Array("NoOpOverride"))
+            override protected def initializeWorker(
+                metaInformation: IndividualTimeSeriesMetaInformation,
+                simulationStart: ZonedDateTime,
+                primaryConfig: PrimaryConfig
+            ): Try[ActorRef] =
+              super.initializeWorker(
+                metaInformation,
+                simulationStart,
+                primaryConfig
+              )
+          }
+        )
       val fakeProxy: PrimaryServiceProxy = fakeProxyRef.underlyingActor
       val metaInformation = new CsvIndividualTimeSeriesMetaInformation(
         metaPq,
@@ -471,33 +478,9 @@ class PrimaryServiceProxySpec
       ) match {
         case Success(workerRef) =>
           /* Check, if expected init message has been sent */
-          inside(scheduler.expectMsgClass(classOf[ScheduleTriggerMessage])) {
-            case ScheduleTriggerMessage(
-                  InitializeServiceTrigger(
-                    CsvInitPrimaryServiceStateData(
-                      actualTimeSeriesUuid,
-                      actualSimulationStart,
-                      actualCsvSep,
-                      directoryPath,
-                      filePath,
-                      fileNamingStrategy,
-                      timePattern
-                    )
-                  ),
-                  actorToBeScheduled,
-                  _
-                ) =>
-              actualTimeSeriesUuid shouldBe uuidPq
-              actualSimulationStart shouldBe simulationStart
-              actualCsvSep shouldBe csvSep
-              directoryPath shouldBe baseDirectoryPath
-              filePath shouldBe metaInformation.getFullFilePath
-              classOf[FileNamingStrategy].isAssignableFrom(
-                fileNamingStrategy.getClass
-              ) shouldBe true
-              actorToBeScheduled shouldBe workerRef
-              timePattern shouldBe TimeUtil.withDefaults.getDtfPattern
-          }
+          val initActivation = scheduler.expectMsgType[ScheduleActivation]
+          initActivation.tick shouldBe INIT_SIM_TICK
+          initActivation.unlockKey should not be empty
 
           /* Kill the worker aka. test probe */
           workerRef ! PoisonPill
@@ -605,28 +588,30 @@ class PrimaryServiceProxySpec
       /* We once again fake the class, so that we can infiltrate a probe */
       val probe = TestProbe("workerTestProbe")
       val fakeProxyRef =
-        TestActorRef(new PrimaryServiceProxy(self, simulationStart) {
-          override protected def initializeWorker(
-              metaInformation: IndividualTimeSeriesMetaInformation,
-              simulationStart: ZonedDateTime,
-              primaryConfig: PrimaryConfig
-          ): Try[ActorRef] = Success(probe.ref)
+        TestActorRef(
+          new PrimaryServiceProxy(self, initStateData, simulationStart) {
+            override protected def initializeWorker(
+                metaInformation: IndividualTimeSeriesMetaInformation,
+                simulationStart: ZonedDateTime,
+                primaryConfig: PrimaryConfig
+            ): Try[ActorRef] = Success(probe.ref)
 
-          // needs to be overwritten as to make it available to the private method tester
-          @SuppressWarnings(Array("NoOpOverride"))
-          override protected def handleCoveredModel(
-              modelUuid: UUID,
-              timeSeriesUuid: UUID,
-              stateData: PrimaryServiceStateData,
-              requestingActor: ActorRef
-          ): Unit =
-            super.handleCoveredModel(
-              modelUuid,
-              timeSeriesUuid,
-              stateData,
-              requestingActor
-            )
-        })
+            // needs to be overwritten as to make it available to the private method tester
+            @SuppressWarnings(Array("NoOpOverride"))
+            override protected def handleCoveredModel(
+                modelUuid: UUID,
+                timeSeriesUuid: UUID,
+                stateData: PrimaryServiceStateData,
+                requestingActor: ActorRef
+            ): Unit =
+              super.handleCoveredModel(
+                modelUuid,
+                timeSeriesUuid,
+                stateData,
+                requestingActor
+              )
+          }
+        )
       val fakeProxy = fakeProxyRef.underlyingActor
 
       fakeProxy invokePrivate handleCoveredModel(
@@ -653,24 +638,22 @@ class PrimaryServiceProxySpec
       /* We once again fake the class, so that we can infiltrate a probe */
       val probe = TestProbe("workerTestProbe")
       val fakeProxyRef =
-        TestActorRef(new PrimaryServiceProxy(self, simulationStart) {
-          override protected def initializeWorker(
-              metaInformation: IndividualTimeSeriesMetaInformation,
-              simulationStart: ZonedDateTime,
-              primaryConfig: PrimaryConfig
-          ): Try[ActorRef] = Success(probe.ref)
-        })
+        TestActorRef(
+          new PrimaryServiceProxy(self, initStateData, simulationStart) {
+            override protected def initializeWorker(
+                metaInformation: IndividualTimeSeriesMetaInformation,
+                simulationStart: ZonedDateTime,
+                primaryConfig: PrimaryConfig
+            ): Try[ActorRef] = Success(probe.ref)
+          }
+        )
 
       /* Initialize the fake proxy */
-      val initStateData = InitPrimaryServiceProxyStateData(
-        validPrimaryConfig,
-        simulationStart
+      scheduler.send(
+        fakeProxyRef,
+        Activation(INIT_SIM_TICK)
       )
-      fakeProxyRef ! TriggerWithIdMessage(
-        InitializeServiceTrigger(initStateData),
-        0L
-      )
-      expectMsg(CompletionMessage(0L, None))
+      scheduler.expectMsg(Completion(fakeProxyRef.toTyped, Some(0)))
 
       /* Try to register with fake proxy */
       fakeProxyRef ! PrimaryServiceRegistrationMessage(modelUuid)

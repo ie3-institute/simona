@@ -10,19 +10,34 @@ import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.{Actor, ActorContext, ActorRef, Stash}
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
-import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData
 }
+import edu.ie3.simona.service.SimonaService.Create
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
 import scala.util.{Failure, Success, Try}
+
+object SimonaService {
+
+  /** Service initialization data can sometimes only be constructed once the
+    * service actor is created (e.g.
+    * [[edu.ie3.simona.service.ev.ExtEvDataService]]. Thus, we need an extra
+    * initialization message.
+    */
+  final case class Create[+I <: InitializeServiceStateData](
+      initializeStateData: I,
+      unlockKey: ScheduleKey
+  )
+}
 
 /** Abstract description of a service agent, that is able to announce new
   * information to registered participants
@@ -50,9 +65,25 @@ abstract class SimonaService[
   private def uninitialized: Receive = {
 
     // initialize trigger message received from scheduler
-    case InitializeServiceTrigger(
-          initializeStateData: InitializeServiceStateData
+    case Create(
+          initializeStateData: InitializeServiceStateData,
+          unlockKey: ScheduleKey
         ) =>
+      scheduler ! ScheduleActivation(
+        self.toTyped,
+        INIT_SIM_TICK,
+        Some(unlockKey)
+      )
+
+      initializing(initializeStateData)
+
+  }
+
+  private def initializing(
+      initializeStateData: InitializeServiceStateData
+  ): Receive = {
+
+    case Activation(INIT_SIM_TICK) =>
       // init might take some time and could go wrong if invalid initialize service data is received
       // execute complete and unstash only if init is carried out successfully
       init(

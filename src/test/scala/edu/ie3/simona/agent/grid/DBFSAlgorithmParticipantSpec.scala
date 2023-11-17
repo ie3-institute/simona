@@ -12,12 +12,13 @@ import akka.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgent.FinishGridSimulationTrigger
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
@@ -25,9 +26,13 @@ import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessag
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.trigger.Trigger._
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGridWithParticipants
-import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
+import edu.ie3.simona.test.common.{
+  ConfigTestData,
+  TestKitWithShutdown,
+  TestSpawnerClassic
+}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
 import squants.electro.Kilovolts
@@ -49,7 +54,8 @@ class DBFSAlgorithmParticipantSpec
     with DBFSMockGridAgents
     with ConfigTestData
     with ImplicitSender
-    with DbfsTestGridWithParticipants {
+    with DbfsTestGridWithParticipants
+    with TestSpawnerClassic {
 
   private val scheduler = TestProbe("scheduler")
   private val primaryService = TestProbe("primaryService")
@@ -92,9 +98,15 @@ class DBFSAlgorithmParticipantSpec
         RefSystem("2000 MVA", "110 kV")
       )
 
-      gridAgentWithParticipants ! GridAgent.Init(gridAgentInitData)
+      val lock =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      gridAgentWithParticipants ! GridAgent.Create(gridAgentInitData, lock)
       scheduler.expectMsg(
-        ScheduleActivation(gridAgentWithParticipants.toTyped, INIT_SIM_TICK)
+        ScheduleActivation(
+          gridAgentWithParticipants.toTyped,
+          INIT_SIM_TICK,
+          Some(lock)
+        )
       )
 
       // send init data to agent and expect a CompletionMessage

@@ -100,7 +100,7 @@ class ParticipantAgentMock(
 
   /** Abstractly calculate the power output of the participant with all needed
     * secondary data apparent. The next state is [[Idle]], sending a
-    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
+    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.Completion]] to
     * scheduler and using update result values. Additionally, the collected
     * secondary data is also put to storage. Actual implementation can be found
     * in each participant's fundamentals.

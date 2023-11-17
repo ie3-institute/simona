@@ -7,31 +7,35 @@
 package edu.ie3.simona.scheduler
 
 import akka.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessageTyped}
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+import akka.actor.typed.{ActorRef, Behavior}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
-import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.scheduler.ScheduleLock.Spawner
+import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.util.ActorUtils.RichTriggeredAgent
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import java.util.UUID
-
 class ScheduleLockIT
     extends ScalaTestWithActorTestKit
     with AnyWordSpecLike
-    with should.Matchers {
+    with should.Matchers
+    with TestSpawnerTyped {
 
   "The ScheduleLock in conjunction with schedulers" should {
 
+    object TestSpawner extends Spawner {
+      override def spawn[T](behavior: Behavior[T]): ActorRef[T] =
+        ScheduleLockIT.this.spawn(behavior)
+    }
+
     "work as expected when schedulers active" in {
-      val timeAdvancer = TestProbe[SchedulerMessageTyped]("timeAdvancer")
+      val timeAdvancer = TestProbe[SchedulerMessage]("timeAdvancer")
       val agent1 = TestProbe[Activation]("agent1")
       val agent2 = TestProbe[Activation]("agent2")
-
-      val key = UUID.randomUUID()
 
       val parentScheduler = spawn(
         Scheduler(timeAdvancer.ref),
@@ -52,10 +56,8 @@ class ScheduleLockIT
       val lockActivation = sa1.actor
 
       // create and initialize lock
-      val scheduleLock = spawn(
-        ScheduleLock(parentScheduler, Set(key), 30),
-        "lock"
-      )
+      val scheduleLock =
+        ScheduleLock.singleKey(TSpawner, parentScheduler, 30)
       agent1.expectNoMessage()
 
       // activate the scheduler, lock should now initialize
@@ -65,7 +67,7 @@ class ScheduleLockIT
       childScheduler ! ScheduleActivation(
         agent2.ref,
         30,
-        Some(ScheduleKey(scheduleLock, key))
+        Some(scheduleLock)
       )
 
       // because of activated agents, child/parentScheduler should not be able to complete yet
@@ -85,10 +87,8 @@ class ScheduleLockIT
     }
 
     "work as expected when schedulers inactive" in {
-      val timeAdvancer = TestProbe[SchedulerMessageTyped]("timeAdvancer")
+      val timeAdvancer = TestProbe[SchedulerMessage]("timeAdvancer")
       val agent = TestProbe[Activation]("agent")
-
-      val key = UUID.randomUUID()
 
       val parentScheduler = spawn(
         Scheduler(timeAdvancer.ref)
@@ -107,10 +107,7 @@ class ScheduleLockIT
       val lockActivation = sa1.actor
 
       // create and initialize lock
-      val scheduleLock = spawn(
-        ScheduleLock(parentScheduler, Set(key), 30),
-        "lock"
-      )
+      val scheduleKey = ScheduleLock.singleKey(TestSpawner, parentScheduler, 30)
       agent.expectNoMessage()
 
       // activate the scheduler, lock should now initialize
@@ -129,7 +126,7 @@ class ScheduleLockIT
       childScheduler ! ScheduleActivation(
         agent.ref,
         40,
-        Some(ScheduleKey(scheduleLock, key))
+        Some(scheduleKey)
       )
 
       timeAdvancer.expectMessage(Completion(lockActivation, Some(40)))

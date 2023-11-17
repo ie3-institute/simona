@@ -6,30 +6,18 @@
 
 package edu.ie3.simona.service.ev
 
-import akka.actor.typed.scaladsl.adapter.{
-  ClassicActorContextOps,
-  ClassicActorRefOps
-}
+import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.{ActorContext, ActorRef, Props}
 import edu.ie3.simona.api.data.ev.ExtEvData
 import edu.ie3.simona.api.data.ev.model.EvModel
-import edu.ie3.simona.api.data.ev.ontology.{
-  EvDataMessageFromExt,
-  ProvideArrivingEvs,
-  ProvideDepartingEvs,
-  ProvideEvcsFreeLots,
-  RequestDepartingEvs,
-  RequestEvcsFreeLots
-}
+import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
-import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped
+import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData
@@ -288,16 +276,14 @@ class ExtEvDataService(override val scheduler: ActorRef)
     }
 
     if (actorToEvs.nonEmpty) {
-      val keys = actorToEvs.map { _ => UUID.randomUUID() }.toSet
-      val lock = ctx.spawnAnonymous(
-        ScheduleLock(scheduler.toTyped, keys, tick)
-      )
+      val keys =
+        ScheduleLock.multiKey(ctx, scheduler.toTyped, tick, actorToEvs.size)
 
       actorToEvs.zip(keys).foreach { case ((actor, arrivingEvs), key) =>
         actor ! ProvideEvDataMessage(
           tick,
           ArrivingEvsData(arrivingEvs),
-          unlockKey = Some(ScheduleKey(lock, key))
+          unlockKey = Some(key)
         )
       }
 

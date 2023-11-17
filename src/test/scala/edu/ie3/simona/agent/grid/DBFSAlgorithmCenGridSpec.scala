@@ -11,6 +11,7 @@ import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.testkit.TestProbe
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgent.FinishGridSimulationTrigger
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
@@ -18,18 +19,19 @@ import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  FinishGridSimulationTrigger,
-  StartGridSimulationTrigger
-}
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
-import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
+import edu.ie3.simona.test.common.{
+  ConfigTestData,
+  TestKitWithShutdown,
+  TestSpawnerClassic
+}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
 import squants.electro.Kilovolts
@@ -58,7 +60,8 @@ class DBFSAlgorithmCenGridSpec
     )
     with DBFSMockGridAgents
     with ConfigTestData
-    with DbfsTestGrid {
+    with DbfsTestGrid
+    with TestSpawnerClassic {
 
   private val scheduler = TestProbe("scheduler")
   private val primaryService = TestProbe("primaryService")
@@ -122,9 +125,14 @@ class DBFSAlgorithmCenGridSpec
           RefSystem("2000 MVA", "110 kV")
         )
 
-      centerGridAgent ! GridAgent.Init(gridAgentInitData)
+      val lock =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      centerGridAgent ! GridAgent.Create(
+        gridAgentInitData,
+        lock
+      )
       scheduler.expectMsg(
-        ScheduleActivation(centerGridAgent.toTyped, INIT_SIM_TICK)
+        ScheduleActivation(centerGridAgent.toTyped, INIT_SIM_TICK, Some(lock))
       )
 
       scheduler.send(centerGridAgent, Activation(INIT_SIM_TICK))
@@ -152,7 +160,7 @@ class DBFSAlgorithmCenGridSpec
       )
     }
 
-    s"start the simulation when a $StartGridSimulationTrigger is send" in {
+    s"start the simulation when activation is sent" in {
 
       val firstSweepNo = 0
 

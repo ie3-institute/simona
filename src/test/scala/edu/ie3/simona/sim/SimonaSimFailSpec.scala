@@ -14,21 +14,13 @@ import akka.actor.{Actor, ActorContext, ActorRef, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.TimeAdvancer.StartSimMessage
-import edu.ie3.simona.service.primary.PrimaryServiceProxy
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
-import edu.ie3.simona.service.weather.WeatherService
-import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimMessage.{InitSim, SimulationFailure}
 import edu.ie3.simona.sim.SimonaSimFailSpec.FailSim
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 import edu.ie3.simona.test.common.AgentSpec
-
-import java.time.ZonedDateTime
 
 class SimonaSimFailSpec
     extends AgentSpec(
@@ -142,14 +134,8 @@ object SimonaSimFailSpec {
     override def primaryServiceProxy(
         context: ActorContext,
         scheduler: ActorRef
-    ): (ActorRef, PrimaryServiceProxy.InitPrimaryServiceProxyStateData) =
-      (
-        TestProbe("primaryService")(actorSystem).ref,
-        InitPrimaryServiceProxyStateData(
-          new Primary(None, None, None, None),
-          ZonedDateTime.now()
-        )
-      )
+    ): ActorRef =
+      TestProbe("primaryService")(actorSystem).ref
 
     /** Creates a weather service
       *
@@ -164,29 +150,8 @@ object SimonaSimFailSpec {
     override def weatherService(
         context: ActorContext,
         scheduler: ActorRef
-    ): (ActorRef, WeatherService.InitWeatherServiceStateData) =
-      (
-        TestProbe("weatherService")(actorSystem).ref,
-        InitWeatherServiceStateData(
-          new SimonaConfig.Simona.Input.Weather.Datasource(
-            new SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource(
-              None,
-              "foo",
-              None,
-              None
-            ),
-            None,
-            None,
-            None,
-            50000d,
-            None,
-            None,
-            "bar",
-            None,
-            None
-          )
-        )
-      )
+    ): ActorRef =
+      TestProbe("weatherService")(actorSystem).ref
 
     override def timeAdvancer(
         context: ActorContext,
@@ -228,6 +193,6 @@ object SimonaSimFailSpec {
         context: ActorContext,
         scheduler: ActorRef
     ): ExtSimSetupData =
-      ExtSimSetupData(Iterable.empty, Iterable.empty)
+      ExtSimSetupData(Iterable.empty, Map.empty)
   }
 }

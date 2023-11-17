@@ -15,6 +15,7 @@ import breeze.numerics.{ceil, floor, pow, sqrt}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
+import edu.ie3.simona.agent.participant.ParticipantAgent.StartCalculationTrigger
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
@@ -36,7 +37,7 @@ import edu.ie3.simona.agent.participant.statedata.{
   ParticipantStateData
 }
 import edu.ie3.simona.agent.state.AgentState
-import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
+import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.agent.state.ParticipantAgentState.{
   Calculate,
   HandleInformation
@@ -56,8 +57,7 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
@@ -65,7 +65,6 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
   RegistrationResponseMessage
 }
-import edu.ie3.simona.ontology.trigger.Trigger.ParticipantTrigger.StartCalculationTrigger
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
@@ -721,10 +720,9 @@ protected trait ParticipantAgentFundamentals[
     * @param baseStateData
     *   Base state data to be updated
     * @return
-    *   An [[Option]] of new [[ScheduleTriggerMessage]] as well as the updated
-    *   base state data. If the next activation tick is an additional
-    *   activation, this tick is removed from the list of desired additional
-    *   activations.
+    *   An [[Option]] of new tick as well as the updated base state data. If the
+    *   next activation tick is an additional activation, this tick is removed
+    *   from the list of desired additional activations.
     */
   def popNextActivationTrigger(
       baseStateData: BaseStateData[PD]

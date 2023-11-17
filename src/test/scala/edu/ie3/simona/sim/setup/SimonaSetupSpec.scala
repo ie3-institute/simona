@@ -41,13 +41,13 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
   override def primaryServiceProxy(
       context: ActorContext,
       scheduler: ActorRef
-  ): (ActorRef, PrimaryServiceProxy.InitPrimaryServiceProxyStateData) =
+  ): ActorRef =
     throw new NotImplementedException("This is a dummy setup")
 
   override def weatherService(
       context: ActorContext,
       scheduler: ActorRef
-  ): (ActorRef, WeatherService.InitWeatherServiceStateData) =
+  ): ActorRef =
     throw new NotImplementedException("This is a dummy setup")
 
   override def extSimulations(

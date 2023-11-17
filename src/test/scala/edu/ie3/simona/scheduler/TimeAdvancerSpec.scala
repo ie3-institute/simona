@@ -11,7 +11,7 @@ import akka.actor.typed.scaladsl.adapter.TypedActorRefOps
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent._
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }

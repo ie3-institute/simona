@@ -9,12 +9,11 @@ package edu.ie3.simona.scheduler
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import edu.ie3.simona.actor.ActorUtil.stopOnError
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessageTyped}
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
-import edu.ie3.simona.scheduler.ScheduleLock.Unlock
 import edu.ie3.simona.scheduler.SchedulerData.ActivationData
 
 /** Scheduler that activates actors at specific ticks and keeps them
@@ -29,7 +28,7 @@ object Scheduler {
       extends Incoming
 
   def apply(
-      parent: ActorRef[SchedulerMessageTyped]
+      parent: ActorRef[SchedulerMessage]
   ): Behavior[Incoming] = Behaviors.setup { ctx =>
     val adapter =
       ctx.messageAdapter[Activation](msg => WrappedActivation(msg))

@@ -29,7 +29,7 @@ import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.ScheduleActivation
+import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK

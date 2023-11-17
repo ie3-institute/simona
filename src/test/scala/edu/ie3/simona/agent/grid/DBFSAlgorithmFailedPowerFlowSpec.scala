@@ -11,6 +11,7 @@ import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgent.FinishGridSimulationTrigger
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
 import edu.ie3.simona.model.grid.RefSystem
@@ -20,18 +21,19 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   FailedPowerFlow,
   ProvideGridPowerMessage
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  FinishGridSimulationTrigger,
-  StartGridSimulationTrigger
-}
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
-import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
+import edu.ie3.simona.test.common.{
+  ConfigTestData,
+  TestKitWithShutdown,
+  TestSpawnerClassic
+}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
 import squants.electro.Kilovolts
@@ -54,7 +56,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
     with DBFSMockGridAgents
     with ConfigTestData
     with ImplicitSender
-    with DbfsTestGrid {
+    with DbfsTestGrid
+    with TestSpawnerClassic {
 
   private val scheduler = TestProbe("scheduler")
   private val primaryService = TestProbe("primaryService")
@@ -107,9 +110,14 @@ class DBFSAlgorithmFailedPowerFlowSpec
           RefSystem("2000 MVA", "110 kV")
         )
 
-      centerGridAgent ! GridAgent.Init(gridAgentInitData)
+      val lock =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      centerGridAgent ! GridAgent.Create(
+        gridAgentInitData,
+        lock
+      )
       scheduler.expectMsg(
-        ScheduleActivation(centerGridAgent.toTyped, INIT_SIM_TICK)
+        ScheduleActivation(centerGridAgent.toTyped, INIT_SIM_TICK, Some(lock))
       )
 
       scheduler.send(centerGridAgent, Activation(INIT_SIM_TICK))
@@ -139,7 +147,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       )
     }
 
-    s"start the simulation when a $StartGridSimulationTrigger is sent, handle failed power flow if it occurs" in {
+    s"start the simulation when an activation is sent is sent, handle failed power flow if it occurs" in {
       val sweepNo = 0
 
       // send the start grid simulation trigger

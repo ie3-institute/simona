@@ -6,12 +6,9 @@
 
 package edu.ie3.simona.api
 
-import akka.actor.typed.scaladsl.adapter.{
-  ClassicActorContextOps,
-  ClassicActorRefOps
-}
+import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.{Actor, ActorRef, PoisonPill, Props}
-import edu.ie3.simona.api.ExtSimAdapter.{ExtSimAdapterStateData, Init}
+import edu.ie3.simona.api.ExtSimAdapter.{Create, ExtSimAdapterStateData}
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
@@ -21,7 +18,7 @@ import edu.ie3.simona.api.simulation.ontology.{
   CompletionMessage => ExtCompletionMessage
 }
 import edu.ie3.simona.logging.SimonaActorLogging
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
@@ -31,7 +28,6 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
-import java.util.UUID
 import scala.jdk.CollectionConverters._
 
 object ExtSimAdapter {
@@ -41,7 +37,13 @@ object ExtSimAdapter {
       new ExtSimAdapter(scheduler)
     )
 
-  final case class Init(extSimData: ExtSimAdapterData)
+  /** The [[ExtSimAdapterData]] can only be constructed once the ExtSimAdapter
+    * actor is created. Thus, we need an extra initialization message.
+    *
+    * @param extSimData
+    *   The [[ExtSimAdapterData]] of the corresponding external simulation
+    */
+  final case class Create(extSimData: ExtSimAdapterData, unlockKey: ScheduleKey)
 
   final case class ExtSimAdapterStateData(
       extSimData: ExtSimAdapterData,
@@ -52,11 +54,12 @@ object ExtSimAdapter {
 final case class ExtSimAdapter(scheduler: ActorRef)
     extends Actor
     with SimonaActorLogging {
-  override def receive: Receive = { case Init(extSimAdapterData) =>
+  override def receive: Receive = { case Create(extSimAdapterData, unlockKey) =>
     // triggering first time at init tick
     scheduler ! ScheduleActivation(
       self.toTyped,
-      INIT_SIM_TICK
+      INIT_SIM_TICK,
+      Some(unlockKey)
     )
     context become receiveIdle(
       ExtSimAdapterStateData(extSimAdapterData)
@@ -99,13 +102,11 @@ final case class ExtSimAdapter(scheduler: ActorRef)
       val tick = stateData.currentTick.getOrElse(
         throw new RuntimeException("No tick has been triggered")
       )
-      val key = UUID.randomUUID()
-      val lock = context.spawnAnonymous(
-        ScheduleLock(scheduler.toTyped, Set(key), tick)
-      )
+      val key = ScheduleLock.singleKey(context, scheduler.toTyped, tick)
+
       scheduleDataService.getDataService ! ScheduleServiceActivation(
         tick,
-        ScheduleKey(lock, key)
+        key
       )
 
     case StopMessage(simulationSuccessful) =>

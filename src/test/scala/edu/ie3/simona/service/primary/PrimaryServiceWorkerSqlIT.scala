@@ -7,6 +7,7 @@
 package edu.ie3.simona.service.primary
 
 import akka.actor.ActorSystem
+import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.testkit.{TestActorRef, TestProbe}
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.ConfigFactory
@@ -17,24 +18,23 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPowerAndHeat
 }
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+  Completion,
+  ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.WorkerRegistrationMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeServiceTrigger
-}
+import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   ProvidePrimaryDataMessage,
   SqlInitPrimaryServiceStateData
 }
-import edu.ie3.simona.test.common.AgentSpec
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
+import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
 import edu.ie3.simona.test.helper.TestContainerHelper
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.Kilovars
 import org.scalatest.BeforeAndAfterAll
@@ -55,7 +55,8 @@ class PrimaryServiceWorkerSqlIT
     with BeforeAndAfterAll
     with TableDrivenPropertyChecks
     with TimeSeriesTestData
-    with TestContainerHelper {
+    with TestContainerHelper
+    with TestSpawnerClassic {
 
   override val container: PostgreSQLContainer = PostgreSQLContainer(
     "postgres:14.2"
@@ -146,27 +147,22 @@ class PrimaryServiceWorkerSqlIT
             new DatabaseNamingStrategy()
           )
 
-          val triggerId1 = 1L
-
+          val lock =
+            ScheduleLock.singleKey(
+              TSpawner,
+              scheduler.ref.toTyped,
+              INIT_SIM_TICK
+            )
           scheduler.send(
             serviceRef,
-            TriggerWithIdMessage(
-              InitializeServiceTrigger(initData),
-              triggerId1
-            )
+            SimonaService.Create(initData, lock)
+          )
+          scheduler.expectMsg(
+            ScheduleActivation(serviceRef.toTyped, INIT_SIM_TICK, Some(lock))
           )
 
-          scheduler.expectMsg(
-            CompletionMessage(
-              triggerId1,
-              Some(
-                ScheduleTriggerMessage(
-                  ActivityStartTrigger(firstTick),
-                  serviceRef
-                )
-              )
-            )
-          )
+          scheduler.send(serviceRef, Activation(INIT_SIM_TICK))
+          scheduler.expectMsg(Completion(serviceRef.toTyped, Some(firstTick)))
 
           val participant = TestProbe()
 
@@ -176,17 +172,8 @@ class PrimaryServiceWorkerSqlIT
           )
           participant.expectMsg(RegistrationSuccessfulMessage(Some(firstTick)))
 
-          val triggerId2 = 2L
-
-          scheduler.send(
-            serviceRef,
-            TriggerWithIdMessage(
-              ActivityStartTrigger(firstTick),
-              triggerId2
-            )
-          )
-
-          scheduler.expectMsgType[CompletionMessage]
+          scheduler.send(serviceRef, Activation(firstTick))
+          scheduler.expectMsg(Completion(serviceRef.toTyped, maybeNextTick))
 
           val dataMsg = participant.expectMsgType[ProvidePrimaryDataMessage]
           dataMsg.tick shouldBe firstTick

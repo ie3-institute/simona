@@ -19,6 +19,7 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
+import edu.ie3.simona.agent.grid.GridAgent._
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   PowerFlowDoneData
@@ -35,17 +36,13 @@ import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage._
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  PowerFlowFailedMessage
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.Completion
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.simona.ontology.messages.VoltageMessage.{
   ProvideSlackVoltageMessage,
   RequestSlackVoltageMessage
 }
-import edu.ie3.simona.ontology.trigger.Trigger._
-import edu.ie3.simona.util.TickUtil._
+import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.quantities.Megavars
 import edu.ie3.util.scala.quantities.SquantsUtils.RichElectricPotential
 import squants.Each
@@ -880,7 +877,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             failedResult.iteration,
             failedResult.cause
           )
-          environmentRefs.scheduler ! PowerFlowFailedMessage
+          // TODO re-implement counting failed power flows
           self ! FinishGridSimulationTrigger(currentTick)
           goto(SimulateGrid) using gridAgentBaseData
       }
@@ -982,7 +979,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           )
       if (powerFlowFailedSomewhere) {
         log.warning("Power flow failed! This incident will be reported!")
-        environmentRefs.scheduler ! PowerFlowFailedMessage
+        // TODO re-implement counting failed power flows
         self ! FinishGridSimulationTrigger(currentTick)
         goto(SimulateGrid) using gridAgentBaseData
       } else {
@@ -1001,8 +998,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     *
     * Triggers a state transition to [[SimulateGrid]], informs the
     * [[edu.ie3.simona.scheduler.Scheduler]] about the finish of this sweep and
-    * requests a new trigger for itself for a new sweep (which means a new
-    * [[StartGridSimulationTrigger]])
+    * requests a new trigger for itself for a new sweep
     *
     * @param gridAgentBaseData
     *   the [[GridAgentBaseData]] that should be used in the next sweep in

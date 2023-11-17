@@ -13,6 +13,7 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
+import edu.ie3.simona.agent.grid.GridAgent.FinishGridSimulationTrigger
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig
@@ -26,10 +27,9 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerUnchangedMessage,
   RequestAssetPowerMessage
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.Completion
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.trigger.Trigger.FinishGridSimulationTrigger
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK

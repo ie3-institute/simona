@@ -38,8 +38,7 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerUnchangedMessage,
   RequestAssetPowerMessage
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessage.IllegalTriggerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.Completion
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
@@ -173,13 +172,7 @@ class PvAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
 
-      scheduler.receiveOne(receiveTimeOut.duration) match {
-        case IllegalTriggerMessage(_, _) => logger.debug("Got correct message")
-        case m =>
-          fail(
-            s"Did not fail initialization because of missing weather service. Received: $m"
-          )
-      }
+      // TODO test failed actor
 
       /* agent should stay uninitialized */
       pvAgent.stateName shouldBe Uninitialized

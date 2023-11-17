@@ -10,7 +10,11 @@ import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.SimonaAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
+import edu.ie3.simona.agent.grid.GridAgent.FinishGridSimulationTrigger
+import edu.ie3.simona.agent.participant.ParticipantAgent.{
+  StartCalculationTrigger,
+  getAndCheckNodalVoltage
+}
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
@@ -42,15 +46,13 @@ import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.ScheduleActivation
+import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   ProvisionMessage,
   RegistrationResponseMessage
 }
-import edu.ie3.simona.ontology.trigger.Trigger.ParticipantTrigger.StartCalculationTrigger
-import edu.ie3.simona.ontology.trigger.Trigger.FinishGridSimulationTrigger
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.ReactivePower
 import squants.{Dimensionless, Power}
@@ -596,7 +598,7 @@ abstract class ParticipantAgent[
 
   /** Abstractly calculate the power output of the participant without needing
     * any secondary data. The next state is [[Idle]], sending a
-    * [[edu.ie3.simona.ontology.messages.SchedulerMessageTyped.Completion]] to
+    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.Completion]] to
     * scheduler and using update result values. Actual implementation can be
     * found in [[ParticipantAgentFundamentals]]
     *
@@ -633,7 +635,7 @@ abstract class ParticipantAgent[
     * has to try and fill up missing data with the last known data, as this is
     * still supposed to be valid. The secondary data therefore is put to the
     * calculation relevant data store. <p>The next state is [[Idle]], sending a
-    * [[edu.ie3.simona.ontology.messages.SchedulerMessageTyped.Completion]] to
+    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.Completion]] to
     * scheduler and using update result values.</p> </p>Actual implementation
     * can be found in each participant's fundamentals.</p>
     *
@@ -719,7 +721,9 @@ abstract class ParticipantAgent[
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 }
 
-case object ParticipantAgent {
+object ParticipantAgent {
+
+  final case class StartCalculationTrigger(tick: Long)
 
   /** Verifies that a nodal voltage value has been provided in the model
     * calculation request and returns it. Actual implementation can be found in

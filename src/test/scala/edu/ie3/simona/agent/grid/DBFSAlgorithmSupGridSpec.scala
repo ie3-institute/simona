@@ -12,6 +12,7 @@ import akka.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgent.FinishGridSimulationTrigger
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
@@ -22,18 +23,16 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvideGridPowerMessage,
   RequestGridPowerMessage
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  FinishGridSimulationTrigger,
-  StartGridSimulationTrigger
-}
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{
   ConfigTestData,
   TestKitWithShutdown,
+  TestSpawnerClassic,
   UnitSpec
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -63,7 +62,8 @@ class DBFSAlgorithmSupGridSpec
     with UnitSpec
     with ConfigTestData
     with ImplicitSender
-    with DbfsTestGrid {
+    with DbfsTestGrid
+    with TestSpawnerClassic {
 
   private val scheduler: TestProbe = TestProbe("scheduler")
   private val primaryService: TestProbe = TestProbe("primaryService")
@@ -80,7 +80,7 @@ class DBFSAlgorithmSupGridSpec
   val resultListener: TestProbe = TestProbe("resultListener")
 
   "A GridAgent actor in superior position with async test" should {
-    val superiorGridAgentFSM = system.actorOf(
+    val superiorGridAgentFSM: ActorRef = system.actorOf(
       GridAgent.props(
         environmentRefs,
         simonaConfig,
@@ -99,9 +99,15 @@ class DBFSAlgorithmSupGridSpec
           RefSystem("5000 MVA", "380 kV")
         )
 
-      superiorGridAgentFSM ! GridAgent.Init(gridAgentInitData)
+      val lock =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      superiorGridAgentFSM ! GridAgent.Create(gridAgentInitData, lock)
       scheduler.expectMsg(
-        ScheduleActivation(superiorGridAgentFSM.toTyped, INIT_SIM_TICK)
+        ScheduleActivation(
+          superiorGridAgentFSM.toTyped,
+          INIT_SIM_TICK,
+          Some(lock)
+        )
       )
 
       scheduler.send(superiorGridAgentFSM, Activation(INIT_SIM_TICK))
@@ -119,7 +125,7 @@ class DBFSAlgorithmSupGridSpec
     }
 
     s"start the simulation, do 2 sweeps and should end afterwards when no deviation on nodal " +
-      s"power is recognized in the superior when a $StartGridSimulationTrigger is send" in {
+      s"power is recognized in the superior when an activation is sent is send" in {
 
         for (sweepNo <- 0 to 1) {
 
@@ -161,9 +167,9 @@ class DBFSAlgorithmSupGridSpec
           // and waits until the newly scheduled StartGridSimulationTrigger is send
           // wait 30 seconds max for power flow to finish
           scheduler.expectMsgPF(30 seconds) {
-            case Completion(superiorGridAgentFSM.toTyped, Some(3600)) =>
+            case Completion(_, Some(3600)) =>
             // we expect another completion message when the agent is in SimulateGrid again
-            case Completion(superiorGridAgentFSM.toTyped, Some(7200)) =>
+            case Completion(_, Some(7200)) =>
               // agent should be in Idle again and listener should contain power flow result data
               resultListener.expectMsgPF() {
                 case powerFlowResultEvent: PowerFlowResultEvent =>
@@ -192,7 +198,7 @@ class DBFSAlgorithmSupGridSpec
 
       }
 
-    s"start the simulation when a $StartGridSimulationTrigger is sent, do 5 sweeps and should end afterwards, if the " +
+    s"start the simulation when an activation is sent is sent, do 5 sweeps and should end afterwards, if the " +
       s"nodal power exchange converges not before the fifth sweep." in {
 
         // configuration of the test
@@ -274,10 +280,10 @@ class DBFSAlgorithmSupGridSpec
           // Simulate Grid
           // wait 30 seconds max for power flow to finish
           scheduler.expectMsgPF(30 seconds) {
-            case Completion(superiorGridAgentFSM.toTyped, Some(3600)) =>
+            case Completion(_, Some(3600)) =>
             // when we received a FinishGridSimulationTrigger (as inferior grid agent)
             // we expect another completion message then as well (scheduler view)
-            case Completion(superiorGridAgentFSM.toTyped, Some(7200)) =>
+            case Completion(_, Some(7200)) =>
               // after doing cleanup stuff, our agent should go back to idle again and listener should contain power flow result data
               resultListener.expectMsgPF() {
                 case powerFlowResultEvent: PowerFlowResultEvent =>

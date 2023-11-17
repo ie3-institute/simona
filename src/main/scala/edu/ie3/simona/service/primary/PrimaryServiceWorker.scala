@@ -221,8 +221,7 @@ final case class PrimaryServiceWorker[V <: Value](
   }
 
   /** Pop the next activation tick, remove it from given base state data and
-    * hand back the updated state data together with an Option on a sequence of
-    * [[edu.ie3.simona.ontology.messages.SchedulerMessage#ScheduleTriggerMessage]]
+    * hand back the updated state data together with an Option on a next tick
     *
     * @param baseStateData
     *   The base state data to update

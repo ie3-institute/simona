@@ -20,13 +20,9 @@ import akka.actor.{
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.ontology.messages.SchedulerMessage._
 import edu.ie3.simona.ontology.messages.StopMessage
-import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.TimeAdvancer.StartSimMessage
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
-import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimMessage.{
   InitSim,
   SimulationFailure,
@@ -88,28 +84,15 @@ class SimonaSim(simonaSetup: SimonaSetup)
 
   /* start services */
   // primary service proxy
-  val (
-    primaryServiceProxy: ActorRef,
-    primaryProxyInitData: InitPrimaryServiceProxyStateData
-  ) = simonaSetup.primaryServiceProxy(context, scheduler)
+  val primaryServiceProxy: ActorRef =
+    simonaSetup.primaryServiceProxy(context, scheduler)
 
   // weather service
-  val (weatherService: ActorRef, weatherInitData: InitWeatherServiceStateData) =
+  val weatherService: ActorRef =
     simonaSetup.weatherService(context, scheduler)
 
   val extSimulationData: ExtSimSetupData =
     simonaSetup.extSimulations(context, scheduler)
-
-  // init all services
-  scheduler ! ScheduleTriggerMessage(
-    InitializeServiceTrigger(primaryProxyInitData),
-    primaryServiceProxy
-  )
-
-  scheduler ! ScheduleTriggerMessage(
-    InitializeServiceTrigger(weatherInitData),
-    weatherService
-  )
 
   /* start grid agents  */
   val gridAgents: Iterable[ActorRef] = simonaSetup.gridAgents(
@@ -255,11 +238,11 @@ class SimonaSim(simonaSetup: SimonaSetup)
     context.unwatch(weatherService)
     context.stop(weatherService)
 
-    extSimulationData.extSimAdapters.foreach { case (ref, _) =>
+    extSimulationData.extSimAdapters.foreach { ref =>
       context.unwatch(ref)
       ref ! StopMessage(simulationSuccessful)
     }
-    extSimulationData.extDataServices.foreach { case (ref, _) =>
+    extSimulationData.extDataServices.foreach { case (_, ref) =>
       context.unwatch(ref)
       context.stop(ref)
     }

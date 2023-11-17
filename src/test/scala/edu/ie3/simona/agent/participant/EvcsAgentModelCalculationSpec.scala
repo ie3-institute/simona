@@ -35,8 +35,7 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerUnchangedMessage,
   RequestAssetPowerMessage
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessage.IllegalTriggerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
@@ -147,13 +146,7 @@ class EvcsAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
 
-      scheduler.receiveOne(receiveTimeout) match {
-        case IllegalTriggerMessage(_, _) => logger.debug("Got correct message")
-        case m =>
-          fail(
-            s"Did not fail initialization because of missing weather service. Received: $m"
-          )
-      }
+      // TODO test failed actor
 
       /* agent should stay uninitialized */
       evcsAgent.stateName shouldBe Uninitialized

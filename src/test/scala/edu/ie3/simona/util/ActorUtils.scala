@@ -8,8 +8,8 @@ package edu.ie3.simona.util
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorRef
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.Completion
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessageTyped}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.ontology.trigger.Trigger
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
@@ -19,7 +19,7 @@ object ActorUtils {
   ) {
 
     def expectTriggerAndComplete[T <: Trigger](
-        scheduler: ActorRef[SchedulerMessageTyped],
+        scheduler: ActorRef[SchedulerMessage],
         expectedTick: Long,
         newTick: Option[Long] = None
     ): Unit = {

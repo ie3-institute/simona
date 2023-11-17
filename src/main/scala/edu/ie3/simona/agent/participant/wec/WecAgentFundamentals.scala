@@ -182,7 +182,7 @@ protected trait WecAgentFundamentals
     * up missing data with the last known data, as this is still supposed to be
     * valid. The secondary data therefore is put to the calculation relevant
     * data store. <p>The next state is [[Idle]], sending a
-    * [[edu.ie3.simona.ontology.messages.SchedulerMessageTyped.Completion]] to
+    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.Completion]] to
     * scheduler and using update result values.</p>
     *
     * @param collectionStateData

@@ -7,11 +7,11 @@
 package edu.ie3.simona.scheduler
 
 import akka.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
-import edu.ie3.simona.ontology.messages.SchedulerMessageTyped.{
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessageTyped}
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.{LockMsg, ScheduleKey, Unlock}
 import edu.ie3.simona.util.ActorUtils.RichTriggeredAgent
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -28,7 +28,7 @@ class SchedulerSpec
   "The Scheduler should work correctly" when {
 
     "receiving triggers before activation" in {
-      val parent = TestProbe[SchedulerMessageTyped]("parent")
+      val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
       )
@@ -62,7 +62,7 @@ class SchedulerSpec
     }
 
     "receiving triggers after init trigger" in {
-      val parent = TestProbe[SchedulerMessageTyped]("parent")
+      val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
       )
@@ -101,7 +101,7 @@ class SchedulerSpec
     }
 
     "scheduling two actors for different ticks" in {
-      val parent = TestProbe[SchedulerMessageTyped]("parent")
+      val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
       )
@@ -203,7 +203,7 @@ class SchedulerSpec
     }
 
     "five actors are getting triggered for ten ticks" in {
-      val parent = TestProbe[SchedulerMessageTyped]("parent")
+      val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
       )
@@ -239,7 +239,7 @@ class SchedulerSpec
     }
 
     "unlocking a scheduling lock while active" in {
-      val parent = TestProbe[SchedulerMessageTyped]("parent")
+      val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
       )
@@ -272,7 +272,7 @@ class SchedulerSpec
     }
 
     "unlocking a scheduling lock while inactive and new earliest tick has not changed" in {
-      val parent = TestProbe[SchedulerMessageTyped]("parent")
+      val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
       )
@@ -300,7 +300,7 @@ class SchedulerSpec
     }
 
     "forwarding unlock information to parent while inactive and new earliest tick has changed" in {
-      val parent = TestProbe[SchedulerMessageTyped]("parent")
+      val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
       )
@@ -339,7 +339,7 @@ class SchedulerSpec
   "The Scheduler should fail and stop" when {
 
     "activated with wrong tick" in {
-      val parent = TestProbe[SchedulerMessageTyped]("parent")
+      val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
       )
@@ -363,7 +363,7 @@ class SchedulerSpec
     }
 
     "asked to schedule trigger for a past tick while inactive" in {
-      val parent = TestProbe[SchedulerMessageTyped]("parent")
+      val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
       )
@@ -399,7 +399,7 @@ class SchedulerSpec
     }
 
     "asked to schedule trigger for a past tick while active" in {
-      val parent = TestProbe[SchedulerMessageTyped]("parent")
+      val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
       )
@@ -428,7 +428,7 @@ class SchedulerSpec
     }
 
     "receiving unexpected message while active" in {
-      val parent = TestProbe[SchedulerMessageTyped]("parent")
+      val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
       )
@@ -453,7 +453,7 @@ class SchedulerSpec
     }
 
     "receiving unexpected message while inactive" in {
-      val parent = TestProbe[SchedulerMessageTyped]("parent")
+      val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
       )
