@@ -125,14 +125,16 @@ class DBFSAlgorithmCenGridSpec
           RefSystem("2000 MVA", "110 kV")
         )
 
-      val lock =
+      val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+
       centerGridAgent ! GridAgent.Create(
         gridAgentInitData,
-        lock
+        key
       )
       scheduler.expectMsg(
-        ScheduleActivation(centerGridAgent.toTyped, INIT_SIM_TICK, Some(lock))
+        ScheduleActivation(centerGridAgent.toTyped, INIT_SIM_TICK, Some(key))
       )
 
       scheduler.send(centerGridAgent, Activation(INIT_SIM_TICK))

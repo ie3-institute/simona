@@ -222,9 +222,9 @@ class GridAgent(
 
       log.debug("Je suis initialized")
 
-      environmentRefs.scheduler ! ScheduleActivation(
+      environmentRefs.scheduler ! Completion(
         self.toTyped,
-        resolution
+        Some(resolution)
       )
 
       goto(Idle) using gridAgentBaseData

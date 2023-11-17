@@ -98,14 +98,16 @@ class DBFSAlgorithmParticipantSpec
         RefSystem("2000 MVA", "110 kV")
       )
 
-      val lock =
+      val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
-      gridAgentWithParticipants ! GridAgent.Create(gridAgentInitData, lock)
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+
+      gridAgentWithParticipants ! GridAgent.Create(gridAgentInitData, key)
       scheduler.expectMsg(
         ScheduleActivation(
           gridAgentWithParticipants.toTyped,
           INIT_SIM_TICK,
-          Some(lock)
+          Some(key)
         )
       )
 

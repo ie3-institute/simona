@@ -137,7 +137,7 @@ protected trait ParticipantAgentFundamentals[
 
     /* Confirm final initialization */
     senderToMaybeTick._2.foreach { tick =>
-      scheduler ! ScheduleActivation(self.toTyped, tick)
+      scheduler ! Completion(self.toTyped, Some(tick))
     }
     goto(Idle) using stateData
   }
@@ -295,7 +295,7 @@ protected trait ParticipantAgentFundamentals[
 
         log.debug(s"Going to {}, using {}", Idle, baseStateData)
         newTick.foreach { tick =>
-          scheduler ! ScheduleActivation(self.toTyped, tick)
+          scheduler ! Completion(self.toTyped, Some(tick))
         }
         goto(Idle) using nextBaseStateData
       }

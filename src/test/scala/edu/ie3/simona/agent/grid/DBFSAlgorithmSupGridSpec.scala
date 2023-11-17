@@ -99,14 +99,16 @@ class DBFSAlgorithmSupGridSpec
           RefSystem("5000 MVA", "380 kV")
         )
 
-      val lock =
+      val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
-      superiorGridAgentFSM ! GridAgent.Create(gridAgentInitData, lock)
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+
+      superiorGridAgentFSM ! GridAgent.Create(gridAgentInitData, key)
       scheduler.expectMsg(
         ScheduleActivation(
           superiorGridAgentFSM.toTyped,
           INIT_SIM_TICK,
-          Some(lock)
+          Some(key)
         )
       )
 
