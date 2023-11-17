@@ -75,6 +75,26 @@ class ScheduleLockSpec
       scheduler.expectMessage(Completion(lockActivation))
       scheduler.expectTerminated(scheduleLock.lock)
     }
+
+    "fails if activated with wrong tick" in {
+      val scheduler = TestProbe[SchedulerMessage]("scheduler")
+
+      val scheduleLock = ScheduleLock.singleKey(TSpawner, scheduler.ref, 300)
+
+      val sa = scheduler.expectMessageType[ScheduleActivation]
+      sa.tick shouldBe 300
+      sa.unlockKey shouldBe None
+      val lockActivation = sa.actor
+
+      // initialize lock with wrong tick
+      lockActivation ! Activation(301)
+
+      // use second key, won't unlock now
+      scheduleLock.unlock()
+
+      scheduler.expectNoMessage()
+      scheduler.expectTerminated(lockActivation)
+    }
   }
 
 }

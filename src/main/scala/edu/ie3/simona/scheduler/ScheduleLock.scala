@@ -21,32 +21,49 @@ import java.util.UUID
   * scheduler cannot complete the the tick that the lock was scheduled for,
   * until the lock has been dissolved. For example, when scheduling activations
   * of some actors, we need to prevent simulation time from advancing until
-  * scheduling all of them has finished.
+  * scheduling all of them has finished. Locks with one or multiple keys can be
+  * created, for which all created keys are required for unlocking the lock.
   */
 object ScheduleLock {
-  trait LockMsg
+  sealed trait LockMsg
 
   private final case class Init(adapter: ActorRef[Activation]) extends LockMsg
+
+  private final case object LockActivation extends LockMsg
 
   /** @param key
     *   the key that unlocks (part of) the lock
     */
   final case class Unlock(key: UUID) extends LockMsg
 
-  private final case class WrappedActivation(tick: Long) extends LockMsg
-
-  private def lockAdapter(lock: ActorRef[LockMsg]): Behavior[Activation] =
-    Behaviors.receiveMessage { case Activation(tick) =>
-      lock ! WrappedActivation(tick)
+  private def lockAdapter(
+      lock: ActorRef[LockMsg],
+      expectedTick: Long
+  ): Behavior[Activation] =
+    Behaviors.receive { case (ctx, Activation(tick)) =>
+      if (tick == expectedTick)
+        lock ! LockActivation
+      else
+        ctx.log.error(
+          s"Received lock activation for tick $tick, but expected $expectedTick"
+        )
       // We can stop after forwarding the activation (there will be only one)
       Behaviors.stopped
     }
 
+  /** Key that can unlock (a part of) a [[ScheduleLock]].
+    * @param lock
+    *   The corresponding lock
+    * @param key
+    *   A key (can be one of multiple) that unlocks (part of) the lock
+    */
   final case class ScheduleKey(lock: ActorRef[LockMsg], key: UUID) {
     def unlock(): Unit =
       lock ! Unlock(key)
   }
 
+  /** Defines a method of spawning actors from behaviors
+    */
   trait Spawner {
     def spawn[T](behavior: Behavior[T]): ActorRef[T]
   }
@@ -62,6 +79,18 @@ object ScheduleLock {
       ctx.spawnAnonymous(behavior)
   }
 
+  /** Creates a lock with a single key.
+    *
+    * @param ctx
+    *   The typed ActorContext that is used to spawn actors
+    * @param scheduler
+    *   The scheduler to lock
+    * @param tick
+    *   The tick that the scheduler will be locked at (usually the current
+    *   tick).
+    * @return
+    *   A single key that unlocks the lock
+    */
   def singleKey(
       ctx: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
@@ -69,6 +98,18 @@ object ScheduleLock {
   ): ScheduleKey =
     singleKey(TypedSpawner(ctx), scheduler, tick)
 
+  /** Creates a lock with a single key.
+    *
+    * @param ctx
+    *   The classic ActorContext that is used to spawn actors
+    * @param scheduler
+    *   The scheduler to lock
+    * @param tick
+    *   The tick that the scheduler will be locked at (usually the current
+    *   tick).
+    * @return
+    *   A single key that unlocks the lock
+    */
   def singleKey(
       ctx: akka.actor.ActorContext,
       scheduler: ActorRef[SchedulerMessage],
@@ -76,6 +117,18 @@ object ScheduleLock {
   ): ScheduleKey =
     singleKey(ClassicSpawner(ctx), scheduler, tick)
 
+  /** Creates a lock with a single key.
+    *
+    * @param spawner
+    *   Trait that defines a way to spawn actors
+    * @param scheduler
+    *   The scheduler to lock
+    * @param tick
+    *   The tick that the scheduler will be locked at (usually the current
+    *   tick).
+    * @return
+    *   A single key that unlocks the lock
+    */
   def singleKey(
       spawner: Spawner,
       scheduler: ActorRef[SchedulerMessage],
@@ -85,6 +138,20 @@ object ScheduleLock {
       throw new RuntimeException("Should not happen")
     )
 
+  /** Creates a lock with a multiple keys.
+    *
+    * @param ctx
+    *   The typed ActorContext that is used to spawn actors
+    * @param scheduler
+    *   The scheduler to lock
+    * @param tick
+    *   The tick that the scheduler will be locked at (usually the current
+    *   tick).
+    * @param count
+    *   The number of keys needed to unlock the lock
+    * @return
+    *   A collection of keys that are needed to unlock the lock
+    */
   def multiKey(
       ctx: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
@@ -93,6 +160,20 @@ object ScheduleLock {
   ): Iterable[ScheduleKey] =
     multiKey(TypedSpawner(ctx), scheduler, tick, count)
 
+  /** Creates a lock with a multiple keys.
+    *
+    * @param ctx
+    *   The classic ActorContext that is used to spawn actors
+    * @param scheduler
+    *   The scheduler to lock
+    * @param tick
+    *   The tick that the scheduler will be locked at (usually the current
+    *   tick).
+    * @param count
+    *   The number of keys needed to unlock the lock
+    * @return
+    *   A collection of keys that are needed to unlock the lock
+    */
   def multiKey(
       ctx: akka.actor.ActorContext,
       scheduler: ActorRef[SchedulerMessage],
@@ -101,6 +182,20 @@ object ScheduleLock {
   ): Iterable[ScheduleKey] =
     multiKey(ClassicSpawner(ctx), scheduler, tick, count)
 
+  /** Creates a lock with a multiple keys.
+    *
+    * @param spawner
+    *   Trait that defines a way to spawn actors
+    * @param scheduler
+    *   The scheduler to lock
+    * @param tick
+    *   The tick that the scheduler will be locked at (usually the current
+    *   tick).
+    * @param count
+    *   The number of keys needed to unlock the lock
+    * @return
+    *   A collection of keys that are needed to unlock the lock
+    */
   def multiKey(
       spawner: Spawner,
       scheduler: ActorRef[SchedulerMessage],
@@ -109,9 +204,9 @@ object ScheduleLock {
   ): Iterable[ScheduleKey] = {
     val keys = (1 to count).map(_ => UUID.randomUUID())
 
-    val lock = spawner.spawn(ScheduleLock(scheduler, keys.toSet, tick))
+    val lock = spawner.spawn(ScheduleLock(scheduler, keys.toSet))
 
-    val adapter = spawner.spawn(lockAdapter(lock))
+    val adapter = spawner.spawn(lockAdapter(lock, tick))
     lock ! Init(adapter)
 
     // We have to schedule the activation right away. If there is any
@@ -122,17 +217,16 @@ object ScheduleLock {
     keys.map(ScheduleKey(lock, _))
   }
 
-  /** @param scheduler
+  /** Default internal method to create a lock.
+    *
+    * @param scheduler
     *   The scheduler to lock
     * @param awaitedKeys
     *   The keys that have to be supplied in order to unlock this lock
-    * @param tick
-    *   The tick to lock
     */
   private def apply(
       scheduler: ActorRef[SchedulerMessage],
-      awaitedKeys: Set[UUID],
-      tick: Long
+      awaitedKeys: Set[UUID]
   ): Behavior[LockMsg] =
     Behaviors.withStash(100) { buffer =>
       Behaviors.receiveMessage {
@@ -146,20 +240,14 @@ object ScheduleLock {
       }
     }
 
-  /** @param scheduler
-    *   The scheduler to lock
-    * @param awaitedKeys
-    *   The keys that have to be supplied in order to unlock this lock
-    * @return
-    */
-  def uninitialized(
+  private def uninitialized(
       scheduler: ActorRef[SchedulerMessage],
       awaitedKeys: Set[UUID],
       adapter: ActorRef[Activation]
   ): Behavior[LockMsg] =
     Behaviors.withStash(100) { buffer =>
       Behaviors.receiveMessage {
-        case WrappedActivation(_) =>
+        case LockActivation =>
           buffer.unstashAll(active(scheduler, awaitedKeys, adapter))
 
         case unlock: Unlock =>
