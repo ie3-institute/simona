@@ -17,10 +17,15 @@ import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.value.{HeatDemandValue, PValue}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ActivePower
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.WorkerRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
+import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   CsvInitPrimaryServiceStateData,
   InitPrimaryServiceStateData,
@@ -28,8 +33,9 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   ProvidePrimaryDataMessage
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorkerSpec.WrongInitPrimaryServiceStateData
-import edu.ie3.simona.test.common.AgentSpec
+import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
@@ -51,7 +57,8 @@ class PrimaryServiceWorkerSpec
           """.stripMargin)
       )
     )
-    with TimeSeriesTestData {
+    with TimeSeriesTestData
+    with TestSpawnerClassic {
   // this works both on Windows and Unix systems
   val baseDirectoryPath: Path = Paths
     .get(
@@ -77,10 +84,12 @@ class PrimaryServiceWorkerSpec
   private implicit val powerTolerance: squants.Power = Watts(0.1)
 
   "A primary service actor" should {
+    val scheduler = TestProbe("scheduler")
+
     val serviceRef =
       TestActorRef(
         new PrimaryServiceWorker[PValue](
-          self,
+          scheduler.ref,
           classOf[PValue]
         )
       )
@@ -144,9 +153,22 @@ class PrimaryServiceWorkerSpec
       }
     }
 
-    /* Init the service actor */
-    serviceRef ! Activation(0)
-    expectMsgType[Completion]
+    "init the service actor" in {
+      val key =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+
+      scheduler.send(
+        serviceRef,
+        SimonaService.Create(validInitData, key)
+      )
+      scheduler.expectMsg(
+        ScheduleActivation(serviceRef.toTyped, INIT_SIM_TICK, Some(key))
+      )
+
+      scheduler.send(serviceRef, Activation(INIT_SIM_TICK))
+      scheduler.expectMsg(Completion(serviceRef.toTyped, Some(0)))
+    }
 
     "refuse registration for wrong registration request" in {
       serviceRef ! RegisterForWeatherMessage(51.4843281, 7.4116482)
@@ -162,8 +184,8 @@ class PrimaryServiceWorkerSpec
 
       /* We cannot directly check, if the requesting actor is among the subscribers, therefore we ask the actor to
        * provide data to all subscribed actors and check, if the subscribed probe gets one */
-      serviceRef ! Activation(0)
-      expectMsgType[Completion]
+      scheduler.send(serviceRef, Activation(0))
+      scheduler.expectMsgType[Completion]
       systemParticipant.expectMsgAllClassOf(classOf[ProvidePrimaryDataMessage])
     }
 
@@ -308,15 +330,15 @@ class PrimaryServiceWorkerSpec
 
     "should not announce anything, if time step is not covered in source" in {
 
-      serviceRef ! Activation(200)
+      scheduler.send(serviceRef, Activation(200))
 
-      expectMsg(Completion(serviceRef.toTyped, Some(1800)))
+      scheduler.expectMsg(Completion(serviceRef.toTyped, Some(1800)))
       expectNoMessage()
     }
 
     "should announce something, if the time step is covered in source" in {
-      serviceRef ! Activation(900)
-      expectMsg(Completion(serviceRef.toTyped))
+      scheduler.send(serviceRef, Activation(900))
+      scheduler.expectMsg(Completion(serviceRef.toTyped))
 
       inside(
         systemParticipant.expectMsgClass(classOf[ProvidePrimaryDataMessage])

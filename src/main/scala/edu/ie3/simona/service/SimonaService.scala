@@ -64,7 +64,6 @@ abstract class SimonaService[
     */
   private def uninitialized: Receive = {
 
-    // initialize trigger message received from scheduler
     case Create(
           initializeStateData: InitializeServiceStateData,
           unlockKey: ScheduleKey
@@ -75,7 +74,11 @@ abstract class SimonaService[
         Some(unlockKey)
       )
 
-      initializing(initializeStateData)
+      context become initializing(initializeStateData)
+
+    // not ready yet to handle registrations, stash request away
+    case _: ServiceRegistrationMessage =>
+      stash()
 
   }
 
@@ -90,9 +93,7 @@ abstract class SimonaService[
         initializeStateData
       ) match {
         case Success((serviceStateData, maybeNewTick)) =>
-          maybeNewTick.foreach { tick =>
-            scheduler ! ScheduleActivation(self.toTyped, tick)
-          }
+          scheduler ! Completion(self.toTyped, maybeNewTick)
           unstashAll()
           context become idle(serviceStateData)
         case Failure(exception) =>

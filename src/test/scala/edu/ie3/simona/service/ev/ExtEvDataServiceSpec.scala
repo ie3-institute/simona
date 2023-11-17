@@ -76,14 +76,16 @@ class ExtEvDataServiceSpec
         )
       )
 
-      val lock =
+      val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extEvData(evService)), lock)
+        SimonaService.Create(InitExtEvData(extEvData(evService)), key)
       )
       scheduler.expectMsg(
-        ScheduleActivation(evService.toTyped, INIT_SIM_TICK, Some(lock))
+        ScheduleActivation(evService.toTyped, INIT_SIM_TICK, Some(key))
       )
 
       scheduler.send(evService, Activation(INIT_SIM_TICK))
@@ -108,14 +110,16 @@ class ExtEvDataServiceSpec
       evcs1.expectNoMessage()
       scheduler.expectNoMessage()
 
-      val lock =
+      val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extEvData(evService)), lock)
+        SimonaService.Create(InitExtEvData(extEvData(evService)), key)
       )
       scheduler.expectMsg(
-        ScheduleActivation(evService.toTyped, INIT_SIM_TICK, Some(lock))
+        ScheduleActivation(evService.toTyped, INIT_SIM_TICK, Some(key))
       )
 
       scheduler.send(evService, Activation(INIT_SIM_TICK))
@@ -134,11 +138,13 @@ class ExtEvDataServiceSpec
         )
       )
 
-      val lock =
+      val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extEvData(evService)), lock)
+        SimonaService.Create(InitExtEvData(extEvData(evService)), key)
       )
       scheduler.expectMsgType[ScheduleActivation]
 
@@ -176,14 +182,16 @@ class ExtEvDataServiceSpec
         )
       )
 
-      val lock =
+      val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extEvData(evService)), lock)
+        SimonaService.Create(InitExtEvData(extEvData(evService)), key)
       )
       scheduler.expectMsg(
-        ScheduleActivation(evService.toTyped, INIT_SIM_TICK, Some(lock))
+        ScheduleActivation(evService.toTyped, INIT_SIM_TICK, Some(key))
       )
 
       scheduler.send(evService, Activation(INIT_SIM_TICK))
@@ -209,11 +217,13 @@ class ExtEvDataServiceSpec
 
       val extData = extEvData(evService)
 
-      val lock =
+      val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extEvData(evService)), lock)
+        SimonaService.Create(InitExtEvData(extData), key)
       )
       scheduler.expectMsgType[ScheduleActivation]
 
@@ -303,11 +313,13 @@ class ExtEvDataServiceSpec
 
       val extData = extEvData(evService)
 
-      val lock =
+      val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extEvData(evService)), lock)
+        SimonaService.Create(InitExtEvData(extData), key)
       )
       scheduler.expectMsgType[ScheduleActivation]
 
@@ -346,11 +358,13 @@ class ExtEvDataServiceSpec
 
       val extData = extEvData(evService)
 
-      val lock =
+      val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extEvData(evService)), lock)
+        SimonaService.Create(InitExtEvData(extData), key)
       )
       scheduler.expectMsgType[ScheduleActivation]
 
@@ -443,11 +457,13 @@ class ExtEvDataServiceSpec
 
       val extData = extEvData(evService)
 
-      val lock =
+      val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extEvData(evService)), lock)
+        SimonaService.Create(InitExtEvData(extData), key)
       )
       scheduler.expectMsgType[ScheduleActivation]
 
@@ -483,10 +499,11 @@ class ExtEvDataServiceSpec
       extSimAdapter.expectMsg(new ScheduleDataServiceMessage(evService))
 
       val tick = 0L
-      val triggerId = 2L
 
       // we trigger ev service
       scheduler.send(evService, Activation(tick))
+      // schedule lock is scheduled
+      scheduler.expectMsgType[ScheduleActivation].tick shouldBe tick
 
       val evsMessage1 = evcs1.expectMsgType[ProvideEvDataMessage]
       evsMessage1.tick shouldBe tick
@@ -513,11 +530,13 @@ class ExtEvDataServiceSpec
 
       val extData = extEvData(evService)
 
-      val lock =
+      val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extEvData(evService)), lock)
+        SimonaService.Create(InitExtEvData(extData), key)
       )
       scheduler.expectMsgType[ScheduleActivation]
 
@@ -546,10 +565,11 @@ class ExtEvDataServiceSpec
       extSimAdapter.expectMsgType[ScheduleDataServiceMessage]
 
       val tick = 0L
-      val triggerId = 2L
 
       // we trigger ev service
       scheduler.send(evService, Activation(tick))
+      // schedule lock is scheduled
+      scheduler.expectMsgType[ScheduleActivation].tick shouldBe tick
 
       val evsMessage1 = evcs1.expectMsgType[ProvideEvDataMessage]
       evsMessage1.tick shouldBe tick

@@ -106,23 +106,25 @@ class WeatherServiceSpec
 
   "A weather service" must {
     "receive correct completion message after initialisation" in {
-      val lock =
+      val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+
       scheduler.send(
         weatherActor,
         SimonaService.Create(
           InitWeatherServiceStateData(
             simonaConfig.simona.input.weather.datasource
           ),
-          lock
+          key
         )
       )
       scheduler.expectMsg(
-        ScheduleActivation(weatherActor.toTyped, INIT_SIM_TICK, Some(lock))
+        ScheduleActivation(weatherActor.toTyped, INIT_SIM_TICK, Some(key))
       )
 
       scheduler.send(weatherActor, Activation(INIT_SIM_TICK))
-      scheduler.expectMsg(Completion(weatherActor.toTyped))
+      scheduler.expectMsg(Completion(weatherActor.toTyped, Some(0)))
     }
 
     "announce failed weather registration on invalid coordinate" in {
