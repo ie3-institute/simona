@@ -137,7 +137,7 @@ object ScheduleLock {
     Behaviors.withStash(100) { buffer =>
       Behaviors.receiveMessage {
         case Init(adapter) =>
-          buffer.unstashAll(active(awaitedKeys, scheduler, adapter))
+          buffer.unstashAll(uninitialized(scheduler, awaitedKeys, adapter))
 
         case msg =>
           // stash all messages until we are initialized
@@ -160,7 +160,7 @@ object ScheduleLock {
     Behaviors.withStash(100) { buffer =>
       Behaviors.receiveMessage {
         case WrappedActivation(_) =>
-          buffer.unstashAll(active(awaitedKeys, scheduler, adapter))
+          buffer.unstashAll(active(scheduler, awaitedKeys, adapter))
 
         case unlock: Unlock =>
           // stash unlock messages until we are initialized
@@ -170,16 +170,16 @@ object ScheduleLock {
     }
 
   private def active(
+      scheduler: ActorRef[SchedulerMessage],
       awaitedKeys: Set[UUID],
-      parent: ActorRef[SchedulerMessage],
       adapter: ActorRef[Activation]
   ): Behavior[LockMsg] = Behaviors.receiveMessage { case Unlock(key) =>
     val updatedKeys = awaitedKeys - key
 
     if (updatedKeys.nonEmpty)
-      active(updatedKeys, parent, adapter)
+      active(scheduler, updatedKeys, adapter)
     else {
-      parent ! Completion(adapter)
+      scheduler ! Completion(adapter)
       Behaviors.stopped
     }
   }

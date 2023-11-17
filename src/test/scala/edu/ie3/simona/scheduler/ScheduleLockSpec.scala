@@ -44,11 +44,11 @@ class ScheduleLockSpec
       lockActivation ! Activation(300)
 
       // use one of both keys
-      scheduleLocks(1).unlock()
+      scheduleLocks(0).unlock()
       scheduler.expectNoMessage()
 
       // use second key, should unlock now
-      scheduleLocks(2).unlock()
+      scheduleLocks(1).unlock()
 
       scheduler.expectMessage(Completion(lockActivation))
       scheduler.expectTerminated(scheduleLocks(1).lock)

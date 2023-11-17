@@ -119,7 +119,7 @@ class ScheduleLockIT
         30
       )
 
-      // because of the lock, child/parentScheduler should not be able to complete yet
+      // because of the lock, parentScheduler should not be able to complete yet
       timeAdvancer.expectNoMessage()
 
       // schedule activation for agent, should unlock the lock
