@@ -151,7 +151,7 @@ abstract class ParticipantAgent[
       /* An activation is sent, but I'm not sure yet, if secondary data will arrive. Figure out, if someone
        * is about to deliver new data and either go to HandleInformation, check and possibly wait for data provision
        * messages or directly go to Calculate and utilize what is already there */
-      handleActivityStartTriggerAndGoToHandleInformation(
+      handleActivationAndGoToHandleInformation(
         currentTick,
         modelBaseStateData
       )
@@ -162,7 +162,7 @@ abstract class ParticipantAgent[
         ) =>
       /* An activity start trigger is sent, but I'm still expecting primary data. Go to HandleInformation and wait for
        * a data provision message */
-      handleActivityStartTriggerAndGoToHandleInformation(
+      handleActivationAndGoToHandleInformation(
         currentTick,
         fromOutsideBaseStateData
       )
@@ -505,7 +505,7 @@ abstract class ParticipantAgent[
     *   Transition to [[HandleInformation]] utilising appropriate new
     *   [[DataCollectionStateData]]
     */
-  def handleActivityStartTriggerAndGoToHandleInformation(
+  def handleActivationAndGoToHandleInformation(
       tick: Long,
       baseStateData: BaseStateData[PD]
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {

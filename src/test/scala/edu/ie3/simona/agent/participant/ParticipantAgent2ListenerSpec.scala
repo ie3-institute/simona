@@ -207,10 +207,11 @@ class ParticipantAgent2ListenerSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
 
+      scheduler.expectMsg(Completion(mockAgent.toTyped))
+
       /* Trigger the data generation in tick 0 */
       scheduler.send(mockAgent, Activation(0))
 
-      /* Appreciate the existence of two CompletionMessages */
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 
       /* Ask the agent for average power in tick 3000 */
@@ -237,6 +238,8 @@ class ParticipantAgent2ListenerSpec
           "the function is available!"
       )
       expectNoMessage(noReceiveTimeOut.duration)
+
+      scheduler.expectNoMessage()
     }
 
     "not inform listeners about request reply, when not asked to do" in {
@@ -260,6 +263,8 @@ class ParticipantAgent2ListenerSpec
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+
+      scheduler.expectMsg(Completion(mockAgent.toTyped))
 
       /* Trigger the data generation in tick 0 */
       scheduler.send(mockAgent, Activation(0))

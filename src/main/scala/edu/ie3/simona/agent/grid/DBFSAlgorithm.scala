@@ -438,8 +438,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         gridAgentBaseData.inferiorGridGates
       )
 
-      // / release tick and trigger for the whole simulation (StartGridSimulationTrigger)
-      releaseTickAndTriggerId()
+      // / release tick for the whole simulation (StartGridSimulationTrigger)
+      releaseTick()
 
       // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
       environmentRefs.scheduler ! Completion(
@@ -1013,7 +1013,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       currentTick: Long
   ): FSM.State[AgentState, GridAgentData] = {
 
-    releaseTickAndTriggerId()
+    releaseTick()
     environmentRefs.scheduler ! Completion(
       self.toTyped,
       Some(currentTick)

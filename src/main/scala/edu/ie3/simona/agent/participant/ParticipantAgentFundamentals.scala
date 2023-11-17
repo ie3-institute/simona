@@ -136,6 +136,7 @@ protected trait ParticipantAgentFundamentals[
     )
 
     /* Confirm final initialization */
+    releaseTick()
     senderToMaybeTick._2.foreach { tick =>
       scheduler ! Completion(self.toTyped, Some(tick))
     }
@@ -291,17 +292,15 @@ protected trait ParticipantAgentFundamentals[
         val (newTick, nextBaseStateData) = popNextActivationTrigger(
           baseStateData
         )
-        releaseTickAndTriggerId()
+        releaseTick()
 
         log.debug(s"Going to {}, using {}", Idle, baseStateData)
-        newTick.foreach { tick =>
-          scheduler ! Completion(self.toTyped, Some(tick))
-        }
+        scheduler ! Completion(self.toTyped, newTick)
         goto(Idle) using nextBaseStateData
       }
     } catch {
-      case e @ (_: AgentInitializationException |
-          _: InconsistentStateException) =>
+      case _: AgentInitializationException | _: InconsistentStateException =>
+        // stop on error
         self ! PoisonPill
         goto(Uninitialized)
     }
@@ -719,7 +718,7 @@ protected trait ParticipantAgentFundamentals[
     val (maybeNextTick, updatedBaseStateData) =
       popNextActivationTrigger(baseStateData)
 
-    releaseTickAndTriggerId()
+    releaseTick()
     scheduler ! Completion(self.toTyped, maybeNextTick)
     unstashAll()
     goto(Idle) using updatedBaseStateData

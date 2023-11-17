@@ -58,7 +58,7 @@ trait SimonaAgent[D]
     _currentTick = Some(tick)
   }
 
-  def releaseTickAndTriggerId(): Long = {
+  def releaseTick(): Long = {
     val currentTick = _currentTick.getOrElse(
       throw new RuntimeException(
         "Tried to access currentTick and currentTriggerId without having them set before!"
