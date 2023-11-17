@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.participant
 
 import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.TestFSMRef
+import akka.testkit.{TestFSMRef, TestProbe}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.WecInput
@@ -21,7 +21,6 @@ import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   CollectRegistrationConfirmMessages,
   ParticipantInitializeStateData,
-  ParticipantInitializingStateData,
   ParticipantUninitializedStateData
 }
 import edu.ie3.simona.agent.participant.wec.WecAgent
@@ -163,7 +162,9 @@ class WecAgentModelCalculationSpec
       }
     }
 
-    "fail initialisation and stay in uninitialized state" in {
+    "fail initialisation and stop agent" in {
+      val deathProbe = TestProbe("deathProbe")
+
       val wecAgent = TestFSMRef(
         new WecAgent(
           scheduler = scheduler.ref,
@@ -174,23 +175,13 @@ class WecAgentModelCalculationSpec
 
       scheduler.send(wecAgent, Activation(INIT_SIM_TICK))
 
+      deathProbe.watch(wecAgent.ref)
+
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
 
-      /* Agent announces, that it has received an illegal trigger */
-      // TODO test failed actor
-
-      /* agent should stay uninitialized */
-      wecAgent.stateName shouldBe Uninitialized
-      // ParticipantUninitializedStateData is an empty class (due to typing). If it contains content one day
-      inside(wecAgent.stateData) {
-        case _: ParticipantInitializingStateData[_, _, _] => succeed
-        case _ =>
-          fail(
-            s"Expected $ParticipantUninitializedStateData, but got ${wecAgent.stateData}."
-          )
-      }
+      deathProbe.expectTerminated(wecAgent.ref)
     }
   }
 

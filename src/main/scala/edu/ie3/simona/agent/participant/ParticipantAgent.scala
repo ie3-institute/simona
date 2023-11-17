@@ -173,7 +173,7 @@ abstract class ParticipantAgent[
         ) =>
       /* Somebody has sent new primary or secondary data. Collect, what is expected for this tick. Go over to data
        * handling */
-      handleDataProvisionAndGoToHandleInformation(msg, baseStateData)
+      handleDataProvisionAndGoToHandleInformation(msg, baseStateData, scheduler)
 
     case Event(
           RequestAssetPowerMessage(requestTick, eInPu, fInPu),
@@ -546,12 +546,15 @@ abstract class ParticipantAgent[
     *   Incoming message to be handled
     * @param baseStateData
     *   Base state data
+    * @param scheduler
+    *   The scheduler
     * @return
     *   state change to [[HandleInformation]] with updated base state data
     */
   def handleDataProvisionAndGoToHandleInformation(
       msg: ProvisionMessage[Data],
-      baseStateData: BaseStateData[PD]
+      baseStateData: BaseStateData[PD],
+      scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Checks, if all data is available and change state accordingly. Three cases

@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.participant
 
 import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.TestFSMRef
+import akka.testkit.{TestFSMRef, TestProbe}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.PvInput
@@ -157,7 +157,9 @@ class PvAgentModelCalculationSpec
       }
     }
 
-    "fail initialisation and stay in uninitialized state" in {
+    "fail initialisation and stop agent" in {
+      val deathProbe = TestProbe("deathProbe")
+
       val pvAgent = TestFSMRef(
         new PvAgent(
           scheduler = scheduler.ref,
@@ -168,18 +170,13 @@ class PvAgentModelCalculationSpec
 
       scheduler.send(pvAgent, Activation(INIT_SIM_TICK))
 
+      deathProbe.watch(pvAgent.ref)
+
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
 
-      // TODO test failed actor
-
-      /* agent should stay uninitialized */
-      pvAgent.stateName shouldBe Uninitialized
-      pvAgent.stateData match {
-        case _: ParticipantInitializingStateData[_, _, _] => succeed
-        case _ => fail("Expected to get initializing state data")
-      }
+      deathProbe.expectTerminated(pvAgent.ref)
     }
   }
 

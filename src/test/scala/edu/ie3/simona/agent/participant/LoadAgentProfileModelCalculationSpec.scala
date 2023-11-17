@@ -173,7 +173,7 @@ class LoadAgentProfileModelCalculationSpec
       primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
 
       /* Expect a completion notification */
-      scheduler.expectMsg(Completion(loadAgent.toTyped, None))
+      scheduler.expectMsg(Completion(loadAgent.toTyped, Some(0)))
 
       /* ... as well as corresponding state and state data */
       loadAgent.stateName shouldBe Idle

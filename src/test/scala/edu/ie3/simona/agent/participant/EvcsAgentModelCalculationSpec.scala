@@ -48,7 +48,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResp
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DISTANCE
 import edu.ie3.simona.test.ParticipantAgentSpec
-import edu.ie3.simona.test.common.EvTestData
+import edu.ie3.simona.test.common.{EvTestData, TestSpawnerClassic}
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -71,8 +71,8 @@ class EvcsAgentModelCalculationSpec
       )
     )
     with EvcsInputTestData
-    with EvTestData {
-  private implicit val receiveTimeout: FiniteDuration = 10.seconds
+    with EvTestData
+    with TestSpawnerClassic {
 
   private implicit val powerTolerance: Power = Watts(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
@@ -131,7 +131,9 @@ class EvcsAgentModelCalculationSpec
       }
     }
 
-    "fail initialisation and stay in uninitialized state" in {
+    "fail initialisation and stop agent" in {
+      val deathProbe = TestProbe("deathProbe")
+
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = scheduler.ref,
@@ -142,18 +144,13 @@ class EvcsAgentModelCalculationSpec
 
       scheduler.send(evcsAgent, Activation(INIT_SIM_TICK))
 
+      deathProbe.watch(evcsAgent.ref)
+
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
 
-      // TODO test failed actor
-
-      /* agent should stay uninitialized */
-      evcsAgent.stateName shouldBe Uninitialized
-      evcsAgent.stateData match {
-        case _: ParticipantInitializingStateData[_, _, _] => succeed
-        case _ => fail("Expected to get initializing state data")
-      }
+      deathProbe.expectTerminated(evcsAgent.ref)
     }
   }
 
@@ -373,6 +370,8 @@ class EvcsAgentModelCalculationSpec
     }
 
     "do correct transitions faced with new data in Idle" in {
+      val lock = TestProbe("lock")
+
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = scheduler.ref,
@@ -403,10 +402,12 @@ class EvcsAgentModelCalculationSpec
       val arrivingEvsData =
         ArrivingEvsData(scala.collection.immutable.Seq(evA, evB))
 
+      val key1 = Some(ScheduleKey(lock.ref.toTyped, UUID.randomUUID()))
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(0L, arrivingEvsData)
+        ProvideEvDataMessage(0L, arrivingEvsData, unlockKey = key1)
       )
+      scheduler.expectMsg(ScheduleActivation(evcsAgent.toTyped, 0, key1))
 
       /* Find yourself in corresponding state and state data */
       evcsAgent.stateName shouldBe HandleInformation
@@ -478,6 +479,8 @@ class EvcsAgentModelCalculationSpec
     }
 
     "do correct transitions triggered for activation in idle" in {
+      val lock = TestProbe("lock")
+
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = scheduler.ref,
@@ -536,10 +539,12 @@ class EvcsAgentModelCalculationSpec
       val arrivingEvsData =
         ArrivingEvsData(Seq(evA, evB))
 
+      val key1 = Some(ScheduleKey(lock.ref.toTyped, UUID.randomUUID()))
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(0L, arrivingEvsData)
+        ProvideEvDataMessage(0L, arrivingEvsData, unlockKey = key1)
       )
+      scheduler.expectMsg(ScheduleActivation(evcsAgent.toTyped, 0, key1))
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
        * for starting the calculation */
@@ -735,13 +740,16 @@ class EvcsAgentModelCalculationSpec
 
       /* Send out the three data points */
       /* ... for tick 0 */
+      val key1 = Some(ScheduleKey(lock.ref.toTyped, UUID.randomUUID()))
       evService.send(
         evcsAgent,
         ProvideEvDataMessage(
           0L,
-          ArrivingEvsData(Seq(evA))
+          ArrivingEvsData(Seq(evA)),
+          unlockKey = key1
         )
       )
+      scheduler.expectMsg(ScheduleActivation(evcsAgent.toTyped, 0, key1))
       scheduler.send(evcsAgent, Activation(0))
       scheduler.expectMsg(Completion(evcsAgent.toTyped))
 
@@ -773,7 +781,7 @@ class EvcsAgentModelCalculationSpec
           unlockKey = key2
         )
       )
-      scheduler.expectMsg(ScheduleActivation(evcsAgent.toTyped, 0, key2))
+      scheduler.expectMsg(ScheduleActivation(evcsAgent.toTyped, 3600, key2))
 
       scheduler.send(evcsAgent, Activation(3600))
       scheduler.expectMsg(Completion(evcsAgent.toTyped))
@@ -808,7 +816,7 @@ class EvcsAgentModelCalculationSpec
           unlockKey = key3
         )
       )
-      scheduler.expectMsg(ScheduleActivation(evcsAgent.toTyped, 0, key3))
+      scheduler.expectMsg(ScheduleActivation(evcsAgent.toTyped, 7200, key3))
 
       scheduler.send(evcsAgent, Activation(7200))
 

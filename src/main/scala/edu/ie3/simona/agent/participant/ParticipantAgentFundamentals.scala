@@ -37,7 +37,7 @@ import edu.ie3.simona.agent.participant.statedata.{
   ParticipantStateData
 }
 import edu.ie3.simona.agent.state.AgentState
-import edu.ie3.simona.agent.state.AgentState.Idle
+import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.{
   Calculate,
   HandleInformation
@@ -302,10 +302,8 @@ protected trait ParticipantAgentFundamentals[
     } catch {
       case e @ (_: AgentInitializationException |
           _: InconsistentStateException) =>
-        throw new AgentInitializationException(
-          "Caught exception while initializing",
-          e
-        )
+        self ! PoisonPill
+        goto(Uninitialized)
     }
 
   /** Abstract definition, individual implementations found in individual agent
@@ -457,12 +455,15 @@ protected trait ParticipantAgentFundamentals[
     *   Incoming message to be handled
     * @param baseStateData
     *   Base state data
+    * @param scheduler
+    *   The scheduler
     * @return
     *   state change to [[HandleInformation]] with updated base state data
     */
   override def handleDataProvisionAndGoToHandleInformation(
       msg: ProvisionMessage[Data],
-      baseStateData: BaseStateData[PD]
+      baseStateData: BaseStateData[PD],
+      scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     /* Figure out, who is going to send data in this tick */
     val expectedSenders = baseStateData.foreseenDataTicks
@@ -481,6 +482,19 @@ protected trait ParticipantAgentFundamentals[
             None
         }
       }
+
+    val unexpectedSender = baseStateData.foreseenDataTicks.exists {
+      case (ref, None) => sender() == ref
+      case _           => false
+    }
+
+    /* If we have received unexpected data, we also have not been scheduled before */
+    if (unexpectedSender)
+      scheduler ! ScheduleActivation(
+        self.toTyped,
+        msg.tick,
+        msg.unlockKey
+      )
 
     /* If the sender announces a new next tick, add it to the list of expected ticks, else remove the current entry */
     val foreseenDataTicks =
