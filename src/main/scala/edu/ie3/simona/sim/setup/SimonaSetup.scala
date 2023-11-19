@@ -35,12 +35,12 @@ trait SimonaSetup {
     */
   val buildActorSystem: () => ActorSystem
 
-  /** Creates a sequence of runtime event listeners
+  /** Creates the runtime event listener
     *
     * @param context
     *   Actor context to use
     * @return
-    *   A sequence of actor references to runtime event listeners
+    *   An actor reference to the runtime event listener
     */
   def runtimeEventListener(
       context: ActorContext
@@ -102,6 +102,17 @@ trait SimonaSetup {
       scheduler: ActorRef
   ): ExtSimSetupData
 
+  /** Creates the time advancer
+    *
+    * @param context
+    *   Actor context to use
+    * @param simulation
+    *   The simulation root actor ([[edu.ie3.simona.sim.SimonaSim]])
+    * @param runtimeEventListener
+    *   Runtime event listener
+    * @return
+    *   An actor reference to the time advancer
+    */
   def timeAdvancer(
       context: ActorContext,
       simulation: ActorRef,
@@ -113,7 +124,7 @@ trait SimonaSetup {
     * @param context
     *   Actor context to use
     * @param timeAdvancer
-    *   The time advancer
+    *   The time advancer, sitting at the root of the scheduler hierarchy
     * @return
     *   An actor reference to the scheduler
     */
