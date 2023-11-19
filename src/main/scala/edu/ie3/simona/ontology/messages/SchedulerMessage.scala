@@ -8,6 +8,7 @@ package edu.ie3.simona.ontology.messages
 
 import akka.actor.ActorRef
 import edu.ie3.simona.ontology.trigger.Trigger
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 
 sealed trait SchedulerMessage
 
@@ -55,7 +56,8 @@ object SchedulerMessage {
     */
   final case class ScheduleTriggerMessage(
       trigger: Trigger,
-      actorToBeScheduled: ActorRef
+      actorToBeScheduled: ActorRef,
+      unlockKey: Option[ScheduleKey] = None
   ) extends SchedulerMessage
 
   /** Confirm the end of an action e.g. fsm state transitions for one tick to
