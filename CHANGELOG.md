@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated to gradle 8.4 [#648](https://github.com/ie3-institute/simona/issues/648)
 - Introducing new scheduling infrastructure:
   - Two-parted scheduler in akka typed [#378](https://github.com/ie3-institute/simona/issues/378)
+  - Schedule lock [#651](https://github.com/ie3-institute/simona/issues/651)
 
 ## [3.0.0] - 2023-08-07
 
