@@ -7,13 +7,11 @@
 package edu.ie3.simona.scheduler
 
 import akka.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
-import akka.actor.typed.{ActorRef, Behavior}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.scheduler.ScheduleLock.Spawner
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.util.ActorUtils.RichTriggeredAgent
 import org.scalatest.matchers.should
@@ -26,11 +24,6 @@ class ScheduleLockIT
     with TestSpawnerTyped {
 
   "The ScheduleLock in conjunction with schedulers" should {
-
-    object TestSpawner extends Spawner {
-      override def spawn[T](behavior: Behavior[T]): ActorRef[T] =
-        ScheduleLockIT.this.spawn(behavior)
-    }
 
     "work as expected when schedulers active" in {
       val timeAdvancer = TestProbe[SchedulerMessage]("timeAdvancer")
@@ -107,7 +100,7 @@ class ScheduleLockIT
       val lockActivation = sa1.actor
 
       // create and initialize lock
-      val scheduleKey = ScheduleLock.singleKey(TestSpawner, parentScheduler, 30)
+      val scheduleKey = ScheduleLock.singleKey(TSpawner, parentScheduler, 30)
       agent.expectNoMessage()
 
       // activate the scheduler, lock should now initialize
