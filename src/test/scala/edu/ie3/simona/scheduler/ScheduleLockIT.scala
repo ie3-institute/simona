@@ -56,7 +56,7 @@ class ScheduleLockIT
       val lockActivation = sa1.actor
 
       // create and initialize lock
-      val scheduleLock =
+      val scheduleKey =
         ScheduleLock.singleKey(TSpawner, parentScheduler, 30)
       agent1.expectNoMessage()
 
@@ -67,7 +67,7 @@ class ScheduleLockIT
       childScheduler ! ScheduleActivation(
         agent2.ref,
         30,
-        Some(scheduleLock)
+        Some(scheduleKey)
       )
 
       // because of activated agents, child/parentScheduler should not be able to complete yet
