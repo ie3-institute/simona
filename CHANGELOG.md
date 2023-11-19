@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed from ComparableQuantity to squants in power flow [#554](https://github.com/ie3-institute/simona/issues/554)
 - Reduce log level on missing diffuse irradiance [#629](https://github.com/ie3-institute/simona/issues/629)
 - Updated to gradle 8.4 [#648](https://github.com/ie3-institute/simona/issues/648)
+- Introducing new scheduling infrastructure:
+  - Two-parted scheduler in akka typed [#378](https://github.com/ie3-institute/simona/issues/378)
 
 ## [3.0.0] - 2023-08-07
 
