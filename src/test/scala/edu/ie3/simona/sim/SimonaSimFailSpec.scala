@@ -101,18 +101,8 @@ object SimonaSimFailSpec {
       override val args: Array[String] = Array.empty[String]
   ) extends SimonaSetup {
 
-    /** A function, that constructs the [[ActorSystem]], the simulation shall
-      * live in
-      */
     override val buildActorSystem: () => ActorSystem = () => actorSystem
 
-    /** Creates a sequence of runtime event listeners
-      *
-      * @param context
-      *   Actor context to use
-      * @return
-      *   A sequence of actor references to runtime event listeners
-      */
     override def runtimeEventListener(
         context: ActorContext
     ): akka.actor.typed.ActorRef[RuntimeEvent] =
@@ -120,29 +110,10 @@ object SimonaSimFailSpec {
         .TestProbe[RuntimeEvent]()(actorSystem.toTyped)
         .ref
 
-    /** Creates a sequence of system participant event listeners
-      *
-      * @param context
-      *   Actor context to use
-      * @return
-      *   A sequence of actor references to runtime event listeners
-      */
     override def systemParticipantsListener(
         context: ActorContext
     ): Seq[ActorRef] = Seq.empty[ActorRef]
 
-    /** Creates a primary service proxy. The proxy is the first instance to ask
-      * for primary data. If necessary, it delegates the registration request to
-      * it's subordinate workers.
-      *
-      * @param context
-      *   Actor context to use
-      * @param scheduler
-      *   Actor reference to it's according scheduler to use
-      * @return
-      *   An actor reference to the service as well as matching data to
-      *   initialize the service
-      */
     override def primaryServiceProxy(
         context: ActorContext,
         scheduler: ActorRef
@@ -155,16 +126,6 @@ object SimonaSimFailSpec {
         )
       )
 
-    /** Creates a weather service
-      *
-      * @param context
-      *   Actor context to use
-      * @param scheduler
-      *   Actor reference to it's according scheduler to use
-      * @return
-      *   An actor reference to the service as well as matching data to
-      *   initialize the service
-      */
     override def weatherService(
         context: ActorContext,
         scheduler: ActorRef
@@ -198,30 +159,11 @@ object SimonaSimFailSpec {
         runtimeEventListener: akka.actor.typed.ActorRef[RuntimeEvent]
     ): akka.actor.typed.ActorRef[SchedulerMessage] = timeAdvancer
 
-    /** Creates a scheduler service
-      *
-      * @param context
-      *   Actor context to use
-      * @return
-      *   An actor reference to the scheduler
-      */
     override def scheduler(
         context: ActorContext,
         timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage]
     ): ActorRef = TestProbe("scheduler")(actorSystem).ref
 
-    /** Creates all the needed grid agents
-      *
-      * @param context
-      *   Actor context to use
-      * @param environmentRefs
-      *   EnvironmentRefs to use
-      * @param systemParticipantListener
-      *   Listeners that await events from system participants
-      * @return
-      *   A mapping from actor reference to it's according initialization data
-      *   to be used when setting up the agents
-      */
     override def gridAgents(
         context: ActorContext,
         environmentRefs: EnvironmentRefs,
