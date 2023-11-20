@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Add safety factor sRated calculation [#629](https://github.com/ie3-institute/simona/issues/629)
+- Re-implemented ResultEventListener in akka typed [#343](https://github.com/ie3-institute/simona/issues/343)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
