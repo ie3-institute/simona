@@ -12,9 +12,9 @@ import edu.ie3.simona.api.ExtSimAdapter.{Create, ExtSimAdapterStateData}
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
-  TerminationMessage,
-  TerminationCompleted,
   ActivationMessage,
+  TerminationCompleted,
+  TerminationMessage,
   CompletionMessage => ExtCompletionMessage
 }
 import edu.ie3.simona.logging.SimonaActorLogging
@@ -28,7 +28,7 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters._
 
 object ExtSimAdapter {
 
@@ -86,9 +86,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
       // when multiple triggers have been sent, a completion message
       // always refers to the oldest tick
 
-      // FIXME ext CompletionMessage should have only one next trigger
-      // FIXME also update the documentation in usersguide.md accordingly
-      val newTick = extCompl.newTriggers.asScala.headOption.map(Long2long)
+      val newTick = extCompl.nextActivation().toScala.map(Long2long)
 
       scheduler ! Completion(self.toTyped, newTick)
       log.debug(
