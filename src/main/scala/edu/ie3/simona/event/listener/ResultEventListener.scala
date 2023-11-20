@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
@@ -18,7 +18,6 @@ import edu.ie3.simona.event.ResultEvent.{
 }
 import edu.ie3.simona.exceptions.{
   FileHierarchyException,
-  InitializationException,
   ProcessResultEventException
 }
 import edu.ie3.simona.io.result._
@@ -233,147 +232,125 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   def apply(
       resultFileHierarchy: ResultFileHierarchy
-  ): Behavior[ResultMessage] = {
-
-    Behaviors.setup[ResultMessage] { ctx: ActorContext[ResultMessage] =>
-      ctx.log.debug("Starting initialization!")
-      resultFileHierarchy.resultSinkType match {
-        case _: ResultSinkType.Kafka =>
-          ctx.log.debug("NodeResults will be processed by a Kafka sink.")
-        case _ =>
-          ctx.log.debug(
-            s"Events that will be processed: {}",
-            resultFileHierarchy.resultEntitiesToConsider
-              .map(_.getSimpleName)
-              .mkString(",")
-          )
-      }
-
-      ctx.pipeToSelf(
-        Future.sequence(
-          ResultEventListener.initializeSinks(resultFileHierarchy)
-        )
-      ) {
-        case Failure(exception: Exception) => Failed(exception)
-        case Success(result)               => SinkResponse(result.toMap)
-      }
-
-      init()
-    }
-  }
-
-  private def init(): Behavior[ResultMessage] = Behaviors.withStash(100) {
-    buffer =>
-      Behaviors
-        .receive[ResultMessage] {
-          case (ctx, SinkResponse(response)) =>
-            ctx.log.debug("Initialization complete!")
-            buffer.unstashAll(idle(BaseData(response)))
-          case (ctx, StopMessage(_)) =>
-            // set ReceiveTimeout message to be sent if no message has been received for 5 seconds
-            ctx.setReceiveTimeout(5.seconds, StopTimeout)
-            Behaviors.same
-
-          case (_, StopTimeout) =>
-            // there have been no messages for 5 seconds, let's end this
-            Behaviors.stopped
-
-          case (_, Failed(ex)) =>
-            throw new InitializationException("Unable to setup SimonaSim.", ex)
-
-          case (ctx, unsupported) =>
-            ctx.log.warn(
-              "Received the following message while initializing sinks: {}",
-              unsupported
-            )
-            buffer.stash(unsupported)
-            Behaviors.same
-        }
-        .receiveSignal { case (ctx, PostStop) =>
-          ctx.log.debug("Result I/O completed.")
-          ctx.log.debug("Shutdown.")
-          Behaviors.same
-        }
-  }
-
-  private def idle(baseData: BaseData): Behavior[ResultMessage] =
-    Behaviors
-      .receive[ResultMessage] { case (ctx, event) =>
-        (event, baseData) match {
-          case (ParticipantResultEvent(systemParticipantResult), baseData) =>
-            val updatedBaseData =
-              handleResult(systemParticipantResult, baseData, ctx.log)
-            idle(updatedBaseData)
-
-          case (
-                PowerFlowResultEvent(
-                  nodeResults,
-                  switchResults,
-                  lineResults,
-                  transformer2wResults,
-                  transformer3wResults
-                ),
-                baseData
-              ) =>
-            val updatedBaseData =
-              (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults)
-                .foldLeft(baseData) {
-                  case (currentBaseData, resultEntity: ResultEntity) =>
-                    handleResult(resultEntity, currentBaseData, ctx.log)
-                  case (
-                        currentBaseData,
-                        partialTransformerResult: PartialTransformer3wResult
-                      ) =>
-                    handlePartialTransformer3wResult(
-                      partialTransformerResult,
-                      currentBaseData,
-                      ctx.log
-                    )
-                }
-            idle(updatedBaseData)
-
-          case (StopMessage(_), _) =>
-            // set ReceiveTimeout message to be sent if no message has been received for 5 seconds
-            ctx.setReceiveTimeout(5.seconds, StopTimeout)
-            Behaviors.same
-
-          case (StopTimeout, _) =>
-            // there have been no messages for 5 seconds, let's end this
-            Behaviors.stopped
-
-          case (Failed(ex), _) =>
-            throw new InitializationException("Unable to setup SimonaSim.", ex)
-        }
-      }
-      .receiveSignal { case (ctx, PostStop) =>
-        // wait until all I/O has finished
+  ): Behavior[ResultMessage] = Behaviors.setup[ResultMessage] { ctx =>
+    ctx.log.debug("Starting initialization!")
+    resultFileHierarchy.resultSinkType match {
+      case _: ResultSinkType.Kafka =>
+        ctx.log.debug("NodeResults will be processed by a Kafka sink.")
+      case _ =>
         ctx.log.debug(
-          "Shutdown initiated.\n\tThe following three winding results are not comprehensive and are not " +
-            "handled in sinks:{}\n\tWaiting until writing result data is completed ...",
-          baseData.threeWindingResults.keys
-            .map { case Transformer3wKey(model, zdt) =>
-              s"model '$model' at $zdt"
-            }
-            .mkString("\n\t\t")
+          s"Events that will be processed: {}",
+          resultFileHierarchy.resultEntitiesToConsider
+            .map(_.getSimpleName)
+            .mkString(",")
         )
+    }
 
-        // close sinks concurrently to speed up closing (closing calls might be blocking)
-        Await.ready(
-          Future.sequence(
-            baseData.classToSink.valuesIterator.map(sink =>
-              Future {
-                sink.close()
-              }
-            )
-          ),
-          5.minutes
-        )
+    ctx.pipeToSelf(
+      Future.sequence(
+        ResultEventListener.initializeSinks(resultFileHierarchy)
+      )
+    ) {
+      case Failure(exception: Exception) => Failed(exception)
+      case Success(result)               => SinkResponse(result.toMap)
+    }
 
-        ctx.log.debug("Result I/O completed.")
+    init()
+  }
 
-        ctx.log.debug("Shutdown.")
+  private def init(): Behavior[ResultMessage] = Behaviors.withStash(200) {
+    buffer =>
+      Behaviors.receive[ResultMessage] {
+        case (ctx, SinkResponse(response)) =>
+          ctx.log.debug("Initialization complete!")
+          buffer.unstashAll(idle(BaseData(response)))
 
-        Behaviors.same
+        case (ctx, Failed(ex)) =>
+          ctx.log.error("Unable to setup ResultEventListener.", ex)
+          Behaviors.stopped
+
+        case (_, msg) =>
+          // stash all messages
+          buffer.stash(msg)
+          Behaviors.same
       }
+  }
+
+  private def idle(baseData: BaseData): Behavior[ResultMessage] = Behaviors
+    .receive[ResultMessage] {
+      case (ctx, ParticipantResultEvent(systemParticipantResult)) =>
+        val updatedBaseData =
+          handleResult(systemParticipantResult, baseData, ctx.log)
+        idle(updatedBaseData)
+
+      case (
+            ctx,
+            PowerFlowResultEvent(
+              nodeResults,
+              switchResults,
+              lineResults,
+              transformer2wResults,
+              transformer3wResults
+            )
+          ) =>
+        val updatedBaseData =
+          (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults)
+            .foldLeft(baseData) {
+              case (currentBaseData, resultEntity: ResultEntity) =>
+                handleResult(resultEntity, currentBaseData, ctx.log)
+              case (
+                    currentBaseData,
+                    partialTransformerResult: PartialTransformer3wResult
+                  ) =>
+                handlePartialTransformer3wResult(
+                  partialTransformerResult,
+                  currentBaseData,
+                  ctx.log
+                )
+            }
+        idle(updatedBaseData)
+
+      case (ctx, _: StopMessage) =>
+        ctx.log.debug(
+          s"${getClass.getSimpleName} received Stop message, shutting down when no message has been received in 5 seconds."
+        )
+        ctx.setReceiveTimeout(5.seconds, StopTimeout)
+        Behaviors.same
+
+      case (ctx, StopTimeout) =>
+        // there have been no messages for 5 seconds, let's end this
+        ctx.log.debug(s"${getClass.getSimpleName} is now stopped.")
+        Behaviors.stopped
+
+    }
+    .receiveSignal { case (ctx, PostStop) =>
+      // wait until all I/O has finished
+      ctx.log.debug(
+        "Shutdown initiated.\n\tThe following three winding results are not comprehensive and are not " +
+          "handled in sinks:{}\n\tWaiting until writing result data is completed ...",
+        baseData.threeWindingResults.keys
+          .map { case Transformer3wKey(model, zdt) =>
+            s"model '$model' at $zdt"
+          }
+          .mkString("\n\t\t")
+      )
+
+      // close sinks concurrently to speed up closing (closing calls might be blocking)
+      Await.ready(
+        Future.sequence(
+          baseData.classToSink.valuesIterator.map(sink =>
+            Future {
+              sink.close()
+            }
+          )
+        ),
+        5.minutes
+      )
+
+      ctx.log.debug("Result I/O completed.")
+      ctx.log.debug("Shutdown.")
+
+      Behaviors.same
+    }
 
 }

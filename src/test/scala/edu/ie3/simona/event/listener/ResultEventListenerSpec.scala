@@ -136,7 +136,7 @@ class ResultEventListenerSpec
       "check if actor dies when it should die" in {
         val fileHierarchy =
           resultFileHierarchy(2, ".ttt", Set(classOf[Transformer3WResult]))
-        val testProbe = TestProbe("testProbe")
+        val deathWatch = TestProbe("deathWatch")
         val listener = spawn(
           ResultEventListener(
             fileHierarchy
@@ -144,7 +144,7 @@ class ResultEventListenerSpec
         )
 
         listener ! StopMessage(true)
-        testProbe expectTerminated (listener, 10 seconds)
+        deathWatch expectTerminated (listener, 10 seconds)
       }
     }
 
