@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.ontology.messages
 
-import edu.ie3.simona.event.ResultMessage
+import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
 
 final case class StopMessage(simulationSuccessful: Boolean)
     extends ResultMessage

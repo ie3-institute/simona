@@ -11,12 +11,11 @@ import akka.actor.typed.{Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.event.ResultMessage
+import edu.ie3.simona.event.Event
 import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
   PowerFlowResultEvent
 }
-import edu.ie3.simona.event.ResultMessage.{Failed, SinkResponse, Stop}
 import edu.ie3.simona.exceptions.{
   FileHierarchyException,
   InitializationException,
@@ -33,6 +32,16 @@ import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 
 object ResultEventListener extends Transformer3wResultSupport {
+
+  trait ResultMessage extends Event
+
+  private final case class SinkResponse(
+      response: Map[Class[_], ResultEntitySink]
+  ) extends ResultMessage
+
+  private final case class Failed(ex: Exception) extends ResultMessage
+
+  private final case object StopTimeout extends ResultMessage
 
   /** [[ResultEventListener]] base data containing all information the listener
     * needs
@@ -262,10 +271,10 @@ object ResultEventListener extends Transformer3wResultSupport {
             buffer.unstashAll(idle(BaseData(response)))
           case (ctx, StopMessage(_)) =>
             // set ReceiveTimeout message to be sent if no message has been received for 5 seconds
-            ctx.setReceiveTimeout(5.seconds, Stop)
+            ctx.setReceiveTimeout(5.seconds, StopTimeout)
             Behaviors.same
 
-          case (_, Stop) =>
+          case (_, StopTimeout) =>
             // there have been no messages for 5 seconds, let's end this
             Behaviors.stopped
 
@@ -325,10 +334,10 @@ object ResultEventListener extends Transformer3wResultSupport {
 
           case (StopMessage(_), _) =>
             // set ReceiveTimeout message to be sent if no message has been received for 5 seconds
-            ctx.setReceiveTimeout(5.seconds, Stop)
+            ctx.setReceiveTimeout(5.seconds, StopTimeout)
             Behaviors.same
 
-          case (Stop, _) =>
+          case (StopTimeout, _) =>
             // there have been no messages for 5 seconds, let's end this
             Behaviors.stopped
 

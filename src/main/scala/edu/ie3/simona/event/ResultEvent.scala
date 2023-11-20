@@ -14,6 +14,7 @@ import edu.ie3.datamodel.models.result.connector.{
 }
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
+import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
 
 sealed trait ResultEvent extends ResultMessage
 
