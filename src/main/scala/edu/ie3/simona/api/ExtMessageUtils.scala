@@ -17,7 +17,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 
-import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.OptionConverters.RichOptional
 
 object ExtMessageUtils {
   implicit class RichExtCompletion(
@@ -25,9 +25,7 @@ object ExtMessageUtils {
   ) {
     def toSimona(triggerId: Long, triggerActor: ActorRef): CompletionMessage = {
       val newTrigger =
-        // FIXME ext CompletionMessage should have only one next trigger
-        // FIXME also update the documentation in usersguide.md accordingly
-        extCompl.newTriggers.asScala.headOption.map { tick =>
+        extCompl.nextActivation.toScala.map { tick =>
           ScheduleTriggerMessage(ActivityStartTrigger(tick), triggerActor)
         }
 
