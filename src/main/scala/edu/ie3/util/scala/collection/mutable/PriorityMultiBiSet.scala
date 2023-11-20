@@ -25,11 +25,11 @@ import scala.collection.{SortedSet, mutable}
   *   HashMap that links values back to keys. Used to fastly ensure every value
   *   is only stored once.
   * @tparam K
-  *   Type of the key, which needs to be sortable by means of [[Ordering]]
+  *   Type of the key
   * @tparam V
   *   Type of the value
   */
-final case class PriorityMultiBiSet[K: Ordering, V] private (
+final case class PriorityMultiBiSet[K, V] private (
     private val queue: mutable.SortedSet[K],
     private val table: mutable.HashMap[K, mutable.Set[V]],
     private val back: mutable.HashMap[V, K]
@@ -155,7 +155,7 @@ object PriorityMultiBiSet {
     */
   def empty[K: Ordering, V]: PriorityMultiBiSet[K, V] =
     PriorityMultiBiSet(
-      mutable.SortedSet[K](),
+      mutable.SortedSet.empty[K],
       mutable.HashMap[K, mutable.Set[V]](),
       mutable.HashMap[V, K]()
     )
@@ -183,7 +183,7 @@ object PriorityMultiBiSet {
       loadFactor: Double = mutable.HashMap.defaultLoadFactor
   ): PriorityMultiBiSet[K, V] =
     PriorityMultiBiSet(
-      mutable.SortedSet[K](),
+      mutable.SortedSet.empty[K],
       new mutable.HashMap[K, mutable.Set[V]](
         initialKeyCapacity,
         loadFactor

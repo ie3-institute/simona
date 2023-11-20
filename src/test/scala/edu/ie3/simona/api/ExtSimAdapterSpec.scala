@@ -13,9 +13,9 @@ import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
-  Terminate,
+  ActivationMessage,
   TerminationCompleted,
-  ActivityStartTrigger => ExtActivityStartTrigger,
+  TerminationMessage,
   CompletionMessage => ExtCompletionMessage
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -31,7 +31,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.jdk.OptionConverters.RichOption
 
 class ExtSimAdapterSpec
     extends TestKitWithShutdown(
@@ -92,7 +92,7 @@ class ExtSimAdapterSpec
         message = "No message received"
       )
       extData.receiveMessageQueue.size() shouldBe 1
-      extData.receiveMessageQueue.take() shouldBe new ExtActivityStartTrigger(
+      extData.receiveMessageQueue.take() shouldBe new ActivationMessage(
         INIT_SIM_TICK
       )
       scheduler.expectNoMessage()
@@ -101,7 +101,7 @@ class ExtSimAdapterSpec
       val nextTick = 900L
       extData.send(
         new ExtCompletionMessage(
-          List[java.lang.Long](nextTick).asJava
+          Option[java.lang.Long](nextTick).toJava
         )
       )
 
@@ -172,7 +172,9 @@ class ExtSimAdapterSpec
           message = "No message received"
         )
         extData.receiveMessageQueue.size() shouldBe 1
-        extData.receiveMessageQueue.take() shouldBe new Terminate(simSuccessful)
+        extData.receiveMessageQueue.take() shouldBe new TerminationMessage(
+          simSuccessful
+        )
 
         // up until now, extSimAdapter should still be running
         stopWatcher.expectNoMessage()
