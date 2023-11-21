@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.grid
 
 import breeze.math.Complex
-import breeze.numerics.abs
 import edu.ie3.simona.exceptions.InvalidActionRequestException
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseA,
@@ -18,6 +17,7 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.Transformer3wTestData
 import edu.ie3.util.quantities.PowerSystemUnits._
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
+import squants.Each
 import tech.units.indriya.quantity.Quantities
 
 import scala.math.BigDecimal.RoundingMode
@@ -27,6 +27,7 @@ class Transformer3wModelSpec
     with TableDrivenPropertyChecks
     with Transformer3wTestData {
   val testingTolerance = 1e-5
+  implicit val dimensionlessTolerance: squants.Dimensionless = Each(1e-8)
 
   "A three winding transformer input model" should {
     "be validated without an exception from a valid input model" in {
@@ -84,14 +85,10 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseA
-          abs(r.to(PU).getValue.doubleValue() - 2.07756e-3) < 1e-8 shouldBe true
-          abs(x.to(PU).getValue.doubleValue() - 6.92521e-3) < 1e-8 shouldBe true
-          abs(
-            g.to(PU).getValue.doubleValue() - 5.77600e-6
-          ) < 1e-11 shouldBe true
-          abs(
-            b.to(PU).getValue.doubleValue() + 144.3999e-9
-          ) < 1e-11 shouldBe true
+          (r ~= Each(1.03878e-3)) shouldBe true
+          (x ~= Each(166.34349e-3)) shouldBe true
+          (g ~= Each(1.874312e-6)) shouldBe true
+          (b ~= Each(-75.012912e-6)) shouldBe true
       }
 
       val yii: Complex = Transformer3wModel.y0(
@@ -104,11 +101,12 @@ class Transformer3wModelSpec
           transformerModel,
           Transformer3wModel.Transformer3wPort.INTERNAL
         )
-      abs(yjj.real - 5.77600e-6) < 1e-11 shouldBe true
-      abs(yjj.imag + 144.3999e-9) < 1e-11 shouldBe true
+      implicit val doubleTolerance: Double = 1e-11
+      yjj.real shouldBe 1.874312e-6 +- doubleTolerance
+      yjj.imag shouldBe -75.012912e-6 +- doubleTolerance
       val yij: Complex = Transformer3wModel.yij(transformerModel)
-      abs(yij.real - 39.743119) < testingTolerance shouldBe true
-      abs(yij.imag + 132.477064) < testingTolerance shouldBe true
+      yij.real shouldBe 37.540107341e-3 +- doubleTolerance
+      yij.imag shouldBe -6.011422522227 +- doubleTolerance
     }
 
     "result in a valid three winding transformer model - mv side" in new Transformer3wTestData {
@@ -162,10 +160,10 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseB
-          abs(r.to(PU).getValue.doubleValue() - 1.47917e-3) < 1e-8 shouldBe true
-          abs(x.to(PU).getValue.doubleValue() - 4.73410e-3) < 1e-8 shouldBe true
-          g shouldBe Quantities.getQuantity(0d, PU)
-          b shouldBe Quantities.getQuantity(0d, PU)
+          (r ~= Each(240.9972299e-6)) shouldBe true
+          (x ~= Each(24.99307479224e-3)) shouldBe true
+          (g ~= Each(0d)) shouldBe true
+          (b ~= Each(0d)) shouldBe true
       }
 
       val yii: Complex = Transformer3wModel.y0(
@@ -179,9 +177,11 @@ class Transformer3wModelSpec
           Transformer3wModel.Transformer3wPort.INTERNAL
         )
       yjj shouldBe Complex.zero
+
       val yij: Complex = Transformer3wModel.yij(transformerModel)
-      abs(yij.real - 60.129748) < testingTolerance shouldBe true
-      abs(yij.imag + 192.445633) < testingTolerance shouldBe true
+      implicit val doubleTolerance: Double = testingTolerance
+      yij.real shouldBe 385.773e-3 +- doubleTolerance
+      yij.imag shouldBe -40.007364 +- doubleTolerance
     }
 
     "result in a valid three winding transformer model - lv side" in new Transformer3wTestData {
@@ -235,10 +235,10 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseC
-          abs(r.to(PU).getValue.doubleValue() - 288.8e-6) < 1e-8 shouldBe true
-          abs(x.to(PU).getValue.doubleValue() - 1.083e-3) < 1e-8 shouldBe true
-          g shouldBe Quantities.getQuantity(0d, PU)
-          b shouldBe Quantities.getQuantity(0d, PU)
+          (r ~= Each(3.185595567e-6)) shouldBe true
+          (x ~= Each(556.0941828e-6)) shouldBe true
+          (g ~= Each(0d)) shouldBe true
+          (b ~= Each(0d)) shouldBe true
       }
 
       val yii: Complex = Transformer3wModel.y0(
@@ -253,8 +253,9 @@ class Transformer3wModelSpec
         )
       yjj shouldBe Complex.zero
       val yij: Complex = Transformer3wModel.yij(transformerModel)
-      abs(yij.real - 229.882415) < testingTolerance shouldBe true
-      abs(yij.imag + 862.059057) < testingTolerance shouldBe true
+      implicit val doubleTolerance: Double = testingTolerance
+      yij.real shouldBe 10.301007 +- doubleTolerance
+      yij.imag shouldBe -1798.197528 +- doubleTolerance
     }
 
     "result in an enabled three winding transformer model, if the input model is enabled at simulation start" in new Transformer3wTestData {
@@ -509,12 +510,15 @@ class Transformer3wModelSpec
 
             /* Remark: This is not really precise. At the moment, double-based calculations do
              * hinder us from being more precise. Maybe it is advisory to switch over to BigDecimal */
-            (abs(yijActual.real - yijExpected.real) < 1e-4) shouldBe true
-            (abs(yijActual.imag - yijExpected.imag) < 1e-4) shouldBe true
-            (abs(yiiActual.real - yiiExpected.real) < 1e-4) shouldBe true
-            (abs(yiiActual.imag - yiiExpected.imag) < 1e-4) shouldBe true
-            (abs(yjjActual.real - yjjExpected.real) < 1e-4) shouldBe true
-            (abs(yjjActual.imag - yjjExpected.imag) < 1e-4) shouldBe true
+            implicit val doubleTolerance: Double = 1e-4
+            yijActual.real shouldBe yijExpected.real +- doubleTolerance
+            yijActual.imag shouldBe yijExpected.imag +- doubleTolerance
+
+            yiiActual.real shouldBe yiiExpected.real +- doubleTolerance
+            yiiActual.imag shouldBe yiiExpected.imag +- doubleTolerance
+
+            yjjActual.real shouldBe yjjExpected.real +- doubleTolerance
+            yjjActual.imag shouldBe yjjExpected.imag +- doubleTolerance
           }
       }
     }

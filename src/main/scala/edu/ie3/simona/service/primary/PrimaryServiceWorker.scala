@@ -36,6 +36,7 @@ import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 
 import java.io.IOException
+import java.nio.file.Path
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
 import java.util.UUID
@@ -391,8 +392,8 @@ object PrimaryServiceWorker {
       override val timeSeriesUuid: UUID,
       override val simulationStart: ZonedDateTime,
       csvSep: String,
-      directoryPath: String,
-      filePath: String,
+      directoryPath: Path,
+      filePath: Path,
       fileNamingStrategy: FileNamingStrategy,
       timePattern: String
   ) extends InitPrimaryServiceStateData

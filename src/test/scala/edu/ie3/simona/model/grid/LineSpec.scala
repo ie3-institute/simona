@@ -13,16 +13,20 @@ import edu.ie3.simona.test.common.input.LineInputTestData
 import edu.ie3.simona.test.common.model.grid.FiveLinesWithNodes
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import squants.Each
+import squants.electro.{Amperes, Kilovolts}
+import squants.energy.Kilowatts
 import tech.units.indriya.unit.Units._
 
 import java.util.UUID
-import javax.measure.quantity.ElectricCurrent
 
 /** Test class for [[LineModel]]
   */
+
 class LineSpec extends UnitSpec with LineInputTestData {
+  implicit val dimensionlessTolerance: squants.Dimensionless = Each(1e-12)
+  implicit val electricCurrentTolerance: squants.electro.ElectricCurrent =
+    Amperes(1e-12)
 
   sealed trait ValidLineModel {
 
@@ -33,18 +37,18 @@ class LineSpec extends UnitSpec with LineInputTestData {
       UUID.fromString("6fc31563-61b5-4aa5-b623-09568c3a1c45"),
       UUID.fromString("e15bc358-1cc2-4025-9679-aa55f6b59428"),
       3,
-      Quantities.getQuantity(300, AMPERE),
-      Quantities.getQuantity(0.0013109999999999999, PU),
-      Quantities.getQuantity(0.0010680000000000002, PU),
-      Quantities.getQuantity(0, PU),
-      Quantities.getQuantity(0.60375, PU)
+      Amperes(300d),
+      Each(0.0013109999999999999d),
+      Each(0.0010680000000000002d),
+      Each(0d),
+      Each(0.60375d)
     )
 
   }
 
   def refSystem: RefSystem = {
-    val nominalPower = Quantities.getQuantity(400, KILOVOLTAMPERE)
-    val nominalVoltage = Quantities.getQuantity(10, KILOVOLT)
+    val nominalPower = Kilowatts(400d)
+    val nominalVoltage = Kilovolts(10d)
     RefSystem(nominalPower, nominalVoltage)
   }
 
@@ -82,30 +86,21 @@ class LineSpec extends UnitSpec with LineInputTestData {
           nodeAUuid shouldBe lineInputMs10Kv.getNodeA.getUuid
           nodeBUuid shouldBe lineInputMs10Kv.getNodeB.getUuid
           amount shouldBe lineInputMs10Kv.getParallelDevices
-          iMax shouldBe lineInputMs10Kv.getType.getiMax()
+          (iMax ~= Amperes(
+            lineInputMs10Kv.getType.getiMax().getValue.doubleValue()
+          )) shouldBe true
 
-          r should equalWithTolerance(
-            Quantities.getQuantity(0.0013109999999999999, PU)
-          )
-          x should equalWithTolerance(
-            Quantities.getQuantity(0.0010680000000000002, PU)
-          )
-          g should equalWithTolerance(Quantities.getQuantity(0, PU))
-          b should equalWithTolerance(Quantities.getQuantity(0.00000060375, PU))
+          (r ~= Each(0.0013109999999999999d)) shouldBe true
+          (x ~= Each(0.0010680000000000002d)) shouldBe true
+          (g ~= Each(0d)) shouldBe true
+          (b ~= Each(0.00000060375d)) shouldBe true
       }
 
-      validLineModel.b0() should equalWithTolerance(
-        Quantities.getQuantity(0.000000301875, PU)
-      )
-      validLineModel.bij() should equalWithTolerance(
-        Quantities.getQuantity(-373.5121155369499, PU)
-      )
-      validLineModel.g0() should equalWithTolerance(
-        Quantities.getQuantity(0, PU)
-      )
-      validLineModel.gij() should equalWithTolerance(
-        Quantities.getQuantity(458.4966137349637, PU)
-      )
+      (validLineModel.b0() ~= Each(0.000000301875d)) shouldBe true
+      (validLineModel.bij() ~= Each(-373.5121155369499d)) shouldBe true
+      (validLineModel.g0() ~= Each(0d)) shouldBe true
+      (validLineModel.gij() ~= Each(458.4966137349637d)) shouldBe true
+
     }
 
   }
@@ -152,31 +147,32 @@ class LineSpec extends UnitSpec with LineInputTestData {
 
     "calculate the utilisation of a given line model correctly" in new ValidLineModel {
 
-      val iNodeA: ComparableQuantity[ElectricCurrent] =
-        Quantities.getQuantity(200, AMPERE)
-      val iNodeB: ComparableQuantity[ElectricCurrent] =
-        Quantities.getQuantity(145, AMPERE)
+      val iNodeA: squants.electro.ElectricCurrent =
+        Amperes(200d)
+      val iNodeB: squants.electro.ElectricCurrent =
+        Amperes(145d)
 
-      LineModel.utilisation(validLineModel, iNodeA, iNodeB) shouldBe Quantities
-        .getQuantity(22.222222222222218, PERCENT)
+      (LineModel.utilisation(validLineModel, iNodeA, iNodeB) ~= Each(
+        22.222222222222218
+      )) shouldBe true
 
     }
 
     "be able to be enabled and disabled on request" in new FiveLinesWithNodes {
 
-      line03.isInOperation shouldBe false
+      line0To3.isInOperation shouldBe false
 
-      line03.enable()
+      line0To3.enable()
 
-      line03.isInOperation shouldBe true
+      line0To3.isInOperation shouldBe true
 
-      line03.disable()
+      line0To3.disable()
 
-      line03.isInOperation shouldBe false
+      line0To3.isInOperation shouldBe false
 
-      line03.enable()
+      line0To3.enable()
 
-      line03.isInOperation shouldBe true
+      line0To3.isInOperation shouldBe true
 
     }
 

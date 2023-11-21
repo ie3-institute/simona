@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Add safety factor sRated calculation [#629](https://github.com/ie3-institute/simona/issues/629)
+- Re-implemented ResultEventListener in akka typed [#343](https://github.com/ie3-institute/simona/issues/343)
+- More expressive failure message upon setting up Primary Service with wrong time pattern [#475](https://github.com/ie3-institute/simona/issues/475)
+
+### Changed
+- Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
+- Improved initialization of weather based agents [#145](https://github.com/ie3-institute/simona/issues/145)
+- Changed from ComparableQuantity to squants fast and typesafe calculations [#490](https://github.com/ie3-institute/simona/issues/490)
+- Changed from ComparableQuantity to squants in power flow [#554](https://github.com/ie3-institute/simona/issues/554)
+- Reduce log level on missing diffuse irradiance [#629](https://github.com/ie3-institute/simona/issues/629)
+- Updated to gradle 8.4 [#648](https://github.com/ie3-institute/simona/issues/648)
+
+## [3.0.0] - 2023-08-07
+
+### Added
 - Implement SQL source for primary data [#34](https://github.com/ie3-institute/simona/issues/34), [#101](https://github.com/ie3-institute/simona/issues/101)
 - Relevant scientific papers have been added to the documentation [#139](https://github.com/ie3-institute/simona/issues/139)
 - Add troubleshooting section to Users guide [#160](https://github.com/ie3-institute/simona/issues/160)
@@ -17,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Dependabot updates to sphinx/readthedocs dependencies [#448](https://github.com/ie3-institute/simona/issues/448)
 - Check for grid validity with PSDM `ValidationUtils` [#460](https://github.com/ie3-institute/simona/issues/460)
 - Enhancing dev's guide [#363](https://github.com/ie3-institute/simona/issues/363)
-- More expressive failure message upon setting up Primary Service with wrong time pattern [#475](https://github.com/ie3-institute/simona/issues/475)
+- Support PF calculation with closed switches [#474](https://github.com/ie3-institute/simona/issues/474)
 
 ### Changed
 - Re-organizing test resources into their respective packages [#105](https://github.com/ie3-institute/simona/issues/105)
@@ -63,6 +78,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updating `CONTRIBUTING.md` [#201](https://github.com/ie3-institute/simona/issues/201)
 - Speeding up additionalActivationTicks in participant's BaseStateData [#421](https://github.com/ie3-institute/simona/pull/421)
 - Changed format of example grid `vn_simona` [#216](https://github.com/ie3-institute/simona/issues/216)
+- Renamed ChpData to ChpRelevantData [#494](https://github.com/ie3-institute/simona/issues/494)
+- Updated gradle to 8.2.1, cleaned up `build.gradle` and `Jenkinsfile` [#572](https://github.com/ie3-institute/simona/issues/572)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
@@ -89,10 +106,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed groovy formatting [#110](https://github.com/ie3-institute/simona/issues/110)
 - Fixed configuration reference in user's guide [#224](https://github.com/ie3-institute/simona/issues/224)
 - Fixed ResultEventListener exiting too early with high volumes of results [#350](https://github.com/ie3-institute/simona/issues/350)
+- Fixed tests that unreliably fail [#359](https://github.com/ie3-institute/simona/issues/359)
+- Support for three winding transformers  [#63](https://github.com/ie3-institute/simona/issues/63)
+  - Handle incoming slack voltage accordingly
+  - Allow multiple sub grid gates at one node (also allows multiple two winding transformers at one node)
+  - Perform power flow calculation in highest grid, if a three winding transformer is apparent
+  - Write out results
+- Fixed broken layout in RTD documentation [#500](https://github.com/ie3-institute/simona/issues/500)
+- Corrected tests in RefSystemTest [#560](https://github.com/ie3-institute/simona/issues/560)
+- Take log file event filters from `logback.xml` when defining the run log appender [#108](https://github.com/ie3-institute/simona/issues/108)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)
 - Removed Gradle task puml2png (Converting Plantuml to png / svg files) since it is no longer needed  [#228](https://github.com/ie3-institute/simona/issues/228)
 - Remove RocketChat notification from Jenkinsfile [#234](https://github.com/ie3-institute/simona/issues/234)
+- Removed one-jar gradle plugin [#564](https://github.com/ie3-institute/simona/issues/564)
 
-[Unreleased]: https://github.com/ie3-institute/simona/compare/a14a093239f58fca9b2b974712686b33e5e5f939...HEAD
+[Unreleased]: https://github.com/ie3-institute/simona/compare/3.0.0...HEAD
+[3.0.0]: https://github.com/ie3-institute/simona/compare/a14a093239f58fca9b2b974712686b33e5e5f939...3.0.0

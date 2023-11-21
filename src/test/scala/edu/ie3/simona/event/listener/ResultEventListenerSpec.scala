@@ -6,11 +6,15 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.ActorSystem
-import akka.pattern.gracefulStop
-import akka.stream.Materializer
-import akka.testkit.{TestFSMRef, TestProbe}
-import com.typesafe.config.ConfigFactory
+import akka.actor.testkit.typed.CapturedLogEvent
+import akka.actor.testkit.typed.scaladsl.{
+  ActorTestKit,
+  BehaviorTestKit,
+  ScalaTestWithActorTestKit,
+  TestProbe
+}
+import akka.testkit.TestKit.awaitCond
+import com.typesafe.config.ConfigValueFactory
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
@@ -25,16 +29,17 @@ import edu.ie3.simona.event.ResultEvent.{
   PowerFlowResultEvent
 }
 import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
+import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.test.common.result.PowerFlowResultData
-import edu.ie3.simona.test.common.{AgentSpec, IOTestCommons, UnitSpec}
+import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.util.io.FileIOUtils
-import org.scalatest.BeforeAndAfterEach
+import org.slf4j.event.Level
 
 import java.io.{File, FileInputStream}
+import java.util.UUID
 import java.util.zip.GZIPInputStream
-import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -42,22 +47,14 @@ import scala.io.Source
 import scala.language.postfixOps
 
 class ResultEventListenerSpec
-    extends AgentSpec(
-      ActorSystem(
-        "ResultEventListenerSpec",
-        ConfigFactory
-          .parseString(
-            """
-            |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-            |akka.loglevel="DEBUG"
-            |akka.coordinated-shutdown.phases.actor-system-terminate.timeout = 500s
-        """.stripMargin
-          )
+    extends ScalaTestWithActorTestKit(
+      ActorTestKit.ApplicationTestConfig.withValue(
+        "akka.actor.testkit.typed.filter-leeway",
+        ConfigValueFactory.fromAnyRef("10s")
       )
     )
     with UnitSpec
     with IOTestCommons
-    with BeforeAndAfterEach
     with PowerFlowResultData
     with ThreeWindingResultTestData
     with Transformer3wResultSupport {
@@ -71,7 +68,7 @@ class ResultEventListenerSpec
     classOf[LineResult]
   )
 
-  private val timeout = 10.seconds
+  private val timeoutDuration: Duration = 30.seconds
 
   // the OutputFileHierarchy
   private def resultFileHierarchy(
@@ -92,17 +89,12 @@ class ResultEventListenerSpec
   def createDir(
       resultFileHierarchy: ResultFileHierarchy
   ): Iterable[Future[ResultEntitySink]] = {
-    val materializer: Materializer = Materializer(system)
-
     val initializeSinks: PrivateMethod[Iterable[Future[ResultEntitySink]]] =
       PrivateMethod[Iterable[Future[ResultEntitySink]]](
         Symbol("initializeSinks")
       )
 
-    ResultEventListener invokePrivate initializeSinks(
-      resultFileHierarchy,
-      materializer
-    )
+    ResultEventListener invokePrivate initializeSinks(resultFileHierarchy)
   }
 
   private def getFileLinesLength(file: File) = {
@@ -144,16 +136,15 @@ class ResultEventListenerSpec
       "check if actor dies when it should die" in {
         val fileHierarchy =
           resultFileHierarchy(2, ".ttt", Set(classOf[Transformer3WResult]))
-        val testProbe = TestProbe()
-        val listener = testProbe.childActorOf(
-          ResultEventListener.props(
+        val deathWatch = TestProbe("deathWatch")
+        val listener = spawn(
+          ResultEventListener(
             fileHierarchy
           )
         )
 
-        testProbe watch listener
-        testProbe expectTerminated (listener, 2 seconds)
-
+        listener ! StopMessage(true)
+        deathWatch expectTerminated (listener, 10 seconds)
       }
     }
 
@@ -161,11 +152,10 @@ class ResultEventListenerSpec
       "process a valid participants result correctly" in {
         val specificOutputFileHierarchy = resultFileHierarchy(3, ".csv")
 
-        val listenerRef = system.actorOf(
-          ResultEventListener
-            .props(
-              specificOutputFileHierarchy
-            )
+        val listenerRef = spawn(
+          ResultEventListener(
+            specificOutputFileHierarchy
+          )
         )
 
         listenerRef ! ParticipantResultEvent(dummyPvResult)
@@ -180,24 +170,25 @@ class ResultEventListenerSpec
         )
 
         // wait until output file exists (headers are flushed out immediately):
-        awaitCond(outputFile.exists(), interval = 500.millis, max = timeout)
+        awaitCond(
+          outputFile.exists(),
+          interval = 500.millis,
+          max = timeoutDuration
+        )
 
         // stop listener so that result is flushed out
-        Await.ready(
-          gracefulStop(listenerRef, timeout),
-          timeout
-        )
+        listenerRef ! StopMessage(true)
 
         // wait until all lines have been written out:
         awaitCond(
           getFileLinesLength(outputFile) == 2,
           interval = 500.millis,
-          max = timeout
+          max = timeoutDuration
         )
 
         val resultFileSource = Source.fromFile(outputFile)
 
-        val resultFileLines = resultFileSource.getLines().toVector
+        val resultFileLines = resultFileSource.getLines().toSeq
 
         resultFileLines.size shouldBe 2
         resultFileLines.lastOption.getOrElse(
@@ -211,19 +202,18 @@ class ResultEventListenerSpec
 
       "process a valid power flow result correctly" in {
         val specificOutputFileHierarchy = resultFileHierarchy(4, ".csv")
-        val listenerRef = system.actorOf(
-          ResultEventListener
-            .props(
-              specificOutputFileHierarchy
-            )
+        val listenerRef = spawn(
+          ResultEventListener(
+            specificOutputFileHierarchy
+          )
         )
 
         listenerRef ! PowerFlowResultEvent(
-          Vector(dummyNodeResult),
-          Vector(dummySwitchResult),
-          Vector(dummyLineResult),
-          Vector(dummyTrafo2wResult),
-          Vector.empty[PartialTransformer3wResult]
+          Iterable(dummyNodeResult),
+          Iterable(dummySwitchResult),
+          Iterable(dummyLineResult),
+          Iterable(dummyTrafo2wResult),
+          Iterable.empty[PartialTransformer3wResult]
         )
 
         val outputFiles = Map(
@@ -265,26 +255,23 @@ class ResultEventListenerSpec
         awaitCond(
           outputFiles.values.map(_.exists()).forall(identity),
           interval = 500.millis,
-          max = timeout
+          max = timeoutDuration
         )
 
         // stop listener so that result is flushed out
-        Await.ready(
-          gracefulStop(listenerRef, timeout),
-          timeout
-        )
+        listenerRef ! StopMessage(true)
 
         // wait until all lines have been written out:
         awaitCond(
           !outputFiles.values.exists(file => getFileLinesLength(file) < 2),
           interval = 500.millis,
-          max = timeout
+          max = timeoutDuration
         )
 
         outputFiles.foreach { case (resultRowString, outputFile) =>
           val resultFileSource = Source.fromFile(outputFile)
 
-          val resultFileLines = resultFileSource.getLines().toVector
+          val resultFileLines = resultFileSource.getLines().toSeq
 
           resultFileLines.size shouldBe 2
           resultFileLines.lastOption.getOrElse(
@@ -299,168 +286,26 @@ class ResultEventListenerSpec
     }
 
     "handling three winding transformer results" should {
-      val registerPartialTransformer3wResult =
-        PrivateMethod[Map[Transformer3wKey, AggregatedTransformer3wResult]](
-          Symbol("registerPartialTransformer3wResult")
+      def powerflow3wResult(
+          partialResult: PartialTransformer3wResult
+      ): PowerFlowResultEvent =
+        PowerFlowResultEvent(
+          Iterable.empty[NodeResult],
+          Iterable.empty[SwitchResult],
+          Iterable.empty[LineResult],
+          Iterable.empty[Transformer2WResult],
+          Iterable(partialResult)
         )
-      val fileHierarchy =
-        resultFileHierarchy(5, ".csv", Set(classOf[Transformer3WResult]))
-      val listener = TestFSMRef(
-        new ResultEventListener(
-          fileHierarchy
-        )
-      )
-
-      "register a fresh entry, when nothing yet is apparent" in {
-        val actual =
-          listener.underlyingActor invokePrivate registerPartialTransformer3wResult(
-            resultA,
-            Map.empty[Transformer3wKey, AggregatedTransformer3wResult]
-          )
-        actual.size shouldBe 1
-        actual.get(Transformer3wKey(inputModel, time)) match {
-          case Some(AggregatedTransformer3wResult(Some(a), None, None)) =>
-            a shouldBe resultA
-          case Some(value) => fail(s"Received the wrong value: '$value'")
-          case None        => fail("Expected to get a result")
-        }
-      }
-
-      "neglects, if something yet has been sent" in {
-        val results = Map(
-          Transformer3wKey(
-            resultA.input,
-            resultA.time
-          ) -> AggregatedTransformer3wResult(
-            Some(resultA),
-            None,
-            None
-          )
-        )
-
-        val actual =
-          listener.underlyingActor invokePrivate registerPartialTransformer3wResult(
-            resultA,
-            results
-          )
-        actual.size shouldBe 1
-        actual.get(Transformer3wKey(inputModel, time)) match {
-          case Some(AggregatedTransformer3wResult(Some(a), None, None)) =>
-            a shouldBe resultA
-          case Some(value) => fail(s"Received the wrong value: '$value'")
-          case None        => fail("Expected to get a result")
-        }
-      }
-
-      "appends a new result, if that key yet is apparent" in {
-        val results = Map(
-          Transformer3wKey(
-            resultA.input,
-            resultA.time
-          ) -> AggregatedTransformer3wResult(
-            Some(resultA),
-            None,
-            None
-          )
-        )
-
-        val actual =
-          listener.underlyingActor invokePrivate registerPartialTransformer3wResult(
-            resultB,
-            results
-          )
-        actual.size shouldBe 1
-        actual.get(Transformer3wKey(inputModel, time)) match {
-          case Some(AggregatedTransformer3wResult(Some(a), Some(b), None)) =>
-            a shouldBe resultA
-            b shouldBe resultB
-          case Some(value) => fail(s"Received the wrong value: '$value'")
-          case None        => fail("Expected to get a result")
-        }
-      }
-
-      val flushComprehensiveResults =
-        PrivateMethod[Map[Transformer3wKey, AggregatedTransformer3wResult]](
-          Symbol("flushComprehensiveResults")
-        )
-      val resultANext = resultA.copy(time = resultA.time.plusHours(1L))
-
-      /** Dummy sink, that only puts the received results to a mutable set
-        *
-        * @param results
-        *   All results, that have been received
-        */
-      final case class DummySink(
-          results: mutable.Set[ResultEntity] = mutable.Set.empty[ResultEntity]
-      ) extends ResultEntitySink {
-        override def handleResultEntity(resultEntity: ResultEntity): Unit =
-          results.add(resultEntity)
-        override def close(): Unit = {}
-      }
-      val sink = DummySink()
-      val sinks = Map(
-        classOf[Transformer3WResult] -> sink
-      )
-      "not flush anything, if nothing is ready to be flushed" in {
-        val results = Map(
-          Transformer3wKey(
-            resultA.input,
-            resultA.time
-          ) -> AggregatedTransformer3wResult(
-            Some(resultA),
-            None,
-            Some(resultC)
-          ),
-          Transformer3wKey(
-            resultANext.input,
-            resultANext.time
-          ) -> AggregatedTransformer3wResult(
-            Some(resultANext),
-            None,
-            None
-          )
-        )
-        val actual =
-          listener.underlyingActor invokePrivate flushComprehensiveResults(
-            results,
-            sinks
-          )
-        actual.size shouldBe 2
-        sink.results.isEmpty shouldBe true
-      }
-
-      "flush comprehensive results" in {
-        val results = Map(
-          Transformer3wKey(
-            resultA.input,
-            resultA.time
-          ) -> AggregatedTransformer3wResult(
-            Some(resultA),
-            Some(resultB),
-            Some(resultC)
-          ),
-          Transformer3wKey(
-            resultANext.input,
-            resultANext.time
-          ) -> AggregatedTransformer3wResult(
-            Some(resultANext),
-            None,
-            None
-          )
-        )
-        val actual =
-          listener.underlyingActor invokePrivate flushComprehensiveResults(
-            results,
-            sinks
-          )
-        actual.size shouldBe 1
-        sink.results.headOption match {
-          case Some(result) => result shouldBe expected
-          case None         => fail("Expected to get a result.")
-        }
-      }
 
       "correctly reacts on received results" in {
+        val fileHierarchy =
+          resultFileHierarchy(5, ".csv", Set(classOf[Transformer3WResult]))
+        val listener = spawn(
+          ResultEventListener(
+            fileHierarchy
+          )
+        )
+
         val outputFile = new File(
           fileHierarchy.rawOutputDataFilePaths.getOrElse(
             classOf[Transformer3WResult],
@@ -472,52 +317,43 @@ class ResultEventListenerSpec
         /* The result file is created at start up and only contains a head line. */
         awaitCond(
           outputFile.exists(),
-          interval = 500.millis
+          interval = 500.millis,
+          max = timeoutDuration
         )
         getFileLinesLength(outputFile) shouldBe 1
 
         /* Face the listener with data, as long as they are not comprehensive */
-        listener ! PowerFlowResultEvent(
-          Vector.empty[NodeResult],
-          Vector.empty[SwitchResult],
-          Vector.empty[LineResult],
-          Vector.empty[Transformer2WResult],
-          Vector(resultA)
-        )
-        listener ! PowerFlowResultEvent(
-          Vector.empty[NodeResult],
-          Vector.empty[SwitchResult],
-          Vector.empty[LineResult],
-          Vector.empty[Transformer2WResult],
-          Vector(resultC)
-        )
+        listener ! powerflow3wResult(resultA)
+
+        listener ! powerflow3wResult(resultC)
+
+        /* Also add unrelated result for different input model */
+        val otherResultA = resultA.copy(input = UUID.randomUUID())
+        listener ! powerflow3wResult(otherResultA)
+
+        /* Add result A again, which should lead to a failure internally,
+        but everything should still continue normally
+         */
+        listener ! powerflow3wResult(resultA)
 
         /* Make sure, that there still is no content in file */
         getFileLinesLength(outputFile) shouldBe 1
 
-        /* Complete awaited results */
-        listener ! PowerFlowResultEvent(
-          Vector.empty[NodeResult],
-          Vector.empty[SwitchResult],
-          Vector.empty[LineResult],
-          Vector.empty[Transformer2WResult],
-          Vector(resultB)
-        )
+        /* Complete awaited result */
+        listener ! powerflow3wResult(resultB)
 
         // stop listener so that result is flushed out
-        Await.ready(
-          gracefulStop(listener, timeout),
-          timeout
-        )
+        listener ! StopMessage(true)
 
         /* Await that the result is written */
         awaitCond(
           getFileLinesLength(outputFile) == 2,
-          interval = 500.millis
+          interval = 500.millis,
+          max = timeoutDuration
         )
         /* Check the result */
         val resultFileSource = Source.fromFile(outputFile)
-        val resultFileLines = resultFileSource.getLines().toVector
+        val resultFileLines = resultFileSource.getLines().toSeq
 
         resultFileLines.size shouldBe 2
         val resultLine = resultFileLines.lastOption.getOrElse(
@@ -539,11 +375,10 @@ class ResultEventListenerSpec
     "shutting down" should {
       "shutdown and compress the data when requested to do so without any errors" in {
         val specificOutputFileHierarchy = resultFileHierarchy(6, ".csv.gz")
-        val listenerRef = system.actorOf(
-          ResultEventListener
-            .props(
-              specificOutputFileHierarchy
-            )
+        val listenerRef = spawn(
+          ResultEventListener(
+            specificOutputFileHierarchy
+          )
         )
         ResultSinkType.Csv(fileFormat = ".csv.gz")
 
@@ -561,20 +396,20 @@ class ResultEventListenerSpec
           )
         )
 
-        awaitCond(outputFile.exists(), interval = 500.millis)
+        awaitCond(
+          outputFile.exists(),
+          interval = 500.millis,
+          max = timeoutDuration
+        )
 
-        // graceful shutdown should wait until existing messages within an actor are fully processed
+        // stopping the actor should wait until existing messages within an actor are fully processed
         // otherwise it might happen, that the shutdown is triggered even before the just send ParticipantResultEvent
         // reached the listener
         // this also triggers the compression of result files
-        import akka.pattern._
-        Await.ready(
-          gracefulStop(listenerRef, timeout),
-          timeout
-        )
+        listenerRef ! StopMessage(true)
 
         // shutdown the actor system
-        Await.ready(system.terminate(), 1.minute)
+        system.terminate()
 
         // wait until file exists
         awaitCond(
@@ -586,7 +421,7 @@ class ResultEventListenerSpec
               )
             )
           ).exists,
-          timeout
+          timeoutDuration
         )
 
         val resultFileSource = Source.fromInputStream(
@@ -602,7 +437,7 @@ class ResultEventListenerSpec
           )
         )
 
-        val resultFileLines = resultFileSource.getLines().toVector
+        val resultFileLines = resultFileSource.getLines().toSeq
         resultFileLines.size shouldBe 2
         resultFileLines.lastOption.getOrElse(
           fail(

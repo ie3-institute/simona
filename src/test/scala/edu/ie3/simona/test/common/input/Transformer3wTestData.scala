@@ -30,42 +30,31 @@ import edu.ie3.simona.util.TestGridFactory
 import edu.ie3.util.quantities.PowerSystemUnits._
 import org.scalatest.prop.TableDrivenPropertyChecks._
 import org.scalatest.prop.{TableFor2, TableFor4}
+import squants.electro.Kilovolts
+import squants.energy.{Kilowatts, Megawatts}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{OHM, PERCENT}
 
 import java.util.UUID
 import scala.jdk.CollectionConverters._
 
-/** Test data for a [[Transformer3WInput]]
-  *
-  * id = HöS-HS-MS_1 v_a = 380 kV v_b = 110 kV v_c = 20 kV s_rated_a = 120.000
-  * MVA s_rated_b = 60.000 MVA s_rated _c = 40.000 MVA
-  * --> s_Ref = 120.000 MVA, v_Ref = 380 kV --> Z_Ref = 1.203,3333 Ω, Y_Ref =
-  * 831.02493 nS
-  *
-  * r_sc_a 0.300 Ω --> 249.30755E-6 p.u. r_sc_b = 0.2983 Ω --> 247.8947E-6 p.u.
-  * r_sc_c = 0.2888 Ω --> 240.0000E-6 p.u. x_sc_a = 1.00000 Ω --> 831.02495E-6
-  * p.u. x_sc_b = 0.954711 Ω --> 793.38866E-6 p.u. x_sc_c = 1.083000 Ω -->
-  * 900.00002E-6 p.u. g_m = 40 nS --> 48.1333E-3 p.u. b_m = 1 nS --> 1.2033E-4
-  * p.u. tap_max = 10 tap_neutr = 0 tap_min = -10 d_phi = 0 °/tap d_V = 1.5 % /
-  * tap capex = 100.000 € opex = 0 €
-  */
+/** Test data for a [[Transformer3WInput]] */
 trait Transformer3wTestData extends DefaultTestData {
   val mainRefSystemEhv: RefSystem = {
-    val nominalPower = Quantities.getQuantity(1000, MEGAVOLTAMPERE)
-    val nominalVoltage = Quantities.getQuantity(380, KILOVOLT)
+    val nominalPower = Megawatts(1000d)
+    val nominalVoltage = Kilovolts(380d)
     RefSystem(nominalPower, nominalVoltage)
   }
 
   val mainRefSystemHv: RefSystem = {
-    val nominalPower = Quantities.getQuantity(60, MEGAVOLTAMPERE)
-    val nominalVoltage = Quantities.getQuantity(110, KILOVOLT)
+    val nominalPower = Megawatts(60d)
+    val nominalVoltage = Kilovolts(110d)
     RefSystem(nominalPower, nominalVoltage)
   }
 
   val mainRefSystemLv: RefSystem = {
-    val nominalPower = Quantities.getQuantity(400, KILOVOLTAMPERE)
-    val nominalVoltage = Quantities.getQuantity(20, KILOVOLT)
+    val nominalPower = Kilowatts(400d)
+    val nominalVoltage = Kilovolts(20d)
     RefSystem(nominalPower, nominalVoltage)
   }
 
@@ -112,14 +101,14 @@ trait Transformer3wTestData extends DefaultTestData {
     Quantities.getQuantity(380d, KILOVOLT),
     Quantities.getQuantity(110d, KILOVOLT),
     Quantities.getQuantity(20d, KILOVOLT),
-    Quantities.getQuantity(0.3d, OHM),
-    Quantities.getQuantity(0.2983d, OHM),
-    Quantities.getQuantity(0.2888d, OHM),
-    Quantities.getQuantity(1d, OHM),
-    Quantities.getQuantity(0.954711d, OHM),
-    Quantities.getQuantity(1.083000d, OHM),
-    Quantities.getQuantity(40d, NANOSIEMENS),
-    Quantities.getQuantity(-1d, NANOSIEMENS),
+    Quantities.getQuantity(0.15d, OHM),
+    Quantities.getQuantity(0.58d, OHM),
+    Quantities.getQuantity(1.15d, OHM),
+    Quantities.getQuantity(24.02d, OHM),
+    Quantities.getQuantity(60.15d, OHM),
+    Quantities.getQuantity(200.75d, OHM),
+    Quantities.getQuantity(12.98d, NANOSIEMENS),
+    Quantities.getQuantity(-519.48d, NANOSIEMENS),
     Quantities.getQuantity(1.5, PERCENT),
     Quantities.getQuantity(0d, DEGREE_GEOM),
     0,
@@ -218,129 +207,129 @@ trait Transformer3wTestData extends DefaultTestData {
     ("tapPos", "yij", "yii", "yjj"),
     (
       -10,
-      Complex(28.7143597498711, -95.7146707115102),
-      Complex(0, 0),
-      Complex(5.96146454759955, -19.8715580775854)
+      Complex(0.0441648321658824, -7.07226179085529),
+      Complex.zero,
+      Complex(-0.00662285051288235, 1.06076425571629)
     ),
     (
       -9,
-      Complex(29.7367499292005, -99.1226428970515),
-      Complex(0, 0),
-      Complex(5.36531867043959, -17.8844022842669)
+      Complex(0.0433989680242775, -6.94962141297919),
+      Complex.zero,
+      Complex(-0.00585698637127746, 0.938123877840191)
     ),
     (
       -8,
-      Complex(30.7770244848446, -102.590229756392),
-      Complex(0, 0),
-      Complex(4.76917279327964, -15.8972464909483)
+      Complex(0.0426592128875, -6.83116195707614),
+      Complex.zero,
+      Complex(-0.0051172312345, 0.819664421937137)
     ),
     (
       -7,
-      Complex(31.8351834168035, -106.117431289533),
-      Complex(0, 0),
-      Complex(4.17302691611968, -13.9100906976298)
+      Complex(0.0419442540122905, -6.71667320919218),
+      Complex.zero,
+      Complex(-0.0044022723592905, 0.705175674053178)
     ),
     (
       -6,
-      Complex(32.9112267250772, -109.704247496473),
-      Complex(0, 0),
-      Complex(3.57688103895973, -11.9229349043112)
+      Complex(0.0412528652098901, -6.60595881563407),
+      Complex.zero,
+      Complex(-0.00371088355689011, 0.594461280495065)
     ),
     (
       -5,
-      Complex(34.0051544096657, -113.350678377212),
-      Complex(0, 0),
-      Complex(2.98073516179977, -9.93577911099265)
+      Complex(0.0405838998281081, -6.49883515916432),
+      Complex.zero,
+      Complex(-0.0030419181751081, 0.487337624025323)
     ),
     (
       -4,
-      Complex(35.1169664705691, -117.056723931751),
-      Complex(0, 0),
-      Complex(2.38458928463982, -7.94862331767411)
+      Complex(0.0399362844053192, -6.39513034279468),
+      Complex.zero,
+      Complex(-0.00239430275231915, 0.383632807655681)
     ),
     (
       -3,
-      Complex(36.2466629077872, -120.82238416009),
-      Complex(0, 0),
-      Complex(1.78844340747987, -5.96146752435556)
+      Complex(0.0393090129225131, -6.29468326934764),
+      Complex.zero,
+      Complex(-0.00176703126951309, 0.283185734208644)
     ),
     (
       -2,
-      Complex(37.3942437213201, -124.647659062228),
-      Complex(0, 0),
-      Complex(1.19229753031991, -3.97431173103701)
+      Complex(0.0387011415886598, -6.19734280641959),
+      Complex.zero,
+      Complex(-0.0011591599356598, 0.185845271280588)
     ),
     (
       -1,
-      Complex(38.5597089111678, -128.532548638166),
-      Complex(0, 0),
-      Complex(0.596151653159955, -1.98715593771845)
+      Complex(0.0381117841025381, -6.10296702764162),
+      Complex.zero,
+      Complex(-0.000569802449538069, 0.091469492502624)
     ),
     (
       0,
-      Complex(39.7430584773303, -132.477052887903),
-      Complex(0, 0),
-      Complex(0.000005776, -0.0000001443999)
+      Complex(0.037540107341, -6.011422522227),
+      Complex.zero,
+      Complex(0.000001874312, -0.000075012912)
     ),
     (
       1,
-      Complex(40.9442924198076, -136.48117181144),
-      Complex(0, 0),
-      Complex(-0.596140101159951, 1.98715564891864)
+      Complex(0.0369853274295567, -5.92258376574089),
+      Complex.zero,
+      Complex(0.000556654223443345, -0.0889137693981125)
     ),
     (
       2,
-      Complex(42.1634107385997, -140.544905408777),
-      Complex(0, 0),
-      Complex(-1.19228597831991, 3.97431144223721)
+      Complex(0.0364467061563107, -5.83633254585146),
+      Complex.zero,
+      Complex(0.00109527549668932, -0.175164989287544)
     ),
     (
       3,
-      Complex(43.4004134337066, -144.668253679913),
-      Complex(0, 0),
-      Complex(-1.78843185547986, 5.96146723555574)
+      Complex(0.0359235476947368, -5.7525574375378),
+      Complex.zero,
+      Complex(0.00161843395826315, -0.2589400976012)
     ),
     (
       4,
-      Complex(44.6553005051283, -148.851216624848),
-      Complex(0, 0),
-      Complex(-2.38457773263982, 7.94862302887431)
+      Complex(0.035415195604717, -5.67115332285566),
+      Complex.zero,
+      Complex(0.00212678604828302, -0.34034421228334)
     ),
     (
       5,
-      Complex(45.9280719528648, -153.093794243583),
-      Complex(0, 0),
-      Complex(-2.98072360979977, 9.93577882219285)
+      Complex(0.0349210300846512, -5.59202095090884),
+      Complex.zero,
+      Complex(0.00262095156834884, -0.419476584230163)
     ),
     (
       6,
-      Complex(47.2187277769161, -157.395986536118),
-      Complex(0, 0),
-      Complex(-3.57686948695973, 11.9229346155114)
+      Complex(0.0344404654504587, -5.51506653415321),
+      Complex.zero,
+      Complex(0.00310151620254129, -0.496431000985789)
     ),
     (
       7,
-      Complex(48.5272679772822, -161.757793502452),
-      Complex(0, 0),
-      Complex(-4.17301536411968, 13.91009040883)
+      Complex(0.0339729478199095, -5.440201377581),
+      Complex.zero,
+      Complex(0.0035690338330905, -0.571296157558004)
     ),
     (
       8,
-      Complex(49.8536925539631, -166.179215142586),
-      Complex(0, 0),
-      Complex(-4.76916124127964, 15.8972462021485)
+      Complex(0.0335179529830357, -5.36734153770268),
+      Complex.zero,
+      Complex(0.00402402866996429, -0.644155997436322)
     ),
     (
       9,
-      Complex(51.1980015069588, -170.660251456519),
-      Complex(0, 0),
-      Complex(-5.36530711843959, 17.8844019954671)
+      Complex(0.0330749844414097, -5.29640750857004),
+      Complex.zero,
+      Complex(0.00446699721159031, -0.715090026568956)
     ),
     (
       10,
-      Complex(52.5601948362693, -175.200902444252),
-      Complex(0, 0),
-      Complex(-5.96145299559954, 19.8715577887856)
+      Complex(0.0326435716008696, -5.22732393237131),
+      Complex.zero,
+      Complex(0.00489841005213043, -0.784173602767695)
     )
   )
 

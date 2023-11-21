@@ -34,7 +34,11 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.Megavars
+import squants.electro.Kilovolts
+import squants.energy.Megawatts
 
+import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
 class DBFSAlgorithmFailedPowerFlowSpec
@@ -196,8 +200,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
         Seq(
           ExchangeVoltage(
             node1.getUuid,
-            110d.asKiloVolt,
-            0d.asKiloVolt
+            Kilovolts(110d),
+            Kilovolts(0d)
           )
         )
       )
@@ -210,8 +214,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
           inferiorGridAgent.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,
-              1000d.asMegaWatt,
-              0d.asMegaVar
+              Megawatts(1000.0),
+              Megavars(0.0)
             )
           )
         )
@@ -224,8 +228,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
           Seq(
             ExchangeVoltage(
               supNodeA.getUuid,
-              380d.asKiloVolt,
-              0d.asKiloVolt
+              Kilovolts(380d),
+              Kilovolts(0d)
             )
           )
         )
@@ -238,7 +242,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       // the requested power is to high for the grid to handle, therefore the superior grid agent
       // receives a FailedPowerFlow message
-      superiorGridAgent.gaProbe.expectMsg(FailedPowerFlow)
+      // wait 30 seconds max for power flow to finish
+      superiorGridAgent.gaProbe.expectMsg(30 seconds, FailedPowerFlow)
 
       // normally the slack node would send a FinishGridSimulationTrigger to all
       // connected inferior grids, because the slack node is just a mock, we imitate this behavior

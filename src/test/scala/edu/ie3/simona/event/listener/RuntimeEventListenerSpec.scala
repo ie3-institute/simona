@@ -35,8 +35,10 @@ import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 class RuntimeEventListenerSpec
     extends ScalaTestWithActorTestKit(
       ActorTestKit.ApplicationTestConfig.withValue(
+        // Timeout for LoggingTestKit via TestKitSettings
+        // Log message sometimes seem to take a while until caught by the test kit
         "akka.actor.testkit.typed.filter-leeway",
-        ConfigValueFactory.fromAnyRef("10s")
+        ConfigValueFactory.fromAnyRef("30s")
       )
     )
     with AnyWordSpecLike
