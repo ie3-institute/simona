@@ -277,11 +277,14 @@ class SimonaStandaloneSetup(
           index.toString
         )
       }
-      .toSeq :+ context.simonaActorOf(
-      ResultEventListener.props(
-        resultFileHierarchy
+      .toSeq :+ context
+      .spawn(
+        ResultEventListener(
+          resultFileHierarchy
+        ),
+        ResultEventListener.getClass.getSimpleName
       )
-    )
+      .toClassic
   }
 
   def buildSubGridToActorRefMap(
