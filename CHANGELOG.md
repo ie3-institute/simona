@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Add safety factor sRated calculation [#629](https://github.com/ie3-institute/simona/issues/629)
+- Re-implemented ResultEventListener in akka typed [#343](https://github.com/ie3-institute/simona/issues/343)
 - Added an interpolation for missing weather data [#188](https://github.com/ie3-institute/simona/issues/188)
 
 ### Changed
