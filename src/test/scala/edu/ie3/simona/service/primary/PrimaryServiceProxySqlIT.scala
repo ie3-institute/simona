@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.service.primary
 
-import akka.actor.ActorSystem
-import akka.testkit.{TestActorRef, TestProbe}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.config.SimonaConfig

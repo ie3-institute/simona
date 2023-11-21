@@ -8,8 +8,8 @@ package edu.ie3.simona.sim.setup
 
 import java.util.UUID
 
-import akka.actor.ActorRef
-import akka.testkit.TestException
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.testkit.TestException
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.input.connector.{
   Transformer2WInput,

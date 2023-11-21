@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{Behavior, PostStop}
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.actor
 
-import akka.actor.{ActorRef, ActorRefFactory, Props}
+import org.apache.pekko.actor.{ActorRef, ActorRefFactory, Props}
 
 import java.util.UUID
 

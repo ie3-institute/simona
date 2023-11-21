@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.test.common
 
-import akka.actor.{ActorSystem, DeadLetter}
-import akka.testkit.TestKit
+import org.apache.pekko.actor.{ActorSystem, DeadLetter}
+import org.apache.pekko.testkit.TestKit
 import edu.ie3.simona.event.listener.DeadLetterListener
 import org.scalatest.BeforeAndAfterAll
 

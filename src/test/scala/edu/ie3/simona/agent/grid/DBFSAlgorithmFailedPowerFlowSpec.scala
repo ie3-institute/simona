@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.ActorSystem
-import akka.testkit.{ImplicitSender, TestProbe}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData

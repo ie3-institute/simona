@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.scheduler
 
-import akka.actor.{Actor, ActorRef}
+import org.apache.pekko.actor.{Actor, ActorRef}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.TriggerWithIdMessage
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.scala.collection.mutable.{CountingMap, PriorityMultiQueue}

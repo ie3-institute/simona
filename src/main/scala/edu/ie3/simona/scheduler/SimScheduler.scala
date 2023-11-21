@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.scheduler
 
-import akka.actor.{Actor, ActorRef, Props, Terminated}
+import org.apache.pekko.actor.{Actor, ActorRef, Props, Terminated}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent.{Error, Initializing, Simulating}
 import edu.ie3.simona.event.notifier.Notifier

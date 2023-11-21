@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.{ActorRef, FSM}
+import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.SimonaAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.test.common
 
-import akka.testkit.TestKit
+import org.apache.pekko.testkit.TestKit
 import edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage
 import edu.ie3.simona.ontology.trigger.Trigger
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -23,7 +23,7 @@ trait SchedulerMessageFunctions extends TestKit with AnyWordSpecLike {
       case msg @ CompletionMessage(_, _) => msg
       case x =>
         fail(
-          s"Unexpected message ${x} received when expecting CompletionMessage!"
+          s"Unexpected message $x received when expecting CompletionMessage!"
         )
     }
   }

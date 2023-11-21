@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.{ActorContext, ActorRef, ActorSystem}
+import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.simona.agent.EnvironmentRefs

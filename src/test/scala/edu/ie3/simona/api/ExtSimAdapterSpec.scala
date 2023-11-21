@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.api
 
-import akka.actor.{ActorSystem, Terminated}
-import akka.testkit.{TestActorRef, TestProbe}
+import org.apache.pekko.actor.{ActorSystem, Terminated}
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.api.ExtSimAdapter.InitExtSimAdapter
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service
 
-import akka.actor.{Actor, ActorRef, Stash}
+import org.apache.pekko.actor.{Actor, ActorRef, Stash}
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,

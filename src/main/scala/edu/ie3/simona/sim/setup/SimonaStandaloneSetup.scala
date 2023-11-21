@@ -6,11 +6,11 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.typed.scaladsl.adapter.{
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorContextOps,
   TypedActorRefOps
 }
-import akka.actor.{ActorContext, ActorRef, ActorSystem}
+import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridTopologyGraph

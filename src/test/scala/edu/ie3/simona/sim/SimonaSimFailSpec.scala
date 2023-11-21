@@ -6,8 +6,14 @@
 
 package edu.ie3.simona.sim
 
-import akka.actor.{Actor, ActorContext, ActorRef, ActorSystem, Props}
-import akka.testkit.{TestActorRef, TestProbe}
+import org.apache.pekko.actor.{
+  Actor,
+  ActorContext,
+  ActorRef,
+  ActorSystem,
+  Props
+}
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData

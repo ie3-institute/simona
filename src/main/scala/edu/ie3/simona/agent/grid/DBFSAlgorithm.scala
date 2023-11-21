@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.{ActorRef, FSM}
-import akka.pattern.{ask, pipe}
-import akka.util.{Timeout => AkkaTimeout}
+import org.apache.pekko.actor.{ActorRef, FSM}
+import org.apache.pekko.pattern.{ask, pipe}
+import org.apache.pekko.util.{Timeout => AkkaTimeout}
 import breeze.linalg.{DenseMatrix, DenseVector}
 import breeze.math.Complex
 import edu.ie3.datamodel.graph.SubGridGate

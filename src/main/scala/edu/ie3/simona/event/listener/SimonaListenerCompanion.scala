@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.Props
+import org.apache.pekko.actor.Props
 
 import scala.reflect.ClassTag
 

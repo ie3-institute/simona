@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.scheduler
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.event.RuntimeEvent.{
   CheckWindowPassed,
   Done,

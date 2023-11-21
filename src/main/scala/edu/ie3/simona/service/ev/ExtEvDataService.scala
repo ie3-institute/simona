@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service.ev
 
-import akka.actor.{ActorRef, Props}
+import org.apache.pekko.actor.{ActorRef, Props}
 import edu.ie3.simona.api.data.ev.ExtEvData
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology.{

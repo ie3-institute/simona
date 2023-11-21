@@ -6,13 +6,12 @@
 
 package edu.ie3.simona.service
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.service.ServiceStateData.ServiceActivationBaseStateData
 import edu.ie3.simona.test.common.AgentSpec
-import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.scalatestplus.mockito.MockitoSugar
 
 class ServiceBaseStateDataSpec

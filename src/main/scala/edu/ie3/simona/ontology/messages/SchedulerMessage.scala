@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.ontology.messages
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.ontology.trigger.Trigger
 import edu.ie3.simona.scheduler.SimScheduler
 

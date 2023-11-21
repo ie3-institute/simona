@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.TestFSMRef
-import akka.util.Timeout
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.TestFSMRef
+import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV

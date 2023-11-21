@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.service.weather
 
-import akka.actor.ActorSystem
-import akka.testkit.{EventFilter, ImplicitSender, TestActorRef}
-import akka.util.Timeout
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.testkit.{EventFilter, ImplicitSender, TestActorRef}
+import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.config.SimonaConfig

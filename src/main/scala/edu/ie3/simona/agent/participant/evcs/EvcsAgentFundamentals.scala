@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.evcs
 
-import akka.actor.{ActorRef, FSM}
+import org.apache.pekko.actor.{ActorRef, FSM}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.result.system.{

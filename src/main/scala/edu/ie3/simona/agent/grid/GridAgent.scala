@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.{ActorRef, Props, Stash}
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentInitData,
@@ -31,12 +30,11 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   StartGridSimulationTrigger
 }
 import edu.ie3.util.TimeUtil
+import org.apache.pekko.actor.{ActorRef, Props, Stash}
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object GridAgent {

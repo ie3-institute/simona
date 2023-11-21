@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.service.ev
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.{TestActorRef, TestProbe}
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.api.data.ev.ExtEvData
 import edu.ie3.simona.api.data.ev.model.EvModel

@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.scheduler
 
-import akka.actor._
-import akka.testkit.{ImplicitSender, TestActorRef, TestProbe}
+import org.apache.pekko.actor._
+import org.apache.pekko.testkit.{ImplicitSender, TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent._

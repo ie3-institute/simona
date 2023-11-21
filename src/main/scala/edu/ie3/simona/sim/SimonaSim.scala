@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.sim
 
-import akka.actor.SupervisorStrategy.Stop
-import akka.actor.{
+import org.apache.pekko.actor.SupervisorStrategy.Stop
+import org.apache.pekko.actor.{
   Actor,
   ActorRef,
   AllForOneStrategy,

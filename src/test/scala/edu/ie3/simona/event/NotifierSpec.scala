@@ -7,9 +7,9 @@
 package edu.ie3.simona.event
 
 import java.util.{Calendar, Date}
-import akka.actor.{ActorLogging, ActorRef, ActorSystem, Props}
-import akka.testkit.ImplicitSender
-import akka.util.Timeout
+import org.apache.pekko.actor.{ActorLogging, ActorRef, ActorSystem, Props}
+import org.apache.pekko.testkit.ImplicitSender
+import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.result.system._
 import edu.ie3.simona.event.NotifierSpec.{TestEvent, TestEventEnvelope}
