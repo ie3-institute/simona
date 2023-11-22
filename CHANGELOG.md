@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add safety factor sRated calculation [#629](https://github.com/ie3-institute/simona/issues/629)
 - Re-implemented ResultEventListener in akka typed [#343](https://github.com/ie3-institute/simona/issues/343)
 - Add additional test cases from references for PvModelTest [#590](https://github.com/ie3-institute/simona/issues/590)
-
+- Instantiation of Heat Pump Agents [#253](https://github.com/ie3-institute/simona/issues/253)
+- Output of accompanying thermal result models
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
