@@ -207,6 +207,7 @@ class DBFSAlgorithmSupGridSpec
                   Some(
                     ScheduleTriggerMessage(
                       StartGridSimulationTrigger(3600),
+                      _,
                       _
                     )
                   )
@@ -215,7 +216,7 @@ class DBFSAlgorithmSupGridSpec
             case CompletionMessage(
                   3,
                   Some(
-                    ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
+                    ScheduleTriggerMessage(ActivityStartTrigger(7200), _, _)
                   )
                 ) =>
               // agent should be in Idle again and listener should contain power flow result data
@@ -356,6 +357,7 @@ class DBFSAlgorithmSupGridSpec
                   Some(
                     ScheduleTriggerMessage(
                       StartGridSimulationTrigger(3600),
+                      _,
                       _
                     )
                   )
@@ -365,7 +367,7 @@ class DBFSAlgorithmSupGridSpec
             case CompletionMessage(
                   _,
                   Some(
-                    ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
+                    ScheduleTriggerMessage(ActivityStartTrigger(7200), _, _)
                   )
                 ) =>
               // after doing cleanup stuff, our agent should go back to idle again and listener should contain power flow result data

@@ -14,6 +14,7 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   ActivityStartTrigger,
   InitializeTrigger
 }
+import edu.ie3.simona.scheduler.ScheduleLock.{LockMsg, ScheduleKey, Unlock}
 import edu.ie3.simona.util.ActorUtils.RichTriggeredAgent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -21,6 +22,8 @@ import org.mockito.Mockito.doReturn
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar.mock
+
+import java.util.UUID
 
 class SchedulerSpec
     extends ScalaTestWithActorTestKit
@@ -372,6 +375,124 @@ class SchedulerSpec
           )
         )
       }
+    }
+
+    "unlocking a scheduling lock while active" in {
+      val parent = TestProbe[SchedulerMessage]("parent")
+      val scheduler = spawn(
+        Scheduler(parent.ref)
+      )
+
+      val agent1 = TestProbe[TriggerWithIdMessage]("agent_1")
+      val agent2 = TestProbe[TriggerWithIdMessage]("agent_2")
+      val lock = TestProbe[LockMsg]("lock")
+
+      scheduler ! ScheduleTriggerMessage(
+        ActivityStartTrigger(60),
+        agent1.ref.toClassic
+      )
+
+      parent.expectMessage(
+        ScheduleTriggerMessage(
+          ActivityStartTrigger(60),
+          scheduler.toClassic
+        )
+      )
+
+      scheduler ! TriggerWithIdMessage(
+        ActivityStartTrigger(60),
+        triggerId = 5
+      )
+      agent1.expectMessageType[TriggerWithIdMessage]
+
+      val key = UUID.randomUUID()
+      scheduler ! ScheduleTriggerMessage(
+        ActivityStartTrigger(120),
+        agent2.ref.toClassic,
+        Some(ScheduleKey(lock.ref, key))
+      )
+
+      // no new scheduling when active
+      parent.expectNoMessage()
+
+      // lock should receive unlock message
+      lock.expectMessage(Unlock(key))
+    }
+
+    "unlocking a scheduling lock while inactive and new earliest tick has not changed" in {
+      val parent = TestProbe[SchedulerMessage]("parent")
+      val scheduler = spawn(
+        Scheduler(parent.ref)
+      )
+
+      val agent1 = TestProbe[TriggerWithIdMessage]("agent_1")
+      val lock = TestProbe[LockMsg]("lock")
+
+      scheduler ! ScheduleTriggerMessage(
+        ActivityStartTrigger(60),
+        agent1.ref.toClassic
+      )
+
+      parent.expectMessage(
+        ScheduleTriggerMessage(
+          ActivityStartTrigger(60),
+          scheduler.toClassic
+        )
+      )
+
+      val key = UUID.randomUUID()
+      scheduler ! ScheduleTriggerMessage(
+        ActivityStartTrigger(60),
+        agent1.ref.toClassic,
+        Some(ScheduleKey(lock.ref, key))
+      )
+
+      // no new scheduling for same tick
+      parent.expectNoMessage()
+
+      // lock should receive unlock message
+      lock.expectMessage(Unlock(key))
+    }
+
+    "forwarding unlock information to parent while inactive and new earliest tick has changed" in {
+      val parent = TestProbe[SchedulerMessage]("parent")
+      val scheduler = spawn(
+        Scheduler(parent.ref)
+      )
+
+      val agent1 = TestProbe[TriggerWithIdMessage]("agent_1")
+      val lock = TestProbe[LockMsg]("lock")
+
+      scheduler ! ScheduleTriggerMessage(
+        ActivityStartTrigger(60),
+        agent1.ref.toClassic
+      )
+
+      parent.expectMessage(
+        ScheduleTriggerMessage(
+          ActivityStartTrigger(60),
+          scheduler.toClassic
+        )
+      )
+
+      val key = UUID.randomUUID()
+      scheduler ! ScheduleTriggerMessage(
+        ActivityStartTrigger(59),
+        agent1.ref.toClassic,
+        Some(ScheduleKey(lock.ref, key))
+      )
+
+      // lock should not receive unlock message by scheduler
+      lock.expectNoMessage()
+
+      // responsibility of unlocking forwarded to parent
+      parent.expectMessage(
+        ScheduleTriggerMessage(
+          ActivityStartTrigger(59),
+          scheduler.toClassic,
+          Some(ScheduleKey(lock.ref, key))
+        )
+      )
     }
 
   }
