@@ -49,7 +49,7 @@ object Scheduler {
 
       case (
             ctx,
-            ScheduleTriggerMessage(trigger, actorToBeScheduled)
+            ScheduleTriggerMessage(trigger, actorToBeScheduled, unlockKey)
           ) =>
         checkTriggerSchedule(lastActiveTick + 1L, trigger)
           .map(stopOnError(ctx, _))
@@ -65,9 +65,13 @@ object Scheduler {
             if (newEarliestTick != oldEarliestTick)
               data.parent ! ScheduleTriggerMessage(
                 ActivityStartTrigger(trigger.tick),
-                ctx.self.toClassic
+                ctx.self.toClassic,
+                unlockKey
               )
-
+            else {
+              // we don't need to escalate to the parent, this means that we can release the lock (if applicable)
+              unlockKey.foreach { _.unlock() }
+            }
             inactive(updatedData, lastActiveTick)
           }
 
@@ -86,11 +90,16 @@ object Scheduler {
 
     case (
           ctx,
-          ScheduleTriggerMessage(trigger, actorToBeScheduled)
+          ScheduleTriggerMessage(trigger, actorToBeScheduled, unlockKey)
         ) =>
       checkTriggerSchedule(activationData.tick, trigger)
         .map(stopOnError(ctx, _))
         .getOrElse {
+          // if there's a lock:
+          // since we're active and any scheduled activation can still influence our next activation,
+          // we can directly unlock the lock with the key
+          unlockKey.foreach { _.unlock() }
+
           sendCurrentTriggers(
             scheduleTrigger(data, trigger, actorToBeScheduled),
             activationData
