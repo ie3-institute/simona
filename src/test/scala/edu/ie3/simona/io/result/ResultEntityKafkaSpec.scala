@@ -6,10 +6,8 @@
 
 package edu.ie3.simona.io.result
 
-import akka.actor.ActorSystem
-import akka.testkit.TestActorRef
+import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import com.sksamuel.avro4s.RecordFormat
-import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.result.NodeResult
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.listener.ResultEventListener
@@ -17,7 +15,6 @@ import edu.ie3.simona.io.result.plain.PlainResult.PlainNodeResult
 import edu.ie3.simona.io.result.plain.PlainWriter
 import edu.ie3.simona.test.KafkaSpecLike
 import edu.ie3.simona.test.KafkaSpecLike.Topic
-import edu.ie3.simona.test.common.TestKitWithShutdown
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.io.ScalaReflectionSerde
@@ -28,6 +25,7 @@ import org.apache.kafka.common.serialization.{Deserializer, Serdes}
 import org.apache.kafka.common.utils.Bytes
 import org.scalatest.GivenWhenThen
 import org.scalatest.concurrent.Eventually
+import org.scalatest.wordspec.AnyWordSpecLike
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
@@ -41,18 +39,9 @@ import scala.language.postfixOps
   * https://kafka-tutorials.confluent.io/produce-consume-lang/scala.html
   */
 class ResultEntityKafkaSpec
-    extends TestKitWithShutdown(
-      ActorSystem(
-        "ResultEntityKafkaSpec",
-        ConfigFactory
-          .parseString(
-            """akka.loggers = ["edu.ie3.simona.test.common.SilentTestEventListener"]
-          |akka.loglevel="info"
-          """.stripMargin
-          )
-      )
-    )
+    extends ScalaTestWithActorTestKit
     with KafkaSpecLike
+    with AnyWordSpecLike
     with GivenWhenThen
     with Eventually {
 
@@ -102,8 +91,8 @@ class ResultEntityKafkaSpec
       val runId = UUID.randomUUID()
 
       // build the listener
-      val listenerRef = TestActorRef(
-        ResultEventListener.props(
+      val listenerRef = spawn(
+        ResultEventListener(
           ResultFileHierarchy(
             "out",
             "simName",

@@ -341,8 +341,7 @@ class PrimaryServiceProxySpec
 
       proxyRef ! TriggerWithIdMessage(
         InitializeServiceTrigger(initStateData),
-        0L,
-        self
+        0L
       )
       expectMsg(CompletionMessage(0L, None))
     }
@@ -499,7 +498,8 @@ class PrimaryServiceProxySpec
                       timePattern
                     )
                   ),
-                  actorToBeScheduled
+                  actorToBeScheduled,
+                  _
                 ) =>
               actualTimeSeriesUuid shouldBe uuidPq
               actualSimulationStart shouldBe simulationStart
@@ -682,8 +682,7 @@ class PrimaryServiceProxySpec
       )
       fakeProxyRef ! TriggerWithIdMessage(
         InitializeServiceTrigger(initStateData),
-        0L,
-        self
+        0L
       )
       expectMsg(CompletionMessage(0L, None))
 

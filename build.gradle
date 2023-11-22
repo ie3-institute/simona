@@ -8,7 +8,7 @@ plugins {
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
   id 'pmd' // code check, working on source code
   id 'com.diffplug.spotless' version '6.22.0'// code format
-  id "com.github.ben-manes.versions" version '0.49.0'
+  id "com.github.ben-manes.versions" version '0.50.0'
   id "de.undercouch.download" version "5.5.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id "com.github.johnrengelman.shadow" version "8.1.1" // fat jar
@@ -68,7 +68,7 @@ repositories {
 
 dependencies {
   constraints {
-    implementation( 'com.fasterxml.jackson.core:jackson-databind:2.15.3+' ){
+    implementation( 'com.fasterxml.jackson.core:jackson-databind:2.16.0+' ){
       because "[CVE-2020-25649] CWE-611: Improper Restriction of XML External Entity Reference ('XXE')"
     }
   }
@@ -93,7 +93,7 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
-  implementation('com.github.ie3-institute:simonaAPI:0.2.0') {
+  implementation('com.github.ie3-institute:simonaAPI:0.3.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
