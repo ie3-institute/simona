@@ -15,7 +15,6 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridTopologyGraph
 import edu.ie3.datamodel.models.input.container.{GridContainer, ThermalGrid}
-import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -43,8 +42,8 @@ import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProx
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.util.ResultFileHierarchy
-import edu.ie3.util.TimeUtil
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
+import edu.ie3.util.TimeUtil
 
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters._
@@ -332,15 +331,8 @@ class SimonaStandaloneSetup(
       grid: GridContainer,
       thermalGridByBus: Map[ThermalBusInput, ThermalGrid]
   ): Seq[ThermalGrid] = {
-    grid
-      .allEntitiesAsList()
-      .asScala
-      .flatMap {
-        case hpInput: HpInput =>
-          thermalGridByBus.get(hpInput.getThermalBus)
-        case _ =>
-          None
-      }
+    grid.getSystemParticipants.getHeatPumps.asScala
+      .flatten(hpInput => thermalGridByBus.get(hpInput.getThermalBus))
       .toSeq
   }
 }
