@@ -28,7 +28,7 @@ import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.WecRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.WecModel
 import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -136,7 +136,7 @@ class WecAgentModelCalculationSpec
       modelConfig = modelConfig,
       primaryServiceProxy = primaryServiceProxy.ref,
       secondaryDataServices = None,
-      outputConfig = ParticipantNotifierConfig(
+      outputConfig = NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false
       )
@@ -200,7 +200,7 @@ class WecAgentModelCalculationSpec
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       primaryServiceProxy = primaryServiceProxy.ref,
       secondaryDataServices = withServices,
-      outputConfig = ParticipantNotifierConfig(
+      outputConfig = NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false
       )
@@ -269,7 +269,7 @@ class WecAgentModelCalculationSpec
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
           services shouldBe withServices
-          outputConfig shouldBe ParticipantNotifierConfig(
+          outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
             powerRequestReply = false
           )

@@ -13,22 +13,23 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult
 }
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.participant.data.Data.SecondaryData
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
-import edu.ie3.simona.agent.participant.statedata.{
-  DataCollectionStateData,
-  ParticipantStateData
-}
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
 }
+import edu.ie3.simona.agent.participant.data.Data.SecondaryData
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
+import edu.ie3.simona.agent.participant.statedata.{
+  DataCollectionStateData,
+  ParticipantStateData
+}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.FixedFeedInRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException
@@ -40,7 +41,7 @@ import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
-import squants.{Each, Power, Dimensionless}
+import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -86,14 +87,14 @@ protected trait FixedFeedInAgentFundamentals
     *   based on the data source definition
     */
   override def determineModelBaseStateData(
-      inputModel: FixedFeedInInput,
+      inputModel: InputModelContainer[FixedFeedInInput],
       modelConfig: FixedFeedInRuntimeConfig,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,
@@ -125,7 +126,11 @@ protected trait FixedFeedInAgentFundamentals
         model.operationInterval.end
       ).filterNot(_ == lastTickInSimulation)
 
-    ParticipantModelBaseStateData(
+    ParticipantModelBaseStateData[
+      ApparentPower,
+      FixedRelevantData.type,
+      FixedFeedInModel
+    ](
       simulationStartDate,
       simulationEndDate,
       model,
@@ -137,7 +142,7 @@ protected trait FixedFeedInAgentFundamentals
       ValueStore.forVoltage(
         resolution,
         Each(
-          inputModel.getNode
+          inputModel.electricalInputModel.getNode
             .getvTarget()
             .to(PU)
             .getValue
@@ -151,12 +156,12 @@ protected trait FixedFeedInAgentFundamentals
   }
 
   override def buildModel(
-      inputModel: FixedFeedInInput,
+      inputModel: InputModelContainer[FixedFeedInInput],
       modelConfig: FixedFeedInRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
   ): FixedFeedInModel = FixedFeedInModel(
-    inputModel,
+    inputModel.electricalInputModel,
     modelConfig,
     simulationStartDate,
     simulationEndDate

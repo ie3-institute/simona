@@ -10,6 +10,7 @@ import akka.actor.ActorSystem
 import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import akka.testkit.TestProbe
 import com.typesafe.config.ConfigFactory
+import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent.FinishGridSimulationTrigger
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
@@ -121,6 +122,7 @@ class DBFSAlgorithmCenGridSpec
       val gridAgentInitData =
         GridAgentInitData(
           hvGridContainer,
+          Seq.empty[ThermalGrid],
           subGridGateToActorRef,
           RefSystem("2000 MVA", "110 kV")
         )

@@ -176,6 +176,10 @@ class GridAgent(
       // build the assets concurrently
       val subGridContainer = gridAgentInitData.subGridContainer
       val refSystem = gridAgentInitData.refSystem
+      val thermalGridsByBusId = gridAgentInitData.thermalIslandGrids.map {
+        thermalGrid => thermalGrid.bus().getUuid -> thermalGrid
+      }.toMap
+      log.debug(s"Thermal island grids: ${thermalGridsByBusId.size}")
 
       // get the [[GridModel]]
       val gridModel = GridModel(
@@ -190,8 +194,9 @@ class GridAgent(
 
       /* Reassure, that there are also calculation models for the given uuids */
       val nodeToAssetAgentsMap: Map[UUID, Set[ActorRef]] =
-        gridAgentController.buildSystemParticipants(subGridContainer).map {
-          case (uuid: UUID, actorSet) =>
+        gridAgentController
+          .buildSystemParticipants(subGridContainer, thermalGridsByBusId)
+          .map { case (uuid: UUID, actorSet) =>
             val nodeUuid = gridModel.gridComponents.nodes
               .find(_.uuid == uuid)
               .getOrElse(
@@ -201,7 +206,7 @@ class GridAgent(
               )
               .uuid
             nodeUuid -> actorSet
-        }
+          }
 
       // create the GridAgentBaseData
       val gridAgentBaseData = GridAgentBaseData(

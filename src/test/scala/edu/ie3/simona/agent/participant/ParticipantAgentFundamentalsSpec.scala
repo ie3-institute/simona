@@ -21,7 +21,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
   InconsistentStateException
@@ -29,6 +29,7 @@ import edu.ie3.simona.exceptions.agent.{
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
+import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
 import edu.ie3.simona.model.participant.load.{FixedLoadModel, LoadReference}
 import edu.ie3.simona.test.common.AgentSpec
 import edu.ie3.simona.test.common.model.participant.LoadTestData
@@ -66,8 +67,8 @@ class ParticipantAgentFundamentalsSpec
   implicit val pTolerance: squants.Power = Megawatts(0.001)
   implicit val qTolerance: ReactivePower = Megavars(0.001)
 
-  private val outputConfig: ParticipantNotifierConfig =
-    ParticipantNotifierConfig(
+  private val outputConfig: NotifierConfig =
+    NotifierConfig(
       simulationResultInfo = false,
       powerRequestReply = false
     )
@@ -522,7 +523,11 @@ class ParticipantAgentFundamentalsSpec
 
   "Determining the applicable nodal voltage" should {
     "deliver the correct voltage" in {
-      val baseStateData = ParticipantModelBaseStateData(
+      val baseStateData = ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedLoadRelevantData.type,
+        FixedLoadModel
+      ](
         simulationStartDate,
         simulationEndDate,
         FixedLoadModel(
@@ -553,7 +558,11 @@ class ParticipantAgentFundamentalsSpec
     }
 
     "throw an error, if no nodal voltage is available" in {
-      val baseStateData = ParticipantModelBaseStateData(
+      val baseStateData = ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedLoadRelevantData.type,
+        FixedLoadModel
+      ](
         simulationStartDate,
         simulationEndDate,
         FixedLoadModel(
@@ -602,17 +611,22 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,
-    SystemParticipant[FixedRelevantData.type]
+    SystemParticipant[FixedRelevantData.type, ApparentPower]
   ] = {
-    val modelMock = mock[SystemParticipant[FixedRelevantData.type]]
+    val modelMock =
+      mock[SystemParticipant[FixedRelevantData.type, ApparentPower]]
     when(modelMock.getUuid).thenReturn(UUID.randomUUID())
 
-    ParticipantModelBaseStateData(
+    ParticipantModelBaseStateData[
+      ApparentPower,
+      FixedRelevantData.type,
+      SystemParticipant[FixedRelevantData.type, ApparentPower]
+    ](
       TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
       TimeUtil.withDefaults.toZonedDateTime("2020-01-01 23:59:00"),
       modelMock,
       None,
-      ParticipantNotifierConfig(
+      NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false
       ),

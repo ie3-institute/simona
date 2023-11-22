@@ -27,6 +27,7 @@ models/bm_model
 models/chp_model
 models/cts_model
 models/evcs_model
+models/hp_model
 models/load_model
 models/pv_model
 models/wec_model

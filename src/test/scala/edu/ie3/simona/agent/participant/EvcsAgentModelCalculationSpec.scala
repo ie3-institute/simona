@@ -18,16 +18,11 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  CollectRegistrationConfirmMessages,
-  ParticipantInitializeStateData,
-  ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
-}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
@@ -48,8 +43,8 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResp
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DISTANCE
 import edu.ie3.simona.test.ParticipantAgentSpec
-import edu.ie3.simona.test.common.{EvTestData, TestSpawnerClassic}
 import edu.ie3.simona.test.common.input.EvcsInputTestData
+import edu.ie3.simona.test.common.{EvTestData, TestSpawnerClassic}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
@@ -57,7 +52,6 @@ import squants.energy.{Megawatts, Watts}
 import squants.{Each, Power}
 
 import java.util.UUID
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 class EvcsAgentModelCalculationSpec
     extends ParticipantAgentSpec(
@@ -220,7 +214,7 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold,
               outputConfig
             ) =>
-          inputModel shouldBe evcsInputModel
+          inputModel shouldBe SimpleInputContainer(evcsInputModel)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe withServices
           simulationStartDate shouldBe this.simulationStartDate
@@ -269,7 +263,7 @@ class EvcsAgentModelCalculationSpec
               ActorEvMovementsService(evService.ref)
             )
           )
-          outputConfig shouldBe ParticipantNotifierConfig(
+          outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
             powerRequestReply = false
           )

@@ -29,7 +29,7 @@ trait ServiceRegistration[
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
     MC <: SimonaConfig.BaseRuntimeConfig,
-    M <: SystemParticipant[CD]
+    M <: SystemParticipant[CD, PD]
 ] {
   this: ParticipantAgent[PD, CD, D, I, MC, M] =>
 

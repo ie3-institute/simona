@@ -15,6 +15,8 @@ import akka.actor.{ActorContext, ActorRef, ActorSystem}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridTopologyGraph
+import edu.ie3.datamodel.models.input.container.{GridContainer, ThermalGrid}
+import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
@@ -71,6 +73,9 @@ class SimonaStandaloneSetup(
         simonaConfig.simona.input.grid.datasource
       )
       .getSubGridTopologyGraph
+    val thermalGridsByThermalBus = GridProvider.getThermalGridsFromConfig(
+      simonaConfig.simona.input.grid.datasource
+    )
 
     /* extract and prepare refSystem information from config */
     val configRefSystems =
@@ -112,13 +117,16 @@ class SimonaStandaloneSetup(
             "Was asked to setup agent for sub grid " + currentSubGrid + ", but did not found it's actor reference."
           )
         )
+        val thermalGrids =
+          getThermalGrids(subGridContainer, thermalGridsByThermalBus)
 
         /* build the grid agent data and check for its validity */
         val gridAgentInitData = SimonaStandaloneSetup.buildGridAgentInitData(
           subGridContainer,
           subGridToActorRefMap,
           subGridGates,
-          configRefSystems
+          configRefSystems,
+          thermalGrids
         )
 
         currentActorRef ! GridAgent.Create(gridAgentInitData, key)
@@ -329,6 +337,23 @@ class SimonaStandaloneSetup(
         subGridContainer.getSubnet -> gridAgentRef
       })
       .toMap
+  }
+
+  /** Get all thermal grids, that apply for the given grid container
+    * @param grid
+    *   The grid container to assess
+    * @param thermalGridByBus
+    *   Mapping from thermal bus to thermal grid
+    * @return
+    *   A sequence of applicable thermal grids
+    */
+  private def getThermalGrids(
+      grid: GridContainer,
+      thermalGridByBus: Map[ThermalBusInput, ThermalGrid]
+  ): Seq[ThermalGrid] = {
+    grid.getSystemParticipants.getHeatPumps.asScala
+      .flatten(hpInput => thermalGridByBus.get(hpInput.getThermalBus))
+      .toSeq
   }
 }
 

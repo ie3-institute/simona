@@ -17,7 +17,7 @@ import edu.ie3.util.scala.quantities.Sq
 import squants.Dimensionless
 import squants.energy.*
 
-class MockParticipant extends SystemParticipant<CalcRelevantData> {
+class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryData.PrimaryDataWithApparentPower> {
 
   MockParticipant(
   UUID uuid,
@@ -41,7 +41,7 @@ class MockParticipant extends SystemParticipant<CalcRelevantData> {
 
   @Override
   Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, CalcRelevantData data) {
-    return super.calculateApparentPower(tick, voltage, maybeModelState, data)
+    return super.calculateApparentPower(tick, voltage, data)
   }
 
   @Override

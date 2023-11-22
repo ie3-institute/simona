@@ -23,12 +23,7 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FromOutsideBaseStateData,
   ParticipantModelBaseStateData
 }
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  CollectRegistrationConfirmMessages,
-  ParticipantInitializeStateData,
-  ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
-}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
   DataCollectionStateData,
@@ -41,7 +36,7 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   HandleInformation
 }
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.Activation
@@ -85,7 +80,7 @@ abstract class ParticipantAgent[
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
     MC <: SimonaConfig.BaseRuntimeConfig,
-    M <: SystemParticipant[CD]
+    M <: SystemParticipant[CD, PD]
 ](scheduler: ActorRef, initStateData: ParticipantInitializeStateData[I, MC, PD])
     extends SimonaAgent[ParticipantStateData[PD]] {
 
@@ -105,7 +100,7 @@ abstract class ParticipantAgent[
        * that will confirm, otherwise, a failed registration is announced. */
       holdTick(INIT_SIM_TICK)
       initStateData.primaryServiceProxy ! PrimaryServiceRegistrationMessage(
-        initStateData.inputModel.getUuid
+        initStateData.inputModel.electricalInputModel.getUuid
       )
       goto(HandleInformation) using ParticipantInitializingStateData(
         initStateData.inputModel,
@@ -201,7 +196,7 @@ abstract class ParticipantAgent[
     case Event(
           RegistrationSuccessfulMessage(maybeNextDataTick),
           ParticipantInitializingStateData(
-            inputModel: I,
+            inputModel: InputModelContainer[I],
             modelConfig: MC,
             secondaryDataServices,
             simulationStartDate,
@@ -229,7 +224,7 @@ abstract class ParticipantAgent[
     case Event(
           RegistrationResponseMessage.RegistrationFailedMessage,
           ParticipantInitializingStateData(
-            inputModel: I,
+            inputModel: InputModelContainer[I],
             modelConfig: MC,
             secondaryDataServices,
             simulationStartDate,
@@ -428,14 +423,14 @@ abstract class ParticipantAgent[
     *   Idle state with child of [[BaseStateData]]
     */
   def initializeParticipantForPrimaryDataReplay(
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: MC,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig,
+      outputConfig: NotifierConfig,
       senderToMaybeTick: (ActorRef, Option[Long]),
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]]
@@ -466,14 +461,14 @@ abstract class ParticipantAgent[
     *   Idle state with child of [[BaseStateData]]
     */
   def initializeParticipantForModelCalculation(
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: MC,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig,
+      outputConfig: NotifierConfig,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
@@ -586,7 +581,7 @@ abstract class ParticipantAgent[
       tick: Long,
       scheduler: ActorRef
   )(implicit
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Partial function, that is able to transfer
@@ -705,7 +700,7 @@ abstract class ParticipantAgent[
       currentTick: Long,
       activePower: Power,
       reactivePower: ReactivePower
-  )(implicit outputConfig: ParticipantNotifierConfig): Unit
+  )(implicit outputConfig: NotifierConfig): Unit
 
   /** Abstract definition to clean up agent value stores after power flow
     * convergence. This is necessary for agents whose results are time dependent
