@@ -8,30 +8,45 @@ package edu.ie3.simona.ontology.messages
 
 import akka.actor.ActorRef
 import edu.ie3.simona.ontology.trigger.Trigger
-import edu.ie3.simona.scheduler.SimScheduler
 
 sealed trait SchedulerMessage
 
-/** Messages that should be send and received to and from [[SimScheduler]].
-  * Every message that is NOT a one way message (e.g. is only received by the
-  * [[SimScheduler]] should include the [[ActorRef]] of the agent that should
-  * receive the message. This is necessary for routing in cluster mode.
+/** Messages that should be send and received to and from
+  * [[edu.ie3.simona.scheduler.Scheduler]]. Every message that is NOT a one way
+  * message (e.g. is only received by the [[edu.ie3.simona.scheduler.Scheduler]]
+  * should include the [[ActorRef]] of the agent that should receive the
+  * message. This is necessary for routing in cluster mode.
   */
 object SchedulerMessage {
 
-  /** Tell the [[SimScheduler]] to initialize the simulation with all
+  /** Tell the [[edu.ie3.simona.scheduler.Scheduler]] to initialize the
+    * simulation with all
     * [[edu.ie3.simona.ontology.trigger.Trigger.InitializeTrigger]] s
     */
   case object InitSimMessage extends SchedulerMessage
 
-  /** Tell the [[SimScheduler]] to start the simulation
+  /** Starts simulation by activating the next (or first) tick
+    * @param pauseTick
+    *   Last tick that can be activated or completed before the simulation is
+    *   paused
+    *
+    * TODO rename to StartSimMessage
     */
   final case class StartScheduleMessage(
-      pauseScheduleAtTick: Option[Long] = None
+      pauseTick: Option[Long] = None
   ) extends SchedulerMessage
 
-  /** schedule a new trigger TO the [[SimScheduler]]. This message should send
-    * only to the [[SimScheduler]]
+  /** Notifies TimeAdvancer that the simulation should stop because of some
+    * error
+    * @param errorMsg
+    *   The error message
+    *
+    * TODO only for TimeAdvancer
+    */
+  final case class Stop(errorMsg: String) extends SchedulerMessage
+
+  /** schedule a new trigger TO the [[edu.ie3.simona.scheduler.Scheduler]]. This
+    * message should send only to the [[edu.ie3.simona.scheduler.Scheduler]]
     *
     * @param trigger
     *   to schedule
@@ -44,16 +59,16 @@ object SchedulerMessage {
   ) extends SchedulerMessage
 
   /** Confirm the end of an action e.g. fsm state transitions for one tick to
-    * and ONLY to the [[SimScheduler]]
+    * and ONLY to the [[edu.ie3.simona.scheduler.Scheduler]]
     *
     * @param triggerId
     *   the triggerId we want to confirm the completion
-    * @param newTriggers
-    *   optional new triggers to schedule
+    * @param newTrigger
+    *   optional new trigger to schedule
     */
   final case class CompletionMessage(
       triggerId: Long,
-      newTriggers: Option[Seq[ScheduleTriggerMessage]] = None
+      newTrigger: Option[ScheduleTriggerMessage] = None
   ) extends SchedulerMessage
 
   /** a message that is send by the scheduler to an agent including an unique id
@@ -61,8 +76,7 @@ object SchedulerMessage {
     */
   final case class TriggerWithIdMessage(
       trigger: Trigger,
-      triggerId: Long,
-      receiverActor: ActorRef
+      triggerId: Long
   ) extends SchedulerMessage
 
   /** respond to agent that the send trigger is illegal

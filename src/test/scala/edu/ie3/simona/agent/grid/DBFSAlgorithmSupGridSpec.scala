@@ -109,8 +109,7 @@ class DBFSAlgorithmSupGridSpec
         superiorGridAgentFSM,
         TriggerWithIdMessage(
           InitializeGridAgentTrigger(gridAgentInitData),
-          triggerId,
-          superiorGridAgentFSM
+          triggerId
         )
       )
 
@@ -118,11 +117,9 @@ class DBFSAlgorithmSupGridSpec
         CompletionMessage(
           0,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(3600),
-                superiorGridAgentFSM
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(3600),
+              superiorGridAgentFSM
             )
           )
         )
@@ -138,8 +135,7 @@ class DBFSAlgorithmSupGridSpec
         superiorGridAgentFSM,
         TriggerWithIdMessage(
           ActivityStartTrigger(3600),
-          activityStartTriggerId,
-          superiorGridAgentFSM
+          activityStartTriggerId
         )
       )
 
@@ -148,11 +144,9 @@ class DBFSAlgorithmSupGridSpec
         CompletionMessage(
           1,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                StartGridSimulationTrigger(3600),
-                superiorGridAgentFSM
-              )
+            ScheduleTriggerMessage(
+              StartGridSimulationTrigger(3600),
+              superiorGridAgentFSM
             )
           )
         )
@@ -174,8 +168,7 @@ class DBFSAlgorithmSupGridSpec
             superiorGridAgentFSM,
             TriggerWithIdMessage(
               StartGridSimulationTrigger(3600),
-              startGridSimulationTriggerId,
-              superiorGridAgentFSM
+              startGridSimulationTriggerId
             )
           )
 
@@ -214,11 +207,9 @@ class DBFSAlgorithmSupGridSpec
             case CompletionMessage(
                   2,
                   Some(
-                    Seq(
-                      ScheduleTriggerMessage(
-                        StartGridSimulationTrigger(3600),
-                        _
-                      )
+                    ScheduleTriggerMessage(
+                      StartGridSimulationTrigger(3600),
+                      _
                     )
                   )
                 ) =>
@@ -226,9 +217,7 @@ class DBFSAlgorithmSupGridSpec
             case CompletionMessage(
                   3,
                   Some(
-                    Seq(
-                      ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
-                    )
+                    ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
                   )
                 ) =>
               // agent should be in Idle again and listener should contain power flow result data
@@ -298,8 +287,7 @@ class DBFSAlgorithmSupGridSpec
           superiorGridAgentFSM,
           TriggerWithIdMessage(
             ActivityStartTrigger(3600),
-            activityStartTriggerId,
-            superiorGridAgentFSM
+            activityStartTriggerId
           )
         )
 
@@ -308,11 +296,9 @@ class DBFSAlgorithmSupGridSpec
           CompletionMessage(
             1,
             Some(
-              Seq(
-                ScheduleTriggerMessage(
-                  StartGridSimulationTrigger(3600),
-                  superiorGridAgentFSM
-                )
+              ScheduleTriggerMessage(
+                StartGridSimulationTrigger(3600),
+                superiorGridAgentFSM
               )
             )
           )
@@ -330,8 +316,7 @@ class DBFSAlgorithmSupGridSpec
             superiorGridAgentFSM,
             TriggerWithIdMessage(
               StartGridSimulationTrigger(3600),
-              startGridSimulationTriggerId,
-              superiorGridAgentFSM
+              startGridSimulationTriggerId
             )
           )
 
@@ -371,11 +356,9 @@ class DBFSAlgorithmSupGridSpec
             case CompletionMessage(
                   _,
                   Some(
-                    Seq(
-                      ScheduleTriggerMessage(
-                        StartGridSimulationTrigger(3600),
-                        _
-                      )
+                    ScheduleTriggerMessage(
+                      StartGridSimulationTrigger(3600),
+                      _
                     )
                   )
                 ) =>
@@ -384,9 +367,7 @@ class DBFSAlgorithmSupGridSpec
             case CompletionMessage(
                   _,
                   Some(
-                    Seq(
-                      ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
-                    )
+                    ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
                   )
                 ) =>
               // after doing cleanup stuff, our agent should go back to idle again and listener should contain power flow result data

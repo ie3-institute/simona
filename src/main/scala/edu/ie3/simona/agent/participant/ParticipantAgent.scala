@@ -112,8 +112,7 @@ abstract class ParticipantAgent[
                 outputConfig
               )
             ),
-            triggerId,
-            _
+            triggerId
           ),
           _: ParticipantUninitializedStateData[PD]
         ) =>
@@ -137,7 +136,7 @@ abstract class ParticipantAgent[
 
   when(Idle) {
     case Event(
-          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId, _),
+          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId),
           modelBaseStateData: ParticipantModelBaseStateData[PD, CD, M]
         ) if modelBaseStateData.services.isEmpty =>
       /* An activity start trigger is sent and no data is awaited (neither secondary nor primary). Therefore go straight
@@ -167,7 +166,7 @@ abstract class ParticipantAgent[
       )
 
     case Event(
-          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId, _),
+          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId),
           modelBaseStateData: ParticipantModelBaseStateData[PD, CD, M]
         ) =>
       /* An activity start trigger is sent, but I'm not sure yet, if secondary data will arrive. Figure out, if someone
@@ -180,7 +179,7 @@ abstract class ParticipantAgent[
       )
 
     case Event(
-          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId, _),
+          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId),
           fromOutsideBaseStateData: FromOutsideBaseStateData[M, PD]
         ) =>
       /* An activity start trigger is sent, but I'm still expecting primary data. Go to HandleInformation and wait for
@@ -286,8 +285,7 @@ abstract class ParticipantAgent[
     case Event(
           TriggerWithIdMessage(
             ActivityStartTrigger(activationTick),
-            triggerId,
-            _
+            triggerId
           ),
           stateData: DataCollectionStateData[PD]
         ) =>
@@ -410,7 +408,7 @@ abstract class ParticipantAgent[
       stay()
 
     case Event(_: ProvisionMessage[_], _) |
-        Event(TriggerWithIdMessage(ActivityStartTrigger(_), _, _), _) =>
+        Event(TriggerWithIdMessage(ActivityStartTrigger(_), _), _) =>
       /* I got faced to new data, also I'm not ready to handle it, yet OR I got asked to do something else, while I'm
        * still busy, I will put it aside and answer it later */
       stash()

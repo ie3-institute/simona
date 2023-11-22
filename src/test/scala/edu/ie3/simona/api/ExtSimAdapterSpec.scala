@@ -13,9 +13,9 @@ import edu.ie3.simona.api.ExtSimAdapter.InitExtSimAdapter
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
-  Terminate,
+  ActivationMessage,
   TerminationCompleted,
-  ActivityStartTrigger => ExtActivityStartTrigger,
+  TerminationMessage,
   CompletionMessage => ExtCompletionMessage
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -31,10 +31,9 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.common.TestKitWithShutdown
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatest.prop.TableDrivenPropertyChecks._
 
 import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.jdk.OptionConverters.RichOption
 
 class ExtSimAdapterSpec
     extends TestKitWithShutdown(
@@ -70,8 +69,7 @@ class ExtSimAdapterSpec
               extData
             )
           ),
-          triggerId,
-          extSimAdapter
+          triggerId
         )
       )
 
@@ -79,11 +77,9 @@ class ExtSimAdapterSpec
         CompletionMessage(
           triggerId,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(INIT_SIM_TICK),
-                extSimAdapter
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(INIT_SIM_TICK),
+              extSimAdapter
             )
           )
         )
@@ -107,8 +103,7 @@ class ExtSimAdapterSpec
               extData
             )
           ),
-          1L,
-          extSimAdapter
+          1L
         )
       )
 
@@ -122,8 +117,7 @@ class ExtSimAdapterSpec
           ActivityStartTrigger(
             INIT_SIM_TICK
           ),
-          triggerId,
-          extSimAdapter
+          triggerId
         )
       )
 
@@ -133,7 +127,7 @@ class ExtSimAdapterSpec
         message = "No message received"
       )
       extData.receiveMessageQueue.size() shouldBe 1
-      extData.receiveMessageQueue.take() shouldBe new ExtActivityStartTrigger(
+      extData.receiveMessageQueue.take() shouldBe new ActivationMessage(
         INIT_SIM_TICK
       )
       scheduler.expectNoMessage()
@@ -142,7 +136,7 @@ class ExtSimAdapterSpec
       val nextTick = 900L
       extData.send(
         new ExtCompletionMessage(
-          List[java.lang.Long](nextTick).asJava
+          Option[java.lang.Long](nextTick).toJava
         )
       )
 
@@ -150,11 +144,9 @@ class ExtSimAdapterSpec
         CompletionMessage(
           triggerId,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(nextTick),
-                extSimAdapter
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(nextTick),
+              extSimAdapter
             )
           )
         )
@@ -177,8 +169,7 @@ class ExtSimAdapterSpec
               extData
             )
           ),
-          1L,
-          extSimAdapter
+          1L
         )
       )
 
@@ -193,8 +184,7 @@ class ExtSimAdapterSpec
           ActivityStartTrigger(
             tick
           ),
-          triggerId,
-          extSimAdapter
+          triggerId
         )
       )
 
@@ -236,8 +226,7 @@ class ExtSimAdapterSpec
                 extData
               )
             ),
-            1L,
-            extSimAdapter
+            1L
           )
         )
 
@@ -254,7 +243,9 @@ class ExtSimAdapterSpec
           message = "No message received"
         )
         extData.receiveMessageQueue.size() shouldBe 1
-        extData.receiveMessageQueue.take() shouldBe new Terminate(simSuccessful)
+        extData.receiveMessageQueue.take() shouldBe new TerminationMessage(
+          simSuccessful
+        )
 
         // up until now, extSimAdapter should still be running
         stopWatcher.expectNoMessage()

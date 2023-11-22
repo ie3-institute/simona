@@ -30,11 +30,12 @@ import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeExtSimAdapterTrigger,
   InitializeServiceTrigger
 }
-import edu.ie3.simona.scheduler.SimScheduler
+import edu.ie3.simona.scheduler.{Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
@@ -43,6 +44,7 @@ import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.util.TimeUtil
+import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters._
@@ -222,31 +224,54 @@ class SimonaStandaloneSetup(
     ExtSimSetupData(extSimAdapters, extDataServices.flatten)
   }
 
-  override def scheduler(
+  override def timeAdvancer(
       context: ActorContext,
-      runtimeEventListener: Seq[ActorRef]
-  ): ActorRef = context.simonaActorOf(
-    SimScheduler.props(
-      simonaConfig.simona.time,
-      runtimeEventListener,
-      simonaConfig.simona.time.stopOnFailedPowerFlow
+      simulation: ActorRef,
+      runtimeEventListener: akka.actor.typed.ActorRef[RuntimeEvent]
+  ): akka.actor.typed.ActorRef[SchedulerMessage] = {
+    val startDateTime = TimeUtil.withDefaults.toZonedDateTime(
+      simonaConfig.simona.time.startDateTime
     )
-  )
+    val endDateTime = TimeUtil.withDefaults.toZonedDateTime(
+      simonaConfig.simona.time.endDateTime
+    )
 
-  override def runtimeEventListener(context: ActorContext): Seq[ActorRef] = {
-    Seq(
-      context
-        .spawn(
-          RuntimeEventListener(
-            simonaConfig.simona.runtime.listener,
-            runtimeEventQueue,
-            startDateTimeString = simonaConfig.simona.time.startDateTime
-          ),
-          RuntimeEventListener.getClass.getSimpleName
-        )
-        .toClassic
+    context.spawn(
+      TimeAdvancer(
+        simulation,
+        Some(runtimeEventListener),
+        simonaConfig.simona.time.schedulerReadyCheckWindow,
+        endDateTime.toTick(startDateTime)
+      ),
+      TimeAdvancer.getClass.getSimpleName
     )
   }
+
+  override def scheduler(
+      context: ActorContext,
+      timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage]
+  ): ActorRef =
+    context
+      .spawn(
+        Scheduler(
+          timeAdvancer
+        ),
+        Scheduler.getClass.getSimpleName
+      )
+      .toClassic
+
+  override def runtimeEventListener(
+      context: ActorContext
+  ): akka.actor.typed.ActorRef[RuntimeEvent] =
+    context
+      .spawn(
+        RuntimeEventListener(
+          simonaConfig.simona.runtime.listener,
+          runtimeEventQueue,
+          startDateTimeString = simonaConfig.simona.time.startDateTime
+        ),
+        RuntimeEventListener.getClass.getSimpleName
+      )
 
   override def systemParticipantsListener(
       context: ActorContext

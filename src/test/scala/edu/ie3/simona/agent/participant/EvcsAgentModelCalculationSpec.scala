@@ -151,8 +151,7 @@ class EvcsAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          evcsAgent
+          triggerId
         )
       )
 
@@ -230,8 +229,7 @@ class EvcsAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          evcsAgent
+          triggerId
         )
       )
 
@@ -377,8 +375,7 @@ class EvcsAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          evcsAgent
+          triggerId
         )
       )
 
@@ -463,8 +460,7 @@ class EvcsAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          evcsAgent
+          initialiseTriggerId
         )
       )
 
@@ -519,8 +515,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1L,
-          evcsAgent
+          1L
         )
       )
 
@@ -596,8 +591,7 @@ class EvcsAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          evcsAgent
+          initialiseTriggerId
         )
       )
 
@@ -619,8 +613,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1L,
-          evcsAgent
+          1L
         )
       )
 
@@ -727,8 +720,7 @@ class EvcsAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          evcsAgent
+          initialiseTriggerId
         )
       )
 
@@ -790,8 +782,7 @@ class EvcsAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          evcsAgent
+          initialiseTriggerId
         )
       )
 
@@ -835,8 +826,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          4L,
-          evcsAgent
+          4L
         )
       )
       scheduler.expectMsg(CompletionMessage(4L))
@@ -891,8 +881,7 @@ class EvcsAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          evcsAgent
+          initialiseTriggerId
         )
       )
 
@@ -921,8 +910,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          3L,
-          evcsAgent
+          3L
         )
       )
       scheduler.expectMsg(CompletionMessage(3L))
@@ -958,8 +946,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(3600L),
-          4L,
-          evcsAgent
+          4L
         )
       )
       scheduler.expectMsg(CompletionMessage(4L))
@@ -996,8 +983,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(7200L),
-          5L,
-          evcsAgent
+          5L
         )
       )
 
