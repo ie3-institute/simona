@@ -71,7 +71,7 @@ class ParticipantAgentFundamentalsSpec
     )
 
   /* Get one instance of the mock for participant agent */
-  val mockAgentTestRef: TestFSMRef[AgentState, ParticipantStateData[
+  private val mockAgentTestRef: TestFSMRef[AgentState, ParticipantStateData[
     ApparentPower
   ], ParticipantAgentMock] =
     TestFSMRef(
@@ -81,7 +81,7 @@ class ParticipantAgentFundamentalsSpec
     )
   val mockAgent: ParticipantAgentMock = mockAgentTestRef.underlyingActor
 
-  val powerValues: Map[Long, ApparentPower] =
+  private val powerValues: Map[Long, ApparentPower] =
     Map(
       0L -> ApparentPower(
         Megawatts(1.0),
@@ -118,7 +118,7 @@ class ParticipantAgentFundamentalsSpec
     )
 
   /* Calculates the reactive power as the square of the active power */
-  val activeToReactivePowerFuncOpt: Option[
+  private val activeToReactivePowerFuncOpt: Option[
     PartialFunction[squants.Power, ReactivePower]
   ] =
     Some(
@@ -248,20 +248,11 @@ class ParticipantAgentFundamentalsSpec
       )
 
       mockAgent.popNextActivationTrigger(baseStateData) match {
-        case (Some(activationSeq), actualBaseStateData) =>
-          /* There is exactly one activation trigger for tick 0 */
-          activationSeq.size shouldBe 1
-          activationSeq.headOption match {
-            case Some(
-                  ScheduleTriggerMessage(
-                    ActivityStartTrigger(tick),
-                    actorToBeScheduled
-                  )
-                ) =>
-              tick shouldBe 0L
-              actorToBeScheduled shouldBe mockAgentTestRef
-            case _ => fail("Sequence of activation triggers has wrong content.")
-          }
+        case (Some(activation), actualBaseStateData) =>
+          activation shouldBe ScheduleTriggerMessage(
+            ActivityStartTrigger(0L),
+            mockAgentTestRef
+          )
           /* Base state data haven't changed */
           actualBaseStateData shouldBe baseStateData
         case _ =>
@@ -279,20 +270,11 @@ class ParticipantAgentFundamentalsSpec
       )
 
       mockAgent.popNextActivationTrigger(baseStateData) match {
-        case (Some(activationSeq), actualBaseStateData) =>
-          /* There is exactly one activation trigger for tick 1 */
-          activationSeq.size shouldBe 1
-          activationSeq.headOption match {
-            case Some(
-                  ScheduleTriggerMessage(
-                    ActivityStartTrigger(tick),
-                    actorToBeScheduled
-                  )
-                ) =>
-              tick shouldBe 0L
-              actorToBeScheduled shouldBe mockAgentTestRef
-            case _ => fail("Sequence of activation triggers has wrong content.")
-          }
+        case (Some(activation), actualBaseStateData) =>
+          activation shouldBe ScheduleTriggerMessage(
+            ActivityStartTrigger(0L),
+            mockAgentTestRef
+          )
           /* Additional activation tick has been popped from base state data */
           actualBaseStateData.additionalActivationTicks.corresponds(
             Array(10L, 20L)
@@ -313,20 +295,11 @@ class ParticipantAgentFundamentalsSpec
       )
 
       mockAgent.popNextActivationTrigger(baseStateData) match {
-        case (Some(activationSeq), actualBaseStateData) =>
-          /* There is exactly one activation trigger for tick 1 */
-          activationSeq.size shouldBe 1
-          activationSeq.headOption match {
-            case Some(
-                  ScheduleTriggerMessage(
-                    ActivityStartTrigger(tick),
-                    actorToBeScheduled
-                  )
-                ) =>
-              tick shouldBe 0L
-              actorToBeScheduled shouldBe mockAgentTestRef
-            case _ => fail("Sequence of activation triggers has wrong content.")
-          }
+        case (Some(activation), actualBaseStateData) =>
+          activation shouldBe ScheduleTriggerMessage(
+            ActivityStartTrigger(0L),
+            mockAgentTestRef
+          )
           /* Additional activation tick has been popped from base state data */
           actualBaseStateData.additionalActivationTicks.corresponds(
             Array(10L, 20L)

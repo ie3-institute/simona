@@ -6,6 +6,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add safety factor sRated calculation [#629](https://github.com/ie3-institute/simona/issues/629)
+- Re-implemented ResultEventListener in akka typed [#343](https://github.com/ie3-institute/simona/issues/343)
+- Add additional test cases from references for PvModelTest [#590](https://github.com/ie3-institute/simona/issues/590)
+
+
+### Changed
+- Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
+- Improved initialization of weather based agents [#145](https://github.com/ie3-institute/simona/issues/145)
+- Changed from ComparableQuantity to squants fast and typesafe calculations [#490](https://github.com/ie3-institute/simona/issues/490)
+- Changed from ComparableQuantity to squants in power flow [#554](https://github.com/ie3-institute/simona/issues/554)
+- Reduce log level on missing diffuse irradiance [#629](https://github.com/ie3-institute/simona/issues/629)
+- Updated to gradle 8.4 [#648](https://github.com/ie3-institute/simona/issues/648)
+- Introducing new scheduling infrastructure:
+  - Two-parted scheduler in akka typed [#378](https://github.com/ie3-institute/simona/issues/378)
+  - Adapting to simonaAPI 0.3.0 (adapted message protocol)
+- Respect for scaling factor when simulating the system participants [#81](https://github.com/ie3-institute/simona/issues/81)
+
+
 ## [3.0.0] - 2023-08-07
 
 ### Added
@@ -20,7 +39,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Check for grid validity with PSDM `ValidationUtils` [#460](https://github.com/ie3-institute/simona/issues/460)
 - Enhancing dev's guide [#363](https://github.com/ie3-institute/simona/issues/363)
 - Support PF calculation with closed switches [#474](https://github.com/ie3-institute/simona/issues/474)
-- Add safety factor sRated calculation [#629](https://github.com/ie3-institute/simona/issues/629)
 
 ### Changed
 - Re-organizing test resources into their respective packages [#105](https://github.com/ie3-institute/simona/issues/105)
@@ -68,12 +86,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed format of example grid `vn_simona` [#216](https://github.com/ie3-institute/simona/issues/216)
 - Renamed ChpData to ChpRelevantData [#494](https://github.com/ie3-institute/simona/issues/494)
 - Updated gradle to 8.2.1, cleaned up `build.gradle` and `Jenkinsfile` [#572](https://github.com/ie3-institute/simona/issues/572)
-- Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
-- Improved initialization of weather based agents [#145](https://github.com/ie3-institute/simona/issues/145)
-- Changed from ComparableQuantity to squants fast and typesafe calculations [#490](https://github.com/ie3-institute/simona/issues/490)
-- Changed from ComparableQuantity to squants in power flow [#554](https://github.com/ie3-institute/simona/issues/554)
-- Reduce log level on missing diffuse irradiance [#629](https://github.com/ie3-institute/simona/issues/629)
-- Respect for scaling factor when simulating the system participants [#81](https://github.com/ie3-institute/simona/issues/81)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)

@@ -17,23 +17,21 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 
-import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.OptionConverters.RichOptional
 
 object ExtMessageUtils {
   implicit class RichExtCompletion(
       private val extCompl: ExtCompletionMessage
   ) {
     def toSimona(triggerId: Long, triggerActor: ActorRef): CompletionMessage = {
-      val newTriggers =
-        Option.when(!extCompl.newTriggers.isEmpty) {
-          extCompl.newTriggers.asScala.map { tick =>
-            ScheduleTriggerMessage(ActivityStartTrigger(tick), triggerActor)
-          }.toSeq
+      val newTrigger =
+        extCompl.nextActivation.toScala.map { tick =>
+          ScheduleTriggerMessage(ActivityStartTrigger(tick), triggerActor)
         }
 
       CompletionMessage(
         triggerId,
-        newTriggers
+        newTrigger
       )
     }
   }
