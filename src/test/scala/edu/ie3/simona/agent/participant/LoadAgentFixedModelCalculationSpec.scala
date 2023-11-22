@@ -151,8 +151,7 @@ class LoadAgentFixedModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          loadAgent
+          triggerId
         )
       )
 
@@ -193,9 +192,7 @@ class LoadAgentFixedModelCalculationSpec
         CompletionMessage(
           triggerId,
           Some(
-            List(
-              ScheduleTriggerMessage(ActivityStartTrigger(0L), loadAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(0L), loadAgent)
           )
         )
       )
@@ -275,8 +272,7 @@ class LoadAgentFixedModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          loadAgent
+          triggerId
         )
       )
 
@@ -355,8 +351,7 @@ class LoadAgentFixedModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          loadAgent
+          initialiseTriggerId
         )
       )
 
@@ -374,8 +369,7 @@ class LoadAgentFixedModelCalculationSpec
         loadAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          activityStartTriggerId,
-          loadAgent
+          activityStartTriggerId
         )
       )
 
@@ -442,8 +436,7 @@ class LoadAgentFixedModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0L,
-          loadAgent
+          0L
         )
       )
 
@@ -454,7 +447,7 @@ class LoadAgentFixedModelCalculationSpec
       /* Trigger the data generation in tick 0 */
       scheduler.send(
         loadAgent,
-        TriggerWithIdMessage(ActivityStartTrigger(0L), 1L, loadAgent)
+        TriggerWithIdMessage(ActivityStartTrigger(0L), 1L)
       )
 
       /* Appreciate the existence of two CompletionMessages */
@@ -514,8 +507,7 @@ class LoadAgentFixedModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0L,
-          loadAgent
+          0L
         )
       )
 
@@ -526,7 +518,7 @@ class LoadAgentFixedModelCalculationSpec
       /* Trigger the data generation in tick 0 */
       scheduler.send(
         loadAgent,
-        TriggerWithIdMessage(ActivityStartTrigger(0L), 1, loadAgent)
+        TriggerWithIdMessage(ActivityStartTrigger(0L), 1)
       )
 
       /* Appreciate the existence of two CompletionMessages */

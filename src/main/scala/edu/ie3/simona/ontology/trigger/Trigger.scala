@@ -13,7 +13,7 @@ import edu.ie3.simona.api.ExtSimAdapter.InitExtSimAdapter
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.util.SimonaConstants
 
-sealed trait Trigger {
+trait Trigger {
   def tick: Long
 }
 
@@ -64,7 +64,7 @@ object Trigger {
   ) extends InitializeTrigger
 
   /** Trigger to start a general activity e.g. reactivate the actor. May only be
-    * sent by SimScheduler
+    * sent by [[edu.ie3.simona.scheduler.Scheduler]]
     */
   final case class ActivityStartTrigger(tick: Long) extends Trigger
 
