@@ -23,9 +23,9 @@ import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import java.util.UUID
 
 /** Simple lock that can be placed on a [[Scheduler]], which means that the
-  * scheduler cannot complete the tick that the lock was scheduled for,
-  * until the lock has been dissolved. For example, when scheduling activations
-  * of some actors, we need to prevent simulation time from advancing until
+  * scheduler cannot complete the tick that the lock was scheduled for, until
+  * the lock has been dissolved. For example, when scheduling activations of
+  * some actors, we need to prevent simulation time from advancing until
   * scheduling all of them has finished. Locks with one or multiple keys can be
   * created, for which all created keys are required for unlocking the lock.
   */
