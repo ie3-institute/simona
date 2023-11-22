@@ -51,7 +51,7 @@ object RefSystemParser {
     *   RefSystems
     */
   def parse(
-      configRefSystems: List[SimonaConfig.RefSystemConfig]
+      configRefSystems: Seq[SimonaConfig.RefSystemConfig]
   ): ConfigRefSystems = {
 
     // units for parsing are not initialized by default
@@ -101,7 +101,7 @@ object RefSystemParser {
 
     // check for duplicates of gridIds and voltLevels which will be the key for the following map conversion
     if (
-      CollectionUtils.listHasDuplicates(
+      CollectionUtils.seqHasDuplicates(
         gridIdRefSystems.map { case (gridId, _) => gridId }
       )
     )
@@ -110,7 +110,7 @@ object RefSystemParser {
           s"Please check if there are either duplicate entries or overlapping ranges!"
       )
     if (
-      CollectionUtils.listHasDuplicates(
+      CollectionUtils.seqHasDuplicates(
         voltLvlRefSystems.map { case (voltLvl, _) => voltLvl }
       )
     )

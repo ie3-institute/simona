@@ -25,10 +25,10 @@ import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
   WeatherSource => PsdmWeatherSource
 }
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
+import edu.ie3.simona.config.IoConfigUtils.{
   CouchbaseParams,
   InfluxDb1xParams,
-  SqlParams
+  BaseSqlParams
 }
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
@@ -49,7 +49,6 @@ import tech.units.indriya.ComparableQuantity
 import java.nio.file.Path
 import java.time.ZonedDateTime
 import javax.measure.quantity.Length
-
 import scala.jdk.CollectionConverters.{IterableHasAsJava, MapHasAsScala}
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
@@ -286,7 +285,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
   }
 
   def apply(
-      sqlParams: SqlParams,
+      sqlParams: BaseSqlParams,
       idCoordinateSourceFunction: () => IdCoordinateSource,
       timestampPattern: Option[String],
       scheme: String,

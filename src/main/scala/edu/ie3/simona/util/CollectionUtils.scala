@@ -14,73 +14,73 @@ import scala.math.Ordering.Double
 
 object CollectionUtils {
 
-  /** fast implementation to test if a list contains duplicates. See
+  /** fast implementation to test if a seq contains duplicates. See
     * https://stackoverflow.com/questions/3871491/functional-programming-does-a-list-only-contain-unique-items
     * for details
     *
-    * @param list
-    *   List to check
+    * @param seq
+    *   Sist to check
     * @tparam T
     *   Generic type of the entries in the list
     * @return
     *   true, if list contains duplicates, false otherwise
     */
-  def listHasDuplicates[T](list: List[T]): Boolean =
-    !isUniqueList(list, new HashSet[T])
+  def seqHasDuplicates[T](seq: Seq[T]): Boolean =
+    !isUniqueSeq(seq, new HashSet[T])
 
-  /** Checks, if the given list only contains unique entries. Found at <a
+  /** Checks, if the given seq only contains unique entries. Found at <a
     * href="https://stackoverflow.com/questions/3871491/functional-programming-does-a-list-only-contain-unique-items">
     * Alexey Romanov's StackOverFlow post</a>.
     *
     * @param list
-    *   List to check
+    *   Seq to check
     * @tparam T
     *   Generic type of the entries in the list
     * @return
     *   true, if all entries are unique, false if not
     */
-  def isUniqueList[T](list: List[T]): Boolean =
-    isUniqueList(list, new HashSet[T]())
+  def isUniqueSeq[T](list: Seq[T]): Boolean =
+    isUniqueSeq(list, new HashSet[T]())
 
-  /** Recursively adds the entries of the list to a set and returns false as
-    * fast as it finds a duplicate entry. Found at <a
+  /** Recursively adds the entries of the seq to a set and returns false as fast
+    * as it finds a duplicate entry. Found at <a
     * href="https://stackoverflow.com/questions/3871491/functional-programming-does-a-list-only-contain-unique-items">
     * Alexey Romanov's StackOverFlow post</a>.
     *
-    * @param list
-    *   List to check
+    * @param seq
+    *   Seq to check
     * @param set
     *   Set of already visited entries
     * @tparam T
-    *   Generic type of the entries in the list
+    *   Generic type of the entries in the seq
     * @return
     *   true, if all entries have been traveled and no duplicate found, false,
     *   if duplicate has been found
     */
   @tailrec
-  private def isUniqueList[T](list: List[T], set: Set[T]): Boolean =
-    list match {
+  private def isUniqueSeq[T](seq: Seq[T], set: Set[T]): Boolean =
+    seq match {
       case Nil => true
       case headEntry :: tailList =>
-        if (set(headEntry)) false else isUniqueList(tailList, set + headEntry)
+        if (set(headEntry)) false else isUniqueSeq(tailList, set + headEntry)
     }
 
-  /** Checks if the provided list is sorted in accordance to the provided
+  /** Checks if the provided seq is sorted in accordance to the provided
     * ordering
     *
-    * @param list
-    *   the list to be checked
+    * @param seq
+    *   the seq to be checked
     * @param ord
     *   the order
     * @tparam T
     *   element type
     * @return
-    *   true if the list is sorted according to the provided order, false
+    *   true if the seq is sorted according to the provided order, false
     *   otherwise
     */
   @tailrec
-  def isSorted[T](list: List[T])(implicit ord: Ordering[T]): Boolean =
-    list match {
+  def isSorted[T](seq: Seq[T])(implicit ord: Ordering[T]): Boolean =
+    seq match {
       case Nil      => true // an empty list is sorted
       case _ :: Nil => true // a single-element list is sorted
       case x :: xs :: tail =>

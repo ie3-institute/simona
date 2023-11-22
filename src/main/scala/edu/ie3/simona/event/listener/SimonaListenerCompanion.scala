@@ -14,6 +14,6 @@ import scala.reflect.ClassTag
   */
 trait SimonaListenerCompanion {
   def props[A <: SimonaListenerWithFilter: ClassTag](
-      eventsToProcess: Option[List[String]] = None
+      eventsToProcess: Option[Seq[String]] = None
   ): Props
 }

@@ -7,21 +7,13 @@
 package edu.ie3.simona.util
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.io.connectors.{
-  CouchbaseConnector,
-  InfluxDbConnector,
-  SqlConnector
-}
-import edu.ie3.datamodel.models.result.connector.{
-  LineResult,
-  SwitchResult,
-  Transformer2WResult,
-  Transformer3WResult
-}
+import edu.ie3.datamodel.io.connectors.{CouchbaseConnector, InfluxDbConnector, SqlConnector}
+import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult, Transformer3WResult}
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.SqlParams
-import edu.ie3.simona.config.SimonaConfig._
+import edu.ie3.simona.config.IoConfigUtils.{BaseCsvParams, BaseKafkaParams, CouchbaseParams, CsvParams, BaseSqlParams}
+import edu.ie3.simona.config.OutputConfig.{GridOutputConfig, ParticipantOutputConfig}
+import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, RuntimeParticipantsConfig}
+import edu.ie3.simona.config.OutputConfig
 import edu.ie3.simona.event.notifier.{Notifier, ParticipantNotifierConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import org.apache.kafka.clients.admin.AdminClient
@@ -38,7 +30,7 @@ import scala.util.{Failure, Success, Try, Using}
 object ConfigUtil {
 
   final case class ParticipantConfigUtil private (
-      private val configs: Map[UUID, SimonaConfig.BaseRuntimeConfig],
+      private val configs: Map[UUID, BaseRuntimeConfig],
       private val defaultConfigs: Map[Class[_], BaseRuntimeConfig]
   ) {
 
@@ -80,25 +72,20 @@ object ConfigUtil {
       *   a matching config utility
       */
     def apply(
-        subConfig: SimonaConfig.Simona.Runtime.Participant
+        subConfig: RuntimeParticipantsConfig
     ): ParticipantConfigUtil = {
-      ParticipantConfigUtil(
+      val default: Map[Class[_], BaseRuntimeConfig] =
+        subConfig.asSeq
+          .map(_.defaultConfig)
+          .map { conf => conf.getClass -> conf }
+          .toMap
+      val individual =
         buildUuidMapping(
-          Seq(
-            subConfig.load.individualConfigs,
-            subConfig.fixedFeedIn.individualConfigs,
-            subConfig.pv.individualConfigs,
-            subConfig.evcs.individualConfigs,
-            subConfig.wec.individualConfigs
-          ).reduceOption(_ ++ _).getOrElse(Seq.empty)
-        ),
-        Seq(
-          subConfig.load.defaultConfig,
-          subConfig.fixedFeedIn.defaultConfig,
-          subConfig.pv.defaultConfig,
-          subConfig.evcs.defaultConfig,
-          subConfig.wec.defaultConfig
-        ).map { conf => conf.getClass -> conf }.toMap
+          subConfig.asSeq.flatMap(_.individualConfigs)
+        )
+      ParticipantConfigUtil(
+        individual,
+        default
       )
     }
 
@@ -172,14 +159,22 @@ object ConfigUtil {
 
   object BaseOutputConfigUtil {
     def apply(
-        subConfig: SimonaConfig.Simona.Output.Participant
+        subConfig: ParticipantOutputConfig
     ): BaseOutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
-        case BaseOutputConfig(_, powerRequestReply, simulationResult) =>
+        case OutputConfig.BaseOutputConfig(
+              _,
+              powerRequestReply,
+              simulationResult
+            ) =>
           ParticipantNotifierConfig(simulationResult, powerRequestReply)
       }
       val configMap = subConfig.individualConfigs.map {
-        case BaseOutputConfig(notifier, powerRequestReply, simulationResult) =>
+        case OutputConfig.BaseOutputConfig(
+              notifier,
+              powerRequestReply,
+              simulationResult
+            ) =>
           try {
             val id = NotifierIdentifier(notifier)
             id -> ParticipantNotifierConfig(simulationResult, powerRequestReply)
@@ -247,10 +242,10 @@ object ConfigUtil {
       *   descriptive exception messages)
       */
     def checkBaseCsvParams(
-        params: SimonaConfig.BaseCsvParams,
+        params: CsvParams,
         csvParamsName: String
     ): Unit = params match {
-      case BaseCsvParams(csvSep, directoryPath, _) =>
+      case BaseCsvParams(directoryPath, csvSep) =>
         if (!(csvSep.equals(";") || csvSep.equals(",")))
           throw new InvalidConfigParameterException(
             s"The csvSep parameter '$csvSep' for '$csvParamsName' configuration is invalid! Please choose between ';' or ','!"
@@ -287,7 +282,7 @@ object ConfigUtil {
   object DatabaseConfigUtil extends LazyLogging {
 
     def checkSqlParams(
-        sql: edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.SqlParams
+        sql: BaseSqlParams
     ): Unit = {
       if (!sql.jdbcUrl.trim.startsWith("jdbc:")) {
         throw new InvalidConfigParameterException(
@@ -339,7 +334,7 @@ object ConfigUtil {
     }
 
     def checkCouchbaseParams(
-        couchbase: edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.CouchbaseParams
+        couchbase: CouchbaseParams
     ): Unit = {
       if (couchbase.url.isEmpty)
         throw new InvalidConfigParameterException(
@@ -417,7 +412,7 @@ object ConfigUtil {
     }
 
     def checkKafkaParams(
-        kafkaParams: KafkaParams,
+        kafkaParams: BaseKafkaParams,
         topics: Seq[String]
     ): Unit = {
       try {

@@ -40,6 +40,7 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   Calculate,
   HandleInformation
 }
+import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
@@ -71,7 +72,7 @@ import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
 import squants.energy.Megawatts
-import squants.{Power, Dimensionless, Each}
+import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -87,7 +88,7 @@ protected trait ParticipantAgentFundamentals[
     CD <: CalcRelevantData,
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
-    MC <: SimonaConfig.BaseRuntimeConfig,
+    MC <: BaseRuntimeConfig,
     M <: SystemParticipant[CD]
 ] extends ServiceRegistration[PD, CD, D, I, MC, M] {
   this: ParticipantAgent[PD, CD, D, I, MC, M] =>

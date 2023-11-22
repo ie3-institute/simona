@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
-import java.time.Duration
+import scala.concurrent.duration.Duration
 
 /** Holds all power flow configuration parameters used in
   * [[edu.ie3.simona.agent.grid]]

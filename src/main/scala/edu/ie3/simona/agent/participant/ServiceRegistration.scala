@@ -17,6 +17,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorWeatherService
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
@@ -28,7 +29,7 @@ trait ServiceRegistration[
     CD <: CalcRelevantData,
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
-    MC <: SimonaConfig.BaseRuntimeConfig,
+    MC <: BaseRuntimeConfig,
     M <: SystemParticipant[CD]
 ] {
   this: ParticipantAgent[PD, CD, D, I, MC, M] =>

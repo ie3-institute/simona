@@ -63,12 +63,10 @@ class GridAgent(
     with Stash {
 
   // val initialization
-  protected val resolution: Long = simonaConfig.simona.powerflow.resolution.get(
-    ChronoUnit.SECONDS
-  ) // this determines the agents regular time bin it wants to be triggered e.g one hour
+  protected val resolution: Long = simonaConfig.powerflow.resolution.toSeconds
 
   protected val simStartTime: ZonedDateTime = TimeUtil.withDefaults
-    .toZonedDateTime(simonaConfig.simona.time.startDateTime)
+    .toZonedDateTime(simonaConfig.time.startDateTime)
 
   private val gridAgentController =
     new GridAgentController(
@@ -76,9 +74,9 @@ class GridAgent(
       environmentRefs,
       simStartTime,
       TimeUtil.withDefaults
-        .toZonedDateTime(simonaConfig.simona.time.endDateTime),
-      simonaConfig.simona.runtime.participant,
-      simonaConfig.simona.output.participant,
+        .toZonedDateTime(simonaConfig.time.endDateTime),
+      simonaConfig.runtime.participant,
+      simonaConfig.output.participant,
       resolution,
       listener,
       log
@@ -134,9 +132,9 @@ class GridAgent(
         subGridContainer,
         refSystem,
         TimeUtil.withDefaults
-          .toZonedDateTime(simonaConfig.simona.time.startDateTime),
+          .toZonedDateTime(simonaConfig.time.startDateTime),
         TimeUtil.withDefaults.toZonedDateTime(
-          simonaConfig.simona.time.endDateTime
+          simonaConfig.time.endDateTime
         )
       )
 
@@ -163,10 +161,10 @@ class GridAgent(
         gridAgentInitData.superiorGridNodeUuids,
         gridAgentInitData.inferiorGridGates,
         PowerFlowParams(
-          simonaConfig.simona.powerflow.maxSweepPowerDeviation,
-          simonaConfig.simona.powerflow.newtonraphson.epsilon.toVector.sorted,
-          simonaConfig.simona.powerflow.newtonraphson.iterations,
-          simonaConfig.simona.powerflow.sweepTimeout
+          simonaConfig.powerflow.maxSweepPowerDeviation,
+          simonaConfig.powerflow.newtonraphson.epsilon.toVector.sorted,
+          simonaConfig.powerflow.newtonraphson.iterations,
+          simonaConfig.powerflow.sweepTimeOut
         ),
         log,
         actorName

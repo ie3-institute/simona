@@ -18,32 +18,17 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
-import edu.ie3.simona.agent.grid.GridAgentData.{
-  GridAgentBaseData,
-  PowerFlowDoneData
-}
+import edu.ie3.simona.agent.grid.GridAgentData.{GridAgentBaseData, PowerFlowDoneData}
 import edu.ie3.simona.agent.grid.ReceivedValues._
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
-import edu.ie3.simona.agent.state.GridAgentState.{
-  CheckPowerDifferences,
-  HandlePowerFlowCalculations,
-  SimulateGrid
-}
+import edu.ie3.simona.agent.state.GridAgentState.{CheckPowerDifferences, HandlePowerFlowCalculations, SimulateGrid}
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
 import edu.ie3.simona.ontology.messages.PowerMessage._
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  PowerFlowFailedMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, PowerFlowFailedMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import edu.ie3.simona.ontology.messages.VoltageMessage.{
-  ProvideSlackVoltageMessage,
-  RequestSlackVoltageMessage
-}
+import edu.ie3.simona.ontology.messages.VoltageMessage.{ProvideSlackVoltageMessage, RequestSlackVoltageMessage}
 import edu.ie3.simona.ontology.trigger.Trigger._
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
@@ -52,9 +37,11 @@ import squants.Each
 import squants.energy.Megawatts
 import tech.units.indriya.quantity.Quantities
 
-import java.time.{Duration, ZonedDateTime}
+import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.ElectricPotential
+import scala.concurrent.duration.Duration
+import java.time.{Duration => JavaDuration}
 import scala.concurrent.{ExecutionContext, Future}
 
 /** Trait that is normally mixed into every [[GridAgent]] to enable distributed
@@ -1076,7 +1063,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       askTimeout: Duration
   ): Option[Future[ReceivedPowerValues]] = {
 
-    implicit val timeout: AkkaTimeout = AkkaTimeout.create(askTimeout)
+    implicit val timeout: AkkaTimeout = AkkaTimeout.create(JavaDuration.ofSeconds(askTimeout.toSeconds))
 
     log.debug(s"asking assets for power values: {}", nodeToAssetAgents)
 
@@ -1152,7 +1139,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       inferiorGridGates: Seq[SubGridGate],
       askTimeout: Duration
   ): Option[Future[ReceivedPowerValues]] = {
-    implicit val timeout: AkkaTimeout = AkkaTimeout.create(askTimeout)
+    implicit val timeout: AkkaTimeout = AkkaTimeout.create(JavaDuration.ofSeconds(askTimeout.toSeconds))
     log.debug(
       s"asking inferior grids for power values: {}",
       inferiorGridGates
@@ -1211,7 +1198,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       superiorGridGates: Vector[SubGridGate],
       askTimeout: Duration
   ): Option[Future[ReceivedSlackVoltageValues]] = {
-    implicit val timeout: AkkaTimeout = AkkaTimeout.create(askTimeout)
+    implicit val timeout: AkkaTimeout = AkkaTimeout.create(JavaDuration.ofSeconds(askTimeout.toSeconds))
     log.debug(
       s"asking superior grids for slack voltage values: {}",
       superiorGridGates

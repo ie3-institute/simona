@@ -67,14 +67,14 @@ class SimonaStandaloneSetup(
     /* get the grid */
     val subGridTopologyGraph = GridProvider
       .gridFromConfig(
-        simonaConfig.simona.simulationName,
-        simonaConfig.simona.input.grid.datasource
+        simonaConfig.simulationName,
+        simonaConfig.input.grid.datasource
       )
       .getSubGridTopologyGraph
 
     /* extract and prepare refSystem information from config */
     val configRefSystems =
-      RefSystemParser.parse(simonaConfig.simona.gridConfig.refSystems)
+      RefSystemParser.parse(simonaConfig.gridConfig.refSystems)
 
     /* Create all agents and map the sub grid id to their actor references */
     val subGridToActorRefMap = buildSubGridToActorRefMap(
@@ -123,7 +123,7 @@ class SimonaStandaloneSetup(
       scheduler: ActorRef
   ): (ActorRef, PrimaryServiceProxy.InitPrimaryServiceProxyStateData) = {
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
-      simonaConfig.simona.time.startDateTime
+      simonaConfig.time.startDateTime
     )
     (
       context.simonaActorOf(
@@ -133,7 +133,7 @@ class SimonaStandaloneSetup(
         )
       ),
       InitPrimaryServiceProxyStateData(
-        simonaConfig.simona.input.primary,
+        simonaConfig.input.primary,
         simulationStart
       )
     )
@@ -148,13 +148,13 @@ class SimonaStandaloneSetup(
         WeatherService.props(
           scheduler,
           TimeUtil.withDefaults
-            .toZonedDateTime(simonaConfig.simona.time.startDateTime),
+            .toZonedDateTime(simonaConfig.time.startDateTime),
           TimeUtil.withDefaults
-            .toZonedDateTime(simonaConfig.simona.time.endDateTime)
+            .toZonedDateTime(simonaConfig.time.endDateTime)
         )
       ),
       InitWeatherServiceStateData(
-        simonaConfig.simona.input.weather.datasource
+        simonaConfig.input.weather.datasource
       )
     )
 
@@ -218,9 +218,9 @@ class SimonaStandaloneSetup(
       runtimeEventListener: Seq[ActorRef]
   ): ActorRef = context.simonaActorOf(
     SimScheduler.props(
-      simonaConfig.simona.time,
+      simonaConfig.time,
       runtimeEventListener,
-      simonaConfig.simona.time.stopOnFailedPowerFlow
+      simonaConfig.time.stopOnFailedPowerFlow
     )
   )
 
@@ -229,9 +229,9 @@ class SimonaStandaloneSetup(
       context
         .spawn(
           RuntimeEventListener(
-            simonaConfig.simona.runtime.listener,
+            simonaConfig.runtime.listener,
             runtimeEventQueue,
-            startDateTimeString = simonaConfig.simona.time.startDateTime
+            startDateTimeString = simonaConfig.time.startDateTime
           ),
           RuntimeEventListener.getClass.getSimpleName
         )
@@ -244,7 +244,7 @@ class SimonaStandaloneSetup(
   ): Seq[ActorRef] = {
     // append ResultEventListener as well to write raw output files
     ArgsParser
-      .parseListenerConfigOption(simonaConfig.simona.event.listener)
+      .parseListenerConfigOption(simonaConfig.event.listener)
       .zipWithIndex
       .map { case ((listenerCompanion, events), index) =>
         context.simonaActorOf(
@@ -290,14 +290,15 @@ class SimonaStandaloneSetup(
 object SimonaStandaloneSetup extends LazyLogging with SetupHelper {
 
   def apply(
-      typeSafeConfig: Config,
+      simonaConfig: SimonaConfig,
+      tscfg: Config,
       resultFileHierarchy: ResultFileHierarchy,
       runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
       mainArgs: Array[String] = Array.empty[String]
   ): SimonaStandaloneSetup =
     new SimonaStandaloneSetup(
-      () => ActorSystem("simona", typeSafeConfig),
-      SimonaConfig(typeSafeConfig),
+      () => ActorSystem("simona", tscfg),
+      simonaConfig,
       resultFileHierarchy,
       runtimeEventQueue,
       mainArgs

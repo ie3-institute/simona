@@ -15,17 +15,16 @@ import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.utils.ContainerUtils
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.config.RefSystemParser.ConfigRefSystems
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.{OutputConfig, SimonaConfig}
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.model.grid.RefSystem
-import edu.ie3.simona.util.ConfigUtil.{
-  BaseOutputConfigUtil,
-  GridOutputConfigUtil
-}
+import edu.ie3.simona.util.ConfigUtil.{BaseOutputConfigUtil, GridOutputConfigUtil}
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.simona.util.{EntityMapperUtil, ResultFileHierarchy}
+
+import java.nio.file.Path
 
 /** Methods to support the setup of a simona simulation
   *
@@ -199,33 +198,32 @@ trait SetupHelper extends LazyLogging {
     *   the resulting result file hierarchy
     */
   def buildResultFileHierarchy(
-      config: TypesafeConfig,
+      tscfg: TypesafeConfig,
+      simonaConfig: SimonaConfig,
       createDirs: Boolean = true
   ): ResultFileHierarchy = {
 
-    val simonaConfig = SimonaConfig(config)
-
     /* Determine the result models to write */
     val modelsToWrite =
-      SetupHelper.allResultEntitiesToWrite(simonaConfig.simona.output)
+      SetupHelper.allResultEntitiesToWrite(simonaConfig.output)
 
     val resultFileHierarchy = ResultFileHierarchy(
-      simonaConfig.simona.output.base.dir,
-      simonaConfig.simona.simulationName,
+      simonaConfig.output.base.dir,
+      simonaConfig.simulationName,
       ResultEntityPathConfig(
         modelsToWrite,
         ResultSinkType(
-          simonaConfig.simona.output.sink,
-          simonaConfig.simona.simulationName
+          simonaConfig.output.sink,
+          simonaConfig.simulationName
         )
       ),
       addTimeStampToOutputDir =
-        simonaConfig.simona.output.base.addTimestampToOutputDir,
+        simonaConfig.output.base.addTimestampToOutputDir,
       createDirs = createDirs
     )
 
     // copy config data to output directory
-    ResultFileHierarchy.prepareDirectories(config, resultFileHierarchy)
+    ResultFileHierarchy.prepareDirectories(tscfg, resultFileHierarchy)
 
     resultFileHierarchy
   }
@@ -242,7 +240,7 @@ case object SetupHelper {
     *   Set of [[ResultEntity]] classes
     */
   def allResultEntitiesToWrite(
-      outputConfig: SimonaConfig.Simona.Output
+      outputConfig: OutputConfig
   ): Set[Class[_ <: ResultEntity]] =
     GridOutputConfigUtil(
       outputConfig.grid

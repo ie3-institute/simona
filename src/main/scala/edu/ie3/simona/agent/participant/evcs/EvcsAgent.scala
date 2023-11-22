@@ -21,7 +21,10 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.state.AgentState.Idle
-import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.{
+  RuntimeParticipantConfig,
+  SimpleRuntimeConfig
+}
 import edu.ie3.simona.model.participant.EvcsModel
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
 import edu.ie3.simona.ontology.messages.services.EvMessage.{
@@ -56,7 +59,7 @@ class EvcsAgent(
       EvcsRelevantData,
       ParticipantStateData[ApparentPower],
       EvcsInput,
-      EvcsRuntimeConfig,
+      SimpleRuntimeConfig,
       EvcsModel
     ](scheduler)
     with EvcsAgentFundamentals {

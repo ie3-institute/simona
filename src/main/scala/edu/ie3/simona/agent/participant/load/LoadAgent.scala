@@ -16,7 +16,7 @@ import edu.ie3.simona.agent.participant.load.LoadAgentFundamentals.{
   RandomLoadAgentFundamentals
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
-import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData

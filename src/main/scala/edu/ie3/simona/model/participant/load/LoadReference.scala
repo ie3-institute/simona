@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.participant.load
 
 import edu.ie3.datamodel.models.input.system.LoadInput
+import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.util.StringUtils
 import edu.ie3.util.quantities.PowerSystemUnits.{MEGAWATT, MEGAWATTHOUR}
@@ -61,7 +62,7 @@ case object LoadReference {
     */
   def apply(
       inputModel: LoadInput,
-      modelConfig: SimonaConfig.LoadRuntimeConfig
+      modelConfig: LoadRuntimeConfig
   ): LoadReference =
     StringUtils.cleanString(modelConfig.reference).toLowerCase match {
       case "power" =>

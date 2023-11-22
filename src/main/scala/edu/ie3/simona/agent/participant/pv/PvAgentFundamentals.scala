@@ -8,34 +8,21 @@ package edu.ie3.simona.agent.participant.pv
 
 import akka.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.PvInput
-import edu.ie3.datamodel.models.result.system.{
-  PvResult,
-  SystemParticipantResult
-}
+import edu.ie3.datamodel.models.result.system.{PvResult, SystemParticipantResult}
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ZERO_POWER
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ApparentPower, ZERO_POWER}
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.pv.PvAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
-import edu.ie3.simona.agent.participant.statedata.{
-  DataCollectionStateData,
-  ParticipantStateData
-}
+import edu.ie3.simona.agent.participant.statedata.{DataCollectionStateData, ParticipantStateData}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
-import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.exceptions.agent.{
-  AgentInitializationException,
-  InconsistentStateException,
-  InvalidRequestException
-}
+import edu.ie3.simona.exceptions.agent.{AgentInitializationException, InconsistentStateException, InvalidRequestException}
 import edu.ie3.simona.model.participant.PvModel
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
@@ -44,7 +31,7 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
-import squants.{Power, Each, Dimensionless}
+import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -57,7 +44,7 @@ protected trait PvAgentFundamentals
       PvRelevantData,
       ParticipantStateData[ApparentPower],
       PvInput,
-      PvRuntimeConfig,
+      SimpleRuntimeConfig,
       PvModel
     ] {
   this: PvAgent =>
@@ -91,7 +78,7 @@ protected trait PvAgentFundamentals
     */
   override def determineModelBaseStateData(
       inputModel: PvInput,
-      modelConfig: PvRuntimeConfig,
+      modelConfig: SimpleRuntimeConfig,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -145,7 +132,7 @@ protected trait PvAgentFundamentals
 
   override def buildModel(
       inputModel: PvInput,
-      modelConfig: PvRuntimeConfig,
+      modelConfig: SimpleRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
   ): PvModel = PvModel(

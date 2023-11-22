@@ -10,57 +10,23 @@ import akka.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
-import edu.ie3.datamodel.io.naming.{
-  DatabaseNamingStrategy,
-  EntityPersistenceNamingStrategy,
-  FileNamingStrategy
-}
-import edu.ie3.datamodel.io.source.csv.{
-  CsvTimeSeriesMappingSource,
-  CsvTimeSeriesMetaInformationSource
-}
-import edu.ie3.datamodel.io.source.sql.{
-  SqlTimeSeriesMappingSource,
-  SqlTimeSeriesMetaInformationSource
-}
-import edu.ie3.datamodel.io.source.{
-  TimeSeriesMappingSource,
-  TimeSeriesMetaInformationSource
-}
+import edu.ie3.datamodel.io.naming.{DatabaseNamingStrategy, EntityPersistenceNamingStrategy, FileNamingStrategy}
+import edu.ie3.datamodel.io.source.csv.{CsvTimeSeriesMappingSource, CsvTimeSeriesMetaInformationSource}
+import edu.ie3.datamodel.io.source.sql.{SqlTimeSeriesMappingSource, SqlTimeSeriesMetaInformationSource}
+import edu.ie3.datamodel.io.source.{TimeSeriesMappingSource, TimeSeriesMetaInformationSource}
 import edu.ie3.datamodel.models.value.Value
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
-  Primary => PrimaryConfig
-}
-import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
-import edu.ie3.simona.exceptions.{
-  InitializationException,
-  InvalidConfigParameterException
-}
+import edu.ie3.simona.config.InputConfig.PrimaryConfig
+import edu.ie3.simona.config.IoConfigUtils.{BaseSqlParams, PsdmCsvParams, TimeStampedDataCsvParams, TimeStampedSqlParams}
+import edu.ie3.simona.exceptions.{InitializationException, InvalidConfigParameterException}
 import edu.ie3.simona.logging.SimonaActorLogging
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  PrimaryServiceRegistrationMessage,
-  WorkerRegistrationMessage
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{PrimaryServiceRegistrationMessage, WorkerRegistrationMessage}
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
-  InitPrimaryServiceProxyStateData,
-  PrimaryServiceStateData,
-  SourceRef
-}
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
-  CsvInitPrimaryServiceStateData,
-  InitPrimaryServiceStateData,
-  SqlInitPrimaryServiceStateData
-}
+import edu.ie3.simona.service.primary.PrimaryServiceProxy.{InitPrimaryServiceProxyStateData, PrimaryServiceStateData, SourceRef}
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.{CsvInitPrimaryServiceStateData, InitPrimaryServiceStateData, SqlInitPrimaryServiceStateData}
 
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
@@ -192,7 +158,8 @@ case class PrimaryServiceProxy(
       primaryConfig.csvParams,
       primaryConfig.couchbaseParams
     ).filter(_.isDefined).flatten.headOption match {
-      case Some(PrimaryDataCsvParams(csvSep, directoryPath, _, _)) =>
+//      TODO: Do we need isHierarchic here ?
+      case Some(TimeStampedDataCsvParams(csvSep, directoryPath, _)) =>
         val fileNamingStrategy = new FileNamingStrategy()
         Success(
           new CsvTimeSeriesMappingSource(
@@ -206,7 +173,7 @@ case class PrimaryServiceProxy(
             fileNamingStrategy
           )
         )
-      case Some(sqlParams: SqlParams) =>
+      case Some(sqlParams: BaseSqlParams) =>
         val sqlConnector = new SqlConnector(
           sqlParams.jdbcUrl,
           sqlParams.userName,
@@ -414,8 +381,8 @@ case class PrimaryServiceProxy(
   ): Try[InitPrimaryServiceStateData] =
     primaryConfig match {
       case PrimaryConfig(
+            Some(TimeStampedDataCsvParams(csvSep, directoryPath, timePattern)),
             None,
-            Some(PrimaryDataCsvParams(csvSep, directoryPath, _, timePattern)),
             None,
             None
           ) =>
@@ -444,8 +411,8 @@ case class PrimaryServiceProxy(
       case PrimaryConfig(
             None,
             None,
+            Some(sqlParams: TimeStampedSqlParams),
             None,
-            Some(sqlParams: SqlParams)
           ) =>
         Success(
           SqlInitPrimaryServiceStateData(
@@ -590,11 +557,11 @@ object PrimaryServiceProxy {
       )
     else {
       sourceConfigs.headOption match {
-        case Some(csvParams: PrimaryDataCsvParams) =>
+        case Some(csvParams: TimeStampedDataCsvParams) =>
           // note: if inheritance is supported by tscfg,
           // the following method should be called for all different supported sources!
           checkTimePattern(csvParams.timePattern)
-        case Some(sqlParams: SqlParams) =>
+        case Some(sqlParams: TimeStampedSqlParams) =>
           checkTimePattern(sqlParams.timePattern)
         case Some(x) =>
           throw new InvalidConfigParameterException(

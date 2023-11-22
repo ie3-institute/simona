@@ -1,3 +1,9 @@
+/*
+ * © 2023. TU Dortmund University,
+ * Institute of Energy Systems, Energy Efficiency and Energy Economics,
+ * Research group Distribution grid planning and operation
+ */
+
 package edu.ie3.simona.config
 
 import edu.ie3.simona.config.IoConfigUtils.RuntimeKafkaParams
@@ -9,8 +15,8 @@ import scala.collection.immutable.Seq
 final case class RuntimeConfig(
     selectedSubgrids: Seq[Int],
     selectedVoltLvls: Seq[VoltLvlConfig],
-    listener: Option[RuntimeListenerConfig],
-    participant: RuntimeParticipantsConfig,
+    listener: RuntimeListenerConfig,
+    participant: RuntimeParticipantsConfig
 )
 
 object RuntimeConfig {
@@ -25,10 +31,20 @@ object RuntimeConfig {
       pv: RuntimeParticipantConfig[SimpleRuntimeConfig],
       fixedFeedIn: RuntimeParticipantConfig[SimpleRuntimeConfig],
       wec: RuntimeParticipantConfig[SimpleRuntimeConfig],
-      evcs: RuntimeParticipantConfig[SimpleRuntimeConfig],
-  )
+      evcs: RuntimeParticipantConfig[SimpleRuntimeConfig]
+  ) {
+    def asSeq: Seq[RuntimeParticipantConfig[_ <: BaseRuntimeConfig]] = {
+      Seq(
+        load,
+        pv,
+        fixedFeedIn,
+        wec,
+        evcs
+      )
+    }
+  }
 
-  final case class RuntimeParticipantConfig[T](
+  final case class RuntimeParticipantConfig[+T <: BaseRuntimeConfig](
       defaultConfig: T,
       individualConfigs: Seq[T]
   )
@@ -54,4 +70,3 @@ object RuntimeConfig {
   ) extends BaseRuntimeConfig
 
 }
-

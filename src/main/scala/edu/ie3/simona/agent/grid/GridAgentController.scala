@@ -25,13 +25,6 @@ import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.{
-  EvcsRuntimeConfig,
-  FixedFeedInRuntimeConfig,
-  LoadRuntimeConfig,
-  PvRuntimeConfig,
-  WecRuntimeConfig
-}
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
@@ -40,6 +33,13 @@ import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.config.OutputConfig.ParticipantOutputConfig
+import edu.ie3.simona.config.RuntimeConfig.{
+  BaseRuntimeConfig,
+  LoadRuntimeConfig,
+  RuntimeParticipantsConfig,
+  SimpleRuntimeConfig
+}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -73,8 +73,8 @@ class GridAgentController(
     environmentRefs: EnvironmentRefs,
     simulationStartDate: ZonedDateTime,
     simulationEndDate: ZonedDateTime,
-    participantsConfig: SimonaConfig.Simona.Runtime.Participant,
-    outputConfig: SimonaConfig.Simona.Output.Participant,
+    participantsConfig: RuntimeParticipantsConfig,
+    outputConfig: ParticipantOutputConfig,
     resolution: Long,
     listener: Iterable[ActorRef],
     log: LoggingAdapter
@@ -168,8 +168,8 @@ class GridAgentController(
     *   A map from coupling point to set of actor references
     */
   private def buildParticipantToActorRef(
-      participantsConfig: SimonaConfig.Simona.Runtime.Participant,
-      outputConfig: SimonaConfig.Simona.Output.Participant,
+      participantsConfig: RuntimeParticipantsConfig,
+      outputConfig: ParticipantOutputConfig,
       participants: Vector[SystemParticipantInput],
       environmentRefs: EnvironmentRefs
   ): Map[UUID, Set[ActorRef]] = {
@@ -214,14 +214,14 @@ class GridAgentController(
       ActorRef,
       ParticipantInitializeStateData[
         _ <: SystemParticipantInput,
-        _ <: SimonaConfig.BaseRuntimeConfig,
+        _ <: BaseRuntimeConfig,
         _ <: PrimaryData
       ]
   ) = participantInputModel match {
     case input: FixedFeedInInput =>
       buildFixedFeedIn(
         input,
-        participantConfigUtil.getOrDefault[FixedFeedInRuntimeConfig](
+        participantConfigUtil.getOrDefault[LoadRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -247,7 +247,7 @@ class GridAgentController(
     case input: PvInput =>
       buildPv(
         input,
-        participantConfigUtil.getOrDefault[PvRuntimeConfig](
+        participantConfigUtil.getOrDefault[SimpleRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -261,7 +261,7 @@ class GridAgentController(
     case input: WecInput =>
       buildWec(
         input,
-        participantConfigUtil.getOrDefault[WecRuntimeConfig](
+        participantConfigUtil.getOrDefault[SimpleRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -275,7 +275,7 @@ class GridAgentController(
     case input: EvcsInput =>
       buildEvcs(
         input,
-        participantConfigUtil.getOrDefault[EvcsRuntimeConfig](
+        participantConfigUtil.getOrDefault[SimpleRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -325,7 +325,7 @@ class GridAgentController(
     */
   private def buildFixedFeedIn(
       fixedFeedInInput: FixedFeedInInput,
-      modelConfiguration: FixedFeedInRuntimeConfig,
+      modelConfiguration: LoadRuntimeConfig,
       primaryServiceProxy: ActorRef,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -336,7 +336,7 @@ class GridAgentController(
       ActorRef,
       ParticipantInitializeStateData[
         FixedFeedInInput,
-        SimonaConfig.FixedFeedInRuntimeConfig,
+        LoadRuntimeConfig,
         ApparentPower
       ]
   ) = (
@@ -398,7 +398,7 @@ class GridAgentController(
       ActorRef,
       ParticipantInitializeStateData[
         LoadInput,
-        SimonaConfig.LoadRuntimeConfig,
+        LoadRuntimeConfig,
         ApparentPower
       ]
   ) = (
@@ -450,7 +450,7 @@ class GridAgentController(
     */
   private def buildPv(
       pvInput: PvInput,
-      modelConfiguration: PvRuntimeConfig,
+      modelConfiguration: SimpleRuntimeConfig,
       primaryServiceProxy: ActorRef,
       weatherService: ActorRef,
       simulationStartDate: ZonedDateTime,
@@ -462,7 +462,7 @@ class GridAgentController(
       ActorRef,
       ParticipantInitializeStateData[
         PvInput,
-        SimonaConfig.PvRuntimeConfig,
+        SimpleRuntimeConfig,
         ApparentPower
       ]
   ) =
@@ -514,7 +514,7 @@ class GridAgentController(
     */
   private def buildEvcs(
       evcsInput: EvcsInput,
-      modelConfiguration: EvcsRuntimeConfig,
+      modelConfiguration: SimpleRuntimeConfig,
       primaryServiceProxy: ActorRef,
       evMovementsService: ActorRef,
       simulationStartDate: ZonedDateTime,
@@ -526,7 +526,7 @@ class GridAgentController(
       ActorRef,
       ParticipantInitializeStateData[
         EvcsInput,
-        EvcsRuntimeConfig,
+        SimpleRuntimeConfig,
         ApparentPower
       ]
   ) = {
@@ -586,7 +586,7 @@ class GridAgentController(
     */
   private def buildWec(
       wecInput: WecInput,
-      modelConfiguration: WecRuntimeConfig,
+      modelConfiguration: SimpleRuntimeConfig,
       primaryServiceProxy: ActorRef,
       weatherService: ActorRef,
       simulationStartDate: ZonedDateTime,
@@ -598,7 +598,7 @@ class GridAgentController(
       ActorRef,
       ParticipantInitializeStateData[
         WecInput,
-        SimonaConfig.WecRuntimeConfig,
+        SimpleRuntimeConfig,
         ApparentPower
       ]
   ) =

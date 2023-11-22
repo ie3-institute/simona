@@ -427,7 +427,7 @@ case object GridModel {
     // duplicate names for nodes
     val nodeUuids: List[UUID] =
       gridModel.gridComponents.nodes.toList.iterator.map(_.uuid).toList
-    if (CollectionUtils.listHasDuplicates(nodeUuids))
+    if (CollectionUtils.seqHasDuplicates(nodeUuids))
       throw new InvalidGridException(
         s"The grid model for subnet ${gridModel.subnetNo} has multiple nodes with the same name!"
       )

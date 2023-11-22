@@ -1,6 +1,10 @@
-package edu.ie3.simona.config
+/*
+ * © 2023. TU Dortmund University,
+ * Institute of Energy Systems, Energy Efficiency and Energy Economics,
+ * Research group Distribution grid planning and operation
+ */
 
-import edu.ie3.simona.config.IoConfigUtils.BaseKafkaParams
+package edu.ie3.simona.config
 
 object IoConfigUtils {
 
@@ -11,13 +15,13 @@ object IoConfigUtils {
 
   case class BaseCsvParams(
       directoryPath: String,
-      csvSep: String,
+      csvSep: String
   ) extends CsvParams
 
   case class PsdmCsvParams(
       directoryPath: String,
       csvSep: String,
-      isHierarchic: Boolean,
+      isHierarchic: Boolean
   ) extends CsvParams
 
   case class TimeStampedDataCsvParams(
@@ -27,19 +31,35 @@ object IoConfigUtils {
   ) extends CsvParams
 
   case class InfluxDb1xParams(
-      url: String,
-      port: Int,
       database: String,
-      timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'"
+      port: Int,
+      url: String,
+//      timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'"
   )
 
-  case class SQLParams(
+  trait SqlParams {
+    val jdbcUrl: String
+    val userName: String
+    val password: String
+    val tableName: String
+    val schemaName: String
+  }
+  case class BaseSqlParams(
+      jdbcUrl: String,
+      userName: String,
+      password: String,
+      tableName: String,
+      schemaName: String = "public"
+  ) extends SqlParams
+
+  case class TimeStampedSqlParams(
       jdbcUrl: String,
       userName: String,
       password: String,
       tableName: String,
       schemaName: String = "public",
-  )
+      timePattern: String
+  ) extends SqlParams
 
   case class CouchbaseParams(
       url: String,
@@ -47,7 +67,7 @@ object IoConfigUtils {
       userName: String,
       password: String,
       coordinateColumnName: String,
-      keyPrefix: String,
+      keyPrefix: String
   )
 
   trait BaseKafkaParams {

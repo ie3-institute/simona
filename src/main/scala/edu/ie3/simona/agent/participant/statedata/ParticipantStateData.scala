@@ -11,6 +11,7 @@ import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 
@@ -61,7 +62,7 @@ object ParticipantStateData {
     */
   final case class ParticipantInitializingStateData[
       I <: SystemParticipantInput,
-      C <: SimonaConfig.BaseRuntimeConfig,
+      C <: BaseRuntimeConfig,
       PD <: PrimaryData
   ](
       inputModel: I,
@@ -104,7 +105,7 @@ object ParticipantStateData {
     */
   final case class ParticipantInitializeStateData[
       I <: SystemParticipantInput,
-      C <: SimonaConfig.BaseRuntimeConfig,
+      C <: BaseRuntimeConfig,
       PD <: PrimaryData
   ](
       inputModel: I,

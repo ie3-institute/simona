@@ -8,22 +8,17 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
-import edu.ie3.simona.config.SimonaConfig.{
-  BaseOutputConfig,
-  RefSystemConfig,
-  ResultKafkaParams
-}
+import edu.ie3.simona.config.IoConfigUtils.{InfluxDb1xParams, ResultKafkaParams}
+import edu.ie3.simona.config.OutputConfig.BaseOutputConfig
+import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, RuntimeParticipantConfig}
+import edu.ie3.simona.config.SimonaConfig.RefSystemConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherSource
 import edu.ie3.simona.util.CollectionUtils
-import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
-  checkInfluxDb1xParams,
-  checkKafkaParams
-}
+import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{checkInfluxDb1xParams, checkKafkaParams}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.scala.ReflectionTools
 import edu.ie3.util.{StringUtils, TimeUtil}
@@ -32,7 +27,6 @@ import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
-import java.time.temporal.ChronoUnit
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
 
@@ -108,41 +102,41 @@ case object ConfigFailFast extends LazyLogging {
   def check(simonaConfig: SimonaConfig): Unit = {
 
     /* check date and time */
-    checkTimeConfig(simonaConfig.simona.time)
+    checkTimeConfig(simonaConfig.time)
 
     // check if the provided combinations of refSystems provided are valid
-    val refSystems = simonaConfig.simona.gridConfig.refSystems
+    val refSystems = simonaConfig.gridConfig.refSystems
     refSystems.foreach(checkRefSystem)
 
     /* Check all participant model configurations */
     checkParticipantRuntimeConfiguration(
-      simonaConfig.simona.runtime.participant
+      simonaConfig.runtime.participant
     )
 
     /* Check the runtime listener configuration */
     checkRuntimeListenerConfiguration(
-      simonaConfig.simona.runtime.listener
+      simonaConfig.runtime.listener
     )
 
     /* Check if the provided combination of data source and parameters are valid */
-    checkGridDataSource(simonaConfig.simona.input.grid.datasource)
+    checkGridDataSource(simonaConfig.input.grid.datasource)
 
     /* Check correct parameterization of primary source */
-    checkPrimaryDataSource(simonaConfig.simona.input.primary)
+    checkPrimaryDataSource(simonaConfig.input.primary)
 
     /* Check if the provided combination of data source and parameters are valid */
-    checkWeatherDataSource(simonaConfig.simona.input.weather.datasource)
+    checkWeatherDataSource(simonaConfig.input.weather.datasource)
 
     /* check if at least one data sink is defined */
-    checkDataSink(simonaConfig.simona.output.sink)
+    checkDataSink(simonaConfig.output.sink)
 
     /* Check all output configurations for participant models */
     checkParticipantsOutputConfig(
-      simonaConfig.simona.output.participant
+      simonaConfig.output.participant
     )
 
     /* Check power flow resolution configuration */
-    checkPowerFlowResolutionConfiguration(simonaConfig.simona.powerflow)
+    checkPowerFlowResolutionConfiguration(simonaConfig.powerflow)
   }
 
   /** Checks for valid sink configuration
@@ -150,7 +144,7 @@ case object ConfigFailFast extends LazyLogging {
     * @param sink
     *   the sink configuration that should be checked
     */
-  private def checkDataSink(sink: SimonaConfig.Simona.Output.Sink): Unit = {
+  private def checkDataSink(sink: OutputConfig.OutputSinkConfig): Unit = {
     // ensures failure if new output sinks are added to enforce adaptions of the check sink method as well
     val supportedSinks = Set("influxdb1x", "csv", "kafka")
     if (
@@ -187,7 +181,7 @@ case object ConfigFailFast extends LazyLogging {
       )
 
     sinkConfigs.find(_.isDefined) match {
-      case Some(Some(influxDb1x: InfluxDb1x)) =>
+      case Some(Some(influxDb1x: InfluxDb1xParams)) =>
         checkInfluxDb1xParams(
           "Sink",
           ResultSinkType.buildInfluxDb1xUrl(influxDb1x),
@@ -206,7 +200,7 @@ case object ConfigFailFast extends LazyLogging {
     *   the time config
     */
   private def checkTimeConfig(
-      timeConfig: SimonaConfig.Simona.Time
+      timeConfig: SimonaConfig.TimeConfig
   ): Unit = {
 
     val startDate = createDateTime(timeConfig.startDateTime)
@@ -246,38 +240,14 @@ case object ConfigFailFast extends LazyLogging {
     *   Sub configuration tree to check
     */
   private def checkParticipantRuntimeConfiguration(
-      subConfig: SimonaConfig.Simona.Runtime.Participant
+      subConfig: RuntimeConfig.RuntimeParticipantsConfig
   ): Unit = {
     if (subConfig.requestVoltageDeviationThreshold < 0)
       throw new InvalidConfigParameterException(
         "The participant power request voltage deviation threshold must be positive!"
       )
 
-    /* Check basic model configuration parameters common to each participant */
-    checkBaseRuntimeConfigs(
-      subConfig.load.defaultConfig,
-      subConfig.load.individualConfigs
-    )
-
-    checkBaseRuntimeConfigs(
-      subConfig.fixedFeedIn.defaultConfig,
-      subConfig.fixedFeedIn.individualConfigs
-    )
-
-    checkBaseRuntimeConfigs(
-      subConfig.evcs.defaultConfig,
-      subConfig.evcs.individualConfigs
-    )
-
-    checkBaseRuntimeConfigs(
-      subConfig.pv.defaultConfig,
-      subConfig.pv.individualConfigs
-    )
-
-    checkBaseRuntimeConfigs(
-      subConfig.wec.defaultConfig,
-      subConfig.wec.individualConfigs
-    )
+    subConfig.asSeq.foreach(checkBaseRuntimeConfigs(_))
 
     /* check model configuration parameters specific to participants */
     // load model
@@ -290,7 +260,7 @@ case object ConfigFailFast extends LazyLogging {
     *   the runtime listener config
     */
   private def checkRuntimeListenerConfiguration(
-      listenerConfig: SimonaConfig.Simona.Runtime.Listener
+      listenerConfig: RuntimeConfig.RuntimeListenerConfig
   ): Unit = {
     listenerConfig.kafka.foreach(kafka =>
       checkKafkaParams(kafka, Seq(kafka.topic))
@@ -301,13 +271,12 @@ case object ConfigFailFast extends LazyLogging {
     * as in individual configs. This comprises
     * i.e. uuid and scaling factor
     */
-  private def checkBaseRuntimeConfigs(
-      defaultConfig: SimonaConfig.BaseRuntimeConfig,
-      individualConfigs: List[SimonaConfig.BaseRuntimeConfig],
+  private def checkBaseRuntimeConfigs[T <: BaseRuntimeConfig](
+      cfg: RuntimeParticipantConfig[T],
       defaultString: String = "default"
   ): Unit = {
     // special default config check
-    val uuidString = defaultConfig.uuids.mkString(",")
+    val uuidString = cfg.defaultConfig.uuids.mkString(",")
     if (
       StringUtils
         .cleanString(uuidString)
@@ -319,14 +288,14 @@ case object ConfigFailFast extends LazyLogging {
 
     // special individual configs check
     /* Check, if there are ambiguous configs and then check all configs */
-    if (!CollectionUtils.isUniqueList(individualConfigs.flatMap(_.uuids)))
+    if (!CollectionUtils.isUniqueSeq(cfg.individualConfigs.flatMap(_.uuids)))
       throw new InvalidConfigParameterException(
         "The basic model configurations contain ambiguous definitions."
       )
 
     // check that is valid for all model configs
-    val allConfigs = Map(defaultConfig -> Some(defaultString)) ++
-      individualConfigs.map(config => (config, None)).toMap
+    val allConfigs = Map(cfg.defaultConfig -> Some(defaultString)) ++
+      cfg.individualConfigs.map(config => (config, None)).toMap
 
     allConfigs.foreach { case (config, singleEntryStringOpt) =>
       /* Checking the uuids */
@@ -369,7 +338,7 @@ case object ConfigFailFast extends LazyLogging {
     */
   private def checkSingleString(
       singleString: String,
-      uuids: List[String]
+      uuids: Seq[String]
   ): Unit = {
     if (uuids.toVector.size != 1)
       throw new InvalidConfigParameterException(
@@ -402,7 +371,7 @@ case object ConfigFailFast extends LazyLogging {
     * model behaviour and reference
     */
   private def checkSpecificLoadModelConfig(
-      loadModelConfig: SimonaConfig.LoadRuntimeConfig
+      loadModelConfig: RuntimeConfig.LoadRuntimeConfig
   ): Unit = {
     if (!LoadModelBehaviour.isEligibleInput(loadModelConfig.modelBehaviour))
       throw new InvalidConfigParameterException(
@@ -491,7 +460,7 @@ case object ConfigFailFast extends LazyLogging {
   }
 
   private def checkGridDataSource(
-      gridDataSource: SimonaConfig.Simona.Input.Grid.Datasource
+      gridDataSource: InputConfig.GridDataSource
   ): Unit = {
 
     // grid source information provided?
@@ -522,12 +491,12 @@ case object ConfigFailFast extends LazyLogging {
   }
 
   private def checkPrimaryDataSource(
-      primary: SimonaConfig.Simona.Input.Primary
+      primary: InputConfig.PrimaryConfig
   ): Unit =
     PrimaryServiceProxy.checkConfig(primary)
 
   private def checkWeatherDataSource(
-      dataSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource
+      dataSourceConfig: InputConfig.WeatherDataSourceConfig
   ): Unit = WeatherSource.checkConfig(dataSourceConfig)
 
   /** Check the config sub tree for output parameterization
@@ -536,10 +505,10 @@ case object ConfigFailFast extends LazyLogging {
     *   Output sub config tree for participants
     */
   private def checkParticipantsOutputConfig(
-      subConfig: SimonaConfig.Simona.Output.Participant
+      subConfig: OutputConfig.ParticipantOutputConfig
   ): Unit = {
 
-    (subConfig.defaultConfig :: subConfig.individualConfigs).foreach(c =>
+    (subConfig.defaultConfig +: subConfig.individualConfigs).foreach(c =>
       if (c.powerRequestReply)
         throw new NotImplementedError(
           "PowerRequestReply output handling is not supported yet!"
@@ -559,26 +528,14 @@ case object ConfigFailFast extends LazyLogging {
     *   the power flow configuration that should be checked
     */
   private def checkPowerFlowResolutionConfiguration(
-      powerFlow: SimonaConfig.Simona.Powerflow
+      powerFlow: SimonaConfig.PowerFlowConfig
   ): Unit = {
 
-    // check if time bin is not smaller than in seconds
-    if (
-      (powerFlow.resolution.getUnits.contains(
-        ChronoUnit.NANOS
-      ) && powerFlow.resolution.getNano != 0) ||
-      (powerFlow.resolution.getUnits.contains(
-        ChronoUnit.MICROS
-      ) && powerFlow.resolution
-        .get(ChronoUnit.MICROS) != 0) ||
-      (powerFlow.resolution.getUnits.contains(
-        ChronoUnit.MILLIS
-      ) && powerFlow.resolution
-        .get(ChronoUnit.MILLIS) != 0)
-    ) {
+    val nanos = powerFlow.resolution.toNanos
+    if (nanos % 1e9 != 0) {
       throw new InvalidConfigParameterException(
-        s"Invalid time resolution. Please ensure, that " +
-          s"the time resolution for power flow calculation is at least rounded to a full second!"
+        "Invalid time resolution. Please ensure that the time resolution " +
+            "for power flow calculation is at least rounded to a full second!"
       )
     }
   }
@@ -591,7 +548,7 @@ case object ConfigFailFast extends LazyLogging {
     *   String that is meant to denote the default config
     */
   private def checkDefaultBaseOutputConfig(
-      config: SimonaConfig.BaseOutputConfig,
+      config: BaseOutputConfig,
       defaultString: String
   ): Unit = {
     if (
@@ -610,7 +567,7 @@ case object ConfigFailFast extends LazyLogging {
     *   List of individual config entries
     */
   private def checkIndividualParticipantsOutputConfigs(
-      configs: List[SimonaConfig.BaseOutputConfig]
+      configs: Seq[BaseOutputConfig]
   ): Unit = {
     val duplicateKeys = configs
       .map(config => StringUtils.cleanString(config.notifier).toLowerCase())

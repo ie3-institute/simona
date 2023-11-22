@@ -8,6 +8,7 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{ConfigFactory, Config => TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.simona.config.SimonaConfig.EventListenerConfig
 import edu.ie3.simona.event.listener.SimonaListenerCompanion
 import edu.ie3.util.scala.ReflectionTools
 import scopt.{OptionParser => scoptOptionParser}
@@ -172,19 +173,20 @@ object ArgsParser extends LazyLogging {
     *   events to process
     */
   def parseListenerConfigOption(
-      listenerConfigOption: Option[List[SimonaConfig.Simona.Event.Listener$Elm]]
-  ): Map[SimonaListenerCompanion, Option[List[String]]] = {
+      listenerConfigOption: Option[Seq[EventListenerConfig]]
+  ): Map[SimonaListenerCompanion, Option[Seq[String]]] = {
     val clusterSingletonsWithEvents
-        : Map[SimonaListenerCompanion, Option[List[String]]] =
+        : Map[SimonaListenerCompanion, Option[Seq[String]]] =
       listenerConfigOption match {
         case Some(listenerElems) =>
           listenerElems.foldLeft(
-            Map.empty[SimonaListenerCompanion, Option[List[String]]]
+            Map.empty[SimonaListenerCompanion, Option[Seq[String]]]
           )((listenerMap, listenerElem) =>
             ReflectionTools
               .resolveClassNameToCompanion(listenerElem.fullClassPath) match {
               case Some(listener: SimonaListenerCompanion) =>
-                listenerMap + (listener -> listenerElem.eventsToProcess)
+                // TODO: Double check if we should have an Optional here by design
+                listenerMap + (listener -> Some(listenerElem.eventsToProcess.toList))
               case nonListenerCompanion =>
                 logger.warn(
                   s"Invalid value ${nonListenerCompanion.getClass} for 'event.listener' config parameter!"
@@ -230,6 +232,7 @@ object ArgsParser extends LazyLogging {
       case Some(parsedArgsConfig) => parsedArgsConfig
     }
 
+    // TODO: IMPORTANT find out what to with the overrides and remove them here
     val argsConfig =
       ConfigFactory.parseString(
         s"""config = ${parsedArgs.configLocation.get}

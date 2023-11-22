@@ -10,7 +10,7 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.io.source.csv.CsvJointGridContainerSource
 import edu.ie3.datamodel.models.input.container.JointGridContainer
 import edu.ie3.datamodel.utils.validation.ValidationUtils
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.{InputConfig}
 
 import java.nio.file.Path
 import scala.util.{Failure, Success, Try}
@@ -26,7 +26,7 @@ object GridProvider extends LazyLogging {
 
   def gridFromConfig(
       simulationName: String,
-      gridDataSource: SimonaConfig.Simona.Input.Grid.Datasource
+      gridDataSource: InputConfig.GridDataSource
   ): JointGridContainer = {
 
     GridSourceType(gridDataSource.id.toLowerCase) match {

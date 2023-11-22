@@ -7,6 +7,7 @@
 package edu.ie3.simona.service.weather
 
 import akka.actor.{ActorRef, Props}
+import edu.ie3.simona.config.InputConfig.WeatherDataSourceConfig
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
@@ -84,7 +85,7 @@ object WeatherService {
     *   the definition of the source to use
     */
   final case class InitWeatherServiceStateData(
-      sourceDefinition: SimonaConfig.Simona.Input.Weather.Datasource
+      sourceDefinition: WeatherDataSourceConfig
   ) extends InitializeServiceStateData
 
   val FALLBACK_WEATHER_STEM_DISTANCE = 3600L

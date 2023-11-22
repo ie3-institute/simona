@@ -8,6 +8,7 @@ package edu.ie3.simona.scheduler
 
 import akka.actor.{Actor, ActorRef, Props, Terminated}
 import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.SimonaConfig.TimeConfig
 import edu.ie3.simona.event.RuntimeEvent.{Error, Initializing, Simulating}
 import edu.ie3.simona.event.notifier.Notifier
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
@@ -16,7 +17,7 @@ import edu.ie3.simona.scheduler.SimSchedulerStateData.SchedulerStateData
 object SimScheduler {
 
   def props(
-      simonaTimeConfig: SimonaConfig.Simona.Time,
+      simonaTimeConfig: TimeConfig,
       listener: Iterable[ActorRef],
       stopOnFailedPowerFlow: Boolean,
       autoStart: Boolean =
@@ -46,7 +47,7 @@ object SimScheduler {
   *   the initialization process
   */
 class SimScheduler(
-    val simonaTimeConfig: SimonaConfig.Simona.Time,
+    val simonaTimeConfig: TimeConfig,
     override val listener: Iterable[ActorRef],
     val stopOnFailedPowerFlow: Boolean,
     val autoStart: Boolean =

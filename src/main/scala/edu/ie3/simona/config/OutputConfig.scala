@@ -1,3 +1,9 @@
+/*
+ * © 2023. TU Dortmund University,
+ * Institute of Energy Systems, Energy Efficiency and Energy Economics,
+ * Research group Distribution grid planning and operation
+ */
+
 package edu.ie3.simona.config
 
 import edu.ie3.simona.config.IoConfigUtils.{InfluxDb1xParams, ResultKafkaParams}
@@ -7,7 +13,7 @@ final case class OutputConfig(
     base: OutputBaseConfig,
     sink: OutputSinkConfig,
     grid: GridOutputConfig,
-    participant: ParticipantOutputConfig,
+    participant: ParticipantOutputConfig
 )
 
 object OutputConfig {
@@ -20,14 +26,14 @@ object OutputConfig {
   final case class OutputSinkConfig(
       csv: Option[OutputCsvParams],
       influxDb1x: Option[InfluxDb1xParams],
-      kafka: Option[ResultKafkaParams],
+      kafka: Option[ResultKafkaParams]
   )
 
   final case class OutputCsvParams(
       fileFormat: String = ".csv",
       isHierarchic: Boolean = false,
       filePrefix: String = "",
-      fileSuffix: String = "",
+      fileSuffix: String = ""
   )
 
   final case class GridOutputConfig(
@@ -36,12 +42,12 @@ object OutputConfig {
       lines: Boolean = true,
       switches: Boolean = true,
       transformers2w: Boolean = true,
-      transformers3w: Boolean = true,
+      transformers3w: Boolean = true
   )
 
   final case class ParticipantOutputConfig(
       defaultConfig: BaseOutputConfig,
-      individualConfigs: Seq[BaseOutputConfig],
+      individualConfigs: Seq[BaseOutputConfig]
   )
 
   final case class BaseOutputConfig(

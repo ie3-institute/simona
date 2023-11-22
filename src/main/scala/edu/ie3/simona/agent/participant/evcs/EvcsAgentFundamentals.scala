@@ -29,7 +29,7 @@ import edu.ie3.simona.agent.participant.statedata.{
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.api.data.ev.model.EvModel
-import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
@@ -47,7 +47,7 @@ import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DIS
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Kilovars
-import squants.{Each, Dimensionless}
+import squants.{Dimensionless, Each}
 import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
@@ -61,7 +61,7 @@ protected trait EvcsAgentFundamentals
       EvcsRelevantData,
       ParticipantStateData[ApparentPower],
       EvcsInput,
-      EvcsRuntimeConfig,
+      SimpleRuntimeConfig,
       EvcsModel
     ]
     with LazyLogging {
@@ -95,7 +95,7 @@ protected trait EvcsAgentFundamentals
     */
   override def determineModelBaseStateData(
       inputModel: EvcsInput,
-      modelConfig: EvcsRuntimeConfig,
+      modelConfig: SimpleRuntimeConfig,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -153,7 +153,7 @@ protected trait EvcsAgentFundamentals
     */
   def baseStateDataForModelCalculation(
       inputModel: EvcsInput,
-      modelConfig: EvcsRuntimeConfig,
+      modelConfig: SimpleRuntimeConfig,
       servicesOpt: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -202,7 +202,7 @@ protected trait EvcsAgentFundamentals
 
   override def buildModel(
       inputModel: EvcsInput,
-      modelConfig: EvcsRuntimeConfig,
+      modelConfig: SimpleRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
   ): EvcsModel = EvcsModel(

@@ -6,7 +6,8 @@
 
 package edu.ie3.simona.io.result
 
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.IoConfigUtils.{InfluxDb1xParams, ResultKafkaParams}
+import edu.ie3.simona.config.OutputConfig.{OutputCsvParams, OutputSinkConfig}
 
 import java.util.UUID
 
@@ -15,6 +16,7 @@ import java.util.UUID
   */
 sealed trait ResultSinkType
 
+// TODO: Check afterwards if we can get rid of those and replace them directly with config items
 object ResultSinkType {
 
   final case class Csv(
@@ -35,7 +37,7 @@ object ResultSinkType {
   ) extends ResultSinkType
 
   def apply(
-      sinkConfig: SimonaConfig.Simona.Output.Sink,
+      sinkConfig: OutputSinkConfig,
       runName: String
   ): ResultSinkType = {
     val sink: Seq[Any] =
@@ -47,11 +49,11 @@ object ResultSinkType {
       )
 
     sink.headOption match {
-      case Some(params: SimonaConfig.Simona.Output.Sink.Csv) =>
+      case Some(params: OutputCsvParams) =>
         Csv(params.fileFormat, params.filePrefix, params.fileSuffix)
-      case Some(params: SimonaConfig.Simona.Output.Sink.InfluxDb1x) =>
+      case Some(params: InfluxDb1xParams) =>
         InfluxDb1x(buildInfluxDb1xUrl(params), params.database, runName)
-      case Some(params: SimonaConfig.ResultKafkaParams) =>
+      case Some(params: ResultKafkaParams) =>
         Kafka(
           params.topicNodeRes,
           UUID.fromString(params.runId),
@@ -71,7 +73,7 @@ object ResultSinkType {
   }
 
   def buildInfluxDb1xUrl(
-      sinkConfig: SimonaConfig.Simona.Output.Sink.InfluxDb1x
+      sinkConfig: InfluxDb1xParams
   ): String = {
     if (sinkConfig.url.endsWith("/")) sinkConfig.url.replaceAll("/", "")
     else sinkConfig.url

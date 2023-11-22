@@ -18,13 +18,16 @@ import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
 import edu.ie3.datamodel.io.source.sql.SqlIdCoordinateSource
 import edu.ie3.datamodel.models.value.WeatherValue
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
+import edu.ie3.simona.config.InputConfig.{
+  CoordinateSourceConfig,
+  WeatherDataSourceConfig,
+  WeatherSampleParams
+}
+import edu.ie3.simona.config.{IoConfigUtils, SimonaConfig}
 import edu.ie3.simona.exceptions.{
   InvalidConfigParameterException,
   ServiceException
 }
-import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
@@ -294,7 +297,7 @@ trait WeatherSource {
 object WeatherSource {
 
   def apply(
-      dataSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource,
+      dataSourceConfig: WeatherDataSourceConfig,
       simulationStart: ZonedDateTime
   ): WeatherSource =
     checkConfig(dataSourceConfig)(simulationStart)
@@ -311,7 +314,7 @@ object WeatherSource {
     *   data source
     */
   def checkConfig(
-      weatherDataSourceCfg: SimonaConfig.Simona.Input.Weather.Datasource
+      weatherDataSourceCfg: WeatherDataSourceConfig
   ): ZonedDateTime => WeatherSource = {
 
     // check and get coordinate source
@@ -338,7 +341,7 @@ object WeatherSource {
       weatherDataSourceCfg.sqlParams
     ).filter(_.isDefined)
 
-    val timestampPattern: Option[String] = weatherDataSourceCfg.timestampPattern
+    val timestampPattern: Option[String] = weatherDataSourceCfg.timeStampPattern
     val scheme: String = weatherDataSourceCfg.scheme
     val resolution: Option[Long] = weatherDataSourceCfg.resolution
     val distance: ComparableQuantity[Length] =
@@ -356,7 +359,12 @@ object WeatherSource {
     val weatherSourceFunction: ZonedDateTime => WeatherSource =
       definedWeatherSources.headOption match {
         case Some(
-              Some(baseCsvParams @ BaseCsvParams(csvSep, directoryPath, _))
+              Some(
+                baseCsvParams @ IoConfigUtils.BaseCsvParams(
+                  directoryPath,
+                  csvSep,
+                )
+              )
             ) =>
           checkBaseCsvParams(baseCsvParams, "WeatherSource")
           (simulationStart: ZonedDateTime) =>
@@ -369,7 +377,7 @@ object WeatherSource {
               resolution,
               distance
             )(simulationStart)
-        case Some(Some(params: CouchbaseParams)) =>
+        case Some(Some(params: IoConfigUtils.CouchbaseParams)) =>
           checkCouchbaseParams(params)
           (simulationStart: ZonedDateTime) =>
             WeatherSourceWrapper(
@@ -380,7 +388,9 @@ object WeatherSource {
               resolution,
               distance
             )(simulationStart)
-        case Some(Some(params @ InfluxDb1xParams(database, _, url))) =>
+        case Some(
+              Some(params @ IoConfigUtils.InfluxDb1xParams(database, _, url))
+            ) =>
           checkInfluxDb1xParams("WeatherSource", url, database)
           (simulationStart: ZonedDateTime) =>
             WeatherSourceWrapper(
@@ -391,7 +401,7 @@ object WeatherSource {
               resolution,
               distance
             )(simulationStart)
-        case Some(Some(params: SqlParams)) =>
+        case Some(Some(params: IoConfigUtils.BaseSqlParams)) =>
           checkSqlParams(params)
           (simulationStart: ZonedDateTime) =>
             WeatherSourceWrapper(
@@ -402,7 +412,7 @@ object WeatherSource {
               resolution,
               distance
             )(simulationStart)
-        case Some(Some(_: SampleParams)) =>
+        case Some(Some(_: WeatherSampleParams)) =>
           // sample weather, no check required
           // coordinate source must be sample coordinate source
           // calling the function here is not an issue as the sample coordinate source is already
@@ -442,7 +452,7 @@ object WeatherSource {
     *   id data source
     */
   private def checkCoordinateSource(
-      coordinateSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
+      coordinateSourceConfig: CoordinateSourceConfig
   ): () => IdCoordinateSource = {
     val supportedCoordinateSources = Set("csv", "sql", "sample")
     val definedCoordSources = Vector(
@@ -461,7 +471,9 @@ object WeatherSource {
     // check source parameters
     definedCoordSources.headOption match {
       case Some(
-            Some(baseCsvParams @ BaseCsvParams(csvSep, directoryPath, _))
+            Some(
+              baseCsvParams @ IoConfigUtils.BaseCsvParams(directoryPath, csvSep)
+            )
           ) =>
         checkBaseCsvParams(baseCsvParams, "CoordinateSource")
         val idCoordinateFactory = checkCoordinateFactory(
@@ -478,7 +490,7 @@ object WeatherSource {
           )
       case Some(
             Some(
-              sqlParams @ SqlParams(
+              sqlParams @ IoConfigUtils.BaseSqlParams(
                 jdbcUrl,
                 userName,
                 password,
@@ -498,7 +510,7 @@ object WeatherSource {
           )
       case Some(
             Some(
-              _: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams
+              _: WeatherSampleParams
             )
           ) =>
         // sample coordinates, no check required

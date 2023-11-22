@@ -1,20 +1,40 @@
+/*
+ * © 2023. TU Dortmund University,
+ * Institute of Energy Systems, Energy Efficiency and Energy Economics,
+ * Research group Distribution grid planning and operation
+ */
+
 package edu.ie3.simona.config
 
 import SimonaConfig._
 
 import scala.concurrent.duration.{Duration, DurationInt}
+import pureconfig._
+import pureconfig.generic.auto._
+
+import java.nio.file.Path
+import scala.util.{Failure, Success, Try}
 
 case class SimonaConfig(
+    simulationName: String,
     time: TimeConfig,
     input: InputConfig,
     output: OutputConfig,
     runtime: RuntimeConfig,
     powerflow: PowerFlowConfig,
     gridConfig: GridConfig,
-    event: Option[EventConfig]
+    event: EventConfig
 )
 
 object SimonaConfig {
+  def apply(filePath: Path): SimonaConfig = {
+    Try(ConfigSource.file(filePath).loadOrThrow[SimonaConfig]) match {
+      case Success(config) => config
+      case Failure(exception) =>
+        println(Left(s"Error reading configuration: ${exception.getMessage}"));
+        throw exception
+    }
+  }
 
   case class TimeConfig(
       startDateTime: String,
@@ -52,7 +72,7 @@ object SimonaConfig {
   )
 
   final case class EventConfig(
-      listener: Seq[EventListenerConfig]
+      listener: Option[Seq[EventListenerConfig]]
   )
 
   final case class EventListenerConfig(
@@ -60,4 +80,3 @@ object SimonaConfig {
       eventsToProcess: Seq[String]
   )
 }
-

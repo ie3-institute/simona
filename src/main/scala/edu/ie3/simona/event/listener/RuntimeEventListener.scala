@@ -8,7 +8,7 @@ package edu.ie3.simona.event.listener
 
 import akka.actor.typed.{Behavior, PostStop}
 import akka.actor.typed.scaladsl.Behaviors
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.{RuntimeConfig, SimonaConfig}
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.io.runtime.{
   RuntimeEventKafkaSink,
@@ -38,7 +38,7 @@ object RuntimeEventListener {
     *   the [[RuntimeEventListener]] behavior
     */
   def apply(
-      listenerConf: SimonaConfig.Simona.Runtime.Listener,
+      listenerConf: RuntimeConfig.RuntimeListenerConfig,
       queue: Option[BlockingQueue[RuntimeEvent]],
       startDateTimeString: String
   ): Behavior[RuntimeEvent] = {
@@ -60,7 +60,7 @@ object RuntimeEventListener {
 
   def apply(
       listeners: Iterable[RuntimeEventSink],
-      eventsToProcess: Option[List[String]] = None
+      eventsToProcess: Option[Seq[String]] = None
   ): Behavior[RuntimeEvent] = Behaviors
     .receive[RuntimeEvent] { case (ctx, event) =>
       eventsToProcess match {
