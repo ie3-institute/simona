@@ -19,14 +19,14 @@ object RuntimeEvent {
   /** Indicates that the scheduler has finished a pre-defined advancement in
     * ticks and is ready to carry out the next task. In contrast to the
     * [[CheckWindowPassed]] event, whenever a [[Ready]] event is scheduled, the
-    * scheduled of [[edu.ie3.simona.scheduler.SimScheduler]] will be stopped and
+    * scheduled of [[edu.ie3.simona.scheduler.Scheduler]] will be stopped and
     * further commands are necessary to continue the schedule.
     *
     * @param tick
     *   the last tick that has been processed
     * @param duration
     *   duration that has been passed since the last time a [[Ready]] event has
-    *   been issued
+    *   been issued in milliseconds
     */
   final case class Ready(tick: Long, duration: Long) extends RuntimeEvent
 
@@ -34,7 +34,7 @@ object RuntimeEvent {
     * finished
     *
     * @param duration
-    *   duration needed for the initialization process
+    *   duration needed for the initialization process in milliseconds
     */
   final case class InitComplete(duration: Long) extends RuntimeEvent
 
@@ -44,7 +44,7 @@ object RuntimeEvent {
     * [[edu.ie3.simona.event.listener.RuntimeEventListener]] to print status
     * information about the current simulation run. In contrast to the [[Ready]]
     * event, when this event is thrown, the
-    * [[edu.ie3.simona.scheduler.SimScheduler]] does not necessarily hold the
+    * [[edu.ie3.simona.scheduler.Scheduler]] does not necessarily hold the
     * schedule. Hence, this event only indicates, that the defined check window
     * has passed and the schedule will move on afterwards without a stop.
     *
@@ -52,7 +52,7 @@ object RuntimeEvent {
     *   the tick of the simulation that has been passed
     * @param duration
     *   the duration that has been taken since the last time a
-    *   [[CheckWindowPassed]] event has been issued
+    *   [[CheckWindowPassed]] event has been issued in milliseconds
     */
   final case class CheckWindowPassed(tick: Long, duration: Long)
       extends RuntimeEvent
@@ -73,7 +73,7 @@ object RuntimeEvent {
     * @param tick
     *   the tick when the event is issued
     * @param duration
-    *   the duration of the overall simulation
+    *   the duration of the overall simulation in milliseconds
     * @param noOfFailedPF
     *   the number of failed power flow calculations
     * @param errorInSim
@@ -82,7 +82,7 @@ object RuntimeEvent {
   final case class Done(
       tick: Long,
       duration: Long,
-      noOfFailedPF: Int,
+      noOfFailedPF: Int, // FIXME remove
       errorInSim: Boolean
   ) extends RuntimeEvent
 

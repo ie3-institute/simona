@@ -75,7 +75,6 @@ import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
-import scala.collection._
 
 class WecAgentModelCalculationSpec
     extends ParticipantAgentSpec(
@@ -185,8 +184,7 @@ class WecAgentModelCalculationSpec
               )
             )
           ),
-          triggerId,
-          wecAgent
+          triggerId
         )
       )
 
@@ -273,8 +271,7 @@ class WecAgentModelCalculationSpec
               )
             )
           ),
-          triggerId,
-          wecAgent
+          triggerId
         )
       )
 
@@ -318,7 +315,7 @@ class WecAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution * 10,
-            immutable.Map(0L -> Each(1.0))
+            Map(0L -> Each(1.0))
           )
           resultValueStore shouldBe ValueStore.forResult(resolution, 10)
           requestValueStore shouldBe ValueStore[ApparentPower](resolution * 10)
@@ -340,9 +337,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           triggerId,
           Some(
-            immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(4711), wecAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(4711), wecAgent)
           )
         )
       )
@@ -402,8 +397,7 @@ class WecAgentModelCalculationSpec
               )
             )
           ),
-          triggerId,
-          wecAgent
+          triggerId
         )
       )
 
@@ -443,7 +437,7 @@ class WecAgentModelCalculationSpec
             ApparentPower
           ](
             resolution * 10,
-            immutable.Map(
+            Map(
               0L -> ApparentPower(
                 Megawatts(0d),
                 Megavars(0d)
@@ -493,8 +487,7 @@ class WecAgentModelCalculationSpec
               )
             )
           ),
-          initialiseTriggerId,
-          wecAgent
+          initialiseTriggerId
         )
       )
 
@@ -559,8 +552,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -570,9 +562,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
           )
         )
       )
@@ -651,8 +641,7 @@ class WecAgentModelCalculationSpec
               )
             )
           ),
-          initialiseTriggerId,
-          wecAgent
+          initialiseTriggerId
         )
       )
 
@@ -673,8 +662,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -724,9 +712,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
           )
         )
       )
@@ -807,8 +793,7 @@ class WecAgentModelCalculationSpec
               )
             )
           ),
-          0L,
-          wecAgent
+          0L
         )
       )
 
@@ -850,8 +835,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -861,9 +845,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
           )
         )
       )
@@ -912,8 +894,7 @@ class WecAgentModelCalculationSpec
               )
             )
           ),
-          0L,
-          wecAgent
+          0L
         )
       )
 
@@ -948,17 +929,14 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           1L,
           Some(
-            immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
           )
         )
       )
@@ -981,17 +959,14 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(1800L),
-          3L,
-          scheduler.ref
+          3L
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           3L,
           Some(
-            immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(2700L), wecAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(2700L), wecAgent)
           )
         )
       )
@@ -1014,8 +989,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(2700L),
-          5L,
-          scheduler.ref
+          5L
         )
       )
       scheduler.expectMsg(CompletionMessage(5L))

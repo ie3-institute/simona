@@ -101,8 +101,7 @@ class DBFSAlgorithmParticipantSpec
         gridAgentWithParticipants,
         TriggerWithIdMessage(
           InitializeGridAgentTrigger(gridAgentInitData),
-          triggerId,
-          gridAgentWithParticipants
+          triggerId
         )
       )
 
@@ -122,11 +121,9 @@ class DBFSAlgorithmParticipantSpec
         CompletionMessage(
           triggerId,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(3600L),
-                gridAgentWithParticipants
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(3600L),
+              gridAgentWithParticipants
             )
           )
         )
@@ -136,8 +133,7 @@ class DBFSAlgorithmParticipantSpec
         loadAgent,
         TriggerWithIdMessage(
           initializeTrigger,
-          loadAgentTriggerId,
-          loadAgent
+          loadAgentTriggerId
         )
       )
 
@@ -151,7 +147,7 @@ class DBFSAlgorithmParticipantSpec
         CompletionMessage(
           loadAgentTriggerId,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(0L), loadAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(0L), loadAgent)
           )
         )
       )
@@ -161,8 +157,7 @@ class DBFSAlgorithmParticipantSpec
         loadAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          2,
-          loadAgent
+          2
         )
       )
       // the load agent should send a CompletionMessage
@@ -179,8 +174,7 @@ class DBFSAlgorithmParticipantSpec
         gridAgentWithParticipants,
         TriggerWithIdMessage(
           ActivityStartTrigger(3600L),
-          activityStartTriggerId,
-          gridAgentWithParticipants
+          activityStartTriggerId
         )
       )
 
@@ -189,11 +183,9 @@ class DBFSAlgorithmParticipantSpec
         CompletionMessage(
           3,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                StartGridSimulationTrigger(3600L),
-                gridAgentWithParticipants
-              )
+            ScheduleTriggerMessage(
+              StartGridSimulationTrigger(3600L),
+              gridAgentWithParticipants
             )
           )
         )
@@ -212,8 +204,7 @@ class DBFSAlgorithmParticipantSpec
         gridAgentWithParticipants,
         TriggerWithIdMessage(
           StartGridSimulationTrigger(3600L),
-          startGridSimulationTriggerId,
-          gridAgentWithParticipants
+          startGridSimulationTriggerId
         )
       )
 
@@ -309,11 +300,9 @@ class DBFSAlgorithmParticipantSpec
         CompletionMessage(
           4,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(7200L),
-                gridAgentWithParticipants
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(7200L),
+              gridAgentWithParticipants
             )
           )
         )
