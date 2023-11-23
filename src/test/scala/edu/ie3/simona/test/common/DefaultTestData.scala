@@ -149,6 +149,13 @@ trait DefaultTestData {
          |    }
          |  ]
          |}
+         |simona.output.thermal = {
+         |  defaultConfig = {
+         |    notifier = "default",
+         |    simulationResult = false
+         |  }
+         |  individualConfigs = []
+         |}
          |
          |simona.runtime.participant.wec = {
          |  defaultConfig = {
@@ -166,6 +173,21 @@ trait DefaultTestData {
          |}
          |
          |simona.runtime.participant.evcs = {
+         |  defaultConfig = {
+         |    calculateMissingReactivePowerWithModel = false
+         |    uuids = ["default"]
+         |    scaling = 1.0
+         |  }
+         |  individualConfigs = [
+         |    {
+         |      calculateMissingReactivePowerWithModel = false
+         |      uuids = ["9abe950d-362e-4ffe-b686-500f84d8f368"]
+         |      scaling = 1.0
+         |    }
+         |  ]
+         |}
+         |
+         |simona.runtime.participant.hp = {
          |  defaultConfig = {
          |    calculateMissingReactivePowerWithModel = false
          |    uuids = ["default"]

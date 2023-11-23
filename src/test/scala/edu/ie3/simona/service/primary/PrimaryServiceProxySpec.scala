@@ -300,10 +300,24 @@ class PrimaryServiceProxySpec
             UUID.fromString("c7ebcc6c-55fc-479b-aa6b-6fa82ccac6b8") -> uuidPq,
             UUID.fromString("90a96daa-012b-4fea-82dc-24ba7a7ab81c") -> uuidPq
           )
-          timeSeriesToSourceRef shouldBe Map(
-            uuidP -> SourceRef(metaP, None),
-            uuidPq -> SourceRef(metaPq, None)
-          )
+          timeSeriesToSourceRef.get(uuidP) match {
+            case Some(SourceRef(metaInformation, worker)) =>
+              metaInformation shouldBe metaP
+              worker shouldBe None
+            case None =>
+              fail(
+                "Expected to receive a source ref for the active power time series"
+              )
+          }
+          timeSeriesToSourceRef.get(uuidPq) match {
+            case Some(SourceRef(metaInformation, worker)) =>
+              metaInformation shouldBe metaPq
+              worker shouldBe None
+            case None =>
+              fail(
+                "Expected to receive a source ref for the apparent power time series"
+              )
+          }
           simulationStart shouldBe this.simulationStart
           primaryConfig shouldBe validPrimaryConfig
           classOf[TimeSeriesMappingSource].isAssignableFrom(
@@ -484,7 +498,8 @@ class PrimaryServiceProxySpec
                       timePattern
                     )
                   ),
-                  actorToBeScheduled
+                  actorToBeScheduled,
+                  _
                 ) =>
               actualTimeSeriesUuid shouldBe uuidPq
               actualSimulationStart shouldBe simulationStart

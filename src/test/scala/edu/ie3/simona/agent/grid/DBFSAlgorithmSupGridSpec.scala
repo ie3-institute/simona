@@ -10,6 +10,7 @@ import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
+import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
@@ -98,6 +99,7 @@ class DBFSAlgorithmSupGridSpec
       val gridAgentInitData =
         GridAgentInitData(
           ehvGridContainer,
+          Seq.empty[ThermalGrid],
           subnetGatesToActorRef,
           RefSystem("5000 MVA", "380 kV")
         )
@@ -207,6 +209,7 @@ class DBFSAlgorithmSupGridSpec
                   Some(
                     ScheduleTriggerMessage(
                       StartGridSimulationTrigger(3600),
+                      _,
                       _
                     )
                   )
@@ -215,7 +218,7 @@ class DBFSAlgorithmSupGridSpec
             case CompletionMessage(
                   3,
                   Some(
-                    ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
+                    ScheduleTriggerMessage(ActivityStartTrigger(7200), _, _)
                   )
                 ) =>
               // agent should be in Idle again and listener should contain power flow result data
@@ -356,6 +359,7 @@ class DBFSAlgorithmSupGridSpec
                   Some(
                     ScheduleTriggerMessage(
                       StartGridSimulationTrigger(3600),
+                      _,
                       _
                     )
                   )
@@ -365,7 +369,7 @@ class DBFSAlgorithmSupGridSpec
             case CompletionMessage(
                   _,
                   Some(
-                    ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
+                    ScheduleTriggerMessage(ActivityStartTrigger(7200), _, _)
                   )
                 ) =>
               // after doing cleanup stuff, our agent should go back to idle again and listener should contain power flow result data
