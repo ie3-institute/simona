@@ -49,7 +49,7 @@ object GridAgentData {
     *   that are of relevance to the given sub grid container
     * @param subGridGateToActorRef
     *   information on inferior and superior grid connections [[SubGridGate]] s
-    *   and [[ActorRef]] s of the corresponding [[GridAgent]] s
+    *   and [[ActorRef]] s of the corresponding [[GridAgent]]s
     */
   final case class GridAgentInitData(
       subGridContainer: SubGridContainer,

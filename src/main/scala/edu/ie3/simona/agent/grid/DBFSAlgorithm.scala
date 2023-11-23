@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.grid
 
 import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import akka.actor.{ActorRef, FSM}
+import akka.actor.{ActorRef, FSM, PoisonPill}
 import akka.pattern.{ask, pipe}
 import akka.util.{Timeout => AkkaTimeout}
 import breeze.linalg.{DenseMatrix, DenseVector}
@@ -878,8 +878,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             failedResult.iteration,
             failedResult.cause
           )
-          environmentRefs.runtimeEventListener ! PowerFlowFailed
           self ! FinishGridSimulationTrigger(currentTick)
+          handlePowerFlowFailure(gridAgentBaseData)
           goto(SimulateGrid) using gridAgentBaseData
       }
   }
@@ -980,8 +980,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           )
       if (powerFlowFailedSomewhere) {
         log.warning("Power flow failed! This incident will be reported!")
-        environmentRefs.runtimeEventListener ! PowerFlowFailed
         self ! FinishGridSimulationTrigger(currentTick)
+        handlePowerFlowFailure(gridAgentBaseData)
         goto(SimulateGrid) using gridAgentBaseData
       } else {
         self ! CheckPowerDifferencesTrigger(currentTick)
@@ -992,6 +992,17 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         "Still waiting for asset or grid power values or slack voltage information of inferior grids"
       )
       stay() using gridAgentBaseData
+    }
+  }
+
+  private def handlePowerFlowFailure(
+      gridAgentBaseData: GridAgentBaseData
+  ): Unit = {
+    environmentRefs.runtimeEventListener ! PowerFlowFailed
+
+    if (gridAgentBaseData.powerFlowParams.stopOnFailure) {
+      log.error("Stopping because of failed power flow.")
+      self ! PoisonPill
     }
   }
 

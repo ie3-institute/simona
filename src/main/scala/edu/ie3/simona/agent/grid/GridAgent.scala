@@ -219,7 +219,8 @@ class GridAgent(
           simonaConfig.simona.powerflow.maxSweepPowerDeviation,
           simonaConfig.simona.powerflow.newtonraphson.epsilon.toVector.sorted,
           simonaConfig.simona.powerflow.newtonraphson.iterations,
-          simonaConfig.simona.powerflow.sweepTimeout
+          simonaConfig.simona.powerflow.sweepTimeout,
+          simonaConfig.simona.powerflow.stopOnFailure
         ),
         log,
         actorName
