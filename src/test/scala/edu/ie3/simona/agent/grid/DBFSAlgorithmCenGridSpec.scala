@@ -9,6 +9,7 @@ package edu.ie3.simona.agent.grid
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.testkit.TestProbe
 import com.typesafe.config.ConfigFactory
+import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
@@ -120,6 +121,7 @@ class DBFSAlgorithmCenGridSpec
       val gridAgentInitData =
         GridAgentInitData(
           hvGridContainer,
+          Seq.empty[ThermalGrid],
           subGridGateToActorRef,
           RefSystem("2000 MVA", "110 kV")
         )
@@ -129,8 +131,7 @@ class DBFSAlgorithmCenGridSpec
         centerGridAgent,
         TriggerWithIdMessage(
           InitializeGridAgentTrigger(gridAgentInitData),
-          triggerId,
-          centerGridAgent
+          triggerId
         )
       )
 
@@ -138,11 +139,9 @@ class DBFSAlgorithmCenGridSpec
         CompletionMessage(
           0,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(3600),
-                centerGridAgent
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(3600),
+              centerGridAgent
             )
           )
         )
@@ -158,8 +157,7 @@ class DBFSAlgorithmCenGridSpec
         centerGridAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(3600),
-          activityStartTriggerId,
-          centerGridAgent
+          activityStartTriggerId
         )
       )
 
@@ -167,11 +165,9 @@ class DBFSAlgorithmCenGridSpec
         CompletionMessage(
           1,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                StartGridSimulationTrigger(3600),
-                centerGridAgent
-              )
+            ScheduleTriggerMessage(
+              StartGridSimulationTrigger(3600),
+              centerGridAgent
             )
           )
         )
@@ -188,8 +184,7 @@ class DBFSAlgorithmCenGridSpec
         centerGridAgent,
         TriggerWithIdMessage(
           StartGridSimulationTrigger(3600),
-          startGridSimulationTriggerId,
-          centerGridAgent
+          startGridSimulationTriggerId
         )
       )
 
@@ -505,11 +500,9 @@ class DBFSAlgorithmCenGridSpec
         CompletionMessage(
           2,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(7200),
-                centerGridAgent
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(7200),
+              centerGridAgent
             )
           )
         )

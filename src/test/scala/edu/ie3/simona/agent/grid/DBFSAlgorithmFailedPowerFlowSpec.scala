@@ -9,6 +9,7 @@ package edu.ie3.simona.agent.grid
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
+import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
@@ -106,6 +107,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       val gridAgentInitData =
         GridAgentInitData(
           hvGridContainerPF,
+          Seq.empty[ThermalGrid],
           subGridGateToActorRef,
           RefSystem("2000 MVA", "110 kV")
         )
@@ -115,8 +117,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
         centerGridAgent,
         TriggerWithIdMessage(
           InitializeGridAgentTrigger(gridAgentInitData),
-          triggerId,
-          centerGridAgent
+          triggerId
         )
       )
 
@@ -124,11 +125,9 @@ class DBFSAlgorithmFailedPowerFlowSpec
         CompletionMessage(
           0,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(3600),
-                centerGridAgent
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(3600),
+              centerGridAgent
             )
           )
         )
@@ -145,8 +144,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
         centerGridAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(3600),
-          activityStartTriggerId,
-          centerGridAgent
+          activityStartTriggerId
         )
       )
 
@@ -155,11 +153,9 @@ class DBFSAlgorithmFailedPowerFlowSpec
         CompletionMessage(
           1,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                StartGridSimulationTrigger(3600),
-                centerGridAgent
-              )
+            ScheduleTriggerMessage(
+              StartGridSimulationTrigger(3600),
+              centerGridAgent
             )
           )
         )
@@ -176,8 +172,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
         centerGridAgent,
         TriggerWithIdMessage(
           StartGridSimulationTrigger(3600),
-          startGridSimulationTriggerId,
-          centerGridAgent
+          startGridSimulationTriggerId
         )
       )
 
@@ -262,11 +257,9 @@ class DBFSAlgorithmFailedPowerFlowSpec
         CompletionMessage(
           2,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(7200),
-                centerGridAgent
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(7200),
+              centerGridAgent
             )
           )
         )

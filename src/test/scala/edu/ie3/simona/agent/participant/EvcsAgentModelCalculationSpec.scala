@@ -22,12 +22,13 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   CollectRegistrationConfirmMessages,
   ParticipantInitializeStateData,
   ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
+  ParticipantUninitializedStateData,
+  SimpleInputContainer
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -150,8 +151,7 @@ class EvcsAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          evcsAgent
+          triggerId
         )
       )
 
@@ -229,8 +229,7 @@ class EvcsAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          evcsAgent
+          triggerId
         )
       )
 
@@ -251,7 +250,7 @@ class EvcsAgentModelCalculationSpec
               requestVoltageDeviationThreshold,
               outputConfig
             ) =>
-          inputModel shouldBe evcsInputModel
+          inputModel shouldBe SimpleInputContainer(evcsInputModel)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe withServices
           simulationStartDate shouldBe this.simulationStartDate
@@ -300,7 +299,7 @@ class EvcsAgentModelCalculationSpec
               ActorEvMovementsService(evService.ref)
             )
           )
-          outputConfig shouldBe ParticipantNotifierConfig(
+          outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
             powerRequestReply = false
           )
@@ -376,8 +375,7 @@ class EvcsAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          evcsAgent
+          triggerId
         )
       )
 
@@ -462,8 +460,7 @@ class EvcsAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          evcsAgent
+          initialiseTriggerId
         )
       )
 
@@ -518,8 +515,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1L,
-          evcsAgent
+          1L
         )
       )
 
@@ -595,8 +591,7 @@ class EvcsAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          evcsAgent
+          initialiseTriggerId
         )
       )
 
@@ -618,8 +613,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1L,
-          evcsAgent
+          1L
         )
       )
 
@@ -726,8 +720,7 @@ class EvcsAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          evcsAgent
+          initialiseTriggerId
         )
       )
 
@@ -789,8 +782,7 @@ class EvcsAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          evcsAgent
+          initialiseTriggerId
         )
       )
 
@@ -834,8 +826,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          4L,
-          evcsAgent
+          4L
         )
       )
       scheduler.expectMsg(CompletionMessage(4L))
@@ -890,8 +881,7 @@ class EvcsAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          evcsAgent
+          initialiseTriggerId
         )
       )
 
@@ -920,8 +910,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          3L,
-          evcsAgent
+          3L
         )
       )
       scheduler.expectMsg(CompletionMessage(3L))
@@ -957,8 +946,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(3600L),
-          4L,
-          evcsAgent
+          4L
         )
       )
       scheduler.expectMsg(CompletionMessage(4L))
@@ -995,8 +983,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(7200L),
-          5L,
-          evcsAgent
+          5L
         )
       )
 

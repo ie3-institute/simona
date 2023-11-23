@@ -72,8 +72,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     case Event(
           TriggerWithIdMessage(
             StartGridSimulationTrigger(currentTick),
-            triggerId,
-            _
+            triggerId
           ),
           gridAgentBaseData: GridAgentBaseData
         ) =>
@@ -452,11 +451,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       environmentRefs.scheduler ! CompletionMessage(
         simTriggerId,
         Some(
-          Vector(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(currentTick + resolution),
-              self
-            )
+          ScheduleTriggerMessage(
+            ActivityStartTrigger(currentTick + resolution),
+            self
           )
         )
       )
@@ -1011,8 +1008,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   /** Normally only reached by the superior (dummy) agent!
     *
     * Triggers a state transition to [[SimulateGrid]], informs the
-    * [[edu.ie3.simona.scheduler.SimScheduler]] about the finish of this sweep
-    * and requests a new trigger for itself for a new sweep (which means a new
+    * [[edu.ie3.simona.scheduler.Scheduler]] about the finish of this sweep and
+    * requests a new trigger for itself for a new sweep (which means a new
     * [[StartGridSimulationTrigger]])
     *
     * @param gridAgentBaseData
@@ -1032,9 +1029,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     environmentRefs.scheduler ! CompletionMessage(
       oldTrigger,
       Some(
-        Vector(
-          ScheduleTriggerMessage(StartGridSimulationTrigger(currentTick), self)
-        )
+        ScheduleTriggerMessage(StartGridSimulationTrigger(currentTick), self)
       )
     )
 

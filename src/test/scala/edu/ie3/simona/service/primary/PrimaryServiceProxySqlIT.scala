@@ -114,8 +114,7 @@ class PrimaryServiceProxySqlIT
         proxyRef,
         TriggerWithIdMessage(
           InitializeServiceTrigger(initData),
-          triggerIdInit1,
-          proxyRef
+          triggerIdInit1
         )
       )
 
@@ -159,8 +158,7 @@ class PrimaryServiceProxySqlIT
         workerRef,
         TriggerWithIdMessage(
           initTriggerMsg.trigger,
-          triggerIdInit2,
-          workerRef
+          triggerIdInit2
         )
       )
 
@@ -168,11 +166,9 @@ class PrimaryServiceProxySqlIT
         CompletionMessage(
           triggerIdInit2,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(0L),
-                workerRef
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(0L),
+              workerRef
             )
           )
         )

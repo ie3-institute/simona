@@ -22,13 +22,14 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   CollectRegistrationConfirmMessages,
   ParticipantInitializeStateData,
   ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
+  ParticipantUninitializedStateData,
+  SimpleInputContainer
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
@@ -71,8 +72,6 @@ import squants.{Each, Power}
 import squants.energy.{Kilowatts, Megawatts, Watts}
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND}
 
 import java.util.concurrent.TimeUnit
 
@@ -108,7 +107,7 @@ class PvAgentModelCalculationSpec
       LoadModelBehaviour.FIX,
       LoadReference.ActivePower(Kilowatts(0d))
     )
-  private val defaultOutputConfig = ParticipantNotifierConfig(
+  private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
     simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
   )
@@ -182,8 +181,7 @@ class PvAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          pvAgent
+          triggerId
         )
       )
 
@@ -261,8 +259,7 @@ class PvAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          pvAgent
+          triggerId
         )
       )
 
@@ -283,7 +280,7 @@ class PvAgentModelCalculationSpec
               requestVoltageDeviationThreshold,
               outputConfig
             ) =>
-          inputModel shouldBe voltageSensitiveInput
+          inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe withServices
           simulationStartDate shouldBe this.simulationStartDate
@@ -332,7 +329,7 @@ class PvAgentModelCalculationSpec
               ActorWeatherService(weatherService.ref)
             )
           )
-          outputConfig shouldBe ParticipantNotifierConfig(
+          outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
             powerRequestReply = false
           )
@@ -362,9 +359,7 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           triggerId,
           Some(
-            scala.collection.immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(4711), pvAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(4711), pvAgent)
           )
         )
       )
@@ -417,8 +412,7 @@ class PvAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          pvAgent
+          triggerId
         )
       )
 
@@ -503,8 +497,7 @@ class PvAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          pvAgent
+          initialiseTriggerId
         )
       )
 
@@ -565,8 +558,7 @@ class PvAgentModelCalculationSpec
         pvAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -576,9 +568,7 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            scala.collection.immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent)
           )
         )
       )
@@ -651,8 +641,7 @@ class PvAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          pvAgent
+          initialiseTriggerId
         )
       )
 
@@ -673,8 +662,7 @@ class PvAgentModelCalculationSpec
         pvAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -720,9 +708,7 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            scala.collection.immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent)
           )
         )
       )
@@ -797,8 +783,7 @@ class PvAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0L,
-          pvAgent
+          0L
         )
       )
 
@@ -840,8 +825,7 @@ class PvAgentModelCalculationSpec
         pvAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(3600L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -851,9 +835,7 @@ class PvAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            scala.collection.immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent)
           )
         )
       )
@@ -899,8 +881,7 @@ class PvAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0L,
-          pvAgent
+          0L
         )
       )
 
@@ -935,17 +916,14 @@ class PvAgentModelCalculationSpec
         pvAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           1L,
           Some(
-            scala.collection.immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent)
           )
         )
       )
@@ -968,17 +946,14 @@ class PvAgentModelCalculationSpec
         pvAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(3600L),
-          3L,
-          scheduler.ref
+          3L
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           3L,
           Some(
-            scala.collection.immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent)
           )
         )
       )
@@ -1001,8 +976,7 @@ class PvAgentModelCalculationSpec
         pvAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(7200L),
-          5L,
-          scheduler.ref
+          5L
         )
       )
       scheduler.expectMsg(CompletionMessage(5L))

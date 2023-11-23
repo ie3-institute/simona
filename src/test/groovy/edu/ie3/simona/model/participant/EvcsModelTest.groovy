@@ -17,10 +17,8 @@ import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.Sq
 import spock.lang.Shared
 import spock.lang.Specification
-import squants.energy.KilowattHours$
-import squants.energy.Kilowatts$
-import squants.energy.Power
-import squants.time.Minutes$
+import squants.energy.*
+import squants.time.*
 import tech.units.indriya.quantity.Quantities
 
 import scala.collection.immutable.Set

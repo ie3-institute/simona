@@ -19,13 +19,14 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModel
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantInitializeStateData,
   ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
+  ParticipantUninitializedStateData,
+  SimpleInputContainer
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -81,7 +82,7 @@ class LoadAgentProfileModelCalculationSpec
       LoadModelBehaviour.PROFILE,
       LoadReference.ActivePower(Kilowatts(0d))
     )
-  private val defaultOutputConfig = ParticipantNotifierConfig(
+  private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
     simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
   )
@@ -151,8 +152,7 @@ class LoadAgentProfileModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          loadAgent
+          triggerId
         )
       )
 
@@ -172,7 +172,7 @@ class LoadAgentProfileModelCalculationSpec
               requestVoltageDeviationThreshold,
               outputConfig
             ) =>
-          inputModel shouldBe voltageSensitiveInput
+          inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe services
           simulationStartDate shouldBe this.simulationStartDate
@@ -192,9 +192,7 @@ class LoadAgentProfileModelCalculationSpec
         CompletionMessage(
           triggerId,
           Some(
-            List(
-              ScheduleTriggerMessage(ActivityStartTrigger(0L), loadAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(0L), loadAgent)
           )
         )
       )
@@ -275,8 +273,7 @@ class LoadAgentProfileModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          loadAgent
+          triggerId
         )
       )
 
@@ -355,8 +352,7 @@ class LoadAgentProfileModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          loadAgent
+          initialiseTriggerId
         )
       )
 
@@ -374,8 +370,7 @@ class LoadAgentProfileModelCalculationSpec
         loadAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          activityStartTriggerId,
-          loadAgent
+          activityStartTriggerId
         )
       )
 
@@ -384,7 +379,7 @@ class LoadAgentProfileModelCalculationSpec
         CompletionMessage(
           activityStartTriggerId,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(900L), loadAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(900L), loadAgent)
           )
         )
       )
@@ -449,8 +444,7 @@ class LoadAgentProfileModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0L,
-          loadAgent
+          0L
         )
       )
 
@@ -461,22 +455,20 @@ class LoadAgentProfileModelCalculationSpec
       /* Trigger the data generation in tick 0, 900, 1800 */
       scheduler.send(
         loadAgent,
-        TriggerWithIdMessage(ActivityStartTrigger(0L), 1L, loadAgent)
+        TriggerWithIdMessage(ActivityStartTrigger(0L), 1L)
       )
       scheduler.send(
         loadAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          2L,
-          loadAgent
+          2L
         )
       )
       scheduler.send(
         loadAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(1800L),
-          3L,
-          loadAgent
+          3L
         )
       )
 

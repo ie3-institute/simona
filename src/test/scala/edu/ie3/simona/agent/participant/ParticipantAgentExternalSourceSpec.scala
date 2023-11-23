@@ -26,13 +26,14 @@ import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantInitializeStateData,
   ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
+  ParticipantUninitializedStateData,
+  SimpleInputContainer
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -100,7 +101,9 @@ class ParticipantAgentExternalSourceSpec
   when(mockInputModel.getId).thenReturn(testID)
   when(mockInputModel.getNode).thenReturn(mockNode)
   private val mockModel =
-    mock[SystemParticipant[CalcRelevantData.FixedRelevantData.type]]
+    mock[
+      SystemParticipant[CalcRelevantData.FixedRelevantData.type, ApparentPower]
+    ]
   when(mockModel.getUuid).thenReturn(testUUID)
   private val activeToReactivePowerFunction: squants.Power => ReactivePower =
     (p: squants.Power) => Kilovars(p.toKilowatts * tan(acos(0.9)))
@@ -116,7 +119,7 @@ class ParticipantAgentExternalSourceSpec
     LoadModelBehaviour.FIX,
     LoadReference.ActivePower(Kilowatts(0.0))
   )
-  private val defaultOutputConfig = ParticipantNotifierConfig(
+  private val defaultOutputConfig = NotifierConfig(
     simulationResultInfo = false,
     powerRequestReply = false
   )
@@ -177,8 +180,7 @@ class ParticipantAgentExternalSourceSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          mockAgent
+          triggerId
         )
       )
 
@@ -200,7 +202,7 @@ class ParticipantAgentExternalSourceSpec
               requestVoltageDeviationThreshold,
               outputConfig
             ) =>
-          inputModel shouldBe mockInputModel
+          inputModel shouldBe SimpleInputContainer(mockInputModel)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe None
           simulationStartDate shouldBe defaultSimulationStart
@@ -218,30 +220,24 @@ class ParticipantAgentExternalSourceSpec
         RegistrationSuccessfulMessage(Some(4711L))
       )
 
-      scheduler.expectMsgClass(classOf[CompletionMessage]) match {
-        case CompletionMessage(actualTriggerId, newTriggers) =>
-          actualTriggerId shouldBe triggerId
-          newTriggers match {
-            case Some(triggers) =>
-              triggers.size shouldBe 1
-              triggers.exists {
-                case ScheduleTriggerMessage(
-                      ActivityStartTrigger(tick),
-                      actorToBeScheduled
-                    ) =>
-                  tick == 4711L && actorToBeScheduled == mockAgent
-                case unexpected =>
-                  fail(s"Received unexpected trigger message $unexpected")
-              } shouldBe true
-            case None => fail("Expected to get a trigger for tick 4711.")
-          }
-      }
+      scheduler.expectMsg(
+        CompletionMessage(
+          triggerId,
+          Some(
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(4711L),
+              mockAgent
+            )
+          )
+        )
+      )
 
       /* ... as well as corresponding state and state data */
       mockAgent.stateName shouldBe Idle
       mockAgent.stateData match {
         case baseStateData: FromOutsideBaseStateData[SystemParticipant[
-              FixedRelevantData.type
+              FixedRelevantData.type,
+              ApparentPower
             ], ApparentPower] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
@@ -286,8 +282,7 @@ class ParticipantAgentExternalSourceSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          mockAgent
+          triggerId
         )
       )
 
@@ -378,8 +373,7 @@ class ParticipantAgentExternalSourceSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          mockAgent
+          initialiseTriggerId
         )
       )
 
@@ -412,7 +406,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateData match {
         case DataCollectionStateData(
               baseStateData: FromOutsideBaseStateData[SystemParticipant[
-                CalcRelevantData
+                CalcRelevantData,
+                ApparentPower
               ], ApparentPower],
               expectedSenders,
               isYetTriggered
@@ -445,8 +440,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -455,11 +449,9 @@ class ParticipantAgentExternalSourceSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(1800L),
-                mockAgent
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(1800L),
+              mockAgent
             )
           )
         )
@@ -469,7 +461,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateName shouldBe Idle
       mockAgent.stateData match {
         case baseStateData: FromOutsideBaseStateData[SystemParticipant[
-              CalcRelevantData
+              CalcRelevantData,
+              ApparentPower
             ], ApparentPower] =>
           /* The new data is apparent in the result value store */
           baseStateData.resultValueStore match {
@@ -520,8 +513,7 @@ class ParticipantAgentExternalSourceSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          mockAgent
+          initialiseTriggerId
         )
       )
 
@@ -541,8 +533,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -551,7 +542,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateData match {
         case DataCollectionStateData(
               baseStateData: FromOutsideBaseStateData[SystemParticipant[
-                CalcRelevantData
+                CalcRelevantData,
+                ApparentPower
               ], ApparentPower],
               expectedSenders,
               isYetTriggered
@@ -590,11 +582,9 @@ class ParticipantAgentExternalSourceSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(1800L),
-                mockAgent
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(1800L),
+              mockAgent
             )
           )
         )
@@ -604,7 +594,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateName shouldBe Idle
       mockAgent.stateData match {
         case baseStateData: FromOutsideBaseStateData[SystemParticipant[
-              CalcRelevantData
+              CalcRelevantData,
+              ApparentPower
             ], ApparentPower] =>
           /* The new data is apparent in the result value store */
           baseStateData.resultValueStore match {
@@ -655,8 +646,7 @@ class ParticipantAgentExternalSourceSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0L,
-          mockAgent
+          0L
         )
       )
 
@@ -698,8 +688,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -707,11 +696,9 @@ class ParticipantAgentExternalSourceSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(1800L),
-                mockAgent
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(1800L),
+              mockAgent
             )
           )
         )
@@ -729,8 +716,12 @@ class ParticipantAgentExternalSourceSpec
 
     "correctly determine the reactive power function when trivial reactive power is requested" in {
       val baseStateData: FromOutsideBaseStateData[SystemParticipant[
-        CalcRelevantData.FixedRelevantData.type
-      ], ApparentPower] = FromOutsideBaseStateData(
+        CalcRelevantData.FixedRelevantData.type,
+        ApparentPower
+      ], ApparentPower] = FromOutsideBaseStateData[SystemParticipant[
+        CalcRelevantData.FixedRelevantData.type,
+        ApparentPower
+      ], ApparentPower](
         mockModel,
         defaultSimulationStart,
         defaultSimulationEnd,
@@ -754,8 +745,12 @@ class ParticipantAgentExternalSourceSpec
 
     "correctly determine the reactive power function from model when requested" in {
       val baseStateData: FromOutsideBaseStateData[SystemParticipant[
-        CalcRelevantData.FixedRelevantData.type
-      ], ApparentPower] = FromOutsideBaseStateData(
+        CalcRelevantData.FixedRelevantData.type,
+        ApparentPower
+      ], ApparentPower] = FromOutsideBaseStateData[SystemParticipant[
+        CalcRelevantData.FixedRelevantData.type,
+        ApparentPower
+      ], ApparentPower](
         mockModel,
         defaultSimulationStart,
         defaultSimulationEnd,
@@ -803,8 +798,7 @@ class ParticipantAgentExternalSourceSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0,
-          mockAgent
+          0
         )
       )
 
@@ -836,19 +830,16 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           1L,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(1800L),
-                mockAgent
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(1800L),
+              mockAgent
             )
           )
         )
@@ -870,19 +861,16 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(1800L),
-          2L,
-          scheduler.ref
+          2L
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           2L,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(2700L),
-                mockAgent
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(2700L),
+              mockAgent
             )
           )
         )
@@ -904,8 +892,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(2700L),
-          3L,
-          scheduler.ref
+          3L
         )
       )
       scheduler.expectMsg(CompletionMessage(3L, None))

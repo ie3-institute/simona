@@ -152,8 +152,7 @@ class PrimaryServiceWorkerSqlIT
             serviceRef,
             TriggerWithIdMessage(
               InitializeServiceTrigger(initData),
-              triggerId1,
-              serviceRef
+              triggerId1
             )
           )
 
@@ -161,11 +160,9 @@ class PrimaryServiceWorkerSqlIT
             CompletionMessage(
               triggerId1,
               Some(
-                Seq(
-                  ScheduleTriggerMessage(
-                    ActivityStartTrigger(firstTick),
-                    serviceRef
-                  )
+                ScheduleTriggerMessage(
+                  ActivityStartTrigger(firstTick),
+                  serviceRef
                 )
               )
             )
@@ -185,8 +182,7 @@ class PrimaryServiceWorkerSqlIT
             serviceRef,
             TriggerWithIdMessage(
               ActivityStartTrigger(firstTick),
-              triggerId2,
-              serviceRef
+              triggerId2
             )
           )
 

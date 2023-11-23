@@ -126,7 +126,7 @@ class RunSimonaStandaloneIT
   private def checkRuntimeEvents(
       runtimeEvents: Iterable[RuntimeEvent]
   ): Unit = {
-    runtimeEvents.toVector.size shouldBe 12
+    runtimeEvents.toVector.size shouldBe 11
     val groupedRuntimeEvents = runtimeEvents.toVector.groupBy {
       case Initializing            => Initializing
       case InitComplete(_)         => InitComplete
@@ -149,7 +149,7 @@ class RunSimonaStandaloneIT
     groupedRuntimeEvents
       .get(CheckWindowPassed)
       .foreach(checkWindowsPassed => {
-        checkWindowsPassed.size shouldBe 8
+        checkWindowsPassed.size shouldBe 7
         checkWindowsPassed.foreach {
           case CheckWindowPassed(tick, _) =>
             tick % 900L shouldBe 0 // config has 900 sec as check window value

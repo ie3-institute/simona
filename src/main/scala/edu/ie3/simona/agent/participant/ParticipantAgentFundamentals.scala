@@ -12,12 +12,15 @@ import org.apache.pekko.util
 import org.apache.pekko.util.Timeout
 import breeze.numerics.{ceil, floor, pow, sqrt}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
+import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
+  ApparentPowerAndHeat,
   EnrichableData,
   PrimaryDataWithApparentPower
 }
@@ -28,7 +31,10 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FromOutsideBaseStateData,
   ParticipantModelBaseStateData
 }
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.CollectRegistrationConfirmMessages
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
+  CollectRegistrationConfirmMessages,
+  InputModelContainer
+}
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
   DataCollectionStateData,
@@ -41,14 +47,19 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   HandleInformation
 }
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.ResultEvent
+import edu.ie3.simona.event.ResultEvent.{
+  ParticipantResultEvent,
+  ThermalResultEvent
+}
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   ActorNotRegisteredException,
   AgentInitializationException,
   InconsistentStateException,
   InvalidRequestException
 }
+import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -68,9 +79,8 @@ import edu.ie3.simona.ontology.trigger.Trigger.ParticipantTrigger.StartCalculati
 import edu.ie3.simona.service.ServiceStateData.ServiceActivationBaseStateData
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
-import squants.energy.{KilowattHours, Megawatts}
+import squants.energy.Megawatts
 import squants.{Dimensionless, Each, Energy, Power}
 
 import java.time.ZonedDateTime
@@ -88,7 +98,7 @@ protected trait ParticipantAgentFundamentals[
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
     MC <: SimonaConfig.BaseRuntimeConfig,
-    M <: SystemParticipant[CD]
+    M <: SystemParticipant[CD, PD]
 ] extends ServiceRegistration[PD, CD, D, I, MC, M] {
   this: ParticipantAgent[PD, CD, D, I, MC, M] =>
   protected val pdClassTag: ClassTag[PD]
@@ -115,14 +125,14 @@ protected trait ParticipantAgentFundamentals[
   }
 
   override def initializeParticipantForPrimaryDataReplay(
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: MC,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig,
+      outputConfig: NotifierConfig,
       senderToMaybeTick: (ActorRef, Option[Long]),
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
@@ -139,12 +149,12 @@ protected trait ParticipantAgentFundamentals[
 
     /* Confirm final initialization */
     val (_, triggerId) = releaseTickAndTriggerId()
-    val newTriggerMessages =
-      ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
+    val newTriggerMessage =
+      ServiceActivationBaseStateData.tickToScheduleTriggerMessage(
         senderToMaybeTick._2,
         self
       )
-    scheduler ! CompletionMessage(triggerId, newTriggerMessages)
+    scheduler ! CompletionMessage(triggerId, newTriggerMessage)
     goto(Idle) using stateData
   }
 
@@ -172,13 +182,13 @@ protected trait ParticipantAgentFundamentals[
     *   [[FromOutsideBaseStateData]] with required information
     */
   def determineFromOutsideBaseStateData(
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: MC,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig,
+      outputConfig: NotifierConfig,
       senderToMaybeTick: (ActorRef, Option[Long])
   ): FromOutsideBaseStateData[M, PD] = {
     val model = buildModel(
@@ -199,7 +209,7 @@ protected trait ParticipantAgentFundamentals[
       ValueStore.forVoltage(
         resolution,
         Each(
-          inputModel.getNode
+          inputModel.electricalInputModel.getNode
             .getvTarget()
             .to(PU)
             .getValue
@@ -224,7 +234,7 @@ protected trait ParticipantAgentFundamentals[
     * @return
     */
   def buildModel(
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: MC,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
@@ -260,20 +270,20 @@ protected trait ParticipantAgentFundamentals[
     *   Idle state with child of [[BaseStateData]]
     */
   override def initializeParticipantForModelCalculation(
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: MC,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig,
+      outputConfig: NotifierConfig,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]] =
     try {
       /* Register for services */
       val awaitRegistrationResponsesFrom =
-        registerForServices(inputModel, services)
+        registerForServices(inputModel.electricalInputModel, services)
 
       val baseStateData = determineModelBaseStateData(
         inputModel,
@@ -318,14 +328,14 @@ protected trait ParticipantAgentFundamentals[
     * fundamental classes
     */
   def determineModelBaseStateData(
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: MC,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): ParticipantModelBaseStateData[PD, CD, M]
 
   /** Determine all ticks between the operation start and end of the
@@ -538,7 +548,7 @@ protected trait ParticipantAgentFundamentals[
       tick: Long,
       scheduler: ActorRef
   )(implicit
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     if (!stateData.data.exists(_._2.isEmpty) && isYetTriggered) {
       /* We got everything we expect and we are yet triggered */
@@ -559,7 +569,7 @@ protected trait ParticipantAgentFundamentals[
               announceSimulationResult(
                 stateData.baseStateData,
                 tick,
-                mostRecentData
+                AccompaniedSimulationResult(mostRecentData)
               )
 
               val resultValueStore = fromOutsideBaseStateData.resultValueStore
@@ -710,11 +720,11 @@ protected trait ParticipantAgentFundamentals[
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     /* Determine the very next tick, where activation is required */
-    val (maybeActivationTriggers, updatedBaseStateData) =
+    val (maybeActivationTrigger, updatedBaseStateData) =
       popNextActivationTrigger(baseStateData)
 
     val (_, triggerId) = releaseTickAndTriggerId()
-    scheduler ! CompletionMessage(triggerId, maybeActivationTriggers)
+    scheduler ! CompletionMessage(triggerId, maybeActivationTrigger)
     unstashAll()
     goto(Idle) using updatedBaseStateData
   }
@@ -728,29 +738,27 @@ protected trait ParticipantAgentFundamentals[
     * @param baseStateData
     *   Base state data to be updated
     * @return
-    *   An [[Option]] to a [[Seq]] of new [[ScheduleTriggerMessage]] s as well
-    *   as the updated base state data. If the next activation tick is an
-    *   additional activation, this tick is removed from the list of desired
-    *   additional activations.
+    *   An [[Option]] of new [[ScheduleTriggerMessage]] as well as the updated
+    *   base state data. If the next activation tick is an additional
+    *   activation, this tick is removed from the list of desired additional
+    *   activations.
     */
   def popNextActivationTrigger(
       baseStateData: BaseStateData[PD]
-  ): (Option[Seq[ScheduleTriggerMessage]], BaseStateData[PD]) = {
+  ): (Option[ScheduleTriggerMessage], BaseStateData[PD]) = {
     /* Determine what comes next: An additional activation or new data - or both at once */
     val nextAdditionalActivation =
       baseStateData.additionalActivationTicks.headOption
     val nextDataTick =
       baseStateData.foreseenDataTicks.values.toSeq.sorted.headOption.flatten
 
-    /* return a [[Option]] to a [[Seq]] of [[ScheduleTriggerMessage]]s */
-    def toMessageSeq: (Long, ActorRef) => Option[Seq[ScheduleTriggerMessage]] =
+    /* return a [[Option]] of [[ScheduleTriggerMessage]]s */
+    def toMessage: (Long, ActorRef) => Option[ScheduleTriggerMessage] =
       (tick: Long, actorToBeTriggered: ActorRef) =>
         Some(
-          Seq(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(tick),
-              actorToBeTriggered
-            )
+          ScheduleTriggerMessage(
+            ActivityStartTrigger(tick),
+            actorToBeTriggered
           )
         )
 
@@ -758,7 +766,7 @@ protected trait ParticipantAgentFundamentals[
       case (None, Some(dataTick)) =>
         /* There is only a data tick available */
         (
-          toMessageSeq(dataTick, self),
+          toMessage(dataTick, self),
           baseStateData
         )
       case (Some(additionalTick), Some(dataTick))
@@ -766,7 +774,7 @@ protected trait ParticipantAgentFundamentals[
         /* The next foreseen activation will be based on foreseen data arrival. Do nothing else, then creating a
          * trigger. */
         (
-          toMessageSeq(dataTick, self),
+          toMessage(dataTick, self),
           baseStateData
         )
       case (Some(additionalTick), _) =>
@@ -784,7 +792,7 @@ protected trait ParticipantAgentFundamentals[
         )
 
         (
-          toMessageSeq(additionalTick, self),
+          toMessage(additionalTick, self),
           updatedBaseStateData
         )
       case (None, None) =>
@@ -917,7 +925,7 @@ protected trait ParticipantAgentFundamentals[
       nodalVoltage: Dimensionless,
       lastNodalVoltage: Option[(Long, Dimensionless)]
   ): Option[FSM.State[AgentState, ParticipantStateData[PD]]] = {
-    implicit val outputConfig: ParticipantNotifierConfig =
+    implicit val outputConfig: NotifierConfig =
       baseStateData.outputConfig
     mostRecentRequest match {
       case Some((mostRecentRequestTick, latestProvidedValues))
@@ -1404,7 +1412,7 @@ protected trait ParticipantAgentFundamentals[
     announceSimulationResult(
       baseStateData,
       currentTick,
-      result
+      AccompaniedSimulationResult(result)
     )(baseStateData.outputConfig)
 
     /* In this case, without secondary data, the agent has been triggered by an ActivityStartTrigger by itself,
@@ -1438,12 +1446,16 @@ protected trait ParticipantAgentFundamentals[
   def announceSimulationResult(
       baseStateData: BaseStateData[PD],
       tick: Long,
-      result: PD
-  )(implicit outputConfig: ParticipantNotifierConfig): Unit =
-    if (outputConfig.simulationResultInfo)
+      result: AccompaniedSimulationResult[PD]
+  )(implicit outputConfig: NotifierConfig): Unit =
+    if (outputConfig.simulationResultInfo) {
       notifyListener(
-        buildResultEvent(baseStateData, tick, result)
+        buildResultEvent(baseStateData, tick, result.primaryData)
       )
+      result.accompanyingResults
+        .flatMap(result => buildResultEvent(result))
+        .foreach(notifyListener(_))
+    }
 
   /** Update the result and calc relevant data value stores, inform all
     * registered listeners and go to Idle using the updated base state data
@@ -1462,7 +1474,7 @@ protected trait ParticipantAgentFundamentals[
   final def updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
       scheduler: ActorRef,
       baseStateData: BaseStateData[PD],
-      result: PD,
+      result: AccompaniedSimulationResult[PD],
       relevantData: CD
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     /* Update the value stores */
@@ -1470,7 +1482,7 @@ protected trait ParticipantAgentFundamentals[
       ValueStore.updateValueStore(
         baseStateData.resultValueStore,
         currentTick,
-        result
+        result.primaryData
       )
     val updatedRelevantDataStore =
       baseStateData match {
@@ -1532,7 +1544,7 @@ protected trait ParticipantAgentFundamentals[
       tick: Long,
       activePower: Power,
       reactivePower: ReactivePower
-  )(implicit outputConfig: ParticipantNotifierConfig): Unit =
+  )(implicit outputConfig: NotifierConfig): Unit =
     if (outputConfig.powerRequestReply) {
       log.warning(
         "Writing out power request replies is currently not supported!"
@@ -1587,6 +1599,27 @@ protected trait ParticipantAgentFundamentals[
     ParticipantResultEvent(
       buildResult(uuid, dateTime, result)
     )
+  }
+
+  /** Wrap a given result into a [[ResultEvent]], so that it can be sent to the
+    * listener
+    * @param result
+    *   Result entity to send
+    * @tparam R
+    *   Type of result
+    * @return
+    *   Optionally wrapped event
+    */
+  def buildResultEvent[R <: ResultEntity](
+      result: R
+  ): Option[ResultEvent] = result match {
+    case thermalResult: ThermalUnitResult =>
+      Some(ThermalResultEvent(thermalResult))
+    case unsupported =>
+      log.debug(
+        s"Results of class '${unsupported.getClass.getSimpleName}' are currently not supported."
+      )
+      None
   }
 
   /** Determines the correct result.
@@ -1725,4 +1758,63 @@ case object ParticipantAgentFundamentals {
 
     ApparentPower(p, q)
   }
+
+  /** Determine the average apparent power within the given tick window
+    *
+    * @param tickToResults
+    *   Mapping from data tick to actual data
+    * @param windowStart
+    *   First, included tick of the time window
+    * @param windowEnd
+    *   Last, included tick of the time window
+    * @param activeToReactivePowerFuncOpt
+    *   An Option on a function, that transfers the active into reactive power
+    * @return
+    *   The averaged apparent power
+    */
+  def averageApparentPowerAndHeat(
+      tickToResults: Map[Long, ApparentPowerAndHeat],
+      windowStart: Long,
+      windowEnd: Long,
+      activeToReactivePowerFuncOpt: Option[
+        Power => ReactivePower
+      ] = None,
+      log: LoggingAdapter
+  ): ApparentPowerAndHeat = {
+
+    val tickToResultsApparentPower: Map[Long, ApparentPower] =
+      tickToResults.map { case (tick, pd) =>
+        (
+          tick,
+          ApparentPower(Megawatts(pd.p.toMegawatts), Megavars(pd.q.toMegavars))
+        )
+      }
+
+    val apparentPower = averageApparentPower(
+      tickToResultsApparentPower,
+      windowStart,
+      windowEnd,
+      activeToReactivePowerFuncOpt,
+      log
+    )
+
+    val qDot = QuantityUtil.average[Power, Energy](
+      tickToResults.map { case (tick, pd) =>
+        tick -> Megawatts(pd.qDot.toMegawatts)
+      },
+      windowStart,
+      windowEnd
+    ) match {
+      case Success(qDotSuccess) => qDotSuccess
+      case Failure(exception) =>
+        log.warning(
+          "Unable to determine average thermal power. Apply 0 instead. Cause:\n\t{}",
+          exception
+        )
+        Megawatts(0d)
+    }
+
+    ApparentPowerAndHeat(apparentPower.p, apparentPower.q, qDot)
+  }
+
 }

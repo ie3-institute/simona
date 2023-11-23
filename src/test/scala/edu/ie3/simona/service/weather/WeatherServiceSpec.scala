@@ -119,33 +119,21 @@ class WeatherServiceSpec
             simonaConfig.simona.input.weather.datasource
           )
         ),
-        triggerId,
-        weatherActor
+        triggerId
       )
 
-      expectMsgType[CompletionMessage] match {
-        case CompletionMessage(triggerId, newTriggers) =>
-          triggerId shouldBe 0
-          newTriggers match {
-            case Some(seq) =>
-              seq.size shouldBe 1
-              seq.headOption match {
-                case Some(
-                      ScheduleTriggerMessage(
-                        ActivityStartTrigger(nextTick),
-                        actorRef
-                      )
-                    ) =>
-                  nextTick shouldBe 0
-                  actorRef shouldBe weatherActor
-                case x =>
-                  fail(
-                    s"The sequence of next triggers contains the wrong element '$x'."
-                  )
-              }
-            case None => fail("Expected new triggers, but got nothing.")
-          }
-      }
+      expectMsg(
+        CompletionMessage(
+          0L,
+          Some(
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(0L),
+              weatherActor
+            )
+          )
+        )
+      )
+
     }
 
     "announce failed weather registration on invalid coordinate" in {
@@ -193,7 +181,7 @@ class WeatherServiceSpec
 
     "send out correct weather information upon activity start trigger and request the triggering for the next tick" in {
       /* Send out an activity start trigger as the scheduler */
-      weatherActor ! TriggerWithIdMessage(ActivityStartTrigger(0L), 1L, self)
+      weatherActor ! TriggerWithIdMessage(ActivityStartTrigger(0L), 1L)
 
       /* Expect a weather provision (as this test is registered via the test actor) and a completion message (as the
        * test is also the scheduler) */
@@ -212,26 +200,18 @@ class WeatherServiceSpec
           nextDataTick shouldBe Some(3600L)
         case CompletionMessage(triggerId, nextTriggers) =>
           triggerId shouldBe 1L
-          nextTriggers match {
-            case Some(triggerSeq) =>
-              triggerSeq.size shouldBe 1
-              triggerSeq.headOption match {
-                case Some(msg) =>
-                  msg shouldBe ScheduleTriggerMessage(
-                    ActivityStartTrigger(3600L),
-                    weatherActor
-                  )
-                case None =>
-                  fail("Did expect an ActivityStartTrigger for 3600 L.")
-              }
-            case None => fail("Did expect to get a new trigger.")
-          }
+          nextTriggers shouldBe Some(
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(3600L),
+              weatherActor
+            )
+          )
       }
     }
 
     "sends out correct weather information when triggered again and does not as for triggering, if the end is reached" in {
       /* Send out an activity start trigger as the scheduler */
-      weatherActor ! TriggerWithIdMessage(ActivityStartTrigger(3600L), 2L, self)
+      weatherActor ! TriggerWithIdMessage(ActivityStartTrigger(3600L), 2L)
 
       /* Expect a weather provision (as this test is registered via the test actor) and a completion message (as the
        * test is also the scheduler) */

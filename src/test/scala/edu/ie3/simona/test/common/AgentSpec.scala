@@ -21,7 +21,6 @@ import org.scalatest.wordspec.AnyWordSpecLike
 class AgentSpec(actorSystem: ActorSystem)
     extends TestKitWithShutdown(actorSystem)
     with ImplicitSender
-    with SchedulerMessageFunctions
     with AnyWordSpecLike
     with should.Matchers
     with PrivateMethodTester
