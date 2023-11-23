@@ -37,7 +37,7 @@ class RuntimeEventListenerSpec
       ActorTestKit.ApplicationTestConfig.withValue(
         // Timeout for LoggingTestKit via TestKitSettings
         // Log message sometimes seem to take a while until caught by the test kit
-        "akka.actor.testkit.typed.filter-leeway",
+        "org.apache.pekko.actor.testkit.typed.filter-leeway",
         ConfigValueFactory.fromAnyRef("30s")
       )
     )

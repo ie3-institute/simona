@@ -47,7 +47,7 @@ trait SimonaSetup {
     */
   def runtimeEventListener(
       context: ActorContext
-  ): akka.actor.typed.ActorRef[RuntimeEvent]
+  ): org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
 
   /** Creates a sequence of system participant event listeners
     *
@@ -120,8 +120,8 @@ trait SimonaSetup {
   def timeAdvancer(
       context: ActorContext,
       simulation: ActorRef,
-      runtimeEventListener: akka.actor.typed.ActorRef[RuntimeEvent]
-  ): akka.actor.typed.ActorRef[SchedulerMessage]
+      runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
+  ): org.apache.pekko.actor.typed.ActorRef[SchedulerMessage]
 
   /** Creates a scheduler service
     *
@@ -134,7 +134,7 @@ trait SimonaSetup {
     */
   def scheduler(
       context: ActorContext,
-      timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage]
+      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[SchedulerMessage]
   ): ActorRef
 
   /** Creates all the needed grid agents

@@ -10,7 +10,13 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorRefOps,
   ClassicActorSystemOps
 }
-import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, ActorSystem, Props}
+import org.apache.pekko.actor.{
+  Actor,
+  ActorContext,
+  ActorRef,
+  ActorSystem,
+  Props
+}
 import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -76,7 +82,7 @@ class SimonaSimFailSpec
 object SimonaSimFailSpec {
   class FailSim(
       actorSystem: ActorSystem,
-      timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage]
+      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[SchedulerMessage]
   ) extends SimonaSim(
         new DummySetup(
           actorSystem,
@@ -97,7 +103,7 @@ object SimonaSimFailSpec {
 
   class DummySetup(
       actorSystem: ActorSystem,
-      timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage],
+      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[SchedulerMessage],
       override val args: Array[String] = Array.empty[String]
   ) extends SimonaSetup {
 
@@ -105,8 +111,8 @@ object SimonaSimFailSpec {
 
     override def runtimeEventListener(
         context: ActorContext
-    ): akka.actor.typed.ActorRef[RuntimeEvent] =
-      akka.actor.testkit.typed.scaladsl
+    ): org.apache.pekko.actor.typed.ActorRef[RuntimeEvent] =
+      org.apache.pekko.actor.testkit.typed.scaladsl
         .TestProbe[RuntimeEvent]()(actorSystem.toTyped)
         .ref
 
@@ -156,12 +162,14 @@ object SimonaSimFailSpec {
     override def timeAdvancer(
         context: ActorContext,
         simulation: ActorRef,
-        runtimeEventListener: akka.actor.typed.ActorRef[RuntimeEvent]
-    ): akka.actor.typed.ActorRef[SchedulerMessage] = timeAdvancer
+        runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[
+          RuntimeEvent
+        ]
+    ): org.apache.pekko.actor.typed.ActorRef[SchedulerMessage] = timeAdvancer
 
     override def scheduler(
         context: ActorContext,
-        timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage]
+        timeAdvancer: org.apache.pekko.actor.typed.ActorRef[SchedulerMessage]
     ): ActorRef = TestProbe("scheduler")(actorSystem).ref
 
     override def gridAgents(

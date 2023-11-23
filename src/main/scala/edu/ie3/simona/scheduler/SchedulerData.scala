@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.scheduler
 
-import akka.actor
-import akka.actor.ActorRef
+import org.apache.pekko.actor
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.TriggerWithIdMessage
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet

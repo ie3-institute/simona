@@ -74,11 +74,12 @@ class SimonaSim(simonaSetup: SimonaSetup)
     simonaSetup.systemParticipantsListener(context)
 
   // runtime event listener
-  val runtimeEventListener: ActorRef[RuntimeEvent] =
+  val runtimeEventListener
+      : org.apache.pekko.actor.typed.ActorRef[RuntimeEvent] =
     simonaSetup.runtimeEventListener(context)
 
   /* start scheduler */
-  val timeAdvancer: ActorRef[SchedulerMessage] =
+  val timeAdvancer: org.apache.pekko.actor.typed.ActorRef[SchedulerMessage] =
     simonaSetup.timeAdvancer(context, self, runtimeEventListener)
   val scheduler: ActorRef = simonaSetup.scheduler(context, timeAdvancer)
 
