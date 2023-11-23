@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.ChpInput
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ChpModel._
 import edu.ie3.simona.model.participant.control.QControl
@@ -54,7 +55,7 @@ final case class ChpModel(
     cosPhiRated: Double,
     pThermal: Power,
     storage: ThermalStorage with MutableStorage
-) extends SystemParticipant[ChpRelevantData](
+) extends SystemParticipant[ChpRelevantData, ApparentPower](
       uuid,
       id,
       operationInterval,
@@ -62,7 +63,8 @@ final case class ChpModel(
       qControl,
       sRated,
       cosPhiRated
-    ) {
+    )
+    with ApparentPowerParticipant[ChpRelevantData] {
 
   val pRated: Power = sRated * cosPhiRated
 

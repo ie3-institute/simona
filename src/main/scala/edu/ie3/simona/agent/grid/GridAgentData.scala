@@ -9,7 +9,7 @@ package edu.ie3.simona.agent.grid
 import akka.actor.ActorRef
 import akka.event.LoggingAdapter
 import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.datamodel.models.input.container.SubGridContainer
+import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.grid.ReceivedValues.{
@@ -44,12 +44,16 @@ object GridAgentData {
     *
     * @param subGridContainer
     *   raw grid information in the input data format
+    * @param thermalIslandGrids
+    *   Collection of thermal island grids (mostly one per household / building)
+    *   that are of relevance to the given sub grid container
     * @param subGridGateToActorRef
     *   information on inferior and superior grid connections [[SubGridGate]] s
     *   and [[ActorRef]] s of the corresponding [[GridAgent]] s
     */
   final case class GridAgentInitData(
       subGridContainer: SubGridContainer,
+      thermalIslandGrids: Seq[ThermalGrid],
       subGridGateToActorRef: Map[SubGridGate, ActorRef],
       refSystem: RefSystem
   ) extends GridAgentData

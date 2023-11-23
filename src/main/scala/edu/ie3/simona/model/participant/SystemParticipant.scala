@@ -6,7 +6,10 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower,
+  PrimaryDataWithApparentPower
+}
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.scala.OperationInterval
@@ -38,8 +41,13 @@ import java.util.UUID
   *   Rated power factor
   * @tparam CD
   *   Type of data, that is needed for model calculation
+  * @tparam PD
+  *   Primary data, that this asset does produce
   */
-abstract class SystemParticipant[CD <: CalcRelevantData](
+abstract class SystemParticipant[
+    CD <: CalcRelevantData,
+    +PD <: PrimaryDataWithApparentPower[PD]
+](
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
@@ -68,6 +76,23 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     *   A tuple of active and reactive power
     */
   def calculatePower(
+      tick: Long,
+      voltage: Dimensionless,
+      data: CD
+  ): PD
+
+  /** Calculate the apparent power behaviour based on the given data.
+    *
+    * @param tick
+    *   Regarded instant in simulation
+    * @param voltage
+    *   Nodal voltage magnitude
+    * @param data
+    *   Further needed, secondary data
+    * @return
+    *   A tuple of active and reactive power
+    */
+  protected def calculateApparentPower(
       tick: Long,
       voltage: Dimensionless,
       data: CD

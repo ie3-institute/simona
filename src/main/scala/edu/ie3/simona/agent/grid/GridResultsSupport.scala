@@ -29,8 +29,8 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
 import edu.ie3.simona.model.grid._
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.QuantityUtil
-import squants.electro.Amperes
 import squants.space.Degrees
+import squants.{Amperes, Angle, ElectricCurrent}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -70,7 +70,7 @@ private[grid] trait GridResultsSupport {
         )
         .toMap
 
-    implicit val iNominal: squants.ElectricCurrent =
+    implicit val iNominal: ElectricCurrent =
       grid.mainRefSystem.nominalCurrent
 
     /* When creating node results, we have to consider two things:
@@ -157,7 +157,7 @@ private[grid] trait GridResultsSupport {
   private def buildTransformer2wResults(transformers: Set[TransformerModel])(
       implicit
       sweepValueStoreData: Map[UUID, SweepValueStoreData],
-      iNominal: squants.ElectricCurrent,
+      iNominal: ElectricCurrent,
       timestamp: ZonedDateTime
   ): Set[Transformer2WResult] = {
     transformers.flatMap(trafo2w => {
@@ -204,7 +204,7 @@ private[grid] trait GridResultsSupport {
   def buildTransformer3wResults(transformers3w: Set[Transformer3wModel])(
       implicit
       sweepValueStoreData: Map[UUID, SweepValueStoreData],
-      iNominal: squants.ElectricCurrent,
+      iNominal: ElectricCurrent,
       timestamp: ZonedDateTime
   ): Set[PartialTransformer3wResult] = transformers3w.flatMap { trafo3w =>
     {
@@ -314,7 +314,7 @@ private[grid] trait GridResultsSupport {
       line: LineModel,
       nodeAStateData: StateData,
       nodeBStateData: StateData,
-      iNominal: squants.ElectricCurrent,
+      iNominal: ElectricCurrent,
       timestamp: ZonedDateTime
   ): LineResult = {
 
@@ -376,7 +376,7 @@ private[grid] trait GridResultsSupport {
       trafo2w: TransformerModel,
       hvNodeStateData: StateData,
       lvNodeStateData: StateData,
-      iNominal: squants.ElectricCurrent,
+      iNominal: ElectricCurrent,
       timestamp: ZonedDateTime
   ): Transformer2WResult = {
     if (trafo2w.isInOperation) {
@@ -445,7 +445,7 @@ private[grid] trait GridResultsSupport {
       trafo3w: Transformer3wModel,
       nodeStateData: StateData,
       internalNodeStateData: StateData,
-      iNominal: squants.ElectricCurrent,
+      iNominal: ElectricCurrent,
       timestamp: ZonedDateTime
   ): PartialTransformer3wResult = {
     val (_, iComplexPu) = iIJComplexPu(
@@ -510,8 +510,8 @@ private[grid] trait GridResultsSupport {
     */
   private def iMagAndAngle(
       iPu: Complex,
-      iNominal: squants.ElectricCurrent
-  ): (squants.ElectricCurrent, squants.Angle) =
+      iNominal: ElectricCurrent
+  ): (ElectricCurrent, Angle) =
     (
       Amperes(iNominal.toAmperes * iPu.abs),
       complexToAngle(iPu)
@@ -525,7 +525,7 @@ private[grid] trait GridResultsSupport {
     * @return
     *   The angle of the complex value
     */
-  private def complexToAngle(cplx: Complex): squants.Angle =
+  private def complexToAngle(cplx: Complex): Angle =
     cplx match {
       case Complex(0d, 0d) =>
         /* The complex value has no magnitude, therefore define the angle to zero */
@@ -555,9 +555,9 @@ private[grid] trait GridResultsSupport {
     * direction is negative, 180 degrees are added
     */
   private def angleOffsetCorrection(
-      angle: squants.Angle,
+      angle: Angle,
       dir: Double
-  ): squants.Angle =
+  ): Angle =
     if (dir < 0)
       angle + Degrees(180d)
     else
@@ -606,8 +606,8 @@ object GridResultsSupport {
   sealed trait PartialTransformer3wResult {
     val time: ZonedDateTime
     val input: UUID
-    protected val currentMagnitude: squants.ElectricCurrent
-    protected val currentAngle: squants.Angle
+    protected val currentMagnitude: ElectricCurrent
+    protected val currentAngle: Angle
   }
 
   object PartialTransformer3wResult {
@@ -628,8 +628,8 @@ object GridResultsSupport {
     final case class PortA(
         override val time: ZonedDateTime,
         override val input: UUID,
-        override val currentMagnitude: squants.ElectricCurrent,
-        override val currentAngle: squants.Angle,
+        override val currentMagnitude: ElectricCurrent,
+        override val currentAngle: Angle,
         tapPos: Int
     ) extends PartialTransformer3wResult
 
@@ -647,8 +647,8 @@ object GridResultsSupport {
     final case class PortB(
         override val time: ZonedDateTime,
         override val input: UUID,
-        override val currentMagnitude: squants.ElectricCurrent,
-        override val currentAngle: squants.Angle
+        override val currentMagnitude: ElectricCurrent,
+        override val currentAngle: Angle
     ) extends PartialTransformer3wResult
 
     /** Partial result for the port at the low voltage side
@@ -665,8 +665,8 @@ object GridResultsSupport {
     final case class PortC(
         override val time: ZonedDateTime,
         override val input: UUID,
-        override val currentMagnitude: squants.ElectricCurrent,
-        override val currentAngle: squants.Angle
+        override val currentMagnitude: ElectricCurrent,
+        override val currentAngle: Angle
     ) extends PartialTransformer3wResult
   }
 }
