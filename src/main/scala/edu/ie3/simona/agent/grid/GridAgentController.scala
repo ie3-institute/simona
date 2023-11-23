@@ -9,9 +9,12 @@ package edu.ie3.simona.agent.grid
 import akka.actor.{ActorContext, ActorRef}
 import akka.event.LoggingAdapter
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.input.container.SubGridContainer
+import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.system._
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower,
+  ApparentPowerAndHeat
+}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorEvMovementsService,
@@ -28,11 +31,12 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.{
   EvcsRuntimeConfig,
   FixedFeedInRuntimeConfig,
+  HpRuntimeConfig,
   LoadRuntimeConfig,
   PvRuntimeConfig,
   WecRuntimeConfig
 }
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeParticipantAgentTrigger
@@ -40,6 +44,7 @@ import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.participant.hp.HpAgent
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -80,7 +85,8 @@ class GridAgentController(
     log: LoggingAdapter
 ) extends LazyLogging {
   def buildSystemParticipants(
-      subGridContainer: SubGridContainer
+      subGridContainer: SubGridContainer,
+      thermalIslandGridsByBusId: Map[UUID, ThermalGrid]
   ): Map[UUID, Set[ActorRef]] = {
 
     val systemParticipants =
@@ -91,6 +97,7 @@ class GridAgentController(
       participantsConfig,
       outputConfig,
       systemParticipants,
+      thermalIslandGridsByBusId,
       environmentRefs
     )
   }
@@ -124,7 +131,7 @@ class GridAgentController(
               ) =>
             curSysPart match {
               case entity @ (_: BmInput | _: ChpInput | _: EvInput |
-                  _: HpInput | _: StorageInput) =>
+                  _: StorageInput) =>
                 (
                   notProcessedElements + entity.getClass.getSimpleName,
                   availableSystemParticipants
@@ -162,6 +169,8 @@ class GridAgentController(
     *   Configuration information for output behaviour
     * @param participants
     *   Set of system participants to create agents for
+    * @param thermalIslandGridsByBusId
+    *   Collection of thermal island grids, mapped by their thermal bus uuid
     * @param environmentRefs
     *   References to singleton entities representing the agent environment
     * @return
@@ -171,13 +180,14 @@ class GridAgentController(
       participantsConfig: SimonaConfig.Simona.Runtime.Participant,
       outputConfig: SimonaConfig.Simona.Output.Participant,
       participants: Vector[SystemParticipantInput],
+      thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs
   ): Map[UUID, Set[ActorRef]] = {
     /* Prepare the config util for the participant models, which (possibly) utilizes as map to speed up the initialization
      * phase */
     val participantConfigUtil =
       ConfigUtil.ParticipantConfigUtil(participantsConfig)
-    val outputConfigUtil = ConfigUtil.BaseOutputConfigUtil(outputConfig)
+    val outputConfigUtil = ConfigUtil.OutputConfigUtil(outputConfig)
 
     participants
       .map(participant => {
@@ -189,6 +199,7 @@ class GridAgentController(
             participantConfigUtil,
             outputConfigUtil,
             participant,
+            thermalIslandGridsByBusId,
             environmentRefs
           ) // introduce to environment
         introduceAgentToEnvironment(
@@ -207,8 +218,9 @@ class GridAgentController(
   private def buildParticipantActor(
       requestVoltageDeviationThreshold: Double,
       participantConfigUtil: ConfigUtil.ParticipantConfigUtil,
-      outputConfigUtil: BaseOutputConfigUtil,
+      outputConfigUtil: OutputConfigUtil,
       participantInputModel: SystemParticipantInput,
+      thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs
   ): (
       ActorRef,
@@ -290,6 +302,24 @@ class GridAgentController(
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs)
       )
+    case hpInput: HpInput => {
+      thermalIslandGridsByBusId.get(hpInput.getThermalBus.getUuid) match {
+        case Some(thermalGrid) =>
+          buildHp(
+            hpInput,
+            thermalGrid,
+            participantConfigUtil.getOrDefault(hpInput.getUuid),
+            environmentRefs.primaryServiceProxy,
+            environmentRefs.weather,
+            requestVoltageDeviationThreshold,
+            outputConfigUtil.getOrDefault(NotifierIdentifier.Hp)
+          )
+        case None =>
+          throw new GridAgentInitializationException(
+            s"Unable to find thermal island grid for heat pump '${hpInput.getUuid}' with thermal bus '${hpInput.getThermalBus.getUuid}'."
+          )
+      }
+    }
     case input: SystemParticipantInput =>
       throw new NotImplementedError(
         s"Building ${input.getClass.getSimpleName} is not implemented, yet."
@@ -331,7 +361,7 @@ class GridAgentController(
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -393,7 +423,7 @@ class GridAgentController(
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -457,7 +487,7 @@ class GridAgentController(
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -521,7 +551,7 @@ class GridAgentController(
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): (
       ActorRef,
       ParticipantInitializeStateData[
@@ -559,6 +589,61 @@ class GridAgentController(
     )
   }
 
+  /** Builds an [[HpAgent]] from given input
+    * @param hpInput
+    *   Input model
+    * @param thermalGrid
+    *   The thermal grid, that this heat pump is ought to handle
+    * @param modelConfiguration
+    *   Runtime configuration for the agent
+    * @param primaryServiceProxy
+    *   Proxy actor reference for primary data
+    * @param weatherService
+    *   Actor reference for weather service
+    * @param requestVoltageDeviationThreshold
+    *   Permissible voltage magnitude deviation to consider being equal
+    * @param outputConfig
+    *   Configuration for output notification
+    * @return
+    *   A tuple of actor reference and [[ParticipantInitializeStateData]]
+    */
+  private def buildHp(
+      hpInput: HpInput,
+      thermalGrid: ThermalGrid,
+      modelConfiguration: HpRuntimeConfig,
+      primaryServiceProxy: ActorRef,
+      weatherService: ActorRef,
+      requestVoltageDeviationThreshold: Double,
+      outputConfig: NotifierConfig
+  ): (
+      ActorRef,
+      ParticipantInitializeStateData[
+        HpInput,
+        HpRuntimeConfig,
+        ApparentPowerAndHeat
+      ]
+  ) = (
+    gridAgentContext.simonaActorOf(
+      HpAgent.props(
+        environmentRefs.scheduler,
+        listener
+      ),
+      hpInput.getId
+    ),
+    ParticipantInitializeStateData(
+      hpInput,
+      thermalGrid,
+      modelConfiguration,
+      primaryServiceProxy,
+      Some(Vector(ActorWeatherService(weatherService))),
+      simulationStartDate,
+      simulationEndDate,
+      resolution,
+      requestVoltageDeviationThreshold,
+      outputConfig
+    )
+  )
+
   /** Creates a pv agent and determines the needed additional information for
     * later initialization of the agent.
     *
@@ -593,7 +678,7 @@ class GridAgentController(
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): (
       ActorRef,
       ParticipantInitializeStateData[

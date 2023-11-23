@@ -15,8 +15,8 @@ import edu.ie3.datamodel.models.input.thermal.{
 import edu.ie3.simona.model.thermal.ThermalHouse.temperatureTolerance
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
-import squants.{Energy, Power, Temperature, Time}
 import squants.thermal.{Celsius, JoulesPerKelvin, ThermalCapacity}
+import squants.{Energy, Power, Temperature, Time}
 import tech.units.indriya.unit.Units
 
 import java.util.UUID
@@ -38,6 +38,12 @@ import java.util.UUID
   *   transmission coefficient of heat storage, usually in [kW/K]
   * @param ethCapa
   *   heat energy storage capability of thermal house, usually in [kWh/K]
+  * @param targetTemperature
+  *   Target room temperature [K]
+  * @param lowerBoundaryTemperature
+  *   Lower temperature boundary [K]
+  * @param upperBoundaryTemperature
+  *   Upper boundary temperature [K]
   */
 final case class ThermalHouse(
     uuid: UUID,
@@ -47,6 +53,7 @@ final case class ThermalHouse(
     bus: ThermalBusInput,
     ethLosses: ThermalConductance,
     ethCapa: ThermalCapacity,
+    targetTemperature: Temperature,
     lowerBoundaryTemperature: Temperature,
     upperBoundaryTemperature: Temperature
 ) extends ThermalSink(
@@ -237,6 +244,9 @@ case object ThermalHouse {
           .getValue
           .doubleValue
           * 3.6e6 // kWh in Joule
+      ),
+      Celsius(
+        input.getTargetTemperature.to(Units.CELSIUS).getValue.doubleValue
       ),
       Celsius(
         input.getLowerTemperatureLimit.to(Units.CELSIUS).getValue.doubleValue

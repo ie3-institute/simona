@@ -7,12 +7,13 @@
 package edu.ie3.simona.agent.participant.statedata
 
 import akka.actor.ActorRef
+import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 
 import java.time.ZonedDateTime
 
@@ -64,7 +65,7 @@ object ParticipantStateData {
       C <: SimonaConfig.BaseRuntimeConfig,
       PD <: PrimaryData
   ](
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: C,
       secondaryDataServices: Option[
         Vector[SecondaryDataService[_ <: SecondaryData]]
@@ -73,7 +74,7 @@ object ParticipantStateData {
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ) extends ParticipantStateData[PD]
 
   /** State data to use, when initializing the participant agent
@@ -107,7 +108,7 @@ object ParticipantStateData {
       C <: SimonaConfig.BaseRuntimeConfig,
       PD <: PrimaryData
   ](
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: C,
       primaryServiceProxy: ActorRef,
       secondaryDataServices: Option[
@@ -117,8 +118,69 @@ object ParticipantStateData {
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ) extends InitializeStateData[PD]
+
+  object ParticipantInitializeStateData {
+    def apply[
+        I <: SystemParticipantInput,
+        C <: SimonaConfig.BaseRuntimeConfig,
+        PD <: PrimaryData
+    ](
+        inputModel: I,
+        modelConfig: C,
+        primaryServiceProxy: ActorRef,
+        secondaryDataServices: Option[
+          Vector[SecondaryDataService[_ <: SecondaryData]]
+        ],
+        simulationStartDate: ZonedDateTime,
+        simulationEndDate: ZonedDateTime,
+        resolution: Long,
+        requestVoltageDeviationThreshold: Double,
+        outputConfig: NotifierConfig
+    ): ParticipantInitializeStateData[I, C, PD] =
+      new ParticipantInitializeStateData[I, C, PD](
+        SimpleInputContainer(inputModel),
+        modelConfig,
+        primaryServiceProxy,
+        secondaryDataServices,
+        simulationStartDate,
+        simulationEndDate,
+        resolution,
+        requestVoltageDeviationThreshold,
+        outputConfig
+      )
+
+    def apply[
+        I <: SystemParticipantInput,
+        C <: SimonaConfig.BaseRuntimeConfig,
+        PD <: PrimaryData
+    ](
+        inputModel: I,
+        thermalGrid: ThermalGrid,
+        modelConfig: C,
+        primaryServiceProxy: ActorRef,
+        secondaryDataServices: Option[
+          Vector[SecondaryDataService[_ <: SecondaryData]]
+        ],
+        simulationStartDate: ZonedDateTime,
+        simulationEndDate: ZonedDateTime,
+        resolution: Long,
+        requestVoltageDeviationThreshold: Double,
+        outputConfig: NotifierConfig
+    ): ParticipantInitializeStateData[I, C, PD] =
+      new ParticipantInitializeStateData[I, C, PD](
+        WithHeatInputContainer(inputModel, thermalGrid),
+        modelConfig,
+        primaryServiceProxy,
+        secondaryDataServices,
+        simulationStartDate,
+        simulationEndDate,
+        resolution,
+        requestVoltageDeviationThreshold,
+        outputConfig
+      )
+  }
 
   /** StateData to be used, while waiting for registration replies
     *
@@ -140,4 +202,17 @@ object ParticipantStateData {
       pendingResponses: Vector[ActorRef],
       foreseenNextDataTicks: Map[ActorRef, Long] = Map.empty
   ) extends ParticipantStateData[PD]
+
+  sealed trait InputModelContainer[+I <: SystemParticipantInput] {
+    val electricalInputModel: I
+  }
+
+  final case class SimpleInputContainer[+I <: SystemParticipantInput](
+      override val electricalInputModel: I
+  ) extends InputModelContainer[I]
+
+  final case class WithHeatInputContainer[+I <: SystemParticipantInput](
+      override val electricalInputModel: I,
+      thermalGrid: ThermalGrid
+  ) extends InputModelContainer[I]
 }

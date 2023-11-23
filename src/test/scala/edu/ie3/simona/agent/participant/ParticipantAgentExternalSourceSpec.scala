@@ -26,13 +26,14 @@ import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantInitializeStateData,
   ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
+  ParticipantUninitializedStateData,
+  SimpleInputContainer
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -100,7 +101,9 @@ class ParticipantAgentExternalSourceSpec
   when(mockInputModel.getId).thenReturn(testID)
   when(mockInputModel.getNode).thenReturn(mockNode)
   private val mockModel =
-    mock[SystemParticipant[CalcRelevantData.FixedRelevantData.type]]
+    mock[
+      SystemParticipant[CalcRelevantData.FixedRelevantData.type, ApparentPower]
+    ]
   when(mockModel.getUuid).thenReturn(testUUID)
   private val activeToReactivePowerFunction: squants.Power => ReactivePower =
     (p: squants.Power) => Kilovars(p.toKilowatts * tan(acos(0.9)))
@@ -116,7 +119,7 @@ class ParticipantAgentExternalSourceSpec
     LoadModelBehaviour.FIX,
     LoadReference.ActivePower(Kilowatts(0.0))
   )
-  private val defaultOutputConfig = ParticipantNotifierConfig(
+  private val defaultOutputConfig = NotifierConfig(
     simulationResultInfo = false,
     powerRequestReply = false
   )
@@ -199,7 +202,7 @@ class ParticipantAgentExternalSourceSpec
               requestVoltageDeviationThreshold,
               outputConfig
             ) =>
-          inputModel shouldBe mockInputModel
+          inputModel shouldBe SimpleInputContainer(mockInputModel)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe None
           simulationStartDate shouldBe defaultSimulationStart
@@ -233,7 +236,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateName shouldBe Idle
       mockAgent.stateData match {
         case baseStateData: FromOutsideBaseStateData[SystemParticipant[
-              FixedRelevantData.type
+              FixedRelevantData.type,
+              ApparentPower
             ], ApparentPower] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
@@ -402,7 +406,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateData match {
         case DataCollectionStateData(
               baseStateData: FromOutsideBaseStateData[SystemParticipant[
-                CalcRelevantData
+                CalcRelevantData,
+                ApparentPower
               ], ApparentPower],
               expectedSenders,
               isYetTriggered
@@ -456,7 +461,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateName shouldBe Idle
       mockAgent.stateData match {
         case baseStateData: FromOutsideBaseStateData[SystemParticipant[
-              CalcRelevantData
+              CalcRelevantData,
+              ApparentPower
             ], ApparentPower] =>
           /* The new data is apparent in the result value store */
           baseStateData.resultValueStore match {
@@ -536,7 +542,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateData match {
         case DataCollectionStateData(
               baseStateData: FromOutsideBaseStateData[SystemParticipant[
-                CalcRelevantData
+                CalcRelevantData,
+                ApparentPower
               ], ApparentPower],
               expectedSenders,
               isYetTriggered
@@ -587,7 +594,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateName shouldBe Idle
       mockAgent.stateData match {
         case baseStateData: FromOutsideBaseStateData[SystemParticipant[
-              CalcRelevantData
+              CalcRelevantData,
+              ApparentPower
             ], ApparentPower] =>
           /* The new data is apparent in the result value store */
           baseStateData.resultValueStore match {
@@ -708,8 +716,12 @@ class ParticipantAgentExternalSourceSpec
 
     "correctly determine the reactive power function when trivial reactive power is requested" in {
       val baseStateData: FromOutsideBaseStateData[SystemParticipant[
-        CalcRelevantData.FixedRelevantData.type
-      ], ApparentPower] = FromOutsideBaseStateData(
+        CalcRelevantData.FixedRelevantData.type,
+        ApparentPower
+      ], ApparentPower] = FromOutsideBaseStateData[SystemParticipant[
+        CalcRelevantData.FixedRelevantData.type,
+        ApparentPower
+      ], ApparentPower](
         mockModel,
         defaultSimulationStart,
         defaultSimulationEnd,
@@ -733,8 +745,12 @@ class ParticipantAgentExternalSourceSpec
 
     "correctly determine the reactive power function from model when requested" in {
       val baseStateData: FromOutsideBaseStateData[SystemParticipant[
-        CalcRelevantData.FixedRelevantData.type
-      ], ApparentPower] = FromOutsideBaseStateData(
+        CalcRelevantData.FixedRelevantData.type,
+        ApparentPower
+      ], ApparentPower] = FromOutsideBaseStateData[SystemParticipant[
+        CalcRelevantData.FixedRelevantData.type,
+        ApparentPower
+      ], ApparentPower](
         mockModel,
         defaultSimulationStart,
         defaultSimulationEnd,

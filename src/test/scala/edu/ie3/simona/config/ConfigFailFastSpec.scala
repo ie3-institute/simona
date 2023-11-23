@@ -688,17 +688,17 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "let distinct configs pass" in {
           val validInput = List(
-            SimonaConfig.BaseOutputConfig(
+            SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "load",
               powerRequestReply = true,
               simulationResult = false
             ),
-            SimonaConfig.BaseOutputConfig(
+            SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "pv",
               powerRequestReply = true,
               simulationResult = false
             ),
-            SimonaConfig.BaseOutputConfig(
+            SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "chp",
               powerRequestReply = true,
               simulationResult = false
@@ -714,17 +714,17 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "throw an exception, when there is a duplicate entry for the same model type" in {
           val invalidInput = List(
-            SimonaConfig.BaseOutputConfig(
+            SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "load",
               powerRequestReply = true,
               simulationResult = false
             ),
-            SimonaConfig.BaseOutputConfig(
+            SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "pv",
               powerRequestReply = true,
               simulationResult = false
             ),
-            SimonaConfig.BaseOutputConfig(
+            SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "load",
               powerRequestReply = false,
               simulationResult = true
