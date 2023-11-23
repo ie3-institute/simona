@@ -287,10 +287,6 @@ object ResultEventListener extends Transformer3wResultSupport {
         val updatedBaseData = handleResult(thermalResult, baseData, ctx.log)
         idle(updatedBaseData)
 
-      case Event(ThermalResultEvent(thermalResult), baseData: BaseData) =>
-      val updatedBaseData = handleResult(thermalResult, baseData)
-      stay using updatedBaseData
-
     case (
             ctx,
             PowerFlowResultEvent(
