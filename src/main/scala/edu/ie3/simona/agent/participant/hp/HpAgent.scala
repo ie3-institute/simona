@@ -13,6 +13,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHe
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
 import edu.ie3.simona.model.participant.HpModel
 import edu.ie3.simona.model.participant.HpModel.HpRelevantData
@@ -20,11 +21,17 @@ import edu.ie3.simona.model.participant.HpModel.HpRelevantData
 object HpAgent {
   def props(
       scheduler: ActorRef,
+      initStateData: ParticipantInitializeStateData[
+        HpInput,
+        HpRuntimeConfig,
+        ApparentPowerAndHeat
+      ],
       listener: Iterable[ActorRef]
   ): Props =
     Props(
       new HpAgent(
         scheduler,
+        initStateData,
         listener
       )
     )
@@ -34,8 +41,15 @@ object HpAgent {
   )
 }
 
-class HpAgent(scheduler: ActorRef, override val listener: Iterable[ActorRef])
-    extends ParticipantAgent[
+class HpAgent(
+    scheduler: ActorRef,
+    initStateData: ParticipantInitializeStateData[
+      HpInput,
+      HpRuntimeConfig,
+      ApparentPowerAndHeat
+    ],
+    override val listener: Iterable[ActorRef]
+) extends ParticipantAgent[
       ApparentPowerAndHeat,
       HpRelevantData,
       ParticipantStateData[
@@ -44,7 +58,7 @@ class HpAgent(scheduler: ActorRef, override val listener: Iterable[ActorRef])
       HpInput,
       HpRuntimeConfig,
       HpModel
-    ](scheduler)
+    ](scheduler, initStateData)
     with HpAgentFundamentals {
 
   /*

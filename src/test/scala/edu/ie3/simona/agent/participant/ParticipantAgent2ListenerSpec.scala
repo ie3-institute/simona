@@ -82,12 +82,11 @@ class ParticipantAgent2ListenerSpec
   private val sources = None
 
   "A participant agent" should {
-    val initStateData
-        : ParticipantNotifierConfig => ParticipantInitializeStateData[
-          SystemParticipantInput,
-          BaseRuntimeConfig,
-          ApparentPower
-        ] = outputConfig =>
+    val initStateData: NotifierConfig => ParticipantInitializeStateData[
+      SystemParticipantInput,
+      BaseRuntimeConfig,
+      ApparentPower
+    ] = outputConfig =>
       ParticipantInitializeStateData[
         SystemParticipantInput,
         BaseRuntimeConfig,

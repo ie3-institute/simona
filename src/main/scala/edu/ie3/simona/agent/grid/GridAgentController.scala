@@ -14,7 +14,6 @@ import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.system._
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorEvMovementsService,
   ActorWeatherService
@@ -279,7 +278,7 @@ class GridAgentController(
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs)
       )
-    case hpInput: HpInput => {
+    case hpInput: HpInput =>
       thermalIslandGridsByBusId.get(hpInput.getThermalBus.getUuid) match {
         case Some(thermalGrid) =>
           buildHp(
@@ -296,7 +295,6 @@ class GridAgentController(
             s"Unable to find thermal island grid for heat pump '${hpInput.getUuid}' with thermal bus '${hpInput.getThermalBus.getUuid}'."
           )
       }
-    }
     case input: SystemParticipantInput =>
       throw new NotImplementedError(
         s"Building ${input.getClass.getSimpleName} is not implemented, yet."
@@ -550,34 +548,26 @@ class GridAgentController(
       weatherService: ActorRef,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig
-  ): (
-      ActorRef,
-      ParticipantInitializeStateData[
-        HpInput,
-        HpRuntimeConfig,
-        ApparentPowerAndHeat
-      ]
-  ) = (
+  ): ActorRef =
     gridAgentContext.simonaActorOf(
       HpAgent.props(
         environmentRefs.scheduler,
+        ParticipantInitializeStateData(
+          hpInput,
+          thermalGrid,
+          modelConfiguration,
+          primaryServiceProxy,
+          Some(Vector(ActorWeatherService(weatherService))),
+          simulationStartDate,
+          simulationEndDate,
+          resolution,
+          requestVoltageDeviationThreshold,
+          outputConfig
+        ),
         listener
       ),
       hpInput.getId
-    ),
-    ParticipantInitializeStateData(
-      hpInput,
-      thermalGrid,
-      modelConfiguration,
-      primaryServiceProxy,
-      Some(Vector(ActorWeatherService(weatherService))),
-      simulationStartDate,
-      simulationEndDate,
-      resolution,
-      requestVoltageDeviationThreshold,
-      outputConfig
     )
-  )
 
   /** Creates a pv agent and determines the needed additional information for
     * later initialization of the agent.

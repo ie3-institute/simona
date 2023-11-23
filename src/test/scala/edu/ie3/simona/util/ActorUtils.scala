@@ -10,7 +10,6 @@ import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorRef
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.ontology.trigger.Trigger
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 object ActorUtils {
@@ -18,7 +17,7 @@ object ActorUtils {
       private val triggeredAgent: TestProbe[Activation]
   ) {
 
-    def expectTriggerAndComplete[T <: Trigger](
+    def expectTriggerAndComplete(
         scheduler: ActorRef[SchedulerMessage],
         expectedTick: Long,
         newTick: Option[Long] = None
