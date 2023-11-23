@@ -90,7 +90,6 @@ class TimeAdvancerSpec
       timeAdvancer ! Completion(scheduler.ref)
       val doneMsg = listener.expectMessageType[Done]
       doneMsg.tick shouldBe 7200
-      doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
       simulation.expectMessage(SimulationSuccessful)
@@ -137,7 +136,6 @@ class TimeAdvancerSpec
 
       val doneMsg = listener.expectMessageType[Done]
       doneMsg.tick shouldBe 3600
-      doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
       simulation.expectMessage(SimulationSuccessful)
@@ -194,7 +192,6 @@ class TimeAdvancerSpec
 
       val doneMsg = listener.expectMessageType[Done]
       doneMsg.tick shouldBe 3600
-      doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
       simulation.expectMessage(SimulationSuccessful)
@@ -257,7 +254,6 @@ class TimeAdvancerSpec
       listener.expectMessageType[CheckWindowPassed].tick shouldBe 4500
       val doneMsg = listener.expectMessageType[Done]
       doneMsg.tick shouldBe 5400
-      doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
       simulation.expectMessage(SimulationSuccessful)
@@ -318,7 +314,6 @@ class TimeAdvancerSpec
       timeAdvancer ! Completion(scheduler.ref)
       val doneMsg = listener.expectMessageType[Done]
       doneMsg.tick shouldBe 3600
-      doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
       simulation.expectMessage(SimulationSuccessful)
@@ -359,7 +354,6 @@ class TimeAdvancerSpec
 
       val doneMsg = listener.expectMessageType[Done]
       doneMsg.tick shouldBe 3600
-      doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
       simulation.expectMessage(SimulationSuccessful)
@@ -402,7 +396,6 @@ class TimeAdvancerSpec
 
       val doneMsg = listener.expectMessageType[Done]
       doneMsg.tick shouldBe 3600
-      doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
       simulation.expectMessage(SimulationSuccessful)
@@ -443,7 +436,6 @@ class TimeAdvancerSpec
 
       val doneMsg = listener.expectMessageType[Done]
       doneMsg.tick shouldBe 3600
-      doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
       simulation.expectMessage(SimulationSuccessful)
@@ -484,7 +476,6 @@ class TimeAdvancerSpec
 
       val doneMsg = listener.expectMessageType[Done]
       doneMsg.tick shouldBe 1800
-      doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe false
 
       simulation.expectMessage(SimulationSuccessful)
@@ -523,7 +514,6 @@ class TimeAdvancerSpec
       )
       val doneMsg = listener.expectMessageType[Done]
       doneMsg.tick shouldBe 0
-      doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe true
 
       // scheduler should not be activated!
@@ -568,7 +558,6 @@ class TimeAdvancerSpec
       listener.expectMessageType[Error].errMsg should include("Test message")
       val doneMsg = listener.expectMessageType[Done]
       doneMsg.tick shouldBe 1
-      doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe true
 
       scheduler.expectTerminated(timeAdvancer)
@@ -604,7 +593,6 @@ class TimeAdvancerSpec
       listener.expectMessageType[Error].errMsg should include("Test message")
       val doneMsg = listener.expectMessageType[Done]
       doneMsg.tick shouldBe 0
-      doneMsg.noOfFailedPF shouldBe 0
       doneMsg.errorInSim shouldBe true
 
       scheduler.expectTerminated(timeAdvancer)

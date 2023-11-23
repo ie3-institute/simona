@@ -7,19 +7,14 @@
 package edu.ie3.simona.scheduler
 
 import akka.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
-import akka.actor.typed.{ActorRef, Behavior}
-import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
-import edu.ie3.simona.scheduler.ScheduleLock.{Spawner, Unlock}
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
-
-import java.util.UUID
 
 class ScheduleLockSpec
     extends ScalaTestWithActorTestKit

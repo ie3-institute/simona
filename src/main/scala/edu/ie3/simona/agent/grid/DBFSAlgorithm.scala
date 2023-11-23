@@ -32,6 +32,7 @@ import edu.ie3.simona.agent.state.GridAgentState.{
   HandlePowerFlowCalculations,
   SimulateGrid
 }
+import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
 import edu.ie3.simona.ontology.messages.Activation
@@ -877,7 +878,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             failedResult.iteration,
             failedResult.cause
           )
-          // TODO re-implement counting failed power flows
+          environmentRefs.runtimeEventListener ! PowerFlowFailed
           self ! FinishGridSimulationTrigger(currentTick)
           goto(SimulateGrid) using gridAgentBaseData
       }
@@ -979,7 +980,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           )
       if (powerFlowFailedSomewhere) {
         log.warning("Power flow failed! This incident will be reported!")
-        // TODO re-implement counting failed power flows
+        environmentRefs.runtimeEventListener ! PowerFlowFailed
         self ! FinishGridSimulationTrigger(currentTick)
         goto(SimulateGrid) using gridAgentBaseData
       } else {

@@ -67,12 +67,14 @@ class DBFSAlgorithmSupGridSpec
     with TestSpawnerClassic {
 
   private val scheduler: TestProbe = TestProbe("scheduler")
+  private val runtimeEvents = TestProbe("runtimeEvents")
   private val primaryService: TestProbe = TestProbe("primaryService")
   private val weatherService: TestProbe = TestProbe("weatherService")
   private val hvGrid: TestProbe = TestProbe("hvGrid")
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
+    runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
     weather = weatherService.ref,
     evDataService = None
@@ -191,6 +193,9 @@ class DBFSAlgorithmSupGridSpec
                   powerFlowResultEvent.transformer3wResults shouldBe empty
               }
 
+              // no failed power flow
+              runtimeEvents.expectNoMessage()
+
               hvGrid.expectMsg(FinishGridSimulationTrigger(3600))
 
             case x =>
@@ -304,6 +309,9 @@ class DBFSAlgorithmSupGridSpec
                   powerFlowResultEvent.transformer2wResults shouldBe empty
                   powerFlowResultEvent.transformer3wResults shouldBe empty
               }
+
+              // no failed power flow
+              runtimeEvents.expectNoMessage()
 
               hvGrid.expectMsg(FinishGridSimulationTrigger(3600))
 

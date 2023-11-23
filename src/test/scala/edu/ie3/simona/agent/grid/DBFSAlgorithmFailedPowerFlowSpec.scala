@@ -61,6 +61,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
     with TestSpawnerClassic {
 
   private val scheduler = TestProbe("scheduler")
+  private val runtimeEvents = TestProbe("runtimeEvents")
   private val primaryService = TestProbe("primaryService")
   private val weatherService = TestProbe("weatherService")
 
@@ -74,6 +75,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
+    runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
     weather = weatherService.ref,
     evDataService = None
@@ -242,6 +244,9 @@ class DBFSAlgorithmFailedPowerFlowSpec
       )
 
       resultListener.expectNoMessage()
+
+      // PowerFlowFailed events are only sent by the slack subgrid
+      runtimeEvents.expectNoMessage()
     }
 
   }

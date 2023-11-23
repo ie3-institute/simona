@@ -99,6 +99,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
     context,
     EnvironmentRefs(
       scheduler,
+      runtimeEventListener.toClassic,
       primaryServiceProxy,
       weatherService,
       extSimulationData.evDataService

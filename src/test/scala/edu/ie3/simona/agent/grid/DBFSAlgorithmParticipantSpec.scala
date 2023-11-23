@@ -58,11 +58,13 @@ class DBFSAlgorithmParticipantSpec
     with TestSpawnerClassic {
 
   private val scheduler = TestProbe("scheduler")
+  private val runtimeEvents = TestProbe("runtimeEvents")
   private val primaryService = TestProbe("primaryService")
   private val weatherService = TestProbe("weatherService")
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
+    runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
     weather = weatherService.ref,
     evDataService = None

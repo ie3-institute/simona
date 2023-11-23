@@ -13,6 +13,8 @@ import akka.actor.ActorRef
   *
   * @param scheduler
   *   Reference to the event handling entity
+  * @param runtimeEventListener
+  *   Reference to the runtime event listener
   * @param primaryServiceProxy
   *   Reference to the primary service proxy
   * @param weather
@@ -22,6 +24,7 @@ import akka.actor.ActorRef
   */
 final case class EnvironmentRefs(
     scheduler: ActorRef,
+    runtimeEventListener: ActorRef,
     primaryServiceProxy: ActorRef,
     weather: ActorRef,
     evDataService: Option[ActorRef]
