@@ -176,8 +176,7 @@ class HpAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          hpAgent
+          triggerId
         )
       )
 
@@ -256,8 +255,7 @@ class HpAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          hpAgent
+          triggerId
         )
       )
 
@@ -359,9 +357,7 @@ class HpAgentModelCalculationSpec
         CompletionMessage(
           triggerId,
           Some(
-            Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(4711), hpAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(4711), hpAgent)
           )
         )
       )
@@ -415,8 +411,7 @@ class HpAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          hpAgent
+          triggerId
         )
       )
 
@@ -504,8 +499,7 @@ class HpAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          hpAgent
+          initialiseTriggerId
         )
       )
 
@@ -566,8 +560,7 @@ class HpAgentModelCalculationSpec
         hpAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -577,7 +570,7 @@ class HpAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(3600L), hpAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(3600L), hpAgent)
           )
         )
       )
@@ -682,8 +675,7 @@ class HpAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          hpAgent
+          initialiseTriggerId
         )
       )
 
@@ -704,8 +696,7 @@ class HpAgentModelCalculationSpec
         hpAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -751,7 +742,7 @@ class HpAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(3600L), hpAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(3600L), hpAgent)
           )
         )
       )
@@ -859,8 +850,7 @@ class HpAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0L,
-          hpAgent
+          0L
         )
       )
 
@@ -902,8 +892,7 @@ class HpAgentModelCalculationSpec
         hpAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(3600L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -913,7 +902,7 @@ class HpAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(7200L), hpAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(7200L), hpAgent)
           )
         )
       )
@@ -960,8 +949,7 @@ class HpAgentModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0L,
-          hpAgent
+          0L
         )
       )
 
@@ -996,15 +984,14 @@ class HpAgentModelCalculationSpec
         hpAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(3600L), hpAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(3600L), hpAgent)
           )
         )
       )
@@ -1027,15 +1014,14 @@ class HpAgentModelCalculationSpec
         hpAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(3600L),
-          3L,
-          scheduler.ref
+          3L
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           3L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(7200L), hpAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(7200L), hpAgent)
           )
         )
       )
@@ -1058,8 +1044,7 @@ class HpAgentModelCalculationSpec
         hpAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(7200L),
-          5L,
-          scheduler.ref
+          5L
         )
       )
       scheduler.expectMsg(CompletionMessage(5L))

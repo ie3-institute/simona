@@ -97,9 +97,7 @@ object QuantityUtil {
     * @return
     *   Integration over given values from window start to window end
     */
-  def integrate[Q <: squants.Quantity[Q] with TimeDerivative[
-    QI
-  ], QI <: squants.Quantity[
+  def integrate[Q <: Quantity[Q] with TimeDerivative[QI], QI <: Quantity[
     QI
   ] with TimeIntegral[Q]](
       values: Map[Long, Q],

@@ -279,9 +279,12 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   private def idle(baseData: BaseData): Behavior[ResultMessage] = Behaviors
     .receive[ResultMessage] {
-      case (ctx, ParticipantResultEvent(systemParticipantResult)) =>
-        val updatedBaseData =
-          handleResult(systemParticipantResult, baseData, ctx.log)
+      case (ctx, ParticipantResultEvent(participantResult)) =>
+        val updatedBaseData = handleResult(participantResult, baseData, ctx.log)
+        idle(updatedBaseData)
+
+      case (ctx, ThermalResultEvent(thermalResult)) =>
+        val updatedBaseData = handleResult(thermalResult, baseData, ctx.log)
         idle(updatedBaseData)
 
       case Event(ThermalResultEvent(thermalResult), baseData: BaseData) =>

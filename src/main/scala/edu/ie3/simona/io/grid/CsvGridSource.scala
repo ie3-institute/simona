@@ -20,58 +20,6 @@ import java.nio.file.Path
 import scala.jdk.CollectionConverters._
 
 object CsvGridSource {
-  def readGrid(
-      gridName: String,
-      csvSep: String,
-      baseFolder: Path,
-      fileNamingStrategy: FileNamingStrategy
-  ): Option[JointGridContainer] = {
-    val csvDataSource =
-      new CsvDataSource(csvSep, baseFolder, fileNamingStrategy)
-    // build the sources
-    val csvTypeSource: TypeSource = new TypeSource(csvDataSource)
-
-    val csvRawGridSource: RawGridSource =
-      new RawGridSource(csvTypeSource, csvDataSource)
-
-    val csvThermalSource: ThermalSource =
-      new ThermalSource(csvTypeSource, csvDataSource)
-
-    val csvSystemParticipantSource: SystemParticipantSource =
-      new SystemParticipantSource(
-        csvTypeSource,
-        csvThermalSource,
-        csvRawGridSource,
-        csvDataSource
-      )
-
-    val csvGraphicSource: GraphicSource =
-      new GraphicSource(csvTypeSource, csvRawGridSource, csvDataSource)
-
-    // read and get the models
-    val rawGridElements = csvRawGridSource.getGridData
-    val systemParticipants =
-      csvSystemParticipantSource.getSystemParticipants
-    val graphicElements = csvGraphicSource.getGraphicElements
-
-    (rawGridElements, systemParticipants, graphicElements) match {
-      case (
-            rawGridElements,
-            systemParticipants,
-            graphicElements
-          ) =>
-        Some(
-          new JointGridContainer(
-            gridName,
-            rawGridElements,
-            systemParticipants,
-            graphicElements
-          )
-        )
-      case (_, _, _) => None
-    }
-  }
-
   def readThermalGrids(
       csvSep: String,
       baseFolder: Path,

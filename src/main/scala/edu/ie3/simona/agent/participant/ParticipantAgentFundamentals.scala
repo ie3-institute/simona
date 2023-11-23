@@ -1781,43 +1781,23 @@ case object ParticipantAgentFundamentals {
       ] = None,
       log: LoggingAdapter
   ): ApparentPowerAndHeat = {
-    val p = QuantityUtil.average[Power, Energy](
-      tickToResults.map { case (tick, pd) =>
-        tick -> Megawatts(pd.p.toMegawatts)
-      },
-      windowStart,
-      windowEnd
-    ) match {
-      case Success(pSuccess) => pSuccess
-      case Failure(exception) =>
-        log.warning(
-          "Unable to determine average active power. Apply 0 instead. Cause:\n\t{}",
-          exception
-        )
-        Megawatts(0d)
-    }
 
-    val q = QuantityUtil.average[Power, Energy](
+    val tickToResultsApparentPower: Map[Long, ApparentPower] =
       tickToResults.map { case (tick, pd) =>
-        activeToReactivePowerFuncOpt match {
-          case Some(qFunc) =>
-            // NOTE: The type conversion to Megawatts is done to satisfy the methods type constraints
-            // and is undone after unpacking the results
-            tick -> Megawatts(qFunc(pd.toApparentPower.p).toMegavars)
-          case None => tick -> Megawatts(pd.toApparentPower.q.toMegavars)
-        }
-      },
-      windowStart,
-      windowEnd
-    ) match {
-      case Success(pSuccess) => Megavars(pSuccess.toMegawatts)
-      case Failure(exception) =>
-        log.warning(
-          "Unable to determine average reactive power. Apply 0 instead. Cause:\n\t{}",
-          exception
+        (
+          tick,
+          ApparentPower(Megawatts(pd.p.toMegawatts), Megavars(pd.q.toMegavars))
         )
-        Megavars(0d)
-    }
+      }
+
+    val apparentPower = averageApparentPower(
+      tickToResultsApparentPower,
+      windowStart,
+      windowEnd,
+      activeToReactivePowerFuncOpt,
+      log
+    )
+
     val qDot = QuantityUtil.average[Power, Energy](
       tickToResults.map { case (tick, pd) =>
         tick -> Megawatts(pd.qDot.toMegawatts)
@@ -1834,7 +1814,7 @@ case object ParticipantAgentFundamentals {
         Megawatts(0d)
     }
 
-    ApparentPowerAndHeat(p, q, qDot)
+    ApparentPowerAndHeat(apparentPower.p, apparentPower.q, qDot)
   }
 
 }
