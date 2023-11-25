@@ -13,9 +13,11 @@ import edu.ie3.datamodel.models.result.connector.{
   Transformer2WResult
 }
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
+import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
+import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
 
-sealed trait ResultEvent extends Event
+sealed trait ResultEvent extends ResultMessage
 
 /** Calculation result events
   */
@@ -29,6 +31,14 @@ object ResultEvent {
     */
   final case class ParticipantResultEvent(
       systemParticipantResult: SystemParticipantResult
+  ) extends ResultEvent
+
+  /** Event, that is triggered every time a thermal model has a new result
+    * @param thermalResult
+    *   Result of the thermal calculation
+    */
+  final case class ThermalResultEvent(
+      thermalResult: ThermalUnitResult
   ) extends ResultEvent
 
   /** Event that holds all grid calculation results of a power flow calculation.

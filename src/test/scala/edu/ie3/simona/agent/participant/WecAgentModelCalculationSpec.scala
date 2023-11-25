@@ -28,7 +28,7 @@ import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.WecRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.WecModel
 import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -75,7 +75,6 @@ import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
-import scala.collection._
 
 class WecAgentModelCalculationSpec
     extends ParticipantAgentSpec(
@@ -179,14 +178,13 @@ class WecAgentModelCalculationSpec
               modelConfig = modelConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = None,
-              outputConfig = ParticipantNotifierConfig(
+              outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
               )
             )
           ),
-          triggerId,
-          wecAgent
+          triggerId
         )
       )
 
@@ -267,14 +265,13 @@ class WecAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = withServices,
-              outputConfig = ParticipantNotifierConfig(
+              outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
               )
             )
           ),
-          triggerId,
-          wecAgent
+          triggerId
         )
       )
 
@@ -310,7 +307,7 @@ class WecAgentModelCalculationSpec
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
           services shouldBe withServices
-          outputConfig shouldBe ParticipantNotifierConfig(
+          outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
             powerRequestReply = false
           )
@@ -318,7 +315,7 @@ class WecAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution * 10,
-            immutable.Map(0L -> Each(1.0))
+            Map(0L -> Each(1.0))
           )
           resultValueStore shouldBe ValueStore.forResult(resolution, 10)
           requestValueStore shouldBe ValueStore[ApparentPower](resolution * 10)
@@ -340,9 +337,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           triggerId,
           Some(
-            immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(4711), wecAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(4711), wecAgent)
           )
         )
       )
@@ -396,14 +391,13 @@ class WecAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = withServices,
-              outputConfig = ParticipantNotifierConfig(
+              outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
               )
             )
           ),
-          triggerId,
-          wecAgent
+          triggerId
         )
       )
 
@@ -443,7 +437,7 @@ class WecAgentModelCalculationSpec
             ApparentPower
           ](
             resolution * 10,
-            immutable.Map(
+            Map(
               0L -> ApparentPower(
                 Megawatts(0d),
                 Megavars(0d)
@@ -487,14 +481,13 @@ class WecAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = withServices,
-              outputConfig = ParticipantNotifierConfig(
+              outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
               )
             )
           ),
-          initialiseTriggerId,
-          wecAgent
+          initialiseTriggerId
         )
       )
 
@@ -559,8 +552,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -570,9 +562,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
           )
         )
       )
@@ -645,14 +635,13 @@ class WecAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = withServices,
-              outputConfig = ParticipantNotifierConfig(
+              outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
               )
             )
           ),
-          initialiseTriggerId,
-          wecAgent
+          initialiseTriggerId
         )
       )
 
@@ -673,8 +662,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -724,9 +712,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
           )
         )
       )
@@ -801,14 +787,13 @@ class WecAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = withServices,
-              outputConfig = ParticipantNotifierConfig(
+              outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
               )
             )
           ),
-          0L,
-          wecAgent
+          0L
         )
       )
 
@@ -850,8 +835,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -861,9 +845,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
           )
         )
       )
@@ -906,14 +888,13 @@ class WecAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = withServices,
-              outputConfig = ParticipantNotifierConfig(
+              outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
               )
             )
           ),
-          0L,
-          wecAgent
+          0L
         )
       )
 
@@ -948,17 +929,14 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           1L,
           Some(
-            immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
           )
         )
       )
@@ -981,17 +959,14 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(1800L),
-          3L,
-          scheduler.ref
+          3L
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           3L,
           Some(
-            immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(2700L), wecAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(2700L), wecAgent)
           )
         )
       )
@@ -1014,8 +989,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(2700L),
-          5L,
-          scheduler.ref
+          5L
         )
       )
       scheduler.expectMsg(CompletionMessage(5L))

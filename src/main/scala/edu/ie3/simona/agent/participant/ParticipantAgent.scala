@@ -20,6 +20,7 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   CollectRegistrationConfirmMessages,
+  InputModelContainer,
   ParticipantInitializeStateData,
   ParticipantInitializingStateData,
   ParticipantUninitializedStateData
@@ -36,7 +37,7 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   HandleInformation
 }
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage
@@ -84,7 +85,7 @@ abstract class ParticipantAgent[
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
     MC <: SimonaConfig.BaseRuntimeConfig,
-    M <: SystemParticipant[CD]
+    M <: SystemParticipant[CD, PD]
 ](scheduler: ActorRef)
     extends SimonaAgent[ParticipantStateData[PD]] {
 
@@ -111,8 +112,7 @@ abstract class ParticipantAgent[
                 outputConfig
               )
             ),
-            triggerId,
-            _
+            triggerId
           ),
           _: ParticipantUninitializedStateData[PD]
         ) =>
@@ -120,7 +120,7 @@ abstract class ParticipantAgent[
        * that will confirm, otherwise, a failed registration is announced. */
       holdTickAndTriggerId(initTrigger.tick, triggerId)
       primaryServiceProxy ! PrimaryServiceRegistrationMessage(
-        inputModel.getUuid
+        inputModel.electricalInputModel.getUuid
       )
       goto(HandleInformation) using ParticipantInitializingStateData(
         inputModel,
@@ -136,7 +136,7 @@ abstract class ParticipantAgent[
 
   when(Idle) {
     case Event(
-          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId, _),
+          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId),
           modelBaseStateData: ParticipantModelBaseStateData[PD, CD, M]
         ) if modelBaseStateData.services.isEmpty =>
       /* An activity start trigger is sent and no data is awaited (neither secondary nor primary). Therefore go straight
@@ -166,7 +166,7 @@ abstract class ParticipantAgent[
       )
 
     case Event(
-          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId, _),
+          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId),
           modelBaseStateData: ParticipantModelBaseStateData[PD, CD, M]
         ) =>
       /* An activity start trigger is sent, but I'm not sure yet, if secondary data will arrive. Figure out, if someone
@@ -179,7 +179,7 @@ abstract class ParticipantAgent[
       )
 
     case Event(
-          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId, _),
+          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId),
           fromOutsideBaseStateData: FromOutsideBaseStateData[M, PD]
         ) =>
       /* An activity start trigger is sent, but I'm still expecting primary data. Go to HandleInformation and wait for
@@ -224,7 +224,7 @@ abstract class ParticipantAgent[
     case Event(
           RegistrationSuccessfulMessage(maybeNextDataTick),
           ParticipantInitializingStateData(
-            inputModel: I,
+            inputModel: InputModelContainer[I],
             modelConfig: MC,
             secondaryDataServices,
             simulationStartDate,
@@ -252,7 +252,7 @@ abstract class ParticipantAgent[
     case Event(
           RegistrationResponseMessage.RegistrationFailedMessage,
           ParticipantInitializingStateData(
-            inputModel: I,
+            inputModel: InputModelContainer[I],
             modelConfig: MC,
             secondaryDataServices,
             simulationStartDate,
@@ -285,8 +285,7 @@ abstract class ParticipantAgent[
     case Event(
           TriggerWithIdMessage(
             ActivityStartTrigger(activationTick),
-            triggerId,
-            _
+            triggerId
           ),
           stateData: DataCollectionStateData[PD]
         ) =>
@@ -409,7 +408,7 @@ abstract class ParticipantAgent[
       stay()
 
     case Event(_: ProvisionMessage[_], _) |
-        Event(TriggerWithIdMessage(ActivityStartTrigger(_), _, _), _) =>
+        Event(TriggerWithIdMessage(ActivityStartTrigger(_), _), _) =>
       /* I got faced to new data, also I'm not ready to handle it, yet OR I got asked to do something else, while I'm
        * still busy, I will put it aside and answer it later */
       stash()
@@ -449,14 +448,14 @@ abstract class ParticipantAgent[
     *   Idle state with child of [[BaseStateData]]
     */
   def initializeParticipantForPrimaryDataReplay(
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: MC,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig,
+      outputConfig: NotifierConfig,
       senderToMaybeTick: (ActorRef, Option[Long]),
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]]
@@ -487,14 +486,14 @@ abstract class ParticipantAgent[
     *   Idle state with child of [[BaseStateData]]
     */
   def initializeParticipantForModelCalculation(
-      inputModel: I,
+      inputModel: InputModelContainer[I],
       modelConfig: MC,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig,
+      outputConfig: NotifierConfig,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
@@ -608,7 +607,7 @@ abstract class ParticipantAgent[
       tick: Long,
       scheduler: ActorRef
   )(implicit
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Partial function, that is able to transfer
@@ -727,7 +726,7 @@ abstract class ParticipantAgent[
       currentTick: Long,
       activePower: Power,
       reactivePower: ReactivePower
-  )(implicit outputConfig: ParticipantNotifierConfig): Unit
+  )(implicit outputConfig: NotifierConfig): Unit
 
   /** Abstract definition to clean up agent value stores after power flow
     * convergence. This is necessary for agents whose results are time dependent

@@ -8,6 +8,7 @@ package edu.ie3.simona.util
 
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system._
+import edu.ie3.datamodel.models.result.thermal.ThermalHouseResult
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
 
@@ -22,7 +23,9 @@ case object EntityMapperUtil {
     Ev -> classOf[EvResult],
     Evcs -> classOf[EvcsResult],
     ChpPlant -> classOf[ChpResult],
-    Storage -> classOf[StorageResult]
+    Storage -> classOf[StorageResult],
+    Hp -> classOf[HpResult],
+    House -> classOf[ThermalHouseResult]
   )
 
   /** Get the classes of [[ResultEntity]], that are issued by the notifier, that
