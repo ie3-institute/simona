@@ -6,15 +6,15 @@ The user's guide is here to give you a basic rundown of all the things you need 
 
 ## Requirements
 
-- To run and customise the project you need to install **Java Development Kit (JDK)**, which you can do directly from IntelliJ IDEA. To do this, press ``ALT + Ctrl + Shift + s`` to open the Project Structure window. Go to ``SDKs``, press on the ``+`` sign in the second column and select ``Download JDK``. Then select version 17 from any vendor and click ``download``. Also, make sure version 17 is selected in the Project tab of the Project Structure window.
+To run and customise the project you need to install **Java Development Kit (JDK)**, which you can do directly from IntelliJ IDEA. To do this, press ``ALT + Ctrl + Shift + s`` to open the Project Structure window. Go to ``SDKs``, press on the ``+`` sign in the second column and select ``Download JDK``. Then select version 17 from any vendor and click ``download``. Also, make sure version 17 is selected in the Project tab of the Project Structure window.
 
     ![](../readthedocs/images/usersguide/jdk-download.png)
 
-- Additionally, a **Scala Plugin** is required to work with SIMONA. If it is not already installed, a notification will pop up at the top of the editor, which lets you quickly download one.
+Additionally, a **Scala Plugin** is required to work with SIMONA. If it is not already installed, a notification will pop up at the top of the editor, which lets you quickly download one.
 
     ![](../readthedocs/images/usersguide/scala-plugin.png)
 
-- Finally, you will also need a **Scala SDK**. Similarly to the Scala Plugin, a notification will let you know if you have not installed one already. To fix this issue, go to ``Setup Scala SDK -> create``, then choose the newest version and download.
+Finally, you will also need a **Scala SDK**. Similarly to the Scala Plugin, a notification will let you know if you have not installed one already. To fix this issue, go to ``Setup Scala SDK -> create``, then choose the newest version and download.
 
     ![](../readthedocs/images/usersguide/scala-sdk-error.png)
 
@@ -105,7 +105,7 @@ For a detailed description on how to do that and all the various configuration p
 ### Model and Grid Data
 
 Besides a simulation configuration, the specifications of each grid component (e.g. lines, transformers, ...) and system participant (e.g. loads, pv plants, ... ) have to be fed into the simulation.
-Within SIMONA, we use the **PowerSystemDataModel (PSDM)** for modeling the system components.
+Within SIMONA, we use the **PowerSystemDataModel (PSDM)**(https://github.com/ie3-institute/PowerSystemDataModel) for modeling the system components.
 Before the data can be utilized for a simulation run, make sure to convert them to the PSDM.
 For more information on the PSDM visit the [docs](https://powersystemdatamodel.readthedocs.io/en/latest/index.html) and for an example of how the converted data looks like you can take a look at an example grid at ``./input/samples/vn_simona/fullGrid``.
 The example grids are provided as csv files. You can choose to use a different data source for your own grid.
