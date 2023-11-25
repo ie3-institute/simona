@@ -10,7 +10,7 @@ The user's guide is here to give you a basic rundown of all the things you need 
 
     ![](../readthedocs/images/usersguide/jdk-download.png)
 
-- Additionally, a **Scala Plugin** is required to work with SIMONA. If it is not already installed, a notification will pop up at the top of the editor, which lets you quickly download one.
+- Additionally, the **Scala Plugin** is required to work with SIMONA. If it is not already installed, a notification will pop up at the top of the editor, which lets you quickly download it.
 
     ![](../readthedocs/images/usersguide/scala-plugin.png)
 
