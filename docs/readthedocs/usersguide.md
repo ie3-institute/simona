@@ -6,7 +6,7 @@ The user's guide is here to give you a basic rundown of all the things you need 
 
 ## Requirements
 
-- To run and customize the project you need a **Java Development Kit (JDK)** installation, which you can do directly via IntelliJ IDEA. To do this, press ``ALT + Ctrl + Shift + s`` to open the Project Structure window. Go to ``SDKs``, press on the ``+`` sign in the second column and select ``Download JDK``. Then, choose version 17 from any vendor and click ``download``. Also, make sure version 17 is selected in the Project Tab of the Project Structure window.
+- To run and customise the project you need to install **Java Development Kit (JDK)**, which you can do directly from IntelliJ IDEA. To do this, press ``ALT + Ctrl + Shift + s`` to open the Project Structure window. Go to ``SDKs``, press on the ``+`` sign in the second column and select ``Download JDK``. Then select version 17 from any vendor and click ``download``. Also, make sure version 17 is selected in the Project tab of the Project Structure window.
 
     ![](../readthedocs/images/usersguide/jdk-download.png)
 
