@@ -137,16 +137,16 @@ object Scheduler {
                   core.handleSchedule(actor, newTick),
                   s"Cannot schedule an event at tick $newTick for completing actor $actor"
                 )
-                .map { newCore =>
-                  val (toActivate, updatedCore) = newCore.takeNewActivations()
-                  toActivate.foreach {
-                    _ ! Activation(newCore.activeTick)
-                  }
-
-                  updatedCore
-                }
             }
             .getOrElse(Right(core))
+        }
+        .map { core =>
+          val (toActivate, updatedCore) = core.takeNewActivations()
+          toActivate.foreach {
+            _ ! Activation(core.activeTick)
+          }
+
+          updatedCore
         }
         .map { core =>
           core
