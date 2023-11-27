@@ -40,10 +40,11 @@ class ExtSimAdapterSpec
       ActorSystem(
         "ExtSimAdapterSpec",
         ConfigFactory
-          .parseString("""
-                     |akka.loggers = ["akka.testkit.TestEventListener"]
-                     |akka.loglevel = "INFO"
-                     |""".stripMargin)
+          .parseString(
+            """  |org.apache.pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
+                     |org.apache.pekko.loglevel = "INFO"
+                     |""".stripMargin
+          )
       )
     )
     with AnyWordSpecLike {

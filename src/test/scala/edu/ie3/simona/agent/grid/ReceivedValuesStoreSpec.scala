@@ -20,10 +20,11 @@ class ReceivedValuesStoreSpec
       ActorSystem(
         "ReceivedValuesStoreSpec",
         ConfigFactory
-          .parseString("""
-            |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-            |akka.loglevel="OFF"
-        """.stripMargin)
+          .parseString(
+            """|org.apache.pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |org.apache.pekko.loglevel="OFF"
+        """.stripMargin
+          )
       )
     )
     with UnitSpec

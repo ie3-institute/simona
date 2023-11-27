@@ -33,8 +33,8 @@ class SimonaListenerSpec
         ConfigFactory
           .parseString(
             """
-            |akka.loggers =["edu.ie3.simona.test.common.SilentTestEventListener"]
-            |akka.loglevel="debug"
+            |pekko.loggers =["edu.ie3.simona.test.common.SilentTestEventListener"]
+            |pekko.loglevel="debug"
             |""".stripMargin
           )
       )

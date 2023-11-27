@@ -29,8 +29,8 @@ class NotifierSpec
         "NotifierSpec",
         ConfigFactory
           .parseString("""
-            |akka.loggers =["akka.testkit.TestEventListener"]
-            |akka.loglevel="OFF"
+            |org.apache.pekko.loggers =["org.apache.pekko.testkit.TestEventListener"]
+            |org.apache.pekko.loglevel="OFF"
             |""".stripMargin)
       )
     )

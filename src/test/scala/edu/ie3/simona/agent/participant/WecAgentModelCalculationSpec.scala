@@ -81,10 +81,11 @@ class WecAgentModelCalculationSpec
       ActorSystem(
         "WecAgentSpec",
         ConfigFactory
-          .parseString("""
-            |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-            |akka.loglevel="DEBUG"
-        """.stripMargin)
+          .parseString(
+            """  |org.apache.pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |org.apache.pekko.loglevel="DEBUG"
+        """.stripMargin
+          )
       )
     )
     with PrivateMethodTester

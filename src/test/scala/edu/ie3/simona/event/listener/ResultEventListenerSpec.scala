@@ -46,7 +46,7 @@ import scala.language.postfixOps
 class ResultEventListenerSpec
     extends ScalaTestWithActorTestKit(
       ActorTestKit.ApplicationTestConfig.withValue(
-        "akka.actor.testkit.typed.filter-leeway",
+        "org.apache.pekko.actor.testkit.typed.filter-leeway",
         ConfigValueFactory.fromAnyRef("10s")
       )
     )
