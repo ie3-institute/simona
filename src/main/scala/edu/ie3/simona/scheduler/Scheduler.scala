@@ -15,7 +15,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.core.Core.{ActiveCore, InactiveCore}
-import edu.ie3.simona.scheduler.core.SchedulerCore.SchedulerInactive
+import edu.ie3.simona.scheduler.core.SchedulerCore
 
 /** Scheduler that activates actors at specific ticks and keeps them
   * synchronized by waiting for the completions of all activations. Can be
@@ -36,7 +36,7 @@ object Scheduler {
 
     inactive(
       SchedulerData(parent, adapter),
-      SchedulerInactive.create()
+      SchedulerCore.create()
     )
   }
 

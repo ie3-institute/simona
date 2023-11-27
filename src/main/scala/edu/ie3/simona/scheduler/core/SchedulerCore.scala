@@ -8,21 +8,34 @@ package edu.ie3.simona.scheduler.core
 
 import akka.actor.typed.ActorRef
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.scheduler.core.Core.{ActiveCore, InactiveCore}
+import edu.ie3.simona.scheduler.core.Core.{
+  ActiveCore,
+  CoreBuilder,
+  InactiveCore
+}
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
-object SchedulerCore {
-  case class SchedulerInactive(
-      triggerQueue: PriorityMultiBiSet[Long, ActorRef[Activation]],
-      lastActiveTick: Option[Long]
+
+/** TODO scaladoc
+  */
+object SchedulerCore extends CoreBuilder {
+
+  override def create(): SchedulerInactive =
+    SchedulerInactive(PriorityMultiBiSet.empty, None)
+
+  case class SchedulerInactive private (
+      private val activationQueue: PriorityMultiBiSet[Long, ActorRef[
+        Activation
+      ]],
+      private val lastActiveTick: Option[Long]
   ) extends InactiveCore {
     override def checkActivation(newTick: Long): Boolean =
-      triggerQueue.headKeyOption.contains(newTick)
+      activationQueue.headKeyOption.contains(newTick)
 
     override def activate(): ActiveCore = {
-      val newActiveTick = triggerQueue.headKeyOption.getOrElse(
+      val newActiveTick = activationQueue.headKeyOption.getOrElse(
         throw new RuntimeException("Nothing scheduled, cannot activate.")
       )
-      SchedulerActive(triggerQueue, activeTick = newActiveTick)
+      SchedulerActive(activationQueue, activeTick = newActiveTick)
     }
 
     override def checkSchedule(newTick: Long): Boolean =
@@ -32,26 +45,24 @@ object SchedulerCore {
         actor: ActorRef[Activation],
         newTick: Long
     ): (Option[Long], InactiveCore) = {
-      val oldEarliestTick = triggerQueue.headKeyOption
+      val oldEarliestTick = activationQueue.headKeyOption
 
-      triggerQueue.set(newTick, actor)
-      val newEarliestTick = triggerQueue.headKeyOption
+      activationQueue.set(newTick, actor)
+      val newEarliestTick = activationQueue.headKeyOption
 
       val maybeScheduleTick =
         Option.when(newEarliestTick != oldEarliestTick)(newEarliestTick).flatten
 
       (maybeScheduleTick, this)
     }
+
   }
 
-  object SchedulerInactive {
-    def create(): SchedulerInactive =
-      SchedulerInactive(PriorityMultiBiSet.empty, None)
-  }
-
-  case class SchedulerActive(
-      triggerQueue: PriorityMultiBiSet[Long, ActorRef[Activation]],
-      activeActors: Set[ActorRef[Activation]] = Set.empty,
+  private case class SchedulerActive(
+      private val activationQueue: PriorityMultiBiSet[Long, ActorRef[
+        Activation
+      ]],
+      private val activeActors: Set[ActorRef[Activation]] = Set.empty,
       activeTick: Long
   ) extends ActiveCore {
     override def checkCompletion(actor: ActorRef[Activation]): Boolean =
@@ -62,11 +73,12 @@ object SchedulerCore {
 
     override def maybeComplete(): Option[(Option[Long], InactiveCore)] =
       Option.when(
-        activeActors.isEmpty && !triggerQueue.headKeyOption.contains(activeTick)
+        activeActors.isEmpty &&
+          !activationQueue.headKeyOption.contains(activeTick)
       ) {
         (
-          triggerQueue.headKeyOption,
-          SchedulerInactive(triggerQueue, Some(activeTick))
+          activationQueue.headKeyOption,
+          SchedulerInactive(activationQueue, Some(activeTick))
         )
       }
 
@@ -77,15 +89,16 @@ object SchedulerCore {
         actor: ActorRef[Activation],
         newTick: Long
     ): ActiveCore = {
-      triggerQueue.set(newTick, actor)
+      activationQueue.set(newTick, actor)
       this
     }
 
     override def takeNewActivations()
         : (Iterable[ActorRef[Activation]], ActiveCore) = {
-      val toActivate = triggerQueue.getAndRemoveSet(activeTick)
+      val toActivate = activationQueue.getAndRemoveSet(activeTick)
       val newActiveCore = copy(activeActors = activeActors.concat(toActivate))
       (toActivate, newActiveCore)
     }
+
   }
 }

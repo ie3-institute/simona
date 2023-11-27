@@ -9,10 +9,13 @@ package edu.ie3.simona.scheduler.core
 import akka.actor.typed.ActorRef
 import edu.ie3.simona.ontology.messages.Activation
 
-/**
-  * TODO ScalaDoc everywhere
+/** TODO ScalaDoc everywhere
   */
 object Core {
+
+  trait CoreBuilder {
+    def create(): InactiveCore
+  }
 
   trait InactiveCore {
     def checkActivation(newTick: Long): Boolean
