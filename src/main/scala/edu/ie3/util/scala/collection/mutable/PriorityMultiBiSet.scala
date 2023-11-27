@@ -65,7 +65,7 @@ final case class PriorityMultiBiSet[K, V] private (
     */
   def set(key: K, value: V): Unit = {
     // remove old mapping for value in table and queue
-    back.get(value).foreach(remove(_, value))
+    remove(value)
     // add new mapping
     back += (value -> key)
 
@@ -80,27 +80,28 @@ final case class PriorityMultiBiSet[K, V] private (
     }
   }
 
-  /** Removes the given value for given key, if it exists.
-    * @param key
-    *   The key for which the value should be removed
+  /** Removes the given value, if it exists.
     * @param value
     *   The value
     * @return
-    *   Whether the key-value pair existed
+    *   Whether the value existed somewhere in here
     */
-  def remove(key: K, value: V): Boolean = {
-    back.remove(value)
+  def remove(value: V): Boolean = {
+    back.get(value).exists { key =>
+      back.remove(value)
 
-    table.get(key).exists { set =>
-      val existed = set.remove(value)
+      table.get(key).exists { set =>
+        val existed = set.remove(value)
 
-      if (set.isEmpty) {
-        table -= key
-        queue -= key
+        if (set.isEmpty) {
+          table -= key
+          queue -= key
+        }
+
+        existed
       }
-
-      existed
     }
+
   }
 
   /** Retrieves the first element in the list of the first key. The returned
