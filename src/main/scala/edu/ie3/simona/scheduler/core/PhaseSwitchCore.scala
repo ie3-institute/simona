@@ -48,7 +48,7 @@ object PhaseSwitchCore extends CoreFactory {
       val oldEarliestTick = activationQueue.headKeyOption
 
       val updatedQueue = activationQueue.set(newTick, actor)
-      val newEarliestTick = activationQueue.headKeyOption
+      val newEarliestTick = updatedQueue.headKeyOption
 
       val maybeScheduleTick =
         Option.when(newEarliestTick != oldEarliestTick)(newEarliestTick).flatten
@@ -117,7 +117,11 @@ object PhaseSwitchCore extends CoreFactory {
             )
           (
             Iterable.single(actor),
-            copy(activationQueue = updatedQueue, phase = newPhase)
+            copy(
+              activationQueue = updatedQueue,
+              phase = newPhase,
+              activeActors = activeActors.incl(actor)
+            )
           )
         }
         .getOrElse((Iterable.empty, this))
