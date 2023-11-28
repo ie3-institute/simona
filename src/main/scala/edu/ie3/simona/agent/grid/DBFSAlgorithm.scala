@@ -62,6 +62,7 @@ import scala.concurrent.{ExecutionContext, Future}
 trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   this: GridAgent =>
   // implicit ExecutionContext should be in scope
+  // see https://pekko.apache.org/docs/pekko/current/futures.html
   implicit val ec: ExecutionContext = context.dispatcher
 
   when(SimulateGrid) {
