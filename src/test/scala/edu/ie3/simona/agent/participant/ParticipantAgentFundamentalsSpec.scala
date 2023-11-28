@@ -6,10 +6,10 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.ActorRef.noSender
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.TestFSMRef
-import akka.util.Timeout
+import org.apache.pekko.actor.ActorRef.noSender
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.TestFSMRef
+import org.apache.pekko.util.Timeout
 import breeze.numerics.pow
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.ValueStore
@@ -18,33 +18,35 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.state.AgentState
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
   InconsistentStateException
 }
-import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
-import edu.ie3.simona.model.participant.SystemParticipant
+import edu.ie3.simona.model.participant.CalcRelevantData.{
+  FixedRelevantData,
+  LoadRelevantData
+}
+import edu.ie3.simona.model.participant.{FixedFeedInModel, SystemParticipant}
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
+import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
 import edu.ie3.simona.model.participant.load.{FixedLoadModel, LoadReference}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.test.common.AgentSpec
 import edu.ie3.simona.test.common.model.participant.LoadTestData
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import org.mockito.Mockito.when
 import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor3, TableFor5}
 import org.scalatestplus.mockito.MockitoSugar
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import squants.Each
+import squants.energy.{Kilowatts, Megawatts}
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import javax.measure.quantity.Power
 import scala.collection.SortedSet
 
 class ParticipantAgentFundamentalsSpec
@@ -53,8 +55,8 @@ class ParticipantAgentFundamentalsSpec
         "ParticipantAgentSpec",
         ConfigFactory
           .parseString("""
-            |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-            |akka.loglevel="DEBUG"
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="DEBUG"
         """.stripMargin)
       )
     )
@@ -63,15 +65,17 @@ class ParticipantAgentFundamentalsSpec
     with TableDrivenPropertyChecks {
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
+  implicit val pTolerance: squants.Power = Megawatts(0.001)
+  implicit val qTolerance: ReactivePower = Megavars(0.001)
 
-  private val outputConfig: ParticipantNotifierConfig =
-    ParticipantNotifierConfig(
+  private val outputConfig: NotifierConfig =
+    NotifierConfig(
       simulationResultInfo = false,
       powerRequestReply = false
     )
 
   /* Get one instance of the mock for participant agent */
-  val mockAgentTestRef: TestFSMRef[AgentState, ParticipantStateData[
+  private val mockAgentTestRef: TestFSMRef[AgentState, ParticipantStateData[
     ApparentPower
   ], ParticipantAgentMock] =
     TestFSMRef(
@@ -81,69 +85,56 @@ class ParticipantAgentFundamentalsSpec
     )
   val mockAgent: ParticipantAgentMock = mockAgentTestRef.underlyingActor
 
-  val powerValues =
+  private val powerValues: Map[Long, ApparentPower] =
     Map(
       0L -> ApparentPower(
-        Quantities.getQuantity(1d, MEGAWATT),
-        Quantities
-          .getQuantity(0d, MEGAVAR)
+        Megawatts(1.0),
+        Megavars(0.0)
       ),
       1L -> ApparentPower(
-        Quantities.getQuantity(2d, MEGAWATT),
-        Quantities
-          .getQuantity(1d, MEGAVAR)
+        Megawatts(2.0),
+        Megavars(1.0)
       ),
       3L -> ApparentPower(
-        Quantities.getQuantity(3d, MEGAWATT),
-        Quantities
-          .getQuantity(2d, MEGAVAR)
+        Megawatts(3.0),
+        Megavars(2.0)
       ),
       4L -> ApparentPower(
-        Quantities.getQuantity(5d, MEGAWATT),
-        Quantities
-          .getQuantity(4d, MEGAVAR)
+        Megawatts(5.0),
+        Megavars(4.0)
       ),
       7L -> ApparentPower(
-        Quantities.getQuantity(3d, MEGAWATT),
-        Quantities
-          .getQuantity(2d, MEGAVAR)
+        Megawatts(3.0),
+        Megavars(2.0)
       ),
       8L -> ApparentPower(
-        Quantities.getQuantity(6d, MEGAWATT),
-        Quantities
-          .getQuantity(5d, MEGAVAR)
+        Megawatts(6.0),
+        Megavars(5.0)
       ),
       9L -> ApparentPower(
-        Quantities.getQuantity(6d, MEGAWATT),
-        Quantities
-          .getQuantity(5d, MEGAVAR)
+        Megawatts(6.0),
+        Megavars(5.0)
       ),
       10L -> ApparentPower(
-        Quantities.getQuantity(4d, MEGAWATT),
-        Quantities
-          .getQuantity(3d, MEGAVAR)
+        Megawatts(4.0),
+        Megavars(3.0)
       )
     )
 
   /* Calculates the reactive power as the square of the active power */
-  val activeToReactivePowerFuncOpt: Option[
-    PartialFunction[ComparableQuantity[Power], ComparableQuantity[Power]]
+  private val activeToReactivePowerFuncOpt: Option[
+    PartialFunction[squants.Power, ReactivePower]
   ] =
     Some(
-      new PartialFunction[ComparableQuantity[Power], ComparableQuantity[
-        Power
-      ]] {
+      new PartialFunction[squants.Power, ReactivePower] {
         override def isDefinedAt(
-            activePower: ComparableQuantity[Power]
+            activePower: squants.Power
         ): Boolean = true
 
         override def apply(
-            activePower: ComparableQuantity[Power]
-        ): ComparableQuantity[Power] =
-          Quantities.getQuantity(
-            pow(activePower.to(MEGAWATT).getValue.doubleValue(), 2),
-            MEGAVAR
-          )
+            activePower: squants.Power
+        ): ReactivePower =
+          Megavars(pow(activePower.toMegawatts, 2))
       }
     )
 
@@ -261,20 +252,11 @@ class ParticipantAgentFundamentalsSpec
       )
 
       mockAgent.popNextActivationTrigger(baseStateData) match {
-        case (Some(activationSeq), actualBaseStateData) =>
-          /* There is exactly one activation trigger for tick 0 */
-          activationSeq.size shouldBe 1
-          activationSeq.headOption match {
-            case Some(
-                  ScheduleTriggerMessage(
-                    ActivityStartTrigger(tick),
-                    actorToBeScheduled
-                  )
-                ) =>
-              tick shouldBe 0L
-              actorToBeScheduled shouldBe mockAgentTestRef
-            case _ => fail("Sequence of activation triggers has wrong content.")
-          }
+        case (Some(activation), actualBaseStateData) =>
+          activation shouldBe ScheduleTriggerMessage(
+            ActivityStartTrigger(0L),
+            mockAgentTestRef
+          )
           /* Base state data haven't changed */
           actualBaseStateData shouldBe baseStateData
         case _ =>
@@ -292,20 +274,11 @@ class ParticipantAgentFundamentalsSpec
       )
 
       mockAgent.popNextActivationTrigger(baseStateData) match {
-        case (Some(activationSeq), actualBaseStateData) =>
-          /* There is exactly one activation trigger for tick 1 */
-          activationSeq.size shouldBe 1
-          activationSeq.headOption match {
-            case Some(
-                  ScheduleTriggerMessage(
-                    ActivityStartTrigger(tick),
-                    actorToBeScheduled
-                  )
-                ) =>
-              tick shouldBe 0L
-              actorToBeScheduled shouldBe mockAgentTestRef
-            case _ => fail("Sequence of activation triggers has wrong content.")
-          }
+        case (Some(activation), actualBaseStateData) =>
+          activation shouldBe ScheduleTriggerMessage(
+            ActivityStartTrigger(0L),
+            mockAgentTestRef
+          )
           /* Additional activation tick has been popped from base state data */
           actualBaseStateData.additionalActivationTicks.corresponds(
             Array(10L, 20L)
@@ -326,20 +299,11 @@ class ParticipantAgentFundamentalsSpec
       )
 
       mockAgent.popNextActivationTrigger(baseStateData) match {
-        case (Some(activationSeq), actualBaseStateData) =>
-          /* There is exactly one activation trigger for tick 1 */
-          activationSeq.size shouldBe 1
-          activationSeq.headOption match {
-            case Some(
-                  ScheduleTriggerMessage(
-                    ActivityStartTrigger(tick),
-                    actorToBeScheduled
-                  )
-                ) =>
-              tick shouldBe 0L
-              actorToBeScheduled shouldBe mockAgentTestRef
-            case _ => fail("Sequence of activation triggers has wrong content.")
-          }
+        case (Some(activation), actualBaseStateData) =>
+          activation shouldBe ScheduleTriggerMessage(
+            ActivityStartTrigger(0L),
+            mockAgentTestRef
+          )
           /* Additional activation tick has been popped from base state data */
           actualBaseStateData.additionalActivationTicks.corresponds(
             Array(10L, 20L)
@@ -361,12 +325,8 @@ class ParticipantAgentFundamentalsSpec
       )
       apparentPower match {
         case ApparentPower(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0.8666666666666667, MEGAWATT)
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0.5333333333333334, MEGAVAR)
-          )
+          (p ~= Megawatts(0.8666666666666667)) shouldBe true
+          (q ~= Megavars(0.5333333333333334)) shouldBe true
       }
     }
 
@@ -380,12 +340,8 @@ class ParticipantAgentFundamentalsSpec
         )
       apparentPower match {
         case ApparentPower(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(4.571428571428573, MEGAWATT)
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(3.571428571428571, MEGAVAR)
-          )
+          (p ~= Megawatts(4.571428571428573)) shouldBe true
+          (q ~= Megavars(3.571428571428571)) shouldBe true
       }
     }
 
@@ -399,12 +355,8 @@ class ParticipantAgentFundamentalsSpec
         )
       apparentPower match {
         case ApparentPower(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(4.571428571428573, MEGAWATT)
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(3.571428571428571, MEGAVAR)
-          )
+          (p ~= Megawatts(4.571428571428573)) shouldBe true
+          (q ~= Megavars(3.571428571428571)) shouldBe true
       }
     }
 
@@ -418,12 +370,8 @@ class ParticipantAgentFundamentalsSpec
         )
       apparentPower match {
         case ApparentPower(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0.8666666666666667, MEGAWATT)
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(2.8666666666666667, MEGAVAR)
-          )
+          (p ~= Megawatts(0.8666666666666667)) shouldBe true
+          (q ~= Megavars(2.8666666666666667)) shouldBe true
       }
     }
 
@@ -437,12 +385,8 @@ class ParticipantAgentFundamentalsSpec
         )
       apparentPower match {
         case ApparentPower(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(4.571428571428573, MEGAWATT)
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(21.71428571428571, MEGAVAR)
-          )
+          (p ~= Megawatts(4.571428571428573)) shouldBe true
+          (q ~= Megavars(21.71428571428571)) shouldBe true
       }
     }
 
@@ -456,12 +400,8 @@ class ParticipantAgentFundamentalsSpec
         )
       apparentPower match {
         case ApparentPower(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(4.571428571428573, MEGAWATT)
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(21.71428571428571, MEGAVAR)
-          )
+          (p ~= Megawatts(4.571428571428573)) shouldBe true
+          (q ~= Megavars(21.71428571428571)) shouldBe true
       }
     }
   }
@@ -473,28 +413,28 @@ class ParticipantAgentFundamentalsSpec
         900,
         Map(
           800L -> ApparentPower(
-            Quantities.getQuantity(0d, MEGAWATT),
-            Quantities.getQuantity(0d, MEGAVAR)
+            Megawatts(0.0),
+            Megavars(0.0)
           ),
           1000L -> ApparentPower(
-            Quantities.getQuantity(0d, MEGAWATT),
-            Quantities.getQuantity(0d, MEGAVAR)
+            Megawatts(0.0),
+            Megavars(0.0)
           ),
           1200L -> ApparentPower(
-            Quantities.getQuantity(0d, MEGAWATT),
-            Quantities.getQuantity(0d, MEGAVAR)
+            Megawatts(0.0),
+            Megavars(0.0)
           ),
           1400L -> ApparentPower(
-            Quantities.getQuantity(0d, MEGAWATT),
-            Quantities.getQuantity(0d, MEGAVAR)
+            Megawatts(0.0),
+            Megavars(0.0)
           ),
           1600L -> ApparentPower(
-            Quantities.getQuantity(0d, MEGAWATT),
-            Quantities.getQuantity(0d, MEGAVAR)
+            Megawatts(0.0),
+            Megavars(0.0)
           ),
           1800L -> ApparentPower(
-            Quantities.getQuantity(0d, MEGAWATT),
-            Quantities.getQuantity(0d, MEGAVAR)
+            Megawatts(0.0),
+            Megavars(0.0)
           )
         )
       )
@@ -502,8 +442,8 @@ class ParticipantAgentFundamentalsSpec
         900,
         Map(
           900L -> ApparentPower(
-            Quantities.getQuantity(0d, MEGAWATT),
-            Quantities.getQuantity(0d, MEGAVAR)
+            Megawatts(0.0),
+            Megavars(0.0)
           )
         )
       )
@@ -518,28 +458,28 @@ class ParticipantAgentFundamentalsSpec
           1800L,
           Map(
             800L -> ApparentPower(
-              Quantities.getQuantity(0d, MEGAWATT),
-              Quantities.getQuantity(0d, MEGAVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             ),
             1000L -> ApparentPower(
-              Quantities.getQuantity(0d, MEGAWATT),
-              Quantities.getQuantity(0d, MEGAVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             ),
             1200L -> ApparentPower(
-              Quantities.getQuantity(0d, MEGAWATT),
-              Quantities.getQuantity(0d, MEGAVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             ),
             1400L -> ApparentPower(
-              Quantities.getQuantity(0d, MEGAWATT),
-              Quantities.getQuantity(0d, MEGAVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             ),
             1600L -> ApparentPower(
-              Quantities.getQuantity(0d, MEGAWATT),
-              Quantities.getQuantity(0d, MEGAVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             ),
             1800L -> ApparentPower(
-              Quantities.getQuantity(0d, MEGAWATT),
-              Quantities.getQuantity(0d, MEGAVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             )
           )
         )
@@ -552,8 +492,8 @@ class ParticipantAgentFundamentalsSpec
         900,
         Map(
           800L -> ApparentPower(
-            Quantities.getQuantity(0d, MEGAWATT),
-            Quantities.getQuantity(0d, MEGAVAR)
+            Megawatts(0.0),
+            Megavars(0.0)
           )
         )
       )
@@ -561,8 +501,8 @@ class ParticipantAgentFundamentalsSpec
         900,
         Map(
           900L -> ApparentPower(
-            Quantities.getQuantity(0d, MEGAWATT),
-            Quantities.getQuantity(0d, MEGAVAR)
+            Megawatts(0.0),
+            Megavars(0.0)
           )
         )
       )
@@ -577,8 +517,8 @@ class ParticipantAgentFundamentalsSpec
           1800L,
           Map(
             800L -> ApparentPower(
-              Quantities.getQuantity(0d, MEGAWATT),
-              Quantities.getQuantity(0d, MEGAVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             )
           )
         )
@@ -588,7 +528,11 @@ class ParticipantAgentFundamentalsSpec
 
   "Determining the applicable nodal voltage" should {
     "deliver the correct voltage" in {
-      val baseStateData = ParticipantModelBaseStateData(
+      val baseStateData = ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedLoadRelevantData.type,
+        FixedLoadModel
+      ](
         simulationStartDate,
         simulationEndDate,
         FixedLoadModel(
@@ -597,17 +541,16 @@ class ParticipantAgentFundamentalsSpec
           OperationInterval(0L, 1800L),
           1.0,
           CosPhiFixed(0.95),
-          Quantities.getQuantity(100d, KILOVOLTAMPERE),
+          Kilowatts(100.0),
           0.95,
-          LoadReference.ActivePower(Quantities.getQuantity(95d, KILOWATT))
+          LoadReference.ActivePower(Kilowatts(95.0))
         ),
         None,
         outputConfig,
         SortedSet(0L, 900L, 1800L),
         Map.empty,
         1e-12,
-        ValueStore
-          .forVoltage(901L, Quantities.getQuantity(1d, PowerSystemUnits.PU)),
+        ValueStore.forVoltage(901L, Each(1.0)),
         ValueStore(901L),
         ValueStore(901L),
         ValueStore(901L)
@@ -616,12 +559,15 @@ class ParticipantAgentFundamentalsSpec
       ParticipantAgent.getAndCheckNodalVoltage(
         baseStateData,
         1000L
-      ) shouldBe Quantities
-        .getQuantity(1d, PU)
+      ) shouldBe Each(1.0)
     }
 
     "throw an error, if no nodal voltage is available" in {
-      val baseStateData = ParticipantModelBaseStateData(
+      val baseStateData = ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedLoadRelevantData.type,
+        FixedLoadModel
+      ](
         simulationStartDate,
         simulationEndDate,
         FixedLoadModel(
@@ -630,9 +576,9 @@ class ParticipantAgentFundamentalsSpec
           OperationInterval(0L, 1800L),
           1.0,
           CosPhiFixed(0.95),
-          Quantities.getQuantity(100d, KILOVOLTAMPERE),
+          Kilowatts(100.0),
           0.95,
-          LoadReference.ActivePower(Quantities.getQuantity(95d, KILOWATT))
+          LoadReference.ActivePower(Kilowatts(95.0))
         ),
         None,
         outputConfig,
@@ -670,17 +616,22 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,
-    SystemParticipant[FixedRelevantData.type]
+    SystemParticipant[FixedRelevantData.type, ApparentPower]
   ] = {
-    val modelMock = mock[SystemParticipant[FixedRelevantData.type]]
+    val modelMock =
+      mock[SystemParticipant[FixedRelevantData.type, ApparentPower]]
     when(modelMock.getUuid).thenReturn(UUID.randomUUID())
 
-    ParticipantModelBaseStateData(
+    ParticipantModelBaseStateData[
+      ApparentPower,
+      FixedRelevantData.type,
+      SystemParticipant[FixedRelevantData.type, ApparentPower]
+    ](
       TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
       TimeUtil.withDefaults.toZonedDateTime("2020-01-01 23:59:00"),
       modelMock,
       None,
-      ParticipantNotifierConfig(
+      NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false
       ),

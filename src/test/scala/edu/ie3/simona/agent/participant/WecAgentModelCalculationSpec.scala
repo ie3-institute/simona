@@ -6,11 +6,10 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.TestFSMRef
-import akka.util.Timeout
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.TestFSMRef
+import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV
 import edu.ie3.simona.agent.ValueStore
@@ -29,7 +28,7 @@ import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.WecRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.WecModel
 import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -62,16 +61,17 @@ import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.WecInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KILOWATT,
-  MEGAVAR,
-  MEGAWATT,
-  PU
+import edu.ie3.util.scala.quantities.{
+  Megavars,
+  ReactivePower,
+  Vars,
+  WattsPerSquareMeter
 }
-import edu.ie3.util.quantities.{EmptyQuantity, QuantityUtil}
 import org.scalatest.PrivateMethodTester
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND, PASCAL}
+import squants.Each
+import squants.energy.{Kilowatts, Megawatts, Watts}
+import squants.motion.MetersPerSecond
+import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
@@ -82,8 +82,8 @@ class WecAgentModelCalculationSpec
         "WecAgentSpec",
         ConfigFactory
           .parseString("""
-            |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-            |akka.loglevel="DEBUG"
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="DEBUG"
         """.stripMargin)
       )
     )
@@ -103,15 +103,13 @@ class WecAgentModelCalculationSpec
     .qCharacteristics(new QV("qV:{(0.95,-0.625),(1.05,0.625)}"))
     .build()
 
-  private val testingTolerance = 1e-6 // Equality on the basis of 1 W
-
   /* Assign this test to receive the result events from agent */
   override val systemListener: Iterable[ActorRef] = Vector(self)
 
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
+      LoadReference.ActivePower(Kilowatts(0d))
     )
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
@@ -126,6 +124,9 @@ class WecAgentModelCalculationSpec
   )
 
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+
+  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   "A wec agent with model calculation depending on no second data service" should {
     "be instantiated correctly" in {
@@ -177,14 +178,13 @@ class WecAgentModelCalculationSpec
               modelConfig = modelConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = None,
-              outputConfig = ParticipantNotifierConfig(
+              outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
               )
             )
           ),
-          triggerId,
-          wecAgent
+          triggerId
         )
       )
 
@@ -265,14 +265,13 @@ class WecAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = withServices,
-              outputConfig = ParticipantNotifierConfig(
+              outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
               )
             )
           ),
-          triggerId,
-          wecAgent
+          triggerId
         )
       )
 
@@ -308,7 +307,7 @@ class WecAgentModelCalculationSpec
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
           services shouldBe withServices
-          outputConfig shouldBe ParticipantNotifierConfig(
+          outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
             powerRequestReply = false
           )
@@ -316,7 +315,7 @@ class WecAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution * 10,
-            Map(0L -> Quantities.getQuantity(1d, PU))
+            Map(0L -> Each(1.0))
           )
           resultValueStore shouldBe ValueStore.forResult(resolution, 10)
           requestValueStore shouldBe ValueStore[ApparentPower](resolution * 10)
@@ -338,9 +337,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           triggerId,
           Some(
-            Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(4711), wecAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(4711), wecAgent)
           )
         )
       )
@@ -394,14 +391,13 @@ class WecAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = withServices,
-              outputConfig = ParticipantNotifierConfig(
+              outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
               )
             )
           ),
-          triggerId,
-          wecAgent
+          triggerId
         )
       )
 
@@ -421,13 +417,13 @@ class WecAgentModelCalculationSpec
 
       wecAgent ! RequestAssetPowerMessage(
         0L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.0),
+        Each(0.0)
       )
       expectMsg(
         AssetPowerChangedMessage(
-          Quantities.getQuantity(0d, MEGAWATT),
-          Quantities.getQuantity(0d, MEGAVAR)
+          Megawatts(0.0),
+          Megavars(0.0)
         )
       )
 
@@ -443,8 +439,8 @@ class WecAgentModelCalculationSpec
             resolution * 10,
             Map(
               0L -> ApparentPower(
-                Quantities.getQuantity(0d, MEGAWATT),
-                Quantities.getQuantity(0d, MEGAVAR)
+                Megawatts(0d),
+                Megavars(0d)
               )
             )
           )
@@ -485,14 +481,13 @@ class WecAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = withServices,
-              outputConfig = ParticipantNotifierConfig(
+              outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
               )
             )
           ),
-          initialiseTriggerId,
-          wecAgent
+          initialiseTriggerId
         )
       )
 
@@ -511,10 +506,10 @@ class WecAgentModelCalculationSpec
 
       /* Send out new data */
       val weatherData = WeatherData(
-        Quantities.getQuantity(50, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(100, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, CELSIUS),
-        Quantities.getQuantity(0, METRE_PER_SECOND)
+        WattsPerSquareMeter(50d),
+        WattsPerSquareMeter(100d),
+        Celsius(0d),
+        MetersPerSecond(0d)
       )
 
       weatherService.send(
@@ -557,8 +552,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -568,7 +562,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
           )
         )
       )
@@ -586,7 +580,7 @@ class WecAgentModelCalculationSpec
                 900L -> WecRelevantData(
                   weatherData.windVel,
                   weatherData.temp,
-                  EmptyQuantity.of(PASCAL)
+                  None
                 )
               )
           }
@@ -600,16 +594,8 @@ class WecAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 900.")
               ) match {
                 case ApparentPower(p, q) =>
-                  QuantityUtil.isEquivalentAbs(
-                    p,
-                    Quantities.getQuantity(0, MEGAWATT),
-                    1e-16
-                  ) shouldBe true
-                  QuantityUtil.isEquivalentAbs(
-                    q,
-                    Quantities.getQuantity(0, MEGAVAR),
-                    1e-16
-                  ) shouldBe true
+                  (p ~= Megawatts(0.0)) shouldBe true
+                  (q ~= Megavars(0.0)) shouldBe true
               }
           }
         case _ =>
@@ -649,14 +635,13 @@ class WecAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = withServices,
-              outputConfig = ParticipantNotifierConfig(
+              outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
               )
             )
           ),
-          initialiseTriggerId,
-          wecAgent
+          initialiseTriggerId
         )
       )
 
@@ -677,8 +662,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -712,10 +696,10 @@ class WecAgentModelCalculationSpec
 
       /* Providing the awaited data will lead to the foreseen transitions */
       val weatherData = WeatherData(
-        Quantities.getQuantity(50, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(100, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, CELSIUS),
-        Quantities.getQuantity(0, METRE_PER_SECOND)
+        WattsPerSquareMeter(50d),
+        WattsPerSquareMeter(100d),
+        Celsius(0d),
+        MetersPerSecond(0d)
       )
 
       weatherService.send(
@@ -728,7 +712,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
           )
         )
       )
@@ -748,7 +732,7 @@ class WecAgentModelCalculationSpec
                 900L -> WecRelevantData(
                   weatherData.windVel,
                   weatherData.temp,
-                  EmptyQuantity.of(PASCAL)
+                  None
                 )
               )
           }
@@ -762,16 +746,8 @@ class WecAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 900.")
               ) match {
                 case ApparentPower(p, q) =>
-                  QuantityUtil.isEquivalentAbs(
-                    p,
-                    Quantities.getQuantity(0, MEGAWATT),
-                    1e-16
-                  ) shouldBe true
-                  QuantityUtil.isEquivalentAbs(
-                    q,
-                    Quantities.getQuantity(0, MEGAVAR),
-                    1e-16
-                  ) shouldBe true
+                  (p ~= Megawatts(0.0)) shouldBe true
+                  (q ~= Megavars(0.0)) shouldBe true
               }
           }
         case _ =>
@@ -811,14 +787,13 @@ class WecAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = withServices,
-              outputConfig = ParticipantNotifierConfig(
+              outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
               )
             )
           ),
-          0L,
-          wecAgent
+          0L
         )
       )
 
@@ -837,18 +812,18 @@ class WecAgentModelCalculationSpec
       /* Ask the agent for average power in tick 1800 */
       wecAgent ! RequestAssetPowerMessage(
         1800L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.0),
+        Each(0.0)
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(wecAgent.stateName == Idle)
 
       /* Send out the expected data and wait for the reply */
       val weatherData = WeatherData(
-        Quantities.getQuantity(50, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(100, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, CELSIUS),
-        Quantities.getQuantity(0, METRE_PER_SECOND)
+        WattsPerSquareMeter(50d),
+        WattsPerSquareMeter(100d),
+        Celsius(0d),
+        MetersPerSecond(0d)
       )
       weatherService.send(
         wecAgent,
@@ -860,8 +835,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
 
@@ -871,7 +845,7 @@ class WecAgentModelCalculationSpec
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
           )
         )
       )
@@ -879,14 +853,8 @@ class WecAgentModelCalculationSpec
       /* Appreciate the answer to my previous request */
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -920,14 +888,13 @@ class WecAgentModelCalculationSpec
                 simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = withServices,
-              outputConfig = ParticipantNotifierConfig(
+              outputConfig = NotifierConfig(
                 simulationResultInfo = false,
                 powerRequestReply = false
               )
             )
           ),
-          0L,
-          wecAgent
+          0L
         )
       )
 
@@ -950,10 +917,10 @@ class WecAgentModelCalculationSpec
         ProvideWeatherMessage(
           900L,
           WeatherData(
-            Quantities.getQuantity(50, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(100, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, CELSIUS),
-            Quantities.getQuantity(0, METRE_PER_SECOND)
+            WattsPerSquareMeter(50d),
+            WattsPerSquareMeter(100d),
+            Celsius(0d),
+            MetersPerSecond(0d)
           ),
           Some(1800L)
         )
@@ -962,15 +929,14 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
+          1L
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           1L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent)
           )
         )
       )
@@ -981,10 +947,10 @@ class WecAgentModelCalculationSpec
         ProvideWeatherMessage(
           1800L,
           WeatherData(
-            Quantities.getQuantity(50, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(100, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, CELSIUS),
-            Quantities.getQuantity(0, METRE_PER_SECOND)
+            WattsPerSquareMeter(50d),
+            WattsPerSquareMeter(100d),
+            Celsius(0d),
+            MetersPerSecond(0d)
           ),
           Some(2700L)
         )
@@ -993,15 +959,14 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(1800L),
-          3L,
-          scheduler.ref
+          3L
         )
       )
       scheduler.expectMsg(
         CompletionMessage(
           3L,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(2700L), wecAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(2700L), wecAgent)
           )
         )
       )
@@ -1012,10 +977,10 @@ class WecAgentModelCalculationSpec
         ProvideWeatherMessage(
           2700L,
           WeatherData(
-            Quantities.getQuantity(50, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(100, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, CELSIUS),
-            Quantities.getQuantity(0, METRE_PER_SECOND)
+            WattsPerSquareMeter(50d),
+            WattsPerSquareMeter(100d),
+            Celsius(0d),
+            MetersPerSecond(0d)
           ),
           None
         )
@@ -1024,8 +989,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(2700L),
-          5L,
-          scheduler.ref
+          5L
         )
       )
       scheduler.expectMsg(CompletionMessage(5L))
@@ -1033,20 +997,14 @@ class WecAgentModelCalculationSpec
       /* Ask the agent for average power in tick 3000 */
       wecAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.0),
+        Each(0.0)
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
         case answer => fail(s"Did not expect to get that answer: $answer")
       }
     }
@@ -1056,21 +1014,15 @@ class WecAgentModelCalculationSpec
       /* Ask again with (nearly) unchanged information */
       wecAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(1.000000000000001d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.000000000000001d),
+        Each(0.0)
       )
 
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -1078,21 +1030,15 @@ class WecAgentModelCalculationSpec
       /* Ask again with changed information */
       wecAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(0.98, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(0.98d),
+        Each(0.0)
       )
 
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(-156.1249e-3, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(-156.1249e-3)) shouldBe true
       }
     }
   }

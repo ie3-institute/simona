@@ -6,8 +6,9 @@
 
 package edu.ie3.simona.sim
 
-import akka.actor.SupervisorStrategy.Stop
-import akka.actor.{
+import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
+import org.apache.pekko.actor.SupervisorStrategy.Stop
+import org.apache.pekko.actor.{
   Actor,
   ActorRef,
   AllForOneStrategy,
@@ -19,8 +20,9 @@ import akka.actor.{
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
-import edu.ie3.simona.ontology.messages.StopMessage
+import edu.ie3.simona.ontology.messages.{SchedulerMessage, StopMessage}
 import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeGridAgentTrigger,
   InitializeServiceTrigger
@@ -72,11 +74,14 @@ class SimonaSim(simonaSetup: SimonaSetup)
     simonaSetup.systemParticipantsListener(context)
 
   // runtime event listener
-  val runtimeEventListener: Seq[ActorRef] =
+  val runtimeEventListener
+      : org.apache.pekko.actor.typed.ActorRef[RuntimeEvent] =
     simonaSetup.runtimeEventListener(context)
 
   /* start scheduler */
-  val scheduler: ActorRef = simonaSetup.scheduler(context, runtimeEventListener)
+  val timeAdvancer: org.apache.pekko.actor.typed.ActorRef[SchedulerMessage] =
+    simonaSetup.timeAdvancer(context, self, runtimeEventListener)
+  val scheduler: ActorRef = simonaSetup.scheduler(context, timeAdvancer)
 
   /* start services */
   // primary service proxy
@@ -126,7 +131,8 @@ class SimonaSim(simonaSetup: SimonaSetup)
 
   /* watch all actors */
   systemParticipantsListener.foreach(context.watch)
-  runtimeEventListener.foreach(context.watch)
+  context.watch(runtimeEventListener.toClassic)
+  context.watch(timeAdvancer.toClassic)
   context.watch(scheduler)
   context.watch(primaryServiceProxy)
   context.watch(weatherService)
@@ -146,11 +152,11 @@ class SimonaSim(simonaSetup: SimonaSetup)
       }
 
       // tell scheduler to process all init messages
-      scheduler ! InitSimMessage
+      timeAdvancer ! StartScheduleMessage()
       context become simonaSimReceive(data.copy(initSimSender = sender()))
 
     case StartScheduleMessage(pauseScheduleAtTick) =>
-      scheduler ! StartScheduleMessage(pauseScheduleAtTick)
+      timeAdvancer ! StartScheduleMessage(pauseScheduleAtTick)
 
     case msg @ (SimulationSuccessfulMessage | SimulationFailureMessage) =>
       val simulationSuccessful = msg match {
@@ -277,8 +283,8 @@ class SimonaSim(simonaSetup: SimonaSetup)
       _ ! StopMessage(simulationSuccessful)
     )
 
-    runtimeEventListener.foreach(context.unwatch)
-    runtimeEventListener.foreach(context.stop)
+    context.unwatch(runtimeEventListener.toClassic)
+    context.stop(runtimeEventListener.toClassic)
 
     logger.debug("Stopping all listeners requested.")
   }

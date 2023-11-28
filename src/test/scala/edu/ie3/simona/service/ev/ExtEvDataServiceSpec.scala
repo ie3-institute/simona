@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.service.ev
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.{TestActorRef, TestProbe}
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.api.data.ev.ExtEvData
 import edu.ie3.simona.api.data.ev.model.EvModel
@@ -41,8 +41,8 @@ class ExtEvDataServiceSpec
         "ExtEvDataServiceSpec",
         ConfigFactory
           .parseString("""
-        |akka.loggers = ["akka.testkit.TestEventListener"]
-        |akka.loglevel = "INFO"
+        |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
+        |pekko.loglevel = "INFO"
         |""".stripMargin)
       )
     )
@@ -81,8 +81,7 @@ class ExtEvDataServiceSpec
               extEvData(evService)
             )
           ),
-          triggerId,
-          evService
+          triggerId
         )
       )
 
@@ -120,8 +119,7 @@ class ExtEvDataServiceSpec
               extEvData(evService)
             )
           ),
-          1L,
-          evService
+          1L
         )
       )
 
@@ -131,6 +129,7 @@ class ExtEvDataServiceSpec
   }
 
   "An idle ev movements service" must {
+    // TODO enhance with tests for cases where no EVCS are applicable and answer is sent right away
     "handle duplicate registrations correctly" in {
       val evService = TestActorRef(
         new ExtEvDataService(
@@ -146,8 +145,7 @@ class ExtEvDataServiceSpec
               extEvData(evService)
             )
           ),
-          1L,
-          evService
+          1L
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -193,8 +191,7 @@ class ExtEvDataServiceSpec
               extData
             )
           ),
-          1L,
-          evService
+          1L
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -206,8 +203,7 @@ class ExtEvDataServiceSpec
             ActivityStartTrigger(
               0L
             ),
-            2L,
-            evService
+            2L
           ),
           scheduler.ref
         )
@@ -233,8 +229,7 @@ class ExtEvDataServiceSpec
               extData
             )
           ),
-          1L,
-          evService
+          1L
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -272,8 +267,7 @@ class ExtEvDataServiceSpec
           ActivityStartTrigger(
             tick
           ),
-          triggerId,
-          evService
+          triggerId
         )
       )
 
@@ -345,8 +339,7 @@ class ExtEvDataServiceSpec
               extData
             )
           ),
-          1L,
-          evService
+          1L
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -369,8 +362,7 @@ class ExtEvDataServiceSpec
           ActivityStartTrigger(
             tick
           ),
-          triggerId,
-          evService
+          triggerId
         )
       )
 
@@ -408,8 +400,7 @@ class ExtEvDataServiceSpec
               extData
             )
           ),
-          1L,
-          evService
+          1L
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -452,16 +443,15 @@ class ExtEvDataServiceSpec
           ActivityStartTrigger(
             tick
           ),
-          triggerId,
-          evService
+          triggerId
         )
       )
 
       evcs1.expectMsg(
-        DepartingEvsRequest(tick, Seq(evA.getUuid))
+        DepartingEvsRequest(tick, scala.collection.immutable.Seq(evA.getUuid))
       )
       evcs2.expectMsg(
-        DepartingEvsRequest(tick, Seq(evB.getUuid))
+        DepartingEvsRequest(tick, scala.collection.immutable.Seq(evB.getUuid))
       )
 
       scheduler.expectMsg(
@@ -473,30 +463,24 @@ class ExtEvDataServiceSpec
 
       // return evs to ev service
       val updatedEvA = evA.copyWith(
-        Quantities.getQuantity(6, PowerSystemUnits.KILOWATTHOUR)
+        Quantities.getQuantity(6.0, PowerSystemUnits.KILOWATTHOUR)
       )
 
       evcs1.send(
         evService,
-        DepartingEvsResponse(
-          evcs1UUID,
-          Set(updatedEvA)
-        )
+        DepartingEvsResponse(evcs1UUID, Set(updatedEvA))
       )
 
       // nothing should happen yet, waiting for second departed ev
       extData.receiveTriggerQueue shouldBe empty
 
       val updatedEvB = evB.copyWith(
-        Quantities.getQuantity(4, PowerSystemUnits.KILOWATTHOUR)
+        Quantities.getQuantity(4.0, PowerSystemUnits.KILOWATTHOUR)
       )
 
       evcs2.send(
         evService,
-        DepartingEvsResponse(
-          evcs2UUID,
-          Set(updatedEvB)
-        )
+        DepartingEvsResponse(evcs2UUID, Set(updatedEvB))
       )
 
       // ev service should recognize that all evs that are expected are returned,
@@ -529,8 +513,7 @@ class ExtEvDataServiceSpec
               extData
             )
           ),
-          1L,
-          evService
+          1L
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -573,15 +556,14 @@ class ExtEvDataServiceSpec
           ActivityStartTrigger(
             tick
           ),
-          triggerId,
-          evService
+          triggerId
         )
       )
 
       evcs1.expectMsg(
         ProvideEvDataMessage(
           tick,
-          ArrivingEvsData(Seq(evA))
+          ArrivingEvsData(scala.collection.immutable.Seq(evA))
         )
       )
 
@@ -592,23 +574,12 @@ class ExtEvDataServiceSpec
         )
       )
 
-      scheduler.expectMsg(
-        CompletionMessage(
-          triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(tick),
-                evcs1.ref
-              ),
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(tick),
-                evcs2.ref
-              )
-            )
-          )
-        )
+      scheduler.expectMsgAllOf(
+        ScheduleTriggerMessage(ActivityStartTrigger(tick), evcs1.ref),
+        ScheduleTriggerMessage(ActivityStartTrigger(tick), evcs2.ref)
       )
+
+      scheduler.expectMsg(CompletionMessage(triggerId, None))
 
       // no response expected
       extData.receiveTriggerQueue shouldBe empty
@@ -631,8 +602,7 @@ class ExtEvDataServiceSpec
               extData
             )
           ),
-          1L,
-          evService
+          1L
         )
       )
       scheduler.expectMsgType[CompletionMessage]
@@ -668,33 +638,25 @@ class ExtEvDataServiceSpec
           ActivityStartTrigger(
             tick
           ),
-          triggerId,
-          evService
+          triggerId
         )
       )
 
       evcs1.expectMsg(
         ProvideEvDataMessage(
           tick,
-          ArrivingEvsData(
-            Seq(evA)
-          )
+          ArrivingEvsData(Seq(evA))
         )
       )
 
       scheduler.expectMsg(
-        CompletionMessage(
-          triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(tick),
-                evcs1.ref
-              )
-            )
-          )
+        ScheduleTriggerMessage(
+          ActivityStartTrigger(tick),
+          evcs1.ref
         )
       )
+
+      scheduler.expectMsg(CompletionMessage(triggerId, None))
 
       // no response expected
       extData.receiveTriggerQueue shouldBe empty

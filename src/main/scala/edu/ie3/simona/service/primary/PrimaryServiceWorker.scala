@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service.primary
 
-import akka.actor.{ActorRef, Props}
+import org.apache.pekko.actor.{ActorRef, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.factory.timeseries.TimeBasedSimpleValueFactory
 import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
@@ -35,6 +35,7 @@ import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 
+import java.nio.file.Path
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters._
@@ -61,7 +62,7 @@ final case class PrimaryServiceWorker[V <: Value](
   ): Try[
     (
         PrimaryServiceInitializedStateData[V],
-        Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+        Option[SchedulerMessage.ScheduleTriggerMessage]
     )
   ] = {
     (initServiceData match {
@@ -150,7 +151,7 @@ final case class PrimaryServiceWorker[V <: Value](
           source
         )
       val triggerMessage =
-        ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
+        ServiceActivationBaseStateData.tickToScheduleTriggerMessage(
           maybeNextTick,
           self
         )
@@ -203,7 +204,7 @@ final case class PrimaryServiceWorker[V <: Value](
       tick: Long
   )(implicit serviceBaseStateData: PrimaryServiceInitializedStateData[V]): (
       PrimaryServiceInitializedStateData[V],
-      Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+      Option[SchedulerMessage.ScheduleTriggerMessage]
   ) = {
     /* Get the information to distribute */
     val wallClockTime = tick.toDateTime(serviceBaseStateData.startDateTime)
@@ -235,12 +236,12 @@ final case class PrimaryServiceWorker[V <: Value](
       baseStateData: PrimaryServiceInitializedStateData[V]
   ): (
       PrimaryServiceInitializedStateData[V],
-      Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+      Option[SchedulerMessage.ScheduleTriggerMessage]
   ) = {
     val (maybeNextActivationTick, remainderActivationTicks) =
       baseStateData.activationTicks.pop
     val triggerMessages =
-      ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
+      ServiceActivationBaseStateData.tickToScheduleTriggerMessage(
         maybeNextActivationTick,
         self
       )
@@ -271,7 +272,7 @@ final case class PrimaryServiceWorker[V <: Value](
       serviceBaseStateData: PrimaryServiceInitializedStateData[V]
   ): (
       PrimaryServiceInitializedStateData[V],
-      Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+      Option[SchedulerMessage.ScheduleTriggerMessage]
   ) = value.toPrimaryData match {
     case Success(primaryData) =>
       announcePrimaryData(tick, primaryData, serviceBaseStateData)
@@ -303,12 +304,12 @@ final case class PrimaryServiceWorker[V <: Value](
       serviceBaseStateData: PrimaryServiceInitializedStateData[V]
   ): (
       PrimaryServiceInitializedStateData[V],
-      Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+      Option[SchedulerMessage.ScheduleTriggerMessage]
   ) = {
     val (maybeNextTick, remainderActivationTicks) =
       serviceBaseStateData.activationTicks.pop
     val triggerMessages = ServiceActivationBaseStateData
-      .tickToScheduleTriggerMessages(maybeNextTick, self)
+      .tickToScheduleTriggerMessage(maybeNextTick, self)
     val updatedStateData =
       serviceBaseStateData.copy(
         maybeNextActivationTick = maybeNextTick,
@@ -374,8 +375,8 @@ object PrimaryServiceWorker {
       override val timeSeriesUuid: UUID,
       override val simulationStart: ZonedDateTime,
       csvSep: String,
-      directoryPath: String,
-      filePath: String,
+      directoryPath: Path,
+      filePath: Path,
       fileNamingStrategy: FileNamingStrategy,
       timePattern: String
   ) extends InitPrimaryServiceStateData

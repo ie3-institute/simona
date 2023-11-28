@@ -6,11 +6,13 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.{ActorContext, ActorRef, ActorSystem}
+import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.event.RuntimeEvent
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 
@@ -36,14 +38,16 @@ trait SimonaSetup {
     */
   val buildActorSystem: () => ActorSystem
 
-  /** Creates a sequence of runtime event listeners
+  /** Creates the runtime event listener
     *
     * @param context
     *   Actor context to use
     * @return
-    *   A sequence of actor references to runtime event listeners
+    *   An actor reference to the runtime event listener
     */
-  def runtimeEventListener(context: ActorContext): Seq[ActorRef]
+  def runtimeEventListener(
+      context: ActorContext
+  ): org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
 
   /** Creates a sequence of system participant event listeners
     *
@@ -102,16 +106,35 @@ trait SimonaSetup {
       scheduler: ActorRef
   ): ExtSimSetupData
 
+  /** Creates the time advancer
+    *
+    * @param context
+    *   Actor context to use
+    * @param simulation
+    *   The simulation root actor ([[edu.ie3.simona.sim.SimonaSim]])
+    * @param runtimeEventListener
+    *   Runtime event listener
+    * @return
+    *   An actor reference to the time advancer
+    */
+  def timeAdvancer(
+      context: ActorContext,
+      simulation: ActorRef,
+      runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
+  ): org.apache.pekko.actor.typed.ActorRef[SchedulerMessage]
+
   /** Creates a scheduler service
     *
     * @param context
     *   Actor context to use
+    * @param timeAdvancer
+    *   The time advancer, sitting at the root of the scheduler hierarchy
     * @return
     *   An actor reference to the scheduler
     */
   def scheduler(
       context: ActorContext,
-      runtimeEventListener: Seq[ActorRef]
+      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[SchedulerMessage]
   ): ActorRef
 
   /** Creates all the needed grid agents

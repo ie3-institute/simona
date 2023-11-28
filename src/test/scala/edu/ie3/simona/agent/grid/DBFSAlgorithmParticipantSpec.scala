@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.{ImplicitSender, TestProbe}
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -29,8 +29,9 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResp
 import edu.ie3.simona.ontology.trigger.Trigger._
 import edu.ie3.simona.test.common.model.grid.DbfsTestGridWithParticipants
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
-import edu.ie3.util.quantities.PowerSystemUnits.{KILOVOLT, MEGAVAR, MEGAWATT}
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.scala.quantities.Megavars
+import squants.electro.Kilovolts
+import squants.energy.Megawatts
 
 import scala.language.postfixOps
 
@@ -40,8 +41,8 @@ class DBFSAlgorithmParticipantSpec
         "DBFSAlgorithmSpec",
         ConfigFactory
           .parseString("""
-                     |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-                     |akka.loglevel="OFF"
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="OFF"
         """.stripMargin)
       )
     )
@@ -91,6 +92,7 @@ class DBFSAlgorithmParticipantSpec
       val gridAgentInitData =
         GridAgentInitData(
           hvGridContainer,
+          Seq.empty,
           subGridGateToActorRef,
           RefSystem("2000 MVA", "110 kV")
         )
@@ -100,8 +102,7 @@ class DBFSAlgorithmParticipantSpec
         gridAgentWithParticipants,
         TriggerWithIdMessage(
           InitializeGridAgentTrigger(gridAgentInitData),
-          triggerId,
-          gridAgentWithParticipants
+          triggerId
         )
       )
 
@@ -112,7 +113,8 @@ class DBFSAlgorithmParticipantSpec
                   PrimaryData,
                   InitializeStateData[PrimaryData]
                 ],
-                loadAgent
+                loadAgent,
+                _
               ) =>
             (loadAgent, initializeTrigger)
         }
@@ -121,11 +123,9 @@ class DBFSAlgorithmParticipantSpec
         CompletionMessage(
           triggerId,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(3600L),
-                gridAgentWithParticipants
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(3600L),
+              gridAgentWithParticipants
             )
           )
         )
@@ -135,8 +135,7 @@ class DBFSAlgorithmParticipantSpec
         loadAgent,
         TriggerWithIdMessage(
           initializeTrigger,
-          loadAgentTriggerId,
-          loadAgent
+          loadAgentTriggerId
         )
       )
 
@@ -150,7 +149,7 @@ class DBFSAlgorithmParticipantSpec
         CompletionMessage(
           loadAgentTriggerId,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(0L), loadAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(0L), loadAgent)
           )
         )
       )
@@ -160,8 +159,7 @@ class DBFSAlgorithmParticipantSpec
         loadAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          2,
-          loadAgent
+          2
         )
       )
       // the load agent should send a CompletionMessage
@@ -178,8 +176,7 @@ class DBFSAlgorithmParticipantSpec
         gridAgentWithParticipants,
         TriggerWithIdMessage(
           ActivityStartTrigger(3600L),
-          activityStartTriggerId,
-          gridAgentWithParticipants
+          activityStartTriggerId
         )
       )
 
@@ -188,11 +185,9 @@ class DBFSAlgorithmParticipantSpec
         CompletionMessage(
           3,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                StartGridSimulationTrigger(3600L),
-                gridAgentWithParticipants
-              )
+            ScheduleTriggerMessage(
+              StartGridSimulationTrigger(3600L),
+              gridAgentWithParticipants
             )
           )
         )
@@ -211,8 +206,7 @@ class DBFSAlgorithmParticipantSpec
         gridAgentWithParticipants,
         TriggerWithIdMessage(
           StartGridSimulationTrigger(3600L),
-          startGridSimulationTriggerId,
-          gridAgentWithParticipants
+          startGridSimulationTriggerId
         )
       )
 
@@ -230,8 +224,8 @@ class DBFSAlgorithmParticipantSpec
           Seq(
             ExchangeVoltage(
               supNodeA.getUuid,
-              Quantities.getQuantity(380, KILOVOLT),
-              Quantities.getQuantity(0, KILOVOLT)
+              Kilovolts(380d),
+              Kilovolts(0d)
             )
           )
         )
@@ -251,8 +245,8 @@ class DBFSAlgorithmParticipantSpec
         Seq(
           ExchangePower(
             supNodeA.getUuid,
-            Quantities.getQuantity(135.90837346741768, MEGAWATT),
-            Quantities.getQuantity(60.98643348675892, MEGAVAR)
+            Megawatts(135.90837346741768),
+            Megavars(60.98643348675892)
           )
         )
       )
@@ -278,8 +272,8 @@ class DBFSAlgorithmParticipantSpec
           Seq(
             ExchangeVoltage(
               supNodeA.getUuid,
-              Quantities.getQuantity(374.2269461446, KILOVOLT),
-              Quantities.getQuantity(65.9863075134, KILOVOLT)
+              Kilovolts(374.2269461446d),
+              Kilovolts(65.9863075134d)
             )
           )
         )
@@ -291,8 +285,8 @@ class DBFSAlgorithmParticipantSpec
         Seq(
           ExchangePower(
             supNodeA.getUuid,
-            Quantities.getQuantity(135.90837346741768, MEGAWATT),
-            Quantities.getQuantity(60.98643348675892, MEGAVAR)
+            Megawatts(135.90837346741768),
+            Megavars(60.98643348675892)
           )
         )
       )
@@ -308,11 +302,9 @@ class DBFSAlgorithmParticipantSpec
         CompletionMessage(
           4,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(7200L),
-                gridAgentWithParticipants
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(7200L),
+              gridAgentWithParticipants
             )
           )
         )

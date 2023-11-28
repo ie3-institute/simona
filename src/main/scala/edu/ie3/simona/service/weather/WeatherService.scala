@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service.weather
 
-import akka.actor.{ActorRef, Props}
+import org.apache.pekko.actor.{ActorRef, Props}
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
@@ -32,13 +32,9 @@ import edu.ie3.simona.service.weather.WeatherSource.{
 }
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
-import javax.measure.Quantity
-import javax.measure.quantity.Length
 import scala.util.{Failure, Success, Try}
 
 object WeatherService {
@@ -47,17 +43,14 @@ object WeatherService {
       scheduler: ActorRef,
       startDateTime: ZonedDateTime,
       simulationEnd: ZonedDateTime,
-      amountOfInterpolationCoordinates: Int = 4,
-      maxInterpolationCoordinateDistance: Quantity[Length] =
-        Quantities.getQuantity(28, PowerSystemUnits.KILOMETRE)
+      amountOfInterpolationCoordinates: Int = 4
   ): Props =
     Props(
       new WeatherService(
         scheduler,
         startDateTime,
         simulationEnd,
-        amountOfInterpolationCoordinates,
-        maxInterpolationCoordinateDistance
+        amountOfInterpolationCoordinates
       )
     )
 
@@ -107,8 +100,7 @@ final case class WeatherService(
     override val scheduler: ActorRef,
     private implicit val simulationStart: ZonedDateTime,
     simulationEnd: ZonedDateTime,
-    private val amountOfInterpolationCoords: Int,
-    private val maxInterpolationCoordinateDistance: Quantity[Length]
+    private val amountOfInterpolationCoords: Int
 ) extends SimonaService[
       WeatherInitializedStateData
     ](scheduler) {
@@ -117,7 +109,7 @@ final case class WeatherService(
     * initialization data. This method should perform all heavyweight tasks
     * before the actor becomes ready. The return values are a) the state data of
     * the initialized service and b) optional triggers that should be send to
-    * the [[edu.ie3.simona.scheduler.SimScheduler]] together with the completion
+    * the [[edu.ie3.simona.scheduler.Scheduler]] together with the completion
     * message that is send in response to the trigger that is send to start the
     * initialization process
     *
@@ -129,7 +121,7 @@ final case class WeatherService(
     */
   override def init(
       initServiceData: InitializeServiceStateData
-  ): Try[(WeatherInitializedStateData, Option[Seq[ScheduleTriggerMessage]])] =
+  ): Try[(WeatherInitializedStateData, Option[ScheduleTriggerMessage])] =
     initServiceData match {
       case InitWeatherServiceStateData(sourceDefinition) =>
         val weatherSource =
@@ -154,7 +146,7 @@ final case class WeatherService(
         Success(
           weatherInitializedStateData,
           ServiceActivationBaseStateData
-            .tickToScheduleTriggerMessages(maybeNextTick, self)
+            .tickToScheduleTriggerMessage(maybeNextTick, self)
         )
 
       case invalidData =>
@@ -232,8 +224,7 @@ final case class WeatherService(
         /* The coordinate itself is not known yet. Try to figure out, which weather coordinates are relevant */
         serviceStateData.weatherSource.getWeightedCoordinates(
           agentCoord,
-          amountOfInterpolationCoords,
-          maxInterpolationCoordinateDistance
+          amountOfInterpolationCoords
         ) match {
           case Success(weightedCoordinates) =>
             agentToBeRegistered ! RegistrationSuccessfulMessage(
@@ -299,7 +290,7 @@ final case class WeatherService(
     */
   override protected def announceInformation(tick: Long)(implicit
       serviceStateData: WeatherInitializedStateData
-  ): (WeatherInitializedStateData, Option[Seq[ScheduleTriggerMessage]]) = {
+  ): (WeatherInitializedStateData, Option[ScheduleTriggerMessage]) = {
 
     /* Pop the next activation tick and update the state data */
     val (
@@ -327,7 +318,7 @@ final case class WeatherService(
 
     (
       updatedStateData,
-      ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
+      ServiceActivationBaseStateData.tickToScheduleTriggerMessage(
         maybeNextTick,
         self
       )

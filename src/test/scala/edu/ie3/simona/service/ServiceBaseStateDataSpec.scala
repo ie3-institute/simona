@@ -6,13 +6,12 @@
 
 package edu.ie3.simona.service
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.service.ServiceStateData.ServiceActivationBaseStateData
 import edu.ie3.simona.test.common.AgentSpec
-import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.scalatestplus.mockito.MockitoSugar
 
 class ServiceBaseStateDataSpec
@@ -21,8 +20,8 @@ class ServiceBaseStateDataSpec
         "ServiceBaseStateDataSpec",
         ConfigFactory
           .parseString("""
-                   |akka.loggers = ["akka.testkit.TestEventListener"]
-                   |akka.loglevel="OFF"
+                   |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
+                   |pekko.loglevel="OFF"
           """.stripMargin)
       )
     )
@@ -30,22 +29,20 @@ class ServiceBaseStateDataSpec
 
   "State data for services" should {
     "convert an undefined optional tick to None on attempt to convert it to a trigger message" in {
-      ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
+      ServiceActivationBaseStateData.tickToScheduleTriggerMessage(
         None,
         self
       ) shouldBe None
     }
 
     "convert an given tick to correct sequence of scheduler messages" in {
-      ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
+      ServiceActivationBaseStateData.tickToScheduleTriggerMessage(
         Some(5L),
         self
       ) shouldBe Some(
-        Seq(
-          ScheduleTriggerMessage(
-            ActivityStartTrigger(5L),
-            self
-          )
+        ScheduleTriggerMessage(
+          ActivityStartTrigger(5L),
+          self
         )
       )
     }

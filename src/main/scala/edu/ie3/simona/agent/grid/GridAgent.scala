@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.{ActorRef, Props, Stash}
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentInitData,
@@ -31,12 +30,11 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   StartGridSimulationTrigger
 }
 import edu.ie3.util.TimeUtil
+import org.apache.pekko.actor.{ActorRef, Props, Stash}
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object GridAgent {
@@ -103,8 +101,7 @@ class GridAgent(
             InitializeGridAgentTrigger(
               gridAgentInitData: GridAgentInitData
             ),
-            triggerId,
-            _
+            triggerId
           ),
           _
         ) =>
@@ -128,6 +125,10 @@ class GridAgent(
       // build the assets concurrently
       val subGridContainer = gridAgentInitData.subGridContainer
       val refSystem = gridAgentInitData.refSystem
+      val thermalGridsByBusId = gridAgentInitData.thermalIslandGrids.map {
+        thermalGrid => thermalGrid.bus().getUuid -> thermalGrid
+      }.toMap
+      log.debug(s"Thermal island grids: ${thermalGridsByBusId.size}")
 
       // get the [[GridModel]]
       val gridModel = GridModel(
@@ -142,8 +143,9 @@ class GridAgent(
 
       /* Reassure, that there are also calculation models for the given uuids */
       val nodeToAssetAgentsMap: Map[UUID, Set[ActorRef]] =
-        gridAgentController.buildSystemParticipants(subGridContainer).map {
-          case (uuid: UUID, actorSet) =>
+        gridAgentController
+          .buildSystemParticipants(subGridContainer, thermalGridsByBusId)
+          .map { case (uuid: UUID, actorSet) =>
             val nodeUuid = gridModel.gridComponents.nodes
               .find(_.uuid == uuid)
               .getOrElse(
@@ -153,7 +155,7 @@ class GridAgent(
               )
               .uuid
             nodeUuid -> actorSet
-        }
+          }
 
       // create the GridAgentBaseData
       val gridAgentBaseData = GridAgentBaseData(
@@ -174,12 +176,14 @@ class GridAgent(
 
       log.debug("Je suis initialized")
 
-      goto(Idle) using gridAgentBaseData replying CompletionMessage(
+      environmentRefs.scheduler ! CompletionMessage(
         triggerId,
         Some(
-          Vector(ScheduleTriggerMessage(ActivityStartTrigger(resolution), self))
+          ScheduleTriggerMessage(ActivityStartTrigger(resolution), self)
         )
       )
+
+      goto(Idle) using gridAgentBaseData
   }
 
   when(Idle) {
@@ -191,24 +195,24 @@ class GridAgent(
       stay()
 
     case Event(
-          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId, _),
+          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId),
           gridAgentBaseData: GridAgentBaseData
         ) =>
       log.debug("received activity start trigger {}", triggerId)
 
       unstashAll()
 
-      goto(SimulateGrid) using gridAgentBaseData replying CompletionMessage(
+      environmentRefs.scheduler ! CompletionMessage(
         triggerId,
         Some(
-          Vector(
-            ScheduleTriggerMessage(
-              StartGridSimulationTrigger(currentTick),
-              self
-            )
+          ScheduleTriggerMessage(
+            StartGridSimulationTrigger(currentTick),
+            self
           )
         )
       )
+
+      goto(SimulateGrid) using gridAgentBaseData
 
     case Event(StopMessage(_), data: GridAgentBaseData) =>
       // shutdown children

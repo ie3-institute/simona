@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service
 
-import akka.actor.{Actor, ActorRef, Stash}
+import org.apache.pekko.actor.{Actor, ActorRef, Stash}
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
@@ -55,8 +55,7 @@ abstract class SimonaService[
           InitializeServiceTrigger(
             initializeStateData: InitializeServiceStateData
           ),
-          triggerId,
-          _
+          triggerId
         ) =>
       // init might take some time and could go wrong if invalid initialize service data is received
       // execute complete and unstash only if init is carried out successfully
@@ -119,7 +118,7 @@ abstract class SimonaService[
       }
 
     // activity start trigger for this service
-    case TriggerWithIdMessage(ActivityStartTrigger(tick), triggerId, _) =>
+    case TriggerWithIdMessage(ActivityStartTrigger(tick), triggerId) =>
       /* The scheduler sends out an activity start trigger. Announce new data to all registered recipients. */
       val (updatedStateData, maybeNewTriggers) =
         announceInformation(tick)(stateData)
@@ -147,7 +146,7 @@ abstract class SimonaService[
     * initialization data. This method should perform all heavyweight tasks
     * before the actor becomes ready. The return values are a) the state data of
     * the initialized service and b) optional triggers that should be send to
-    * the [[edu.ie3.simona.scheduler.SimScheduler]] together with the completion
+    * the [[edu.ie3.simona.scheduler.Scheduler]] together with the completion
     * message that is send in response to the trigger that is send to start the
     * initialization process
     *
@@ -159,7 +158,7 @@ abstract class SimonaService[
     */
   def init(
       initServiceData: InitializeServiceStateData
-  ): Try[(S, Option[Seq[ScheduleTriggerMessage]])]
+  ): Try[(S, Option[ScheduleTriggerMessage])]
 
   /** Handle a request to register for information from this service
     *
@@ -190,6 +189,6 @@ abstract class SimonaService[
     */
   protected def announceInformation(tick: Long)(implicit
       serviceStateData: S
-  ): (S, Option[Seq[ScheduleTriggerMessage]])
+  ): (S, Option[ScheduleTriggerMessage])
 
 }

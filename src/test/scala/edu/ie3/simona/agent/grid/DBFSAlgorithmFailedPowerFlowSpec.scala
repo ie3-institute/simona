@@ -6,9 +6,10 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.ActorSystem
-import akka.testkit.{ImplicitSender, TestProbe}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
+import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
@@ -34,6 +35,9 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.Megavars
+import squants.electro.Kilovolts
+import squants.energy.Megawatts
 
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
@@ -44,8 +48,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
         "DBFSAlgorithmSpec",
         ConfigFactory
           .parseString("""
-                     |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-                     |akka.loglevel="OFF"
+          |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+          |pekko.loglevel="OFF"
         """.stripMargin)
       )
     )
@@ -103,6 +107,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       val gridAgentInitData =
         GridAgentInitData(
           hvGridContainerPF,
+          Seq.empty[ThermalGrid],
           subGridGateToActorRef,
           RefSystem("2000 MVA", "110 kV")
         )
@@ -112,8 +117,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
         centerGridAgent,
         TriggerWithIdMessage(
           InitializeGridAgentTrigger(gridAgentInitData),
-          triggerId,
-          centerGridAgent
+          triggerId
         )
       )
 
@@ -121,11 +125,9 @@ class DBFSAlgorithmFailedPowerFlowSpec
         CompletionMessage(
           0,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(3600),
-                centerGridAgent
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(3600),
+              centerGridAgent
             )
           )
         )
@@ -142,8 +144,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
         centerGridAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(3600),
-          activityStartTriggerId,
-          centerGridAgent
+          activityStartTriggerId
         )
       )
 
@@ -152,11 +153,9 @@ class DBFSAlgorithmFailedPowerFlowSpec
         CompletionMessage(
           1,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                StartGridSimulationTrigger(3600),
-                centerGridAgent
-              )
+            ScheduleTriggerMessage(
+              StartGridSimulationTrigger(3600),
+              centerGridAgent
             )
           )
         )
@@ -173,8 +172,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
         centerGridAgent,
         TriggerWithIdMessage(
           StartGridSimulationTrigger(3600),
-          startGridSimulationTriggerId,
-          centerGridAgent
+          startGridSimulationTriggerId
         )
       )
 
@@ -197,8 +195,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
         Seq(
           ExchangeVoltage(
             node1.getUuid,
-            110d.asKiloVolt,
-            0d.asKiloVolt
+            Kilovolts(110d),
+            Kilovolts(0d)
           )
         )
       )
@@ -211,8 +209,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
           inferiorGridAgent.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,
-              1000d.asMegaWatt,
-              0d.asMegaVar
+              Megawatts(1000.0),
+              Megavars(0.0)
             )
           )
         )
@@ -225,8 +223,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
           Seq(
             ExchangeVoltage(
               supNodeA.getUuid,
-              380d.asKiloVolt,
-              0d.asKiloVolt
+              Kilovolts(380d),
+              Kilovolts(0d)
             )
           )
         )
@@ -259,11 +257,9 @@ class DBFSAlgorithmFailedPowerFlowSpec
         CompletionMessage(
           2,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(7200),
-                centerGridAgent
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(7200),
+              centerGridAgent
             )
           )
         )

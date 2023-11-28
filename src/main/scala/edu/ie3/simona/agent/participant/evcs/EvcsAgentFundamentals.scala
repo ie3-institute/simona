@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.evcs
 
-import akka.actor.{ActorRef, FSM}
+import org.apache.pekko.actor.{ActorRef, FSM}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.result.system.{
@@ -22,6 +22,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.participant.statedata.{
   DataCollectionStateData,
   ParticipantStateData
@@ -30,12 +31,13 @@ import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
   InconsistentStateException,
   InvalidRequestException
 }
+import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.EvcsModel
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
 import edu.ie3.simona.ontology.messages.services.EvMessage.{
@@ -45,11 +47,13 @@ import edu.ie3.simona.ontology.messages.services.EvMessage.{
 }
 import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DISTANCE
 import edu.ie3.util.quantities.PowerSystemUnits.PU
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.Kilovars
+import squants.{Each, Dimensionless}
+import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.Dimensionless
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
@@ -92,14 +96,14 @@ protected trait EvcsAgentFundamentals
     *   the data source definition
     */
   override def determineModelBaseStateData(
-      inputModel: EvcsInput,
+      inputModel: InputModelContainer[EvcsInput],
       modelConfig: EvcsRuntimeConfig,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       timeBin: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
@@ -150,14 +154,14 @@ protected trait EvcsAgentFundamentals
     *   Needed base state data for model calculation
     */
   def baseStateDataForModelCalculation(
-      inputModel: EvcsInput,
+      inputModel: InputModelContainer[EvcsInput],
       modelConfig: EvcsRuntimeConfig,
       servicesOpt: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       timeBin: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
@@ -173,7 +177,7 @@ protected trait EvcsAgentFundamentals
         simulationEndDate
       )
 
-    ParticipantModelBaseStateData(
+    ParticipantModelBaseStateData[ApparentPower, EvcsRelevantData, EvcsModel](
       simulationStartDate,
       simulationEndDate,
       model,
@@ -184,9 +188,13 @@ protected trait EvcsAgentFundamentals
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         timeBin * 10,
-        inputModel.getNode
-          .getvTarget()
-          .to(PU)
+        Each(
+          inputModel.electricalInputModel.getNode
+            .getvTarget()
+            .to(PU)
+            .getValue
+            .doubleValue
+        )
       ),
       ValueStore.forResult(timeBin, 10),
       ValueStore(timeBin * 10),
@@ -195,12 +203,12 @@ protected trait EvcsAgentFundamentals
   }
 
   override def buildModel(
-      inputModel: EvcsInput,
+      inputModel: InputModelContainer[EvcsInput],
       modelConfig: EvcsRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
   ): EvcsModel = EvcsModel(
-    inputModel,
+    inputModel.electricalInputModel,
     modelConfig.scaling,
     simulationStartDate,
     simulationEndDate
@@ -213,7 +221,7 @@ protected trait EvcsAgentFundamentals
   override val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[ApparentPower, EvcsRelevantData, EvcsModel],
-      ComparableQuantity[Dimensionless]
+      Dimensionless
   ) => ApparentPower =
     (_, _, _) =>
       throw new InvalidRequestException(
@@ -244,8 +252,6 @@ protected trait EvcsAgentFundamentals
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
-    implicit val startDateTime: ZonedDateTime =
-      collectionStateData.baseStateData.startDate
 
     collectionStateData.baseStateData match {
       case modelBaseStateData: ParticipantModelBaseStateData[
@@ -383,7 +389,10 @@ protected trait EvcsAgentFundamentals
     updateValueStoresInformListeners(
       modelBaseStateData,
       tick,
-      result,
+      ApparentPower(
+        Kilowatts(result.p.value.doubleValue),
+        Kilovars(result.q.value.doubleValue)
+      ),
       updatedRelevantData
     )
   }
@@ -454,7 +463,10 @@ protected trait EvcsAgentFundamentals
         updateValueStoresInformListeners(
           modelBaseStateData,
           tick,
-          result,
+          ApparentPower(
+            Kilowatts(result.p.value.doubleValue),
+            Kilovars(result.q.value.doubleValue)
+          ),
           updatedRelevantData
         )
       } else {
@@ -529,7 +541,7 @@ protected trait EvcsAgentFundamentals
     announceSimulationResult(
       baseStateData,
       tick,
-      result
+      AccompaniedSimulationResult(result)
     )(baseStateData.outputConfig)
 
     /* Update the base state data */
@@ -594,8 +606,8 @@ protected trait EvcsAgentFundamentals
     new EvcsResult(
       dateTime,
       uuid,
-      result.p,
-      result.q
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
     )
 
   /** Checks whether requested departing EVs are consistent with currently

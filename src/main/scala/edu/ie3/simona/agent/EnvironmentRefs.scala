@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 
 /** Container class, that gather together reference to relevant entities, that
   * represent the environment in the simulation

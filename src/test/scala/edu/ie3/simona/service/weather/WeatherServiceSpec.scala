@@ -6,12 +6,11 @@
 
 package edu.ie3.simona.service.weather
 
-import akka.actor.ActorSystem
-import akka.testkit.{EventFilter, ImplicitSender, TestActorRef}
-import akka.util.Timeout
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.testkit.{EventFilter, ImplicitSender, TestActorRef}
+import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
@@ -31,10 +30,11 @@ import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.service.weather.WeatherSource.AgentCoordinates
 import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.scalatest.PrivateMethodTester
 import org.scalatest.wordspec.AnyWordSpecLike
-import tech.units.indriya.quantity.Quantities
+import squants.motion.MetersPerSecond
+import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
@@ -45,8 +45,8 @@ class WeatherServiceSpec
         "WeatherServiceSpec",
         ConfigFactory
           .parseString("""
-             |akka.loggers = ["akka.testkit.TestEventListener"]
-             |akka.loglevel = "INFO"
+             |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
+             |pekko.loglevel = "INFO"
           """.stripMargin)
       )
     )
@@ -107,8 +107,7 @@ class WeatherServiceSpec
       TimeUtil.withDefaults.toZonedDateTime(
         simonaConfig.simona.time.endDateTime
       ),
-      4,
-      Quantities.getQuantity(28, PowerSystemUnits.KILOMETRE)
+      4
     )
   )
 
@@ -120,33 +119,21 @@ class WeatherServiceSpec
             simonaConfig.simona.input.weather.datasource
           )
         ),
-        triggerId,
-        weatherActor
+        triggerId
       )
 
-      expectMsgType[CompletionMessage] match {
-        case CompletionMessage(triggerId, newTriggers) =>
-          triggerId shouldBe 0
-          newTriggers match {
-            case Some(seq) =>
-              seq.size shouldBe 1
-              seq.headOption match {
-                case Some(
-                      ScheduleTriggerMessage(
-                        ActivityStartTrigger(nextTick),
-                        actorRef
-                      )
-                    ) =>
-                  nextTick shouldBe 0
-                  actorRef shouldBe weatherActor
-                case x =>
-                  fail(
-                    s"The sequence of next triggers contains the wrong element '$x'."
-                  )
-              }
-            case None => fail("Expected new triggers, but got nothing.")
-          }
-      }
+      expectMsg(
+        CompletionMessage(
+          0L,
+          Some(
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(0L),
+              weatherActor
+            )
+          )
+        )
+      )
+
     }
 
     "announce failed weather registration on invalid coordinate" in {
@@ -192,9 +179,9 @@ class WeatherServiceSpec
       expectNoMessage()
     }
 
-    "sends out correct weather information upon activity start trigger and request the triggering for the next tick" in {
+    "send out correct weather information upon activity start trigger and request the triggering for the next tick" in {
       /* Send out an activity start trigger as the scheduler */
-      weatherActor ! TriggerWithIdMessage(ActivityStartTrigger(0L), 1L, self)
+      weatherActor ! TriggerWithIdMessage(ActivityStartTrigger(0L), 1L)
 
       /* Expect a weather provision (as this test is registered via the test actor) and a completion message (as the
        * test is also the scheduler) */
@@ -205,34 +192,26 @@ class WeatherServiceSpec
         case ProvideWeatherMessage(tick, weatherValue, nextDataTick) =>
           tick shouldBe 0L
           weatherValue shouldBe WeatherData(
-            Quantities.getQuantity(0.0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0.0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(-2.372, StandardUnits.TEMPERATURE),
-            Quantities.getQuantity(4.16474, StandardUnits.WIND_VELOCITY)
+            WattsPerSquareMeter(0d),
+            WattsPerSquareMeter(0d),
+            Celsius(-2.3719999999999573),
+            MetersPerSecond(4.16474)
           )
           nextDataTick shouldBe Some(3600L)
         case CompletionMessage(triggerId, nextTriggers) =>
           triggerId shouldBe 1L
-          nextTriggers match {
-            case Some(triggerSeq) =>
-              triggerSeq.size shouldBe 1
-              triggerSeq.headOption match {
-                case Some(msg) =>
-                  msg shouldBe ScheduleTriggerMessage(
-                    ActivityStartTrigger(3600L),
-                    weatherActor
-                  )
-                case None =>
-                  fail("Did expect an ActivityStartTrigger for 3600 L.")
-              }
-            case None => fail("Did expect to get a new trigger.")
-          }
+          nextTriggers shouldBe Some(
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(3600L),
+              weatherActor
+            )
+          )
       }
     }
 
     "sends out correct weather information when triggered again and does not as for triggering, if the end is reached" in {
       /* Send out an activity start trigger as the scheduler */
-      weatherActor ! TriggerWithIdMessage(ActivityStartTrigger(3600L), 2L, self)
+      weatherActor ! TriggerWithIdMessage(ActivityStartTrigger(3600L), 2L)
 
       /* Expect a weather provision (as this test is registered via the test actor) and a completion message (as the
        * test is also the scheduler) */
@@ -243,10 +222,10 @@ class WeatherServiceSpec
         case ProvideWeatherMessage(tick, weatherValue, nextDataTick) =>
           tick shouldBe 3600L
           weatherValue shouldBe WeatherData(
-            Quantities.getQuantity(0.0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0.0, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(-2.526, StandardUnits.TEMPERATURE),
-            Quantities.getQuantity(4.918092, StandardUnits.WIND_VELOCITY)
+            WattsPerSquareMeter(0d),
+            WattsPerSquareMeter(0d),
+            Celsius(-2.5259999999999536),
+            MetersPerSecond(4.918092)
           )
           nextDataTick shouldBe None
         case CompletionMessage(triggerId, nextTriggers) =>

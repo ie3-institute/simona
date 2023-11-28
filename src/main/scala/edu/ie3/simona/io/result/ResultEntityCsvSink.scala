@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.io.result
 
-import akka.stream.IOResult
+import org.apache.pekko.stream.IOResult
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.exceptions.EntityProcessorException
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
@@ -16,7 +16,7 @@ import edu.ie3.util.StringUtils
 import edu.ie3.util.io.FileIOUtils
 
 import java.io.{BufferedWriter, File, FileWriter, Writer}
-import java.{lang, util}
+import java.lang
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
@@ -61,7 +61,6 @@ final case class ResultEntityCsvSink private (
     try {
       val attributeToValue = resultEntityProcessor
         .handleEntity(resultEntity)
-        .orElse(new util.LinkedHashMap[String, String]())
         .asScala
         .view
 

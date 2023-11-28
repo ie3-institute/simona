@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.load
 
-import akka.actor.{ActorRef, FSM}
+import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.result.system.{
   LoadResult,
@@ -21,6 +21,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.participant.statedata.{
   DataCollectionStateData,
   ParticipantStateData
@@ -28,7 +29,7 @@ import edu.ie3.simona.agent.participant.statedata.{
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
@@ -51,12 +52,13 @@ import edu.ie3.simona.model.participant.load.{
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits.PU
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.scala.quantities.ReactivePower
+import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
@@ -100,14 +102,14 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     *   based on the data source definition
     */
   override def determineModelBaseStateData(
-      inputModel: LoadInput,
+      inputModel: InputModelContainer[LoadInput],
       modelConfig: LoadRuntimeConfig,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): ParticipantModelBaseStateData[ApparentPower, LD, LM] = {
     /* Build the calculation model */
     val model =
@@ -154,7 +156,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
         SortedSet.empty[Long]
     }
 
-    ParticipantModelBaseStateData(
+    ParticipantModelBaseStateData[ApparentPower, LD, LM](
       simulationStartDate,
       simulationEndDate,
       model,
@@ -165,9 +167,13 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution,
-        inputModel.getNode
-          .getvTarget()
-          .to(PU)
+        Each(
+          inputModel.electricalInputModel.getNode
+            .getvTarget()
+            .to(PU)
+            .getValue
+            .doubleValue
+        )
       ),
       ValueStore.forResult(resolution, 2),
       ValueStore(resolution),
@@ -176,7 +182,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
   }
 
   override def buildModel(
-      inputModel: LoadInput,
+      inputModel: InputModelContainer[LoadInput],
       modelConfig: LoadRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
@@ -185,10 +191,10 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        inputModel.getOperationTime
+        inputModel.electricalInputModel.getOperationTime
       )
-    val reference = LoadReference(inputModel, modelConfig)
-    buildModel(inputModel, operationInterval, reference)
+    val reference = LoadReference(inputModel.electricalInputModel, modelConfig)
+    buildModel(inputModel.electricalInputModel, operationInterval, reference)
   }
 
   protected def buildModel(
@@ -243,7 +249,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        Power => ReactivePower
       ] = None
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
@@ -273,8 +279,8 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     new LoadResult(
       dateTime,
       uuid,
-      result.p,
-      result.q
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
     )
 }
 
@@ -307,7 +313,7 @@ case object LoadAgentFundamentals {
           FixedLoadRelevantData.type,
           FixedLoadModel
         ],
-        ComparableQuantity[Dimensionless]
+        Dimensionless
     ) => ApparentPower = (
         tick: Long,
         baseStateData: ParticipantModelBaseStateData[
@@ -315,7 +321,7 @@ case object LoadAgentFundamentals {
           FixedLoadRelevantData.type,
           FixedLoadModel
         ],
-        voltage: ComparableQuantity[Dimensionless]
+        voltage: Dimensionless
     ) =>
       baseStateData.model.calculatePower(tick, voltage, FixedLoadRelevantData)
   }
@@ -348,7 +354,7 @@ case object LoadAgentFundamentals {
           ProfileRelevantData,
           ProfileLoadModel
         ],
-        ComparableQuantity[Dimensionless]
+        Dimensionless
     ) => ApparentPower = (tick, baseStateData, voltage) => {
       val profileLoadModel = baseStateData.model
       val profileRelevantData = ProfileRelevantData(
@@ -386,7 +392,7 @@ case object LoadAgentFundamentals {
           RandomRelevantData,
           RandomLoadModel
         ],
-        ComparableQuantity[Dimensionless]
+        Dimensionless
     ) => ApparentPower = (tick, baseStateData, voltage) => {
       val randomLoadModel = baseStateData.model
       val profileRelevantData = RandomRelevantData(

@@ -6,11 +6,11 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import com.typesafe.config.{Config => TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.datamodel.models.input.container.SubGridContainer
+import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.utils.ContainerUtils
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
@@ -20,10 +20,7 @@ import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.model.grid.RefSystem
-import edu.ie3.simona.util.ConfigUtil.{
-  BaseOutputConfigUtil,
-  GridOutputConfigUtil
-}
+import edu.ie3.simona.util.ConfigUtil.{GridOutputConfigUtil, OutputConfigUtil}
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.simona.util.{EntityMapperUtil, ResultFileHierarchy}
 
@@ -49,6 +46,8 @@ trait SetupHelper extends LazyLogging {
     *   ancestors and children
     * @param configRefSystems
     *   Collection of reference systems defined in config
+    * @param thermalGrids
+    *   Collection of applicable thermal grids
     * @return
     *   Initialization data for the [[edu.ie3.simona.agent.grid.GridAgent]]
     *   representing this sub grid
@@ -57,7 +56,8 @@ trait SetupHelper extends LazyLogging {
       subGridContainer: SubGridContainer,
       subGridToActorRef: Map[Int, ActorRef],
       gridGates: Set[SubGridGate],
-      configRefSystems: ConfigRefSystems
+      configRefSystems: ConfigRefSystems,
+      thermalGrids: Seq[ThermalGrid]
   ): GridAgentInitData = {
     val subGridGateToActorRef = buildGateToActorRef(
       subGridToActorRef,
@@ -74,7 +74,12 @@ trait SetupHelper extends LazyLogging {
       ContainerUtils.withTrafoNodeAsSlack(subGridContainer)
 
     // build the grid agent data and check for its validity
-    GridAgentInitData(updatedSubGridContainer, subGridGateToActorRef, refSystem)
+    GridAgentInitData(
+      updatedSubGridContainer,
+      thermalGrids,
+      subGridGateToActorRef,
+      refSystem
+    )
   }
 
   /** Maps the [[SubGridGate]] s of a given sub grid to the corresponding actor
@@ -247,8 +252,10 @@ case object SetupHelper {
     GridOutputConfigUtil(
       outputConfig.grid
     ).simulationResultEntitiesToConsider ++
-      BaseOutputConfigUtil(
+      (OutputConfigUtil(
         outputConfig.participant
-      ).simulationResultIdentifiersToConsider
+      ).simulationResultIdentifiersToConsider ++ OutputConfigUtil(
+        outputConfig.thermal
+      ).simulationResultIdentifiersToConsider)
         .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId))
 }

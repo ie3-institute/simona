@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.event.LoggingAdapter
+import org.apache.pekko.event.LoggingAdapter
 import breeze.math.Complex
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.datamodel.models.result.NodeResult
@@ -29,15 +29,13 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
 import edu.ie3.simona.model.grid._
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.QuantityUtil
-import edu.ie3.util.scala.quantities.QuantityUtil._
-import tech.units.indriya.ComparableQuantity
+import squants.space.Degrees
+import squants.{Amperes, Angle, ElectricCurrent}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.Quantity
-import javax.measure.quantity.{Angle, ElectricCurrent}
 import scala.math._
 
 /** Trait that holds methods to convert the results of a power flow calculation
@@ -72,7 +70,7 @@ private[grid] trait GridResultsSupport {
         )
         .toMap
 
-    implicit val iNominal: ComparableQuantity[ElectricCurrent] =
+    implicit val iNominal: ElectricCurrent =
       grid.mainRefSystem.nominalCurrent
 
     /* When creating node results, we have to consider two things:
@@ -112,7 +110,7 @@ private[grid] trait GridResultsSupport {
     */
   private def buildLineResults(lines: Set[LineModel])(implicit
       sweepValueStoreData: Map[UUID, SweepValueStoreData],
-      iNominal: ComparableQuantity[ElectricCurrent],
+      iNominal: squants.ElectricCurrent,
       timestamp: ZonedDateTime
   ): Set[LineResult] = {
     lines.flatMap(lineModel => {
@@ -159,7 +157,7 @@ private[grid] trait GridResultsSupport {
   private def buildTransformer2wResults(transformers: Set[TransformerModel])(
       implicit
       sweepValueStoreData: Map[UUID, SweepValueStoreData],
-      iNominal: ComparableQuantity[ElectricCurrent],
+      iNominal: ElectricCurrent,
       timestamp: ZonedDateTime
   ): Set[Transformer2WResult] = {
     transformers.flatMap(trafo2w => {
@@ -206,7 +204,7 @@ private[grid] trait GridResultsSupport {
   def buildTransformer3wResults(transformers3w: Set[Transformer3wModel])(
       implicit
       sweepValueStoreData: Map[UUID, SweepValueStoreData],
-      iNominal: ComparableQuantity[ElectricCurrent],
+      iNominal: ElectricCurrent,
       timestamp: ZonedDateTime
   ): Set[PartialTransformer3wResult] = transformers3w.flatMap { trafo3w =>
     {
@@ -316,18 +314,18 @@ private[grid] trait GridResultsSupport {
       line: LineModel,
       nodeAStateData: StateData,
       nodeBStateData: StateData,
-      iNominal: Quantity[ElectricCurrent],
+      iNominal: ElectricCurrent,
       timestamp: ZonedDateTime
   ): LineResult = {
 
     if (line.isInOperation) {
       val yij = new Complex(
-        line.gij().getValue.doubleValue,
-        line.bij().getValue.doubleValue
+        line.gij().value.doubleValue,
+        line.bij().value.doubleValue
       )
       val y0 = new Complex(
-        line.g0().getValue.doubleValue,
-        line.b0().getValue.doubleValue
+        line.g0().value.doubleValue,
+        line.b0().value.doubleValue
       )
 
       val (iAComplexPu, iBComplexPu) =
@@ -336,15 +334,22 @@ private[grid] trait GridResultsSupport {
       val (iAMag, iAAng) = iMagAndAngle(iAComplexPu, iNominal)
       val (iBMag, iBAng) = iMagAndAngle(iBComplexPu, iNominal)
 
-      new LineResult(timestamp, line.uuid, iAMag, iAAng, iBMag, iBAng)
+      new LineResult(
+        timestamp,
+        line.uuid,
+        Quantities.getQuantity(iAMag.toAmperes, Units.AMPERE),
+        Quantities.getQuantity(iAAng.toDegrees, PowerSystemUnits.DEGREE_GEOM),
+        Quantities.getQuantity(iBMag.toAmperes, Units.AMPERE),
+        Quantities.getQuantity(iBAng.toDegrees, PowerSystemUnits.DEGREE_GEOM)
+      )
     } else {
       new LineResult(
         timestamp,
         line.uuid,
-        QuantityUtil.zero(Units.AMPERE),
-        QuantityUtil.zero(PowerSystemUnits.DEGREE_GEOM),
-        QuantityUtil.zero(Units.AMPERE),
-        QuantityUtil.zero(PowerSystemUnits.DEGREE_GEOM)
+        QuantityUtil.zeroCompQuantity(Units.AMPERE),
+        QuantityUtil.zeroCompQuantity(PowerSystemUnits.DEGREE_GEOM),
+        QuantityUtil.zeroCompQuantity(Units.AMPERE),
+        QuantityUtil.zeroCompQuantity(PowerSystemUnits.DEGREE_GEOM)
       )
     }
   }
@@ -371,7 +376,7 @@ private[grid] trait GridResultsSupport {
       trafo2w: TransformerModel,
       hvNodeStateData: StateData,
       lvNodeStateData: StateData,
-      iNominal: Quantity[ElectricCurrent],
+      iNominal: ElectricCurrent,
       timestamp: ZonedDateTime
   ): Transformer2WResult = {
     if (trafo2w.isInOperation) {
@@ -393,16 +398,16 @@ private[grid] trait GridResultsSupport {
 
       /* Transfer port current A to high voltage level */
       val (iAMag, iAAng) =
-        iMagAndAngle(iAComplexPu, iNominal.divide(voltRatioNominal))
+        iMagAndAngle(iAComplexPu, iNominal / voltRatioNominal.toDouble)
       val (iBMag, iBAng) = iMagAndAngle(iBComplexPu, iNominal)
 
       new Transformer2WResult(
         timestamp,
         trafo2w.uuid,
-        iAMag,
-        iAAng,
-        iBMag,
-        iBAng,
+        Quantities.getQuantity(iAMag.toAmperes, Units.AMPERE),
+        Quantities.getQuantity(iAAng.toDegrees, PowerSystemUnits.DEGREE_GEOM),
+        Quantities.getQuantity(iBMag.toAmperes, Units.AMPERE),
+        Quantities.getQuantity(iBAng.toDegrees, PowerSystemUnits.DEGREE_GEOM),
         trafo2w.currentTapPos
       )
     } else {
@@ -410,10 +415,10 @@ private[grid] trait GridResultsSupport {
       new Transformer2WResult(
         timestamp,
         trafo2w.uuid,
-        QuantityUtil.zero(Units.AMPERE),
-        QuantityUtil.zero(PowerSystemUnits.DEGREE_GEOM),
-        QuantityUtil.zero(Units.AMPERE),
-        QuantityUtil.zero(PowerSystemUnits.DEGREE_GEOM),
+        QuantityUtil.zeroCompQuantity(Units.AMPERE),
+        QuantityUtil.zeroCompQuantity(PowerSystemUnits.DEGREE_GEOM),
+        QuantityUtil.zeroCompQuantity(Units.AMPERE),
+        QuantityUtil.zeroCompQuantity(PowerSystemUnits.DEGREE_GEOM),
         trafo2w.currentTapPos
       )
     }
@@ -440,7 +445,7 @@ private[grid] trait GridResultsSupport {
       trafo3w: Transformer3wModel,
       nodeStateData: StateData,
       internalNodeStateData: StateData,
-      iNominal: ComparableQuantity[ElectricCurrent],
+      iNominal: ElectricCurrent,
       timestamp: ZonedDateTime
   ): PartialTransformer3wResult = {
     val (_, iComplexPu) = iIJComplexPu(
@@ -505,10 +510,10 @@ private[grid] trait GridResultsSupport {
     */
   private def iMagAndAngle(
       iPu: Complex,
-      iNominal: Quantity[ElectricCurrent]
-  ): (ComparableQuantity[ElectricCurrent], ComparableQuantity[Angle]) =
+      iNominal: ElectricCurrent
+  ): (ElectricCurrent, Angle) =
     (
-      iNominal.multiply(iPu.abs).asComparable,
+      Amperes(iNominal.toAmperes * iPu.abs),
       complexToAngle(iPu)
     )
 
@@ -520,16 +525,16 @@ private[grid] trait GridResultsSupport {
     * @return
     *   The angle of the complex value
     */
-  private def complexToAngle(cplx: Complex): ComparableQuantity[Angle] =
+  private def complexToAngle(cplx: Complex): Angle =
     cplx match {
       case Complex(0d, 0d) =>
         /* The complex value has no magnitude, therefore define the angle to zero */
-        Quantities.getQuantity(0d, PowerSystemUnits.DEGREE_GEOM)
+        Degrees(0d)
       case Complex(0d, imag) =>
         /* There is only an imaginary part:
         Angle can be 90 or 270 degrees, depending on sign of the imaginary part */
         angleOffsetCorrection(
-          Quantities.getQuantity(90d, PowerSystemUnits.DEGREE_GEOM),
+          Degrees(90d),
           imag
         )
       case Complex(real, imag) =>
@@ -541,7 +546,7 @@ private[grid] trait GridResultsSupport {
          * part is negative. */
         val baseAngle = atan(imag / real).toDegrees
         angleOffsetCorrection(
-          Quantities.getQuantity(baseAngle, PowerSystemUnits.DEGREE_GEOM),
+          Degrees(baseAngle),
           real
         )
     }
@@ -550,11 +555,11 @@ private[grid] trait GridResultsSupport {
     * direction is negative, 180 degrees are added
     */
   private def angleOffsetCorrection(
-      angle: ComparableQuantity[Angle],
+      angle: Angle,
       dir: Double
-  ): ComparableQuantity[Angle] =
+  ): Angle =
     if (dir < 0)
-      angle.add(Quantities.getQuantity(180d, PowerSystemUnits.DEGREE_GEOM))
+      angle + Degrees(180d)
     else
       angle
 
@@ -601,8 +606,8 @@ object GridResultsSupport {
   sealed trait PartialTransformer3wResult {
     val time: ZonedDateTime
     val input: UUID
-    protected val currentMagnitude: ComparableQuantity[ElectricCurrent]
-    protected val currentAngle: ComparableQuantity[Angle]
+    protected val currentMagnitude: ElectricCurrent
+    protected val currentAngle: Angle
   }
 
   object PartialTransformer3wResult {
@@ -623,8 +628,8 @@ object GridResultsSupport {
     final case class PortA(
         override val time: ZonedDateTime,
         override val input: UUID,
-        override val currentMagnitude: ComparableQuantity[ElectricCurrent],
-        override val currentAngle: ComparableQuantity[Angle],
+        override val currentMagnitude: ElectricCurrent,
+        override val currentAngle: Angle,
         tapPos: Int
     ) extends PartialTransformer3wResult
 
@@ -642,8 +647,8 @@ object GridResultsSupport {
     final case class PortB(
         override val time: ZonedDateTime,
         override val input: UUID,
-        override val currentMagnitude: ComparableQuantity[ElectricCurrent],
-        override val currentAngle: ComparableQuantity[Angle]
+        override val currentMagnitude: ElectricCurrent,
+        override val currentAngle: Angle
     ) extends PartialTransformer3wResult
 
     /** Partial result for the port at the low voltage side
@@ -660,8 +665,8 @@ object GridResultsSupport {
     final case class PortC(
         override val time: ZonedDateTime,
         override val input: UUID,
-        override val currentMagnitude: ComparableQuantity[ElectricCurrent],
-        override val currentAngle: ComparableQuantity[Angle]
+        override val currentMagnitude: ElectricCurrent,
+        override val currentAngle: Angle
     ) extends PartialTransformer3wResult
   }
 }

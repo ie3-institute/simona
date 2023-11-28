@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.service.primary
 
-import akka.actor.ActorSystem
-import akka.testkit.{TestActorRef, TestProbe}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.config.SimonaConfig
@@ -41,7 +41,7 @@ class PrimaryServiceProxySqlIT
         "PrimaryServiceWorkerSqlIT",
         ConfigFactory
           .parseString("""
-                     |akka.loglevel="OFF"
+                     |pekko.loglevel="OFF"
           """.stripMargin)
       )
     )
@@ -114,8 +114,7 @@ class PrimaryServiceProxySqlIT
         proxyRef,
         TriggerWithIdMessage(
           InitializeServiceTrigger(initData),
-          triggerIdInit1,
-          proxyRef
+          triggerIdInit1
         )
       )
 
@@ -159,8 +158,7 @@ class PrimaryServiceProxySqlIT
         workerRef,
         TriggerWithIdMessage(
           initTriggerMsg.trigger,
-          triggerIdInit2,
-          workerRef
+          triggerIdInit2
         )
       )
 
@@ -168,11 +166,9 @@ class PrimaryServiceProxySqlIT
         CompletionMessage(
           triggerIdInit2,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(0L),
-                workerRef
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(0L),
+              workerRef
             )
           )
         )

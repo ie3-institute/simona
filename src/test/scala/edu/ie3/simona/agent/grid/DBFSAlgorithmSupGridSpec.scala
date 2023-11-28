@@ -6,10 +6,11 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.{ImplicitSender, TestProbe}
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
+import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
@@ -37,8 +38,8 @@ import edu.ie3.simona.test.common.{
   TestKitWithShutdown,
   UnitSpec
 }
-import edu.ie3.util.quantities.PowerSystemUnits._
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.scala.quantities.Megavars
+import squants.energy.Megawatts
 
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
@@ -55,8 +56,8 @@ class DBFSAlgorithmSupGridSpec
         "DBFSAlgorithmSpec",
         ConfigFactory
           .parseString("""
-          |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-          |akka.loglevel="OFF"
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="OFF"
         """.stripMargin)
       )
     )
@@ -98,6 +99,7 @@ class DBFSAlgorithmSupGridSpec
       val gridAgentInitData =
         GridAgentInitData(
           ehvGridContainer,
+          Seq.empty[ThermalGrid],
           subnetGatesToActorRef,
           RefSystem("5000 MVA", "380 kV")
         )
@@ -107,8 +109,7 @@ class DBFSAlgorithmSupGridSpec
         superiorGridAgentFSM,
         TriggerWithIdMessage(
           InitializeGridAgentTrigger(gridAgentInitData),
-          triggerId,
-          superiorGridAgentFSM
+          triggerId
         )
       )
 
@@ -116,11 +117,9 @@ class DBFSAlgorithmSupGridSpec
         CompletionMessage(
           0,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(3600),
-                superiorGridAgentFSM
-              )
+            ScheduleTriggerMessage(
+              ActivityStartTrigger(3600),
+              superiorGridAgentFSM
             )
           )
         )
@@ -136,8 +135,7 @@ class DBFSAlgorithmSupGridSpec
         superiorGridAgentFSM,
         TriggerWithIdMessage(
           ActivityStartTrigger(3600),
-          activityStartTriggerId,
-          superiorGridAgentFSM
+          activityStartTriggerId
         )
       )
 
@@ -146,11 +144,9 @@ class DBFSAlgorithmSupGridSpec
         CompletionMessage(
           1,
           Some(
-            Seq(
-              ScheduleTriggerMessage(
-                StartGridSimulationTrigger(3600),
-                superiorGridAgentFSM
-              )
+            ScheduleTriggerMessage(
+              StartGridSimulationTrigger(3600),
+              superiorGridAgentFSM
             )
           )
         )
@@ -172,8 +168,7 @@ class DBFSAlgorithmSupGridSpec
             superiorGridAgentFSM,
             TriggerWithIdMessage(
               StartGridSimulationTrigger(3600),
-              startGridSimulationTriggerId,
-              superiorGridAgentFSM
+              startGridSimulationTriggerId
             )
           )
 
@@ -198,8 +193,8 @@ class DBFSAlgorithmSupGridSpec
               requestedConnectionNodeUuids.map { uuid =>
                 ExchangePower(
                   uuid,
-                  Quantities.getQuantity(0, KILOWATT),
-                  Quantities.getQuantity(0, KILOVAR)
+                  Megawatts(0.0),
+                  Megavars(0.0)
                 )
               }
             )
@@ -212,11 +207,10 @@ class DBFSAlgorithmSupGridSpec
             case CompletionMessage(
                   2,
                   Some(
-                    Seq(
-                      ScheduleTriggerMessage(
-                        StartGridSimulationTrigger(3600),
-                        _
-                      )
+                    ScheduleTriggerMessage(
+                      StartGridSimulationTrigger(3600),
+                      _,
+                      _
                     )
                   )
                 ) =>
@@ -224,9 +218,7 @@ class DBFSAlgorithmSupGridSpec
             case CompletionMessage(
                   3,
                   Some(
-                    Seq(
-                      ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
-                    )
+                    ScheduleTriggerMessage(ActivityStartTrigger(7200), _, _)
                   )
                 ) =>
               // agent should be in Idle again and listener should contain power flow result data
@@ -268,24 +260,24 @@ class DBFSAlgorithmSupGridSpec
         val deviations =
           Array(
             (
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(0, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             ),
             (
-              Quantities.getQuantity(100, KILOWATT),
-              Quantities.getQuantity(100, KILOVAR)
+              Megawatts(0.1),
+              Megavars(0.1)
             ),
             (
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(100, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.1)
             ),
             (
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(0, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             ),
             (
-              Quantities.getQuantity(0, KILOWATT),
-              Quantities.getQuantity(0, KILOVAR)
+              Megawatts(0.0),
+              Megavars(0.0)
             )
           )
 
@@ -296,8 +288,7 @@ class DBFSAlgorithmSupGridSpec
           superiorGridAgentFSM,
           TriggerWithIdMessage(
             ActivityStartTrigger(3600),
-            activityStartTriggerId,
-            superiorGridAgentFSM
+            activityStartTriggerId
           )
         )
 
@@ -306,11 +297,9 @@ class DBFSAlgorithmSupGridSpec
           CompletionMessage(
             1,
             Some(
-              Seq(
-                ScheduleTriggerMessage(
-                  StartGridSimulationTrigger(3600),
-                  superiorGridAgentFSM
-                )
+              ScheduleTriggerMessage(
+                StartGridSimulationTrigger(3600),
+                superiorGridAgentFSM
               )
             )
           )
@@ -328,8 +317,7 @@ class DBFSAlgorithmSupGridSpec
             superiorGridAgentFSM,
             TriggerWithIdMessage(
               StartGridSimulationTrigger(3600),
-              startGridSimulationTriggerId,
-              superiorGridAgentFSM
+              startGridSimulationTriggerId
             )
           )
 
@@ -369,11 +357,10 @@ class DBFSAlgorithmSupGridSpec
             case CompletionMessage(
                   _,
                   Some(
-                    Seq(
-                      ScheduleTriggerMessage(
-                        StartGridSimulationTrigger(3600),
-                        _
-                      )
+                    ScheduleTriggerMessage(
+                      StartGridSimulationTrigger(3600),
+                      _,
+                      _
                     )
                   )
                 ) =>
@@ -382,9 +369,7 @@ class DBFSAlgorithmSupGridSpec
             case CompletionMessage(
                   _,
                   Some(
-                    Seq(
-                      ScheduleTriggerMessage(ActivityStartTrigger(7200), _)
-                    )
+                    ScheduleTriggerMessage(ActivityStartTrigger(7200), _, _)
                   )
                 ) =>
               // after doing cleanup stuff, our agent should go back to idle again and listener should contain power flow result data

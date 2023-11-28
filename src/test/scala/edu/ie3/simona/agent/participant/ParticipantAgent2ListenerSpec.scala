@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.TestFSMRef
-import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
@@ -17,8 +14,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.Participa
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -37,16 +33,16 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeParticipantAgentTrigger
 }
 import edu.ie3.simona.test.ParticipantAgentSpec
-import edu.ie3.simona.test.common.{AgentSpec, DefaultTestData}
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KILOWATT,
-  MEGAVAR,
-  MEGAWATT,
-  PU
-}
+import edu.ie3.simona.test.common.DefaultTestData
+import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT}
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.TestFSMRef
+import org.apache.pekko.util.Timeout
 import org.mockito.Mockito.when
 import org.scalatest.PrivateMethodTester
 import org.scalatestplus.mockito.MockitoSugar
+import squants.Each
+import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
@@ -58,8 +54,8 @@ class ParticipantAgent2ListenerSpec
         "ParticipantAgent2ListenerSpec",
         ConfigFactory
           .parseString("""
-            |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-            |akka.loglevel="OFF"
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="OFF"
         """.stripMargin)
       )
     )
@@ -80,7 +76,7 @@ class ParticipantAgent2ListenerSpec
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
+      LoadReference.ActivePower(Kilowatts(0d))
     )
 
   private val mockInputModel = mock[SystemParticipantInput]
@@ -99,7 +95,7 @@ class ParticipantAgent2ListenerSpec
       )
 
       /* Let the agent send announcements, when there is anew request reply */
-      val outputConfig = ParticipantNotifierConfig(
+      val outputConfig = NotifierConfig(
         simulationResultInfo = true,
         powerRequestReply = false
       )
@@ -129,8 +125,7 @@ class ParticipantAgent2ListenerSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0,
-          mockAgent
+          0
         )
       )
 
@@ -148,8 +143,7 @@ class ParticipantAgent2ListenerSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1,
-          mockAgent
+          1
         )
       )
 
@@ -183,7 +177,7 @@ class ParticipantAgent2ListenerSpec
       )
 
       /* Let the agent send announcements, when there is anew request reply */
-      val outputConfig = ParticipantNotifierConfig(
+      val outputConfig = NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false
       )
@@ -213,8 +207,7 @@ class ParticipantAgent2ListenerSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0,
-          mockAgent
+          0
         )
       )
 
@@ -232,8 +225,7 @@ class ParticipantAgent2ListenerSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1,
-          mockAgent
+          1
         )
       )
 
@@ -254,7 +246,7 @@ class ParticipantAgent2ListenerSpec
       )
 
       /* Let the agent send announcements, when there is anew request reply */
-      val outputConfig = ParticipantNotifierConfig(
+      val outputConfig = NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = true
       )
@@ -284,8 +276,7 @@ class ParticipantAgent2ListenerSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0,
-          mockAgent
+          0
         )
       )
 
@@ -298,8 +289,7 @@ class ParticipantAgent2ListenerSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1,
-          mockAgent
+          1
         )
       )
 
@@ -314,8 +304,8 @@ class ParticipantAgent2ListenerSpec
       /* Ask the agent for average power in tick 3000 */
       mockAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
 
       /* Wait for original reply (this is the querying agent) */
@@ -346,7 +336,7 @@ class ParticipantAgent2ListenerSpec
       )
 
       /* Let the agent send announcements, when there is anew request reply */
-      val outputConfig = ParticipantNotifierConfig(
+      val outputConfig = NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false
       )
@@ -376,8 +366,7 @@ class ParticipantAgent2ListenerSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0,
-          mockAgent
+          0
         )
       )
 
@@ -390,8 +379,7 @@ class ParticipantAgent2ListenerSpec
         mockAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          1,
-          mockAgent
+          1
         )
       )
 
@@ -406,8 +394,8 @@ class ParticipantAgent2ListenerSpec
       /* Ask the agent for average power in tick 3000 */
       mockAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
 
       /* Wait for original reply (this is the querying agent) */

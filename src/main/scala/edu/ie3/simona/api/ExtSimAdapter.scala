@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.api
 
-import akka.actor.{Actor, ActorRef, PoisonPill, Props}
+import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.simona.api.ExtMessageUtils.{
   RichExtCompletion,
   RichExtScheduleTrigger
@@ -18,9 +18,9 @@ import edu.ie3.simona.api.ExtSimAdapter.{
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
-  Terminate,
+  TerminationMessage,
   TerminationCompleted,
-  ActivityStartTrigger => ExtActivityStartTrigger,
+  ActivationMessage,
   CompletionMessage => ExtCompletionMessage
 }
 import edu.ie3.simona.logging.SimonaActorLogging
@@ -61,18 +61,15 @@ final case class ExtSimAdapter(scheduler: ActorRef)
           InitializeExtSimAdapterTrigger(
             InitExtSimAdapter(extSimData)
           ),
-          triggerId,
-          _
+          triggerId
         ) =>
       // triggering first time at init tick
-      sender() ! CompletionMessage(
+      scheduler ! CompletionMessage(
         triggerId,
         Some(
-          Seq(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(INIT_SIM_TICK),
-              self
-            )
+          ScheduleTriggerMessage(
+            ActivityStartTrigger(INIT_SIM_TICK),
+            self
           )
         )
       )
@@ -82,9 +79,9 @@ final case class ExtSimAdapter(scheduler: ActorRef)
   }
 
   def receiveIdle(implicit stateData: ExtSimAdapterStateData): Receive = {
-    case TriggerWithIdMessage(ActivityStartTrigger(tick), triggerId, _) =>
+    case TriggerWithIdMessage(ActivityStartTrigger(tick), triggerId) =>
       stateData.extSimData.queueExtMsg(
-        new ExtActivityStartTrigger(tick)
+        new ActivationMessage(tick)
       )
       log.debug(
         "Tick {} (trigger id {}) has been scheduled in external simulation",
@@ -129,7 +126,9 @@ final case class ExtSimAdapter(scheduler: ActorRef)
 
     case StopMessage(simulationSuccessful) =>
       // let external sim know that we have terminated
-      stateData.extSimData.queueExtMsg(new Terminate(simulationSuccessful))
+      stateData.extSimData.queueExtMsg(
+        new TerminationMessage(simulationSuccessful)
+      )
 
     case _: TerminationCompleted =>
       // external simulation has terminated as well, we can exit

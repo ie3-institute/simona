@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.fixedfeedin
 
-import akka.actor.{ActorRef, FSM}
+import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.datamodel.models.result.system.{
   FixedFeedInResult,
@@ -25,10 +25,11 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
 }
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.FixedFeedInRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException
@@ -37,23 +38,15 @@ import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.FixedFeedInModel
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KILOVARHOUR,
-  KILOWATTHOUR,
-  MEGAVAR,
-  MEGAWATT,
-  PU
-}
-import edu.ie3.util.scala.quantities.QuantityUtil
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.quantities.PowerSystemUnits.PU
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.ReactivePower
+import squants.{Each, Power, Dimensionless}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Energy, Power}
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
-import scala.util.{Failure, Success}
 
 protected trait FixedFeedInAgentFundamentals
     extends ParticipantAgentFundamentals[
@@ -94,14 +87,14 @@ protected trait FixedFeedInAgentFundamentals
     *   based on the data source definition
     */
   override def determineModelBaseStateData(
-      inputModel: FixedFeedInInput,
+      inputModel: InputModelContainer[FixedFeedInInput],
       modelConfig: FixedFeedInRuntimeConfig,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,
@@ -133,7 +126,11 @@ protected trait FixedFeedInAgentFundamentals
         model.operationInterval.end
       ).filterNot(_ == lastTickInSimulation)
 
-    ParticipantModelBaseStateData(
+    ParticipantModelBaseStateData[
+      ApparentPower,
+      FixedRelevantData.type,
+      FixedFeedInModel
+    ](
       simulationStartDate,
       simulationEndDate,
       model,
@@ -144,9 +141,13 @@ protected trait FixedFeedInAgentFundamentals
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
         resolution,
-        inputModel.getNode
-          .getvTarget()
-          .to(PU)
+        Each(
+          inputModel.electricalInputModel.getNode
+            .getvTarget()
+            .to(PU)
+            .getValue
+            .doubleValue
+        )
       ),
       ValueStore.forResult(resolution, 2),
       ValueStore(resolution),
@@ -155,12 +156,12 @@ protected trait FixedFeedInAgentFundamentals
   }
 
   override def buildModel(
-      inputModel: FixedFeedInInput,
+      inputModel: InputModelContainer[FixedFeedInInput],
       modelConfig: FixedFeedInRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
   ): FixedFeedInModel = FixedFeedInModel(
-    inputModel,
+    inputModel.electricalInputModel,
     modelConfig,
     simulationStartDate,
     simulationEndDate
@@ -173,7 +174,7 @@ protected trait FixedFeedInAgentFundamentals
         FixedRelevantData.type,
         FixedFeedInModel
       ],
-      ComparableQuantity[Dimensionless]
+      Dimensionless
   ) => ApparentPower = (
       currentTick: Long,
       baseStateData: ParticipantModelBaseStateData[
@@ -181,7 +182,7 @@ protected trait FixedFeedInAgentFundamentals
         FixedRelevantData.type,
         FixedFeedInModel
       ],
-      voltage: ComparableQuantity[Dimensionless]
+      voltage: Dimensionless
   ) =>
     baseStateData.model match {
       case fixedModel: FixedFeedInModel =>
@@ -238,7 +239,7 @@ protected trait FixedFeedInAgentFundamentals
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        ComparableQuantity[Power] => ComparableQuantity[Power]
+        Power => ReactivePower
       ] = None
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
@@ -268,7 +269,7 @@ protected trait FixedFeedInAgentFundamentals
     new FixedFeedInResult(
       dateTime,
       uuid,
-      result.p,
-      result.q
+      result.p.toMegawatts.asMegaWatt,
+      result.q.toMegavars.asMegaVar
     )
 }

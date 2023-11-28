@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service.primary
 
-import akka.actor.{Actor, ActorRef, PoisonPill, Props}
+import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
@@ -28,12 +28,11 @@ import edu.ie3.datamodel.io.source.{
   TimeSeriesMetaInformationSource
 }
 import edu.ie3.datamodel.models.value.Value
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
   Primary => PrimaryConfig
 }
+import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.exceptions.{
   InitializationException,
   InvalidConfigParameterException
@@ -63,12 +62,13 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   SqlInitPrimaryServiceStateData
 }
 
+import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.Option.when
-import scala.compat.java8.OptionConverters.RichOptionalGeneric
 import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
 /** This actor has information on which models can be replaced by precalculated
@@ -108,14 +108,13 @@ case class PrimaryServiceProxy(
               simulationStart
             )
           ),
-          triggerId,
-          _
+          triggerId
         ) =>
       /* The proxy is asked to initialize itself. If that happened successfully, change the logic of receiving
        * messages */
       prepareStateData(primaryConfig, simulationStart) match {
         case Success(stateData) =>
-          sender() ! CompletionMessage(triggerId, newTriggers = None)
+          scheduler ! CompletionMessage(triggerId, newTrigger = None)
           context become onMessage(stateData)
         case Failure(exception) =>
           log.error(
@@ -155,7 +154,7 @@ case class PrimaryServiceProxy(
           .flatMap { timeSeriesUuid =>
             metaInformationSource
               .getTimeSeriesMetaInformation(timeSeriesUuid)
-              .asScala match {
+              .toScala match {
               case Some(metaInformation) =>
                 /* Only register those entries, that meet the supported column schemes */
                 when(
@@ -197,12 +196,12 @@ case class PrimaryServiceProxy(
         Success(
           new CsvTimeSeriesMappingSource(
             csvSep,
-            directoryPath,
+            Paths.get(directoryPath),
             fileNamingStrategy
           ),
           new CsvTimeSeriesMetaInformationSource(
             csvSep,
-            directoryPath,
+            Paths.get(directoryPath),
             fileNamingStrategy
           )
         )
@@ -427,7 +426,7 @@ case class PrimaryServiceProxy(
                 csvMetaData.getUuid,
                 simulationStart,
                 csvSep,
-                directoryPath,
+                Paths.get(directoryPath),
                 csvMetaData.getFullFilePath,
                 new FileNamingStrategy(),
                 timePattern
@@ -594,7 +593,7 @@ object PrimaryServiceProxy {
           // note: if inheritance is supported by tscfg,
           // the following method should be called for all different supported sources!
           checkTimePattern(csvParams.timePattern)
-        case Some(sqlParams: SimonaConfig.Simona.Input.Primary.SqlParams) =>
+        case Some(sqlParams: SqlParams) =>
           checkTimePattern(sqlParams.timePattern)
         case Some(x) =>
           throw new InvalidConfigParameterException(

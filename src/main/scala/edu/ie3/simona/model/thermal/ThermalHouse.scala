@@ -6,18 +6,20 @@
 
 package edu.ie3.simona.model.thermal
 
-import java.util.UUID
-
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput
 }
-import edu.ie3.util.quantities.interfaces.{HeatCapacity, ThermalConductance}
-import javax.measure.quantity.{Energy, Power, Temperature, Time}
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.unit.Units.HOUR
+import edu.ie3.simona.model.thermal.ThermalHouse.temperatureTolerance
+import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
+import squants.thermal.{Celsius, JoulesPerKelvin, ThermalCapacity}
+import squants.{Energy, Power, Temperature, Time}
+import tech.units.indriya.unit.Units
+
+import java.util.UUID
 
 /** A thermal house model including a variable inner temperature <p> *
   * <strong>Important:</strong> The field innerTemperature is a variable.
@@ -36,6 +38,12 @@ import tech.units.indriya.unit.Units.HOUR
   *   transmission coefficient of heat storage, usually in [kW/K]
   * @param ethCapa
   *   heat energy storage capability of thermal house, usually in [kWh/K]
+  * @param targetTemperature
+  *   Target room temperature [K]
+  * @param lowerBoundaryTemperature
+  *   Lower temperature boundary [K]
+  * @param upperBoundaryTemperature
+  *   Upper boundary temperature [K]
   */
 final case class ThermalHouse(
     uuid: UUID,
@@ -43,10 +51,11 @@ final case class ThermalHouse(
     operatorInput: OperatorInput,
     operationTime: OperationTime,
     bus: ThermalBusInput,
-    ethLosses: ComparableQuantity[ThermalConductance],
-    ethCapa: ComparableQuantity[HeatCapacity],
-    lowerBoundaryTemperature: ComparableQuantity[Temperature],
-    upperBoundaryTemperature: ComparableQuantity[Temperature]
+    ethLosses: ThermalConductance,
+    ethCapa: ThermalCapacity,
+    targetTemperature: Temperature,
+    lowerBoundaryTemperature: Temperature,
+    upperBoundaryTemperature: Temperature
 ) extends ThermalSink(
       uuid,
       id,
@@ -61,9 +70,11 @@ final case class ThermalHouse(
     *   true, if inner temperature is too high
     */
   def isInnerTemperatureTooHigh(
-      innerTemperature: ComparableQuantity[Temperature]
+      innerTemperature: Temperature
   ): Boolean =
-    innerTemperature.isGreaterThan(upperBoundaryTemperature)
+    innerTemperature > Celsius(
+      upperBoundaryTemperature + temperatureTolerance
+    )
 
   /** Check if inner temperature is lower than preferred minimum temperature
     *
@@ -71,9 +82,12 @@ final case class ThermalHouse(
     *   true, if inner temperature is too low
     */
   def isInnerTemperatureTooLow(
-      innerTemperature: ComparableQuantity[Temperature]
+      innerTemperature: Temperature,
+      boundaryTemperature: Temperature = lowerBoundaryTemperature
   ): Boolean =
-    innerTemperature.isLessThan(lowerBoundaryTemperature)
+    innerTemperature < Celsius(
+      boundaryTemperature - temperatureTolerance
+    )
 
   /** Calculate the new inner temperature of the thermal house.
     *
@@ -89,11 +103,11 @@ final case class ThermalHouse(
     *   new inner temperature
     */
   def newInnerTemperature(
-      thermalPower: ComparableQuantity[Power],
-      duration: ComparableQuantity[Time],
-      currentInnerTemperature: ComparableQuantity[Temperature],
-      ambientTemperature: ComparableQuantity[Temperature]
-  ): ComparableQuantity[Temperature] = {
+      thermalPower: Power,
+      duration: Time,
+      currentInnerTemperature: Temperature,
+      ambientTemperature: Temperature
+  ): Temperature = {
     val thermalEnergyChange = calcThermalEnergyChange(
       calcThermalEnergyGain(thermalPower, duration),
       calcThermalEnergyLoss(
@@ -118,10 +132,12 @@ final case class ThermalHouse(
     *   new inner temperature
     */
   private def calcNewInnerTemperature(
-      oldInnerTemperature: ComparableQuantity[Temperature],
-      temperatureChange: ComparableQuantity[Temperature]
-  ): ComparableQuantity[Temperature] =
-    oldInnerTemperature.add(temperatureChange)
+      oldInnerTemperature: Temperature,
+      temperatureChange: Temperature
+  ): Temperature =
+    Celsius(
+      oldInnerTemperature + temperatureChange
+    )
 
   /** Calculate the temperature change for the thermal house form the thermal
     * energy change
@@ -132,11 +148,9 @@ final case class ThermalHouse(
     *   temperature change
     */
   private def calcInnerTemperatureChange(
-      thermalEnergyChange: ComparableQuantity[Energy]
-  ): ComparableQuantity[Temperature] = {
-    thermalEnergyChange
-      .divide(ethCapa)
-      .asType(classOf[Temperature])
+      thermalEnergyChange: Energy
+  ): Temperature = {
+    thermalEnergyChange / ethCapa
   }
 
   /** Calculate the thermal energy change combining the added and lost energy
@@ -149,10 +163,10 @@ final case class ThermalHouse(
     *   thermal energy change
     */
   private def calcThermalEnergyChange(
-      thermalEnergyGain: ComparableQuantity[Energy],
-      thermalEnergyLoss: ComparableQuantity[Energy]
-  ): ComparableQuantity[Energy] =
-    thermalEnergyGain.subtract(thermalEnergyLoss)
+      thermalEnergyGain: Energy,
+      thermalEnergyLoss: Energy
+  ): Energy =
+    thermalEnergyGain - thermalEnergyLoss
 
   /** Calculate the thermal energy gain, e.g. due to a running heat pump
     *
@@ -164,10 +178,9 @@ final case class ThermalHouse(
     *   resulting thermal energy gain
     */
   private def calcThermalEnergyGain(
-      pThermal: ComparableQuantity[Power],
-      time: ComparableQuantity[Time]
-  ): ComparableQuantity[Energy] =
-    pThermal.multiply(time).asType(classOf[Energy])
+      pThermal: Power,
+      time: Time
+  ): Energy = pThermal * time
 
   /** Calculate the thermal energy loss due to the temperature deviation over
     * the time step
@@ -182,14 +195,15 @@ final case class ThermalHouse(
     *   resulting thermal energy loss
     */
   private def calcThermalEnergyLoss(
-      innerTemperature: ComparableQuantity[Temperature],
-      ambientTemperature: ComparableQuantity[Temperature],
-      time: ComparableQuantity[Time]
-  ): ComparableQuantity[Energy] = {
-    val temperatureDeviation = innerTemperature.subtract(ambientTemperature)
-    temperatureDeviation
-      .multiply(ethLosses.multiply(time.to(HOUR)))
-      .asType(classOf[Energy])
+      innerTemperature: Temperature,
+      ambientTemperature: Temperature,
+      time: Time
+  ): Energy = {
+    ethLosses.thermalConductanceToEnergy(
+      innerTemperature,
+      ambientTemperature,
+      time
+    )
   }
 
 }
@@ -205,6 +219,9 @@ case object ThermalHouse {
     * @return
     *   a ready-to-use [[ThermalHouse]] with referenced electric parameters
     */
+
+  protected def temperatureTolerance: Temperature = Celsius(0.01)
+
   def apply(
       input: ThermalHouseInput
   ): ThermalHouse =
@@ -214,10 +231,29 @@ case object ThermalHouse {
       input.getOperator,
       input.getOperationTime,
       input.getThermalBus,
-      input.getEthLosses,
-      input.getEthCapa,
-      input.getLowerTemperatureLimit,
-      input.getUpperTemperatureLimit
+      WattsPerKelvin(
+        input.getEthLosses
+          .to(PowerSystemUnits.KILOWATT_PER_KELVIN)
+          .getValue
+          .doubleValue
+          * 1000 // kW/K to W/K
+      ),
+      JoulesPerKelvin(
+        input.getEthCapa
+          .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN)
+          .getValue
+          .doubleValue
+          * 3.6e6 // kWh in Joule
+      ),
+      Celsius(
+        input.getTargetTemperature.to(Units.CELSIUS).getValue.doubleValue
+      ),
+      Celsius(
+        input.getLowerTemperatureLimit.to(Units.CELSIUS).getValue.doubleValue
+      ),
+      Celsius(
+        input.getUpperTemperatureLimit.to(Units.CELSIUS).getValue.doubleValue
+      )
     )
 
 }

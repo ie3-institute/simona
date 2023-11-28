@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.service.primary
 
-import akka.actor.{ActorRef, ActorSystem, PoisonPill}
-import akka.testkit.{TestActorRef, TestProbe}
-import akka.util.Timeout
+import org.apache.pekko.actor.{ActorRef, ActorSystem, PoisonPill}
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
+import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
@@ -54,7 +54,7 @@ import edu.ie3.util.TimeUtil
 import org.scalatest.PartialFunctionValues
 import org.scalatest.prop.TableDrivenPropertyChecks
 
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 import java.util.{Objects, UUID}
@@ -67,8 +67,8 @@ class PrimaryServiceProxySpec
         "PrimaryServiceProxySpec",
         ConfigFactory
           .parseString("""
-            |akka.loggers = ["akka.testkit.TestEventListener"]
-            |akka.loglevel="OFF"
+            |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
+            |pekko.loglevel="OFF"
           """.stripMargin)
       )
     )
@@ -76,7 +76,7 @@ class PrimaryServiceProxySpec
     with PartialFunctionValues
     with TimeSeriesTestData {
   // this works both on Windows and Unix systems
-  val baseDirectoryPath: String = Paths
+  val baseDirectoryPath: Path = Paths
     .get(
       this.getClass
         .getResource(
@@ -84,7 +84,6 @@ class PrimaryServiceProxySpec
         )
         .toURI
     )
-    .toString
   val csvSep = ";"
   val fileNamingStrategy = new FileNamingStrategy()
   val validPrimaryConfig: PrimaryConfig =
@@ -93,7 +92,7 @@ class PrimaryServiceProxySpec
       Some(
         PrimaryDataCsvParams(
           csvSep,
-          baseDirectoryPath,
+          baseDirectoryPath.toString,
           isHierarchic = false,
           TimeUtil.withDefaults.getDtfPattern
         )
@@ -301,10 +300,24 @@ class PrimaryServiceProxySpec
             UUID.fromString("c7ebcc6c-55fc-479b-aa6b-6fa82ccac6b8") -> uuidPq,
             UUID.fromString("90a96daa-012b-4fea-82dc-24ba7a7ab81c") -> uuidPq
           )
-          timeSeriesToSourceRef shouldBe Map(
-            uuidP -> SourceRef(metaP, None),
-            uuidPq -> SourceRef(metaPq, None)
-          )
+          timeSeriesToSourceRef.get(uuidP) match {
+            case Some(SourceRef(metaInformation, worker)) =>
+              metaInformation shouldBe metaP
+              worker shouldBe None
+            case None =>
+              fail(
+                "Expected to receive a source ref for the active power time series"
+              )
+          }
+          timeSeriesToSourceRef.get(uuidPq) match {
+            case Some(SourceRef(metaInformation, worker)) =>
+              metaInformation shouldBe metaPq
+              worker shouldBe None
+            case None =>
+              fail(
+                "Expected to receive a source ref for the apparent power time series"
+              )
+          }
           simulationStart shouldBe this.simulationStart
           primaryConfig shouldBe validPrimaryConfig
           classOf[TimeSeriesMappingSource].isAssignableFrom(
@@ -328,8 +341,7 @@ class PrimaryServiceProxySpec
 
       proxyRef ! TriggerWithIdMessage(
         InitializeServiceTrigger(initStateData),
-        0L,
-        self
+        0L
       )
       expectMsg(CompletionMessage(0L, None))
     }
@@ -363,7 +375,7 @@ class PrimaryServiceProxySpec
       )
       val metaInformation = new CsvIndividualTimeSeriesMetaInformation(
         metaPq,
-        "its_pq_" + uuidPq
+        Paths.get("its_pq_" + uuidPq)
       )
 
       proxy invokePrivate toInitData(
@@ -463,7 +475,7 @@ class PrimaryServiceProxySpec
       val fakeProxy: PrimaryServiceProxy = fakeProxyRef.underlyingActor
       val metaInformation = new CsvIndividualTimeSeriesMetaInformation(
         metaPq,
-        "its_pq_" + uuidPq
+        Paths.get("its_pq_" + uuidPq)
       )
 
       fakeProxy invokePrivate initializeWorker(
@@ -486,7 +498,8 @@ class PrimaryServiceProxySpec
                       timePattern
                     )
                   ),
-                  actorToBeScheduled
+                  actorToBeScheduled,
+                  _
                 ) =>
               actualTimeSeriesUuid shouldBe uuidPq
               actualSimulationStart shouldBe simulationStart
@@ -669,8 +682,7 @@ class PrimaryServiceProxySpec
       )
       fakeProxyRef ! TriggerWithIdMessage(
         InitializeServiceTrigger(initStateData),
-        0L,
-        self
+        0L
       )
       expectMsg(CompletionMessage(0L, None))
 

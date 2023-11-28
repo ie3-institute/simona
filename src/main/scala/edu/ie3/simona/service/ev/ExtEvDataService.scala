@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service.ev
 
-import akka.actor.{ActorRef, Props}
+import org.apache.pekko.actor.{ActorRef, Props}
 import edu.ie3.simona.api.data.ev.ExtEvData
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology.{
@@ -71,7 +71,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
   ): Try[
     (
         ExtEvStateData,
-        Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+        Option[SchedulerMessage.ScheduleTriggerMessage]
     )
   ] =
     initServiceData match {
@@ -179,7 +179,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       tick: Long
   )(implicit serviceStateData: ExtEvStateData): (
       ExtEvStateData,
-      Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+      Option[SchedulerMessage.ScheduleTriggerMessage]
   ) = {
     serviceStateData.extEvMessage.getOrElse(
       throw ServiceException(
@@ -197,7 +197,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
   private def requestFreeLots(tick: Long)(implicit
       serviceStateData: ExtEvStateData
-  ): (ExtEvStateData, Option[Seq[ScheduleTriggerMessage]]) = {
+  ): (ExtEvStateData, Option[ScheduleTriggerMessage]) = {
     serviceStateData.uuidToActorRef.foreach { case (_, evcsActor) =>
       evcsActor ! EvFreeLotsRequest(tick)
     }
@@ -225,7 +225,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       requestedDepartingEvs: java.util.Map[UUID, java.util.List[UUID]]
   )(implicit
       serviceStateData: ExtEvStateData
-  ): (ExtEvStateData, Option[Seq[ScheduleTriggerMessage]]) = {
+  ): (ExtEvStateData, Option[ScheduleTriggerMessage]) = {
 
     val departingEvResponses: Map[UUID, Option[Seq[EvModel]]] =
       requestedDepartingEvs.asScala.flatMap { case (evcs, departingEvs) =>
@@ -264,40 +264,37 @@ class ExtEvDataService(override val scheduler: ActorRef)
       allArrivingEvs: java.util.Map[UUID, java.util.List[EvModel]]
   )(implicit
       serviceStateData: ExtEvStateData
-  ): (ExtEvStateData, Option[Seq[ScheduleTriggerMessage]]) = {
+  ): (ExtEvStateData, Option[ScheduleTriggerMessage]) = {
 
-    val scheduleTriggerMsgs =
-      allArrivingEvs.asScala.flatMap { case (evcs, arrivingEvs) =>
-        serviceStateData.uuidToActorRef.get(evcs) match {
-          case Some(evcsActor) =>
-            evcsActor ! ProvideEvDataMessage(
-              tick,
-              ArrivingEvsData(arrivingEvs.asScala.toSeq)
-            )
+    allArrivingEvs.asScala.foreach { case (evcs, arrivingEvs) =>
+      serviceStateData.uuidToActorRef.get(evcs) match {
+        case Some(evcsActor) =>
+          evcsActor ! ProvideEvDataMessage(
+            tick,
+            ArrivingEvsData(arrivingEvs.asScala.toSeq)
+          )
 
-            // schedule activation of participant
-            Some(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(tick),
-                evcsActor
-              )
-            )
+          // schedule activation of participant
+          scheduler ! ScheduleTriggerMessage(
+            ActivityStartTrigger(tick),
+            evcsActor
+          )
 
-          case None =>
-            log.warning(
-              "A corresponding actor ref for UUID {} could not be found",
-              evcs
-            )
-            None
+        case None =>
+          log.warning(
+            "A corresponding actor ref for UUID {} could not be found",
+            evcs
+          )
+          None
 
-        }
       }
+    }
 
     (
       serviceStateData.copy(
         extEvMessage = None
       ),
-      Option.when(scheduleTriggerMsgs.nonEmpty)(scheduleTriggerMsgs.toSeq)
+      None
     )
   }
 

@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.ActorSystem
-import akka.testkit.TestFSMRef
-import akka.util.Timeout
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.testkit.TestFSMRef
+import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV
@@ -19,13 +19,14 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModel
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantInitializeStateData,
   ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
+  ParticipantUninitializedStateData,
+  SimpleInputContainer
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -46,9 +47,10 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.model.participant.LoadTestData
 import edu.ie3.simona.util.ConfigUtil
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import org.scalatest.PrivateMethodTester
-import tech.units.indriya.quantity.Quantities
+import squants.Each
+import squants.energy.{Kilowatts, Megawatts, Watts}
 
 import java.util.concurrent.TimeUnit
 
@@ -58,8 +60,8 @@ class LoadAgentProfileModelCalculationSpec
         "LoadAgentSpec",
         ConfigFactory
           .parseString("""
-            |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-            |akka.loglevel="DEBUG"
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="DEBUG"
         """.stripMargin)
       )
     )
@@ -78,9 +80,9 @@ class LoadAgentProfileModelCalculationSpec
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.PROFILE,
-      LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
+      LoadReference.ActivePower(Kilowatts(0d))
     )
-  private val defaultOutputConfig = ParticipantNotifierConfig(
+  private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
     simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
   )
@@ -93,6 +95,9 @@ class LoadAgentProfileModelCalculationSpec
     )
   private val services = None
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+
+  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   "A load agent with profile model calculation depending on no secondary data service" should {
     "be instantiated correctly" in {
@@ -147,8 +152,7 @@ class LoadAgentProfileModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          loadAgent
+          triggerId
         )
       )
 
@@ -168,7 +172,7 @@ class LoadAgentProfileModelCalculationSpec
               requestVoltageDeviationThreshold,
               outputConfig
             ) =>
-          inputModel shouldBe voltageSensitiveInput
+          inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe services
           simulationStartDate shouldBe this.simulationStartDate
@@ -188,9 +192,7 @@ class LoadAgentProfileModelCalculationSpec
         CompletionMessage(
           triggerId,
           Some(
-            List(
-              ScheduleTriggerMessage(ActivityStartTrigger(0L), loadAgent)
-            )
+            ScheduleTriggerMessage(ActivityStartTrigger(0L), loadAgent)
           )
         )
       )
@@ -222,7 +224,7 @@ class LoadAgentProfileModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            Map(0L -> Quantities.getQuantity(1d, PU))
+            Map(0L -> Each(1.0))
           )
           resultValueStore shouldBe ValueStore.forResult(
             resolution,
@@ -271,8 +273,7 @@ class LoadAgentProfileModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          triggerId,
-          loadAgent
+          triggerId
         )
       )
 
@@ -288,13 +289,13 @@ class LoadAgentProfileModelCalculationSpec
 
       loadAgent ! RequestAssetPowerMessage(
         0L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
       expectMsg(
         AssetPowerChangedMessage(
-          Quantities.getQuantity(0d, MEGAWATT),
-          Quantities.getQuantity(0d, MEGAVAR)
+          Megawatts(0d),
+          Megavars(0d)
         )
       )
 
@@ -306,8 +307,8 @@ class LoadAgentProfileModelCalculationSpec
             resolution,
             Map(
               0L -> ApparentPower(
-                Quantities.getQuantity(0d, MEGAWATT),
-                Quantities.getQuantity(0d, MEGAVAR)
+                Megawatts(0d),
+                Megavars(0d)
               )
             )
           )
@@ -351,8 +352,7 @@ class LoadAgentProfileModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          initialiseTriggerId,
-          loadAgent
+          initialiseTriggerId
         )
       )
 
@@ -370,8 +370,7 @@ class LoadAgentProfileModelCalculationSpec
         loadAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(0L),
-          activityStartTriggerId,
-          loadAgent
+          activityStartTriggerId
         )
       )
 
@@ -380,7 +379,7 @@ class LoadAgentProfileModelCalculationSpec
         CompletionMessage(
           activityStartTriggerId,
           Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(900L), loadAgent))
+            ScheduleTriggerMessage(ActivityStartTrigger(900L), loadAgent)
           )
         )
       )
@@ -399,14 +398,8 @@ class LoadAgentProfileModelCalculationSpec
             case Some((tick, entry)) =>
               tick shouldBe 0L
               inside(entry) { case ApparentPower(p, q) =>
-                p should equalWithTolerance(
-                  Quantities.getQuantity(84.000938e-6, MEGAWATT),
-                  testingTolerance
-                )
-                q should equalWithTolerance(
-                  Quantities.getQuantity(0d, MEGAVAR),
-                  testingTolerance
-                )
+                (p ~= Megawatts(84.000938e-6)) shouldBe true
+                (q ~= Megavars(0.0)) shouldBe true
               }
             case None =>
               fail("Result value store does not contain entry for tick 0.")
@@ -451,8 +444,7 @@ class LoadAgentProfileModelCalculationSpec
               primaryServiceProxy = primaryServiceProxy.ref
             )
           ),
-          0L,
-          loadAgent
+          0L
         )
       )
 
@@ -463,22 +455,20 @@ class LoadAgentProfileModelCalculationSpec
       /* Trigger the data generation in tick 0, 900, 1800 */
       scheduler.send(
         loadAgent,
-        TriggerWithIdMessage(ActivityStartTrigger(0L), 1L, loadAgent)
+        TriggerWithIdMessage(ActivityStartTrigger(0L), 1L)
       )
       scheduler.send(
         loadAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(900L),
-          2L,
-          loadAgent
+          2L
         )
       )
       scheduler.send(
         loadAgent,
         TriggerWithIdMessage(
           ActivityStartTrigger(1800L),
-          3L,
-          loadAgent
+          3L
         )
       )
 
@@ -494,20 +484,14 @@ class LoadAgentProfileModelCalculationSpec
       /* Ask the agent for average power in tick 1800 */
       loadAgent ! RequestAssetPowerMessage(
         1800L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1d),
+        Each(0d)
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(79.750890e-6, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(79.750890e-6)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -516,21 +500,15 @@ class LoadAgentProfileModelCalculationSpec
       /* Ask again with unchanged information */
       loadAgent ! RequestAssetPowerMessage(
         1800L,
-        Quantities.getQuantity(1.000000000000001d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.000000000000001d),
+        Each(0d)
       )
 
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(79.750890e-6, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(79.750890e-6)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -538,21 +516,15 @@ class LoadAgentProfileModelCalculationSpec
       /* Ask again with changed information */
       loadAgent ! RequestAssetPowerMessage(
         1800L,
-        Quantities.getQuantity(0.98, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(0.98),
+        Each(0)
       )
 
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(79.750890e-6, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(-22.0714e-6, MEGAVAR),
-            testingTolerance
-          )
+          (p ~= Megawatts(79.750890e-6)) shouldBe true
+          (q ~= Megavars(-22.0714e-6)) shouldBe true
       }
     }
   }

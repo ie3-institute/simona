@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.{ActorRef, FSM}
-import akka.pattern.{ask, pipe}
-import akka.util.{Timeout => AkkaTimeout}
+import org.apache.pekko.actor.{ActorRef, FSM}
+import org.apache.pekko.pattern.{ask, pipe}
+import org.apache.pekko.util.{Timeout => PekkoTimeout}
 import breeze.linalg.{DenseMatrix, DenseVector}
 import breeze.math.Complex
 import edu.ie3.datamodel.graph.SubGridGate
@@ -46,12 +46,13 @@ import edu.ie3.simona.ontology.messages.VoltageMessage.{
 }
 import edu.ie3.simona.ontology.trigger.Trigger._
 import edu.ie3.simona.util.TickUtil._
-import edu.ie3.util.quantities.PowerSystemUnits._
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.scala.quantities.Megavars
+import edu.ie3.util.scala.quantities.SquantsUtils.RichElectricPotential
+import squants.Each
+import squants.energy.Megawatts
 
 import java.time.{Duration, ZonedDateTime}
 import java.util.UUID
-import javax.measure.quantity.ElectricPotential
 import scala.concurrent.{ExecutionContext, Future}
 
 /** Trait that is normally mixed into every [[GridAgent]] to enable distributed
@@ -61,7 +62,7 @@ import scala.concurrent.{ExecutionContext, Future}
 trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   this: GridAgent =>
   // implicit ExecutionContext should be in scope
-  // see https://doc.akka.io/docs/akka/2.5/futures.html
+  // see https://pekko.apache.org/docs/pekko/current/futures.html
   implicit val ec: ExecutionContext = context.dispatcher
 
   when(SimulateGrid) {
@@ -71,8 +72,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     case Event(
           TriggerWithIdMessage(
             StartGridSimulationTrigger(currentTick),
-            triggerId,
-            _
+            triggerId
           ),
           gridAgentBaseData: GridAgentBaseData
         ) =>
@@ -213,8 +213,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             currentSweepNo - 1
           )
 
-          val refSystemVUnit =
-            gridAgentBaseData.gridEnv.gridModel.mainRefSystem.nominalVoltage.getUnit
+          val refSystem =
+            gridAgentBaseData.gridEnv.gridModel.mainRefSystem
 
           /* Determine the slack node voltage under consideration of the target voltage set point */
           val vTarget =
@@ -223,17 +223,13 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                 uuid == nodeUuid && isSlack
               }
               .map(_.vTarget)
-              .getOrElse(Quantities.getQuantity(1d, PU))
-          val vSlack = vTarget
-            .multiply(
-              gridAgentBaseData.gridEnv.gridModel.mainRefSystem.nominalVoltage
-            )
-            .asType(classOf[ElectricPotential])
-            .to(refSystemVUnit)
+              .getOrElse(Each(1d))
+          val vSlack =
+            refSystem.nominalVoltage.multiplyWithDimensionles(vTarget)
 
           (
             vSlack,
-            Quantities.getQuantity(0, refSystemVUnit)
+            refSystem.vInSi(0d)
           )
         } match {
           case (slackE, slackF) =>
@@ -327,14 +323,14 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                         // To model the exchanged power from the superior grid's point of view, -1 has to be multiplied.
                         // (Inferior grid is a feed in facility to superior grid, which is negative then). Analogously for load case.
                         (
-                          refSystem.pInSi(pInPu).multiply(-1),
-                          refSystem.qInSi(qInPu).multiply(-1)
+                          refSystem.pInSi(pInPu) * (-1),
+                          refSystem.qInSi(qInPu) * (-1)
                         )
                       case _ =>
                         /* TODO: As long as there are no multiple slack nodes, provide "real" power only for the slack node */
                         (
-                          Quantities.getQuantity(0d, MEGAWATT),
-                          Quantities.getQuantity(0d, MEGAVAR)
+                          Megawatts(0d),
+                          Megavars(0d)
                         )
                     }
                     .getOrElse {
@@ -344,7 +340,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                     }
                 }
                 .map { case (nodeUuid, (p, q)) =>
-                  ProvideGridPowerMessage.ExchangePower(nodeUuid, p, q)
+                  ProvideGridPowerMessage.ExchangePower(
+                    nodeUuid,
+                    p,
+                    q
+                  )
                 }
 
               /* Determine the remaining replies */
@@ -451,11 +451,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       environmentRefs.scheduler ! CompletionMessage(
         simTriggerId,
         Some(
-          Vector(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(currentTick + resolution),
-              self
-            )
+          ScheduleTriggerMessage(
+            ActivityStartTrigger(currentTick + resolution),
+            self
           )
         )
       )
@@ -1010,8 +1008,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   /** Normally only reached by the superior (dummy) agent!
     *
     * Triggers a state transition to [[SimulateGrid]], informs the
-    * [[edu.ie3.simona.scheduler.SimScheduler]] about the finish of this sweep
-    * and requests a new trigger for itself for a new sweep (which means a new
+    * [[edu.ie3.simona.scheduler.Scheduler]] about the finish of this sweep and
+    * requests a new trigger for itself for a new sweep (which means a new
     * [[StartGridSimulationTrigger]])
     *
     * @param gridAgentBaseData
@@ -1031,9 +1029,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     environmentRefs.scheduler ! CompletionMessage(
       oldTrigger,
       Some(
-        Vector(
-          ScheduleTriggerMessage(StartGridSimulationTrigger(currentTick), self)
-        )
+        ScheduleTriggerMessage(StartGridSimulationTrigger(currentTick), self)
       )
     )
 
@@ -1041,7 +1037,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
   }
 
-  /** Triggers an execution of the akka `ask` pattern for all power values of
+  /** Triggers an execution of the pekko `ask` pattern for all power values of
     * assets (if any) of this [[GridAgent]].
     *
     * @param currentTick
@@ -1069,7 +1065,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       askTimeout: Duration
   ): Option[Future[ReceivedPowerValues]] = {
 
-    implicit val timeout: AkkaTimeout = AkkaTimeout.create(askTimeout)
+    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
 
     log.debug(s"asking assets for power values: {}", nodeToAssetAgents)
 
@@ -1100,8 +1096,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                       )
                     case None =>
                       (
-                        Quantities.getQuantity(1, PU),
-                        Quantities.getQuantity(0, PU)
+                        Each(1d),
+                        Each(0d)
                       )
                   }
 
@@ -1125,7 +1121,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       None
   }
 
-  /** Triggers an execution of the akka `ask` pattern for all power values @
+  /** Triggers an execution of the pekko `ask` pattern for all power values @
     * connection nodes of inferior grids (if any) of this [[GridAgent]].
     *
     * @param currentSweepNo
@@ -1145,7 +1141,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       inferiorGridGates: Seq[SubGridGate],
       askTimeout: Duration
   ): Option[Future[ReceivedPowerValues]] = {
-    implicit val timeout: AkkaTimeout = AkkaTimeout.create(askTimeout)
+    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
     log.debug(
       s"asking inferior grids for power values: {}",
       inferiorGridGates
@@ -1184,7 +1180,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     }
   }
 
-  /** Triggers an execution of the akka `ask` pattern for all slack voltages of
+  /** Triggers an execution of the pekko `ask` pattern for all slack voltages of
     * superior grids (if any) of this [[GridAgent]].
     *
     * @param currentSweepNo
@@ -1204,7 +1200,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       superiorGridGates: Vector[SubGridGate],
       askTimeout: Duration
   ): Option[Future[ReceivedSlackVoltageValues]] = {
-    implicit val timeout: AkkaTimeout = AkkaTimeout.create(askTimeout)
+    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
     log.debug(
       s"asking superior grids for slack voltage values: {}",
       superiorGridGates
