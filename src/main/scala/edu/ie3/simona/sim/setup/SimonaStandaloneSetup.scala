@@ -6,11 +6,11 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.typed.scaladsl.adapter.{
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorContextOps,
   TypedActorRefOps
 }
-import akka.actor.{ActorContext, ActorRef, ActorSystem}
+import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridTopologyGraph
@@ -226,8 +226,8 @@ class SimonaStandaloneSetup(
   override def timeAdvancer(
       context: ActorContext,
       simulation: ActorRef,
-      runtimeEventListener: akka.actor.typed.ActorRef[RuntimeEvent]
-  ): akka.actor.typed.ActorRef[SchedulerMessage] = {
+      runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
+  ): org.apache.pekko.actor.typed.ActorRef[SchedulerMessage] = {
     val startDateTime = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
@@ -248,7 +248,7 @@ class SimonaStandaloneSetup(
 
   override def scheduler(
       context: ActorContext,
-      timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage]
+      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[SchedulerMessage]
   ): ActorRef =
     context
       .spawn(
@@ -261,7 +261,7 @@ class SimonaStandaloneSetup(
 
   override def runtimeEventListener(
       context: ActorContext
-  ): akka.actor.typed.ActorRef[RuntimeEvent] =
+  ): org.apache.pekko.actor.typed.ActorRef[RuntimeEvent] =
     context
       .spawn(
         RuntimeEventListener(

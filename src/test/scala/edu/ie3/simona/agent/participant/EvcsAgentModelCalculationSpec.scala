@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.ActorSystem
-import akka.testkit.{TestFSMRef, TestProbe}
-import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV
@@ -18,13 +15,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  CollectRegistrationConfirmMessages,
-  ParticipantInitializeStateData,
-  ParticipantInitializingStateData,
-  ParticipantUninitializedStateData,
-  SimpleInputContainer
-}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
@@ -56,8 +47,11 @@ import edu.ie3.simona.test.common.EvTestData
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
-import squants.{Each, Energy, Power}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
+import org.apache.pekko.util.Timeout
 import squants.energy.{Megawatts, WattHours, Watts}
+import squants.{Each, Energy, Power}
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
@@ -67,8 +61,8 @@ class EvcsAgentModelCalculationSpec
         "EvcsAgentModelCalculationSpec",
         ConfigFactory
           .parseString("""
-                     |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-                     |akka.loglevel="DEBUG"
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="DEBUG"
         """.stripMargin)
       )
     )

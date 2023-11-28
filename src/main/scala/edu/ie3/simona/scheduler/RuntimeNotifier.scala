@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.scheduler
 
-import akka.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent._
 import edu.ie3.simona.scheduler.RuntimeNotifier.now

@@ -6,10 +6,10 @@
 
 package edu.ie3.simona.util
 
-import akka.actor.testkit.typed.scaladsl.FishingOutcomes.fail
-import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.ActorRef
-import akka.actor.typed.scaladsl.adapter.TypedActorRefOps
+import org.apache.pekko.actor.testkit.typed.scaladsl.FishingOutcomes.fail
+import org.apache.pekko.actor.testkit.typed.scaladsl.TestProbe
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,

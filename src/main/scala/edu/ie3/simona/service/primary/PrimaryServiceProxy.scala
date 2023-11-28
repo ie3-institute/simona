@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service.primary
 
-import akka.actor.{Actor, ActorRef, PoisonPill, Props}
+import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
@@ -67,8 +67,8 @@ import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.Option.when
-import scala.compat.java8.OptionConverters.RichOptionalGeneric
 import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
 /** This actor has information on which models can be replaced by precalculated
@@ -154,7 +154,7 @@ case class PrimaryServiceProxy(
           .flatMap { timeSeriesUuid =>
             metaInformationSource
               .getTimeSeriesMetaInformation(timeSeriesUuid)
-              .asScala match {
+              .toScala match {
               case Some(metaInformation) =>
                 /* Only register those entries, that meet the supported column schemes */
                 when(

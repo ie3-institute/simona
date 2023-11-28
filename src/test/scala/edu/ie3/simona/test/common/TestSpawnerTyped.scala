@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.test.common
 
-import akka.actor.testkit.typed.scaladsl.ActorTestKitBase
-import akka.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.actor.testkit.typed.scaladsl.ActorTestKitBase
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import edu.ie3.simona.scheduler.ScheduleLock.Spawner
 
 trait TestSpawnerTyped {

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.{ActorRef, FSM, Props}
+import org.apache.pekko.actor.{ActorRef, FSM, Props}
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult

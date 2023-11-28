@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.ActorRef
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.testkit.TestProbe
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvideGridPowerMessage,

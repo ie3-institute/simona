@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.{Actor, DeadLetter, Props}
+import org.apache.pekko.actor.{Actor, DeadLetter, Props}
 import com.typesafe.scalalogging.LazyLogging
 
 /** Simply reads the message, it receives

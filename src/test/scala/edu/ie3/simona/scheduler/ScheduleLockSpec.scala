@@ -6,8 +6,11 @@
 
 package edu.ie3.simona.scheduler
 
-import akka.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
-import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe
+}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
