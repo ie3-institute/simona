@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.service.ev
 
-import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import akka.actor.{ActorContext, ActorRef, Props}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 import edu.ie3.simona.api.data.ev.ExtEvData
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._

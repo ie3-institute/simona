@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.ActorRef
-import akka.event.{LoggingAdapter, NoLogging}
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.event.{LoggingAdapter, NoLogging}
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower

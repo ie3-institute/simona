@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.hp
 
-import akka.actor.{ActorRef, FSM}
+import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.result.system.{
   HpResult,
@@ -56,7 +56,7 @@ import tech.units.indriya.unit.Units
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.SortedSet
-import scala.compat.java8.OptionConverters.RichOptionalGeneric
+import scala.jdk.OptionConverters.RichOptional
 import scala.reflect.{ClassTag, classTag}
 
 trait HpAgentFundamentals
@@ -296,7 +296,7 @@ trait HpAgentFundamentals
           None
         case WithHeatInputContainer(_, thermalGrid) =>
           /* Build the thermal model */
-          thermalGrid.houses().stream().findFirst().asScala
+          thermalGrid.houses().stream().findFirst().toScala
       }
     }.getOrElse {
       throw new AgentInitializationException(

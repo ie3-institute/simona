@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.ActorSystem
-import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import akka.testkit.{TestFSMRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV
@@ -48,6 +45,9 @@ import edu.ie3.simona.test.common.{EvTestData, TestSpawnerClassic}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
 import squants.energy.{Megawatts, Watts}
 import squants.{Each, Power}
 
@@ -59,8 +59,8 @@ class EvcsAgentModelCalculationSpec
         "EvcsAgentModelCalculationSpec",
         ConfigFactory
           .parseString("""
-                     |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-                     |akka.loglevel="DEBUG"
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="DEBUG"
         """.stripMargin)
       )
     )

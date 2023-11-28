@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.scheduler
 
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
-import akka.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import edu.ie3.simona.actor.ActorUtil.stopOnError
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.Activation
@@ -53,7 +53,7 @@ object TimeAdvancer {
     *   last tick of the simulation
     */
   def apply(
-      simulation: akka.actor.ActorRef,
+      simulation: org.apache.pekko.actor.ActorRef,
       eventListener: Option[ActorRef[RuntimeEvent]],
       checkWindow: Option[Int],
       endTick: Long
@@ -211,7 +211,7 @@ object TimeAdvancer {
 
   private def endWithFailure(
       ctx: ActorContext[Incoming],
-      simulation: akka.actor.ActorRef,
+      simulation: org.apache.pekko.actor.ActorRef,
       notifier: Option[RuntimeNotifier],
       tick: Long,
       errorMsg: String
@@ -241,7 +241,7 @@ object TimeAdvancer {
     *   the last tick of the simulation
     */
   private final case class TimeAdvancerData(
-      simulation: akka.actor.ActorRef,
+      simulation: org.apache.pekko.actor.ActorRef,
       schedulee: ActorRef[Activation],
       endTick: Long
   )

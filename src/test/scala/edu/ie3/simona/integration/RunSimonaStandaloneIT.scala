@@ -58,8 +58,8 @@ class RunSimonaStandaloneIT
           .withFallback(
             ConfigFactory
               .parseString("""
-                           |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-                           |akka.loglevel="OFF"
+                           |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+                           |pekko.loglevel="OFF"
                            |""".stripMargin)
           )
           .withFallback(ConfigFactory.parseFile(new File(configFile)))

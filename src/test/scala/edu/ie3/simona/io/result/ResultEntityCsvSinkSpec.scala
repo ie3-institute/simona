@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.io.result
 
-import akka.actor.ActorSystem
-import akka.stream.scaladsl.FileIO
-import akka.util.ByteString
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.scaladsl.FileIO
+import org.apache.pekko.util.ByteString
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.exceptions.EntityProcessorException
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
@@ -36,9 +36,9 @@ class ResultEntityCsvSinkSpec
         ConfigFactory
           .parseString(
             """
-            |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-            |akka.loglevel="DEBUG"
-            |akka.coordinated-shutdown.phases.actor-system-terminate.timeout = 500s
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="DEBUG"
+            |pekko.coordinated-shutdown.phases.actor-system-terminate.timeout = 500s
           """.stripMargin
           )
       )
@@ -99,7 +99,7 @@ class ResultEntityCsvSinkSpec
       val path = Paths.get(outFileName)
       // create output file (should not exist yet at this point)
       Await.ready(
-        akka.stream.scaladsl.Source
+        org.apache.pekko.stream.scaladsl.Source
           .single(testText)
           .map(t => ByteString(t))
           .runWith(FileIO.toPath(path, Set(WRITE, TRUNCATE_EXISTING, CREATE))),

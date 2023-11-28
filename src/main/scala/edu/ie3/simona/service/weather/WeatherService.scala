@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service.weather
 
-import akka.actor.{ActorContext, ActorRef, Props}
+import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException

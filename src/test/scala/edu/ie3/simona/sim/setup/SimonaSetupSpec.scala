@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.{ActorContext, ActorRef, ActorSystem}
+import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
 import edu.ie3.datamodel.exceptions.NotImplementedException
 import edu.ie3.datamodel.models.input.connector.{
   ConnectorPort,
@@ -15,8 +15,6 @@ import edu.ie3.datamodel.models.input.connector.{
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.scheduler.TimeAdvancer
-import edu.ie3.simona.service.primary.PrimaryServiceProxy
-import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.SubGridGateMokka
 
@@ -31,7 +29,7 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
 
   override def runtimeEventListener(
       context: ActorContext
-  ): akka.actor.typed.ActorRef[RuntimeEvent] =
+  ): org.apache.pekko.actor.typed.ActorRef[RuntimeEvent] =
     throw new NotImplementedException("This is a dummy setup")
 
   override def systemParticipantsListener(
@@ -59,13 +57,13 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
   override def timeAdvancer(
       context: ActorContext,
       simulation: ActorRef,
-      runtimeEventListener: akka.actor.typed.ActorRef[RuntimeEvent]
-  ): akka.actor.typed.ActorRef[TimeAdvancer.Incoming] =
+      runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
+  ): org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming] =
     throw new NotImplementedException("This is a dummy setup")
 
   override def scheduler(
       context: ActorContext,
-      timeAdvancer: akka.actor.typed.ActorRef[TimeAdvancer.Incoming]
+      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming]
   ): ActorRef = throw new NotImplementedException("This is a dummy setup")
 
   override def gridAgents(

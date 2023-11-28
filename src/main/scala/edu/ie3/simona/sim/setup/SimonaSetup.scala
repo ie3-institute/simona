@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.{ActorContext, ActorRef, ActorSystem}
+import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -44,7 +44,7 @@ trait SimonaSetup {
     */
   def runtimeEventListener(
       context: ActorContext
-  ): akka.actor.typed.ActorRef[RuntimeEvent]
+  ): org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
 
   /** Creates a sequence of system participant event listeners
     *
@@ -116,8 +116,8 @@ trait SimonaSetup {
   def timeAdvancer(
       context: ActorContext,
       simulation: ActorRef,
-      runtimeEventListener: akka.actor.typed.ActorRef[RuntimeEvent]
-  ): akka.actor.typed.ActorRef[TimeAdvancer.Incoming]
+      runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
+  ): org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming]
 
   /** Creates a scheduler service
     *
@@ -130,7 +130,7 @@ trait SimonaSetup {
     */
   def scheduler(
       context: ActorContext,
-      timeAdvancer: akka.actor.typed.ActorRef[TimeAdvancer.Incoming]
+      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming]
   ): ActorRef
 
   /** Creates all the needed grid agents

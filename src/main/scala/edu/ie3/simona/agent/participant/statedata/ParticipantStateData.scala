@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.statedata
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}

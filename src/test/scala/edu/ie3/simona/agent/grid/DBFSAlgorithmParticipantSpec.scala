@@ -6,9 +6,12 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.typed.scaladsl.adapter.{ClassicActorRefOps, TypedActorRefOps}
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.{ImplicitSender, TestProbe}
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorRefOps
+}
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -46,8 +49,8 @@ class DBFSAlgorithmParticipantSpec
         "DBFSAlgorithmSpec",
         ConfigFactory
           .parseString("""
-                     |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-                     |akka.loglevel="OFF"
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="OFF"
         """.stripMargin)
       )
     )
