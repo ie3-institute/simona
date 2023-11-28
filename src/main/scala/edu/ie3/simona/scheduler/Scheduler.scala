@@ -132,29 +132,29 @@ object Scheduler {
           core.handleCompletion(actor),
           s"Actor $actor is not part of the expected completing actors"
         )
-        .flatMap { core =>
+        .flatMap { newCore =>
           // if successful
           maybeNewTick
             .map { newTick =>
               Either
                 .cond(
-                  core.checkSchedule(newTick),
-                  core.handleSchedule(actor, newTick),
+                  newCore.checkSchedule(newTick),
+                  newCore.handleSchedule(actor, newTick),
                   s"Cannot schedule an event at tick $newTick for completing actor $actor"
                 )
             }
-            .getOrElse(Right(core))
+            .getOrElse(Right(newCore))
         }
-        .map { core =>
-          val (toActivate, updatedCore) = core.takeNewActivations()
+        .map { newCore =>
+          val (toActivate, updatedCore) = newCore.takeNewActivations()
           toActivate.foreach {
-            _ ! Activation(core.activeTick)
+            _ ! Activation(updatedCore.activeTick)
           }
 
           updatedCore
         }
-        .map { core =>
-          core
+        .map { newCore =>
+          newCore
             .maybeComplete()
             .map { case (maybeScheduleTick, inactiveCore) =>
               data.parent ! Completion(
@@ -164,7 +164,7 @@ object Scheduler {
               inactive(data, inactiveCore)
             }
             .getOrElse {
-              active(data, core)
+              active(data, newCore)
             }
         }
         .fold(
