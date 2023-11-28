@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.grid
 
 import org.apache.pekko.actor.{ActorRef, FSM}
 import org.apache.pekko.pattern.{ask, pipe}
-import org.apache.pekko.util.{Timeout => AkkaTimeout}
+import org.apache.pekko.util.{Timeout => PekkoTimeout}
 import breeze.linalg.{DenseMatrix, DenseVector}
 import breeze.math.Complex
 import edu.ie3.datamodel.graph.SubGridGate
@@ -62,7 +62,6 @@ import scala.concurrent.{ExecutionContext, Future}
 trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   this: GridAgent =>
   // implicit ExecutionContext should be in scope
-  // see https://doc.akka.io/docs/akka/2.5/futures.html
   implicit val ec: ExecutionContext = context.dispatcher
 
   when(SimulateGrid) {
@@ -1037,7 +1036,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
   }
 
-  /** Triggers an execution of the akka `ask` pattern for all power values of
+  /** Triggers an execution of the pekko `ask` pattern for all power values of
     * assets (if any) of this [[GridAgent]].
     *
     * @param currentTick
@@ -1065,7 +1064,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       askTimeout: Duration
   ): Option[Future[ReceivedPowerValues]] = {
 
-    implicit val timeout: AkkaTimeout = AkkaTimeout.create(askTimeout)
+    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
 
     log.debug(s"asking assets for power values: {}", nodeToAssetAgents)
 
@@ -1121,7 +1120,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       None
   }
 
-  /** Triggers an execution of the akka `ask` pattern for all power values @
+  /** Triggers an execution of the pekko `ask` pattern for all power values @
     * connection nodes of inferior grids (if any) of this [[GridAgent]].
     *
     * @param currentSweepNo
@@ -1141,7 +1140,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       inferiorGridGates: Seq[SubGridGate],
       askTimeout: Duration
   ): Option[Future[ReceivedPowerValues]] = {
-    implicit val timeout: AkkaTimeout = AkkaTimeout.create(askTimeout)
+    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
     log.debug(
       s"asking inferior grids for power values: {}",
       inferiorGridGates
@@ -1180,7 +1179,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     }
   }
 
-  /** Triggers an execution of the akka `ask` pattern for all slack voltages of
+  /** Triggers an execution of the pekko `ask` pattern for all slack voltages of
     * superior grids (if any) of this [[GridAgent]].
     *
     * @param currentSweepNo
@@ -1200,7 +1199,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       superiorGridGates: Vector[SubGridGate],
       askTimeout: Duration
   ): Option[Future[ReceivedSlackVoltageValues]] = {
-    implicit val timeout: AkkaTimeout = AkkaTimeout.create(askTimeout)
+    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
     log.debug(
       s"asking superior grids for slack voltage values: {}",
       superiorGridGates

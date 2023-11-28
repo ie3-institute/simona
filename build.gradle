@@ -101,7 +101,7 @@ dependencies {
   }
 
   /* logging */
-  implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // akka scala logging
+  implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // pekko scala logging
   implementation "ch.qos.logback:logback-classic:1.4.12"
 
   /* testing */
@@ -173,9 +173,7 @@ jar {
 }
 
 //////////////////////////////////////////////////////////////////////
-// Build akka'able fat jar using the gradle shadow plugin
-// see http://www.sureshpw.com/2015/10/building-akka-bundle-with-all.html
-// and https://github.com/akka/akka/issues/24248
+// Build pekko'able fat jar using the gradle shadow plugin
 //////////////////////////////////////////////////////////////////////
 shadowJar {
   transform(AppendingTransformer) {

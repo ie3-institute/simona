@@ -60,7 +60,7 @@ object SimonaActorNaming {
     *   the actor name based on simona conventions as string
     */
   def actorName(typeName: String, actorId: String): String =
-    s"${typeName}_${cleanActorIdForAkka(actorId)}"
+    s"${typeName}_${cleanActorIdForPekko(actorId)}"
 
   /** Extracts the actor name from given [[ActorRef]]. Cluster singletons are
     * taken care of separately.
@@ -104,7 +104,7 @@ object SimonaActorNaming {
   def typeName(clz: Class[_]): String =
     clz.getSimpleName.replace("$", "")
 
-  /** Akka prevents the usage of specific special characters as names. This
+  /** Pekko prevents the usage of specific special characters as names. This
     * method cleans a given string and makes it usable as actor name
     *
     * @param inputString
@@ -112,9 +112,9 @@ object SimonaActorNaming {
     * @return
     *   a cleaned string that can be used as actor name
     */
-  private def cleanActorIdForAkka(inputString: String): String = {
+  private def cleanActorIdForPekko(inputString: String): String = {
     val regexFilter =
-      "[^A-Za-z0-9-_.*$+:@&=,!~';.]" // akka prevents using other special chars than the ones here
+      "[^A-Za-z0-9-_.*$+:@&=,!~';.]" // pekko prevents using other special chars than the ones here
     inputString.replaceAll(regexFilter, "")
   }
 
