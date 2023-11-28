@@ -545,7 +545,7 @@ class HpAgentModelCalculationSpec
       scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
 
-      /* Send out an activity start trigger */
+      /* Send out an activation*/
       scheduler.send(hpAgent, Activation(0))
 
       /* Find yourself in appropriate state with state data */

@@ -513,7 +513,7 @@ class WecAgentModelCalculationSpec
       scheduler.expectMsgType[Completion]
       awaitAssert(wecAgent.stateName shouldBe Idle)
 
-      /* Send out an activity start trigger */
+      /* Send out an activation */
       scheduler.send(wecAgent, Activation(900))
 
       /* Find yourself in appropriate state with state data */

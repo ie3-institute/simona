@@ -155,7 +155,7 @@ abstract class ParticipantAgent[
           Activation(currentTick),
           fromOutsideBaseStateData: FromOutsideBaseStateData[M, PD]
         ) =>
-      /* An activity start trigger is sent, but I'm still expecting primary data. Go to HandleInformation and wait for
+      /* An activation is sent, but I'm still expecting primary data. Go to HandleInformation and wait for
        * a data provision message */
       handleActivationAndGoToHandleInformation(
         currentTick,
@@ -258,7 +258,7 @@ abstract class ParticipantAgent[
           Activation(currentTick),
           stateData: DataCollectionStateData[PD]
         ) =>
-      /* The actor received an ActivityStartTrigger. Check, if there is everything at its place. If so, change state
+      /* The actor received an activation. Check, if there is everything at its place. If so, change state
        * accordingly, otherwise stay here and wait for the messages */
       holdTick(currentTick)
       checkForExpectedDataAndChangeState(

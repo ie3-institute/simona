@@ -136,7 +136,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
     }
 
-    s"go to $SimulateGrid when it receives an activity start trigger" in {
+    s"go to $SimulateGrid when it receives an activation" in {
 
       // send init data to agent
       scheduler.send(
