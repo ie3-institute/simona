@@ -21,7 +21,7 @@ import java.time.Duration
   * @param maxIterations
   *   Maximum amount of iterations in a [[edu.ie3.powerflow.NewtonRaphsonPF]]
   * @param sweepTimeout
-  *   [[pekko.pattern.ask]] timeout for a sweep
+  *   [[org.apache.pekko.pattern.ask]] timeout for a sweep
   */
 final case class PowerFlowParams(
     maxSweepPowerDeviation: Double,
