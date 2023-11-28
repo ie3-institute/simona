@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.scheduler.core
 
-import akka.actor.typed.ActorRef
 import edu.ie3.simona.ontology.messages.Activation
+import org.apache.pekko.actor.typed.ActorRef
 
 /** TODO ScalaDoc everywhere
   */

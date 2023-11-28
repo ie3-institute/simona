@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.scheduler.core
 
-import akka.actor.typed.ActorRef
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.scheduler.core.Core.{
   ActiveCore,
@@ -14,6 +13,7 @@ import edu.ie3.simona.scheduler.core.Core.{
   InactiveCore
 }
 import edu.ie3.util.scala.collection.immutable.PrioritySwitchBiSet
+import org.apache.pekko.actor.typed.ActorRef
 
 /** TODO scaldoc
   */
