@@ -14,8 +14,12 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.scheduler.core.Core.{ActiveCore, InactiveCore}
-import edu.ie3.simona.scheduler.core.SchedulerCore
+import edu.ie3.simona.scheduler.core.Core.{
+  ActiveCore,
+  CoreFactory,
+  InactiveCore
+}
+import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 
 /** Scheduler that activates actors at specific ticks and keeps them
   * synchronized by waiting for the completions of all activations. Can be
@@ -29,14 +33,15 @@ object Scheduler {
       extends Incoming
 
   def apply(
-      parent: ActorRef[SchedulerMessage]
+      parent: ActorRef[SchedulerMessage],
+      coreFactory: CoreFactory = RegularSchedulerCore
   ): Behavior[Incoming] = Behaviors.setup { ctx =>
     val adapter =
       ctx.messageAdapter[Activation](msg => WrappedActivation(msg))
 
     inactive(
       SchedulerData(parent, adapter),
-      SchedulerCore.create()
+      coreFactory.create()
     )
   }
 

@@ -9,7 +9,7 @@ package edu.ie3.simona.scheduler.core
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.scheduler.core.Core.{
   ActiveCore,
-  CoreBuilder,
+  CoreFactory,
   InactiveCore
 }
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
@@ -17,7 +17,7 @@ import org.apache.pekko.actor.typed.ActorRef
 
 /** TODO scaladoc
   */
-object SchedulerCore extends CoreBuilder {
+object RegularSchedulerCore extends CoreFactory {
 
   override def create(): SchedulerInactive =
     SchedulerInactive(PriorityMultiBiSet.empty, None)

@@ -13,7 +13,7 @@ import org.apache.pekko.actor.typed.ActorRef
   */
 object Core {
 
-  trait CoreBuilder {
+  trait CoreFactory {
     def create(): InactiveCore
   }
 

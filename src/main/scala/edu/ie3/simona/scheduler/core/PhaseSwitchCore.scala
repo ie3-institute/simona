@@ -9,7 +9,7 @@ package edu.ie3.simona.scheduler.core
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.scheduler.core.Core.{
   ActiveCore,
-  CoreBuilder,
+  CoreFactory,
   InactiveCore
 }
 import edu.ie3.util.scala.collection.immutable.PrioritySwitchBiSet
@@ -17,7 +17,7 @@ import org.apache.pekko.actor.typed.ActorRef
 
 /** TODO scaladoc
   */
-object PhaseSwitchCore extends CoreBuilder {
+object PhaseSwitchCore extends CoreFactory {
 
   override def create(): PhaseSwitchInactive =
     PhaseSwitchInactive(PrioritySwitchBiSet.empty, None)
