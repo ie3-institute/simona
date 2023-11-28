@@ -105,6 +105,49 @@ class SchedulerSpec
       parent.expectMessage(Completion(schedulerActivation))
     }
 
+    "scheduling with parent when earliest tick changes" in {
+      val parent = TestProbe[SchedulerMessage]("parent")
+      val scheduler = spawn(
+        Scheduler(parent.ref)
+      )
+
+      val agent1 = TestProbe[Activation]("agent_1")
+      val agent2 = TestProbe[Activation]("agent_2")
+
+      scheduler ! ScheduleActivation(agent1.ref, 10)
+
+      val sa1 = parent.expectMessageType[ScheduleActivation]
+      sa1.tick shouldBe 10
+      val schedulerActivation = sa1.actor
+
+      scheduler ! ScheduleActivation(agent2.ref, INIT_SIM_TICK)
+      parent.expectMessage(
+        ScheduleActivation(schedulerActivation, INIT_SIM_TICK)
+      )
+
+      scheduler ! ScheduleActivation(agent2.ref, 5)
+      parent.expectMessage(ScheduleActivation(schedulerActivation, 5))
+
+      scheduler ! ScheduleActivation(agent2.ref, 11)
+      // expect activation for earliest tick (of agent 1)
+      parent.expectMessage(ScheduleActivation(schedulerActivation, 10))
+
+      scheduler ! ScheduleActivation(agent2.ref, 20)
+      // no update, 10 is still earliest
+      parent.expectNoMessage()
+
+      scheduler ! ScheduleActivation(agent2.ref, 10)
+      parent.expectNoMessage()
+
+      agent1.expectNoMessage()
+
+      // TICK -1
+      schedulerActivation ! Activation(10)
+
+      agent1.expectMessage(Activation(10))
+      agent2.expectMessage(Activation(10))
+    }
+
     "scheduling two actors for different ticks" in {
       val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
