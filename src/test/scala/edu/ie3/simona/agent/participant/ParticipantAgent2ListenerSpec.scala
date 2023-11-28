@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.agent.participant
 
-import org.apache.pekko.actor.{ActorRef, ActorSystem}
-import org.apache.pekko.testkit.TestFSMRef
-import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
@@ -38,6 +35,9 @@ import edu.ie3.simona.ontology.trigger.Trigger.{
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT}
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.TestFSMRef
+import org.apache.pekko.util.Timeout
 import org.mockito.Mockito.when
 import org.scalatest.PrivateMethodTester
 import org.scalatestplus.mockito.MockitoSugar
@@ -53,11 +53,10 @@ class ParticipantAgent2ListenerSpec
       ActorSystem(
         "ParticipantAgent2ListenerSpec",
         ConfigFactory
-          .parseString(
-            """ |org.apache.pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
-            |org.apache.pekko.loglevel="OFF"
-        """.stripMargin
-          )
+          .parseString("""
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="OFF"
+        """.stripMargin)
       )
     )
     with DefaultTestData

@@ -80,11 +80,10 @@ class ParticipantAgentExternalSourceSpec
       ActorSystem(
         "ParticipantAgentExternalSourceSpec",
         ConfigFactory
-          .parseString(
-            """ |org.apache.pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
-                       |org.apache.pekko.loglevel="DEBUG"
-        """.stripMargin
-          )
+          .parseString("""
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="DEBUG"
+        """.stripMargin)
       )
     )
     with DefaultTestData

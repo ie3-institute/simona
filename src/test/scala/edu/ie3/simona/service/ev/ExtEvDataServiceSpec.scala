@@ -41,8 +41,8 @@ class ExtEvDataServiceSpec
         "ExtEvDataServiceSpec",
         ConfigFactory
           .parseString("""
-        |akka.loggers = ["akka.testkit.TestEventListener"]
-        |akka.loglevel = "INFO"
+        |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
+        |pekko.loglevel = "INFO"
         |""".stripMargin)
       )
     )

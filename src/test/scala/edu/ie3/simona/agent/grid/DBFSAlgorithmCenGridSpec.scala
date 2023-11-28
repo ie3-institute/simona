@@ -53,8 +53,8 @@ class DBFSAlgorithmCenGridSpec
         "DBFSAlgorithmCenGridSpec",
         ConfigFactory
           .parseString("""
-            |org.apache.pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
-            |org.apache.pekko.loglevel="OFF"
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="OFF"
         """.stripMargin)
       )
     )

@@ -41,7 +41,7 @@ class PrimaryServiceProxySqlIT
         "PrimaryServiceWorkerSqlIT",
         ConfigFactory
           .parseString("""
-                     |akka.loglevel="OFF"
+                     |pekko.loglevel="OFF"
           """.stripMargin)
       )
     )

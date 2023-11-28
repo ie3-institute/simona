@@ -129,9 +129,6 @@ dependencies {
   implementation "org.apache.pekko:pekko-slf4j_${scalaVersion}:${pekkoVersion}"
   implementation "org.apache.pekko:pekko-cluster_${scalaVersion}:${pekkoVersion}"
   implementation "org.apache.pekko:pekko-connectors-csv_${scalaVersion}:${pekkoVersion}"
-  implementation "org.apache.pekko:pekko-connectors-kafka_${scalaVersion}:1.0.0"
-  implementation "org.apache.pekko:pekko-cluster-sharding_${scalaVersion}:${pekkoVersion}"
-  implementation "org.apache.pekko:pekko-cluster-tools_${scalaVersion}:${pekkoVersion}"
 
   /* config */
   implementation 'com.typesafe:config:1.4.3'

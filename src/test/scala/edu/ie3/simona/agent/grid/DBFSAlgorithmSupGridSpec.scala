@@ -55,11 +55,10 @@ class DBFSAlgorithmSupGridSpec
       ActorSystem(
         "DBFSAlgorithmSpec",
         ConfigFactory
-          .parseString(
-            """ |org.apache.pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
-          |org.apache.pekko.loglevel="OFF"
-        """.stripMargin
-          )
+          .parseString("""
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="OFF"
+        """.stripMargin)
       )
     )
     with UnitSpec

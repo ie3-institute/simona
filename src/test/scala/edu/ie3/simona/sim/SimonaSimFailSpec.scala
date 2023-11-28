@@ -46,8 +46,8 @@ class SimonaSimFailSpec
         "SimonaSimFailSpec",
         ConfigFactory
           .parseString("""
-                     |akka.loggers = ["akka.testkit.TestEventListener"]
-                     |akka.loglevel="OFF"
+                     |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
+                     |pekko.loglevel="OFF"
         """.stripMargin)
       )
     ) {

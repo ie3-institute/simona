@@ -54,7 +54,7 @@ class PrimaryServiceWorkerSpec
         "PrimaryServiceWorkerSpec",
         ConfigFactory
           .parseString("""
-                       |akka.loglevel="OFF"
+                       |pekko.loglevel="OFF"
           """.stripMargin)
       )
     )
