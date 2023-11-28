@@ -105,7 +105,7 @@ object Scheduler {
           ctx,
           ScheduleActivation(actor, newTick, unlockKey)
         ) =>
-      if (core.checkSchedule(newTick)) {
+      if (core.checkSchedule(actor, newTick)) {
         val (toActivate, newCore) =
           core.handleSchedule(actor, newTick).takeNewActivations()
 
@@ -138,7 +138,7 @@ object Scheduler {
             .map { newTick =>
               Either
                 .cond(
-                  newCore.checkSchedule(newTick),
+                  newCore.checkSchedule(actor, newTick),
                   newCore.handleSchedule(actor, newTick),
                   s"Cannot schedule an event at tick $newTick for completing actor $actor"
                 )

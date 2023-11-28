@@ -86,10 +86,13 @@ object PhaseSwitchCore extends CoreFactory {
       }
     }
 
-    override def checkSchedule(newTick: Long): Boolean = {
+    override def checkSchedule(
+        actor: ActorRef[Activation],
+        newTick: Long
+    ): Boolean = {
       if (newTick == activeTick) {
         // what's done, is done: old phases are completed,
-        activationQueue.headKeyIndexOption.forall(_ >= phase)
+        activationQueue.indexOf(actor).forall(_ >= phase)
       } else
         newTick > activeTick
     }

@@ -82,7 +82,10 @@ object RegularSchedulerCore extends CoreFactory {
         )
       }
 
-    override def checkSchedule(newTick: Long): Boolean =
+    override def checkSchedule(
+        actor: ActorRef[Activation],
+        newTick: Long
+    ): Boolean =
       newTick >= activeTick
 
     override def handleSchedule(

@@ -40,7 +40,7 @@ object Core {
 
     def maybeComplete(): Option[(Option[Long], InactiveCore)]
 
-    def checkSchedule(newTick: Long): Boolean
+    def checkSchedule(actor: ActorRef[Activation], newTick: Long): Boolean
 
     def handleSchedule(actor: ActorRef[Activation], newTick: Long): ActiveCore
 
