@@ -50,6 +50,7 @@ class SchedulerSpec
       agent1.expectNoMessage()
       agent2.expectNoMessage()
 
+      // TICK -1
       schedulerActivation ! Activation(INIT_SIM_TICK)
 
       agent1.expectMessage(Activation(INIT_SIM_TICK))
@@ -81,6 +82,7 @@ class SchedulerSpec
 
       agent1.expectNoMessage()
 
+      // TICK -1
       schedulerActivation ! Activation(INIT_SIM_TICK)
 
       agent1.expectMessage(Activation(INIT_SIM_TICK))
@@ -126,7 +128,7 @@ class SchedulerSpec
         INIT_SIM_TICK
       )
 
-      /* ACTIVATE INIT TICK */
+      // TICK -1
       schedulerActivation ! Activation(INIT_SIM_TICK)
 
       agent1.expectTriggerAndComplete(
@@ -148,7 +150,7 @@ class SchedulerSpec
       agent1.expectNoMessage()
       agent2.expectNoMessage()
 
-      /* ACTIVATE TICK 0 */
+      // TICK 0
       schedulerActivation ! Activation(0)
 
       agent1.expectTriggerAndComplete(
@@ -167,7 +169,7 @@ class SchedulerSpec
 
       parent.expectMessage(Completion(schedulerActivation, Some(300)))
 
-      /* ACTIVATE TICK 300 */
+      // TICK 300
       schedulerActivation ! Activation(300)
 
       agent1.expectTriggerAndComplete(
@@ -181,7 +183,7 @@ class SchedulerSpec
       agent1.expectNoMessage()
       agent2.expectNoMessage()
 
-      /* ACTIVATE TICK 900 */
+      // TICK 900
       schedulerActivation ! Activation(900)
 
       agent1.expectTriggerAndComplete(
@@ -257,6 +259,7 @@ class SchedulerSpec
       sa1.tick shouldBe 60
       val schedulerActivation = sa1.actor
 
+      // TICK 60
       schedulerActivation ! Activation(60)
       agent1.expectMessage(Activation(60))
 
@@ -355,6 +358,7 @@ class SchedulerSpec
       sa1.tick shouldBe INIT_SIM_TICK
       val schedulerActivation = sa1.actor
 
+      // TICK 0
       schedulerActivation ! Activation(0)
 
       // agent does not receive activation
@@ -379,6 +383,7 @@ class SchedulerSpec
       sa1.tick shouldBe 900
       val schedulerActivation = sa1.actor
 
+      // TICK 900
       schedulerActivation ! Activation(900)
 
       agent1.expectTriggerAndComplete(
@@ -415,7 +420,7 @@ class SchedulerSpec
       sa1.tick shouldBe 0
       val schedulerActivation = sa1.actor
 
-      // activate tick 0
+      // TICK 0
       schedulerActivation ! Activation(0)
       agent1.expectMessage(Activation(0))
 
@@ -445,7 +450,7 @@ class SchedulerSpec
       sa1.tick shouldBe 0
       val schedulerActivation = sa1.actor
 
-      // activate tick 0
+      // TICK 0
       schedulerActivation ! Activation(0)
       agent1.expectMessage(Activation(0))
 
@@ -473,6 +478,7 @@ class SchedulerSpec
       sa1.tick shouldBe INIT_SIM_TICK
       val schedulerActivation = sa1.actor
 
+      // TICK -1
       schedulerActivation ! Activation(INIT_SIM_TICK)
 
       // scheduler is already active, can't handle activation a second time
@@ -498,6 +504,7 @@ class SchedulerSpec
       sa1.tick shouldBe INIT_SIM_TICK
       val schedulerActivation = sa1.actor
 
+      // TICK -1
       schedulerActivation ! Activation(INIT_SIM_TICK)
 
       agent1.expectTriggerAndComplete(
