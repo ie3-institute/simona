@@ -99,9 +99,13 @@ final case class PrioritySwitchBiSet[K, V](
           if (set.size == 1)
             queue.removed(key)
           else
+            // drop first value
             queue.updated(key, set.drop(1))
 
-        (firstValue, copy(queue = updatedQueue))
+        (
+          firstValue,
+          copy(queue = updatedQueue, back = back.removed(firstValue))
+        )
       }
   }
 
