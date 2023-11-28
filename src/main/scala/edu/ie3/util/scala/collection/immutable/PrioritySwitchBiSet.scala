@@ -88,12 +88,13 @@ final case class PrioritySwitchBiSet[K, V](
     )
   }
 
-  def nextValue(): Option[(V, PrioritySwitchBiSet[K, V])] = {
-    queue.headOption
-      .flatMap { case (key, set) =>
-        set.headOption.map(orderedValues).map((key, set, _))
+  def nextValueFor(key: K): Option[(V, PrioritySwitchBiSet[K, V])] = {
+    queue
+      .get(key)
+      .flatMap { set =>
+        set.headOption.map(orderedValues).map((set, _))
       }
-      .map { case (key, set, firstValue) =>
+      .map { case (set, firstValue) =>
         val updatedQueue =
           if (set.size == 1)
             queue.removed(key)

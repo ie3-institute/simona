@@ -104,7 +104,7 @@ object PhaseSwitchCore extends CoreFactory {
         : (Iterable[ActorRef[Activation]], ActiveCore) = {
       Option
         .when(activeActors.isEmpty) { // only one actor can be active at a time
-          activationQueue.nextValue()
+          activationQueue.nextValueFor(activeTick)
         }
         .flatten
         .map { case (actor, updatedQueue) =>

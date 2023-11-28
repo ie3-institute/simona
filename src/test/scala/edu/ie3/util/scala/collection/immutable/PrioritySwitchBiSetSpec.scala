@@ -28,7 +28,7 @@ class PrioritySwitchBiSetSpec extends UnitSpec {
       prioSet.headKeyOption shouldBe None
       prioSet.headKeyIndexOption shouldBe None
       prioSet.values shouldBe Vector.empty
-      prioSet.nextValue() shouldBe None
+      prioSet.nextValueFor(0) shouldBe None
     }
 
     "behave correctly when adding to an empty map" in {
@@ -42,8 +42,9 @@ class PrioritySwitchBiSetSpec extends UnitSpec {
       prioSet01.values shouldBe Vector(item1)
       prioSet01.indexOf(item1) shouldBe Some(0)
       prioSet01.indexOf(item2) shouldBe None
+      prioSet01.nextValueFor(0) shouldBe None
 
-      val (val02, prioSet02) = prioSet01.nextValue().value
+      val (val02, prioSet02) = prioSet01.nextValueFor(1).value
       val02 shouldBe item1
       prioSet02.isEmpty shouldBe true
       prioSet02.headKeyOption shouldBe None
@@ -75,6 +76,7 @@ class PrioritySwitchBiSetSpec extends UnitSpec {
       prioSet03.headKeyIndexOption shouldBe Some(1)
       prioSet03.values shouldBe Vector(item1, item2)
       prioSet03.indexOf(item2) shouldBe Some(1)
+      prioSet03.nextValueFor(2) shouldBe None
 
       val prioSet04 = prioSet03.set(5, item4)
       prioSet04.nonEmpty shouldBe true
@@ -118,25 +120,25 @@ class PrioritySwitchBiSetSpec extends UnitSpec {
       // retrieving values now. They should come in order:
       // 5 -> (item2, item3), 15 -> (item1, item4, item5)
 
-      val (val09, prioSet09) = prioSet08.nextValue().value
+      val (val09, prioSet09) = prioSet08.nextValueFor(5).value
       val09 shouldBe item2
       prioSet09.isEmpty shouldBe false
       prioSet09.headKeyOption shouldBe Some(5)
       prioSet09.headKeyIndexOption shouldBe Some(3)
 
-      val (val10, prioSet10) = prioSet09.nextValue().value
+      val (val10, prioSet10) = prioSet09.nextValueFor(5).value
       val10 shouldBe item3
       prioSet10.isEmpty shouldBe false
       prioSet10.headKeyOption shouldBe Some(15)
       prioSet10.headKeyIndexOption shouldBe Some(0)
 
-      val (val11, prioSet11) = prioSet10.nextValue().value
+      val (val11, prioSet11) = prioSet10.nextValueFor(15).value
       val11 shouldBe item1
       prioSet11.isEmpty shouldBe false
       prioSet11.headKeyOption shouldBe Some(15)
       prioSet11.headKeyIndexOption shouldBe Some(2)
 
-      val (val12, prioSet12) = prioSet11.nextValue().value
+      val (val12, prioSet12) = prioSet11.nextValueFor(15).value
       val12 shouldBe item4
       prioSet12.isEmpty shouldBe false
       prioSet12.headKeyOption shouldBe Some(15)
@@ -147,8 +149,9 @@ class PrioritySwitchBiSetSpec extends UnitSpec {
       prioSet13.isEmpty shouldBe false
       prioSet13.headKeyOption shouldBe Some(10)
       prioSet13.headKeyIndexOption shouldBe Some(4)
+      prioSet13.nextValueFor(15) shouldBe None
 
-      val (val14, prioSet14) = prioSet13.nextValue().value
+      val (val14, prioSet14) = prioSet13.nextValueFor(10).value
       val14 shouldBe item5
       prioSet14.isEmpty shouldBe true
       prioSet14.nonEmpty shouldBe false
