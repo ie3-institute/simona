@@ -430,6 +430,35 @@ class SchedulerSpec
       parent.expectTerminated(scheduler)
     }
 
+    "receiving unexpected completion message" in {
+      val parent = TestProbe[SchedulerMessage]("parent")
+      val scheduler = spawn(
+        Scheduler(parent.ref)
+      )
+
+      val agent1 = TestProbe[Activation]("agent_1")
+      val agent2 = TestProbe[Activation]("agent_1")
+
+      scheduler ! ScheduleActivation(agent1.ref, 0)
+
+      val sa1 = parent.expectMessageType[ScheduleActivation]
+      sa1.tick shouldBe 0
+      val schedulerActivation = sa1.actor
+
+      // activate tick 0
+      schedulerActivation ! Activation(0)
+      agent1.expectMessage(Activation(0))
+
+      // receiving completion for wrong actor
+      scheduler ! Completion(agent2.ref)
+
+      // parent does not receive completion
+      parent.expectNoMessage()
+
+      // scheduler stopped
+      parent.expectTerminated(scheduler)
+    }
+
     "receiving unexpected message while active" in {
       val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(

@@ -15,7 +15,7 @@ import edu.ie3.simona.scheduler.core.Core.{
 import edu.ie3.util.scala.collection.immutable.PrioritySwitchBiSet
 import org.apache.pekko.actor.typed.ActorRef
 
-/** TODO scaldoc
+/** TODO scaladoc
   */
 object PhaseSwitchCore extends CoreBuilder {
 
