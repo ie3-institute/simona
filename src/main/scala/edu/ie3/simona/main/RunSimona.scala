@@ -58,7 +58,7 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
   // a fancy opener
   protected def printOpener(): Unit = {
     logger.info(
-      s"Starting SIMONA with interface '${getClass.getSimpleName.replaceAll("\\$", "")}'.\n" + "   _____ ______  _______  _   _____       ___    ____ \n  / ___//  _/  |/  / __ \\/ | / /   |     |__ \\  / __ \\\n  \\__ \\ / // /|_/ / / / /  |/ / /| |     __/ / / / / /\n ___/ // // /  / / /_/ / /|  / ___ |    / __/_/ /_/ / \n/____/___/_/  /_/\\____/_/ |_/_/  |_|   /____(_)____/  \n                                                      "
+      s"Starting SIMONA with interface '${getClass.getSimpleName.replaceAll("\\$", "")}'.\n" + "   _____ ______  _______  _   _____ \n  / ___//  _/  |/  / __ \\/ | / /   |\n  \\__ \\ / // /|_/ / / / /  |/ / /| |\n ___/ // // /  / / /_/ / /|  / ___ |\n/____/___/_/  /_/\\____/_/ |_/_/  |_|\n                                    "
     )
   }
 
