@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.state
 
-import akka.actor.{ActorRef, FSM}
+import org.apache.pekko.actor.{ActorRef, FSM}
 
 trait AgentState
 

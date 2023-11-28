@@ -6,12 +6,12 @@
 
 package edu.ie3.simona.scheduler
 
-import akka.actor.typed.scaladsl.adapter.{
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorContextOps,
   TypedActorRefOps
 }
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
-import akka.actor.typed.{ActorRef, Behavior, Scheduler}
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   CompletionMessage,
@@ -80,8 +80,9 @@ object ScheduleLock {
       ctx.spawnAnonymous(behavior)
   }
 
-  private final case class ClassicSpawner(ctx: akka.actor.ActorContext)
-      extends Spawner {
+  private final case class ClassicSpawner(
+      ctx: org.apache.pekko.actor.ActorContext
+  ) extends Spawner {
     override def spawn[T](behavior: Behavior[T]): ActorRef[T] =
       ctx.spawnAnonymous(behavior)
   }
@@ -118,7 +119,7 @@ object ScheduleLock {
     *   A single key that unlocks the lock
     */
   def singleKey(
-      ctx: akka.actor.ActorContext,
+      ctx: org.apache.pekko.actor.ActorContext,
       scheduler: ActorRef[SchedulerMessage],
       tick: Long
   ): ScheduleKey =
@@ -182,7 +183,7 @@ object ScheduleLock {
     *   A collection of keys that are needed to unlock the lock
     */
   def multiKey(
-      ctx: akka.actor.ActorContext,
+      ctx: org.apache.pekko.actor.ActorContext,
       scheduler: ActorRef[SchedulerMessage],
       tick: Long,
       count: Int

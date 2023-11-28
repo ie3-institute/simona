@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.evcs
 
-import akka.actor.{ActorRef, Props}
+import org.apache.pekko.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.simona.agent.participant.{
   ParticipantAgent,

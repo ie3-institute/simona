@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.ontology.trigger.Trigger.{
   InitializeExtSimAdapterTrigger,
   InitializeServiceTrigger,

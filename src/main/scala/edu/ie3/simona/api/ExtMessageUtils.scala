@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.api
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ontology.{
   CompletionMessage => ExtCompletionMessage
