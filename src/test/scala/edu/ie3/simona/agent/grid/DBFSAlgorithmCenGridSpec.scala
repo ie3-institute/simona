@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.ActorSystem
-import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.testkit.TestProbe
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -54,8 +54,8 @@ class DBFSAlgorithmCenGridSpec
         "DBFSAlgorithmCenGridSpec",
         ConfigFactory
           .parseString("""
-            |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-            |akka.loglevel="OFF"
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="OFF"
         """.stripMargin)
       )
     )

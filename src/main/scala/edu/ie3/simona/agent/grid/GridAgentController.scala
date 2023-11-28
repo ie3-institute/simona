@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import akka.actor.{ActorContext, ActorRef}
-import akka.event.LoggingAdapter
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorContext, ActorRef}
+import org.apache.pekko.event.LoggingAdapter
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.system._

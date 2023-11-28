@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.service.ev
 
-import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.{TestActorRef, TestProbe}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.api.data.ev.ExtEvData
 import edu.ie3.simona.api.data.ev.model.EvModel
@@ -45,8 +45,8 @@ class ExtEvDataServiceSpec
         "ExtEvDataServiceSpec",
         ConfigFactory
           .parseString("""
-        |akka.loggers = ["akka.testkit.TestEventListener"]
-        |akka.loglevel = "INFO"
+        |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
+        |pekko.loglevel = "INFO"
         |""".stripMargin)
       )
     )

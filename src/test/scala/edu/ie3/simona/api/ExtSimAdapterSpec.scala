@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.api
 
-import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import akka.actor.{ActorSystem, Terminated}
-import akka.testkit.{TestActorRef, TestProbe}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorSystem, Terminated}
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
@@ -39,9 +39,9 @@ class ExtSimAdapterSpec
         "ExtSimAdapterSpec",
         ConfigFactory
           .parseString("""
-                     |akka.loggers = ["akka.testkit.TestEventListener"]
-                     |akka.loglevel = "INFO"
-                     |""".stripMargin)
+            |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
+            |pekko.loglevel = "INFO"
+            |""".stripMargin)
       )
     )
     with AnyWordSpecLike

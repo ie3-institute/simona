@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.typed.{Behavior, PostStop}
-import akka.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{Behavior, PostStop}
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed

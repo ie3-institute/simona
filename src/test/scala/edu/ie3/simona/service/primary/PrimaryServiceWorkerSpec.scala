@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.service.primary
 
-import akka.actor.ActorSystem
-import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import akka.testkit.{TestActorRef, TestProbe}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.io.factory.timeseries.TimeBasedSimpleValueFactory
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
@@ -53,7 +53,7 @@ class PrimaryServiceWorkerSpec
         "PrimaryServiceWorkerSpec",
         ConfigFactory
           .parseString("""
-                       |akka.loglevel="OFF"
+                       |pekko.loglevel="OFF"
           """.stripMargin)
       )
     )

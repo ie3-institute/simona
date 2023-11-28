@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.ontology.messages
 
-import akka.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.scheduler.{Scheduler, TimeAdvancer}
 

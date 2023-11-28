@@ -6,10 +6,10 @@
 
 package edu.ie3.simona.service.primary
 
-import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import akka.actor.{ActorRef, ActorSystem, PoisonPill}
-import akka.testkit.{TestActorRef, TestProbe}
-import akka.util.Timeout
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, ActorSystem, PoisonPill}
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
+import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
@@ -69,8 +69,8 @@ class PrimaryServiceProxySpec
         "PrimaryServiceProxySpec",
         ConfigFactory
           .parseString("""
-            |akka.loggers = ["akka.testkit.TestEventListener"]
-            |akka.loglevel="OFF"
+            |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
+            |pekko.loglevel="OFF"
           """.stripMargin)
       )
     )

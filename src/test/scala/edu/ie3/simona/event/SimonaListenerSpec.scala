@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.event
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.{EventFilter, TestActorRef}
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.{EventFilter, TestActorRef}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.event.SimonaListenerSpec.{TestEvent, UnknownEvent}
 import edu.ie3.simona.event.listener.SimonaListenerWithFilter
@@ -33,8 +33,8 @@ class SimonaListenerSpec
         ConfigFactory
           .parseString(
             """
-            |akka.loggers =["edu.ie3.simona.test.common.SilentTestEventListener"]
-            |akka.loglevel="debug"
+            |pekko.loggers =["edu.ie3.simona.test.common.SilentTestEventListener"]
+            |pekko.loglevel="debug"
             |""".stripMargin
           )
       )

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.ontology.messages.services
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 
 import java.util.UUID
 import edu.ie3.simona.agent.participant.data.Data

@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.agent
 
-import akka.actor.FSM.CurrentState
-import akka.actor.{LoggingFSM, PoisonPill, Stash, Status}
+import org.apache.pekko.actor.FSM.CurrentState
+import org.apache.pekko.actor.{LoggingFSM, PoisonPill, Stash, Status}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.event.notifier.Notifier
 import edu.ie3.simona.logging.SimonaFSMActorLogging

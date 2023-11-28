@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.service
 
-import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import akka.actor.{Actor, ActorContext, ActorRef, Stash}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Stash}
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{

@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.api
 
-import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import akka.actor.{Actor, ActorRef, PoisonPill, Props}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.simona.api.ExtSimAdapter.{Create, ExtSimAdapterStateData}
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
