@@ -8,9 +8,9 @@ package edu.ie3.simona.main
 
 import java.util.Locale
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.pattern.gracefulStop
-import akka.util.Timeout
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.pattern.gracefulStop
+import org.apache.pekko.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.sim.setup.SimonaSetup
 import edu.ie3.util.scala.quantities.QuantityUtil

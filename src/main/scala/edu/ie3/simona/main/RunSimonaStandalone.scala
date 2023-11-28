@@ -6,11 +6,11 @@
 
 package edu.ie3.simona.main
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 
 import java.util.concurrent.TimeUnit
-import akka.pattern.ask
-import akka.util.Timeout
+import org.apache.pekko.pattern.ask
+import org.apache.pekko.util.Timeout
 import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, SimonaConfig}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   InitSimMessage,

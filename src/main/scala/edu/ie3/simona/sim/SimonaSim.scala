@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.sim
 
-import akka.actor.SupervisorStrategy.Stop
-import akka.actor.typed.scaladsl.adapter.TypedActorRefOps
-import akka.actor.{
+import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
+import org.apache.pekko.actor.SupervisorStrategy.Stop
+import org.apache.pekko.actor.{
   Actor,
   ActorRef,
   AllForOneStrategy,
@@ -74,11 +74,12 @@ class SimonaSim(simonaSetup: SimonaSetup)
     simonaSetup.systemParticipantsListener(context)
 
   // runtime event listener
-  val runtimeEventListener: akka.actor.typed.ActorRef[RuntimeEvent] =
+  val runtimeEventListener
+      : org.apache.pekko.actor.typed.ActorRef[RuntimeEvent] =
     simonaSetup.runtimeEventListener(context)
 
   /* start scheduler */
-  val timeAdvancer: akka.actor.typed.ActorRef[SchedulerMessage] =
+  val timeAdvancer: org.apache.pekko.actor.typed.ActorRef[SchedulerMessage] =
     simonaSetup.timeAdvancer(context, self, runtimeEventListener)
   val scheduler: ActorRef = simonaSetup.scheduler(context, timeAdvancer)
 

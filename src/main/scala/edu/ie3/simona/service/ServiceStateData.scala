@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.api
 
-import akka.actor.{Actor, ActorRef, PoisonPill, Props}
+import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.simona.api.ExtMessageUtils.{
   RichExtCompletion,
   RichExtScheduleTrigger

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.data.secondary
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData.WholesalePrice
 import edu.ie3.simona.agent.participant.data.DataService

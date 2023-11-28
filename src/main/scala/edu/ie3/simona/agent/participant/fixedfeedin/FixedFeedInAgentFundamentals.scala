@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.fixedfeedin
 
-import akka.actor.{ActorRef, FSM}
+import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.datamodel.models.result.system.{
   FixedFeedInResult,
