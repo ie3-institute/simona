@@ -127,7 +127,6 @@ dependencies {
   implementation "org.apache.pekko:pekko-actor_${scalaVersion}:${pekkoVersion}"
   implementation "org.apache.pekko:pekko-actor-typed_${scalaVersion}:${pekkoVersion}"
   implementation "org.apache.pekko:pekko-slf4j_${scalaVersion}:${pekkoVersion}"
-  implementation "org.apache.pekko:pekko-cluster_${scalaVersion}:${pekkoVersion}"
   implementation "org.apache.pekko:pekko-connectors-csv_${scalaVersion}:${pekkoVersion}"
 
   /* config */

@@ -38,7 +38,7 @@ class ResultEntityCsvSinkSpec
             """
             |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
             |pekko.loglevel="DEBUG"
-            |org.apache.pekko.coordinated-shutdown.phases.actor-system-terminate.timeout = 500s
+            |pekko.coordinated-shutdown.phases.actor-system-terminate.timeout = 500s
           """.stripMargin
           )
       )
