@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Two-parted scheduler in akka typed [#378](https://github.com/ie3-institute/simona/issues/378)
   - Adapting to simonaAPI 0.3.0 (adapted message protocol)
   - Schedule lock [#651](https://github.com/ie3-institute/simona/issues/651)
+- Validation of grid will throw exception instead of just logging errors [#463](https://github.com/ie3-institute/simona/issues/463)
 
 ## [3.0.0] - 2023-08-07
 
