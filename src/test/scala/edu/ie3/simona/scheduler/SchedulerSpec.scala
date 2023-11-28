@@ -16,7 +16,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.{LockMsg, ScheduleKey, Unlock}
-import edu.ie3.simona.util.ActorUtils.RichTriggeredAgent
+import edu.ie3.simona.util.ActorUtils.RichActivatedActor
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -30,7 +30,7 @@ class SchedulerSpec
 
   "The Scheduler should work correctly" when {
 
-    "receiving triggers before activation" in {
+    "receiving activation scheduling before activation" in {
       val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
@@ -65,7 +65,7 @@ class SchedulerSpec
       parent.expectMessage(Completion(schedulerActivation))
     }
 
-    "receiving triggers after init trigger" in {
+    "receiving activation scheduling after init activation" in {
       val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
@@ -93,7 +93,7 @@ class SchedulerSpec
         INIT_SIM_TICK
       )
 
-      // trigger is sent right away
+      // activation is sent right away
       agent2.expectMessage(Activation(INIT_SIM_TICK))
 
       scheduler ! Completion(agent2.ref)
@@ -174,7 +174,7 @@ class SchedulerSpec
       // TICK -1
       schedulerActivation ! Activation(INIT_SIM_TICK)
 
-      agent1.expectTriggerAndComplete(
+      agent1.expectActivationAndComplete(
         scheduler,
         INIT_SIM_TICK,
         Some(0)
@@ -182,7 +182,7 @@ class SchedulerSpec
 
       parent.expectNoMessage()
 
-      agent2.expectTriggerAndComplete(
+      agent2.expectActivationAndComplete(
         scheduler,
         INIT_SIM_TICK,
         Some(0)
@@ -196,7 +196,7 @@ class SchedulerSpec
       // TICK 0
       schedulerActivation ! Activation(0)
 
-      agent1.expectTriggerAndComplete(
+      agent1.expectActivationAndComplete(
         scheduler,
         0,
         Some(300)
@@ -204,7 +204,7 @@ class SchedulerSpec
 
       parent.expectNoMessage()
 
-      agent2.expectTriggerAndComplete(
+      agent2.expectActivationAndComplete(
         scheduler,
         0,
         Some(900)
@@ -215,7 +215,7 @@ class SchedulerSpec
       // TICK 300
       schedulerActivation ! Activation(300)
 
-      agent1.expectTriggerAndComplete(
+      agent1.expectActivationAndComplete(
         scheduler,
         300,
         Some(900)
@@ -229,7 +229,7 @@ class SchedulerSpec
       // TICK 900
       schedulerActivation ! Activation(900)
 
-      agent1.expectTriggerAndComplete(
+      agent1.expectActivationAndComplete(
         scheduler,
         900,
         Some(3600)
@@ -237,7 +237,7 @@ class SchedulerSpec
 
       parent.expectNoMessage()
 
-      agent2.expectTriggerAndComplete(
+      agent2.expectActivationAndComplete(
         scheduler,
         900,
         Some(1800)
@@ -250,17 +250,17 @@ class SchedulerSpec
       agent2.expectNoMessage()
     }
 
-    "five actors are getting triggered for ten ticks" in {
+    "five actors are getting activated for ten ticks" in {
       val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
       )
 
-      val triggeredAgents = (1 to 5)
+      val activatedAgents = (1 to 5)
         .map(i => TestProbe[Activation](s"agent_$i"))
 
-      triggeredAgents.foreach(actor =>
-        // send to init trigger to scheduler
+      activatedAgents.foreach(actor =>
+        // send to init activation to scheduler
         scheduler ! ScheduleActivation(
           actor.ref,
           INIT_SIM_TICK
@@ -274,8 +274,8 @@ class SchedulerSpec
       for (tick <- -1 to 8) {
         schedulerActivation ! Activation(tick)
 
-        triggeredAgents.foreach {
-          _.expectTriggerAndComplete(
+        activatedAgents.foreach {
+          _.expectActivationAndComplete(
             scheduler,
             tick,
             Some(tick + 1)
@@ -412,7 +412,7 @@ class SchedulerSpec
       parent.expectTerminated(scheduler)
     }
 
-    "asked to schedule trigger for a past tick while inactive" in {
+    "asked to schedule activation for a past tick while inactive" in {
       val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
@@ -429,7 +429,7 @@ class SchedulerSpec
       // TICK 900
       schedulerActivation ! Activation(900)
 
-      agent1.expectTriggerAndComplete(
+      agent1.expectActivationAndComplete(
         scheduler,
         900,
         Some(1800)
@@ -438,7 +438,7 @@ class SchedulerSpec
       parent.expectMessage(Completion(schedulerActivation, Some(1800)))
 
       // now inactive again
-      // can't schedule trigger with earlier tick than last tick (900) -> error
+      // can't schedule activation with earlier tick than last tick (900) -> error
       scheduler ! ScheduleActivation(agent1.ref, INIT_SIM_TICK)
 
       // agent does not receive activation
@@ -449,7 +449,7 @@ class SchedulerSpec
       parent.expectTerminated(scheduler)
     }
 
-    "asked to schedule trigger for a past tick while active" in {
+    "asked to schedule activation for a past tick while active" in {
       val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
@@ -467,7 +467,7 @@ class SchedulerSpec
       schedulerActivation ! Activation(0)
       agent1.expectMessage(Activation(0))
 
-      // can't schedule trigger for earlier tick than current active -> error
+      // can't schedule activation for earlier tick than current active -> error
       scheduler ! ScheduleActivation(agent1.ref, INIT_SIM_TICK)
 
       // agent does not receive activation
@@ -550,7 +550,7 @@ class SchedulerSpec
       // TICK -1
       schedulerActivation ! Activation(INIT_SIM_TICK)
 
-      agent1.expectTriggerAndComplete(
+      agent1.expectActivationAndComplete(
         scheduler,
         INIT_SIM_TICK,
         Some(0)
