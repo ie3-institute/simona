@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.test.helper
 
-import akka.testkit.TestException
+import org.apache.pekko.testkit.TestException
 import org.testcontainers.utility.MountableFile
 
 import java.nio.file.Paths

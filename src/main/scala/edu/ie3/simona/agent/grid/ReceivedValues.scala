@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.ontology.messages.PowerMessage.PowerResponseMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 

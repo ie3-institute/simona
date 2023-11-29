@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.event.{LoggingAdapter, NoLogging}
+import org.apache.pekko.event.{LoggingAdapter, NoLogging}
 import breeze.math.Complex
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.connector.ConnectorPort

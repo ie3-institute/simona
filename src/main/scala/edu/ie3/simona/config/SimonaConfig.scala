@@ -2102,6 +2102,7 @@ object SimonaConfig {
         maxSweepPowerDeviation: scala.Double,
         newtonraphson: SimonaConfig.Simona.Powerflow.Newtonraphson,
         resolution: java.time.Duration,
+        stopOnFailure: scala.Boolean,
         sweepTimeout: java.time.Duration
     )
     object Powerflow {
@@ -2157,6 +2158,8 @@ object SimonaConfig {
           resolution =
             if (c.hasPathOrNull("resolution")) c.getDuration("resolution")
             else java.time.Duration.parse("PT1H"),
+          stopOnFailure =
+            c.hasPathOrNull("stopOnFailure") && c.getBoolean("stopOnFailure"),
           sweepTimeout =
             if (c.hasPathOrNull("sweepTimeout")) c.getDuration("sweepTimeout")
             else java.time.Duration.parse("PT30S")
@@ -2614,8 +2617,7 @@ object SimonaConfig {
     final case class Time(
         endDateTime: java.lang.String,
         schedulerReadyCheckWindow: scala.Option[scala.Int],
-        startDateTime: java.lang.String,
-        stopOnFailedPowerFlow: scala.Boolean
+        startDateTime: java.lang.String
     )
     object Time {
       def apply(
@@ -2633,11 +2635,7 @@ object SimonaConfig {
             else None,
           startDateTime =
             if (c.hasPathOrNull("startDateTime")) c.getString("startDateTime")
-            else "2011-05-01 00:00:00",
-          stopOnFailedPowerFlow =
-            c.hasPathOrNull("stopOnFailedPowerFlow") && c.getBoolean(
-              "stopOnFailedPowerFlow"
-            )
+            else "2011-05-01 00:00:00"
         )
       }
     }

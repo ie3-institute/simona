@@ -6,30 +6,28 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.{ActorRef, Props, Stash}
+import edu.ie3.simona.agent.grid.GridAgent.Create
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentInitData,
   GridAgentUninitializedData
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
-import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
+import edu.ie3.simona.agent.state.GridAgentState.{Initializing, SimulateGrid}
 import edu.ie3.simona.agent.{EnvironmentRefs, SimonaAgent}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestGridPowerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+  Completion,
+  ScheduleActivation
 }
-import edu.ie3.simona.ontology.messages.StopMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeGridAgentTrigger,
-  StartGridSimulationTrigger
-}
+import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
+import org.apache.pekko.actor.{ActorRef, Props, Stash}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
@@ -49,6 +47,51 @@ object GridAgent {
         listener
       )
     )
+
+  /** GridAgent initialization data can only be constructed once all GridAgent
+    * actors are created. Thus, we need an extra initialization message.
+    * @param gridAgentInitData
+    *   The initialization data
+    */
+  final case class Create(
+      gridAgentInitData: GridAgentInitData,
+      unlockKey: ScheduleKey
+  )
+
+  /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
+    * execute a power flow calculation
+    *
+    * @param tick
+    *   current tick
+    */
+  final case class DoPowerFlowTrigger(tick: Long, currentSweepNo: Int)
+
+  /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
+    * activate the superior grid agent to check for deviation after two sweeps
+    * and see if the power flow converges
+    *
+    * @param tick
+    *   current tick
+    */
+  final case class CheckPowerDifferencesTrigger(tick: Long)
+
+  /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
+    * trigger the [[edu.ie3.simona.agent.grid.GridAgent]] s to prepare
+    * themselves for a new sweep
+    *
+    * @param tick
+    *   current tick
+    */
+  final case class PrepareNextSweepTrigger(tick: Long)
+
+  /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
+    * indicate that a result has been found and each
+    * [[edu.ie3.simona.agent.grid.GridAgent]] should do it's cleanup work
+    *
+    * @param tick
+    *   current tick
+    */
+  final case class FinishGridSimulationTrigger(tick: Long)
 }
 class GridAgent(
     val environmentRefs: EnvironmentRefs,
@@ -93,15 +136,23 @@ class GridAgent(
   startWith(Uninitialized, GridAgentUninitializedData)
 
   when(Uninitialized) {
-
     case Event(
-          TriggerWithIdMessage(
-            InitializeGridAgentTrigger(
-              gridAgentInitData: GridAgentInitData
-            ),
-            triggerId
-          ),
+          Create(gridAgentInitData, unlockKey),
           _
+        ) =>
+      environmentRefs.scheduler ! ScheduleActivation(
+        self.toTyped,
+        INIT_SIM_TICK,
+        Some(unlockKey)
+      )
+
+      goto(Initializing) using gridAgentInitData
+  }
+
+  when(Initializing) {
+    case Event(
+          Activation(INIT_SIM_TICK),
+          gridAgentInitData: GridAgentInitData
         ) =>
       // fail fast sanity checks
       GridAgentFailFast.failFast(gridAgentInitData, simonaConfig)
@@ -167,7 +218,8 @@ class GridAgent(
           simonaConfig.simona.powerflow.maxSweepPowerDeviation,
           simonaConfig.simona.powerflow.newtonraphson.epsilon.toVector.sorted,
           simonaConfig.simona.powerflow.newtonraphson.iterations,
-          simonaConfig.simona.powerflow.sweepTimeout
+          simonaConfig.simona.powerflow.sweepTimeout,
+          simonaConfig.simona.powerflow.stopOnFailure
         ),
         log,
         actorName
@@ -175,11 +227,9 @@ class GridAgent(
 
       log.debug("Je suis initialized")
 
-      environmentRefs.scheduler ! CompletionMessage(
-        triggerId,
-        Some(
-          ScheduleTriggerMessage(ActivityStartTrigger(resolution), self)
-        )
+      environmentRefs.scheduler ! Completion(
+        self.toTyped,
+        Some(resolution)
       )
 
       goto(Idle) using gridAgentBaseData
@@ -194,21 +244,14 @@ class GridAgent(
       stay()
 
     case Event(
-          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId),
+          Activation(tick),
           gridAgentBaseData: GridAgentBaseData
         ) =>
-      log.debug("received activity start trigger {}", triggerId)
-
       unstashAll()
 
-      environmentRefs.scheduler ! CompletionMessage(
-        triggerId,
-        Some(
-          ScheduleTriggerMessage(
-            StartGridSimulationTrigger(currentTick),
-            self
-          )
-        )
+      environmentRefs.scheduler ! Completion(
+        self.toTyped,
+        Some(tick)
       )
 
       goto(SimulateGrid) using gridAgentBaseData
