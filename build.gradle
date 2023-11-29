@@ -8,6 +8,7 @@ plugins {
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
   id 'pmd' // code check, working on source code
   id 'com.diffplug.spotless' version '6.23.0'// code format
+  id 'io.github.cosmicsilence.scalafix' version '0.1.15'
   id "com.github.ben-manes.versions" version '0.50.0'
   id "de.undercouch.download" version "5.5.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
@@ -46,6 +47,7 @@ java {
 
 apply from: scriptsLocation + 'pmd.gradle'
 apply from: scriptsLocation + 'spotless.gradle'
+apply from: scriptsLocation + 'scalafix.gradle'
 apply from: scriptsLocation + 'checkJavaVersion.gradle'
 apply from: scriptsLocation + 'tscfg.gradle' // config tasks
 apply from: scriptsLocation + 'documentation.gradle' // documentation tasks + configuration
@@ -196,7 +198,9 @@ tasks.withType(ScalaCompile) {
     "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
     "-P:scapegoat:dataDir:" + buildDir + "/reports/scapegoat/src/",
     "-P:scapegoat:disabledInspections:VariableShadowing",
-    "-P:scapegoat:ignoredFiles:.*/SimonaConfig.scala" // see scapegoat-sbt page for this param
+    "-P:scapegoat:ignoredFiles:.*/SimonaConfig.scala",
+    // see scapegoat-sbt page for this param
+    "-Ywarn-unused" // required for scalafix OrganizeImports
   ]
 }
 
@@ -205,7 +209,8 @@ compileTestScala {
   scalaCompileOptions.additionalParameters = [
     "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
     "-P:scapegoat:dataDir:" + buildDir + "/reports/scapegoat/testsrc/",
-    "-P:scapegoat:disabledInspections:VariableShadowing"
+    "-P:scapegoat:disabledInspections:VariableShadowing",
+    "-Ywarn-unused" // required for scalafix OrganizeImports
   ]
 }
 

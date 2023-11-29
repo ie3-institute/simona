@@ -2,5 +2,20 @@
 # https://help.github.com/articles/dealing-with-line-endings/
 #
 # These are explicitly windows files and should use crlf
-*.bat           text eol=crlf
+*.bat       text eol=crlf
 
+# sh files
+*.sh        text eol=lf
+*.bash      text eol=lf
+
+# These files are text and should be normalized
+*.scala     text
+*.java      text
+*.groovy    text
+*.csv       text
+*.conf      text
+
+# binary is a macro for -text -diff
+*.png       binary
+*.jpg       binary
+*.jar       binary
