@@ -13,8 +13,8 @@ import edu.ie3.simona.model.participant.load.random.{
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
-import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.TableDrivenPropertyChecks
+import org.scalatest.PrivateMethodTester
 
 import java.io.InputStreamReader
 
