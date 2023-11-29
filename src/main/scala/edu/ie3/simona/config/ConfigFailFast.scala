@@ -51,51 +51,51 @@ case object ConfigFailFast extends LazyLogging {
     check(simonaConfig)
   }
 
-  /** Checking the [[Config]], that aside of SIMONA also holds akka
+  /** Checking the [[Config]], that aside of SIMONA also holds pekko
     * configuration
     *
     * @param typeSafeConfig
     *   Config to check
     */
   def check(typeSafeConfig: Config): Unit = {
-    checkAkkaConfig(typeSafeConfig)
+    checkPekkoConfig(typeSafeConfig)
   }
 
-  /** Trying to get akka config and checking it
+  /** Trying to get pekko config and checking it
     *
     * @param typeSafeConfig
     *   Config to check
     */
-  private def checkAkkaConfig(typeSafeConfig: Config): Unit = {
-    Try(typeSafeConfig.getConfig("akka"))
-      .map(akkaConfig => checkAkkaLoggers(akkaConfig)) match {
+  private def checkPekkoConfig(typeSafeConfig: Config): Unit = {
+    Try(typeSafeConfig.getConfig("pekko"))
+      .map(pekkoConfig => checkPekkoLoggers(pekkoConfig)) match {
       case Failure(_: ConfigException.Missing) =>
         logger.warn(
-          "There is no akka config at all. Did you include akka config (properly)?"
+          "There is no pekko config at all. Did you include pekko config (properly)?"
         )
       case Failure(exception) =>
         throw new InvalidConfigParameterException(
-          "Checking of akka config failed due to unhandled error.",
+          "Checking of pekko config failed due to unhandled error.",
           exception
         )
       case Success(_) =>
     }
   }
 
-  /** Try to check the akka logging config
+  /** Try to check the pekko logging config
     *
     * @param typeSafeConfig
     *   Config to check
     */
-  private def checkAkkaLoggers(typeSafeConfig: Config): Unit = {
+  private def checkPekkoLoggers(typeSafeConfig: Config): Unit = {
     Try(typeSafeConfig.getIsNull("loggers")) match {
       case Success(true) | Failure(_: ConfigException.Missing) =>
         logger.warn(
-          "Akka loggers are not specified. Did you include akka config (properly)?"
+          "Pekko loggers are not specified. Did you include pekko config (properly)?"
         )
       case Failure(exception) =>
         throw new InvalidConfigParameterException(
-          "Checking of akka logging config failed due to unhandled error.",
+          "Checking of pekko logging config failed due to unhandled error.",
           exception
         )
       case _ =>

@@ -6,10 +6,11 @@
 
 package edu.ie3.simona.ontology.messages.services
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 
 import java.util.UUID
 import edu.ie3.simona.agent.participant.data.Data
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 
 /** Collections of all messages, that are send to and from the different
   * services
@@ -52,6 +53,11 @@ case object ServiceMessage {
     /** Message, that is used to announce a failed registration
       */
     case object RegistrationFailedMessage extends RegistrationResponseMessage
+
+    final case class ScheduleServiceActivation(
+        tick: Long,
+        unlockKey: ScheduleKey
+    )
   }
 
   /** Actual provision of data
@@ -63,5 +69,6 @@ case object ServiceMessage {
     val tick: Long
     val data: D
     val nextDataTick: Option[Long]
+    val unlockKey: Option[ScheduleKey]
   }
 }

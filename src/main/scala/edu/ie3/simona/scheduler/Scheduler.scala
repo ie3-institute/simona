@@ -6,20 +6,14 @@
 
 package edu.ie3.simona.scheduler
 
-import akka.actor
-import akka.actor.ActorRef
-import akka.actor.typed.Behavior
-import akka.actor.typed.scaladsl.adapter.TypedActorRefOps
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import edu.ie3.simona.actor.ActorUtil.stopOnError
-import edu.ie3.simona.ontology.messages.SchedulerMessage
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+  Completion,
+  ScheduleActivation
 }
-import edu.ie3.simona.ontology.trigger.Trigger
-import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.scheduler.SchedulerData.ActivationData
 
 /** Scheduler that activates actors at specific ticks and keeps them
@@ -28,20 +22,30 @@ import edu.ie3.simona.scheduler.SchedulerData.ActivationData
   */
 object Scheduler {
 
+  trait Incoming
+
+  private final case class WrappedActivation(activation: Activation)
+      extends Incoming
+
   def apply(
-      parent: actor.typed.ActorRef[SchedulerMessage]
-  ): Behavior[SchedulerMessage] = inactive(
-    SchedulerData(parent)
-  )
+      parent: ActorRef[SchedulerMessage]
+  ): Behavior[Incoming] = Behaviors.setup { ctx =>
+    val adapter =
+      ctx.messageAdapter[Activation](msg => WrappedActivation(msg))
+
+    inactive(
+      SchedulerData(parent, adapter)
+    )
+  }
 
   private def inactive(
       data: SchedulerData,
       lastActiveTick: Long = Long.MinValue
-  ): Behavior[SchedulerMessage] =
+  ): Behavior[Incoming] =
     Behaviors.receive {
-      case (ctx, TriggerWithIdMessage(ActivityStartTrigger(tick), triggerId)) =>
+      case (ctx, WrappedActivation(Activation(tick))) =>
         checkActivation(data, tick).map(stopOnError(ctx, _)).getOrElse {
-          sendCurrentTriggers(data, ActivationData(tick, triggerId)) match {
+          sendCurrentTriggers(data, ActivationData(tick)) match {
             case (newSchedulerData, newActivationData) =>
               active(newSchedulerData, newActivationData)
           }
@@ -49,23 +53,23 @@ object Scheduler {
 
       case (
             ctx,
-            ScheduleTriggerMessage(trigger, actorToBeScheduled, unlockKey)
+            ScheduleActivation(actor, newTick, unlockKey)
           ) =>
-        checkTriggerSchedule(lastActiveTick + 1L, trigger)
+        checkTriggerSchedule(lastActiveTick + 1L, newTick)
           .map(stopOnError(ctx, _))
           .getOrElse {
             val oldEarliestTick = data.triggerQueue.headKeyOption
 
-            val updatedData = scheduleTrigger(data, trigger, actorToBeScheduled)
+            val updatedData = scheduleTrigger(data, actor, newTick)
             val newEarliestTick = updatedData.triggerQueue.headKeyOption
 
             // also potentially schedule with parent if the new earliest tick is
             // different from the old earliest tick (including if nothing had
             // been scheduled before)
             if (newEarliestTick != oldEarliestTick)
-              data.parent ! ScheduleTriggerMessage(
-                ActivityStartTrigger(trigger.tick),
-                ctx.self.toClassic,
+              data.parent ! ScheduleActivation(
+                data.activationAdapter,
+                newTick,
                 unlockKey
               )
             else {
@@ -75,24 +79,23 @@ object Scheduler {
             inactive(updatedData, lastActiveTick)
           }
 
-      case (ctx, unexpected: SchedulerMessage) =>
+      case (ctx, unexpected) =>
         stopOnError(
           ctx,
           s"Received unexpected message $unexpected when inactive"
         )
-
     }
 
   private def active(
       data: SchedulerData,
       activationData: ActivationData
-  ): Behavior[SchedulerMessage] = Behaviors.receive {
+  ): Behavior[Incoming] = Behaviors.receive {
 
     case (
           ctx,
-          ScheduleTriggerMessage(trigger, actorToBeScheduled, unlockKey)
+          ScheduleActivation(actor, newTick, unlockKey)
         ) =>
-      checkTriggerSchedule(activationData.tick, trigger)
+      checkTriggerSchedule(activationData.tick, newTick)
         .map(stopOnError(ctx, _))
         .getOrElse {
           // if there's a lock:
@@ -101,7 +104,7 @@ object Scheduler {
           unlockKey.foreach { _.unlock() }
 
           sendCurrentTriggers(
-            scheduleTrigger(data, trigger, actorToBeScheduled),
+            scheduleTrigger(data, actor, newTick),
             activationData
           ) match {
             case (newSchedulerData, newActivationData) =>
@@ -109,22 +112,18 @@ object Scheduler {
           }
         }
 
-    case (ctx, CompletionMessage(triggerId, newTrigger)) =>
-      val tick = activationData.tick
+    case (ctx, Completion(actor, maybeNewTick)) =>
+      val currentTick = activationData.tick
 
-      checkCompletion(activationData, triggerId)
-        .toLeft(handleCompletion(activationData, triggerId))
+      checkCompletion(activationData, actor)
+        .toLeft(handleCompletion(activationData, actor))
         .flatMap { updatedActivationData =>
           // schedule new triggers, if present
-          newTrigger
-            .map { newTrigger =>
-              checkTriggerSchedule(tick, newTrigger.trigger)
+          maybeNewTick
+            .map { newTick =>
+              checkTriggerSchedule(currentTick, newTick)
                 .toLeft(
-                  scheduleTrigger(
-                    data,
-                    newTrigger.trigger,
-                    newTrigger.actorToBeScheduled
-                  )
+                  scheduleTrigger(data, actor, newTick)
                 )
             }
             .getOrElse(Right(data))
@@ -133,10 +132,10 @@ object Scheduler {
         .map { case (updatedData, updatedActivationData) =>
           if (isTickCompleted(updatedData, updatedActivationData)) {
             // send completion to parent, if all completed
-            completeWithParent(updatedData, updatedActivationData, ctx)
-            inactive(updatedData, tick)
+            completeWithParent(updatedData)
+            inactive(updatedData, currentTick)
           } else {
-            // there might be new triggers for current tick, send them out
+            // there might be new triggers for current currentTick, send them out
             sendCurrentTriggers(updatedData, updatedActivationData) match {
               case (newSchedulerData, newActivationData) =>
                 active(newSchedulerData, newActivationData)
@@ -145,7 +144,7 @@ object Scheduler {
         }
         .fold(stopOnError(ctx, _), identity)
 
-    case (ctx, unexpected: SchedulerMessage) =>
+    case (ctx, unexpected) =>
       stopOnError(ctx, s"Received unexpected message $unexpected when active")
   }
 
@@ -161,28 +160,22 @@ object Scheduler {
 
   private def checkTriggerSchedule(
       minTick: Long,
-      trigger: Trigger
+      newTick: Long
   ): Option[String] = {
-    Option.when(trigger.tick < minTick) {
-      s"Cannot schedule an event $trigger at tick ${trigger.tick} when the last or currently activated tick is $minTick"
+    Option.when(newTick < minTick) {
+      s"Cannot schedule an event at tick $newTick when the last or currently activated tick is $minTick"
     }
   }
 
   private def checkCompletion(
       activationData: ActivationData,
-      triggerId: Long
+      actor: ActorRef[Activation]
   ): Option[String] =
-    Option
-      .when(activationData.triggerIdToActiveTrigger.isEmpty) {
-        s"No completions expected, received completion for trigger id $triggerId"
-      }
-      .orElse {
-        Option.unless(
-          activationData.triggerIdToActiveTrigger.contains(triggerId)
-        ) {
-          s"Trigger id $triggerId is not part of expected trigger ids ${activationData.triggerIdToActiveTrigger.keys}"
-        }
-      }
+    Option.unless(
+      activationData.activeActors.contains(actor)
+    ) {
+      s"Actor $actor is not part of expected completing actors ${activationData.activeActors}"
+    }
 
   private def sendCurrentTriggers(
       data: SchedulerData,
@@ -196,18 +189,12 @@ object Scheduler {
                 updatedActivationData,
                 actor
               ) =>
-            data.actorToTrigger
-              .remove(actor)
-              .map { triggerWithId =>
-                // track the trigger id with the scheduled trigger
-                updatedActivationData.triggerIdToActiveTrigger +=
-                  triggerWithId.triggerId -> actor
+            // track the trigger id with the scheduled trigger
+            updatedActivationData.activeActors += actor
 
-                actor ! triggerWithId
+            actor ! Activation(activationData.tick)
 
-                updatedActivationData
-              }
-              .getOrElse(updatedActivationData)
+            updatedActivationData
 
         }
 
@@ -216,36 +203,23 @@ object Scheduler {
 
   private def scheduleTrigger(
       data: SchedulerData,
-      trigger: Trigger,
-      actorToBeScheduled: ActorRef
+      actorToBeScheduled: ActorRef[Activation],
+      tick: Long
   ): SchedulerData = {
-    val newTriggerId = data.lastTriggerId + 1L
-    val triggerWithIdMessage =
-      TriggerWithIdMessage(
-        trigger,
-        newTriggerId
-      )
-
     /* update trigger queue */
     data.triggerQueue.set(
-      trigger.tick,
+      tick,
       actorToBeScheduled
     )
 
-    data.actorToTrigger += (
-      actorToBeScheduled -> triggerWithIdMessage
-    )
-
-    data.copy(
-      lastTriggerId = newTriggerId
-    )
+    data
   }
 
   private def handleCompletion(
       data: ActivationData,
-      triggerId: Long
+      actor: ActorRef[Activation]
   ): ActivationData = {
-    data.triggerIdToActiveTrigger.remove(triggerId)
+    data.activeActors.remove(actor)
     data
   }
 
@@ -255,20 +229,11 @@ object Scheduler {
       data: SchedulerData,
       activationData: ActivationData
   ): Boolean =
-    activationData.triggerIdToActiveTrigger.isEmpty &&
+    activationData.activeActors.isEmpty &&
       !data.triggerQueue.headKeyOption.contains(activationData.tick)
 
-  private def completeWithParent(
-      data: SchedulerData,
-      activationData: ActivationData,
-      ctx: ActorContext[SchedulerMessage]
-  ): Unit = {
-    val newTriggers = data.triggerQueue.headKeyOption.map(tick =>
-      ScheduleTriggerMessage(ActivityStartTrigger(tick), ctx.self.toClassic)
-    )
-    data.parent ! CompletionMessage(
-      activationData.activationTriggerId,
-      newTriggers
-    )
+  private def completeWithParent(data: SchedulerData): Unit = {
+    val newTick = data.triggerQueue.headKeyOption
+    data.parent ! Completion(data.activationAdapter, newTick)
   }
 }
