@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.ActorRef
-import akka.event.LoggingAdapter
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.event.LoggingAdapter
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.powerflow.model.PowerFlowResult
@@ -49,7 +49,7 @@ object GridAgentData {
     *   that are of relevance to the given sub grid container
     * @param subGridGateToActorRef
     *   information on inferior and superior grid connections [[SubGridGate]] s
-    *   and [[ActorRef]] s of the corresponding [[GridAgent]] s
+    *   and [[ActorRef]] s of the corresponding [[GridAgent]]s
     */
   final case class GridAgentInitData(
       subGridContainer: SubGridContainer,

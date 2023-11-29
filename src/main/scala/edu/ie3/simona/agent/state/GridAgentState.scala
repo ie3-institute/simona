@@ -10,6 +10,8 @@ sealed trait GridAgentState extends AgentState
 
 object GridAgentState {
 
+  case object Initializing extends GridAgentState
+
   case object SimulateGrid extends GridAgentState
 
   case object CheckPowerDifferences extends GridAgentState

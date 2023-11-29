@@ -8,8 +8,8 @@ package edu.ie3.simona.agent.grid
 
 import java.util.UUID
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.{TestKit, TestProbe}
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.{TestKit, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.test.common.{TestKitWithShutdown, UnitSpec}
@@ -21,8 +21,8 @@ class ReceivedValuesStoreSpec
         "ReceivedValuesStoreSpec",
         ConfigFactory
           .parseString("""
-            |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-            |akka.loglevel="OFF"
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="OFF"
         """.stripMargin)
       )
     )
