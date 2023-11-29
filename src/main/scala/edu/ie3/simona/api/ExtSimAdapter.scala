@@ -6,35 +6,29 @@
 
 package edu.ie3.simona.api
 
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
-import edu.ie3.simona.api.ExtMessageUtils.{
-  RichExtCompletion,
-  RichExtScheduleTrigger
-}
-import edu.ie3.simona.api.ExtSimAdapter.{
-  ExtSimAdapterStateData,
-  InitExtSimAdapter
-}
+import edu.ie3.simona.api.ExtSimAdapter.{Create, ExtSimAdapterStateData}
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
-  TerminationMessage,
-  TerminationCompleted,
   ActivationMessage,
+  TerminationCompleted,
+  TerminationMessage,
   CompletionMessage => ExtCompletionMessage
 }
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+  Completion,
+  ScheduleActivation
 }
-import edu.ie3.simona.ontology.messages.StopMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeExtSimAdapterTrigger
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
+import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
+import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+
+import scala.jdk.OptionConverters._
 
 object ExtSimAdapter {
 
@@ -43,86 +37,75 @@ object ExtSimAdapter {
       new ExtSimAdapter(scheduler)
     )
 
-  final case class InitExtSimAdapter(
-      extSimData: ExtSimAdapterData
-  )
+  /** The [[ExtSimAdapterData]] can only be constructed once the ExtSimAdapter
+    * actor is created. Thus, we need an extra initialization message.
+    *
+    * @param extSimData
+    *   The [[ExtSimAdapterData]] of the corresponding external simulation
+    */
+  final case class Create(extSimData: ExtSimAdapterData, unlockKey: ScheduleKey)
 
   final case class ExtSimAdapterStateData(
       extSimData: ExtSimAdapterData,
-      triggeredTicks: Map[Long, Long] = Map.empty // tick -> id
+      currentTick: Option[Long] = None
   )
 }
 
 final case class ExtSimAdapter(scheduler: ActorRef)
     extends Actor
     with SimonaActorLogging {
-  override def receive: Receive = {
-    case TriggerWithIdMessage(
-          InitializeExtSimAdapterTrigger(
-            InitExtSimAdapter(extSimData)
-          ),
-          triggerId
-        ) =>
-      // triggering first time at init tick
-      scheduler ! CompletionMessage(
-        triggerId,
-        Some(
-          ScheduleTriggerMessage(
-            ActivityStartTrigger(INIT_SIM_TICK),
-            self
-          )
-        )
-      )
-      context become receiveIdle(
-        ExtSimAdapterStateData(extSimData)
-      )
+  override def receive: Receive = { case Create(extSimAdapterData, unlockKey) =>
+    // triggering first time at init tick
+    scheduler ! ScheduleActivation(
+      self.toTyped,
+      INIT_SIM_TICK,
+      Some(unlockKey)
+    )
+    context become receiveIdle(
+      ExtSimAdapterStateData(extSimAdapterData)
+    )
   }
 
-  def receiveIdle(implicit stateData: ExtSimAdapterStateData): Receive = {
-    case TriggerWithIdMessage(ActivityStartTrigger(tick), triggerId) =>
+  private def receiveIdle(implicit
+      stateData: ExtSimAdapterStateData
+  ): Receive = {
+    case Activation(tick) =>
       stateData.extSimData.queueExtMsg(
         new ActivationMessage(tick)
       )
       log.debug(
-        "Tick {} (trigger id {}) has been scheduled in external simulation",
-        tick,
-        triggerId
+        "Tick {} has been activated in external simulation",
+        tick
       )
 
       context become receiveIdle(
-        stateData.copy(
-          triggeredTicks = stateData.triggeredTicks + (tick -> triggerId)
-        )
+        stateData.copy(currentTick = Some(tick))
       )
 
     case extCompl: ExtCompletionMessage =>
       // when multiple triggers have been sent, a completion message
       // always refers to the oldest tick
-      val (oldestTick, oldestTriggerId) = getOldestTickAndTriggerId.getOrElse(
-        throw new RuntimeException("No tick has been triggered")
-      )
 
-      scheduler ! extCompl.toSimona(
-        oldestTriggerId,
-        self
-      )
+      val newTick = extCompl.nextActivation().toScala.map(Long2long)
+
+      scheduler ! Completion(self.toTyped, newTick)
       log.debug(
-        "Tick {} (trigger id {}) has been completed in external simulation",
-        oldestTick,
-        oldestTriggerId
+        "Tick {} has been completed in external simulation",
+        stateData.currentTick
       )
 
-      context become receiveIdle(
-        stateData.copy(
-          triggeredTicks = stateData.triggeredTicks - oldestTick
-        )
-      )
+      context become receiveIdle(stateData.copy(currentTick = None))
 
     case scheduleDataService: ScheduleDataServiceMessage =>
-      val (oldestTick, _) = getOldestTickAndTriggerId.getOrElse(
+      val tick = stateData.currentTick.getOrElse(
         throw new RuntimeException("No tick has been triggered")
       )
-      scheduler ! scheduleDataService.toSimona(oldestTick)
+      val key = ScheduleLock.singleKey(context, scheduler.toTyped, tick)
+
+      scheduleDataService.getDataService ! ScheduleServiceActivation(
+        tick,
+        key
+      )
 
     case StopMessage(simulationSuccessful) =>
       // let external sim know that we have terminated
@@ -135,9 +118,4 @@ final case class ExtSimAdapter(scheduler: ActorRef)
       self ! PoisonPill
   }
 
-  private def getOldestTickAndTriggerId(implicit
-      stateData: ExtSimAdapterStateData
-  ): Option[(Long, Long)] =
-    stateData.triggeredTicks
-      .minByOption(_._1)
 }

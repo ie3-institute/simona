@@ -6,7 +6,8 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.{ActorRef, FSM}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, FSM, PoisonPill}
 import org.apache.pekko.pattern.{ask, pipe}
 import org.apache.pekko.util.{Timeout => PekkoTimeout}
 import breeze.linalg.{DenseMatrix, DenseVector}
@@ -18,6 +19,7 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
+import edu.ie3.simona.agent.grid.GridAgent._
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   PowerFlowDoneData
@@ -30,22 +32,18 @@ import edu.ie3.simona.agent.state.GridAgentState.{
   HandlePowerFlowCalculations,
   SimulateGrid
 }
+import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage._
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  PowerFlowFailedMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.simona.ontology.messages.VoltageMessage.{
   ProvideSlackVoltageMessage,
   RequestSlackVoltageMessage
 }
-import edu.ie3.simona.ontology.trigger.Trigger._
-import edu.ie3.simona.util.TickUtil._
+import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.quantities.Megavars
 import edu.ie3.util.scala.quantities.SquantsUtils.RichElectricPotential
 import squants.Each
@@ -70,16 +68,13 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     // first part of the grid simulation, same for all gridAgents on all levels
     // we start with a forward-sweep by requesting the data from our child assets and grids (if any)
     case Event(
-          TriggerWithIdMessage(
-            StartGridSimulationTrigger(currentTick),
-            triggerId
-          ),
+          Activation(currentTick),
           gridAgentBaseData: GridAgentBaseData
         ) =>
       log.debug("Start sweep number: {}", gridAgentBaseData.currentSweepNo)
       // hold tick and trigger for the whole time the dbfs is executed or
       // at least until the the first full sweep is done (for superior grid agent only)
-      holdTickAndTriggerId(currentTick, triggerId)
+      holdTick(currentTick)
 
       // we start the grid simulation by requesting the p/q values of all the nodes we are responsible for
       // as well as the slack voltage power from our superior grid
@@ -444,18 +439,13 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         gridAgentBaseData.inferiorGridGates
       )
 
-      // / release tick and trigger for the whole simulation (StartGridSimulationTrigger)
-      val (_, simTriggerId) = releaseTickAndTriggerId()
+      // / release tick for the whole simulation (StartGridSimulationTrigger)
+      releaseTick()
 
       // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
-      environmentRefs.scheduler ! CompletionMessage(
-        simTriggerId,
-        Some(
-          ScheduleTriggerMessage(
-            ActivityStartTrigger(currentTick + resolution),
-            self
-          )
-        )
+      environmentRefs.scheduler ! Completion(
+        self.toTyped,
+        Some(currentTick + resolution)
       )
 
       // return to Idle
@@ -888,8 +878,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             failedResult.iteration,
             failedResult.cause
           )
-          environmentRefs.scheduler ! PowerFlowFailedMessage
           self ! FinishGridSimulationTrigger(currentTick)
+          handlePowerFlowFailure(gridAgentBaseData)
           goto(SimulateGrid) using gridAgentBaseData
       }
   }
@@ -990,8 +980,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           )
       if (powerFlowFailedSomewhere) {
         log.warning("Power flow failed! This incident will be reported!")
-        environmentRefs.scheduler ! PowerFlowFailedMessage
         self ! FinishGridSimulationTrigger(currentTick)
+        handlePowerFlowFailure(gridAgentBaseData)
         goto(SimulateGrid) using gridAgentBaseData
       } else {
         self ! CheckPowerDifferencesTrigger(currentTick)
@@ -1005,12 +995,22 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     }
   }
 
+  private def handlePowerFlowFailure(
+      gridAgentBaseData: GridAgentBaseData
+  ): Unit = {
+    environmentRefs.runtimeEventListener ! PowerFlowFailed
+
+    if (gridAgentBaseData.powerFlowParams.stopOnFailure) {
+      log.error("Stopping because of failed power flow.")
+      self ! PoisonPill
+    }
+  }
+
   /** Normally only reached by the superior (dummy) agent!
     *
     * Triggers a state transition to [[SimulateGrid]], informs the
     * [[edu.ie3.simona.scheduler.Scheduler]] about the finish of this sweep and
-    * requests a new trigger for itself for a new sweep (which means a new
-    * [[StartGridSimulationTrigger]])
+    * requests a new trigger for itself for a new sweep
     *
     * @param gridAgentBaseData
     *   the [[GridAgentBaseData]] that should be used in the next sweep in
@@ -1025,12 +1025,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       currentTick: Long
   ): FSM.State[AgentState, GridAgentData] = {
 
-    val (_, oldTrigger) = releaseTickAndTriggerId()
-    environmentRefs.scheduler ! CompletionMessage(
-      oldTrigger,
-      Some(
-        ScheduleTriggerMessage(StartGridSimulationTrigger(currentTick), self)
-      )
+    releaseTick()
+    environmentRefs.scheduler ! Completion(
+      self.toTyped,
+      Some(currentTick)
     )
 
     goto(SimulateGrid) using gridAgentBaseData

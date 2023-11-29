@@ -63,6 +63,7 @@ class GridAgentSetup3WSpec
           override def receive: Receive = { case "setup" =>
             val environmentRefs = EnvironmentRefs(
               scheduler = self,
+              runtimeEventListener = self,
               primaryServiceProxy = self,
               weather = ActorRef.noSender,
               evDataService = None

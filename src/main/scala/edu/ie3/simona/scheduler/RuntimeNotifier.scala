@@ -136,7 +136,6 @@ final case class RuntimeNotifier(
       Done(
         endTick,
         simStartTime - now(),
-        0,
         errorInSim = false
       )
     )
@@ -158,7 +157,6 @@ final case class RuntimeNotifier(
       Done(
         endTick,
         simStartTime - now(),
-        0,
         errorInSim = true
       )
     )

@@ -20,6 +20,7 @@ import edu.ie3.simona.event.RuntimeEvent.{
   Error,
   InitComplete,
   Initializing,
+  PowerFlowFailed,
   Ready,
   Simulating
 }
@@ -76,7 +77,7 @@ class RuntimeEventListenerSpec
         Initializing,
         Ready(currentTick, duration),
         Simulating(currentTick, 0),
-        Done(endTick, duration, 0, errorInSim = false),
+        Done(endTick, duration, errorInSim = false),
         Error(errMsg)
       )
 
@@ -103,6 +104,10 @@ class RuntimeEventListenerSpec
           )
         )
       }
+
+      // Fail two power flows, should get counted
+      listenerRef ! PowerFlowFailed
+      listenerRef ! PowerFlowFailed
 
       val events = Seq(
         (
@@ -131,9 +136,9 @@ class RuntimeEventListenerSpec
           s"Simulation until ${calcTime(currentTick)} completed."
         ),
         (
-          Done(endTick, duration, 0, errorInSim = false),
+          Done(endTick, duration, errorInSim = false),
           Level.INFO,
-          s"Simulation completed with \u001b[0;32mSUCCESS (Failed PF: 0)\u001b[0;30m in time step ${calcTime(endTick)}. Total runtime: 3h : 0m : 5s "
+          s"Simulation completed with \u001b[0;32mSUCCESS (Failed PF: 2)\u001b[0;30m in time step ${calcTime(endTick)}. Total runtime: 3h : 0m : 5s "
         ),
         (
           Error(errMsg),

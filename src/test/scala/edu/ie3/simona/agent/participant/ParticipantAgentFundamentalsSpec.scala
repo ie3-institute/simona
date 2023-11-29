@@ -12,27 +12,25 @@ import org.apache.pekko.testkit.TestFSMRef
 import org.apache.pekko.util.Timeout
 import breeze.numerics.pow
 import com.typesafe.config.ConfigFactory
+import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.state.AgentState
+import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
   InconsistentStateException
 }
-import edu.ie3.simona.model.participant.CalcRelevantData.{
-  FixedRelevantData,
-  LoadRelevantData
-}
-import edu.ie3.simona.model.participant.{FixedFeedInModel, SystemParticipant}
+import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
+import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
 import edu.ie3.simona.model.participant.load.{FixedLoadModel, LoadReference}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
-import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.test.common.AgentSpec
 import edu.ie3.simona.test.common.model.participant.LoadTestData
 import edu.ie3.util.TimeUtil
@@ -62,7 +60,8 @@ class ParticipantAgentFundamentalsSpec
     )
     with LoadTestData
     with PrivateMethodTester
-    with TableDrivenPropertyChecks {
+    with TableDrivenPropertyChecks
+    with MockitoSugar {
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
   implicit val pTolerance: squants.Power = Megawatts(0.001)
@@ -80,7 +79,12 @@ class ParticipantAgentFundamentalsSpec
   ], ParticipantAgentMock] =
     TestFSMRef(
       new ParticipantAgentMock(
-        scheduler = self
+        scheduler = self,
+        initStateData = mock[ParticipantInitializeStateData[
+          SystemParticipantInput,
+          BaseRuntimeConfig,
+          ApparentPower
+        ]]
       )
     )
   val mockAgent: ParticipantAgentMock = mockAgentTestRef.underlyingActor
@@ -253,10 +257,7 @@ class ParticipantAgentFundamentalsSpec
 
       mockAgent.popNextActivationTrigger(baseStateData) match {
         case (Some(activation), actualBaseStateData) =>
-          activation shouldBe ScheduleTriggerMessage(
-            ActivityStartTrigger(0L),
-            mockAgentTestRef
-          )
+          activation shouldBe 0L
           /* Base state data haven't changed */
           actualBaseStateData shouldBe baseStateData
         case _ =>
@@ -275,10 +276,7 @@ class ParticipantAgentFundamentalsSpec
 
       mockAgent.popNextActivationTrigger(baseStateData) match {
         case (Some(activation), actualBaseStateData) =>
-          activation shouldBe ScheduleTriggerMessage(
-            ActivityStartTrigger(0L),
-            mockAgentTestRef
-          )
+          activation shouldBe 0L
           /* Additional activation tick has been popped from base state data */
           actualBaseStateData.additionalActivationTicks.corresponds(
             Array(10L, 20L)
@@ -300,10 +298,7 @@ class ParticipantAgentFundamentalsSpec
 
       mockAgent.popNextActivationTrigger(baseStateData) match {
         case (Some(activation), actualBaseStateData) =>
-          activation shouldBe ScheduleTriggerMessage(
-            ActivityStartTrigger(0L),
-            mockAgentTestRef
-          )
+          activation shouldBe 0L
           /* Additional activation tick has been popped from base state data */
           actualBaseStateData.additionalActivationTicks.corresponds(
             Array(10L, 20L)
