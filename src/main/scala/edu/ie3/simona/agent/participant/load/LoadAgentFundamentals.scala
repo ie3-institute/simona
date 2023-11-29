@@ -59,7 +59,6 @@ import squants.{Dimensionless, Each, Power}
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.SortedSet
-import scala.reflect.{ClassTag, classTag}
 
 protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
   LD
@@ -72,8 +71,6 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       LM
     ] {
   this: LoadAgent[LD, LM] =>
-  override protected val pdClassTag: ClassTag[ApparentPower] =
-    classTag[ApparentPower]
   override val alternativeResult: ApparentPower = ZERO_POWER
 
   /** Determines the needed base state data in dependence of the foreseen

@@ -37,7 +37,7 @@ object ScalaReflectionSerde {
       override def close(): Unit = inner.close()
     }
 
-  def reflectionDeserializer4S[T: RecordFormat]: Deserializer[T] =
+  def reflectionDeserializer4S[T >: Null: RecordFormat]: Deserializer[T] =
     new Deserializer[T] {
       val inner = new GenericAvroDeserializer()
 
@@ -52,7 +52,7 @@ object ScalaReflectionSerde {
           .map(data =>
             implicitly[RecordFormat[T]].from(inner.deserialize(topic, data))
           )
-          .getOrElse(null.asInstanceOf[T])
+          .orNull
 
       override def close(): Unit = inner.close()
     }

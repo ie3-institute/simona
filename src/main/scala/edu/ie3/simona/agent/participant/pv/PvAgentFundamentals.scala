@@ -50,7 +50,6 @@ import squants.{Dimensionless, Each, Power}
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.SortedSet
-import scala.reflect.{ClassTag, classTag}
 
 protected trait PvAgentFundamentals
     extends ParticipantAgentFundamentals[
@@ -62,8 +61,6 @@ protected trait PvAgentFundamentals
       PvModel
     ] {
   this: PvAgent =>
-  override protected val pdClassTag: ClassTag[ApparentPower] =
-    classTag[ApparentPower]
   override val alternativeResult: ApparentPower = ZERO_POWER
 
   /** Determines the needed base state data in dependence of the foreseen

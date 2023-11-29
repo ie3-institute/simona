@@ -56,7 +56,6 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.SortedSet
 import scala.jdk.OptionConverters.RichOptional
-import scala.reflect.{ClassTag, classTag}
 
 trait HpAgentFundamentals
     extends ParticipantAgentFundamentals[
@@ -68,8 +67,6 @@ trait HpAgentFundamentals
       HpModel
     ] {
   this: HpAgent =>
-  override protected val pdClassTag: ClassTag[ApparentPowerAndHeat] =
-    classTag[ApparentPowerAndHeat]
   override val alternativeResult: ApparentPowerAndHeat = ApparentPowerAndHeat(
     Megawatts(0d),
     Megavars(0d),

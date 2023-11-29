@@ -34,10 +34,15 @@ final case class ResultEntityKafkaSink[
 ) extends ResultEntitySink {
 
   override def handleResultEntity(resultEntity: ResultEntity): Unit = {
-    val plainEntity = plainWriter.writePlain(resultEntity.asInstanceOf[V])
-    producer.send(
-      new ProducerRecord[String, P](topic, plainEntity)
-    )
+    resultEntity match {
+      case matchingEntity: V =>
+        val plainEntity = plainWriter.writePlain(matchingEntity)
+        producer.send(
+          new ProducerRecord[String, P](topic, plainEntity)
+        )
+      case other =>
+        throw new RuntimeException(s"Received unexpected result entity $other")
+    }
   }
 
   override def close(): Unit = {

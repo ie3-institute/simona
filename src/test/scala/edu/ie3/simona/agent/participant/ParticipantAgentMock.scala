@@ -47,7 +47,6 @@ import squants.energy.{Kilowatts, Megawatts}
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.SortedSet
-import scala.reflect.{ClassTag, classTag}
 
 /** Creating a mocking participant agent
   *
@@ -78,8 +77,6 @@ class ParticipantAgentMock(
       SimonaConfig.BaseRuntimeConfig,
       SystemParticipant[FixedRelevantData.type, ApparentPower]
     ] {
-  override protected val pdClassTag: ClassTag[ApparentPower] =
-    classTag[ApparentPower]
   override val alternativeResult: ApparentPower = ZERO_POWER
 
   /** Partial function, that is able to transfer

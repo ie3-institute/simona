@@ -54,7 +54,6 @@ import squants.{Dimensionless, Each}
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.SortedSet
-import scala.reflect.{ClassTag, classTag}
 
 protected trait EvcsAgentFundamentals
     extends ParticipantAgentFundamentals[
@@ -67,8 +66,6 @@ protected trait EvcsAgentFundamentals
     ]
     with LazyLogging {
   this: EvcsAgent =>
-  override protected val pdClassTag: ClassTag[ApparentPower] =
-    classTag[ApparentPower]
 
   /** Determines the needed base state data in dependence of the foreseen
     * simulation mode of the agent.

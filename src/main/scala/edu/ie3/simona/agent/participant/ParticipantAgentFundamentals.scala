@@ -99,7 +99,6 @@ protected trait ParticipantAgentFundamentals[
     M <: SystemParticipant[CD, PD]
 ] extends ServiceRegistration[PD, CD, D, I, MC, M] {
   this: ParticipantAgent[PD, CD, D, I, MC, M] =>
-  protected val pdClassTag: ClassTag[PD]
   protected implicit val timeout: util.Timeout = Timeout(10, TimeUnit.SECONDS)
 
   /** Tries to extract the DateTime value from the base state data and verifies,
@@ -670,48 +669,29 @@ protected trait ParticipantAgentFundamentals[
       .flatMap { case (_, maybeData) =>
         maybeData
       }
-      .fold[Try[PrimaryData]] {
+      .fold[Try[PD]] {
         Failure(
           new IllegalStateException(
             "Not able to determine the most recent result, although it should have been sent."
           )
         )
       } {
-        case result: PrimaryData
-            if pdClassTag.runtimeClass.equals(result.getClass) =>
+        case result: PD =>
           Success(result)
-        case primaryData: PrimaryData =>
-          primaryData match {
-            case pd: EnrichableData[_] =>
-              val q =
-                reactivePowerFunction(pd.p)
-              val enriched = pd.add(q)
-              if (pdClassTag.runtimeClass.equals(enriched.getClass))
-                Success(enriched)
-              else
-                Failure(
-                  new IllegalStateException(
-                    "Received primary data cannot be enriched to expected data. Expected: " + pdClassTag.runtimeClass.getName + ", got: " + primaryData.getClass.getName + ", enriched to: " + enriched.getClass.getName
-                  )
-                )
-            case _ =>
-              Failure(
-                new IllegalStateException(
-                  "Got the wrong primary data. Expected: " + pdClassTag.runtimeClass.getName + ", got: " + primaryData.getClass.getName
-                )
-              )
-          }
-        case secondaryData: SecondaryData =>
+        case pd: PrimaryData with EnrichableData[PD] =>
+          val q = reactivePowerFunction(pd.p)
+          Success(pd.add(q))
+        case other =>
           Failure(
             new IllegalStateException(
-              s"Did expect primary data, but got '$secondaryData'."
+              s"Did expect primary data, but got '$other'."
             )
           )
       }
-      .map(_.asInstanceOf[PD])
 
   /** Change over to [[Idle]] state and reply completion to the scheduler. By
-    * doing so, also schedule an [[Activation]] for the next upcoming action.
+    * doing so, also schedule an [[edu.ie3.simona.ontology.messages.Activation]]
+    * for the next upcoming action.
     *
     * @param baseStateData
     *   Base state data to pop next activation from
