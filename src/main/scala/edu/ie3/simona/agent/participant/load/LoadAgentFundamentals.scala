@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.load
 
-import akka.actor.{ActorRef, FSM}
+import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.result.system.{LoadResult, SystemParticipantResult}
 import edu.ie3.simona.agent.ValueStore
@@ -197,7 +197,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     * up missing data with the last known data, as this is still supposed to be
     * valid. The secondary data therefore is put to the calculation relevant
     * data store. <p>The next state is [[Idle]], sending a
-    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
+    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.Completion]] to
     * scheduler and using update result values.</p>
     *
     * @param collectionStateData

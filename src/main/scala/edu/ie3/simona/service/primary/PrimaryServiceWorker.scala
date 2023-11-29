@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service.primary
 
-import akka.actor.{ActorRef, Props}
+import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.factory.timeseries.TimeBasedSimpleValueFactory
 import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
@@ -20,9 +20,9 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.RichValue
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceActivationBaseStateData
@@ -54,15 +54,15 @@ final case class PrimaryServiceWorker[V <: Value](
     * @param initServiceData
     *   the data that should be used for initialization
     * @return
-    *   the state data of this service actor and optional triggers that should
-    *   be included in the completion message
+    *   the state data of this service actor and optional tick that should be
+    *   included in the completion message
     */
   override def init(
       initServiceData: ServiceStateData.InitializeServiceStateData
   ): Try[
     (
         PrimaryServiceInitializedStateData[V],
-        Option[SchedulerMessage.ScheduleTriggerMessage]
+        Option[Long]
     )
   ] = {
     (initServiceData match {
@@ -150,12 +150,7 @@ final case class PrimaryServiceWorker[V <: Value](
           simulationStart,
           source
         )
-      val triggerMessage =
-        ServiceActivationBaseStateData.tickToScheduleTriggerMessage(
-          maybeNextTick,
-          self
-        )
-      (initializedStateData, triggerMessage)
+      (initializedStateData, maybeNextTick)
     }
   }
 
@@ -202,9 +197,12 @@ final case class PrimaryServiceWorker[V <: Value](
     */
   override protected def announceInformation(
       tick: Long
-  )(implicit serviceBaseStateData: PrimaryServiceInitializedStateData[V]): (
+  )(implicit
+      serviceBaseStateData: PrimaryServiceInitializedStateData[V],
+      ctx: ActorContext
+  ): (
       PrimaryServiceInitializedStateData[V],
-      Option[SchedulerMessage.ScheduleTriggerMessage]
+      Option[Long]
   ) = {
     /* Get the information to distribute */
     val wallClockTime = tick.toDateTime(serviceBaseStateData.startDateTime)
@@ -223,8 +221,7 @@ final case class PrimaryServiceWorker[V <: Value](
   }
 
   /** Pop the next activation tick, remove it from given base state data and
-    * hand back the updated state data together with an Option on a sequence of
-    * [[edu.ie3.simona.ontology.messages.SchedulerMessage#ScheduleTriggerMessage]]
+    * hand back the updated state data together with an Option on a next tick
     *
     * @param baseStateData
     *   The base state data to update
@@ -236,21 +233,16 @@ final case class PrimaryServiceWorker[V <: Value](
       baseStateData: PrimaryServiceInitializedStateData[V]
   ): (
       PrimaryServiceInitializedStateData[V],
-      Option[SchedulerMessage.ScheduleTriggerMessage]
+      Option[Long]
   ) = {
     val (maybeNextActivationTick, remainderActivationTicks) =
       baseStateData.activationTicks.pop
-    val triggerMessages =
-      ServiceActivationBaseStateData.tickToScheduleTriggerMessage(
-        maybeNextActivationTick,
-        self
-      )
     (
       baseStateData.copy(
         maybeNextActivationTick = maybeNextActivationTick,
         activationTicks = remainderActivationTicks
       ),
-      triggerMessages
+      maybeNextActivationTick
     )
   }
 
@@ -272,7 +264,7 @@ final case class PrimaryServiceWorker[V <: Value](
       serviceBaseStateData: PrimaryServiceInitializedStateData[V]
   ): (
       PrimaryServiceInitializedStateData[V],
-      Option[SchedulerMessage.ScheduleTriggerMessage]
+      Option[Long]
   ) = value.toPrimaryData match {
     case Success(primaryData) =>
       announcePrimaryData(tick, primaryData, serviceBaseStateData)
@@ -304,12 +296,10 @@ final case class PrimaryServiceWorker[V <: Value](
       serviceBaseStateData: PrimaryServiceInitializedStateData[V]
   ): (
       PrimaryServiceInitializedStateData[V],
-      Option[SchedulerMessage.ScheduleTriggerMessage]
+      Option[Long]
   ) = {
     val (maybeNextTick, remainderActivationTicks) =
       serviceBaseStateData.activationTicks.pop
-    val triggerMessages = ServiceActivationBaseStateData
-      .tickToScheduleTriggerMessage(maybeNextTick, self)
     val updatedStateData =
       serviceBaseStateData.copy(
         maybeNextActivationTick = maybeNextTick,
@@ -319,7 +309,7 @@ final case class PrimaryServiceWorker[V <: Value](
     val provisionMessage =
       ProvidePrimaryDataMessage(tick, primaryData, maybeNextTick)
     serviceBaseStateData.subscribers.foreach(_ ! provisionMessage)
-    (updatedStateData, triggerMessages)
+    (updatedStateData, maybeNextTick)
   }
 }
 
@@ -437,6 +427,7 @@ object PrimaryServiceWorker {
   final case class ProvidePrimaryDataMessage(
       override val tick: Long,
       override val data: PrimaryData,
-      override val nextDataTick: Option[Long]
+      override val nextDataTick: Option[Long],
+      override val unlockKey: Option[ScheduleKey] = None
   ) extends ServiceMessage.ProvisionMessage[PrimaryData]
 }

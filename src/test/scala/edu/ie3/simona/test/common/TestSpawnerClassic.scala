@@ -6,15 +6,16 @@
 
 package edu.ie3.simona.test.common
 
-import org.apache.pekko.actor.testkit.typed.scaladsl.ActorTestKitBase
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import edu.ie3.simona.scheduler.ScheduleLock.Spawner
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorSystemOps
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.testkit.TestKit
 
-trait TestSpawnerTyped {
-  this: ActorTestKitBase =>
+trait TestSpawnerClassic {
+  this: TestKit =>
 
   object TSpawner extends Spawner {
     override def spawn[T](behavior: Behavior[T]): ActorRef[T] =
-      TestSpawnerTyped.this.spawn(behavior)
+      system.spawnAnonymous(behavior)
   }
 }

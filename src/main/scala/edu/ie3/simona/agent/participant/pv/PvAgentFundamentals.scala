@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.pv
 
-import akka.actor.{ActorRef, FSM}
+import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.result.system.{
   PvResult,
@@ -178,7 +178,7 @@ protected trait PvAgentFundamentals
     * up missing data with the last known data, as this is still supposed to be
     * valid. The secondary data therefore is put to the calculation relevant
     * data store. <p>The next state is [[Idle]], sending a
-    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
+    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.Completion]] to
     * scheduler and using update result values.</p>
     *
     * @param collectionStateData

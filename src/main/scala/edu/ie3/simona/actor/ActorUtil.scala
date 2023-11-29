@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.actor
 
-import akka.actor.typed.Behavior
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.Behavior
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 
 object ActorUtil {
   def stopOnError[M](

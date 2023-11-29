@@ -74,17 +74,19 @@ object RuntimeEvent {
     *   the tick when the event is issued
     * @param duration
     *   the duration of the overall simulation in milliseconds
-    * @param noOfFailedPF
-    *   the number of failed power flow calculations
     * @param errorInSim
     *   true if an error occurred in the simulation, false otherwise
     */
   final case class Done(
       tick: Long,
       duration: Long,
-      noOfFailedPF: Int, // FIXME remove
       errorInSim: Boolean
   ) extends RuntimeEvent
+
+  /** Indicates that a power flow calculation has failed. This event is not
+    * forwarded to sinks, but rather counted in runtime statistics.
+    */
+  final case object PowerFlowFailed extends RuntimeEvent
 
   /** Indicates that an error occurred during the simulation, thereby preventing
     * continuation
