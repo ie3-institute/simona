@@ -85,7 +85,7 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import scala.collection.SortedSet
-import scala.reflect.ClassTag
+import scala.reflect.{ClassTag, classTag}
 import scala.util.{Failure, Success, Try}
 
 /** Useful functions to use in [[ParticipantAgent]] s
@@ -553,7 +553,8 @@ protected trait ParticipantAgentFundamentals[
       tick: Long,
       scheduler: ActorRef
   )(implicit
-      outputConfig: NotifierConfig
+      outputConfig: NotifierConfig,
+      pdCt: ClassTag[PD]
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     if (!stateData.data.exists(_._2.isEmpty) && isYetTriggered) {
       /* We got everything we expect and we are yet triggered */
@@ -664,7 +665,7 @@ protected trait ParticipantAgentFundamentals[
   def prepareData(
       data: Map[ActorRef, Option[_ <: Data]],
       reactivePowerFunction: Power => ReactivePower
-  ): Try[PD] =
+  )(implicit pdCt: ClassTag[PD]): Try[PD] =
     data.headOption
       .flatMap { case (_, maybeData) =>
         maybeData
@@ -678,9 +679,24 @@ protected trait ParticipantAgentFundamentals[
       } {
         case result: PD =>
           Success(result)
-        case pd: PrimaryData with EnrichableData[PD] =>
+        case pd: PrimaryData with EnrichableData[_] =>
           val q = reactivePowerFunction(pd.p)
-          Success(pd.add(q))
+          pd.add(q) match {
+            case x: PD if classTag[PD].runtimeClass.isInstance(x) => Success(x)
+            case other =>
+              Failure(
+                new IllegalStateException(
+                  "Received primary data cannot be enriched to expected data. " +
+                    s"Expected: ${classTag[PD].runtimeClass.getName}, got: ${pd.getClass.getName}, enriched to: ${other.getClass.getName}"
+                )
+              )
+          }
+        case pd: PrimaryData =>
+          Failure(
+            new IllegalStateException(
+              s"Got the wrong primary data. Expected: ${classTag[PD].runtimeClass.getName}, got: ${pd.getClass.getName}"
+            )
+          )
         case other =>
           Failure(
             new IllegalStateException(

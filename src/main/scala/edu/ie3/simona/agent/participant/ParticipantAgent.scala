@@ -53,6 +53,7 @@ import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
+import scala.reflect.{ClassTag, classTag}
 
 /** Common properties to participant agents
   *
@@ -75,7 +76,7 @@ import java.time.ZonedDateTime
   * @since 2019-07-04
   */
 abstract class ParticipantAgent[
-    PD <: PrimaryDataWithApparentPower[PD],
+    PD <: PrimaryDataWithApparentPower[PD]: ClassTag,
     CD <: CalcRelevantData,
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
@@ -266,7 +267,7 @@ abstract class ParticipantAgent[
         isYetTriggered = true,
         currentTick,
         scheduler
-      )(stateData.baseStateData.outputConfig)
+      )(stateData.baseStateData.outputConfig, classTag[PD])
 
     case Event(
           msg: ProvisionMessage[_],
@@ -317,7 +318,7 @@ abstract class ParticipantAgent[
           isYetTriggered,
           currentTick,
           scheduler
-        )(updatedBaseStateData.outputConfig)
+        )(updatedBaseStateData.outputConfig, classTag[PD])
       } else
         throw new IllegalStateException(
           s"Did not expect message from ${sender()} at tick $currentTick"
@@ -581,7 +582,8 @@ abstract class ParticipantAgent[
       tick: Long,
       scheduler: ActorRef
   )(implicit
-      outputConfig: NotifierConfig
+      outputConfig: NotifierConfig,
+      pdCt: ClassTag[PD]
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Partial function, that is able to transfer
