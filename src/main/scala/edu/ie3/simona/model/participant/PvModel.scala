@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.PvInput
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.model.participant.control.QControl
@@ -39,7 +40,7 @@ final case class PvModel private (
     private val alphaE: Angle,
     private val gammaE: Angle,
     private val moduleSurface: Area = SquareMeters(1d)
-) extends SystemParticipant[PvRelevantData](
+) extends SystemParticipant[PvRelevantData, ApparentPower](
       uuid,
       id,
       operationInterval,
@@ -47,7 +48,8 @@ final case class PvModel private (
       qControl,
       sRated,
       cosPhiRated
-    ) {
+    )
+    with ApparentPowerParticipant[PvRelevantData] {
 
   /** Override sMax as the power output of a pv unit could become easily up to
     * 10% higher than the sRated value found in the technical sheets

@@ -6,7 +6,8 @@
 
 package edu.ie3.simona.service.primary
 
-import akka.actor.{Actor, ActorRef, PoisonPill, Props}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
@@ -28,28 +29,25 @@ import edu.ie3.datamodel.io.source.{
   TimeSeriesMetaInformationSource
 }
 import edu.ie3.datamodel.models.value.Value
+import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
   Primary => PrimaryConfig
 }
-import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.exceptions.{
   InitializationException,
   InvalidConfigParameterException
 }
 import edu.ie3.simona.logging.SimonaActorLogging
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   WorkerRegistrationMessage
 }
-import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
-import edu.ie3.simona.service.ServiceStateData
+import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
@@ -61,14 +59,15 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   InitPrimaryServiceStateData,
   SqlInitPrimaryServiceStateData
 }
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.Option.when
-import scala.compat.java8.OptionConverters.RichOptionalGeneric
 import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
 /** This actor has information on which models can be replaced by precalculated
@@ -84,6 +83,7 @@ import scala.util.{Failure, Success, Try}
   */
 case class PrimaryServiceProxy(
     scheduler: ActorRef,
+    initStateData: InitPrimaryServiceProxyStateData,
     private implicit val startDateTime: ZonedDateTime
 ) extends Actor
     with SimonaActorLogging {
@@ -101,26 +101,20 @@ case class PrimaryServiceProxy(
     *   How receiving should be handled with gained insight of myself
     */
   private def uninitialized: Receive = {
-    case TriggerWithIdMessage(
-          InitializeServiceTrigger(
-            InitPrimaryServiceProxyStateData(
-              primaryConfig,
-              simulationStart
-            )
-          ),
-          triggerId,
-          _
-        ) =>
+    case Activation(INIT_SIM_TICK) =>
       /* The proxy is asked to initialize itself. If that happened successfully, change the logic of receiving
        * messages */
-      prepareStateData(primaryConfig, simulationStart) match {
+      prepareStateData(
+        initStateData.primaryConfig,
+        initStateData.simulationStart
+      ) match {
         case Success(stateData) =>
-          sender() ! CompletionMessage(triggerId, newTriggers = None)
+          scheduler ! Completion(self.toTyped)
           context become onMessage(stateData)
         case Failure(exception) =>
           log.error(
-            s"Unable to initialize the $actorName. Shut it down.",
-            exception
+            exception,
+            s"Unable to initialize the $actorName. Shut it down."
           )
           self ! PoisonPill
       }
@@ -155,7 +149,7 @@ case class PrimaryServiceProxy(
           .flatMap { timeSeriesUuid =>
             metaInformationSource
               .getTimeSeriesMetaInformation(timeSeriesUuid)
-              .asScala match {
+              .toScala match {
               case Some(metaInformation) =>
                 /* Only register those entries, that meet the supported column schemes */
                 when(
@@ -358,9 +352,9 @@ case class PrimaryServiceProxy(
       primaryConfig
     ) match {
       case Success(initData) =>
-        scheduler ! ScheduleTriggerMessage(
-          InitializeServiceTrigger(initData),
-          workerRef
+        workerRef ! SimonaService.Create(
+          initData,
+          ScheduleLock.singleKey(context, scheduler.toTyped, INIT_SIM_TICK)
         )
         Success(workerRef)
       case Failure(cause) =>
@@ -497,8 +491,12 @@ case class PrimaryServiceProxy(
 
 object PrimaryServiceProxy {
 
-  def props(scheduler: ActorRef, startDateTime: ZonedDateTime): Props = Props(
-    new PrimaryServiceProxy(scheduler, startDateTime)
+  def props(
+      scheduler: ActorRef,
+      initStateData: InitPrimaryServiceProxyStateData,
+      startDateTime: ZonedDateTime
+  ): Props = Props(
+    new PrimaryServiceProxy(scheduler, initStateData, startDateTime)
   )
 
   /** State data with needed information to initialize this primary service

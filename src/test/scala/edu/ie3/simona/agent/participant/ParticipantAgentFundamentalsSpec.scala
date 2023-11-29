@@ -6,19 +6,22 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.ActorRef.noSender
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.TestFSMRef
-import akka.util.Timeout
+import org.apache.pekko.actor.ActorRef.noSender
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.TestFSMRef
+import org.apache.pekko.util.Timeout
 import breeze.numerics.pow
 import com.typesafe.config.ConfigFactory
+import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.state.AgentState
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
   InconsistentStateException
@@ -26,9 +29,8 @@ import edu.ie3.simona.exceptions.agent.{
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
+import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
 import edu.ie3.simona.model.participant.load.{FixedLoadModel, LoadReference}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
-import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.test.common.AgentSpec
 import edu.ie3.simona.test.common.model.participant.LoadTestData
 import edu.ie3.util.TimeUtil
@@ -51,37 +53,43 @@ class ParticipantAgentFundamentalsSpec
         "ParticipantAgentSpec",
         ConfigFactory
           .parseString("""
-            |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-            |akka.loglevel="DEBUG"
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="DEBUG"
         """.stripMargin)
       )
     )
     with LoadTestData
     with PrivateMethodTester
-    with TableDrivenPropertyChecks {
+    with TableDrivenPropertyChecks
+    with MockitoSugar {
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
   implicit val pTolerance: squants.Power = Megawatts(0.001)
   implicit val qTolerance: ReactivePower = Megavars(0.001)
 
-  private val outputConfig: ParticipantNotifierConfig =
-    ParticipantNotifierConfig(
+  private val outputConfig: NotifierConfig =
+    NotifierConfig(
       simulationResultInfo = false,
       powerRequestReply = false
     )
 
   /* Get one instance of the mock for participant agent */
-  val mockAgentTestRef: TestFSMRef[AgentState, ParticipantStateData[
+  private val mockAgentTestRef: TestFSMRef[AgentState, ParticipantStateData[
     ApparentPower
   ], ParticipantAgentMock] =
     TestFSMRef(
       new ParticipantAgentMock(
-        scheduler = self
+        scheduler = self,
+        initStateData = mock[ParticipantInitializeStateData[
+          SystemParticipantInput,
+          BaseRuntimeConfig,
+          ApparentPower
+        ]]
       )
     )
   val mockAgent: ParticipantAgentMock = mockAgentTestRef.underlyingActor
 
-  val powerValues: Map[Long, ApparentPower] =
+  private val powerValues: Map[Long, ApparentPower] =
     Map(
       0L -> ApparentPower(
         Megawatts(1.0),
@@ -118,7 +126,7 @@ class ParticipantAgentFundamentalsSpec
     )
 
   /* Calculates the reactive power as the square of the active power */
-  val activeToReactivePowerFuncOpt: Option[
+  private val activeToReactivePowerFuncOpt: Option[
     PartialFunction[squants.Power, ReactivePower]
   ] =
     Some(
@@ -248,20 +256,8 @@ class ParticipantAgentFundamentalsSpec
       )
 
       mockAgent.popNextActivationTrigger(baseStateData) match {
-        case (Some(activationSeq), actualBaseStateData) =>
-          /* There is exactly one activation trigger for tick 0 */
-          activationSeq.size shouldBe 1
-          activationSeq.headOption match {
-            case Some(
-                  ScheduleTriggerMessage(
-                    ActivityStartTrigger(tick),
-                    actorToBeScheduled
-                  )
-                ) =>
-              tick shouldBe 0L
-              actorToBeScheduled shouldBe mockAgentTestRef
-            case _ => fail("Sequence of activation triggers has wrong content.")
-          }
+        case (Some(activation), actualBaseStateData) =>
+          activation shouldBe 0L
           /* Base state data haven't changed */
           actualBaseStateData shouldBe baseStateData
         case _ =>
@@ -279,20 +275,8 @@ class ParticipantAgentFundamentalsSpec
       )
 
       mockAgent.popNextActivationTrigger(baseStateData) match {
-        case (Some(activationSeq), actualBaseStateData) =>
-          /* There is exactly one activation trigger for tick 1 */
-          activationSeq.size shouldBe 1
-          activationSeq.headOption match {
-            case Some(
-                  ScheduleTriggerMessage(
-                    ActivityStartTrigger(tick),
-                    actorToBeScheduled
-                  )
-                ) =>
-              tick shouldBe 0L
-              actorToBeScheduled shouldBe mockAgentTestRef
-            case _ => fail("Sequence of activation triggers has wrong content.")
-          }
+        case (Some(activation), actualBaseStateData) =>
+          activation shouldBe 0L
           /* Additional activation tick has been popped from base state data */
           actualBaseStateData.additionalActivationTicks.corresponds(
             Array(10L, 20L)
@@ -313,20 +297,8 @@ class ParticipantAgentFundamentalsSpec
       )
 
       mockAgent.popNextActivationTrigger(baseStateData) match {
-        case (Some(activationSeq), actualBaseStateData) =>
-          /* There is exactly one activation trigger for tick 1 */
-          activationSeq.size shouldBe 1
-          activationSeq.headOption match {
-            case Some(
-                  ScheduleTriggerMessage(
-                    ActivityStartTrigger(tick),
-                    actorToBeScheduled
-                  )
-                ) =>
-              tick shouldBe 0L
-              actorToBeScheduled shouldBe mockAgentTestRef
-            case _ => fail("Sequence of activation triggers has wrong content.")
-          }
+        case (Some(activation), actualBaseStateData) =>
+          activation shouldBe 0L
           /* Additional activation tick has been popped from base state data */
           actualBaseStateData.additionalActivationTicks.corresponds(
             Array(10L, 20L)
@@ -551,7 +523,11 @@ class ParticipantAgentFundamentalsSpec
 
   "Determining the applicable nodal voltage" should {
     "deliver the correct voltage" in {
-      val baseStateData = ParticipantModelBaseStateData(
+      val baseStateData = ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedLoadRelevantData.type,
+        FixedLoadModel
+      ](
         simulationStartDate,
         simulationEndDate,
         FixedLoadModel(
@@ -582,7 +558,11 @@ class ParticipantAgentFundamentalsSpec
     }
 
     "throw an error, if no nodal voltage is available" in {
-      val baseStateData = ParticipantModelBaseStateData(
+      val baseStateData = ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedLoadRelevantData.type,
+        FixedLoadModel
+      ](
         simulationStartDate,
         simulationEndDate,
         FixedLoadModel(
@@ -631,17 +611,22 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,
-    SystemParticipant[FixedRelevantData.type]
+    SystemParticipant[FixedRelevantData.type, ApparentPower]
   ] = {
-    val modelMock = mock[SystemParticipant[FixedRelevantData.type]]
+    val modelMock =
+      mock[SystemParticipant[FixedRelevantData.type, ApparentPower]]
     when(modelMock.getUuid).thenReturn(UUID.randomUUID())
 
-    ParticipantModelBaseStateData(
+    ParticipantModelBaseStateData[
+      ApparentPower,
+      FixedRelevantData.type,
+      SystemParticipant[FixedRelevantData.type, ApparentPower]
+    ](
       TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
       TimeUtil.withDefaults.toZonedDateTime("2020-01-01 23:59:00"),
       modelMock,
       None,
-      ParticipantNotifierConfig(
+      NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false
       ),

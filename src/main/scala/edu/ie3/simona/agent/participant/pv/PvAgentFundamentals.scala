@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.pv
 
-import akka.actor.{ActorRef, FSM}
+import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.result.system.{
   PvResult,
@@ -23,6 +23,7 @@ import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.pv.PvAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.participant.statedata.{
   DataCollectionStateData,
   ParticipantStateData
@@ -30,12 +31,13 @@ import edu.ie3.simona.agent.participant.statedata.{
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
   InconsistentStateException,
   InvalidRequestException
 }
+import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.PvModel
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
@@ -44,7 +46,7 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
-import squants.{Power, Each, Dimensionless}
+import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -90,14 +92,14 @@ protected trait PvAgentFundamentals
     *   based on the data source definition
     */
   override def determineModelBaseStateData(
-      inputModel: PvInput,
+      inputModel: InputModelContainer[PvInput],
       modelConfig: PvRuntimeConfig,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): ParticipantModelBaseStateData[ApparentPower, PvRelevantData, PvModel] = {
     /* Check for needed services */
     if (
@@ -118,7 +120,7 @@ protected trait PvAgentFundamentals
         simulationEndDate
       )
 
-    ParticipantModelBaseStateData(
+    ParticipantModelBaseStateData[ApparentPower, PvRelevantData, PvModel](
       simulationStartDate,
       simulationEndDate,
       model,
@@ -130,7 +132,7 @@ protected trait PvAgentFundamentals
       ValueStore.forVoltage(
         resolution * 10,
         Each(
-          inputModel.getNode
+          inputModel.electricalInputModel.getNode
             .getvTarget()
             .to(PU)
             .getValue
@@ -144,12 +146,12 @@ protected trait PvAgentFundamentals
   }
 
   override def buildModel(
-      inputModel: PvInput,
+      inputModel: InputModelContainer[PvInput],
       modelConfig: PvRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
   ): PvModel = PvModel(
-    inputModel,
+    inputModel.electricalInputModel,
     modelConfig.scaling,
     simulationStartDate,
     simulationEndDate
@@ -176,7 +178,7 @@ protected trait PvAgentFundamentals
     * up missing data with the last known data, as this is still supposed to be
     * valid. The secondary data therefore is put to the calculation relevant
     * data store. <p>The next state is [[Idle]], sending a
-    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
+    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.Completion]] to
     * scheduler and using update result values.</p>
     *
     * @param collectionStateData
@@ -261,7 +263,7 @@ protected trait PvAgentFundamentals
     updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
       scheduler,
       collectionStateData.baseStateData,
-      result,
+      AccompaniedSimulationResult(result),
       relevantData
     )
   }

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.evcs
 
-import akka.actor.{ActorRef, Props}
+import org.apache.pekko.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.simona.agent.participant.{
   ParticipantAgent,
@@ -20,6 +20,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.EvcsModel
@@ -34,11 +35,17 @@ import squants.Power
 object EvcsAgent {
   def props(
       scheduler: ActorRef,
+      initStateData: ParticipantInitializeStateData[
+        EvcsInput,
+        EvcsRuntimeConfig,
+        ApparentPower
+      ],
       listener: Iterable[ActorRef]
   ): Props =
     Props(
       new EvcsAgent(
         scheduler,
+        initStateData,
         listener
       )
     )
@@ -50,6 +57,11 @@ object EvcsAgent {
 
 class EvcsAgent(
     scheduler: ActorRef,
+    initStateData: ParticipantInitializeStateData[
+      EvcsInput,
+      EvcsRuntimeConfig,
+      ApparentPower
+    ],
     override val listener: Iterable[ActorRef]
 ) extends ParticipantAgent[
       ApparentPower,
@@ -58,7 +70,7 @@ class EvcsAgent(
       EvcsInput,
       EvcsRuntimeConfig,
       EvcsModel
-    ](scheduler)
+    ](scheduler, initStateData)
     with EvcsAgentFundamentals {
   override val alternativeResult: ApparentPower = ZERO_POWER
 

@@ -6,13 +6,14 @@
 
 package edu.ie3.simona.agent.participant.pv
 
-import akka.actor.{ActorRef, Props}
+import org.apache.pekko.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
 import edu.ie3.simona.model.participant.PvModel
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
@@ -20,11 +21,17 @@ import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 object PvAgent {
   def props(
       scheduler: ActorRef,
+      initStateData: ParticipantInitializeStateData[
+        PvInput,
+        PvRuntimeConfig,
+        ApparentPower
+      ],
       listener: Iterable[ActorRef]
   ): Props =
     Props(
       new PvAgent(
         scheduler,
+        initStateData,
         listener
       )
     )
@@ -43,6 +50,11 @@ object PvAgent {
   */
 class PvAgent(
     scheduler: ActorRef,
+    initStateData: ParticipantInitializeStateData[
+      PvInput,
+      PvRuntimeConfig,
+      ApparentPower
+    ],
     override val listener: Iterable[ActorRef]
 ) extends ParticipantAgent[
       ApparentPower,
@@ -52,7 +64,8 @@ class PvAgent(
       PvRuntimeConfig,
       PvModel
     ](
-      scheduler
+      scheduler,
+      initStateData
     )
     with PvAgentFundamentals {
 

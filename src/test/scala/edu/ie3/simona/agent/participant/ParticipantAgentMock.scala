@@ -6,8 +6,7 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.{ActorRef, FSM, Props}
-import edu.ie3.datamodel.models.StandardUnits
+import org.apache.pekko.actor.{ActorRef, FSM, Props}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
@@ -18,6 +17,10 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
+  InputModelContainer,
+  ParticipantInitializeStateData
+}
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
   DataCollectionStateData,
@@ -27,20 +30,13 @@ import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InvalidRequestException
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KILOVARHOUR,
-  KILOWATTHOUR,
-  MEGAVAR,
-  MEGAWATT,
-  PU
-}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.{Kilovars, Megavars, ReactivePower}
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito.doReturn
@@ -50,10 +46,8 @@ import squants.energy.{Kilowatts, Megawatts}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Energy, Power}
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
-import scala.util.{Failure, Success}
 
 /** Creating a mocking participant agent
   *
@@ -62,6 +56,11 @@ import scala.util.{Failure, Success}
   */
 class ParticipantAgentMock(
     scheduler: ActorRef,
+    initStateData: ParticipantInitializeStateData[
+      SystemParticipantInput,
+      SimonaConfig.BaseRuntimeConfig,
+      ApparentPower
+    ],
     override val listener: Iterable[ActorRef] = Vector.empty[ActorRef]
 ) extends ParticipantAgent[
       ApparentPower,
@@ -69,15 +68,15 @@ class ParticipantAgentMock(
       ParticipantStateData[ApparentPower],
       SystemParticipantInput,
       SimonaConfig.BaseRuntimeConfig,
-      SystemParticipant[FixedRelevantData.type]
-    ](scheduler)
+      SystemParticipant[FixedRelevantData.type, ApparentPower]
+    ](scheduler, initStateData)
     with ParticipantAgentFundamentals[
       ApparentPower,
       FixedRelevantData.type,
       ParticipantStateData[ApparentPower],
       SystemParticipantInput,
       SimonaConfig.BaseRuntimeConfig,
-      SystemParticipant[FixedRelevantData.type]
+      SystemParticipant[FixedRelevantData.type, ApparentPower]
     ] {
   override protected val pdClassTag: ClassTag[ApparentPower] =
     classTag[ApparentPower]
@@ -92,7 +91,7 @@ class ParticipantAgentMock(
       ParticipantModelBaseStateData[
         ApparentPower,
         FixedRelevantData.type,
-        SystemParticipant[FixedRelevantData.type]
+        SystemParticipant[FixedRelevantData.type, ApparentPower]
       ],
       squants.Dimensionless
   ) => ApparentPower = (_, _, _) =>
@@ -104,7 +103,7 @@ class ParticipantAgentMock(
 
   /** Abstractly calculate the power output of the participant with all needed
     * secondary data apparent. The next state is [[Idle]], sending a
-    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
+    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.Completion]] to
     * scheduler and using update result values. Additionally, the collected
     * secondary data is also put to storage. Actual implementation can be found
     * in each participant's fundamentals.
@@ -152,29 +151,33 @@ class ParticipantAgentMock(
     *   based on the data source definition
     */
   override def determineModelBaseStateData(
-      inputModel: SystemParticipantInput,
+      inputModel: InputModelContainer[SystemParticipantInput],
       modelConfig: SimonaConfig.BaseRuntimeConfig,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,
-    SystemParticipant[FixedRelevantData.type]
+    SystemParticipant[FixedRelevantData.type, ApparentPower]
   ] = {
     val func = CosPhiFixed(0.95).activeToReactivePowerFunc(
       Kilowatts(0.0),
       0.95d,
       Each(1.0)
     )
-    val participant: SystemParticipant[FixedRelevantData.type] =
-      mock[SystemParticipant[FixedRelevantData.type]]
+    val participant: SystemParticipant[FixedRelevantData.type, ApparentPower] =
+      mock[SystemParticipant[FixedRelevantData.type, ApparentPower]]
     doReturn(func).when(participant).activeToReactivePowerFunc(any())
 
-    ParticipantModelBaseStateData(
+    ParticipantModelBaseStateData[
+      ApparentPower,
+      FixedRelevantData.type,
+      SystemParticipant[FixedRelevantData.type, ApparentPower]
+    ](
       simulationStartDate,
       simulationEndDate,
       participant,
@@ -206,13 +209,20 @@ class ParticipantAgentMock(
     * @return
     */
   override def buildModel(
-      inputModel: SystemParticipantInput,
+      inputModel: InputModelContainer[SystemParticipantInput],
       modelConfig: BaseRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
-  ): SystemParticipant[FixedRelevantData.type] = {
-    val mockModel = mock[SystemParticipant[FixedRelevantData.type]]
-    val uuid = inputModel.getUuid
+  ): SystemParticipant[
+    FixedRelevantData.type,
+    ApparentPower
+  ] = {
+    val mockModel =
+      mock[SystemParticipant[
+        FixedRelevantData.type,
+        ApparentPower
+      ]]
+    val uuid = inputModel.electricalInputModel.getUuid
     Mockito.when(mockModel.getUuid).thenReturn(uuid)
     mockModel
   }
@@ -285,13 +295,19 @@ class ParticipantAgentMock(
     ) {}
 }
 
-case object ParticipantAgentMock {
+object ParticipantAgentMock {
   def props(
-      scheduler: ActorRef
+      scheduler: ActorRef,
+      initStateData: ParticipantInitializeStateData[
+        SystemParticipantInput,
+        SimonaConfig.BaseRuntimeConfig,
+        ApparentPower
+      ]
   ): Props =
     Props(
       new ParticipantAgentMock(
-        scheduler
+        scheduler,
+        initStateData
       )
     )
 }

@@ -7,12 +7,12 @@
 package edu.ie3.simona.io.runtime
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent._
+import edu.ie3.simona.io.runtime.RuntimeEventSink.RuntimeStats
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import org.slf4j.Logger
 
-import java.time.format.DateTimeFormatter
-import java.time.{Instant, ZoneId, ZonedDateTime}
+import java.time.ZonedDateTime
 
 /** Runtime event sink that just logs all received events.
   * @param simulationStartDate
@@ -25,6 +25,7 @@ final case class RuntimeEventLogSink(
 
   override def handleRuntimeEvent(
       runtimeEvent: RuntimeEvent,
+      runtimeStats: RuntimeStats,
       log: Logger
   ): Unit =
     runtimeEvent match {
@@ -51,11 +52,12 @@ final case class RuntimeEventLogSink(
           s"******* Simulating from ${calcTime(startTick)} until ${calcTime(endTick)}. *******"
         )
 
-      case Done(currentTick, duration, noOfFailedPF, errorInSim) =>
+      case Done(currentTick, duration, errorInSim) =>
         val simStatus =
           if (errorInSim)
-            s"\u001b[0;31mERROR (Failed PF: $noOfFailedPF)\u001b[0;30m"
-          else s"\u001b[0;32mSUCCESS (Failed PF: $noOfFailedPF)\u001b[0;30m"
+            s"\u001b[0;31mERROR (Failed PF: ${runtimeStats.failedPowerFlows})\u001b[0;30m"
+          else
+            s"\u001b[0;32mSUCCESS (Failed PF: ${runtimeStats.failedPowerFlows})\u001b[0;30m"
         log.info(
           s"******* Simulation completed with $simStatus in time step ${calcTime(currentTick)}. Total runtime: ${convertDuration(duration)} *******"
         )
@@ -77,7 +79,7 @@ final case class RuntimeEventLogSink(
     )
   }
 
-  def convertDuration(duration: Long): String = {
+  private def convertDuration(duration: Long): String = {
     val durationInSeconds = duration / 1000
 
     val hours = durationInSeconds / 3600

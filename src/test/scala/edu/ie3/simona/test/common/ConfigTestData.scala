@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.test.common
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import com.typesafe.config.{Config, ConfigFactory}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.listener.SimonaListenerCompanion
@@ -57,6 +57,13 @@ trait ConfigTestData {
       |    simulationResult = false
       |}
       |simona.output.participant.individualConfigs = []
+      |simona.output.thermal = {
+      |  defaultConfig = {
+      |    notifier = "default",
+      |    simulationResult = false
+      |  }
+      |  individualConfigs = []
+      |}
       |
       |simona.runtime.participant.requestVoltageDeviationThreshold = 1E-14
       |simona.runtime.participant.load = {
@@ -97,6 +104,15 @@ trait ConfigTestData {
       |}
       |
       |simona.runtime.participant.evcs = {
+      |  defaultConfig = {
+      |       calculateMissingReactivePowerWithModel = false
+      |       uuids = ["default"]
+      |       scaling = 1.0
+      |  }
+      |  individualConfigs = []
+      |}
+      |
+      |simona.runtime.participant.hp = {
       |  defaultConfig = {
       |       calculateMissingReactivePowerWithModel = false
       |       uuids = ["default"]

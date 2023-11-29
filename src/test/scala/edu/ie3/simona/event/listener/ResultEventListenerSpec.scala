@@ -6,14 +6,6 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.testkit.typed.CapturedLogEvent
-import akka.actor.testkit.typed.scaladsl.{
-  ActorTestKit,
-  BehaviorTestKit,
-  ScalaTestWithActorTestKit,
-  TestProbe
-}
-import akka.testkit.TestKit.awaitCond
 import com.typesafe.config.ConfigValueFactory
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
@@ -35,7 +27,12 @@ import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.util.io.FileIOUtils
-import org.slf4j.event.Level
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ActorTestKit,
+  ScalaTestWithActorTestKit
+}
+import org.apache.pekko.testkit.TestKit.awaitCond
+import org.apache.pekko.testkit.TestProbe
 
 import java.io.{File, FileInputStream}
 import java.util.UUID
@@ -49,7 +46,7 @@ import scala.language.postfixOps
 class ResultEventListenerSpec
     extends ScalaTestWithActorTestKit(
       ActorTestKit.ApplicationTestConfig.withValue(
-        "akka.actor.testkit.typed.filter-leeway",
+        "org.apache.pekko.actor.testkit.typed.filter-leeway",
         ConfigValueFactory.fromAnyRef("10s")
       )
     )
@@ -136,7 +133,7 @@ class ResultEventListenerSpec
       "check if actor dies when it should die" in {
         val fileHierarchy =
           resultFileHierarchy(2, ".ttt", Set(classOf[Transformer3WResult]))
-        val deathWatch = TestProbe("deathWatch")
+        val deathWatch = createTestProbe("deathWatch")
         val listener = spawn(
           ResultEventListener(
             fileHierarchy

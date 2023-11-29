@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.load
 
-import akka.actor.{ActorRef, FSM}
+import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.result.system.{
   LoadResult,
@@ -21,6 +21,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.participant.statedata.{
   DataCollectionStateData,
   ParticipantStateData
@@ -28,7 +29,7 @@ import edu.ie3.simona.agent.participant.statedata.{
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
@@ -101,14 +102,14 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     *   based on the data source definition
     */
   override def determineModelBaseStateData(
-      inputModel: LoadInput,
+      inputModel: InputModelContainer[LoadInput],
       modelConfig: LoadRuntimeConfig,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
+      outputConfig: NotifierConfig
   ): ParticipantModelBaseStateData[ApparentPower, LD, LM] = {
     /* Build the calculation model */
     val model =
@@ -155,7 +156,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
         SortedSet.empty[Long]
     }
 
-    ParticipantModelBaseStateData(
+    ParticipantModelBaseStateData[ApparentPower, LD, LM](
       simulationStartDate,
       simulationEndDate,
       model,
@@ -167,7 +168,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       ValueStore.forVoltage(
         resolution,
         Each(
-          inputModel.getNode
+          inputModel.electricalInputModel.getNode
             .getvTarget()
             .to(PU)
             .getValue
@@ -181,7 +182,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
   }
 
   override def buildModel(
-      inputModel: LoadInput,
+      inputModel: InputModelContainer[LoadInput],
       modelConfig: LoadRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
@@ -190,10 +191,10 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        inputModel.getOperationTime
+        inputModel.electricalInputModel.getOperationTime
       )
-    val reference = LoadReference(inputModel, modelConfig)
-    buildModel(inputModel, operationInterval, reference)
+    val reference = LoadReference(inputModel.electricalInputModel, modelConfig)
+    buildModel(inputModel.electricalInputModel, operationInterval, reference)
   }
 
   protected def buildModel(
@@ -209,7 +210,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     * up missing data with the last known data, as this is still supposed to be
     * valid. The secondary data therefore is put to the calculation relevant
     * data store. <p>The next state is [[Idle]], sending a
-    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
+    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.Completion]] to
     * scheduler and using update result values.</p>
     *
     * @param collectionStateData

@@ -6,15 +6,16 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{Behavior, PostStop}
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.Event
 import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
-  PowerFlowResultEvent
+  PowerFlowResultEvent,
+  ThermalResultEvent
 }
 import edu.ie3.simona.exceptions.{
   FileHierarchyException,
@@ -278,9 +279,12 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   private def idle(baseData: BaseData): Behavior[ResultMessage] = Behaviors
     .receive[ResultMessage] {
-      case (ctx, ParticipantResultEvent(systemParticipantResult)) =>
-        val updatedBaseData =
-          handleResult(systemParticipantResult, baseData, ctx.log)
+      case (ctx, ParticipantResultEvent(participantResult)) =>
+        val updatedBaseData = handleResult(participantResult, baseData, ctx.log)
+        idle(updatedBaseData)
+
+      case (ctx, ThermalResultEvent(thermalResult)) =>
+        val updatedBaseData = handleResult(thermalResult, baseData, ctx.log)
         idle(updatedBaseData)
 
       case (

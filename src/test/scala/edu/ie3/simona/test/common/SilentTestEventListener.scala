@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.test.common
 
-import akka.event.Logging.{Debug, Error, Info, Warning, simpleName}
-import akka.testkit.TestEventListener
+import org.apache.pekko.event.Logging.{Debug, Error, Info, Warning, simpleName}
+import org.apache.pekko.testkit.TestEventListener
 import com.typesafe.scalalogging.LazyLogging
 
 /** Does the same as TestEventListener but without polluting console logs. If

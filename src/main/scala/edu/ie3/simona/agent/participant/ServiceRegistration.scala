@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.datamodel.models.input.system.{EvcsInput, SystemParticipantInput}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
@@ -29,7 +29,7 @@ trait ServiceRegistration[
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
     MC <: SimonaConfig.BaseRuntimeConfig,
-    M <: SystemParticipant[CD]
+    M <: SystemParticipant[CD, PD]
 ] {
   this: ParticipantAgent[PD, CD, D, I, MC, M] =>
 

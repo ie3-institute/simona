@@ -6,9 +6,10 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.ActorSystem
-import akka.testkit.TestFSMRef
-import akka.util.Timeout
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.testkit.TestFSMRef
+import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV
@@ -19,33 +20,28 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModel
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantInitializeStateData,
   ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
+  ParticipantUninitializedStateData,
+  SimpleInputContainer
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
   RequestAssetPowerMessage
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger
-}
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.model.participant.LoadTestData
 import edu.ie3.simona.util.ConfigUtil
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import org.scalatest.PrivateMethodTester
 import squants.Each
@@ -56,11 +52,11 @@ import java.util.concurrent.TimeUnit
 class LoadAgentFixedModelCalculationSpec
     extends ParticipantAgentSpec(
       ActorSystem(
-        "LoadAgentSpec",
+        "LoadAgentFixedModelCalculationSpec",
         ConfigFactory
           .parseString("""
-            |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-            |akka.loglevel="DEBUG"
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="DEBUG"
         """.stripMargin)
       )
     )
@@ -75,13 +71,12 @@ class LoadAgentFixedModelCalculationSpec
     .qCharacteristics(new QV("qV:{(0.95,-0.625),(1.05,0.625)}"))
     .build()
 
-  private val testingTolerance = 1e-6 // Equality on the basis of 1 W
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
       LoadReference.ActivePower(Kilowatts(0d))
     )
-  private val defaultOutputConfig = ParticipantNotifierConfig(
+  private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
     simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
   )
@@ -99,10 +94,28 @@ class LoadAgentFixedModelCalculationSpec
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   "A load agent with fixed model calculation depending on no secondary data service" should {
+    val initStateData = ParticipantInitializeStateData[
+      LoadInput,
+      LoadRuntimeConfig,
+      ApparentPower
+    ](
+      inputModel = voltageSensitiveInput,
+      modelConfig = modelConfig,
+      secondaryDataServices = services,
+      simulationStartDate = simulationStartDate,
+      simulationEndDate = simulationEndDate,
+      resolution = resolution,
+      requestVoltageDeviationThreshold =
+        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+      outputConfig = defaultOutputConfig,
+      primaryServiceProxy = primaryServiceProxy.ref
+    )
+
     "be instantiated correctly" in {
       val loadAgent = TestFSMRef(
         new FixedLoadAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
@@ -122,39 +135,12 @@ class LoadAgentFixedModelCalculationSpec
       val loadAgent = TestFSMRef(
         new FixedLoadAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
 
-      val triggerId = 0
-      scheduler.send(
-        loadAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              LoadInput,
-              LoadRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              secondaryDataServices = services,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          triggerId,
-          loadAgent
-        )
-      )
+      scheduler.send(loadAgent, Activation(INIT_SIM_TICK))
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
@@ -173,7 +159,7 @@ class LoadAgentFixedModelCalculationSpec
               requestVoltageDeviationThreshold,
               outputConfig
             ) =>
-          inputModel shouldBe voltageSensitiveInput
+          inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe services
           simulationStartDate shouldBe this.simulationStartDate
@@ -189,16 +175,7 @@ class LoadAgentFixedModelCalculationSpec
       primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
 
       /* Expect a completion notification */
-      scheduler.expectMsg(
-        CompletionMessage(
-          triggerId,
-          Some(
-            List(
-              ScheduleTriggerMessage(ActivityStartTrigger(0L), loadAgent)
-            )
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(loadAgent.toTyped, Some(0)))
 
       /* ... as well as corresponding state and state data */
       loadAgent.stateName shouldBe Idle
@@ -246,46 +223,19 @@ class LoadAgentFixedModelCalculationSpec
       val loadAgent = TestFSMRef(
         new FixedLoadAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
 
-      val triggerId = 0
-      scheduler.send(
-        loadAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              LoadInput,
-              LoadRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              secondaryDataServices = services,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          triggerId,
-          loadAgent
-        )
-      )
+      scheduler.send(loadAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
 
       loadAgent.stateName shouldBe Idle
       /* State data has already been tested */
@@ -326,61 +276,26 @@ class LoadAgentFixedModelCalculationSpec
       val loadAgent = TestFSMRef(
         new FixedLoadAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
 
-      val initialiseTriggerId = 0
-      scheduler.send(
-        loadAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              LoadInput,
-              LoadRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              secondaryDataServices = services,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          initialiseTriggerId,
-          loadAgent
-        )
-      )
+      scheduler.send(loadAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
 
       /* I am not interested in the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       awaitAssert(loadAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
 
-      val activityStartTriggerId = 1
-      scheduler.send(
-        loadAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(0L),
-          activityStartTriggerId,
-          loadAgent
-        )
-      )
+      scheduler.send(loadAgent, Activation(0))
 
       /* Expect confirmation */
-      scheduler.expectMsg(CompletionMessage(activityStartTriggerId, None))
+      scheduler.expectMsg(Completion(loadAgent.toTyped, None))
 
       /* Intermediate transitions and states cannot be tested, as the agents triggers itself
        * too fast */
@@ -413,57 +328,25 @@ class LoadAgentFixedModelCalculationSpec
       val loadAgent = TestFSMRef(
         new FixedLoadAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
 
       /* Trigger the initialisation */
-      scheduler.send(
-        loadAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              LoadInput,
-              LoadRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              secondaryDataServices = services,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          0L,
-          loadAgent
-        )
-      )
+      scheduler.send(loadAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
 
-      /* Trigger the data generation in tick 0 */
-      scheduler.send(
-        loadAgent,
-        TriggerWithIdMessage(ActivityStartTrigger(0L), 1L, loadAgent)
-      )
+      scheduler.expectMsg(Completion(loadAgent.toTyped, Some(0)))
 
-      /* Appreciate the existence of two CompletionMessages */
-      val completedTriggerIds = scheduler.receiveWhile(messages = 2) {
-        case msg: CompletionMessage => msg.triggerId
-      }
-      logger.debug(
-        s"Received CompletionMessages for the following trigger ids: $completedTriggerIds"
-      )
+      /* Trigger the data generation in tick 0 */
+      scheduler.send(loadAgent, Activation(0))
+
+      scheduler.expectMsg(Completion(loadAgent.toTyped))
+
       awaitAssert(loadAgent.stateName shouldBe Idle)
 
       /* Ask the agent for average power in tick 3000 */
@@ -483,6 +366,7 @@ class LoadAgentFixedModelCalculationSpec
     val loadAgent = TestFSMRef(
       new FixedLoadAgent(
         scheduler = scheduler.ref,
+        initStateData = initStateData,
         listener = systemListener
       )
     )
@@ -490,52 +374,18 @@ class LoadAgentFixedModelCalculationSpec
     "does answer unchanged power values after asking a second time with considerably same voltage" in {
 
       /* Trigger the initialisation */
-      scheduler.send(
-        loadAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              LoadInput,
-              LoadRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              secondaryDataServices = services,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          0L,
-          loadAgent
-        )
-      )
+      scheduler.send(loadAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
 
-      /* Trigger the data generation in tick 0 */
-      scheduler.send(
-        loadAgent,
-        TriggerWithIdMessage(ActivityStartTrigger(0L), 1, loadAgent)
-      )
+      scheduler.expectMsg(Completion(loadAgent.toTyped, Some(0)))
 
-      /* Appreciate the existence of two CompletionMessages */
-      val completedTriggerIds = scheduler.receiveWhile(messages = 2) {
-        case msg: CompletionMessage => msg.triggerId
-      }
-      logger.debug(
-        s"Received CompletionMessages for the following trigger ids: $completedTriggerIds"
-      )
+      /* Trigger the data generation in tick 0 */
+      scheduler.send(loadAgent, Activation(0))
+
+      scheduler.expectMsg(Completion(loadAgent.toTyped))
 
       /* Ask the agent for average power in tick 3000 */
       loadAgent ! RequestAssetPowerMessage(

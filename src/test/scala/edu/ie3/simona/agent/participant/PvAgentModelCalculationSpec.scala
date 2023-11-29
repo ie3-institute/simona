@@ -6,9 +6,10 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.TestFSMRef
-import akka.util.Timeout
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
+import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV
@@ -18,30 +19,21 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  CollectRegistrationConfirmMessages,
-  ParticipantInitializeStateData,
-  ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
-}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
   RequestAssetPowerMessage
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  IllegalTriggerMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
@@ -52,13 +44,10 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   RegisterForWeatherMessage,
   WeatherData
 }
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger
-}
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.PvInputTestData
 import edu.ie3.simona.util.ConfigUtil
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.quantities.{
   Megavars,
@@ -67,12 +56,10 @@ import edu.ie3.util.scala.quantities.{
   WattsPerSquareMeter
 }
 import org.scalatest.PrivateMethodTester
-import squants.{Each, Power}
 import squants.energy.{Kilowatts, Megawatts, Watts}
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND}
+import squants.{Each, Power}
 
 import java.util.concurrent.TimeUnit
 
@@ -82,8 +69,8 @@ class PvAgentModelCalculationSpec
         "PvAgentSpec",
         ConfigFactory
           .parseString("""
-            |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-            |akka.loglevel="DEBUG"
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="DEBUG"
         """.stripMargin)
       )
     )
@@ -98,8 +85,6 @@ class PvAgentModelCalculationSpec
     .qCharacteristics(new QV("qV:{(0.95,-0.625),(1.05,0.625)}"))
     .build()
 
-  private val testingTolerance = 1e-6 // Equality on the basis of 1 W
-
   /* Assign this test to receive the result events from agent */
   override val systemListener: Iterable[ActorRef] = Vector(self)
 
@@ -108,7 +93,7 @@ class PvAgentModelCalculationSpec
       LoadModelBehaviour.FIX,
       LoadReference.ActivePower(Kilowatts(0d))
     )
-  private val defaultOutputConfig = ParticipantNotifierConfig(
+  private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
     simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
   )
@@ -130,10 +115,28 @@ class PvAgentModelCalculationSpec
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   "A pv agent with model calculation depending on no secondary data service" should {
+    val initStateData = ParticipantInitializeStateData[
+      PvInput,
+      PvRuntimeConfig,
+      ApparentPower
+    ](
+      inputModel = voltageSensitiveInput,
+      modelConfig = modelConfig,
+      secondaryDataServices = noServices,
+      simulationStartDate = simulationStartDate,
+      simulationEndDate = simulationEndDate,
+      resolution = resolution,
+      requestVoltageDeviationThreshold =
+        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+      outputConfig = defaultOutputConfig,
+      primaryServiceProxy = primaryServiceProxy.ref
+    )
+
     "be instantiated correctly" in {
       val pvAgent = TestFSMRef(
         new PvAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
@@ -149,70 +152,52 @@ class PvAgentModelCalculationSpec
       }
     }
 
-    "fail initialisation and stay in uninitialized state" in {
+    "fail initialisation and stop agent" in {
+      val deathProbe = TestProbe("deathProbe")
+
       val pvAgent = TestFSMRef(
         new PvAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
 
-      val triggerId = 0
-      scheduler.send(
-        pvAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              PvInput,
-              PvRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              secondaryDataServices = noServices,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          triggerId,
-          pvAgent
-        )
-      )
+      scheduler.send(pvAgent, Activation(INIT_SIM_TICK))
+
+      deathProbe.watch(pvAgent.ref)
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
 
-      scheduler.receiveOne(receiveTimeOut.duration) match {
-        case IllegalTriggerMessage(_, _) => logger.debug("Got correct message")
-        case m =>
-          fail(
-            s"Did not fail initialization because of missing weather service. Received: $m"
-          )
-      }
-
-      /* agent should stay uninitialized */
-      pvAgent.stateName shouldBe Uninitialized
-      pvAgent.stateData match {
-        case _: ParticipantInitializingStateData[_, _, _] => succeed
-        case _ => fail("Expected to get initializing state data")
-      }
+      deathProbe.expectTerminated(pvAgent.ref)
     }
   }
 
   "A pv agent with model calculation depending on one secondary data service" should {
+    val initStateData = ParticipantInitializeStateData[
+      PvInput,
+      PvRuntimeConfig,
+      ApparentPower
+    ](
+      inputModel = voltageSensitiveInput,
+      modelConfig = modelConfig,
+      secondaryDataServices = withServices,
+      simulationStartDate = simulationStartDate,
+      simulationEndDate = simulationEndDate,
+      resolution = resolution,
+      requestVoltageDeviationThreshold =
+        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+      outputConfig = defaultOutputConfig,
+      primaryServiceProxy = primaryServiceProxy.ref
+    )
+
     "be instantiated correctly" in {
       val pvAgent = TestFSMRef(
         new PvAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
@@ -232,39 +217,12 @@ class PvAgentModelCalculationSpec
       val pvAgent = TestFSMRef(
         new PvAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
 
-      val triggerId = 0
-      scheduler.send(
-        pvAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              PvInput,
-              PvRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              secondaryDataServices = withServices,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          triggerId,
-          pvAgent
-        )
-      )
+      scheduler.send(pvAgent, Activation(INIT_SIM_TICK))
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
@@ -283,7 +241,7 @@ class PvAgentModelCalculationSpec
               requestVoltageDeviationThreshold,
               outputConfig
             ) =>
-          inputModel shouldBe voltageSensitiveInput
+          inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe withServices
           simulationStartDate shouldBe this.simulationStartDate
@@ -332,7 +290,7 @@ class PvAgentModelCalculationSpec
               ActorWeatherService(weatherService.ref)
             )
           )
-          outputConfig shouldBe ParticipantNotifierConfig(
+          outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
             powerRequestReply = false
           )
@@ -358,16 +316,7 @@ class PvAgentModelCalculationSpec
       weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(4711L)))
 
       /* Expect a completion message */
-      scheduler.expectMsg(
-        CompletionMessage(
-          triggerId,
-          Some(
-            scala.collection.immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(4711), pvAgent)
-            )
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(pvAgent.toTyped, Some(4711L)))
 
       /* ... as well as corresponding state and state data */
       pvAgent.stateName shouldBe Idle
@@ -388,39 +337,12 @@ class PvAgentModelCalculationSpec
       val pvAgent = TestFSMRef(
         new PvAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
 
-      val triggerId = 0
-      scheduler.send(
-        pvAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              PvInput,
-              PvRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              secondaryDataServices = withServices,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          triggerId,
-          pvAgent
-        )
-      )
+      scheduler.send(pvAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
@@ -433,7 +355,7 @@ class PvAgentModelCalculationSpec
       weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(900L)))
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
 
       pvAgent.stateName shouldBe Idle
       /* State data has already been tested */
@@ -474,39 +396,12 @@ class PvAgentModelCalculationSpec
       val pvAgent = TestFSMRef(
         new PvAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
 
-      val initialiseTriggerId = 0
-      scheduler.send(
-        pvAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              PvInput,
-              PvRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              secondaryDataServices = withServices,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          initialiseTriggerId,
-          pvAgent
-        )
-      )
+      scheduler.send(pvAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
@@ -517,7 +412,7 @@ class PvAgentModelCalculationSpec
       weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(0L)))
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       awaitAssert(pvAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
 
@@ -561,27 +456,12 @@ class PvAgentModelCalculationSpec
       }
 
       /* Trigger the agent */
-      scheduler.send(
-        pvAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(0L),
-          1L,
-          scheduler.ref
-        )
-      )
+      scheduler.send(pvAgent, Activation(0))
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
        * for starting the calculation */
-      scheduler.expectMsg(
-        CompletionMessage(
-          1L,
-          Some(
-            scala.collection.immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent)
-            )
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(pvAgent.toTyped, Some(3600)))
+
       pvAgent.stateName shouldBe Idle
       pvAgent.stateData match {
         case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
@@ -622,39 +502,12 @@ class PvAgentModelCalculationSpec
       val pvAgent = TestFSMRef(
         new PvAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
 
-      val initialiseTriggerId = 0
-      scheduler.send(
-        pvAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              PvInput,
-              PvRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              secondaryDataServices = withServices,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          initialiseTriggerId,
-          pvAgent
-        )
-      )
+      scheduler.send(pvAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
@@ -665,18 +518,11 @@ class PvAgentModelCalculationSpec
       weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(0L)))
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       awaitAssert(pvAgent.stateName shouldBe Idle)
 
       /* Send out an activity start trigger */
-      scheduler.send(
-        pvAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(0L),
-          1L,
-          scheduler.ref
-        )
-      )
+      scheduler.send(pvAgent, Activation(0))
 
       /* Find yourself in appropriate state with state data */
       pvAgent.stateName shouldBe HandleInformation
@@ -716,16 +562,7 @@ class PvAgentModelCalculationSpec
       )
 
       /* Expect confirmation */
-      scheduler.expectMsg(
-        CompletionMessage(
-          1L,
-          Some(
-            scala.collection.immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent)
-            )
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(pvAgent.toTyped, Some(3600)))
 
       /* Expect the state change to idle with updated base state data */
       pvAgent.stateName shouldBe Idle
@@ -768,39 +605,13 @@ class PvAgentModelCalculationSpec
       val pvAgent = TestFSMRef(
         new PvAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
 
       /* Trigger the initialisation */
-      scheduler.send(
-        pvAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              PvInput,
-              PvRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              secondaryDataServices = withServices,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          0L,
-          pvAgent
-        )
-      )
+      scheduler.send(pvAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
@@ -811,7 +622,7 @@ class PvAgentModelCalculationSpec
       weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(3600L)))
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       awaitAssert(pvAgent.stateName shouldBe Idle)
 
       /* Ask the agent for average power in tick 7200 */
@@ -836,27 +647,11 @@ class PvAgentModelCalculationSpec
       )
 
       /* Trigger the agent */
-      scheduler.send(
-        pvAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(3600L),
-          1L,
-          scheduler.ref
-        )
-      )
+      scheduler.send(pvAgent, Activation(3600))
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
        * for starting the calculation */
-      scheduler.expectMsg(
-        CompletionMessage(
-          1L,
-          Some(
-            scala.collection.immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent)
-            )
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(pvAgent.toTyped, Some(7200)))
 
       /* Appreciate the answer to my previous request */
       expectMsgType[AssetPowerChangedMessage] match {
@@ -869,40 +664,14 @@ class PvAgentModelCalculationSpec
     val pvAgent = TestFSMRef(
       new PvAgent(
         scheduler = scheduler.ref,
+        initStateData = initStateData,
         listener = systemListener
       )
     )
 
     "provide correct average power after three data ticks are available" in {
       /* Trigger the initialisation */
-      scheduler.send(
-        pvAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              PvInput,
-              PvRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              secondaryDataServices = withServices,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref
-            )
-          ),
-          0L,
-          pvAgent
-        )
-      )
+      scheduler.send(pvAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
@@ -913,7 +682,7 @@ class PvAgentModelCalculationSpec
       weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(0L)))
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       awaitAssert(pvAgent.stateName shouldBe Idle)
 
       /* Send out the three data points */
@@ -931,24 +700,8 @@ class PvAgentModelCalculationSpec
           Some(3600L)
         )
       )
-      scheduler.send(
-        pvAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(0L),
-          1L,
-          scheduler.ref
-        )
-      )
-      scheduler.expectMsg(
-        CompletionMessage(
-          1L,
-          Some(
-            scala.collection.immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(3600L), pvAgent)
-            )
-          )
-        )
-      )
+      scheduler.send(pvAgent, Activation(0))
+      scheduler.expectMsg(Completion(pvAgent.toTyped, Some(3600)))
 
       /* ... for tick 3600 */
       weatherService.send(
@@ -964,24 +717,8 @@ class PvAgentModelCalculationSpec
           Some(7200L)
         )
       )
-      scheduler.send(
-        pvAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(3600L),
-          3L,
-          scheduler.ref
-        )
-      )
-      scheduler.expectMsg(
-        CompletionMessage(
-          3L,
-          Some(
-            scala.collection.immutable.Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(7200L), pvAgent)
-            )
-          )
-        )
-      )
+      scheduler.send(pvAgent, Activation(3600))
+      scheduler.expectMsg(Completion(pvAgent.toTyped, Some(7200)))
 
       /* ... for tick 7200 */
       weatherService.send(
@@ -997,15 +734,8 @@ class PvAgentModelCalculationSpec
           None
         )
       )
-      scheduler.send(
-        pvAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(7200L),
-          5L,
-          scheduler.ref
-        )
-      )
-      scheduler.expectMsg(CompletionMessage(5L))
+      scheduler.send(pvAgent, Activation(7200))
+      scheduler.expectMsg(Completion(pvAgent.toTyped))
 
       /* Ask the agent for average power in tick 7500 */
       pvAgent ! RequestAssetPowerMessage(

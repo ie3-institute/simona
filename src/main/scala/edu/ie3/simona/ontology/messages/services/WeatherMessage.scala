@@ -12,6 +12,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
   ServiceRegistrationMessage
 }
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.util.scala.quantities.Irradiance
 import squants.{Temperature, Velocity}
 
@@ -51,7 +52,8 @@ object WeatherMessage {
   final case class ProvideWeatherMessage(
       override val tick: Long,
       override val data: WeatherData,
-      override val nextDataTick: Option[Long]
+      override val nextDataTick: Option[Long],
+      override val unlockKey: Option[ScheduleKey] = None
   ) extends WeatherMessage
       with ProvisionMessage[WeatherData]
 
