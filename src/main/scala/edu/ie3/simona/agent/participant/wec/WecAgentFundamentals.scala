@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant.wec
 
-import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult,
@@ -29,7 +28,6 @@ import edu.ie3.simona.agent.participant.statedata.{
 }
 import edu.ie3.simona.agent.participant.wec.WecAgent.neededServices
 import edu.ie3.simona.agent.state.AgentState
-import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.WecRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
@@ -44,6 +42,7 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime

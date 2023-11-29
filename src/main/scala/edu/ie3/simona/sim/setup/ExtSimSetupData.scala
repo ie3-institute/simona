@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.sim.setup
 
-import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.service.ev.ExtEvDataService
+import org.apache.pekko.actor.ActorRef
 
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ActorRef],

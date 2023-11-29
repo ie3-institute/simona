@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.test.common
 
+import edu.ie3.simona.scheduler.ScheduleLock.Spawner
 import org.apache.pekko.actor.testkit.typed.scaladsl.ActorTestKitBase
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
-import edu.ie3.simona.scheduler.ScheduleLock.Spawner
 
 trait TestSpawnerTyped {
   this: ActorTestKitBase =>

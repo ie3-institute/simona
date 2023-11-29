@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.agent.participant
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.SimonaAgent
 import edu.ie3.simona.agent.grid.GridAgent.FinishGridSimulationTrigger
@@ -50,6 +48,8 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
@@ -333,9 +333,9 @@ abstract class ParticipantAgent[
           case (actorRef, data) => s"$actorRef -> $data"
         }
         log.debug(
-          s"Got asset power request for tick {}'. Will answer it later. " +
-            s"I'm waiting for senders: '{}', already got from '{}'. " +
-            s"The actor has {} been triggered yet.",
+          "Got asset power request for tick {}'. Will answer it later. " +
+            "I'm waiting for senders: '{}', already got from '{}'. " +
+            "The actor has {} been triggered yet.",
           s"$currentTick from ${sender()}",
           awaitedSenders,
           yetReceivedSenders,
@@ -376,7 +376,7 @@ abstract class ParticipantAgent[
 
     case Event(RequestAssetPowerMessage(currentTick, _, _), _) =>
       log.debug(
-        s"Got asset power request for tick {} from '{}'. Will answer it later.",
+        "Got asset power request for tick {} from '{}'. Will answer it later.",
         currentTick,
         sender()
       )

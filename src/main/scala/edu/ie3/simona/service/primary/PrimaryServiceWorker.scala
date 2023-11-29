@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.service.primary
 
-import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.factory.timeseries.TimeBasedSimpleValueFactory
 import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
@@ -34,6 +33,7 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
 import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 
 import java.nio.file.Path
 import java.time.ZonedDateTime
@@ -212,7 +212,7 @@ final case class PrimaryServiceWorker[V <: Value](
       case None =>
         /* There is no data available in the source. */
         log.warning(
-          s"I expected to get data for tick '{}' ({}), but data is not available",
+          "I expected to get data for tick '{}' ({}), but data is not available",
           tick,
           wallClockTime
         )

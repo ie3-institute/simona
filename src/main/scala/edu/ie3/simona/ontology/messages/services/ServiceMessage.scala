@@ -6,11 +6,11 @@
 
 package edu.ie3.simona.ontology.messages.services
 
+import edu.ie3.simona.agent.participant.data.Data
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import org.apache.pekko.actor.ActorRef
 
 import java.util.UUID
-import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 
 /** Collections of all messages, that are send to and from the different
   * services

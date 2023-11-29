@@ -106,8 +106,8 @@ object RefSystemParser {
       )
     )
       throw new InvalidConfigParameterException(
-        s"The provided gridIds in simona.gridConfig.refSystems contains duplicates. " +
-          s"Please check if there are either duplicate entries or overlapping ranges!"
+        "The provided gridIds in simona.gridConfig.refSystems contains duplicates. " +
+          "Please check if there are either duplicate entries or overlapping ranges!"
       )
     if (
       CollectionUtils.listHasDuplicates(
@@ -115,8 +115,8 @@ object RefSystemParser {
       )
     )
       throw new InvalidConfigParameterException(
-        s"The provided voltLvls in simona.gridConfig.refSystems contains duplicates. " +
-          s"Please check your configuration for duplicates in voltLvl entries!"
+        "The provided voltLvls in simona.gridConfig.refSystems contains duplicates. " +
+          "Please check your configuration for duplicates in voltLvl entries!"
       )
 
     ConfigRefSystems(gridIdRefSystems.toMap, voltLvlRefSystems.toMap)

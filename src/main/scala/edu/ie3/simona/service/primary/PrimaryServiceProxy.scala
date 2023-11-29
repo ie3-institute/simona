@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.service.primary
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
@@ -47,7 +45,6 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   WorkerRegistrationMessage
 }
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
@@ -59,7 +56,10 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   InitPrimaryServiceStateData,
   SqlInitPrimaryServiceStateData
 }
+import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
@@ -257,7 +257,7 @@ case class PrimaryServiceProxy(
           )
         case None =>
           log.debug(
-            s"There is no time series apparent for the model with uuid '{}'.",
+            "There is no time series apparent for the model with uuid '{}'.",
             modelUuid
           )
           sender() ! RegistrationFailedMessage
@@ -310,7 +310,7 @@ case class PrimaryServiceProxy(
           case Failure(exception) =>
             log.warning(
               s"A failure occurred during spin-off of a primary source for time series '$timeSeriesUuid'. " +
-                s"Will inform the requesting actor, that registration is not possible.",
+                "Will inform the requesting actor, that registration is not possible.",
               exception
             )
             requestingActor ! RegistrationFailedMessage
@@ -583,7 +583,7 @@ object PrimaryServiceProxy {
       )
     else if (sourceConfigs.isEmpty)
       throw new InvalidConfigParameterException(
-        s"No time series source type defined. Please define exactly one type!" +
+        "No time series source type defined. Please define exactly one type!" +
           s"\nAvailable types:\n\t${supportedSources.mkString("\n\t")}"
       )
     else {

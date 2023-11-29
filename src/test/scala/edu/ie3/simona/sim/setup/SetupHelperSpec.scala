@@ -6,10 +6,6 @@
 
 package edu.ie3.simona.sim.setup
 
-import java.util.UUID
-
-import org.apache.pekko.actor.ActorRef
-import org.apache.pekko.testkit.TestException
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.input.connector.{
   Transformer2WInput,
@@ -21,12 +17,15 @@ import edu.ie3.datamodel.models.input.container.{
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.GridInputTestData
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.testkit.TestException
 
+import java.util.UUID
 import scala.jdk.CollectionConverters._
 
 class SetupHelperSpec extends UnitSpec with GridInputTestData {
 
-  private final object SetupHelperInstance extends SetupHelper
+  private object SetupHelperInstance extends SetupHelper
 
   "A setup helper" should {
     "reduce multiple SubGridGates between the same superior and inferior nodes to one unique SubGridGate" in {

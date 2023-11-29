@@ -6,14 +6,14 @@
 
 package edu.ie3.simona.agent.grid
 
-import java.util.UUID
-
-import org.apache.pekko.actor.{ActorRef, ActorSystem}
-import org.apache.pekko.testkit.{TestKit, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.simona.test.common.{TestKitWithShutdown, UnitSpec}
 import edu.ie3.simona.test.common.model.grid.SubGridGateMokka
+import edu.ie3.simona.test.common.{TestKitWithShutdown, UnitSpec}
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.TestProbe
+
+import java.util.UUID
 
 class ReceivedValuesStoreSpec
     extends TestKitWithShutdown(

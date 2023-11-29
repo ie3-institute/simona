@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant.hp
 
-import org.apache.pekko.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
@@ -17,6 +16,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.Participa
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
 import edu.ie3.simona.model.participant.HpModel
 import edu.ie3.simona.model.participant.HpModel.HpRelevantData
+import org.apache.pekko.actor.{ActorRef, Props}
 
 object HpAgent {
   def props(

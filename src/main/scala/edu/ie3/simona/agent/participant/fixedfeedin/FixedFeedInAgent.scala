@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant.fixedfeedin
 
-import org.apache.pekko.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
@@ -15,6 +14,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.Participa
 import edu.ie3.simona.config.SimonaConfig.FixedFeedInRuntimeConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.FixedFeedInModel
+import org.apache.pekko.actor.{ActorRef, Props}
 
 object FixedFeedInAgent {
   def props(

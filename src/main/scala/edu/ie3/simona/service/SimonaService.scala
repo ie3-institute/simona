@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.service
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Stash}
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -23,6 +21,8 @@ import edu.ie3.simona.service.ServiceStateData.{
 }
 import edu.ie3.simona.service.SimonaService.Create
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Stash}
 
 import scala.util.{Failure, Success, Try}
 
@@ -100,8 +100,8 @@ abstract class SimonaService[
           // initialize service trigger with invalid data
           log.error(
             "Error during service initialization." +
-              s"\nReceivedData: {}" +
-              s"\nException: {}",
+              "\nReceivedData: {}" +
+              "\nException: {}",
             initializeStateData,
             exception
           )

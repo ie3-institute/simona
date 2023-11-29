@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.testkit.TestProbe
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -35,10 +32,11 @@ import edu.ie3.simona.test.common.{
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.testkit.TestProbe
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
-
-import scala.language.postfixOps
 
 /** Test to ensure the functions that a [[GridAgent]] in center position should
   * be able to do if the DBFSAlgorithm is used. The scheduler, the weather
@@ -106,7 +104,7 @@ class DBFSAlgorithmCenGridSpec
         )
       )
 
-    s"initialize itself when it receives an init activation" in {
+    "initialize itself when it receives an init activation" in {
 
       // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
       val subGridGateToActorRef = hvSubGridGates.map {
@@ -166,7 +164,7 @@ class DBFSAlgorithmCenGridSpec
       )
     }
 
-    s"start the simulation when activation is sent" in {
+    "start the simulation when activation is sent" in {
 
       val firstSweepNo = 0
 

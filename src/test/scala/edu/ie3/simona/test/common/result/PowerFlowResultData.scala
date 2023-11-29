@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.test.common.result
 
-import java.util.UUID
-
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.result.NodeResult
 import edu.ie3.datamodel.models.result.connector.{
@@ -20,6 +18,8 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
+
+import java.util.UUID
 
 trait PowerFlowResultData {
 

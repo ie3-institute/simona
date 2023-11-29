@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.util
 
-import edu.ie3.datamodel.models.input.{MeasurementUnitInput, NodeInput}
 import edu.ie3.datamodel.models.input.connector.{
   LineInput,
   SwitchInput,
@@ -25,6 +24,7 @@ import edu.ie3.datamodel.models.input.graphics.{
   NodeGraphicInput
 }
 import edu.ie3.datamodel.models.input.system._
+import edu.ie3.datamodel.models.input.{MeasurementUnitInput, NodeInput}
 
 import scala.jdk.CollectionConverters._
 

@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.test.common.input
 
-import java.time.ZonedDateTime
-import java.util.UUID
-
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
@@ -18,6 +15,9 @@ import edu.ie3.util.TimeUtil
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 import tech.units.indriya.quantity.Quantities
+
+import java.time.ZonedDateTime
+import java.util.UUID
 
 /** Simple test data to be used in tests for PvModel. Should be extended as
   * needed.

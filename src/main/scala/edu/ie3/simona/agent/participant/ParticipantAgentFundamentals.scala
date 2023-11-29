@@ -6,11 +6,6 @@
 
 package edu.ie3.simona.agent.participant
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorRef, FSM, PoisonPill}
-import org.apache.pekko.event.LoggingAdapter
-import org.apache.pekko.util
-import org.apache.pekko.util.Timeout
 import breeze.numerics.{ceil, floor, pow, sqrt}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.ResultEntity
@@ -63,7 +58,6 @@ import edu.ie3.simona.exceptions.agent.{
 }
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
-import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage
@@ -79,6 +73,11 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, FSM, PoisonPill}
+import org.apache.pekko.event.LoggingAdapter
+import org.apache.pekko.util
+import org.apache.pekko.util.Timeout
 import squants.energy.Megawatts
 import squants.{Dimensionless, Each, Energy, Power}
 
@@ -305,7 +304,7 @@ protected trait ParticipantAgentFundamentals[
         )
         releaseTick()
 
-        log.debug(s"Going to {}, using {}", Idle, baseStateData)
+        log.debug("Going to {}, using {}", Idle, baseStateData)
         scheduler ! Completion(self.toTyped, newTick)
         goto(Idle) using nextBaseStateData
       }
@@ -830,7 +829,7 @@ protected trait ParticipantAgentFundamentals[
       fInPu: Dimensionless,
       alternativeResult: PD
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
-    log.debug(s"Received asset power request for tick {}", requestTick)
+    log.debug("Received asset power request for tick {}", requestTick)
 
     /* Check, if there is any calculation foreseen for this tick. If so, wait with the response. */
     val activationExpected =
@@ -839,8 +838,8 @@ protected trait ParticipantAgentFundamentals[
       baseStateData.foreseenDataTicks.values.flatten.exists(_ < requestTick)
     if (activationExpected || dataExpected) {
       log.debug(
-        s"I got a request for power from '{}' for tick '{}', but I'm still waiting for new" +
-          s" results before this tick. Waiting with the response.",
+        "I got a request for power from '{}' for tick '{}', but I'm still waiting for new" +
+          " results before this tick. Waiting with the response.",
         sender(),
         requestTick
       )
@@ -1203,7 +1202,7 @@ protected trait ParticipantAgentFundamentals[
       )
     } else {
       log.debug(
-        s"No relevant data apparent, stay and reply with alternative result {}.",
+        "No relevant data apparent, stay and reply with alternative result {}.",
         alternativeResult
       )
       stayWithUpdatedRequestValueStore(

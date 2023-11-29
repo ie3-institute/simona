@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.model
 
-import java.time.ZonedDateTime
-import java.util.UUID
-
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.simona.exceptions.{
@@ -18,6 +15,8 @@ import edu.ie3.simona.exceptions.{
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.scala.OperationInterval
 
+import java.time.ZonedDateTime
+import java.util.UUID
 import scala.jdk.OptionConverters._
 import scala.util.{Failure, Success, Try}
 

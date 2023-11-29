@@ -6,11 +6,6 @@
 
 package edu.ie3.simona.scheduler
 
-import org.apache.pekko.actor.testkit.typed.scaladsl.{
-  ScalaTestWithActorTestKit,
-  TestProbe
-}
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent._
 import edu.ie3.simona.ontology.messages.Activation
@@ -22,6 +17,11 @@ import edu.ie3.simona.scheduler.TimeAdvancer.{StartSimMessage, Stop}
 import edu.ie3.simona.sim.SimMessage
 import edu.ie3.simona.sim.SimMessage.{SimulationFailure, SimulationSuccessful}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe
+}
+import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 

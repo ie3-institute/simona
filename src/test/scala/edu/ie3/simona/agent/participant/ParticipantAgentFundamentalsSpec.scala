@@ -6,10 +6,6 @@
 
 package edu.ie3.simona.agent.participant
 
-import org.apache.pekko.actor.ActorRef.noSender
-import org.apache.pekko.actor.{ActorRef, ActorSystem}
-import org.apache.pekko.testkit.TestFSMRef
-import org.apache.pekko.util.Timeout
 import breeze.numerics.pow
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
@@ -36,6 +32,10 @@ import edu.ie3.simona.test.common.model.participant.LoadTestData
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
+import org.apache.pekko.actor.ActorRef.noSender
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.TestFSMRef
+import org.apache.pekko.util.Timeout
 import org.mockito.Mockito.when
 import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor3, TableFor5}

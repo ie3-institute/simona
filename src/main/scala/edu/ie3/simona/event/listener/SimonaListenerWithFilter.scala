@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.event.listener
 
-import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.event.Event
 import edu.ie3.simona.logging.SimonaActorLogging
+import org.apache.pekko.actor.ActorRef
 
 /** Implementations can be registered at simulation setup and will then receive
   * and process [[Event]] s from other Actors

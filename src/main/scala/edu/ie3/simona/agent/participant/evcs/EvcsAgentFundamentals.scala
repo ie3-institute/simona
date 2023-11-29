@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant.evcs
 
-import org.apache.pekko.actor.{ActorRef, FSM}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.result.system.{
@@ -28,7 +27,6 @@ import edu.ie3.simona.agent.participant.statedata.{
   ParticipantStateData
 }
 import edu.ie3.simona.agent.state.AgentState
-import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -49,6 +47,7 @@ import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DIS
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Kilovars
+import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.energy.Kilowatts
 import squants.{Dimensionless, Each}
 
@@ -116,7 +115,7 @@ protected trait EvcsAgentFundamentals
       )
     )
       throw new AgentInitializationException(
-        s"EvcsAgent cannot be initialized without an ev data service!"
+        "EvcsAgent cannot be initialized without an ev data service!"
       )
 
     baseStateDataForModelCalculation(

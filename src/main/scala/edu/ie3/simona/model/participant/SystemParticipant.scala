@@ -186,7 +186,7 @@ abstract class SystemParticipant[
           s"The var characteristics \'$qControl\' of model \'$id\' ($uuid) imposes an apparent " +
             s"power (= $apparentPower) that exceeds " +
             s"rated apparent power specifications (= $sMax). " +
-            s"Therefore, setting reactive power output to the to the upper limit " +
+            "Therefore, setting reactive power output to the to the upper limit " +
             s"in correspondence to the existing active power $activePower."
         )
 
@@ -195,7 +195,7 @@ abstract class SystemParticipant[
 
         if (powerSquaredDifference < 0) {
           logger.warn(
-            s"Active power of model exceeds sRated. Set reactive power to 0!"
+            "Active power of model exceeds sRated. Set reactive power to 0!"
           )
           Megavars(0d)
         } else {

@@ -6,14 +6,14 @@
 
 package edu.ie3.simona.scheduler
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorContextOps
-import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
-import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorContextOps
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import java.util.UUID
 
@@ -29,7 +29,7 @@ object ScheduleLock {
 
   private final case class Init(adapter: ActorRef[Activation]) extends LockMsg
 
-  private final case object LockActivation extends LockMsg
+  private case object LockActivation extends LockMsg
 
   /** @param key
     *   the key that unlocks (part of) the lock

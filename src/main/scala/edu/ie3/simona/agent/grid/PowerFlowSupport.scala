@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.event.LoggingAdapter
 import breeze.math.Complex
 import edu.ie3.powerflow.NewtonRaphsonPF
 import edu.ie3.powerflow.model.NodeData.{PresetData, StateData}
@@ -20,6 +19,7 @@ import edu.ie3.simona.model.grid._
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvidePowerMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.util.scala.quantities.Kilovars
+import org.apache.pekko.event.LoggingAdapter
 import squants.electro.ElectricPotential
 import squants.energy.Kilowatts
 
@@ -177,7 +177,7 @@ trait PowerFlowSupport {
       .minByOption(_.index)
       .getOrElse(
         throw new DBFSAlgorithmException(
-          s"Unable to find a slack node."
+          "Unable to find a slack node."
         )
       )
 
@@ -237,7 +237,7 @@ trait PowerFlowSupport {
           .find(_.nodeUuid == sweepValueStoreData.nodeUuid)
           .getOrElse(
             throw new RuntimeException(
-              s"Unable to find node with uuid " +
+              "Unable to find node with uuid " +
                 s"${sweepValueStoreData.nodeUuid} in received slack voltage values!"
             )
           )
@@ -453,7 +453,7 @@ trait PowerFlowSupport {
         throw new RuntimeException(
           s"The received slack voltage for node $nodeUuid belongs to a two and a " +
             s"three winding transformer at the same time (${transformer2w.uuid} and ${transformer3w.uuid}), " +
-            s"which is not possible!"
+            "which is not possible!"
         )
       case (None, None) =>
         throw new RuntimeException(

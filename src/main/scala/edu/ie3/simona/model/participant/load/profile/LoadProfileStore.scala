@@ -6,10 +6,6 @@
 
 package edu.ie3.simona.model.participant.load.profile
 
-import java.io.{InputStreamReader, Reader}
-import java.time.{Duration, ZonedDateTime}
-import java.util
-
 import breeze.numerics.round
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.profile.{
@@ -24,11 +20,12 @@ import edu.ie3.simona.model.participant.load.{DayType, profile}
 import org.apache.commons.csv.CSVFormat
 import squants.energy.{KilowattHours, Watts}
 
+import java.io.{InputStreamReader, Reader}
+import java.time.{Duration, ZonedDateTime}
+import java.util
 import scala.jdk.CollectionConverters._
-import scala.math.pow
-
-// needs to be imported for max function
 import scala.math.Ordering.Double.IeeeOrdering
+import scala.math.pow
 
 /** Storage for a collection of standard load profiles. It is assumed, that each
   * entry is given in W - which especially holds true for the standard load

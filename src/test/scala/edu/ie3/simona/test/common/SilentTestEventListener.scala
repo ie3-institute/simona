@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.test.common
 
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.pekko.event.Logging.{Debug, Error, Info, Warning, simpleName}
 import org.apache.pekko.testkit.TestEventListener
-import com.typesafe.scalalogging.LazyLogging
 
 /** Does the same as TestEventListener but without polluting console logs. If
   * the log should be enabled for debug purposes adapt resources/log4j2-test.xml

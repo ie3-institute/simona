@@ -6,11 +6,12 @@
 
 package edu.ie3.simona.agent.grid
 
-import java.util.UUID
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.grid.GridAgentDataHelperSpec.TestGridData
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.SubGridGateMokka
+
+import java.util.UUID
 
 object GridAgentDataHelperSpec {
 

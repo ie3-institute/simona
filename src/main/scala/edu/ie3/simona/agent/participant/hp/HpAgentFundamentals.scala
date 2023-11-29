@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant.hp
 
-import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.result.system.{
   HpResult,
@@ -31,7 +30,6 @@ import edu.ie3.simona.agent.participant.statedata.{
   ParticipantStateData
 }
 import edu.ie3.simona.agent.state.AgentState
-import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
@@ -48,6 +46,7 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
+import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.energy.Megawatts
 import squants.{Dimensionless, Each, Power, Temperature}
 import tech.units.indriya.quantity.Quantities
@@ -300,7 +299,7 @@ trait HpAgentFundamentals
       }
     }.getOrElse {
       throw new AgentInitializationException(
-        s"HpAgent cannot be initialized without a Thermal House!"
+        "HpAgent cannot be initialized without a Thermal House!"
       )
     }
 

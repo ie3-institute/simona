@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -37,6 +34,9 @@ import edu.ie3.simona.test.common.{
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.testkit.{ImplicitSender, TestProbe}
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
@@ -94,7 +94,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
         )
       )
 
-    s"initialize itself when it receives an init activation" in {
+    "initialize itself when it receives an init activation" in {
       // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
       val subGridGateToActorRef = hvSubGridGatesPF.map {
         case gate if gate.getInferiorSubGrid == hvGridContainerPF.getSubnet =>
@@ -153,7 +153,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       )
     }
 
-    s"start the simulation when an activation is sent is sent, handle failed power flow if it occurs" in {
+    "start the simulation when an activation is sent is sent, handle failed power flow if it occurs" in {
       val sweepNo = 0
 
       // send the start grid simulation trigger

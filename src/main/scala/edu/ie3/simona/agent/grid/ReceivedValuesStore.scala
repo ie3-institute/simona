@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.ActorRef
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.{
   NodeToReceivedPower,
@@ -17,6 +16,7 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvidePowerMessage
 }
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import org.apache.pekko.actor.ActorRef
 
 import java.util.UUID
 

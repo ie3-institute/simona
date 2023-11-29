@@ -32,7 +32,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit
 }
 import org.apache.pekko.testkit.TestKit.awaitCond
-import org.apache.pekko.testkit.TestProbe
 
 import java.io.{File, FileInputStream}
 import java.util.UUID

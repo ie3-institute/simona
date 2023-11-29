@@ -14,7 +14,7 @@ object RuntimeEvent {
   /** Indicates that all required agents and services are currently being
     * initialized for simulation
     */
-  final case object Initializing extends RuntimeEvent
+  case object Initializing extends RuntimeEvent
 
   /** Indicates that the scheduler has finished a pre-defined advancement in
     * ticks and is ready to carry out the next task. In contrast to the
@@ -86,7 +86,7 @@ object RuntimeEvent {
   /** Indicates that a power flow calculation has failed. This event is not
     * forwarded to sinks, but rather counted in runtime statistics.
     */
-  final case object PowerFlowFailed extends RuntimeEvent
+  case object PowerFlowFailed extends RuntimeEvent
 
   /** Indicates that an error occurred during the simulation, thereby preventing
     * continuation

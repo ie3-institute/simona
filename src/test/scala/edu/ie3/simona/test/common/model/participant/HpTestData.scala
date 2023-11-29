@@ -7,8 +7,6 @@
 package edu.ie3.simona.test.common.model.participant
 
 import edu.ie3.datamodel.models.input.container.ThermalGrid
-import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
-import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.input.system.`type`.HpTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.ReactivePowerCharacteristic
@@ -17,7 +15,9 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalHouseInput,
   ThermalStorageInput
 }
+import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
+import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.test.common.DefaultTestData
 import tech.units.indriya.quantity.Quantities
 

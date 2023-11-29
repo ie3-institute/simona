@@ -6,11 +6,11 @@
 
 package edu.ie3.simona.agent.grid
 
-import java.util.UUID
-
-import org.apache.pekko.actor.ActorRef
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.model.grid.GridModel
+import org.apache.pekko.actor.ActorRef
+
+import java.util.UUID
 
 /** Wrapper class containing all information on the grid environment a
   * [[GridAgent]] has access to

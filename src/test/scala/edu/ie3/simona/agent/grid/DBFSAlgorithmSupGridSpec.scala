@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorRef, ActorSystem}
-import org.apache.pekko.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.ThermalGrid
@@ -38,6 +35,9 @@ import edu.ie3.simona.test.common.{
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.{ImplicitSender, TestProbe}
 import squants.energy.Megawatts
 
 import java.util.UUID
@@ -91,7 +91,7 @@ class DBFSAlgorithmSupGridSpec
       )
     )
 
-    s"initialize itself when it receives an init activation" in {
+    "initialize itself when it receives an init activation" in {
       val subnetGatesToActorRef: Map[SubGridGate, ActorRef] =
         ehvSubGridGates.map(gate => gate -> hvGrid.ref).toMap
 
@@ -130,8 +130,8 @@ class DBFSAlgorithmSupGridSpec
 
     }
 
-    s"start the simulation, do 2 sweeps and should end afterwards when no deviation on nodal " +
-      s"power is recognized in the superior when an activation is sent is send" in {
+    "start the simulation, do 2 sweeps and should end afterwards when no deviation on nodal " +
+      "power is recognized in the superior when an activation is sent is send" in {
 
         for (sweepNo <- 0 to 1) {
 
@@ -207,8 +207,8 @@ class DBFSAlgorithmSupGridSpec
 
       }
 
-    s"start the simulation when an activation is sent is sent, do 5 sweeps and should end afterwards, if the " +
-      s"nodal power exchange converges not before the fifth sweep." in {
+    "start the simulation when an activation is sent is sent, do 5 sweeps and should end afterwards, if the " +
+      "nodal power exchange converges not before the fifth sweep." in {
 
         // configuration of the test
         val maxNumberOfTestSweeps = 4

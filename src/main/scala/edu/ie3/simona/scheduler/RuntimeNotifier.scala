@@ -6,11 +6,11 @@
 
 package edu.ie3.simona.scheduler
 
-import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent._
 import edu.ie3.simona.scheduler.RuntimeNotifier.now
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.ActorRef
 
 /** Determines runtime events at different stages of the simulation and notifies
   * listeners

@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.test.common.model.grid
 
-import java.util.UUID
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.connector.{
@@ -16,6 +15,8 @@ import edu.ie3.datamodel.models.input.connector.{
 }
 import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
+
+import java.util.UUID
 
 /** Hold my cup of coffee and let me mock you some models.
   */

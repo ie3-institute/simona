@@ -14,8 +14,8 @@ import edu.ie3.datamodel.models.input.container.{
   RawGridElements,
   SystemParticipants
 }
-import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system._
+import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.{
   MeasurementUnitInput,
   NodeInput,

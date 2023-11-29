@@ -6,12 +6,7 @@
 
 package edu.ie3.simona.agent.participant.evcs
 
-import org.apache.pekko.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.EvcsInput
-import edu.ie3.simona.agent.participant.{
-  ParticipantAgent,
-  ParticipantAgentFundamentals
-}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
@@ -21,6 +16,10 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
+import edu.ie3.simona.agent.participant.{
+  ParticipantAgent,
+  ParticipantAgentFundamentals
+}
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.EvcsModel
@@ -30,6 +29,7 @@ import edu.ie3.simona.ontology.messages.services.EvMessage.{
   EvFreeLotsRequest
 }
 import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.{ActorRef, Props}
 import squants.Power
 
 object EvcsAgent {

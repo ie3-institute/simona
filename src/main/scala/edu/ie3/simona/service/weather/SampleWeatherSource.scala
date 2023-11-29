@@ -14,12 +14,12 @@ import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.geo.CoordinateDistance
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.locationtech.jts.geom.Point
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
 import squants.Kelvin
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
+import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoField.{HOUR_OF_DAY, MONTH_OF_YEAR, YEAR}

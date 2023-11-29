@@ -6,12 +6,13 @@
 
 package edu.ie3.simona.model.thermal
 
-import java.util.UUID
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import squants.Energy
 import squants.energy.WattHours
+
+import java.util.UUID
 
 /** Thermal storage model.
   *

@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.logging
 
+import edu.ie3.simona.actor.SimonaActorNaming
 import org.apache.pekko.actor.{Actor, ActorSystem, ExtendedActorSystem}
 import org.apache.pekko.event.{
   LogSource,
@@ -13,7 +14,6 @@ import org.apache.pekko.event.{
   LoggingBus,
   LoggingFilter
 }
-import edu.ie3.simona.actor.SimonaActorNaming
 
 private[logging] trait SimonaLogging {
   this: Actor =>

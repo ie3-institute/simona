@@ -101,7 +101,7 @@ class RefSystemParserSpec extends UnitSpec {
         )
       intercept[InvalidConfigParameterException] {
         RefSystemParser.parse(validRefSystems)
-      }.getMessage shouldBe s"The provided gridIds in simona.gridConfig.refSystems contains duplicates. Please check if there are either duplicate entries or overlapping ranges!"
+      }.getMessage shouldBe "The provided gridIds in simona.gridConfig.refSystems contains duplicates. Please check if there are either duplicate entries or overlapping ranges!"
 
     }
 
@@ -128,7 +128,7 @@ class RefSystemParserSpec extends UnitSpec {
         )
       intercept[InvalidConfigParameterException] {
         RefSystemParser.parse(validRefSystems)
-      }.getMessage shouldBe s"The provided voltLvls in simona.gridConfig.refSystems contains duplicates. Please check your configuration for duplicates in voltLvl entries!"
+      }.getMessage shouldBe "The provided voltLvls in simona.gridConfig.refSystems contains duplicates. Please check your configuration for duplicates in voltLvl entries!"
 
     }
 

@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.ActorRef
-import org.apache.pekko.event.LoggingAdapter
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.powerflow.model.PowerFlowResult
@@ -24,6 +22,8 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvideGridPowerMessage,
   ProvidePowerMessage
 }
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.event.LoggingAdapter
 
 import java.util.UUID
 
@@ -35,7 +35,7 @@ object GridAgentData {
 
   /** Initial state data of the [[GridAgent]]
     */
-  final case object GridAgentUninitializedData extends GridAgentData
+  case object GridAgentUninitializedData extends GridAgentData
 
   /** Data that is send to the [[GridAgent]] directly after startup. It contains
     * the main information for initialization. This data should include all
@@ -97,7 +97,7 @@ object GridAgentData {
     * be copied several times at several places for each state transition with
     * updated data. So be careful in adding more data on it!
     */
-  final case object GridAgentBaseData extends GridAgentData {
+  case object GridAgentBaseData extends GridAgentData {
 
     def apply(
         gridModel: GridModel,

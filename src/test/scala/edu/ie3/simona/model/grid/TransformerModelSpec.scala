@@ -30,7 +30,6 @@ import squants.Each
 import squants.electro.{Amperes, Kilovolts}
 import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit

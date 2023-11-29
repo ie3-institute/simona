@@ -6,13 +6,13 @@
 
 package edu.ie3.simona.agent.participant.statedata
 
-import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
+import org.apache.pekko.actor.ActorRef
 import squants.Dimensionless
 
 import java.time.ZonedDateTime

@@ -6,25 +6,25 @@
 
 package edu.ie3.simona.service.weather
 
+import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.factory.timeseries.{
   CosmoIdCoordinateFactory,
   IconIdCoordinateFactory,
   IdCoordinateFactory,
   SqlIdCoordinateFactory
 }
-import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
 import edu.ie3.datamodel.io.source.sql.SqlIdCoordinateSource
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
 import edu.ie3.simona.exceptions.{
   InvalidConfigParameterException,
   ServiceException
 }
-import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
@@ -40,11 +40,11 @@ import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.io.CsvDataSourceAdapter
-import org.locationtech.jts.geom.{Coordinate, Point}
-import tech.units.indriya.ComparableQuantity
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
+import org.locationtech.jts.geom.{Coordinate, Point}
 import squants.motion.MetersPerSecond
 import squants.thermal.Kelvin
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -415,14 +415,14 @@ object WeatherSource {
             case coordinateSource =>
               // cannot use sample weather source with other combination of weather source than sample weather source
               throw new InvalidConfigParameterException(
-                s"Invalid coordinate source " +
+                "Invalid coordinate source " +
                   s"'${coordinateSource.getClass.getSimpleName}' defined for SampleWeatherSource. " +
                   "Please adapt the configuration to use sample coordinate source for weather data!"
               )
           }
         case None | Some(_) =>
           throw new InvalidConfigParameterException(
-            s"No weather source defined! This is currently not supported! Please provide the config parameters for one " +
+            "No weather source defined! This is currently not supported! Please provide the config parameters for one " +
               s"of the following weather sources:\n\t${supportedWeatherSources.mkString("\n\t")}"
           )
       }
@@ -505,7 +505,7 @@ object WeatherSource {
         () => SampleWeatherSource.SampleIdCoordinateSource
       case None | Some(_) =>
         throw new InvalidConfigParameterException(
-          s"No coordinate source defined! This is currently not supported! Please provide the config parameters for one " +
+          "No coordinate source defined! This is currently not supported! Please provide the config parameters for one " +
             s"of the following coordinate sources:\n\t${supportedCoordinateSources.mkString("\n\t")}"
         )
     }

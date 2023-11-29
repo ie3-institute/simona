@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.service.ev
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 import edu.ie3.simona.api.data.ev.ExtEvData
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
@@ -27,6 +25,8 @@ import edu.ie3.simona.service.ev.ExtEvDataService.{
   InitExtEvData
 }
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 
 import java.util.UUID
 import scala.jdk.CollectionConverters._

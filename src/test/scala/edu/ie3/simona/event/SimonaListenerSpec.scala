@@ -6,13 +6,13 @@
 
 package edu.ie3.simona.event
 
-import org.apache.pekko.actor.{ActorRef, ActorSystem}
-import org.apache.pekko.testkit.{EventFilter, TestActorRef}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.event.SimonaListenerSpec.{TestEvent, UnknownEvent}
 import edu.ie3.simona.event.listener.SimonaListenerWithFilter
 import edu.ie3.simona.logging.SimonaLogging.SimonaBusLogging
 import edu.ie3.simona.test.common.TestKitWithShutdown
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.{EventFilter, TestActorRef}
 import org.scalatest.matchers.should.Matchers
 
 import java.util.{Calendar, Date}
@@ -22,7 +22,7 @@ object SimonaListenerSpec {
   // test classes
   final case class TestEvent(str: String, date: Date) extends Event
 
-  final case object UnknownEvent extends Event
+  case object UnknownEvent extends Event
 
 }
 
@@ -45,7 +45,7 @@ class SimonaListenerSpec
   class SimonaListenerActor(eventsToProcess: Option[List[String]] = None)
       extends SimonaListenerWithFilter(eventsToProcess) {
     override def preStart(): Unit = {
-      log.debug(s"{} started!", self)
+      log.debug("{} started!", self)
     }
 
     override def processEvent(event: Event, sender: ActorRef): Unit = {

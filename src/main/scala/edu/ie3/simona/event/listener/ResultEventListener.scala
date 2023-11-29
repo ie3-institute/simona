@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.event.listener
 
-import org.apache.pekko.actor.typed.scaladsl.Behaviors
-import org.apache.pekko.actor.typed.{Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
@@ -24,6 +22,8 @@ import edu.ie3.simona.exceptions.{
 import edu.ie3.simona.io.result._
 import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.util.ResultFileHierarchy
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{Behavior, PostStop}
 import org.slf4j.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -41,7 +41,7 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   private final case class Failed(ex: Exception) extends ResultMessage
 
-  private final case object StopTimeout extends ResultMessage
+  private case object StopTimeout extends ResultMessage
 
   /** [[ResultEventListener]] base data containing all information the listener
     * needs
@@ -240,7 +240,7 @@ object ResultEventListener extends Transformer3wResultSupport {
         ctx.log.debug("NodeResults will be processed by a Kafka sink.")
       case _ =>
         ctx.log.debug(
-          s"Events that will be processed: {}",
+          "Events that will be processed: {}",
           resultFileHierarchy.resultEntitiesToConsider
             .map(_.getSimpleName)
             .mkString(",")

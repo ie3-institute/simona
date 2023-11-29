@@ -179,7 +179,7 @@ case object GridModel {
             admittanceMatrix
           )
         )
-          throw new RuntimeException(s"Admittance matrix is illegal.")
+          throw new RuntimeException("Admittance matrix is illegal.")
         else
           admittanceMatrix
     }

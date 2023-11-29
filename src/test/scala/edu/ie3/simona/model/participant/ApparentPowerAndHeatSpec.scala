@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.model.participant.ApparentPowerAndHeatSpec.ApparentPowerAndHeatMock
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
@@ -15,7 +14,7 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import squants.Each
-import squants.energy.{Power, Megawatts, Watts}
+import squants.energy.{Megawatts, Power, Watts}
 
 import java.util.UUID
 

@@ -6,10 +6,10 @@
 
 package edu.ie3.simona.test.common
 
-import org.apache.pekko.actor.ActorRef
 import com.typesafe.config.{Config, ConfigFactory}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.listener.SimonaListenerCompanion
+import org.apache.pekko.actor.ActorRef
 
 /** Simple (empty) configuration data. Furthermore, it would make sense to
   * implement another class which reads a config and provides config based

@@ -18,9 +18,9 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.mockito.MockitoSugar
-import squants.{Temperature, Velocity}
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
+import squants.{Temperature, Velocity}
 
 import java.time.ZonedDateTime
 import scala.util.{Failure, Success}

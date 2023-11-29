@@ -6,17 +6,6 @@
 
 package edu.ie3.simona.sim
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
-import org.apache.pekko.actor.SupervisorStrategy.Stop
-import org.apache.pekko.actor.{
-  Actor,
-  ActorRef,
-  AllForOneStrategy,
-  Props,
-  Stash,
-  SupervisorStrategy,
-  Terminated
-}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.event.RuntimeEvent
@@ -34,6 +23,17 @@ import edu.ie3.simona.sim.SimonaSim.{
   SimonaSimStateData
 }
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
+import org.apache.pekko.actor.SupervisorStrategy.Stop
+import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
+import org.apache.pekko.actor.{
+  Actor,
+  ActorRef,
+  AllForOneStrategy,
+  Props,
+  Stash,
+  SupervisorStrategy,
+  Terminated
+}
 
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps

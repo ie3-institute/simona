@@ -19,9 +19,9 @@ import edu.ie3.util.scala.quantities.{
   KilowattHoursPerKelvinCubicMeters,
   SpecificHeatCapacity
 }
-import squants.{Energy, Temperature, Volume}
 import squants.space.CubicMeters
 import squants.thermal.Celsius
+import squants.{Energy, Temperature, Volume}
 import tech.units.indriya.unit.Units
 
 import java.util.UUID

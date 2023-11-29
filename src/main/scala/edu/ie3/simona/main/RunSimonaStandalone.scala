@@ -6,21 +6,19 @@
 
 package edu.ie3.simona.main
 
-import org.apache.pekko.actor.ActorSystem
-
-import java.util.concurrent.TimeUnit
-import org.apache.pekko.pattern.ask
-import org.apache.pekko.util.Timeout
 import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, SimonaConfig}
 import edu.ie3.simona.sim.SimMessage.{
   InitSim,
   SimulationFailure,
-  SimulationSuccessful,
-  StartSimulation
+  SimulationSuccessful
 }
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.pattern.ask
+import org.apache.pekko.util.Timeout
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.Await
 
 /** Run a standalone simulation of simona
