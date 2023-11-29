@@ -6,10 +6,12 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.typed.{Behavior, PostStop}
-import akka.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{Behavior, PostStop}
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
+import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
+import edu.ie3.simona.io.runtime.RuntimeEventSink.RuntimeStats
 import edu.ie3.simona.io.runtime.{
   RuntimeEventKafkaSink,
   RuntimeEventLogSink,
@@ -60,20 +62,26 @@ object RuntimeEventListener {
 
   def apply(
       listeners: Iterable[RuntimeEventSink],
-      eventsToProcess: Option[List[String]] = None
+      eventsToProcess: Option[List[String]] = None,
+      runtimeStats: RuntimeStats = RuntimeStats()
   ): Behavior[RuntimeEvent] = Behaviors
-    .receive[RuntimeEvent] { case (ctx, event) =>
-      eventsToProcess match {
-        case None => processEvent(listeners, event, ctx.log)
-        case Some(events) if events.contains(event.id) =>
-          processEvent(listeners, event, ctx.log)
-        case _ =>
+    .receive[RuntimeEvent] {
+      case (_, PowerFlowFailed) =>
+        val updatedRuntimeData = runtimeStats
+          .copy(failedPowerFlows = runtimeStats.failedPowerFlows + 1)
+        RuntimeEventListener(listeners, eventsToProcess, updatedRuntimeData)
+
+      case (ctx, event) =>
+        val process = eventsToProcess.forall(_.contains(event.id))
+
+        if (process)
+          processEvent(listeners, event, runtimeStats, ctx.log)
+        else
           ctx.log.debug(
             "Skipping event {} as it is not in the list of events to process.",
             event.id
           )
-      }
-      Behaviors.same
+        Behaviors.same
     }
     .receiveSignal { case (_, PostStop) =>
       listeners.foreach(_.close())
@@ -83,8 +91,9 @@ object RuntimeEventListener {
   private def processEvent(
       listeners: Iterable[RuntimeEventSink],
       event: RuntimeEvent,
+      runtimeStats: RuntimeStats,
       log: Logger
   ): Unit =
-    listeners.foreach(_.handleRuntimeEvent(event, log))
+    listeners.foreach(_.handleRuntimeEvent(event, runtimeStats, log))
 
 }

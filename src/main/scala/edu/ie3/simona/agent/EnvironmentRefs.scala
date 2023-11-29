@@ -6,13 +6,15 @@
 
 package edu.ie3.simona.agent
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 
 /** Container class, that gather together reference to relevant entities, that
   * represent the environment in the simulation
   *
   * @param scheduler
   *   Reference to the event handling entity
+  * @param runtimeEventListener
+  *   Reference to the runtime event listener
   * @param primaryServiceProxy
   *   Reference to the primary service proxy
   * @param weather
@@ -22,6 +24,7 @@ import akka.actor.ActorRef
   */
 final case class EnvironmentRefs(
     scheduler: ActorRef,
+    runtimeEventListener: ActorRef,
     primaryServiceProxy: ActorRef,
     weather: ActorRef,
     evDataService: Option[ActorRef]

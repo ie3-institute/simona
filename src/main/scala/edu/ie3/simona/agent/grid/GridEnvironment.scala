@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.grid
 
 import java.util.UUID
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.model.grid.GridModel
 
