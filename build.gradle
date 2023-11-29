@@ -30,7 +30,6 @@ ext {
   jtsVersion = '1.19.0'
   confluentKafkaVersion = '7.4.0'
   tscfgVersion = '1.0.2'
-  scapegoatVersion = '2.1.3'
 
   testContainerVersion = '0.41.0'
 
@@ -142,10 +141,6 @@ dependencies {
   }
   implementation "org.locationtech.jts.io:jts-io-common:${jtsVersion}"
 
-  /* Scala compiler plugin for static code analysis */
-  implementation "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:${scapegoatVersion}"
-  scalaCompilerPlugin "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:${scapegoatVersion}"
-
   /* Kafka */
   implementation "org.apache.kafka:kafka-clients:${confluentKafkaVersion}-ccs"
   implementation "io.confluent:kafka-streams-avro-serde:${confluentKafkaVersion}"
@@ -187,29 +182,16 @@ shadowJar {
   archiveBaseName.set('simona')
 }
 
-
-
-// scapegoat hook configuration
-// https://github.com/sksamuel/scapegoat
-// using compileScala instead of tasks.withType(ScalaCompile) prevents applying scapegoat to scala test classes
-// see https://docs.gradle.org/current/userguide/scala_plugin.html#sec:configure_scala_classpath for details
 tasks.withType(ScalaCompile) {
   scalaCompileOptions.additionalParameters = [
     "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
-    "-P:scapegoat:dataDir:" + buildDir + "/reports/scapegoat/src/",
-    "-P:scapegoat:disabledInspections:VariableShadowing",
-    "-P:scapegoat:ignoredFiles:.*/SimonaConfig.scala",
-    // see scapegoat-sbt page for this param
     "-Ywarn-unused" // required for scalafix OrganizeImports
   ]
 }
 
-// separate scapegoat report for test classes
 compileTestScala {
   scalaCompileOptions.additionalParameters = [
     "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
-    "-P:scapegoat:dataDir:" + buildDir + "/reports/scapegoat/testsrc/",
-    "-P:scapegoat:disabledInspections:VariableShadowing",
     "-Ywarn-unused" // required for scalafix OrganizeImports
   ]
 }
