@@ -24,7 +24,6 @@ import edu.ie3.simona.model.participant.load.random.{
   RandomLoadParameters
 }
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.test.matchers.QuantityMatchers
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -34,10 +33,7 @@ import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
 
-class RandomLoadModelSpec
-    extends UnitSpec
-    with TableDrivenPropertyChecks
-    with QuantityMatchers {
+class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
   implicit val tolerance: Power = Watts(1d)
   "Having a random load model" when {
     val loadInput =
@@ -75,7 +71,6 @@ class RandomLoadModelSpec
         simulationEndDate,
         loadInput.getOperationTime
       )
-    val testingTolerance = 1e-6 // Equals to 1 W power
 
     "instantiating it" should {
       "deliver a proper model" in {
