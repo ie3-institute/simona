@@ -8,15 +8,24 @@ package edu.ie3.simona.agent.participant.load
 
 import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.LoadInput
-import edu.ie3.datamodel.models.result.system.{LoadResult, SystemParticipantResult}
+import edu.ie3.datamodel.models.result.system.{
+  LoadResult,
+  SystemParticipantResult
+}
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ApparentPower, ZERO_POWER}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower,
+  ZERO_POWER
+}
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
-import edu.ie3.simona.agent.participant.statedata.{DataCollectionStateData, ParticipantStateData}
+import edu.ie3.simona.agent.participant.statedata.{
+  DataCollectionStateData,
+  ParticipantStateData
+}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
@@ -26,10 +35,20 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
-import edu.ie3.simona.model.participant.load.profile.{LoadProfileStore, ProfileLoadModel}
+import edu.ie3.simona.model.participant.load.profile.{
+  LoadProfileStore,
+  ProfileLoadModel
+}
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
-import edu.ie3.simona.model.participant.load.random.{RandomLoadModel, RandomLoadParamStore}
-import edu.ie3.simona.model.participant.load.{FixedLoadModel, LoadModel, LoadReference}
+import edu.ie3.simona.model.participant.load.random.{
+  RandomLoadModel,
+  RandomLoadParamStore
+}
+import edu.ie3.simona.model.participant.load.{
+  FixedLoadModel,
+  LoadModel,
+  LoadReference
+}
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits.PU
