@@ -106,7 +106,7 @@ node {
 
         sh 'java -version'
 
-        gradle('--refresh-dependencies clean spotlessCheck pmdMain pmdTest reportScoverage checkScoverage', projectName)
+        gradle('--refresh-dependencies clean spotlessCheck checkScalafix pmdMain pmdTest reportScoverage checkScoverage', projectName)
 
         sh(script: """set +x && cd $projectName""" + ''' set +x; ./gradlew javadoc''', returnStdout: true)
       }
