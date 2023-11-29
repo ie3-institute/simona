@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.service
 
-import org.apache.pekko.actor.ActorRef
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
-import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 
 trait ServiceStateData
@@ -35,18 +32,5 @@ object ServiceStateData {
       */
     def popNextTick: (Option[Long], SortedDistinctSeq[Long]) =
       activationTicks.pop
-  }
-
-  object ServiceActivationBaseStateData {
-
-    /** Build an optional [[ScheduleTriggerMessage]] based on the given optional
-      * next tick and the sender
-      */
-    val tickToScheduleTriggerMessage
-        : (Option[Long], ActorRef) => Option[ScheduleTriggerMessage] =
-      (maybeTick, sender) =>
-        maybeTick.map(tick =>
-          ScheduleTriggerMessage(ActivityStartTrigger(tick), sender)
-        )
   }
 }

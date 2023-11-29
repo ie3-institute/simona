@@ -10,14 +10,11 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import edu.ie3.simona.ontology.messages.SchedulerMessage
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+  Completion,
+  ScheduleActivation
 }
-import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -36,13 +33,13 @@ class ScheduleLockSpec
       val scheduleLocks =
         ScheduleLock.multiKey(TSpawner, scheduler.ref, 300, 2).toSeq
 
-      val sa = scheduler.expectMessageType[ScheduleTriggerMessage]
-      sa.trigger shouldBe ActivityStartTrigger(300)
+      val sa = scheduler.expectMessageType[ScheduleActivation]
+      sa.tick shouldBe 300
       sa.unlockKey shouldBe None
-      val lockActivation = sa.actorToBeScheduled
+      val lockActivation = sa.actor
 
       // initialize lock
-      lockActivation ! TriggerWithIdMessage(ActivityStartTrigger(300), 8)
+      lockActivation ! Activation(300)
 
       // use one of both keys
       scheduleLocks(0).unlock()
@@ -51,7 +48,7 @@ class ScheduleLockSpec
       // use second key, should unlock now
       scheduleLocks(1).unlock()
 
-      scheduler.expectMessage(CompletionMessage(8))
+      scheduler.expectMessage(Completion(lockActivation))
       scheduler.expectTerminated(scheduleLocks(1).lock)
     }
 
@@ -61,19 +58,19 @@ class ScheduleLockSpec
       val scheduleLock =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, 300)
 
-      val sa = scheduler.expectMessageType[ScheduleTriggerMessage]
-      sa.trigger shouldBe ActivityStartTrigger(300)
+      val sa = scheduler.expectMessageType[ScheduleActivation]
+      sa.tick shouldBe 300
       sa.unlockKey shouldBe None
-      val lockActivation = sa.actorToBeScheduled
+      val lockActivation = sa.actor
 
       // use key
       scheduleLock.unlock()
       scheduler.expectNoMessage()
 
       // initialize lock, which should unlock right away now
-      lockActivation ! TriggerWithIdMessage(ActivityStartTrigger(300), 9)
+      lockActivation ! Activation(300)
 
-      scheduler.expectMessage(CompletionMessage(9))
+      scheduler.expectMessage(Completion(lockActivation))
       scheduler.expectTerminated(scheduleLock.lock)
     }
 
@@ -82,19 +79,19 @@ class ScheduleLockSpec
 
       val scheduleLock = ScheduleLock.singleKey(TSpawner, scheduler.ref, 300)
 
-      val sa = scheduler.expectMessageType[ScheduleTriggerMessage]
-      sa.trigger shouldBe ActivityStartTrigger(300)
+      val sa = scheduler.expectMessageType[ScheduleActivation]
+      sa.tick shouldBe 300
       sa.unlockKey shouldBe None
-      val lockActivation = sa.actorToBeScheduled
+      val lockActivation = sa.actor
 
       // initialize lock with wrong tick
-      lockActivation ! TriggerWithIdMessage(ActivityStartTrigger(301), 10)
+      lockActivation ! Activation(301)
 
       // use second key, won't unlock now
       scheduleLock.unlock()
 
       scheduler.expectNoMessage()
-      scheduler.expectTerminated(lockActivation.toTyped)
+      scheduler.expectTerminated(lockActivation)
     }
   }
 

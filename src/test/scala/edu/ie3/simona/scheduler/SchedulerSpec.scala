@@ -10,21 +10,16 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
-import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage._
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeTrigger
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation
 }
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.{LockMsg, ScheduleKey, Unlock}
 import edu.ie3.simona.util.ActorUtils.RichTriggeredAgent
-import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.mockito.Mockito.doReturn
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatestplus.mockito.MockitoSugar.mock
 
 import java.util.UUID
 
@@ -32,12 +27,6 @@ class SchedulerSpec
     extends ScalaTestWithActorTestKit
     with AnyWordSpecLike
     with should.Matchers {
-
-  def createMockInitTrigger(): InitializeTrigger = {
-    val mockTrigger = mock[InitializeTrigger]
-    doReturn(SimonaConstants.INIT_SIM_TICK).when(mockTrigger).tick
-    mockTrigger
-  }
 
   "The Scheduler should work correctly" when {
 
@@ -47,58 +36,32 @@ class SchedulerSpec
         Scheduler(parent.ref)
       )
 
-      val agent1 = TestProbe[TriggerWithIdMessage]("agent_1")
-      val agent2 = TestProbe[TriggerWithIdMessage]("agent_2")
+      val agent1 = TestProbe[Activation]("agent_1")
+      val agent2 = TestProbe[Activation]("agent_2")
 
-      val initTrigger1 = createMockInitTrigger()
-      scheduler ! ScheduleTriggerMessage(
-        initTrigger1,
-        agent1.ref.toClassic
-      )
+      scheduler ! ScheduleActivation(agent1.ref, INIT_SIM_TICK)
 
-      parent.expectMessage(
-        ScheduleTriggerMessage(
-          ActivityStartTrigger(INIT_SIM_TICK),
-          scheduler.toClassic
-        )
-      )
+      val sa1 = parent.expectMessageType[ScheduleActivation]
+      sa1.tick shouldBe INIT_SIM_TICK
+      val schedulerActivation = sa1.actor
 
-      val initTrigger2 = createMockInitTrigger()
-      scheduler ! ScheduleTriggerMessage(
-        initTrigger2,
-        agent2.ref.toClassic
-      )
+      scheduler ! ScheduleActivation(agent2.ref, INIT_SIM_TICK)
 
       agent1.expectNoMessage()
       agent2.expectNoMessage()
 
-      val triggerId = 0
-      scheduler ! TriggerWithIdMessage(
-        ActivityStartTrigger(INIT_SIM_TICK),
-        triggerId
-      )
+      schedulerActivation ! Activation(INIT_SIM_TICK)
 
-      val receivedTrigger1 =
-        agent1.expectMessageType[TriggerWithIdMessage]
-      receivedTrigger1.trigger shouldBe initTrigger1
+      agent1.expectMessage(Activation(INIT_SIM_TICK))
+      agent2.expectMessage(Activation(INIT_SIM_TICK))
 
-      val receivedTrigger2 =
-        agent2.expectMessageType[TriggerWithIdMessage]
-      receivedTrigger2.trigger shouldBe initTrigger2
-
-      scheduler ! CompletionMessage(
-        receivedTrigger1.triggerId,
-        None
-      )
+      scheduler ! Completion(agent1.ref)
 
       parent.expectNoMessage()
 
-      scheduler ! CompletionMessage(
-        receivedTrigger2.triggerId,
-        None
-      )
+      scheduler ! Completion(agent2.ref)
 
-      parent.expectMessage(CompletionMessage(triggerId, None))
+      parent.expectMessage(Completion(schedulerActivation))
     }
 
     "receiving triggers after init trigger" in {
@@ -107,64 +70,37 @@ class SchedulerSpec
         Scheduler(parent.ref)
       )
 
-      val triggerId = 0
-      scheduler ! TriggerWithIdMessage(
-        ActivityStartTrigger(INIT_SIM_TICK),
-        triggerId
+      val agent1 = TestProbe[Activation]("agent_1")
+      val agent2 = TestProbe[Activation]("agent_2")
+
+      scheduler ! ScheduleActivation(agent1.ref, INIT_SIM_TICK)
+
+      val sa1 = parent.expectMessageType[ScheduleActivation]
+      sa1.tick shouldBe INIT_SIM_TICK
+      val schedulerActivation = sa1.actor
+
+      agent1.expectNoMessage()
+
+      schedulerActivation ! Activation(INIT_SIM_TICK)
+
+      agent1.expectMessage(Activation(INIT_SIM_TICK))
+      agent2.expectNoMessage()
+
+      scheduler ! ScheduleActivation(
+        agent2.ref,
+        INIT_SIM_TICK
       )
 
-      val agent1 = TestProbe[TriggerWithIdMessage]("agent_1")
-      val agent2 = TestProbe[TriggerWithIdMessage]("agent_2")
+      // trigger is sent right away
+      agent2.expectMessage(Activation(INIT_SIM_TICK))
 
-      val initTrigger1 = createMockInitTrigger()
-      scheduler ! ScheduleTriggerMessage(
-        initTrigger1,
-        agent1.ref.toClassic
-      )
-
-      val initTrigger2 = createMockInitTrigger()
-      scheduler ! ScheduleTriggerMessage(
-        initTrigger2,
-        agent2.ref.toClassic
-      )
-
-      // trigger are sent right away
-      val receivedTrigger1 =
-        agent1.expectMessageType[TriggerWithIdMessage]
-      receivedTrigger1.trigger shouldBe initTrigger1
-
-      val receivedTrigger2 =
-        agent2.expectMessageType[TriggerWithIdMessage]
-      receivedTrigger2.trigger shouldBe initTrigger2
-
-      scheduler ! CompletionMessage(
-        receivedTrigger1.triggerId,
-        Some(
-          ScheduleTriggerMessage(
-            ActivityStartTrigger(0),
-            agent1.ref.toClassic
-          )
-        )
-      )
+      scheduler ! Completion(agent2.ref)
 
       parent.expectNoMessage()
 
-      scheduler ! CompletionMessage(
-        receivedTrigger2.triggerId,
-        None
-      )
+      scheduler ! Completion(agent1.ref)
 
-      parent.expectMessage(
-        CompletionMessage(
-          triggerId,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(0),
-              scheduler.ref.toClassic
-            )
-          )
-        )
-      )
+      parent.expectMessage(Completion(schedulerActivation))
     }
 
     "scheduling two actors for different ticks" in {
@@ -173,34 +109,25 @@ class SchedulerSpec
         Scheduler(parent.ref)
       )
 
-      val agent1 = TestProbe[TriggerWithIdMessage]("agent_1")
-      val agent2 = TestProbe[TriggerWithIdMessage]("agent_2")
+      val agent1 = TestProbe[Activation]("agent_1")
+      val agent2 = TestProbe[Activation]("agent_2")
 
-      val initTrigger1 = createMockInitTrigger()
-      scheduler ! ScheduleTriggerMessage(
-        initTrigger1,
-        agent1.ref.toClassic
+      scheduler ! ScheduleActivation(
+        agent1.ref,
+        INIT_SIM_TICK
       )
 
-      parent.expectMessage(
-        ScheduleTriggerMessage(
-          ActivityStartTrigger(INIT_SIM_TICK),
-          scheduler.toClassic
-        )
-      )
+      val sa1 = parent.expectMessageType[ScheduleActivation]
+      sa1.tick shouldBe INIT_SIM_TICK
+      val schedulerActivation = sa1.actor
 
-      val initTrigger2 = createMockInitTrigger()
-      scheduler ! ScheduleTriggerMessage(
-        initTrigger2,
-        agent2.ref.toClassic
+      scheduler ! ScheduleActivation(
+        agent2.ref,
+        INIT_SIM_TICK
       )
 
       /* ACTIVATE INIT TICK */
-      val triggerId0 = 0
-      scheduler ! TriggerWithIdMessage(
-        ActivityStartTrigger(INIT_SIM_TICK),
-        triggerId0
-      )
+      schedulerActivation ! Activation(INIT_SIM_TICK)
 
       agent1.expectTriggerAndComplete(
         scheduler,
@@ -216,27 +143,13 @@ class SchedulerSpec
         Some(0)
       )
 
-      parent.expectMessage(
-        CompletionMessage(
-          triggerId0,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(0),
-              scheduler.toClassic
-            )
-          )
-        )
-      )
+      parent.expectMessage(Completion(schedulerActivation, Some(0)))
 
       agent1.expectNoMessage()
       agent2.expectNoMessage()
 
       /* ACTIVATE TICK 0 */
-      val triggerId1 = 1
-      scheduler ! TriggerWithIdMessage(
-        ActivityStartTrigger(0),
-        triggerId1
-      )
+      schedulerActivation ! Activation(0)
 
       agent1.expectTriggerAndComplete(
         scheduler,
@@ -252,24 +165,10 @@ class SchedulerSpec
         Some(900)
       )
 
-      parent.expectMessage(
-        CompletionMessage(
-          triggerId1,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(300),
-              scheduler.toClassic
-            )
-          )
-        )
-      )
+      parent.expectMessage(Completion(schedulerActivation, Some(300)))
 
       /* ACTIVATE TICK 300 */
-      val triggerId2 = 2
-      scheduler ! TriggerWithIdMessage(
-        ActivityStartTrigger(300),
-        triggerId2
-      )
+      schedulerActivation ! Activation(300)
 
       agent1.expectTriggerAndComplete(
         scheduler,
@@ -277,27 +176,13 @@ class SchedulerSpec
         Some(900)
       )
 
-      parent.expectMessage(
-        CompletionMessage(
-          triggerId2,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(900),
-              scheduler.toClassic
-            )
-          )
-        )
-      )
+      parent.expectMessage(Completion(schedulerActivation, Some(900)))
 
       agent1.expectNoMessage()
       agent2.expectNoMessage()
 
       /* ACTIVATE TICK 900 */
-      val triggerId3 = 3
-      scheduler ! TriggerWithIdMessage(
-        ActivityStartTrigger(900),
-        triggerId3
-      )
+      schedulerActivation ! Activation(900)
 
       agent1.expectTriggerAndComplete(
         scheduler,
@@ -313,17 +198,7 @@ class SchedulerSpec
         Some(1800)
       )
 
-      parent.expectMessage(
-        CompletionMessage(
-          triggerId3,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(1800),
-              scheduler.toClassic
-            )
-          )
-        )
-      )
+      parent.expectMessage(Completion(schedulerActivation, Some(1800)))
 
       parent.expectNoMessage()
       agent1.expectNoMessage()
@@ -337,26 +212,22 @@ class SchedulerSpec
       )
 
       val triggeredAgents = (1 to 5)
-        .map(i => TestProbe[TriggerWithIdMessage](s"agent_$i"))
+        .map(i => TestProbe[Activation](s"agent_$i"))
 
       triggeredAgents.foreach(actor =>
         // send to init trigger to scheduler
-        scheduler ! ScheduleTriggerMessage(
-          createMockInitTrigger(),
-          actor.ref.toClassic
+        scheduler ! ScheduleActivation(
+          actor.ref,
+          INIT_SIM_TICK
         )
       )
 
-      parent.expectMessage(
-        ScheduleTriggerMessage(
-          ActivityStartTrigger(INIT_SIM_TICK),
-          scheduler.toClassic
-        )
-      )
+      val sa1 = parent.expectMessageType[ScheduleActivation]
+      sa1.tick shouldBe INIT_SIM_TICK
+      val schedulerActivation = sa1.actor
 
       for (tick <- -1 to 8) {
-        val triggerId = tick + 2
-        scheduler ! TriggerWithIdMessage(ActivityStartTrigger(tick), triggerId)
+        schedulerActivation ! Activation(tick)
 
         triggeredAgents.foreach {
           _.expectTriggerAndComplete(
@@ -366,17 +237,7 @@ class SchedulerSpec
           )
         }
 
-        parent.expectMessage(
-          CompletionMessage(
-            triggerId,
-            Some(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(tick + 1),
-                scheduler.ref.toClassic
-              )
-            )
-          )
-        )
+        parent.expectMessage(Completion(schedulerActivation, Some(tick + 1)))
       }
     }
 
@@ -386,32 +247,23 @@ class SchedulerSpec
         Scheduler(parent.ref)
       )
 
-      val agent1 = TestProbe[TriggerWithIdMessage]("agent_1")
-      val agent2 = TestProbe[TriggerWithIdMessage]("agent_2")
+      val agent1 = TestProbe[Activation]("agent_1")
+      val agent2 = TestProbe[Activation]("agent_2")
       val lock = TestProbe[LockMsg]("lock")
 
-      scheduler ! ScheduleTriggerMessage(
-        ActivityStartTrigger(60),
-        agent1.ref.toClassic
-      )
+      scheduler ! ScheduleActivation(agent1.ref, 60)
 
-      parent.expectMessage(
-        ScheduleTriggerMessage(
-          ActivityStartTrigger(60),
-          scheduler.toClassic
-        )
-      )
+      val sa1 = parent.expectMessageType[ScheduleActivation]
+      sa1.tick shouldBe 60
+      val schedulerActivation = sa1.actor
 
-      scheduler ! TriggerWithIdMessage(
-        ActivityStartTrigger(60),
-        triggerId = 5
-      )
-      agent1.expectMessageType[TriggerWithIdMessage]
+      schedulerActivation ! Activation(60)
+      agent1.expectMessage(Activation(60))
 
       val key = UUID.randomUUID()
-      scheduler ! ScheduleTriggerMessage(
-        ActivityStartTrigger(120),
-        agent2.ref.toClassic,
+      scheduler ! ScheduleActivation(
+        agent2.ref,
+        120,
         Some(ScheduleKey(lock.ref, key))
       )
 
@@ -428,25 +280,18 @@ class SchedulerSpec
         Scheduler(parent.ref)
       )
 
-      val agent1 = TestProbe[TriggerWithIdMessage]("agent_1")
+      val agent1 = TestProbe[Activation]("agent_1")
       val lock = TestProbe[LockMsg]("lock")
 
-      scheduler ! ScheduleTriggerMessage(
-        ActivityStartTrigger(60),
-        agent1.ref.toClassic
-      )
+      scheduler ! ScheduleActivation(agent1.ref, 60)
 
-      parent.expectMessage(
-        ScheduleTriggerMessage(
-          ActivityStartTrigger(60),
-          scheduler.toClassic
-        )
-      )
+      val sa1 = parent.expectMessageType[ScheduleActivation]
+      sa1.tick shouldBe 60
 
       val key = UUID.randomUUID()
-      scheduler ! ScheduleTriggerMessage(
-        ActivityStartTrigger(60),
-        agent1.ref.toClassic,
+      scheduler ! ScheduleActivation(
+        agent1.ref,
+        60,
         Some(ScheduleKey(lock.ref, key))
       )
 
@@ -463,25 +308,19 @@ class SchedulerSpec
         Scheduler(parent.ref)
       )
 
-      val agent1 = TestProbe[TriggerWithIdMessage]("agent_1")
+      val agent1 = TestProbe[Activation]("agent_1")
       val lock = TestProbe[LockMsg]("lock")
 
-      scheduler ! ScheduleTriggerMessage(
-        ActivityStartTrigger(60),
-        agent1.ref.toClassic
-      )
+      scheduler ! ScheduleActivation(agent1.ref, 60)
 
-      parent.expectMessage(
-        ScheduleTriggerMessage(
-          ActivityStartTrigger(60),
-          scheduler.toClassic
-        )
-      )
+      val sa1 = parent.expectMessageType[ScheduleActivation]
+      sa1.tick shouldBe 60
+      val schedulerActivation = sa1.actor
 
       val key = UUID.randomUUID()
-      scheduler ! ScheduleTriggerMessage(
-        ActivityStartTrigger(59),
-        agent1.ref.toClassic,
+      scheduler ! ScheduleActivation(
+        agent1.ref,
+        59,
         Some(ScheduleKey(lock.ref, key))
       )
 
@@ -490,9 +329,9 @@ class SchedulerSpec
 
       // responsibility of unlocking forwarded to parent
       parent.expectMessage(
-        ScheduleTriggerMessage(
-          ActivityStartTrigger(59),
-          scheduler.toClassic,
+        ScheduleActivation(
+          schedulerActivation,
+          59,
           Some(ScheduleKey(lock.ref, key))
         )
       )
@@ -508,20 +347,15 @@ class SchedulerSpec
         Scheduler(parent.ref)
       )
 
-      val agent1 = TestProbe[TriggerWithIdMessage]("agent_1")
+      val agent1 = TestProbe[Activation]("agent_1")
 
-      scheduler ! ScheduleTriggerMessage(
-        createMockInitTrigger(),
-        agent1.ref.toClassic
-      )
+      scheduler ! ScheduleActivation(agent1.ref, INIT_SIM_TICK)
 
-      parent.expectMessageType[ScheduleTriggerMessage]
-      agent1.expectNoMessage()
+      val sa1 = parent.expectMessageType[ScheduleActivation]
+      sa1.tick shouldBe INIT_SIM_TICK
+      val schedulerActivation = sa1.actor
 
-      scheduler ! TriggerWithIdMessage(
-        ActivityStartTrigger(0),
-        0
-      )
+      schedulerActivation ! Activation(0)
 
       // agent does not receive activation
       agent1.expectNoMessage()
@@ -537,22 +371,15 @@ class SchedulerSpec
         Scheduler(parent.ref)
       )
 
-      val agent1 = TestProbe[TriggerWithIdMessage]("agent_1")
+      val agent1 = TestProbe[Activation]("agent_1")
 
-      scheduler ! ScheduleTriggerMessage(
-        ActivityStartTrigger(900),
-        agent1.ref.toClassic
-      )
+      scheduler ! ScheduleActivation(agent1.ref, 900)
 
-      parent.expectMessage(
-        ScheduleTriggerMessage(
-          ActivityStartTrigger(900),
-          scheduler.toClassic
-        )
-      )
+      val sa1 = parent.expectMessageType[ScheduleActivation]
+      sa1.tick shouldBe 900
+      val schedulerActivation = sa1.actor
 
-      val triggerId = 1
-      scheduler ! TriggerWithIdMessage(ActivityStartTrigger(900), triggerId)
+      schedulerActivation ! Activation(900)
 
       agent1.expectTriggerAndComplete(
         scheduler,
@@ -560,24 +387,11 @@ class SchedulerSpec
         Some(1800)
       )
 
-      parent.expectMessage(
-        CompletionMessage(
-          triggerId,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(1800),
-              scheduler.ref.toClassic
-            )
-          )
-        )
-      )
+      parent.expectMessage(Completion(schedulerActivation, Some(1800)))
 
       // now inactive again
       // can't schedule trigger with earlier tick than last tick (900) -> error
-      scheduler ! ScheduleTriggerMessage(
-        createMockInitTrigger(),
-        agent1.ref.toClassic
-      )
+      scheduler ! ScheduleActivation(agent1.ref, INIT_SIM_TICK)
 
       // agent does not receive activation
       agent1.expectNoMessage()
@@ -593,53 +407,23 @@ class SchedulerSpec
         Scheduler(parent.ref)
       )
 
-      scheduler ! TriggerWithIdMessage(
-        ActivityStartTrigger(0),
-        0
-      )
+      val agent1 = TestProbe[Activation]("agent_1")
 
-      val agent1 = TestProbe[TriggerWithIdMessage]("agent_1")
+      scheduler ! ScheduleActivation(agent1.ref, 0)
+
+      val sa1 = parent.expectMessageType[ScheduleActivation]
+      sa1.tick shouldBe 0
+      val schedulerActivation = sa1.actor
+
+      // activate tick 0
+      schedulerActivation ! Activation(0)
+      agent1.expectMessage(Activation(0))
 
       // can't schedule trigger for earlier tick than current active -> error
-      scheduler ! ScheduleTriggerMessage(
-        createMockInitTrigger(),
-        agent1.ref.toClassic
-      )
+      scheduler ! ScheduleActivation(agent1.ref, INIT_SIM_TICK)
 
       // agent does not receive activation
       agent1.expectNoMessage()
-      parent.expectNoMessage()
-
-      // scheduler stopped
-      parent.expectTerminated(scheduler)
-    }
-
-    "receiving completion message with unexpected trigger id" in {
-      val parent = TestProbe[SchedulerMessage]("parent")
-      val scheduler = spawn(
-        Scheduler(parent.ref)
-      )
-
-      scheduler ! TriggerWithIdMessage(
-        ActivityStartTrigger(INIT_SIM_TICK),
-        0
-      )
-
-      val agent1 = TestProbe[TriggerWithIdMessage]("agent_1")
-
-      val initTrigger1 = createMockInitTrigger()
-      scheduler ! ScheduleTriggerMessage(
-        initTrigger1,
-        agent1.ref.toClassic
-      )
-
-      val receivedTrigger =
-        agent1.expectMessageType[TriggerWithIdMessage]
-      receivedTrigger.trigger shouldBe initTrigger1
-
-      // wrong triggerId
-      scheduler ! CompletionMessage(receivedTrigger.triggerId + 1, None)
-
       parent.expectNoMessage()
 
       // scheduler stopped
@@ -652,16 +436,18 @@ class SchedulerSpec
         Scheduler(parent.ref)
       )
 
-      scheduler ! TriggerWithIdMessage(
-        ActivityStartTrigger(INIT_SIM_TICK),
-        0
-      )
+      val agent1 = TestProbe[Activation]("agent_1")
+
+      scheduler ! ScheduleActivation(agent1.ref, INIT_SIM_TICK)
+
+      val sa1 = parent.expectMessageType[ScheduleActivation]
+      sa1.tick shouldBe INIT_SIM_TICK
+      val schedulerActivation = sa1.actor
+
+      schedulerActivation ! Activation(INIT_SIM_TICK)
 
       // scheduler is already active, can't handle activation a second time
-      scheduler ! TriggerWithIdMessage(
-        ActivityStartTrigger(0),
-        1
-      )
+      schedulerActivation ! Activation(0)
 
       parent.expectNoMessage()
 
@@ -675,8 +461,26 @@ class SchedulerSpec
         Scheduler(parent.ref)
       )
 
+      val agent1 = TestProbe[Activation]("agent_1")
+
+      scheduler ! ScheduleActivation(agent1.ref, INIT_SIM_TICK)
+
+      val sa1 = parent.expectMessageType[ScheduleActivation]
+      sa1.tick shouldBe INIT_SIM_TICK
+      val schedulerActivation = sa1.actor
+
+      schedulerActivation ! Activation(INIT_SIM_TICK)
+
+      agent1.expectTriggerAndComplete(
+        scheduler,
+        INIT_SIM_TICK,
+        Some(0)
+      )
+
+      parent.expectMessage(Completion(schedulerActivation.ref, Some(0)))
+
       // scheduler is inactive, can't handle completion
-      scheduler ! CompletionMessage(0, None)
+      scheduler ! Completion(agent1.ref, None)
 
       parent.expectNoMessage()
 

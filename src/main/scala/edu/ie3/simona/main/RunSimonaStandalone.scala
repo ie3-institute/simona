@@ -12,10 +12,11 @@ import java.util.concurrent.TimeUnit
 import org.apache.pekko.pattern.ask
 import org.apache.pekko.util.Timeout
 import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, SimonaConfig}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  InitSimMessage,
-  SimulationFailureMessage,
-  SimulationSuccessfulMessage
+import edu.ie3.simona.sim.SimMessage.{
+  InitSim,
+  SimulationFailure,
+  SimulationSuccessful,
+  StartSimulation
 }
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
@@ -60,10 +61,10 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
     )
 
     // run the simulation
-    val terminated = simonaSim ? InitSimMessage
+    val terminated = simonaSim ? InitSim
 
     Await.result(terminated, timeout.duration) match {
-      case SimulationFailureMessage | SimulationSuccessfulMessage =>
+      case SimulationFailure | SimulationSuccessful =>
         Await.ready(shutdownGracefully(simonaSim), timeout.duration)
         Await.ready(actorSystem.terminate(), timeout.duration)
 

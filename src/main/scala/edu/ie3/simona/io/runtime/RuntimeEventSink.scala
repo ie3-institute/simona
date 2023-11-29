@@ -7,6 +7,7 @@
 package edu.ie3.simona.io.runtime
 
 import edu.ie3.simona.event.RuntimeEvent
+import edu.ie3.simona.io.runtime.RuntimeEventSink.RuntimeStats
 import org.slf4j.Logger
 
 /** Runtime event sinks are handling runtime events. More than one sink can
@@ -18,15 +19,33 @@ trait RuntimeEventSink {
     * or a database.
     *
     * @param runtimeEvent
-    *   the runtime event that should be processed
+    *   The runtime event that should be processed
+    * @param runtimeStats
+    *   The runtime statistical data
     * @param log
-    *   the logger to use
+    *   The logger to use
     */
-  def handleRuntimeEvent(runtimeEvent: RuntimeEvent, log: Logger): Unit
+  def handleRuntimeEvent(
+      runtimeEvent: RuntimeEvent,
+      runtimeStats: RuntimeStats,
+      log: Logger
+  ): Unit
 
   /** Contains all cleanup operations before closing this sink. Should be
     * blocking to ensure that everything inside a buffer or similar is written
     * out.
     */
   def close(): Unit
+}
+
+object RuntimeEventSink {
+
+  /** Runtime object that keeps track of statistics
+    *
+    * @param failedPowerFlows
+    *   The number of failed power flow calculations so far
+    */
+  final case class RuntimeStats(
+      failedPowerFlows: Int = 0
+  )
 }

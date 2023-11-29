@@ -9,7 +9,7 @@ package edu.ie3.simona.event.listener
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import com.sksamuel.avro4s.RecordFormat
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.RuntimeEvent.{Done, Error}
+import edu.ie3.simona.event.RuntimeEvent.{Done, Error, PowerFlowFailed}
 import edu.ie3.simona.io.runtime.RuntimeEventKafkaSink.SimonaEndMessage
 import edu.ie3.simona.test.KafkaSpecLike
 import edu.ie3.simona.test.KafkaSpecLike.Topic
@@ -108,12 +108,12 @@ class RuntimeEventListenerKafkaSpec
       val cases = Table(
         ("event", "expectedMsg"),
         (
-          Done(1800L, 3L, 0, errorInSim = false),
-          SimonaEndMessage(runId, 0, error = false)
+          Done(1800L, 3L, errorInSim = false),
+          SimonaEndMessage(runId, 1, error = false)
         ),
         (
-          Done(3600L, 3L, 2, errorInSim = true),
-          SimonaEndMessage(runId, 2, error = true)
+          Done(3600L, 3L, errorInSim = true),
+          SimonaEndMessage(runId, 1, error = true)
         ),
         (Error(errMsg), SimonaEndMessage(runId, -1, error = true))
       )
@@ -122,16 +122,19 @@ class RuntimeEventListenerKafkaSpec
 
       testConsumer.seekToBeginning(topicPartitions.asJava)
 
+      // one failed power flow
+      listenerRef ! PowerFlowFailed
+
       forAll(cases) { case (event, expectedMsg) =>
         listenerRef ! event
 
-        eventually(timeout(20 seconds), interval(1 second)) {
-          val records: List[SimonaEndMessage] =
+        val records: List[SimonaEndMessage] =
+          eventually(timeout(20 seconds), interval(1 second)) {
             testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
+          }
 
-          records should have length 1
-          records should contain(expectedMsg)
-        }
+        records should have length 1
+        records should contain(expectedMsg)
       }
 
     }
