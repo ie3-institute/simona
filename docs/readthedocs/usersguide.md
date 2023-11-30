@@ -15,6 +15,12 @@ You can find and download the source code of the latest stable SIMONA version [h
 
     $ git clone https://github.com/ie3-institute/simona.git
 
+For speedy execution and optimal convenience, change the Gradle build settings to build and run using Gradle and run tests using IntelliJ IDEA.
+Open the settings window via ``File > Settings``. Find the Gradle settings in at ``Build, Execution, Deployment > Build Tools > Gradle`` or via the search bar at the top.
+When building the project using Gradle, tools such as ``scalafix`` can work on the already assembled project via Gradle.
+Running tests is most convenient via IntelliJ, because this way one can properly take advantage of the respective graphical user interface. 
+
+![](../readthedocs/images/usersguide/intellij-gradle-settings.png)
 
 ## Running a Standalone Simulation
 
