@@ -46,7 +46,7 @@ In short, mergeable PRs have to meet our standards in several areas:
   - All vital parts of the new code need to be covered by tests (see {ref}`developersguide:tests`)
   - Code quality should be sufficient (see {ref}`developersguide:coding conventions`)
 
-There can be exceptions to these rules, which have to be approved by the reviewer.
+There can be exceptions to these rules in special cases, which have to be approved by the reviewer.
 
 ### Tests
 
