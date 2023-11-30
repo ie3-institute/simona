@@ -30,6 +30,7 @@ In short, mergeable PRs have to meet our standards in several areas:
 - Automated checks
   - [Jenkins](https://simona.ie3.e-technik.tu-dortmund.de/ci/job/ie3-institute/job/simona/) run succeeds, i.e. 
     - The code needs to be properly formatted (`gradle spotlessApply`)
+    - The code needs to adhere to some standards regarding import order etc. (`gradle scalafix`)
     - The code needs to compile
     - All tests need to succeed
   - [SonarQube](https://simona.ie3.e-technik.tu-dortmund.de/sonar/dashboard?id=edu.ie3%3Asimona) run succeeds, i.e. 
