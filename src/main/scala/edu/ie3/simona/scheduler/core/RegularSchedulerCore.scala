@@ -15,7 +15,8 @@ import edu.ie3.simona.scheduler.core.Core.{
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
 import org.apache.pekko.actor.typed.ActorRef
 
-/** TODO scaladoc
+/** A regular scheduler core that activates all actors for the current tick and
+  * waits for all actors to complete before advancing.
   */
 object RegularSchedulerCore extends CoreFactory {
 

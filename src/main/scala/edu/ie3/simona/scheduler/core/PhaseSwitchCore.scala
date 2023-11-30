@@ -15,7 +15,16 @@ import edu.ie3.simona.scheduler.core.Core.{
 import edu.ie3.util.scala.collection.immutable.PrioritySwitchBiSet
 import org.apache.pekko.actor.typed.ActorRef
 
-/** TODO scaladoc
+/** A scheduler core that activates actors in phases when active. This means
+  * that only one actor at any given time is activated and the completion of
+  * said actor is necessary before activating other actors scheduled for the
+  * same tick.
+  *
+  * When multiple actors are scheduled for the same tick, they are always
+  * activated in the same order, which is given by the initial scheduling of
+  * said actors. Thus, if e.g. actor 1 has been scheduled for initialization
+  * before actor 2, actor 1 will be activated before actor 2 for the
+  * initialization tick and all consecutive ticks.
   */
 object PhaseSwitchCore extends CoreFactory {
 
@@ -92,6 +101,7 @@ object PhaseSwitchCore extends CoreFactory {
     ): Boolean = {
       if (newTick == activeTick) {
         // what's done, is done: old phases are completed,
+        // thus they cannot handle new activation schedulings
         activationQueue.indexOf(actor).forall(_ >= phase)
       } else
         newTick > activeTick
@@ -106,8 +116,10 @@ object PhaseSwitchCore extends CoreFactory {
     override def takeNewActivations()
         : (Iterable[ActorRef[Activation]], ActiveCore) = {
       Option
-        .when(activeActors.isEmpty) { // only one actor can be active at a time
-          activationQueue.nextValueFor(activeTick)
+        .when(activeActors.isEmpty) {
+          // only one actor can be active at a time, and only
+          // if the last actor of the current tick has completed
+          activationQueue.takeNextValueFor(activeTick)
         }
         .flatten
         .map { case (actor, updatedQueue) =>

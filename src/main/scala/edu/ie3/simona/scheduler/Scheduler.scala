@@ -32,6 +32,14 @@ object Scheduler {
   private final case class WrappedActivation(activation: Activation)
       extends Incoming
 
+  /** Creates a new scheduler with given parent and core. The scheduler starts
+    * in the inactive state.
+    * @param parent
+    *   The parent of this scheduler, which activates this scheduler and waits
+    *   for its completion
+    * @param coreFactory
+    *   The factory that delivers the core to be used within this scheduler
+    */
   def apply(
       parent: ActorRef[SchedulerMessage],
       coreFactory: CoreFactory = RegularSchedulerCore
@@ -176,6 +184,12 @@ object Scheduler {
       stopOnError(ctx, s"Received unexpected message $unexpected when active")
   }
 
+  /** Data that is constant over the life time of a scheduler.
+    * @param parent
+    *   The parent of the scheduler
+    * @param activationAdapter
+    *   The activation adapter that is used to activate the scheduler
+    */
   private final case class SchedulerData(
       parent: ActorRef[
         SchedulerMessage
