@@ -23,7 +23,7 @@ object RegularSchedulerCore extends CoreFactory {
   override def create(): SchedulerInactive =
     SchedulerInactive(PriorityMultiBiSet.empty, None)
 
-  case class SchedulerInactive private (
+  final case class SchedulerInactive private (
       private val activationQueue: PriorityMultiBiSet[Long, ActorRef[
         Activation
       ]],
@@ -59,7 +59,7 @@ object RegularSchedulerCore extends CoreFactory {
 
   }
 
-  private case class SchedulerActive(
+  private final case class SchedulerActive(
       private val activationQueue: PriorityMultiBiSet[Long, ActorRef[
         Activation
       ]],
