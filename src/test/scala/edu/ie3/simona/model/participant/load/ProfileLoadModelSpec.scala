@@ -117,7 +117,7 @@ class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             reference
           )
 
-          actual.sRated =~ expectedSRated
+          (actual.sRated =~ expectedSRated) shouldBe true
         }
       }
     }
