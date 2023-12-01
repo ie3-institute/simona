@@ -22,7 +22,8 @@ import squants.{Power, Temperature}
 import java.time.ZonedDateTime
 import java.util.UUID
 
-/** Model of a heat pump (HP) with a [[ThermalHouse]] medium and its current
+/** Model of a heat pump (HP) with a
+  * [[edu.ie3.simona.model.thermal.ThermalHouse]] medium and its current
   * [[HpState]].
   *
   * @param uuid

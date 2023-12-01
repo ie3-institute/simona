@@ -6,13 +6,18 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.input.OperatorInput
+import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.input.system.`type`.HpTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
+import edu.ie3.datamodel.models.input.thermal.{
+  ThermalBusInput,
+  ThermalHouseInput
+}
+import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
+import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.{
@@ -22,6 +27,7 @@ import edu.ie3.simona.model.thermal.{
   ThermalStorage
 }
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.OperationInterval
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.thermal.Celsius
 import squants.{Power, Temperature}
@@ -31,11 +37,25 @@ import tech.units.indriya.unit.Units
 import java.util.UUID
 
 trait HpModelTestData {
+  private val thermalBus = new ThermalBusInput(UUID.randomUUID(), "thermal bus")
+
+  private val nodeInput = new NodeInput(
+    UUID.randomUUID(),
+    "NS node",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    Quantities.getQuantity(1d, StandardUnits.VOLTAGE_MAGNITUDE),
+    false,
+    NodeInput.DEFAULT_GEO_POSITION,
+    GermanVoltageLevelUtils.LV,
+    2
+  )
+
   protected val hpTypeInput = new HpTypeInput(
     UUID.randomUUID(),
     "HpTypeInput",
-    null,
-    null,
+    Quantities.getQuantity(10000d, PowerSystemUnits.EURO),
+    Quantities.getQuantity(200d, PowerSystemUnits.EURO_PER_MEGAWATTHOUR),
     Quantities.getQuantity(100, PowerSystemUnits.KILOVOLTAMPERE),
     0.95,
     Quantities.getQuantity(15, PowerSystemUnits.KILOWATT)
@@ -46,8 +66,8 @@ trait HpModelTestData {
     "HpInput",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
-    null,
-    null,
+    nodeInput,
+    thermalBus,
     new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
     hpTypeInput
   )
@@ -55,9 +75,9 @@ trait HpModelTestData {
   protected def hpModel(thermalGrid: ThermalGrid) = new HpModel(
     UUID.randomUUID(),
     "HpModel",
-    null,
+    OperationInterval.apply(0L, 86400L),
     1.0,
-    null,
+    QControl.CosPhiFixed(0.95),
     Kilowatts(100d),
     0.95,
     Kilowatts(15d),

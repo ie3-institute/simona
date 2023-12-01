@@ -391,7 +391,7 @@ final case class ThermalHouse(
 }
 
 object ThermalHouse {
-  protected final def temperatureTolerance: Temperature =
+  protected def temperatureTolerance: Temperature =
     Kelvin(0.01d)
 
   def apply(input: ThermalHouseInput): ThermalHouse = new ThermalHouse(
