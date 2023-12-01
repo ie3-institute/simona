@@ -7,13 +7,6 @@ test {
 /* Register scala test with the overall test task */
 test.dependsOn(scalatest)
 
-/* Exclude slow tests */
-scalatest {
-  tags {
-    exclude "edu.ie3.simona.test.common.TestTags.SnailTest"
-  }
-}
-
 // test task performance improvements, see -> https://docs.gradle.org/current/userguide/performance.html
 tasks.withType(Test).configureEach {
   maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
