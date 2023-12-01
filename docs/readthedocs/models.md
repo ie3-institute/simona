@@ -12,10 +12,10 @@ maxdepth: 1
 ---
 models/line_model
 models/switch_model
-models/thermal_grid_model
 models/two_winding_transformer_model
 models/three_winding_transformer_model
 models/reference_system
+models/thermal_grid_model
 ```
 
 ## System Participant Related Models
