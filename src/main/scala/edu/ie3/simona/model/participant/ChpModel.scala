@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import java.util.UUID
-
 import edu.ie3.datamodel.models.input.system.ChpInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.participant.ChpModel._
@@ -16,9 +14,10 @@ import edu.ie3.simona.model.thermal.{MutableStorage, ThermalStorage}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
-
-import squants.{Energy, Power, Seconds, Time}
 import squants.energy.{KilowattHours, Kilowatts}
+import squants.{Energy, Power, Seconds, Time}
+
+import java.util.UUID
 
 /** Model of a combined heat and power plant (CHP) with a [[ThermalStorage]]
   * medium and its current [[ChpState]].
