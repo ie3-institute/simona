@@ -24,7 +24,6 @@ import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
-import edu.ie3.simona.test.common.TestTags.SnailTest
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -81,7 +80,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
 
       val targetEnergyConsumption =
         KilowattHours(3000d)
-      "reach the targeted annual energy consumption" taggedAs SnailTest in {
+      "reach the targeted annual energy consumption" in {
         /* Test against a permissible deviation of 2 %. As per official documentation of the bdew load profiles
          * [https://www.bdew.de/media/documents/2000131_Anwendung-repraesentativen_Lastprofile-Step-by-step.pdf] 1.5 %
          * are officially permissible. But, as we currently do not take (bank) holidays into account, we cannot reach
@@ -122,7 +121,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         }
       }
 
-      "correctly account for the scaling factor, when targeting a given annual energy consumption" taggedAs SnailTest in {
+      "correctly account for the scaling factor, when targeting a given annual energy consumption" in {
         val scalingFactor = 1.5
         val expectedEnergy =
           KilowattHours(4500d)
@@ -154,7 +153,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
       }
 
       val targetMaximumPower = Watts(268.6)
-      "approximately reach the maximum power" taggedAs SnailTest in {
+      "approximately reach the maximum power" in {
         implicit val tolerance: Power = Watts(1d)
         forAll(
           Table(
@@ -194,7 +193,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         }
       }
 
-      "correctly account for the scaling factor when targeting at maximum power" taggedAs SnailTest in {
+      "correctly account for the scaling factor when targeting at maximum power" in {
         val scalingFactor = 1.5
         val expectedMaximum =
           Watts(402.0044899478780)
@@ -264,7 +263,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
 
       val targetEnergyConsumption =
         KilowattHours(3000d)
-      "reach the targeted annual energy consumption" taggedAs SnailTest in {
+      "reach the targeted annual energy consumption" in {
         val dut = RandomLoadModel(
           randomLoadInput.getUuid,
           randomLoadInput.getId,
@@ -290,7 +289,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         ) =~ Percent(1d)
       }
 
-      "correctly account for the scaling factor, when targeting a given annual energy consumption" taggedAs SnailTest in {
+      "correctly account for the scaling factor, when targeting a given annual energy consumption" in {
         val scalingFactor = 1.5
         val expectedEnergy =
           KilowattHours(4500d)
@@ -321,7 +320,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
       }
 
       val targetMaximumPower = Watts(268.6)
-      "approximately reach the maximum power" taggedAs SnailTest in {
+      "approximately reach the maximum power" in {
         val dut = RandomLoadModel(
           randomLoadInput.getUuid,
           randomLoadInput.getId,
@@ -355,7 +354,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
 
       }
 
-      "correctly account for the scaling factor when targeting at maximum power" taggedAs SnailTest in {
+      "correctly account for the scaling factor when targeting at maximum power" in {
         val scalingFactor = 1.5
         val expectedMaximum = targetMaximumPower * scalingFactor
         implicit val tolerance: Power = Watts(1d)
