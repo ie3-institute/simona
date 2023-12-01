@@ -11,7 +11,10 @@ import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.{ApparentPowerParticipant, SystemParticipant}
+import edu.ie3.simona.model.participant.{
+  ApparentPowerParticipant,
+  SystemParticipant
+}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import squants.energy.Megawatts
