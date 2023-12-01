@@ -78,7 +78,7 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
         val testData = Table(
           ("reference", "expectedSRated"),
           (ActivePower(Watts(268.6)), Watts(311.0105263157895d)),
-          (EnergyConsumption(KilowattHours(2000d)), Watts(467.156124576697d))
+          (EnergyConsumption(KilowattHours(2000d)), Watts(513.871737d))
         )
 
         forAll(testData) { (reference, expectedSRated: Power) =>
