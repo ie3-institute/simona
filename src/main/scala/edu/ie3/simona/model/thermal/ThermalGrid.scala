@@ -397,8 +397,8 @@ final case class ThermalGrid(
             tick.toDateTime,
             thermalHouse.uuid,
             Quantities.getQuantity(
-              thermalInfeed.toKilowatts,
-              PowerSystemUnits.KILOWATT
+              thermalInfeed.toMegawatts,
+              PowerSystemUnits.MEGAWATT
             ),
             Quantities
               .getQuantity(innerTemperature.toCelsiusScale, Units.CELSIUS)
@@ -417,10 +417,10 @@ final case class ThermalGrid(
             tick.toDateTime,
             storage.uuid,
             Quantities.getQuantity(
-              storedEnergy.toKilowattHours,
-              PowerSystemUnits.KILOWATTHOUR
+              storedEnergy.toMegawattHours,
+              PowerSystemUnits.MEGAWATTHOUR
             ),
-            Quantities.getQuantity(qDot.toKilowatts, PowerSystemUnits.KILOWATT),
+            Quantities.getQuantity(qDot.toMegawatts, PowerSystemUnits.MEGAWATT),
             Quantities.getQuantity(
               storage.maxEnergyThreshold.toKilowattHours / storedEnergy.toKilowattHours,
               Units.PERCENT
