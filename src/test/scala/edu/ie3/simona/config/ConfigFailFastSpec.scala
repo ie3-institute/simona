@@ -33,8 +33,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               new Time(
                 "2020-06-18 13:41:00",
                 None,
-                "2020-05-18 13:41:00",
-                true
+                "2020-05-18 13:41:00"
               )
             )
           }
@@ -46,8 +45,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               new Time(
                 "2020-06-18 13:41:00",
                 None,
-                "2020-07-18 13:41:00",
-                true
+                "2020-07-18 13:41:00"
               )
             )
           }.getMessage shouldBe "Invalid time configuration." +
@@ -93,6 +91,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                   100
                 ),
                 Duration.of(3600, ChronoUnit.SECONDS),
+                stopOnFailure = false,
                 Duration.of(3600, ChronoUnit.SECONDS)
               )
             )
@@ -109,6 +108,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                   100
                 ),
                 resolution = Duration.of(3600, ChronoUnit.NANOS),
+                stopOnFailure = false,
                 sweepTimeout = Duration.of(3600, ChronoUnit.SECONDS)
               )
             )

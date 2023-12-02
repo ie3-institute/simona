@@ -10,6 +10,7 @@ import edu.ie3.simona.config.SimonaConfig.RuntimeKafkaParams
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent.{Done, Error}
 import edu.ie3.simona.io.runtime.RuntimeEventKafkaSink.SimonaEndMessage
+import edu.ie3.simona.io.runtime.RuntimeEventSink.RuntimeStats
 import edu.ie3.util.scala.io.ScalaReflectionSerde.reflectionSerializer4S
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG
 import org.apache.kafka.clients.producer.{
@@ -40,11 +41,14 @@ final case class RuntimeEventKafkaSink(
 
   override def handleRuntimeEvent(
       runtimeEvent: RuntimeEvent,
+      runtimeStats: RuntimeStats,
       log: Logger
   ): Unit = {
     (runtimeEvent match {
-      case Done(_, _, noOfFailedPF, errorInSim) =>
-        Some(SimonaEndMessage(simRunId, noOfFailedPF, errorInSim))
+      case Done(_, _, errorInSim) =>
+        Some(
+          SimonaEndMessage(simRunId, runtimeStats.failedPowerFlows, errorInSim)
+        )
 
       case Error(_) =>
         Some(SimonaEndMessage(simRunId, -1, error = true))

@@ -102,7 +102,7 @@ trait HpAgentFundamentals
     * has to try and fill up missing data with the last known data, as this is
     * still supposed to be valid. The secondary data therefore is put to the
     * calculation relevant data store. <p>The next state is [[Idle]], sending a
-    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
+    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.Completion]] to
     * scheduler and using update result values.</p> </p>Actual implementation
     * can be found in each participant's fundamentals.</p>
     *
@@ -120,9 +120,6 @@ trait HpAgentFundamentals
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] = {
-    implicit val startDateTime: ZonedDateTime =
-      collectionStateData.baseStateData.startDate
-
     val voltage =
       getAndCheckNodalVoltage(collectionStateData.baseStateData, currentTick)
 

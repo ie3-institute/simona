@@ -7,29 +7,29 @@
 package edu.ie3.simona.service.primary
 
 import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorRefOps
+}
 import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+  Completion,
+  ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage
 }
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeServiceTrigger
-}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.SqlInitPrimaryServiceStateData
-import edu.ie3.simona.test.common.AgentSpec
+import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
 import edu.ie3.simona.test.helper.TestContainerHelper
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import org.scalatest.BeforeAndAfterAll
 
@@ -47,7 +47,8 @@ class PrimaryServiceProxySqlIT
     )
     with ForAllTestContainer
     with BeforeAndAfterAll
-    with TestContainerHelper {
+    with TestContainerHelper
+    with TestSpawnerClassic {
 
   override val container: PostgreSQLContainer = PostgreSQLContainer(
     "postgres:14.2"
@@ -78,6 +79,8 @@ class PrimaryServiceProxySqlIT
     container.close()
   }
 
+  private val scheduler = TestProbe("Scheduler")
+
   // function definition because postgres parameters are only available after initialization
   private def sqlParams: SqlParams = SqlParams(
     jdbcUrl = container.jdbcUrl,
@@ -87,47 +90,42 @@ class PrimaryServiceProxySqlIT
     timePattern = "yyyy-MM-dd HH:mm:ss"
   )
 
-  "A primary service proxy with SQL source" should {
-    val scheduler = TestProbe("Scheduler")
+  private def createProxy(): TestActorRef[PrimaryServiceProxy] = {
+    val initData = InitPrimaryServiceProxyStateData(
+      SimonaConfig.Simona.Input.Primary(
+        None,
+        None,
+        None,
+        sqlParams = Some(sqlParams)
+      ),
+      simulationStart
+    )
 
-    val proxyRef = TestActorRef(
+    TestActorRef(
       PrimaryServiceProxy.props(
         scheduler.ref,
+        initData,
         simulationStart
       )
     )
+  }
+
+  "A primary service proxy with SQL source" should {
 
     "initialize when given proper SQL input configs" in {
-      val initData = InitPrimaryServiceProxyStateData(
-        SimonaConfig.Simona.Input.Primary(
-          None,
-          None,
-          None,
-          sqlParams = Some(sqlParams)
-        ),
-        simulationStart
-      )
+      val proxyRef = createProxy()
 
-      val triggerIdInit1 = 1L
-
-      scheduler.send(
-        proxyRef,
-        TriggerWithIdMessage(
-          InitializeServiceTrigger(initData),
-          triggerIdInit1
-        )
-      )
-
-      scheduler.expectMsg(
-        CompletionMessage(
-          triggerIdInit1,
-          None
-        )
-      )
+      scheduler.send(proxyRef, Activation(INIT_SIM_TICK))
+      scheduler.expectMsg(Completion(proxyRef.toTyped))
     }
 
     "handle participant request correctly if participant has primary data" in {
       val systemParticipantProbe = TestProbe("SystemParticipant")
+
+      val proxyRef = createProxy()
+
+      scheduler.send(proxyRef, Activation(INIT_SIM_TICK))
+      scheduler.expectMsg(Completion(proxyRef.toTyped))
 
       systemParticipantProbe.send(
         proxyRef,
@@ -135,50 +133,31 @@ class PrimaryServiceProxySqlIT
           UUID.fromString("b86e95b0-e579-4a80-a534-37c7a470a409")
         )
       )
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
 
-      val initTriggerMsg = scheduler.expectMsgType[ScheduleTriggerMessage]
-
-      initTriggerMsg.trigger match {
-        case InitializeServiceTrigger(
-              sqlInit: SqlInitPrimaryServiceStateData
-            ) =>
-          sqlInit.sqlParams shouldBe sqlParams
-          sqlInit.simulationStart shouldBe simulationStart
-          sqlInit.timeSeriesUuid shouldBe UUID.fromString(
-            "9185b8c1-86ba-4a16-8dea-5ac898e8caa5"
-          )
-        case unexpected => fail(s"Received unexpected trigger $unexpected")
-      }
-
-      val triggerIdInit2 = 2L
+      val initActivation = scheduler.expectMsgType[ScheduleActivation]
+      initActivation.tick shouldBe INIT_SIM_TICK
+      initActivation.unlockKey should not be empty
 
       // extract ref to the worker that the proxy created
-      val workerRef = initTriggerMsg.actorToBeScheduled
+      val workerRef = initActivation.actor
       scheduler.send(
-        workerRef,
-        TriggerWithIdMessage(
-          initTriggerMsg.trigger,
-          triggerIdInit2
-        )
+        workerRef.toClassic,
+        Activation(INIT_SIM_TICK)
       )
 
-      scheduler.expectMsg(
-        CompletionMessage(
-          triggerIdInit2,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(0L),
-              workerRef
-            )
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(workerRef, Some(0)))
 
       systemParticipantProbe.expectMsg(RegistrationSuccessfulMessage(Some(0L)))
     }
 
     "handle participant request correctly if participant does not have primary data" in {
       val systemParticipantProbe = TestProbe("SystemParticipant")
+
+      val proxyRef = createProxy()
+
+      scheduler.send(proxyRef, Activation(INIT_SIM_TICK))
+      scheduler.expectMsg(Completion(proxyRef.toTyped))
 
       systemParticipantProbe.send(
         proxyRef,

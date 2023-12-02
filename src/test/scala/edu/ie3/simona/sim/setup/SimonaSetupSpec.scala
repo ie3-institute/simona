@@ -13,11 +13,8 @@ import edu.ie3.datamodel.models.input.connector.{
   Transformer3WInput
 }
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.service.primary.PrimaryServiceProxy
-import edu.ie3.simona.service.weather.WeatherService
+import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.SubGridGateMokka
 
@@ -42,13 +39,13 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
   override def primaryServiceProxy(
       context: ActorContext,
       scheduler: ActorRef
-  ): (ActorRef, PrimaryServiceProxy.InitPrimaryServiceProxyStateData) =
+  ): ActorRef =
     throw new NotImplementedException("This is a dummy setup")
 
   override def weatherService(
       context: ActorContext,
       scheduler: ActorRef
-  ): (ActorRef, WeatherService.InitWeatherServiceStateData) =
+  ): ActorRef =
     throw new NotImplementedException("This is a dummy setup")
 
   override def extSimulations(
@@ -61,19 +58,19 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
       context: ActorContext,
       simulation: ActorRef,
       runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
-  ): org.apache.pekko.actor.typed.ActorRef[SchedulerMessage] =
+  ): org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming] =
     throw new NotImplementedException("This is a dummy setup")
 
   override def scheduler(
       context: ActorContext,
-      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[SchedulerMessage]
+      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming]
   ): ActorRef = throw new NotImplementedException("This is a dummy setup")
 
   override def gridAgents(
       context: ActorContext,
       environmentRefs: EnvironmentRefs,
       systemParticipantListener: Seq[ActorRef]
-  ): Map[ActorRef, GridAgentData.GridAgentInitData] =
+  ): Iterable[ActorRef] =
     throw new NotImplementedException("This is a dummy setup")
 
   "Attempting to modify a sub grid gate" should {

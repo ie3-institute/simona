@@ -6,19 +6,14 @@
 
 package edu.ie3.simona.scheduler
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorContextOps,
-  TypedActorRefOps
-}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorContextOps
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
-import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+  Completion,
+  ScheduleActivation
 }
-import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 
 import java.util.UUID
 
@@ -32,10 +27,9 @@ import java.util.UUID
 object ScheduleLock {
   sealed trait LockMsg
 
-  private final case class Init(adapter: ActorRef[TriggerWithIdMessage])
-      extends LockMsg
+  private final case class Init(adapter: ActorRef[Activation]) extends LockMsg
 
-  private final case class LockActivation(triggerId: Long) extends LockMsg
+  private final case object LockActivation extends LockMsg
 
   /** @param key
     *   the key that unlocks (part of) the lock
@@ -45,17 +39,16 @@ object ScheduleLock {
   private def lockAdapter(
       lock: ActorRef[LockMsg],
       expectedTick: Long
-  ): Behavior[TriggerWithIdMessage] =
-    Behaviors.receive {
-      case (ctx, TriggerWithIdMessage(ActivityStartTrigger(tick), triggerId)) =>
-        if (tick == expectedTick)
-          lock ! LockActivation(triggerId)
-        else
-          ctx.log.error(
-            s"Received lock activation for tick $tick, but expected $expectedTick"
-          )
-        // We can stop after forwarding the activation (there will be only one)
-        Behaviors.stopped
+  ): Behavior[Activation] =
+    Behaviors.receive { case (ctx, Activation(tick)) =>
+      if (tick == expectedTick)
+        lock ! LockActivation
+      else
+        ctx.log.error(
+          s"Received lock activation for tick $tick, but expected $expectedTick"
+        )
+      // We can stop after forwarding the activation (there will be only one)
+      Behaviors.stopped
     }
 
   /** Key that can unlock (a part of) a [[ScheduleLock]].
@@ -220,10 +213,7 @@ object ScheduleLock {
     // We have to schedule the activation right away. If there is any
     // possibility for delay via a third actor, the lock could be
     // placed too late.
-    scheduler ! ScheduleTriggerMessage(
-      ActivityStartTrigger(tick),
-      adapter.toClassic
-    )
+    scheduler ! ScheduleActivation(adapter, tick)
 
     keys.map(ScheduleKey(lock, _))
   }
@@ -254,12 +244,12 @@ object ScheduleLock {
   private def uninitialized(
       scheduler: ActorRef[SchedulerMessage],
       awaitedKeys: Set[UUID],
-      adapter: ActorRef[TriggerWithIdMessage]
+      adapter: ActorRef[Activation]
   ): Behavior[LockMsg] =
     Behaviors.withStash(100) { buffer =>
       Behaviors.receiveMessage {
-        case LockActivation(triggerId) =>
-          buffer.unstashAll(active(scheduler, awaitedKeys, adapter, triggerId))
+        case LockActivation =>
+          buffer.unstashAll(active(scheduler, awaitedKeys, adapter))
 
         case unlock: Unlock =>
           // stash unlock messages until we are initialized
@@ -271,15 +261,14 @@ object ScheduleLock {
   private def active(
       scheduler: ActorRef[SchedulerMessage],
       awaitedKeys: Set[UUID],
-      adapter: ActorRef[TriggerWithIdMessage],
-      triggerId: Long
+      adapter: ActorRef[Activation]
   ): Behavior[LockMsg] = Behaviors.receiveMessage { case Unlock(key) =>
     val updatedKeys = awaitedKeys - key
 
     if (updatedKeys.nonEmpty)
-      active(scheduler, updatedKeys, adapter, triggerId)
+      active(scheduler, updatedKeys, adapter)
     else {
-      scheduler ! CompletionMessage(triggerId)
+      scheduler ! Completion(adapter)
       Behaviors.stopped
     }
   }

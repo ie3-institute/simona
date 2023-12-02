@@ -10,14 +10,11 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
-import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+  Completion,
+  ScheduleActivation
 }
-import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.util.ActorUtils.RichTriggeredAgent
 import org.scalatest.matchers.should
@@ -33,8 +30,8 @@ class ScheduleLockIT
 
     "work as expected when schedulers active" in {
       val timeAdvancer = TestProbe[SchedulerMessage]("timeAdvancer")
-      val agent1 = TestProbe[TriggerWithIdMessage]("agent1")
-      val agent2 = TestProbe[TriggerWithIdMessage]("agent2")
+      val agent1 = TestProbe[Activation]("agent1")
+      val agent2 = TestProbe[Activation]("agent2")
 
       val parentScheduler = spawn(
         Scheduler(timeAdvancer.ref),
@@ -46,13 +43,13 @@ class ScheduleLockIT
       )
 
       // first, we normally schedule some activation for our agent1
-      childScheduler ! ScheduleTriggerMessage(
-        ActivityStartTrigger(30),
-        agent1.ref.toClassic
+      childScheduler ! ScheduleActivation(
+        agent1.ref,
+        30
       )
-      val sa1 = timeAdvancer.expectMessageType[ScheduleTriggerMessage]
-      sa1.trigger shouldBe ActivityStartTrigger(30)
-      val lockActivation = sa1.actorToBeScheduled
+      val sa1 = timeAdvancer.expectMessageType[ScheduleActivation]
+      sa1.tick shouldBe 30
+      val lockActivation = sa1.actor
 
       // create and initialize lock
       val scheduleKey =
@@ -60,12 +57,12 @@ class ScheduleLockIT
       agent1.expectNoMessage()
 
       // activate the scheduler, lock should now initialize
-      lockActivation ! TriggerWithIdMessage(ActivityStartTrigger(30), 7)
+      lockActivation ! Activation(30)
 
       // schedule activation for agent2, lock should get unlocked
-      childScheduler ! ScheduleTriggerMessage(
-        ActivityStartTrigger(30),
-        agent2.ref.toClassic,
+      childScheduler ! ScheduleActivation(
+        agent2.ref,
+        30,
         Some(scheduleKey)
       )
 
@@ -82,12 +79,12 @@ class ScheduleLockIT
         30
       )
 
-      timeAdvancer.expectMessage(CompletionMessage(7))
+      timeAdvancer.expectMessage(Completion(lockActivation))
     }
 
     "work as expected when schedulers inactive" in {
       val timeAdvancer = TestProbe[SchedulerMessage]("timeAdvancer")
-      val agent = TestProbe[TriggerWithIdMessage]("agent")
+      val agent = TestProbe[Activation]("agent")
 
       val parentScheduler = spawn(
         Scheduler(timeAdvancer.ref)
@@ -97,20 +94,20 @@ class ScheduleLockIT
       )
 
       // first, we normally schedule some activation
-      childScheduler ! ScheduleTriggerMessage(
-        ActivityStartTrigger(30),
-        agent.ref.toClassic
+      childScheduler ! ScheduleActivation(
+        agent.ref,
+        30
       )
-      val sa1 = timeAdvancer.expectMessageType[ScheduleTriggerMessage]
-      sa1.trigger shouldBe ActivityStartTrigger(30)
-      val lockActivation = sa1.actorToBeScheduled
+      val sa1 = timeAdvancer.expectMessageType[ScheduleActivation]
+      sa1.tick shouldBe 30
+      val lockActivation = sa1.actor
 
       // create and initialize lock
       val scheduleKey = ScheduleLock.singleKey(TSpawner, parentScheduler, 30)
       agent.expectNoMessage()
 
       // activate the scheduler, lock should now initialize
-      lockActivation ! TriggerWithIdMessage(ActivityStartTrigger(30), 7)
+      lockActivation ! Activation(30)
 
       // completing the agent activation
       agent.expectTriggerAndComplete(
@@ -122,23 +119,13 @@ class ScheduleLockIT
       timeAdvancer.expectNoMessage()
 
       // schedule activation for agent, should unlock the lock
-      childScheduler ! ScheduleTriggerMessage(
-        ActivityStartTrigger(40),
-        agent.ref.toClassic,
+      childScheduler ! ScheduleActivation(
+        agent.ref,
+        40,
         Some(scheduleKey)
       )
 
-      timeAdvancer.expectMessage(
-        CompletionMessage(
-          7,
-          Some(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(40),
-              parentScheduler.toClassic
-            )
-          )
-        )
-      )
+      timeAdvancer.expectMessage(Completion(lockActivation, Some(40)))
 
     }
   }
