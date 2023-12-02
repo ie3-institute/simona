@@ -6,10 +6,9 @@
 
 package edu.ie3.simona.scheduler
 
-import akka.actor
-import akka.actor.ActorRef
-import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.TriggerWithIdMessage
+import org.apache.pekko.actor
+import org.apache.pekko.actor.typed.ActorRef
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
 
 import scala.collection.mutable
@@ -17,14 +16,13 @@ import scala.collection.mutable
 final case class SchedulerData(
     parent: actor.typed.ActorRef[
       SchedulerMessage
-    ], // FIXME typed: Scheduler or time advancer
-    lastTriggerId: Long = 0L,
-    triggerQueue: PriorityMultiBiSet[Long, ActorRef] = PriorityMultiBiSet.empty[
-      Long,
-      ActorRef
     ],
-    actorToTrigger: mutable.Map[ActorRef, TriggerWithIdMessage] =
-      mutable.Map.empty
+    activationAdapter: ActorRef[Activation],
+    triggerQueue: PriorityMultiBiSet[Long, ActorRef[Activation]] =
+      PriorityMultiBiSet.empty[
+        Long,
+        ActorRef[Activation]
+      ]
 )
 
 object SchedulerData {
@@ -33,9 +31,8 @@ object SchedulerData {
     */
   final case class ActivationData(
       tick: Long,
-      activationTriggerId: Long,
-      triggerIdToActiveTrigger: mutable.Map[Long, ActorRef] =
-        mutable.Map.empty[Long, ActorRef]
+      activeActors: mutable.Set[ActorRef[Activation]] =
+        mutable.Set.empty[ActorRef[Activation]]
   )
 
 }
