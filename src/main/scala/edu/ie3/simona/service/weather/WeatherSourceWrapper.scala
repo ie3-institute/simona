@@ -68,7 +68,7 @@ import scala.util.{Failure, Success, Try}
   * @param simulationStart
   *   start of the simulation
   */
-final private[weather] case class WeatherSourceWrapper private (
+private[weather] final case class WeatherSourceWrapper private (
     source: PsdmWeatherSource,
     override val idCoordinateSource: IdCoordinateSource,
     resolution: Long,
@@ -387,13 +387,13 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       case WeatherData(diffIrr, dirIrr, temp, windVel) =>
         given precision: Double = 1e-3
         WeatherData(
-          if this.diffIrr !~= 0d then diffIrr.divide(this.diffIrr)
+          if (this.diffIrr !~= 0d) diffIrr.divide(this.diffIrr)
           else EMPTY_WEATHER_DATA.diffIrr,
-          if this.dirIrr !~= 0d then dirIrr.divide(this.dirIrr)
+          if (this.dirIrr !~= 0d) dirIrr.divide(this.dirIrr)
           else EMPTY_WEATHER_DATA.dirIrr,
-          if this.temp !~= 0d then temp.divide(this.temp)
+          if (this.temp !~= 0d) temp.divide(this.temp)
           else EMPTY_WEATHER_DATA.temp,
-          if this.windVel !~= 0d then windVel.divide(this.windVel)
+          if (this.windVel !~= 0d) windVel.divide(this.windVel)
           else EMPTY_WEATHER_DATA.windVel
         )
     }

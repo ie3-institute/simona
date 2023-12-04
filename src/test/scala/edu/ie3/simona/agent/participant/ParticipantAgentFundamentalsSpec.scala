@@ -168,14 +168,16 @@ class ParticipantAgentFundamentalsSpec
             resolution: Long,
             expectedFirstTick: Long
         ) =>
-          val simulationStart =
-            TimeUtil.withDefaults.toZonedDateTime(simulationStartString)
-          val firstTick = mockAgent.firstFullResolutionInSimulation(
-            simulationStart,
-            resolution
-          )
+          {
+            val simulationStart =
+              TimeUtil.withDefaults.toZonedDateTime(simulationStartString)
+            val firstTick = mockAgent.firstFullResolutionInSimulation(
+              simulationStart,
+              resolution
+            )
 
-          firstTick shouldBe expectedFirstTick
+            firstTick shouldBe expectedFirstTick
+          }
       }
     }
 
@@ -209,19 +211,21 @@ class ParticipantAgentFundamentalsSpec
             operationEnd: Long,
             expectedTicks: List[Long]
         ) =>
-          val simulationStart =
-            TimeUtil.withDefaults.toZonedDateTime(simulationStartString)
-          val additionalActivationTicks =
-            mockAgent.activationTicksInOperationTime(
-              simulationStart,
-              resolution,
-              operationStart,
-              operationEnd
-            )
+          {
+            val simulationStart =
+              TimeUtil.withDefaults.toZonedDateTime(simulationStartString)
+            val additionalActivationTicks =
+              mockAgent.activationTicksInOperationTime(
+                simulationStart,
+                resolution,
+                operationStart,
+                operationEnd
+              )
 
-          additionalActivationTicks.corresponds(expectedTicks)(
-            _ == _
-          ) shouldBe true
+            additionalActivationTicks.corresponds(expectedTicks)(
+              _ == _
+            ) shouldBe true
+          }
       }
     }
   }

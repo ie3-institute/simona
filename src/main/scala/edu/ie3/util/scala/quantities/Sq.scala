@@ -10,11 +10,12 @@ import squants.{Quantity, UnitOfMeasure}
 
 object Sq {
 
-  def create[A <: Quantity[A]](num: Number, unit: UnitOfMeasure[A]): A =
+  def create[A <: Quantity[A]](num: Number, unit: UnitOfMeasure[A]): A = {
     num match {
       case d: java.lang.Double =>
         unit.apply(d.doubleValue())
       case i: java.lang.Integer =>
         unit.apply(i.intValue())
     }
+  }
 }

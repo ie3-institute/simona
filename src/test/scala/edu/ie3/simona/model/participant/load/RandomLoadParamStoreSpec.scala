@@ -29,20 +29,18 @@ class RandomLoadParamStoreSpec
         PrivateMethod[Map[DayType.Value, Map[RandomLoadParameters.Value, Int]]](
           Symbol("buildDescriptorTree")
         )
-      val actual = RandomLoadParamStore.invokePrivate(
-        buildDescriptorTree(
-          List(
-            "kSa",
-            "kSu",
-            "kWd",
-            "mySa",
-            "mySu",
-            "myWd",
-            "sigmaSa",
-            "sigmaSu",
-            "sigmaWd",
-            "quarterHour"
-          )
+      val actual = RandomLoadParamStore invokePrivate buildDescriptorTree(
+        List(
+          "kSa",
+          "kSu",
+          "kWd",
+          "mySa",
+          "mySu",
+          "myWd",
+          "sigmaSa",
+          "sigmaSu",
+          "sigmaWd",
+          "quarterHour"
         )
       )
       val expected = Map(
@@ -72,11 +70,9 @@ class RandomLoadParamStoreSpec
           .getResourceAsStream("random_load_parameters_test.csv")
       )
       val parameterMap =
-        RandomLoadParamStore(reader).invokePrivate(
-          PrivateMethod[
-            Map[DayType.Value, TypeDayParameters]
-          ](Symbol("parameterMap"))()
-        )
+        RandomLoadParamStore(reader) invokePrivate PrivateMethod[
+          Map[DayType.Value, TypeDayParameters]
+        ](Symbol("parameterMap"))()
       parameterMap.size shouldBe 3
     }
 

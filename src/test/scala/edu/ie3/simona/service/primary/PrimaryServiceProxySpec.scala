@@ -255,11 +255,9 @@ class PrimaryServiceProxySpec
         None
       )
 
-      proxy.invokePrivate(
-        prepareStateData(
-          maliciousConfig,
-          simulationStart
-        )
+      proxy invokePrivate prepareStateData(
+        maliciousConfig,
+        simulationStart
       ) match {
         case Success(_) =>
           fail("Building state data with missing config should fail")
@@ -277,11 +275,9 @@ class PrimaryServiceProxySpec
         None
       )
 
-      proxy.invokePrivate(
-        prepareStateData(
-          maliciousConfig,
-          simulationStart
-        )
+      proxy invokePrivate prepareStateData(
+        maliciousConfig,
+        simulationStart
       ) match {
         case Success(_) =>
           fail("Building state data with missing config should fail")
@@ -292,11 +288,9 @@ class PrimaryServiceProxySpec
     }
 
     "result in correct data" in {
-      proxy.invokePrivate(
-        prepareStateData(
-          validPrimaryConfig,
-          simulationStart
-        )
+      proxy invokePrivate prepareStateData(
+        validPrimaryConfig,
+        simulationStart
       ) match {
         case Success(
               PrimaryServiceStateData(
@@ -365,11 +359,9 @@ class PrimaryServiceProxySpec
           SValue
         ] // The class has to be child of edu.ie3.datamodel.models.value.Value
 
-      val workerRef = proxy.invokePrivate(
-        classToWorkerRef(
-          testClass,
-          workerId
-        )
+      val workerRef = proxy invokePrivate classToWorkerRef(
+        testClass,
+        workerId
       )
       Objects.nonNull(workerRef) shouldBe true
 
@@ -386,12 +378,10 @@ class PrimaryServiceProxySpec
         Paths.get("its_pq_" + uuidPq)
       )
 
-      proxy.invokePrivate(
-        toInitData(
-          metaInformation,
-          simulationStart,
-          validPrimaryConfig
-        )
+      proxy invokePrivate toInitData(
+        metaInformation,
+        simulationStart,
+        validPrimaryConfig
       ) match {
         case Success(
               CsvInitPrimaryServiceStateData(
@@ -430,12 +420,10 @@ class PrimaryServiceProxySpec
         None,
         None
       )
-      proxy.invokePrivate(
-        initializeWorker(
-          metaPq,
-          simulationStart,
-          maliciousPrimaryConfig
-        )
+      proxy invokePrivate initializeWorker(
+        metaPq,
+        simulationStart,
+        maliciousPrimaryConfig
       ) match {
         case Failure(exception) =>
           /* Check the exception */
@@ -498,12 +486,10 @@ class PrimaryServiceProxySpec
 
       scheduler.expectNoMessage()
 
-      fakeProxy.invokePrivate(
-        initializeWorker(
-          metaInformation,
-          simulationStart,
-          validPrimaryConfig
-        )
+      fakeProxy invokePrivate initializeWorker(
+        metaInformation,
+        simulationStart,
+        validPrimaryConfig
       ) match {
         case Success(workerRef) =>
           /* Check, if expected init message has been sent */
@@ -553,24 +539,20 @@ class PrimaryServiceProxySpec
       PrivateMethod[PrimaryServiceStateData](Symbol("updateStateData"))
     "not work, if time series hasn't been covered before" in {
       val exception = intercept[IllegalArgumentException] {
-        proxy.invokePrivate(
-          updateStateData(
-            proxyStateData,
-            UUID.fromString("394fd072-832c-4c36-869b-c574ee37afe1"),
-            self
-          )
+        proxy invokePrivate updateStateData(
+          proxyStateData,
+          UUID.fromString("394fd072-832c-4c36-869b-c574ee37afe1"),
+          self
         )
       }
       exception.getMessage shouldBe "Cannot update entry for time series '394fd072-832c-4c36-869b-c574ee37afe1', as it hasn't been part of it before."
     }
 
     "work otherwise" in {
-      proxy.invokePrivate(
-        updateStateData(
-          proxyStateData,
-          uuidPq,
-          self
-        )
+      proxy invokePrivate updateStateData(
+        proxyStateData,
+        uuidPq,
+        self
       ) match {
         case PrimaryServiceStateData(
               modelToTimeSeries,
@@ -598,13 +580,11 @@ class PrimaryServiceProxySpec
       val maliciousStateData =
         proxyStateData.copy(timeSeriesToSourceRef = Map.empty[UUID, SourceRef])
 
-      proxy.invokePrivate(
-        handleCoveredModel(
-          modelUuid,
-          uuidPq,
-          maliciousStateData,
-          self
-        )
+      proxy invokePrivate handleCoveredModel(
+        modelUuid,
+        uuidPq,
+        maliciousStateData,
+        self
       )
       expectMsg(RegistrationFailedMessage)
     }
@@ -616,13 +596,11 @@ class PrimaryServiceProxySpec
         )
       )
 
-      proxy.invokePrivate(
-        handleCoveredModel(
-          modelUuid,
-          uuidPq,
-          adaptedStateData,
-          self
-        )
+      proxy invokePrivate handleCoveredModel(
+        modelUuid,
+        uuidPq,
+        adaptedStateData,
+        self
       )
       expectMsg(WorkerRegistrationMessage(self))
     }
@@ -637,13 +615,11 @@ class PrimaryServiceProxySpec
         )
       )
 
-      proxy.invokePrivate(
-        handleCoveredModel(
-          modelUuid,
-          uuidPq,
-          maliciousStateData,
-          self
-        )
+      proxy invokePrivate handleCoveredModel(
+        modelUuid,
+        uuidPq,
+        maliciousStateData,
+        self
       )
       expectMsg(RegistrationFailedMessage)
     }
@@ -682,13 +658,11 @@ class PrimaryServiceProxySpec
         )
       val fakeProxy = fakeProxyRef.underlyingActor
 
-      fakeProxy.invokePrivate(
-        handleCoveredModel(
-          modelUuid,
-          uuidPq,
-          proxyStateData,
-          self
-        )
+      fakeProxy invokePrivate handleCoveredModel(
+        modelUuid,
+        uuidPq,
+        proxyStateData,
+        self
       )
       worker.expectMsg(WorkerRegistrationMessage(self))
     }

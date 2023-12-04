@@ -76,8 +76,8 @@ class FixedFeedInAgentModelCalculationSpec
   protected val simulationEndDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00")
 
-  implicit private val powerTolerance: squants.Power = Watts(0.1)
-  implicit private val reactivePowerTolerance: ReactivePower = Vars(0.1)
+  given powerTolerance: squants.Power = Watts(0.1)
+  given reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(

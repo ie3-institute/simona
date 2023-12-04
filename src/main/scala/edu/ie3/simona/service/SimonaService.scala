@@ -74,7 +74,7 @@ abstract class SimonaService[
         Some(unlockKey)
       )
 
-      context.become(initializing(initializeStateData))
+      context become initializing(initializeStateData)
 
     // not ready yet to handle registrations, stash request away
     case _: ServiceRegistrationMessage =>
@@ -95,7 +95,7 @@ abstract class SimonaService[
         case Success((serviceStateData, maybeNewTick)) =>
           scheduler ! Completion(self.toTyped, maybeNewTick)
           unstashAll()
-          context.become(idle(serviceStateData))
+          context become idle(serviceStateData)
         case Failure(exception) =>
           // initialize service trigger with invalid data
           log.error(
@@ -135,7 +135,7 @@ abstract class SimonaService[
     case registrationMsg: ServiceRegistrationMessage =>
       /* Someone asks to register for information from the service */
       handleRegistrationRequest(registrationMsg) match {
-        case Success(stateData) => context.become(idle(stateData))
+        case Success(stateData) => context become idle(stateData)
         case Failure(exception) =>
           log.error(
             "Error during registration." +
@@ -160,7 +160,7 @@ abstract class SimonaService[
       val (updatedStateData, maybeNewTriggers) =
         announceInformation(tick)(stateData, context)
       scheduler ! Completion(self.toTyped, maybeNewTriggers)
-      context.become(idle(updatedStateData))
+      context become idle(updatedStateData)
 
     // unhandled message
     case x =>

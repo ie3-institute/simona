@@ -172,7 +172,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
   )(using serviceStateData: ExtEvStateData, ctx: ActorContext): (
       ExtEvStateData,
       Option[Long]
-  ) =
+  ) = {
     serviceStateData.extEvMessage.getOrElse(
       throw ServiceException(
         "ExtEvDataService was triggered without ExtEvMessage available"
@@ -188,6 +188,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
           ctx
         )
     }
+  }
 
   private def requestFreeLots(tick: Long)(using
       serviceStateData: ExtEvStateData
@@ -202,7 +203,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       }
 
     // if there are no evcs, we're sending response right away
-    if freeLots.isEmpty then
+    if (freeLots.isEmpty)
       serviceStateData.extEvData.queueExtResponseMsg(new ProvideEvcsFreeLots())
 
     (
@@ -241,7 +242,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
     // if there are no departing evs during this tick,
     // we're sending response right away
-    if departingEvResponses.isEmpty then
+    if (departingEvResponses.isEmpty)
       serviceStateData.extEvData.queueExtResponseMsg(new ProvideDepartingEvs())
 
     (
@@ -274,7 +275,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
           }
     }
 
-    if actorToEvs.nonEmpty then {
+    if (actorToEvs.nonEmpty) {
       val keys =
         ScheduleLock.multiKey(ctx, scheduler.toTyped, tick, actorToEvs.size)
 
@@ -308,13 +309,13 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
   override protected def handleDataResponseMessage(
       extResponseMsg: EvResponseMessage
-  )(using serviceStateData: ExtEvStateData): ExtEvStateData =
+  )(using serviceStateData: ExtEvStateData): ExtEvStateData = {
     extResponseMsg match {
       case DepartingEvsResponse(evcs, evModels) =>
         val updatedResponses = serviceStateData.departingEvResponses +
           (evcs -> Some(evModels.toList))
 
-        if updatedResponses.values.toSeq.contains(None) then {
+        if (updatedResponses.values.toSeq.contains(None)) {
           // responses are still incomplete
           serviceStateData.copy(
             departingEvResponses = updatedResponses
@@ -335,7 +336,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
         val updatedFreeLots = serviceStateData.freeLots +
           (evcs -> Some(freeLots))
 
-        if updatedFreeLots.values.toSeq.contains(None) then {
+        if (updatedFreeLots.values.toSeq.contains(None)) {
           // responses are still incomplete
           serviceStateData.copy(
             freeLots = updatedFreeLots
@@ -358,4 +359,5 @@ class ExtEvDataService(override val scheduler: ActorRef)
           )
         }
     }
+  }
 }

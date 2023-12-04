@@ -108,7 +108,7 @@ case class PrimaryServiceProxy(
       ) match {
         case Success(stateData) =>
           scheduler ! Completion(self.toTyped)
-          context.become(onMessage(stateData))
+          context become onMessage(stateData)
         case Failure(exception) =>
           log.error(
             exception,
@@ -137,7 +137,7 @@ case class PrimaryServiceProxy(
   private def prepareStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime
-  ): Try[PrimaryServiceStateData] =
+  ): Try[PrimaryServiceStateData] = {
     createSources(primaryConfig).map {
       case (mappingSource, metaInformationSource) =>
         val modelToTimeSeries = mappingSource.getMapping.asScala.toMap
@@ -173,10 +173,11 @@ case class PrimaryServiceProxy(
           mappingSource
         )
     }
+  }
 
   private def createSources(
       primaryConfig: PrimaryConfig
-  ): Try[(TimeSeriesMappingSource, TimeSeriesMetaInformationSource)] =
+  ): Try[(TimeSeriesMappingSource, TimeSeriesMetaInformationSource)] = {
     Seq(
       primaryConfig.sqlParams,
       primaryConfig.influxDb1xParams,
@@ -228,6 +229,7 @@ case class PrimaryServiceProxy(
           )
         )
     }
+  }
 
   /** Message handling, if the actor has been initialized already. This method
     * basically handles registration requests, checks, if pre-calculated,
@@ -300,10 +302,8 @@ case class PrimaryServiceProxy(
             workerRef ! WorkerRegistrationMessage(requestingActor)
 
             /* Register the new worker within the state data and change the context */
-            context.become(
-              onMessage(
-                updateStateData(stateData, timeSeriesUuid, workerRef)
-              )
+            context become onMessage(
+              updateStateData(stateData, timeSeriesUuid, workerRef)
             )
           case Failure(exception) =>
             log.warning(
@@ -574,12 +574,12 @@ object PrimaryServiceProxy {
       primaryConfig.influxDb1xParams,
       primaryConfig.sqlParams
     ).filter(_.isDefined).flatten
-    if sourceConfigs.size > 1 then
+    if (sourceConfigs.size > 1)
       throw new InvalidConfigParameterException(
         s"${sourceConfigs.size} time series source types defined. " +
           s"Please define only one type!\nAvailable types:\n\t${supportedSources.mkString("\n\t")}"
       )
-    else if sourceConfigs.isEmpty then
+    else if (sourceConfigs.isEmpty)
       throw new InvalidConfigParameterException(
         s"No time series source type defined. Please define exactly one type!" +
           s"\nAvailable types:\n\t${supportedSources.mkString("\n\t")}"

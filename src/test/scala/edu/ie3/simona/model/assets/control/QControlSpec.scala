@@ -48,8 +48,9 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
   def createXYPair(
       d1: Double,
       d2: Double
-  ): XYPair[squants.Dimensionless, squants.Dimensionless] =
+  ): XYPair[squants.Dimensionless, squants.Dimensionless] = {
     XYPair(Each(d1), Each(d2))
+  }
 
   "A valid QControl object" should {
     "throw an exception, if the provided fixed power factor input has more than one coordinate" in {

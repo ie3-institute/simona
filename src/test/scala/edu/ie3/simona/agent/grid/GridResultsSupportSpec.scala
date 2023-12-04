@@ -300,12 +300,13 @@ class GridResultsSupportSpec
               expectedResult.getiBMag(),
               1e-3
             ) shouldBe true
-            if QuantityUtil.isEquivalentAngle(
+            if (
+              QuantityUtil.isEquivalentAngle(
                 actual.getiBAng(),
                 expectedResult.getiBAng(),
                 1e-3
               )
-            then {
+            ) {
               /* Angles are considerably equal */
               succeed
             } else {

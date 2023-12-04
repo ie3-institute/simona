@@ -322,7 +322,7 @@ class WeatherSourceSpec extends UnitSpec {
 
       forAll(cases) { (gridModel, expectedClass, failureMessage) =>
         val actual =
-          Try(WeatherSource.invokePrivate(checkCoordinateFactory(gridModel)))
+          Try(WeatherSource invokePrivate checkCoordinateFactory(gridModel))
 
         actual match {
           case Success(factory) =>
@@ -430,7 +430,7 @@ case object WeatherSourceSpec {
         GeoUtils.calculateBoundingBox(coordinate, distance)
 
       val reducedPoints: Set[Point] = points.flatMap { point =>
-        if envelope.contains(point.getCoordinate) then {
+        if (envelope.contains(point.getCoordinate)) {
           Some(point)
         } else {
           None
@@ -443,7 +443,8 @@ case object WeatherSourceSpec {
     override def getNearestCoordinates(
         coordinate: Point,
         n: Int
-    ): util.List[CoordinateDistance] =
+    ): util.List[CoordinateDistance] = {
       calculateCoordinateDistances(coordinate, n, coordinateToId.keySet.asJava)
+    }
   }
 }

@@ -83,7 +83,7 @@ class SampleWeatherSourceSpec
       TimeUtil.withDefaults.toZonedDateTime("2011-02-01 15:00:00").toTick
 
     "return correct weather data in value and unit" in {
-      val actual = source.invokePrivate(getWeatherPrivate(tick))
+      val actual = source invokePrivate getWeatherPrivate(tick)
 
       /* Units meet expectation */
       actual.diffIrr.unit shouldBe WattsPerSquareMeter

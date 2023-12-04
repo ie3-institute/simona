@@ -218,12 +218,10 @@ class PrimaryServiceWorkerSpec
       val primaryData = ActivePower(Kilowatts(50.0))
       val serviceStateData = validStateData.copy()
 
-      service.invokePrivate(
-        announcePrimaryData(
-          tick,
-          primaryData,
-          serviceStateData
-        )
+      service invokePrivate announcePrimaryData(
+        tick,
+        primaryData,
+        serviceStateData
       ) match {
         case (updatedStateData, maybeNextTick) =>
           /* Check updated state data */
@@ -272,12 +270,10 @@ class PrimaryServiceWorkerSpec
         activationTicks = SortedDistinctSeq(Seq(900L))
       )
 
-      service.invokePrivate(
-        processDataAndAnnounce(
-          tick,
-          maliciousValue,
-          stateData
-        )
+      service invokePrivate processDataAndAnnounce(
+        tick,
+        maliciousValue,
+        stateData
       ) match {
         case (
               PrimaryServiceInitializedStateData(
@@ -303,12 +299,10 @@ class PrimaryServiceWorkerSpec
         activationTicks = SortedDistinctSeq(Seq(900L))
       )
 
-      service.invokePrivate(
-        processDataAndAnnounce(
-          tick,
-          value,
-          serviceStateData
-        )
+      service invokePrivate processDataAndAnnounce(
+        tick,
+        value,
+        serviceStateData
       ) match {
         case (updatedStateData, _) =>
           inside(updatedStateData) {

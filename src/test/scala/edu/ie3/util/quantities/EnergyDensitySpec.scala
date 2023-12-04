@@ -14,7 +14,7 @@ import squants.space.CubicMeters
 
 class EnergyDensitySpec extends AnyFlatSpec with Matchers {
 
-  behavior.of("EnergyDensityCapacity and its Units of Measure")
+  behavior of "EnergyDensityCapacity and its Units of Measure"
 
   it should "create values using UOM factories" in {
     KilowattHoursPerCubicMeter(

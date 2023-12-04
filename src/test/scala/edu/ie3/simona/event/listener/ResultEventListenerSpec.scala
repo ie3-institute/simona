@@ -91,7 +91,7 @@ class ResultEventListenerSpec
         Symbol("initializeSinks")
       )
 
-    ResultEventListener.invokePrivate(initializeSinks(resultFileHierarchy))
+    ResultEventListener invokePrivate initializeSinks(resultFileHierarchy)
   }
 
   private def getFileLinesLength(file: File) = {
@@ -141,7 +141,7 @@ class ResultEventListenerSpec
         )
 
         listener ! StopMessage(true)
-        deathWatch.expectTerminated(listener, 10 seconds)
+        deathWatch expectTerminated (listener, 10 seconds)
       }
     }
 

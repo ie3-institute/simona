@@ -63,7 +63,7 @@ trait DBFSMockGridAgents extends UnitSpec {
     def expectSlackVoltageProvision(
         expectedSweepNo: Int,
         expectedExchangedVoltages: Seq[ExchangeVoltage]
-    ): Unit =
+    ): Unit = {
       inside(gaProbe.expectMsgType[ProvideSlackVoltageMessage]) {
         case ProvideSlackVoltageMessage(sweepNo, exchangedVoltages) =>
           sweepNo shouldBe expectedSweepNo
@@ -84,6 +84,7 @@ trait DBFSMockGridAgents extends UnitSpec {
             }
           }
       }
+    }
 
     def requestSlackVoltage(receiver: ActorRef, sweepNo: Int): Unit =
       gaProbe.send(
@@ -114,7 +115,7 @@ trait DBFSMockGridAgents extends UnitSpec {
     def expectGridPowerProvision(
         expectedExchangedPowers: Seq[ExchangePower],
         maxDuration: FiniteDuration = 30 seconds
-    ): Unit =
+    ): Unit = {
       inside(gaProbe.expectMsgType[ProvideGridPowerMessage](maxDuration)) {
         case ProvideGridPowerMessage(exchangedPower) =>
           exchangedPower should have size expectedExchangedPowers.size
@@ -133,8 +134,9 @@ trait DBFSMockGridAgents extends UnitSpec {
           }
 
       }
+    }
 
-    def requestGridPower(receiver: ActorRef, sweepNo: Int): Unit =
+    def requestGridPower(receiver: ActorRef, sweepNo: Int): Unit = {
       gaProbe.send(
         receiver,
         RequestGridPowerMessage(
@@ -142,5 +144,6 @@ trait DBFSMockGridAgents extends UnitSpec {
           nodeUuids
         )
       )
+    }
   }
 }

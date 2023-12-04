@@ -94,7 +94,7 @@ final case class PriorityMultiBiSet[K, V] private (
     table.get(key).exists { set =>
       val existed = set.remove(value)
 
-      if set.isEmpty then {
+      if (set.isEmpty) {
         table -= key
         queue -= key
       }
@@ -112,7 +112,7 @@ final case class PriorityMultiBiSet[K, V] private (
     * @return
     *   The first element in the list of the first key
     */
-  def getAndRemoveSet(key: K): Set[V] =
+  def getAndRemoveSet(key: K): Set[V] = {
     table
       .get(key)
       .map { set =>
@@ -128,6 +128,7 @@ final case class PriorityMultiBiSet[K, V] private (
         immutableSet
       }
       .getOrElse(Set.empty)
+  }
 
   /** Tests whether there is no value for any key in the queue.
     * @return

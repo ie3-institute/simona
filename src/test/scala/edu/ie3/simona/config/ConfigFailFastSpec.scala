@@ -29,13 +29,11 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "let valid input pass" in {
           noException shouldBe thrownBy {
-            ConfigFailFast.invokePrivate(
-              checkTimeConfig(
-                new Time(
-                  "2020-06-18 13:41:00",
-                  None,
-                  "2020-05-18 13:41:00"
-                )
+            ConfigFailFast invokePrivate checkTimeConfig(
+              new Time(
+                "2020-06-18 13:41:00",
+                None,
+                "2020-05-18 13:41:00"
               )
             )
           }
@@ -43,13 +41,11 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "identify invalid date or time configuration" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(
-              checkTimeConfig(
-                new Time(
-                  "2020-06-18 13:41:00",
-                  None,
-                  "2020-07-18 13:41:00"
-                )
+            ConfigFailFast invokePrivate checkTimeConfig(
+              new Time(
+                "2020-06-18 13:41:00",
+                None,
+                "2020-07-18 13:41:00"
               )
             )
           }.getMessage shouldBe "Invalid time configuration." +
@@ -65,20 +61,16 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "let valid input pass" in {
 
-          ConfigFailFast.invokePrivate(
-            createDateTime(
-              dateTimeString
-            )
+          ConfigFailFast invokePrivate createDateTime(
+            dateTimeString
           ) shouldBe TimeUtil.withDefaults.toZonedDateTime(dateTimeString)
 
         }
 
         "identify invalid input" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(
-              createDateTime(
-                "total non-sense"
-              )
+            ConfigFailFast invokePrivate createDateTime(
+              "total non-sense"
             )
           }.getMessage shouldBe "Invalid dateTimeString: total non-sense." +
             "Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd HH:mm:ss'"
@@ -91,18 +83,16 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "let valid input pass" in {
           noException shouldBe thrownBy {
-            ConfigFailFast.invokePrivate(
-              checkPowerFlowResolutionConfiguration(
-                new Powerflow(
-                  10,
-                  new Newtonraphson(
-                    List(10, 30),
-                    100
-                  ),
-                  Duration.of(3600, ChronoUnit.SECONDS),
-                  stopOnFailure = false,
-                  Duration.of(3600, ChronoUnit.SECONDS)
-                )
+            ConfigFailFast invokePrivate checkPowerFlowResolutionConfiguration(
+              new Powerflow(
+                10,
+                new Newtonraphson(
+                  List(10, 30),
+                  100
+                ),
+                Duration.of(3600, ChronoUnit.SECONDS),
+                stopOnFailure = false,
+                Duration.of(3600, ChronoUnit.SECONDS)
               )
             )
           }
@@ -110,18 +100,16 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "identify invalid input" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(
-              checkPowerFlowResolutionConfiguration(
-                new Powerflow(
-                  10,
-                  new Newtonraphson(
-                    List(10, 30),
-                    100
-                  ),
-                  resolution = Duration.of(3600, ChronoUnit.NANOS),
-                  stopOnFailure = false,
-                  sweepTimeout = Duration.of(3600, ChronoUnit.SECONDS)
-                )
+            ConfigFailFast invokePrivate checkPowerFlowResolutionConfiguration(
+              new Powerflow(
+                10,
+                new Newtonraphson(
+                  List(10, 30),
+                  100
+                ),
+                resolution = Duration.of(3600, ChronoUnit.NANOS),
+                stopOnFailure = false,
+                sweepTimeout = Duration.of(3600, ChronoUnit.SECONDS)
               )
             )
           }.getMessage shouldBe "Invalid time resolution. Please ensure, that the time resolution for power flow calculation is at least rounded to a full second!"
@@ -152,7 +140,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           val malformedGridIds = List("10--100", "MS", "10..100")
 
-          malformedGridIds.foreach { malformedGridId =>
+          malformedGridIds.foreach(malformedGridId => {
 
             val refSystemConfigAllEmpty =
               ConfigFactory.parseString(s"""simona.gridConfig.refSystems = [
@@ -169,11 +157,11 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             intercept[InvalidConfigParameterException] {
               faultySimonaConfig.simona.gridConfig.refSystems.foreach(
                 refSystem =>
-                  ConfigFailFast.invokePrivate(checkRefSystem(refSystem))
+                  ConfigFailFast invokePrivate checkRefSystem(refSystem)
               )
             }.getMessage shouldBe s"The provided gridId $malformedGridId is malformed!"
 
-          }
+          })
         }
 
         "throw an InvalidConfigParameterException if the nominal voltage of the voltage level is malformed" in {
@@ -192,7 +180,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
-              ConfigFailFast.invokePrivate(checkRefSystem(refSystem))
+              ConfigFailFast invokePrivate checkRefSystem(refSystem)
             )
           }.getMessage shouldBe "The given nominal voltage 'foo' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?"
 
@@ -215,7 +203,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
-              ConfigFailFast.invokePrivate(checkRefSystem(refSystem))
+              ConfigFailFast invokePrivate checkRefSystem(refSystem)
             )
           }.getMessage shouldBe "Invalid value for sNom from provided refSystem RefSystemConfig(None,100,0.4 kV,Some(List(VoltLvlConfig(MS,10 kV), VoltLvlConfig(HS,110 kV)))). Is a valid unit provided?"
 
@@ -239,7 +227,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
-              ConfigFailFast.invokePrivate(checkRefSystem(refSystem))
+              ConfigFailFast invokePrivate checkRefSystem(refSystem)
             )
           }.getMessage shouldBe "Invalid value for vNom from provided refSystem RefSystemConfig(None,100 MVA,0.4,Some(List(VoltLvlConfig(MS,10 kV), VoltLvlConfig(HS,110 kV)))). Is a valid unit provided?"
 
@@ -267,9 +255,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
           val simonaConfig = SimonaConfig(config)
 
-          simonaConfig.simona.gridConfig.refSystems.foreach { refSystem =>
-            ConfigFailFast.invokePrivate(checkRefSystem(refSystem))
-          }
+          simonaConfig.simona.gridConfig.refSystems.foreach(refSystem => {
+            ConfigFailFast invokePrivate checkRefSystem(refSystem)
+          })
 
         }
       }
@@ -287,10 +275,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val simonaConfig = SimonaConfig(config)
 
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(
-              checkParticipantRuntimeConfiguration(
-                simonaConfig.simona.runtime.participant
-              )
+            ConfigFailFast invokePrivate checkParticipantRuntimeConfiguration(
+              simonaConfig.simona.runtime.participant
             )
           }.getMessage shouldBe "The participant power request voltage deviation threshold must be positive!"
         }
@@ -320,10 +306,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val simonaConfig = SimonaConfig(config)
 
           noException shouldBe thrownBy {
-            ConfigFailFast.invokePrivate(
-              checkParticipantRuntimeConfiguration(
-                simonaConfig.simona.runtime.participant
-              )
+            ConfigFailFast invokePrivate checkParticipantRuntimeConfiguration(
+              simonaConfig.simona.runtime.participant
             )
           }
         }
@@ -372,10 +356,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             PrivateMethod[Unit](Symbol("checkParticipantRuntimeConfiguration"))
 
           noException shouldBe thrownBy {
-            ConfigFailFast.invokePrivate(
-              checkParticipantRuntimeConfiguration(
-                simonaConfig.simona.runtime.participant
-              )
+            ConfigFailFast invokePrivate checkParticipantRuntimeConfiguration(
+              simonaConfig.simona.runtime.participant
             )
           }
         }
@@ -433,10 +415,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val simonaConfig = SimonaConfig(config)
 
           noException shouldBe thrownBy {
-            ConfigFailFast.invokePrivate(
-              checkParticipantRuntimeConfiguration(
-                simonaConfig.simona.runtime.participant
-              )
+            ConfigFailFast invokePrivate checkParticipantRuntimeConfiguration(
+              simonaConfig.simona.runtime.participant
             )
           }
         }
@@ -467,12 +447,10 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val simonaConfig = SimonaConfig(config)
 
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(
-              checkBaseRuntimeConfigs(
-                simonaConfig.simona.runtime.participant.load.defaultConfig,
-                simonaConfig.simona.runtime.participant.load.individualConfigs,
-                defaultString
-              )
+            ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
+              simonaConfig.simona.runtime.participant.load.defaultConfig,
+              simonaConfig.simona.runtime.participant.load.individualConfigs,
+              defaultString
             )
           }.getMessage shouldBe "There has to be at least one identifier for each participant."
         }
@@ -495,12 +473,10 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val simonaConfig = SimonaConfig(config)
 
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(
-              checkBaseRuntimeConfigs(
-                simonaConfig.simona.runtime.participant.load.defaultConfig,
-                simonaConfig.simona.runtime.participant.load.individualConfigs,
-                defaultString
-              )
+            ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
+              simonaConfig.simona.runtime.participant.load.defaultConfig,
+              simonaConfig.simona.runtime.participant.load.individualConfigs,
+              defaultString
             )
           }.getMessage shouldBe "Found invalid UUID 'blabla' it was meant to be the string 'default' or a valid UUID."
         }
@@ -523,12 +499,10 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val simonaConfig = SimonaConfig(config)
 
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(
-              checkBaseRuntimeConfigs(
-                simonaConfig.simona.runtime.participant.load.defaultConfig,
-                simonaConfig.simona.runtime.participant.load.individualConfigs,
-                defaultString
-              )
+            ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
+              simonaConfig.simona.runtime.participant.load.defaultConfig,
+              simonaConfig.simona.runtime.participant.load.individualConfigs,
+              defaultString
             )
           }.getMessage shouldBe s"Found invalid UUID 'blabla' it was meant to be the string 'default' or a valid UUID."
         }
@@ -551,12 +525,10 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val simonaConfig = SimonaConfig(config)
 
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(
-              checkBaseRuntimeConfigs(
-                simonaConfig.simona.runtime.participant.load.defaultConfig,
-                simonaConfig.simona.runtime.participant.load.individualConfigs,
-                defaultString
-              )
+            ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
+              simonaConfig.simona.runtime.participant.load.defaultConfig,
+              simonaConfig.simona.runtime.participant.load.individualConfigs,
+              defaultString
             )
           }.getMessage shouldBe "The scaling factor for system participants with UUID '49f250fa-41ff-4434-a083-79c98d260a76' may not be negative."
         }
@@ -594,12 +566,10 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val simonaConfig = SimonaConfig(config)
 
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(
-              checkBaseRuntimeConfigs(
-                simonaConfig.simona.runtime.participant.load.defaultConfig,
-                simonaConfig.simona.runtime.participant.load.individualConfigs,
-                defaultString
-              )
+            ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
+              simonaConfig.simona.runtime.participant.load.defaultConfig,
+              simonaConfig.simona.runtime.participant.load.individualConfigs,
+              defaultString
             )
           }.getMessage shouldBe "The basic model configurations contain ambiguous definitions."
         }
@@ -629,10 +599,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val simonaConfig = SimonaConfig(config)
 
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(
-              checkSpecificLoadModelConfig(
-                simonaConfig.simona.runtime.participant.load.defaultConfig
-              )
+            ConfigFailFast invokePrivate checkSpecificLoadModelConfig(
+              simonaConfig.simona.runtime.participant.load.defaultConfig
             )
           }.getMessage shouldBe "The load model behaviour 'blabla' for the loads with UUIDs '49f250fa-41ff-4434-a083-79c98d260a76' is invalid."
         }
@@ -655,10 +623,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val simonaConfig = SimonaConfig(config)
 
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(
-              checkSpecificLoadModelConfig(
-                simonaConfig.simona.runtime.participant.load.defaultConfig
-              )
+            ConfigFailFast invokePrivate checkSpecificLoadModelConfig(
+              simonaConfig.simona.runtime.participant.load.defaultConfig
             )
           }.getMessage shouldBe "The standard load profile reference 'blabla' for the loads with UUIDs '49f250fa-41ff-4434-a083-79c98d260a76' is invalid."
         }
@@ -684,10 +650,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val simonaConfig = SimonaConfig(config)
 
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(
-              checkRuntimeListenerConfiguration(
-                simonaConfig.simona.runtime.listener
-              )
+            ConfigFailFast invokePrivate checkRuntimeListenerConfiguration(
+              simonaConfig.simona.runtime.listener
             )
           }.getMessage shouldBe "Connection with kafka broker localhost:12345 failed."
         }
@@ -699,17 +663,15 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "identify faulty notifier identifiers" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(checkNotifierIdentifier("whatever"))
+            ConfigFailFast invokePrivate checkNotifierIdentifier("whatever")
           }.getMessage shouldBe s"The identifier 'whatever' you provided is not valid. Valid input: ${NotifierIdentifier.values.map(_.toString).mkString(",")}"
         }
 
         "let all valid notifier identifiers pass" in {
           noException shouldBe thrownBy {
             NotifierIdentifier.values.map(id =>
-              ConfigFailFast.invokePrivate(
-                checkNotifierIdentifier(
-                  id.toString
-                )
+              ConfigFailFast invokePrivate checkNotifierIdentifier(
+                id.toString
               )
             )
           }
@@ -740,10 +702,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           )
 
           noException shouldBe thrownBy {
-            ConfigFailFast.invokePrivate(
-              checkIndividualParticipantsOutputConfigs(
-                validInput
-              )
+            ConfigFailFast invokePrivate checkIndividualParticipantsOutputConfigs(
+              validInput
             )
           }
         }
@@ -768,10 +728,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           )
 
           intercept[InvalidConfigParameterException](
-            ConfigFailFast.invokePrivate(
-              checkIndividualParticipantsOutputConfigs(
-                invalidInput
-              )
+            ConfigFailFast invokePrivate checkIndividualParticipantsOutputConfigs(
+              invalidInput
             )
           ).getMessage shouldBe "There are multiple output configurations for participant types 'load'."
         }
@@ -782,20 +740,18 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "throw an exception if no sink is provided" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(checkDataSink(Sink(None, None, None)))
+            ConfigFailFast invokePrivate checkDataSink(Sink(None, None, None))
           }.getLocalizedMessage shouldBe "No sink configuration found! Please ensure that at least " +
             "one sink is configured! You can choose from: influxdb1x, csv, kafka."
         }
 
         "throw an exception if more than one sink is provided" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(
-              checkDataSink(
-                Sink(
-                  Some(Csv("", "", "", isHierarchic = false)),
-                  Some(InfluxDb1x("", 0, "")),
-                  None
-                )
+            ConfigFailFast invokePrivate checkDataSink(
+              Sink(
+                Some(Csv("", "", "", isHierarchic = false)),
+                Some(InfluxDb1x("", 0, "")),
+                None
               )
             )
           }.getLocalizedMessage shouldBe "Multiple sink configurations are not supported! Please ensure that only " +
@@ -804,10 +760,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "throw an exception if an influxDb1x is configured, but not accessible" ignore {
           intercept[java.lang.IllegalArgumentException] {
-            ConfigFailFast.invokePrivate(
-              checkDataSink(
-                Sink(None, Some(InfluxDb1x("", 0, "")), None)
-              )
+            ConfigFailFast invokePrivate checkDataSink(
+              Sink(None, Some(InfluxDb1x("", 0, "")), None)
             )
           }.getLocalizedMessage shouldBe "Unable to reach configured influxDb1x with url ':0' for 'Sink' configuration and database ''. " +
             "Exception: java.lang.IllegalArgumentException: Unable to parse url: :0"
@@ -815,19 +769,17 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "throw an exception if kafka is configured, but connection to broker fails" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(
-              checkDataSink(
-                Sink(
-                  None,
-                  None,
-                  Some(
-                    ResultKafkaParams(
-                      "localhost:12345",
-                      0,
-                      "00000000-0000-0000-0000-000000000000",
-                      "https://reg:123",
-                      "topic"
-                    )
+            ConfigFailFast invokePrivate checkDataSink(
+              Sink(
+                None,
+                None,
+                Some(
+                  ResultKafkaParams(
+                    "localhost:12345",
+                    0,
+                    "00000000-0000-0000-0000-000000000000",
+                    "https://reg:123",
+                    "topic"
                   )
                 )
               )
@@ -909,7 +861,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           )
 
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(checkGridDataSource(gridDataSource))
+            ConfigFailFast invokePrivate checkGridDataSource(gridDataSource)
           }.getMessage shouldBe "No grid data source information provided! Cannot proceed!"
         }
 
@@ -920,7 +872,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           )
 
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(checkGridDataSource(gridDataSource))
+            ConfigFailFast invokePrivate checkGridDataSource(gridDataSource)
           }.getMessage shouldBe "The provided grid data source 'someWhereUndefined' is not supported!"
         }
 
@@ -931,7 +883,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           )
 
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(checkGridDataSource(gridDataSource))
+            ConfigFailFast invokePrivate checkGridDataSource(gridDataSource)
           }.getMessage shouldBe "No grid data source csv parameters provided. If you intend to read grid data from " +
             ".csv-files, please provide .csv parameters!"
         }
@@ -949,7 +901,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           )
 
           noException shouldBe thrownBy {
-            ConfigFailFast.invokePrivate(checkGridDataSource(gridDataSource))
+            ConfigFailFast invokePrivate checkGridDataSource(gridDataSource)
           }
         }
       }
@@ -986,10 +938,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               Some("yyyy-MM-dd HH:mm")
             )
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast.invokePrivate(
-              checkWeatherDataSource(
-                weatherDataSource
-              )
+            ConfigFailFast invokePrivate checkWeatherDataSource(
+              weatherDataSource
             )
           }.getMessage shouldBe "The weather data scheme 'this won't work' is not supported. Supported schemes:\n\ticon\n\tcosmo"
         }
@@ -1005,7 +955,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val maliciousConfig = ConfigFactory.parseString("")
 
           noException shouldBe thrownBy {
-            ConfigFailFast.invokePrivate(checkPekkoLoggers(maliciousConfig))
+            ConfigFailFast invokePrivate checkPekkoLoggers(maliciousConfig)
           }
           /* Testing the log message cannot be tested, as with LazyLogging, the logger of the class cannot be spied. */
         }
@@ -1019,7 +969,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           )
 
           noException shouldBe thrownBy {
-            ConfigFailFast.invokePrivate(checkPekkoLoggers(properConfig))
+            ConfigFailFast invokePrivate checkPekkoLoggers(properConfig)
           }
           /* Testing the log message cannot be tested, as with LazyLogging, the logger of the class cannot be spied. */
         }
@@ -1032,7 +982,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val maliciousConfig = ConfigFactory.parseString("")
 
           noException shouldBe thrownBy {
-            ConfigFailFast.invokePrivate(checkPekkoConfig(maliciousConfig))
+            ConfigFailFast invokePrivate checkPekkoConfig(maliciousConfig)
           }
           /* Testing the log message cannot be tested, as with LazyLogging, the logger of the class cannot be spied. */
         }
@@ -1046,7 +996,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           )
 
           noException shouldBe thrownBy {
-            ConfigFailFast.invokePrivate(checkPekkoConfig(properConfig))
+            ConfigFailFast invokePrivate checkPekkoConfig(properConfig)
           }
           /* Testing the log message cannot be tested, as with LazyLogging, the logger of the class cannot be spied. */
         }

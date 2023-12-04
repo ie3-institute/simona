@@ -143,7 +143,8 @@ class ExtSimLoaderSpec extends UnitSpec {
   }
 
   private def fileSuffix(fileName: String): String =
-    if fileName.contains(".") then
+    if (fileName.contains("."))
       fileName.substring(fileName.lastIndexOf('.') + 1)
-    else fileName
+    else
+      fileName
 }

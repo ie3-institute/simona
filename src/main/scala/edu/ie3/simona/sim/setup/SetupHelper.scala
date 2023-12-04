@@ -102,17 +102,17 @@ trait SetupHelper extends LazyLogging {
     subGridGates
       .groupBy(gate => (gate.superiorNode, gate.inferiorNode))
       .flatMap(_._2.headOption)
-      .map { gate =>
+      .map(gate => {
         val superiorSubGrid = gate.getSuperiorSubGrid
         val inferiorSubGrid = gate.getInferiorSubGrid
-        if inferiorSubGrid == currentSubGrid then {
+        if (inferiorSubGrid == currentSubGrid) {
           /* This is a gate to a superior sub grid */
           gate -> getActorRef(
             subGridToActorRefMap,
             currentSubGrid,
             superiorSubGrid
           )
-        } else if superiorSubGrid == currentSubGrid then {
+        } else if (superiorSubGrid == currentSubGrid) {
           /* This is a gate to an inferior sub grid */
           gate -> getActorRef(
             subGridToActorRefMap,
@@ -124,7 +124,7 @@ trait SetupHelper extends LazyLogging {
             "I am supposed to connect sub grid " + currentSubGrid + " with itself, which is not allowed."
           )
         }
-      }
+      })
       .toMap
 
   /** Get the actor reference from the map or throw an exception, if it is not
@@ -143,7 +143,7 @@ trait SetupHelper extends LazyLogging {
       subGridToActorRefMap: Map[Int, ActorRef],
       currentSubGrid: Int,
       queriedSubGrid: Int
-  ): ActorRef =
+  ): ActorRef = {
     subGridToActorRefMap.get(queriedSubGrid) match {
       case Some(hit) => hit
       case _ =>
@@ -151,6 +151,7 @@ trait SetupHelper extends LazyLogging {
           "I am supposed to connect sub grid " + currentSubGrid + " with " + queriedSubGrid + ", but I cannot find the matching actor reference."
         )
     }
+  }
 
   /** Searches for the reference system to be used with the given
     * [[SubGridContainer]] within the information provided by config.
@@ -178,10 +179,11 @@ trait SetupHelper extends LazyLogging {
         )
       )
 
-    if !refSystem.nominalVoltage.equals(
+    if (
+      !refSystem.nominalVoltage.equals(
         subGridContainer.getPredominantVoltageLevel.getNominalVoltage
       )
-    then
+    )
       logger.warn(
         s"The configured RefSystem for subGrid ${subGridContainer.getSubnet} differs in its nominal voltage (${refSystem.nominalVoltage}) from the grids" +
           s"predominant voltage level nominal voltage (${subGridContainer.getPredominantVoltageLevel.getNominalVoltage}). If this is by intention and still valid, this " +

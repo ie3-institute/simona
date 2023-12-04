@@ -100,13 +100,12 @@ class WeatherServiceSpec
     new WeatherService(
       scheduler.ref,
       TimeUtil.withDefaults.toZonedDateTime(
+        simonaConfig.simona.time.startDateTime
+      ),
+      TimeUtil.withDefaults.toZonedDateTime(
         simonaConfig.simona.time.endDateTime
       ),
       4
-    )(using
-      TimeUtil.withDefaults.toZonedDateTime(
-        simonaConfig.simona.time.startDateTime
-      )
     )
   )
 

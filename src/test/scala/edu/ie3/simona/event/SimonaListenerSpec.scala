@@ -44,15 +44,17 @@ class SimonaListenerSpec
   // test listenerActor
   class SimonaListenerActor(eventsToProcess: Option[List[String]] = None)
       extends SimonaListenerWithFilter(eventsToProcess) {
-    override def preStart(): Unit =
+    override def preStart(): Unit = {
       log.debug(s"{} started!", self)
+    }
 
-    override def processEvent(event: Event, sender: ActorRef): Unit =
+    override def processEvent(event: Event, sender: ActorRef): Unit = {
       event match {
         case TestEvent(str, date) =>
           log.debug(s"Received '$str' from date $date")
         case _ => log.warning("Received unknown event")
       }
+    }
   }
 
   // global vals

@@ -62,12 +62,12 @@ object QuantityUtil {
       values: Map[Long, Q],
       windowStart: Long,
       windowEnd: Long
-  ): Try[Q] =
-    if windowStart == windowEnd then
+  ): Try[Q] = {
+    if (windowStart == windowEnd)
       Failure(
         new IllegalArgumentException("Cannot average over trivial time window.")
       )
-    else if windowStart > windowEnd then
+    else if (windowStart > windowEnd)
       Failure(
         new IllegalArgumentException("Window end is before window start.")
       )
@@ -79,6 +79,7 @@ object QuantityUtil {
           windowEnd
         ) / Seconds(windowEnd - windowStart)
       }
+  }
 
   /** Calculate the integration over provided values from window start until
     * window end
@@ -124,17 +125,15 @@ object QuantityUtil {
     val (lastTick, lastValue) = endingValue(values, windowEnd)
     val valuesWithinWindow = mutable.LinkedHashMap.newBuilder
       .addAll(
-        values
-          .filter { case (tick, _) =>
-            tick >= windowStart && tick <= windowEnd
-          }
-          .toSeq
+        (values filter { case (tick, _) =>
+          tick >= windowStart && tick <= windowEnd
+        }).toSeq
           .sortBy(_._1)
       )
       .result()
 
     /* We need a value at the window end, so if the last value is not exactly there, replicate it at that point */
-    if windowEnd > lastTick then
+    if (windowEnd > lastTick)
       valuesWithinWindow.addOne(windowEnd -> lastValue)
 
     /* Actually determining the integral, but sweeping over values and summing up everything */
@@ -174,7 +173,7 @@ object QuantityUtil {
   private def startingValue[Q <: squants.Quantity[Q]](
       values: Map[Long, Q],
       windowStart: Long
-  ): Q =
+  ): Q = {
     values
       .filter { case (tick, _) =>
         tick <= windowStart
@@ -191,6 +190,7 @@ object QuantityUtil {
           )
         unit(0d)
     }
+  }
 
   /** Determine the last value for the integration
     *
@@ -207,7 +207,7 @@ object QuantityUtil {
   private def endingValue[Q <: Quantity[Q]](
       values: Map[Long, Q],
       windowEnd: Long
-  ): (Long, Q) =
+  ): (Long, Q) = {
     values
       .filter { case (tick, _) =>
         tick <= windowEnd
@@ -219,5 +219,6 @@ object QuantityUtil {
           "Cannot integrate over an empty set of values."
         )
     }
+  }
 
 }

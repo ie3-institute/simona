@@ -24,7 +24,7 @@ object Scheduler {
 
   trait Incoming
 
-  final private case class WrappedActivation(activation: Activation)
+  private final case class WrappedActivation(activation: Activation)
       extends Incoming
 
   def apply(
@@ -66,7 +66,7 @@ object Scheduler {
             // also potentially schedule with parent if the new earliest tick is
             // different from the old earliest tick (including if nothing had
             // been scheduled before)
-            if newEarliestTick != oldEarliestTick then
+            if (newEarliestTick != oldEarliestTick)
               data.parent ! ScheduleActivation(
                 data.activationAdapter,
                 newTick,
@@ -74,7 +74,7 @@ object Scheduler {
               )
             else {
               // we don't need to escalate to the parent, this means that we can release the lock (if applicable)
-              unlockKey.foreach(_.unlock())
+              unlockKey.foreach { _.unlock() }
             }
             inactive(updatedData, lastActiveTick)
           }
@@ -101,7 +101,7 @@ object Scheduler {
           // if there's a lock:
           // since we're active and any scheduled activation can still influence our next activation,
           // we can directly unlock the lock with the key
-          unlockKey.foreach(_.unlock())
+          unlockKey.foreach { _.unlock() }
 
           sendCurrentTriggers(
             scheduleTrigger(data, actor, newTick),
@@ -130,7 +130,7 @@ object Scheduler {
             .map((_, updatedActivationData))
         }
         .map { case (updatedData, updatedActivationData) =>
-          if isTickCompleted(updatedData, updatedActivationData) then {
+          if (isTickCompleted(updatedData, updatedActivationData)) {
             // send completion to parent, if all completed
             completeWithParent(updatedData)
             inactive(updatedData, currentTick)
@@ -161,10 +161,11 @@ object Scheduler {
   private def checkTriggerSchedule(
       minTick: Long,
       newTick: Long
-  ): Option[String] =
+  ): Option[String] = {
     Option.when(newTick < minTick) {
       s"Cannot schedule an event at tick $newTick when the last or currently activated tick is $minTick"
     }
+  }
 
   private def checkCompletion(
       activationData: ActivationData,

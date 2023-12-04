@@ -133,7 +133,7 @@ class DBFSAlgorithmSupGridSpec
     s"start the simulation, do 2 sweeps and should end afterwards when no deviation on nodal " +
       s"power is recognized in the superior when an activation is sent is send" in {
 
-        for sweepNo <- 0 to 1 do {
+        for (sweepNo <- 0 to 1) {
 
           val requestedConnectionNodeUuids =
             Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
@@ -248,7 +248,7 @@ class DBFSAlgorithmSupGridSpec
         )
 
         // go on with testing the sweep behaviour
-        for sweepNo <- 0 to maxNumberOfTestSweeps do {
+        for (sweepNo <- 0 to maxNumberOfTestSweeps) {
 
           val requestedConnectionNodeUuids =
             Vector(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))

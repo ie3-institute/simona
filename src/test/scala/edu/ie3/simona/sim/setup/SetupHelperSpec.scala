@@ -26,7 +26,7 @@ import scala.jdk.CollectionConverters.*
 
 class SetupHelperSpec extends UnitSpec with GridInputTestData {
 
-  final private object SetupHelperInstance extends SetupHelper
+  private final object SetupHelperInstance extends SetupHelper
 
   "A setup helper" should {
     "reduce multiple SubGridGates between the same superior and inferior nodes to one unique SubGridGate" in {

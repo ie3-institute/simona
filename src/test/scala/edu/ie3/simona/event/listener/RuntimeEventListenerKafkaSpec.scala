@@ -133,7 +133,7 @@ class RuntimeEventListenerKafkaSpec
             testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
           }
 
-        (records should have).length(1)
+        records should have length 1
         records should contain(expectedMsg)
       }
 

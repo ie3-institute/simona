@@ -147,7 +147,7 @@ class ResultEntityKafkaSpec
         val records: List[PlainNodeResult] =
           testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
 
-        (records should have).length(3)
+        records should have length 3
         records should contain(
           PlainNodeResult(
             runId,

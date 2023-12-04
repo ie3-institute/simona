@@ -22,7 +22,7 @@ object ExtSimLoader extends LazyLogging {
 
   def getStandardDirectory: File = {
     val workingDir = new File(System.getProperty("user.dir"))
-    if !workingDir.isDirectory then
+    if (!workingDir.isDirectory)
       throw new IOException("Error when accessing working directory.")
 
     new File(workingDir, extSimPath)
@@ -31,7 +31,7 @@ object ExtSimLoader extends LazyLogging {
   def scanInputFolder(
       extSimDir: File = getStandardDirectory
   ): Iterable[File] = {
-    if !extSimDir.isDirectory then {
+    if (!extSimDir.isDirectory) {
       logger.warn(
         s"External simulation directory ${extSimDir.getPath} does not exist or is not a directory, no external simulation loaded."
       )

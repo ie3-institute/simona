@@ -16,7 +16,7 @@ class ValueStoreSpec extends UnitSpec with PrivateMethodTester {
     "be properly instantiated" in {
       val storeGetter =
         PrivateMethod[Map[Long, String]](Symbol("store"))
-      emptyValueStore.invokePrivate(storeGetter()) shouldBe Map
+      (emptyValueStore invokePrivate storeGetter()) shouldBe Map
         .empty[Long, String]
       emptyValueStore.maxTickSpan shouldBe Long.MaxValue
     }
@@ -48,7 +48,7 @@ class ValueStoreSpec extends UnitSpec with PrivateMethodTester {
     "be properly instantiated" in {
       val storeGetter =
         PrivateMethod[Map[Long, String]](Symbol("store"))
-      filledValueStore.invokePrivate(storeGetter()) shouldBe Map(
+      (filledValueStore invokePrivate storeGetter()) shouldBe Map(
         1L -> "One",
         2L -> "Two",
         3L -> "Three",
@@ -81,7 +81,7 @@ class ValueStoreSpec extends UnitSpec with PrivateMethodTester {
       val updatedOnceAgain = ValueStore.updateValueStore(updated, 6L, "Six")
       val storeGetter =
         PrivateMethod[Map[Long, String]](Symbol("store"))
-      updatedOnceAgain.invokePrivate(storeGetter()) shouldBe Map(
+      (updatedOnceAgain invokePrivate storeGetter()) shouldBe Map(
         2L -> "Two",
         3L -> "Three",
         4L -> "Four",

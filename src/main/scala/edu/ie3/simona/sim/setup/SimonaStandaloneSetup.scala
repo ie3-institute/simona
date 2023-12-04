@@ -6,12 +6,18 @@
 
 package edu.ie3.simona.sim.setup
 
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorContextOps,
+  ClassicActorRefOps,
+  TypedActorRefOps
+}
+import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridTopologyGraph
 import edu.ie3.datamodel.models.input.container.{GridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
-import edu.ie3.simona.actor.SimonaActorNaming.*
+import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.api.ExtSimAdapter
@@ -36,12 +42,6 @@ import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorContextOps,
-  ClassicActorRefOps,
-  TypedActorRefOps
-}
-import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
 
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters.*
@@ -294,7 +294,7 @@ class SimonaStandaloneSetup(
 
   override def systemParticipantsListener(
       context: ActorContext
-  ): Seq[ActorRef] =
+  ): Seq[ActorRef] = {
     // append ResultEventListener as well to write raw output files
     ArgsParser
       .parseListenerConfigOption(simonaConfig.simona.event.listener)
@@ -313,17 +313,18 @@ class SimonaStandaloneSetup(
         ResultEventListener.getClass.getSimpleName
       )
       .toClassic
+  }
 
   def buildSubGridToActorRefMap(
       subGridTopologyGraph: SubGridTopologyGraph,
       context: ActorContext,
       environmentRefs: EnvironmentRefs,
       systemParticipantListener: Seq[ActorRef]
-  ): Map[Int, ActorRef] =
+  ): Map[Int, ActorRef] = {
     subGridTopologyGraph
       .vertexSet()
       .asScala
-      .map { subGridContainer =>
+      .map(subGridContainer => {
         val gridAgentRef =
           context.simonaActorOf(
             GridAgent.props(
@@ -334,8 +335,9 @@ class SimonaStandaloneSetup(
             subGridContainer.getSubnet.toString
           )
         subGridContainer.getSubnet -> gridAgentRef
-      }
+      })
       .toMap
+  }
 
   /** Get all thermal grids, that apply for the given grid container
     * @param grid
@@ -348,10 +350,11 @@ class SimonaStandaloneSetup(
   private def getThermalGrids(
       grid: GridContainer,
       thermalGridByBus: Map[ThermalBusInput, ThermalGrid]
-  ): Seq[ThermalGrid] =
+  ): Seq[ThermalGrid] = {
     grid.getSystemParticipants.getHeatPumps.asScala
       .flatten(hpInput => thermalGridByBus.get(hpInput.getThermalBus))
       .toSeq
+  }
 }
 
 /** Companion object to provide [[SetupHelper]] methods for

@@ -240,7 +240,7 @@ class ParticipantAgentMock(
       baseStateData: BaseStateData[ApparentPower],
       currentTick: Long
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
-    goto(Idle).using(baseStateData)
+    goto(Idle) using baseStateData
 
   /** Determine the average result within the given tick window
     *

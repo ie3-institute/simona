@@ -81,7 +81,7 @@ class RuntimeEventListenerSpec
         Error(errMsg)
       )
 
-      for event <- eventsToQueue do {
+      for (event <- eventsToQueue) {
         listenerRef ! event
         val actualEvent = eventQueue.poll(10, TimeUnit.SECONDS)
         actualEvent match {
@@ -97,12 +97,13 @@ class RuntimeEventListenerSpec
 
     "return valid log messages for each status event" in {
 
-      def calcTime(curTick: Long): String =
+      def calcTime(curTick: Long): String = {
         TimeUtil.withDefaults.toString(
           curTick.toDateTime(
             TimeUtil.withDefaults.toZonedDateTime(startDateTimeString)
           )
         )
+      }
 
       // Fail two power flows, should get counted
       listenerRef ! PowerFlowFailed

@@ -60,7 +60,7 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
       evcsInputModel.getUuid
     )
 
-  implicit protected val simulationStartDate: ZonedDateTime =
+  protected implicit val simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
   protected val simulationEndDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 02:00:00")

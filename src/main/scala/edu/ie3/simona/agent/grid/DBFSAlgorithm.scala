@@ -426,7 +426,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       log.debug("Calculate results and sending the results to the listener ...")
       createAndSendPowerFlowResults(
         gridAgentBaseData,
-        currentTick.toDateTime(simStartTime)
+        currentTick.toDateTime(using simStartTime)
       )
 
       // do my cleanup stuff

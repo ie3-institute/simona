@@ -64,7 +64,7 @@ final case class PrimaryServiceWorker[V <: Value](
         PrimaryServiceInitializedStateData[V],
         Option[Long]
     )
-  ] =
+  ] = {
     (initServiceData match {
       case PrimaryServiceWorker.CsvInitPrimaryServiceStateData(
             timeSeriesUuid,
@@ -152,6 +152,7 @@ final case class PrimaryServiceWorker[V <: Value](
         )
       (initializedStateData, maybeNextTick)
     }
+  }
 
   /** Handle a request to register for information from this service
     *

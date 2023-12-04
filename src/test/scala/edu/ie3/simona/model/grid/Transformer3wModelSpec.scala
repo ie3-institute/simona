@@ -349,9 +349,9 @@ class Transformer3wModelSpec
           defaultSimulationEnd
         )
 
-      transformerModelEhvTemp.invokePrivate(tapRatio()) shouldBe 1.15
-      transformerModelHvTemp.invokePrivate(tapRatio()) shouldBe 1.0
-      transformerModelLvTemp.invokePrivate(tapRatio()) shouldBe 1.0
+      transformerModelEhvTemp invokePrivate tapRatio() shouldBe 1.15
+      transformerModelHvTemp invokePrivate tapRatio() shouldBe 1.0
+      transformerModelLvTemp invokePrivate tapRatio() shouldBe 1.0
     }
   }
 
@@ -385,32 +385,32 @@ class Transformer3wModelSpec
         PrivateMethod[Double](Symbol("tapRatio"))
 
       transformerModel.currentTapPos shouldBe 0
-      transformerModel.invokePrivate(tapRatio()) shouldBe 1.0
+      transformerModel invokePrivate tapRatio() shouldBe 1.0
 
       transformerModel.incrTapPos()
 
       transformerModel.currentTapPos shouldBe 1
-      transformerModel.invokePrivate(tapRatio()) shouldBe 1.015
+      transformerModel invokePrivate tapRatio() shouldBe 1.015
 
       transformerModel.incrTapPos(4)
 
       transformerModel.currentTapPos shouldBe 5
-      transformerModel.invokePrivate(tapRatio()) shouldBe 1.075
+      transformerModel invokePrivate tapRatio() shouldBe 1.075
 
       transformerModel.updateTapPos(6)
 
       transformerModel.currentTapPos shouldBe 6
-      transformerModel.invokePrivate(tapRatio()) shouldBe 1.09
+      transformerModel invokePrivate tapRatio() shouldBe 1.09
 
       transformerModel.decrTapPos()
 
       transformerModel.currentTapPos shouldBe 5
-      transformerModel.invokePrivate(tapRatio()) shouldBe 1.075
+      transformerModel invokePrivate tapRatio() shouldBe 1.075
 
       transformerModel.decrTapPos(3)
 
       transformerModel.currentTapPos shouldBe 2
-      transformerModel.invokePrivate(tapRatio()) shouldBe 1.03
+      transformerModel invokePrivate tapRatio() shouldBe 1.03
     }
 
     "dislike altering the tap position in power flow case B" in new Transformer3wTestData {
@@ -419,7 +419,7 @@ class Transformer3wModelSpec
         PrivateMethod[Double](Symbol("tapRatio"))
 
       transformerModel.currentTapPos shouldBe 0
-      transformerModel.invokePrivate(tapRatio()) shouldBe 1.0
+      transformerModel invokePrivate tapRatio() shouldBe 1.0
 
       val thrownOnIncrease: InvalidActionRequestException =
         intercept[InvalidActionRequestException] {
@@ -427,7 +427,7 @@ class Transformer3wModelSpec
         }
       thrownOnIncrease.getMessage shouldBe s"Increasing tap position for transformer3w ${transformerModel.uuid} is not allowed in power flow case B and C."
       transformerModel.currentTapPos shouldBe 0
-      transformerModel.invokePrivate(tapRatio()) shouldBe 1.0
+      transformerModel invokePrivate tapRatio() shouldBe 1.0
 
       val thrownOnDecrease: InvalidActionRequestException =
         intercept[InvalidActionRequestException] {
@@ -435,7 +435,7 @@ class Transformer3wModelSpec
         }
       thrownOnDecrease.getMessage shouldBe s"Decreasing tap position for transformer3w ${transformerModel.uuid} is not allowed in power flow case B and C."
       transformerModel.currentTapPos shouldBe 0
-      transformerModel.invokePrivate(tapRatio()) shouldBe 1.0
+      transformerModel invokePrivate tapRatio() shouldBe 1.0
 
       val thrownOnUpdate: InvalidActionRequestException =
         intercept[InvalidActionRequestException] {
@@ -443,7 +443,7 @@ class Transformer3wModelSpec
         }
       thrownOnUpdate.getMessage shouldBe s"Updating tap position for transformer3w ${transformerModel.uuid} is not allowed in power flow case B and C."
       transformerModel.currentTapPos shouldBe 0
-      transformerModel.invokePrivate(tapRatio()) shouldBe 1.0
+      transformerModel invokePrivate tapRatio() shouldBe 1.0
     }
 
     "should compute valid delta tap positions" in new Transformer3wTestData {
@@ -475,12 +475,14 @@ class Transformer3wModelSpec
             deadBandVal: Double,
             expected: Int
         ) =>
-          val vChange = Quantities.getQuantity(vChangeVal, PU)
-          val deadBand = Quantities.getQuantity(deadBandVal, PU)
+          {
+            val vChange = Quantities.getQuantity(vChangeVal, PU)
+            val deadBand = Quantities.getQuantity(deadBandVal, PU)
 
-          transformerModel.updateTapPos(currentTapPos)
-          val actual = transformerModel.computeDeltaTap(vChange, deadBand)
-          actual should be(expected)
+            transformerModel.updateTapPos(currentTapPos)
+            val actual = transformerModel.computeDeltaTap(vChange, deadBand)
+            actual should be(expected)
+          }
       }
     }
 
@@ -493,29 +495,31 @@ class Transformer3wModelSpec
             yiiExpected: Complex,
             yjjExpected: Complex
         ) =>
-          transformer.updateTapPos(tapPos)
-          val yijActual = Transformer3wModel.yij(transformer)
-          val yiiActual = Transformer3wModel.y0(
-            transformer,
-            Transformer3wModel.Transformer3wPort.A
-          )
-          val yjjActual =
-            Transformer3wModel.y0(
+          {
+            transformer.updateTapPos(tapPos)
+            val yijActual = Transformer3wModel.yij(transformer)
+            val yiiActual = Transformer3wModel.y0(
               transformer,
-              Transformer3wModel.Transformer3wPort.INTERNAL
+              Transformer3wModel.Transformer3wPort.A
             )
+            val yjjActual =
+              Transformer3wModel.y0(
+                transformer,
+                Transformer3wModel.Transformer3wPort.INTERNAL
+              )
 
-          /* Remark: This is not really precise. At the moment, double-based calculations do
-           * hinder us from being more precise. Maybe it is advisory to switch over to BigDecimal */
-          given doubleTolerance: Double = 1e-4
-          yijActual.real shouldBe yijExpected.real +- doubleTolerance
-          yijActual.imag shouldBe yijExpected.imag +- doubleTolerance
+            /* Remark: This is not really precise. At the moment, double-based calculations do
+             * hinder us from being more precise. Maybe it is advisory to switch over to BigDecimal */
+            given doubleTolerance: Double = 1e-4
+            yijActual.real shouldBe yijExpected.real +- doubleTolerance
+            yijActual.imag shouldBe yijExpected.imag +- doubleTolerance
 
-          yiiActual.real shouldBe yiiExpected.real +- doubleTolerance
-          yiiActual.imag shouldBe yiiExpected.imag +- doubleTolerance
+            yiiActual.real shouldBe yiiExpected.real +- doubleTolerance
+            yiiActual.imag shouldBe yiiExpected.imag +- doubleTolerance
 
-          yjjActual.real shouldBe yjjExpected.real +- doubleTolerance
-          yjjActual.imag shouldBe yjjExpected.imag +- doubleTolerance
+            yjjActual.real shouldBe yjjExpected.real +- doubleTolerance
+            yjjActual.imag shouldBe yjjExpected.imag +- doubleTolerance
+          }
       }
     }
 

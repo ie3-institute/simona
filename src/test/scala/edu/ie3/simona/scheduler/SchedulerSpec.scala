@@ -226,7 +226,7 @@ class SchedulerSpec
       sa1.tick shouldBe INIT_SIM_TICK
       val schedulerActivation = sa1.actor
 
-      for tick <- -1 to 8 do {
+      for (tick <- -1 to 8) {
         schedulerActivation ! Activation(tick)
 
         triggeredAgents.foreach {

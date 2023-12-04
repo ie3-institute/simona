@@ -14,7 +14,7 @@ import squants.market.EUR
 
 class EnergyPriceSpec extends AnyFlatSpec with Matchers {
 
-  behavior.of("EnergyPrice and its Units of Measure")
+  behavior of "EnergyPrice and its Units of Measure"
 
   it should "create values using UOM factories" in {
     EuroPerKilowatthour(

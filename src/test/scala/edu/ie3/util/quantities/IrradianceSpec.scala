@@ -19,7 +19,7 @@ import squants.time.Seconds
 
 class IrradianceSpec extends AnyFlatSpec with Matchers {
 
-  behavior.of("Irradiance and its Units of Measure")
+  behavior of "Irradiance and its Units of Measure"
 
   it should "create values using UOM factories" in {
     WattsPerSquareMeter(

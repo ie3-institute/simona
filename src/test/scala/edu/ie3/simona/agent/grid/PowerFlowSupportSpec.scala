@@ -9,7 +9,6 @@ package edu.ie3.simona.agent.grid
 import org.apache.pekko.actor.ActorRef
 import org.apache.pekko.event.{LoggingAdapter, NoLogging}
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
-import edu.ie3.powerflow.model.StartData.WithForcedStartVoltages
 import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
@@ -75,11 +74,14 @@ class PowerFlowSupportSpec
     */
   private def normalizeAngle(
       angle: ComparableQuantity[Angle]
-  ): ComparableQuantity[Angle] =
-    if angle.isLessThan(0d.asDegreeGeom) then angle.add(180.asDegreeGeom)
-    else if angle.isGreaterThan(180d.asDegreeGeom) then
+  ): ComparableQuantity[Angle] = {
+    if (angle.isLessThan(0d.asDegreeGeom))
+      angle.add(180.asDegreeGeom)
+    else if (angle.isGreaterThan(180d.asDegreeGeom))
       angle.subtract(180.asDegreeGeom)
-    else angle
+    else
+      angle
+  }
 
   "PowerFlowSupport" when {
     "all switches are closed" must {
@@ -88,10 +90,7 @@ class PowerFlowSupportSpec
         // switches are closed per default
         val gridModel = createGridCopy()
 
-        val (
-          operatingPoint: Array[PresetData],
-          slackNodeVoltages: WithForcedStartVoltages
-        ) =
+        val (operatingPoint, slackNodeVoltages) =
           composeOperatingPoint(
             gridModel.gridComponents.nodes,
             gridModel.gridComponents.transformers,
@@ -101,9 +100,7 @@ class PowerFlowSupportSpec
             gridModel.mainRefSystem
           )
 
-        (operatingPoint.length shouldBe 10).withClue(
-          "safety check: 13 nodes minus 3 closed switches"
-        )
+        operatingPoint.length shouldBe 10 withClue "safety check: 13 nodes minus 3 closed switches"
 
         val result = newtonRaphsonPF(
           gridModel,
@@ -204,9 +201,7 @@ class PowerFlowSupportSpec
             gridModel.mainRefSystem
           )
 
-        (operatingPoint.length shouldBe 11).withClue(
-          "safety check: 13 nodes minus 2 closed switches"
-        )
+        operatingPoint.length shouldBe 11 withClue "safety check: 13 nodes minus 2 closed switches"
 
         val result = newtonRaphsonPF(
           gridModel,
@@ -291,9 +286,7 @@ class PowerFlowSupportSpec
             gridModel.mainRefSystem
           )
 
-        (operatingPoint.length shouldBe 11).withClue(
-          "safety check: 13 nodes minus 2 closed switches"
-        )
+        operatingPoint.length shouldBe 11 withClue "safety check: 13 nodes minus 2 closed switches"
 
         val result = newtonRaphsonPF(
           gridModel,

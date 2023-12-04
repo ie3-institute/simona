@@ -18,12 +18,12 @@ trait ExtDataSupport[
   override def idleExternal(using stateData: S): Receive = {
     case extMsg: DataMessageFromExt =>
       val updatedStateData = handleDataMessage(extMsg)(stateData)
-      context.become(idle(updatedStateData))
+      context become idle(updatedStateData)
 
     case extResponseMsg: EvResponseMessage =>
       val updatedStateData =
         handleDataResponseMessage(extResponseMsg)(stateData)
-      context.become(idle(updatedStateData))
+      context become idle(updatedStateData)
   }
 
   /** Handle a message from outside the simulation

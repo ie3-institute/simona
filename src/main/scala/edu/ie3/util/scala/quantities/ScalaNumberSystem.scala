@@ -36,9 +36,9 @@ final class ScalaNumberSystem extends DefaultNumberSystem {
 
     val sign = signX * signY
     // handle corner cases when x or y are zero
-    if sign == 0 then {
-      if signY == 0 then throw new ArithmeticException("division by zero")
-      if signX == 0 then Array[Number](0, 0)
+    if (sign == 0) {
+      if (signY == 0) throw new ArithmeticException("division by zero")
+      if (signX == 0) Array[Number](0, 0)
     }
 
     val div = x.doubleValue / y.intValue()
@@ -47,14 +47,15 @@ final class ScalaNumberSystem extends DefaultNumberSystem {
     Array(div, remainder)
   }
 
-  override def power(number: Number, exponent: Int): Number =
+  override def power(number: Number, exponent: Int): Number = {
     Math.pow(number.doubleValue, exponent)
+  }
 
   override def reciprocal(number: Number): Number =
     divide(1d, number)
 
   override def negate(number: Number): Number =
-    number.doubleValue * -1d
+    number.doubleValue * (-1d)
 
   override def signum(number: Number): Int =
     Math.signum(number.doubleValue).intValue

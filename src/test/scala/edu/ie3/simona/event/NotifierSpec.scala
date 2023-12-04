@@ -41,8 +41,9 @@ class NotifierSpec
   class NotifierActor(override val listener: Iterable[ActorRef])
       extends Notifier
       with ActorLogging {
-    override def preStart(): Unit =
+    override def preStart(): Unit = {
       log.debug(s"{} started!", self)
+    }
 
     override def receive: Receive = {
       case TestEventEnvelope(testEvent, "Please notify others of this!") =>

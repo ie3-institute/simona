@@ -18,7 +18,7 @@ import squants.time.Hours
 
 class IrradiationSpec extends AnyFlatSpec with Matchers {
 
-  behavior.of("Irradiation and its Units of Measure")
+  behavior of "Irradiation and its Units of Measure"
 
   it should "create values using UOM factories" in {
     WattHoursPerSquareMeter(

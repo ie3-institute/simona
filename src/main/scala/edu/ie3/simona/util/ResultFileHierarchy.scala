@@ -65,7 +65,7 @@ final case class ResultFileHierarchy(
   val resultEntitiesToConsider: Set[Class[? <: ResultEntity]] =
     resultEntityPathConfig.resultEntitiesToConsider
 
-  val rawOutputDataFilePaths: Map[Class[? <: ResultEntity], String] =
+  val rawOutputDataFilePaths: Map[Class[? <: ResultEntity], String] = {
     resultSinkType match {
       case csv: Csv =>
         resultEntityPathConfig.resultEntitiesToConsider
@@ -84,6 +84,7 @@ final case class ResultFileHierarchy(
       case _ =>
         Map.empty
     }
+  }
 
   val graphOutputDir: String =
     runOutputDir.concat(fileSeparator).concat("graphs")
@@ -104,7 +105,8 @@ final case class ResultFileHierarchy(
   )
 
   // needs to be the latest call because otherwise the values are null as they are not initialized yet
-  if createDirs then ResultFileHierarchy.createOutputDirectories(this)
+  if (createDirs)
+    ResultFileHierarchy.createOutputDirectories(this)
 
   // needs to be done after dir creation
   configureLogger(logOutputDir)
@@ -132,7 +134,7 @@ final case class ResultFileHierarchy(
     */
   private def buildRunOutputDir: String = {
     val optionalSuffix =
-      if addTimeStampToOutputDir then s"_$runStartTimeUTC" else ""
+      if (addTimeStampToOutputDir) s"_$runStartTimeUTC" else ""
     baseOutputDir
       .concat(fileSeparator)
       .concat(simulationName)
@@ -172,7 +174,8 @@ object ResultFileHierarchy extends LazyLogging {
       fileSeparator: String
   ): String = {
     val fileEnding =
-      if csvSink.fileFormat.startsWith(".") then csvSink.fileFormat
+      if (csvSink.fileFormat.startsWith("."))
+        csvSink.fileFormat
       else ".".concat(csvSink.fileFormat)
     val namingStrategy = new FileNamingStrategy(
       new EntityPersistenceNamingStrategy(
@@ -209,7 +212,7 @@ object ResultFileHierarchy extends LazyLogging {
       resultFileHierarchy: ResultFileHierarchy
   ): Unit = {
     // create output directories if they are not present yet
-    if !runOutputDirExists(resultFileHierarchy) then
+    if (!runOutputDirExists(resultFileHierarchy))
       ResultFileHierarchy.createOutputDirectories(resultFileHierarchy)
 
     logger.info(
@@ -243,10 +246,11 @@ object ResultFileHierarchy extends LazyLogging {
     * @return
     *   true if it exists, false if not
     */
-  def runOutputDirExists(outputFileHierarchy: ResultFileHierarchy): Boolean =
+  def runOutputDirExists(outputFileHierarchy: ResultFileHierarchy): Boolean = {
     new File(outputFileHierarchy.runOutputDir).exists() && new File(
       outputFileHierarchy.runOutputDir
     ).listFiles().length > 0
+  }
 
   /** Creates all output directories of the provided [[ResultFileHierarchy]]
     *
@@ -259,7 +263,7 @@ object ResultFileHierarchy extends LazyLogging {
     // try to create base output dir
     val baseOutputDir = Paths.get(outputFileHierarchy.baseOutputDir)
     // / check for existence of the provided baseOutputDir, if not create it
-    if Files.exists(baseOutputDir) && baseOutputDir.toFile.isFile then {
+    if (Files.exists(baseOutputDir) && baseOutputDir.toFile.isFile) {
       throw new FileHierarchyException(
         s"Provided base output path $baseOutputDir is a file and cannot be replaced with a directory!"
       )
@@ -267,7 +271,7 @@ object ResultFileHierarchy extends LazyLogging {
 
     // check if there is data inside the runOutputDir taking into account the provided FileHandling
     val runOutputDir = new File(outputFileHierarchy.runOutputDir)
-    if runOutputDir.exists() && runOutputDir.listFiles().length > 0 then {
+    if (runOutputDir.exists() && runOutputDir.listFiles().length > 0) {
       // files inside the runOutputDir -> fail
       throw new FileHierarchyException(
         s"The runOutputDir ${outputFileHierarchy.runOutputDir} already exists and is NOT empty! " +
@@ -287,7 +291,7 @@ object ResultFileHierarchy extends LazyLogging {
     */
   private def createDir(dir: String): Unit = {
     val dirFile = new File(dir)
-    if !dirFile.mkdirs() && !dirFile.exists() then
+    if (!dirFile.mkdirs() && !dirFile.exists())
       throw new FileHierarchyException(
         "The output directory path " + dir
           + " could not be created. Check pathname and permissions! Full path: " + dirFile.getAbsolutePath
@@ -299,7 +303,8 @@ object ResultFileHierarchy extends LazyLogging {
     * @param outputFileHierarchy
     *   the [[ResultFileHierarchy]] which temp folder should be deleted
     */
-  def deleteTmpDir(outputFileHierarchy: ResultFileHierarchy): Unit =
+  def deleteTmpDir(outputFileHierarchy: ResultFileHierarchy): Unit = {
     FileIOUtils.deleteRecursively(outputFileHierarchy.tmpDir)
+  }
 
 }

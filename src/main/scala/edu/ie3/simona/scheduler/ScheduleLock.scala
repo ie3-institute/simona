@@ -27,9 +27,9 @@ import java.util.UUID
 object ScheduleLock {
   sealed trait LockMsg
 
-  final private case class Init(adapter: ActorRef[Activation]) extends LockMsg
+  private final case class Init(adapter: ActorRef[Activation]) extends LockMsg
 
-  final private case object LockActivation extends LockMsg
+  private final case object LockActivation extends LockMsg
 
   /** @param key
     *   the key that unlocks (part of) the lock
@@ -41,7 +41,8 @@ object ScheduleLock {
       expectedTick: Long
   ): Behavior[Activation] =
     Behaviors.receive { case (ctx, Activation(tick)) =>
-      if tick == expectedTick then lock ! LockActivation
+      if (tick == expectedTick)
+        lock ! LockActivation
       else
         ctx.log.error(
           s"Received lock activation for tick $tick, but expected $expectedTick"
@@ -67,12 +68,12 @@ object ScheduleLock {
     def spawn[T](behavior: Behavior[T]): ActorRef[T]
   }
 
-  final private case class TypedSpawner(ctx: ActorContext[?]) extends Spawner {
+  private final case class TypedSpawner(ctx: ActorContext[_]) extends Spawner {
     override def spawn[T](behavior: Behavior[T]): ActorRef[T] =
       ctx.spawnAnonymous(behavior)
   }
 
-  final private case class ClassicSpawner(
+  private final case class ClassicSpawner(
       ctx: org.apache.pekko.actor.ActorContext
   ) extends Spawner {
     override def spawn[T](behavior: Behavior[T]): ActorRef[T] =
@@ -264,7 +265,8 @@ object ScheduleLock {
   ): Behavior[LockMsg] = Behaviors.receiveMessage { case Unlock(key) =>
     val updatedKeys = awaitedKeys - key
 
-    if updatedKeys.nonEmpty then active(scheduler, updatedKeys, adapter)
+    if (updatedKeys.nonEmpty)
+      active(scheduler, updatedKeys, adapter)
     else {
       scheduler ! Completion(adapter)
       Behaviors.stopped
