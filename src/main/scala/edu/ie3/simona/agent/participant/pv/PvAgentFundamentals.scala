@@ -102,10 +102,11 @@ protected trait PvAgentFundamentals
       outputConfig: NotifierConfig
   ): ParticipantModelBaseStateData[ApparentPower, PvRelevantData, PvModel] = {
     /* Check for needed services */
-    if !services.exists(serviceDefinitions =>
+    if (
+      !services.exists(serviceDefinitions =>
         serviceDefinitions.map(_.getClass).containsSlice(neededServices)
       )
-    then
+    )
       throw new AgentInitializationException(
         s"PvAgent cannot be initialized without a weather service!"
       )

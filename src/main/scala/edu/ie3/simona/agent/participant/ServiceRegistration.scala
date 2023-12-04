@@ -126,7 +126,7 @@ trait ServiceRegistration[
   private def registerForEvMovements(
       actorRef: ActorRef,
       inputModel: I
-  ): Unit =
+  ): Unit = {
     inputModel match {
       case evcsInput: EvcsInput =>
         actorRef ! RegisterForEvDataMessage(evcsInput.getUuid)
@@ -136,5 +136,6 @@ trait ServiceRegistration[
             s"(${inputModel.getNode.getUuid}) of type ${inputModel.getClass.getName}, because only Evcs can register for this."
         )
     }
+  }
 
 }

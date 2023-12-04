@@ -59,7 +59,7 @@ final case class TransformerTappingModel(
     */
   def incrTapPos(deltaTap: Int = 1): Double = {
     val newTapPos = Math.min(_currentTapPos + Math.abs(deltaTap), tapMax)
-    if _currentTapPos == newTapPos then
+    if (_currentTapPos == newTapPos)
       logger.warn(
         "Maximal tap position reached. Cannot increase tap position anymore!"
       )
@@ -75,7 +75,7 @@ final case class TransformerTappingModel(
     */
   def decrTapPos(deltaTap: Int = 1): Double = {
     val newTapPos = Math.max(_currentTapPos - Math.abs(deltaTap), tapMin)
-    if _currentTapPos == newTapPos then
+    if (_currentTapPos == newTapPos)
       logger.warn(
         "Minimal tap position reached. Cannot decrease tap position anymore!"
       )
@@ -91,7 +91,7 @@ final case class TransformerTappingModel(
     *   the new tap ratio of the transformer
     */
   def updateTapPos(newTapPos: Int): Double = {
-    if newTapPos > tapMax | newTapPos < tapMin then
+    if (newTapPos > tapMax | newTapPos < tapMin)
       throw new InvalidActionRequestException(
         s"Provided tap pos $newTapPos is not between allowed tapping range of tapMin: $tapMin and tapMax: $tapMax!"
       )

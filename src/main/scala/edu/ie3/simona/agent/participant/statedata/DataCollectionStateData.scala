@@ -42,7 +42,7 @@ final case class DataCollectionStateData[+PD <: PrimaryDataWithApparentPower[
     * @return
     *   The secondary data
     */
-  def extract[T <: Data: ClassTag](): Option[T] =
+  def extract[T <: Data: ClassTag](): Option[T] = {
     data.valuesIterator
       .flatMap {
         case Some(found: T) if classTag[T].runtimeClass.isInstance(found) =>
@@ -51,4 +51,5 @@ final case class DataCollectionStateData[+PD <: PrimaryDataWithApparentPower[
       }
       .toList
       .headOption
+  }
 }

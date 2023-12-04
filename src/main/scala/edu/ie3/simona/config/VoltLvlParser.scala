@@ -48,9 +48,9 @@ object VoltLvlParser {
       id: String,
       vNominal: ComparableQuantity[ElectricPotential]
   ): CommonVoltageLevel =
-    try
+    try {
       GermanVoltageLevelUtils.parse(id, vNominal)
-    catch {
+    } catch {
       case vle: VoltageLevelException =>
         throw new InvalidConfigParameterException(
           s"Cannot find a common voltage level with id $id and nominal voltage $vNominal",
@@ -67,12 +67,12 @@ object VoltLvlParser {
     */
   private def parseNominalVoltage(
       quantString: String
-  ): ComparableQuantity[ElectricPotential] =
-    try
+  ): ComparableQuantity[ElectricPotential] = {
+    try {
       QuantityUtil.asComparable(
         Quantities.getQuantity(quantString).asType(classOf[ElectricPotential])
       )
-    catch {
+    } catch {
       case iae: IllegalArgumentException =>
         throw new InvalidConfigParameterException(
           s"Cannot parse the nominal voltage $quantString",
@@ -84,4 +84,5 @@ object VoltLvlParser {
           cce
         )
     }
+  }
 }

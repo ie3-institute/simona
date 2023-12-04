@@ -153,7 +153,8 @@ object GridAgentData {
         gridAgentBaseData: GridAgentBaseData,
         superiorGridNodeUuids: Vector[UUID],
         inferiorGridGates: Vector[SubGridGate]
-    ): GridAgentBaseData =
+    ): GridAgentBaseData = {
+
       gridAgentBaseData.copy(
         receivedValueStore = ReceivedValuesStore.empty(
           gridAgentBaseData.gridEnv.nodeToAssetAgents,
@@ -165,6 +166,8 @@ object GridAgentData {
         currentSweepNo = 0,
         sweepValueStores = Map.empty[Int, SweepValueStore]
       )
+
+    }
 
   }
 
@@ -363,8 +366,10 @@ object GridAgentData {
         .find { case (_, receivedPowerMessages) =>
           receivedPowerMessages.exists { case (ref, maybePowerResponse) =>
             ref == senderRef &&
-            (if !replace then maybePowerResponse.isEmpty
-             else maybePowerResponse.isDefined)
+            (if (!replace)
+               maybePowerResponse.isEmpty
+             else
+               maybePowerResponse.isDefined)
           }
         }
         .map { case (uuid, _) => uuid }

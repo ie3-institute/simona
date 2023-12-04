@@ -12,7 +12,7 @@ import org.apache.pekko.event.LoggingAdapter
 trait SimonaFSMActorLogging extends ActorLogging with SimonaLogging {
   this: FSM[?, ?] =>
 
-  final override val log: LoggingAdapter =
+  override final val log: LoggingAdapter =
     SimonaLogging.createAdapter(
       context.system,
       () => stateName,

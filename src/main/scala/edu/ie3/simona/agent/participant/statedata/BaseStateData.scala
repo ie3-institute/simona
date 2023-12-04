@@ -6,13 +6,13 @@
 
 package edu.ie3.simona.agent.participant.statedata
 
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
-import org.apache.pekko.actor.ActorRef
 import squants.Dimensionless
 
 import java.time.ZonedDateTime
@@ -239,7 +239,7 @@ object BaseStateData {
       updatedVoltageValueStore: ValueStore[Dimensionless],
       updatedAdditionalActivationTicks: SortedSet[Long],
       updatedForeseenTicks: Map[ActorRef, Option[Long]]
-  ): BaseStateData[PD] =
+  ): BaseStateData[PD] = {
     baseStateData match {
       case external: FromOutsideBaseStateData[?, PD] =>
         external.copy(
@@ -258,4 +258,5 @@ object BaseStateData {
           foreseenDataTicks = updatedForeseenTicks
         )
     }
+  }
 }

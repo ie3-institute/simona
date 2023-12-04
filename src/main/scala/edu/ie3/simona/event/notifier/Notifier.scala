@@ -13,6 +13,7 @@ trait Notifier extends Actor {
 
   def listener: Iterable[ActorRef]
 
-  def notifyListener(event: Event): Unit =
+  def notifyListener(event: Event): Unit = {
     listener.foreach(listener => listener ! event)
+  }
 }

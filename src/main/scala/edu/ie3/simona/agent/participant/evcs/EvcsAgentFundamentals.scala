@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.participant.evcs
 
+import org.apache.pekko.actor.{ActorRef, FSM}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.result.system.{
@@ -37,12 +38,8 @@ import edu.ie3.simona.exceptions.agent.{
   InvalidRequestException
 }
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
+import edu.ie3.simona.model.participant.EvcsModel
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
-import edu.ie3.simona.model.participant.{
-  CalcRelevantData,
-  EvcsModel,
-  SystemParticipant
-}
 import edu.ie3.simona.ontology.messages.services.EvMessage.{
   ArrivingEvsData,
   DepartingEvsResponse,
@@ -52,7 +49,6 @@ import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DIS
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Kilovars
-import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.energy.Kilowatts
 import squants.{Dimensionless, Each}
 
@@ -114,10 +110,11 @@ protected trait EvcsAgentFundamentals
     EvcsModel
   ] = {
     /* Check for needed services */
-    if !services.exists(serviceDefinitions =>
+    if (
+      !services.exists(serviceDefinitions =>
         serviceDefinitions.map(_.getClass).containsSlice(neededServices)
       )
-    then
+    )
       throw new AgentInitializationException(
         s"EvcsAgent cannot be initialized without an ev data service!"
       )
@@ -254,7 +251,8 @@ protected trait EvcsAgentFundamentals
       collectionStateData: DataCollectionStateData[ApparentPower],
       currentTick: Long,
       scheduler: ActorRef
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
+
     collectionStateData.baseStateData match {
       case modelBaseStateData: ParticipantModelBaseStateData[
             ApparentPower,
@@ -284,6 +282,7 @@ protected trait EvcsAgentFundamentals
           "Cannot find a model for model calculation."
         )
     }
+  }
 
   /** Returns the number of free parking lots based on the last available state
     * data.
@@ -307,7 +306,7 @@ protected trait EvcsAgentFundamentals
     val (_, lastEvs) =
       getTickIntervalAndLastEvs(tick, modelBaseStateData)
 
-    val evcsModel: EvcsModel = getEvcsModel(modelBaseStateData)
+    val evcsModel = getEvcsModel(modelBaseStateData)
 
     evServiceRef ! FreeLotsResponse(
       evcsModel.uuid,
@@ -350,7 +349,7 @@ protected trait EvcsAgentFundamentals
 
     validateDepartures(lastEvs, requestedDepartingEvs)
 
-    val evcsModel: EvcsModel = getEvcsModel(modelBaseStateData)
+    val evcsModel = getEvcsModel(modelBaseStateData)
 
     val voltage =
       getAndCheckNodalVoltage(modelBaseStateData, tick)
@@ -379,7 +378,7 @@ protected trait EvcsAgentFundamentals
       currentEvs = stayingEvs
     )
 
-    if departingEvs.nonEmpty then {
+    if (departingEvs.nonEmpty) {
       evServiceRef ! DepartingEvsResponse(
         evcsModel.uuid,
         departingEvs
@@ -425,7 +424,7 @@ protected trait EvcsAgentFundamentals
       arrivingEvs: Seq[EvModel]
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
 
-    val evcsModel: EvcsModel = getEvcsModel(modelBaseStateData)
+    val evcsModel = getEvcsModel(modelBaseStateData)
 
     // retrieve the last updated set of parked EVs, which could stem from
     // the current tick if there were departures for this tick as well
@@ -441,7 +440,7 @@ protected trait EvcsAgentFundamentals
       )
 
     val updatedStateData =
-      if tickInterval > 0 then {
+      if (tickInterval > 0) {
         // if we haven't had any departing EVs for this tick,
         // this also means that we have not caught up with
         // calculating the current SOC
@@ -510,7 +509,7 @@ protected trait EvcsAgentFundamentals
     * @return
     *   Desired state change
     */
-  final private def updateValueStoresInformListeners(
+  private final def updateValueStoresInformListeners(
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         EvcsRelevantData,
@@ -559,7 +558,7 @@ protected trait EvcsAgentFundamentals
         ?,
         ?
       ]
-  ): (Long, Set[EvModel]) =
+  ): (Long, Set[EvModel]) = {
     modelBaseStateData.calcRelevantDateStore
       .last(currentTick) match {
       case Some((tick, EvcsRelevantData(_, evs))) =>
@@ -570,6 +569,7 @@ protected trait EvcsAgentFundamentals
          * As no evs are charging then, the tick interval should be ignored anyway. */
         (FALLBACK_EV_MOVEMENTS_STEM_DISTANCE, Set.empty[EvModel])
     }
+  }
 
   private def getEvcsModel(
       modelBaseStateData: ParticipantModelBaseStateData[
@@ -578,12 +578,13 @@ protected trait EvcsAgentFundamentals
         SystemParticipant[?, ? <: ApparentPower]
       ]
   ): EvcsModel =
-    modelBaseStateData.model match
+    modelBaseStateData.model match {
       case model: EvcsModel => model
       case unsupportedModel =>
         throw new InconsistentStateException(
           s"Wrong model: $unsupportedModel!"
         )
+    }
 
   /** Determines the correct result.
     *
@@ -619,13 +620,14 @@ protected trait EvcsAgentFundamentals
   protected def validateDepartures(
       lastEvs: Set[EvModel],
       departures: Seq[UUID]
-  ): Unit =
+  ): Unit = {
     departures.foreach { ev =>
-      if !lastEvs.exists(_.getUuid == ev) then
+      if (!lastEvs.exists(_.getUuid == ev))
         logger.warn(
           s"EV $ev should depart from this station (according to external simulation), but has not been parked here."
         )
     }
+  }
 
   /** Checks whether provided arriving EVs are consistent with charging station
     * specifications and currently connected EVs. Only logs warnings, does not
@@ -645,7 +647,7 @@ protected trait EvcsAgentFundamentals
   ): Unit = {
 
     arrivals.foreach { ev =>
-      if lastEvs.exists(_.getUuid == ev.getUuid) then
+      if (lastEvs.exists(_.getUuid == ev.getUuid))
         logger.warn(
           s"EV ${ev.getId} should arrive at this station (according to external simulation), but is already parked here."
         )
@@ -656,7 +658,7 @@ protected trait EvcsAgentFundamentals
         !lastEvs.exists(_.getUuid == ev.getUuid)
       }
 
-    if newCount > chargingPoints then
+    if (newCount > chargingPoints)
       logger.warn(
         "More EVs are parking at this station than physically possible."
       )

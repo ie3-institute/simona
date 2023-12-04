@@ -22,8 +22,10 @@ trait ApparentPowerAndHeatParticipant[CD <: CalcRelevantData] {
   ): ApparentPowerAndHeat = {
     val apparentPower = calculateApparentPower(tick, voltage, data)
     val heat =
-      if isInOperation(tick) then calculateHeat(tick, data)
-      else Megawatts(0d)
+      if (isInOperation(tick))
+        calculateHeat(tick, data)
+      else
+        Megawatts(0d)
 
     ApparentPowerAndHeat(apparentPower.p, apparentPower.q, heat)
   }

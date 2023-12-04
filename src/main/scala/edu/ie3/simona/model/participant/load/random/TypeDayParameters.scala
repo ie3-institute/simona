@@ -21,7 +21,7 @@ import edu.ie3.util.TimeUtil
 final case class TypeDayParameters(
     private val values: Array[RandomLoadParameters]
 ) {
-  if values.length != 96 then
+  if (values.length != 96)
     throw new IllegalArgumentException(
       s"You may only instantiate type day parameters with 96 values. Apparent: ${values.length}."
     )

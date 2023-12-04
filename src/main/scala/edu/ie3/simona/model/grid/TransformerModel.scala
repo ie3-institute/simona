@@ -181,7 +181,7 @@ case object TransformerModel {
     // iNomHv, iNomLv
     val calcINom
         : squants.electro.ElectricPotential => squants.electro.ElectricCurrent = {
-      (portVoltage: squants.electro.ElectricPotential) =>
+      portVoltage: squants.electro.ElectricPotential =>
         Watts(
           trafoType.getsRated
             .to(VOLTAMPERE)
@@ -206,8 +206,7 @@ case object TransformerModel {
 
     // get the element port, where the transformer tap is located
     // if trafoType.isTapSide == true, tapper is on the low voltage side (== ConnectorPort.B)
-    val tapSide =
-      if trafoType.isTapSide then ConnectorPort.B else ConnectorPort.A
+    val tapSide = if (trafoType.isTapSide) ConnectorPort.B else ConnectorPort.A
 
     // / transformer tapping
     val transformerTappingModel = TransformerTappingModel(
@@ -245,7 +244,7 @@ case object TransformerModel {
     )
 
     // if the transformer input model is in operation, enable the model
-    if operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION) then
+    if (operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION))
       transformerModel.enable()
 
     // initialize tapping
@@ -275,7 +274,8 @@ case object TransformerModel {
 
     // check if transformer params are given for the low voltage side
     val vRef = refSystem.nominalVoltage
-    if Math.abs(
+    if (
+      Math.abs(
         vRef.value
           .doubleValue() - trafoType.getvRatedA.getValue.doubleValue()
       )
@@ -283,7 +283,7 @@ case object TransformerModel {
           vRef.value
             .doubleValue() - trafoType.getvRatedB.getValue.doubleValue()
         )
-    then
+    )
       throw new InvalidGridException(
         s"The rated voltage of the high voltage side (${transformerInput.getType.getvRatedA()}) of transformer " +
           s"${transformerInput.getUuid} is closer to the reference voltage ($vRef), as the rated voltage of the " +
@@ -294,11 +294,12 @@ case object TransformerModel {
     // valid r,x,g,b values?
     val (r, x, g, b) =
       (trafoType.getrSc, trafoType.getxSc, trafoType.getgM, trafoType.getbM)
-    if r.getValue.doubleValue.isNaN ||
+    if (
+      r.getValue.doubleValue.isNaN ||
       x.getValue.doubleValue.isNaN ||
       g.getValue.doubleValue.isNaN ||
       b.getValue.doubleValue.isNaN
-    then
+    )
       throw new InvalidGridException(
         s"Attempted to create a transformer with invalid values.\ntrafo: ${transformerInput.getUuid}, type: ${trafoType.getUuid}, r: $r, x: $x, g: $g, b: $b"
       )
@@ -390,7 +391,7 @@ case object TransformerModel {
       transformerModel: TransformerModel,
       iNodeHv: Quantity[ElectricCurrent],
       iNodeLv: Quantity[ElectricCurrent]
-  ): squants.Dimensionless =
+  ): squants.Dimensionless = {
     Each(
       Math.max(
         iNodeHv.getValue.doubleValue() / transformerModel.iNomHv.value
@@ -399,5 +400,6 @@ case object TransformerModel {
           .doubleValue()
       ) * 100
     )
+  }
 
 }

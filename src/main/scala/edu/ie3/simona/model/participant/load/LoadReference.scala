@@ -43,8 +43,9 @@ case object LoadReference {
     override val key: String = "energy"
   }
 
-  def isEligibleKey(key: String): Boolean =
+  def isEligibleKey(key: String): Boolean = {
     Set("power", "energy").contains(key)
+  }
 
   /** Build a reference object, that denotes, to which reference a load model
     * behaviour might be scaled. If the behaviour is meant to be scaled to

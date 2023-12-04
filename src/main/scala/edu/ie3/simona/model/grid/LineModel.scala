@@ -77,7 +77,7 @@ final case class LineModel(
     *   branch conductance g_ij between node A and B of the element in p.u.
     */
   override def gij(): squants.Dimensionless =
-    super.gij() * amount
+    super.gij() * (amount)
 
   /** see [[PiEquivalentCircuit.g0()]]
     *
@@ -210,7 +210,7 @@ case object LineModel extends LazyLogging {
     )
 
     // if the line input model is in operation, enable the model
-    if operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION) then
+    if (operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION))
       lineModel.enable()
 
     // sanity check after creation for piEquivalent parameters r,x,g,b
@@ -230,7 +230,7 @@ case object LineModel extends LazyLogging {
     */
   def validateInputModel(lineInput: LineInput): Unit = {
 
-    if lineInput.getNodeA == null || lineInput.getNodeB == null then
+    if (lineInput.getNodeA == null || lineInput.getNodeB == null)
       throw new InvalidGridException(
         s"Nodes of line ${lineInput.getUuid} are missing." +
           s"NodeA: ${lineInput.getNodeA}, NodeB: ${lineInput.getNodeB}."
@@ -241,65 +241,69 @@ case object LineModel extends LazyLogging {
     val vRatedNodeA = lineInput.getNodeA.getVoltLvl.getNominalVoltage
     val vRatedNodeB = lineInput.getNodeB.getVoltLvl.getNominalVoltage
 
-    if lineType
+    if (
+      lineType
         .getvRated()
         .isLessThan(vRatedNodeA.subtract(ratedVoltageTolerance))
-    then
+    )
       throw new InvalidGridException(
         s"Line ${lineInput.getUuid} (${lineInput.getId}) has a rated voltage of ${lineType
             .getvRated()} but is connected to node A (${lineInput.getNodeA.getUuid} / ${lineInput.getNodeA.getId}), which has a rated voltage of $vRatedNodeA."
       )
-    else if lineType
+    else if (
+      lineType
         .getvRated()
         .isLessThan(vRatedNodeB.subtract(ratedVoltageTolerance))
-    then
+    )
       throw new InvalidGridException(
         s"Line ${lineInput.getUuid} (${lineInput.getId}) has a rated voltage of ${lineType
             .getvRated()} but is connected to node B (${lineInput.getNodeB.getUuid} / ${lineInput.getNodeB.getId}), which has a rated voltage of $vRatedNodeB."
       )
-    else if lineType
+    else if (
+      lineType
         .getvRated()
         .isGreaterThan(vRatedNodeA.add(ratedVoltageTolerance))
-    then
+    )
       logger.warn(
         s"Line ${lineInput.getUuid} (${lineInput.getId}) has a rated voltage of ${lineType
             .getvRated()} but is connected to node A (${lineInput.getNodeA.getUuid} / ${lineInput.getNodeA.getId}), which has a lower rated voltage of $vRatedNodeA."
       )
-    else if lineType
+    else if (
+      lineType
         .getvRated()
         .isGreaterThan(vRatedNodeB.add(ratedVoltageTolerance))
-    then
+    )
       logger.warn(
         s"Line ${lineInput.getUuid} (${lineInput.getId}) has a rated voltage of ${lineType
             .getvRated()} but is connected to node B (${lineInput.getNodeB.getUuid} / ${lineInput.getNodeB.getId}), which has a lower rated voltage of $vRatedNodeB."
       )
 
     // length
-    if lineInput.getLength.getValue.doubleValue() <= 0 then
+    if (lineInput.getLength.getValue.doubleValue() <= 0)
       throw new InvalidGridException(
         s"Line ${lineInput.getUuid} has an invalid length of ${lineInput.getLength}"
       )
 
     // electric params
-    if lineType.getR.getValue.doubleValue() <= 0 then
+    if (lineType.getR.getValue.doubleValue() <= 0)
       throw new InvalidGridException(
         s"Resistance r of lineType ${lineType.getUuid} used in line ${lineInput.getUuid} is 0 or smaller, " +
           s"which is not allowed! Please correct parameters!"
       )
 
-    if lineType.getX.getValue.doubleValue() <= 0 then
+    if (lineType.getX.getValue.doubleValue() <= 0)
       throw new InvalidGridException(
         s"Reactance x of lineType ${lineType.getUuid} used in line ${lineInput.getUuid} is 0 or smaller," +
           s" which is not allowed! Please correct parameters!"
       )
 
-    if lineType.getB.getValue.doubleValue() < 0 then
+    if (lineType.getB.getValue.doubleValue() < 0)
       throw new InvalidGridException(
         s"Susceptance b of lineType ${lineType.getUuid} used in line ${lineInput.getUuid} is smaller " +
           s"than 0, which is not allowed! Please correct parameters!"
       )
 
-    if lineType.getG.getValue.doubleValue() < 0 then
+    if (lineType.getG.getValue.doubleValue() < 0)
       throw new InvalidGridException(
         s"Conductance g of lineType ${lineType.getUuid} used in line ${lineInput.getUuid} is smaller " +
           s"than 0, which is not allowed! Please correct parameters!"
@@ -314,11 +318,12 @@ case object LineModel extends LazyLogging {
     * @return
     *   phase-to-ground admittance Y_0 of the line model in p.u.
     */
-  def y0(lineModel: LineModel): Complex =
+  def y0(lineModel: LineModel): Complex = {
     new Complex(
       lineModel.g0().value.doubleValue(),
       lineModel.b0().value.doubleValue()
     )
+  }
 
   /** Calculate the branch admittance of a given line model
     *
@@ -348,12 +353,13 @@ case object LineModel extends LazyLogging {
       lineModel: LineModel,
       iNodeA: squants.electro.ElectricCurrent,
       iNodeB: squants.electro.ElectricCurrent
-  ): squants.Dimensionless =
+  ): squants.Dimensionless = {
     Each(
       Math.max(
         iNodeA.toAmperes,
         iNodeB.toAmperes
       ) / lineModel.iNom.toAmperes * 100 / lineModel.amount
     )
+  }
 
 }

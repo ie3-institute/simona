@@ -61,10 +61,8 @@ final case class ExtSimAdapter(scheduler: ActorRef)
       INIT_SIM_TICK,
       Some(unlockKey)
     )
-    context.become(
-      receiveIdle(
-        ExtSimAdapterStateData(extSimAdapterData)
-      )
+    context become receiveIdle(
+      ExtSimAdapterStateData(extSimAdapterData)
     )
   }
 
@@ -80,10 +78,8 @@ final case class ExtSimAdapter(scheduler: ActorRef)
         tick
       )
 
-      context.become(
-        receiveIdle(
-          stateData.copy(currentTick = Some(tick))
-        )
+      context become receiveIdle(
+        stateData.copy(currentTick = Some(tick))
       )
 
     case extCompl: ExtCompletionMessage =>
@@ -98,7 +94,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
         stateData.currentTick
       )
 
-      context.become(receiveIdle(stateData.copy(currentTick = None)))
+      context become receiveIdle(stateData.copy(currentTick = None))
 
     case scheduleDataService: ScheduleDataServiceMessage =>
       val tick = stateData.currentTick.getOrElse(

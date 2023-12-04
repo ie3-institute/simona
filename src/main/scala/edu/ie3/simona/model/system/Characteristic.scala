@@ -41,7 +41,7 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
 
     xyCoords.foldLeft(
       (None: Option[A], None: Option[O])
-    ) {
+    )({
       case ((None, None), (x, y)) =>
         /* We found the latest entry left of the requested abscissa element. Remember that one */
         (Some(x), Some(y))
@@ -60,7 +60,7 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
         throw new CharacteristicsException(
           s"Unable to interpolate for given xyCoordinates: $xyCoords"
         )
-    } match {
+    }) match {
       case (Some(resX), Some(resY)) => (resX, resY)
       case (_, _) =>
         throw new CharacteristicsException(
@@ -85,8 +85,10 @@ object Characteristic {
       */
     override def compare(that: XYPair[A, O]): Int = {
       val xCompare = x.compare(that.x)
-      if xCompare != 0 then xCompare
-      else y.compare(that.y)
+      if (xCompare != 0)
+        xCompare
+      else
+        y.compare(that.y)
     }
   }
 

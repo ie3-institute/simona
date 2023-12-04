@@ -51,14 +51,16 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
 
   def shutdownGracefully(
       simonaSim: ActorRef
-  )(using timeout: FiniteDuration): Future[Boolean] =
+  )(using timeout: FiniteDuration): Future[Boolean] = {
     gracefulStop(simonaSim, timeout)
+  }
 
   // a fancy opener
-  protected def printOpener(): Unit =
+  protected def printOpener(): Unit = {
     logger.info(
       s"Starting SIMONA with interface '${getClass.getSimpleName.replaceAll("\\$", "")}'.\n" + "   _____ ______  _______  _   _____ \n  / ___//  _/  |/  / __ \\/ | / /   |\n  \\__ \\ / // /|_/ / / / /  |/ / /| |\n ___/ // // /  / / /_/ / /|  / ___ |\n/____/___/_/  /_/\\____/_/ |_/_/  |_|\n                                    "
     )
+  }
 
   def printGoodbye(): Unit = {
     val myWords = Array(

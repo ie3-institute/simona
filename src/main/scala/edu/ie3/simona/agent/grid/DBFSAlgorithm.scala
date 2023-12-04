@@ -134,13 +134,13 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
       log.debug(
         "{}",
-        if allValuesReceived then
+        if (allValuesReceived)
           "Got answers for all my requests for Slack Voltages and Power Values."
         else
           "Still waiting for answers my requests for Slack Voltages and Power Values."
       )
 
-      if gridAgentBaseData.isSuperior then {
+      if (gridAgentBaseData.isSuperior) {
         goToCheckPowerDifferencesOrStay(
           allValuesReceived,
           updatedGridAgentBaseData
@@ -240,11 +240,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         }
       } match {
         case exchangeVoltages =>
-          stay().replying(
-            ProvideSlackVoltageMessage(
-              currentSweepNo,
-              exchangeVoltages
-            )
+          stay() replying ProvideSlackVoltageMessage(
+            currentSweepNo,
+            exchangeVoltages
           )
       }
 
@@ -255,7 +253,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           RequestGridPowerMessage(requestSweepNo, _),
           gridAgentBaseData: GridAgentBaseData
         ) =>
-      if gridAgentBaseData.currentSweepNo == requestSweepNo then {
+      if (gridAgentBaseData.currentSweepNo == requestSweepNo) {
         log.debug(
           s"Received request for grid power values for sweepNo {} before my first power flow calc. Stashing away.",
           requestSweepNo
@@ -271,7 +269,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         self ! PrepareNextSweepTrigger(currentTick)
 
         stash()
-        stay().using(gridAgentBaseData.copy(currentSweepNo = requestSweepNo))
+        stay() using gridAgentBaseData.copy(currentSweepNo = requestSweepNo)
       }
 
     // / after power flow calc for this sweepNo
@@ -320,8 +318,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                         // To model the exchanged power from the superior grid's point of view, -1 has to be multiplied.
                         // (Inferior grid is a feed in facility to superior grid, which is negative then). Analogously for load case.
                         (
-                          refSystem.pInSi(pInPu) * -1,
-                          refSystem.qInSi(qInPu) * -1
+                          refSystem.pInSi(pInPu) * (-1),
+                          refSystem.qInSi(qInPu) * (-1)
                         )
                       case _ =>
                         /* TODO: As long as there are no multiple slack nodes, provide "real" power only for the slack node */
@@ -353,7 +351,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               // of having it only once in the code we put this here. Otherwise it would have to been put before EVERY
               // return with a valid power flow result (currently happens already in two situations)
               val updatedGridAgentBaseData =
-                if stillPendingRequestAnswers.isEmpty then {
+                if (stillPendingRequestAnswers.isEmpty) {
                   gridAgentBaseData.storeSweepDataAndClearReceiveMaps(
                     validNewtonRaphsonPFResult,
                     gridAgentBaseData.superiorGridNodeUuids,
@@ -365,23 +363,20 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                   )
                 }
 
-              stay()
-                .replying(
-                  ProvideGridPowerMessage(
-                    exchangePowers
-                  )
-                )
-                .using(updatedGridAgentBaseData)
+              stay() replying
+                ProvideGridPowerMessage(
+                  exchangePowers
+                ) using updatedGridAgentBaseData
 
             case _: FailedNewtonRaphsonPFResult =>
-              stay().replying(FailedPowerFlow).using(gridAgentBaseData)
+              stay() replying FailedPowerFlow using gridAgentBaseData
           }
         case None =>
           /* It is not possible to determine, who has asked */
           log.error(
             "I got a grid power request from a subgrid I don't know. Can't answer it properly."
           )
-          stay().replying(FailedPowerFlow).using(gridAgentBaseData)
+          stay() replying FailedPowerFlow using gridAgentBaseData
       }
 
     // called when a grid power values request from a superior grid is received
@@ -402,7 +397,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
       log.debug(s"Going to {}", HandlePowerFlowCalculations)
 
-      goto(HandlePowerFlowCalculations).using(gridAgentBaseData)
+      goto(HandlePowerFlowCalculations) using gridAgentBaseData
 
     // last step which should includes a) information on inferior grids about finish and
     // b) cleanup of receiveMaps and sweepStore
@@ -420,18 +415,18 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
       // inform every system participant about the end of this grid simulation
       gridAgentBaseData.gridEnv.nodeToAssetAgents.foreach { case (_, actors) =>
-        actors.foreach { actor =>
+        actors.foreach(actor => {
           actor ! FinishGridSimulationTrigger(
             currentTick
           )
-        }
+        })
       }
 
       // notify listener about the results
       log.debug("Calculate results and sending the results to the listener ...")
       createAndSendPowerFlowResults(
         gridAgentBaseData,
-        currentTick.toDateTime(using simStartTime)
+        currentTick.toDateTime(simStartTime)
       )
 
       // do my cleanup stuff
@@ -454,7 +449,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       )
 
       // return to Idle
-      goto(Idle).using(cleanedGridAgentBaseData)
+      goto(Idle) using cleanedGridAgentBaseData
 
   }
 
@@ -526,10 +521,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                 SimulateGrid
               )
               unstashAll() // we can answer the stashed grid power requests now
-              goto(SimulateGrid).using(powerFlowDoneData)
+              goto(SimulateGrid) using powerFlowDoneData
             case Some(_) =>
               // will return a future based on the `ask-pattern` which will be processed below
-              stay().using(powerFlowDoneData)
+              stay() using powerFlowDoneData
           }
 
         case failedNewtonRaphsonPFResult: FailedNewtonRaphsonPFResult =>
@@ -539,7 +534,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             "Power flow calculation before asking for updated powers did finally not converge!"
           )
           unstashAll() // we can answer the stashed grid power requests now and report a failed power flow back
-          goto(SimulateGrid).using(powerFlowDoneData)
+          goto(SimulateGrid) using powerFlowDoneData
       }
 
     // handler for the future provided by `askForAssetPowers` to check if there are any changes in generation/load
@@ -558,7 +553,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         case _                                => false
       }
 
-      if changed then {
+      if (changed) {
         log.debug(
           "Assets have changed their exchanged power with the grid. Update nodal powers and prepare new power flow."
         )
@@ -582,7 +577,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           updatedGridAgentBaseData.allRequestedDataReceived
         log.debug(
           "{}",
-          if readyForPowerFlow then
+          if (readyForPowerFlow)
             "Got answers for all my requests for Slack Voltages and Power Values."
           else
             "Still waiting for answers my requests for Slack Voltages and Power Values."
@@ -600,7 +595,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           SimulateGrid
         )
         unstashAll() // we can answer the stashed grid power requests now
-        goto(SimulateGrid).using(powerFlowDoneData)
+        goto(SimulateGrid) using powerFlowDoneData
 
       }
 
@@ -692,7 +687,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                 PowerFlowDoneData(gridAgentBaseData, validPowerFlowResult)
 
               unstashAll() // we can answer the stashed grid power requests now
-              goto(SimulateGrid).using(powerFlowDoneData)
+              goto(SimulateGrid) using powerFlowDoneData
 
             case _ =>
               log.debug(
@@ -700,11 +695,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               )
 
               // go back to simulate grid
-              goto(SimulateGrid).using(
-                gridAgentBaseData
-                  .updateWithReceivedSlackVoltages(receivedSlackValues)
-                  .copy(sweepValueStores = updatedSweepValueStore)
-              )
+              goto(SimulateGrid) using gridAgentBaseData
+                .updateWithReceivedSlackVoltages(receivedSlackValues)
+                .copy(sweepValueStores = updatedSweepValueStore)
           }
 
         case failedNewtonRaphsonPFResult: FailedNewtonRaphsonPFResult =>
@@ -717,7 +710,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             "Power flow with updated slack voltage did finally not converge!"
           )
           unstashAll() // we can answer the stashed grid power requests now and report a failed power flow back
-          goto(SimulateGrid).using(powerFlowDoneData)
+          goto(SimulateGrid) using powerFlowDoneData
 
       }
 
@@ -773,7 +766,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
        * simulation without a three winding transformer, the grid consists of only one node and we can mock the power
        * flow results. If there is a three winding transformer apparent, we actually have to perform power flow
        * calculations, as the high voltage branch of the transformer is modeled here. */
-      (if gridModel.gridComponents.transformers3w.isEmpty then {
+      (if (gridModel.gridComponents.transformers3w.isEmpty) {
          val nodeData = operationPoint.map(StateData(_))
          ValidNewtonRaphsonPFResult(-1, nodeData, DenseMatrix(0d, 0d))
        } else {
@@ -798,8 +791,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
            case result: PowerFlowResult.FailedPowerFlowResult =>
              result
          }
-       })
-      match {
+       }) match {
         case validResult: ValidNewtonRaphsonPFResult =>
           val updatedGridAgentBaseData: GridAgentBaseData =
             gridAgentBaseData
@@ -812,7 +804,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
           // the difference is checked @ the higher nodes of our transformers => the slack nodes
           // if we are either in the first backward sweep OR if the deviation is bigger as allowed, we need a second sweep
-          if gridAgentBaseData.sweepValueStores.isEmpty then {
+          if (gridAgentBaseData.sweepValueStores.isEmpty) {
             log.debug("Sweep value store is empty. Starting a second sweep ...")
             goToSimulateGridForNextSweepWith(
               updatedGridAgentBaseData,
@@ -853,10 +845,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               gridAgentBaseData.powerFlowParams.maxSweepPowerDeviation
 
             (previousSweepNodePower - currentSweepNodePower).toScalaVector
-              .find { complex =>
+              .find(complex => {
                 Math.abs(complex.real) >= allowedDeviation |
                   Math.abs(complex.imag) >= allowedDeviation
-              } match {
+              }) match {
               case Some(deviation) => // next sweep
                 log.debug(
                   "Deviation between the last two sweeps: {}",
@@ -888,7 +880,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           )
           self ! FinishGridSimulationTrigger(currentTick)
           handlePowerFlowFailure(gridAgentBaseData)
-          goto(SimulateGrid).using(gridAgentBaseData)
+          goto(SimulateGrid) using gridAgentBaseData
       }
   }
 
@@ -913,8 +905,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   private def goToPowerFlowCalculationOrStay(
       allReceived: Boolean,
       gridAgentBaseData: GridAgentBaseData
-  ): FSM.State[AgentState, GridAgentData] =
-    if allReceived then {
+  ): FSM.State[AgentState, GridAgentData] = {
+
+    if (allReceived) {
       log.debug(
         "All power values of inferior grids, assets + voltage superior grid slack voltages received."
       )
@@ -924,18 +917,16 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         gridAgentBaseData.receivedValueStore.nodeToReceivedPower.values
           .exists(v => v.exists(k => k._2.contains(FailedPowerFlow)))
 
-      if powerFlowFailedSomewhereInInferior then {
+      if (powerFlowFailedSomewhereInInferior) {
         log.warning("Received Failed Power Flow Result. Escalate to my parent.")
         unstashAll() // we want to answer the requests from our parent
-        stay().using(
-          PowerFlowDoneData(
-            gridAgentBaseData,
-            FailedNewtonRaphsonPFResult(-1, CalculationFailed)
-          )
+        stay() using PowerFlowDoneData(
+          gridAgentBaseData,
+          FailedNewtonRaphsonPFResult(-1, CalculationFailed)
         )
       } else {
         self ! DoPowerFlowTrigger(currentTick, gridAgentBaseData.currentSweepNo)
-        goto(HandlePowerFlowCalculations).using(gridAgentBaseData)
+        goto(HandlePowerFlowCalculations) using gridAgentBaseData
 
       }
 
@@ -943,8 +934,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       log.debug(
         "Still waiting for asset or grid power values or slack voltage information of inferior grids"
       )
-      stay().using(gridAgentBaseData)
+      stay() using gridAgentBaseData
     }
+
+  }
 
   /** Normally only reached by the superior (dummy) agent!
     *
@@ -972,8 +965,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   private def goToCheckPowerDifferencesOrStay(
       allReceived: Boolean,
       gridAgentBaseData: GridAgentBaseData
-  ): FSM.State[AgentState, GridAgentData] =
-    if allReceived then {
+  ): FSM.State[AgentState, GridAgentData] = {
+    if (allReceived) {
       log.debug("All power values of child assets + inferior grids received.")
 
       // if our superior grid received a FailedPowerFlow from the inferior grids it has to trigger a finish
@@ -985,28 +978,29 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               actorPowerRequestResponse._2.contains(FailedPowerFlow)
             )
           )
-      if powerFlowFailedSomewhere then {
+      if (powerFlowFailedSomewhere) {
         log.warning("Power flow failed! This incident will be reported!")
         self ! FinishGridSimulationTrigger(currentTick)
         handlePowerFlowFailure(gridAgentBaseData)
-        goto(SimulateGrid).using(gridAgentBaseData)
+        goto(SimulateGrid) using gridAgentBaseData
       } else {
         self ! CheckPowerDifferencesTrigger(currentTick)
-        goto(CheckPowerDifferences).using(gridAgentBaseData)
+        goto(CheckPowerDifferences) using gridAgentBaseData
       }
     } else {
       log.debug(
         "Still waiting for asset or grid power values or slack voltage information of inferior grids"
       )
-      stay().using(gridAgentBaseData)
+      stay() using gridAgentBaseData
     }
+  }
 
   private def handlePowerFlowFailure(
       gridAgentBaseData: GridAgentBaseData
   ): Unit = {
     environmentRefs.runtimeEventListener ! PowerFlowFailed
 
-    if gridAgentBaseData.powerFlowParams.stopOnFailure then {
+    if (gridAgentBaseData.powerFlowParams.stopOnFailure) {
       log.error("Stopping because of failed power flow.")
       self ! PoisonPill
     }
@@ -1037,7 +1031,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       Some(currentTick)
     )
 
-    goto(SimulateGrid).using(gridAgentBaseData)
+    goto(SimulateGrid) using gridAgentBaseData
 
   }
 
@@ -1073,12 +1067,12 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
     log.debug(s"asking assets for power values: {}", nodeToAssetAgents)
 
-    if nodeToAssetAgents.values.flatten.nonEmpty then
+    if (nodeToAssetAgents.values.flatten.nonEmpty)
       Some(
         Future
           .sequence(
             nodeToAssetAgents.flatten { case (nodeUuid, assetActorRefs) =>
-              assetActorRefs.map { assetAgent =>
+              assetActorRefs.map(assetAgent => {
 
                 val (eInPu, fInPU) =
                   sweepValueStore match {
@@ -1115,13 +1109,14 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                   case assetPowerUnchangedMessage: AssetPowerUnchangedMessage =>
                     (assetAgent, assetPowerUnchangedMessage)
                 }
-              }
+              })
             }.toVector
           )
           .map(ReceivedAssetPowerValues.apply)
           .pipeTo(self)
       )
-    else None
+    else
+      None
   }
 
   /** Triggers an execution of the pekko `ask` pattern for all power values @
@@ -1244,7 +1239,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   def createAndSendPowerFlowResults(
       gridAgentBaseData: GridAgentBaseData,
       currentTimestamp: ZonedDateTime
-  ): Unit =
+  ): Unit = {
     gridAgentBaseData.sweepValueStores.lastOption.foreach {
       case (_, valueStore) =>
         notifyListener(
@@ -1254,5 +1249,6 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           )(using currentTimestamp)
         )
     }
+  }
 
 }

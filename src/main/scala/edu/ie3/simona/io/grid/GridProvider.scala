@@ -32,7 +32,7 @@ object GridProvider extends LazyLogging {
   def gridFromConfig(
       simulationName: String,
       gridDataSource: SimonaConfig.Simona.Input.Grid.Datasource
-  ): JointGridContainer =
+  ): JointGridContainer = {
     GridSourceType(gridDataSource.id.toLowerCase) match {
       case GridSourceType.CSV =>
         gridDataSource.csvParams match {
@@ -71,6 +71,7 @@ object GridProvider extends LazyLogging {
               .mkString(", ")}."
         )
     }
+  }
 
   def getThermalGridsFromConfig(
       gridDataSource: SimonaConfig.Simona.Input.Grid.Datasource

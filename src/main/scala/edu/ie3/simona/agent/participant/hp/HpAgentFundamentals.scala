@@ -83,7 +83,7 @@ trait HpAgentFundamentals
     */
   override val calculateModelPowerFunc: (
       Long,
-      ParticipantModelBaseStateData[
+      BaseStateData.ParticipantModelBaseStateData[
         ApparentPowerAndHeat,
         HpRelevantData,
         HpModel
@@ -218,12 +218,12 @@ trait HpAgentFundamentals
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig
-  ): ParticipantModelBaseStateData[
+  ): BaseStateData.ParticipantModelBaseStateData[
     ApparentPowerAndHeat,
     HpRelevantData,
     HpModel
   ] = {
-    if !services.exists(_.map(_.getClass).containsSlice(neededServices)) then
+    if (!services.exists(_.map(_.getClass).containsSlice(neededServices)))
       throw new AgentInitializationException(
         "HpAgent cannot be initialized without its needed services."
       )

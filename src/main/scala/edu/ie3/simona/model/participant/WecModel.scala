@@ -96,7 +96,7 @@ final case class WecModel(
     val activePower = determinePower(wecData)
     val pMax = sMax * cosPhiRated
 
-    (if activePower > pMax then {
+    (if (activePower > pMax) {
        logger.warn(
          "The fed in active power is higher than the estimated maximum active power of this plant ({} > {}). " +
            "Did you provide wrong weather input data?",
@@ -106,8 +106,7 @@ final case class WecModel(
        pMax
      } else {
        activePower
-     })
-    * -1
+     }) * (-1)
   }
 
   /** Determine the turbine output power with the air density ρ, the wind
@@ -156,10 +155,11 @@ final case class WecModel(
     */
   private def determineBetzCoefficient(
       windVelocity: Velocity
-  ): Dimensionless =
+  ): Dimensionless = {
     betzCurve.interpolateXy(windVelocity) match {
       case (_, cp) => cp
     }
+  }
 
   /** Calculate the correct air density, dependent on the current temperature
     * and air pressure.
@@ -176,7 +176,7 @@ final case class WecModel(
   private def calculateAirDensity(
       temperature: Temperature,
       airPressure: Option[Pressure]
-  ): Density =
+  ): Density = {
     airPressure match {
       case None =>
         KilogramsPerCubicMeter(1.2041d)
@@ -187,6 +187,7 @@ final case class WecModel(
           MolarMassAir.toKilograms * pressure.toPascals / (UniversalGasConstantR.toJoulesPerKelvin * temperature.toKelvinScale)
         )
     }
+  }
 }
 
 /** Create valid [[WecModel]] by calling the apply function.
@@ -203,7 +204,7 @@ object WecModel {
   ) extends Characteristic[Velocity, Dimensionless]
 
   object WecCharacteristic {
-    import scala.jdk.CollectionConverters.*
+    import scala.jdk.CollectionConverters._
 
     /** Transform the inputs points from [[java.util.SortedSet]] to
       * [[scala.collection.SortedSet]], which is fed into [[WecCharacteristic]].

@@ -52,7 +52,7 @@ final case class ChpModel(
     cosPhiRated: Double,
     pThermal: Power,
     storage: ThermalStorage with MutableStorage
-) extends ApparentPowerParticipantParticipant[ChpRelevantData](
+) extends SystemParticipant[ChpRelevantData, ApparentPower](
       uuid,
       id,
       operationInterval,
@@ -60,7 +60,8 @@ final case class ChpModel(
       qControl,
       sRated,
       cosPhiRated
-    ) {
+    )
+    with ApparentPowerParticipant[ChpRelevantData] {
 
   val pRated: Power = sRated * cosPhiRated
 
@@ -196,7 +197,7 @@ final case class ChpModel(
       chpData: ChpRelevantData
   ): ChpState = {
     val differenceEnergy = chpEnergy(chpData) - chpData.heatDemand
-    if differenceEnergy < KilowattHours(0d) then {
+    if (differenceEnergy < KilowattHours(0d)) {
       // Returned lack is always zero, because demand is covered.
       storage.tryToTakeAndReturnLack(differenceEnergy * -1)
       calculateStateRunningSurplus(chpData)
@@ -220,7 +221,7 @@ final case class ChpModel(
   private def calculateStateRunningSurplus(
       chpData: ChpRelevantData,
       surplus: Option[Energy] = None
-  ): ChpState =
+  ): ChpState = {
     surplus match {
       case Some(surplusEnergy) =>
         ChpState(
@@ -237,6 +238,7 @@ final case class ChpModel(
           chpEnergy(chpData)
         )
     }
+  }
 
   /** Multiply the power with time running to get the total energy.
     *

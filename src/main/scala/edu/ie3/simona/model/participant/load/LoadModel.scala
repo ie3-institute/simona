@@ -115,9 +115,10 @@ case object LoadModel extends LazyLogging {
       profileMaxPower: Power,
       profileEnergyScaling: Energy,
       safetyFactor: Double = 1d
-  ): Power =
+  ): Power = {
     (profileMaxPower / inputModel.getCosPhiRated) * (
       energyConsumption / profileEnergyScaling
     ) * safetyFactor
+  }
 
 }

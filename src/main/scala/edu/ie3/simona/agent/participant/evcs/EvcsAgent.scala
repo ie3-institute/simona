@@ -95,7 +95,7 @@ class EvcsAgent(
         ) =>
       val updatedStateData =
         handleDepartingEvsRequest(tick, modelBaseStateData, departingEvs)
-      stay().using(updatedStateData)
+      stay() using updatedStateData
   }
 
   /** Determine the average result within the given tick window

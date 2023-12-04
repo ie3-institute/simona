@@ -95,7 +95,8 @@ final case class RandomLoadModel(
 
     /* Get a next random power (in kW) */
     val randomPower = gev.nextRandom()
-    if randomPower < 0 then calculateActivePower(data)
+    if (randomPower < 0)
+      calculateActivePower(data)
     else {
       val profilePower = Kilowatts(randomPower)
       val activePower = reference match {
@@ -178,7 +179,7 @@ case object RandomLoadModel {
       operationInterval: OperationInterval,
       scalingFactor: Double,
       reference: LoadReference
-  ): RandomLoadModel =
+  ): RandomLoadModel = {
     reference match {
       case ActivePower(power) =>
         val sRatedPowerScaled =
@@ -214,4 +215,5 @@ case object RandomLoadModel {
           reference
         )
     }
+  }
 }

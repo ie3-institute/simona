@@ -73,7 +73,7 @@ case object NodeModel {
     )
 
     /* Checks, if the participant is in operation right from the start */
-    if operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION) then
+    if (operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION))
       nodeModel.enable()
 
     nodeModel
@@ -88,17 +88,20 @@ case object NodeModel {
     * @param nodeInput
     *   instance of [[NodeInput]] that should be validated
     */
-  def validateInputModel(nodeInput: NodeInput): Unit =
-    if nodeInput.getvTarget() == null || nodeInput
+  def validateInputModel(nodeInput: NodeInput): Unit = {
+    if (
+      nodeInput.getvTarget() == null || nodeInput
         .getvTarget()
         .getValue
         .doubleValue <= 0 || nodeInput
         .getvTarget()
         .getValue
         .doubleValue > 2
-    then
+    )
       throw new InvalidGridException(
         s"Invalid vTarget parameter in node ${nodeInput.getUuid}: ${nodeInput.getvTarget()}"
       )
+
+  }
 
 }

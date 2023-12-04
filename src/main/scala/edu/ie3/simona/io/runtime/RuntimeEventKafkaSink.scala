@@ -43,7 +43,7 @@ final case class RuntimeEventKafkaSink(
       runtimeEvent: RuntimeEvent,
       runtimeStats: RuntimeStats,
       log: Logger
-  ): Unit =
+  ): Unit = {
     (runtimeEvent match {
       case Done(_, _, errorInSim) =>
         Some(
@@ -63,6 +63,8 @@ final case class RuntimeEventKafkaSink(
         new ProducerRecord[String, SimonaEndMessage](topic, msg)
       )
     }
+
+  }
 
   override def close(): Unit = {
     producer.flush()

@@ -74,7 +74,8 @@ object RuntimeEventListener {
       case (ctx, event) =>
         val process = eventsToProcess.forall(_.contains(event.id))
 
-        if process then processEvent(listeners, event, runtimeStats, ctx.log)
+        if (process)
+          processEvent(listeners, event, runtimeStats, ctx.log)
         else
           ctx.log.debug(
             "Skipping event {} as it is not in the list of events to process.",

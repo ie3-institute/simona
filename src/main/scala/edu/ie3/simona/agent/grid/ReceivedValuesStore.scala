@@ -137,8 +137,9 @@ object ReceivedValuesStore {
     */
   private def buildEmptyNodeToReceivedSlackVoltageValuesMap(
       superiorGridNodeUuids: Vector[UUID]
-  ): NodeToReceivedSlackVoltage =
+  ): NodeToReceivedSlackVoltage = {
     superiorGridNodeUuids.map(nodeId => nodeId -> None).toMap
+  }
 
   /** Composing method that combines [[buildEmptyNodeToReceivedPowerMap()]] and
     * [[buildEmptyNodeToReceivedSlackVoltageValuesMap()]]
@@ -158,7 +159,7 @@ object ReceivedValuesStore {
       nodeToAssetAgents: Map[UUID, Set[ActorRef]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef],
       superiorGridNodeUuids: Vector[UUID]
-  ): (NodeToReceivedPower, NodeToReceivedSlackVoltage) =
+  ): (NodeToReceivedPower, NodeToReceivedSlackVoltage) = {
     (
       buildEmptyNodeToReceivedPowerMap(
         nodeToAssetAgents,
@@ -166,5 +167,6 @@ object ReceivedValuesStore {
       ),
       buildEmptyNodeToReceivedSlackVoltageValuesMap(superiorGridNodeUuids)
     )
+  }
 
 }

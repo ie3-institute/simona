@@ -29,20 +29,22 @@ final case class EvModelWrapper(
   )
   def departureTick: Long = original.getDepartureTick
 
-  def unwrap(): EvModel =
+  def unwrap(): EvModel = {
     original.copyWith(
       storedEnergy.toKilowattHours.asKiloWattHour
     )
+  }
 
 }
 
 object EvModelWrapper {
 
-  def apply(evModel: EvModel): EvModelWrapper =
+  def apply(evModel: EvModel): EvModelWrapper = {
     new EvModelWrapper(
       KilowattHours(
         evModel.getStoredEnergy.to(KILOWATTHOUR).getValue.doubleValue
       ),
       evModel
     )
+  }
 }

@@ -37,8 +37,9 @@ final case class RefSystem private (
     */
   def rInPu(
       r: squants.electro.ElectricalResistance
-  ): squants.Dimensionless =
+  ): squants.Dimensionless = {
     Each(r.toOhms / nominalImpedance.toOhms)
+  }
 
   /** Calculates the referenced reactance x (imaginary part of impedance z) of a
     * grid element.
@@ -63,8 +64,9 @@ final case class RefSystem private (
     */
   def bInPu(
       b: squants.electro.ElectricalConductance
-  ): squants.Dimensionless =
+  ): squants.Dimensionless = {
     Each(b.toSiemens * nominalImpedance.toOhms)
+  }
 
   /** Calculates the referenced conductance g (real part of admittance y) of a
     * grid element.

@@ -67,20 +67,22 @@ object RefSystemParser {
         configRefSystem.gridIds
           .map {
             _.flatMap { gridId =>
-              val allGridIds = gridId match {
-                case ConfigConventions.gridIdDotRange(from, to) =>
-                  from.toInt to to.toInt
-                case ConfigConventions.gridIdMinusRange(from, to) =>
-                  from.toInt to to.toInt
-                case ConfigConventions.singleGridId(singleGridId) =>
-                  Seq(singleGridId.toInt)
-                case unknownGridIdFormat =>
-                  throw new InvalidConfigParameterException(
-                    s"Unknown gridId format $unknownGridIdFormat provided for refSystem $configRefSystem"
-                  )
-              }
+              {
+                val allGridIds = gridId match {
+                  case ConfigConventions.gridIdDotRange(from, to) =>
+                    from.toInt to to.toInt
+                  case ConfigConventions.gridIdMinusRange(from, to) =>
+                    from.toInt to to.toInt
+                  case ConfigConventions.singleGridId(singleGridId) =>
+                    Seq(singleGridId.toInt)
+                  case unknownGridIdFormat =>
+                    throw new InvalidConfigParameterException(
+                      s"Unknown gridId format $unknownGridIdFormat provided for refSystem $configRefSystem"
+                    )
+                }
 
-              allGridIds.map(gridId => (gridId, parsedRefSystem))
+                allGridIds.map(gridId => (gridId, parsedRefSystem))
+              }
             }
           }
           .getOrElse(Seq.empty[(Int, RefSystem)])
@@ -98,18 +100,20 @@ object RefSystemParser {
     }
 
     // check for duplicates of gridIds and voltLevels which will be the key for the following map conversion
-    if CollectionUtils.listHasDuplicates(
+    if (
+      CollectionUtils.listHasDuplicates(
         gridIdRefSystems.map { case (gridId, _) => gridId }
       )
-    then
+    )
       throw new InvalidConfigParameterException(
         s"The provided gridIds in simona.gridConfig.refSystems contains duplicates. " +
           s"Please check if there are either duplicate entries or overlapping ranges!"
       )
-    if CollectionUtils.listHasDuplicates(
+    if (
+      CollectionUtils.listHasDuplicates(
         voltLvlRefSystems.map { case (voltLvl, _) => voltLvl }
       )
-    then
+    )
       throw new InvalidConfigParameterException(
         s"The provided voltLvls in simona.gridConfig.refSystems contains duplicates. " +
           s"Please check your configuration for duplicates in voltLvl entries!"

@@ -35,13 +35,13 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   trait ResultMessage extends Event
 
-  final private case class SinkResponse(
+  private final case class SinkResponse(
       response: Map[Class[?], ResultEntitySink]
   ) extends ResultMessage
 
-  final private case class Failed(ex: Exception) extends ResultMessage
+  private final case class Failed(ex: Exception) extends ResultMessage
 
-  final private case object StopTimeout extends ResultMessage
+  private final case object StopTimeout extends ResultMessage
 
   /** [[ResultEventListener]] base data containing all information the listener
     * needs
@@ -50,8 +50,8 @@ object ResultEventListener extends Transformer3wResultSupport {
     *   a map containing the sink for each class that should be processed by the
     *   listener
     */
-  final private case class BaseData(
-      classToSink: Map[Class[?], ResultEntitySink],
+  private final case class BaseData(
+      classToSink: Map[Class[_], ResultEntitySink],
       threeWindingResults: Map[
         Transformer3wKey,
         AggregatedTransformer3wResult
@@ -69,11 +69,11 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def initializeSinks(
       resultFileHierarchy: ResultFileHierarchy
-  ): Iterable[Future[(Class[?], ResultEntitySink)]] =
+  ): Iterable[Future[(Class[?], ResultEntitySink)]] = {
     resultFileHierarchy.resultSinkType match {
       case _: ResultSinkType.Csv =>
         resultFileHierarchy.resultEntitiesToConsider
-          .map { resultClass =>
+          .map(resultClass => {
             resultFileHierarchy.rawOutputDataFilePaths
               .get(resultClass)
               .map(Future.successful)
@@ -86,8 +86,7 @@ object ResultEventListener extends Transformer3wResultSupport {
                 )
               )
               .flatMap { fileName =>
-                if fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")
-                then {
+                if (fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")) {
                   Future {
                     (
                       resultClass,
@@ -106,7 +105,7 @@ object ResultEventListener extends Transformer3wResultSupport {
                   )
                 }
               }
-          }
+          })
       case ResultSinkType.InfluxDb1x(url, database, scenario) =>
         // creates one connection per result entity that should be processed
         resultFileHierarchy.resultEntitiesToConsider
@@ -141,6 +140,7 @@ object ResultEventListener extends Transformer3wResultSupport {
           )
         )
     }
+  }
 
   /** Handle the given result and possibly update the state data
     *
@@ -185,7 +185,7 @@ object ResultEventListener extends Transformer3wResultSupport {
       )
     // add partial result
     val updatedResults = partialResult.add(result).map { updatedResult =>
-      if updatedResult.ready then {
+      if (updatedResult.ready) {
         // if result is complete, we can write it out
         updatedResult.consolidate.foreach {
           handOverToSink(_, baseData.classToSink, log)

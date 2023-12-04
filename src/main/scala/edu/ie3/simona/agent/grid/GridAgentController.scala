@@ -136,7 +136,7 @@ class GridAgentController(
             }
         }
 
-    if notProcessedElements.nonEmpty then
+    if (notProcessedElements.nonEmpty)
       log.warning(
         s"The following elements have been removed, " +
           s"as the agents are not implemented yet: $notProcessedElements"
@@ -178,7 +178,7 @@ class GridAgentController(
     val outputConfigUtil = ConfigUtil.OutputConfigUtil(outputConfig)
 
     participants
-      .map { participant =>
+      .map(participant => {
         val node = participant.getNode
         // build
         val actorRef =
@@ -193,7 +193,7 @@ class GridAgentController(
         introduceAgentToEnvironment(actorRef)
         // return uuid to actorRef
         node.getUuid -> actorRef
-      }
+      })
       .toSet[(UUID, ActorRef)]
       .groupMap(entry => entry._1)(entry => entry._2)
   }

@@ -156,7 +156,8 @@ final case class HpModel(
     */
   private def calcState(hpData: HpRelevantData, isRunning: Boolean): HpState = {
     val (newActivePower, newThermalPower) =
-      if isRunning then (pRated, pThermal * scalingFactor)
+      if (isRunning)
+        (pRated, pThermal * scalingFactor)
       else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
 
     val duration: Time =

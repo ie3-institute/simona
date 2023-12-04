@@ -20,8 +20,7 @@ import java.time.ZonedDateTime
 /** Trait to denote all common forms of state data related to each participant
   * agent
   */
-trait ParticipantStateData[+PD <: PrimaryData]:
-end ParticipantStateData
+trait ParticipantStateData[+PD <: PrimaryData]
 
 object ParticipantStateData {
 

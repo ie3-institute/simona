@@ -145,7 +145,7 @@ object Data {
         copy(q = q)
     }
 
-    extension (value: Value)
+    extension (value: Value) {
       def toPrimaryData: Try[PrimaryData] =
         value match {
           case hs: HeatAndSValue =>
@@ -235,6 +235,7 @@ object Data {
               )
             )
         }
+    }
   }
 
   /** Trait to describe data structures of secondary data, that is used by

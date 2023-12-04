@@ -125,11 +125,13 @@ class GridAgent(
       log
     )
 
-  override def postStop(): Unit =
+  override def postStop(): Unit = {
     log.debug("{} shutdown", self)
+  }
 
-  override def preStart(): Unit =
+  override def preStart(): Unit = {
     log.debug("{} started!", self)
+  }
 
   // general agent states
   // first fsm state of the agent
@@ -146,7 +148,7 @@ class GridAgent(
         Some(unlockKey)
       )
 
-      goto(Initializing).using(gridAgentInitData)
+      goto(Initializing) using gridAgentInitData
   }
 
   when(Initializing) {
@@ -231,7 +233,7 @@ class GridAgent(
         Some(resolution)
       )
 
-      goto(Idle).using(gridAgentBaseData)
+      goto(Idle) using gridAgentBaseData
   }
 
   when(Idle) {
@@ -253,7 +255,7 @@ class GridAgent(
         Some(tick)
       )
 
-      goto(SimulateGrid).using(gridAgentBaseData)
+      goto(SimulateGrid) using gridAgentBaseData
 
     case Event(StopMessage(_), data: GridAgentBaseData) =>
       // shutdown children
@@ -268,11 +270,13 @@ class GridAgent(
   // everything else
   whenUnhandled(myUnhandled())
 
-  private def failFast(gridAgentInitData: GridAgentInitData): Unit =
-    if gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty
-    then
+  private def failFast(gridAgentInitData: GridAgentInitData): Unit = {
+    if (
+      gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty
+    )
       throw new GridAgentInitializationException(
         s"$actorName has neither superior nor inferior grids! This can either " +
           s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"
       )
+  }
 }

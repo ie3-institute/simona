@@ -21,7 +21,7 @@ import scala.jdk.CollectionConverters.*
 
 object LogbackConfiguration extends LazyLogging {
 
-  def default(logPath: String): Unit =
+  def default(logPath: String): Unit = {
     LoggerFactory.getILoggerFactory match {
       case loggerContext: LoggerContext =>
         val rootLogger = loggerContext.getLogger("root")
@@ -44,7 +44,7 @@ object LogbackConfiguration extends LazyLogging {
         )
 
         rootLogger.iteratorForAppenders().asScala.foreach {
-          case rf: RollingFileAppender[?] =>
+          case rf: RollingFileAppender[_] =>
             rf.getTriggeringPolicy.start()
             rf.start()
           case appender => appender.start()
@@ -54,6 +54,8 @@ object LogbackConfiguration extends LazyLogging {
           s"Cannot configure simulation run logger! Invalid factory: $factory"
         )
     }
+
+  }
 
   private def fileAppender(
       logPath: String,
@@ -75,7 +77,7 @@ object LogbackConfiguration extends LazyLogging {
     /* If applicable, apply the filters from existing file logger else log with "INFO"-Level */
     maybeFilterList match {
       case Some(filterList) =>
-        if filterList.isEmpty then { // No filters in appenders -> Empty List
+        if (filterList.isEmpty) { // No filters in appenders -> Empty List
           val filter = new ThresholdFilter()
           filter.setLevel("INFO")
           filter.start()

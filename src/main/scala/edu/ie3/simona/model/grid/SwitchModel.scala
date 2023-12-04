@@ -46,8 +46,8 @@ final case class SwitchModel(
 
   /** closes the switch or throws an exception if the switch is already closed
     */
-  def close(): Try[String] =
-    if _isClosed then {
+  def close(): Try[String] = {
+    if (_isClosed) {
       Failure(
         new InvalidActionRequestException(s"Switch $id is already closed!")
       )
@@ -55,16 +55,18 @@ final case class SwitchModel(
       _isClosed = true
       Success(s"Switch $id closed!")
     }
+  }
 
   /** opens the switch or throws an exception if the switch is already opened
     */
-  def open(): Try[String] =
-    if _isClosed then {
+  def open(): Try[String] = {
+    if (_isClosed) {
       _isClosed = false
       Success(s"Switch $id opened!")
     } else {
       Failure(new InvalidActionRequestException(s"Switch $id is already open!"))
     }
+  }
 
   /** returns the status information if the switch is closed
     * @return
@@ -104,10 +106,11 @@ case object SwitchModel {
       switchInput.getNodeA.getUuid,
       switchInput.getNodeB.getUuid
     )
-    if !switchInput.isClosed then switchModel.open()
+    if (!switchInput.isClosed)
+      switchModel.open()
 
     // if the switch input model is in operation, enable the model
-    if operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION) then
+    if (operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION))
       switchModel.enable()
 
     switchModel
@@ -125,15 +128,16 @@ case object SwitchModel {
   def validateInputModel(switchInput: SwitchInput): Unit = {
 
     // nodeA == nodeB ?
-    if switchInput.getNodeA.getUuid == switchInput.getNodeB.getUuid then
+    if (switchInput.getNodeA.getUuid == switchInput.getNodeB.getUuid)
       throw new InvalidGridException(
         s"Switch ${switchInput.getUuid} has the same nodes on port A and B! " +
           s"NodeA: ${switchInput.getNodeA.getUuid}, NodeB: ${switchInput.getNodeB.getUuid}"
       )
 
     // nodeA.vRated != nodeB.vRated ?
-    if switchInput.getNodeA.getVoltLvl.getNominalVoltage != switchInput.getNodeB.getVoltLvl.getNominalVoltage
-    then
+    if (
+      switchInput.getNodeA.getVoltLvl.getNominalVoltage != switchInput.getNodeB.getVoltLvl.getNominalVoltage
+    )
       throw new InvalidGridException(
         s"Nodes of switch ${switchInput.getUuid} have different volt levels! " +
           s"vNom: (nodeA: ${switchInput.getNodeA.getVoltLvl.getNominalVoltage}, NodeB: ${switchInput.getNodeB.getVoltLvl.getNominalVoltage})"

@@ -54,7 +54,7 @@ final case class RuntimeEventLogSink(
 
       case Done(currentTick, duration, errorInSim) =>
         val simStatus =
-          if errorInSim then
+          if (errorInSim)
             s"\u001b[0;31mERROR (Failed PF: ${runtimeStats.failedPowerFlows})\u001b[0;30m"
           else
             s"\u001b[0;32mSUCCESS (Failed PF: ${runtimeStats.failedPowerFlows})\u001b[0;30m"
@@ -71,12 +71,13 @@ final case class RuntimeEventLogSink(
         )
     }
 
-  private def calcTime(currentTick: Long): String =
+  private def calcTime(currentTick: Long): String = {
     TimeUtil.withDefaults.toString(
       currentTick.toDateTime(
         simulationStartDate
       )
     )
+  }
 
   private def convertDuration(duration: Long): String = {
     val durationInSeconds = duration / 1000

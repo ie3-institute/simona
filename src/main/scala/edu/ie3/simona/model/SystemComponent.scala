@@ -41,7 +41,7 @@ abstract class SystemComponent(
   private val elementType: String = this.getClass.getSimpleName
 
   // check if a uuid is provided
-  if Option.apply(uuid).isEmpty then
+  if (Option.apply(uuid).isEmpty)
     throw new InvalidParameterException(
       s"Uuid of $elementType $id cannot be null!"
     )
@@ -50,8 +50,8 @@ abstract class SystemComponent(
 
   /** Enable the corresponding element.
     */
-  def enable(): Try[String] =
-    if _inOperation then {
+  def enable(): Try[String] = {
+    if (_inOperation) {
       Failure(
         new InvalidActionRequestException(
           s"$elementType $id is already in operation!"
@@ -61,11 +61,12 @@ abstract class SystemComponent(
       _inOperation = true
       Success(s"$elementType $id enabled!")
     }
+  }
 
   /** Disable the corresponding element.
     */
-  def disable(): Try[String] =
-    if _inOperation then {
+  def disable(): Try[String] = {
+    if (_inOperation) {
       _inOperation = false
       Success(s"$elementType $id disabled!")
     } else {
@@ -75,6 +76,7 @@ abstract class SystemComponent(
         )
       )
     }
+  }
 
   def isInOperation: Boolean = _inOperation
 

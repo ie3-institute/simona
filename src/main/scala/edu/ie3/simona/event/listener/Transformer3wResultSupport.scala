@@ -100,7 +100,7 @@ private[listener] trait Transformer3wResultSupport {
 
     def add(
         result: PartialTransformer3wResult
-    ): Try[AggregatedTransformer3wResult] =
+    ): Try[AggregatedTransformer3wResult] = {
       result match {
         case portA: PartialTransformer3wResult.PortA if a.isEmpty =>
           Success(copy(a = Some(portA)))
@@ -115,6 +115,7 @@ private[listener] trait Transformer3wResultSupport {
             )
           )
       }
+    }
   }
 
   final object AggregatedTransformer3wResult {

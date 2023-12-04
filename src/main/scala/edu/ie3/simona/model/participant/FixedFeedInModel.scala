@@ -69,7 +69,7 @@ final case class FixedFeedInModel(
   override protected def calculateActivePower(
       data: FixedRelevantData.type = FixedRelevantData
   ): Power =
-    sRated * -1 * cosPhiRated * scalingFactor
+    sRated * (-1) * cosPhiRated * scalingFactor
 }
 
 case object FixedFeedInModel extends LazyLogging {

@@ -100,10 +100,11 @@ protected trait WecAgentFundamentals
       outputConfig: NotifierConfig
   ): ParticipantModelBaseStateData[ApparentPower, WecRelevantData, WecModel] = {
     /* Check for needed services */
-    if !services.exists(serviceDefinitions =>
+    if (
+      !services.exists(serviceDefinitions =>
         serviceDefinitions.map(_.getClass).containsSlice(neededServices)
       )
-    then
+    )
       throw new AgentInitializationException(
         s"$actorName cannot be initialized without a weather service!"
       )
