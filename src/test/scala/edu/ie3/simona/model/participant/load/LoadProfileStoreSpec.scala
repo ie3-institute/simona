@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant.load
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile._
+import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile.*
 import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.simona.model.participant.load.profile.{
   LoadProfileKey,
@@ -140,7 +140,7 @@ class LoadProfileStoreSpec
             integrationState + currentEnergy
           })
 
-        implicit val powerTolerance: squants.Energy = KilowattHours(1.0)
+        given powerTolerance: squants.Energy = KilowattHours(1.0)
 
         /* Check the deviation against the expected value (deviation should be smaller than 1 kWh) */
         (annualEnergy ~= expected) shouldBe true

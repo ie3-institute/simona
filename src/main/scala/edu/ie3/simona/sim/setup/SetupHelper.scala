@@ -7,7 +7,7 @@
 package edu.ie3.simona.sim.setup
 
 import org.apache.pekko.actor.ActorRef
-import com.typesafe.config.{Config => TypesafeConfig}
+import com.typesafe.config.Config as TypesafeConfig
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
@@ -248,7 +248,7 @@ case object SetupHelper {
     */
   def allResultEntitiesToWrite(
       outputConfig: SimonaConfig.Simona.Output
-  ): Set[Class[_ <: ResultEntity]] =
+  ): Set[Class[? <: ResultEntity]] =
     GridOutputConfigUtil(
       outputConfig.grid
     ).simulationResultEntitiesToConsider ++

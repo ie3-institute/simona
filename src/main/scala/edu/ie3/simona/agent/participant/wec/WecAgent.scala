@@ -16,7 +16,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig.WecRuntimeConfig
 import edu.ie3.simona.model.participant.WecModel
-import edu.ie3.simona.model.participant.WecModel._
+import edu.ie3.simona.model.participant.WecModel.*
 
 object WecAgent {
   def props(
@@ -36,7 +36,7 @@ object WecAgent {
       )
     )
 
-  val neededServices: Vector[Class[_ <: SecondaryDataService[_]]] = Vector(
+  val neededServices: Vector[Class[? <: SecondaryDataService[?]]] = Vector(
     classOf[ActorWeatherService]
   )
 }

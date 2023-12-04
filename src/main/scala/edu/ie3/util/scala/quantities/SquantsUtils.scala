@@ -12,26 +12,22 @@ import squants.energy.Energy
 import squants.space.{CubicMeters, Volume}
 
 object SquantsUtils {
-  implicit class RichEnergy(energy: Energy) {
+
+  extension (energy: Energy)
     def calcVolume(that: EnergyDensity): Volume = CubicMeters(
       energy.toKilowattHours / that.toKilowattHoursPerCubicMeter
     )
-  }
-  implicit class RichPower(power: squants.Power) {
+
+  extension (power: squants.Power)
     def /(that: ReactivePower): squants.Dimensionless = Each(
       power.toWatts / that.toVars
     )
-  }
 
-  implicit class RichElectricPotential(
-      electricPotential: squants.electro.ElectricPotential
-  ) {
+  extension (electricPotential: squants.electro.ElectricPotential)
     def multiplyWithDimensionles(
         that: squants.Dimensionless
     ): squants.electro.ElectricPotential = Volts(
       electricPotential.toVolts * that.toEach
     )
-
-  }
 
 }

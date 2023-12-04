@@ -10,7 +10,7 @@ import java.util.UUID
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.HpModel._
+import edu.ie3.simona.model.participant.HpModel.*
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalHouse
 import edu.ie3.simona.util.TickUtil.TickLong

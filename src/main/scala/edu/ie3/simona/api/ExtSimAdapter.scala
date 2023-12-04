@@ -15,7 +15,7 @@ import edu.ie3.simona.api.simulation.ontology.{
   ActivationMessage,
   TerminationCompleted,
   TerminationMessage,
-  CompletionMessage => ExtCompletionMessage
+  CompletionMessage as ExtCompletionMessage
 }
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -28,7 +28,7 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
-import scala.jdk.OptionConverters._
+import scala.jdk.OptionConverters.*
 
 object ExtSimAdapter {
 
@@ -66,7 +66,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
     )
   }
 
-  private def receiveIdle(implicit
+  private def receiveIdle(using
       stateData: ExtSimAdapterStateData
   ): Receive = {
     case Activation(tick) =>

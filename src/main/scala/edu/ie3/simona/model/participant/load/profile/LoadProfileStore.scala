@@ -24,7 +24,7 @@ import edu.ie3.simona.model.participant.load.{DayType, profile}
 import org.apache.commons.csv.CSVFormat
 import squants.energy.{KilowattHours, Watts}
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.math.pow
 
 // needs to be imported for max function

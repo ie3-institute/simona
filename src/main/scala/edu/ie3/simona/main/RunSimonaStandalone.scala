@@ -30,7 +30,7 @@ import scala.concurrent.Await
   */
 object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
 
-  override implicit val timeout: Timeout = Timeout(50000, TimeUnit.SECONDS)
+  override given timeout: Timeout = Timeout(50000, TimeUnit.SECONDS)
 
   override def setup(
       args: Array[String]

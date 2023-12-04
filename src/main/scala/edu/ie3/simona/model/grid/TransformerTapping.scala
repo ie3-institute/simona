@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.grid
 
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import javax.measure.Quantity
 import javax.measure.quantity.Dimensionless
 import tech.units.indriya.quantity.Quantities

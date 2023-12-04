@@ -27,8 +27,8 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.grid.{RefSystem, Transformer3wModel}
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.util.TestGridFactory
-import edu.ie3.util.quantities.PowerSystemUnits._
-import org.scalatest.prop.TableDrivenPropertyChecks._
+import edu.ie3.util.quantities.PowerSystemUnits.*
+import org.scalatest.prop.TableDrivenPropertyChecks.*
 import org.scalatest.prop.{TableFor2, TableFor4}
 import squants.electro.Kilovolts
 import squants.energy.{Kilowatts, Megawatts}
@@ -36,7 +36,7 @@ import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{OHM, PERCENT}
 
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Test data for a [[Transformer3WInput]] */
 trait Transformer3wTestData extends DefaultTestData {

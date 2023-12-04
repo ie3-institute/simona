@@ -62,10 +62,10 @@ class ParticipantAgentFundamentalsSpec
     with PrivateMethodTester
     with TableDrivenPropertyChecks
     with MockitoSugar {
-  implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
-  implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
-  implicit val pTolerance: squants.Power = Megawatts(0.001)
-  implicit val qTolerance: ReactivePower = Megavars(0.001)
+  given receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
+  given noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
+  given pTolerance: squants.Power = Megawatts(0.001)
+  given qTolerance: ReactivePower = Megavars(0.001)
 
   private val outputConfig: NotifierConfig =
     NotifierConfig(

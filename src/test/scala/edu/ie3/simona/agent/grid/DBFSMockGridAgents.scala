@@ -34,10 +34,11 @@ import scala.language.postfixOps
   */
 trait DBFSMockGridAgents extends UnitSpec {
   private val floatPrecision: Double = 0.00000000001
-  private implicit val powerTolerance: Power = Megawatts(1e-10)
-  private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-10)
-  private implicit val electricPotentialTolerance
-      : squants.electro.ElectricPotential = Volts(1e-6)
+  given powerTolerance: Power = Megawatts(1e-10)
+  given reactivePowerTolerance: ReactivePower = Megavars(1e-10)
+  given electricPotentialTolerance: squants.electro.ElectricPotential = Volts(
+    1e-6
+  )
 
   sealed trait GAActorAndModel {
     val gaProbe: TestProbe

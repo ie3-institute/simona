@@ -81,8 +81,8 @@ class ParticipantAgentExternalSourceSpec
     )
     with DefaultTestData
     with MockitoSugar {
-  implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
-  implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
+  given receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
+  given noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
 
   private val testUUID = UUID.randomUUID
   private val testID = "PartAgentExternalMock"
@@ -117,8 +117,8 @@ class ParticipantAgentExternalSourceSpec
 
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
-  private implicit val powerTolerance: squants.Power = Watts(0.1)
-  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
+  given powerTolerance: squants.Power = Watts(0.1)
+  given reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   "A participant agent with externally given data provider" should {
     val initStateData = ParticipantInitializeStateData[
@@ -149,7 +149,7 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateName shouldBe Uninitialized
       // ParticipantUninitializedStateData is an empty class (due to typing). If it contains content one day
       inside(mockAgent.stateData) {
-        case _: ParticipantUninitializedStateData[_] => succeed
+        case _: ParticipantUninitializedStateData[?] => succeed
         case _ =>
           fail(
             s"Expected $ParticipantUninitializedStateData, but got ${mockAgent.stateData}."

@@ -8,7 +8,7 @@ package edu.ie3.simona.model.system
 
 import edu.ie3.simona.exceptions.CharacteristicsException
 import edu.ie3.simona.model.system.Characteristic.XYPair
-import edu.ie3.simona.util.CollectionUtils._
+import edu.ie3.simona.util.CollectionUtils.*
 import squants.Quantity
 
 import scala.collection.SortedSet
@@ -29,9 +29,7 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
     */
   def interpolateXy(
       requestedAbscissaQuantity: A
-  )(implicit
-      tag: ClassTag[O]
-  ): (A, O) = {
+  )(using tag: ClassTag[O]): (A, O) = {
 
     val xyCoords: Seq[(A, O)] =
       closestKeyValuePairs[A, O](

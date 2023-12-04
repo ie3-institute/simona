@@ -21,7 +21,7 @@ import edu.ie3.simona.exceptions.{
   FileHierarchyException,
   ProcessResultEventException
 }
-import edu.ie3.simona.io.result._
+import edu.ie3.simona.io.result.*
 import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.util.ResultFileHierarchy
 import org.slf4j.Logger
@@ -36,7 +36,7 @@ object ResultEventListener extends Transformer3wResultSupport {
   trait ResultMessage extends Event
 
   private final case class SinkResponse(
-      response: Map[Class[_], ResultEntitySink]
+      response: Map[Class[?], ResultEntitySink]
   ) extends ResultMessage
 
   private final case class Failed(ex: Exception) extends ResultMessage
@@ -69,7 +69,7 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def initializeSinks(
       resultFileHierarchy: ResultFileHierarchy
-  ): Iterable[Future[(Class[_], ResultEntitySink)]] = {
+  ): Iterable[Future[(Class[?], ResultEntitySink)]] = {
     resultFileHierarchy.resultSinkType match {
       case _: ResultSinkType.Csv =>
         resultFileHierarchy.resultEntitiesToConsider
@@ -122,7 +122,7 @@ object ResultEventListener extends Transformer3wResultSupport {
             schemaRegistryUrl,
             linger
           ) =>
-        val classes: Iterable[Class[_ <: ResultEntity]] = Set(
+        val classes: Iterable[Class[? <: ResultEntity]] = Set(
           classOf[NodeResult] // currently, only NodeResults are sent out
         )
         classes.map(clz =>
@@ -220,7 +220,7 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def handOverToSink(
       resultEntity: ResultEntity,
-      classToSink: Map[Class[_], ResultEntitySink],
+      classToSink: Map[Class[?], ResultEntitySink],
       log: Logger
   ): Unit =
     Try {

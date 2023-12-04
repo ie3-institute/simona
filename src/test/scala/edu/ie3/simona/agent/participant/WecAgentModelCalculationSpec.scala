@@ -83,12 +83,12 @@ class WecAgentModelCalculationSpec
     with PrivateMethodTester
     with WecInputTestData {
 
-  protected implicit val simulationStartDate: ZonedDateTime =
+  given simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
   protected val simulationEndDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00")
-  implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
-  implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
+  given receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
+  given noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
 
   /* Alter the input model to have a voltage sensitive reactive power calculation */
   val voltageSensitiveInput: WecInput = wecInputModel
@@ -118,8 +118,8 @@ class WecAgentModelCalculationSpec
 
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
-  private implicit val powerTolerance: squants.Power = Watts(0.1)
-  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
+  given powerTolerance: squants.Power = Watts(0.1)
+  given reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   "A wec agent with model calculation depending on no second data service" should {
     val initStateData = ParticipantInitializeStateData[
@@ -154,7 +154,7 @@ class WecAgentModelCalculationSpec
       wecAgent.stateName shouldBe Uninitialized
       // ParticipantUninitializedStateData is an empty class (due to typing). If it contains content one day
       inside(wecAgent.stateData) {
-        case _: ParticipantUninitializedStateData[_] => succeed
+        case _: ParticipantUninitializedStateData[?] => succeed
         case _ =>
           fail(
             s"Expected $ParticipantUninitializedStateData, but got ${wecAgent.stateData}."
@@ -218,7 +218,7 @@ class WecAgentModelCalculationSpec
       wecAgent.stateName shouldBe Uninitialized
       // ParticipantUninitializedStateData is an empty class (due to typing). If it contains content one day
       inside(wecAgent.stateData) {
-        case _: ParticipantUninitializedStateData[_] => succeed
+        case _: ParticipantUninitializedStateData[?] => succeed
         case _ =>
           fail(
             s"Expected $ParticipantUninitializedStateData, but got ${wecAgent.stateData}."

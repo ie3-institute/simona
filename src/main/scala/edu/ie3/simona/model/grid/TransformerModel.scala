@@ -15,12 +15,12 @@ import edu.ie3.datamodel.models.input.connector.{
 }
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.OperationInterval
 import squants.Each
 import squants.electro.{Kilovolts, Ohms, Siemens}
 import squants.energy.Watts
-import tech.units.indriya.unit.Units._
+import tech.units.indriya.unit.Units.*
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -181,7 +181,7 @@ case object TransformerModel {
     // iNomHv, iNomLv
     val calcINom
         : squants.electro.ElectricPotential => squants.electro.ElectricCurrent = {
-      portVoltage: squants.electro.ElectricPotential =>
+      (portVoltage: squants.electro.ElectricPotential) =>
         Watts(
           trafoType.getsRated
             .to(VOLTAMPERE)

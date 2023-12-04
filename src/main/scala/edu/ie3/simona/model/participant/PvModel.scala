@@ -13,17 +13,17 @@ import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities._
-import squants._
+import edu.ie3.util.scala.quantities.*
+import squants.*
 import squants.energy.Kilowatts
 import squants.space.{Degrees, SquareMeters}
 import squants.time.Minutes
-import tech.units.indriya.unit.Units._
+import tech.units.indriya.unit.Units.*
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.stream.IntStream
-import scala.math._
+import scala.math.*
 
 final case class PvModel private (
     uuid: UUID,
@@ -689,7 +689,7 @@ final case class PvModel private (
       eTotalInWhPerSM * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
 
     /* Calculate the foreseen active power output without boundary condition adaptions */
-    val proposal = sRated * (-1) * (
+    val proposal = sRated * -1 * (
       actYield / irradiationSTC
     ) * cosPhiRated
 

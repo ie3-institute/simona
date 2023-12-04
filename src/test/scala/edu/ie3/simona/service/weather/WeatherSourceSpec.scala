@@ -21,7 +21,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates
 }
-import edu.ie3.simona.service.weather.WeatherSourceSpec._
+import edu.ie3.simona.service.weather.WeatherSourceSpec.*
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.QuantityUtil
@@ -33,8 +33,8 @@ import tech.units.indriya.unit.Units
 import java.util
 import java.util.Optional
 import javax.measure.quantity.Length
-import scala.jdk.CollectionConverters._
-import scala.jdk.OptionConverters._
+import scala.jdk.CollectionConverters.*
+import scala.jdk.OptionConverters.*
 import scala.util.{Failure, Success, Try}
 
 class WeatherSourceSpec extends UnitSpec {

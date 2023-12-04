@@ -24,13 +24,13 @@ import edu.ie3.simona.test.common.model.grid.{
   TransformerTestData,
   TransformerTestGrid
 }
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
 import squants.Each
 import squants.electro.{Amperes, Kilovolts}
 import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
+import tech.units.indriya.unit.Units.*
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
@@ -39,9 +39,9 @@ import java.util.UUID
 class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
   val quantityTolerance: Double = 1e-5
   val testingTolerancePf = 1e-9
-  implicit val electricCurrentTolerance: squants.electro.ElectricCurrent =
+  given electricCurrentTolerance: squants.electro.ElectricCurrent =
     Amperes(1e-9)
-  implicit val dimensionlessTolerance: squants.Dimensionless = Each(1e-9)
+  given dimensionlessTolerance: squants.Dimensionless = Each(1e-9)
 
   def mainRefSystem: RefSystem = {
     val nominalPower = Kilowatts(400d)

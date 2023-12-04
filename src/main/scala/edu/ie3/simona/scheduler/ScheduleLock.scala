@@ -93,7 +93,7 @@ object ScheduleLock {
     *   A single key that unlocks the lock
     */
   def singleKey(
-      ctx: ActorContext[_],
+      ctx: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       tick: Long
   ): ScheduleKey =
@@ -154,7 +154,7 @@ object ScheduleLock {
     *   A collection of keys that are needed to unlock the lock
     */
   def multiKey(
-      ctx: ActorContext[_],
+      ctx: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       tick: Long,
       count: Int

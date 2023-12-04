@@ -24,7 +24,7 @@ import edu.ie3.simona.event.RuntimeEvent.{
   Ready,
   Simulating
 }
-import edu.ie3.simona.util.TickUtil._
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.TimeUtil
 import org.scalatest.PrivateMethodTester
 import org.scalatest.matchers.should

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.participant.load.profile
 
-import java.time.Month._
+import java.time.Month.*
 import java.time.ZonedDateTime
 
 /** Describes the season (winter, summer, transition) as part of a load profile

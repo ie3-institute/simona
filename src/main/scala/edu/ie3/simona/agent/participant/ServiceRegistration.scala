@@ -45,7 +45,7 @@ trait ServiceRegistration[
     */
   def registerForServices(
       inputModel: I,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]]
+      services: Option[Vector[SecondaryDataService[? <: SecondaryData]]]
   ): Vector[ActorRef] =
     services
       .map(sources =>

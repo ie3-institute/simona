@@ -21,7 +21,7 @@ class LoadModelSpec
     with PrivateMethodTester
     with TableDrivenPropertyChecks {
 
-  private implicit val powerTolerance: squants.Power = Watts(1)
+  given powerTolerance: squants.Power = Watts(1)
 
   "The load model object" should {
 

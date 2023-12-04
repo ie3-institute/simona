@@ -266,10 +266,10 @@ abstract class ParticipantAgent[
         isYetTriggered = true,
         currentTick,
         scheduler
-      )(stateData.baseStateData.outputConfig)
+      )(using stateData.baseStateData.outputConfig)
 
     case Event(
-          msg: ProvisionMessage[_],
+          msg: ProvisionMessage[?],
           stateData @ DataCollectionStateData(
             baseStateData: BaseStateData[PD],
             data,
@@ -317,7 +317,7 @@ abstract class ParticipantAgent[
           isYetTriggered,
           currentTick,
           scheduler
-        )(updatedBaseStateData.outputConfig)
+        )(using updatedBaseStateData.outputConfig)
       } else
         throw new IllegalStateException(
           s"Did not expect message from ${sender()} at tick $currentTick"
@@ -383,7 +383,7 @@ abstract class ParticipantAgent[
       stash()
       stay()
 
-    case Event(_: ProvisionMessage[_], _) | Event(Activation(_), _) =>
+    case Event(_: ProvisionMessage[?], _) | Event(Activation(_), _) =>
       /* I got faced to new data, also I'm not ready to handle it, yet OR I got asked to do something else, while I'm
        * still busy, I will put it aside and answer it later */
       stash()
@@ -425,7 +425,7 @@ abstract class ParticipantAgent[
   def initializeParticipantForPrimaryDataReplay(
       inputModel: InputModelContainer[I],
       modelConfig: MC,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Option[Vector[SecondaryDataService[? <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -463,7 +463,7 @@ abstract class ParticipantAgent[
   def initializeParticipantForModelCalculation(
       inputModel: InputModelContainer[I],
       modelConfig: MC,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Option[Vector[SecondaryDataService[? <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -580,7 +580,7 @@ abstract class ParticipantAgent[
       isYetTriggered: Boolean,
       tick: Long,
       scheduler: ActorRef
-  )(implicit
+  )(using
       outputConfig: NotifierConfig
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
@@ -696,11 +696,11 @@ abstract class ParticipantAgent[
     *   Tick, the trigger belongs to
     */
   def announceAssetPowerRequestReply(
-      baseStateData: BaseStateData[_],
+      baseStateData: BaseStateData[?],
       currentTick: Long,
       activePower: Power,
       reactivePower: ReactivePower
-  )(implicit outputConfig: NotifierConfig): Unit
+  )(using outputConfig: NotifierConfig): Unit
 
   /** Abstract definition to clean up agent value stores after power flow
     * convergence. This is necessary for agents whose results are time dependent
@@ -735,7 +735,7 @@ object ParticipantAgent {
     *   nodal voltage
     */
   def getAndCheckNodalVoltage(
-      baseStateData: BaseStateData[_ <: PrimaryData],
+      baseStateData: BaseStateData[? <: PrimaryData],
       currentTick: Long
   ): Dimensionless = {
     baseStateData.voltageValueStore.last(currentTick) match {

@@ -15,7 +15,7 @@ trait ExtDataSupport[
 ] {
   this: SimonaService[S] =>
 
-  override def idleExternal(implicit stateData: S): Receive = {
+  override def idleExternal(using stateData: S): Receive = {
     case extMsg: DataMessageFromExt =>
       val updatedStateData = handleDataMessage(extMsg)(stateData)
       context become idle(updatedStateData)
@@ -37,7 +37,7 @@ trait ExtDataSupport[
     */
   protected def handleDataMessage(
       extMsg: DataMessageFromExt
-  )(implicit serviceStateData: S): S
+  )(using serviceStateData: S): S
 
   /** Handle a message from inside SIMONA sent to external
     *
@@ -50,5 +50,5 @@ trait ExtDataSupport[
     */
   protected def handleDataResponseMessage(
       extResponseMsg: EvResponseMessage
-  )(implicit serviceStateData: S): S
+  )(using serviceStateData: S): S
 }

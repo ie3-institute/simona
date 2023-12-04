@@ -6,15 +6,15 @@
 
 package edu.ie3.simona.config
 
-import com.typesafe.config.{ConfigFactory, Config => TypesafeConfig}
+import com.typesafe.config.{ConfigFactory, Config as TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.event.listener.SimonaListenerCompanion
 import edu.ie3.util.scala.ReflectionTools
-import scopt.{OptionParser => scoptOptionParser}
+import scopt.OptionParser as scoptOptionParser
 
 import java.io.File
 import java.nio.file.Paths
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 object ArgsParser extends LazyLogging {
 

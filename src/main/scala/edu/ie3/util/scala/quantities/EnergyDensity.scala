@@ -6,7 +6,7 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants._
+import squants.*
 import squants.energy.{KilowattHours, WattHours}
 import squants.space.CubicMeters
 
@@ -34,7 +34,7 @@ final class EnergyDensity private (
 }
 
 object EnergyDensity extends Dimension[EnergyDensity] {
-  def apply[A](n: A, unit: EnergyDensityUnit)(implicit num: Numeric[A]) =
+  def apply[A](n: A, unit: EnergyDensityUnit)(using num: Numeric[A]) =
     new EnergyDensity(num.toDouble(n), unit)
   def apply(value: Any): Try[EnergyDensity] = parse(value)
   def name = "EnergyDensity"
@@ -46,7 +46,7 @@ object EnergyDensity extends Dimension[EnergyDensity] {
 trait EnergyDensityUnit
     extends UnitOfMeasure[EnergyDensity]
     with UnitConverter {
-  def apply[A](n: A)(implicit num: Numeric[A]): EnergyDensity =
+  def apply[A](n: A)(using num: Numeric[A]): EnergyDensity =
     EnergyDensity(n, this)
 }
 

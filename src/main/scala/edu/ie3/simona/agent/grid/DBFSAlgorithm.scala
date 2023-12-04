@@ -9,7 +9,7 @@ package edu.ie3.simona.agent.grid
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{ActorRef, FSM, PoisonPill}
 import org.apache.pekko.pattern.{ask, pipe}
-import org.apache.pekko.util.{Timeout => PekkoTimeout}
+import org.apache.pekko.util.Timeout as PekkoTimeout
 import breeze.linalg.{DenseMatrix, DenseVector}
 import breeze.math.Complex
 import edu.ie3.datamodel.graph.SubGridGate
@@ -19,12 +19,12 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
-import edu.ie3.simona.agent.grid.GridAgent._
+import edu.ie3.simona.agent.grid.GridAgent.*
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   PowerFlowDoneData
 }
-import edu.ie3.simona.agent.grid.ReceivedValues._
+import edu.ie3.simona.agent.grid.ReceivedValues.*
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.agent.state.GridAgentState.{
@@ -36,16 +36,16 @@ import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.PowerMessage._
+import edu.ie3.simona.ontology.messages.PowerMessage.*
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.simona.ontology.messages.VoltageMessage.{
   ProvideSlackVoltageMessage,
   RequestSlackVoltageMessage
 }
-import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.scala.quantities.Megavars
-import edu.ie3.util.scala.quantities.SquantsUtils.RichElectricPotential
+import edu.ie3.util.scala.quantities.SquantsUtils.*
 import squants.Each
 import squants.energy.Megawatts
 
@@ -61,7 +61,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   this: GridAgent =>
   // implicit ExecutionContext should be in scope
   // see https://pekko.apache.org/docs/pekko/current/futures.html
-  implicit val ec: ExecutionContext = context.dispatcher
+  given ExecutionContext = context.dispatcher
 
   when(SimulateGrid) {
 
@@ -426,7 +426,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       log.debug("Calculate results and sending the results to the listener ...")
       createAndSendPowerFlowResults(
         gridAgentBaseData,
-        currentTick.toDateTime(simStartTime)
+        currentTick.toDateTime(using simStartTime)
       )
 
       // do my cleanup stuff
@@ -791,7 +791,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
            case result: PowerFlowResult.FailedPowerFlowResult =>
              result
          }
-       }) match {
+       })
+      match {
         case validResult: ValidNewtonRaphsonPFResult =>
           val updatedGridAgentBaseData: GridAgentBaseData =
             gridAgentBaseData
@@ -1063,7 +1064,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       askTimeout: Duration
   ): Option[Future[ReceivedPowerValues]] = {
 
-    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
+    given PekkoTimeout = PekkoTimeout.create(askTimeout)
 
     log.debug(s"asking assets for power values: {}", nodeToAssetAgents)
 
@@ -1112,7 +1113,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               })
             }.toVector
           )
-          .map(ReceivedAssetPowerValues)
+          .map(ReceivedAssetPowerValues.apply)
           .pipeTo(self)
       )
     else
@@ -1139,7 +1140,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       inferiorGridGates: Seq[SubGridGate],
       askTimeout: Duration
   ): Option[Future[ReceivedPowerValues]] = {
-    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
+    given PekkoTimeout = PekkoTimeout.create(askTimeout)
     log.debug(
       s"asking inferior grids for power values: {}",
       inferiorGridGates
@@ -1173,7 +1174,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             }
             .toVector
         )
-        .map(ReceivedGridPowerValues)
+        .map(ReceivedGridPowerValues.apply)
         .pipeTo(self)
     }
   }
@@ -1198,7 +1199,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       superiorGridGates: Vector[SubGridGate],
       askTimeout: Duration
   ): Option[Future[ReceivedSlackVoltageValues]] = {
-    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
+    given PekkoTimeout = PekkoTimeout.create(askTimeout)
     log.debug(
       s"asking superior grids for slack voltage values: {}",
       superiorGridGates
@@ -1219,7 +1220,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             }
             .toVector
         )
-        .map(ReceivedSlackVoltageValues)
+        .map(ReceivedSlackVoltageValues.apply)
         .pipeTo(self)
     }
   }
@@ -1246,9 +1247,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           this.createResultModels(
             gridAgentBaseData.gridEnv.gridModel,
             valueStore
-          )(
-            currentTimestamp
-          )
+          )(using currentTimestamp)
         )
     }
   }

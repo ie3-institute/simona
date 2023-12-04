@@ -38,7 +38,7 @@ import edu.ie3.simona.exceptions.agent.{
   InvalidRequestException
 }
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
-import edu.ie3.simona.model.participant.EvcsModel
+import edu.ie3.simona.model.participant.{EvcsModel, SystemParticipant}
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
 import edu.ie3.simona.ontology.messages.services.EvMessage.{
   ArrivingEvsData,
@@ -98,7 +98,7 @@ protected trait EvcsAgentFundamentals
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[EvcsInput],
       modelConfig: EvcsRuntimeConfig,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Option[Vector[SecondaryDataService[? <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       timeBin: Long,
@@ -156,7 +156,7 @@ protected trait EvcsAgentFundamentals
   def baseStateDataForModelCalculation(
       inputModel: InputModelContainer[EvcsInput],
       modelConfig: EvcsRuntimeConfig,
-      servicesOpt: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      servicesOpt: Option[Vector[SecondaryDataService[? <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       timeBin: Long,
@@ -294,9 +294,9 @@ protected trait EvcsAgentFundamentals
   protected def handleFreeLotsRequest(
       tick: Long,
       modelBaseStateData: ParticipantModelBaseStateData[
-        _ <: ApparentPower,
-        _,
-        _
+        ? <: ApparentPower,
+        ?,
+        ?
       ]
   ): Unit = {
     val evServiceRef = getService[ActorEvMovementsService](
@@ -542,7 +542,7 @@ protected trait EvcsAgentFundamentals
       baseStateData,
       tick,
       AccompaniedSimulationResult(result)
-    )(baseStateData.outputConfig)
+    )(using baseStateData.outputConfig)
 
     /* Update the base state data */
     baseStateData.copy(
@@ -554,9 +554,9 @@ protected trait EvcsAgentFundamentals
   private def getTickIntervalAndLastEvs(
       currentTick: Long,
       modelBaseStateData: ParticipantModelBaseStateData[
-        _ <: ApparentPower,
-        _,
-        _
+        ? <: ApparentPower,
+        ?,
+        ?
       ]
   ): (Long, Set[EvModel]) = {
     modelBaseStateData.calcRelevantDateStore
@@ -573,14 +573,13 @@ protected trait EvcsAgentFundamentals
 
   private def getEvcsModel(
       modelBaseStateData: ParticipantModelBaseStateData[
-        _ <: ApparentPower,
-        _,
-        _
+        ? <: ApparentPower,
+        ?,
+        SystemParticipant[?, ? <: ApparentPower]
       ]
   ): EvcsModel =
     modelBaseStateData.model match {
-      case model: EvcsModel =>
-        model
+      case model: EvcsModel => model
       case unsupportedModel =>
         throw new InconsistentStateException(
           s"Wrong model: $unsupportedModel!"

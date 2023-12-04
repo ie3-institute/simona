@@ -81,7 +81,7 @@ class PrimaryServiceWorkerSpec
       timePattern = "yyyy-MM-dd'T'HH:mm:ss'Z'"
     )
 
-  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  given powerTolerance: squants.Power = Watts(0.1)
 
   "A primary service actor" should {
     val scheduler = TestProbe("scheduler")

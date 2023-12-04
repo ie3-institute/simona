@@ -16,11 +16,11 @@ import edu.ie3.datamodel.models.result.connector.{
 import edu.ie3.datamodel.models.result.system.{ChpResult, LoadResult}
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.{apply => _, _}
+import edu.ie3.simona.config.SimonaConfig.{apply as _, *}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
-import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
+import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier.*
 import edu.ie3.simona.util.ConfigUtil.{
   GridOutputConfigUtil,
   NotifierIdentifier,
@@ -567,12 +567,12 @@ class ConfigUtilSpec
 
   "The grid output config util" should {
     "return the correct result entity classes to consider" in {
-      val ddt: TableFor2[GridOutputConfig, Set[Class[_ <: ResultEntity]]] =
+      val ddt: TableFor2[GridOutputConfig, Set[Class[? <: ResultEntity]]] =
         Table(
           ("config", "expected"),
           (
             new GridOutputConfig(false, false, "grid", false, false, false),
-            Set.empty[Class[_ <: ResultEntity]]
+            Set.empty[Class[? <: ResultEntity]]
           ),
           (
             new GridOutputConfig(true, false, "grid", false, false, false),
@@ -607,7 +607,7 @@ class ConfigUtilSpec
         )
 
       forAll(ddt) {
-        (config: GridOutputConfig, expected: Set[Class[_ <: ResultEntity]]) =>
+        (config: GridOutputConfig, expected: Set[Class[? <: ResultEntity]]) =>
           val actual =
             GridOutputConfigUtil(config).simulationResultEntitiesToConsider
           actual shouldBe expected
@@ -772,8 +772,8 @@ class ConfigUtilSpec
         )
       )
       val configUtil = OutputConfigUtil(inputConfig)
-      val expectedResult: Set[Class[_ <: ResultEntity]] =
-        Set[Class[_ <: ResultEntity]](classOf[LoadResult], classOf[ChpResult])
+      val expectedResult: Set[Class[? <: ResultEntity]] =
+        Set[Class[? <: ResultEntity]](classOf[LoadResult], classOf[ChpResult])
 
       configUtil.simulationResultEntitiesToConsider shouldBe expectedResult
     }

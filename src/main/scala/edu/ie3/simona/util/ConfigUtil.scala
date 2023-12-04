@@ -21,7 +21,7 @@ import edu.ie3.datamodel.models.result.connector.{
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.SqlParams
-import edu.ie3.simona.config.SimonaConfig._
+import edu.ie3.simona.config.SimonaConfig.*
 import edu.ie3.simona.event.notifier.{Notifier, NotifierConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import org.apache.kafka.clients.admin.AdminClient
@@ -31,7 +31,7 @@ import java.io.File
 import java.util.concurrent.ExecutionException
 import java.util.{Properties, UUID}
 import scala.collection.mutable
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try, Using}
 
@@ -39,7 +39,7 @@ object ConfigUtil {
 
   final case class ParticipantConfigUtil private (
       private val configs: Map[UUID, SimonaConfig.BaseRuntimeConfig],
-      private val defaultConfigs: Map[Class[_], BaseRuntimeConfig]
+      private val defaultConfigs: Map[Class[?], BaseRuntimeConfig]
   ) {
 
     /** Queries for a [[BaseRuntimeConfig]] of type [[T]], that applies for the
@@ -53,7 +53,7 @@ object ConfigUtil {
       */
     def getOrDefault[T <: BaseRuntimeConfig](
         uuid: UUID
-    )(implicit tag: ClassTag[T]): T =
+    )(using tag: ClassTag[T]): T =
       configs.get(uuid) match {
         case Some(conf: T) => conf
         case _ =>
@@ -164,7 +164,7 @@ object ConfigUtil {
         }.toSet
       }
 
-    def simulationResultEntitiesToConsider: Set[Class[_ <: ResultEntity]] =
+    def simulationResultEntitiesToConsider: Set[Class[? <: ResultEntity]] =
       simulationResultIdentifiersToConsider.map(notifierId =>
         EntityMapperUtil.getResultEntityClass(notifierId)
       )
@@ -234,8 +234,8 @@ object ConfigUtil {
       * @return
       *   Set of result entity classes
       */
-    def simulationResultEntitiesToConsider: Set[Class[_ <: ResultEntity]] = {
-      val entities = mutable.Set.empty[Class[_ <: ResultEntity]]
+    def simulationResultEntitiesToConsider: Set[Class[? <: ResultEntity]] = {
+      val entities = mutable.Set.empty[Class[? <: ResultEntity]]
 
       if (subConfig.nodes)
         entities += classOf[NodeResult]

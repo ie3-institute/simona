@@ -23,7 +23,7 @@ class FixedFeedInModelSpec
     with DefaultTestData
     with PrivateMethodTester {
 
-  private implicit val powerTolerance: squants.Power = Watts(
+  given powerTolerance: squants.Power = Watts(
     1.0
   ) // Equals to 1 W power
 

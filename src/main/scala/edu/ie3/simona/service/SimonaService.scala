@@ -127,10 +127,10 @@ abstract class SimonaService[
     * @return
     *   default idleInternal method when the service is initialized
     */
-  final protected def idle(implicit stateData: S): Receive =
+  final protected def idle(using stateData: S): Receive =
     idleExternal.applyOrElse(_, idleInternal(stateData))
 
-  private def idleInternal(implicit stateData: S): Receive = {
+  private def idleInternal(using stateData: S): Receive = {
     // agent registration process
     case registrationMsg: ServiceRegistrationMessage =>
       /* Someone asks to register for information from the service */
@@ -176,7 +176,7 @@ abstract class SimonaService[
     * @return
     *   empty behavior to ensure it only is called if it is overridden
     */
-  private[service] def idleExternal(implicit stateData: S): Receive =
+  private[service] def idleExternal(using stateData: S): Receive =
     Actor.emptyBehavior
 
   /** Initialize the concrete service implementation using the provided
@@ -209,7 +209,7 @@ abstract class SimonaService[
     */
   protected def handleRegistrationRequest(
       registrationMessage: ServiceRegistrationMessage
-  )(implicit
+  )(using
       serviceStateData: S
   ): Try[S]
 
@@ -224,7 +224,7 @@ abstract class SimonaService[
     *   with updated values) together with the completion message that is send
     *   in response to the trigger that was sent to start this announcement
     */
-  protected def announceInformation(tick: Long)(implicit
+  protected def announceInformation(tick: Long)(using
       serviceStateData: S,
       ctx: ActorContext
   ): (S, Option[Long])

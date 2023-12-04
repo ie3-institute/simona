@@ -17,7 +17,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.slf4j.LoggerFactory
 
 import java.io.File
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 object LogbackConfiguration extends LazyLogging {
 

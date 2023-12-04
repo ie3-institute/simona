@@ -15,7 +15,7 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.Transformer3wTestData
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
 import squants.Each
 import tech.units.indriya.quantity.Quantities
@@ -27,7 +27,7 @@ class Transformer3wModelSpec
     with TableDrivenPropertyChecks
     with Transformer3wTestData {
   val testingTolerance = 1e-5
-  implicit val dimensionlessTolerance: squants.Dimensionless = Each(1e-8)
+  given dimensionlessTolerance: squants.Dimensionless = Each(1e-8)
 
   "A three winding transformer input model" should {
     "be validated without an exception from a valid input model" in {
@@ -101,7 +101,7 @@ class Transformer3wModelSpec
           transformerModel,
           Transformer3wModel.Transformer3wPort.INTERNAL
         )
-      implicit val doubleTolerance: Double = 1e-11
+      given doubleTolerance: Double = 1e-11
       yjj.real shouldBe 1.874312e-6 +- doubleTolerance
       yjj.imag shouldBe -75.012912e-6 +- doubleTolerance
       val yij: Complex = Transformer3wModel.yij(transformerModel)
@@ -179,7 +179,7 @@ class Transformer3wModelSpec
       yjj shouldBe Complex.zero
 
       val yij: Complex = Transformer3wModel.yij(transformerModel)
-      implicit val doubleTolerance: Double = testingTolerance
+      given doubleTolerance: Double = testingTolerance
       yij.real shouldBe 385.773e-3 +- doubleTolerance
       yij.imag shouldBe -40.007364 +- doubleTolerance
     }
@@ -253,7 +253,7 @@ class Transformer3wModelSpec
         )
       yjj shouldBe Complex.zero
       val yij: Complex = Transformer3wModel.yij(transformerModel)
-      implicit val doubleTolerance: Double = testingTolerance
+      given doubleTolerance: Double = testingTolerance
       yij.real shouldBe 10.301007 +- doubleTolerance
       yij.imag shouldBe -1798.197528 +- doubleTolerance
     }
@@ -510,7 +510,7 @@ class Transformer3wModelSpec
 
             /* Remark: This is not really precise. At the moment, double-based calculations do
              * hinder us from being more precise. Maybe it is advisory to switch over to BigDecimal */
-            implicit val doubleTolerance: Double = 1e-4
+            given doubleTolerance: Double = 1e-4
             yijActual.real shouldBe yijExpected.real +- doubleTolerance
             yijActual.imag shouldBe yijExpected.imag +- doubleTolerance
 

@@ -39,7 +39,7 @@ import java.util.UUID
   *   mapping of node uuids to received slack voltages from superior
   *   [[GridAgent]] s if any
   */
-final case class ReceivedValuesStore private (
+final case class ReceivedValuesStore(
     nodeToReceivedPower: NodeToReceivedPower,
     nodeToReceivedSlackVoltage: NodeToReceivedSlackVoltage
 )

@@ -16,7 +16,7 @@ import squants.{Dimensionless, Money, Power, Temperature}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.math._
+import scala.math.*
 
 /** This class represents a single biomass plant
   */

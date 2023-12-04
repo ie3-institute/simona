@@ -14,7 +14,7 @@ import edu.ie3.simona.model.participant.load.DayType
 import edu.ie3.simona.model.participant.load.random.RandomLoadParamStore.initializeDayTypeValues
 import org.apache.commons.csv.{CSVFormat, CSVRecord}
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Storage for a collection of random load parameters.
   */

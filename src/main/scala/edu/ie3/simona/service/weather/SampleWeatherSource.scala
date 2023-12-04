@@ -10,7 +10,7 @@ import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.util.TickUtil
-import edu.ie3.simona.util.TickUtil._
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.geo.CoordinateDistance
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.locationtech.jts.geom.Point
@@ -26,10 +26,10 @@ import java.time.temporal.ChronoField.{HOUR_OF_DAY, MONTH_OF_YEAR, YEAR}
 import java.util
 import java.util.{Collections, Optional}
 import javax.measure.quantity.Length
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
-final class SampleWeatherSource(
-    private implicit val simulationStart: ZonedDateTime
+final class SampleWeatherSource(using
+    simulationStart: ZonedDateTime
 ) extends WeatherSource {
   private val resolution = 3600L
   override protected val idCoordinateSource: IdCoordinateSource = {

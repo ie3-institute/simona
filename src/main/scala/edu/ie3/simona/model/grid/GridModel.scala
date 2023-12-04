@@ -9,7 +9,7 @@ package edu.ie3.simona.model.grid
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
-import edu.ie3.datamodel.models.input.connector._
+import edu.ie3.datamodel.models.input.connector.*
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.model.SystemComponent
@@ -27,7 +27,7 @@ import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.immutable.ListSet
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Representation of one physical electrical grid. It holds the references to
   * nodes, lines, switches and transformers and fundamental properties (like
@@ -170,11 +170,12 @@ case object GridModel {
 
     val _returnAdmittanceMatrixIfValid
         : DenseMatrix[Complex] => DenseMatrix[Complex] = {
-      admittanceMatrix: DenseMatrix[Complex] =>
+      (admittanceMatrix: DenseMatrix[Complex]) =>
         if (
           !breeze.linalg.all(
-            { entry: Complex =>
-              !entry.imag.isNaN & !entry.real.isNaN & entry.imag.isFinite & entry.real.isFinite
+            {
+              entry: Complex =>
+                !entry.imag.isNaN & !entry.real.isNaN & entry.imag.isFinite & entry.real.isFinite
             },
             admittanceMatrix
           )

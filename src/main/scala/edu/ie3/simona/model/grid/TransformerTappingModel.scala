@@ -10,7 +10,7 @@ import breeze.numerics.{abs, floor, signum}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.simona.exceptions.InvalidActionRequestException
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 
 import javax.measure.Quantity
 import javax.measure.quantity.Dimensionless

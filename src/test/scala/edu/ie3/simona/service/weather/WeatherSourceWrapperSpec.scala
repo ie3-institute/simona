@@ -9,7 +9,7 @@ package edu.ie3.simona.service.weather
 import edu.ie3.datamodel.io.factory.timeseries.IconTimeBasedWeatherValueFactory
 import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
-  WeatherSource => PsdmWeatherSource
+  WeatherSource as PsdmWeatherSource
 }
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.timeseries.individual.{
@@ -24,7 +24,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
 }
 import edu.ie3.simona.service.weather.WeatherSourceSpec.DummyIdCoordinateSource
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
-import edu.ie3.simona.service.weather.WeatherSourceWrapperSpec._
+import edu.ie3.simona.service.weather.WeatherSourceWrapperSpec.*
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.GeoUtils
 import edu.ie3.util.interval.ClosedInterval
@@ -45,9 +45,9 @@ import scala.jdk.CollectionConverters.{MapHasAsJava, SetHasAsJava}
 
 class WeatherSourceWrapperSpec extends UnitSpec {
 
-  implicit val toleranceIrradiance: Irradiance = WattsPerSquareMeter(0.1d)
-  implicit val toleranceVelocity: Velocity = MetersPerSecond(0.01d)
-  implicit val tolerance: Temperature = Celsius(0.01d)
+  given toleranceIrradiance: Irradiance = WattsPerSquareMeter(0.1d)
+  given toleranceVelocity: Velocity = MetersPerSecond(0.01d)
+  given tolerance: Temperature = Celsius(0.01d)
 
   "A weather source wrapper" should {
     val actor = classOf[WeatherSourceWrapper].getDeclaredConstructor(
@@ -362,12 +362,11 @@ object WeatherSourceWrapperSpec {
     override def getWeather(
         date: ZonedDateTime,
         coordinate: Point
-    ): Optional[TimeBasedValue[WeatherValue]] = {
+    ): Optional[TimeBasedValue[WeatherValue]] =
       dummyValues.get(coordinate) match {
         case Some(value) => Optional.of(new TimeBasedValue(date, value))
         case None        => Optional.empty()
       }
-    }
   }
 
   /** Prepare test data for WeightSum-related tests

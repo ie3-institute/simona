@@ -18,8 +18,8 @@ import tech.units.indriya.AbstractUnit
 
 import scala.collection.SortedSet
 import scala.collection.immutable.TreeSet
-import scala.jdk.CollectionConverters._
-import scala.math._
+import scala.jdk.CollectionConverters.*
+import scala.math.*
 
 sealed trait QControl {
   protected val _cosPhiMultiplication: (Double, Power) => ReactivePower =
@@ -119,8 +119,9 @@ object QControl {
         sRated: Power,
         cosPhiRated: Double,
         nodalVoltage: Dimensionless
-    ): Power => ReactivePower = { activePower: Power =>
-      _cosPhiMultiplication(cosPhi, activePower)
+    ): Power => ReactivePower = {
+      activePower: Power =>
+        _cosPhiMultiplication(cosPhi, activePower)
     }
   }
 
@@ -171,7 +172,7 @@ object QControl {
         sRated: Power,
         cosPhiRated: Double,
         nodalVoltage: Dimensionless
-    ): Power => ReactivePower = { activePower: Power =>
+    ): Power => ReactivePower = { (activePower: Power) =>
       val qMaxFromP = Megavars(
         sqrt(
           pow(sRated.toMegawatts, 2) -
@@ -246,7 +247,7 @@ object QControl {
         sRated: Power,
         cosPhiRated: Double,
         nodalVoltage: Dimensionless
-    ): Power => ReactivePower = { activePower: Power =>
+    ): Power => ReactivePower = { (activePower: Power) =>
       /* cosphi( P / P_N ) = cosphi( P / (S_N * cosphi_rated) ) */
       val pInPu =
         activePower / (sRated * cosPhiRated)

@@ -11,16 +11,11 @@ import org.apache.pekko.actor.{ActorRef, ActorRefFactory, Props}
 import java.util.UUID
 
 object SimonaActorNaming {
-
-  implicit class RichActorRefFactory(private val refFactory: ActorRefFactory)
-      extends AnyVal {
-
+  extension (refFactory: ActorRefFactory)
     def simonaActorOf(props: Props, actorId: String): ActorRef =
       refFactory.actorOf(props, actorName(props, actorId))
-
     def simonaActorOf(props: Props): ActorRef =
       refFactory.actorOf(props, actorName(props, simonaActorUuid))
-  }
 
   /** Constructs a uuid and cuts it down to 6 digits for convenience. Although
     * this is dangerous as duplicates might be possible, it should be sufficient
@@ -49,7 +44,7 @@ object SimonaActorNaming {
     * @return
     *   the actor name based on simona conventions as string
     */
-  def actorName(clz: Class[_], actorId: String): String =
+  def actorName(clz: Class[?], actorId: String): String =
     actorName(typeName(clz), actorId)
 
   /** Constructs an actor name based on the simona convention for actor names.
@@ -82,10 +77,10 @@ object SimonaActorNaming {
     * @return
     *   the type name
     */
-  def typeName(props: Props): String = {
+  def typeName(props: Props): String =
     props.args.headOption
       .flatMap {
-        case clz: Class[_] => Some(clz)
+        case clz: Class[?] => Some(clz)
         case _             => None
       }
       .map(clz => typeName(clz))
@@ -94,14 +89,13 @@ object SimonaActorNaming {
           s"Cannot derive actor class from props: $props"
         )
       )
-  }
 
   /** Constructs the type name from given class.
     *
     * @return
     *   the type name
     */
-  def typeName(clz: Class[_]): String =
+  def typeName(clz: Class[?]): String =
     clz.getSimpleName.replace("$", "")
 
   /** Pekko prevents the usage of specific special characters as names. This

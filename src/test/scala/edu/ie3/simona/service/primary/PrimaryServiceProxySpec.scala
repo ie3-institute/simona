@@ -22,9 +22,7 @@ import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{
   CouchbaseParams,
   InfluxDb1xParams
 }
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
-  Primary => PrimaryConfig
-}
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary as PrimaryConfig
 import edu.ie3.simona.exceptions.{
   InitializationException,
   InvalidConfigParameterException
@@ -434,7 +432,7 @@ class PrimaryServiceProxySpec
           exception.getCause.getMessage shouldBe s"Cannot build initialization data for a worker due to unsupported source config '$maliciousPrimaryConfig'."
 
           /* Check, if the worker has been killed, yet. */
-          implicit val timeout: Timeout = Timeout(2, TimeUnit.SECONDS)
+          given timeout: Timeout = Timeout(2, TimeUnit.SECONDS)
           system.actorSelection("/user/" + workerId).resolveOne().onComplete {
             case Failure(exception) =>
               logger
@@ -497,7 +495,7 @@ class PrimaryServiceProxySpec
           /* Check, if expected init message has been sent */
           workerRef shouldBe worker.ref
 
-          inside(worker.expectMsgType[SimonaService.Create[_]]) {
+          inside(worker.expectMsgType[SimonaService.Create[?]]) {
             case SimonaService.Create(
                   CsvInitPrimaryServiceStateData(
                     actualTimeSeriesUuid,

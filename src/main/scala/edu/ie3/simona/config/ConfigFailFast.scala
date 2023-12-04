@@ -167,7 +167,7 @@ case object ConfigFailFast extends LazyLogging {
 
     // failure if all sinks are not-configured
     val sinkConfigs = ReflectionTools.classFieldToVal(sink).values.map {
-      case o: Option[_] => o
+      case o: Option[?] => o
       case _ =>
         throw new InvalidConfigParameterException(
           "All sinks in configuration must be optional!"

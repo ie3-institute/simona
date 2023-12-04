@@ -23,7 +23,7 @@ import edu.ie3.datamodel.io.source.influxdb.InfluxDbWeatherSource
 import edu.ie3.datamodel.io.source.sql.SqlWeatherSource
 import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
-  WeatherSource => PsdmWeatherSource
+  WeatherSource as PsdmWeatherSource
 }
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
   CouchbaseParams,
@@ -39,7 +39,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
   toWeatherData
 }
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
-import edu.ie3.simona.service.weather.{WeatherSource => SimonaWeatherSource}
+import edu.ie3.simona.service.weather.WeatherSource as SimonaWeatherSource
 import edu.ie3.simona.util.TickUtil
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.DoubleUtils.ImplicitDouble
@@ -73,8 +73,8 @@ private[weather] final case class WeatherSourceWrapper private (
     override val idCoordinateSource: IdCoordinateSource,
     resolution: Long,
     maxCoordinateDistance: ComparableQuantity[Length]
-)(
-    private implicit val simulationStart: ZonedDateTime
+)(using
+    simulationStart: ZonedDateTime
 ) extends SimonaWeatherSource
     with LazyLogging {
 
@@ -206,7 +206,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       scheme: String,
       resolution: Option[Long],
       maxCoordinateDistance: ComparableQuantity[Length]
-  )(implicit simulationStart: ZonedDateTime): WeatherSourceWrapper = {
+  )(using simulationStart: ZonedDateTime): WeatherSourceWrapper = {
     val idCoordinateSource = idCoordinateSourceFunction()
     val source = new CsvWeatherSource(
       csvSep,
@@ -233,7 +233,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       scheme: String,
       resolution: Option[Long],
       maxCoordinateDistance: ComparableQuantity[Length]
-  )(implicit simulationStart: ZonedDateTime): WeatherSourceWrapper = {
+  )(using simulationStart: ZonedDateTime): WeatherSourceWrapper = {
     val couchbaseConnector = new CouchbaseConnector(
       couchbaseParams.url,
       couchbaseParams.bucketName,
@@ -267,7 +267,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       scheme: String,
       resolution: Option[Long],
       maxCoordinateDistance: ComparableQuantity[Length]
-  )(implicit simulationStart: ZonedDateTime): WeatherSourceWrapper = {
+  )(using simulationStart: ZonedDateTime): WeatherSourceWrapper = {
     val influxDb1xConnector =
       new InfluxDbConnector(influxDbParams.url, influxDbParams.database)
     val idCoordinateSource = idCoordinateSourceFunction()
@@ -294,7 +294,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       scheme: String,
       resolution: Option[Long],
       maxCoordinateDistance: ComparableQuantity[Length]
-  )(implicit simulationStart: ZonedDateTime): WeatherSourceWrapper = {
+  )(using simulationStart: ZonedDateTime): WeatherSourceWrapper = {
     val sqlConnector = new SqlConnector(
       sqlParams.jdbcUrl,
       sqlParams.userName,
@@ -385,7 +385,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       */
     def scale(weatherData: WeatherData): WeatherData = weatherData match {
       case WeatherData(diffIrr, dirIrr, temp, windVel) =>
-        implicit val precision: Double = 1e-3
+        given precision: Double = 1e-3
         WeatherData(
           if (this.diffIrr !~= 0d) diffIrr.divide(this.diffIrr)
           else EMPTY_WEATHER_DATA.diffIrr,

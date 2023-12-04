@@ -26,7 +26,7 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseB,
   PowerFlowCaseC
 }
-import edu.ie3.simona.model.grid._
+import edu.ie3.simona.model.grid.*
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.QuantityUtil
 import squants.space.Degrees
@@ -36,7 +36,7 @@ import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.math._
+import scala.math.*
 
 /** Trait that holds methods to convert the results of a power flow calculation
   * to their corresponding [[edu.ie3.datamodel.models.result.ResultEntity]]
@@ -61,16 +61,16 @@ private[grid] trait GridResultsSupport {
   def createResultModels(
       grid: GridModel,
       sweepValueStore: SweepValueStore
-  )(implicit timestamp: ZonedDateTime): PowerFlowResultEvent = {
+  )(using timestamp: ZonedDateTime): PowerFlowResultEvent = {
     // no sanity check for duplicated uuid result data as we expect valid data at this point
-    implicit val sweepValueStoreData: Map[UUID, SweepValueStoreData] =
+    given sweepValueStoreData: Map[UUID, SweepValueStoreData] =
       sweepValueStore.sweepData
         .map(sweepValueStoreData =>
           sweepValueStoreData.nodeUuid -> sweepValueStoreData
         )
         .toMap
 
-    implicit val iNominal: ElectricCurrent =
+    given iNominal: ElectricCurrent =
       grid.mainRefSystem.nominalCurrent
 
     /* When creating node results, we have to consider two things:
@@ -108,7 +108,7 @@ private[grid] trait GridResultsSupport {
     * @return
     *   a set of [[LineResult]] s
     */
-  private def buildLineResults(lines: Set[LineModel])(implicit
+  private def buildLineResults(lines: Set[LineModel])(using
       sweepValueStoreData: Map[UUID, SweepValueStoreData],
       iNominal: squants.ElectricCurrent,
       timestamp: ZonedDateTime
@@ -155,7 +155,7 @@ private[grid] trait GridResultsSupport {
     *   a set of [[Transformer2WResult]] s
     */
   private def buildTransformer2wResults(transformers: Set[TransformerModel])(
-      implicit
+      using
       sweepValueStoreData: Map[UUID, SweepValueStoreData],
       iNominal: ElectricCurrent,
       timestamp: ZonedDateTime
@@ -201,8 +201,7 @@ private[grid] trait GridResultsSupport {
     * @return
     *   a set of [[PartialTransformer3wResult]] s
     */
-  def buildTransformer3wResults(transformers3w: Set[Transformer3wModel])(
-      implicit
+  def buildTransformer3wResults(transformers3w: Set[Transformer3wModel])(using
       sweepValueStoreData: Map[UUID, SweepValueStoreData],
       iNominal: ElectricCurrent,
       timestamp: ZonedDateTime

@@ -21,7 +21,7 @@ import org.apache.kafka.clients.producer.{
 import org.apache.kafka.common.serialization.{Serdes, Serializer}
 
 import java.util.{Properties, UUID}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.reflect.ClassTag
 
 final case class ResultEntityKafkaSink[
@@ -54,9 +54,9 @@ object ResultEntityKafkaSink {
       bootstrapServers: String,
       schemaRegistryUrl: String,
       linger: Int
-  )(implicit
+  )(using
       tag: ClassTag[R]
-  ): ResultEntityKafkaSink[_ <: ResultEntity, _ <: PlainResult] = {
+  ): ResultEntityKafkaSink[? <: ResultEntity, ? <: PlainResult] = {
     val props = new Properties()
     props.put(ProducerConfig.LINGER_MS_CONFIG, linger)
     props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
@@ -69,7 +69,7 @@ object ResultEntityKafkaSink {
 
     tag.runtimeClass match {
       case NodeResClass =>
-        implicit val recordFormat: RecordFormat[PlainNodeResult] =
+        given recordFormat: RecordFormat[PlainNodeResult] =
           RecordFormat[PlainNodeResult]
         createSink(schemaRegistryUrl, props, topic, NodeResultWriter(simRunId))
     }

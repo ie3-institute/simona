@@ -52,7 +52,7 @@ object ReflectionTools {
     * @return
     *   a map containing the field method and it's value of the object instance
     */
-  def classFieldToVal[A](a: A)(implicit
+  def classFieldToVal[A](a: A)(using
       tt: TypeTag[A],
       ct: ClassTag[A]
   ): Map[universe.MethodSymbol, Any] = {

@@ -14,7 +14,7 @@ import edu.ie3.simona.model.grid.{
   SwitchModel,
   Transformer3wModel
 }
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID

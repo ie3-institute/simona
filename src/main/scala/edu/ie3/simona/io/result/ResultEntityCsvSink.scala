@@ -20,7 +20,7 @@ import java.lang
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.jdk.FutureConverters.CompletionStageOps
 import scala.util.{Failure, Success}
 

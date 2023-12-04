@@ -26,7 +26,7 @@ trait PvInputTestData
     extends DefaultTestData
     with NodeInputTestData
     with MockitoSugar {
-  protected implicit val simulationStartDate: ZonedDateTime =
+  given simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
   protected val simulationEndDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00")

@@ -31,9 +31,7 @@ import edu.ie3.datamodel.io.source.{
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
-  Primary => PrimaryConfig
-}
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary as PrimaryConfig
 import edu.ie3.simona.exceptions.{
   InitializationException,
   InvalidConfigParameterException
@@ -66,7 +64,7 @@ import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.Option.when
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
@@ -83,9 +81,9 @@ import scala.util.{Failure, Success, Try}
   */
 case class PrimaryServiceProxy(
     scheduler: ActorRef,
-    initStateData: InitPrimaryServiceProxyStateData,
-    private implicit val startDateTime: ZonedDateTime
-) extends Actor
+    initStateData: InitPrimaryServiceProxyStateData
+)(using startDateTime: ZonedDateTime)
+    extends Actor
     with SimonaActorLogging {
 
   /** Start receiving without knowing specifics about myself
@@ -384,7 +382,7 @@ case class PrimaryServiceProxy(
       valueClass: Class[V],
       timeSeriesUuid: String
   ): ActorRef = {
-    import edu.ie3.simona.actor.SimonaActorNaming._
+    import edu.ie3.simona.actor.SimonaActorNaming.*
     context.system.simonaActorOf(
       PrimaryServiceWorker.props(scheduler, valueClass),
       timeSeriesUuid

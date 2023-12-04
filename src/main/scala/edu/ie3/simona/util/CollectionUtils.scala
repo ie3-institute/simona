@@ -79,7 +79,7 @@ object CollectionUtils {
     *   otherwise
     */
   @tailrec
-  def isSorted[T](list: List[T])(implicit ord: Ordering[T]): Boolean =
+  def isSorted[T](list: List[T])(using ord: Ordering[T]): Boolean =
     list match {
       case Nil      => true // an empty list is sorted
       case _ :: Nil => true // a single-element list is sorted
@@ -109,7 +109,7 @@ object CollectionUtils {
       key: A
   ): Seq[(A, O)] = {
     import scala.collection.immutable.TreeMap
-    implicit val ordering: Double.IeeeOrdering.type =
+    given ordering: Double.IeeeOrdering.type =
       Ordering.Double.IeeeOrdering
     val treeMap = TreeMap(map.toSeq: _*) // preserves order
 

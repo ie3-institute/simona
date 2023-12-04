@@ -9,7 +9,7 @@ package edu.ie3.simona.util
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.{Files, Paths}
 import java.text.SimpleDateFormat
-import com.typesafe.config.{ConfigRenderOptions, Config => TypesafeConfig}
+import com.typesafe.config.{ConfigRenderOptions, Config as TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.io.naming.{
   EntityPersistenceNamingStrategy,
@@ -22,7 +22,7 @@ import edu.ie3.simona.io.result.ResultSinkType.Csv
 import edu.ie3.simona.logging.logback.LogbackConfiguration
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.util.io.FileIOUtils
-import org.apache.commons.io.FilenameUtils._
+import org.apache.commons.io.FilenameUtils.*
 
 import scala.jdk.OptionConverters.RichOptional
 
@@ -62,10 +62,10 @@ final case class ResultFileHierarchy(
 
   val resultSinkType: ResultSinkType = resultEntityPathConfig.resultSinkType
 
-  val resultEntitiesToConsider: Set[Class[_ <: ResultEntity]] =
+  val resultEntitiesToConsider: Set[Class[? <: ResultEntity]] =
     resultEntityPathConfig.resultEntitiesToConsider
 
-  val rawOutputDataFilePaths: Map[Class[_ <: ResultEntity], String] = {
+  val rawOutputDataFilePaths: Map[Class[? <: ResultEntity], String] = {
     resultSinkType match {
       case csv: Csv =>
         resultEntityPathConfig.resultEntitiesToConsider
@@ -151,7 +151,7 @@ object ResultFileHierarchy extends LazyLogging {
     *   the type of the sink where result entities should be persisted
     */
   final case class ResultEntityPathConfig(
-      resultEntitiesToConsider: Set[Class[_ <: ResultEntity]],
+      resultEntitiesToConsider: Set[Class[? <: ResultEntity]],
       resultSinkType: ResultSinkType
   )
 
@@ -168,7 +168,7 @@ object ResultFileHierarchy extends LazyLogging {
     *   name + extension
     */
   private def buildRawOutputFilePath(
-      modelClass: Class[_ <: ResultEntity],
+      modelClass: Class[? <: ResultEntity],
       csvSink: Csv,
       rawOutputDataDir: String,
       fileSeparator: String

@@ -6,7 +6,7 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants._
+import squants.*
 import squants.energy.{WattHours, Watts}
 import squants.radio.{AreaTime, BecquerelsPerSquareMeterSecond, ParticleFlux}
 import squants.space.SquareMeters
@@ -54,7 +54,7 @@ final class Irradiance private (val value: Double, val unit: IrradianceUnit)
 }
 
 object Irradiance extends Dimension[Irradiance] {
-  def apply[A](n: A, unit: IrradianceUnit)(implicit num: Numeric[A]) =
+  def apply[A](n: A, unit: IrradianceUnit)(using num: Numeric[A]) =
     new Irradiance(num.toDouble(n), unit)
   def apply(value: Any): Try[Irradiance] = parse(value)
   def name = "Irradiance"
@@ -64,7 +64,7 @@ object Irradiance extends Dimension[Irradiance] {
 }
 
 trait IrradianceUnit extends UnitOfMeasure[Irradiance] with UnitConverter {
-  def apply[A](n: A)(implicit num: Numeric[A]): Irradiance = Irradiance(n, this)
+  def apply[A](n: A)(using num: Numeric[A]): Irradiance = Irradiance(n, this)
 }
 
 object WattsPerSquareMeter extends IrradianceUnit with PrimaryUnit with SiUnit {
@@ -74,10 +74,9 @@ object WattsPerSquareMeter extends IrradianceUnit with PrimaryUnit with SiUnit {
 object IrradianceConversions {
   lazy val wattPerSquareMeter: Irradiance = WattsPerSquareMeter(1)
 
-  implicit class IrradianceConversions[A](n: A)(implicit num: Numeric[A]) {
-    def wattsPerSquareMeter: Irradiance = WattsPerSquareMeter(n)
-
-  }
+  given wattsPerSquareMeter[A](using
+      num: Numeric[A]
+  ): Conversion[A, Irradiance] = WattsPerSquareMeter(_)
 
   implicit object IrradianceNumeric
       extends AbstractQuantityNumeric[Irradiance](Irradiance.primaryUnit)

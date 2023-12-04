@@ -12,7 +12,7 @@ import edu.ie3.simona.api.ExtLinkInterface
 import java.io.{File, IOException}
 import java.net.URLClassLoader
 import java.util.ServiceLoader
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Finds and loads jars containing external simulations.
   */

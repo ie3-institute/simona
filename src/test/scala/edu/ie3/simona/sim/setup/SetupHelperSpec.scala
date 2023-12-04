@@ -22,7 +22,7 @@ import edu.ie3.datamodel.models.input.container.{
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.GridInputTestData
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 class SetupHelperSpec extends UnitSpec with GridInputTestData {
 

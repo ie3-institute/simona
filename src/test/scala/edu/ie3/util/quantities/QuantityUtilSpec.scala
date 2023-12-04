@@ -16,8 +16,8 @@ import squants.{Energy, Power}
 import scala.util.{Failure, Success}
 
 class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
-  implicit val powerTolerance: Power = Watts(1e-3)
-  implicit val energyTolerance: Energy = WattHours(1e-6)
+  given powerTolerance: Power = Watts(1e-3)
+  given energyTolerance: Energy = WattHours(1e-6)
   private val unit = Kilowatts
   private val integrationUnit = Kilojoules
   private val values = Map(

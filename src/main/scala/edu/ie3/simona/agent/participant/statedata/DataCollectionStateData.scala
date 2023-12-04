@@ -31,7 +31,7 @@ final case class DataCollectionStateData[+PD <: PrimaryDataWithApparentPower[
   PD
 ]](
     baseStateData: BaseStateData[PD],
-    data: Map[ActorRef, Option[_ <: Data]],
+    data: Map[ActorRef, Option[? <: Data]],
     yetTriggered: Boolean
 ) extends ParticipantStateData[PD] {
 

@@ -15,10 +15,10 @@ import edu.ie3.simona.exceptions.{
   InvalidActionRequestException,
   InvalidParameterException
 }
-import edu.ie3.simona.util.TickUtil._
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.scala.OperationInterval
 
-import scala.jdk.OptionConverters._
+import scala.jdk.OptionConverters.*
 import scala.util.{Failure, Success, Try}
 
 /** Interface that is implemented by all grid elements (e.g. lines,

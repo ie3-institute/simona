@@ -10,11 +10,11 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 import edu.ie3.simona.api.data.ev.ExtEvData
 import edu.ie3.simona.api.data.ev.model.EvModel
-import edu.ie3.simona.api.data.ev.ontology._
+import edu.ie3.simona.api.data.ev.ontology.*
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
-import edu.ie3.simona.ontology.messages.services.EvMessage._
+import edu.ie3.simona.ontology.messages.services.EvMessage.*
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.scheduler.ScheduleLock
@@ -29,7 +29,7 @@ import edu.ie3.simona.service.ev.ExtEvDataService.{
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success, Try}
 
 object ExtEvDataService {
@@ -97,7 +97,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
     */
   override def handleRegistrationRequest(
       registrationMessage: ServiceRegistrationMessage
-  )(implicit
+  )(using
       serviceStateData: ExtEvStateData
   ): Try[ExtEvStateData] =
     registrationMessage match {
@@ -128,7 +128,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef,
       evcs: UUID
-  )(implicit
+  )(using
       serviceStateData: ExtEvStateData
   ): ExtEvStateData = {
     log.debug(
@@ -169,7 +169,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
     */
   override protected def announceInformation(
       tick: Long
-  )(implicit serviceStateData: ExtEvStateData, ctx: ActorContext): (
+  )(using serviceStateData: ExtEvStateData, ctx: ActorContext): (
       ExtEvStateData,
       Option[Long]
   ) = {
@@ -190,7 +190,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
     }
   }
 
-  private def requestFreeLots(tick: Long)(implicit
+  private def requestFreeLots(tick: Long)(using
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Long]) = {
     serviceStateData.uuidToActorRef.foreach { case (_, evcsActor) =>
@@ -218,7 +218,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
   private def requestDepartingEvs(
       tick: Long,
       requestedDepartingEvs: java.util.Map[UUID, java.util.List[UUID]]
-  )(implicit
+  )(using
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Long]) = {
 
@@ -257,7 +257,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
   private def handleArrivingEvs(
       tick: Long,
       allArrivingEvs: java.util.Map[UUID, java.util.List[EvModel]]
-  )(implicit
+  )(using
       serviceStateData: ExtEvStateData,
       ctx: ActorContext
   ): (ExtEvStateData, Option[Long]) = {
@@ -299,7 +299,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
   override protected def handleDataMessage(
       extMsg: DataMessageFromExt
-  )(implicit serviceStateData: ExtEvStateData): ExtEvStateData =
+  )(using serviceStateData: ExtEvStateData): ExtEvStateData =
     extMsg match {
       case extEvMessage: EvDataMessageFromExt =>
         serviceStateData.copy(
@@ -309,7 +309,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
   override protected def handleDataResponseMessage(
       extResponseMsg: EvResponseMessage
-  )(implicit serviceStateData: ExtEvStateData): ExtEvStateData = {
+  )(using serviceStateData: ExtEvStateData): ExtEvStateData = {
     extResponseMsg match {
       case DepartingEvsResponse(evcs, evModels) =>
         val updatedResponses = serviceStateData.departingEvResponses +

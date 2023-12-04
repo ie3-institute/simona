@@ -23,15 +23,13 @@ object ScalaReflectionSerde {
       val inner = new GenericAvroSerializer()
 
       override def configure(
-          configs: java.util.Map[String, _],
+          configs: java.util.Map[String, ?],
           isKey: Boolean
       ): Unit = inner.configure(configs, isKey)
 
       override def serialize(topic: String, maybeData: T): Array[Byte] =
         Option(maybeData)
-          .map(data =>
-            inner.serialize(topic, implicitly[RecordFormat[T]].to(data))
-          )
+          .map(data => inner.serialize(topic, summon[RecordFormat[T]].to(data)))
           .getOrElse(Array.emptyByteArray)
 
       override def close(): Unit = inner.close()
@@ -42,7 +40,7 @@ object ScalaReflectionSerde {
       val inner = new GenericAvroDeserializer()
 
       override def configure(
-          configs: java.util.Map[String, _],
+          configs: java.util.Map[String, ?],
           isKey: Boolean
       ): Unit = inner.configure(configs, isKey)
 
@@ -50,7 +48,7 @@ object ScalaReflectionSerde {
         Option(maybeData)
           .filter(_.nonEmpty)
           .map(data =>
-            implicitly[RecordFormat[T]].from(inner.deserialize(topic, data))
+            summon[RecordFormat[T]].from(inner.deserialize(topic, data))
           )
           .getOrElse(null.asInstanceOf[T])
 
