@@ -20,27 +20,63 @@ import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.StartCalculationTrigger
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ApparentPower, ApparentPowerAndHeat, EnrichableData, PrimaryDataWithApparentPower}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower,
+  ApparentPowerAndHeat,
+  EnrichableData,
+  PrimaryDataWithApparentPower
+}
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData.DateTime
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.{FromOutsideBaseStateData, ModelBaseStateData, ParticipantModelBaseStateData}
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{CollectRegistrationConfirmMessages, InputModelContainer}
-import edu.ie3.simona.agent.participant.statedata.{BaseStateData, DataCollectionStateData, ParticipantStateData}
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
+  FromOutsideBaseStateData,
+  ModelBaseStateData,
+  ParticipantModelBaseStateData
+}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
+  CollectRegistrationConfirmMessages,
+  InputModelContainer
+}
+import edu.ie3.simona.agent.participant.statedata.{
+  BaseStateData,
+  DataCollectionStateData,
+  ParticipantStateData
+}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
-import edu.ie3.simona.agent.state.ParticipantAgentState.{Calculate, HandleInformation}
+import edu.ie3.simona.agent.state.ParticipantAgentState.{
+  Calculate,
+  HandleInformation
+}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.{ParticipantResultEvent, ThermalResultEvent}
+import edu.ie3.simona.event.ResultEvent.{
+  ParticipantResultEvent,
+  ThermalResultEvent
+}
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.exceptions.agent.{ActorNotRegisteredException, AgentInitializationException, InconsistentStateException, InvalidRequestException}
+import edu.ie3.simona.exceptions.agent.{
+  ActorNotRegisteredException,
+  AgentInitializationException,
+  InconsistentStateException,
+  InvalidRequestException
+}
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.PowerMessage.{AssetPowerChangedMessage, AssetPowerUnchangedMessage}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{ProvisionMessage, RegistrationResponseMessage}
+import edu.ie3.simona.ontology.messages.PowerMessage.{
+  AssetPowerChangedMessage,
+  AssetPowerUnchangedMessage
+}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation
+}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  ProvisionMessage,
+  RegistrationResponseMessage
+}
 import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}

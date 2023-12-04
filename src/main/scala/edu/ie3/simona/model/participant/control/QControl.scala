@@ -119,8 +119,9 @@ object QControl {
         sRated: Power,
         cosPhiRated: Double,
         nodalVoltage: Dimensionless
-    ): Power => ReactivePower = { activePower: Power =>
-      _cosPhiMultiplication(cosPhi, activePower)
+    ): Power => ReactivePower = {
+      activePower: Power =>
+        _cosPhiMultiplication(cosPhi, activePower)
     }
   }
 

@@ -173,8 +173,9 @@ case object GridModel {
       (admittanceMatrix: DenseMatrix[Complex]) =>
         if (
           !breeze.linalg.all(
-            { entry: Complex =>
-              !entry.imag.isNaN & !entry.real.isNaN & entry.imag.isFinite & entry.real.isFinite
+            {
+              entry: Complex =>
+                !entry.imag.isNaN & !entry.real.isNaN & entry.imag.isFinite & entry.real.isFinite
             },
             admittanceMatrix
           )

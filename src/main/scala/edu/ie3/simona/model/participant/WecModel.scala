@@ -106,7 +106,8 @@ final case class WecModel(
        pMax
      } else {
        activePower
-     }) * (-1)
+     })
+    * (-1)
   }
 
   /** Determine the turbine output power with the air density ρ, the wind

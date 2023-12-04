@@ -791,7 +791,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
            case result: PowerFlowResult.FailedPowerFlowResult =>
              result
          }
-       }) match {
+       })
+      match {
         case validResult: ValidNewtonRaphsonPFResult =>
           val updatedGridAgentBaseData: GridAgentBaseData =
             gridAgentBaseData
