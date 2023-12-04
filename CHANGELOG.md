@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New scheduling protocol [#650](https://github.com/ie3-institute/simona/issues/650)
 - Replaced akka with pekko [#641](https://github.com/ie3-institute/simona/issues/641)
 
+### Fixed
+- Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
+- Removed version number "2.0" from the logo printed to console [#642](https://github.com/ie3-institute/simona/issues/642)
+
 ## [3.0.0] - 2023-08-07
 
 ### Added
@@ -123,6 +127,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed broken layout in RTD documentation [#500](https://github.com/ie3-institute/simona/issues/500)
 - Corrected tests in RefSystemTest [#560](https://github.com/ie3-institute/simona/issues/560)
 - Take log file event filters from `logback.xml` when defining the run log appender [#108](https://github.com/ie3-institute/simona/issues/108)
+- Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)
