@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant.load
 
-import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.result.system.{
   LoadResult,
@@ -50,11 +49,12 @@ import edu.ie3.simona.model.participant.load.{
   LoadReference
 }
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.simona.util.TickUtil._
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
@@ -104,7 +104,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[LoadInput],
       modelConfig: LoadRuntimeConfig,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Option[Vector[SecondaryDataService[? <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -122,7 +122,8 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
 
     /* Go and collect all ticks, in which activation is needed in addition to the activations made by incoming data.
      * Also register for services, where needed. */
-    val lastTickInSimulation = simulationEndDate.toTick(simulationStartDate)
+    val lastTickInSimulation =
+      simulationEndDate.toTick(using simulationStartDate)
     val additionalActivationTicks = model match {
       /* If no secondary data is needed (implicitly by fixed load model), add activation ticks for the simple model */
       case fixedLoadModel: FixedLoadModel =>
@@ -358,7 +359,7 @@ case object LoadAgentFundamentals {
     ) => ApparentPower = (tick, baseStateData, voltage) => {
       val profileLoadModel = baseStateData.model
       val profileRelevantData = ProfileRelevantData(
-        tick.toDateTime(baseStateData.startDate)
+        tick.toDateTime(using baseStateData.startDate)
       )
       profileLoadModel.calculatePower(currentTick, voltage, profileRelevantData)
     }
@@ -396,7 +397,7 @@ case object LoadAgentFundamentals {
     ) => ApparentPower = (tick, baseStateData, voltage) => {
       val randomLoadModel = baseStateData.model
       val profileRelevantData = RandomRelevantData(
-        tick.toDateTime(baseStateData.startDate)
+        tick.toDateTime(using baseStateData.startDate)
       )
       randomLoadModel.calculatePower(currentTick, voltage, profileRelevantData)
     }

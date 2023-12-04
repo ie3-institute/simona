@@ -10,7 +10,7 @@ import java.util.UUID
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.HpModel._
+import edu.ie3.simona.model.participant.HpModel.*
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalHouse
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -156,8 +156,7 @@ final case class HpModel(
     */
   private def calcState(hpData: HpRelevantData, isRunning: Boolean): HpState = {
     val (newActivePower, newThermalPower) =
-      if (isRunning)
-        (pRated, pThermal * scalingFactor)
+      if isRunning then (pRated, pThermal * scalingFactor)
       else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
 
     val duration: Time =

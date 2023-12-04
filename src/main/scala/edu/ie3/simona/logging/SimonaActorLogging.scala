@@ -12,7 +12,7 @@ import org.apache.pekko.event.LoggingAdapter
 trait SimonaActorLogging extends ActorLogging with SimonaLogging {
   this: Actor =>
 
-  override final val log: LoggingAdapter =
+  final override val log: LoggingAdapter =
     SimonaLogging.createAdapter(context.system, this, actorName)
 
 }

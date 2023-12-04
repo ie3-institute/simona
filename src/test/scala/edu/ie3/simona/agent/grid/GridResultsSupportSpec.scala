@@ -42,7 +42,7 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits.{DEGREE_GEOM, PU}
 import edu.ie3.util.quantities.QuantityUtil
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{QuantityUtil => ScalaQuantityUtil}
+import edu.ie3.util.scala.quantities.QuantityUtil as ScalaQuantityUtil
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.Each
 import squants.electro.{Amperes, Volts}
@@ -62,8 +62,8 @@ class GridResultsSupportSpec
     with TableDrivenPropertyChecks {
 
   override protected val log: LoggingAdapter = NoLogging
-  implicit val currentTolerance: squants.electro.ElectricCurrent = Amperes(1e-6)
-  implicit val angleTolerance: squants.Angle = Degrees(1e-6)
+  given currentTolerance: squants.electro.ElectricCurrent = Amperes(1e-6)
+  given angleTolerance: squants.Angle = Degrees(1e-6)
 
   "Preparing grid results" when {
     "calculating node results" should {
@@ -300,13 +300,12 @@ class GridResultsSupportSpec
               expectedResult.getiBMag(),
               1e-3
             ) shouldBe true
-            if (
-              QuantityUtil.isEquivalentAngle(
+            if QuantityUtil.isEquivalentAngle(
                 actual.getiBAng(),
                 expectedResult.getiBAng(),
                 1e-3
               )
-            ) {
+            then {
               /* Angles are considerably equal */
               succeed
             } else {

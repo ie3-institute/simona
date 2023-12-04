@@ -15,7 +15,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResp
   RegistrationSuccessfulMessage
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.WeatherMessage._
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.*
 import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
@@ -47,10 +47,9 @@ object WeatherService {
     Props(
       new WeatherService(
         scheduler,
-        startDateTime,
         simulationEnd,
         amountOfInterpolationCoordinates
-      )
+      )(using startDateTime)
     )
 
   /** @param weatherSource
@@ -97,9 +96,10 @@ object WeatherService {
   */
 final case class WeatherService(
     override val scheduler: ActorRef,
-    private implicit val simulationStart: ZonedDateTime,
     simulationEnd: ZonedDateTime,
     private val amountOfInterpolationCoords: Int
+)(using
+    simulationStart: ZonedDateTime
 ) extends SimonaService[
       WeatherInitializedStateData
     ](scheduler) {
@@ -167,7 +167,7 @@ final case class WeatherService(
     */
   override def handleRegistrationRequest(
       registrationMessage: ServiceRegistrationMessage
-  )(implicit
+  )(using
       serviceStateData: WeatherInitializedStateData
   ): Try[WeatherInitializedStateData] =
     registrationMessage match {
@@ -201,7 +201,7 @@ final case class WeatherService(
       agentToBeRegistered: ActorRef,
       latitude: Double,
       longitude: Double
-  )(implicit
+  )(using
       serviceStateData: WeatherInitializedStateData
   ): WeatherInitializedStateData = {
     log.debug(
@@ -286,7 +286,7 @@ final case class WeatherService(
     *   with updated values) together with the completion message that is send
     *   in response to the trigger that was sent to start this announcement
     */
-  override protected def announceInformation(tick: Long)(implicit
+  override protected def announceInformation(tick: Long)(using
       serviceStateData: WeatherInitializedStateData,
       ctx: ActorContext
   ): (WeatherInitializedStateData, Option[Long]) = {

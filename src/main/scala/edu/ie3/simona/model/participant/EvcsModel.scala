@@ -83,8 +83,8 @@ final case class EvcsModel(
       tick: Long,
       voltage: squants.Dimensionless,
       data: EvcsRelevantData
-  ): (ApparentPower, Set[EvModel]) = {
-    if (isInOperation(tick) && data.evMovementsDataFrameLength > 0) {
+  ): (ApparentPower, Set[EvModel]) =
+    if isInOperation(tick) && data.evMovementsDataFrameLength > 0 then {
       val (activePower, evModels) = calculateActivePowerAndEvSoc(data)
       val reactivePower =
         calculateReactivePower(activePower, voltage)
@@ -104,7 +104,6 @@ final case class EvcsModel(
         data.currentEvs
       )
     }
-  }
 
   /** Calculates active power based on given data. If sRated of this evcs is
     * exceeded, evs are dropped from charging at this time span.
@@ -120,7 +119,7 @@ final case class EvcsModel(
       data.currentEvs,
       data.evMovementsDataFrameLength
     )
-    if (powerSum <= sRated) {
+    if powerSum <= sRated then {
       (powerSum, models)
     } else {
       // if we exceed sRated, we scale down charging power of all evs proportionally
@@ -138,10 +137,8 @@ final case class EvcsModel(
         ) { case ((calcEvs, noCalcEvs, powerSum), ev) =>
           val newPower =
             powerSum + Kilowatts(ev.getSRatedAC.getValue.doubleValue())
-          if (newPower <= sRated)
-            (calcEvs + ev, noCalcEvs, newPower)
-          else
-            (calcEvs, noCalcEvs + ev, powerSum)
+          if newPower <= sRated then (calcEvs + ev, noCalcEvs, newPower)
+          else (calcEvs, noCalcEvs + ev, powerSum)
         }
 
       val (power, newCalcEvs) =
@@ -196,8 +193,8 @@ final case class EvcsModel(
   def charge(
       evModel: EvModel,
       duration: squants.Time
-  ): (squants.Energy, EvModel) = {
-    if (evModel.getStoredEnergy.isLessThan(evModel.getEStorage)) {
+  ): (squants.Energy, EvModel) =
+    if evModel.getStoredEnergy.isLessThan(evModel.getEStorage) then {
       val chargingPower =
         sRated.min(
           Kilowatts(
@@ -244,7 +241,6 @@ final case class EvcsModel(
         DefaultQuantities.zeroKWH,
         evModel
       )
-  }
 
   /** Calculate the active power behaviour of the model
     *

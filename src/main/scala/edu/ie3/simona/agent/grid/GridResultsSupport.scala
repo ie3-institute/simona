@@ -26,7 +26,7 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseB,
   PowerFlowCaseC
 }
-import edu.ie3.simona.model.grid._
+import edu.ie3.simona.model.grid.*
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.QuantityUtil
 import squants.space.Degrees
@@ -36,7 +36,7 @@ import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.math._
+import scala.math.*
 
 /** Trait that holds methods to convert the results of a power flow calculation
   * to their corresponding [[edu.ie3.datamodel.models.result.ResultEntity]]
@@ -61,16 +61,16 @@ private[grid] trait GridResultsSupport {
   def createResultModels(
       grid: GridModel,
       sweepValueStore: SweepValueStore
-  )(implicit timestamp: ZonedDateTime): PowerFlowResultEvent = {
+  )(using timestamp: ZonedDateTime): PowerFlowResultEvent = {
     // no sanity check for duplicated uuid result data as we expect valid data at this point
-    implicit val sweepValueStoreData: Map[UUID, SweepValueStoreData] =
+    given sweepValueStoreData: Map[UUID, SweepValueStoreData] =
       sweepValueStore.sweepData
         .map(sweepValueStoreData =>
           sweepValueStoreData.nodeUuid -> sweepValueStoreData
         )
         .toMap
 
-    implicit val iNominal: ElectricCurrent =
+    given iNominal: ElectricCurrent =
       grid.mainRefSystem.nominalCurrent
 
     /* When creating node results, we have to consider two things:
@@ -108,12 +108,12 @@ private[grid] trait GridResultsSupport {
     * @return
     *   a set of [[LineResult]] s
     */
-  private def buildLineResults(lines: Set[LineModel])(implicit
+  private def buildLineResults(lines: Set[LineModel])(using
       sweepValueStoreData: Map[UUID, SweepValueStoreData],
       iNominal: squants.ElectricCurrent,
       timestamp: ZonedDateTime
-  ): Set[LineResult] = {
-    lines.flatMap(lineModel => {
+  ): Set[LineResult] =
+    lines.flatMap { lineModel =>
       sweepValueStoreData
         .get(lineModel.nodeAUuid)
         .zip(sweepValueStoreData.get(lineModel.nodeBUuid)) match {
@@ -136,8 +136,7 @@ private[grid] trait GridResultsSupport {
           )
           None
       }
-    })
-  }
+    }
 
   /** Build instances of [[Transformer2WResult]] based on a provided set of
     * [[TransformerModel]] and the corresponding sweep value data
@@ -155,12 +154,12 @@ private[grid] trait GridResultsSupport {
     *   a set of [[Transformer2WResult]] s
     */
   private def buildTransformer2wResults(transformers: Set[TransformerModel])(
-      implicit
+      using
       sweepValueStoreData: Map[UUID, SweepValueStoreData],
       iNominal: ElectricCurrent,
       timestamp: ZonedDateTime
-  ): Set[Transformer2WResult] = {
-    transformers.flatMap(trafo2w => {
+  ): Set[Transformer2WResult] =
+    transformers.flatMap { trafo2w =>
       sweepValueStoreData
         .get(trafo2w.hvNodeUuid)
         .zip(sweepValueStoreData.get(trafo2w.lvNodeUuid)) match {
@@ -183,8 +182,7 @@ private[grid] trait GridResultsSupport {
           )
           None
       }
-    })
-  }
+    }
 
   /** Build instances of [[Transformer3WResult]] based on a provided set of
     * [[Transformer3wModel]] and the corresponding sweep value data
@@ -201,47 +199,44 @@ private[grid] trait GridResultsSupport {
     * @return
     *   a set of [[PartialTransformer3wResult]] s
     */
-  def buildTransformer3wResults(transformers3w: Set[Transformer3wModel])(
-      implicit
+  def buildTransformer3wResults(transformers3w: Set[Transformer3wModel])(using
       sweepValueStoreData: Map[UUID, SweepValueStoreData],
       iNominal: ElectricCurrent,
       timestamp: ZonedDateTime
   ): Set[PartialTransformer3wResult] = transformers3w.flatMap { trafo3w =>
-    {
-      (trafo3w.powerFlowCase match {
-        case PowerFlowCaseA =>
-          sweepValueStoreData
-            .get(trafo3w.hvNodeUuid)
-            .zip(sweepValueStoreData.get(trafo3w.nodeInternalUuid))
-        case PowerFlowCaseB =>
-          sweepValueStoreData
-            .get(trafo3w.mvNodeUuid)
-            .zip(sweepValueStoreData.get(trafo3w.nodeInternalUuid))
-        case PowerFlowCaseC =>
-          sweepValueStoreData
-            .get(trafo3w.lvNodeUuid)
-            .zip(sweepValueStoreData.get(trafo3w.nodeInternalUuid))
-      }) match {
-        case Some((upperNodeStateData, internalNodeStateData)) =>
-          Some(
-            calcTransformer3wResult(
-              trafo3w,
-              upperNodeStateData.stateData,
-              internalNodeStateData.stateData,
-              iNominal,
-              timestamp
-            )
+    (trafo3w.powerFlowCase match {
+      case PowerFlowCaseA =>
+        sweepValueStoreData
+          .get(trafo3w.hvNodeUuid)
+          .zip(sweepValueStoreData.get(trafo3w.nodeInternalUuid))
+      case PowerFlowCaseB =>
+        sweepValueStoreData
+          .get(trafo3w.mvNodeUuid)
+          .zip(sweepValueStoreData.get(trafo3w.nodeInternalUuid))
+      case PowerFlowCaseC =>
+        sweepValueStoreData
+          .get(trafo3w.lvNodeUuid)
+          .zip(sweepValueStoreData.get(trafo3w.nodeInternalUuid))
+    }) match {
+      case Some((upperNodeStateData, internalNodeStateData)) =>
+        Some(
+          calcTransformer3wResult(
+            trafo3w,
+            upperNodeStateData.stateData,
+            internalNodeStateData.stateData,
+            iNominal,
+            timestamp
           )
-        case None =>
-          log.warning(
-            s"Cannot find power flow result data for transformer3w {} with nodeHv {}, nodeMv {}, nodeLv {} and internalNode ${trafo3w.nodeInternalUuid}",
-            trafo3w.uuid,
-            trafo3w.hvNodeUuid,
-            trafo3w.mvNodeUuid,
-            trafo3w.lvNodeUuid
-          )
-          None
-      }
+        )
+      case None =>
+        log.warning(
+          s"Cannot find power flow result data for transformer3w {} with nodeHv {}, nodeMv {}, nodeLv {} and internalNode ${trafo3w.nodeInternalUuid}",
+          trafo3w.uuid,
+          trafo3w.hvNodeUuid,
+          trafo3w.mvNodeUuid,
+          trafo3w.lvNodeUuid
+        )
+        None
     }
   }
 
@@ -285,14 +280,13 @@ private[grid] trait GridResultsSupport {
   protected def calcSwitchResult(
       switchModel: SwitchModel,
       timestamp: ZonedDateTime
-  ): SwitchResult = {
+  ): SwitchResult =
     /* can be adapted when https://github.com/ie3-institute/PowerSystemDataModel/issues/151 has been resolved */
     new SwitchResult(
       timestamp,
       switchModel.uuid,
       switchModel.isClosed
     )
-  }
 
   /** Creates an instance of [[LineResult]] based on the provided grid and power
     * flow result data
@@ -316,9 +310,8 @@ private[grid] trait GridResultsSupport {
       nodeBStateData: StateData,
       iNominal: ElectricCurrent,
       timestamp: ZonedDateTime
-  ): LineResult = {
-
-    if (line.isInOperation) {
+  ): LineResult =
+    if line.isInOperation then {
       val yij = new Complex(
         line.gij().value.doubleValue,
         line.bij().value.doubleValue
@@ -352,7 +345,6 @@ private[grid] trait GridResultsSupport {
         QuantityUtil.zeroCompQuantity(PowerSystemUnits.DEGREE_GEOM)
       )
     }
-  }
 
   /** Creates an instance of [[Transformer2WResult]] based on the provided grid
     * and power flow result data
@@ -378,8 +370,8 @@ private[grid] trait GridResultsSupport {
       lvNodeStateData: StateData,
       iNominal: ElectricCurrent,
       timestamp: ZonedDateTime
-  ): Transformer2WResult = {
-    if (trafo2w.isInOperation) {
+  ): Transformer2WResult =
+    if trafo2w.isInOperation then {
       val (yab, yaa, ybb) = (
         TransformerModel.yij(trafo2w),
         TransformerModel.y0(trafo2w, ConnectorPort.A),
@@ -422,7 +414,6 @@ private[grid] trait GridResultsSupport {
         trafo2w.currentTapPos
       )
     }
-  }
 
   /** Creates an instance of [[Transformer3WResult]] based on the provided grid
     * and power flow result data
@@ -558,10 +549,8 @@ private[grid] trait GridResultsSupport {
       angle: Angle,
       dir: Double
   ): Angle =
-    if (dir < 0)
-      angle + Degrees(180d)
-    else
-      angle
+    if dir < 0 then angle + Degrees(180d)
+    else angle
 
   /** Calculates the electric current of a two-port element @ port i (=A) and j
     * (=B) based on the provided voltages @ each port and the corresponding
@@ -589,12 +578,11 @@ private[grid] trait GridResultsSupport {
       yij: Complex,
       y0i: Complex,
       y0j: Option[Complex] = None
-  ): (Complex, Complex) = {
+  ): (Complex, Complex) =
     (
       (uiPu - ujPu) * yij + (uiPu * y0i),
       (ujPu - uiPu) * yij + (ujPu * y0j.getOrElse(y0i))
     )
-  }
 
 }
 

@@ -6,7 +6,7 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants._
+import squants.*
 import squants.energy.KilowattHours
 
 import scala.util.Try
@@ -73,7 +73,7 @@ final class SpecificHeatCapacity private (
 }
 
 object SpecificHeatCapacity extends Dimension[SpecificHeatCapacity] {
-  def apply[A](n: A, unit: SpecificHeatCapacityUnit)(implicit num: Numeric[A]) =
+  def apply[A](n: A, unit: SpecificHeatCapacityUnit)(using num: Numeric[A]) =
     new SpecificHeatCapacity(num.toDouble(n), unit)
   def apply(value: Any): Try[SpecificHeatCapacity] = parse(value)
   def name = "SpecificHeatCapacity"
@@ -89,7 +89,7 @@ object SpecificHeatCapacity extends Dimension[SpecificHeatCapacity] {
 trait SpecificHeatCapacityUnit
     extends UnitOfMeasure[SpecificHeatCapacity]
     with UnitConverter {
-  def apply[A](n: A)(implicit num: Numeric[A]): SpecificHeatCapacity =
+  def apply[A](n: A)(using num: Numeric[A]): SpecificHeatCapacity =
     SpecificHeatCapacity(n, this)
 }
 

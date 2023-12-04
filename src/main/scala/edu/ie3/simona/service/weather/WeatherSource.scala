@@ -15,11 +15,11 @@ import edu.ie3.datamodel.io.factory.timeseries.{
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.IdCoordinateSource
-import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
+import edu.ie3.datamodel.io.source.csv.{CsvDataSource, CsvIdCoordinateSource}
 import edu.ie3.datamodel.io.source.sql.SqlIdCoordinateSource
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.*
 import edu.ie3.simona.exceptions.{
   InvalidConfigParameterException,
   ServiceException
@@ -39,7 +39,6 @@ import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
 import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.io.CsvDataSourceAdapter
 import org.locationtech.jts.geom.{Coordinate, Point}
 import tech.units.indriya.ComparableQuantity
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
@@ -51,7 +50,7 @@ import tech.units.indriya.unit.Units
 import java.nio.file.Paths
 import java.time.ZonedDateTime
 import javax.measure.quantity.{Dimensionless, Length}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
@@ -74,7 +73,7 @@ trait WeatherSource {
   def getWeightedCoordinates(
       coordinate: WeatherSource.AgentCoordinates,
       amountOfInterpolationCoords: Int
-  ): Try[WeatherSource.WeightedCoordinates] = {
+  ): Try[WeatherSource.WeightedCoordinates] =
     getNearestCoordinatesWithDistances(
       coordinate,
       amountOfInterpolationCoords
@@ -89,7 +88,6 @@ trait WeatherSource {
           )
         )
     }
-  }
 
   /** Tries to find the nearest coordinates around the queried coordinate. If
     * the queried coordinate hits a weather coordinate directly, only this one
@@ -137,7 +135,7 @@ trait WeatherSource {
           coordDistance.getDistance
             .isLessThan(maxCoordinateDistance)
         )
-        if (nearestCoordsInMaxDistance.size < amountOfInterpolationCoords) {
+        if nearestCoordsInMaxDistance.size < amountOfInterpolationCoords then {
           Failure(
             ServiceException(
               s"There are not enough coordinates within the max coordinate distance of $maxCoordinateDistance. Found ${nearestCoordsInMaxDistance.size} but need $amountOfInterpolationCoords. Please make sure that there are enough coordinates within the given distance."
@@ -158,7 +156,7 @@ trait WeatherSource {
             }
 
           /* There has to be a coordinate in each quadrant */
-          if (topLeft && topRight && bottomLeft && bottomRight)
+          if topLeft && topRight && bottomLeft && bottomRight then
             Success(nearestCoords)
           else
             Failure(
@@ -180,7 +178,7 @@ trait WeatherSource {
     */
   def determineWeights(
       nearestCoordinates: Iterable[CoordinateDistance]
-  ): Try[WeightedCoordinates] = {
+  ): Try[WeightedCoordinates] =
     nearestCoordinates.headOption match {
       case Some(dist) if nearestCoordinates.size == 1 =>
         /* There is only one coordinate -> weight this with 1 */
@@ -204,27 +202,24 @@ trait WeatherSource {
             .getValue
             .doubleValue()
 
-        if (
-          totalDistanceToSurroundingCoordinates.isGreaterThan(
+        if totalDistanceToSurroundingCoordinates.isGreaterThan(
             Quantities.getQuantity(0d, Units.METRE)
           )
-        ) {
-          val weightMap = nearestCoordinates
-            .map(coordinateDistance => {
-              /* Maybe some words on the calculus of the weight here: We intend to have a weight, that linear increases
-               * from zero to one, the closer the coordinate is to the coordinate in question. Therefore we calculate the
-               * proximity of each node as a linear function between 1 at 0m distance to the questioned coordinate to zero
-               * at the sum of all coordinates' distances (1 - d / d_sum). However, summing up this proximity over all
-               * n coordinates brings n*1 from the left part of the sum and -1 as the sum of all distances shares.
-               * Thereby all weights sum up to n-1. Therefore, we divide by this to scale the sum of weights to one. */
-              val weight =
-                toProximity(coordinateDistance) / (nearestCoordinates.size - 1)
-              coordinateDistance.getCoordinateB -> weight
-            })
-            .toMap
+        then {
+          val weightMap = nearestCoordinates.map { coordinateDistance =>
+            /* Maybe some words on the calculus of the weight here: We intend to have a weight, that linear increases
+             * from zero to one, the closer the coordinate is to the coordinate in question. Therefore we calculate the
+             * proximity of each node as a linear function between 1 at 0m distance to the questioned coordinate to zero
+             * at the sum of all coordinates' distances (1 - d / d_sum). However, summing up this proximity over all
+             * n coordinates brings n*1 from the left part of the sum and -1 as the sum of all distances shares.
+             * Thereby all weights sum up to n-1. Therefore, we divide by this to scale the sum of weights to one. */
+            val weight =
+              toProximity(coordinateDistance) / (nearestCoordinates.size - 1)
+            coordinateDistance.getCoordinateB -> weight
+          }.toMap
 
           val weightSum = weightMap.values.sum
-          if (weightSum > 0.99 && weightSum < 1.01)
+          if weightSum > 0.99 && weightSum < 1.01 then
             Success(WeightedCoordinates(weightMap))
           else
             Failure(
@@ -239,7 +234,6 @@ trait WeatherSource {
             )
           )
     }
-  }
 
   /** Get the weather data for the given tick as a weighted average taking into
     * account the given weighting of weather coordinates.
@@ -321,7 +315,7 @@ object WeatherSource {
       )
 
     /* Check, if the column scheme is supported */
-    if (!WeatherScheme.isEligibleInput(weatherDataSourceCfg.scheme))
+    if !WeatherScheme.isEligibleInput(weatherDataSourceCfg.scheme) then
       throw new InvalidConfigParameterException(
         s"The weather data scheme '${weatherDataSourceCfg.scheme}' is not supported. Supported schemes:\n\t${WeatherScheme.values
             .mkString("\n\t")}"
@@ -348,7 +342,7 @@ object WeatherSource {
       )
 
     // check that only one source is defined
-    if (definedWeatherSources.size > 1)
+    if definedWeatherSources.size > 1 then
       throw new InvalidConfigParameterException(
         s"Multiple weather sources defined: '${definedWeatherSources.map(_.getClass.getSimpleName).mkString("\n\t")}'." +
           s"Please define only one source!\nAvailable sources:\n\t${supportedWeatherSources.mkString("\n\t")}"
@@ -452,7 +446,7 @@ object WeatherSource {
     ).filter(_.isDefined)
 
     // check that only one source is defined
-    if (definedCoordSources.size > 1)
+    if definedCoordSources.size > 1 then
       throw new InvalidConfigParameterException(
         s"Multiple coordinate sources defined: '${definedCoordSources.map(_.getClass.getSimpleName).mkString("\n\t")}'." +
           s"Please define only one source!\nAvailable sources:\n\t${supportedCoordinateSources.mkString("\n\t")}"
@@ -470,7 +464,7 @@ object WeatherSource {
         () =>
           new CsvIdCoordinateSource(
             idCoordinateFactory,
-            new CsvDataSourceAdapter(
+            new CsvDataSource(
               csvSep,
               Paths.get(directoryPath),
               new FileNamingStrategy()
@@ -525,7 +519,7 @@ object WeatherSource {
   private def checkCoordinateFactory(
       gridModel: String
   ): IdCoordinateFactory = {
-    if (gridModel.isEmpty)
+    if gridModel.isEmpty then
       throw new InvalidConfigParameterException("No grid model defined!")
     gridModel.toLowerCase() match {
       case "icon"  => new IconIdCoordinateFactory()
@@ -553,7 +547,7 @@ object WeatherSource {
 
   def toWeatherData(
       weatherValue: WeatherValue
-  ): WeatherData = {
+  ): WeatherData =
     WeatherData(
       weatherValue.getSolarIrradiance.getDiffuseIrradiance.toScala match {
         case Some(irradiance) =>
@@ -597,12 +591,10 @@ object WeatherSource {
       }
     )
 
-  }
-
   /** Weather package private case class to combine the provided agent
     * coordinates into one single entity
     */
-  private[weather] final case class AgentCoordinates(
+  final private[weather] case class AgentCoordinates(
       latitude: Double,
       longitude: Double
   ) {
@@ -618,7 +610,7 @@ object WeatherSource {
     * @param weighting
     *   Mapping from weather coordinate to it's weight in averaging
     */
-  private[weather] final case class WeightedCoordinates(
+  final private[weather] case class WeightedCoordinates(
       weighting: Map[Point, Double]
   )
 

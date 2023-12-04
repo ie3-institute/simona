@@ -52,8 +52,8 @@ class GridAgentSetup2WSpec
   "The setup of grid agents" must {
     "provide two grid agents on presence of a two winding transformer" in {
 
-      import org.apache.pekko.pattern._
-      implicit val timeout: Timeout = Timeout(1, TimeUnit.SECONDS)
+      import org.apache.pekko.pattern.*
+      given timeout: Timeout = Timeout(1, TimeUnit.SECONDS)
 
       // in order to get an actor system we need a tmp actor that calls the corresponding method
       Await.ready(
@@ -73,7 +73,7 @@ class GridAgentSetup2WSpec
                 "test/tmp",
                 "GridAgentSetup2WSpec",
                 ResultEntityPathConfig(
-                  Set.empty[Class[_ <: ResultEntity]],
+                  Set.empty[Class[? <: ResultEntity]],
                   ResultSinkType(
                     simonaConfig.simona.output.sink,
                     simonaConfig.simona.simulationName

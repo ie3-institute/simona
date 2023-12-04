@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.agent.participant
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.SimonaAgent
 import edu.ie3.simona.agent.grid.GridAgent.FinishGridSimulationTrigger
@@ -19,15 +17,11 @@ import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.*
+import edu.ie3.simona.agent.participant.statedata.*
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FromOutsideBaseStateData,
   ParticipantModelBaseStateData
-}
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
-import edu.ie3.simona.agent.participant.statedata.{
-  BaseStateData,
-  DataCollectionStateData,
-  ParticipantStateData
 }
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
@@ -50,6 +44,8 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
@@ -102,15 +98,17 @@ abstract class ParticipantAgent[
       initStateData.primaryServiceProxy ! PrimaryServiceRegistrationMessage(
         initStateData.inputModel.electricalInputModel.getUuid
       )
-      goto(HandleInformation) using ParticipantInitializingStateData(
-        initStateData.inputModel,
-        initStateData.modelConfig,
-        initStateData.secondaryDataServices,
-        initStateData.simulationStartDate,
-        initStateData.simulationEndDate,
-        initStateData.resolution,
-        initStateData.requestVoltageDeviationThreshold,
-        initStateData.outputConfig
+      goto(HandleInformation).using(
+        ParticipantInitializingStateData(
+          initStateData.inputModel,
+          initStateData.modelConfig,
+          initStateData.secondaryDataServices,
+          initStateData.simulationStartDate,
+          initStateData.simulationEndDate,
+          initStateData.resolution,
+          initStateData.requestVoltageDeviationThreshold,
+          initStateData.outputConfig
+        )
       )
   }
 
@@ -130,13 +128,15 @@ abstract class ParticipantAgent[
       /* Remove this tick from the array of foreseen activation ticks */
       val additionalActivationTicks =
         modelBaseStateData.additionalActivationTicks.rangeFrom(currentTick + 1)
-      goto(Calculate) using BaseStateData.updateBaseStateData(
-        modelBaseStateData,
-        modelBaseStateData.resultValueStore,
-        modelBaseStateData.requestValueStore,
-        modelBaseStateData.voltageValueStore,
-        additionalActivationTicks,
-        modelBaseStateData.foreseenDataTicks
+      goto(Calculate).using(
+        BaseStateData.updateBaseStateData(
+          modelBaseStateData,
+          modelBaseStateData.resultValueStore,
+          modelBaseStateData.requestValueStore,
+          modelBaseStateData.voltageValueStore,
+          additionalActivationTicks,
+          modelBaseStateData.foreseenDataTicks
+        )
       )
 
     case Event(
@@ -266,10 +266,10 @@ abstract class ParticipantAgent[
         isYetTriggered = true,
         currentTick,
         scheduler
-      )(stateData.baseStateData.outputConfig)
+      )(using stateData.baseStateData.outputConfig)
 
     case Event(
-          msg: ProvisionMessage[_],
+          msg: ProvisionMessage[?],
           stateData @ DataCollectionStateData(
             baseStateData: BaseStateData[PD],
             data,
@@ -283,12 +283,12 @@ abstract class ParticipantAgent[
         case _           => false
       }
 
-      if (data.contains(sender()) || unexpectedSender) {
+      if data.contains(sender()) || unexpectedSender then {
         /* Update the yet received information */
         val updatedData = data + (sender() -> Some(msg.data))
 
         /* If we have received unexpected data, we also have not been scheduled before */
-        if (unexpectedSender)
+        if unexpectedSender then
           scheduler ! ScheduleActivation(
             self.toTyped,
             msg.tick,
@@ -317,7 +317,7 @@ abstract class ParticipantAgent[
           isYetTriggered,
           currentTick,
           scheduler
-        )(updatedBaseStateData.outputConfig)
+        )(using updatedBaseStateData.outputConfig)
       } else
         throw new IllegalStateException(
           s"Did not expect message from ${sender()} at tick $currentTick"
@@ -327,7 +327,7 @@ abstract class ParticipantAgent[
           RequestAssetPowerMessage(currentTick, _, _),
           DataCollectionStateData(_, data, yetTriggered)
         ) =>
-      if (log.isDebugEnabled) {
+      if log.isDebugEnabled then {
         val awaitedSenders = data.filter(_._2.isEmpty).keys
         val yetReceivedSenders = data.filter(_._2.isDefined).map {
           case (actorRef, data) => s"$actorRef -> $data"
@@ -339,7 +339,7 @@ abstract class ParticipantAgent[
           s"$currentTick from ${sender()}",
           awaitedSenders,
           yetReceivedSenders,
-          if (yetTriggered) "" else "NOT"
+          if yetTriggered then "" else "NOT"
         )
       }
       stash()
@@ -383,7 +383,7 @@ abstract class ParticipantAgent[
       stash()
       stay()
 
-    case Event(_: ProvisionMessage[_], _) | Event(Activation(_), _) =>
+    case Event(_: ProvisionMessage[?], _) | Event(Activation(_), _) =>
       /* I got faced to new data, also I'm not ready to handle it, yet OR I got asked to do something else, while I'm
        * still busy, I will put it aside and answer it later */
       stash()
@@ -425,7 +425,7 @@ abstract class ParticipantAgent[
   def initializeParticipantForPrimaryDataReplay(
       inputModel: InputModelContainer[I],
       modelConfig: MC,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Option[Vector[SecondaryDataService[? <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -463,7 +463,7 @@ abstract class ParticipantAgent[
   def initializeParticipantForModelCalculation(
       inputModel: InputModelContainer[I],
       modelConfig: MC,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Option[Vector[SecondaryDataService[? <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -523,13 +523,13 @@ abstract class ParticipantAgent[
       yetTriggered = true
     )
 
-    if (expectedSenders.nonEmpty || unforeseenPossible) {
+    if expectedSenders.nonEmpty || unforeseenPossible then {
       /* Do await provision messages in HandleInformation */
-      goto(HandleInformation) using nextStateData
+      goto(HandleInformation).using(nextStateData)
     } else {
       /* I don't expect new data. Do a shortcut to Calculate */
       self ! StartCalculationTrigger(currentTick)
-      goto(Calculate) using nextStateData
+      goto(Calculate).using(nextStateData)
     }
   }
 
@@ -580,7 +580,7 @@ abstract class ParticipantAgent[
       isYetTriggered: Boolean,
       tick: Long,
       scheduler: ActorRef
-  )(implicit
+  )(using
       outputConfig: NotifierConfig
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
@@ -696,11 +696,11 @@ abstract class ParticipantAgent[
     *   Tick, the trigger belongs to
     */
   def announceAssetPowerRequestReply(
-      baseStateData: BaseStateData[_],
+      baseStateData: BaseStateData[?],
       currentTick: Long,
       activePower: Power,
       reactivePower: ReactivePower
-  )(implicit outputConfig: NotifierConfig): Unit
+  )(using outputConfig: NotifierConfig): Unit
 
   /** Abstract definition to clean up agent value stores after power flow
     * convergence. This is necessary for agents whose results are time dependent
@@ -735,9 +735,9 @@ object ParticipantAgent {
     *   nodal voltage
     */
   def getAndCheckNodalVoltage(
-      baseStateData: BaseStateData[_ <: PrimaryData],
+      baseStateData: BaseStateData[? <: PrimaryData],
       currentTick: Long
-  ): Dimensionless = {
+  ): Dimensionless =
     baseStateData.voltageValueStore.last(currentTick) match {
       case Some((_, voltage)) => voltage
       case None =>
@@ -745,5 +745,4 @@ object ParticipantAgent {
           "Not knowing any nodal voltage is not supposed to happen."
         )
     }
-  }
 }

@@ -15,7 +15,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.*
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
@@ -31,7 +31,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
-import edu.ie3.simona.ontology.messages.services.EvMessage._
+import edu.ie3.simona.ontology.messages.services.EvMessage.*
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
@@ -68,8 +68,8 @@ class EvcsAgentModelCalculationSpec
     with EvTestData
     with TestSpawnerClassic {
 
-  private implicit val powerTolerance: Power = Watts(0.1)
-  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
+  given powerTolerance: Power = Watts(0.1)
+  given reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   /* Alter the input model to have a voltage sensitive reactive power calculation */
   private val voltageSensitiveInput = evcsInputModel
@@ -117,7 +117,7 @@ class EvcsAgentModelCalculationSpec
       evcsAgent.stateName shouldBe Uninitialized
       // ParticipantUninitializedStateData is an empty class (due to typing). If it contains content one day
       inside(evcsAgent.stateData) {
-        case _: ParticipantUninitializedStateData[_] => succeed
+        case _: ParticipantUninitializedStateData[?] => succeed
         case _ =>
           fail(
             s"Expected $ParticipantUninitializedStateData, but got ${evcsAgent.stateData}."
@@ -178,7 +178,7 @@ class EvcsAgentModelCalculationSpec
       evcsAgent.stateName shouldBe Uninitialized
       // ParticipantUninitializedStateData is an empty class (due to typing). If it contains content one day
       inside(evcsAgent.stateData) {
-        case _: ParticipantUninitializedStateData[_] => succeed
+        case _: ParticipantUninitializedStateData[?] => succeed
         case _ =>
           fail(
             s"Expected $ParticipantUninitializedStateData, but got ${evcsAgent.stateData}."
@@ -294,7 +294,7 @@ class EvcsAgentModelCalculationSpec
       /* ... as well as corresponding state and state data */
       evcsAgent.stateName shouldBe Idle
       evcsAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[?, ?, ?] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(evService.ref -> None)
         case _ =>
@@ -344,7 +344,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       inside(evcsAgent.stateData) {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case modelBaseStateData: ParticipantModelBaseStateData[?, ?, ?] =>
           modelBaseStateData.requestValueStore shouldBe ValueStore[
             ApparentPower
           ](
@@ -407,7 +407,7 @@ class EvcsAgentModelCalculationSpec
       evcsAgent.stateName shouldBe HandleInformation
       evcsAgent.stateData match {
         case DataCollectionStateData(
-              baseStateData: ParticipantModelBaseStateData[_, _, _],
+              baseStateData: ParticipantModelBaseStateData[?, ?, ?],
               expectedSenders,
               isYetTriggered
             ) =>
@@ -440,7 +440,7 @@ class EvcsAgentModelCalculationSpec
       )
       evcsAgent.stateName shouldBe Idle
       evcsAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[?, ?, ?] =>
           /* The store for calculation relevant data has been extended */
           baseStateData.calcRelevantDateStore match {
             case ValueStore(_, store) =>
@@ -511,7 +511,7 @@ class EvcsAgentModelCalculationSpec
       evcsAgent.stateName shouldBe HandleInformation
       evcsAgent.stateData match {
         case DataCollectionStateData(
-              baseStateData: ParticipantModelBaseStateData[_, _, _],
+              baseStateData: ParticipantModelBaseStateData[?, ?, ?],
               expectedSenders,
               isYetTriggered
             ) =>
@@ -547,7 +547,7 @@ class EvcsAgentModelCalculationSpec
       )
       evcsAgent.stateName shouldBe Idle
       evcsAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[?, ?, ?] =>
           /* The store for calculation relevant data has been extended */
           baseStateData.calcRelevantDateStore match {
             case ValueStore(_, store) =>

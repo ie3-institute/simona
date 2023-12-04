@@ -41,7 +41,7 @@ object ResultSinkType {
     val sink: Seq[Any] =
       Seq(sinkConfig.csv, sinkConfig.influxDb1x, sinkConfig.kafka).flatten
 
-    if (sink.size > 1)
+    if sink.size > 1 then
       throw new IllegalArgumentException(
         s"Multiple sinks are not supported! Provided sinks: '$sinkConfig'"
       )
@@ -73,7 +73,7 @@ object ResultSinkType {
   def buildInfluxDb1xUrl(
       sinkConfig: SimonaConfig.Simona.Output.Sink.InfluxDb1x
   ): String = {
-    if (sinkConfig.url.endsWith("/")) sinkConfig.url.replaceAll("/", "")
+    if sinkConfig.url.endsWith("/") then sinkConfig.url.replaceAll("/", "")
     else sinkConfig.url
   }.trim.concat(s":${sinkConfig.port}")
 

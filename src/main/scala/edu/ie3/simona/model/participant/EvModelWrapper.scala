@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.api.data.ev.model.EvModel
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import squants.energy.{KilowattHours, Kilowatts}
 
@@ -29,22 +29,20 @@ final case class EvModelWrapper(
   )
   def departureTick: Long = original.getDepartureTick
 
-  def unwrap(): EvModel = {
+  def unwrap(): EvModel =
     original.copyWith(
       storedEnergy.toKilowattHours.asKiloWattHour
     )
-  }
 
 }
 
 object EvModelWrapper {
 
-  def apply(evModel: EvModel): EvModelWrapper = {
+  def apply(evModel: EvModel): EvModelWrapper =
     new EvModelWrapper(
       KilowattHours(
         evModel.getStoredEnergy.to(KILOWATTHOUR).getValue.doubleValue
       ),
       evModel
     )
-  }
 }

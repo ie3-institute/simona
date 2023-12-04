@@ -6,7 +6,7 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants._
+import squants.*
 import squants.energy.{WattHours, Watts}
 
 import scala.util.Try
@@ -45,7 +45,7 @@ final class ThermalConductance private (
 }
 
 object ThermalConductance extends Dimension[ThermalConductance] {
-  def apply[A](n: A, unit: ThermalConductanceUnit)(implicit num: Numeric[A]) =
+  def apply[A](n: A, unit: ThermalConductanceUnit)(using num: Numeric[A]) =
     new ThermalConductance(num.toDouble(n), unit)
   def apply(value: Any): Try[ThermalConductance] = parse(value)
   def name = "ThermalConductance"
@@ -59,7 +59,7 @@ object ThermalConductance extends Dimension[ThermalConductance] {
 trait ThermalConductanceUnit
     extends UnitOfMeasure[ThermalConductance]
     with UnitConverter {
-  def apply[A](n: A)(implicit num: Numeric[A]): ThermalConductance =
+  def apply[A](n: A)(using num: Numeric[A]): ThermalConductance =
     ThermalConductance(n, this)
 }
 

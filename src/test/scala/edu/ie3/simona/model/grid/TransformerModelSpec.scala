@@ -24,13 +24,13 @@ import edu.ie3.simona.test.common.model.grid.{
   TransformerTestData,
   TransformerTestGrid
 }
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
 import squants.Each
 import squants.electro.{Amperes, Kilovolts}
 import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
+import tech.units.indriya.unit.Units.*
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
@@ -39,9 +39,9 @@ import java.util.UUID
 class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
   val quantityTolerance: Double = 1e-5
   val testingTolerancePf = 1e-9
-  implicit val electricCurrentTolerance: squants.electro.ElectricCurrent =
+  given electricCurrentTolerance: squants.electro.ElectricCurrent =
     Amperes(1e-9)
-  implicit val dimensionlessTolerance: squants.Dimensionless = Each(1e-9)
+  given dimensionlessTolerance: squants.Dimensionless = Each(1e-9)
 
   def mainRefSystem: RefSystem = {
     val nominalPower = Kilowatts(400d)
@@ -72,12 +72,9 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           inputModel.getType.getTapMax,
           inputModel.getType.getTapMin,
           inputModel.getType.getTapNeutr,
-          inputModel.isAutoTap, {
-            if (inputModel.getType.isTapSide)
-              ConnectorPort.B
-            else
-              ConnectorPort.A
-          }
+          inputModel.isAutoTap,
+          if inputModel.getType.isTapSide then ConnectorPort.B
+          else ConnectorPort.A
         )
 
       val dut: TransformerModel =
@@ -143,21 +140,21 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           case Complex(g, b) => (g, b)
         }
       (abs(gii - 0.0) < quantityTolerance) shouldBe true
-      (abs(bii - (-1.875e-3)) < quantityTolerance) shouldBe true
+      (abs(bii - -1.875e-3) < quantityTolerance) shouldBe true
 
       val (gjj, bjj) =
         TransformerModel.y0(dut, ConnectorPort.B) match {
           case Complex(g, b) => (g, b)
         }
       (abs(gjj - 0.0) < quantityTolerance) shouldBe true
-      (abs(bjj - (-1.875e-3)) < quantityTolerance) shouldBe true
+      (abs(bjj - -1.875e-3) < quantityTolerance) shouldBe true
 
       val (gij, bij) =
         TransformerModel.yij(dut) match {
           case Complex(g, b) => (g, b)
         }
       (abs(gij - 11.40619406) < quantityTolerance) shouldBe true
-      (abs(bij - (-37.68667292)) < quantityTolerance) shouldBe true
+      (abs(bij - -37.68667292) < quantityTolerance) shouldBe true
     }
 
     "result in an enabled TransformerModel if the TransformerInputModel is enabled" in new TransformerTestData {
@@ -198,7 +195,7 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           defaultSimulationEnd
         )
 
-      dut invokePrivate tapRatio() shouldBe 1.0
+      dut.invokePrivate(tapRatio()) shouldBe 1.0
     }
   }
 
@@ -223,32 +220,32 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
         PrivateMethod[Double](Symbol("tapRatio"))
 
       transformerModelTapHv.currentTapPos shouldBe 0
-      transformerModelTapHv invokePrivate tapRatio() shouldBe 1.0
+      transformerModelTapHv.invokePrivate(tapRatio()) shouldBe 1.0
 
       transformerModelTapHv.incrTapPos()
 
       transformerModelTapHv.currentTapPos shouldBe 1
-      transformerModelTapHv invokePrivate tapRatio() shouldBe 1.025
+      transformerModelTapHv.invokePrivate(tapRatio()) shouldBe 1.025
 
       transformerModelTapHv.incrTapPos(4)
 
       transformerModelTapHv.currentTapPos shouldBe 5
-      transformerModelTapHv invokePrivate tapRatio() shouldBe 1.125
+      transformerModelTapHv.invokePrivate(tapRatio()) shouldBe 1.125
 
       transformerModelTapHv.updateTapPos(6)
 
       transformerModelTapHv.currentTapPos shouldBe 6
-      transformerModelTapHv invokePrivate tapRatio() shouldBe 1.15
+      transformerModelTapHv.invokePrivate(tapRatio()) shouldBe 1.15
 
       transformerModelTapHv.decrTapPos()
 
       transformerModelTapHv.currentTapPos shouldBe 5
-      transformerModelTapHv invokePrivate tapRatio() shouldBe 1.125
+      transformerModelTapHv.invokePrivate(tapRatio()) shouldBe 1.125
 
       transformerModelTapHv.decrTapPos(3)
 
       transformerModelTapHv.currentTapPos shouldBe 2
-      transformerModelTapHv invokePrivate tapRatio() shouldBe 1.05
+      transformerModelTapHv.invokePrivate(tapRatio()) shouldBe 1.05
     }
 
     "should compute valid delta tap positions" in new TransformerTestGrid {
@@ -278,16 +275,14 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             deadBandVal: Double,
             expected: Int
         ) =>
-          {
-            val vChange = Quantities.getQuantity(vChangeVal, PU)
-            val deadBand = Quantities.getQuantity(deadBandVal, PU)
+          val vChange = Quantities.getQuantity(vChangeVal, PU)
+          val deadBand = Quantities.getQuantity(deadBandVal, PU)
 
-            transformerModelTapHv.updateTapPos(currentTapPos)
-            transformerModelTapHv.computeDeltaTap(
-              vChange,
-              deadBand
-            ) shouldBe expected
-          }
+          transformerModelTapHv.updateTapPos(currentTapPos)
+          transformerModelTapHv.computeDeltaTap(
+            vChange,
+            deadBand
+          ) shouldBe expected
       }
     }
 
@@ -300,49 +295,47 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             yiiExpected: Complex,
             yjjExpected: Complex
         ) =>
-          {
-            val transformer = tapSide match {
-              case ConnectorPort.A => transformerModelTapHv
-              case ConnectorPort.B => transformerModelTapLv
-              case _ =>
-                throw new InvalidGridException(
-                  s"Cannot find a transformer for tap side $tapSide in the basic grid"
-                )
+          val transformer = tapSide match {
+            case ConnectorPort.A => transformerModelTapHv
+            case ConnectorPort.B => transformerModelTapLv
+            case _ =>
+              throw new InvalidGridException(
+                s"Cannot find a transformer for tap side $tapSide in the basic grid"
+              )
+          }
+
+          transformer.updateTapPos(tapPos)
+          val (gijActual, bijActual) =
+            TransformerModel.yij(transformer) match {
+              case Complex(g, b) => (g, b)
+            }
+          val (giiActual, biiActual) =
+            TransformerModel.y0(transformer, ConnectorPort.A) match {
+              case Complex(g, b) => (g, b)
+            }
+          val (gjjActual, bjjActual) =
+            TransformerModel.y0(transformer, ConnectorPort.B) match {
+              case Complex(g, b) => (g, b)
             }
 
-            transformer.updateTapPos(tapPos)
-            val (gijActual, bijActual) =
-              TransformerModel.yij(transformer) match {
-                case Complex(g, b) => (g, b)
-              }
-            val (giiActual, biiActual) =
-              TransformerModel.y0(transformer, ConnectorPort.A) match {
-                case Complex(g, b) => (g, b)
-              }
-            val (gjjActual, bjjActual) =
-              TransformerModel.y0(transformer, ConnectorPort.B) match {
-                case Complex(g, b) => (g, b)
-              }
-
-            (abs(
-              gijActual - yijExpected.real
-            ) < quantityTolerance) shouldBe true
-            (abs(
-              bijActual - yijExpected.imag
-            ) < quantityTolerance) shouldBe true
-            (abs(
-              giiActual - yiiExpected.real
-            ) < quantityTolerance) shouldBe true
-            (abs(
-              biiActual - yiiExpected.imag
-            ) < quantityTolerance) shouldBe true
-            (abs(
-              gjjActual - yjjExpected.real
-            ) < quantityTolerance) shouldBe true
-            (abs(
-              bjjActual - yjjExpected.imag
-            ) < quantityTolerance) shouldBe true
-          }
+          (abs(
+            gijActual - yijExpected.real
+          ) < quantityTolerance) shouldBe true
+          (abs(
+            bijActual - yijExpected.imag
+          ) < quantityTolerance) shouldBe true
+          (abs(
+            giiActual - yiiExpected.real
+          ) < quantityTolerance) shouldBe true
+          (abs(
+            biiActual - yiiExpected.imag
+          ) < quantityTolerance) shouldBe true
+          (abs(
+            gjjActual - yjjExpected.real
+          ) < quantityTolerance) shouldBe true
+          (abs(
+            bjjActual - yjjExpected.imag
+          ) < quantityTolerance) shouldBe true
       }
     }
   }
@@ -364,67 +357,65 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             e: Double,
             f: Double
         ) =>
-          {
-            logger.debug(
-              if (tapSide == ConnectorPort.A)
-                s"Test grid with transformer tap changer hat HV side at tapPos $tapPos and active power of $p p.u."
-              else
-                s"Test grid with transformer tap changer hat LV side at tapPos $tapPos and active power of $p p.u."
-            )
+          logger.debug(
+            if tapSide == ConnectorPort.A then
+              s"Test grid with transformer tap changer hat HV side at tapPos $tapPos and active power of $p p.u."
+            else
+              s"Test grid with transformer tap changer hat LV side at tapPos $tapPos and active power of $p p.u."
+          )
 
-            val grid = tapSide match {
-              case ConnectorPort.A => gridTapHv
-              case ConnectorPort.B => gridTapLv
-              case unknown =>
-                throw new InvalidGridException(
-                  s"Cannot test a transformer with tap changer at $unknown"
-                )
-            }
-            val gridModel = GridModel(
-              grid,
-              refSystem,
-              defaultSimulationStart,
-              defaultSimulationEnd
-            )
-
-            gridModel.gridComponents.transformers
-              .toVector(0)
-              .updateTapPos(tapPos)
-            val admittanceMatrix =
-              GridModel.composeAdmittanceMatrix(
-                nodeUuidToIndexMap,
-                gridModel.gridComponents
+          val grid = tapSide match {
+            case ConnectorPort.A => gridTapHv
+            case ConnectorPort.B => gridTapLv
+            case unknown =>
+              throw new InvalidGridException(
+                s"Cannot test a transformer with tap changer at $unknown"
               )
+          }
+          val gridModel = GridModel(
+            grid,
+            refSystem,
+            defaultSimulationStart,
+            defaultSimulationEnd
+          )
 
-            val operationPoint =
-              Array(
-                PresetData(0, NodeType.SL, Complex.zero),
-                PresetData(1, NodeType.PQ, Complex(p.doubleValue, 0d))
-              )
-
-            val powerFlow = new NewtonRaphsonPF(
-              epsilon,
-              maxIterations,
-              admittanceMatrix,
-              Option.apply(Vector(0, 1))
+          gridModel.gridComponents.transformers
+            .toVector(0)
+            .updateTapPos(tapPos)
+          val admittanceMatrix =
+            GridModel.composeAdmittanceMatrix(
+              nodeUuidToIndexMap,
+              gridModel.gridComponents
             )
-            val result = powerFlow.calculate(operationPoint, startData)
 
-            result match {
-              case success: PowerFlowResult.SuccessFullPowerFlowResult =>
-                val v = NodeData
-                  .getByIndex(success.nodeData, 1)
-                  .voltage
-                abs(v.real - e) < testingTolerancePf shouldBe true
-                abs(v.imag - f) < testingTolerancePf shouldBe true
-              case _: PowerFlowResult.FailedPowerFlowResult =>
-                fail(
-                  if (tapSide == ConnectorPort.A)
-                    s"Unable to calculate the power flow on transformer tap position $tapPos (tap changer on HV side) and active power of $p p.u."
-                  else
-                    s"Unable to calculate the power flow on transformer tap position $tapPos (tap changer on LV side) and active power of $p p.u."
-                )
-            }
+          val operationPoint =
+            Array(
+              PresetData(0, NodeType.SL, Complex.zero),
+              PresetData(1, NodeType.PQ, Complex(p.doubleValue, 0d))
+            )
+
+          val powerFlow = new NewtonRaphsonPF(
+            epsilon,
+            maxIterations,
+            admittanceMatrix,
+            Option.apply(Vector(0, 1))
+          )
+          val result = powerFlow.calculate(operationPoint, startData)
+
+          result match {
+            case success: PowerFlowResult.SuccessFullPowerFlowResult =>
+              val v = NodeData
+                .getByIndex(success.nodeData, 1)
+                .voltage
+              abs(v.real - e) < testingTolerancePf shouldBe true
+              abs(v.imag - f) < testingTolerancePf shouldBe true
+            case _: PowerFlowResult.FailedPowerFlowResult =>
+              fail(
+                if tapSide == ConnectorPort.A then
+                  s"Unable to calculate the power flow on transformer tap position $tapPos (tap changer on HV side) and active power of $p p.u."
+                else
+                  s"Unable to calculate the power flow on transformer tap position $tapPos (tap changer on LV side) and active power of $p p.u."
+              )
           }
       }
     }

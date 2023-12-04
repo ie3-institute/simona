@@ -96,8 +96,8 @@ abstract class SystemParticipant[
       tick: Long,
       voltage: Dimensionless,
       data: CD
-  ): ApparentPower = {
-    if (isInOperation(tick)) {
+  ): ApparentPower =
+    if isInOperation(tick) then {
       val activePower = calculateActivePower(data)
       val reactivePower =
         calculateReactivePower(activePower, voltage)
@@ -108,7 +108,6 @@ abstract class SystemParticipant[
         DefaultQuantities.zeroMVAr
       )
     }
-  }
 
   /** Calculate the active power behaviour of the model
     *
@@ -148,12 +147,11 @@ abstract class SystemParticipant[
   def calculateReactivePower(
       activePower: Power,
       voltage: Dimensionless
-  ): ReactivePower = {
+  ): ReactivePower =
     limitReactivePower(
       activePower,
       activeToReactivePowerFunc(voltage)(activePower)
     )
-  }
 
   /** Check if the calculated apparent power respects model limits and return
     * adjusted reactive power value if necessary
@@ -169,44 +167,41 @@ abstract class SystemParticipant[
       activePower: Power,
       reactivePower: ReactivePower
   ): ReactivePower = {
-    {
-      val apparentPower: Power = Kilowatts(
-        Math
-          .sqrt(
-            Math.pow(activePower.toKilowatts, 2) + Math
-              .pow(reactivePower.toKilovars, 2)
-          )
+    val apparentPower: Power = Kilowatts(
+      Math
+        .sqrt(
+          Math.pow(activePower.toKilowatts, 2) + Math
+            .pow(reactivePower.toKilovars, 2)
+        )
+    )
+
+    // tolerance for double inaccuracies
+    val sMaxWithTolerance = sMax * 1.00001d
+
+    if apparentPower > sMaxWithTolerance then {
+      logger.debug(
+        s"The var characteristics \'$qControl\' of model \'$id\' ($uuid) imposes an apparent " +
+          s"power (= $apparentPower) that exceeds " +
+          s"rated apparent power specifications (= $sMax). " +
+          s"Therefore, setting reactive power output to the to the upper limit " +
+          s"in correspondence to the existing active power $activePower."
       )
 
-      // tolerance for double inaccuracies
-      val sMaxWithTolerance = sMax * 1.00001d
+      val powerSquaredDifference = Math.pow(sMax.toMegawatts, 2) -
+        Math.pow(activePower.toMegawatts, 2)
 
-      if (apparentPower > sMaxWithTolerance) {
-        logger.debug(
-          s"The var characteristics \'$qControl\' of model \'$id\' ($uuid) imposes an apparent " +
-            s"power (= $apparentPower) that exceeds " +
-            s"rated apparent power specifications (= $sMax). " +
-            s"Therefore, setting reactive power output to the to the upper limit " +
-            s"in correspondence to the existing active power $activePower."
+      if powerSquaredDifference < 0 then {
+        logger.warn(
+          s"Active power of model exceeds sRated. Set reactive power to 0!"
         )
-
-        val powerSquaredDifference = Math.pow(sMax.toMegawatts, 2) -
-          Math.pow(activePower.toMegawatts, 2)
-
-        if (powerSquaredDifference < 0) {
-          logger.warn(
-            s"Active power of model exceeds sRated. Set reactive power to 0!"
-          )
-          Megavars(0d)
-        } else {
-          Megavars(
-            Math.sqrt(powerSquaredDifference)
-          ) * (if (reactivePower.toMegavars < 0) -1
-               else 1) // preserve the sign of reactive power
-        }
-      } else
-        reactivePower
-    }
+        Megavars(0d)
+      } else {
+        Megavars(
+          Math.sqrt(powerSquaredDifference)
+        ) * (if reactivePower.toMegavars < 0 then -1
+             else 1) // preserve the sign of reactive power
+      }
+    } else reactivePower
   }
 
   def getUuid: UUID = this.uuid

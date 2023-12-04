@@ -20,21 +20,20 @@ object SimonaConfig {
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.BaseCsvParams = {
+    ): SimonaConfig.BaseCsvParams =
       SimonaConfig.BaseCsvParams(
         csvSep = $_reqStr(parentPath, c, "csvSep", $tsCfgValidator),
         directoryPath =
           $_reqStr(parentPath, c, "directoryPath", $tsCfgValidator),
         isHierarchic = $_reqBln(parentPath, c, "isHierarchic", $tsCfgValidator)
       )
-    }
     private def $_reqBln(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Boolean = {
-      if (c == null) false
+    ): scala.Boolean =
+      if c == null then false
       else
         try c.getBoolean(path)
         catch {
@@ -42,15 +41,14 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             false
         }
-    }
 
     private def $_reqStr(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): java.lang.String = {
-      if (c == null) null
+    ): java.lang.String =
+      if c == null then null
       else
         try c.getString(path)
         catch {
@@ -58,7 +56,6 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             null
         }
-    }
 
   }
 
@@ -93,7 +90,7 @@ object SimonaConfig {
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.EvcsRuntimeConfig = {
+    ): SimonaConfig.EvcsRuntimeConfig =
       SimonaConfig.EvcsRuntimeConfig(
         calculateMissingReactivePowerWithModel = $_reqBln(
           parentPath,
@@ -104,14 +101,13 @@ object SimonaConfig {
         scaling = $_reqDbl(parentPath, c, "scaling", $tsCfgValidator),
         uuids = $_L$_str(c.getList("uuids"), parentPath, $tsCfgValidator)
       )
-    }
     private def $_reqBln(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Boolean = {
-      if (c == null) false
+    ): scala.Boolean =
+      if c == null then false
       else
         try c.getBoolean(path)
         catch {
@@ -119,15 +115,14 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             false
         }
-    }
 
     private def $_reqDbl(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Double = {
-      if (c == null) 0
+    ): scala.Double =
+      if c == null then 0
       else
         try c.getDouble(path)
         catch {
@@ -135,7 +130,6 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             0
         }
-    }
 
   }
 
@@ -153,7 +147,7 @@ object SimonaConfig {
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.FixedFeedInRuntimeConfig = {
+    ): SimonaConfig.FixedFeedInRuntimeConfig =
       SimonaConfig.FixedFeedInRuntimeConfig(
         calculateMissingReactivePowerWithModel = $_reqBln(
           parentPath,
@@ -164,14 +158,13 @@ object SimonaConfig {
         scaling = $_reqDbl(parentPath, c, "scaling", $tsCfgValidator),
         uuids = $_L$_str(c.getList("uuids"), parentPath, $tsCfgValidator)
       )
-    }
     private def $_reqBln(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Boolean = {
-      if (c == null) false
+    ): scala.Boolean =
+      if c == null then false
       else
         try c.getBoolean(path)
         catch {
@@ -179,15 +172,14 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             false
         }
-    }
 
     private def $_reqDbl(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Double = {
-      if (c == null) 0
+    ): scala.Double =
+      if c == null then 0
       else
         try c.getDouble(path)
         catch {
@@ -195,7 +187,6 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             0
         }
-    }
 
   }
 
@@ -212,7 +203,7 @@ object SimonaConfig {
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.GridOutputConfig = {
+    ): SimonaConfig.GridOutputConfig =
       SimonaConfig.GridOutputConfig(
         lines = c.hasPathOrNull("lines") && c.getBoolean("lines"),
         nodes = c.hasPathOrNull("nodes") && c.getBoolean("nodes"),
@@ -223,14 +214,13 @@ object SimonaConfig {
         transformers3w =
           c.hasPathOrNull("transformers3w") && c.getBoolean("transformers3w")
       )
-    }
     private def $_reqStr(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): java.lang.String = {
-      if (c == null) null
+    ): java.lang.String =
+      if c == null then null
       else
         try c.getString(path)
         catch {
@@ -238,7 +228,6 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             null
         }
-    }
 
   }
 
@@ -256,7 +245,7 @@ object SimonaConfig {
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.HpRuntimeConfig = {
+    ): SimonaConfig.HpRuntimeConfig =
       SimonaConfig.HpRuntimeConfig(
         calculateMissingReactivePowerWithModel = $_reqBln(
           parentPath,
@@ -267,14 +256,13 @@ object SimonaConfig {
         scaling = $_reqDbl(parentPath, c, "scaling", $tsCfgValidator),
         uuids = $_L$_str(c.getList("uuids"), parentPath, $tsCfgValidator)
       )
-    }
     private def $_reqBln(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Boolean = {
-      if (c == null) false
+    ): scala.Boolean =
+      if c == null then false
       else
         try c.getBoolean(path)
         catch {
@@ -282,15 +270,14 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             false
         }
-    }
 
     private def $_reqDbl(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Double = {
-      if (c == null) 0
+    ): scala.Double =
+      if c == null then 0
       else
         try c.getDouble(path)
         catch {
@@ -298,7 +285,6 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             0
         }
-    }
 
   }
 
@@ -325,7 +311,7 @@ object SimonaConfig {
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.LoadRuntimeConfig = {
+    ): SimonaConfig.LoadRuntimeConfig =
       SimonaConfig.LoadRuntimeConfig(
         modelBehaviour =
           $_reqStr(parentPath, c, "modelBehaviour", $tsCfgValidator),
@@ -339,14 +325,13 @@ object SimonaConfig {
         scaling = $_reqDbl(parentPath, c, "scaling", $tsCfgValidator),
         uuids = $_L$_str(c.getList("uuids"), parentPath, $tsCfgValidator)
       )
-    }
     private def $_reqBln(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Boolean = {
-      if (c == null) false
+    ): scala.Boolean =
+      if c == null then false
       else
         try c.getBoolean(path)
         catch {
@@ -354,15 +339,14 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             false
         }
-    }
 
     private def $_reqDbl(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Double = {
-      if (c == null) 0
+    ): scala.Double =
+      if c == null then 0
       else
         try c.getDouble(path)
         catch {
@@ -370,15 +354,14 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             0
         }
-    }
 
     private def $_reqStr(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): java.lang.String = {
-      if (c == null) null
+    ): java.lang.String =
+      if c == null then null
       else
         try c.getString(path)
         catch {
@@ -386,7 +369,6 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             null
         }
-    }
 
   }
 
@@ -400,7 +382,7 @@ object SimonaConfig {
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.ParticipantBaseOutputConfig = {
+    ): SimonaConfig.ParticipantBaseOutputConfig =
       SimonaConfig.ParticipantBaseOutputConfig(
         powerRequestReply =
           $_reqBln(parentPath, c, "powerRequestReply", $tsCfgValidator),
@@ -408,14 +390,13 @@ object SimonaConfig {
         simulationResult =
           $_reqBln(parentPath, c, "simulationResult", $tsCfgValidator)
       )
-    }
     private def $_reqBln(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Boolean = {
-      if (c == null) false
+    ): scala.Boolean =
+      if c == null then false
       else
         try c.getBoolean(path)
         catch {
@@ -423,15 +404,14 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             false
         }
-    }
 
     private def $_reqStr(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): java.lang.String = {
-      if (c == null) null
+    ): java.lang.String =
+      if c == null then null
       else
         try c.getString(path)
         catch {
@@ -439,7 +419,6 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             null
         }
-    }
 
   }
 
@@ -454,24 +433,23 @@ object SimonaConfig {
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.PrimaryDataCsvParams = {
+    ): SimonaConfig.PrimaryDataCsvParams =
       SimonaConfig.PrimaryDataCsvParams(
         timePattern =
-          if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
+          if c.hasPathOrNull("timePattern") then c.getString("timePattern")
           else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
         csvSep = $_reqStr(parentPath, c, "csvSep", $tsCfgValidator),
         directoryPath =
           $_reqStr(parentPath, c, "directoryPath", $tsCfgValidator),
         isHierarchic = $_reqBln(parentPath, c, "isHierarchic", $tsCfgValidator)
       )
-    }
     private def $_reqBln(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Boolean = {
-      if (c == null) false
+    ): scala.Boolean =
+      if c == null then false
       else
         try c.getBoolean(path)
         catch {
@@ -479,15 +457,14 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             false
         }
-    }
 
     private def $_reqStr(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): java.lang.String = {
-      if (c == null) null
+    ): java.lang.String =
+      if c == null then null
       else
         try c.getString(path)
         catch {
@@ -495,7 +472,6 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             null
         }
-    }
 
   }
 
@@ -513,7 +489,7 @@ object SimonaConfig {
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.PvRuntimeConfig = {
+    ): SimonaConfig.PvRuntimeConfig =
       SimonaConfig.PvRuntimeConfig(
         calculateMissingReactivePowerWithModel = $_reqBln(
           parentPath,
@@ -524,14 +500,13 @@ object SimonaConfig {
         scaling = $_reqDbl(parentPath, c, "scaling", $tsCfgValidator),
         uuids = $_L$_str(c.getList("uuids"), parentPath, $tsCfgValidator)
       )
-    }
     private def $_reqBln(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Boolean = {
-      if (c == null) false
+    ): scala.Boolean =
+      if c == null then false
       else
         try c.getBoolean(path)
         catch {
@@ -539,15 +514,14 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             false
         }
-    }
 
     private def $_reqDbl(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Double = {
-      if (c == null) 0
+    ): scala.Double =
+      if c == null then 0
       else
         try c.getDouble(path)
         catch {
@@ -555,7 +529,6 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             0
         }
-    }
 
   }
 
@@ -570,10 +543,10 @@ object SimonaConfig {
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.RefSystemConfig = {
+    ): SimonaConfig.RefSystemConfig =
       SimonaConfig.RefSystemConfig(
         gridIds =
-          if (c.hasPathOrNull("gridIds"))
+          if c.hasPathOrNull("gridIds") then
             scala.Some(
               $_L$_str(c.getList("gridIds"), parentPath, $tsCfgValidator)
             )
@@ -581,7 +554,7 @@ object SimonaConfig {
         sNom = $_reqStr(parentPath, c, "sNom", $tsCfgValidator),
         vNom = $_reqStr(parentPath, c, "vNom", $tsCfgValidator),
         voltLvls =
-          if (c.hasPathOrNull("voltLvls"))
+          if c.hasPathOrNull("voltLvls") then
             scala.Some(
               $_LSimonaConfig_VoltLvlConfig(
                 c.getList("voltLvls"),
@@ -591,13 +564,12 @@ object SimonaConfig {
             )
           else None
       )
-    }
     private def $_LSimonaConfig_VoltLvlConfig(
         cl: com.typesafe.config.ConfigList,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
     ): scala.List[SimonaConfig.VoltLvlConfig] = {
-      import scala.jdk.CollectionConverters._
+      import scala.jdk.CollectionConverters.*
       cl.asScala
         .map(cv =>
           SimonaConfig.VoltLvlConfig(
@@ -613,8 +585,8 @@ object SimonaConfig {
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): java.lang.String = {
-      if (c == null) null
+    ): java.lang.String =
+      if c == null then null
       else
         try c.getString(path)
         catch {
@@ -622,7 +594,6 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             null
         }
-    }
 
   }
 
@@ -638,7 +609,7 @@ object SimonaConfig {
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.ResultKafkaParams = {
+    ): SimonaConfig.ResultKafkaParams =
       SimonaConfig.ResultKafkaParams(
         topicNodeRes = $_reqStr(parentPath, c, "topicNodeRes", $tsCfgValidator),
         bootstrapServers =
@@ -648,14 +619,13 @@ object SimonaConfig {
         schemaRegistryUrl =
           $_reqStr(parentPath, c, "schemaRegistryUrl", $tsCfgValidator)
       )
-    }
     private def $_reqInt(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Int = {
-      if (c == null) 0
+    ): scala.Int =
+      if c == null then 0
       else
         try c.getInt(path)
         catch {
@@ -663,15 +633,14 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             0
         }
-    }
 
     private def $_reqStr(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): java.lang.String = {
-      if (c == null) null
+    ): java.lang.String =
+      if c == null then null
       else
         try c.getString(path)
         catch {
@@ -679,7 +648,6 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             null
         }
-    }
 
   }
 
@@ -695,7 +663,7 @@ object SimonaConfig {
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.RuntimeKafkaParams = {
+    ): SimonaConfig.RuntimeKafkaParams =
       SimonaConfig.RuntimeKafkaParams(
         topic = $_reqStr(parentPath, c, "topic", $tsCfgValidator),
         bootstrapServers =
@@ -705,14 +673,13 @@ object SimonaConfig {
         schemaRegistryUrl =
           $_reqStr(parentPath, c, "schemaRegistryUrl", $tsCfgValidator)
       )
-    }
     private def $_reqInt(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Int = {
-      if (c == null) 0
+    ): scala.Int =
+      if c == null then 0
       else
         try c.getInt(path)
         catch {
@@ -720,15 +687,14 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             0
         }
-    }
 
     private def $_reqStr(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): java.lang.String = {
-      if (c == null) null
+    ): java.lang.String =
+      if c == null then null
       else
         try c.getString(path)
         catch {
@@ -736,7 +702,6 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             null
         }
-    }
 
   }
 
@@ -749,20 +714,19 @@ object SimonaConfig {
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.SimpleOutputConfig = {
+    ): SimonaConfig.SimpleOutputConfig =
       SimonaConfig.SimpleOutputConfig(
         notifier = $_reqStr(parentPath, c, "notifier", $tsCfgValidator),
         simulationResult =
           $_reqBln(parentPath, c, "simulationResult", $tsCfgValidator)
       )
-    }
     private def $_reqBln(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Boolean = {
-      if (c == null) false
+    ): scala.Boolean =
+      if c == null then false
       else
         try c.getBoolean(path)
         catch {
@@ -770,15 +734,14 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             false
         }
-    }
 
     private def $_reqStr(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): java.lang.String = {
-      if (c == null) null
+    ): java.lang.String =
+      if c == null then null
       else
         try c.getString(path)
         catch {
@@ -786,7 +749,6 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             null
         }
-    }
 
   }
 
@@ -799,19 +761,18 @@ object SimonaConfig {
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.VoltLvlConfig = {
+    ): SimonaConfig.VoltLvlConfig =
       SimonaConfig.VoltLvlConfig(
         id = $_reqStr(parentPath, c, "id", $tsCfgValidator),
         vNom = $_reqStr(parentPath, c, "vNom", $tsCfgValidator)
       )
-    }
     private def $_reqStr(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): java.lang.String = {
-      if (c == null) null
+    ): java.lang.String =
+      if c == null then null
       else
         try c.getString(path)
         catch {
@@ -819,7 +780,6 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             null
         }
-    }
 
   }
 
@@ -837,7 +797,7 @@ object SimonaConfig {
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.WecRuntimeConfig = {
+    ): SimonaConfig.WecRuntimeConfig =
       SimonaConfig.WecRuntimeConfig(
         calculateMissingReactivePowerWithModel = $_reqBln(
           parentPath,
@@ -848,14 +808,13 @@ object SimonaConfig {
         scaling = $_reqDbl(parentPath, c, "scaling", $tsCfgValidator),
         uuids = $_L$_str(c.getList("uuids"), parentPath, $tsCfgValidator)
       )
-    }
     private def $_reqBln(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Boolean = {
-      if (c == null) false
+    ): scala.Boolean =
+      if c == null then false
       else
         try c.getBoolean(path)
         catch {
@@ -863,15 +822,14 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             false
         }
-    }
 
     private def $_reqDbl(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): scala.Double = {
-      if (c == null) 0
+    ): scala.Double =
+      if c == null then 0
       else
         try c.getDouble(path)
         catch {
@@ -879,7 +837,6 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             0
         }
-    }
 
   }
 
@@ -909,10 +866,10 @@ object SimonaConfig {
             c: com.typesafe.config.Config,
             parentPath: java.lang.String,
             $tsCfgValidator: $TsCfgValidator
-        ): SimonaConfig.Simona.Event.Listener$Elm = {
+        ): SimonaConfig.Simona.Event.Listener$Elm =
           SimonaConfig.Simona.Event.Listener$Elm(
             eventsToProcess =
-              if (c.hasPathOrNull("eventsToProcess"))
+              if c.hasPathOrNull("eventsToProcess") then
                 scala.Some(
                   $_L$_str(
                     c.getList("eventsToProcess"),
@@ -924,14 +881,13 @@ object SimonaConfig {
             fullClassPath =
               $_reqStr(parentPath, c, "fullClassPath", $tsCfgValidator)
           )
-        }
         private def $_reqStr(
             parentPath: java.lang.String,
             c: com.typesafe.config.Config,
             path: java.lang.String,
             $tsCfgValidator: $TsCfgValidator
-        ): java.lang.String = {
-          if (c == null) null
+        ): java.lang.String =
+          if c == null then null
           else
             try c.getString(path)
             catch {
@@ -939,7 +895,6 @@ object SimonaConfig {
                 $tsCfgValidator.addBadPath(parentPath + path, e)
                 null
             }
-        }
 
       }
 
@@ -947,10 +902,10 @@ object SimonaConfig {
           c: com.typesafe.config.Config,
           parentPath: java.lang.String,
           $tsCfgValidator: $TsCfgValidator
-      ): SimonaConfig.Simona.Event = {
+      ): SimonaConfig.Simona.Event =
         SimonaConfig.Simona.Event(
           listener =
-            if (c.hasPathOrNull("listener"))
+            if c.hasPathOrNull("listener") then
               scala.Some(
                 $_LSimonaConfig_Simona_Event_Listener$Elm(
                   c.getList("listener"),
@@ -960,13 +915,12 @@ object SimonaConfig {
               )
             else None
         )
-      }
       private def $_LSimonaConfig_Simona_Event_Listener$Elm(
           cl: com.typesafe.config.ConfigList,
           parentPath: java.lang.String,
           $tsCfgValidator: $TsCfgValidator
       ): scala.List[SimonaConfig.Simona.Event.Listener$Elm] = {
-        import scala.jdk.CollectionConverters._
+        import scala.jdk.CollectionConverters.*
         cl.asScala
           .map(cv =>
             SimonaConfig.Simona.Event.Listener$Elm(
@@ -987,7 +941,7 @@ object SimonaConfig {
           c: com.typesafe.config.Config,
           parentPath: java.lang.String,
           $tsCfgValidator: $TsCfgValidator
-      ): SimonaConfig.Simona.GridConfig = {
+      ): SimonaConfig.Simona.GridConfig =
         SimonaConfig.Simona.GridConfig(
           refSystems = $_LSimonaConfig_RefSystemConfig(
             c.getList("refSystems"),
@@ -995,13 +949,12 @@ object SimonaConfig {
             $tsCfgValidator
           )
         )
-      }
       private def $_LSimonaConfig_RefSystemConfig(
           cl: com.typesafe.config.ConfigList,
           parentPath: java.lang.String,
           $tsCfgValidator: $TsCfgValidator
       ): scala.List[SimonaConfig.RefSystemConfig] = {
-        import scala.jdk.CollectionConverters._
+        import scala.jdk.CollectionConverters.*
         cl.asScala
           .map(cv =>
             SimonaConfig.RefSystemConfig(
@@ -1033,10 +986,10 @@ object SimonaConfig {
               c: com.typesafe.config.Config,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): SimonaConfig.Simona.Input.Grid.Datasource = {
+          ): SimonaConfig.Simona.Input.Grid.Datasource =
             SimonaConfig.Simona.Input.Grid.Datasource(
               csvParams =
-                if (c.hasPathOrNull("csvParams"))
+                if c.hasPathOrNull("csvParams") then
                   scala.Some(
                     SimonaConfig.BaseCsvParams(
                       c.getConfig("csvParams"),
@@ -1047,14 +1000,13 @@ object SimonaConfig {
                 else None,
               id = $_reqStr(parentPath, c, "id", $tsCfgValidator)
             )
-          }
           private def $_reqStr(
               parentPath: java.lang.String,
               c: com.typesafe.config.Config,
               path: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): java.lang.String = {
-            if (c == null) null
+          ): java.lang.String =
+            if c == null then null
             else
               try c.getString(path)
               catch {
@@ -1062,7 +1014,6 @@ object SimonaConfig {
                   $tsCfgValidator.addBadPath(parentPath + path, e)
                   null
               }
-          }
 
         }
 
@@ -1070,17 +1021,17 @@ object SimonaConfig {
             c: com.typesafe.config.Config,
             parentPath: java.lang.String,
             $tsCfgValidator: $TsCfgValidator
-        ): SimonaConfig.Simona.Input.Grid = {
+        ): SimonaConfig.Simona.Input.Grid =
           SimonaConfig.Simona.Input.Grid(
             datasource = SimonaConfig.Simona.Input.Grid.Datasource(
-              if (c.hasPathOrNull("datasource")) c.getConfig("datasource")
+              if c.hasPathOrNull("datasource") then c.getConfig("datasource")
               else
-                com.typesafe.config.ConfigFactory.parseString("datasource{}"),
+                com.typesafe.config.ConfigFactory.parseString("datasource{}")
+              ,
               parentPath + "datasource.",
               $tsCfgValidator
             )
           )
-        }
       }
 
       final case class Primary(
@@ -1108,7 +1059,7 @@ object SimonaConfig {
               c: com.typesafe.config.Config,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): SimonaConfig.Simona.Input.Primary.CouchbaseParams = {
+          ): SimonaConfig.Simona.Input.Primary.CouchbaseParams =
             SimonaConfig.Simona.Input.Primary.CouchbaseParams(
               bucketName =
                 $_reqStr(parentPath, c, "bucketName", $tsCfgValidator),
@@ -1121,19 +1072,19 @@ object SimonaConfig {
               keyPrefix = $_reqStr(parentPath, c, "keyPrefix", $tsCfgValidator),
               password = $_reqStr(parentPath, c, "password", $tsCfgValidator),
               timePattern =
-                if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
+                if c.hasPathOrNull("timePattern") then
+                  c.getString("timePattern")
                 else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
               url = $_reqStr(parentPath, c, "url", $tsCfgValidator),
               userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
             )
-          }
           private def $_reqStr(
               parentPath: java.lang.String,
               c: com.typesafe.config.Config,
               path: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): java.lang.String = {
-            if (c == null) null
+          ): java.lang.String =
+            if c == null then null
             else
               try c.getString(path)
               catch {
@@ -1141,7 +1092,6 @@ object SimonaConfig {
                   $tsCfgValidator.addBadPath(parentPath + path, e)
                   null
               }
-          }
 
         }
 
@@ -1156,23 +1106,23 @@ object SimonaConfig {
               c: com.typesafe.config.Config,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): SimonaConfig.Simona.Input.Primary.InfluxDb1xParams = {
+          ): SimonaConfig.Simona.Input.Primary.InfluxDb1xParams =
             SimonaConfig.Simona.Input.Primary.InfluxDb1xParams(
               database = $_reqStr(parentPath, c, "database", $tsCfgValidator),
               port = $_reqInt(parentPath, c, "port", $tsCfgValidator),
               timePattern =
-                if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
+                if c.hasPathOrNull("timePattern") then
+                  c.getString("timePattern")
                 else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
               url = $_reqStr(parentPath, c, "url", $tsCfgValidator)
             )
-          }
           private def $_reqInt(
               parentPath: java.lang.String,
               c: com.typesafe.config.Config,
               path: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): scala.Int = {
-            if (c == null) 0
+          ): scala.Int =
+            if c == null then 0
             else
               try c.getInt(path)
               catch {
@@ -1180,15 +1130,14 @@ object SimonaConfig {
                   $tsCfgValidator.addBadPath(parentPath + path, e)
                   0
               }
-          }
 
           private def $_reqStr(
               parentPath: java.lang.String,
               c: com.typesafe.config.Config,
               path: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): java.lang.String = {
-            if (c == null) null
+          ): java.lang.String =
+            if c == null then null
             else
               try c.getString(path)
               catch {
@@ -1196,7 +1145,6 @@ object SimonaConfig {
                   $tsCfgValidator.addBadPath(parentPath + path, e)
                   null
               }
-          }
 
         }
 
@@ -1212,26 +1160,26 @@ object SimonaConfig {
               c: com.typesafe.config.Config,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): SimonaConfig.Simona.Input.Primary.SqlParams = {
+          ): SimonaConfig.Simona.Input.Primary.SqlParams =
             SimonaConfig.Simona.Input.Primary.SqlParams(
               jdbcUrl = $_reqStr(parentPath, c, "jdbcUrl", $tsCfgValidator),
               password = $_reqStr(parentPath, c, "password", $tsCfgValidator),
               schemaName =
-                if (c.hasPathOrNull("schemaName")) c.getString("schemaName")
+                if c.hasPathOrNull("schemaName") then c.getString("schemaName")
                 else "public",
               timePattern =
-                if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
+                if c.hasPathOrNull("timePattern") then
+                  c.getString("timePattern")
                 else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
               userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
             )
-          }
           private def $_reqStr(
               parentPath: java.lang.String,
               c: com.typesafe.config.Config,
               path: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): java.lang.String = {
-            if (c == null) null
+          ): java.lang.String =
+            if c == null then null
             else
               try c.getString(path)
               catch {
@@ -1239,7 +1187,6 @@ object SimonaConfig {
                   $tsCfgValidator.addBadPath(parentPath + path, e)
                   null
               }
-          }
 
         }
 
@@ -1247,10 +1194,10 @@ object SimonaConfig {
             c: com.typesafe.config.Config,
             parentPath: java.lang.String,
             $tsCfgValidator: $TsCfgValidator
-        ): SimonaConfig.Simona.Input.Primary = {
+        ): SimonaConfig.Simona.Input.Primary =
           SimonaConfig.Simona.Input.Primary(
             couchbaseParams =
-              if (c.hasPathOrNull("couchbaseParams"))
+              if c.hasPathOrNull("couchbaseParams") then
                 scala.Some(
                   SimonaConfig.Simona.Input.Primary.CouchbaseParams(
                     c.getConfig("couchbaseParams"),
@@ -1260,7 +1207,7 @@ object SimonaConfig {
                 )
               else None,
             csvParams =
-              if (c.hasPathOrNull("csvParams"))
+              if c.hasPathOrNull("csvParams") then
                 scala.Some(
                   SimonaConfig.PrimaryDataCsvParams(
                     c.getConfig("csvParams"),
@@ -1270,7 +1217,7 @@ object SimonaConfig {
                 )
               else None,
             influxDb1xParams =
-              if (c.hasPathOrNull("influxDb1xParams"))
+              if c.hasPathOrNull("influxDb1xParams") then
                 scala.Some(
                   SimonaConfig.Simona.Input.Primary.InfluxDb1xParams(
                     c.getConfig("influxDb1xParams"),
@@ -1280,7 +1227,7 @@ object SimonaConfig {
                 )
               else None,
             sqlParams =
-              if (c.hasPathOrNull("sqlParams"))
+              if c.hasPathOrNull("sqlParams") then
                 scala.Some(
                   SimonaConfig.Simona.Input.Primary.SqlParams(
                     c.getConfig("sqlParams"),
@@ -1290,7 +1237,6 @@ object SimonaConfig {
                 )
               else None
           )
-        }
       }
 
       final case class Weather(
@@ -1337,12 +1283,11 @@ object SimonaConfig {
                   c: com.typesafe.config.Config,
                   parentPath: java.lang.String,
                   $tsCfgValidator: $TsCfgValidator
-              ): SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams = {
+              ): SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams =
                 SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
                   .SampleParams(
                     use = !c.hasPathOrNull("use") || c.getBoolean("use")
                   )
-              }
             }
 
             final case class SqlParams(
@@ -1357,7 +1302,7 @@ object SimonaConfig {
                   c: com.typesafe.config.Config,
                   parentPath: java.lang.String,
                   $tsCfgValidator: $TsCfgValidator
-              ): SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SqlParams = {
+              ): SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SqlParams =
                 SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
                   .SqlParams(
                     jdbcUrl =
@@ -1365,7 +1310,7 @@ object SimonaConfig {
                     password =
                       $_reqStr(parentPath, c, "password", $tsCfgValidator),
                     schemaName =
-                      if (c.hasPathOrNull("schemaName"))
+                      if c.hasPathOrNull("schemaName") then
                         c.getString("schemaName")
                       else "public",
                     tableName =
@@ -1373,14 +1318,13 @@ object SimonaConfig {
                     userName =
                       $_reqStr(parentPath, c, "userName", $tsCfgValidator)
                   )
-              }
               private def $_reqStr(
                   parentPath: java.lang.String,
                   c: com.typesafe.config.Config,
                   path: java.lang.String,
                   $tsCfgValidator: $TsCfgValidator
-              ): java.lang.String = {
-                if (c == null) null
+              ): java.lang.String =
+                if c == null then null
                 else
                   try c.getString(path)
                   catch {
@@ -1388,7 +1332,6 @@ object SimonaConfig {
                       $tsCfgValidator.addBadPath(parentPath + path, e)
                       null
                   }
-              }
 
             }
 
@@ -1396,10 +1339,10 @@ object SimonaConfig {
                 c: com.typesafe.config.Config,
                 parentPath: java.lang.String,
                 $tsCfgValidator: $TsCfgValidator
-            ): SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource = {
+            ): SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource =
               SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource(
                 csvParams =
-                  if (c.hasPathOrNull("csvParams"))
+                  if c.hasPathOrNull("csvParams") then
                     scala.Some(
                       SimonaConfig.BaseCsvParams(
                         c.getConfig("csvParams"),
@@ -1409,10 +1352,10 @@ object SimonaConfig {
                     )
                   else None,
                 gridModel =
-                  if (c.hasPathOrNull("gridModel")) c.getString("gridModel")
+                  if c.hasPathOrNull("gridModel") then c.getString("gridModel")
                   else "icon",
                 sampleParams =
-                  if (c.hasPathOrNull("sampleParams"))
+                  if c.hasPathOrNull("sampleParams") then
                     scala.Some(
                       SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
                         .SampleParams(
@@ -1423,7 +1366,7 @@ object SimonaConfig {
                     )
                   else None,
                 sqlParams =
-                  if (c.hasPathOrNull("sqlParams"))
+                  if c.hasPathOrNull("sqlParams") then
                     scala.Some(
                       SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
                         .SqlParams(
@@ -1434,7 +1377,6 @@ object SimonaConfig {
                     )
                   else None
               )
-            }
           }
 
           final case class CouchbaseParams(
@@ -1450,7 +1392,7 @@ object SimonaConfig {
                 c: com.typesafe.config.Config,
                 parentPath: java.lang.String,
                 $tsCfgValidator: $TsCfgValidator
-            ): SimonaConfig.Simona.Input.Weather.Datasource.CouchbaseParams = {
+            ): SimonaConfig.Simona.Input.Weather.Datasource.CouchbaseParams =
               SimonaConfig.Simona.Input.Weather.Datasource.CouchbaseParams(
                 bucketName =
                   $_reqStr(parentPath, c, "bucketName", $tsCfgValidator),
@@ -1466,14 +1408,13 @@ object SimonaConfig {
                 url = $_reqStr(parentPath, c, "url", $tsCfgValidator),
                 userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
               )
-            }
             private def $_reqStr(
                 parentPath: java.lang.String,
                 c: com.typesafe.config.Config,
                 path: java.lang.String,
                 $tsCfgValidator: $TsCfgValidator
-            ): java.lang.String = {
-              if (c == null) null
+            ): java.lang.String =
+              if c == null then null
               else
                 try c.getString(path)
                 catch {
@@ -1481,7 +1422,6 @@ object SimonaConfig {
                     $tsCfgValidator.addBadPath(parentPath + path, e)
                     null
                 }
-            }
 
           }
 
@@ -1495,20 +1435,19 @@ object SimonaConfig {
                 c: com.typesafe.config.Config,
                 parentPath: java.lang.String,
                 $tsCfgValidator: $TsCfgValidator
-            ): SimonaConfig.Simona.Input.Weather.Datasource.InfluxDb1xParams = {
+            ): SimonaConfig.Simona.Input.Weather.Datasource.InfluxDb1xParams =
               SimonaConfig.Simona.Input.Weather.Datasource.InfluxDb1xParams(
                 database = $_reqStr(parentPath, c, "database", $tsCfgValidator),
                 port = $_reqInt(parentPath, c, "port", $tsCfgValidator),
                 url = $_reqStr(parentPath, c, "url", $tsCfgValidator)
               )
-            }
             private def $_reqInt(
                 parentPath: java.lang.String,
                 c: com.typesafe.config.Config,
                 path: java.lang.String,
                 $tsCfgValidator: $TsCfgValidator
-            ): scala.Int = {
-              if (c == null) 0
+            ): scala.Int =
+              if c == null then 0
               else
                 try c.getInt(path)
                 catch {
@@ -1516,15 +1455,14 @@ object SimonaConfig {
                     $tsCfgValidator.addBadPath(parentPath + path, e)
                     0
                 }
-            }
 
             private def $_reqStr(
                 parentPath: java.lang.String,
                 c: com.typesafe.config.Config,
                 path: java.lang.String,
                 $tsCfgValidator: $TsCfgValidator
-            ): java.lang.String = {
-              if (c == null) null
+            ): java.lang.String =
+              if c == null then null
               else
                 try c.getString(path)
                 catch {
@@ -1532,7 +1470,6 @@ object SimonaConfig {
                     $tsCfgValidator.addBadPath(parentPath + path, e)
                     null
                 }
-            }
 
           }
 
@@ -1544,11 +1481,10 @@ object SimonaConfig {
                 c: com.typesafe.config.Config,
                 parentPath: java.lang.String,
                 $tsCfgValidator: $TsCfgValidator
-            ): SimonaConfig.Simona.Input.Weather.Datasource.SampleParams = {
+            ): SimonaConfig.Simona.Input.Weather.Datasource.SampleParams =
               SimonaConfig.Simona.Input.Weather.Datasource.SampleParams(
                 use = !c.hasPathOrNull("use") || c.getBoolean("use")
               )
-            }
           }
 
           final case class SqlParams(
@@ -1563,25 +1499,25 @@ object SimonaConfig {
                 c: com.typesafe.config.Config,
                 parentPath: java.lang.String,
                 $tsCfgValidator: $TsCfgValidator
-            ): SimonaConfig.Simona.Input.Weather.Datasource.SqlParams = {
+            ): SimonaConfig.Simona.Input.Weather.Datasource.SqlParams =
               SimonaConfig.Simona.Input.Weather.Datasource.SqlParams(
                 jdbcUrl = $_reqStr(parentPath, c, "jdbcUrl", $tsCfgValidator),
                 password = $_reqStr(parentPath, c, "password", $tsCfgValidator),
                 schemaName =
-                  if (c.hasPathOrNull("schemaName")) c.getString("schemaName")
+                  if c.hasPathOrNull("schemaName") then
+                    c.getString("schemaName")
                   else "public",
                 tableName =
                   $_reqStr(parentPath, c, "tableName", $tsCfgValidator),
                 userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator)
               )
-            }
             private def $_reqStr(
                 parentPath: java.lang.String,
                 c: com.typesafe.config.Config,
                 path: java.lang.String,
                 $tsCfgValidator: $TsCfgValidator
-            ): java.lang.String = {
-              if (c == null) null
+            ): java.lang.String =
+              if c == null then null
               else
                 try c.getString(path)
                 catch {
@@ -1589,7 +1525,6 @@ object SimonaConfig {
                     $tsCfgValidator.addBadPath(parentPath + path, e)
                     null
                 }
-            }
 
           }
 
@@ -1597,20 +1532,21 @@ object SimonaConfig {
               c: com.typesafe.config.Config,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): SimonaConfig.Simona.Input.Weather.Datasource = {
+          ): SimonaConfig.Simona.Input.Weather.Datasource =
             SimonaConfig.Simona.Input.Weather.Datasource(
               coordinateSource =
                 SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource(
-                  if (c.hasPathOrNull("coordinateSource"))
+                  if c.hasPathOrNull("coordinateSource") then
                     c.getConfig("coordinateSource")
                   else
                     com.typesafe.config.ConfigFactory
-                      .parseString("coordinateSource{}"),
+                      .parseString("coordinateSource{}")
+                  ,
                   parentPath + "coordinateSource.",
                   $tsCfgValidator
                 ),
               couchbaseParams =
-                if (c.hasPathOrNull("couchbaseParams"))
+                if c.hasPathOrNull("couchbaseParams") then
                   scala.Some(
                     SimonaConfig.Simona.Input.Weather.Datasource
                       .CouchbaseParams(
@@ -1621,7 +1557,7 @@ object SimonaConfig {
                   )
                 else None,
               csvParams =
-                if (c.hasPathOrNull("csvParams"))
+                if c.hasPathOrNull("csvParams") then
                   scala.Some(
                     SimonaConfig.BaseCsvParams(
                       c.getConfig("csvParams"),
@@ -1631,7 +1567,7 @@ object SimonaConfig {
                   )
                 else None,
               influxDb1xParams =
-                if (c.hasPathOrNull("influxDb1xParams"))
+                if c.hasPathOrNull("influxDb1xParams") then
                   scala.Some(
                     SimonaConfig.Simona.Input.Weather.Datasource
                       .InfluxDb1xParams(
@@ -1642,15 +1578,15 @@ object SimonaConfig {
                   )
                 else None,
               maxCoordinateDistance =
-                if (c.hasPathOrNull("maxCoordinateDistance"))
+                if c.hasPathOrNull("maxCoordinateDistance") then
                   c.getDouble("maxCoordinateDistance")
                 else 50000,
               resolution =
-                if (c.hasPathOrNull("resolution"))
+                if c.hasPathOrNull("resolution") then
                   Some(c.getLong("resolution").longValue())
                 else None,
               sampleParams =
-                if (c.hasPathOrNull("sampleParams"))
+                if c.hasPathOrNull("sampleParams") then
                   scala.Some(
                     SimonaConfig.Simona.Input.Weather.Datasource.SampleParams(
                       c.getConfig("sampleParams"),
@@ -1660,10 +1596,10 @@ object SimonaConfig {
                   )
                 else None,
               scheme =
-                if (c.hasPathOrNull("scheme")) c.getString("scheme")
+                if c.hasPathOrNull("scheme") then c.getString("scheme")
                 else "icon",
               sqlParams =
-                if (c.hasPathOrNull("sqlParams"))
+                if c.hasPathOrNull("sqlParams") then
                   scala.Some(
                     SimonaConfig.Simona.Input.Weather.Datasource.SqlParams(
                       c.getConfig("sqlParams"),
@@ -1673,56 +1609,54 @@ object SimonaConfig {
                   )
                 else None,
               timestampPattern =
-                if (c.hasPathOrNull("timestampPattern"))
+                if c.hasPathOrNull("timestampPattern") then
                   Some(c.getString("timestampPattern"))
                 else None
             )
-          }
         }
 
         def apply(
             c: com.typesafe.config.Config,
             parentPath: java.lang.String,
             $tsCfgValidator: $TsCfgValidator
-        ): SimonaConfig.Simona.Input.Weather = {
+        ): SimonaConfig.Simona.Input.Weather =
           SimonaConfig.Simona.Input.Weather(
             datasource = SimonaConfig.Simona.Input.Weather.Datasource(
-              if (c.hasPathOrNull("datasource")) c.getConfig("datasource")
+              if c.hasPathOrNull("datasource") then c.getConfig("datasource")
               else
-                com.typesafe.config.ConfigFactory.parseString("datasource{}"),
+                com.typesafe.config.ConfigFactory.parseString("datasource{}")
+              ,
               parentPath + "datasource.",
               $tsCfgValidator
             )
           )
-        }
       }
 
       def apply(
           c: com.typesafe.config.Config,
           parentPath: java.lang.String,
           $tsCfgValidator: $TsCfgValidator
-      ): SimonaConfig.Simona.Input = {
+      ): SimonaConfig.Simona.Input =
         SimonaConfig.Simona.Input(
           grid = SimonaConfig.Simona.Input.Grid(
-            if (c.hasPathOrNull("grid")) c.getConfig("grid")
+            if c.hasPathOrNull("grid") then c.getConfig("grid")
             else com.typesafe.config.ConfigFactory.parseString("grid{}"),
             parentPath + "grid.",
             $tsCfgValidator
           ),
           primary = SimonaConfig.Simona.Input.Primary(
-            if (c.hasPathOrNull("primary")) c.getConfig("primary")
+            if c.hasPathOrNull("primary") then c.getConfig("primary")
             else com.typesafe.config.ConfigFactory.parseString("primary{}"),
             parentPath + "primary.",
             $tsCfgValidator
           ),
           weather = SimonaConfig.Simona.Input.Weather(
-            if (c.hasPathOrNull("weather")) c.getConfig("weather")
+            if c.hasPathOrNull("weather") then c.getConfig("weather")
             else com.typesafe.config.ConfigFactory.parseString("weather{}"),
             parentPath + "weather.",
             $tsCfgValidator
           )
         )
-      }
     }
 
     final case class Output(
@@ -1742,21 +1676,20 @@ object SimonaConfig {
             c: com.typesafe.config.Config,
             parentPath: java.lang.String,
             $tsCfgValidator: $TsCfgValidator
-        ): SimonaConfig.Simona.Output.Base = {
+        ): SimonaConfig.Simona.Output.Base =
           SimonaConfig.Simona.Output.Base(
             addTimestampToOutputDir = !c.hasPathOrNull(
               "addTimestampToOutputDir"
             ) || c.getBoolean("addTimestampToOutputDir"),
             dir = $_reqStr(parentPath, c, "dir", $tsCfgValidator)
           )
-        }
         private def $_reqStr(
             parentPath: java.lang.String,
             c: com.typesafe.config.Config,
             path: java.lang.String,
             $tsCfgValidator: $TsCfgValidator
-        ): java.lang.String = {
-          if (c == null) null
+        ): java.lang.String =
+          if c == null then null
           else
             try c.getString(path)
             catch {
@@ -1764,7 +1697,6 @@ object SimonaConfig {
                 $tsCfgValidator.addBadPath(parentPath + path, e)
                 null
             }
-        }
 
       }
 
@@ -1779,13 +1711,15 @@ object SimonaConfig {
             c: com.typesafe.config.Config,
             parentPath: java.lang.String,
             $tsCfgValidator: $TsCfgValidator
-        ): SimonaConfig.Simona.Output.Participant = {
+        ): SimonaConfig.Simona.Output.Participant =
           SimonaConfig.Simona.Output.Participant(
             defaultConfig = SimonaConfig.ParticipantBaseOutputConfig(
-              if (c.hasPathOrNull("defaultConfig")) c.getConfig("defaultConfig")
+              if c.hasPathOrNull("defaultConfig") then
+                c.getConfig("defaultConfig")
               else
                 com.typesafe.config.ConfigFactory
-                  .parseString("defaultConfig{}"),
+                  .parseString("defaultConfig{}")
+              ,
               parentPath + "defaultConfig.",
               $tsCfgValidator
             ),
@@ -1795,13 +1729,12 @@ object SimonaConfig {
               $tsCfgValidator
             )
           )
-        }
         private def $_LSimonaConfig_ParticipantBaseOutputConfig(
             cl: com.typesafe.config.ConfigList,
             parentPath: java.lang.String,
             $tsCfgValidator: $TsCfgValidator
         ): scala.List[SimonaConfig.ParticipantBaseOutputConfig] = {
-          import scala.jdk.CollectionConverters._
+          import scala.jdk.CollectionConverters.*
           cl.asScala
             .map(cv =>
               SimonaConfig.ParticipantBaseOutputConfig(
@@ -1831,21 +1764,20 @@ object SimonaConfig {
               c: com.typesafe.config.Config,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): SimonaConfig.Simona.Output.Sink.Csv = {
+          ): SimonaConfig.Simona.Output.Sink.Csv =
             SimonaConfig.Simona.Output.Sink.Csv(
               fileFormat =
-                if (c.hasPathOrNull("fileFormat")) c.getString("fileFormat")
+                if c.hasPathOrNull("fileFormat") then c.getString("fileFormat")
                 else ".csv",
               filePrefix =
-                if (c.hasPathOrNull("filePrefix")) c.getString("filePrefix")
+                if c.hasPathOrNull("filePrefix") then c.getString("filePrefix")
                 else "",
               fileSuffix =
-                if (c.hasPathOrNull("fileSuffix")) c.getString("fileSuffix")
+                if c.hasPathOrNull("fileSuffix") then c.getString("fileSuffix")
                 else "",
               isHierarchic =
                 c.hasPathOrNull("isHierarchic") && c.getBoolean("isHierarchic")
             )
-          }
         }
 
         final case class InfluxDb1x(
@@ -1858,20 +1790,19 @@ object SimonaConfig {
               c: com.typesafe.config.Config,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): SimonaConfig.Simona.Output.Sink.InfluxDb1x = {
+          ): SimonaConfig.Simona.Output.Sink.InfluxDb1x =
             SimonaConfig.Simona.Output.Sink.InfluxDb1x(
               database = $_reqStr(parentPath, c, "database", $tsCfgValidator),
               port = $_reqInt(parentPath, c, "port", $tsCfgValidator),
               url = $_reqStr(parentPath, c, "url", $tsCfgValidator)
             )
-          }
           private def $_reqInt(
               parentPath: java.lang.String,
               c: com.typesafe.config.Config,
               path: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): scala.Int = {
-            if (c == null) 0
+          ): scala.Int =
+            if c == null then 0
             else
               try c.getInt(path)
               catch {
@@ -1879,15 +1810,14 @@ object SimonaConfig {
                   $tsCfgValidator.addBadPath(parentPath + path, e)
                   0
               }
-          }
 
           private def $_reqStr(
               parentPath: java.lang.String,
               c: com.typesafe.config.Config,
               path: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): java.lang.String = {
-            if (c == null) null
+          ): java.lang.String =
+            if c == null then null
             else
               try c.getString(path)
               catch {
@@ -1895,7 +1825,6 @@ object SimonaConfig {
                   $tsCfgValidator.addBadPath(parentPath + path, e)
                   null
               }
-          }
 
         }
 
@@ -1903,10 +1832,10 @@ object SimonaConfig {
             c: com.typesafe.config.Config,
             parentPath: java.lang.String,
             $tsCfgValidator: $TsCfgValidator
-        ): SimonaConfig.Simona.Output.Sink = {
+        ): SimonaConfig.Simona.Output.Sink =
           SimonaConfig.Simona.Output.Sink(
             csv =
-              if (c.hasPathOrNull("csv"))
+              if c.hasPathOrNull("csv") then
                 scala.Some(
                   SimonaConfig.Simona.Output.Sink.Csv(
                     c.getConfig("csv"),
@@ -1916,7 +1845,7 @@ object SimonaConfig {
                 )
               else None,
             influxDb1x =
-              if (c.hasPathOrNull("influxDb1x"))
+              if c.hasPathOrNull("influxDb1x") then
                 scala.Some(
                   SimonaConfig.Simona.Output.Sink.InfluxDb1x(
                     c.getConfig("influxDb1x"),
@@ -1926,7 +1855,7 @@ object SimonaConfig {
                 )
               else None,
             kafka =
-              if (c.hasPathOrNull("kafka"))
+              if c.hasPathOrNull("kafka") then
                 scala.Some(
                   SimonaConfig.ResultKafkaParams(
                     c.getConfig("kafka"),
@@ -1936,7 +1865,6 @@ object SimonaConfig {
                 )
               else None
           )
-        }
       }
 
       final case class Thermal(
@@ -1948,13 +1876,15 @@ object SimonaConfig {
             c: com.typesafe.config.Config,
             parentPath: java.lang.String,
             $tsCfgValidator: $TsCfgValidator
-        ): SimonaConfig.Simona.Output.Thermal = {
+        ): SimonaConfig.Simona.Output.Thermal =
           SimonaConfig.Simona.Output.Thermal(
             defaultConfig = SimonaConfig.SimpleOutputConfig(
-              if (c.hasPathOrNull("defaultConfig")) c.getConfig("defaultConfig")
+              if c.hasPathOrNull("defaultConfig") then
+                c.getConfig("defaultConfig")
               else
                 com.typesafe.config.ConfigFactory
-                  .parseString("defaultConfig{}"),
+                  .parseString("defaultConfig{}")
+              ,
               parentPath + "defaultConfig.",
               $tsCfgValidator
             ),
@@ -1964,13 +1894,12 @@ object SimonaConfig {
               $tsCfgValidator
             )
           )
-        }
         private def $_LSimonaConfig_SimpleOutputConfig(
             cl: com.typesafe.config.ConfigList,
             parentPath: java.lang.String,
             $tsCfgValidator: $TsCfgValidator
         ): scala.List[SimonaConfig.SimpleOutputConfig] = {
-          import scala.jdk.CollectionConverters._
+          import scala.jdk.CollectionConverters.*
           cl.asScala
             .map(cv =>
               SimonaConfig.SimpleOutputConfig(
@@ -1987,40 +1916,39 @@ object SimonaConfig {
           c: com.typesafe.config.Config,
           parentPath: java.lang.String,
           $tsCfgValidator: $TsCfgValidator
-      ): SimonaConfig.Simona.Output = {
+      ): SimonaConfig.Simona.Output =
         SimonaConfig.Simona.Output(
           base = SimonaConfig.Simona.Output.Base(
-            if (c.hasPathOrNull("base")) c.getConfig("base")
+            if c.hasPathOrNull("base") then c.getConfig("base")
             else com.typesafe.config.ConfigFactory.parseString("base{}"),
             parentPath + "base.",
             $tsCfgValidator
           ),
           grid = SimonaConfig.GridOutputConfig(
-            if (c.hasPathOrNull("grid")) c.getConfig("grid")
+            if c.hasPathOrNull("grid") then c.getConfig("grid")
             else com.typesafe.config.ConfigFactory.parseString("grid{}"),
             parentPath + "grid.",
             $tsCfgValidator
           ),
           participant = SimonaConfig.Simona.Output.Participant(
-            if (c.hasPathOrNull("participant")) c.getConfig("participant")
+            if c.hasPathOrNull("participant") then c.getConfig("participant")
             else com.typesafe.config.ConfigFactory.parseString("participant{}"),
             parentPath + "participant.",
             $tsCfgValidator
           ),
           sink = SimonaConfig.Simona.Output.Sink(
-            if (c.hasPathOrNull("sink")) c.getConfig("sink")
+            if c.hasPathOrNull("sink") then c.getConfig("sink")
             else com.typesafe.config.ConfigFactory.parseString("sink{}"),
             parentPath + "sink.",
             $tsCfgValidator
           ),
           thermal = SimonaConfig.Simona.Output.Thermal(
-            if (c.hasPathOrNull("thermal")) c.getConfig("thermal")
+            if c.hasPathOrNull("thermal") then c.getConfig("thermal")
             else com.typesafe.config.ConfigFactory.parseString("thermal{}"),
             parentPath + "thermal.",
             $tsCfgValidator
           )
         )
-      }
     }
 
     final case class Powerflow(
@@ -2040,20 +1968,19 @@ object SimonaConfig {
             c: com.typesafe.config.Config,
             parentPath: java.lang.String,
             $tsCfgValidator: $TsCfgValidator
-        ): SimonaConfig.Simona.Powerflow.Newtonraphson = {
+        ): SimonaConfig.Simona.Powerflow.Newtonraphson =
           SimonaConfig.Simona.Powerflow.Newtonraphson(
             epsilon =
               $_L$_dbl(c.getList("epsilon"), parentPath, $tsCfgValidator),
             iterations = $_reqInt(parentPath, c, "iterations", $tsCfgValidator)
           )
-        }
         private def $_reqInt(
             parentPath: java.lang.String,
             c: com.typesafe.config.Config,
             path: java.lang.String,
             $tsCfgValidator: $TsCfgValidator
-        ): scala.Int = {
-          if (c == null) 0
+        ): scala.Int =
+          if c == null then 0
           else
             try c.getInt(path)
             catch {
@@ -2061,7 +1988,6 @@ object SimonaConfig {
                 $tsCfgValidator.addBadPath(parentPath + path, e)
                 0
             }
-        }
 
       }
 
@@ -2069,34 +1995,36 @@ object SimonaConfig {
           c: com.typesafe.config.Config,
           parentPath: java.lang.String,
           $tsCfgValidator: $TsCfgValidator
-      ): SimonaConfig.Simona.Powerflow = {
+      ): SimonaConfig.Simona.Powerflow =
         SimonaConfig.Simona.Powerflow(
           maxSweepPowerDeviation =
             $_reqDbl(parentPath, c, "maxSweepPowerDeviation", $tsCfgValidator),
           newtonraphson = SimonaConfig.Simona.Powerflow.Newtonraphson(
-            if (c.hasPathOrNull("newtonraphson")) c.getConfig("newtonraphson")
+            if c.hasPathOrNull("newtonraphson") then
+              c.getConfig("newtonraphson")
             else
-              com.typesafe.config.ConfigFactory.parseString("newtonraphson{}"),
+              com.typesafe.config.ConfigFactory.parseString("newtonraphson{}")
+            ,
             parentPath + "newtonraphson.",
             $tsCfgValidator
           ),
           resolution =
-            if (c.hasPathOrNull("resolution")) c.getDuration("resolution")
+            if c.hasPathOrNull("resolution") then c.getDuration("resolution")
             else java.time.Duration.parse("PT1H"),
           stopOnFailure =
             c.hasPathOrNull("stopOnFailure") && c.getBoolean("stopOnFailure"),
           sweepTimeout =
-            if (c.hasPathOrNull("sweepTimeout")) c.getDuration("sweepTimeout")
+            if c.hasPathOrNull("sweepTimeout") then
+              c.getDuration("sweepTimeout")
             else java.time.Duration.parse("PT30S")
         )
-      }
       private def $_reqDbl(
           parentPath: java.lang.String,
           c: com.typesafe.config.Config,
           path: java.lang.String,
           $tsCfgValidator: $TsCfgValidator
-      ): scala.Double = {
-        if (c == null) 0
+      ): scala.Double =
+        if c == null then 0
         else
           try c.getDouble(path)
           catch {
@@ -2104,7 +2032,6 @@ object SimonaConfig {
               $tsCfgValidator.addBadPath(parentPath + path, e)
               0
           }
-      }
 
     }
 
@@ -2124,10 +2051,10 @@ object SimonaConfig {
             c: com.typesafe.config.Config,
             parentPath: java.lang.String,
             $tsCfgValidator: $TsCfgValidator
-        ): SimonaConfig.Simona.Runtime.Listener = {
+        ): SimonaConfig.Simona.Runtime.Listener =
           SimonaConfig.Simona.Runtime.Listener(
             eventsToProcess =
-              if (c.hasPathOrNull("eventsToProcess"))
+              if c.hasPathOrNull("eventsToProcess") then
                 scala.Some(
                   $_L$_str(
                     c.getList("eventsToProcess"),
@@ -2137,7 +2064,7 @@ object SimonaConfig {
                 )
               else None,
             kafka =
-              if (c.hasPathOrNull("kafka"))
+              if c.hasPathOrNull("kafka") then
                 scala.Some(
                   SimonaConfig.RuntimeKafkaParams(
                     c.getConfig("kafka"),
@@ -2147,7 +2074,6 @@ object SimonaConfig {
                 )
               else None
           )
-        }
       }
 
       final case class Participant(
@@ -2169,14 +2095,15 @@ object SimonaConfig {
               c: com.typesafe.config.Config,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): SimonaConfig.Simona.Runtime.Participant.Evcs = {
+          ): SimonaConfig.Simona.Runtime.Participant.Evcs =
             SimonaConfig.Simona.Runtime.Participant.Evcs(
               defaultConfig = SimonaConfig.EvcsRuntimeConfig(
-                if (c.hasPathOrNull("defaultConfig"))
+                if c.hasPathOrNull("defaultConfig") then
                   c.getConfig("defaultConfig")
                 else
                   com.typesafe.config.ConfigFactory
-                    .parseString("defaultConfig{}"),
+                    .parseString("defaultConfig{}")
+                ,
                 parentPath + "defaultConfig.",
                 $tsCfgValidator
               ),
@@ -2186,13 +2113,12 @@ object SimonaConfig {
                 $tsCfgValidator
               )
             )
-          }
           private def $_LSimonaConfig_EvcsRuntimeConfig(
               cl: com.typesafe.config.ConfigList,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
           ): scala.List[SimonaConfig.EvcsRuntimeConfig] = {
-            import scala.jdk.CollectionConverters._
+            import scala.jdk.CollectionConverters.*
             cl.asScala
               .map(cv =>
                 SimonaConfig.EvcsRuntimeConfig(
@@ -2214,14 +2140,15 @@ object SimonaConfig {
               c: com.typesafe.config.Config,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): SimonaConfig.Simona.Runtime.Participant.FixedFeedIn = {
+          ): SimonaConfig.Simona.Runtime.Participant.FixedFeedIn =
             SimonaConfig.Simona.Runtime.Participant.FixedFeedIn(
               defaultConfig = SimonaConfig.FixedFeedInRuntimeConfig(
-                if (c.hasPathOrNull("defaultConfig"))
+                if c.hasPathOrNull("defaultConfig") then
                   c.getConfig("defaultConfig")
                 else
                   com.typesafe.config.ConfigFactory
-                    .parseString("defaultConfig{}"),
+                    .parseString("defaultConfig{}")
+                ,
                 parentPath + "defaultConfig.",
                 $tsCfgValidator
               ),
@@ -2231,13 +2158,12 @@ object SimonaConfig {
                 $tsCfgValidator
               )
             )
-          }
           private def $_LSimonaConfig_FixedFeedInRuntimeConfig(
               cl: com.typesafe.config.ConfigList,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
           ): scala.List[SimonaConfig.FixedFeedInRuntimeConfig] = {
-            import scala.jdk.CollectionConverters._
+            import scala.jdk.CollectionConverters.*
             cl.asScala
               .map(cv =>
                 SimonaConfig.FixedFeedInRuntimeConfig(
@@ -2259,14 +2185,15 @@ object SimonaConfig {
               c: com.typesafe.config.Config,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): SimonaConfig.Simona.Runtime.Participant.Hp = {
+          ): SimonaConfig.Simona.Runtime.Participant.Hp =
             SimonaConfig.Simona.Runtime.Participant.Hp(
               defaultConfig = SimonaConfig.HpRuntimeConfig(
-                if (c.hasPathOrNull("defaultConfig"))
+                if c.hasPathOrNull("defaultConfig") then
                   c.getConfig("defaultConfig")
                 else
                   com.typesafe.config.ConfigFactory
-                    .parseString("defaultConfig{}"),
+                    .parseString("defaultConfig{}")
+                ,
                 parentPath + "defaultConfig.",
                 $tsCfgValidator
               ),
@@ -2276,13 +2203,12 @@ object SimonaConfig {
                 $tsCfgValidator
               )
             )
-          }
           private def $_LSimonaConfig_HpRuntimeConfig(
               cl: com.typesafe.config.ConfigList,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
           ): scala.List[SimonaConfig.HpRuntimeConfig] = {
-            import scala.jdk.CollectionConverters._
+            import scala.jdk.CollectionConverters.*
             cl.asScala
               .map(cv =>
                 SimonaConfig.HpRuntimeConfig(
@@ -2304,14 +2230,15 @@ object SimonaConfig {
               c: com.typesafe.config.Config,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): SimonaConfig.Simona.Runtime.Participant.Load = {
+          ): SimonaConfig.Simona.Runtime.Participant.Load =
             SimonaConfig.Simona.Runtime.Participant.Load(
               defaultConfig = SimonaConfig.LoadRuntimeConfig(
-                if (c.hasPathOrNull("defaultConfig"))
+                if c.hasPathOrNull("defaultConfig") then
                   c.getConfig("defaultConfig")
                 else
                   com.typesafe.config.ConfigFactory
-                    .parseString("defaultConfig{}"),
+                    .parseString("defaultConfig{}")
+                ,
                 parentPath + "defaultConfig.",
                 $tsCfgValidator
               ),
@@ -2321,13 +2248,12 @@ object SimonaConfig {
                 $tsCfgValidator
               )
             )
-          }
           private def $_LSimonaConfig_LoadRuntimeConfig(
               cl: com.typesafe.config.ConfigList,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
           ): scala.List[SimonaConfig.LoadRuntimeConfig] = {
-            import scala.jdk.CollectionConverters._
+            import scala.jdk.CollectionConverters.*
             cl.asScala
               .map(cv =>
                 SimonaConfig.LoadRuntimeConfig(
@@ -2349,14 +2275,15 @@ object SimonaConfig {
               c: com.typesafe.config.Config,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): SimonaConfig.Simona.Runtime.Participant.Pv = {
+          ): SimonaConfig.Simona.Runtime.Participant.Pv =
             SimonaConfig.Simona.Runtime.Participant.Pv(
               defaultConfig = SimonaConfig.PvRuntimeConfig(
-                if (c.hasPathOrNull("defaultConfig"))
+                if c.hasPathOrNull("defaultConfig") then
                   c.getConfig("defaultConfig")
                 else
                   com.typesafe.config.ConfigFactory
-                    .parseString("defaultConfig{}"),
+                    .parseString("defaultConfig{}")
+                ,
                 parentPath + "defaultConfig.",
                 $tsCfgValidator
               ),
@@ -2366,13 +2293,12 @@ object SimonaConfig {
                 $tsCfgValidator
               )
             )
-          }
           private def $_LSimonaConfig_PvRuntimeConfig(
               cl: com.typesafe.config.ConfigList,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
           ): scala.List[SimonaConfig.PvRuntimeConfig] = {
-            import scala.jdk.CollectionConverters._
+            import scala.jdk.CollectionConverters.*
             cl.asScala
               .map(cv =>
                 SimonaConfig.PvRuntimeConfig(
@@ -2394,14 +2320,15 @@ object SimonaConfig {
               c: com.typesafe.config.Config,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
-          ): SimonaConfig.Simona.Runtime.Participant.Wec = {
+          ): SimonaConfig.Simona.Runtime.Participant.Wec =
             SimonaConfig.Simona.Runtime.Participant.Wec(
               defaultConfig = SimonaConfig.WecRuntimeConfig(
-                if (c.hasPathOrNull("defaultConfig"))
+                if c.hasPathOrNull("defaultConfig") then
                   c.getConfig("defaultConfig")
                 else
                   com.typesafe.config.ConfigFactory
-                    .parseString("defaultConfig{}"),
+                    .parseString("defaultConfig{}")
+                ,
                 parentPath + "defaultConfig.",
                 $tsCfgValidator
               ),
@@ -2411,13 +2338,12 @@ object SimonaConfig {
                 $tsCfgValidator
               )
             )
-          }
           private def $_LSimonaConfig_WecRuntimeConfig(
               cl: com.typesafe.config.ConfigList,
               parentPath: java.lang.String,
               $tsCfgValidator: $TsCfgValidator
           ): scala.List[SimonaConfig.WecRuntimeConfig] = {
-            import scala.jdk.CollectionConverters._
+            import scala.jdk.CollectionConverters.*
             cl.asScala
               .map(cv =>
                 SimonaConfig.WecRuntimeConfig(
@@ -2434,73 +2360,73 @@ object SimonaConfig {
             c: com.typesafe.config.Config,
             parentPath: java.lang.String,
             $tsCfgValidator: $TsCfgValidator
-        ): SimonaConfig.Simona.Runtime.Participant = {
+        ): SimonaConfig.Simona.Runtime.Participant =
           SimonaConfig.Simona.Runtime.Participant(
             evcs = SimonaConfig.Simona.Runtime.Participant.Evcs(
-              if (c.hasPathOrNull("evcs")) c.getConfig("evcs")
+              if c.hasPathOrNull("evcs") then c.getConfig("evcs")
               else com.typesafe.config.ConfigFactory.parseString("evcs{}"),
               parentPath + "evcs.",
               $tsCfgValidator
             ),
             fixedFeedIn = SimonaConfig.Simona.Runtime.Participant.FixedFeedIn(
-              if (c.hasPathOrNull("fixedFeedIn")) c.getConfig("fixedFeedIn")
+              if c.hasPathOrNull("fixedFeedIn") then c.getConfig("fixedFeedIn")
               else
-                com.typesafe.config.ConfigFactory.parseString("fixedFeedIn{}"),
+                com.typesafe.config.ConfigFactory.parseString("fixedFeedIn{}")
+              ,
               parentPath + "fixedFeedIn.",
               $tsCfgValidator
             ),
             hp = SimonaConfig.Simona.Runtime.Participant.Hp(
-              if (c.hasPathOrNull("hp")) c.getConfig("hp")
+              if c.hasPathOrNull("hp") then c.getConfig("hp")
               else com.typesafe.config.ConfigFactory.parseString("hp{}"),
               parentPath + "hp.",
               $tsCfgValidator
             ),
             load = SimonaConfig.Simona.Runtime.Participant.Load(
-              if (c.hasPathOrNull("load")) c.getConfig("load")
+              if c.hasPathOrNull("load") then c.getConfig("load")
               else com.typesafe.config.ConfigFactory.parseString("load{}"),
               parentPath + "load.",
               $tsCfgValidator
             ),
             pv = SimonaConfig.Simona.Runtime.Participant.Pv(
-              if (c.hasPathOrNull("pv")) c.getConfig("pv")
+              if c.hasPathOrNull("pv") then c.getConfig("pv")
               else com.typesafe.config.ConfigFactory.parseString("pv{}"),
               parentPath + "pv.",
               $tsCfgValidator
             ),
             requestVoltageDeviationThreshold =
-              if (c.hasPathOrNull("requestVoltageDeviationThreshold"))
+              if c.hasPathOrNull("requestVoltageDeviationThreshold") then
                 c.getDouble("requestVoltageDeviationThreshold")
               else 1e-14,
             wec = SimonaConfig.Simona.Runtime.Participant.Wec(
-              if (c.hasPathOrNull("wec")) c.getConfig("wec")
+              if c.hasPathOrNull("wec") then c.getConfig("wec")
               else com.typesafe.config.ConfigFactory.parseString("wec{}"),
               parentPath + "wec.",
               $tsCfgValidator
             )
           )
-        }
       }
 
       def apply(
           c: com.typesafe.config.Config,
           parentPath: java.lang.String,
           $tsCfgValidator: $TsCfgValidator
-      ): SimonaConfig.Simona.Runtime = {
+      ): SimonaConfig.Simona.Runtime =
         SimonaConfig.Simona.Runtime(
           listener = SimonaConfig.Simona.Runtime.Listener(
-            if (c.hasPathOrNull("listener")) c.getConfig("listener")
+            if c.hasPathOrNull("listener") then c.getConfig("listener")
             else com.typesafe.config.ConfigFactory.parseString("listener{}"),
             parentPath + "listener.",
             $tsCfgValidator
           ),
           participant = SimonaConfig.Simona.Runtime.Participant(
-            if (c.hasPathOrNull("participant")) c.getConfig("participant")
+            if c.hasPathOrNull("participant") then c.getConfig("participant")
             else com.typesafe.config.ConfigFactory.parseString("participant{}"),
             parentPath + "participant.",
             $tsCfgValidator
           ),
           selected_subgrids =
-            if (c.hasPathOrNull("selected_subgrids"))
+            if c.hasPathOrNull("selected_subgrids") then
               scala.Some(
                 $_L$_int(
                   c.getList("selected_subgrids"),
@@ -2510,7 +2436,7 @@ object SimonaConfig {
               )
             else None,
           selected_volt_lvls =
-            if (c.hasPathOrNull("selected_volt_lvls"))
+            if c.hasPathOrNull("selected_volt_lvls") then
               scala.Some(
                 $_LSimonaConfig_VoltLvlConfig(
                   c.getList("selected_volt_lvls"),
@@ -2520,13 +2446,12 @@ object SimonaConfig {
               )
             else None
         )
-      }
       private def $_LSimonaConfig_VoltLvlConfig(
           cl: com.typesafe.config.ConfigList,
           parentPath: java.lang.String,
           $tsCfgValidator: $TsCfgValidator
       ): scala.List[SimonaConfig.VoltLvlConfig] = {
-        import scala.jdk.CollectionConverters._
+        import scala.jdk.CollectionConverters.*
         cl.asScala
           .map(cv =>
             SimonaConfig.VoltLvlConfig(
@@ -2549,60 +2474,60 @@ object SimonaConfig {
           c: com.typesafe.config.Config,
           parentPath: java.lang.String,
           $tsCfgValidator: $TsCfgValidator
-      ): SimonaConfig.Simona.Time = {
+      ): SimonaConfig.Simona.Time =
         SimonaConfig.Simona.Time(
           endDateTime =
-            if (c.hasPathOrNull("endDateTime")) c.getString("endDateTime")
+            if c.hasPathOrNull("endDateTime") then c.getString("endDateTime")
             else "2011-05-01 01:00:00",
           schedulerReadyCheckWindow =
-            if (c.hasPathOrNull("schedulerReadyCheckWindow"))
+            if c.hasPathOrNull("schedulerReadyCheckWindow") then
               Some(c.getInt("schedulerReadyCheckWindow"))
             else None,
           startDateTime =
-            if (c.hasPathOrNull("startDateTime")) c.getString("startDateTime")
+            if c.hasPathOrNull("startDateTime") then
+              c.getString("startDateTime")
             else "2011-05-01 00:00:00"
         )
-      }
     }
 
     def apply(
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): SimonaConfig.Simona = {
+    ): SimonaConfig.Simona =
       SimonaConfig.Simona(
         event = SimonaConfig.Simona.Event(
-          if (c.hasPathOrNull("event")) c.getConfig("event")
+          if c.hasPathOrNull("event") then c.getConfig("event")
           else com.typesafe.config.ConfigFactory.parseString("event{}"),
           parentPath + "event.",
           $tsCfgValidator
         ),
         gridConfig = SimonaConfig.Simona.GridConfig(
-          if (c.hasPathOrNull("gridConfig")) c.getConfig("gridConfig")
+          if c.hasPathOrNull("gridConfig") then c.getConfig("gridConfig")
           else com.typesafe.config.ConfigFactory.parseString("gridConfig{}"),
           parentPath + "gridConfig.",
           $tsCfgValidator
         ),
         input = SimonaConfig.Simona.Input(
-          if (c.hasPathOrNull("input")) c.getConfig("input")
+          if c.hasPathOrNull("input") then c.getConfig("input")
           else com.typesafe.config.ConfigFactory.parseString("input{}"),
           parentPath + "input.",
           $tsCfgValidator
         ),
         output = SimonaConfig.Simona.Output(
-          if (c.hasPathOrNull("output")) c.getConfig("output")
+          if c.hasPathOrNull("output") then c.getConfig("output")
           else com.typesafe.config.ConfigFactory.parseString("output{}"),
           parentPath + "output.",
           $tsCfgValidator
         ),
         powerflow = SimonaConfig.Simona.Powerflow(
-          if (c.hasPathOrNull("powerflow")) c.getConfig("powerflow")
+          if c.hasPathOrNull("powerflow") then c.getConfig("powerflow")
           else com.typesafe.config.ConfigFactory.parseString("powerflow{}"),
           parentPath + "powerflow.",
           $tsCfgValidator
         ),
         runtime = SimonaConfig.Simona.Runtime(
-          if (c.hasPathOrNull("runtime")) c.getConfig("runtime")
+          if c.hasPathOrNull("runtime") then c.getConfig("runtime")
           else com.typesafe.config.ConfigFactory.parseString("runtime{}"),
           parentPath + "runtime.",
           $tsCfgValidator
@@ -2610,20 +2535,19 @@ object SimonaConfig {
         simulationName =
           $_reqStr(parentPath, c, "simulationName", $tsCfgValidator),
         time = SimonaConfig.Simona.Time(
-          if (c.hasPathOrNull("time")) c.getConfig("time")
+          if c.hasPathOrNull("time") then c.getConfig("time")
           else com.typesafe.config.ConfigFactory.parseString("time{}"),
           parentPath + "time.",
           $tsCfgValidator
         )
       )
-    }
     private def $_reqStr(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
         $tsCfgValidator: $TsCfgValidator
-    ): java.lang.String = {
-      if (c == null) null
+    ): java.lang.String =
+      if c == null then null
       else
         try c.getString(path)
         catch {
@@ -2631,7 +2555,6 @@ object SimonaConfig {
             $tsCfgValidator.addBadPath(parentPath + path, e)
             null
         }
-    }
 
   }
 
@@ -2640,7 +2563,7 @@ object SimonaConfig {
     val parentPath: java.lang.String = ""
     val $result = SimonaConfig(
       simona = SimonaConfig.Simona(
-        if (c.hasPathOrNull("simona")) c.getConfig("simona")
+        if c.hasPathOrNull("simona") then c.getConfig("simona")
         else com.typesafe.config.ConfigFactory.parseString("simona{}"),
         parentPath + "simona.",
         $tsCfgValidator
@@ -2655,7 +2578,7 @@ object SimonaConfig {
       parentPath: java.lang.String,
       $tsCfgValidator: $TsCfgValidator
   ): scala.List[scala.Double] = {
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
     cl.asScala.map(cv => $_dbl(cv)).toList
   }
   private def $_L$_int(
@@ -2663,7 +2586,7 @@ object SimonaConfig {
       parentPath: java.lang.String,
       $tsCfgValidator: $TsCfgValidator
   ): scala.List[scala.Int] = {
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
     cl.asScala.map(cv => $_int(cv)).toList
   }
   private def $_L$_str(
@@ -2671,15 +2594,14 @@ object SimonaConfig {
       parentPath: java.lang.String,
       $tsCfgValidator: $TsCfgValidator
   ): scala.List[java.lang.String] = {
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
     cl.asScala.map(cv => $_str(cv)).toList
   }
   private def $_dbl(cv: com.typesafe.config.ConfigValue): scala.Double = {
     val u: Any = cv.unwrapped
-    if (
-      (cv.valueType != com.typesafe.config.ConfigValueType.NUMBER) ||
+    if (cv.valueType != com.typesafe.config.ConfigValueType.NUMBER) ||
       !u.isInstanceOf[java.lang.Number]
-    ) throw $_expE(cv, "double")
+    then throw $_expE(cv, "double")
     u.asInstanceOf[java.lang.Number].doubleValue()
   }
 
@@ -2691,22 +2613,20 @@ object SimonaConfig {
     new java.lang.RuntimeException(
       s"${cv.origin.lineNumber}: " +
         "expecting: " + exp + " got: " +
-        (if (u.isInstanceOf[java.lang.String]) "\"" + u + "\"" else u)
+        (if u.isInstanceOf[java.lang.String] then "\"" + u + "\"" else u)
     )
   }
 
   private def $_int(cv: com.typesafe.config.ConfigValue): scala.Int = {
     val u: Any = cv.unwrapped
-    if (
-      (cv.valueType != com.typesafe.config.ConfigValueType.NUMBER) ||
+    if (cv.valueType != com.typesafe.config.ConfigValueType.NUMBER) ||
       !u.isInstanceOf[Integer]
-    ) throw $_expE(cv, "integer")
+    then throw $_expE(cv, "integer")
     u.asInstanceOf[Integer]
   }
 
-  private def $_str(cv: com.typesafe.config.ConfigValue): java.lang.String = {
+  private def $_str(cv: com.typesafe.config.ConfigValue): java.lang.String =
     java.lang.String.valueOf(cv.unwrapped())
-  }
 
   final class $TsCfgValidator {
     private val badPaths =
@@ -2715,24 +2635,21 @@ object SimonaConfig {
     def addBadPath(
         path: java.lang.String,
         e: com.typesafe.config.ConfigException
-    ): Unit = {
+    ): Unit =
       badPaths += s"'$path': ${e.getClass.getName}(${e.getMessage})"
-    }
 
     def addInvalidEnumValue(
         path: java.lang.String,
         value: java.lang.String,
         enumName: java.lang.String
-    ): Unit = {
+    ): Unit =
       badPaths += s"'$path': invalid value $value for enumeration $enumName"
-    }
 
-    def validate(): Unit = {
-      if (badPaths.nonEmpty) {
+    def validate(): Unit =
+      if badPaths.nonEmpty then {
         throw new com.typesafe.config.ConfigException(
           badPaths.mkString("Invalid configuration:\n    ", "\n    ", "")
         ) {}
       }
-    }
   }
 }

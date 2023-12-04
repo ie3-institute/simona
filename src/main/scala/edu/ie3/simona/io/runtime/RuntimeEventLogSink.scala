@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.io.runtime
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.event.RuntimeEvent._
+import edu.ie3.simona.event.RuntimeEvent.*
 import edu.ie3.simona.io.runtime.RuntimeEventSink.RuntimeStats
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
@@ -54,7 +54,7 @@ final case class RuntimeEventLogSink(
 
       case Done(currentTick, duration, errorInSim) =>
         val simStatus =
-          if (errorInSim)
+          if errorInSim then
             s"\u001b[0;31mERROR (Failed PF: ${runtimeStats.failedPowerFlows})\u001b[0;30m"
           else
             s"\u001b[0;32mSUCCESS (Failed PF: ${runtimeStats.failedPowerFlows})\u001b[0;30m"
@@ -71,13 +71,12 @@ final case class RuntimeEventLogSink(
         )
     }
 
-  private def calcTime(currentTick: Long): String = {
+  private def calcTime(currentTick: Long): String =
     TimeUtil.withDefaults.toString(
       currentTick.toDateTime(
         simulationStartDate
       )
     )
-  }
 
   private def convertDuration(duration: Long): String = {
     val durationInSeconds = duration / 1000

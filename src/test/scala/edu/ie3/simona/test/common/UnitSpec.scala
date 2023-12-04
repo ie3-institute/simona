@@ -9,8 +9,8 @@ package edu.ie3.simona.test.common
 import java.util.Locale
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.test.matchers.QuantityMatchers
-import edu.ie3.util.scala.quantities.{QuantityUtil => PSQuantityUtil}
-import org.scalatest._
+import edu.ie3.util.scala.quantities.QuantityUtil as PSQuantityUtil
+import org.scalatest.*
 import org.scalatest.matchers.should
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.wordspec.AnyWordSpecLike

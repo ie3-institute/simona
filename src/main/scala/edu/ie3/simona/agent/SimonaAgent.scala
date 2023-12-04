@@ -43,7 +43,7 @@ trait SimonaAgent[D]
       stay()
 
     case Event(CurrentState, _) =>
-      goto(stateName) replying stateName
+      goto(stateName).replying(stateName)
 
     case event =>
       log.error(s"Unhandled event '$event' from '${sender()}''")
@@ -51,7 +51,7 @@ trait SimonaAgent[D]
   }
 
   def holdTick(tick: Long): Unit = {
-    if (_currentTick.isDefined)
+    if _currentTick.isDefined then
       throw new IllegalStateException(
         s"Expected both _currentTick to be 'None' but found ${_currentTick} instead, respectively."
       )
@@ -68,13 +68,12 @@ trait SimonaAgent[D]
     currentTick
   }
 
-  def currentTick: Long = {
+  def currentTick: Long =
     _currentTick.getOrElse(
       throw new RuntimeException(
         s"$actorName: CurrentTick has been requested, but is not set!"
       )
     )
-  }
 
   def currentTickDefined: Boolean = _currentTick.isDefined
 

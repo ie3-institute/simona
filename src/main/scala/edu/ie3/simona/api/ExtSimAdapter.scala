@@ -15,7 +15,7 @@ import edu.ie3.simona.api.simulation.ontology.{
   ActivationMessage,
   TerminationCompleted,
   TerminationMessage,
-  CompletionMessage => ExtCompletionMessage
+  CompletionMessage as ExtCompletionMessage
 }
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -28,7 +28,7 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
-import scala.jdk.OptionConverters._
+import scala.jdk.OptionConverters.*
 
 object ExtSimAdapter {
 
@@ -61,12 +61,14 @@ final case class ExtSimAdapter(scheduler: ActorRef)
       INIT_SIM_TICK,
       Some(unlockKey)
     )
-    context become receiveIdle(
-      ExtSimAdapterStateData(extSimAdapterData)
+    context.become(
+      receiveIdle(
+        ExtSimAdapterStateData(extSimAdapterData)
+      )
     )
   }
 
-  private def receiveIdle(implicit
+  private def receiveIdle(using
       stateData: ExtSimAdapterStateData
   ): Receive = {
     case Activation(tick) =>
@@ -78,8 +80,10 @@ final case class ExtSimAdapter(scheduler: ActorRef)
         tick
       )
 
-      context become receiveIdle(
-        stateData.copy(currentTick = Some(tick))
+      context.become(
+        receiveIdle(
+          stateData.copy(currentTick = Some(tick))
+        )
       )
 
     case extCompl: ExtCompletionMessage =>
@@ -94,7 +98,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
         stateData.currentTick
       )
 
-      context become receiveIdle(stateData.copy(currentTick = None))
+      context.become(receiveIdle(stateData.copy(currentTick = None)))
 
     case scheduleDataService: ScheduleDataServiceMessage =>
       val tick = stateData.currentTick.getOrElse(

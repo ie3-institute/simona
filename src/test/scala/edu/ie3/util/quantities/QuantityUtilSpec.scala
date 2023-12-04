@@ -16,8 +16,8 @@ import squants.{Energy, Power}
 import scala.util.{Failure, Success}
 
 class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
-  implicit val powerTolerance: Power = Watts(1e-3)
-  implicit val energyTolerance: Energy = WattHours(1e-6)
+  given powerTolerance: Power = Watts(1e-3)
+  given energyTolerance: Energy = WattHours(1e-6)
   private val unit = Kilowatts
   private val integrationUnit = Kilojoules
   private val values = Map(
@@ -34,26 +34,32 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
 
       "throw an exception, if values are empty and unit of \"empty\" quantity cannot be determined" in {
         intercept[QuantityException] {
-          QuantityUtil invokePrivate startingValue(
-            Map.empty[Long, Power],
-            1L
+          QuantityUtil.invokePrivate(
+            startingValue(
+              Map.empty[Long, Power],
+              1L
+            )
           )
         }.getMessage shouldBe "Unable to determine unit for dummy starting value."
       }
 
       "bring default value, if there is nothing before window starts" in {
-        QuantityUtil invokePrivate startingValue(
-          values,
-          1L
+        QuantityUtil.invokePrivate(
+          startingValue(
+            values,
+            1L
+          )
         ) should be
         unit(0d)
 
       }
 
       "bring correct value, if there is something before window starts" in {
-        QuantityUtil invokePrivate startingValue(
-          values,
-          2L
+        QuantityUtil.invokePrivate(
+          startingValue(
+            values,
+            2L
+          )
         ) should be
         unit(5d)
 
@@ -66,12 +72,12 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
 
       "throw and exception, if there is no value before the window ends" in {
         intercept[QuantityException] {
-          QuantityUtil invokePrivate endingValue(values, 1L)
+          QuantityUtil.invokePrivate(endingValue(values, 1L))
         }.getMessage shouldBe "Cannot integrate over an empty set of values."
       }
 
       "bring correct value, if there is something before window ends" in {
-        QuantityUtil invokePrivate endingValue(values, 2L) match {
+        QuantityUtil.invokePrivate(endingValue(values, 2L)) match {
           case (tick, value) =>
             tick shouldBe 2L
             (value =~ unit(5d)) shouldBe true

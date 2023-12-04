@@ -55,7 +55,7 @@ object PlainWriter {
   final case class NodeResultWriter(simRunId: UUID)
       extends PlainWriter[NodeResult, PlainNodeResult] {
 
-    override def writePlain(full: NodeResult): PlainNodeResult = {
+    override def writePlain(full: NodeResult): PlainNodeResult =
       PlainNodeResult(
         simRunId,
         createSimpleTimeStamp(full.getTime),
@@ -64,9 +64,8 @@ object PlainWriter {
         full.getvMag.getValue.doubleValue(),
         full.getvAng.getValue.doubleValue()
       )
-    }
 
-    override def createFull(plain: PlainNodeResult): NodeResult = {
+    override def createFull(plain: PlainNodeResult): NodeResult =
       new NodeResult(
         plain.uuid,
         ZonedDateTime.parse(plain.time, timeFormatter),
@@ -74,7 +73,6 @@ object PlainWriter {
         Quantities.getQuantity(plain.vMag, PowerSystemUnits.PU),
         Quantities.getQuantity(plain.vAng, PowerSystemUnits.DEGREE_GEOM)
       )
-    }
   }
 
   def createSimpleTimeStamp(dateTime: ZonedDateTime): String =

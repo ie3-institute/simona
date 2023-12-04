@@ -7,14 +7,14 @@
 package edu.ie3.simona.util
 
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.datamodel.models.result.system._
+import edu.ie3.datamodel.models.result.system.*
 import edu.ie3.datamodel.models.result.thermal.ThermalHouseResult
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier
-import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
+import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier.*
 
 case object EntityMapperUtil {
   private val entityMapping
-      : Map[NotifierIdentifier.Value, Class[_ <: ResultEntity]] = Map(
+      : Map[NotifierIdentifier.Value, Class[? <: ResultEntity]] = Map(
     PvPlant -> classOf[PvResult],
     Wec -> classOf[WecResult],
     Load -> classOf[LoadResult],
@@ -38,7 +38,7 @@ case object EntityMapperUtil {
     */
   def getResultEntityClass(
       notifierId: NotifierIdentifier.Value
-  ): Class[_ <: ResultEntity] =
+  ): Class[? <: ResultEntity] =
     entityMapping.getOrElse(
       notifierId,
       throw new NoSuchElementException(

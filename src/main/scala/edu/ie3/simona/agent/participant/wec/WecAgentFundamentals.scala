@@ -13,7 +13,7 @@ import edu.ie3.datamodel.models.result.system.{
   WecResult
 }
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.participant.ParticipantAgent._
+import edu.ie3.simona.agent.participant.ParticipantAgent.*
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
@@ -21,7 +21,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 }
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.statedata.BaseStateData._
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.*
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.participant.statedata.{
   DataCollectionStateData,
@@ -41,7 +41,7 @@ import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.WecModel
 import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
 import squants.{Dimensionless, Each, Power}
@@ -92,7 +92,7 @@ protected trait WecAgentFundamentals
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[WecInput],
       modelConfig: WecRuntimeConfig,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Option[Vector[SecondaryDataService[? <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -100,11 +100,10 @@ protected trait WecAgentFundamentals
       outputConfig: NotifierConfig
   ): ParticipantModelBaseStateData[ApparentPower, WecRelevantData, WecModel] = {
     /* Check for needed services */
-    if (
-      !services.exists(serviceDefinitions =>
+    if !services.exists(serviceDefinitions =>
         serviceDefinitions.map(_.getClass).containsSlice(neededServices)
       )
-    )
+    then
       throw new AgentInitializationException(
         s"$actorName cannot be initialized without a weather service!"
       )
@@ -201,7 +200,7 @@ protected trait WecAgentFundamentals
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
-    implicit val startDateTime: ZonedDateTime =
+    given startDateTime: ZonedDateTime =
       collectionStateData.baseStateData.startDate
 
     val voltage =
@@ -209,7 +208,7 @@ protected trait WecAgentFundamentals
 
     val (result, relevantData) =
       collectionStateData.baseStateData match {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case modelBaseStateData: ParticipantModelBaseStateData[?, ?, ?] =>
           modelBaseStateData.model match {
             case wecModel: WecModel =>
               /* extract weather data from secondary data, which should have been requested and received before */

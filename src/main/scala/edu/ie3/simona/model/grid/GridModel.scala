@@ -9,7 +9,7 @@ package edu.ie3.simona.model.grid
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
-import edu.ie3.datamodel.models.input.connector._
+import edu.ie3.datamodel.models.input.connector.*
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.model.SystemComponent
@@ -27,7 +27,7 @@ import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.immutable.ListSet
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Representation of one physical electrical grid. It holds the references to
   * nodes, lines, switches and transformers and fundamental properties (like
@@ -65,9 +65,8 @@ case object GridModel {
       refSystem: RefSystem,
       startDate: ZonedDateTime,
       endDate: ZonedDateTime
-  ): GridModel = {
+  ): GridModel =
     buildAndValidate(subGridContainer, refSystem, startDate, endDate)
-  }
 
   /** structure that represents all grid components that are needed by a grid
     * model
@@ -141,7 +140,7 @@ case object GridModel {
     val nodeInternal: Option[NodeModel] =
       nodes.find(_.uuid.equals(transformerInput.getNodeInternal.getUuid))
 
-    if (nodeInternal.isEmpty)
+    if nodeInternal.isEmpty then
       throw new InvalidGridException(
         s"Internal node ${transformerInput.getNodeInternal.getId} of transformer3w ${transformerInput.getUuid} cannot be found in provided set of nodes!"
       )
@@ -156,12 +155,11 @@ case object GridModel {
     }
   }
 
-  private val throwNodeNotFoundException: UUID => InvalidGridException = {
+  private val throwNodeNotFoundException: UUID => InvalidGridException =
     nodeString: UUID =>
       throw new InvalidGridException(
         s"Node $nodeString is not in nodeUuidToIndexMap! Cannot build admittanceMatrix!"
       )
-  }
 
   def composeAdmittanceMatrix(
       nodeUuidToIndexMap: Map[UUID, Int],
@@ -170,18 +168,14 @@ case object GridModel {
 
     val _returnAdmittanceMatrixIfValid
         : DenseMatrix[Complex] => DenseMatrix[Complex] = {
-      admittanceMatrix: DenseMatrix[Complex] =>
-        if (
-          !breeze.linalg.all(
-            { entry: Complex =>
-              !entry.imag.isNaN & !entry.real.isNaN & entry.imag.isFinite & entry.real.isFinite
-            },
+      (admittanceMatrix: DenseMatrix[Complex]) =>
+        if !breeze.linalg.all(
+            (entry: Complex) =>
+              !entry.imag.isNaN & !entry.real.isNaN & entry.imag.isFinite & entry.real.isFinite,
             admittanceMatrix
           )
-        )
-          throw new RuntimeException(s"Admittance matrix is illegal.")
-        else
-          admittanceMatrix
+        then throw new RuntimeException(s"Admittance matrix is illegal.")
+        else admittanceMatrix
     }
 
     /*
@@ -221,8 +215,8 @@ case object GridModel {
 
     assets
       .filter(_.isInOperation)
-      .foldLeft(DenseMatrix.zeros[Complex](matrixDimension, matrixDimension))(
-        (admittanceMatrix, asset) => {
+      .foldLeft(DenseMatrix.zeros[Complex](matrixDimension, matrixDimension)) {
+        (admittanceMatrix, asset) =>
           val (i, j, yab, yaa, ybb) =
             getAssetAdmittance(nodeUuidToIndexMap, asset)
 
@@ -231,8 +225,7 @@ case object GridModel {
           admittanceMatrix(i, j) += (yab * -1)
           admittanceMatrix(j, i) += (yab * -1)
           admittanceMatrix
-        }
-      )
+      }
   }
 
   private def getLinesAdmittance(
@@ -337,18 +330,15 @@ case object GridModel {
     val graph: Graph[UUID, DefaultEdge] =
       new SimpleGraph(classOf[DefaultEdge])
     gridModel.gridComponents.nodes
-      .filter(_.isInOperation) foreach (node => graph.addVertex(node.uuid))
+      .filter(_.isInOperation)
+      .foreach(node => graph.addVertex(node.uuid))
     gridModel.gridComponents.lines
       .filter(_.isInOperation)
-      .foreach(line => {
-        graph.addEdge(line.nodeAUuid, line.nodeBUuid)
-      })
+      .foreach(line => graph.addEdge(line.nodeAUuid, line.nodeBUuid))
 
     gridModel.gridComponents.transformers
       .filter(_.isInOperation)
-      .foreach(trafo => {
-        graph.addEdge(trafo.hvNodeUuid, trafo.lvNodeUuid)
-      })
+      .foreach(trafo => graph.addEdge(trafo.hvNodeUuid, trafo.lvNodeUuid))
 
     gridModel.gridComponents.transformers3w
       .filter(_.isInOperation)
@@ -366,14 +356,12 @@ case object GridModel {
 
     gridModel.gridComponents.switches
       .filter(_.isInOperation)
-      .foreach(switch => {
-        graph.addEdge(switch.nodeAUuid, switch.nodeBUuid)
-      })
+      .foreach(switch => graph.addEdge(switch.nodeAUuid, switch.nodeBUuid))
 
     val inspector: ConnectivityInspector[UUID, DefaultEdge] =
       new ConnectivityInspector(graph)
 
-    if (!inspector.isConnected) {
+    if !inspector.isConnected then {
       throw new GridInconsistencyException(
         s"The grid with subnetNo ${gridModel.subnetNo} is not connected! Please ensure that all elements are connected correctly and inOperation is set to true!"
       )
@@ -383,10 +371,8 @@ case object GridModel {
 
   private def validateConsistency(gridModel: GridModel): Unit = {
     // null or empty elements in grid elements?
-    if (
-      gridModel.gridComponents.nodes == null || gridModel.gridComponents.nodes.isEmpty
-    )
-      throw new InvalidGridException("The grid contains no nodes.")
+    if gridModel.gridComponents.nodes == null || gridModel.gridComponents.nodes.isEmpty
+    then throw new InvalidGridException("The grid contains no nodes.")
     val noLines =
       gridModel.gridComponents.lines == null || gridModel.gridComponents.lines.isEmpty
     val noTransformers2w =
@@ -395,31 +381,30 @@ case object GridModel {
       gridModel.gridComponents.transformers3w == null || gridModel.gridComponents.transformers3w.isEmpty
     val noOfNodes = gridModel.gridComponents.nodes.size
     val noOfSlackNodes = gridModel.slackNodesIndices.size
-    if (
-      noLines && noTransformers2w && noTransformers3w && (noOfNodes > noOfSlackNodes)
-    )
+    if noLines && noTransformers2w && noTransformers3w && (noOfNodes > noOfSlackNodes)
+    then
       throw new InvalidGridException(
         "The grid contains no basic branch elements (lines or transformers)."
       )
 
     // slack
-    if (gridModel.slackNodesIndices.isEmpty)
+    if gridModel.slackNodesIndices.isEmpty then
       new InvalidGridException(
         s"The grid model for subnet ${gridModel.subnetNo} has no slack node!"
       )
 
     // electrical struct data
-    if (gridModel.mainRefSystem.nominalPower.value.doubleValue < 0.0)
+    if gridModel.mainRefSystem.nominalPower.value.doubleValue < 0.0 then
       throw new InvalidGridException(
         s"Nominal Power of a grid cannot be < 0. Please correct the value of the reference system for grid no ${gridModel.subnetNo}"
       )
-    if (gridModel.mainRefSystem.nominalVoltage.value.doubleValue < 0.0)
+    if gridModel.mainRefSystem.nominalVoltage.value.doubleValue < 0.0 then
       throw new InvalidGridException(
         s"Nominal Voltage of a grid cannot be < 0. Please correct the value of the reference system for grid no ${gridModel.subnetNo}"
       )
 
     // subnet no
-    if (gridModel.subnetNo < 0)
+    if gridModel.subnetNo < 0 then
       throw new InvalidGridException(
         s"The grid model for subnet ${gridModel.subnetNo} has a subnet number less then zero."
       )
@@ -427,7 +412,7 @@ case object GridModel {
     // duplicate names for nodes
     val nodeUuids: List[UUID] =
       gridModel.gridComponents.nodes.toList.iterator.map(_.uuid).toList
-    if (CollectionUtils.listHasDuplicates(nodeUuids))
+    if CollectionUtils.listHasDuplicates(nodeUuids) then
       throw new InvalidGridException(
         s"The grid model for subnet ${gridModel.subnetNo} has multiple nodes with the same name!"
       )
@@ -437,7 +422,7 @@ case object GridModel {
       Vector.empty[UUID]
     )((vector, switch) => (vector :+ switch.nodeAUuid) :+ switch.nodeBUuid)
     val uniqueSwitchNodeIds = switchVector.toSet.toList
-    if (switchVector.diff(uniqueSwitchNodeIds).nonEmpty) {
+    if switchVector.diff(uniqueSwitchNodeIds).nonEmpty then {
       throw new InvalidGridException(
         s"The grid model for subnet ${gridModel.subnetNo} has nodes with multiple switches. This is not supported yet! Duplicates are located @ nodes: ${switchVector
             .diff(uniqueSwitchNodeIds)}"
@@ -474,7 +459,7 @@ case object GridModel {
       subGridContainer.getRawGrid.getTransformer2Ws.asScala.map {
         transformer2wInput =>
           val (nodeA, _) = getConnectedNodes(transformer2wInput, nodes)
-          if (nodeA.isSlack) {
+          if nodeA.isSlack then {
             TransformerModel(
               transformer2wInput,
               refSystem,
@@ -578,7 +563,7 @@ case object GridModel {
               )
 
             case nodeModel: NodeModel =>
-              if (!map.contains(nodeModel.uuid)) {
+              if !map.contains(nodeModel.uuid) then {
                 val idx = map.values.toList.sorted.lastOption
                   .getOrElse(
                     -1

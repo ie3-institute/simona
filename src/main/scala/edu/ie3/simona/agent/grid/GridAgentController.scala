@@ -11,8 +11,8 @@ import org.apache.pekko.actor.{ActorContext, ActorRef}
 import org.apache.pekko.event.LoggingAdapter
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
-import edu.ie3.datamodel.models.input.system._
-import edu.ie3.simona.actor.SimonaActorNaming._
+import edu.ie3.datamodel.models.input.system.*
+import edu.ie3.simona.actor.SimonaActorNaming.*
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorEvMovementsService,
@@ -26,17 +26,17 @@ import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig._
+import edu.ie3.simona.config.SimonaConfig.*
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.util.ConfigUtil
-import edu.ie3.simona.util.ConfigUtil._
+import edu.ie3.simona.util.ConfigUtil.*
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Holds all methods that should be available to a [[GridAgent]]
   *
@@ -136,7 +136,7 @@ class GridAgentController(
             }
         }
 
-    if (notProcessedElements.nonEmpty)
+    if notProcessedElements.nonEmpty then
       log.warning(
         s"The following elements have been removed, " +
           s"as the agents are not implemented yet: $notProcessedElements"
@@ -178,7 +178,7 @@ class GridAgentController(
     val outputConfigUtil = ConfigUtil.OutputConfigUtil(outputConfig)
 
     participants
-      .map(participant => {
+      .map { participant =>
         val node = participant.getNode
         // build
         val actorRef =
@@ -193,7 +193,7 @@ class GridAgentController(
         introduceAgentToEnvironment(actorRef)
         // return uuid to actorRef
         node.getUuid -> actorRef
-      })
+      }
       .toSet[(UUID, ActorRef)]
       .groupMap(entry => entry._1)(entry => entry._2)
   }

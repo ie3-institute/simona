@@ -13,7 +13,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
   WeightedCoordinates
 }
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.util.TickUtil._
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -29,11 +29,11 @@ class SampleWeatherSourceSpec
     extends UnitSpec
     with MockitoSugar
     with TableDrivenPropertyChecks {
-  implicit val simulationStart: ZonedDateTime =
+  given simulationStart: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2011-01-01 00:00:00")
-  implicit val toleranceIrradiance: Irradiance = WattsPerSquareMeter(0.1)
-  implicit val toleranceVelocity: Velocity = MetersPerSecond(0.01)
-  implicit val toleranceTemperature: Temperature = Celsius(0.01)
+  given toleranceIrradiance: Irradiance = WattsPerSquareMeter(0.1)
+  given toleranceVelocity: Velocity = MetersPerSecond(0.01)
+  given toleranceTemperature: Temperature = Celsius(0.01)
   val source: SampleWeatherSource = new SampleWeatherSource()
 
   "The sample weather source" should {
@@ -83,7 +83,7 @@ class SampleWeatherSourceSpec
       TimeUtil.withDefaults.toZonedDateTime("2011-02-01 15:00:00").toTick
 
     "return correct weather data in value and unit" in {
-      val actual = source invokePrivate getWeatherPrivate(tick)
+      val actual = source.invokePrivate(getWeatherPrivate(tick))
 
       /* Units meet expectation */
       actual.diffIrr.unit shouldBe WattsPerSquareMeter

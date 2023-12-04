@@ -161,14 +161,13 @@ object TimeAdvancer {
                 val notifierCompleted =
                   notifier.completing(newTick - 1)
 
-                if (activeTick == INIT_SIM_TICK)
+                if activeTick == INIT_SIM_TICK then
                   notifierCompleted.starting(
                     newTick,
                     pauseTick,
                     data.endTick
                   )
-                else
-                  notifierCompleted
+                else notifierCompleted
               }
 
               // activate next
@@ -240,7 +239,7 @@ object TimeAdvancer {
     * @param endTick
     *   the last tick of the simulation
     */
-  private final case class TimeAdvancerData(
+  final private case class TimeAdvancerData(
       simulation: org.apache.pekko.actor.ActorRef,
       schedulee: ActorRef[Activation],
       endTick: Long

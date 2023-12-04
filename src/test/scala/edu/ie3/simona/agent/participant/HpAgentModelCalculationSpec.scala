@@ -18,7 +18,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.*
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
@@ -77,13 +77,13 @@ class HpAgentModelCalculationSpec
     with HpTestData
     with IntegrationSpecCommon
     with PrivateMethodTester {
-  implicit val simulationStart: ZonedDateTime = defaultSimulationStart
-  implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
-  implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
-  implicit val powerTolerance: Power = Watts(1e-3)
-  implicit val reactivepowerTolerance: ReactivePower = Vars(1e-3)
-  implicit val temperatureTolerance: Temperature = Celsius(1e-10)
-  implicit val dimensionlessTolerance: Dimensionless = Each(1e-10)
+  given simulationStart: ZonedDateTime = defaultSimulationStart
+  given receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
+  given noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
+  given powerTolerance: Power = Watts(1e-3)
+  given reactivepowerTolerance: ReactivePower = Vars(1e-3)
+  given temperatureTolerance: Temperature = Celsius(1e-10)
+  given dimensionlessTolerance: Dimensionless = Each(1e-10)
   /* Alter the input model to have a voltage sensitive reactive power calculation */
   val hpInput: HpInput = inputModel
 
@@ -142,7 +142,7 @@ class HpAgentModelCalculationSpec
       hpAgent.stateName shouldBe Uninitialized
       // ParticipantUninitializedStateData is an empty class (due to typing). If it contains content one day
       inside(hpAgent.stateData) {
-        case _: ParticipantUninitializedStateData[_] => succeed
+        case _: ParticipantUninitializedStateData[?] => succeed
         case _ =>
           fail(
             s"Expected $ParticipantUninitializedStateData, but got ${hpAgent.stateData}."
@@ -204,7 +204,7 @@ class HpAgentModelCalculationSpec
       hpAgent.stateName shouldBe Uninitialized
       // ParticipantUninitializedStateData is an empty class (due to typing). If it contains content one day
       inside(hpAgent.stateData) {
-        case _: ParticipantUninitializedStateData[_] => succeed
+        case _: ParticipantUninitializedStateData[?] => succeed
         case _ =>
           fail(
             s"Expected $ParticipantUninitializedStateData, but got ${hpAgent.stateData}."
@@ -322,7 +322,7 @@ class HpAgentModelCalculationSpec
       /* ... as well as corresponding state and state data */
       hpAgent.stateName shouldBe Idle
       hpAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[?, ?, ?] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
             weatherService.ref -> Some(4711L)
@@ -374,7 +374,7 @@ class HpAgentModelCalculationSpec
       )
 
       inside(hpAgent.stateData) {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case modelBaseStateData: ParticipantModelBaseStateData[?, ?, ?] =>
           modelBaseStateData.requestValueStore shouldBe ValueStore[
             ApparentPowerAndHeat
           ](
@@ -435,7 +435,7 @@ class HpAgentModelCalculationSpec
       hpAgent.stateName shouldBe HandleInformation
       hpAgent.stateData match {
         case DataCollectionStateData(
-              baseStateData: ParticipantModelBaseStateData[_, _, _],
+              baseStateData: ParticipantModelBaseStateData[?, ?, ?],
               expectedSenders,
               isYetTriggered
             ) =>
@@ -466,7 +466,7 @@ class HpAgentModelCalculationSpec
 
       hpAgent.stateName shouldBe Idle
       hpAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[?, ?, ?] =>
           /* The store for calculation relevant data has been extended */
           baseStateData.calcRelevantDateStore match {
             case ValueStore(_, store) =>
@@ -552,7 +552,7 @@ class HpAgentModelCalculationSpec
       hpAgent.stateName shouldBe HandleInformation
       hpAgent.stateData match {
         case DataCollectionStateData(
-              baseStateData: ParticipantModelBaseStateData[_, _, _],
+              baseStateData: ParticipantModelBaseStateData[?, ?, ?],
               expectedSenders,
               isYetTriggered
             ) =>
@@ -591,7 +591,7 @@ class HpAgentModelCalculationSpec
       /* Expect the state change to idle with updated base state data */
       hpAgent.stateName shouldBe Idle
       hpAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[?, ?, ?] =>
           /* The store for calculation relevant data has been extended */
           baseStateData.calcRelevantDateStore match {
             case ValueStore(_, store) =>

@@ -59,8 +59,8 @@ class ParticipantAgent2ListenerSpec
     with PrivateMethodTester
     with MockitoSugar {
 
-  implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
-  implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
+  given receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
+  given noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
 
   /* Assign this test to receive the result events from agent */
   override val systemListener: Iterable[ActorRef] = Vector(self)
@@ -68,7 +68,7 @@ class ParticipantAgent2ListenerSpec
   private val testUUID = UUID.randomUUID
   private val testID = "PartAgentExternalMock"
 
-  private implicit val quantityTolerance: Double = 1e-6 // Equals to 1 W power
+  given quantityTolerance: Double = 1e-6 // Equals to 1 W power
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,

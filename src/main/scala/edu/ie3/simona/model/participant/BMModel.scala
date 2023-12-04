@@ -16,7 +16,7 @@ import squants.{Dimensionless, Money, Power, Temperature}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.math._
+import scala.math.*
 
 /** This class represents a single biomass plant
   */
@@ -33,7 +33,7 @@ final case class BMModel(
     private val opex: Money,
     private val feedInTariff: EnergyPrice,
     private val loadGradient: Double
-) extends SystemParticipant[BMCalcRelevantData, ApparentPower](
+) extends ApparentPowerParticipant[BMCalcRelevantData](
       uuid,
       id,
       operationInterval,
@@ -41,8 +41,7 @@ final case class BMModel(
       qControl,
       sRated,
       cosPhi
-    )
-    with ApparentPowerParticipant[BMCalcRelevantData] {
+    ) {
 
   /** Saves power output of last cycle. Needed for load gradient
     */
@@ -112,13 +111,12 @@ final case class BMModel(
     * @return
     *   factor k2
     */
-  private def calculateK2(time: ZonedDateTime): Double = {
+  private def calculateK2(time: ZonedDateTime): Double =
     time.getDayOfYear match {
       case x if x < 150 || x > 243 =>
         1.03 // correction factor in heating season
       case _ => 0.61 // correction factor outside heating season
     }
-  }
 
   /** Calculates heat demand
     * @param temp
@@ -155,7 +153,7 @@ final case class BMModel(
     val maxHeat = Megawatts(43.14)
     val usageUnchecked = pTh / maxHeat
 
-    if (usageUnchecked < 1) usageUnchecked else 1
+    if usageUnchecked < 1 then usageUnchecked else 1
   }
 
   /** Calculates efficiency from usage. Efficiency is based on a regression
@@ -183,13 +181,10 @@ final case class BMModel(
     val currOpex = opex.divide(eff)
     val avgOpex = (currOpex + opex).divide(2)
 
-    if (
-      isCostControlled && avgOpex.value.doubleValue() < feedInTariff.value
+    if isCostControlled && avgOpex.value.doubleValue() < feedInTariff.value
         .doubleValue()
-    )
-      sRated * cosPhi * (-1)
-    else
-      sRated * usage * eff * cosPhi * (-1)
+    then sRated * cosPhi * -1
+    else sRated * usage * eff * cosPhi * -1
   }
 
   /** Applies the load gradient to the electrical output
@@ -200,7 +195,7 @@ final case class BMModel(
     */
   private def applyLoadGradient(
       pEl: Power
-  ): Power = {
+  ): Power =
     _lastPower match {
       case None => pEl
       case Some(lastPowerVal) =>
@@ -209,13 +204,12 @@ final case class BMModel(
         pEl - lastPowerVal match {
           case pElDelta if pElDelta > pElDeltaMaxAbs =>
             lastPowerVal + pElDeltaMaxAbs
-          case pElDelta if pElDelta < (pElDeltaMaxAbs * (-1)) =>
+          case pElDelta if pElDelta < (pElDeltaMaxAbs * -1) =>
             lastPowerVal - pElDeltaMaxAbs
           case _ =>
             pEl
         }
     }
-  }
 }
 
 case object BMModel {

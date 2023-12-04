@@ -24,9 +24,9 @@ import org.scalatest.GivenWhenThen
 import org.scalatest.prop.TableDrivenPropertyChecks
 
 import java.util.UUID
-import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
-import scala.jdk.DurationConverters._
+import scala.concurrent.duration.*
+import scala.jdk.CollectionConverters.*
+import scala.jdk.DurationConverters.*
 import scala.language.postfixOps
 
 class RuntimeEventListenerKafkaSpec
@@ -37,7 +37,7 @@ class RuntimeEventListenerKafkaSpec
     with TableDrivenPropertyChecks {
   private var testConsumer: KafkaConsumer[Bytes, SimonaEndMessage] = _
 
-  private implicit lazy val resultFormat: RecordFormat[SimonaEndMessage] =
+  given resultFormat: RecordFormat[SimonaEndMessage] =
     RecordFormat[SimonaEndMessage]
   private val deserializer: Deserializer[SimonaEndMessage] =
     ScalaReflectionSerde.reflectionDeserializer4S[SimonaEndMessage]
@@ -133,7 +133,7 @@ class RuntimeEventListenerKafkaSpec
             testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
           }
 
-        records should have length 1
+        (records should have).length(1)
         records should contain(expectedMsg)
       }
 

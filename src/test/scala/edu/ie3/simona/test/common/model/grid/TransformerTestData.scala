@@ -9,14 +9,14 @@ package edu.ie3.simona.test.common.model.grid
 import breeze.math.Complex
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.simona.model.grid.RefSystem
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import org.scalatest.prop.TableDrivenPropertyChecks.Table
 import org.scalatest.prop.{TableFor5, TableFor9}
 import squants.electro.Kilovolts
 import squants.energy.Kilowatts
 
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** This test data refers to a life-like transformer, the SGB Smit DTTH 630 kVA
   * transformer. For details refer to

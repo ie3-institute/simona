@@ -12,7 +12,7 @@ import squants.Each
 
 class CharacteristicSpec extends UnitSpec with CharacteristicTestData {
 
-  private implicit val puTolerance: squants.Dimensionless = Each(1e-12)
+  given puTolerance: squants.Dimensionless = Each(1e-12)
 
   "The XYPair class" should {
 

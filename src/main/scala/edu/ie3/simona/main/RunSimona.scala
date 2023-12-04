@@ -28,8 +28,8 @@ import scala.util.Random
 trait RunSimona[T <: SimonaSetup] extends LazyLogging {
 
   // timeout parameter
-  implicit val timeout: Timeout
-  implicit lazy val timeoutDuration: FiniteDuration = timeout.duration
+  given timeout: Timeout
+  given timeoutDuration: FiniteDuration = timeout.duration
 
   def main(args: Array[String]): Unit = {
     Locale.setDefault(Locale.ENGLISH)
@@ -51,16 +51,14 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
 
   def shutdownGracefully(
       simonaSim: ActorRef
-  )(implicit timeout: FiniteDuration): Future[Boolean] = {
+  )(using timeout: FiniteDuration): Future[Boolean] =
     gracefulStop(simonaSim, timeout)
-  }
 
   // a fancy opener
-  protected def printOpener(): Unit = {
+  protected def printOpener(): Unit =
     logger.info(
       s"Starting SIMONA with interface '${getClass.getSimpleName.replaceAll("\\$", "")}'.\n" + "   _____ ______  _______  _   _____ \n  / ___//  _/  |/  / __ \\/ | / /   |\n  \\__ \\ / // /|_/ / / / /  |/ / /| |\n ___/ // // /  / / /_/ / /|  / ___ |\n/____/___/_/  /_/\\____/_/ |_/_/  |_|\n                                    "
     )
-  }
 
   def printGoodbye(): Unit = {
     val myWords = Array(

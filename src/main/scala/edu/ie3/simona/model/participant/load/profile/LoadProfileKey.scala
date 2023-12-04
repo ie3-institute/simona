@@ -65,21 +65,20 @@ case object LoadProfileKey {
       loadProfile: String,
       season: String,
       dayType: String
-  ): LoadProfileKey = {
-    try {
+  ): LoadProfileKey =
+    try
       new LoadProfileKey(
         StandardLoadProfile.parse(loadProfile),
         Season(season),
         DayType(dayType)
       )
-    } catch {
+    catch {
       case e: ParsingException =>
         throw new IllegalArgumentException(
           s"Cannot parse '$loadProfile' to a now StandardLoadProfile.",
           e
         )
     }
-  }
 
   /** Creates a load profile key from a consumer type value and a ZonedDateTime
     * object
@@ -94,11 +93,10 @@ case object LoadProfileKey {
   def apply(
       loadProfile: StandardLoadProfile,
       time: ZonedDateTime
-  ): LoadProfileKey = {
+  ): LoadProfileKey =
     new LoadProfileKey(
       loadProfile,
       profile.Season(time),
       load.DayType(time.getDayOfWeek)
     )
-  }
 }

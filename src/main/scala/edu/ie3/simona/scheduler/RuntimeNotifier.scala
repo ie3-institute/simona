@@ -8,7 +8,7 @@ package edu.ie3.simona.scheduler
 
 import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.event.RuntimeEvent._
+import edu.ie3.simona.event.RuntimeEvent.*
 import edu.ie3.simona.scheduler.RuntimeNotifier.now
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
@@ -65,10 +65,8 @@ final case class RuntimeNotifier(
         Simulating(tick, pauseOrEndTick)
     })
 
-    if (tick > 0L)
-      copy(lastStartTime = nowTime)
-    else
-      copy(simStartTime = nowTime, lastStartTime = nowTime)
+    if tick > 0L then copy(lastStartTime = nowTime)
+    else copy(simStartTime = nowTime, lastStartTime = nowTime)
   }
 
   /** Notifier listeners that simulation is pausing at given tick
@@ -95,12 +93,11 @@ final case class RuntimeNotifier(
     val nowTime = now()
 
     // check if InitComplete should be sent, then adjust lastCheck
-    val adjustedLastCheck = if (lastCheck <= -1) {
-      if (completedTick >= INIT_SIM_TICK)
+    val adjustedLastCheck = if lastCheck <= -1 then {
+      if completedTick >= INIT_SIM_TICK then
         notify(InitComplete(nowTime - simStartTime))
       0
-    } else
-      lastCheck
+    } else lastCheck
 
     readyCheckWindow
       .flatMap { checkWindow =>
@@ -131,7 +128,7 @@ final case class RuntimeNotifier(
     * @param endTick
     *   Last tick of the simulation
     */
-  def finishing(endTick: Long): Unit = {
+  def finishing(endTick: Long): Unit =
     notify(
       Done(
         endTick,
@@ -139,7 +136,6 @@ final case class RuntimeNotifier(
         errorInSim = false
       )
     )
-  }
 
   /** Notifier listeners that simulation has ended with error at given tick
     *

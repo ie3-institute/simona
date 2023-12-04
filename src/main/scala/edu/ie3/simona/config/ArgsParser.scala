@@ -6,15 +6,15 @@
 
 package edu.ie3.simona.config
 
-import com.typesafe.config.{ConfigFactory, Config => TypesafeConfig}
+import com.typesafe.config.{ConfigFactory, Config as TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.event.listener.SimonaListenerCompanion
 import edu.ie3.util.scala.ReflectionTools
-import scopt.{OptionParser => scoptOptionParser}
+import scopt.OptionParser as scoptOptionParser
 
 import java.io.File
 import java.nio.file.Paths
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 object ArgsParser extends LazyLogging {
 
@@ -36,21 +36,21 @@ object ArgsParser extends LazyLogging {
   }
 
   // build the config parser using scopt library
-  private def buildParser: scoptOptionParser[Arguments] = {
+  private def buildParser: scoptOptionParser[Arguments] =
     new scoptOptionParser[Arguments]("simona") {
       opt[String]("config")
-        .action((value, args) => {
+        .action { (value, args) =>
           args.copy(
             config = Some(parseTypesafeConfig(value)),
             configLocation = Option(value)
           )
-        })
+        }
         .validate(value =>
-          if (value.trim.isEmpty) failure("config location cannot be empty")
+          if value.trim.isEmpty then failure("config location cannot be empty")
           else success
         )
         .validate(value =>
-          if (value.contains("\\"))
+          if value.contains("\\") then
             failure("wrong config path, expected: /, found: \\")
           else success
         )
@@ -79,21 +79,21 @@ object ArgsParser extends LazyLogging {
       opt[String]("node-host")
         .action((value, args) => args.copy(nodeHost = Option(value)))
         .validate(value =>
-          if (value.trim.isEmpty) failure("node-host cannot be empty")
+          if value.trim.isEmpty then failure("node-host cannot be empty")
           else success
         )
         .text("Host used to run the remote actor system")
       opt[String]("node-port")
         .action((value, args) => args.copy(nodePort = Option(value)))
         .validate(value =>
-          if (value.trim.isEmpty) failure("node-port cannot be empty")
+          if value.trim.isEmpty then failure("node-port cannot be empty")
           else success
         )
         .text("Port used to run the remote actor system")
       opt[String]("seed-address")
         .action((value, args) => args.copy(seedAddress = Option(value)))
         .validate(value =>
-          if (value.trim.isEmpty) failure("seed-address cannot be empty")
+          if value.trim.isEmpty then failure("seed-address cannot be empty")
           else success
         )
         .text(
@@ -109,13 +109,12 @@ object ArgsParser extends LazyLogging {
         )
 
       checkConfig(args =>
-        if (
-          args.useCluster && (args.nodeHost.isEmpty || args.nodePort.isEmpty || args.seedAddress.isEmpty)
-        )
+        if args.useCluster && (args.nodeHost.isEmpty || args.nodePort.isEmpty || args.seedAddress.isEmpty)
+        then
           failure(
             "If using the cluster then node-host, node-port, and seed-address are required"
           )
-        else if (args.useCluster && !args.useLocalWorker.getOrElse(true))
+        else if args.useCluster && !args.useLocalWorker.getOrElse(true) then
           failure(
             "If using the cluster then use-local-worker MUST be true (or unprovided)"
           )
@@ -123,7 +122,6 @@ object ArgsParser extends LazyLogging {
       )
 
     }
-  }
 
   private def parse(
       parser: scoptOptionParser[Arguments],
@@ -135,12 +133,12 @@ object ArgsParser extends LazyLogging {
 
   private def parseTypesafeConfig(fileName: String): TypesafeConfig = {
     val file = Paths.get(fileName).toFile
-    if (!file.exists())
+    if !file.exists() then
       throw new Exception(s"Missing config file on path $fileName")
     parseTypesafeConfig(file)
   }
 
-  private def parseTypesafeConfig(file: File): TypesafeConfig = {
+  private def parseTypesafeConfig(file: File): TypesafeConfig =
     ConfigFactory
       .parseFile(file)
       .withFallback(
@@ -148,7 +146,6 @@ object ArgsParser extends LazyLogging {
           Map("simona.inputDirectory" -> file.getAbsoluteFile.getParent).asJava
         )
       )
-  }
 
   // sealed trait for cluster type
   sealed trait ClusterType

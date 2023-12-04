@@ -125,7 +125,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
     case InitSim =>
       // tell scheduler to process all init messages
       timeAdvancer ! StartSimMessage()
-      context become simonaSimReceive(data.copy(initSimSender = sender()))
+      context.become(simonaSimReceive(data.copy(initSimSender = sender())))
 
     case StartSimulation(pauseScheduleAtTick) =>
       timeAdvancer ! StartSimMessage(pauseScheduleAtTick)
@@ -148,10 +148,12 @@ class SimonaSim(simonaSetup: SimonaSetup)
       stopAllChildrenGracefully(simulationSuccessful)
 
       // wait for listeners and send final message to parent
-      context become waitingForListener(
-        data.initSimSender,
-        simulationSuccessful,
-        systemParticipantsListener
+      context.become(
+        waitingForListener(
+          data.initSimSender,
+          simulationSuccessful,
+          systemParticipantsListener
+        )
       )
 
     case EmergencyShutdownInitiated =>
@@ -172,10 +174,12 @@ class SimonaSim(simonaSetup: SimonaSetup)
       stopAllChildrenGracefully(simulationSuccessful = false)
 
       // wait for listeners and send final message to parent
-      context become waitingForListener(
-        data.initSimSender,
-        successful = false,
-        systemParticipantsListener
+      context.become(
+        waitingForListener(
+          data.initSimSender,
+          successful = false,
+          systemParticipantsListener
+        )
       )
   }
 
@@ -208,22 +212,24 @@ class SimonaSim(simonaSetup: SimonaSetup)
         updatedRemainingListeners
       )
 
-      if (updatedRemainingListeners.isEmpty) {
+      if updatedRemainingListeners.isEmpty then {
         logger.info(
           "The last remaining result listener has been terminated. Exiting."
         )
 
         val msg =
-          if (successful) SimulationSuccessful
+          if successful then SimulationSuccessful
           else SimulationFailure
         // inform InitSim Sender
         initSimSender ! msg
       }
 
-      context become waitingForListener(
-        initSimSender,
-        successful,
-        updatedRemainingListeners
+      context.become(
+        waitingForListener(
+          initSimSender,
+          successful,
+          updatedRemainingListeners
+        )
       )
   }
 
@@ -269,7 +275,7 @@ object SimonaSim {
     */
   case object EmergencyShutdownInitiated
 
-  private[SimonaSim] final case class SimonaSimStateData(
+  final private[SimonaSim] case class SimonaSimStateData(
       initSimSender: ActorRef = ActorRef.noSender
   )
 

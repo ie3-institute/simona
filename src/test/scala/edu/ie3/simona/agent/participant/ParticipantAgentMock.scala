@@ -153,7 +153,7 @@ class ParticipantAgentMock(
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[SystemParticipantInput],
       modelConfig: SimonaConfig.BaseRuntimeConfig,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Option[Vector[SecondaryDataService[? <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -240,7 +240,7 @@ class ParticipantAgentMock(
       baseStateData: BaseStateData[ApparentPower],
       currentTick: Long
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
-    goto(Idle) using baseStateData
+    goto(Idle).using(baseStateData)
 
   /** Determine the average result within the given tick window
     *

@@ -7,6 +7,9 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
+import edu.ie3.simona.model.participant.HpModel.HpRelevantData
+import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.util.scala.OperationInterval
 import squants.energy.Megawatts
 import squants.{Dimensionless, Power}
 
@@ -19,10 +22,8 @@ trait ApparentPowerAndHeatParticipant[CD <: CalcRelevantData] {
   ): ApparentPowerAndHeat = {
     val apparentPower = calculateApparentPower(tick, voltage, data)
     val heat =
-      if (isInOperation(tick))
-        calculateHeat(tick, data)
-      else
-        Megawatts(0d)
+      if isInOperation(tick) then calculateHeat(tick, data)
+      else Megawatts(0d)
 
     ApparentPowerAndHeat(apparentPower.p, apparentPower.q, heat)
   }

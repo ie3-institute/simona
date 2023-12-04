@@ -62,8 +62,8 @@ class FixedFeedInAgentModelCalculationSpec
       )
     )
     with FixedFeedInputTestData {
-  implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
-  implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
+  given receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
+  given noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
 
   /* Alter the input model to have a voltage sensitive reactive power calculation */
   val voltageSensitiveInput: FixedFeedInInput = fixedFeedInput
@@ -76,8 +76,8 @@ class FixedFeedInAgentModelCalculationSpec
   protected val simulationEndDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00")
 
-  private implicit val powerTolerance: squants.Power = Watts(0.1)
-  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
+  implicit private val powerTolerance: squants.Power = Watts(0.1)
+  implicit private val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
@@ -129,7 +129,7 @@ class FixedFeedInAgentModelCalculationSpec
       fixedFeedAgent.stateName shouldBe Uninitialized
       // ParticipantUninitializedStateData is an empty class (due to typing). If it contains content one day
       inside(fixedFeedAgent.stateData) {
-        case _: ParticipantUninitializedStateData[_] => succeed
+        case _: ParticipantUninitializedStateData[?] => succeed
         case _ =>
           fail(
             s"Expected $ParticipantUninitializedStateData, but got ${fixedFeedAgent.stateData}."
@@ -259,7 +259,7 @@ class FixedFeedInAgentModelCalculationSpec
       )
 
       inside(fixedFeedAgent.stateData) {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case modelBaseStateData: ParticipantModelBaseStateData[?, ?, ?] =>
           modelBaseStateData.requestValueStore shouldBe ValueStore[
             ApparentPower
           ](
@@ -309,9 +309,9 @@ class FixedFeedInAgentModelCalculationSpec
       awaitAssert(fixedFeedAgent.stateName shouldBe Idle)
       inside(fixedFeedAgent.stateData) {
         case participantModelBaseStateData: ParticipantModelBaseStateData[
-              _,
-              _,
-              _
+              ?,
+              ?,
+              ?
             ] =>
           participantModelBaseStateData.resultValueStore.last(0L) match {
             case Some((tick, entry)) =>

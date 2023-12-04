@@ -50,7 +50,7 @@ object EvcsAgent {
       )
     )
 
-  val neededServices: Vector[Class[_ <: SecondaryDataService[_]]] = Vector(
+  val neededServices: Vector[Class[? <: SecondaryDataService[?]]] = Vector(
     classOf[ActorEvMovementsService]
   )
 }
@@ -95,7 +95,7 @@ class EvcsAgent(
         ) =>
       val updatedStateData =
         handleDepartingEvsRequest(tick, modelBaseStateData, departingEvs)
-      stay() using updatedStateData
+      stay().using(updatedStateData)
   }
 
   /** Determine the average result within the given tick window

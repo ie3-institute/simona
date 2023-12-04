@@ -62,7 +62,8 @@ object CollectionUtils {
     list match {
       case Nil => true
       case headEntry :: tailList =>
-        if (set(headEntry)) false else isUniqueList(tailList, set + headEntry)
+        if set(headEntry) then false
+        else isUniqueList(tailList, set + headEntry)
     }
 
   /** Checks if the provided list is sorted in accordance to the provided
@@ -79,7 +80,7 @@ object CollectionUtils {
     *   otherwise
     */
   @tailrec
-  def isSorted[T](list: List[T])(implicit ord: Ordering[T]): Boolean =
+  def isSorted[T](list: List[T])(using ord: Ordering[T]): Boolean =
     list match {
       case Nil      => true // an empty list is sorted
       case _ :: Nil => true // a single-element list is sorted
@@ -109,9 +110,9 @@ object CollectionUtils {
       key: A
   ): Seq[(A, O)] = {
     import scala.collection.immutable.TreeMap
-    implicit val ordering: Double.IeeeOrdering.type =
+    given ordering: Double.IeeeOrdering.type =
       Ordering.Double.IeeeOrdering
-    val treeMap = TreeMap(map.toSeq: _*) // preserves order
+    val treeMap = TreeMap(map.toSeq*) // preserves order
 
     Seq(
       treeMap.rangeTo(key).lastOption,

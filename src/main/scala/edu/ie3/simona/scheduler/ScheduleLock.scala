@@ -27,9 +27,9 @@ import java.util.UUID
 object ScheduleLock {
   sealed trait LockMsg
 
-  private final case class Init(adapter: ActorRef[Activation]) extends LockMsg
+  final private case class Init(adapter: ActorRef[Activation]) extends LockMsg
 
-  private final case object LockActivation extends LockMsg
+  final private case object LockActivation extends LockMsg
 
   /** @param key
     *   the key that unlocks (part of) the lock
@@ -41,8 +41,7 @@ object ScheduleLock {
       expectedTick: Long
   ): Behavior[Activation] =
     Behaviors.receive { case (ctx, Activation(tick)) =>
-      if (tick == expectedTick)
-        lock ! LockActivation
+      if tick == expectedTick then lock ! LockActivation
       else
         ctx.log.error(
           s"Received lock activation for tick $tick, but expected $expectedTick"
@@ -68,12 +67,12 @@ object ScheduleLock {
     def spawn[T](behavior: Behavior[T]): ActorRef[T]
   }
 
-  private final case class TypedSpawner(ctx: ActorContext[_]) extends Spawner {
+  final private case class TypedSpawner(ctx: ActorContext[?]) extends Spawner {
     override def spawn[T](behavior: Behavior[T]): ActorRef[T] =
       ctx.spawnAnonymous(behavior)
   }
 
-  private final case class ClassicSpawner(
+  final private case class ClassicSpawner(
       ctx: org.apache.pekko.actor.ActorContext
   ) extends Spawner {
     override def spawn[T](behavior: Behavior[T]): ActorRef[T] =
@@ -93,7 +92,7 @@ object ScheduleLock {
     *   A single key that unlocks the lock
     */
   def singleKey(
-      ctx: ActorContext[_],
+      ctx: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       tick: Long
   ): ScheduleKey =
@@ -154,7 +153,7 @@ object ScheduleLock {
     *   A collection of keys that are needed to unlock the lock
     */
   def multiKey(
-      ctx: ActorContext[_],
+      ctx: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       tick: Long,
       count: Int
@@ -265,8 +264,7 @@ object ScheduleLock {
   ): Behavior[LockMsg] = Behaviors.receiveMessage { case Unlock(key) =>
     val updatedKeys = awaitedKeys - key
 
-    if (updatedKeys.nonEmpty)
-      active(scheduler, updatedKeys, adapter)
+    if updatedKeys.nonEmpty then active(scheduler, updatedKeys, adapter)
     else {
       scheduler ! Completion(adapter)
       Behaviors.stopped

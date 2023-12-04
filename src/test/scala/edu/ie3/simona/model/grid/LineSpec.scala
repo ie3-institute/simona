@@ -11,12 +11,12 @@ import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LineInputTestData
 import edu.ie3.simona.test.common.model.grid.FiveLinesWithNodes
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.OperationInterval
 import squants.Each
 import squants.electro.{Amperes, Kilovolts}
 import squants.energy.Kilowatts
-import tech.units.indriya.unit.Units._
+import tech.units.indriya.unit.Units.*
 
 import java.util.UUID
 
@@ -24,8 +24,8 @@ import java.util.UUID
   */
 
 class LineSpec extends UnitSpec with LineInputTestData {
-  implicit val dimensionlessTolerance: squants.Dimensionless = Each(1e-12)
-  implicit val electricCurrentTolerance: squants.electro.ElectricCurrent =
+  given dimensionlessTolerance: squants.Dimensionless = Each(1e-12)
+  given electricCurrentTolerance: squants.electro.ElectricCurrent =
     Amperes(1e-12)
 
   sealed trait ValidLineModel {

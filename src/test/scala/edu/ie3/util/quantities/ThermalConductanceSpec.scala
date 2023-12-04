@@ -16,7 +16,7 @@ import squants.time.Hours
 
 class ThermalConductanceSpec extends AnyFlatSpec with Matchers {
 
-  behavior of "ThermalConductance and its Units of Measure"
+  behavior.of("ThermalConductance and its Units of Measure")
 
   it should "create values using UOM factories" in {
     WattsPerKelvin(1).toWattsPerKelvin should be(1)

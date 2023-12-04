@@ -26,7 +26,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResp
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage
 }
-import edu.ie3.simona.ontology.messages.services.WeatherMessage._
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.*
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
@@ -100,12 +100,13 @@ class WeatherServiceSpec
     new WeatherService(
       scheduler.ref,
       TimeUtil.withDefaults.toZonedDateTime(
-        simonaConfig.simona.time.startDateTime
-      ),
-      TimeUtil.withDefaults.toZonedDateTime(
         simonaConfig.simona.time.endDateTime
       ),
       4
+    )(using
+      TimeUtil.withDefaults.toZonedDateTime(
+        simonaConfig.simona.time.startDateTime
+      )
     )
   )
 

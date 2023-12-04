@@ -21,7 +21,7 @@ class LoadModelSpec
     with PrivateMethodTester
     with TableDrivenPropertyChecks {
 
-  private implicit val powerTolerance: squants.Power = Watts(1)
+  given powerTolerance: squants.Power = Watts(1)
 
   "The load model object" should {
 
@@ -43,35 +43,33 @@ class LoadModelSpec
 
       forAll(params) {
         (foreSeenReference: LoadReference, expsRated: squants.Power) =>
-          {
-            val actual = ProfileLoadModel(
-              loadInput,
-              defaultOperationInterval,
-              foreSeenScalingFactor,
-              foreSeenReference
-            )
-            inside(actual) {
-              case ProfileLoadModel(
-                    uuid,
-                    id,
-                    operationInterval,
-                    scalingFactor,
-                    qControl,
-                    sRated,
-                    cosPhiRated,
-                    loadProfile,
-                    reference
-                  ) =>
-                uuid shouldBe loadInput.getUuid
-                id shouldBe loadInput.getId
-                operationInterval shouldBe defaultOperationInterval
-                scalingFactor shouldBe foreSeenScalingFactor
-                qControl shouldBe QControl(loadInput.getqCharacteristics)
-                (sRated ~= expsRated) shouldBe true
-                cosPhiRated shouldBe loadInput.getCosPhiRated
-                loadProfile shouldBe loadInput.getLoadProfile
-                reference shouldBe foreSeenReference
-            }
+          val actual = ProfileLoadModel(
+            loadInput,
+            defaultOperationInterval,
+            foreSeenScalingFactor,
+            foreSeenReference
+          )
+          inside(actual) {
+            case ProfileLoadModel(
+                  uuid,
+                  id,
+                  operationInterval,
+                  scalingFactor,
+                  qControl,
+                  sRated,
+                  cosPhiRated,
+                  loadProfile,
+                  reference
+                ) =>
+              uuid shouldBe loadInput.getUuid
+              id shouldBe loadInput.getId
+              operationInterval shouldBe defaultOperationInterval
+              scalingFactor shouldBe foreSeenScalingFactor
+              qControl shouldBe QControl(loadInput.getqCharacteristics)
+              (sRated ~= expsRated) shouldBe true
+              cosPhiRated shouldBe loadInput.getCosPhiRated
+              loadProfile shouldBe loadInput.getLoadProfile
+              reference shouldBe foreSeenReference
           }
       }
     }
@@ -92,33 +90,31 @@ class LoadModelSpec
 
       forAll(params) {
         (foreSeenReference: LoadReference, expsRated: squants.Power) =>
-          {
-            val actual = RandomLoadModel(
-              loadInput,
-              defaultOperationInterval,
-              foreSeenScalingFactor,
-              foreSeenReference
-            )
-            inside(actual) {
-              case RandomLoadModel(
-                    uuid,
-                    id,
-                    operationInterval,
-                    scalingFactor,
-                    qControl,
-                    sRated,
-                    cosPhiRated,
-                    reference
-                  ) =>
-                uuid shouldBe loadInput.getUuid
-                id shouldBe loadInput.getId
-                operationInterval shouldBe defaultOperationInterval
-                scalingFactor shouldBe foreSeenScalingFactor
-                qControl shouldBe QControl(loadInput.getqCharacteristics)
-                (sRated ~= expsRated) shouldBe true
-                cosPhiRated shouldBe loadInput.getCosPhiRated
-                reference shouldBe foreSeenReference
-            }
+          val actual = RandomLoadModel(
+            loadInput,
+            defaultOperationInterval,
+            foreSeenScalingFactor,
+            foreSeenReference
+          )
+          inside(actual) {
+            case RandomLoadModel(
+                  uuid,
+                  id,
+                  operationInterval,
+                  scalingFactor,
+                  qControl,
+                  sRated,
+                  cosPhiRated,
+                  reference
+                ) =>
+              uuid shouldBe loadInput.getUuid
+              id shouldBe loadInput.getId
+              operationInterval shouldBe defaultOperationInterval
+              scalingFactor shouldBe foreSeenScalingFactor
+              qControl shouldBe QControl(loadInput.getqCharacteristics)
+              (sRated ~= expsRated) shouldBe true
+              cosPhiRated shouldBe loadInput.getCosPhiRated
+              reference shouldBe foreSeenReference
           }
       }
     }

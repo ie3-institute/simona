@@ -21,7 +21,7 @@ import scala.math.Ordering.Double.IeeeOrdering
   *   96 quarter-hour values for this load profile,
   */
 final case class TypeDayProfile(private val values: Array[Double]) {
-  if (values.length != 96)
+  if values.length != 96 then
     throw new IllegalArgumentException(
       "You may only instantiate type day parameters with 96 values."
     )

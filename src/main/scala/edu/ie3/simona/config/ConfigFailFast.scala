@@ -55,16 +55,15 @@ case object ConfigFailFast extends LazyLogging {
     * @param typeSafeConfig
     *   Config to check
     */
-  def check(typeSafeConfig: Config): Unit = {
+  def check(typeSafeConfig: Config): Unit =
     checkPekkoConfig(typeSafeConfig)
-  }
 
   /** Trying to get pekko config and checking it
     *
     * @param typeSafeConfig
     *   Config to check
     */
-  private def checkPekkoConfig(typeSafeConfig: Config): Unit = {
+  private def checkPekkoConfig(typeSafeConfig: Config): Unit =
     Try(typeSafeConfig.getConfig("pekko"))
       .map(pekkoConfig => checkPekkoLoggers(pekkoConfig)) match {
       case Failure(_: ConfigException.Missing) =>
@@ -78,14 +77,13 @@ case object ConfigFailFast extends LazyLogging {
         )
       case Success(_) =>
     }
-  }
 
   /** Try to check the pekko logging config
     *
     * @param typeSafeConfig
     *   Config to check
     */
-  private def checkPekkoLoggers(typeSafeConfig: Config): Unit = {
+  private def checkPekkoLoggers(typeSafeConfig: Config): Unit =
     Try(typeSafeConfig.getIsNull("loggers")) match {
       case Success(true) | Failure(_: ConfigException.Missing) =>
         logger.warn(
@@ -98,7 +96,6 @@ case object ConfigFailFast extends LazyLogging {
         )
       case _ =>
     }
-  }
 
   /** Main entrance to check a provided [[SimonaConfig]]
     *
@@ -153,12 +150,11 @@ case object ConfigFailFast extends LazyLogging {
   private def checkDataSink(sink: SimonaConfig.Simona.Output.Sink): Unit = {
     // ensures failure if new output sinks are added to enforce adaptions of the check sink method as well
     val supportedSinks = Set("influxdb1x", "csv", "kafka")
-    if (
-      !sink.productElementNames
+    if !sink.productElementNames
         .map(_.trim.toLowerCase)
         .toSet
         .equals(supportedSinks)
-    )
+    then
       throw new InvalidConfigParameterException(
         s"Newly added sink(s) " +
           s"'${sink.productElementNames.map(_.toLowerCase).toSet.removedAll(supportedSinks)}' detected! " +
@@ -167,20 +163,20 @@ case object ConfigFailFast extends LazyLogging {
 
     // failure if all sinks are not-configured
     val sinkConfigs = ReflectionTools.classFieldToVal(sink).values.map {
-      case o: Option[_] => o
+      case o: Option[?] => o
       case _ =>
         throw new InvalidConfigParameterException(
           "All sinks in configuration must be optional!"
         )
     }
 
-    if (sinkConfigs.forall(_.isEmpty))
+    if sinkConfigs.forall(_.isEmpty) then
       throw new InvalidConfigParameterException(
         "No sink configuration found! Please ensure that at least one sink is " +
           s"configured! You can choose from: ${supportedSinks.mkString(", ")}."
       )
 
-    if (sinkConfigs.count(_.isDefined) > 1)
+    if sinkConfigs.count(_.isDefined) > 1 then
       throw new InvalidConfigParameterException(
         "Multiple sink configurations are not supported! Please ensure that only " +
           "one sink is configured!"
@@ -212,7 +208,7 @@ case object ConfigFailFast extends LazyLogging {
     val startDate = createDateTime(timeConfig.startDateTime)
     val endDate = createDateTime(timeConfig.endDateTime)
 
-    if (startDate.isAfter(endDate))
+    if startDate.isAfter(endDate) then
       throw new InvalidConfigParameterException(
         s"Invalid time configuration." +
           s"Please ensure that the start time of the simulation is before the end time."
@@ -227,10 +223,10 @@ case object ConfigFailFast extends LazyLogging {
     */
   private def createDateTime(
       dateTimeString: String
-  ): ZonedDateTime = {
-    try {
+  ): ZonedDateTime =
+    try
       TimeUtil.withDefaults.toZonedDateTime(dateTimeString)
-    } catch {
+    catch {
       case e: DateTimeParseException =>
         throw new InvalidConfigParameterException(
           s"Invalid dateTimeString: $dateTimeString." +
@@ -238,7 +234,6 @@ case object ConfigFailFast extends LazyLogging {
           e
         )
     }
-  }
 
   /** Checks all participant model runtime sub configuration trees
     *
@@ -248,7 +243,7 @@ case object ConfigFailFast extends LazyLogging {
   private def checkParticipantRuntimeConfiguration(
       subConfig: SimonaConfig.Simona.Runtime.Participant
   ): Unit = {
-    if (subConfig.requestVoltageDeviationThreshold < 0)
+    if subConfig.requestVoltageDeviationThreshold < 0 then
       throw new InvalidConfigParameterException(
         "The participant power request voltage deviation threshold must be positive!"
       )
@@ -291,11 +286,10 @@ case object ConfigFailFast extends LazyLogging {
     */
   private def checkRuntimeListenerConfiguration(
       listenerConfig: SimonaConfig.Simona.Runtime.Listener
-  ): Unit = {
+  ): Unit =
     listenerConfig.kafka.foreach(kafka =>
       checkKafkaParams(kafka, Seq(kafka.topic))
     )
-  }
 
   /** Check participants's basic runtime configurations, as well as in default
     * as in individual configs. This comprises
@@ -308,18 +302,17 @@ case object ConfigFailFast extends LazyLogging {
   ): Unit = {
     // special default config check
     val uuidString = defaultConfig.uuids.mkString(",")
-    if (
-      StringUtils
+    if StringUtils
         .cleanString(uuidString)
         .toLowerCase != StringUtils.cleanString(defaultString).toLowerCase
-    )
+    then
       logger.warn(
         s"You provided '$uuidString' as uuid reference for the default model config. Those references will not be considered!"
       )
 
     // special individual configs check
     /* Check, if there are ambiguous configs and then check all configs */
-    if (!CollectionUtils.isUniqueList(individualConfigs.flatMap(_.uuids)))
+    if !CollectionUtils.isUniqueList(individualConfigs.flatMap(_.uuids)) then
       throw new InvalidConfigParameterException(
         "The basic model configurations contain ambiguous definitions."
       )
@@ -330,7 +323,7 @@ case object ConfigFailFast extends LazyLogging {
 
     allConfigs.foreach { case (config, singleEntryStringOpt) =>
       /* Checking the uuids */
-      if (config.uuids.isEmpty)
+      if config.uuids.isEmpty then
         throw new InvalidConfigParameterException(
           "There has to be at least one identifier for each participant."
         )
@@ -340,9 +333,9 @@ case object ConfigFailFast extends LazyLogging {
           checkSingleString(singleString, config.uuids)
         case None =>
           config.uuids.foreach(uuid =>
-            try {
+            try
               UUID.fromString(uuid)
-            } catch {
+            catch {
               case e: IllegalArgumentException =>
                 throw new InvalidConfigParameterException(
                   s"The UUID '$uuid' cannot be parsed as it is invalid.",
@@ -353,7 +346,7 @@ case object ConfigFailFast extends LazyLogging {
       }
 
       // check for scaling
-      if (config.scaling < 0)
+      if config.scaling < 0 then
         throw new InvalidConfigParameterException(
           s"The scaling factor for system participants with UUID '${config.uuids.mkString(",")}' may not be negative."
         )
@@ -371,20 +364,19 @@ case object ConfigFailFast extends LazyLogging {
       singleString: String,
       uuids: List[String]
   ): Unit = {
-    if (uuids.toVector.size != 1)
+    if uuids.toVector.size != 1 then
       throw new InvalidConfigParameterException(
         "The list of UUIDs is supposed to only have one entry!"
       )
     uuids.headOption match {
       case Some(singleEntry) =>
-        if (
-          StringUtils
+        if StringUtils
             .cleanString(singleEntry)
             .toLowerCase() != singleString
-        )
-          try {
+        then
+          try
             UUID.fromString(singleEntry)
-          } catch {
+          catch {
             case e: IllegalArgumentException =>
               throw new InvalidConfigParameterException(
                 s"Found invalid UUID '$singleEntry' it was meant to be the string '$singleString' or a valid UUID.",
@@ -404,17 +396,16 @@ case object ConfigFailFast extends LazyLogging {
   private def checkSpecificLoadModelConfig(
       loadModelConfig: SimonaConfig.LoadRuntimeConfig
   ): Unit = {
-    if (!LoadModelBehaviour.isEligibleInput(loadModelConfig.modelBehaviour))
+    if !LoadModelBehaviour.isEligibleInput(loadModelConfig.modelBehaviour) then
       throw new InvalidConfigParameterException(
         s"The load model behaviour '${loadModelConfig.modelBehaviour}' for the loads with UUIDs '${loadModelConfig.uuids
             .mkString(",")}' is invalid."
       )
 
-    if (
-      !LoadReference.isEligibleKey(
+    if !LoadReference.isEligibleKey(
         loadModelConfig.reference
       )
-    )
+    then
       throw new InvalidConfigParameterException(
         s"The standard load profile reference '${loadModelConfig.reference}' for the loads with UUIDs '${loadModelConfig.uuids
             .mkString(",")}' is invalid."
@@ -432,7 +423,7 @@ case object ConfigFailFast extends LazyLogging {
       refSystem.voltLvls.getOrElse(List.empty[SimonaConfig.VoltLvlConfig])
     val gridIds = refSystem.gridIds.getOrElse(List.empty[String])
 
-    if (voltLvls.isEmpty && gridIds.isEmpty)
+    if voltLvls.isEmpty && gridIds.isEmpty then
       throw new InvalidConfigParameterException(
         "The provided values for voltLvls and gridIds are empty! " +
           s"At least one of these optional parameters has to be provided for a valid refSystem! " +
@@ -442,7 +433,7 @@ case object ConfigFailFast extends LazyLogging {
     voltLvls.foreach { voltLvl =>
       Try(Quantities.getQuantity(voltLvl.vNom)) match {
         case Success(quantity) =>
-          if (!quantity.getUnit.isCompatible(Units.VOLT))
+          if !quantity.getUnit.isCompatible(Units.VOLT) then
             throw new InvalidConfigParameterException(
               s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to electrical potential! Please provide the volt level with its unit, e.g. \"20 kV\""
             )
@@ -482,12 +473,11 @@ case object ConfigFailFast extends LazyLogging {
         )
     }
 
-    def rangeCheck(from: Int, to: Int, gridIdRange: String): Unit = {
-      if (from >= to)
+    def rangeCheck(from: Int, to: Int, gridIdRange: String): Unit =
+      if from >= to then
         throw new InvalidConfigParameterException(
           s"Invalid gridId Range $gridIdRange. Start $from cannot be equals or bigger than end $to."
         )
-    }
   }
 
   private def checkGridDataSource(
@@ -495,7 +485,7 @@ case object ConfigFailFast extends LazyLogging {
   ): Unit = {
 
     // grid source information provided?
-    if (gridDataSource.id.isEmpty) {
+    if gridDataSource.id.isEmpty then {
       throw new InvalidConfigParameterException(
         "No grid data source information provided! Cannot proceed!"
       )
@@ -540,7 +530,7 @@ case object ConfigFailFast extends LazyLogging {
   ): Unit = {
 
     (subConfig.defaultConfig :: subConfig.individualConfigs).foreach(c =>
-      if (c.powerRequestReply)
+      if c.powerRequestReply then
         throw new NotImplementedError(
           "PowerRequestReply output handling is not supported yet!"
         )
@@ -560,11 +550,9 @@ case object ConfigFailFast extends LazyLogging {
     */
   private def checkPowerFlowResolutionConfiguration(
       powerFlow: SimonaConfig.Simona.Powerflow
-  ): Unit = {
-
+  ): Unit =
     // check if time bin is not smaller than in seconds
-    if (
-      (powerFlow.resolution.getUnits.contains(
+    if (powerFlow.resolution.getUnits.contains(
         ChronoUnit.NANOS
       ) && powerFlow.resolution.getNano != 0) ||
       (powerFlow.resolution.getUnits.contains(
@@ -575,13 +563,12 @@ case object ConfigFailFast extends LazyLogging {
         ChronoUnit.MILLIS
       ) && powerFlow.resolution
         .get(ChronoUnit.MILLIS) != 0)
-    ) {
+    then {
       throw new InvalidConfigParameterException(
         s"Invalid time resolution. Please ensure, that " +
           s"the time resolution for power flow calculation is at least rounded to a full second!"
       )
     }
-  }
 
   /** Check the default config
     *
@@ -593,16 +580,14 @@ case object ConfigFailFast extends LazyLogging {
   private def checkDefaultBaseOutputConfig(
       config: SimonaConfig.BaseOutputConfig,
       defaultString: String
-  ): Unit = {
-    if (
-      StringUtils
+  ): Unit =
+    if StringUtils
         .cleanString(config.notifier)
         .toLowerCase != StringUtils.cleanString(defaultString).toLowerCase
-    )
+    then
       logger.warn(
         s"You provided '${config.notifier}' as model type for the default participant output config. This will not be considered!"
       )
-  }
 
   /** Checks the participant output configurations on duplicates
     *
@@ -620,7 +605,7 @@ case object ConfigFailFast extends LazyLogging {
       }
       .keys
 
-    if (duplicateKeys.nonEmpty)
+    if duplicateKeys.nonEmpty then
       throw new InvalidConfigParameterException(
         s"There are multiple output configurations for participant types '${duplicateKeys.mkString(",")}'."
       )
@@ -633,24 +618,22 @@ case object ConfigFailFast extends LazyLogging {
     * @param config
     *   to be checked
     */
-  private def checkBaseOutputConfig(config: BaseOutputConfig): Unit = {
+  private def checkBaseOutputConfig(config: BaseOutputConfig): Unit =
     checkNotifierIdentifier(config.notifier)
-  }
 
   /** Check the validity of the identifier String
     *
     * @param id
     *   identifier String to check
     */
-  private def checkNotifierIdentifier(id: String): Unit = {
-    try {
+  private def checkNotifierIdentifier(id: String): Unit =
+    try
       NotifierIdentifier(id)
-    } catch {
+    catch {
       case e: NoSuchElementException =>
         throw new InvalidConfigParameterException(
           s"The identifier '$id' you provided is not valid. Valid input: ${NotifierIdentifier.values.map(_.toString).mkString(",")}",
           e
         )
     }
-  }
 }

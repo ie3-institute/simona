@@ -149,9 +149,8 @@ final case class ThermalHouse(
     */
   private def calcInnerTemperatureChange(
       thermalEnergyChange: Energy
-  ): Temperature = {
+  ): Temperature =
     thermalEnergyChange / ethCapa
-  }
 
   /** Calculate the thermal energy change combining the added and lost energy
     *
@@ -198,13 +197,12 @@ final case class ThermalHouse(
       innerTemperature: Temperature,
       ambientTemperature: Temperature,
       time: Time
-  ): Energy = {
+  ): Energy =
     ethLosses.thermalConductanceToEnergy(
       innerTemperature,
       ambientTemperature,
       time
     )
-  }
 
 }
 

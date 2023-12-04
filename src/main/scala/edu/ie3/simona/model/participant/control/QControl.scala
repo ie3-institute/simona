@@ -18,13 +18,13 @@ import tech.units.indriya.AbstractUnit
 
 import scala.collection.SortedSet
 import scala.collection.immutable.TreeSet
-import scala.jdk.CollectionConverters._
-import scala.math._
+import scala.jdk.CollectionConverters.*
+import scala.math.*
 
 sealed trait QControl {
   protected val _cosPhiMultiplication: (Double, Power) => ReactivePower =
     (cosPhi: Double, p: Power) =>
-      if ((cosPhi - 1).abs < 0.0000001) {
+      if (cosPhi - 1).abs < 0.0000001 then {
         Megavars(0d)
       } else {
         /* q = p * tan( phi ) = p * tan( acos( cosphi )) */
@@ -60,7 +60,7 @@ object QControl {
   def apply(varCharacteristic: ReactivePowerCharacteristic): QControl =
     varCharacteristic match {
       case cosPhiFixed: characteristic.CosPhiFixed =>
-        if (cosPhiFixed.getPoints.size() > 1)
+        if cosPhiFixed.getPoints.size() > 1 then
           throw new QControlException(
             s"Got an invalid definition of fixed power factor: $cosPhiFixed. It may only contain one coordinate"
           )
@@ -119,9 +119,8 @@ object QControl {
         sRated: Power,
         cosPhiRated: Double,
         nodalVoltage: Dimensionless
-    ): Power => ReactivePower = { activePower: Power =>
+    ): Power => ReactivePower = activePower: Power =>
       _cosPhiMultiplication(cosPhi, activePower)
-    }
   }
 
   /** Voltage dependant var characteristic
@@ -152,9 +151,8 @@ object QControl {
     def q(
         vInPu: Dimensionless,
         qMax: ReactivePower
-    ): ReactivePower = {
+    ): ReactivePower =
       qMax * interpolateXy(vInPu)._2.toEach
-    }
 
     /** Obtain the function, that transfers active into reactive power
       *
@@ -171,7 +169,7 @@ object QControl {
         sRated: Power,
         cosPhiRated: Double,
         nodalVoltage: Dimensionless
-    ): Power => ReactivePower = { activePower: Power =>
+    ): Power => ReactivePower = { (activePower: Power) =>
       val qMaxFromP = Megavars(
         sqrt(
           pow(sRated.toMegawatts, 2) -
@@ -199,10 +197,9 @@ object QControl {
         qMaxFromP: ReactivePower,
         qFromCharacteristic: ReactivePower
     ): ReactivePower =
-      if (qFromCharacteristic.abs >= qMaxFromP.abs)
+      if qFromCharacteristic.abs >= qMaxFromP.abs then
         qMaxFromP * copySign(1, qFromCharacteristic.toMegavars)
-      else
-        qFromCharacteristic
+      else qFromCharacteristic
   }
 
   /** Power dependant var characteristic
@@ -246,7 +243,7 @@ object QControl {
         sRated: Power,
         cosPhiRated: Double,
         nodalVoltage: Dimensionless
-    ): Power => ReactivePower = { activePower: Power =>
+    ): Power => ReactivePower = { (activePower: Power) =>
       /* cosphi( P / P_N ) = cosphi( P / (S_N * cosphi_rated) ) */
       val pInPu =
         activePower / (sRated * cosPhiRated)

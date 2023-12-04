@@ -11,16 +11,16 @@ import org.apache.pekko.actor.{ActorLogging, ActorRef, ActorSystem, Props}
 import org.apache.pekko.testkit.ImplicitSender
 import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.models.result.system._
+import edu.ie3.datamodel.models.result.system.*
 import edu.ie3.simona.event.NotifierSpec.{TestEvent, TestEventEnvelope}
 import edu.ie3.simona.event.notifier.Notifier
 import edu.ie3.simona.test.common.TestKitWithShutdown
-import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
+import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier.*
 import edu.ie3.simona.util.EntityMapperUtil
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.language.postfixOps
 
 class NotifierSpec
@@ -41,9 +41,8 @@ class NotifierSpec
   class NotifierActor(override val listener: Iterable[ActorRef])
       extends Notifier
       with ActorLogging {
-    override def preStart(): Unit = {
+    override def preStart(): Unit =
       log.debug(s"{} started!", self)
-    }
 
     override def receive: Receive = {
       case TestEventEnvelope(testEvent, "Please notify others of this!") =>
@@ -63,7 +62,7 @@ class NotifierSpec
       val msgDate = Calendar.getInstance().getTime
       val msg = "Hello World"
       val testEvent = TestEvent(msg, msgDate)
-      implicit val timeout: Timeout = Timeout(5 seconds)
+      given timeout: Timeout = Timeout(5 seconds)
       notifier ! TestEventEnvelope(testEvent)
       expectMsg(testEvent)
     }

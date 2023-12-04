@@ -31,9 +31,7 @@ import edu.ie3.datamodel.io.source.{
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
-  Primary => PrimaryConfig
-}
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary as PrimaryConfig
 import edu.ie3.simona.exceptions.{
   InitializationException,
   InvalidConfigParameterException
@@ -66,7 +64,7 @@ import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.Option.when
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
@@ -83,9 +81,9 @@ import scala.util.{Failure, Success, Try}
   */
 case class PrimaryServiceProxy(
     scheduler: ActorRef,
-    initStateData: InitPrimaryServiceProxyStateData,
-    private implicit val startDateTime: ZonedDateTime
-) extends Actor
+    initStateData: InitPrimaryServiceProxyStateData
+)(using startDateTime: ZonedDateTime)
+    extends Actor
     with SimonaActorLogging {
 
   /** Start receiving without knowing specifics about myself
@@ -110,7 +108,7 @@ case class PrimaryServiceProxy(
       ) match {
         case Success(stateData) =>
           scheduler ! Completion(self.toTyped)
-          context become onMessage(stateData)
+          context.become(onMessage(stateData))
         case Failure(exception) =>
           log.error(
             exception,
@@ -139,7 +137,7 @@ case class PrimaryServiceProxy(
   private def prepareStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime
-  ): Try[PrimaryServiceStateData] = {
+  ): Try[PrimaryServiceStateData] =
     createSources(primaryConfig).map {
       case (mappingSource, metaInformationSource) =>
         val modelToTimeSeries = mappingSource.getMapping.asScala.toMap
@@ -175,11 +173,10 @@ case class PrimaryServiceProxy(
           mappingSource
         )
     }
-  }
 
   private def createSources(
       primaryConfig: PrimaryConfig
-  ): Try[(TimeSeriesMappingSource, TimeSeriesMetaInformationSource)] = {
+  ): Try[(TimeSeriesMappingSource, TimeSeriesMetaInformationSource)] =
     Seq(
       primaryConfig.sqlParams,
       primaryConfig.influxDb1xParams,
@@ -231,7 +228,6 @@ case class PrimaryServiceProxy(
           )
         )
     }
-  }
 
   /** Message handling, if the actor has been initialized already. This method
     * basically handles registration requests, checks, if pre-calculated,
@@ -304,8 +300,10 @@ case class PrimaryServiceProxy(
             workerRef ! WorkerRegistrationMessage(requestingActor)
 
             /* Register the new worker within the state data and change the context */
-            context become onMessage(
-              updateStateData(stateData, timeSeriesUuid, workerRef)
+            context.become(
+              onMessage(
+                updateStateData(stateData, timeSeriesUuid, workerRef)
+              )
             )
           case Failure(exception) =>
             log.warning(
@@ -384,7 +382,7 @@ case class PrimaryServiceProxy(
       valueClass: Class[V],
       timeSeriesUuid: String
   ): ActorRef = {
-    import edu.ie3.simona.actor.SimonaActorNaming._
+    import edu.ie3.simona.actor.SimonaActorNaming.*
     context.system.simonaActorOf(
       PrimaryServiceWorker.props(scheduler, valueClass),
       timeSeriesUuid
@@ -576,12 +574,12 @@ object PrimaryServiceProxy {
       primaryConfig.influxDb1xParams,
       primaryConfig.sqlParams
     ).filter(_.isDefined).flatten
-    if (sourceConfigs.size > 1)
+    if sourceConfigs.size > 1 then
       throw new InvalidConfigParameterException(
         s"${sourceConfigs.size} time series source types defined. " +
           s"Please define only one type!\nAvailable types:\n\t${supportedSources.mkString("\n\t")}"
       )
-    else if (sourceConfigs.isEmpty)
+    else if sourceConfigs.isEmpty then
       throw new InvalidConfigParameterException(
         s"No time series source type defined. Please define exactly one type!" +
           s"\nAvailable types:\n\t${supportedSources.mkString("\n\t")}"

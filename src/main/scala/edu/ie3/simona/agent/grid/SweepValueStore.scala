@@ -34,7 +34,7 @@ case object SweepValueStore {
     * @param nodeUuid
     *   node uuid of the sweep data
     */
-  final case class SweepValueStoreData private (
+  final case class SweepValueStoreData(
       nodeUuid: UUID,
       stateData: StateData
   )
@@ -57,8 +57,8 @@ case object SweepValueStore {
       nodes: Seq[NodeModel],
       nodeUuidToIndexMap: Map[UUID, Int]
   ): SweepValueStore = {
-    val sweepDataValues = nodes.foldLeft(Vector.empty[SweepValueStoreData])(
-      (valueStoreDataElements, node) => {
+    val sweepDataValues = nodes.foldLeft(Vector.empty[SweepValueStoreData]) {
+      (valueStoreDataElements, node) =>
         val uuid = node.uuid
         val id = node.id
         val nodeIdxOpt = nodeUuidToIndexMap.get(uuid)
@@ -74,8 +74,7 @@ case object SweepValueStore {
           )
 
         valueStoreDataElements :+ SweepValueStoreData(uuid, stateData)
-      }
-    )
+    }
 
     new SweepValueStore(sweepDataValues)
   }

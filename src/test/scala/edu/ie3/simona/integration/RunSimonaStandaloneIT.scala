@@ -13,7 +13,7 @@ import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.PvResult
 import edu.ie3.simona.config.{ConfigFailFast, SimonaConfig}
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.event.RuntimeEvent._
+import edu.ie3.simona.event.RuntimeEvent.*
 import edu.ie3.simona.integration.common.IntegrationSpecCommon
 import edu.ie3.simona.main.RunSimonaStandalone
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
@@ -23,7 +23,7 @@ import edu.ie3.util.io.FileIOUtils
 import org.scalatest.BeforeAndAfterAll
 
 import scala.io.{BufferedSource, Source}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 class RunSimonaStandaloneIT
     extends IntegrationSpecCommon
@@ -31,9 +31,8 @@ class RunSimonaStandaloneIT
     with BeforeAndAfterAll
     with IOTestCommons {
 
-  override def afterAll(): Unit = {
+  override def afterAll(): Unit =
     FileIOUtils.deleteRecursively(testTmpDir)
-  }
 
   "A simona standalone simulation" must {
 
@@ -113,15 +112,14 @@ class RunSimonaStandaloneIT
 
   private def getFileSource(
       resultFileHierarchy: ResultFileHierarchy,
-      entityClass: Class[_ <: ResultEntity]
-  ): BufferedSource = {
+      entityClass: Class[? <: ResultEntity]
+  ): BufferedSource =
     Source.fromFile(
       resultFileHierarchy.rawOutputDataFilePaths.getOrElse(
         entityClass,
         fail(s"Unable to get output path for result entity: $entityClass")
       )
     )
-  }
 
   private def checkRuntimeEvents(
       runtimeEvents: Iterable[RuntimeEvent]
@@ -137,18 +135,24 @@ class RunSimonaStandaloneIT
     }
 
     groupedRuntimeEvents.size shouldBe 5
-    groupedRuntimeEvents.keySet should contain allOf (Simulating, CheckWindowPassed, InitComplete, Initializing, Done)
+    (groupedRuntimeEvents.keySet should contain).allOf(
+      Simulating,
+      CheckWindowPassed,
+      InitComplete,
+      Initializing,
+      Done
+    )
 
     groupedRuntimeEvents
       .get(Simulating)
-      .foreach(simulatingEvents => {
+      .foreach { simulatingEvents =>
         simulatingEvents.size shouldBe 1
         simulatingEvents.headOption.foreach(_ shouldBe Simulating(0, 7200))
-      })
+      }
 
     groupedRuntimeEvents
       .get(CheckWindowPassed)
-      .foreach(checkWindowsPassed => {
+      .foreach { checkWindowsPassed =>
         checkWindowsPassed.size shouldBe 7
         checkWindowsPassed.foreach {
           case CheckWindowPassed(tick, _) =>
@@ -158,23 +162,19 @@ class RunSimonaStandaloneIT
               s"Invalid event when expecting CheckWindowPassed: $invalidEvent"
             )
         }
-      })
+      }
 
     groupedRuntimeEvents
       .get(InitComplete)
-      .foreach(initComplets => {
-        initComplets.size shouldBe 1
-      })
+      .foreach(initComplets => initComplets.size shouldBe 1)
 
     groupedRuntimeEvents
       .get(Initializing)
-      .foreach(initializings => {
-        initializings.size shouldBe 1
-      })
+      .foreach(initializings => initializings.size shouldBe 1)
 
     groupedRuntimeEvents
       .get(Done)
-      .foreach(dones => {
+      .foreach { dones =>
         dones.size shouldBe 1
         dones.headOption.foreach {
           case Done(tick, _, errorInSim) =>
@@ -183,7 +183,7 @@ class RunSimonaStandaloneIT
           case invalidEvent =>
             fail(s"Invalid event when expecting Done: $invalidEvent")
         }
-      })
+      }
   }
 
 }

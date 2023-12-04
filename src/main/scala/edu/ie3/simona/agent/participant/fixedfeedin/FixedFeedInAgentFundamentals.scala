@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant.fixedfeedin
 
-import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.datamodel.models.result.system.{
   FixedFeedInResult,
@@ -37,10 +36,11 @@ import edu.ie3.simona.exceptions.agent.{
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.FixedFeedInModel
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.simona.util.TickUtil.RichZonedDateTime
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
@@ -89,7 +89,7 @@ protected trait FixedFeedInAgentFundamentals
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[FixedFeedInInput],
       modelConfig: FixedFeedInRuntimeConfig,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Option[Vector[SecondaryDataService[? <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -111,7 +111,8 @@ protected trait FixedFeedInAgentFundamentals
 
     /* Go and collect all ticks, in which new data will be available. Also register for
      * services, where needed. */
-    val lastTickInSimulation = simulationEndDate.toTick(simulationStartDate)
+    val lastTickInSimulation =
+      simulationEndDate.toTick(using simulationStartDate)
     val dataTicks =
       /* As participant agents always return their last known operation point on request, it is sufficient
        * to let a fixed fixed in model determine it's operation point on:

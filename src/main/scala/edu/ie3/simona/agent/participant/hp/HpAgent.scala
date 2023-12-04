@@ -36,7 +36,7 @@ object HpAgent {
       )
     )
 
-  val neededServices: Vector[Class[_ <: SecondaryDataService[_]]] = Vector(
+  val neededServices: Vector[Class[? <: SecondaryDataService[?]]] = Vector(
     classOf[ActorWeatherService]
   )
 }

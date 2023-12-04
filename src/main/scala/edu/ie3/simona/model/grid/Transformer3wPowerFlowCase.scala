@@ -35,17 +35,13 @@ object Transformer3wPowerFlowCase {
   def apply(
       trafo3wInput: Transformer3WInput,
       subnetNo: Int
-  ): Transformer3wPowerFlowCase = {
-    if (trafo3wInput.getNodeA.getSubnet == subnetNo)
-      PowerFlowCaseA
-    else if (trafo3wInput.getNodeB.getSubnet == subnetNo)
-      PowerFlowCaseB
-    else if (trafo3wInput.getNodeC.getSubnet == subnetNo)
-      PowerFlowCaseC
+  ): Transformer3wPowerFlowCase =
+    if trafo3wInput.getNodeA.getSubnet == subnetNo then PowerFlowCaseA
+    else if trafo3wInput.getNodeB.getSubnet == subnetNo then PowerFlowCaseB
+    else if trafo3wInput.getNodeC.getSubnet == subnetNo then PowerFlowCaseC
     else
       throw new InvalidGridException(
         s"Requested transformer ${trafo3wInput.getUuid} has no node in subnet $subnetNo. Cannot determine the power flow calculation case!"
       )
-  }
 
 }

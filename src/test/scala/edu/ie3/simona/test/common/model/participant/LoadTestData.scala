@@ -17,7 +17,7 @@ import edu.ie3.util.scala.OperationInterval
 /** Trait to supply different test data environments for testing a load agent
   */
 trait LoadTestData extends LoadInputTestData {
-  protected implicit val simulationStartDate: ZonedDateTime =
+  given simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
   protected val simulationEndDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00")

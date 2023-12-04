@@ -94,9 +94,9 @@ final case class CylindricalThermalStorage(
   override def tryToStoreAndReturnRemainder(
       addedEnergy: Energy
   ): Option[Energy] = {
-    if (addedEnergy > zeroEnergy) {
+    if addedEnergy > zeroEnergy then {
       _storedEnergy = _storedEnergy + addedEnergy
-      if (_storedEnergy > maxEnergyThreshold) {
+      if _storedEnergy > maxEnergyThreshold then {
         val surplus = _storedEnergy - maxEnergyThreshold
         _storedEnergy = maxEnergyThreshold
         return Option(surplus)
@@ -108,9 +108,9 @@ final case class CylindricalThermalStorage(
   override def tryToTakeAndReturnLack(
       takenEnergy: Energy
   ): Option[Energy] = {
-    if (takenEnergy > zeroEnergy) {
+    if takenEnergy > zeroEnergy then {
       _storedEnergy = _storedEnergy - takenEnergy
-      if (_storedEnergy < minEnergyThreshold) {
+      if _storedEnergy < minEnergyThreshold then {
         val lack = minEnergyThreshold - _storedEnergy
         _storedEnergy = minEnergyThreshold
         return Option(lack)
@@ -180,9 +180,8 @@ case object CylindricalThermalStorage {
       c: SpecificHeatCapacity,
       inletTemp: Temperature,
       returnTemp: Temperature
-  ): Energy = {
+  ): Energy =
     c.calcEnergy(returnTemp, inletTemp, volume)
-  }
 
   /** Equation from docs for the relation between stored heat and volume change.
     *

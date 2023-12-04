@@ -38,7 +38,7 @@ import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import java.nio.file.Path
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
@@ -64,7 +64,7 @@ final case class PrimaryServiceWorker[V <: Value](
         PrimaryServiceInitializedStateData[V],
         Option[Long]
     )
-  ] = {
+  ] =
     (initServiceData match {
       case PrimaryServiceWorker.CsvInitPrimaryServiceStateData(
             timeSeriesUuid,
@@ -126,7 +126,7 @@ final case class PrimaryServiceWorker[V <: Value](
           )
         )
     }).map { case (source, simulationStart) =>
-      implicit val startDateTime: ZonedDateTime = simulationStart
+      given startDateTime: ZonedDateTime = simulationStart
 
       val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(
         // Note: The whole data set is used here, which might be inefficient depending on the source implementation.
@@ -152,7 +152,6 @@ final case class PrimaryServiceWorker[V <: Value](
         )
       (initializedStateData, maybeNextTick)
     }
-  }
 
   /** Handle a request to register for information from this service
     *
@@ -166,7 +165,7 @@ final case class PrimaryServiceWorker[V <: Value](
     */
   override protected def handleRegistrationRequest(
       registrationMessage: ServiceMessage.ServiceRegistrationMessage
-  )(implicit
+  )(using
       serviceStateData: PrimaryServiceInitializedStateData[V]
   ): Try[PrimaryServiceInitializedStateData[V]] = registrationMessage match {
     case ServiceMessage.WorkerRegistrationMessage(requestingActor) =>
@@ -197,7 +196,7 @@ final case class PrimaryServiceWorker[V <: Value](
     */
   override protected def announceInformation(
       tick: Long
-  )(implicit
+  )(using
       serviceBaseStateData: PrimaryServiceInitializedStateData[V],
       ctx: ActorContext
   ): (

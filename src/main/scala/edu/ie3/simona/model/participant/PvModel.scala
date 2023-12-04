@@ -13,17 +13,17 @@ import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities._
-import squants._
+import edu.ie3.util.scala.quantities.*
+import squants.*
 import squants.energy.Kilowatts
 import squants.space.{Degrees, SquareMeters}
 import squants.time.Minutes
-import tech.units.indriya.unit.Units._
+import tech.units.indriya.unit.Units.*
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.stream.IntStream
-import scala.math._
+import scala.math.*
 
 final case class PvModel private (
     uuid: UUID,
@@ -239,7 +239,7 @@ final case class PvModel private (
   /** Calculates the sunrise hour angle omegaSR given omegaSS.
     */
   private val calcSunriseAngleOmegaSR =
-    (omegaSS: Angle) => omegaSS * (-1)
+    (omegaSS: Angle) => omegaSS * -1
 
   /** Calculates the solar altitude angle alphaS which represents the angle
     * between the horizontal and the line to the sun, that is, the complement of
@@ -417,18 +417,17 @@ final case class PvModel private (
 
     // (thetaG < 90°): sun is visible
     // (thetaG > 90°), otherwise: sun is behind the surface  -> no direct radiation
-    if (
-      thetaGInRad < toRadians(90)
+    if thetaGInRad < toRadians(90)
       // omega1 and omega2: sun has risen and has not set yet
       && omega2InRad > omegaSRInRad + omegaHalfHour
       && omega1InRad < omegaSSInRad - omegaHalfHour
-    ) {
+    then {
 
       val (finalOmega1, finalOmega2) =
-        if (omega1InRad < omegaSRInRad) {
+        if omega1InRad < omegaSRInRad then {
           // requested time earlier than sunrise
           (omegaSRInRad, omegaSRInRad + omegaOneHour)
-        } else if (omega2InRad > omegaSSInRad) {
+        } else if omega2InRad > omegaSSInRad then {
           // sunset earlier than requested time
           (omegaSSInRad - omegaOneHour, omegaSSInRad)
         } else {
@@ -436,8 +435,7 @@ final case class PvModel private (
         }
 
       Some(Radians(finalOmega1), Radians(finalOmega2))
-    } else
-      None
+    } else None
   }
 
   /** Calculates the beam radiation on a sloped surface
@@ -467,8 +465,7 @@ final case class PvModel private (
       latitude: Angle,
       gammaE: Angle,
       alphaE: Angle
-  ): Irradiation = {
-
+  ): Irradiation =
     omegas match {
       case Some((omega1, omega2)) =>
         val deltaInRad = delta.toRadians
@@ -502,7 +499,6 @@ final case class PvModel private (
         eBeamH * r
       case None => WattHoursPerSquareMeter(0d)
     }
-  }
 
   /** Calculates the diffuse radiation on a sloped surface based on the model of
     * Perez et al.
@@ -549,7 +545,7 @@ final case class PvModel private (
     // if we have no clouds,  the epsilon bin is 8, as epsilon bin for an epsilon in [6.2, inf.[ = 8
     var x = 8
 
-    if (eDifH.value.doubleValue > 0) {
+    if eDifH.value.doubleValue > 0 then {
       // if we have diffuse radiation on horizontal surface we have to check if we have another epsilon due to clouds get the epsilon
       var epsilon = ((eDifH + eBeamH) / eDifH +
         (5.535d * 1.0e-6) * pow(
@@ -561,7 +557,7 @@ final case class PvModel private (
       ))
 
       // get the corresponding bin if epsilon is smaller than 6.2
-      if (epsilon < 6.2) { // define the bins based on Perez
+      if epsilon < 6.2 then { // define the bins based on Perez
         val discreteSkyClearnessCategories = Array(
           Array(1, 1.065),
           Array(1.065, 1.230),
@@ -689,12 +685,12 @@ final case class PvModel private (
       eTotalInWhPerSM * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
 
     /* Calculate the foreseen active power output without boundary condition adaptions */
-    val proposal = sRated * (-1) * (
+    val proposal = sRated * -1 * (
       actYield / irradiationSTC
     ) * cosPhiRated
 
     /* Do sanity check, if the proposed feed in is above the estimated maximum to be apparent active power of the plant */
-    if (proposal < pMax)
+    if proposal < pMax then
       logger.warn(
         "The fed in active power is higher than the estimated maximum active power of this plant ({} < {}). " +
           "Did you provide wrong weather input data?",
@@ -703,8 +699,7 @@ final case class PvModel private (
       )
 
     /* If the output is marginally small, suppress the output, as we are likely to be in night and then only produce incorrect output */
-    if (proposal.compareTo(activationThreshold) > 0)
-      DefaultQuantities.zeroMW
+    if proposal.compareTo(activationThreshold) > 0 then DefaultQuantities.zeroMW
     else proposal
   }
 }

@@ -17,15 +17,15 @@ import edu.ie3.simona.model.participant.WecModel.{
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.OperationInterval
 import squants.energy.{Kilowatts, Watts}
 import squants.mass.{Kilograms, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pressure}
 import squants.space.SquareMeters
 import squants.thermal.JoulesPerKelvin
-import squants._
-import tech.units.indriya.unit.Units._
+import squants.*
+import tech.units.indriya.unit.Units.*
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -96,7 +96,7 @@ final case class WecModel(
     val activePower = determinePower(wecData)
     val pMax = sMax * cosPhiRated
 
-    (if (activePower > pMax) {
+    (if activePower > pMax then {
        logger.warn(
          "The fed in active power is higher than the estimated maximum active power of this plant ({} > {}). " +
            "Did you provide wrong weather input data?",
@@ -106,7 +106,8 @@ final case class WecModel(
        pMax
      } else {
        activePower
-     }) * (-1)
+     })
+    * -1
   }
 
   /** Determine the turbine output power with the air density ρ, the wind
@@ -155,11 +156,10 @@ final case class WecModel(
     */
   private def determineBetzCoefficient(
       windVelocity: Velocity
-  ): Dimensionless = {
+  ): Dimensionless =
     betzCurve.interpolateXy(windVelocity) match {
       case (_, cp) => cp
     }
-  }
 
   /** Calculate the correct air density, dependent on the current temperature
     * and air pressure.
@@ -176,7 +176,7 @@ final case class WecModel(
   private def calculateAirDensity(
       temperature: Temperature,
       airPressure: Option[Pressure]
-  ): Density = {
+  ): Density =
     airPressure match {
       case None =>
         KilogramsPerCubicMeter(1.2041d)
@@ -187,7 +187,6 @@ final case class WecModel(
           MolarMassAir.toKilograms * pressure.toPascals / (UniversalGasConstantR.toJoulesPerKelvin * temperature.toKelvinScale)
         )
     }
-  }
 }
 
 /** Create valid [[WecModel]] by calling the apply function.
@@ -204,7 +203,7 @@ object WecModel {
   ) extends Characteristic[Velocity, Dimensionless]
 
   object WecCharacteristic {
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
 
     /** Transform the inputs points from [[java.util.SortedSet]] to
       * [[scala.collection.SortedSet]], which is fed into [[WecCharacteristic]].

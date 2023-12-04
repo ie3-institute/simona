@@ -8,7 +8,7 @@ package edu.ie3.simona.model.system
 
 import edu.ie3.simona.exceptions.CharacteristicsException
 import edu.ie3.simona.model.system.Characteristic.XYPair
-import edu.ie3.simona.util.CollectionUtils._
+import edu.ie3.simona.util.CollectionUtils.*
 import squants.Quantity
 
 import scala.collection.SortedSet
@@ -29,9 +29,7 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
     */
   def interpolateXy(
       requestedAbscissaQuantity: A
-  )(implicit
-      tag: ClassTag[O]
-  ): (A, O) = {
+  )(using tag: ClassTag[O]): (A, O) = {
 
     val xyCoords: Seq[(A, O)] =
       closestKeyValuePairs[A, O](
@@ -43,7 +41,7 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
 
     xyCoords.foldLeft(
       (None: Option[A], None: Option[O])
-    )({
+    ) {
       case ((None, None), (x, y)) =>
         /* We found the latest entry left of the requested abscissa element. Remember that one */
         (Some(x), Some(y))
@@ -62,7 +60,7 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
         throw new CharacteristicsException(
           s"Unable to interpolate for given xyCoordinates: $xyCoords"
         )
-    }) match {
+    } match {
       case (Some(resX), Some(resY)) => (resX, resY)
       case (_, _) =>
         throw new CharacteristicsException(
@@ -87,10 +85,8 @@ object Characteristic {
       */
     override def compare(that: XYPair[A, O]): Int = {
       val xCompare = x.compare(that.x)
-      if (xCompare != 0)
-        xCompare
-      else
-        y.compare(that.y)
+      if xCompare != 0 then xCompare
+      else y.compare(that.y)
     }
   }
 

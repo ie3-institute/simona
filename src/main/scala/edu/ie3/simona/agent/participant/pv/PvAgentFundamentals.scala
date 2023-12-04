@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant.pv
 
-import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.result.system.{
   PvResult,
@@ -42,10 +41,11 @@ import edu.ie3.simona.model.participant.PvModel
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherService.FALLBACK_WEATHER_STEM_DISTANCE
-import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
@@ -94,7 +94,7 @@ protected trait PvAgentFundamentals
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[PvInput],
       modelConfig: PvRuntimeConfig,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Option[Vector[SecondaryDataService[? <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -102,11 +102,10 @@ protected trait PvAgentFundamentals
       outputConfig: NotifierConfig
   ): ParticipantModelBaseStateData[ApparentPower, PvRelevantData, PvModel] = {
     /* Check for needed services */
-    if (
-      !services.exists(serviceDefinitions =>
+    if !services.exists(serviceDefinitions =>
         serviceDefinitions.map(_.getClass).containsSlice(neededServices)
       )
-    )
+    then
       throw new AgentInitializationException(
         s"PvAgent cannot be initialized without a weather service!"
       )
@@ -195,7 +194,7 @@ protected trait PvAgentFundamentals
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
-    implicit val startDateTime: ZonedDateTime =
+    given startDateTime: ZonedDateTime =
       collectionStateData.baseStateData.startDate
 
     val voltage =
@@ -203,7 +202,7 @@ protected trait PvAgentFundamentals
 
     val (result, relevantData) =
       collectionStateData.baseStateData match {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case modelBaseStateData: ParticipantModelBaseStateData[?, ?, ?] =>
           modelBaseStateData.model match {
             case pvModel: PvModel =>
               /* convert current tick to a datetime */
@@ -242,7 +241,7 @@ protected trait PvAgentFundamentals
                   weatherData.dirIrr
                 )
 
-              val power = pvModel.calculatePower(
+              val power: ApparentPower = pvModel.calculatePower(
                 currentTick,
                 voltage,
                 relevantData

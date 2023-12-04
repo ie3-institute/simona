@@ -30,9 +30,9 @@ import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
-import scala.jdk.DurationConverters._
+import scala.concurrent.duration.*
+import scala.jdk.CollectionConverters.*
+import scala.jdk.DurationConverters.*
 import scala.language.postfixOps
 
 /** Adapted from
@@ -47,7 +47,7 @@ class ResultEntityKafkaSpec
 
   private var testConsumer: KafkaConsumer[Bytes, PlainNodeResult] = _
 
-  private implicit lazy val resultFormat: RecordFormat[PlainNodeResult] =
+  given resultFormat: RecordFormat[PlainNodeResult] =
     RecordFormat[PlainNodeResult]
   private val deserializer: Deserializer[PlainNodeResult] =
     ScalaReflectionSerde.reflectionDeserializer4S[PlainNodeResult]
@@ -147,7 +147,7 @@ class ResultEntityKafkaSpec
         val records: List[PlainNodeResult] =
           testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
 
-        records should have length 3
+        (records should have).length(3)
         records should contain(
           PlainNodeResult(
             runId,

@@ -17,12 +17,10 @@ class InvalidConfigParameterException(message: String)
     initCause(cause)
   }
 
-  def this(cause: Throwable) = {
+  def this(cause: Throwable) =
     this(Option(cause).map(_.toString).orNull, cause)
-  }
 
-  def this() = {
+  def this() =
     this(null: String)
-  }
 
 }

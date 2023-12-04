@@ -40,7 +40,7 @@ final case class SortedDistinctSeq[V] private (
 case object SortedDistinctSeq {
   def apply[V](
       entries: Seq[V]
-  )(implicit ord: Ordering[V]): SortedDistinctSeq[V] =
+  )(using ord: Ordering[V]): SortedDistinctSeq[V] =
     new SortedDistinctSeq(entries.toIndexedSeq.distinct.sorted)
 
   def empty[V] = new SortedDistinctSeq[V](IndexedSeq.empty[V])

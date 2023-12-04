@@ -20,7 +20,8 @@ import java.time.ZonedDateTime
 /** Trait to denote all common forms of state data related to each participant
   * agent
   */
-trait ParticipantStateData[+PD <: PrimaryData]
+trait ParticipantStateData[+PD <: PrimaryData]:
+end ParticipantStateData
 
 object ParticipantStateData {
 
@@ -68,7 +69,7 @@ object ParticipantStateData {
       inputModel: InputModelContainer[I],
       modelConfig: C,
       secondaryDataServices: Option[
-        Vector[SecondaryDataService[_ <: SecondaryData]]
+        Vector[SecondaryDataService[? <: SecondaryData]]
       ],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -112,7 +113,7 @@ object ParticipantStateData {
       modelConfig: C,
       primaryServiceProxy: ActorRef,
       secondaryDataServices: Option[
-        Vector[SecondaryDataService[_ <: SecondaryData]]
+        Vector[SecondaryDataService[? <: SecondaryData]]
       ],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -131,7 +132,7 @@ object ParticipantStateData {
         modelConfig: C,
         primaryServiceProxy: ActorRef,
         secondaryDataServices: Option[
-          Vector[SecondaryDataService[_ <: SecondaryData]]
+          Vector[SecondaryDataService[? <: SecondaryData]]
         ],
         simulationStartDate: ZonedDateTime,
         simulationEndDate: ZonedDateTime,
@@ -161,7 +162,7 @@ object ParticipantStateData {
         modelConfig: C,
         primaryServiceProxy: ActorRef,
         secondaryDataServices: Option[
-          Vector[SecondaryDataService[_ <: SecondaryData]]
+          Vector[SecondaryDataService[? <: SecondaryData]]
         ],
         simulationStartDate: ZonedDateTime,
         simulationEndDate: ZonedDateTime,

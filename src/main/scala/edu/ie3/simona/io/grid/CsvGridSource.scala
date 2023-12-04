@@ -7,9 +7,9 @@
 package edu.ie3.simona.io.grid
 
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
-import edu.ie3.datamodel.io.source._
-import edu.ie3.datamodel.io.source.csv._
-import edu.ie3.datamodel.models.input.container._
+import edu.ie3.datamodel.io.source.*
+import edu.ie3.datamodel.io.source.csv.*
+import edu.ie3.datamodel.models.input.container.*
 import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput,
@@ -17,7 +17,7 @@ import edu.ie3.datamodel.models.input.thermal.{
 }
 
 import java.nio.file.Path
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 object CsvGridSource {
   def readThermalGrids(

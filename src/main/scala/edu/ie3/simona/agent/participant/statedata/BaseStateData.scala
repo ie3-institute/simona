@@ -6,13 +6,13 @@
 
 package edu.ie3.simona.agent.participant.statedata
 
-import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
+import org.apache.pekko.actor.ActorRef
 import squants.Dimensionless
 
 import java.time.ZonedDateTime
@@ -89,7 +89,7 @@ object BaseStateData {
   trait ModelBaseStateData[
       +PD <: PrimaryDataWithApparentPower[PD],
       CD <: CalcRelevantData,
-      +M <: SystemParticipant[_ <: CalcRelevantData, PD]
+      +M <: SystemParticipant[? <: CalcRelevantData, PD]
   ] extends BaseStateData[PD] {
 
     /** The physical system model
@@ -98,7 +98,7 @@ object BaseStateData {
 
     /** The services, the physical model depends on
       */
-    val services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]]
+    val services: Option[Vector[SecondaryDataService[? <: SecondaryData]]]
 
     /** Stores all data that are relevant to model calculation
       */
@@ -133,7 +133,7 @@ object BaseStateData {
     *   Type of primary data, that the model produces
     */
   final case class FromOutsideBaseStateData[M <: SystemParticipant[
-    _ <: CalcRelevantData,
+    ? <: CalcRelevantData,
     P
   ], +P <: PrimaryDataWithApparentPower[P]](
       model: M,
@@ -188,13 +188,13 @@ object BaseStateData {
   final case class ParticipantModelBaseStateData[
       +PD <: PrimaryDataWithApparentPower[PD],
       CD <: CalcRelevantData,
-      +M <: SystemParticipant[_ <: CalcRelevantData, PD]
+      +M <: SystemParticipant[? <: CalcRelevantData, PD]
   ](
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
       override val model: M,
       override val services: Option[
-        Vector[SecondaryDataService[_ <: SecondaryData]]
+        Vector[SecondaryDataService[? <: SecondaryData]]
       ],
       override val outputConfig: NotifierConfig,
       override val additionalActivationTicks: SortedSet[Long],
@@ -239,9 +239,9 @@ object BaseStateData {
       updatedVoltageValueStore: ValueStore[Dimensionless],
       updatedAdditionalActivationTicks: SortedSet[Long],
       updatedForeseenTicks: Map[ActorRef, Option[Long]]
-  ): BaseStateData[PD] = {
+  ): BaseStateData[PD] =
     baseStateData match {
-      case external: FromOutsideBaseStateData[_, PD] =>
+      case external: FromOutsideBaseStateData[?, PD] =>
         external.copy(
           resultValueStore = updatedResultValueStore,
           requestValueStore = updatedRequestValueStore,
@@ -249,7 +249,7 @@ object BaseStateData {
           additionalActivationTicks = updatedAdditionalActivationTicks,
           foreseenDataTicks = updatedForeseenTicks
         )
-      case model: ParticipantModelBaseStateData[PD, _, _] =>
+      case model: ParticipantModelBaseStateData[PD, ?, ?] =>
         model.copy(
           resultValueStore = updatedResultValueStore,
           requestValueStore = updatedRequestValueStore,
@@ -258,5 +258,4 @@ object BaseStateData {
           foreseenDataTicks = updatedForeseenTicks
         )
     }
-  }
 }

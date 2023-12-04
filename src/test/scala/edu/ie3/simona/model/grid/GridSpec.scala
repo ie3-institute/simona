@@ -27,22 +27,20 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
   private val _printAdmittanceMatrixOnMismatch
       : (DenseMatrix[Complex], DenseMatrix[Complex]) => Unit = {
     (actualMatrix, expectedMatrix) =>
-      if (!actualMatrix.equals(expectedMatrix)) {
-        for (
-          rowIdx <- 0 until expectedMatrix.rows;
+      if !actualMatrix.equals(expectedMatrix) then {
+        for
+          rowIdx <- 0 until expectedMatrix.rows
           colIdx <- 0 until expectedMatrix.rows
-        ) {
-          if (
-            abs(
+        do
+          if abs(
               actualMatrix.valueAt(rowIdx, colIdx) - expectedMatrix
                 .valueAt(rowIdx, colIdx)
             ) > 1e-12
-          )
+          then
             logger.debug(
               s"Mismatch in ($rowIdx, $colIdx): Actual = ${actualMatrix
                   .valueAt(rowIdx, colIdx)}, expected = ${expectedMatrix.valueAt(rowIdx, colIdx)}"
             )
-        }
       }
   }
 
@@ -69,17 +67,21 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           LineModel
       ) => (Int, Int, Complex, Complex, Complex) =
         (nodeUuidToIndexMap, line) =>
-          GridModel invokePrivate getLinesAdmittanceMethod(
-            nodeUuidToIndexMap,
-            line
+          GridModel.invokePrivate(
+            getLinesAdmittanceMethod(
+              nodeUuidToIndexMap,
+              line
+            )
           )
 
       // result of method call
       val actualResult: DenseMatrix[Complex] =
-        GridModel invokePrivate buildAssetAdmittanceMatrix(
-          nodeUuidToIndexMap,
-          lines,
-          getLinesAdmittance
+        GridModel.invokePrivate(
+          buildAssetAdmittanceMatrix(
+            nodeUuidToIndexMap,
+            lines,
+            getLinesAdmittance
+          )
         )
 
       _printAdmittanceMatrixOnMismatch(actualResult, lineAdmittanceMatrix)
@@ -166,11 +168,13 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             .reduceOption(_ + _)
             .getOrElse(Complex.zero)
 
-          admittanceMatixClosed.valueAt(
+          (admittanceMatixClosed.valueAt(
             iClosed,
             jClosed
-          ) shouldBe sumOfAdmittancesOpenSwitches withClue s" at \n\tposition ($iClosed, $jClosed) of the grid with closed switches/" +
-            s"\n\tpositions (${iOpenAll.mkString(",")}) x (${jOpenAll.mkString(",")}) of the grid with open switches"
+          ) shouldBe sumOfAdmittancesOpenSwitches).withClue(
+            s" at \n\tposition ($iClosed, $jClosed) of the grid with closed switches/" +
+              s"\n\tpositions (${iOpenAll.mkString(",")}) x (${jOpenAll.mkString(",")}) of the grid with open switches"
+          )
 
         }
       }
@@ -210,7 +214,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
       val validateConnectivity: PrivateMethod[Unit] =
         PrivateMethod[Unit](Symbol("validateConnectivity"))
 
-      GridModel invokePrivate validateConnectivity(gridModel)
+      GridModel.invokePrivate(validateConnectivity(gridModel))
 
     }
 
@@ -241,7 +245,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
       val exception: GridInconsistencyException =
         intercept[GridInconsistencyException] {
-          GridModel invokePrivate validateConnectivity(gridModel)
+          GridModel.invokePrivate(validateConnectivity(gridModel))
         }
 
       exception.getMessage shouldBe "The grid with subnetNo 1 is not connected! Please ensure that all elements are connected correctly and inOperation is set to true!"
@@ -286,7 +290,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
       // call the validation method
       val exception: InvalidGridException = intercept[InvalidGridException] {
-        GridModel invokePrivate validateConsistency(gridModel)
+        GridModel.invokePrivate(validateConsistency(gridModel))
       }
 
       // expect an exception for node 13

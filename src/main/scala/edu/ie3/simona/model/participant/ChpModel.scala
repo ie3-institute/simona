@@ -8,7 +8,7 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.ChpInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.model.participant.ChpModel._
+import edu.ie3.simona.model.participant.ChpModel.*
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.{MutableStorage, ThermalStorage}
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -52,7 +52,7 @@ final case class ChpModel(
     cosPhiRated: Double,
     pThermal: Power,
     storage: ThermalStorage with MutableStorage
-) extends SystemParticipant[ChpRelevantData, ApparentPower](
+) extends ApparentPowerParticipantParticipant[ChpRelevantData](
       uuid,
       id,
       operationInterval,
@@ -60,8 +60,7 @@ final case class ChpModel(
       qControl,
       sRated,
       cosPhiRated
-    )
-    with ApparentPowerParticipant[ChpRelevantData] {
+    ) {
 
   val pRated: Power = sRated * cosPhiRated
 
@@ -197,7 +196,7 @@ final case class ChpModel(
       chpData: ChpRelevantData
   ): ChpState = {
     val differenceEnergy = chpEnergy(chpData) - chpData.heatDemand
-    if (differenceEnergy < KilowattHours(0d)) {
+    if differenceEnergy < KilowattHours(0d) then {
       // Returned lack is always zero, because demand is covered.
       storage.tryToTakeAndReturnLack(differenceEnergy * -1)
       calculateStateRunningSurplus(chpData)
@@ -221,7 +220,7 @@ final case class ChpModel(
   private def calculateStateRunningSurplus(
       chpData: ChpRelevantData,
       surplus: Option[Energy] = None
-  ): ChpState = {
+  ): ChpState =
     surplus match {
       case Some(surplusEnergy) =>
         ChpState(
@@ -238,7 +237,6 @@ final case class ChpModel(
           chpEnergy(chpData)
         )
     }
-  }
 
   /** Multiply the power with time running to get the total energy.
     *

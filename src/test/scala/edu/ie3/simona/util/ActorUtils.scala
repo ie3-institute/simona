@@ -13,10 +13,7 @@ import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 object ActorUtils {
-  implicit class RichTriggeredAgent(
-      private val triggeredAgent: TestProbe[Activation]
-  ) {
-
+  extension (triggeredAgent: TestProbe[Activation])
     def expectTriggerAndComplete(
         scheduler: ActorRef[SchedulerMessage],
         expectedTick: Long,
@@ -32,6 +29,4 @@ object ActorUtils {
         newTick
       )
     }
-
-  }
 }

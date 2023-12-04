@@ -35,7 +35,7 @@ object GridAgentData {
 
   /** Initial state data of the [[GridAgent]]
     */
-  final case object GridAgentUninitializedData extends GridAgentData
+  object GridAgentUninitializedData extends GridAgentData
 
   /** Data that is send to the [[GridAgent]] directly after startup. It contains
     * the main information for initialization. This data should include all
@@ -73,7 +73,7 @@ object GridAgentData {
     *   Set of subgrid numbers of [[GridAgent]]s that don't have their request
     *   answered, yet
     */
-  final case class PowerFlowDoneData private (
+  final case class PowerFlowDoneData(
       gridAgentBaseData: GridAgentBaseData,
       powerFlowResult: PowerFlowResult,
       pendingRequestAnswers: Set[Int]
@@ -97,7 +97,7 @@ object GridAgentData {
     * be copied several times at several places for each state transition with
     * updated data. So be careful in adding more data on it!
     */
-  final case object GridAgentBaseData extends GridAgentData {
+  object GridAgentBaseData extends GridAgentData {
 
     def apply(
         gridModel: GridModel,
@@ -153,8 +153,7 @@ object GridAgentData {
         gridAgentBaseData: GridAgentBaseData,
         superiorGridNodeUuids: Vector[UUID],
         inferiorGridGates: Vector[SubGridGate]
-    ): GridAgentBaseData = {
-
+    ): GridAgentBaseData =
       gridAgentBaseData.copy(
         receivedValueStore = ReceivedValuesStore.empty(
           gridAgentBaseData.gridEnv.nodeToAssetAgents,
@@ -166,8 +165,6 @@ object GridAgentData {
         currentSweepNo = 0,
         sweepValueStores = Map.empty[Int, SweepValueStore]
       )
-
-    }
 
   }
 
@@ -188,7 +185,7 @@ object GridAgentData {
     * @param sweepValueStores
     *   a value store for sweep results
     */
-  final case class GridAgentBaseData private (
+  final case class GridAgentBaseData(
       gridEnv: GridEnvironment,
       powerFlowParams: PowerFlowParams,
       currentSweepNo: Int,
@@ -366,10 +363,8 @@ object GridAgentData {
         .find { case (_, receivedPowerMessages) =>
           receivedPowerMessages.exists { case (ref, maybePowerResponse) =>
             ref == senderRef &&
-            (if (!replace)
-               maybePowerResponse.isEmpty
-             else
-               maybePowerResponse.isDefined)
+            (if !replace then maybePowerResponse.isEmpty
+             else maybePowerResponse.isDefined)
           }
         }
         .map { case (uuid, _) => uuid }

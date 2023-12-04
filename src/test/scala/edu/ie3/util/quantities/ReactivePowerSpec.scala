@@ -14,7 +14,7 @@ import squants.energy.Watts
 
 class ReactivePowerSpec extends AnyFlatSpec with Matchers {
 
-  behavior of "ReactivePower and its Units of Measure"
+  behavior.of("ReactivePower and its Units of Measure")
 
   it should "create values using UOM factories" in {
     Vars(

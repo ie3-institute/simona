@@ -20,8 +20,8 @@ import squants.energy.{Power, Megawatts, Watts}
 import java.util.UUID
 
 class ApparentPowerAndHeatSpec extends UnitSpec {
-  implicit val powerTolerance: Power = Watts(1e-3)
-  implicit val reactivePowerTolerance: ReactivePower = Vars(1e-3)
+  given powerTolerance: Power = Watts(1e-3)
+  given reactivePowerTolerance: ReactivePower = Vars(1e-3)
   "Mixing in the trait for apparent power and heat participants" when {
     "requesting a result outside of the operation interval" should {
       "return zero result" in {

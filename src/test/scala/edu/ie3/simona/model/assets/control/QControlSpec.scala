@@ -9,8 +9,8 @@ package edu.ie3.simona.model.assets.control
 import edu.ie3.datamodel.models.input.system.characteristic
 import edu.ie3.datamodel.models.input.system.characteristic.{
   CharacteristicPoint,
-  CosPhiP => CosPhiPInput,
-  QV => QVInput
+  CosPhiP as CosPhiPInput,
+  QV as QVInput
 }
 import edu.ie3.simona.exceptions.QControlException
 import edu.ie3.simona.model.participant.control.QControl
@@ -21,11 +21,11 @@ import edu.ie3.simona.model.participant.control.QControl.{
 }
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 import squants.Each
-import tech.units.indriya.quantity.Quantities._
+import tech.units.indriya.quantity.Quantities.*
 
 import java.util
 import javax.measure.quantity.Dimensionless
@@ -34,8 +34,8 @@ import scala.collection.immutable.TreeSet
 class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
 
   private val defaultTolerance = 1e-12
-  private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-12)
-  private implicit val tolerance: squants.Dimensionless = Each(1e-12)
+  given reactivePowerTolerance: ReactivePower = Megavars(1e-12)
+  given tolerance: squants.Dimensionless = Each(1e-12)
 
   val validCosPhiPInput: characteristic.CosPhiP = new CosPhiPInput(
     "cosPhiP:{(0.0,-1.0),(0.5,-0.8),(1.0,-0.2)}"
@@ -48,9 +48,8 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
   def createXYPair(
       d1: Double,
       d2: Double
-  ): XYPair[squants.Dimensionless, squants.Dimensionless] = {
+  ): XYPair[squants.Dimensionless, squants.Dimensionless] =
     XYPair(Each(d1), Each(d2))
-  }
 
   "A valid QControl object" should {
     "throw an exception, if the provided fixed power factor input has more than one coordinate" in {

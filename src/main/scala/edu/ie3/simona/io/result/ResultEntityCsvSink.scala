@@ -20,7 +20,7 @@ import java.lang
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.jdk.FutureConverters.CompletionStageOps
 import scala.util.{Failure, Success}
 
@@ -57,7 +57,7 @@ final case class ResultEntityCsvSink private (
     * @return
     *   a future holding information about the handling process
     */
-  def handleResultEntity(resultEntity: ResultEntity): Unit = {
+  def handleResultEntity(resultEntity: ResultEntity): Unit =
     try {
       val attributeToValue = resultEntityProcessor
         .handleEntity(resultEntity)
@@ -65,7 +65,7 @@ final case class ResultEntityCsvSink private (
         .view
 
       val columns = resultEntityProcessor.getHeaderElements
-      val text = if (attributeToValue.nonEmpty) {
+      val text = if attributeToValue.nonEmpty then {
         val resString: String =
           columns
             .map { column =>
@@ -83,7 +83,6 @@ final case class ResultEntityCsvSink private (
       case e: EntityProcessorException =>
         throw new ProcessResultEventException("Processing result failed", e)
     }
-  }
 
   /** Creat the initial the .csv-file and write the header in the first row
     *
@@ -130,8 +129,7 @@ final case class ResultEntityCsvSink private (
     fileWriter.close()
 
     // compress files if necessary
-    if (compressOutputFiles)
-      Await.ready(zipAndDel(outfileName), 100.minutes)
+    if compressOutputFiles then Await.ready(zipAndDel(outfileName), 100.minutes)
   }
 
 }
@@ -171,8 +169,7 @@ object ResultEntityCsvSink {
       delimiter
     )
 
-    if (!existedBefore)
-      resultEntityCsvSink.writeHeader()
+    if !existedBefore then resultEntityCsvSink.writeHeader()
     resultEntityCsvSink
   }
 }

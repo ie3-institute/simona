@@ -22,7 +22,7 @@ trait TestContainerHelper {
     * @return
     *   a MountableFile to use with test containers
     */
-  def getMountableFile(resource: String): MountableFile = {
+  def getMountableFile(resource: String): MountableFile =
     Option(getClass.getResource(resource))
       .map(url => Paths.get(url.toURI))
       .map(MountableFile.forHostPath)
@@ -31,5 +31,4 @@ trait TestContainerHelper {
           "Resource '" + resource + "' was not found from " + getClass.toString
         )
       )
-  }
 }

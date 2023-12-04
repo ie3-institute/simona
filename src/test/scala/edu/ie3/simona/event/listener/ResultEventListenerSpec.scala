@@ -38,7 +38,7 @@ import java.io.{File, FileInputStream}
 import java.util.UUID
 import java.util.zip.GZIPInputStream
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, Future}
 import scala.io.Source
 import scala.language.postfixOps
@@ -56,7 +56,7 @@ class ResultEventListenerSpec
     with ThreeWindingResultTestData
     with Transformer3wResultSupport {
   val simulationName = "testSim"
-  val resultEntitiesToBeWritten: Set[Class[_ <: ResultEntity]] = Set(
+  val resultEntitiesToBeWritten: Set[Class[? <: ResultEntity]] = Set(
     classOf[PvResult],
     classOf[NodeResult],
     classOf[Transformer2WResult],
@@ -71,7 +71,7 @@ class ResultEventListenerSpec
   private def resultFileHierarchy(
       runId: Int,
       fileFormat: String,
-      classes: Set[Class[_ <: ResultEntity]] = resultEntitiesToBeWritten
+      classes: Set[Class[? <: ResultEntity]] = resultEntitiesToBeWritten
   ): ResultFileHierarchy =
     ResultFileHierarchy(
       outputDir = testTmpDir + File.separator + runId,
@@ -91,7 +91,7 @@ class ResultEventListenerSpec
         Symbol("initializeSinks")
       )
 
-    ResultEventListener invokePrivate initializeSinks(resultFileHierarchy)
+    ResultEventListener.invokePrivate(initializeSinks(resultFileHierarchy))
   }
 
   private def getFileLinesLength(file: File) = {
@@ -141,7 +141,7 @@ class ResultEventListenerSpec
         )
 
         listener ! StopMessage(true)
-        deathWatch expectTerminated (listener, 10 seconds)
+        deathWatch.expectTerminated(listener, 10 seconds)
       }
     }
 

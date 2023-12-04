@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.load.LoadReference._
+import edu.ie3.simona.model.participant.load.LoadReference.*
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModel, LoadReference}
 import edu.ie3.util.scala.OperationInterval

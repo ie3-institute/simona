@@ -29,10 +29,9 @@ class ResultFileHierarchySpec
     mainDir + fileSeparator + "output" + fileSeparator + "vn_simona"
   val runOutputDir = "vn_simona_test"
 
-  override def afterAll(): Unit = {
+  override def afterAll(): Unit =
     // delete created directories
     FileIOUtils.deleteRecursively(parentOutputFilePath)
-  }
 
   "A valid OutputFileHierarchy" should {
 
@@ -85,7 +84,7 @@ class ResultFileHierarchySpec
 
     "write directories automatically on instantiation when requested so" in {
       // delete file if they exist
-      if (Files.exists(parentOutputFilePath))
+      if Files.exists(parentOutputFilePath) then
         FileIOUtils.deleteRecursively(parentOutputFilePath)
 
       // init output file hierarchy with writing
@@ -133,10 +132,9 @@ class ResultFileHierarchySpec
 
   }
 
-  private def relativizePath(fullPath: String): Path = {
+  private def relativizePath(fullPath: String): Path =
     new File(new File("").getAbsolutePath).toPath
       .relativize(new File(fullPath).toPath)
-  }
 
   // todo output model path config compression should always be disabled -> test for this
 

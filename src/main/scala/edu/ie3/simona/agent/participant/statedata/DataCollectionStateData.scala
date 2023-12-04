@@ -31,7 +31,7 @@ final case class DataCollectionStateData[+PD <: PrimaryDataWithApparentPower[
   PD
 ]](
     baseStateData: BaseStateData[PD],
-    data: Map[ActorRef, Option[_ <: Data]],
+    data: Map[ActorRef, Option[? <: Data]],
     yetTriggered: Boolean
 ) extends ParticipantStateData[PD] {
 
@@ -42,7 +42,7 @@ final case class DataCollectionStateData[+PD <: PrimaryDataWithApparentPower[
     * @return
     *   The secondary data
     */
-  def extract[T <: Data: ClassTag](): Option[T] = {
+  def extract[T <: Data: ClassTag](): Option[T] =
     data.valuesIterator
       .flatMap {
         case Some(found: T) if classTag[T].runtimeClass.isInstance(found) =>
@@ -51,5 +51,4 @@ final case class DataCollectionStateData[+PD <: PrimaryDataWithApparentPower[
       }
       .toList
       .headOption
-  }
 }

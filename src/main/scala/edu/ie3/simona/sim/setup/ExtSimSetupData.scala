@@ -11,7 +11,7 @@ import edu.ie3.simona.service.ev.ExtEvDataService
 
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ActorRef],
-    extDataServices: Map[Class[_], ActorRef]
+    extDataServices: Map[Class[?], ActorRef]
 ) {
 
   def evDataService: Option[ActorRef] =

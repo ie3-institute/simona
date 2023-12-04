@@ -24,7 +24,7 @@ import edu.ie3.simona.event.RuntimeEvent.{
   Ready,
   Simulating
 }
-import edu.ie3.simona.util.TickUtil._
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.TimeUtil
 import org.scalatest.PrivateMethodTester
 import org.scalatest.matchers.should
@@ -81,7 +81,7 @@ class RuntimeEventListenerSpec
         Error(errMsg)
       )
 
-      for (event <- eventsToQueue) {
+      for event <- eventsToQueue do {
         listenerRef ! event
         val actualEvent = eventQueue.poll(10, TimeUnit.SECONDS)
         actualEvent match {
@@ -97,13 +97,12 @@ class RuntimeEventListenerSpec
 
     "return valid log messages for each status event" in {
 
-      def calcTime(curTick: Long): String = {
+      def calcTime(curTick: Long): String =
         TimeUtil.withDefaults.toString(
           curTick.toDateTime(
             TimeUtil.withDefaults.toZonedDateTime(startDateTimeString)
           )
         )
-      }
 
       // Fail two power flows, should get counted
       listenerRef ! PowerFlowFailed

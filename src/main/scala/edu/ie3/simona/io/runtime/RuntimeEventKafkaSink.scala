@@ -22,7 +22,7 @@ import org.apache.kafka.common.serialization.{Serdes, Serializer}
 import org.slf4j.Logger
 
 import java.util.{Properties, UUID}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Runtime event sink that sends events related to the simulation ending to a
   * kafka topic.
@@ -43,7 +43,7 @@ final case class RuntimeEventKafkaSink(
       runtimeEvent: RuntimeEvent,
       runtimeStats: RuntimeStats,
       log: Logger
-  ): Unit = {
+  ): Unit =
     (runtimeEvent match {
       case Done(_, _, errorInSim) =>
         Some(
@@ -63,8 +63,6 @@ final case class RuntimeEventKafkaSink(
         new ProducerRecord[String, SimonaEndMessage](topic, msg)
       )
     }
-
-  }
 
   override def close(): Unit = {
     producer.flush()
@@ -86,7 +84,7 @@ object RuntimeEventKafkaSink {
       true
     ) // exactly once delivery
 
-    implicit val recordFormat: RecordFormat[SimonaEndMessage] =
+    given recordFormat: RecordFormat[SimonaEndMessage] =
       RecordFormat[SimonaEndMessage]
 
     val keySerializer = Serdes.String().serializer()

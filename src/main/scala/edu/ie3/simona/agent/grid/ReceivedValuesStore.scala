@@ -39,7 +39,7 @@ import java.util.UUID
   *   mapping of node uuids to received slack voltages from superior
   *   [[GridAgent]] s if any
   */
-final case class ReceivedValuesStore private (
+final case class ReceivedValuesStore(
     nodeToReceivedPower: NodeToReceivedPower,
     nodeToReceivedSlackVoltage: NodeToReceivedSlackVoltage
 )
@@ -137,9 +137,8 @@ object ReceivedValuesStore {
     */
   private def buildEmptyNodeToReceivedSlackVoltageValuesMap(
       superiorGridNodeUuids: Vector[UUID]
-  ): NodeToReceivedSlackVoltage = {
+  ): NodeToReceivedSlackVoltage =
     superiorGridNodeUuids.map(nodeId => nodeId -> None).toMap
-  }
 
   /** Composing method that combines [[buildEmptyNodeToReceivedPowerMap()]] and
     * [[buildEmptyNodeToReceivedSlackVoltageValuesMap()]]
@@ -159,7 +158,7 @@ object ReceivedValuesStore {
       nodeToAssetAgents: Map[UUID, Set[ActorRef]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef],
       superiorGridNodeUuids: Vector[UUID]
-  ): (NodeToReceivedPower, NodeToReceivedSlackVoltage) = {
+  ): (NodeToReceivedPower, NodeToReceivedSlackVoltage) =
     (
       buildEmptyNodeToReceivedPowerMap(
         nodeToAssetAgents,
@@ -167,6 +166,5 @@ object ReceivedValuesStore {
       ),
       buildEmptyNodeToReceivedSlackVoltageValuesMap(superiorGridNodeUuids)
     )
-  }
 
 }

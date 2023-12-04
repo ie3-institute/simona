@@ -10,7 +10,7 @@ import breeze.numerics.{abs, floor, signum}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.simona.exceptions.InvalidActionRequestException
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 
 import javax.measure.Quantity
 import javax.measure.quantity.Dimensionless
@@ -59,7 +59,7 @@ final case class TransformerTappingModel(
     */
   def incrTapPos(deltaTap: Int = 1): Double = {
     val newTapPos = Math.min(_currentTapPos + Math.abs(deltaTap), tapMax)
-    if (_currentTapPos == newTapPos)
+    if _currentTapPos == newTapPos then
       logger.warn(
         "Maximal tap position reached. Cannot increase tap position anymore!"
       )
@@ -75,7 +75,7 @@ final case class TransformerTappingModel(
     */
   def decrTapPos(deltaTap: Int = 1): Double = {
     val newTapPos = Math.max(_currentTapPos - Math.abs(deltaTap), tapMin)
-    if (_currentTapPos == newTapPos)
+    if _currentTapPos == newTapPos then
       logger.warn(
         "Minimal tap position reached. Cannot decrease tap position anymore!"
       )
@@ -91,7 +91,7 @@ final case class TransformerTappingModel(
     *   the new tap ratio of the transformer
     */
   def updateTapPos(newTapPos: Int): Double = {
-    if (newTapPos > tapMax | newTapPos < tapMin)
+    if newTapPos > tapMax | newTapPos < tapMin then
       throw new InvalidActionRequestException(
         s"Provided tap pos $newTapPos is not between allowed tapping range of tapMin: $tapMin and tapMax: $tapMax!"
       )

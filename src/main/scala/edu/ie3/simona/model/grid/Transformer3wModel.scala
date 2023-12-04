@@ -25,7 +25,7 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseC
 }
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.OperationInterval
 import squants.electro.{Kilovolts, Ohms, Siemens}
 import squants.energy.Megawatts
@@ -112,17 +112,15 @@ final case class Transformer3wModel(
     * @param newTapPos
     *   the wanted tap position
     */
-  override def updateTapPos(newTapPos: Int): Unit = {
+  override def updateTapPos(newTapPos: Int): Unit =
     powerFlowCase match {
       case PowerFlowCaseA =>
-        if (newTapPos != currentTapPos)
-          super.updateTapPos(newTapPos)
+        if newTapPos != currentTapPos then super.updateTapPos(newTapPos)
       case _ =>
         throw new InvalidActionRequestException(
           s"Updating tap position for transformer3w $uuid is not allowed in power flow case B and C."
         )
     }
-  }
 
   /** Increase transformer tap position by the provided delta value. The
     * operation is only allowed in power flow case A. In all other cases an
@@ -133,7 +131,7 @@ final case class Transformer3wModel(
     * @throws InvalidActionRequestException
     *   in power flow cases B and C
     */
-  override def incrTapPos(deltaTap: Int = 1): Unit = {
+  override def incrTapPos(deltaTap: Int = 1): Unit =
     powerFlowCase match {
       case PowerFlowCaseA =>
         super.incrTapPos(deltaTap)
@@ -142,7 +140,6 @@ final case class Transformer3wModel(
           s"Increasing tap position for transformer3w $uuid is not allowed in power flow case B and C."
         )
     }
-  }
 
   /** Decrease transformer tap position by the provided delta value. The
     * operation is only allowed in power flow case A. In all other cases an
@@ -153,7 +150,7 @@ final case class Transformer3wModel(
     * @throws InvalidActionRequestException
     *   in power flow cases B and C
     */
-  override def decrTapPos(deltaTap: Int): Unit = {
+  override def decrTapPos(deltaTap: Int): Unit =
     powerFlowCase match {
       case PowerFlowCaseA => super.decrTapPos(deltaTap)
       case _ =>
@@ -161,7 +158,6 @@ final case class Transformer3wModel(
           s"Decreasing tap position for transformer3w $uuid is not allowed in power flow case B and C."
         )
     }
-  }
 }
 
 case object Transformer3wModel extends LazyLogging {
@@ -284,7 +280,7 @@ case object Transformer3wModel extends LazyLogging {
     )
 
     // if the transformer3w input model is in operation, enable the model
-    if (operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION))
+    if operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION) then
       transformer3wModel.enable()
 
     // init the transformer tapping
@@ -419,15 +415,15 @@ case object Transformer3wModel extends LazyLogging {
 
     val maxAllowedDeviation = 0.05
 
-    if (nomVoltDevA > maxAllowedDeviation)
+    if nomVoltDevA > maxAllowedDeviation then
       throw new InvalidGridException(
         s"The rated voltage of node A is ${transformer3wInput.getNodeA.getVoltLvl.getNominalVoltage}, but the winding A is only rated for ${trafo3wType.getvRatedA}."
       )
-    if (nomVoltDevB > maxAllowedDeviation)
+    if nomVoltDevB > maxAllowedDeviation then
       throw new InvalidGridException(
         s"The rated voltage of node B is ${transformer3wInput.getNodeB.getVoltLvl.getNominalVoltage}, but the winding B is only rated for ${trafo3wType.getvRatedB}."
       )
-    if (nomVoltDevC > maxAllowedDeviation)
+    if nomVoltDevC > maxAllowedDeviation then
       throw new InvalidGridException(
         s"The rated voltage of node C is ${transformer3wInput.getNodeC.getVoltLvl.getNominalVoltage}, but the winding C is only rated for ${trafo3wType.getvRatedC}."
       )
@@ -440,21 +436,21 @@ case object Transformer3wModel extends LazyLogging {
       s"The rated voltage of node A is $vRatedNodeX, " +
         s"but the winding A is only rated for $typeVNodeX. Is the transformer connected correctly?"
     }
-    if (vNodeAVal < vTypeAVal)
+    if vNodeAVal < vTypeAVal then
       throw new InvalidGridException(
         transformerWrongPositionExceptionString(
           transformer3wInput.getNodeA.getVoltLvl.getNominalVoltage,
           trafo3wType.getvRatedA
         )
       )
-    if (vNodeBVal < vTypeBVal)
+    if vNodeBVal < vTypeBVal then
       throw new InvalidGridException(
         transformerWrongPositionExceptionString(
           transformer3wInput.getNodeB.getVoltLvl.getNominalVoltage,
           trafo3wType.getvRatedB
         )
       )
-    if (vNodeCVal < vTypeCVal)
+    if vNodeCVal < vTypeCVal then
       throw new InvalidGridException(
         transformerWrongPositionExceptionString(
           transformer3wInput.getNodeC.getVoltLvl.getNominalVoltage,
@@ -467,9 +463,9 @@ case object Transformer3wModel extends LazyLogging {
     val sNomB = trafo3wType.getsRatedB.getValue.doubleValue
     val sNomC = trafo3wType.getsRatedC.getValue.doubleValue
 
-    if (sNomA < (sNomB + sNomC)) {
+    if sNomA < (sNomB + sNomC) then {
       val maxSNomUnderlying = max(sNomB, sNomC)
-      if (sNomA < maxSNomUnderlying)
+      if sNomA < maxSNomUnderlying then
         throw new InvalidParameterException(
           s"The winding A of transformer type has a lower rating ($sNomA) as winding B ($sNomB) or C ($sNomC)!"
         )
@@ -499,7 +495,7 @@ case object Transformer3wModel extends LazyLogging {
     * @return
     *   Voltage ratio between high and low voltage side
     */
-  def voltRatio(transformerModel: Transformer3wModel): BigDecimal = {
+  def voltRatio(transformerModel: Transformer3wModel): BigDecimal =
     transformerModel.powerFlowCase match {
       case Transformer3wPowerFlowCase.PowerFlowCaseA =>
         BigDecimal
@@ -509,7 +505,6 @@ case object Transformer3wModel extends LazyLogging {
           Transformer3wPowerFlowCase.PowerFlowCaseC =>
         transformerModel.voltRatioNominal
     }
-  }
 
   /** Calculate the phase-to-ground admittance of a given transformer model. As
     * only the partial model for [[PowerFlowCaseA]] does contain a

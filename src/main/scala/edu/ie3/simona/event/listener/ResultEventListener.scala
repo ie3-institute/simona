@@ -21,7 +21,7 @@ import edu.ie3.simona.exceptions.{
   FileHierarchyException,
   ProcessResultEventException
 }
-import edu.ie3.simona.io.result._
+import edu.ie3.simona.io.result.*
 import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.util.ResultFileHierarchy
 import org.slf4j.Logger
@@ -35,13 +35,13 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   trait ResultMessage extends Event
 
-  private final case class SinkResponse(
-      response: Map[Class[_], ResultEntitySink]
+  final private case class SinkResponse(
+      response: Map[Class[?], ResultEntitySink]
   ) extends ResultMessage
 
-  private final case class Failed(ex: Exception) extends ResultMessage
+  final private case class Failed(ex: Exception) extends ResultMessage
 
-  private final case object StopTimeout extends ResultMessage
+  final private case object StopTimeout extends ResultMessage
 
   /** [[ResultEventListener]] base data containing all information the listener
     * needs
@@ -50,8 +50,8 @@ object ResultEventListener extends Transformer3wResultSupport {
     *   a map containing the sink for each class that should be processed by the
     *   listener
     */
-  private final case class BaseData(
-      classToSink: Map[Class[_], ResultEntitySink],
+  final private case class BaseData(
+      classToSink: Map[Class[?], ResultEntitySink],
       threeWindingResults: Map[
         Transformer3wKey,
         AggregatedTransformer3wResult
@@ -69,11 +69,11 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def initializeSinks(
       resultFileHierarchy: ResultFileHierarchy
-  ): Iterable[Future[(Class[_], ResultEntitySink)]] = {
+  ): Iterable[Future[(Class[?], ResultEntitySink)]] =
     resultFileHierarchy.resultSinkType match {
       case _: ResultSinkType.Csv =>
         resultFileHierarchy.resultEntitiesToConsider
-          .map(resultClass => {
+          .map { resultClass =>
             resultFileHierarchy.rawOutputDataFilePaths
               .get(resultClass)
               .map(Future.successful)
@@ -86,7 +86,8 @@ object ResultEventListener extends Transformer3wResultSupport {
                 )
               )
               .flatMap { fileName =>
-                if (fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")) {
+                if fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")
+                then {
                   Future {
                     (
                       resultClass,
@@ -105,7 +106,7 @@ object ResultEventListener extends Transformer3wResultSupport {
                   )
                 }
               }
-          })
+          }
       case ResultSinkType.InfluxDb1x(url, database, scenario) =>
         // creates one connection per result entity that should be processed
         resultFileHierarchy.resultEntitiesToConsider
@@ -122,7 +123,7 @@ object ResultEventListener extends Transformer3wResultSupport {
             schemaRegistryUrl,
             linger
           ) =>
-        val classes: Iterable[Class[_ <: ResultEntity]] = Set(
+        val classes: Iterable[Class[? <: ResultEntity]] = Set(
           classOf[NodeResult] // currently, only NodeResults are sent out
         )
         classes.map(clz =>
@@ -140,7 +141,6 @@ object ResultEventListener extends Transformer3wResultSupport {
           )
         )
     }
-  }
 
   /** Handle the given result and possibly update the state data
     *
@@ -185,7 +185,7 @@ object ResultEventListener extends Transformer3wResultSupport {
       )
     // add partial result
     val updatedResults = partialResult.add(result).map { updatedResult =>
-      if (updatedResult.ready) {
+      if updatedResult.ready then {
         // if result is complete, we can write it out
         updatedResult.consolidate.foreach {
           handOverToSink(_, baseData.classToSink, log)
@@ -220,7 +220,7 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private def handOverToSink(
       resultEntity: ResultEntity,
-      classToSink: Map[Class[_], ResultEntitySink],
+      classToSink: Map[Class[?], ResultEntitySink],
       log: Logger
   ): Unit =
     Try {

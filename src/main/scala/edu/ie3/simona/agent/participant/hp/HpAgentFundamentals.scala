@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant.hp
 
-import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.result.system.{
   HpResult,
@@ -44,10 +43,11 @@ import edu.ie3.simona.model.participant.HpModel
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.thermal.ThermalHouse
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
+import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.energy.Megawatts
 import squants.{Dimensionless, Each, Power, Temperature}
 import tech.units.indriya.quantity.Quantities
@@ -83,7 +83,7 @@ trait HpAgentFundamentals
     */
   override val calculateModelPowerFunc: (
       Long,
-      BaseStateData.ParticipantModelBaseStateData[
+      ParticipantModelBaseStateData[
         ApparentPowerAndHeat,
         HpRelevantData,
         HpModel
@@ -125,7 +125,7 @@ trait HpAgentFundamentals
 
     val (result, relevantData) =
       collectionStateData.baseStateData match {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case modelBaseStateData: ParticipantModelBaseStateData[?, ?, ?] =>
           modelBaseStateData.model match {
             case hpModel: HpModel =>
               /* extract weather data from secondary data, which should have been requested and received before */
@@ -158,14 +158,14 @@ trait HpAgentFundamentals
                   weatherData.temp
                 )
 
-              val power = hpModel.calculatePower(
+              val power: ApparentPowerAndHeat = hpModel.calculatePower(
                 currentTick,
                 voltage,
                 relevantData
               )
 
               val thermalHouseResult = new ThermalHouseResult(
-                currentTick.toDateTime(modelBaseStateData.startDate),
+                currentTick.toDateTime(using modelBaseStateData.startDate),
                 hpModel.thermalHouse.uuid,
                 Quantities.getQuantity(
                   power.qDot.toMegawatts,
@@ -212,18 +212,18 @@ trait HpAgentFundamentals
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[HpInput],
       modelConfig: HpRuntimeConfig,
-      services: Option[Vector[SecondaryDataService[_ <: Data.SecondaryData]]],
+      services: Option[Vector[SecondaryDataService[? <: Data.SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig
-  ): BaseStateData.ParticipantModelBaseStateData[
+  ): ParticipantModelBaseStateData[
     ApparentPowerAndHeat,
     HpRelevantData,
     HpModel
   ] = {
-    if (!services.exists(_.map(_.getClass).containsSlice(neededServices)))
+    if !services.exists(_.map(_.getClass).containsSlice(neededServices)) then
       throw new AgentInitializationException(
         "HpAgent cannot be initialized without its needed services."
       )

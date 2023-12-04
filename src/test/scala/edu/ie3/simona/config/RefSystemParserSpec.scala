@@ -54,7 +54,7 @@ class RefSystemParserSpec extends UnitSpec {
       // check internal gridIdRefSystems
       val gridIdRefSystems =
         PrivateMethod[Map[Int, RefSystem]](Symbol("gridIdRefSystems"))
-      configRefSystems invokePrivate gridIdRefSystems() shouldBe Map(
+      configRefSystems.invokePrivate(gridIdRefSystems()) shouldBe Map(
         1 -> configRefSystemOne,
         2 -> configRefSystemOne,
         3 -> configRefSystemOne,
@@ -77,7 +77,7 @@ class RefSystemParserSpec extends UnitSpec {
       // check internal voltLvLRefSystems
       val voltLvLRefSystems =
         PrivateMethod[Map[String, RefSystem]](Symbol("voltLvLRefSystems"))
-      configRefSystems invokePrivate voltLvLRefSystems() shouldBe Map(
+      configRefSystems.invokePrivate(voltLvLRefSystems()) shouldBe Map(
         GermanVoltageLevelUtils.MV_10KV -> configRefSystemOne,
         GermanVoltageLevelUtils.MV_20KV -> configRefSystemOne,
         GermanVoltageLevelUtils.HV -> configRefSystemTwo,

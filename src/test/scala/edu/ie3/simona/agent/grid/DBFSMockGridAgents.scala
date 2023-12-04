@@ -34,10 +34,11 @@ import scala.language.postfixOps
   */
 trait DBFSMockGridAgents extends UnitSpec {
   private val floatPrecision: Double = 0.00000000001
-  private implicit val powerTolerance: Power = Megawatts(1e-10)
-  private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-10)
-  private implicit val electricPotentialTolerance
-      : squants.electro.ElectricPotential = Volts(1e-6)
+  given powerTolerance: Power = Megawatts(1e-10)
+  given reactivePowerTolerance: ReactivePower = Megavars(1e-10)
+  given electricPotentialTolerance: squants.electro.ElectricPotential = Volts(
+    1e-6
+  )
 
   sealed trait GAActorAndModel {
     val gaProbe: TestProbe
@@ -62,7 +63,7 @@ trait DBFSMockGridAgents extends UnitSpec {
     def expectSlackVoltageProvision(
         expectedSweepNo: Int,
         expectedExchangedVoltages: Seq[ExchangeVoltage]
-    ): Unit = {
+    ): Unit =
       inside(gaProbe.expectMsgType[ProvideSlackVoltageMessage]) {
         case ProvideSlackVoltageMessage(sweepNo, exchangedVoltages) =>
           sweepNo shouldBe expectedSweepNo
@@ -83,7 +84,6 @@ trait DBFSMockGridAgents extends UnitSpec {
             }
           }
       }
-    }
 
     def requestSlackVoltage(receiver: ActorRef, sweepNo: Int): Unit =
       gaProbe.send(
@@ -114,7 +114,7 @@ trait DBFSMockGridAgents extends UnitSpec {
     def expectGridPowerProvision(
         expectedExchangedPowers: Seq[ExchangePower],
         maxDuration: FiniteDuration = 30 seconds
-    ): Unit = {
+    ): Unit =
       inside(gaProbe.expectMsgType[ProvideGridPowerMessage](maxDuration)) {
         case ProvideGridPowerMessage(exchangedPower) =>
           exchangedPower should have size expectedExchangedPowers.size
@@ -133,9 +133,8 @@ trait DBFSMockGridAgents extends UnitSpec {
           }
 
       }
-    }
 
-    def requestGridPower(receiver: ActorRef, sweepNo: Int): Unit = {
+    def requestGridPower(receiver: ActorRef, sweepNo: Int): Unit =
       gaProbe.send(
         receiver,
         RequestGridPowerMessage(
@@ -143,6 +142,5 @@ trait DBFSMockGridAgents extends UnitSpec {
           nodeUuids
         )
       )
-    }
   }
 }

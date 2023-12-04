@@ -14,7 +14,7 @@ import edu.ie3.simona.model.participant.load.DayType
 import edu.ie3.simona.model.participant.load.random.RandomLoadParamStore.initializeDayTypeValues
 import org.apache.commons.csv.{CSVFormat, CSVRecord}
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Storage for a collection of random load parameters.
   */
@@ -90,14 +90,14 @@ case object RandomLoadParamStore extends LazyLogging {
 
     /* Go through all lines of the csv file */
     records.asScala
-      .flatMap(record => {
+      .flatMap { record =>
         val quartHour = record.get("quarterHour").toInt
 
         /* Go through all day types */
         descriptorTree.map { case (dayType, parameterToCol) =>
-          try {
+          try
             (dayType, quartHour, assembleParameters(record, parameterToCol))
-          } catch {
+          catch {
             case e: FileIOException =>
               throw new FileIOException(
                 s"Cannot determine random load parameters for day type '$dayType' and quarter hour '$quartHour'",
@@ -105,7 +105,7 @@ case object RandomLoadParamStore extends LazyLogging {
               )
           }
         }
-      })
+      }
       .groupMap { case (dayType, _, _) => dayType } {
         case (_, quarterHour, randomLoadParameters) =>
           (quarterHour, randomLoadParameters)

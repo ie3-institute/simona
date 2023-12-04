@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant.load
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile._
+import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile.*
 import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.simona.model.participant.load.profile.{
   LoadProfileKey,
@@ -100,9 +100,14 @@ class LoadProfileStoreSpec
     "have values, that lead to correct annual energy consumption" in {
       /* Collect all available load profiles */
       val availableLoadProfiles: Set[StandardLoadProfile] =
-        (customStore invokePrivate PrivateMethod[
-          Map[LoadProfileKey, TypeDayProfile]
-        ](Symbol("profileMap"))()).keySet.map(_.standardLoadProfile)
+        customStore
+          .invokePrivate(
+            PrivateMethod[
+              Map[LoadProfileKey, TypeDayProfile]
+            ](Symbol("profileMap"))()
+          )
+          .keySet
+          .map(_.standardLoadProfile)
 
       /* List the expected annual energy consumption */
       val expectedEnergyConsumption: Map[StandardLoadProfile, squants.Energy] =
@@ -120,7 +125,7 @@ class LoadProfileStoreSpec
         Range(0, 35136).map(cnt => startDate.plus(cnt * 15, ChronoUnit.MINUTES))
 
       /* Check every load profile */
-      availableLoadProfiles.foreach(profile => {
+      availableLoadProfiles.foreach { profile =>
         /* Get expected value */
         val expected = expectedEnergyConsumption.get(profile) match {
           case Some(expectedValue) => expectedValue
@@ -134,17 +139,17 @@ class LoadProfileStoreSpec
         val annualEnergy: squants.Energy = testDates
           .foldLeft(
             KilowattHours(0.0)
-          )((integrationState, dateTime) => {
+          ) { (integrationState, dateTime) =>
             val currentEnergy = customStore
               .entry(dateTime, profile) * Minutes(15.0)
             integrationState + currentEnergy
-          })
+          }
 
-        implicit val powerTolerance: squants.Energy = KilowattHours(1.0)
+        given powerTolerance: squants.Energy = KilowattHours(1.0)
 
         /* Check the deviation against the expected value (deviation should be smaller than 1 kWh) */
         (annualEnergy ~= expected) shouldBe true
-      })
+      }
     }
   }
 }
