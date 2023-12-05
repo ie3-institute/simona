@@ -8,8 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Add safety factor sRated calculation [#629](https://github.com/ie3-institute/simona/issues/629)
-- Added capability of SystemParticipants to handle flexibility requests regarding self-optimization [#308](https://github.com/ie3-institute/simona/issues/308)
+- Re-implemented ResultEventListener in akka typed [#343](https://github.com/ie3-institute/simona/issues/343)
+- Add additional test cases from references for PvModelTest [#590](https://github.com/ie3-institute/simona/issues/590)
 - Instantiation of Heat Pump Agents [#253](https://github.com/ie3-institute/simona/issues/253)
+- Output of accompanying thermal result models
+- Added capability of SystemParticipants to handle flexibility requests regarding self-optimization [#308](https://github.com/ie3-institute/simona/issues/308)
 - Output of accompanying thermal result models
 - Implementation of Energy Management Agents [#204](https://github.com/ie3-institute/simona/issues/204)
 
@@ -19,7 +22,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed from ComparableQuantity to squants fast and typesafe calculations [#490](https://github.com/ie3-institute/simona/issues/490)
 - Changed from ComparableQuantity to squants in power flow [#554](https://github.com/ie3-institute/simona/issues/554)
 - Reduce log level on missing diffuse irradiance [#629](https://github.com/ie3-institute/simona/issues/629)
+- Updated to gradle 8.4 [#648](https://github.com/ie3-institute/simona/issues/648)
+- Introducing new scheduling infrastructure:
+  - Two-parted scheduler in akka typed [#378](https://github.com/ie3-institute/simona/issues/378)
+  - Adapting to simonaAPI 0.3.0 (adapted message protocol)
+  - Schedule lock [#651](https://github.com/ie3-institute/simona/issues/651)
+  - New scheduling protocol [#650](https://github.com/ie3-institute/simona/issues/650)
+- Replaced akka with pekko [#641](https://github.com/ie3-institute/simona/issues/641)
 - Use `ThermalGrid` to calculate thermal environment of a heat pump [#315](https://github.com/ie3-institute/simona/issues/315)
+
+### Fixed
+- Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
+- Removed version number "2.0" from the logo printed to console [#642](https://github.com/ie3-institute/simona/issues/642)
 
 ## [3.0.0] - 2023-08-07
 
@@ -117,6 +131,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed broken layout in RTD documentation [#500](https://github.com/ie3-institute/simona/issues/500)
 - Corrected tests in RefSystemTest [#560](https://github.com/ie3-institute/simona/issues/560)
 - Take log file event filters from `logback.xml` when defining the run log appender [#108](https://github.com/ie3-institute/simona/issues/108)
+- Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)

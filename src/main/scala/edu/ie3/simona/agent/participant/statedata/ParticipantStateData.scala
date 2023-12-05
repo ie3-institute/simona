@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.statedata
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
@@ -14,8 +14,6 @@ import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
-import edu.ie3.simona.ontology.trigger.Trigger
 
 import java.time.ZonedDateTime
 
@@ -79,8 +77,7 @@ object ParticipantStateData {
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ActorRef],
-      scheduleTriggerFunc: Trigger => ScheduleTriggerMessage
+      maybeEmAgent: Option[ActorRef]
   ) extends ParticipantStateData[PD]
 
   /** State data to use, when initializing the participant agent
@@ -127,8 +124,7 @@ object ParticipantStateData {
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ActorRef] = None,
-      scheduleTriggerFunc: Trigger => ScheduleTriggerMessage
+      maybeEmAgent: Option[ActorRef] = None
   ) extends InitializeStateData[PD]
 
   object ParticipantInitializeStateData {
@@ -148,8 +144,7 @@ object ParticipantStateData {
         simulationEndDate: ZonedDateTime,
         resolution: Long,
         requestVoltageDeviationThreshold: Double,
-        outputConfig: NotifierConfig,
-        scheduleTriggerFunc: Trigger => ScheduleTriggerMessage
+        outputConfig: NotifierConfig
     ): ParticipantInitializeStateData[I, C, PD] =
       new ParticipantInitializeStateData[I, C, PD](
         SimpleInputContainer(inputModel),
@@ -161,8 +156,7 @@ object ParticipantStateData {
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        maybeEmAgent = None,
-        scheduleTriggerFunc
+        maybeEmAgent = None
       )
     def apply[
         I <: SystemParticipantInput,
@@ -180,8 +174,7 @@ object ParticipantStateData {
         resolution: Long,
         requestVoltageDeviationThreshold: Double,
         outputConfig: NotifierConfig,
-        maybeEmAgent: Option[ActorRef],
-        scheduleTriggerFunc: Trigger => ScheduleTriggerMessage
+        maybeEmAgent: Option[ActorRef]
     ): ParticipantInitializeStateData[I, C, PD] =
       new ParticipantInitializeStateData[I, C, PD](
         SimpleInputContainer(inputModel),
@@ -193,8 +186,38 @@ object ParticipantStateData {
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        maybeEmAgent,
-        scheduleTriggerFunc
+        maybeEmAgent
+      )
+
+    def apply[
+        I <: SystemParticipantInput,
+        C <: SimonaConfig.BaseRuntimeConfig,
+        PD <: PrimaryData
+    ](
+        inputModel: I,
+        thermalGrid: ThermalGrid,
+        modelConfig: C,
+        primaryServiceProxy: ActorRef,
+        secondaryDataServices: Option[
+          Vector[SecondaryDataService[_ <: SecondaryData]]
+        ],
+        simulationStartDate: ZonedDateTime,
+        simulationEndDate: ZonedDateTime,
+        resolution: Long,
+        requestVoltageDeviationThreshold: Double,
+        outputConfig: NotifierConfig
+    ): ParticipantInitializeStateData[I, C, PD] =
+      new ParticipantInitializeStateData[I, C, PD](
+        WithHeatInputContainer(inputModel, thermalGrid),
+        modelConfig,
+        primaryServiceProxy,
+        secondaryDataServices,
+        simulationStartDate,
+        simulationEndDate,
+        resolution,
+        requestVoltageDeviationThreshold,
+        outputConfig,
+        maybeEmAgent = None
       )
 
     def apply[
@@ -214,7 +237,7 @@ object ParticipantStateData {
         resolution: Long,
         requestVoltageDeviationThreshold: Double,
         outputConfig: NotifierConfig,
-        scheduleTriggerFunc: Trigger => ScheduleTriggerMessage
+        maybeEmAgent: Option[ActorRef]
     ): ParticipantInitializeStateData[I, C, PD] =
       new ParticipantInitializeStateData[I, C, PD](
         WithHeatInputContainer(inputModel, thermalGrid),
@@ -226,42 +249,7 @@ object ParticipantStateData {
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        maybeEmAgent = None,
-        scheduleTriggerFunc
-      )
-
-    def apply[
-        I <: SystemParticipantInput,
-        C <: SimonaConfig.BaseRuntimeConfig,
-        PD <: PrimaryData
-    ](
-        inputModel: I,
-        thermalGrid: ThermalGrid,
-        modelConfig: C,
-        primaryServiceProxy: ActorRef,
-        secondaryDataServices: Option[
-          Vector[SecondaryDataService[_ <: SecondaryData]]
-        ],
-        simulationStartDate: ZonedDateTime,
-        simulationEndDate: ZonedDateTime,
-        resolution: Long,
-        requestVoltageDeviationThreshold: Double,
-        outputConfig: NotifierConfig,
-        maybeEmAgent: Option[ActorRef],
-        scheduleTriggerFunc: Trigger => ScheduleTriggerMessage
-    ): ParticipantInitializeStateData[I, C, PD] =
-      new ParticipantInitializeStateData[I, C, PD](
-        WithHeatInputContainer(inputModel, thermalGrid),
-        modelConfig,
-        primaryServiceProxy,
-        secondaryDataServices,
-        simulationStartDate,
-        simulationEndDate,
-        resolution,
-        requestVoltageDeviationThreshold,
-        outputConfig,
-        maybeEmAgent,
-        scheduleTriggerFunc
+        maybeEmAgent
       )
   }
 

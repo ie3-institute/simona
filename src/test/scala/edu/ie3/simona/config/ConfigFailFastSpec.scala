@@ -33,8 +33,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               new Time(
                 "2020-06-18 13:41:00",
                 None,
-                "2020-05-18 13:41:00",
-                true
+                "2020-05-18 13:41:00"
               )
             )
           }
@@ -46,8 +45,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               new Time(
                 "2020-06-18 13:41:00",
                 None,
-                "2020-07-18 13:41:00",
-                true
+                "2020-07-18 13:41:00"
               )
             )
           }.getMessage shouldBe "Invalid time configuration." +
@@ -93,6 +91,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                   100
                 ),
                 Duration.of(3600, ChronoUnit.SECONDS),
+                stopOnFailure = false,
                 Duration.of(3600, ChronoUnit.SECONDS)
               )
             )
@@ -109,6 +108,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                   100
                 ),
                 resolution = Duration.of(3600, ChronoUnit.NANOS),
+                stopOnFailure = false,
                 sweepTimeout = Duration.of(3600, ChronoUnit.SECONDS)
               )
             )
@@ -832,7 +832,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "identify a path pointing to a file" in {
           val csvParams = BaseCsvParams(
             ",",
-            "inputData/common/akka.conf",
+            "inputData/common/pekko.conf",
             isHierarchic = false
           )
 
@@ -841,7 +841,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               csvParams,
               "CsvGridData"
             )
-          }.getMessage shouldBe "The provided directoryPath for .csv-files 'inputData/common/akka.conf' for 'CsvGridData' configuration is invalid! Please correct the path!"
+          }.getMessage shouldBe "The provided directoryPath for .csv-files 'inputData/common/pekko.conf' for 'CsvGridData' configuration is invalid! Please correct the path!"
         }
 
         "let valid csv parameters pass" in {
@@ -954,14 +954,14 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
     }
 
     "validating the typesafe config" when {
-      "checking the availability of akka logger parameterization" should {
-        val checkAkkaLoggers = PrivateMethod[Unit](Symbol("checkAkkaLoggers"))
+      "checking the availability of pekko logger parameterization" should {
+        val checkPekkoLoggers = PrivateMethod[Unit](Symbol("checkPekkoLoggers"))
 
         "log warning on malicious config" in {
           val maliciousConfig = ConfigFactory.parseString("")
 
           noException shouldBe thrownBy {
-            ConfigFailFast invokePrivate checkAkkaLoggers(maliciousConfig)
+            ConfigFailFast invokePrivate checkPekkoLoggers(maliciousConfig)
           }
           /* Testing the log message cannot be tested, as with LazyLogging, the logger of the class cannot be spied. */
         }
@@ -969,26 +969,26 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "pass on proper config" in {
           val properConfig = ConfigFactory.parseString(
             """
-              |akka {
-              |  loggers = ["akka.event.slf4j.Slf4jLogger"]
+              |pekko {
+              |  loggers = ["pekko.event.slf4j.Slf4jLogger"]
               |}""".stripMargin
           )
 
           noException shouldBe thrownBy {
-            ConfigFailFast invokePrivate checkAkkaLoggers(properConfig)
+            ConfigFailFast invokePrivate checkPekkoLoggers(properConfig)
           }
           /* Testing the log message cannot be tested, as with LazyLogging, the logger of the class cannot be spied. */
         }
       }
 
-      "checking the akka config" should {
-        val checkAkkaConfig = PrivateMethod[Unit](Symbol("checkAkkaConfig"))
+      "checking the pekko config" should {
+        val checkPekkoConfig = PrivateMethod[Unit](Symbol("checkPekkoConfig"))
 
         "log warning on missing entry" in {
           val maliciousConfig = ConfigFactory.parseString("")
 
           noException shouldBe thrownBy {
-            ConfigFailFast invokePrivate checkAkkaConfig(maliciousConfig)
+            ConfigFailFast invokePrivate checkPekkoConfig(maliciousConfig)
           }
           /* Testing the log message cannot be tested, as with LazyLogging, the logger of the class cannot be spied. */
         }
@@ -996,13 +996,13 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "pass on proper config" in {
           val properConfig = ConfigFactory.parseString(
             """
-              |akka {
-              |  loggers = ["akka.event.slf4j.Slf4jLogger"]
+              |pekko {
+              |  loggers = ["pekko.event.slf4j.Slf4jLogger"]
               |}""".stripMargin
           )
 
           noException shouldBe thrownBy {
-            ConfigFailFast invokePrivate checkAkkaConfig(properConfig)
+            ConfigFailFast invokePrivate checkPekkoConfig(properConfig)
           }
           /* Testing the log message cannot be tested, as with LazyLogging, the logger of the class cannot be spied. */
         }
@@ -1012,8 +1012,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "pass on proper input" in {
           val properConfig = ConfigFactory.parseString(
             """
-              |akka {
-              |  loggers = ["akka.event.slf4j.Slf4jLogger"]
+              |pekko {
+              |  loggers = ["pekko.event.slf4j.Slf4jLogger"]
               |}""".stripMargin
           )
 
@@ -1029,7 +1029,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
       "having two proper inputs" should {
         "pass" in {
           val properTypesafeConfig = ConfigFactory.parseString(
-            "akka.loggers = [\"akka.event.slf4j.Slf4jLogger\"]"
+            "pekko.loggers = [\"pekko.event.slf4j.Slf4jLogger\"]"
           )
           val properSimonaConfig = simonaConfig
 

@@ -23,6 +23,8 @@ import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import java.time.ZonedDateTime
 import java.util.UUID
 
+/** TODO probably we do not need the value stores here
+  */
 final case class FlexCorrespondenceStore(
     private val expectedParticipants: Set[UUID],
     expectedDataType: ExpectedDataType,

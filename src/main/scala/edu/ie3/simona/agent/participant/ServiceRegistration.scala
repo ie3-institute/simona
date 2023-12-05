@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
@@ -57,7 +57,6 @@ trait ServiceRegistration[
   def registerForServices(
       inputModel: I,
       services: Option[Seq[SecondaryDataService[_ <: SecondaryData]]],
-      scheduleTriggerFunc: Trigger => ScheduleTriggerMessage,
       emControlled: Boolean
   ): Seq[ActorRef] =
     services
@@ -66,7 +65,6 @@ trait ServiceRegistration[
           registerForSecondaryService(
             service,
             inputModel,
-            scheduleTriggerFunc,
             emControlled
           )
         )
@@ -94,7 +92,6 @@ trait ServiceRegistration[
   ](
       serviceDefinition: SecondaryDataService[S],
       inputModel: I,
-      scheduleTriggerFunc: Trigger => ScheduleTriggerMessage,
       emControlled: Boolean
   ): Option[ActorRef] = serviceDefinition match {
     case SecondaryDataService.ActorPriceService(_) =>
@@ -110,7 +107,6 @@ trait ServiceRegistration[
       registerForEvMovements(
         serviceRef,
         inputModel,
-        scheduleTriggerFunc,
         emControlled
       )
       Some(serviceRef)
@@ -159,12 +155,10 @@ trait ServiceRegistration[
   private def registerForEvMovements(
       serviceRef: ActorRef,
       inputModel: I,
-      scheduleTriggerFunc: Trigger => ScheduleTriggerMessage,
       emControlled: Boolean
   ): Unit =
     serviceRef ! RegisterForEvDataMessage(
       inputModel.getUuid,
-      scheduleTriggerFunc,
       emControlled
     )
 

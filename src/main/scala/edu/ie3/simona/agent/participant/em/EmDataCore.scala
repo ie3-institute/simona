@@ -1,0 +1,274 @@
+/*
+ * © 2023. TU Dortmund University,
+ * Institute of Energy Systems, Energy Efficiency and Energy Economics,
+ * Research group Distribution grid planning and operation
+ */
+
+package edu.ie3.simona.agent.participant.em
+
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore2.WithTime
+import edu.ie3.simona.ontology.messages.{Activation, FlexibilityMessage}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{FlexRequest, IssueFlexControl, IssueNoCtrl, IssuePowerCtrl, ProvideFlexOptions}
+import edu.ie3.simona.scheduler.core.Core.{ActiveCore, InactiveCore}
+import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
+import org.apache.pekko.actor.typed.ActorRef
+
+import java.util.UUID
+import scala.collection.immutable
+
+/**
+  * Data related to participant scheduling and flex correspondences
+  */
+object EmDataCore {
+
+  type Actor = ActorRef[FlexRequest]
+
+  /** @param activationQueue
+    * @param flexWithNext
+    *   to be activated with next activation, whatever tick that is going to be
+    * @param lastActiveTick
+    */
+  final case class SchedulerInactive private (
+      private val activationQueue: PriorityMultiBiSet[Long, Actor],
+      private val flexWithNext: Set[Actor],
+      private val correspondenceStore: FlexCorrespondenceStore2,
+      private val lastActiveTick: Option[Long]
+  ) {
+    def checkActivation(newTick: Long): Boolean =
+      activationQueue.headKeyOption.contains(newTick)
+
+    def activate(): ActiveCore = {
+      val newActiveTick = activationQueue.headKeyOption.getOrElse(
+        throw new RuntimeException("Nothing scheduled, cannot activate.")
+      )
+      val updatedQueue = flexWithNext.foldLeft(activationQueue) {
+        case (currentQueue, participant) =>
+          currentQueue.set(newActiveTick, participant)
+          currentQueue
+      }
+      AwaitingFlexOptions(updatedQueue, activeTick = newActiveTick)
+    }
+
+    def checkSchedule(newTick: Long): Boolean =
+      lastActiveTick.forall(newTick >= _ + 1)
+
+    def handleSchedule(
+        participant: Actor,
+        newTick: Long
+    ): (Option[Long], SchedulerInactive) = {
+      val oldEarliestTick = activationQueue.headKeyOption
+
+      activationQueue.set(newTick, participant)
+      val newEarliestTick = activationQueue.headKeyOption
+
+      val maybeScheduleTick =
+        Option.when(newEarliestTick != oldEarliestTick)(newEarliestTick).flatten
+
+      (maybeScheduleTick, this)
+    }
+
+  }
+
+  /** @param activationQueue
+    * @param activeActors
+    * @param activeTick
+    */
+  final case class AwaitingFlexOptions(
+      private val activationQueue: PriorityMultiBiSet[Long, Actor],
+      private val correspondenceStore: FlexCorrespondenceStore2,
+      private val awaitedFlexOptions: Set[Actor] = Set.empty,
+      activeTick: Long
+  ) {
+    def checkSchedule( // TODO needed here?
+        participant: Actor,
+        newTick: Long
+    ): Boolean =
+      newTick >= activeTick
+
+    def handleSchedule(
+        participant: Actor,
+        newTick: Long
+    ): AwaitingFlexOptions = {
+      activationQueue.set(newTick, participant)
+      this
+    }
+
+    def takeNewActivations(): (Iterable[Actor], AwaitingFlexOptions) = {
+      val toActivate = activationQueue.getAndRemoveSet(activeTick)
+      val newActiveCore = copy(awaitedFlexOptions = awaitedFlexOptions.concat(toActivate))
+      (toActivate, newActiveCore)
+    }
+
+    def handleFlexOption(flexOptions: ProvideFlexOptions): AwaitingFlexOptions =
+      copy(correspondenceStore = correspondenceStore.updateFlexOptions(flexOptions, activeTick))
+
+    def getFlexOptions() // TODO
+
+    def handleFlexCtrl(ctrlMsgs: Iterable[(Actor, IssueFlexControl)]) // TODO
+
+    /**
+      *
+      * @return
+      */
+    def maybeComplete(): Option[(Iterable[(Actor, IssueFlexControl)], AwaitingResults)] = {
+      Option.when(awaitedFlexOptions.isEmpty &&
+        !activationQueue.headKeyOption.contains(activeTick)) {
+        val updatedCorrespondences = fillInMissingIssueCtrl()
+
+        val currentCtrlMessages = updatedCorrespondences.store.flatMap {
+          case (participant , correspondence) =>
+           correspondence.issuedCtrlMsg.flatMap {
+             case WithTime(issueCtrl, tick) if tick == activeTick =>
+               Some(participant -> issueCtrl)
+             case _ => None
+           }
+        }
+
+        (
+          currentCtrlMessages,
+        AwaitingResults(
+          activationQueue = activationQueue,
+          correspondenceStore=updatedCorrespondences,
+          awaitedResults = currentCtrlMessages.map {case (participant, _) => participant}.toSet,
+          activeTick = activeTick)
+        )
+      }
+    }
+
+    private def fillInMissingIssueCtrl(): FlexCorrespondenceStore2 = {
+      correspondenceStore.store.filter {
+          case (_, correspondence) =>
+            // let's get those correspondences that have not received a ctrl msg at this tick
+            correspondence.issuedCtrlMsg.forall(_.tick < activeTick)
+        }
+        .flatMap {
+          case (participant, correspondence) =>
+            // We still create a no-control-msg in its place, if...
+
+            // ... a response is expected for this tick, since we've
+            // requested flex options at this tick
+            val currentlyRequested =
+              correspondence.receivedFlexOptions.forall(_.tick == activeTick)
+
+            // ... flex control has been issued for this participant
+            // at an earlier tick
+            val flexControlCancelled = correspondence.issuedCtrlMsg match {
+              case Some(WithTime(_: IssuePowerCtrl, tick)) if tick < activeTick => true
+              case _ => false
+            }
+
+            Option.when(currentlyRequested || flexControlCancelled)(
+              participant -> IssueNoCtrl(activeTick)
+            )
+        }.foldLeft(correspondenceStore) {
+          case (updatedStore, (participant, flexCtrl)) =>
+            updatedStore.updateFlexControl(participant, flexCtrl, activeTick)
+        }
+    }
+
+  }
+
+  /**
+    *
+    * @param activationQueue
+    * @param flexWithNext
+    * to be asked for flex options with the following active tick, whatever that tick is
+    * going to be (not with the currently active tick though!)
+    * @param lastActiveTick
+    */
+  final case class AwaitingResults(
+                                    private val activationQueue: PriorityMultiBiSet[Long, Actor],
+                                    private val flexWithNext: Set[Actor] = Set.empty,
+                                    private val correspondenceStore: FlexCorrespondenceStore2,
+                                    private val awaitedResults: Set[Actor],
+                                    activeTick: Long
+                                  ) {
+
+    def checkCompletion(participant: Actor): Boolean =
+      awaitedResults.contains(participant)
+
+    def handleCompletion(participant: Actor, result: ApparentPower, withNext: Boolean): AwaitingResults = {
+      val updatedCorrespondence =
+        correspondenceStore
+          .getOrElse(
+            participant,
+            throw new RuntimeException(
+              s"No flex correspondence store found for $participant"
+            )
+          )
+          .copy(receivedResult = Some(WithTime(result, activeTick)))
+
+      val updatedActivateWithNext =
+        if (withNext) flexWithNext.incl(participant)
+        else flexWithNext
+
+
+      copy(correspondenceStore=correspondenceStore.updated(participant, updatedCorrespondence),
+      flexWithNext = updatedActivateWithNext,
+        awaitedResults = awaitedResults.excl(participant),
+      )
+    }
+
+    def maybeComplete(): Option[(Option[Long], InactiveCore)] =
+      Option.when(
+        awaitedResults.isEmpty &&
+          !activationQueue.headKeyOption.contains(activeTick)
+      ) {
+        (
+          activationQueue.headKeyOption,
+          SchedulerInactive(activationQueue, flexWithNext, correspondenceStore, Some(activeTick))
+        )
+      }
+
+  }
+
+  /*
+  -- core so far --
+
+  inactive:
+  - checkActivation
+  - activate
+  - checkSchedule
+  - handleSchedule
+
+  active:
+  - activeTick
+  - checkCompletion
+  - handleCompletion
+  - maybeComplete
+  - checkSchedule
+  - handleSchedule
+  - takeNewActivations
+   */
+
+  /*
+  -- em core --
+
+  handling all transient data: concerning scheduling and flex correspondence
+
+  inactive:
+  - checkActivation
+  - activate
+  - checkSchedule
+  - handleSchedule
+
+  awaitingFlex:
+  - activeTick
+  - checkSchedule
+  - handleSchedule
+  - takeNewActivations
+  - addFlexOption
+  - isComplete
+  - getLatestOptions // for all participants
+  - getLastIssueCtrl
+
+  awaitingResults:
+  - checkCompletion
+  - handleCompletion(participant, result)
+  - maybeComplete
+
+
+  only have uuids in model? thus model translates actorref -> uuid or actorref -> spi
+   */
+}

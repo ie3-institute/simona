@@ -6,11 +6,12 @@
 
 package edu.ie3.simona.agent.participant.fixedfeedin
 
-import akka.actor.{ActorRef, Props}
+import org.apache.pekko.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig.FixedFeedInRuntimeConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.{
@@ -26,9 +27,14 @@ import javax.measure.quantity.Dimensionless
 object FixedFeedInAgent {
   def props(
       scheduler: ActorRef,
+      initStateData: ParticipantInitializeStateData[
+        FixedFeedInInput,
+        FixedFeedInRuntimeConfig,
+        ApparentPower
+      ],
       listener: Iterable[ActorRef]
   ): Props =
-    Props(new FixedFeedInAgent(scheduler, listener))
+    Props(new FixedFeedInAgent(scheduler, initStateData, listener))
 }
 
 /** Creating a fixed feed in agent
@@ -40,6 +46,11 @@ object FixedFeedInAgent {
   */
 class FixedFeedInAgent(
     scheduler: ActorRef,
+    initStateData: ParticipantInitializeStateData[
+      FixedFeedInInput,
+      FixedFeedInRuntimeConfig,
+      ApparentPower
+    ],
     override val listener: Iterable[ActorRef]
 ) extends ParticipantAgent[
       ApparentPower,
@@ -49,7 +60,7 @@ class FixedFeedInAgent(
       FixedFeedInInput,
       FixedFeedInRuntimeConfig,
       FixedFeedInModel
-    ](scheduler)
+    ](scheduler, initStateData)
     with FixedFeedInAgentFundamentals {
 
   /*

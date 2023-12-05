@@ -8,7 +8,7 @@ package edu.ie3.simona.model.participant.em
 
 import edu.ie3.datamodel.models.input.system._
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore.FlexCorrespondence
+import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore2.FlexCorrespondence
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ModelState.ConstantState
@@ -53,7 +53,7 @@ final case class EmModel private (
   def determineDeviceControl(
       flexOptions: Seq[(_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)],
       target: squants.Power
-  ): Seq[(UUID, squants.Power)] =
+  ): Seq[(UUID, squants.Power)] = // TODO switch to actorref?
     modelStrategy.determineDeviceControl(flexOptions, target)
 
   override def calculatePower(
@@ -64,7 +64,7 @@ final case class EmModel private (
   ): ApparentPower =
     data.flexCorrespondences
       .map { correspondence =>
-        correspondence.participantResult
+        correspondence.receivedResult
           .map(res =>
             ApparentPower(
               Megawatts(

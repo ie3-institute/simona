@@ -25,7 +25,7 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
 import squants.energy.Kilowatts
-import squants.{Power, Temperature}
+import squants.{Power, Temperature, Time}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -117,7 +117,7 @@ final case class HpModel(
       tick: Long,
       modelState: HpState,
       data: HpRelevantData
-  ): squants.Power =
+  ): Power =
     modelState.qDot
 
   /** Given a [[HpRelevantData]] object and the current [[HpState]], this

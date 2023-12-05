@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant.em
 
 import edu.ie3.datamodel.models.result.system.{EvcsResult, LoadResult}
-import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore.FlexCorrespondence
+import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore2.FlexCorrespondence
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.em.EmModel.EmRelevantData
 import edu.ie3.simona.test.common.UnitSpec
@@ -53,7 +53,7 @@ class EmModelSpec
     "calculate total power based on flex options and flex control" in {
       val flexCorrespondences = Iterable(
         FlexCorrespondence(
-          participantResult = Some(
+          receivedResult = Some(
             new EvcsResult(
               0L.toDateTime,
               UUID.randomUUID(),
@@ -63,7 +63,7 @@ class EmModelSpec
           )
         ),
         FlexCorrespondence(
-          participantResult = Some(
+          receivedResult = Some(
             new LoadResult(
               0L.toDateTime,
               UUID.randomUUID(),

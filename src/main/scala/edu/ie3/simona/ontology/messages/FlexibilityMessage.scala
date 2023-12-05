@@ -6,38 +6,48 @@
 
 package edu.ie3.simona.ontology.messages
 
-import edu.ie3.simona.ontology.trigger.Trigger
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.em.EmAgentTyped.EmMessage
+import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
 
 // TODO adapt scaladoc
-sealed trait FlexibilityMessage
-
+// TODO split off min-max flex options into separate file
 object FlexibilityMessage {
+
+  sealed trait FlexRequest {
+    val tick: Long
+  }
+  sealed trait FlexResponse extends EmMessage {
+    val participant: ActorRef[FlexRequest]
+  }
+
+  final case class ScheduleFlexRequest(
+    override val participant: ActorRef[FlexRequest],
+    tick: Long
+  ) extends FlexResponse
 
   /** EmAgent requests flexibility options from connected agents
     */
-  final case class RequestFlexOptions(tick: Long)
-      extends FlexibilityMessage
-      with Trigger
+  final case class RequestFlexOptions(override val tick: Long)
+      extends FlexRequest
 
   /** Connected agents provide flex options
     */
-  trait ProvideFlexOptions extends FlexibilityMessage {
-    val modelUuid: UUID
-  }
+  trait ProvideFlexOptions extends FlexResponse
 
   object ProvideFlexOptions {
     def noFlexOption(
-        uuid: UUID,
+        actor: ActorRef[FlexRequest],
         power: squants.Power
     ): ProvideMinMaxFlexOptions =
-      ProvideMinMaxFlexOptions(uuid, power, power, power)
+      ProvideMinMaxFlexOptions(actor, power, power, power)
   }
 
   /** EmAgent issues flexibility control
     */
-  trait IssueFlexControl extends FlexibilityMessage with Trigger
+  trait IssueFlexControl extends FlexRequest
 
   /** Provides flexibility options of a system participant using reference,
     * minimum and maximum power. All powers can be negative, signifying a
@@ -54,10 +64,10 @@ object FlexibilityMessage {
     *   the maximum power that the system participant allows
     */
   final case class ProvideMinMaxFlexOptions(
-      override val modelUuid: UUID,
-      referencePower: squants.Power,
-      minPower: squants.Power,
-      maxPower: squants.Power
+                                             override val participant: ActorRef[FlexRequest],
+                                             referencePower: squants.Power,
+                                             minPower: squants.Power,
+                                             maxPower: squants.Power
   ) extends ProvideFlexOptions
 
   /** Message sent by [[edu.ie3.simona.agent.participant.em.EmAgent]] that
@@ -68,7 +78,7 @@ object FlexibilityMessage {
     *   negative: producing
     */
   final case class IssuePowerCtrl(
-      tick: Long,
+      override val tick: Long,
       setPower: squants.Power
   ) extends IssueFlexControl
 
@@ -81,19 +91,16 @@ object FlexibilityMessage {
   /** @param modelUuid
     *   model uuid of participant agent who received flex options request or
     *   issue power control
-    * @param revokeRequestAtTick
-    *   tick for which the participant agent's flex options request should be
-    *   revoked
     * @param requestAtNextActivation
     *   whether to request flex options at the very next activation of EmAgent
     * @param requestAtTick
     *   tick at which flex options are foreseen to have changed
     */
   final case class FlexCtrlCompletion(
-      modelUuid: UUID,
-      revokeRequestAtTick: Option[Long] = None,
-      requestAtNextActivation: Boolean = false,
-      requestAtTick: Option[Long] = None
-  ) extends FlexibilityMessage
+                                       override val participant: ActorRef[FlexRequest],
+                                       result: ApparentPower,
+                                       requestAtNextActivation: Boolean = false,
+                                       requestAtTick: Option[Long] = None
+  ) extends FlexResponse
 
 }

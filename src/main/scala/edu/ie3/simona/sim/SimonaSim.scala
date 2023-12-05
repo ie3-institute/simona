@@ -6,8 +6,9 @@
 
 package edu.ie3.simona.sim
 
-import akka.actor.SupervisorStrategy.Stop
-import akka.actor.{
+import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
+import org.apache.pekko.actor.SupervisorStrategy.Stop
+import org.apache.pekko.actor.{
   Actor,
   ActorRef,
   AllForOneStrategy,
@@ -18,15 +19,16 @@ import akka.actor.{
 }
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.ontology.messages.SchedulerMessage._
+import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.StopMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  InitializeGridAgentTrigger,
-  InitializeServiceTrigger
+import edu.ie3.simona.scheduler.TimeAdvancer
+import edu.ie3.simona.scheduler.TimeAdvancer.StartSimMessage
+import edu.ie3.simona.sim.SimMessage.{
+  InitSim,
+  SimulationFailure,
+  SimulationSuccessful,
+  StartSimulation
 }
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
-import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim.{
   EmergencyShutdownInitiated,
   SimonaSimStateData
@@ -72,52 +74,34 @@ class SimonaSim(simonaSetup: SimonaSetup)
     simonaSetup.systemParticipantsListener(context)
 
   // runtime event listener
-  val runtimeEventListener: Seq[ActorRef] =
+  val runtimeEventListener
+      : org.apache.pekko.actor.typed.ActorRef[RuntimeEvent] =
     simonaSetup.runtimeEventListener(context)
 
   /* start scheduler */
-  val scheduler: ActorRef = simonaSetup.scheduler(context, runtimeEventListener)
+  val timeAdvancer
+      : org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming] =
+    simonaSetup.timeAdvancer(context, self, runtimeEventListener)
+  val scheduler: ActorRef = simonaSetup.scheduler(context, timeAdvancer)
 
   /* start services */
   // primary service proxy
-  val (
-    primaryServiceProxy: ActorRef,
-    primaryProxyInitData: InitPrimaryServiceProxyStateData
-  ) = simonaSetup.primaryServiceProxy(context, scheduler)
+  val primaryServiceProxy: ActorRef =
+    simonaSetup.primaryServiceProxy(context, scheduler)
 
   // weather service
-  val (weatherService: ActorRef, weatherInitData: InitWeatherServiceStateData) =
+  val weatherService: ActorRef =
     simonaSetup.weatherService(context, scheduler)
 
   val extSimulationData: ExtSimSetupData =
     simonaSetup.extSimulations(context, scheduler)
 
-  // init all services
-  scheduler ! ScheduleTriggerMessage(
-    InitializeServiceTrigger(primaryProxyInitData),
-    primaryServiceProxy
-  )
-
-  scheduler ! ScheduleTriggerMessage(
-    InitializeServiceTrigger(weatherInitData),
-    weatherService
-  )
-
-  // init ext simulation actors
-  extSimulationData.allActorsAndInitTriggers.foreach {
-    case (actor, initTrigger) =>
-      scheduler ! ScheduleTriggerMessage(
-        initTrigger,
-        actor,
-        priority = true
-      )
-  }
-
   /* start grid agents  */
-  val gridAgents: Map[ActorRef, GridAgentInitData] = simonaSetup.gridAgents(
+  val gridAgents: Iterable[ActorRef] = simonaSetup.gridAgents(
     context,
     EnvironmentRefs(
       scheduler,
+      runtimeEventListener.toClassic,
       primaryServiceProxy,
       weatherService,
       extSimulationData.evDataService
@@ -127,40 +111,33 @@ class SimonaSim(simonaSetup: SimonaSetup)
 
   /* watch all actors */
   systemParticipantsListener.foreach(context.watch)
-  runtimeEventListener.foreach(context.watch)
+  context.watch(runtimeEventListener.toClassic)
+  context.watch(timeAdvancer.toClassic)
   context.watch(scheduler)
   context.watch(primaryServiceProxy)
   context.watch(weatherService)
-  gridAgents.keySet.foreach(context.watch)
+  gridAgents.foreach(context.watch)
 
   override def receive: Receive = simonaSimReceive(SimonaSimStateData())
 
   def simonaSimReceive(data: SimonaSim.SimonaSimStateData): Receive = {
 
-    case InitSimMessage =>
-      // initialize grid agents
-      gridAgents.foreach { case (gridAgent, gridAgentInitData) =>
-        scheduler ! ScheduleTriggerMessage(
-          InitializeGridAgentTrigger(gridAgentInitData),
-          gridAgent
-        )
-      }
-
+    case InitSim =>
       // tell scheduler to process all init messages
-      scheduler ! InitSimMessage
+      timeAdvancer ! StartSimMessage()
       context become simonaSimReceive(data.copy(initSimSender = sender()))
 
-    case StartScheduleMessage(pauseScheduleAtTick) =>
-      scheduler ! StartScheduleMessage(pauseScheduleAtTick)
+    case StartSimulation(pauseScheduleAtTick) =>
+      timeAdvancer ! StartSimMessage(pauseScheduleAtTick)
 
-    case msg @ (SimulationSuccessfulMessage | SimulationFailureMessage) =>
+    case msg @ (SimulationSuccessful | SimulationFailure) =>
       val simulationSuccessful = msg match {
-        case SimulationSuccessfulMessage =>
+        case SimulationSuccessful =>
           logger.info(
             "Simulation terminated successfully. Stopping children ..."
           )
           true
-        case SimulationFailureMessage =>
+        case SimulationFailure =>
           logger.error(
             "An error occurred during the simulation. See stacktrace for details."
           )
@@ -181,7 +158,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
       logger.debug(
         "Simulation guardian is aware, that emergency shutdown has been initiated. Inform the init sender."
       )
-      data.initSimSender ! SimulationFailureMessage
+      data.initSimSender ! SimulationFailure
       context.become(emergencyShutdownReceive)
 
     case Terminated(actorRef) =>
@@ -237,9 +214,9 @@ class SimonaSim(simonaSetup: SimonaSetup)
         )
 
         val msg =
-          if (successful) SimulationSuccessfulMessage
-          else SimulationFailureMessage
-        // inform initSimMessage Sender
+          if (successful) SimulationSuccessful
+          else SimulationFailure
+        // inform InitSim Sender
         initSimSender ! msg
       }
 
@@ -253,7 +230,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
   def stopAllChildrenGracefully(
       simulationSuccessful: Boolean
   ): Unit = {
-    gridAgents.foreach { case (gridAgentRef, _) =>
+    gridAgents.foreach { gridAgentRef =>
       context.unwatch(gridAgentRef)
       gridAgentRef ! StopMessage(simulationSuccessful)
     }
@@ -264,11 +241,11 @@ class SimonaSim(simonaSetup: SimonaSetup)
     context.unwatch(weatherService)
     context.stop(weatherService)
 
-    extSimulationData.extSimAdapters.foreach { case (ref, _) =>
+    extSimulationData.extSimAdapters.foreach { ref =>
       context.unwatch(ref)
       ref ! StopMessage(simulationSuccessful)
     }
-    extSimulationData.extDataServices.foreach { case (ref, _) =>
+    extSimulationData.extDataServices.foreach { case (_, ref) =>
       context.unwatch(ref)
       context.stop(ref)
     }
@@ -278,8 +255,8 @@ class SimonaSim(simonaSetup: SimonaSetup)
       _ ! StopMessage(simulationSuccessful)
     )
 
-    runtimeEventListener.foreach(context.unwatch)
-    runtimeEventListener.foreach(context.stop)
+    context.unwatch(runtimeEventListener.toClassic)
+    context.stop(runtimeEventListener.toClassic)
 
     logger.debug("Stopping all listeners requested.")
   }

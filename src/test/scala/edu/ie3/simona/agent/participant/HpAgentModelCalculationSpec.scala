@@ -6,16 +6,14 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.ActorSystem
-import akka.testkit.TestFSMRef
-import akka.util.Timeout
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
+import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ApparentPowerAndHeat
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
@@ -27,19 +25,15 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.integration.common.IntegrationSpecCommon
-import edu.ie3.simona.model.participant.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
+import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
   RequestAssetPowerMessage
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  IllegalTriggerMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
@@ -50,13 +44,16 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   RegisterForWeatherMessage,
   WeatherData
 }
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger
-}
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.model.participant.HpTestData
 import edu.ie3.simona.util.ConfigUtil
+import edu.ie3.util.scala.quantities.{
+  Megavars,
+  ReactivePower,
+  Vars,
+  WattsPerSquareMeter
+}
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.{
   Megavars,
   ReactivePower,
@@ -68,6 +65,10 @@ import squants.energy.{Kilowatts, Megawatts, Watts}
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 import squants.{Dimensionless, Each}
+import squants.energy.{Kilowatts, Megawatts, Watts}
+import squants.motion.MetersPerSecond
+import squants.thermal.Celsius
+import squants.{Dimensionless, Each, Power, Temperature}
 
 import java.io.File
 import java.time.ZonedDateTime
@@ -80,8 +81,8 @@ class HpAgentModelCalculationSpec
         "HpAgentSpec",
         ConfigFactory
           .parseString("""
-            |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-            |akka.loglevel="DEBUG"
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="DEBUG"
         """.stripMargin)
       )
     )
@@ -91,7 +92,10 @@ class HpAgentModelCalculationSpec
   implicit val simulationStart: ZonedDateTime = defaultSimulationStart
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
-
+  implicit val powerTolerance: Power = Watts(1e-3)
+  implicit val reactivepowerTolerance: ReactivePower = Vars(1e-3)
+  implicit val temperatureTolerance: Temperature = Celsius(1e-10)
+  implicit val dimensionlessTolerance: Dimensionless = Each(1e-10)
   /* Alter the input model to have a voltage sensitive reactive power calculation */
   val hpInput: HpInput = hpInputModel
 
@@ -128,10 +132,29 @@ class HpAgentModelCalculationSpec
   )
 
   "A heat pump agent depending on no services" should {
+    val initStateData = ParticipantInitializeStateData[
+      HpInput,
+      HpRuntimeConfig,
+      ApparentPowerAndHeat
+    ](
+      inputModel = hpInput,
+      modelConfig = modelConfig,
+      secondaryDataServices = noServices,
+      simulationStartDate = defaultSimulationStart,
+      simulationEndDate = defaultSimulationEnd,
+      resolution = resolution,
+      requestVoltageDeviationThreshold =
+        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+      outputConfig = defaultOutputConfig,
+      primaryServiceProxy = primaryServiceProxy.ref,
+      maybeEmAgent = None
+    )
+
     "be instantiated correctly" in {
       val hpAgent = TestFSMRef(
         new HpAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
@@ -148,71 +171,54 @@ class HpAgentModelCalculationSpec
     }
 
     "fail initialisation and stay in uninitialized state" in {
+      val deathProbe = TestProbe("deathProbe")
+
       val hpAgent = TestFSMRef(
         new HpAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
 
-      val triggerId = 0
-      scheduler.send(
-        hpAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              HpInput,
-              HpRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = hpInput,
-              modelConfig = modelConfig,
-              secondaryDataServices = noServices,
-              simulationStartDate = defaultSimulationStart,
-              simulationEndDate = defaultSimulationEnd,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None,
-              scheduleTriggerFunc = scheduleTriggerFunc(hpAgent)
-            )
-          ),
-          triggerId,
-          hpAgent
-        )
-      )
+      scheduler.send(hpAgent, Activation(INIT_SIM_TICK))
 
-      /* Refuse registration with primary service */
+      deathProbe.watch(hpAgent)
+
+      /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(hpAgent, RegistrationFailedMessage)
 
-      scheduler.receiveOne(receiveTimeOut.duration) match {
-        case IllegalTriggerMessage(_, _) => logger.debug("Got correct message")
-        case m =>
-          fail(
-            s"Did not fail initialization because of missing weather service. Received: $m"
-          )
-      }
-
-      /* agent should stay uninitialized */
-      hpAgent.stateName shouldBe Uninitialized
-      hpAgent.stateData match {
-        case _: ParticipantInitializingStateData[_, _, _] => succeed
-        case _ => fail("Expected to get initializing state data")
-      }
+      deathProbe.expectTerminated(hpAgent)
     }
   }
 
   "A heat pump agent depending on one secondary data service" should {
+    val initStateData = ParticipantInitializeStateData[
+      HpInput,
+      HpRuntimeConfig,
+      ApparentPowerAndHeat
+    ](
+      inputModel = hpInput,
+      thermalGrid = thermalGrid,
+      modelConfig = modelConfig,
+      secondaryDataServices = services,
+      simulationStartDate = defaultSimulationStart,
+      simulationEndDate = defaultSimulationEnd,
+      resolution = resolution,
+      requestVoltageDeviationThreshold =
+        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+      outputConfig = defaultOutputConfig,
+      primaryServiceProxy = primaryServiceProxy.ref,
+      maybeEmAgent = None,
+      scheduleTriggerFunc = scheduleTriggerFunc(hpAgent)
+    )
+
     "be instantiated correctly" in {
       val hpAgent = TestFSMRef(
         new HpAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
@@ -232,42 +238,12 @@ class HpAgentModelCalculationSpec
       val hpAgent = TestFSMRef(
         new HpAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
 
-      val triggerId = 0
-      scheduler.send(
-        hpAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPowerAndHeat,
-            ParticipantInitializeStateData[
-              HpInput,
-              HpRuntimeConfig,
-              ApparentPowerAndHeat
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = hpInput,
-              thermalGrid = thermalGrid,
-              modelConfig = modelConfig,
-              secondaryDataServices = services,
-              simulationStartDate = defaultSimulationStart,
-              simulationEndDate = defaultSimulationEnd,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None,
-              scheduleTriggerFunc = scheduleTriggerFunc(hpAgent)
-            )
-          ),
-          triggerId,
-          hpAgent
-        )
-      )
+      scheduler.send(hpAgent, Activation(INIT_SIM_TICK))
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
@@ -368,16 +344,7 @@ class HpAgentModelCalculationSpec
       weatherService.send(hpAgent, RegistrationSuccessfulMessage(Some(4711L)))
 
       /* Expect a completion message */
-      scheduler.expectMsg(
-        CompletionMessage(
-          triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(4711), hpAgent)
-            )
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(4711L)))
 
       /* ... as well as corresponding state and state data */
       hpAgent.stateName shouldBe Idle
@@ -398,42 +365,12 @@ class HpAgentModelCalculationSpec
       val hpAgent = TestFSMRef(
         new HpAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
 
-      val triggerId = 0
-      scheduler.send(
-        hpAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPowerAndHeat,
-            ParticipantInitializeStateData[
-              HpInput,
-              HpRuntimeConfig,
-              ApparentPowerAndHeat
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = hpInput,
-              thermalGrid = thermalGrid,
-              modelConfig = modelConfig,
-              secondaryDataServices = services,
-              simulationStartDate = defaultSimulationStart,
-              simulationEndDate = defaultSimulationEnd,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None,
-              scheduleTriggerFunc = scheduleTriggerFunc(hpAgent)
-            )
-          ),
-          triggerId,
-          hpAgent
-        )
-      )
+      scheduler.send(hpAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
@@ -446,7 +383,7 @@ class HpAgentModelCalculationSpec
       weatherService.send(hpAgent, RegistrationSuccessfulMessage(Some(900L)))
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
 
       hpAgent.stateName shouldBe Idle
       /* State data has already been tested */
@@ -488,42 +425,12 @@ class HpAgentModelCalculationSpec
       val hpAgent = TestFSMRef(
         new HpAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
 
-      val initialiseTriggerId = 0
-      scheduler.send(
-        hpAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPowerAndHeat,
-            ParticipantInitializeStateData[
-              HpInput,
-              HpRuntimeConfig,
-              ApparentPowerAndHeat
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = hpInput,
-              thermalGrid = thermalGrid,
-              modelConfig = modelConfig,
-              secondaryDataServices = services,
-              simulationStartDate = defaultSimulationStart,
-              simulationEndDate = defaultSimulationEnd,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None,
-              scheduleTriggerFunc = scheduleTriggerFunc(hpAgent)
-            )
-          ),
-          initialiseTriggerId,
-          hpAgent
-        )
-      )
+      scheduler.send(hpAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
@@ -534,7 +441,7 @@ class HpAgentModelCalculationSpec
       weatherService.send(hpAgent, RegistrationSuccessfulMessage(Some(0L)))
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
 
@@ -578,25 +485,12 @@ class HpAgentModelCalculationSpec
       }
 
       /* Trigger the agent */
-      scheduler.send(
-        hpAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(0L),
-          1L,
-          scheduler.ref
-        )
-      )
+      scheduler.send(hpAgent, Activation(0))
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
        * for starting the calculation */
-      scheduler.expectMsg(
-        CompletionMessage(
-          1L,
-          Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(3600L), hpAgent))
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3600)))
+
       hpAgent.stateName shouldBe Idle
       hpAgent.stateData match {
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
@@ -656,42 +550,12 @@ class HpAgentModelCalculationSpec
       val hpAgent = TestFSMRef(
         new HpAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
 
-      val initialiseTriggerId = 0
-      scheduler.send(
-        hpAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPowerAndHeat,
-            ParticipantInitializeStateData[
-              HpInput,
-              HpRuntimeConfig,
-              ApparentPowerAndHeat
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = hpInput,
-              thermalGrid = thermalGrid,
-              modelConfig = modelConfig,
-              secondaryDataServices = services,
-              simulationStartDate = defaultSimulationStart,
-              simulationEndDate = defaultSimulationEnd,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None,
-              scheduleTriggerFunc = scheduleTriggerFunc(hpAgent)
-            )
-          ),
-          initialiseTriggerId,
-          hpAgent
-        )
-      )
+      scheduler.send(hpAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
@@ -702,18 +566,11 @@ class HpAgentModelCalculationSpec
       weatherService.send(hpAgent, RegistrationSuccessfulMessage(Some(0L)))
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
 
-      /* Send out an activity start trigger */
-      scheduler.send(
-        hpAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(0L),
-          1L,
-          scheduler.ref
-        )
-      )
+      /* Send out an activation*/
+      scheduler.send(hpAgent, Activation(0))
 
       /* Find yourself in appropriate state with state data */
       hpAgent.stateName shouldBe HandleInformation
@@ -753,14 +610,7 @@ class HpAgentModelCalculationSpec
       )
 
       /* Expect confirmation */
-      scheduler.expectMsg(
-        CompletionMessage(
-          1L,
-          Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(3600L), hpAgent))
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3600)))
 
       /* Expect the state change to idle with updated base state data */
       hpAgent.stateName shouldBe Idle
@@ -822,42 +672,13 @@ class HpAgentModelCalculationSpec
       val hpAgent = TestFSMRef(
         new HpAgent(
           scheduler = scheduler.ref,
+          initStateData = initStateData,
           listener = systemListener
         )
       )
 
       /* Trigger the initialisation */
-      scheduler.send(
-        hpAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPowerAndHeat,
-            ParticipantInitializeStateData[
-              HpInput,
-              HpRuntimeConfig,
-              ApparentPowerAndHeat
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = hpInput,
-              thermalGrid = thermalGrid,
-              modelConfig = modelConfig,
-              secondaryDataServices = services,
-              simulationStartDate = defaultSimulationStart,
-              simulationEndDate = defaultSimulationEnd,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None,
-              scheduleTriggerFunc = scheduleTriggerFunc(hpAgent)
-            )
-          ),
-          0L,
-          hpAgent
-        )
-      )
+      scheduler.send(hpAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
@@ -868,7 +689,7 @@ class HpAgentModelCalculationSpec
       weatherService.send(hpAgent, RegistrationSuccessfulMessage(Some(3600L)))
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
 
       /* Ask the agent for average power in tick 7200 */
@@ -893,25 +714,11 @@ class HpAgentModelCalculationSpec
       )
 
       /* Trigger the agent */
-      scheduler.send(
-        hpAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(3600L),
-          1L,
-          scheduler.ref
-        )
-      )
+      scheduler.send(hpAgent, Activation(3600))
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
        * for starting the calculation */
-      scheduler.expectMsg(
-        CompletionMessage(
-          1L,
-          Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(7200L), hpAgent))
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(7200)))
 
       /* Appreciate the answer to my previous request */
       expectMsgType[AssetPowerChangedMessage] match {
@@ -924,43 +731,14 @@ class HpAgentModelCalculationSpec
     val hpAgent = TestFSMRef(
       new HpAgent(
         scheduler = scheduler.ref,
+        initStateData = initStateData,
         listener = systemListener
       )
     )
 
     "provide correct average power after three data ticks are available" in {
       /* Trigger the initialisation */
-      scheduler.send(
-        hpAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPowerAndHeat,
-            ParticipantInitializeStateData[
-              HpInput,
-              HpRuntimeConfig,
-              ApparentPowerAndHeat
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = hpInput,
-              thermalGrid = thermalGrid,
-              modelConfig = modelConfig,
-              secondaryDataServices = services,
-              simulationStartDate = defaultSimulationStart,
-              simulationEndDate = defaultSimulationEnd,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = None,
-              scheduleTriggerFunc = scheduleTriggerFunc(hpAgent)
-            )
-          ),
-          0L,
-          hpAgent
-        )
-      )
+      scheduler.send(hpAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
@@ -971,7 +749,7 @@ class HpAgentModelCalculationSpec
       weatherService.send(hpAgent, RegistrationSuccessfulMessage(Some(0L)))
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
 
       /* Send out the three data points */
@@ -989,22 +767,8 @@ class HpAgentModelCalculationSpec
           Some(3600L)
         )
       )
-      scheduler.send(
-        hpAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(0L),
-          1L,
-          scheduler.ref
-        )
-      )
-      scheduler.expectMsg(
-        CompletionMessage(
-          1L,
-          Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(3600L), hpAgent))
-          )
-        )
-      )
+      scheduler.send(hpAgent, Activation(0))
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3600)))
 
       /* ... for tick 3600 */
       weatherService.send(
@@ -1020,22 +784,8 @@ class HpAgentModelCalculationSpec
           Some(7200L)
         )
       )
-      scheduler.send(
-        hpAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(3600L),
-          3L,
-          scheduler.ref
-        )
-      )
-      scheduler.expectMsg(
-        CompletionMessage(
-          3L,
-          Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(7200L), hpAgent))
-          )
-        )
-      )
+      scheduler.send(hpAgent, Activation(3600))
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(7200)))
 
       /* ... for tick 7200 */
       weatherService.send(
@@ -1051,15 +801,8 @@ class HpAgentModelCalculationSpec
           None
         )
       )
-      scheduler.send(
-        hpAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(7200L),
-          5L,
-          scheduler.ref
-        )
-      )
-      scheduler.expectMsg(CompletionMessage(5L))
+      scheduler.send(hpAgent, Activation(7200))
+      scheduler.expectMsg(Completion(hpAgent.toTyped))
 
       /* Ask the agent for average power in tick 7500 */
       hpAgent ! RequestAssetPowerMessage(

@@ -8,12 +8,11 @@ package edu.ie3.simona.ontology.messages.services
 
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
   ServiceRegistrationMessage
 }
-import edu.ie3.simona.ontology.trigger.Trigger
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 
 import java.util.UUID
 
@@ -26,15 +25,9 @@ object EvMessage {
     *
     * @param evcs
     *   the charging station
-    * @param scheduleTriggerFunc
-    *   function providing the proper ScheduleTriggerMessage for a given trigger
-    * @param emControlled
-    *   whether the agent is em-controlled or not
     */
   final case class RegisterForEvDataMessage(
-      evcs: UUID,
-      scheduleTriggerFunc: Trigger => ScheduleTriggerMessage,
-      emControlled: Boolean
+      evcs: UUID
   ) extends EvMessage
       with ServiceRegistrationMessage
 
@@ -53,7 +46,8 @@ object EvMessage {
   final case class ProvideEvDataMessage(
       override val tick: Long,
       override val data: EvData,
-      override val nextDataTick: Option[Long] = None
+      override val nextDataTick: Option[Long] = None,
+      override val unlockKey: Option[ScheduleKey] = None
   ) extends EvMessage
       with ProvisionMessage[EvData]
 

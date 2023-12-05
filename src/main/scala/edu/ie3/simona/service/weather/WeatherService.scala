@@ -6,11 +6,10 @@
 
 package edu.ie3.simona.service.weather
 
-import akka.actor.{ActorRef, Props}
+import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage
@@ -109,7 +108,7 @@ final case class WeatherService(
     * initialization data. This method should perform all heavyweight tasks
     * before the actor becomes ready. The return values are a) the state data of
     * the initialized service and b) optional triggers that should be send to
-    * the [[edu.ie3.simona.scheduler.SimScheduler]] together with the completion
+    * the [[edu.ie3.simona.scheduler.Scheduler]] together with the completion
     * message that is send in response to the trigger that is send to start the
     * initialization process
     *
@@ -121,7 +120,7 @@ final case class WeatherService(
     */
   override def init(
       initServiceData: InitializeServiceStateData
-  ): Try[(WeatherInitializedStateData, Option[Seq[ScheduleTriggerMessage]])] =
+  ): Try[(WeatherInitializedStateData, Option[Long])] =
     initServiceData match {
       case InitWeatherServiceStateData(sourceDefinition) =>
         val weatherSource =
@@ -145,8 +144,7 @@ final case class WeatherService(
 
         Success(
           weatherInitializedStateData,
-          ServiceActivationBaseStateData
-            .tickToScheduleTriggerMessages(maybeNextTick, self)
+          maybeNextTick
         )
 
       case invalidData =>
@@ -289,8 +287,9 @@ final case class WeatherService(
     *   in response to the trigger that was sent to start this announcement
     */
   override protected def announceInformation(tick: Long)(implicit
-      serviceStateData: WeatherInitializedStateData
-  ): (WeatherInitializedStateData, Option[Seq[ScheduleTriggerMessage]]) = {
+      serviceStateData: WeatherInitializedStateData,
+      ctx: ActorContext
+  ): (WeatherInitializedStateData, Option[Long]) = {
 
     /* Pop the next activation tick and update the state data */
     val (
@@ -318,10 +317,7 @@ final case class WeatherService(
 
     (
       updatedStateData,
-      ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
-        maybeNextTick,
-        self
-      )
+      maybeNextTick
     )
   }
 

@@ -6,18 +6,12 @@
 
 package edu.ie3.simona.agent.participant.em
 
-import akka.actor.ActorRef
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.{
   FlexTriggerData,
   TriggerData
 }
-import edu.ie3.simona.ontology.trigger.Trigger
-import edu.ie3.simona.scheduler.SimSchedulerStateData.ScheduledTrigger
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.util.scala.collection.mutable.{
-  PriorityMultiQueue,
-  PriorityMultiSet
-}
+import edu.ie3.util.scala.collection.mutable.{PriorityMultiSet}
 
 import java.util.UUID
 import scala.collection.mutable
@@ -28,8 +22,6 @@ import scala.collection.mutable
   *   state data about trigger
   * @param createMainTrigger
   *   Function that creates a trigger for this EmAgent with given tick
-  * @param mainTriggerId
-  *   trigger id received from main scheduler
   * @param nowInTicks
   *   the current tick of the simulation
   */
@@ -37,8 +29,7 @@ private[em] final case class EmSchedulerStateData(
     trigger: TriggerData = TriggerData(),
     flexTrigger: FlexTriggerData,
     createMainTrigger: Long => Trigger,
-    nowInTicks: Long = SimonaConstants.INIT_SIM_TICK,
-    mainTriggerId: Option[Long] = None
+    nowInTicks: Long = SimonaConstants.INIT_SIM_TICK
 )
 
 object EmSchedulerStateData {

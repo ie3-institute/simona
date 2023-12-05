@@ -58,8 +58,8 @@ class RunSimonaStandaloneIT
           .withFallback(
             ConfigFactory
               .parseString("""
-                           |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-                           |akka.loglevel="OFF"
+                           |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+                           |pekko.loglevel="OFF"
                            |""".stripMargin)
           )
           .withFallback(ConfigFactory.parseFile(new File(configFile)))
@@ -126,13 +126,13 @@ class RunSimonaStandaloneIT
   private def checkRuntimeEvents(
       runtimeEvents: Iterable[RuntimeEvent]
   ): Unit = {
-    runtimeEvents.toVector.size shouldBe 12
+    runtimeEvents.toVector.size shouldBe 11
     val groupedRuntimeEvents = runtimeEvents.toVector.groupBy {
       case Initializing            => Initializing
       case InitComplete(_)         => InitComplete
       case Simulating(_, _)        => Simulating
       case CheckWindowPassed(_, _) => CheckWindowPassed
-      case Done(_, _, _, _)        => Done
+      case Done(_, _, _)           => Done
       case other                   => fail(s"Unexpected runtime event: $other")
     }
 
@@ -149,7 +149,7 @@ class RunSimonaStandaloneIT
     groupedRuntimeEvents
       .get(CheckWindowPassed)
       .foreach(checkWindowsPassed => {
-        checkWindowsPassed.size shouldBe 8
+        checkWindowsPassed.size shouldBe 7
         checkWindowsPassed.foreach {
           case CheckWindowPassed(tick, _) =>
             tick % 900L shouldBe 0 // config has 900 sec as check window value
@@ -177,10 +177,9 @@ class RunSimonaStandaloneIT
       .foreach(dones => {
         dones.size shouldBe 1
         dones.headOption.foreach {
-          case Done(tick, _, noOfFailedPF, errorInSim) =>
+          case Done(tick, _, errorInSim) =>
             tick shouldBe 7200
             errorInSim shouldBe false
-            noOfFailedPF shouldBe 0
           case invalidEvent =>
             fail(s"Invalid event when expecting Done: $invalidEvent")
         }

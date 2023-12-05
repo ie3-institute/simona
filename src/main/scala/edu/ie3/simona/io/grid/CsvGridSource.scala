@@ -20,10 +20,9 @@ import java.nio.file.Path
 import scala.jdk.CollectionConverters._
 
 object CsvGridSource {
-
   def readThermalGrids(
       csvSep: String,
-      baseFolder: String,
+      baseFolder: Path,
       fileNamingStrategy: FileNamingStrategy
   ): Map[ThermalBusInput, ThermalGrid] = {
     val dataSource =

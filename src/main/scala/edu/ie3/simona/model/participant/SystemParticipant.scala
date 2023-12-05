@@ -101,7 +101,7 @@ abstract class SystemParticipant[
     */
   protected def calculateApparentPower(
       tick: Long,
-      voltage: squants.Dimensionless,
+      voltage: Dimensionless,
       modelState: MS,
       data: CD
   ): ApparentPower = {

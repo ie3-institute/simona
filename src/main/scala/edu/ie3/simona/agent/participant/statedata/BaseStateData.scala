@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.statedata
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
@@ -238,17 +238,17 @@ object BaseStateData {
     *
     * @param emAgent
     *   The parent EmAgent that is controlling this agent.
-    * @param flexOptionsStore
-    *   Flex options that have been calculated for this agent.
+    * @param lastFlexOptions
+    *   Last flex options that have been calculated for this agent.
     * @param scheduledRequest
     *   Tick of a request that is currently scheduled with the parent EmAgent.
     *   There can only only be one scheduled tick at a time. First tick (0) is
     *   always requested.
     */
   final case class FlexStateData(
-      emAgent: ActorRef,
-      flexOptionsStore: ValueStore[ProvideFlexOptions],
-      scheduledRequest: Option[Long] = Some(0L)
+                                  emAgent: ActorRef,
+                                  lastFlexOptions: Option[ProvideFlexOptions],
+                                  scheduledRequest: Option[Long] = Some(0L) // FIXME remove, only used for revoking
   )
 
   /** Updates the base state data with the given value stores

@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.test
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.TestProbe
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.trigger.Trigger
 import edu.ie3.simona.test.common.AgentSpec
@@ -25,16 +25,4 @@ class ParticipantAgentSpec(actorSystem: ActorSystem)
     "primaryServiceProxyProbe"
   )
   protected val weatherService: TestProbe = TestProbe("weatherServiceProbe")
-
-  protected def scheduleTriggerFunc(
-      actor: ActorRef
-  ): Trigger => ScheduleTriggerMessage =
-    (trigger: Trigger) => ScheduleTriggerMessage(trigger, actor)
-
-  protected def scheduleTriggerEmFunc(
-      agent: ActorRef,
-      emAgent: ActorRef
-  ): Trigger => ScheduleTriggerMessage =
-    (trigger: Trigger) =>
-      ScheduleTriggerMessage(ScheduleTriggerMessage(trigger, agent), emAgent)
 }

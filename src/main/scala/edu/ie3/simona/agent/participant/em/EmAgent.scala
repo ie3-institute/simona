@@ -6,63 +6,45 @@
 
 package edu.ie3.simona.agent.participant.em
 
-import akka.actor.{ActorRef, Props, ReceiveTimeout}
+import org.apache.pekko.actor.{Props, ReceiveTimeout, ActorRef => CActorRef}
 import edu.ie3.datamodel.models.input.system.{EmInput, SystemParticipantInput}
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.timeseries.individual.IndividualTimeSeries
 import edu.ie3.datamodel.models.value.PValue
-import edu.ie3.simona.agent.ValueStore
+import edu.ie3.simona.agent.{SimonaAgent, ValueStore}
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.em.EmAgent._
+import edu.ie3.simona.agent.participant.em.EmAgentTyped.EmMessage
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
-import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore.FlexCorrespondence
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
-  FlexStateData,
-  ModelBaseStateData
-}
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantUninitializedStateData
-import edu.ie3.simona.agent.participant.statedata.{
-  InitializeStateData,
-  ParticipantStateData
-}
+import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore2.FlexCorrespondence
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.{FlexStateData, ModelBaseStateData}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{ParticipantInitializeStateData, ParticipantUninitializedStateData}
+import edu.ie3.simona.agent.participant.statedata.{InitializeStateData, ParticipantStateData}
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
-import edu.ie3.simona.event.ResultEvent.{
-  FlexOptionsResultEvent,
-  ParticipantResultEvent
-}
+import edu.ie3.simona.event.ResultEvent.{FlexOptionsResultEvent, ParticipantResultEvent}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.em.EmModel.EmRelevantData
-import edu.ie3.simona.model.participant.em.{
-  EmAggregateFlex,
-  EmModel,
-  EmModelStrat
-}
+import edu.ie3.simona.model.participant.em.{EmAggregateFlex, EmModel, EmModelStrat}
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
-import edu.ie3.simona.ontology.trigger.Trigger
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.util.SimonaConstants
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT, PU}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.io.FlexSignalFromExcel
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import squants.Each
 import squants.energy.{Kilowatts, Megawatts}
 
@@ -70,7 +52,6 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import scala.collection.SortedSet
-import scala.compat.java8.OptionConverters.RichOptionalGeneric
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.jdk.CollectionConverters._
 import scala.language.postfixOps
@@ -78,71 +59,38 @@ import scala.util.{Failure, Success}
 
 object EmAgent {
 
-  def props(
-      scheduler: ActorRef,
-      listener: Iterable[ActorRef]
-  ): Props =
-    Props(
-      new EmAgent(
-        scheduler,
-        listener
-      )
-    )
-
   final case class EmAgentInitializeStateData(
       inputModel: EmInput,
       modelConfig: EmRuntimeConfig,
-      primaryServiceProxy: ActorRef,
-      secondaryDataServices: Option[
-        Vector[SecondaryDataService[_ <: SecondaryData]]
-      ],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
-      requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
       modelStrategy: EmModelStrat,
       connectedAgents: Seq[
         (
-            ActorRef,
-            InitializeParticipantAgentTrigger[_, _],
+            CActorRef,
             SystemParticipantInput
         )
       ],
-      maybeParentEmAgent: Option[ActorRef] = None,
+      maybeParentEmAgent: Option[EmMessage] = None,
       maybeRootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm] = None,
       aggregateFlex: EmAggregateFlex
-  ) extends InitializeStateData[ApparentPower]
+  )
 
   final case class EmModelBaseStateData(
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
       model: EmModel,
-      services: Option[
-        Vector[SecondaryDataService[_ <: SecondaryData]]
-      ],
       outputConfig: NotifierConfig,
-      additionalActivationTicks: SortedSet[Long],
-      foreseenDataTicks: Map[ActorRef, Option[Long]],
-      requestVoltageDeviationThreshold: Double,
-      voltageValueStore: ValueStore[squants.Dimensionless],
-      resultValueStore: ValueStore[ApparentPower],
-      requestValueStore: ValueStore[ApparentPower],
-      receivedSecondaryDataStore: ValueStore[Map[ActorRef, _ <: SecondaryData]],
-      flexCorrespondences: FlexCorrespondenceStore,
+      flexCorrespondences: FlexCorrespondenceStore2,
       participantInput: Map[UUID, SystemParticipantInput],
       schedulerStateData: EmSchedulerStateData,
-      stateDataStore: ValueStore[ConstantState.type],
       flexStateData: Option[FlexStateData],
       flexTimeSeries: Option[FlexTimeSeries],
       aggregateFlex: EmAggregateFlex
-  ) extends ModelBaseStateData[
-        ApparentPower,
-        EmRelevantData,
-        ConstantState.type,
-        EmModel
-      ] {
-    override val modelUuid: UUID = model.getUuid
+  ) {
+    val modelUuid: UUID = model.getUuid
   }
 
   case class FlexTimeSeries(
@@ -163,167 +111,14 @@ object EmAgent {
   *   List of listeners interested in results
   */
 class EmAgent(
-    val scheduler: ActorRef,
-    override val listener: Iterable[ActorRef]
-) extends ParticipantAgent[
-      ApparentPower,
-      EmRelevantData,
-      ConstantState.type,
-      EmModelBaseStateData,
-      EmInput,
-      EmRuntimeConfig,
-      EmModel
-    ](
-      scheduler
-    )
+    val scheduler: ActorRef[SchedulerMessage],
+    initStateData: EmAgentInitializeStateData,
+    listener: Iterable[ActorRef]
+) extends SimonaAgent[ParticipantStateData[ApparentPower]]
     with EmAgentFundamentals
     with EmSchedulerHelper {
 
-  private val handleUnitializedEm: StateFunction = {
-    case Event(
-          TriggerWithIdMessage(
-            InitializeParticipantAgentTrigger(
-              EmAgentInitializeStateData(
-                inputModel,
-                modelConfig,
-                _, // replaying primary data is disabled here for now
-                services,
-                simulationStartDate,
-                simulationEndDate,
-                resolution,
-                requestVoltageDeviationThreshold,
-                outputConfig,
-                modelStrategy,
-                connectedAgents,
-                maybeParentEmAgent,
-                maybeRootEmConfig,
-                aggregateFlex
-              )
-            ),
-            triggerId,
-            _
-          ),
-          _: ParticipantUninitializedStateData[ApparentPower]
-        ) =>
-      context.setReceiveTimeout(10 minutes)
-
-      // sending init triggers
-      val triggerData = connectedAgents.foldLeft(TriggerData()) {
-        case (triggerData, (actor, initTrigger, _)) =>
-          context.watch(actor)
-          scheduleTrigger(
-            initTrigger,
-            actor,
-            triggerData,
-            SimonaConstants.INIT_SIM_TICK
-          )
-      }
-
-      val model = EmModel(
-        inputModel,
-        modelConfig,
-        simulationStartDate,
-        simulationEndDate,
-        modelStrategy
-      )
-
-      val maybeFlexTimeseries = maybeRootEmConfig.map { config =>
-        val timeSeriesType =
-          FlexSignalFromExcel.TimeSeriesType(config.timeSeriesType)
-        val timeSeries = FlexSignalFromExcel
-          .flexSignals(config.filePath, config.nodeId, timeSeriesType) match {
-          case Success(timeSeries) => timeSeries
-          case Failure(exception)  => throw exception
-        }
-
-        val resolutionHours =
-          if (timeSeries.getEntries.size() < 2)
-            throw new RuntimeException(
-              s"Less than two entries for flex time series ${config.nodeId}"
-            )
-          else {
-            val valueIt = timeSeries.getEntries.iterator()
-            val entry1 = valueIt.next().getTime
-            val entry2 = valueIt.next().getTime
-
-            ChronoUnit.HOURS.between(entry1, entry2).intValue
-          }
-
-        // in case of resLoad we use totalResload (considering Simona participants) for min max setting
-        val (minValue, maxValue) =
-          FlexSignalFromExcel.getCorrespondingMinMaxValues(
-            timeSeriesType,
-            timeSeries,
-            config
-          )
-
-        FlexTimeSeries(
-          timeSeries,
-          resolutionHours,
-          minValue,
-          maxValue,
-          config.threshold
-        )
-      }
-
-      val baseStateData = EmModelBaseStateData(
-        simulationStartDate,
-        simulationEndDate,
-        model,
-        services,
-        outputConfig,
-        SortedSet.empty,
-        Map.empty,
-        requestVoltageDeviationThreshold,
-        ValueStore.forVoltage(
-          resolution,
-          Each(
-            inputModel.getNode
-              .getvTarget()
-              .to(PU)
-              .getValue
-              .doubleValue
-          )
-        ),
-        ValueStore(resolution),
-        ValueStore(resolution),
-        ValueStore(0),
-        FlexCorrespondenceStore(
-          connectedAgents.map { case (_, _, sp) =>
-            sp.getUuid
-          }.toSet,
-          resolution,
-          simulationStartDate
-        ),
-        connectedAgents.map { case (_, _, sp) =>
-          sp.getUuid -> sp
-        }.toMap,
-        EmSchedulerStateData(
-          triggerData,
-          connectedAgents.map { case (actor, _, sp) =>
-            sp.getUuid -> actor
-          }.toMap,
-          tick => createActivationTrigger(tick, maybeParentEmAgent.isDefined)
-        ),
-        ValueStore(0),
-        maybeParentEmAgent.map(FlexStateData(_, ValueStore(resolution))),
-        maybeFlexTimeseries,
-        aggregateFlex
-      )
-
-      val updatedBaseStateData = setActiveTickAndSendTriggers(
-        baseStateData,
-        SimonaConstants.INIT_SIM_TICK,
-        triggerId
-      )
-
-      goto(Idle) using updatedBaseStateData
-
-    case Event(ReceiveTimeout, stateData) =>
-      handleReceiveTimeout(stateData)
-  }
-
-  private val handleIdleEm: StateFunction = {
+  when(Idle) {
     case Event(
           scheduleTriggerMessage: ScheduleTriggerMessage,
           baseStateData: EmModelBaseStateData
@@ -478,8 +273,7 @@ class EmAgent(
         )
       )
 
-      val (_, flexOptions) = flexParticipantData.flexOptionsStore
-        .last()
+      val flexOptions = flexParticipantData.lastFlexOptions
         .getOrElse(
           throw new RuntimeException(
             s"Flex options have not been calculated by agent ${updatedBaseStateData.modelUuid}"
@@ -511,7 +305,7 @@ class EmAgent(
       val tick = baseStateData.schedulerStateData.nowInTicks
 
       val updatedCorrespondences =
-        baseStateData.flexCorrespondences.addReceivedFlexOptions(
+        baseStateData.flexCorrespondences.updateFlexOptions(
           tick,
           flexOptions
         )
@@ -527,7 +321,7 @@ class EmAgent(
           baseStateData: EmModelBaseStateData
         ) =>
       val updatedCorrespondences =
-        baseStateData.flexCorrespondences.addReceivedResult(result)
+        baseStateData.flexCorrespondences.updateResult(result)
 
       val updatedBaseStateData = baseStateData.copy(
         flexCorrespondences = updatedCorrespondences
@@ -552,10 +346,6 @@ class EmAgent(
     case Event(ReceiveTimeout, stateData) =>
       handleReceiveTimeout(stateData)
   }
-
-  when(Uninitialized) { handleUnitializedEm orElse handleUnitialized }
-
-  when(Idle) { handleIdleEm orElse handleIdle }
 
   private def handleActivation(
       newTick: Long,
@@ -715,8 +505,8 @@ class EmAgent(
             baseStateData.copy(
               flexStateData = Some(
                 flexStateData.copy(
-                  flexOptionsStore = ValueStore.updateValueStore(
-                    flexStateData.flexOptionsStore,
+                  lastFlexOptions = ValueStore.updateValueStore(
+                    flexStateData.lastFlexOptions,
                     tick,
                     flexMessage
                   )
@@ -900,16 +690,6 @@ class EmAgent(
           }
     }
 
-    if (
-      baseStateData.modelUuid.toString == "15bdf719-68fd-47e2-8c33-f4fcb4322b00"
-    ) {
-      issueCtrlMsgs.foreach { case (uuid, setpoint) =>
-        val actorRef =
-          baseStateData.schedulerStateData.flexTrigger.uuidToActorRef(uuid)
-        log.info(s"Ctrl msg setpoint = $setpoint, actor ref = $actorRef")
-      }
-    }
-
     val updatedScheduledStateData = issueCtrlMsgsComplete.foldLeft(
       baseStateData.schedulerStateData
     ) { case (schedulerData, (uuid, issueCtrlMsg)) =>
@@ -932,7 +712,7 @@ class EmAgent(
     val updatedCorrespondences = issueCtrlMsgsComplete
       .foldLeft(baseStateData.flexCorrespondences) {
         case (correspondences, (uuid, issueFlex)) =>
-          correspondences.addIssuedFlexControl(
+          correspondences.updateFlexControl(
             uuid,
             tick,
             issueFlex

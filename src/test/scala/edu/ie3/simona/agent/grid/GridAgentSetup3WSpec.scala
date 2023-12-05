@@ -6,9 +6,16 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.{Actor, ActorIdentity, ActorRef, ActorSystem, Identify, Props}
-import akka.testkit.ImplicitSender
-import akka.util.Timeout
+import org.apache.pekko.actor.{
+  Actor,
+  ActorIdentity,
+  ActorRef,
+  ActorSystem,
+  Identify,
+  Props
+}
+import org.apache.pekko.testkit.ImplicitSender
+import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.result.ResultEntity
@@ -34,8 +41,8 @@ class GridAgentSetup3WSpec
         "GridAgentSetupSpec",
         ConfigFactory
           .parseString("""
-            |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-            |akka.loglevel="DEBUG"
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="DEBUG"
         """.stripMargin)
       )
     )
@@ -47,7 +54,7 @@ class GridAgentSetup3WSpec
 
   "The setup of grid agents" must {
     "provide three grid agents on presence of a three winding transformer" in {
-      import akka.pattern._
+      import org.apache.pekko.pattern._
       implicit val timeout: Timeout = Timeout(1, TimeUnit.SECONDS)
 
       // in order to get an actor system we need a tmp actor that calls the corresponding method
@@ -56,6 +63,7 @@ class GridAgentSetup3WSpec
           override def receive: Receive = { case "setup" =>
             val environmentRefs = EnvironmentRefs(
               scheduler = self,
+              runtimeEventListener = self,
               primaryServiceProxy = self,
               weather = ActorRef.noSender,
               evDataService = None

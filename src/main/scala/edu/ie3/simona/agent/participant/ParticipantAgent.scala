@@ -6,10 +6,15 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.{ActorRef, FSM}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.SimonaAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
+import edu.ie3.simona.agent.grid.GridAgent.FinishGridSimulationTrigger
+import edu.ie3.simona.agent.participant.ParticipantAgent.{
+  StartCalculationTrigger,
+  getAndCheckNodalVoltage
+}
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
@@ -31,7 +36,7 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   Calculate,
   HandleInformation
 }
-import edu.ie3.simona.agent.{SimonaAgent, ValueStore}
+import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
@@ -47,24 +52,16 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideMinMaxFlexOptions,
   RequestFlexOptions
 }
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   ProvisionMessage,
   RegistrationResponseMessage
 }
-import edu.ie3.simona.ontology.trigger.Trigger
-import edu.ie3.simona.ontology.trigger.Trigger.ParticipantTrigger.StartCalculationTrigger
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  FinishGridSimulationTrigger,
-  InitializeParticipantAgentTrigger
-}
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.ReactivePower
 import squants.{Dimensionless, Power}
 
@@ -101,7 +98,10 @@ abstract class ParticipantAgent[
     I <: SystemParticipantInput,
     MC <: SimonaConfig.BaseRuntimeConfig,
     M <: SystemParticipant[CD, PD, MS]
-](scheduler: ActorRef)(implicit val tag: ClassTag[MS])
+](
+    scheduler: ActorRef,
+    initStateData: ParticipantInitializeStateData[I, MC, PD]
+)(implicit val tag: ClassTag[MS])
     extends SimonaAgent[ParticipantStateData[PD]] {
 
   val alternativeResult: PD
@@ -117,66 +117,45 @@ abstract class ParticipantAgent[
       squants.Dimensionless
   ) => PD
 
-  protected val handleUnitialized: StateFunction = {
+  // general agent states
+  // first fsm state of the agent
+  startWith(Uninitialized, ParticipantUninitializedStateData[PD]())
+
+  when(Uninitialized) {
     /* Initialize the agent */
     case Event(
-          TriggerWithIdMessage(
-            initTrigger @ InitializeParticipantAgentTrigger(
-              ParticipantInitializeStateData(
-                inputModel,
-                modelConfig,
-                primaryServiceProxy,
-                services,
-                simulationStartDate,
-                simulationEndDate,
-                resolution,
-                requestVoltageDeviationThreshold,
-                outputConfig,
-                maybeEmAgent,
-                scheduleTriggerFunc
-              )
-            ),
-            triggerId,
-            _
-          ),
+          Activation(INIT_SIM_TICK),
           _: ParticipantUninitializedStateData[PD]
         ) =>
       /* Ask the primary service proxy for data. If some is available, it will delegate the request to a worker and
        * that will confirm, otherwise, a failed registration is announced. */
-      holdTickAndTriggerId(initTrigger.tick, triggerId)
-      primaryServiceProxy ! PrimaryServiceRegistrationMessage(
-        inputModel.electricalInputModel.getUuid
+      holdTick(INIT_SIM_TICK)
+      initStateData.primaryServiceProxy ! PrimaryServiceRegistrationMessage(
+        initStateData.inputModel.electricalInputModel.getUuid
       )
       goto(HandleInformation) using ParticipantInitializingStateData(
-        inputModel,
-        modelConfig,
-        services,
-        simulationStartDate,
-        simulationEndDate,
-        resolution,
-        requestVoltageDeviationThreshold,
-        outputConfig,
-        maybeEmAgent,
-        scheduleTriggerFunc
+        initStateData.inputModel,
+        initStateData.modelConfig,
+        initStateData.secondaryDataServices,
+        initStateData.simulationStartDate,
+        initStateData.simulationEndDate,
+        initStateData.resolution,
+        initStateData.requestVoltageDeviationThreshold,
+        initStateData.outputConfig,
+        initStateData.maybeEmAgent
       )
   }
 
-  protected val handleIdle: StateFunction = {
+  when(Idle) {
     case Event(
-          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId, _),
+          Activation(currentTick),
           modelBaseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
         ) if modelBaseStateData.services.isEmpty =>
       /* An activity start trigger is sent and no data is awaited (neither secondary nor primary). Therefore go straight
        * ahead to calculations */
 
-      log.debug(
-        s"Received activity start trigger {} for tick {}",
-        triggerId,
-        currentTick
-      )
-
-      /* Hold tick and trigger, as state transition is needed */
-      holdTickAndTriggerId(currentTick, triggerId)
+      /* Hold tick, as state transition is needed */
+      holdTick(currentTick)
 
       /* Remove this tick from the array of foreseen activation ticks */
       val additionalActivationTicks =
@@ -199,27 +178,25 @@ abstract class ParticipantAgent[
       }
 
     case Event(
-          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId, _),
+          Activation(currentTick),
           modelBaseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
         ) =>
-      /* An activity start trigger is sent, but I'm not sure yet, if secondary data will arrive. Figure out, if someone
+      /* An activation is sent, but I'm not sure yet, if secondary data will arrive. Figure out, if someone
        * is about to deliver new data and either go to HandleInformation, check and possibly wait for data provision
        * messages or directly go to Calculate and utilize what is already there */
-      handleActivityStartTriggerAndGoToHandleInformation(
+      handleActivationAndGoToHandleInformation(
         currentTick,
-        triggerId,
         modelBaseStateData
       )
 
     case Event(
-          TriggerWithIdMessage(ActivityStartTrigger(currentTick), triggerId, _),
+          Activation(currentTick),
           fromOutsideBaseStateData: FromOutsideBaseStateData[M, PD]
         ) =>
-      /* An activity start trigger is sent, but I'm still expecting primary data. Go to HandleInformation and wait for
+      /* An activation is sent, but I'm still expecting primary data. Go to HandleInformation and wait for
        * a data provision message */
-      handleActivityStartTriggerAndGoToHandleInformation(
+      handleActivationAndGoToHandleInformation(
         currentTick,
-        triggerId,
         fromOutsideBaseStateData
       )
 
@@ -229,7 +206,7 @@ abstract class ParticipantAgent[
         ) =>
       /* Somebody has sent new primary or secondary data. Collect, what is expected for this tick. Go over to data
        * handling */
-      handleDataProvisionAndGoToHandleInformation(msg, baseStateData)
+      handleDataProvisionAndGoToHandleInformation(msg, baseStateData, scheduler)
 
     case Event(
           RequestAssetPowerMessage(requestTick, eInPu, fInPu),
@@ -302,7 +279,7 @@ abstract class ParticipantAgent[
       handleFlexCtrl(baseStateData, flexCtrl, scheduler)
   }
 
-  protected val handleHandleInformation: StateFunction = {
+  when(HandleInformation) {
     /* Receive registration confirm from primary data service -> Set up actor for replay of data */
     case Event(
           RegistrationSuccessfulMessage(maybeNextDataTick),
@@ -315,7 +292,6 @@ abstract class ParticipantAgent[
             resolution,
             requestVoltageDeviationThreshold,
             outputConfig,
-            _,
             _
           )
         ) =>
@@ -345,8 +321,7 @@ abstract class ParticipantAgent[
             resolution,
             requestVoltageDeviationThreshold,
             outputConfig,
-            maybeEmAgent,
-            scheduleTriggerFunc
+            maybeEmAgent
           )
         ) =>
       log.debug("Will perform model calculations")
@@ -360,8 +335,7 @@ abstract class ParticipantAgent[
         requestVoltageDeviationThreshold,
         outputConfig,
         scheduler,
-        maybeEmAgent,
-        scheduleTriggerFunc
+        maybeEmAgent
       )
 
     /* Receiving the registration replies from services and collect their next data ticks */
@@ -372,20 +346,16 @@ abstract class ParticipantAgent[
       handleRegistrationResponse(scheduler, msg, stateData)
 
     case Event(
-          TriggerWithIdMessage(
-            ActivityStartTrigger(activationTick),
-            triggerId,
-            _
-          ),
+          Activation(currentTick),
           stateData: DataCollectionStateData[PD]
         ) =>
-      /* The actor received an ActivityStartTrigger. Check, if there is everything at its place. If so, change state
+      /* The actor received an activation. Check, if there is everything at its place. If so, change state
        * accordingly, otherwise stay here and wait for the messages */
-      holdTickAndTriggerId(activationTick, triggerId)
+      holdTick(currentTick)
       checkForExpectedDataAndChangeState(
         stateData,
         isYetTriggered = true,
-        activationTick,
+        currentTick,
         scheduler
       )(stateData.baseStateData.outputConfig)
 
@@ -399,15 +369,22 @@ abstract class ParticipantAgent[
         ) =>
       /* We yet have received at least one data provision message. Handle all messages, that follow up for this tick, by
        * adding the received data to the collection state data and checking, if everything is at its place */
-      if (
-        data.contains(sender()) ||
-        baseStateData.foreseenDataTicks.exists {
-          case (ref, None) => sender() == ref
-          case _           => false
-        }
-      ) {
+      val unexpectedSender = baseStateData.foreseenDataTicks.exists {
+        case (ref, None) => sender() == ref
+        case _           => false
+      }
+
+      if (data.contains(sender()) || unexpectedSender) {
         /* Update the yet received information */
         val updatedData = data + (sender() -> Some(msg.data))
+
+        /* If we have received unexpected data, we also have not been scheduled before */
+        if (unexpectedSender)
+          scheduler ! ScheduleActivation(
+            self.toTyped,
+            msg.tick,
+            msg.unlockKey
+          )
 
         /* Depending on if a next data tick can be foreseen, either update the entry in the base state data or remove
          * it */
@@ -467,7 +444,7 @@ abstract class ParticipantAgent[
       stay()
   }
 
-  protected val handleCalculate: StateFunction = {
+  when(Calculate) {
     case Event(
           StartCalculationTrigger(currentTick),
           modelBaseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
@@ -524,25 +501,12 @@ abstract class ParticipantAgent[
       stash()
       stay()
 
-    case Event(_: ProvisionMessage[_], _) |
-        Event(TriggerWithIdMessage(ActivityStartTrigger(_), _, _), _) =>
+    case Event(_: ProvisionMessage[_], _) | Event(Activation(_), _) =>
       /* I got faced to new data, also I'm not ready to handle it, yet OR I got asked to do something else, while I'm
        * still busy, I will put it aside and answer it later */
       stash()
       stay()
   }
-
-  // general agent states
-  // first fsm state of the agent
-  startWith(Uninitialized, ParticipantUninitializedStateData[PD]())
-
-  when(Uninitialized)(handleUnitialized)
-
-  when(Idle)(handleIdle)
-
-  when(HandleInformation)(handleHandleInformation)
-
-  when(Calculate)(handleCalculate)
 
   // everything else
   whenUnhandled(myUnhandled())
@@ -624,8 +588,7 @@ abstract class ParticipantAgent[
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
       scheduler: ActorRef,
-      maybeEmAgent: Option[ActorRef],
-      scheduleTriggerFunc: Trigger => ScheduleTriggerMessage
+      maybeEmAgent: Option[ActorRef]
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Handles the responses from service providers, this actor has registered
@@ -645,26 +608,23 @@ abstract class ParticipantAgent[
       stateData: CollectRegistrationConfirmMessages[PD]
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
-  /** Handle an [[ActivityStartTrigger]] received in [[Idle]]. Prepare the
-    * foreseen senders in this tick and go over to [[HandleInformation]].
+  /** Handle an [[Activation]] received in [[Idle]]. Prepare the foreseen
+    * senders in this tick and go over to [[HandleInformation]].
     *
     * @param tick
     *   Current tick of the simulation
-    * @param triggerId
-    *   Id of the [[ActivityStartTrigger]]
     * @param baseStateData
     *   The basic state data
     * @return
     *   Transition to [[HandleInformation]] utilising appropriate new
     *   [[DataCollectionStateData]]
     */
-  def handleActivityStartTriggerAndGoToHandleInformation(
+  def handleActivationAndGoToHandleInformation(
       tick: Long,
-      triggerId: Long,
       baseStateData: BaseStateData[PD]
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
-    /* Hold tick and trigger, as we are about to changes states for a while */
-    holdTickAndTriggerId(tick, triggerId)
+    /* Hold tick, as we are about to changes states for a while */
+    holdTick(tick)
 
     /* Prepare the state data for the HandleInformation state */
     val expectedSenders = baseStateData.foreseenDataTicks
@@ -725,24 +685,26 @@ abstract class ParticipantAgent[
     *   Incoming message to be handled
     * @param baseStateData
     *   Base state data
+    * @param scheduler
+    *   The scheduler
     * @return
     *   state change to [[HandleInformation]] with updated base state data
     */
   def handleDataProvisionAndGoToHandleInformation(
       msg: ProvisionMessage[Data],
-      baseStateData: BaseStateData[PD]
+      baseStateData: BaseStateData[PD],
+      scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Checks, if all data is available and change state accordingly. Three cases
     * are possible: 1) There is still something missing: Stay here and wait 2)
-    * Everything is at place and the [[ActivityStartTrigger]] has yet been sent
-    * 2.1) If the agent is meant to replay external primary data: Announce
-    * result, add content to result value store, go to [[Idle]] and answer the
-    * scheduler, that the activity start trigger is fulfilled. 2.2) All
-    * secondary data is there, go to [[Calculate]] and ask the scheduler to
-    * trigger ourself for starting the model based calculation 3) Everything is
-    * at place and the [[ActivityStartTrigger]] has NOT yet been sent: Stay here
-    * and wait
+    * Everything is at place and the [[Activation]] has yet been sent 2.1) If
+    * the agent is meant to replay external primary data: Announce result, add
+    * content to result value store, go to [[Idle]] and answer the scheduler,
+    * that the activity start trigger is fulfilled. 2.2) All secondary data is
+    * there, go to [[Calculate]] and ask the scheduler to trigger ourself for
+    * starting the model based calculation 3) Everything is at place and the
+    * [[Activation]] has NOT yet been sent: Stay here and wait
     *
     * @param stateData
     *   Apparent state data
@@ -768,7 +730,7 @@ abstract class ParticipantAgent[
 
   /** Abstractly calculate the power output of the participant without needing
     * any secondary data. The next state is [[Idle]], sending a
-    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
+    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.Completion]] to
     * scheduler and using update result values. Actual implementation can be
     * found in [[ParticipantAgentFundamentals]]
     *
@@ -800,7 +762,7 @@ abstract class ParticipantAgent[
     * has to try and fill up missing data with the last known data, as this is
     * still supposed to be valid. The secondary data therefore is put to the
     * calculation relevant data store. <p>The next state is [[Idle]], sending a
-    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.CompletionMessage]] to
+    * [[edu.ie3.simona.ontology.messages.SchedulerMessage.Completion]] to
     * scheduler and using update result values.</p> </p>Actual implementation
     * can be found in each participant's fundamentals.</p>
     *
@@ -943,6 +905,8 @@ abstract class ParticipantAgent[
 }
 
 object ParticipantAgent {
+
+  final case class StartCalculationTrigger(tick: Long)
 
   /** Verifies that a nodal voltage value has been provided in the model
     * calculation request and returns it. Actual implementation can be found in

@@ -6,30 +6,38 @@
 
 package edu.ie3.simona.agent.grid
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.{ImplicitSender, TestProbe}
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorRefOps
+}
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgent.FinishGridSimulationTrigger
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
 import edu.ie3.simona.model.grid.RefSystem
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+  Completion,
+  ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.trigger.Trigger._
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGridWithParticipants
-import edu.ie3.simona.test.common.{ConfigTestData, TestKitWithShutdown}
+import edu.ie3.simona.test.common.{
+  ConfigTestData,
+  TestKitWithShutdown,
+  TestSpawnerClassic
+}
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
@@ -42,22 +50,25 @@ class DBFSAlgorithmParticipantSpec
         "DBFSAlgorithmSpec",
         ConfigFactory
           .parseString("""
-                     |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-                     |akka.loglevel="OFF"
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="OFF"
         """.stripMargin)
       )
     )
     with DBFSMockGridAgents
     with ConfigTestData
     with ImplicitSender
-    with DbfsTestGridWithParticipants {
+    with DbfsTestGridWithParticipants
+    with TestSpawnerClassic {
 
   private val scheduler = TestProbe("scheduler")
+  private val runtimeEvents = TestProbe("runtimeEvents")
   private val primaryService = TestProbe("primaryService")
   private val weatherService = TestProbe("weatherService")
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
+    runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
     weather = weatherService.ref,
     evDataService = None
@@ -71,7 +82,6 @@ class DBFSAlgorithmParticipantSpec
   )
 
   "Test participant" should {
-
     val gridAgentWithParticipants = system.actorOf(
       GridAgent.props(
         environmentRefs,
@@ -80,9 +90,7 @@ class DBFSAlgorithmParticipantSpec
       )
     )
 
-    s"initialize itself when it receives a $InitializeGridAgentTrigger with corresponding data" in {
-      val triggerId = 0
-      val loadAgentTriggerId = 1
+    s"initialize itself when it receives an init activation" in {
 
       // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
       val subGridGateToActorRef: Map[SubGridGate, ActorRef] =
@@ -90,116 +98,80 @@ class DBFSAlgorithmParticipantSpec
           gate -> superiorGridAgent.ref
         }.toMap
 
-      val gridAgentInitData =
-        GridAgentInitData(
-          hvGridContainer,
-          Seq.empty[ThermalGrid],
-          subGridGateToActorRef,
-          RefSystem("2000 MVA", "110 kV")
-        )
+      val gridAgentInitData = GridAgentInitData(
+        hvGridContainer,
+        Seq.empty,
+        Seq.empty[ThermalGrid],
+        subGridGateToActorRef,
+        RefSystem("2000 MVA", "110 kV")
+      )
 
-      // send init data to agent and expect a CompletionMessage
-      scheduler.send(
-        gridAgentWithParticipants,
-        TriggerWithIdMessage(
-          InitializeGridAgentTrigger(gridAgentInitData),
-          triggerId,
-          gridAgentWithParticipants
+      val key =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+
+      gridAgentWithParticipants ! GridAgent.Create(gridAgentInitData, key)
+      scheduler.expectMsg(
+        ScheduleActivation(
+          gridAgentWithParticipants.toTyped,
+          INIT_SIM_TICK,
+          Some(key)
         )
       )
 
-      val (loadAgent, initializeTrigger) =
+      // send init data to agent and expect a CompletionMessage
+      scheduler.send(gridAgentWithParticipants, Activation(INIT_SIM_TICK))
+
+      val loadAgent =
         scheduler.expectMsgPF() {
-          case ScheduleTriggerMessage(
-                initializeTrigger: InitializeParticipantAgentTrigger[
-                  PrimaryData,
-                  InitializeStateData[PrimaryData]
-                ],
+          case ScheduleActivation(
                 loadAgent,
-                _,
+                INIT_SIM_TICK,
                 _
               ) =>
-            (loadAgent, initializeTrigger)
+            loadAgent
         }
 
       scheduler.expectMsg(
-        CompletionMessage(
-          triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(3600L),
-                gridAgentWithParticipants
-              )
-            )
-          )
+        Completion(
+          gridAgentWithParticipants.toTyped,
+          Some(3600)
         )
       )
 
-      scheduler.send(
-        loadAgent,
-        TriggerWithIdMessage(
-          initializeTrigger,
-          loadAgentTriggerId,
-          loadAgent
-        )
-      )
+      scheduler.send(loadAgent.toClassic, Activation(INIT_SIM_TICK))
 
       primaryService.expectMsg(
         PrimaryServiceRegistrationMessage(load1.getUuid)
       )
 
-      primaryService.send(loadAgent, RegistrationFailedMessage)
+      primaryService.send(loadAgent.toClassic, RegistrationFailedMessage)
 
-      scheduler.expectMsg(
-        CompletionMessage(
-          loadAgentTriggerId,
-          Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(0L), loadAgent))
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(loadAgent, Some(0)))
 
       // triggering the loadAgent's calculation
       scheduler.send(
-        loadAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(0L),
-          2,
-          loadAgent
-        )
+        loadAgent.toClassic,
+        Activation(0)
       )
       // the load agent should send a CompletionMessage
-      scheduler.expectMsg(CompletionMessage(2, None))
+      scheduler.expectMsg(Completion(loadAgent, None))
 
     }
 
     s"go to $SimulateGrid when it receives an activity start trigger" in {
 
-      val activityStartTriggerId = 3
-
       // send init data to agent
       scheduler.send(
         gridAgentWithParticipants,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(3600L),
-          activityStartTriggerId,
-          gridAgentWithParticipants
-        )
+        Activation(3600)
       )
 
       // we expect a completion message
       scheduler.expectMsg(
-        CompletionMessage(
-          3,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                StartGridSimulationTrigger(3600L),
-                gridAgentWithParticipants
-              )
-            )
-          )
+        Completion(
+          gridAgentWithParticipants.toTyped,
+          Some(3600)
         )
       )
 
@@ -207,19 +179,11 @@ class DBFSAlgorithmParticipantSpec
 
     s"check the request asset power message indirectly" in {
 
-      val startGridSimulationTriggerId = 4
       val firstSweepNo = 0
 
       // send the start grid simulation trigger
       // the gird agent should send a RequestAssetPowerMessage to the load agent
-      scheduler.send(
-        gridAgentWithParticipants,
-        TriggerWithIdMessage(
-          StartGridSimulationTrigger(3600L),
-          startGridSimulationTriggerId,
-          gridAgentWithParticipants
-        )
-      )
+      scheduler.send(gridAgentWithParticipants, Activation(3600))
 
       // we expect a request for voltage values of our slack node
       // (voltages are requested by our agent under test from the superior grid)
@@ -310,16 +274,9 @@ class DBFSAlgorithmParticipantSpec
       )
 
       scheduler.expectMsg(
-        CompletionMessage(
-          4,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(7200L),
-                gridAgentWithParticipants
-              )
-            )
-          )
+        Completion(
+          gridAgentWithParticipants.toTyped,
+          Some(7200)
         )
       )
     }

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.io.result
 
-import akka.stream.IOResult
+import org.apache.pekko.stream.IOResult
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.exceptions.EntityProcessorException
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor

@@ -42,7 +42,7 @@ class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryDa
 
   @Override
   Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, ModelState maybeModelState, CalcRelevantData data) {
-    return super.calculateApparentPower(tick, voltage, maybeModelState, data)
+    return super.calculateApparentPower(tick, voltage, data)
   }
 
   @Override

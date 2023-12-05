@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.em
 
-import akka.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.{
   FlexTriggerData,
   ScheduledFlexTrigger,
@@ -16,15 +16,8 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   FlexCtrlCompletion,
   RequestFlexOptions
 }
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.{FlexibilityMessage, SchedulerMessage}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  IllegalTriggerMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
-import edu.ie3.simona.ontology.trigger.Trigger
-import edu.ie3.simona.scheduler.SimSchedulerStateData.ScheduledTrigger
 
 import java.util.UUID
 
@@ -35,12 +28,11 @@ trait EmSchedulerHelper {
 
   protected final implicit val system: ActorSystem = context.system
 
-  /** Main method to handle all [[CompletionMessage]]s received by the
-    * scheduler. Based on the received completion message, the provided
-    * stateData is updated. In particular the awaitingResponseMap and the
-    * triggerIdToScheduledTriggerMap are updated if the provided
-    * [[CompletionMessage]] is valid. For an invalid message, the data is not
-    * modified and the error is logged.
+  /** Main method to handle all [[Completion]]s received by the scheduler. Based
+    * on the received completion message, the provided stateData is updated. In
+    * particular the awaitingResponseMap and the triggerIdToScheduledTriggerMap
+    * are updated if the provided [[Completion]] is valid. For an invalid
+    * message, the data is not modified and the error is logged.
     *
     * A copy of the provided trigger data with updated trigger information is
     * returned.
@@ -53,7 +45,7 @@ trait EmSchedulerHelper {
     *   trigger data with updated trigger and maybe updated runtime information
     */
   protected final def handleCompletionMessage(
-      completionMessage: CompletionMessage,
+      completionMessage: Completion,
       inputStateData: EmSchedulerStateData
   ): EmSchedulerStateData = {
 

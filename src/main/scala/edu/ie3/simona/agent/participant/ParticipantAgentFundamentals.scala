@@ -6,10 +6,11 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.{ActorRef, FSM, PoisonPill}
-import akka.event.LoggingAdapter
-import akka.util
-import akka.util.Timeout
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, FSM, PoisonPill}
+import org.apache.pekko.event.LoggingAdapter
+import org.apache.pekko.util
+import org.apache.pekko.util.Timeout
 import breeze.numerics.{ceil, floor, pow, sqrt}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.ResultEntity
@@ -19,6 +20,7 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.agent.ValueStore
+import edu.ie3.simona.agent.participant.ParticipantAgent.StartCalculationTrigger
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
@@ -69,28 +71,25 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant
 }
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
+import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  IllegalTriggerMessage,
-  ScheduleTriggerMessage
+  Completion,
+  ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
   RegistrationResponseMessage
 }
-import edu.ie3.simona.ontology.trigger.Trigger
-import edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger
-import edu.ie3.simona.ontology.trigger.Trigger.ParticipantTrigger.StartCalculationTrigger
 import edu.ie3.simona.service.ServiceStateData.ServiceActivationBaseStateData
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
-import squants.energy.{KilowattHours, Megawatts}
+import squants.energy.Megawatts
 import squants.{Dimensionless, Each, Energy, Power}
 
 import java.time.ZonedDateTime
@@ -139,13 +138,10 @@ protected trait ParticipantAgentFundamentals[
     )
 
     /* Confirm final initialization */
-    val (_, triggerId) = releaseTickAndTriggerId()
-    val newTriggerMessages =
-      ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
-        senderToMaybeTick._2,
-        self
-      )
-    scheduler ! CompletionMessage(triggerId, newTriggerMessages)
+    releaseTick()
+    senderToMaybeTick._2.foreach { tick =>
+      scheduler ! Completion(self.toTyped, Some(tick))
+    }
     goto(Idle) using stateData
   }
 
@@ -232,11 +228,10 @@ protected trait ParticipantAgentFundamentals[
   ): M
 
   /** Initializing the agent based on the uninitialized state and additional
-    * information that has been sent with
-    * [[edu.ie3.simona.ontology.trigger.Trigger.InitializeParticipantAgentTrigger]].
-    * The base state data is derived based on the foreseen simulation mode, all
-    * (currently foreseen) activation triggers are generated and sent to the
-    * scheduler. The next state is [[Idle]] using the derived base state data.
+    * information that has been supplied with init data. The base state data is
+    * derived based on the foreseen simulation mode, all (currently foreseen)
+    * activation triggers are generated and sent to the scheduler. The next
+    * state is [[Idle]] using the derived base state data.
     *
     * @param inputModel
     *   Input model definition
@@ -270,8 +265,7 @@ protected trait ParticipantAgentFundamentals[
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
       scheduler: ActorRef,
-      maybeEmAgent: Option[ActorRef],
-      scheduleTriggerFunc: Trigger => ScheduleTriggerMessage
+      maybeEmAgent: Option[ActorRef]
   ): FSM.State[AgentState, ParticipantStateData[PD]] =
     try {
       /* Register for services */
@@ -279,7 +273,6 @@ protected trait ParticipantAgentFundamentals[
         registerForServices(
           inputModel.electricalInputModel,
           services,
-          scheduleTriggerFunc,
           maybeEmAgent.nonEmpty
         )
 
@@ -312,22 +305,19 @@ protected trait ParticipantAgentFundamentals[
         )
       } else {
         /* Determine the next activation tick, create a ScheduleTriggerMessage and remove the recently triggered tick */
-        val (newTriggers, nextBaseStateData) = popNextActivationTrigger(
+        val (newTick, nextBaseStateData) = popNextActivationTrigger(
           baseStateData
         )
-        val (_, triggerId) = releaseTickAndTriggerId()
+        releaseTick()
 
         log.debug(s"Going to {}, using {}", Idle, baseStateData)
-        scheduler ! CompletionMessage(triggerId, newTriggers)
+        scheduler ! Completion(self.toTyped, newTick)
         goto(Idle) using nextBaseStateData
       }
     } catch {
-      case e @ (_: AgentInitializationException |
-          _: InconsistentStateException) =>
-        scheduler ! IllegalTriggerMessage(
-          s"Caught exception while initializing: \n ${e.getMessage}",
-          self
-        )
+      case _: AgentInitializationException | _: InconsistentStateException =>
+        // stop on error
+        self ! PoisonPill
         goto(Uninitialized)
     }
 
@@ -481,12 +471,15 @@ protected trait ParticipantAgentFundamentals[
     *   Incoming message to be handled
     * @param baseStateData
     *   Base state data
+    * @param scheduler
+    *   The scheduler
     * @return
     *   state change to [[HandleInformation]] with updated base state data
     */
   override def handleDataProvisionAndGoToHandleInformation(
       msg: ProvisionMessage[Data],
-      baseStateData: BaseStateData[PD]
+      baseStateData: BaseStateData[PD],
+      scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     /* Figure out, who is going to send data in this tick */
     val expectedSenders = baseStateData.foreseenDataTicks
@@ -505,6 +498,19 @@ protected trait ParticipantAgentFundamentals[
             None
         }
       }
+
+    val unexpectedSender = baseStateData.foreseenDataTicks.exists {
+      case (ref, None) => sender() == ref
+      case _           => false
+    }
+
+    /* If we have received unexpected data, we also have not been scheduled before */
+    if (unexpectedSender)
+      scheduler ! ScheduleActivation(
+        self.toTyped,
+        msg.tick,
+        msg.unlockKey
+      )
 
     /* If the sender announces a new next tick, add it to the list of expected ticks, else remove the current entry */
     val foreseenDataTicks =
@@ -528,14 +534,13 @@ protected trait ParticipantAgentFundamentals[
 
   /** Checks, if all data is available and change state accordingly. Three cases
     * are possible: 1) There is still something missing: Stay in the calling
-    * state and wait 2) Everything is at place and the [[ActivityStartTrigger]]
-    * has yet been sent 2.1) If the agent is meant to replay external primary
-    * data: Announce result, add content to result value store, go to [[Idle]]
-    * and answer the scheduler, that the activity start trigger is fulfilled.
-    * 2.2) All secondary data is there, go to [[Calculate]] and ask the
-    * scheduler to trigger ourself for starting the model based calculation 3)
-    * Everything is at place and the [[ActivityStartTrigger]] has NOT yet been
-    * sent: Stay here and wait
+    * state and wait 2) Everything is at place and the [[Activation]] has yet
+    * been sent 2.1) If the agent is meant to replay external primary data:
+    * Announce result, add content to result value store, go to [[Idle]] and
+    * answer the scheduler, that the activity start trigger is fulfilled. 2.2)
+    * All secondary data is there, go to [[Calculate]] and ask the scheduler to
+    * trigger ourself for starting the model based calculation 3) Everything is
+    * at place and the [[Activation]] has NOT yet been sent: Stay here and wait
     *
     * @param stateData
     *   Apparent state data
@@ -641,7 +646,7 @@ protected trait ParticipantAgentFundamentals[
       throw new InconsistentStateException("Flex state data is missing!")
     )
 
-    val (_, newestFlexOptions) = updatedFlexData.flexOptionsStore
+    val (_, newestFlexOptions) = updatedFlexData.lastFlexOptions
       .last()
       .getOrElse(
         throw new RuntimeException(
@@ -696,9 +701,9 @@ protected trait ParticipantAgentFundamentals[
 
     baseStateData.copy(
       flexStateData = baseStateData.flexStateData.map(data =>
-        data.copy(flexOptionsStore =
+        data.copy(lastFlexOptions =
           ValueStore.updateValueStore(
-            data.flexOptionsStore,
+            data.lastFlexOptions,
             tick,
             flexOptions
           )
@@ -724,7 +729,7 @@ protected trait ParticipantAgentFundamentals[
     )
     val lastState = getLastOrInitialStateData(baseStateData, flexCtrl.tick)
 
-    val (_, flexOptions) = flexStateData.flexOptionsStore
+    val (_, flexOptions) = flexStateData.lastFlexOptions
       .last()
       .getOrElse(
         throw new IllegalStateException(
@@ -1088,8 +1093,7 @@ protected trait ParticipantAgentFundamentals[
       .map(_.asInstanceOf[PD])
 
   /** Change over to [[Idle]] state and reply completion to the scheduler. By
-    * doing so, also schedule an [[ActivityStartTrigger]] for the next upcoming
-    * action.
+    * doing so, also schedule an [[Activation]] for the next upcoming action.
     *
     * @param baseStateData
     *   Base state data to pop next activation from
@@ -1103,11 +1107,11 @@ protected trait ParticipantAgentFundamentals[
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     /* Determine the very next tick, where activation is required */
-    val (maybeActivationTriggers, updatedBaseStateData) =
+    val (maybeNextTick, updatedBaseStateData) =
       popNextActivationTrigger(baseStateData)
 
-    val (_, triggerId) = releaseTickAndTriggerId()
-    scheduler ! CompletionMessage(triggerId, maybeActivationTriggers)
+    releaseTick()
+    scheduler ! Completion(self.toTyped, maybeNextTick)
     unstashAll()
     goto(Idle) using updatedBaseStateData
   }
@@ -1121,37 +1125,24 @@ protected trait ParticipantAgentFundamentals[
     * @param baseStateData
     *   Base state data to be updated
     * @return
-    *   An [[Option]] to a [[Seq]] of new [[ScheduleTriggerMessage]] s as well
-    *   as the updated base state data. If the next activation tick is an
-    *   additional activation, this tick is removed from the list of desired
-    *   additional activations.
+    *   An [[Option]] of new tick as well as the updated base state data. If the
+    *   next activation tick is an additional activation, this tick is removed
+    *   from the list of desired additional activations.
     */
   def popNextActivationTrigger(
       baseStateData: BaseStateData[PD]
-  ): (Option[Seq[ScheduleTriggerMessage]], BaseStateData[PD]) = {
+  ): (Option[Long], BaseStateData[PD]) = {
     /* Determine what comes next: An additional activation or new data - or both at once */
     val nextAdditionalActivation =
       baseStateData.additionalActivationTicks.headOption
     val nextDataTick =
       baseStateData.foreseenDataTicks.values.toSeq.sorted.headOption.flatten
 
-    /* return a [[Option]] to a [[Seq]] of [[ScheduleTriggerMessage]]s */
-    def toMessageSeq: (Long, ActorRef) => Option[Seq[ScheduleTriggerMessage]] =
-      (tick: Long, actorToBeTriggered: ActorRef) =>
-        Some(
-          Seq(
-            ScheduleTriggerMessage(
-              ActivityStartTrigger(tick),
-              actorToBeTriggered
-            )
-          )
-        )
-
     (nextAdditionalActivation, nextDataTick) match {
       case (None, Some(dataTick)) =>
         /* There is only a data tick available */
         (
-          toMessageSeq(dataTick, self),
+          Some(dataTick),
           baseStateData
         )
       case (Some(additionalTick), Some(dataTick))
@@ -1159,7 +1150,7 @@ protected trait ParticipantAgentFundamentals[
         /* The next foreseen activation will be based on foreseen data arrival. Do nothing else, then creating a
          * trigger. */
         (
-          toMessageSeq(dataTick, self),
+          Some(dataTick),
           baseStateData
         )
       case (Some(additionalTick), _) =>
@@ -1177,7 +1168,7 @@ protected trait ParticipantAgentFundamentals[
         )
 
         (
-          toMessageSeq(additionalTick, self),
+          Some(additionalTick),
           updatedBaseStateData
         )
       case (None, None) =>
@@ -2161,7 +2152,7 @@ case object ParticipantAgentFundamentals {
         Megawatts(0d)
     }
 
-    ApparentPowerAndHeat(p, q, qDot)
+    ApparentPowerAndHeat(apparentPower.p, apparentPower.q, qDot)
   }
 
 }
