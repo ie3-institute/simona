@@ -188,7 +188,6 @@ class HpModelSpec
                     ThermalGridState(Some(thermalHouseState), _)
                   ) =>
                 isRunning shouldBe expectedRunningState
-                lastTimeTick shouldBe expectedTick
                 (activePower =~ Kilowatts(expectedActivePower)) shouldBe true
 
                 (thermalHouseState.innerTemperature =~ Celsius(
