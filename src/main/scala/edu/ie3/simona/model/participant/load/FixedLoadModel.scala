@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.participant.load
 
 import edu.ie3.datamodel.models.input.system.LoadInput
-import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
@@ -46,7 +45,7 @@ final case class FixedLoadModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
+    override protected val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,

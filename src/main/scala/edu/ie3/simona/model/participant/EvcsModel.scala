@@ -50,7 +50,7 @@ final case class EvcsModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
+    override protected val scalingFactor: Double,
     qControl: QControl,
     sRated: squants.Power,
     cosPhiRated: Double,

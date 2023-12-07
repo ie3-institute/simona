@@ -51,7 +51,7 @@ abstract class SystemParticipant[
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
+    protected val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double

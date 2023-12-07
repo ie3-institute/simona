@@ -50,7 +50,7 @@ final case class RandomLoadModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
+    override protected val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
