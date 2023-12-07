@@ -12,7 +12,6 @@ import edu.ie3.datamodel.models.result.system.{
   HpResult,
   SystemParticipantResult
 }
-import edu.ie3.datamodel.models.result.thermal.ThermalHouseResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
@@ -42,21 +41,18 @@ import edu.ie3.simona.exceptions.agent.{
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.HpModel
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
-import edu.ie3.simona.model.thermal.ThermalHouse
+import edu.ie3.simona.model.thermal.ThermalGrid
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import squants.energy.Megawatts
-import squants.{Dimensionless, Each, Power, Temperature}
+import squants.{Dimensionless, Each, Power}
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.SortedSet
-import scala.jdk.OptionConverters.RichOptional
 import scala.reflect.{ClassTag, classTag}
 
 trait HpAgentFundamentals
@@ -148,7 +144,7 @@ trait HpAgentFundamentals
               ) match {
                 case Some((_, HpRelevantData(lastState, _, _))) => lastState
                 case None =>
-                  startingState(hpModel.thermalHouse.targetTemperature)
+                  startingState(hpModel.thermalGrid)
               }
 
               val relevantData =
@@ -164,21 +160,12 @@ trait HpAgentFundamentals
                 relevantData
               )
 
-              val thermalHouseResult = new ThermalHouseResult(
-                currentTick.toDateTime(modelBaseStateData.startDate),
-                hpModel.thermalHouse.uuid,
-                Quantities.getQuantity(
-                  power.qDot.toMegawatts,
-                  PowerSystemUnits.MEGAWATT
-                ),
-                Quantities.getQuantity(
-                  relevantData.hpState.innerTemperature.toCelsiusScale,
-                  Units.CELSIUS
-                )
-              )
+              val accompanyingResults = hpModel.thermalGrid.results(
+                relevantData.hpState.thermalGridState
+              )(modelBaseStateData.startDate)
 
               (
-                AccompaniedSimulationResult(power, Seq(thermalHouseResult)),
+                AccompaniedSimulationResult(power, accompanyingResults),
                 relevantData
               )
             case _ =>
@@ -197,13 +184,13 @@ trait HpAgentFundamentals
   }
 
   private def startingState(
-      targetTemperature: Temperature
+      thermalGrid: ThermalGrid
   ): HpState = HpState(
     isRunning = false,
     -1,
     Megawatts(0d),
     Megawatts(0d),
-    targetTemperature
+    ThermalGrid.startingState(thermalGrid)
   )
 
   /** Abstract definition, individual implementations found in individual agent
@@ -289,32 +276,20 @@ trait HpAgentFundamentals
       modelConfig: HpRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
-  ): HpModel = {
-    val thermalHouseInput = {
-      inputModel match {
-        case ParticipantStateData.SimpleInputContainer(_) =>
-          None
-        case WithHeatInputContainer(_, thermalGrid) =>
-          /* Build the thermal model */
-          thermalGrid.houses().stream().findFirst().toScala
-      }
-    }.getOrElse {
+  ): HpModel = inputModel match {
+    case ParticipantStateData.SimpleInputContainer(_) =>
       throw new AgentInitializationException(
-        s"HpAgent cannot be initialized without a Thermal House!"
+        s"Unable to initialize heat pump agent '${inputModel.electricalInputModel.getUuid}' without thermal grid model."
       )
-    }
-
-    /* Build the thermal model */
-    val thermalHouse = ThermalHouse(thermalHouseInput)
-
-    /* Build the actual heat pump model */
-    HpModel(
-      inputModel.electricalInputModel,
-      modelConfig.scaling,
-      simulationStartDate,
-      simulationEndDate,
-      thermalHouse
-    )
+    case WithHeatInputContainer(_, thermalGrid) =>
+      /* Build the actual heat pump model */
+      HpModel(
+        inputModel.electricalInputModel,
+        modelConfig.scaling,
+        simulationStartDate,
+        simulationEndDate,
+        ThermalGrid(thermalGrid)
+      )
   }
 
   /** Determine the average result within the given tick window

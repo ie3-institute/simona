@@ -26,6 +26,7 @@ import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.integration.common.IntegrationSpecCommon
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -478,7 +479,7 @@ class HpAgentModelCalculationSpec
                           lastTimeTick,
                           activePower,
                           qDot,
-                          innerTemperature
+                          thermalGridState
                         ),
                         currentTimeTick,
                         ambientTemperature
@@ -486,14 +487,23 @@ class HpAgentModelCalculationSpec
                     ) =>
                   isRunning shouldBe false
                   lastTimeTick shouldBe 0L
-                  (activePower =~
+                  (activePower =~ Kilowatts(0d)) shouldBe true
+
+                  (qDot =~
                     Kilowatts(0d)) shouldBe true
 
-                  (qDot =~ Kilowatts(0d)) shouldBe true
-                  (innerTemperature =~
-                    Celsius(
-                      20.9999769069444444444444444444444d
-                    )) shouldBe true
+                  thermalGridState.houseState match {
+                    case Some(ThermalHouseState(_, innerTemperature, _)) =>
+                      (innerTemperature =~
+                        Celsius(
+                          20.9999769069444444444444444444444
+                        )) shouldBe true
+                    case None =>
+                      fail(
+                        s"Expected to get a result for thermal house '${inputModel.getUuid}'"
+                      )
+                  }
+
                   currentTimeTick shouldBe 0L
                   (ambientTemperature =~ Celsius(1.815d)) shouldBe true
                 case None =>
@@ -603,7 +613,7 @@ class HpAgentModelCalculationSpec
                           lastTimeTick,
                           activePower,
                           qDot,
-                          innerTemperature
+                          thermalGridState
                         ),
                         currentTimeTick,
                         ambientTemperature
@@ -611,12 +621,20 @@ class HpAgentModelCalculationSpec
                     ) =>
                   isRunning shouldBe false
                   lastTimeTick shouldBe 0L
-                  (activePower =~
-                    Kilowatts(0d)) shouldBe true
+                  (activePower =~ Kilowatts(0d)) shouldBe true
+
                   (qDot =~ Kilowatts(0d)) shouldBe true
-                  (innerTemperature =~ Celsius(
-                    20.9999769069444444444444444444444
-                  )) shouldBe true
+
+                  thermalGridState.houseState match {
+                    case Some(ThermalHouseState(_, innerTemperature, _)) =>
+                      (innerTemperature =~ Celsius(
+                        20.9999769069444444444444444444444
+                      )) shouldBe true
+                    case None =>
+                      fail(
+                        s"Expected to get a result for thermal house '${inputModel.getUuid}'"
+                      )
+                  }
 
                   currentTimeTick shouldBe 0L
                   (ambientTemperature =~

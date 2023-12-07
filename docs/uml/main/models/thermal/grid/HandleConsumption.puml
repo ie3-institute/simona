@@ -1,0 +1,15 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+if (house exists?) then (yes)
+  :Set qDot = 0 and\ncalculate next threshold;
+else (no)
+endif
+if (storage exists?) then (yes)
+  :Discharge storage and calculate next threshold;
+endif
+:Return thermal grid state and grid threshold;
+stop
+
+@enduml
