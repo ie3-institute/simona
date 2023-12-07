@@ -6,24 +6,24 @@
 
 package edu.ie3.simona.model.participant
 
-import java.util.UUID
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.HpModel._
+import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.thermal.ThermalHouse
-import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.model.thermal.ThermalGrid
+import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
-
 import squants.energy.Kilowatts
-import squants.{Power, Temperature, Time}
+import squants.{Power, Temperature}
 
 import java.time.ZonedDateTime
+import java.util.UUID
 
-/** Model of a heat pump (HP) with a [[ThermalHouse]] medium and its current
+/** Model of a heat pump (HP) with a
+  * [[edu.ie3.simona.model.thermal.ThermalHouse]] medium and its current
   * [[HpState]].
   *
   * @param uuid
@@ -42,9 +42,10 @@ import java.time.ZonedDateTime
   *   Rated power factor
   * @param pThermal
   *   Thermal output of heat pump
-  * @param thermalHouse
-  *   Thermal house with a variable inner temperature, temperature boundaries,
-  *   transmission coefficient and heat energy storage capacity
+  * @param thermalGrid
+  *   Thermal grid attached to this heat pump. Attention!!! This model assumes,
+  *   that the grid is only attached to this asset as a source. Shared grids
+  *   across electrical models is currently not supported
   */
 final case class HpModel(
     uuid: UUID,
@@ -55,8 +56,11 @@ final case class HpModel(
     sRated: Power,
     cosPhiRated: Double,
     pThermal: Power,
-    thermalHouse: ThermalHouse
-) extends SystemParticipant[HpRelevantData, ApparentPowerAndHeat](
+    thermalGrid: ThermalGrid
+) extends SystemParticipant[
+      HpRelevantData,
+      ApparentPowerAndHeat
+    ](
       uuid,
       id,
       operationInterval,
@@ -76,16 +80,16 @@ final case class HpModel(
     * [[HpModel.calculateNextState]]. This state then is fed into the power
     * calculation logic by <i>hpData</i>.
     *
-    * @param hpData
+    * @param relevantData
     *   data of heat pump including state of the heat pump
     * @return
     *   active power
     */
   override protected def calculateActivePower(
-      hpData: HpRelevantData
+      relevantData: HpRelevantData
   ): Power = {
-    hpData.hpState = calculateNextState(hpData)
-    hpData.hpState.activePower
+    relevantData.hpState = calculateNextState(relevantData)
+    relevantData.hpState.activePower
   }
 
   /** "Calculate" the heat output of the heat pump. The hp's state is already
@@ -95,7 +99,7 @@ final case class HpModel(
     * @param tick
     *   Current simulation time for the calculation
     * @param data
-    *   Needed calculation relevant data
+    *   Relevant (external) data for calculation
     * @return
     *   The heat, that is produced in that instant
     */
@@ -121,27 +125,24 @@ final case class HpModel(
   }
 
   /** Depending on the input, this function decides whether the heat pump will
-    * run in the next state or not. As hysteresis is considered, four possible
-    * cases can be distinguished: <ul> <li>Case 1: Inner temperature is too high
-    * -> Heat pump should not run in next state <li>Case 2: Inner temperature is
-    * too low -> Heat pump should run in next state <li>Case 3: Heat pump is
-    * running and inner temperature is between boundaries -> Heat pump should
-    * run in next state (until over upper boundary) <li>Case 4: Heat pump is not
-    * running and inner temperature is between boundaries -> Heat pump should
-    * not run in next state (until below lower boundary) </ul>
+    * run in the next state or not. The heat pump is foreseen to operate in the
+    * next interval, if the thermal grid either has a demand that needs to be
+    * met or the heat pump currently is in operation and the grid is able to
+    * handle additional energy
     *
     * @return
     *   boolean defining if heat pump runs in next time step
     */
-  def operatesInNextState(hpData: HpRelevantData): Boolean = {
-    val isRunning = hpData.hpState.isRunning
-    val tooHigh =
-      thermalHouse.isInnerTemperatureTooHigh(hpData.hpState.innerTemperature)
-    val tooLow =
-      thermalHouse.isInnerTemperatureTooLow(hpData.hpState.innerTemperature)
-
-    tooLow || (isRunning && !tooLow && !tooHigh)
-  }
+  private def operatesInNextState(hpData: HpRelevantData): Boolean =
+    hpData match {
+      case HpRelevantData(hpState, currentTimeTick, ambientTemperature) =>
+        val demand = thermalGrid.energyDemand(
+          currentTimeTick,
+          ambientTemperature,
+          hpState.thermalGridState
+        )
+        demand.hasRequiredDemand || (hpState.isRunning && demand.hasAdditionalDemand)
+    }
 
   /** Calculate state depending on whether heat pump is needed or not. Also
     * calculate inner temperature change of thermal house and update its inner
@@ -159,23 +160,23 @@ final case class HpModel(
       if (isRunning)
         (pRated, pThermal * scalingFactor)
       else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
-
-    val duration: Time =
-      hpData.hpState.lastTimeTick.durationUntil(hpData.currentTimeTick)
-
-    val newInnerTemperature = thermalHouse.newInnerTemperature(
-      newThermalPower,
-      duration,
-      hpData.hpState.innerTemperature,
-      hpData.ambientTemperature
-    )
+    /* Push thermal energy to the thermal grid and get it's updated state in return */
+    val thermalGridState = hpData match {
+      case HpRelevantData(hpState, currentTimeTick, ambientTemperature) =>
+        thermalGrid.updateState(
+          currentTimeTick,
+          hpState.thermalGridState,
+          ambientTemperature,
+          newThermalPower
+        )
+    }
 
     HpState(
       isRunning,
       hpData.currentTimeTick,
       newActivePower,
       newThermalPower,
-      newInnerTemperature
+      thermalGridState._1
     )
   }
 }
@@ -189,7 +190,7 @@ case object HpModel {
       scaling: Double,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
-      thermalHouse: ThermalHouse
+      thermalGrid: ThermalGrid
   ): HpModel = {
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
@@ -222,7 +223,7 @@ case object HpModel {
           .getValue
           .doubleValue
       ),
-      thermalHouse
+      thermalGrid
     )
 
     model.enable()
@@ -241,15 +242,15 @@ case object HpModel {
     *   result active power
     * @param qDot
     *   result heat power
-    * @param innerTemperature
-    *   inner temperature of the thermal house
+    * @param thermalGridState
+    *   Currently applicable state of the thermal grid
     */
   final case class HpState(
       isRunning: Boolean,
       lastTimeTick: Long,
       activePower: Power,
       qDot: Power,
-      innerTemperature: Temperature
+      thermalGridState: ThermalGridState
   )
 
   /** Main data required for simulation/calculation, containing a [[HpState]]
@@ -278,9 +279,8 @@ case object HpModel {
     *   operation interval of the simulation
     * @param qControl
     *   (no usage)
-    * @param thermalHouse
-    *   thermal house defining transmission coefficient and heat energy storage
-    *   capacity
+    * @param thermalGrid
+    *   thermal grid, defining the behaviour of the connected sinks and storages
     * @return
     *   a ready-to-use [[HpModel]] with referenced electric parameters
     */
@@ -288,7 +288,7 @@ case object HpModel {
       hpInput: HpInput,
       operationInterval: OperationInterval,
       qControl: QControl,
-      thermalHouse: ThermalHouse
+      thermalGrid: ThermalGrid
   ): HpModel = {
     val model = new HpModel(
       hpInput.getUuid,
@@ -309,7 +309,7 @@ case object HpModel {
           .getValue
           .doubleValue
       ),
-      thermalHouse
+      thermalGrid
     )
 
     model.enable()
